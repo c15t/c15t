@@ -11,6 +11,7 @@ import { fromPromise } from 'xstate';
 
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
+import { forEachSequential } from '~/utils/for-each-sequential';
 
 import type { FileModification } from '../../types';
 import type { ExpandedTheme, UIStyle } from '../types';
@@ -185,21 +186,21 @@ export const fileGenerationActor = fromPromise<
 		];
 
 		// Backup existing files
-		for (const filePath of potentialFiles) {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			const exists = await fileExists(filePath);
-			if (exists) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const backup = await readFileForBackup(filePath);
-				if (backup !== null) {
-					filesModified.push({
-						backup,
-						path: filePath,
-						type: 'modified',
-					});
+		await forEachSequential(potentialFiles, {
+			run: async (filePath) => {
+				const exists = await fileExists(filePath);
+				if (exists) {
+					const backup = await readFileForBackup(filePath);
+					if (backup !== null) {
+						filesModified.push({
+							backup,
+							path: filePath,
+							type: 'modified',
+						});
+					}
 				}
-			}
-		}
+			},
+		});
 
 		// Generate files using existing utility
 		const generateResult = await generateFiles({
@@ -298,28 +299,30 @@ export const rollbackActor = fromPromise<RollbackOutput, RollbackInput>(
 		const errors: string[] = [];
 
 		// Delete created files
-		for (const filePath of filesCreated) {
-			try {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await fs.unlink(filePath);
-			} catch (error) {
-				errors.push(
-					`Failed to delete ${filePath}: ${error instanceof Error ? error.message : String(error)}`
-				);
-			}
-		}
+		await forEachSequential(filesCreated, {
+			run: async (filePath) => {
+				try {
+					await fs.unlink(filePath);
+				} catch (error) {
+					errors.push(
+						`Failed to delete ${filePath}: ${error instanceof Error ? error.message : String(error)}`
+					);
+				}
+			},
+		});
 
 		// Restore modified files
-		for (const mod of filesModified) {
-			try {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await fs.writeFile(mod.path, mod.backup, 'utf-8');
-			} catch (error) {
-				errors.push(
-					`Failed to restore ${mod.path}: ${error instanceof Error ? error.message : String(error)}`
-				);
-			}
-		}
+		await forEachSequential(filesModified, {
+			run: async (modification) => {
+				try {
+					await fs.writeFile(modification.path, modification.backup, 'utf-8');
+				} catch (error) {
+					errors.push(
+						`Failed to restore ${modification.path}: ${error instanceof Error ? error.message : String(error)}`
+					);
+				}
+			},
+		});
 
 		return {
 			errors,

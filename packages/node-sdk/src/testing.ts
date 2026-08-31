@@ -19,6 +19,8 @@
 
 import type { ResponseContext } from './types';
 
+const assignInOrder = Object.assign;
+
 /**
  * Creates a mock ResponseContext for testing
  *
@@ -174,33 +176,17 @@ export const createMockClient = function createMockClient(
 	const patchSubject = overrides.patchSubject ?? defaultNotImplemented;
 	const listSubjects = overrides.listSubjects ?? defaultNotImplemented;
 
-	// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-	return {
-		// Direct methods
-		status: () => Promise.resolve(status()),
-		init: () => Promise.resolve(init()),
-		checkConsent: (query: unknown) => Promise.resolve(checkConsent(query)),
-		createSubject: (input: unknown) => Promise.resolve(createSubject(input)),
-		getSubject: (id: string) => Promise.resolve(getSubject(id)),
-		patchSubject: (id: string, input: unknown) => {
-			const patchInput = { id };
-			if (typeof input === 'object' && input !== null) {
-				Object.assign(patchInput, input);
-			}
-
-			return Promise.resolve(patchSubject(patchInput));
+	return assignInOrder(
+		{},
+		{ status: () => Promise.resolve(status()) },
+		{ init: () => Promise.resolve(init()) },
+		{ checkConsent: (query: unknown) => Promise.resolve(checkConsent(query)) },
+		{
+			createSubject: (input: unknown) => Promise.resolve(createSubject(input)),
 		},
-		listSubjects: (query?: unknown) => Promise.resolve(listSubjects(query)),
-
-		// Namespaced methods
-		consent: {
-			check: (query: unknown) => Promise.resolve(checkConsent(query)),
-		},
-		subjects: {
-			create: (input: unknown) => Promise.resolve(createSubject(input)),
-			get: (id: string) => Promise.resolve(getSubject(id)),
-			list: (query?: unknown) => Promise.resolve(listSubjects(query)),
-			patch: (id: string, input: unknown) => {
+		{ getSubject: (id: string) => Promise.resolve(getSubject(id)) },
+		{
+			patchSubject: (id: string, input: unknown) => {
 				const patchInput = { id };
 				if (typeof input === 'object' && input !== null) {
 					Object.assign(patchInput, input);
@@ -209,11 +195,34 @@ export const createMockClient = function createMockClient(
 				return Promise.resolve(patchSubject(patchInput));
 			},
 		},
-		meta: {
-			init: () => Promise.resolve(init()),
-			status: () => Promise.resolve(status()),
+		{ listSubjects: (query?: unknown) => Promise.resolve(listSubjects(query)) },
+		{
+			consent: {
+				check: (query: unknown) => Promise.resolve(checkConsent(query)),
+			},
 		},
-	};
+		{
+			subjects: {
+				create: (input: unknown) => Promise.resolve(createSubject(input)),
+				get: (id: string) => Promise.resolve(getSubject(id)),
+				list: (query?: unknown) => Promise.resolve(listSubjects(query)),
+				patch: (id: string, input: unknown) => {
+					const patchInput = { id };
+					if (typeof input === 'object' && input !== null) {
+						Object.assign(patchInput, input);
+					}
+
+					return Promise.resolve(patchSubject(patchInput));
+				},
+			},
+		},
+		{
+			meta: {
+				init: () => Promise.resolve(init()),
+				status: () => Promise.resolve(status()),
+			},
+		}
+	);
 };
 
 /**

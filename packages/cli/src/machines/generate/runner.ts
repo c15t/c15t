@@ -213,13 +213,12 @@ export const runGenerateMachine = async function runGenerateMachine(
 
 	// Combine and subscribe
 	const combinedSubscriber = combineSubscribers(
-		...(subscribers as ((snapshot: {
+		...(subscribers as ((currentSnapshot: {
 			value: unknown;
 			context?: unknown;
 		}) => void)[])
 	);
-	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-	actor.subscribe((snapshot) => combinedSubscriber(snapshot));
+	actor.subscribe((currentSnapshot) => combinedSubscriber(currentSnapshot));
 
 	// Track start
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_STARTED, {

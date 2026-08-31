@@ -6,6 +6,8 @@ import { CustomClient } from '../custom';
 import { C15tClient } from '../hosted';
 import type { OfflineClient } from '../offline';
 
+const assignInOrder = Object.assign;
+
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
 
@@ -237,30 +239,31 @@ describe('Offline Client Browser Tests', () => {
 });
 
 describe('Custom Client Browser Tests', () => {
+	const customMode = 'custom';
 	// Real implementations for required handlers
 	const handlers = {
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		identifyUser: async () => ({
-			data: { success: true },
-			error: null,
-			ok: true,
-			response: null,
-		}),
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		init: async () => ({
-			data: {
-				branding: 'c15t',
-				jurisdiction: 'GDPR',
-				location: { countryCode: 'DE', regionCode: null },
-				translations: {
-					language: 'en',
-					translations: {},
+		identifyUser: () =>
+			Promise.resolve({
+				data: { success: true },
+				error: null,
+				ok: true,
+				response: null,
+			}),
+		init: () =>
+			Promise.resolve({
+				data: {
+					branding: 'c15t',
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: {
+						language: 'en',
+						translations: {},
+					},
 				},
-			},
-			error: null,
-			ok: true,
-			response: null,
-		}),
+				error: null,
+				ok: true,
+				response: null,
+			}),
 		setConsent: (options) => {
 			// Add consent data to localStorage to simulate real storage
 			try {
@@ -281,13 +284,13 @@ describe('Custom Client Browser Tests', () => {
 				response: null,
 			};
 		},
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		verifyConsent: async () => ({
-			data: { valid: true },
-			error: null,
-			ok: true,
-			response: null,
-		}),
+		verifyConsent: () =>
+			Promise.resolve({
+				data: { valid: true },
+				error: null,
+				ok: true,
+				response: null,
+			}),
 	};
 
 	beforeEach(() => {
@@ -301,12 +304,13 @@ describe('Custom Client Browser Tests', () => {
 
 	it('should use custom handlers in browser environment', async () => {
 		// Configure the client
-		// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-		const client = configureConsentManager({
-			mode: 'custom',
-			// @ts-expect-error Tests inject custom endpoint handlers.
-			endpointHandlers: handlers,
-		}) as CustomClient;
+		const client = configureConsentManager(
+			assignInOrder(
+				{ mode: customMode },
+				// @ts-expect-error Tests inject custom endpoint handlers.
+				{ endpointHandlers: handlers }
+			)
+		) as CustomClient;
 
 		// Call the API
 		const response = await client.init();
@@ -319,12 +323,13 @@ describe('Custom Client Browser Tests', () => {
 
 	it('should handle custom storage in browser', async () => {
 		// Configure the client
-		// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-		const client = configureConsentManager({
-			mode: 'custom',
-			// @ts-expect-error Tests inject custom endpoint handlers.
-			endpointHandlers: handlers,
-		}) as CustomClient;
+		const client = configureConsentManager(
+			assignInOrder(
+				{ mode: customMode },
+				// @ts-expect-error Tests inject custom endpoint handlers.
+				{ endpointHandlers: handlers }
+			)
+		) as CustomClient;
 
 		// Set consent data with custom handler
 		await client.setConsent({
@@ -361,13 +366,14 @@ describe('Custom Client Browser Tests', () => {
 		});
 
 		// Define a dynamic handler
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		const dynamicHandler = vi.fn().mockImplementation(async () => ({
-			data: { custom: true },
-			error: null,
-			ok: true,
-			response: null,
-		}));
+		const dynamicHandler = vi.fn().mockImplementation(() =>
+			Promise.resolve({
+				data: { custom: true },
+				error: null,
+				ok: true,
+				response: null,
+			})
+		);
 
 		// Register the dynamic handler
 		client.registerHandler('/custom-endpoint', dynamicHandler);

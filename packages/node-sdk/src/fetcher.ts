@@ -83,10 +83,8 @@ const delay = (ms: number): Promise<void> =>
  */
 const generateUUID = function generateUUID(): string {
 	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/gu, (c) => {
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		const r = (Math.random() * 16) | 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		const v = c === 'x' ? r : (r & 0x3) | 0x8;
+		const r = Math.floor(Math.random() * 16);
+		const v = c === 'x' ? r : (r % 4) + 8;
 		return v.toString(16);
 	});
 };
@@ -176,11 +174,191 @@ export const resolveUrl = function resolveUrl(
 	return `${cleanBase}/${cleanPath}`;
 };
 
+type AttemptOutcome<ResponseType> =
+	| { retry: true }
+	| { response: ResponseContext<ResponseType>; retry: false };
+
+const parseResponseData = async (
+	response: Response
+): Promise<{ data: unknown; parseError: unknown }> => {
+	try {
+		const contentType = response.headers.get('content-type');
+		if (
+			contentType?.includes('application/json') &&
+			response.status !== 204 &&
+			response.headers.get('content-length') !== '0'
+		) {
+			return { data: await response.json(), parseError: null };
+		}
+		return { data: null, parseError: null };
+	} catch (parseError) {
+		return { data: null, parseError };
+	}
+};
+
+const processApiError = <ResponseType, BodyType, QueryType>(
+	response: Response,
+	data: unknown,
+	requestMethod: string,
+	path: string,
+	durationMs: number,
+	context: FetcherContext,
+	options: FetchOptions<ResponseType, BodyType, QueryType> | undefined,
+	retryableStatusCodes: number[],
+	nonRetryableStatusCodes: number[],
+	attemptsMade: number,
+	maxRetries: number
+): AttemptOutcome<ResponseType> => {
+	const errorData = data as {
+		message?: string;
+		code?: string;
+		details?: Record<string, unknown> | null;
+	} | null;
+	const errorResponse = createResponseContext<ResponseType>(
+		false,
+		null,
+		{
+			code: errorData?.code || 'API_ERROR',
+			details: errorData?.details || null,
+			message:
+				errorData?.message || `Request failed with status ${response.status}`,
+			status: response.status,
+		},
+		response
+	);
+	const retry =
+		!nonRetryableStatusCodes.includes(response.status) &&
+		retryableStatusCodes.includes(response.status) &&
+		attemptsMade < maxRetries;
+	if (retry) {
+		return { retry: true };
+	}
+
+	debugLog(context.debug, requestMethod, path, durationMs, response.status);
+	options?.onError?.(errorResponse, path);
+	if (options?.throw) {
+		throw new Error(errorResponse.error?.message || 'Request failed');
+	}
+	return { response: errorResponse, retry: false };
+};
+
+const processResponse = async <ResponseType, BodyType, QueryType>(
+	response: Response,
+	requestMethod: string,
+	path: string,
+	durationMs: number,
+	context: FetcherContext,
+	options: FetchOptions<ResponseType, BodyType, QueryType> | undefined,
+	retryableStatusCodes: number[],
+	nonRetryableStatusCodes: number[],
+	attemptsMade: number,
+	maxRetries: number
+): Promise<AttemptOutcome<ResponseType>> => {
+	const { data, parseError } = await parseResponseData(response);
+	if (parseError) {
+		const errorResponse = createResponseContext<ResponseType>(
+			false,
+			null,
+			{
+				cause: parseError,
+				code: 'PARSE_ERROR',
+				message: 'Failed to parse response',
+				status: response.status,
+			},
+			response
+		);
+		options?.onError?.(errorResponse, path);
+		if (options?.throw) {
+			throw new Error('Failed to parse response');
+		}
+		return { response: errorResponse, retry: false };
+	}
+
+	if (response.ok) {
+		debugLog(context.debug, requestMethod, path, durationMs, response.status);
+		const successResponse = createResponseContext<ResponseType>(
+			true,
+			data as ResponseType,
+			null,
+			response
+		);
+		options?.onSuccess?.(successResponse);
+		return { response: successResponse, retry: false };
+	}
+
+	return processApiError(
+		response,
+		data,
+		requestMethod,
+		path,
+		durationMs,
+		context,
+		options,
+		retryableStatusCodes,
+		nonRetryableStatusCodes,
+		attemptsMade,
+		maxRetries
+	);
+};
+
+const processFetchError = <ResponseType, BodyType, QueryType>(
+	fetchError: unknown,
+	requestMethod: string,
+	path: string,
+	startTime: number,
+	timeoutMs: number,
+	context: FetcherContext,
+	options: FetchOptions<ResponseType, BodyType, QueryType> | undefined,
+	retryOnNetworkError: boolean,
+	attemptsMade: number,
+	maxRetries: number
+): AttemptOutcome<ResponseType> => {
+	if (
+		fetchError instanceof Error &&
+		fetchError.message === 'Failed to parse response'
+	) {
+		throw fetchError;
+	}
+	const isAbortError =
+		fetchError instanceof Error && fetchError.name === 'AbortError';
+	let message = String(fetchError);
+	if (fetchError instanceof Error) {
+		({ message } = fetchError);
+	}
+	if (isAbortError) {
+		message = `Request timed out after ${timeoutMs}ms`;
+	}
+	const errorResponse = createResponseContext<ResponseType>(
+		false,
+		null,
+		{
+			cause: fetchError,
+			code: isAbortError ? 'TIMEOUT' : 'NETWORK_ERROR',
+			message,
+			status: 0,
+		},
+		null
+	);
+	const retry =
+		!(fetchError instanceof Response) &&
+		retryOnNetworkError &&
+		attemptsMade < maxRetries;
+	if (retry) {
+		return { retry: true };
+	}
+
+	debugLog(context.debug, requestMethod, path, Date.now() - startTime, 'ERROR');
+	options?.onError?.(errorResponse, path);
+	if (options?.throw) {
+		throw fetchError;
+	}
+	return { response: errorResponse, retry: false };
+};
+
 /**
  * Makes an HTTP request with retry logic
  */
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
-export const fetcher = async function fetcher<
+export const fetcher = function fetcher<
 	ResponseType,
 	BodyType = unknown,
 	QueryType = unknown,
@@ -207,9 +385,8 @@ export const fetcher = async function fetcher<
 
 	let attemptsMade = 0;
 	let currentDelay = initialDelayMs;
-	let lastErrorResponse: ResponseContext<ResponseType> | null = null;
 
-	while (attemptsMade <= maxRetries) {
+	const executeAttempt = async (): Promise<ResponseContext<ResponseType>> => {
 		const requestId = generateUUID();
 
 		// Build URL with query parameters
@@ -217,13 +394,13 @@ export const fetcher = async function fetcher<
 		const url = new URL(resolvedUrl);
 
 		if (options?.query) {
-			for (const [key, value] of Object.entries(
-				options.query as Record<string, unknown>
-			)) {
-				if (value !== undefined && value !== null) {
-					url.searchParams.append(key, String(value));
+			Object.entries(options.query as Record<string, unknown>).forEach(
+				([key, value]) => {
+					if (value !== undefined && value !== null) {
+						url.searchParams.append(key, String(value));
+					}
 				}
-			}
+			);
 		}
 
 		// Set up timeout with AbortController
@@ -252,220 +429,58 @@ export const fetcher = async function fetcher<
 		}
 
 		const startTime = Date.now();
+		const requestMethod = requestOptions.method || 'GET';
 
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const response = await fetch(url.toString(), requestOptions);
 
 			// Clear timeout on successful response
 			if (timeoutId) {
 				clearTimeout(timeoutId);
 			}
-			const durationMs = Date.now() - startTime;
-
-			// Parse response
-			let data: unknown = null;
-			let parseError: unknown = null;
-
-			try {
-				const contentType = response.headers.get('content-type');
-				if (
-					contentType?.includes('application/json') &&
-					response.status !== 204 &&
-					response.headers.get('content-length') !== '0'
-				) {
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					data = await response.json();
-				} else if (response.status === 204) {
-					data = null;
-				}
-			} catch (err) {
-				parseError = err;
-			}
-
-			// Handle parse errors - No retry
-			if (parseError) {
-				const errorResponse = createResponseContext<ResponseType>(
-					false,
-					null,
-					{
-						cause: parseError,
-						code: 'PARSE_ERROR',
-						message: 'Failed to parse response',
-						status: response.status,
-					},
-					response
-				);
-
-				options?.onError?.(errorResponse, path);
-
-				if (options?.throw) {
-					throw new Error('Failed to parse response');
-				}
-				return errorResponse;
-			}
-
-			// Check success
-			const isSuccess = response.status >= 200 && response.status < 300;
-
-			if (isSuccess) {
-				debugLog(
-					context.debug,
-					requestOptions.method || 'GET',
-					path,
-					durationMs,
-					response.status
-				);
-
-				const successResponse = createResponseContext<ResponseType>(
-					true,
-					data as ResponseType,
-					null,
-					response
-				);
-
-				options?.onSuccess?.(successResponse);
-				return successResponse;
-			}
-
-			// Handle API errors
-			const errorData = data as {
-				message?: string;
-				code?: string;
-				details?: Record<string, unknown> | null;
-			} | null;
-
-			const errorResponse = createResponseContext<ResponseType>(
-				false,
-				null,
-				{
-					code: errorData?.code || 'API_ERROR',
-					details: errorData?.details || null,
-					message:
-						errorData?.message ||
-						`Request failed with status ${response.status}`,
-					status: response.status,
-				},
-				response
+			const outcome = await processResponse(
+				response,
+				requestMethod,
+				path,
+				Date.now() - startTime,
+				context,
+				options,
+				retryableStatusCodes,
+				nonRetryableStatusCodes,
+				attemptsMade,
+				maxRetries
 			);
-
-			lastErrorResponse = errorResponse;
-
-			// Check if we should retry
-			let shouldRetryThisRequest = false;
-
-			if (nonRetryableStatusCodes.includes(response.status)) {
-				shouldRetryThisRequest = false;
-			} else {
-				shouldRetryThisRequest = retryableStatusCodes.includes(response.status);
+			if (!outcome.retry) {
+				return outcome.response;
 			}
-
-			// Don't retry if max attempts reached
-			if (!shouldRetryThisRequest || attemptsMade >= maxRetries) {
-				debugLog(
-					context.debug,
-					requestOptions.method || 'GET',
-					path,
-					durationMs,
-					response.status
-				);
-
-				options?.onError?.(errorResponse, path);
-
-				if (options?.throw) {
-					throw new Error(errorResponse.error?.message || 'Request failed');
-				}
-				return errorResponse;
-			}
-
-			attemptsMade += 1;
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			await delay(currentDelay);
-			currentDelay *= backoffFactor;
 		} catch (fetchError) {
 			// Clear timeout on error
 			if (timeoutId) {
 				clearTimeout(timeoutId);
 			}
 
-			// Handle parse error thrown from above
-			if (
-				fetchError instanceof Error &&
-				fetchError.message === 'Failed to parse response'
-			) {
-				throw fetchError;
-			}
-
-			// Check if this is a timeout/abort error
-			const isAbortError =
-				fetchError instanceof Error && fetchError.name === 'AbortError';
-
-			const isNetworkError = !(fetchError instanceof Response);
-
-			const errorResponse = createResponseContext<ResponseType>(
-				false,
-				null,
-				{
-					cause: fetchError,
-					code: isAbortError ? 'TIMEOUT' : 'NETWORK_ERROR',
-					// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-					message: isAbortError
-						? `Request timed out after ${timeoutMs}ms`
-						: fetchError instanceof Error
-							? fetchError.message
-							: String(fetchError),
-					status: 0,
-				},
-				null
+			const outcome = processFetchError(
+				fetchError,
+				requestMethod,
+				path,
+				startTime,
+				timeoutMs,
+				context,
+				options,
+				retryOnNetworkError,
+				attemptsMade,
+				maxRetries
 			);
-
-			lastErrorResponse = errorResponse;
-
-			const shouldRetryThisRequest = isNetworkError && retryOnNetworkError;
-
-			if (!shouldRetryThisRequest || attemptsMade >= maxRetries) {
-				debugLog(
-					context.debug,
-					requestOptions.method || 'GET',
-					path,
-					Date.now() - startTime,
-					'ERROR'
-				);
-
-				options?.onError?.(errorResponse, path);
-
-				if (options?.throw) {
-					throw fetchError;
-				}
-				return errorResponse;
+			if (!outcome.retry) {
+				return outcome.response;
 			}
-
-			attemptsMade += 1;
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			await delay(currentDelay);
-			currentDelay *= backoffFactor;
 		}
-	}
 
-	// Max retries exceeded
-	const maxRetriesErrorResponse =
-		lastErrorResponse ||
-		createResponseContext<ResponseType>(
-			false,
-			null,
-			{
-				code: 'MAX_RETRIES_EXCEEDED',
-				message: `Request failed after ${maxRetries} retries`,
-				status: 0,
-			},
-			null
-		);
+		attemptsMade += 1;
+		await delay(currentDelay);
+		currentDelay *= backoffFactor;
+		return executeAttempt();
+	};
 
-	options?.onError?.(maxRetriesErrorResponse, path);
-
-	if (options?.throw) {
-		throw new Error(`Request failed after ${maxRetries} retries`);
-	}
-
-	return maxRetriesErrorResponse;
+	return executeAttempt();
 };

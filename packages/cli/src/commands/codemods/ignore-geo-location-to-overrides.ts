@@ -5,6 +5,8 @@ import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
+import { forEachSequential } from '../../utils/for-each-sequential';
+
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',
@@ -223,31 +225,32 @@ const collectSourceFiles = async function collectSourceFiles(
 	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
-		for (const entry of entries) {
-			if (entry.isSymbolicLink()) {
-				continue;
-			}
-
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
+		await forEachSequential(entries, {
+			run: async (entry) => {
+				if (entry.isSymbolicLink()) {
+					return;
 				}
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
 
-			if (!entry.isFile()) {
-				continue;
-			}
+				if (entry.isDirectory()) {
+					if (IGNORED_DIRS.has(entry.name)) {
+						return;
+					}
+					await walk(join(currentDir, entry.name));
+					return;
+				}
 
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
+				if (!entry.isFile()) {
+					return;
+				}
 
-			files.push(join(currentDir, entry.name));
-		}
+				const extension = extname(entry.name).toLowerCase();
+				if (!SUPPORTED_EXTENSIONS.has(extension)) {
+					return;
+				}
+
+				files.push(join(currentDir, entry.name));
+			},
+		});
 	};
 
 	await walk(rootDir);
@@ -279,35 +282,36 @@ export const runIgnoreGeoLocationToOverridesCodemod =
 		}[] = [];
 		const errors: { filePath: string; error: string }[] = [];
 
-		for (const filePath of filePaths) {
-			try {
-				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-				if (!sourceFile) {
-					continue;
-				}
+		await forEachSequential(filePaths, {
+			run: async (filePath) => {
+				try {
+					const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+					if (!sourceFile) {
+						return;
+					}
 
-				const result = transformSourceFile(sourceFile);
-				if (!result.changed) {
-					continue;
-				}
+					const result = transformSourceFile(sourceFile);
+					if (!result.changed) {
+						return;
+					}
 
-				changedFiles.push({
-					filePath,
-					operations: result.operations,
-					summaries: result.summaries,
-				});
+					changedFiles.push({
+						filePath,
+						operations: result.operations,
+						summaries: result.summaries,
+					});
 
-				if (!options.dryRun) {
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					await sourceFile.save();
+					if (!options.dryRun) {
+						await sourceFile.save();
+					}
+				} catch (error) {
+					errors.push({
+						error: error instanceof Error ? error.message : String(error),
+						filePath,
+					});
 				}
-			} catch (error) {
-				errors.push({
-					error: error instanceof Error ? error.message : String(error),
-					filePath,
-				});
-			}
-		}
+			},
+		});
 
 		return {
 			changedFiles,

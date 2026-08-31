@@ -240,10 +240,9 @@ export const createManifestTransport = function createManifestTransport(
 		? rememberDecision(options.initialInit, options.inputs)
 		: undefined;
 
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	const getManifest = async function getManifest(): Promise<ConsentManifest> {
+	const getManifest = function getManifest(): Promise<ConsentManifest> {
 		if (options.manifest) {
-			return options.manifest;
+			return Promise.resolve(options.manifest);
 		}
 		if (!manifestPromise) {
 			manifestPromise = (async () => {

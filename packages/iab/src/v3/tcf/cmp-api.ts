@@ -8,6 +8,7 @@
 
 import type { CMPApi, CMPApiConfig, GlobalVendorList } from '@c15t/core';
 
+import { forEachSequential } from '../../for-each-sequential';
 import { CMP_ID, CMP_VERSION } from './cmp-defaults';
 import { IAB_STORAGE_KEYS } from './constants';
 import type {
@@ -225,8 +226,7 @@ export const createCMPApi = function createCMPApi(
 	/**
 	 * Handles the 'getInAppTCData' command (alias for getTCData).
 	 */
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	const handleGetInAppTCData = async function handleGetInAppTCData(
+	const handleGetInAppTCData = function handleGetInAppTCData(
 		handler: TCFApiCallback<TCData>
 	): Promise<void> {
 		return handleGetTCData(handler);
@@ -275,11 +275,12 @@ export const createCMPApi = function createCMPApi(
 	const notifyEventListeners = async function notifyEventListeners(
 		eventStatus: EventStatus
 	): Promise<void> {
-		for (const [listenerId, listener] of eventListeners) {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			const tcData = await buildTCData(eventStatus, listenerId);
-			listener(tcData, true);
-		}
+		await forEachSequential(eventListeners, {
+			run: async ([listenerId, listener]) => {
+				const tcData = await buildTCData(eventStatus, listenerId);
+				listener(tcData, true);
+			},
+		});
 	};
 
 	const initializeAPI = function initializeAPI(): void {

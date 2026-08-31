@@ -101,7 +101,6 @@ const consentCategoriesFor = function consentCategoriesFor(
 const activeUIForComponent = function activeUIForComponent(
 	component: MountableComponent
 ): KernelActiveUI {
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
@@ -110,6 +109,8 @@ const activeUIForComponent = function activeUIForComponent(
 		case 'consent-banner':
 		case 'iab-consent-banner':
 			return 'banner';
+		default:
+			throw new DriverNotImplementedError('svelte', `mount(${component})`);
 	}
 };
 
@@ -297,14 +298,15 @@ const driver: TestDriver = {
 			},
 		};
 	},
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	async serverRender(_opts: MountOptions): Promise<string> {
+	serverRender(_opts: MountOptions): Promise<string> {
 		if (_opts.initMode) {
 			// Pending: see buildProviderOptions; SSR also needs an SSR-compiled
 			// fixture before this lifecycle contract can run for Svelte.
-			throw new DriverNotImplementedError(
-				'svelte',
-				`request lifecycle initMode (${_opts.initMode})`
+			return Promise.reject(
+				new DriverNotImplementedError(
+					'svelte',
+					`request lifecycle initMode (${_opts.initMode})`
+				)
 			);
 		}
 		// Svelte 5 dual-compiles components (client vs server output). This
@@ -315,7 +317,9 @@ const driver: TestDriver = {
 		// `resolve.conditions: ['svelte', 'node']` and an SSR-compiled
 		// fixture — tracked as follow-up. SvelteKit SSR in real apps is
 		// unaffected; this is a test-harness compilation constraint.
-		throw new DriverNotImplementedError('svelte', 'serverRender');
+		return Promise.reject(
+			new DriverNotImplementedError('svelte', 'serverRender')
+		);
 	},
 };
 

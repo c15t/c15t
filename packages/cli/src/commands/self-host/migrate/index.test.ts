@@ -17,42 +17,44 @@ import { migrate } from './index';
 
 const plan = vi.fn();
 const apply = vi.fn();
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-const dispose = vi.fn(async () => undefined);
+const dispose = vi.fn(() => Promise.resolve());
 const confirmApply = vi.fn();
 
 const dependencies = {
 	confirmApply,
 	createMigrator: vi.fn(() => ({ apply, dispose, plan })),
 	describePlan: vi.fn(),
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	ensureBackendConfig: vi.fn(async () => ({
-		dependencies: [],
-		path: '/abs/c15t-backend.config.ts',
-	})),
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	installDependencies: vi.fn(async () => undefined),
+	ensureBackendConfig: vi.fn(() =>
+		Promise.resolve({
+			dependencies: [],
+			path: '/abs/c15t-backend.config.ts',
+		})
+	),
+	installDependencies: vi.fn(() => Promise.resolve()),
 	isUpToDate: (report: { adoption: unknown[]; pending: unknown[] }) =>
 		report.adoption.length === 0 && report.pending.length === 0,
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	readDatabaseConfig: vi.fn(async () => ({
-		dialect: 'postgres',
-		url: 'postgres://localhost/c15t',
-	})),
+	readDatabaseConfig: vi.fn(() =>
+		Promise.resolve({
+			dialect: 'postgres',
+			url: 'postgres://localhost/c15t',
+		})
+	),
 };
 
 const DATABASE_CLASSIFICATION_KEY = 'shape';
+const assignInOrder = Object.assign;
 
-// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-const report = (over: Record<string, unknown> = {}) => ({
-	[DATABASE_CLASSIFICATION_KEY]: { _tag: 'Empty' },
-	adoption: ['Create "subject"'],
-	pending: ['2-hot-path-indexes'],
-	retained: [],
-	blocked: undefined,
-	applied: false,
-	...over,
-});
+const report = (over: Record<string, unknown> = {}) =>
+	assignInOrder(
+		{},
+		{ [DATABASE_CLASSIFICATION_KEY]: { _tag: 'Empty' } },
+		{ adoption: ['Create "subject"'] },
+		{ pending: ['2-hot-path-indexes'] },
+		{ retained: [] },
+		{ blocked: undefined },
+		{ applied: false },
+		over
+	);
 
 const createMockContext = function createMockContext() {
 	return {

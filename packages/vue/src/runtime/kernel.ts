@@ -8,6 +8,7 @@ import {
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
+	InitResponse,
 	KernelActiveUI,
 	KernelConfig,
 	KernelTransport,
@@ -272,8 +273,7 @@ const createVueHostedTransport = function createVueHostedTransport(
 
 	return {
 		identify: baseTransport.identify,
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		async init(ctx) {
+		init(ctx) {
 			const initHeaders = { ...headers };
 			if (ctx.overrides.language) {
 				initHeaders['accept-language'] = ctx.overrides.language;
@@ -295,7 +295,7 @@ const createVueHostedTransport = function createVueHostedTransport(
 					domain: config.domain,
 					fetch: config.customFetch,
 					headers: contextualHeaders,
-				}).init?.(ctx) ?? {}
+				}).init?.(ctx) ?? Promise.resolve<InitResponse>({})
 			);
 		},
 		save: baseTransport.save,

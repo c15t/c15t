@@ -386,7 +386,6 @@ const createBlockedRequestContent = function createBlockedRequestContent(
 
 	return [statsList, latestList];
 };
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 export const renderScriptsPanel = function renderScriptsPanel(
 	container: HTMLElement,
 	options: ScriptsPanelOptions
@@ -476,7 +475,7 @@ export const renderScriptsPanel = function renderScriptsPanel(
 			);
 		}
 
-		for (const script of filteredScripts) {
+		filteredScripts.forEach((script) => {
 			const scriptId = script.id;
 			const isLoaded = loadedScripts[scriptId] === true;
 			const scriptEvents = getScriptActivityEvents(events, scriptId);
@@ -615,7 +614,7 @@ export const renderScriptsPanel = function renderScriptsPanel(
 			});
 
 			scriptsList.appendChild(row);
-		}
+		});
 
 		const lastRow = scriptsList.lastElementChild as HTMLElement | null;
 		if (lastRow) {

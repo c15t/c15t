@@ -9,7 +9,6 @@
  * @packageDocumentation
  */
 
-/* oxlint-disable func-style -- Shared test helper declarations intentionally use hoisting. */
 import { vi } from 'vitest';
 
 import type {
@@ -58,49 +57,47 @@ export const createMockPurpose = function createMockPurpose(
 	};
 };
 
-/**
- * Creates all 11 IAB purposes.
- */
-export function createMockPurposes(): Record<number, GVLPurpose> {
+export const createMockPurposes = function createMockPurposes(): Record<
+	number,
+	GVLPurpose
+> {
 	const purposes: Record<number, GVLPurpose> = {};
 	for (let i = 1; i <= 11; i += 1) {
 		purposes[i] = createMockPurpose(i);
 	}
 	return purposes;
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Special Purpose Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates mock special purposes.
- */
-export function createMockSpecialPurposes(): Record<number, GVLPurpose> {
-	return {
-		1: {
-			description: 'Description for special purpose 1',
-			id: 1,
-			illustrations: ['Illustration for special purpose 1'],
-			name: 'Ensure security, prevent and detect fraud, and fix errors',
-		},
-		2: {
-			description: 'Description for special purpose 2',
-			id: 2,
-			illustrations: ['Illustration for special purpose 2'],
-			name: 'Deliver and present advertising and content',
-		},
+export const createMockSpecialPurposes =
+	function createMockSpecialPurposes(): Record<number, GVLPurpose> {
+		return {
+			1: {
+				description: 'Description for special purpose 1',
+				id: 1,
+				illustrations: ['Illustration for special purpose 1'],
+				name: 'Ensure security, prevent and detect fraud, and fix errors',
+			},
+			2: {
+				description: 'Description for special purpose 2',
+				id: 2,
+				illustrations: ['Illustration for special purpose 2'],
+				name: 'Deliver and present advertising and content',
+			},
+		};
 	};
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Feature Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates mock IAB features.
- */
-export function createMockFeatures(): Record<number, GVLFeature> {
+export const createMockFeatures = function createMockFeatures(): Record<
+	number,
+	GVLFeature
+> {
 	return {
 		1: {
 			description: 'Description for feature 1',
@@ -121,7 +118,7 @@ export function createMockFeatures(): Record<number, GVLFeature> {
 			name: 'Identify devices based on information transmitted automatically',
 		},
 	};
-}
+};
 
 /**
  * Creates mock special features.
@@ -175,10 +172,7 @@ export const createMockVendor = function createMockVendor(
 	};
 };
 
-/**
- * Creates multiple mock vendors.
- */
-export function createMockVendors(
+export const createMockVendors = function createMockVendors(
 	vendorIds: number[] = [1, 2, 10, 755]
 ): Record<number, GVLVendor> {
 	const vendors: Record<number, GVLVendor> = {};
@@ -186,7 +180,7 @@ export function createMockVendors(
 		vendors[id] = createMockVendor(id);
 	}
 	return vendors;
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stack Mock Factory
@@ -235,10 +229,7 @@ export const createMockStacks = function createMockStacks(): Record<
 // GVL Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a complete mock Global Vendor List.
- */
-export function createMockGVL(
+export const createMockGVL = function createMockGVL(
 	overrides?: Partial<GlobalVendorList>
 ): GlobalVendorList {
 	return {
@@ -254,16 +245,13 @@ export function createMockGVL(
 		vendors: createMockVendors(),
 		...overrides,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent State Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a mock TCF consent data object.
- */
-export function createMockTCFConsent(
+export const createMockTCFConsent = function createMockTCFConsent(
 	overrides?: Partial<TCFConsentData>
 ): TCFConsentData {
 	return {
@@ -301,7 +289,7 @@ export function createMockTCFConsent(
 		},
 		...overrides,
 	};
-}
+};
 
 /**
  * Creates a mock TCF consent data object with all consents granted.
@@ -330,10 +318,7 @@ export const createMockTCFConsentAllGranted =
 // Non-IAB Vendor Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a mock non-IAB vendor.
- */
-export function createMockNonIABVendor(
+export const createMockNonIABVendor = function createMockNonIABVendor(
 	id: string,
 	overrides?: Partial<NonIABVendor>
 ): NonIABVendor {
@@ -351,7 +336,7 @@ export function createMockNonIABVendor(
 		usesCookies: true,
 		...overrides,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Window Mock for __tcfapi
@@ -448,20 +433,18 @@ export const cleanupTCFApi = function cleanupTCFApi(): void {
 // Fetch Mock Helper
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a mock fetch response for GVL.
- */
-export function createMockFetchResponse(gvl: GlobalVendorList): Response {
+export const createMockFetchResponse = function createMockFetchResponse(
+	gvl: GlobalVendorList
+): Response {
 	return new Response(JSON.stringify(gvl), {
 		headers: { 'Content-Type': 'application/json' },
 		status: 200,
 	});
-}
+};
 
-/**
- * Sets up fetch mock for GVL requests.
- */
-export function setupFetchMock(gvl: GlobalVendorList = createMockGVL()): {
+export const setupFetchMock = function setupFetchMock(
+	gvl: GlobalVendorList = createMockGVL()
+): {
 	mockFetch: ReturnType<typeof vi.fn>;
 	cleanup: () => void;
 } {
@@ -476,16 +459,15 @@ export function setupFetchMock(gvl: GlobalVendorList = createMockGVL()): {
 		},
 		mockFetch,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Storage Mock Helper
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Sets up localStorage mock with initial data.
- */
-export function setupStorageMock(initialData?: Record<string, string>): {
+export const setupStorageMock = function setupStorageMock(
+	initialData?: Record<string, string>
+): {
 	storage: Map<string, string>;
 	cleanup: () => void;
 } {
@@ -534,7 +516,7 @@ export function setupStorageMock(initialData?: Record<string, string>): {
 		},
 		storage,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Publisher Restrictions Mock Factory
@@ -561,19 +543,17 @@ export interface PublisherRestriction {
 	vendorIds: number[];
 }
 
-/**
- * Creates a mock publisher restriction.
- */
-export function createMockPublisherRestriction(
-	overrides?: Partial<PublisherRestriction>
-): PublisherRestriction {
-	return {
-		purposeId: 2,
-		restrictionType: RestrictionType.NOT_ALLOWED,
-		vendorIds: [1, 2],
-		...overrides,
+export const createMockPublisherRestriction =
+	function createMockPublisherRestriction(
+		overrides?: Partial<PublisherRestriction>
+	): PublisherRestriction {
+		return {
+			purposeId: 2,
+			restrictionType: RestrictionType.NOT_ALLOWED,
+			vendorIds: [1, 2],
+			...overrides,
+		};
 	};
-}
 
 /**
  * Creates multiple publisher restrictions for testing.
@@ -780,56 +760,51 @@ export const simulateUserObjection = function simulateUserObjection(
 	return updated;
 };
 
-/**
- * Creates a GVL with vendors that have legitimate interest purposes.
- */
-export function createMockGVLWithLIVendors(): GlobalVendorList {
-	return createMockGVL({
-		vendors: {
-			1: createMockVendor(1, {
-				flexiblePurposes: [2],
-				legIntPurposes: [7, 8, 9],
-				purposes: [1, 2],
-			}),
-			10: createMockVendor(10, {
-				flexiblePurposes: [],
-				legIntPurposes: [2, 7, 9, 10],
-				purposes: [1],
-			}),
-			2: createMockVendor(2, {
-				flexiblePurposes: [],
-				legIntPurposes: [9, 10],
-				purposes: [1, 2, 3],
-			}),
-			755: createMockVendor(755, {
-				flexiblePurposes: [2, 7, 9, 10, 11],
-				legIntPurposes: [],
-				purposes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-			}),
-		},
-	});
-}
+export const createMockGVLWithLIVendors =
+	function createMockGVLWithLIVendors(): GlobalVendorList {
+		return createMockGVL({
+			vendors: {
+				1: createMockVendor(1, {
+					flexiblePurposes: [2],
+					legIntPurposes: [7, 8, 9],
+					purposes: [1, 2],
+				}),
+				10: createMockVendor(10, {
+					flexiblePurposes: [],
+					legIntPurposes: [2, 7, 9, 10],
+					purposes: [1],
+				}),
+				2: createMockVendor(2, {
+					flexiblePurposes: [],
+					legIntPurposes: [9, 10],
+					purposes: [1, 2, 3],
+				}),
+				755: createMockVendor(755, {
+					flexiblePurposes: [2, 7, 9, 10, 11],
+					legIntPurposes: [],
+					purposes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+				}),
+			},
+		});
+	};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TC String Assertion Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Asserts that a TC String contains an LI objection for a specific vendor.
- * This is a helper for use with decodeTCString.
- */
-export function assertTCStringHasLIObjection(
-	decoded: { vendorLegitimateInterests: Record<number, boolean> },
-	vendorId: number
-): void {
-	// LI objection means the vendor is NOT in the LI consent list
-	const hasLI = decoded.vendorLegitimateInterests[vendorId] === true;
-	if (hasLI) {
-		throw new Error(
-			`Expected vendor ${vendorId} to have LI objection, but LI is still granted`
-		);
-	}
-}
+export const assertTCStringHasLIObjection =
+	function assertTCStringHasLIObjection(
+		decoded: { vendorLegitimateInterests: Record<number, boolean> },
+		vendorId: number
+	): void {
+		// LI objection means the vendor is NOT in the LI consent list
+		const hasLI = decoded.vendorLegitimateInterests[vendorId] === true;
+		if (hasLI) {
+			throw new Error(
+				`Expected vendor ${vendorId} to have LI objection, but LI is still granted`
+			);
+		}
+	};
 
 /**
  * Asserts that a TC String contains consent for a specific purpose.

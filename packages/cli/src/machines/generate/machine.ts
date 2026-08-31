@@ -95,11 +95,10 @@ export const generateMachine = setup({
 		events: {} as GenerateMachineEvent,
 		input: {} as { cliContext: CliContext; modeArg?: StorageMode },
 	},
-	// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 }).createMachine({
+	context: ({ input }) => createInitialContext(input.cliContext, input.modeArg),
 	id: 'generate',
 	initial: 'idle',
-	context: ({ input }) => createInitialContext(input.cliContext, input.modeArg),
 
 	// Global cancel handler - can be triggered from any state
 	on: {
@@ -229,13 +228,12 @@ export const generateMachine = setup({
 						target: 'summary',
 					},
 				],
-				// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 				onError: {
-					// Don't cancel on install confirm error, just skip
-					target: 'summary',
 					actions: assign({
 						installConfirmed: false,
 					}),
+					// Don't cancel on install confirm error, just skip
+					target: 'summary',
 				},
 				src: 'installConfirm',
 			},

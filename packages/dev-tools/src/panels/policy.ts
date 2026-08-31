@@ -40,6 +40,12 @@ const buildTraceEntries = function buildTraceEntries(
 			: 'n/a';
 	const resolved = policyId ?? decision.policyId ?? 'unknown';
 	const matched = decision.matchedBy;
+	let countryResult = 'MISS';
+	if (matched === 'country') {
+		countryResult = `MATCH → ${resolved}`;
+	} else if (matched === 'region') {
+		countryResult = 'SKIPPED';
+	}
 
 	return [
 		{
@@ -47,13 +53,7 @@ const buildTraceEntries = function buildTraceEntries(
 			step: `region(${regionKey})`,
 		},
 		{
-			result:
-				// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-				matched === 'country'
-					? `MATCH → ${resolved}`
-					: matched === 'region'
-						? 'SKIPPED'
-						: 'MISS',
+			result: countryResult,
 			step: `country(${country})`,
 		},
 		{
@@ -224,39 +224,62 @@ const formatFingerprint = function formatFingerprint(
 	}
 	return `${fingerprint.slice(0, 8)}…${fingerprint.slice(-4)}`;
 };
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+
+const normalizeLayout = (
+	layout: SurfaceState['layout']
+): SurfaceState['layout'] => {
+	if (Array.isArray(layout) && layout.length === 0) {
+		return null;
+	}
+	return layout ?? null;
+};
+
+const surfaceValue = <Key extends keyof SurfaceState>(
+	policySurface: SurfaceState | undefined,
+	storeSurface: SurfaceState,
+	key: Key
+): SurfaceState[Key] => policySurface?.[key] ?? storeSurface[key];
+
+const hasSurfaceConfiguration = (
+	actions: string,
+	primary: SurfaceState['primaryActions'],
+	layout: SurfaceState['layout'],
+	direction: SurfaceState['direction'],
+	profile: SurfaceState['uiProfile'],
+	scrollLock: SurfaceState['scrollLock']
+): boolean =>
+	actions !== '—' ||
+	Boolean(primary?.length) ||
+	Boolean(layout) ||
+	Boolean(direction) ||
+	Boolean(profile) ||
+	scrollLock !== null;
 const buildSurfaceCards = function buildSurfaceCards(
 	prefix: string,
 	policySurface: SurfaceState | undefined,
 	storeSurface: SurfaceState
 ): HTMLElement[] {
-	const policyLayout =
-		Array.isArray(policySurface?.layout) && policySurface.layout.length === 0
-			? null
-			: (policySurface?.layout ?? null);
-	const storeLayout =
-		Array.isArray(storeSurface.layout) && storeSurface.layout.length === 0
-			? null
-			: (storeSurface.layout ?? null);
+	const policyLayout = normalizeLayout(policySurface?.layout);
+	const storeLayout = normalizeLayout(storeSurface.layout);
 	const actions = formatList(
-		policySurface?.allowedActions ?? storeSurface.allowedActions
+		surfaceValue(policySurface, storeSurface, 'allowedActions')
 	);
-	const primary =
-		policySurface?.primaryActions ?? storeSurface.primaryActions ?? null;
+	const primary = surfaceValue(policySurface, storeSurface, 'primaryActions');
 	const layout = policyLayout ?? storeLayout;
-	const direction = policySurface?.direction ?? storeSurface.direction ?? null;
-	const profile = policySurface?.uiProfile ?? storeSurface.uiProfile ?? null;
-	const scrollLock =
-		policySurface?.scrollLock ?? storeSurface.scrollLock ?? null;
+	const direction = surfaceValue(policySurface, storeSurface, 'direction');
+	const profile = surfaceValue(policySurface, storeSurface, 'uiProfile');
+	const scrollLock = surfaceValue(policySurface, storeSurface, 'scrollLock');
 
 	// Skip entirely if nothing is configured
 	if (
-		actions === '—' &&
-		(!primary || primary.length === 0) &&
-		!layout &&
-		!direction &&
-		!profile &&
-		scrollLock === null
+		!hasSurfaceConfiguration(
+			actions,
+			primary,
+			layout,
+			direction,
+			profile,
+			scrollLock
+		)
 	) {
 		return [];
 	}
@@ -316,7 +339,71 @@ const formatProofSummary = function formatProofSummary(
 	}
 	return parts.length > 0 ? parts.join(', ') : 'none';
 };
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+
+type PolicyInitData = NonNullable<ConsentStoreState['lastBannerFetchData']>;
+
+const firstDefined = <Value>(
+	primary: Value | undefined,
+	fallback: Value
+): Value => primary ?? fallback;
+
+const getPolicyPanelValues = (
+	activePolicy: PolicyInitData['policy'],
+	policyDecision: PolicyInitData['policyDecision'],
+	state: ConsentStoreState
+) => {
+	const consent = activePolicy?.consent;
+	const i18n = activePolicy?.i18n;
+	const ui = activePolicy?.ui;
+	return {
+		banner: ui?.banner,
+		categories: firstDefined(state.policyCategories, consent?.categories),
+		dialog: ui?.dialog,
+		expiryDays: consent?.expiryDays,
+		fingerprint: policyDecision?.fingerprint,
+		i18n: firstDefined(i18n?.messageProfile, firstDefined(i18n?.language, '—')),
+		id: firstDefined(
+			activePolicy?.id,
+			firstDefined(policyDecision?.policyId, '—')
+		),
+		model: activePolicy?.model,
+		preselectedCategories: consent?.preselectedCategories,
+		proof: activePolicy?.proof,
+		scopeMode: firstDefined(consent?.scopeMode, state.policyScopeMode),
+		traceId: firstDefined(activePolicy?.id, policyDecision?.policyId),
+		uiMode: ui?.mode,
+	};
+};
+
+const appendPolicySurfaceSection = (
+	container: HTMLElement,
+	values: ReturnType<typeof getPolicyPanelValues>,
+	state: ConsentStoreState
+): void => {
+	const { uiMode } = values;
+	if (!uiMode || uiMode === 'none') {
+		return;
+	}
+	const bannerCards = buildSurfaceCards(
+		'Banner',
+		values.banner,
+		state.policyBanner
+	);
+	const dialogCards = buildSurfaceCards(
+		'Dialog',
+		values.dialog,
+		state.policyDialog
+	);
+	if (bannerCards.length === 0 && dialogCards.length === 0) {
+		return;
+	}
+	container.appendChild(
+		createSection({
+			children: [createGrid(3, [...bannerCards, ...dialogCards])],
+			title: `UI · ${uiMode}`,
+		})
+	);
+};
 export const renderPolicyPanel = function renderPolicyPanel(
 	container: HTMLElement,
 	options: PolicyPanelOptions
@@ -333,6 +420,7 @@ export const renderPolicyPanel = function renderPolicyPanel(
 	const initData = state.lastBannerFetchData;
 	const activePolicy = initData?.policy;
 	const policyDecision = initData?.policyDecision;
+	const values = getPolicyPanelValues(activePolicy, policyDecision, state);
 	const initSource = formatInitSource(
 		state.initDataSource,
 		state.initDataSourceDetail
@@ -342,7 +430,7 @@ export const renderPolicyPanel = function renderPolicyPanel(
 	container.appendChild(
 		createMatchTraceSection({
 			policyDecision,
-			policyId: activePolicy?.id ?? policyDecision?.policyId,
+			policyId: values.traceId,
 		})
 	);
 
@@ -371,65 +459,29 @@ export const renderPolicyPanel = function renderPolicyPanel(
 		createSection({
 			children: [
 				createGrid(3, [
-					createCard('ID', activePolicy?.id ?? policyDecision?.policyId ?? '—'),
-					createCard('Model', getModelLabel(activePolicy?.model)),
-					createCard(
-						'Scope',
-						getScopeModeLabel(
-							activePolicy?.consent?.scopeMode ?? state.policyScopeMode
-						)
-					),
-					createCard(
-						'Categories',
-						formatList(
-							state.policyCategories ?? activePolicy?.consent?.categories
-						)
-					),
-					createCard(
-						'Preselected',
-						formatList(activePolicy?.consent?.preselectedCategories)
-					),
+					createCard('ID', values.id),
+					createCard('Model', getModelLabel(values.model)),
+					createCard('Scope', getScopeModeLabel(values.scopeMode)),
+					createCard('Categories', formatList(values.categories)),
+					createCard('Preselected', formatList(values.preselectedCategories)),
 					createCard(
 						'Expiry',
-						typeof activePolicy?.consent?.expiryDays === 'number'
-							? `${activePolicy.consent.expiryDays}d`
+						typeof values.expiryDays === 'number'
+							? `${values.expiryDays}d`
 							: '—'
 					),
 				]),
-				createHint(
-					`${initSource} · ${formatFingerprint(policyDecision?.fingerprint)}`
-				),
+				createHint(`${initSource} · ${formatFingerprint(values.fingerprint)}`),
 			],
 			title: 'Policy',
 		})
 	);
 
 	// UI surfaces — only if there's a UI mode set
-	const uiMode = activePolicy?.ui?.mode;
-	if (uiMode && uiMode !== 'none') {
-		const bannerCards = buildSurfaceCards(
-			'Banner',
-			activePolicy?.ui?.banner,
-			state.policyBanner
-		);
-		const dialogCards = buildSurfaceCards(
-			'Dialog',
-			activePolicy?.ui?.dialog,
-			state.policyDialog
-		);
-
-		if (bannerCards.length > 0 || dialogCards.length > 0) {
-			container.appendChild(
-				createSection({
-					children: [createGrid(3, [...bannerCards, ...dialogCards])],
-					title: `UI · ${uiMode}`,
-				})
-			);
-		}
-	}
+	appendPolicySurfaceSection(container, values, state);
 
 	// Proof & snapshot — compact row
-	const proofLabel = formatProofSummary(activePolicy?.proof);
+	const proofLabel = formatProofSummary(values.proof);
 	const snapshotLabel = initData?.policySnapshotToken ? 'present' : 'missing';
 	container.appendChild(
 		createSection({
@@ -437,12 +489,7 @@ export const renderPolicyPanel = function renderPolicyPanel(
 				createGrid(3, [
 					createCard('Proof', proofLabel),
 					createCard('Snapshot', snapshotLabel),
-					createCard(
-						'I18n',
-						activePolicy?.i18n?.messageProfile ??
-							activePolicy?.i18n?.language ??
-							'—'
-					),
+					createCard('I18n', values.i18n),
 				]),
 			],
 			title: 'Proof & Snapshot',

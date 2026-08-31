@@ -14,10 +14,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readDatabaseConfig } from './read-config';
 
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-const loadConfig = vi.fn(async () => ({
-	config: { database: { dialect: 'postgres', url: 'postgres://x/y' } },
-}));
+const loadConfig = vi.fn(() =>
+	Promise.resolve({
+		config: { database: { dialect: 'postgres', url: 'postgres://x/y' } },
+	})
+);
 const dependencies = {
 	loadConfig,
 };

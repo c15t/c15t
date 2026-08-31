@@ -86,36 +86,40 @@ interface Existing {
 }
 
 const fkKey = (table: string, column: string) => `${table}.${column}`;
+const assignInOrder = Object.assign;
 
 const observeExisting = Effect.fn('adopt.observe')(function* observeExisting() {
 	const sql = yield* SqlClient.SqlClient;
 
-	// oxlint-disable-next-line sort-keys -- Dialect order follows the compatibility report contract.
-	const columnRows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{ table_name: string; column_name: string }>`
+	const columnRows = yield* sql.onDialectOrElse(
+		assignInOrder(
+			{},
+			{
+				sqlite: () =>
+					sql<{ table_name: string; column_name: string }>`
 				select m.name as table_name, c.name as column_name
 				from sqlite_master m
 				join pragma_table_info(m.name) c
 				where m.type = 'table'
 			`,
-		// Aliased explicitly. MySQL returns `information_schema` labels
-		// uppercased (`TABLE_NAME`) whatever case the query used, so an
-		// unaliased projection reads back as `undefined` here — which looks
-		// exactly like an empty database, and would have adoption stamp a
-		// legacy MySQL schema as baseline without adding a single column.
-		mysql: () =>
-			sql<{ table_name: string; column_name: string }>`
+			},
+			{
+				mysql: () =>
+					sql<{ table_name: string; column_name: string }>`
 				select table_name as table_name, column_name as column_name
 				from information_schema.columns
 				where table_schema = database()
 			`,
-		orElse: () =>
-			sql<{ table_name: string; column_name: string }>`
+			},
+			{
+				orElse: () =>
+					sql<{ table_name: string; column_name: string }>`
 				select table_name, column_name from information_schema.columns
 				where table_schema = current_schema()
 			`,
-	});
+			}
+		)
+	);
 
 	const columns = new Map<string, Set<string>>();
 	for (const row of columnRows) {
@@ -126,32 +130,30 @@ const observeExisting = Effect.fn('adopt.observe')(function* observeExisting() {
 
 	// SQLite cannot add a foreign key to an existing table at all, so knowing
 	// which already exist matters for more than tidiness there.
-	// oxlint-disable-next-line sort-keys -- Dialect order follows the compatibility report contract.
 	const fkRows = yield* sql
 		.onDialectOrElse(
-			// oxlint-disable-next-line sort-keys -- Dialect order follows the compatibility report contract.
-			{
-				sqlite: () =>
-					sql<{ table_name: string; column_name: string }>`
+			assignInOrder(
+				{},
+				{
+					sqlite: () =>
+						sql<{ table_name: string; column_name: string }>`
 					select m.name as table_name, f."from" as column_name
 					from sqlite_master m join pragma_foreign_key_list(m.name) f
 					where m.type = 'table'
 				`,
-				mysql: () =>
-					sql<{ table_name: string; column_name: string }>`
+				},
+				{
+					mysql: () =>
+						sql<{ table_name: string; column_name: string }>`
 					select table_name as table_name, column_name as column_name
 					from information_schema.key_column_usage
 					where table_schema = database()
 						and referenced_table_name is not null
 				`,
-				// Scoped to the current schema. `pg_constraint` is database-wide, so
-				// without the namespace join a second c15t installation in another
-				// schema of the same database — which `database.schema` now makes a
-				// supported configuration — would look like foreign keys already
-				// present here. Adoption would then skip adding them *and* skip the
-				// orphan check that guards them.
-				orElse: () =>
-					sql<{ table_name: string; column_name: string }>`
+				},
+				{
+					orElse: () =>
+						sql<{ table_name: string; column_name: string }>`
 					select cl.relname as table_name, att.attname as column_name
 					from pg_constraint con
 					join pg_class cl on cl.oid = con.conrelid
@@ -160,7 +162,8 @@ const observeExisting = Effect.fn('adopt.observe')(function* observeExisting() {
 					join pg_attribute att on att.attrelid = con.conrelid and att.attnum = k.attnum
 					where con.contype = 'f' and ns.nspname = current_schema()
 				`,
-			}
+				}
+			)
 		)
 		.pipe(Effect.orElseSucceed(() => []));
 
@@ -208,13 +211,27 @@ const countUnmatchable = Effect.fn('adopt.countUnmatchable')(
 	}
 );
 
+const isForeignKeyResolvable = (
+	table: TableSpec,
+	foreignKey: ForeignKeySpec,
+	existing: Existing,
+	present: ReadonlySet<string>
+): boolean => {
+	const columnKnown =
+		present.has(foreignKey.column) ||
+		table.columns.some((column) => column.name === foreignKey.column);
+	const referenceKnown =
+		existing.tables.has(foreignKey.referencesTable) ||
+		TABLES.some((spec) => spec.name === foreignKey.referencesTable);
+	return columnKnown && referenceKnown;
+};
+
 /**
  * Works out what adoption would do, without doing any of it.
  *
  * Safe against production, and intended to be exactly what `--dry-run` prints.
  */
 export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
-	// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 	Effect.gen(function* plan() {
 		const classification = yield* classify;
 		const dialect = yield* Dialect.current.pipe(
@@ -287,13 +304,7 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				// after adoption classifies the database as Baseline and
 				// short-circuits — so `consent.runtimePolicyDecisionId` never got
 				// its foreign key at all, while a fresh install had it.
-				const columnKnown =
-					present.has(fk.column) ||
-					table.columns.some((column) => column.name === fk.column);
-				const referenceKnown =
-					existing.tables.has(fk.referencesTable) ||
-					TABLES.some((spec) => spec.name === fk.referencesTable);
-				if (!columnKnown || !referenceKnown) {
+				if (!isForeignKeyResolvable(table, fk, existing, present)) {
 					continue;
 				}
 
@@ -413,8 +424,7 @@ export interface ApplyOptions {
  * Word boundaries matter: a column legitimately named `dropdown` must not trip
  * it, and does not.
  */
-// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-const DESTRUCTIVE = /\b(drop|truncate)\b|\bdelete\s+from\b/iu;
+const DESTRUCTIVE = /\b(?:drop|truncate)\b|\bdelete\s+from\b/iu;
 
 /** Applies a plan. Refuses a blocked one unless the blocker is opted out of. */
 export const apply = Effect.fn('adopt.apply')(function* apply(

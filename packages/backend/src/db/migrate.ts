@@ -43,6 +43,7 @@ import { up as indexesUp } from './migrations/2-hot-path-indexes';
 import { encodeRow, encoder } from './values';
 
 const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
+const assignInOrder = Object.assign;
 
 export interface Migration {
 	/** Ledger id. Ordered, and never reused once shipped. */
@@ -231,15 +232,14 @@ export const migrate = Effect.fn('db.migrate')(function* migrate(
 	const skippable =
 		adoption.orphans.length > 0 && options.skipForeignKeys === true;
 	if (adoption.blocked !== undefined && !skippable) {
-		// oxlint-disable-next-line sort-keys -- Computed classification key leads the migration report contract.
-		return {
-			[DATABASE_CLASSIFICATION_KEY]: classification,
-			adoption: [],
-			pending: [],
-			retained: adoption.retained,
-			blocked: adoption.blocked,
-			applied: false,
-		} satisfies MigrateReport;
+		return assignInOrder(
+			{ [DATABASE_CLASSIFICATION_KEY]: classification },
+			{ adoption: [] },
+			{ pending: [] },
+			{ retained: adoption.retained },
+			{ blocked: adoption.blocked },
+			{ applied: false }
+		) satisfies MigrateReport;
 	}
 
 	// Read before adopting: adoption stamps id 1, so asking afterwards would
@@ -253,15 +253,14 @@ export const migrate = Effect.fn('db.migrate')(function* migrate(
 	const adoptionSteps = adoption.steps.map((step) => step.description);
 
 	if (options.dryRun === true) {
-		// oxlint-disable-next-line sort-keys -- Computed classification key leads the migration report contract.
-		return {
-			[DATABASE_CLASSIFICATION_KEY]: classification,
-			adoption: adoptionSteps,
-			pending: pending.map((migration) => migration.name),
-			retained: adoption.retained,
-			blocked: undefined,
-			applied: false,
-		} satisfies MigrateReport;
+		return assignInOrder(
+			{ [DATABASE_CLASSIFICATION_KEY]: classification },
+			{ adoption: adoptionSteps },
+			{ pending: pending.map((migration) => migration.name) },
+			{ retained: adoption.retained },
+			{ blocked: undefined },
+			{ applied: false }
+		) satisfies MigrateReport;
 	}
 
 	if (adoptionSteps.length > 0) {
@@ -273,13 +272,12 @@ export const migrate = Effect.fn('db.migrate')(function* migrate(
 		yield* stamp(migration);
 	}
 
-	// oxlint-disable-next-line sort-keys -- Computed classification key leads the migration report contract.
-	return {
-		[DATABASE_CLASSIFICATION_KEY]: classification,
-		adoption: adoptionSteps,
-		pending: pending.map((migration) => migration.name),
-		retained: adoption.retained,
-		blocked: undefined,
-		applied: true,
-	} satisfies MigrateReport;
+	return assignInOrder(
+		{ [DATABASE_CLASSIFICATION_KEY]: classification },
+		{ adoption: adoptionSteps },
+		{ pending: pending.map((migration) => migration.name) },
+		{ retained: adoption.retained },
+		{ blocked: undefined },
+		{ applied: true }
+	) satisfies MigrateReport;
 });

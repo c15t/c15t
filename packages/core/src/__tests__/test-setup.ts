@@ -9,7 +9,6 @@
  * @packageDocumentation
  */
 
-/* oxlint-disable func-style -- Shared test helper declarations intentionally use hoisting. */
 import { vi } from 'vitest';
 
 import type { ConsentInfo, ConsentState } from '../types';
@@ -112,10 +111,7 @@ export const setupLocalStorageMock = function setupLocalStorageMock(
 // Cookie Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a mock document.cookie implementation.
- */
-export function createMockCookies(): {
+export const createMockCookies = function createMockCookies(): {
 	cookies: Map<string, string>;
 	getCookieString: () => string;
 	cleanup: () => void;
@@ -134,7 +130,7 @@ export function createMockCookies(): {
 		cookies,
 		getCookieString,
 	};
-}
+};
 
 /**
  * Sets up document.cookie mock.
@@ -178,58 +174,47 @@ export const setupCookieMock = function setupCookieMock(): {
 // Consent State Fixtures
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a default consent state (all false except necessary).
- */
-// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-export function createDefaultConsentState(): ConsentState {
-	return {
-		experience: false,
-		functionality: false,
-		marketing: false,
-		measurement: false,
-		necessary: true,
+export const createDefaultConsentState =
+	function createDefaultConsentState(): ConsentState {
+		return {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		};
 	};
-}
 
-/**
- * Creates a consent state with all consents granted.
- */
-export function createAllGrantedConsentState(): ConsentState {
-	return {
-		experience: true,
-		functionality: true,
-		marketing: true,
-		measurement: true,
-		necessary: true,
+export const createAllGrantedConsentState =
+	function createAllGrantedConsentState(): ConsentState {
+		return {
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		};
 	};
-}
 
-/**
- * Creates a consent state with all consents denied (except necessary).
- */
-export function createAllDeniedConsentState(): ConsentState {
-	return {
-		experience: false,
-		functionality: false,
-		marketing: false,
-		measurement: false,
-		necessary: true,
+export const createAllDeniedConsentState =
+	function createAllDeniedConsentState(): ConsentState {
+		return {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		};
 	};
-}
 
-/**
- * Creates a custom consent state.
- */
-export function createConsentState(
+export const createConsentState = function createConsentState(
 	overrides?: Partial<ConsentState>
 ): ConsentState {
 	return {
 		...createDefaultConsentState(),
 		...overrides,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent Info Fixtures
@@ -344,10 +329,7 @@ export const createMockFetch = function createMockFetch(
 	});
 };
 
-/**
- * Sets up fetch mock globally.
- */
-export function setupFetchMock(
+export const setupFetchMock = function setupFetchMock(
 	responses?: { status: number; data: unknown }[]
 ) {
 	const mockFetch = createMockFetch(responses);
@@ -361,7 +343,7 @@ export function setupFetchMock(
 		},
 		mockFetch,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent Types
@@ -389,19 +371,21 @@ export const flushPromises = async function flushPromises(): Promise<void> {
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 };
 
-/**
- * Waits for a condition to be true.
- */
-export async function waitFor(
+export const waitFor = async function waitFor(
 	condition: () => boolean,
 	timeout = 1000
 ): Promise<void> {
 	const start = Date.now();
-	while (!condition()) {
+	const poll = async (): Promise<void> => {
+		if (condition()) {
+			return;
+		}
 		if (Date.now() - start > timeout) {
 			throw new Error('Timeout waiting for condition');
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Polling must wait between sequential condition checks.
 		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
-	}
-}
+		await poll();
+	};
+
+	await poll();
+};

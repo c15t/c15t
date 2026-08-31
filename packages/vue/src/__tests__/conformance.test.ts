@@ -371,28 +371,28 @@ const snapshotToStoredConsentForTest = function snapshotToStoredConsentForTest(
 };
 
 const mockFetch = function mockFetch(init: InitOutput): typeof fetch {
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	return vi.fn(async (input: RequestInfo | URL, request?: RequestInit) => {
+	return vi.fn((input: RequestInfo | URL, request?: RequestInit) => {
 		const url = String(input);
 		if (url.endsWith('/init')) {
-			return new Response(JSON.stringify(init), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
+			return Promise.resolve(
+				new Response(JSON.stringify(init), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				})
+			);
 		}
 		if (url.endsWith('/subjects')) {
 			const body = JSON.parse(String(request?.body ?? '{}')) as {
 				subjectId?: string;
 			};
-			return new Response(
-				JSON.stringify({ ok: true, subjectId: body.subjectId }),
-				{
+			return Promise.resolve(
+				new Response(JSON.stringify({ ok: true, subjectId: body.subjectId }), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
-				}
+				})
 			);
 		}
-		return new Response('not found', { status: 404 });
+		return Promise.resolve(new Response('not found', { status: 404 }));
 	}) as unknown as typeof fetch;
 };
 
@@ -553,9 +553,8 @@ const createLifecycleTransport = function createLifecycleTransport(
 		return {
 			resolve: undefined,
 			transport: {
-				// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-				async init() {
-					throw new Error('conformance: init failed');
+				init() {
+					return Promise.reject(new Error('conformance: init failed'));
 				},
 			},
 		};
@@ -567,18 +566,15 @@ const createLifecycleTransport = function createLifecycleTransport(
 	return {
 		resolve: undefined,
 		transport: {
-			// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-			async init() {
-				// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-				return {
-					location: init.location,
-					translations: init.translations,
-					// InitOutput branding includes 'none'; InitResponse does not.
+			init() {
+				return Promise.resolve({
 					branding: init.branding === 'none' ? undefined : init.branding,
+					location: init.location,
 					policy: init.policy,
 					policyDecision: init.policyDecision,
 					policySnapshotToken: init.policySnapshotToken,
-				};
+					translations: init.translations,
+				});
 			},
 		},
 	};

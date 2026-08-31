@@ -6,6 +6,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { forEachSequential } from '../../for-each-sequential';
 import { createCMPApi } from '../../tcf/cmp-api';
 import { clearGVLCache, fetchGVL } from '../../tcf/fetch-gvl';
 import type { GlobalVendorList } from '../../tcf/iab-tcf-types';
@@ -106,8 +107,7 @@ describe('IAB TCF Integration', () => {
 			});
 		});
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		it('should restore consent from storage on page reload', async () => {
+		it('should restore consent from storage on page reload', () => {
 			// Save consent
 			const savedTcString = 'saved-tc-string-for-reload';
 			cmpApi.saveToStorage(savedTcString);
@@ -322,16 +322,17 @@ describe('IAB TCF Integration', () => {
 		it('should handle all standard commands', async () => {
 			const commands = ['ping', 'getTCData', 'getVendorList'] as const;
 
-			for (const command of commands) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await createVoidCallbackPromise((resolve) => {
-					window.__tcfapi?.(command, 2, (data, success) => {
-						expect(success).toBe(true);
-						expect(data).toBeDefined();
-						resolve();
+			await forEachSequential(commands, {
+				run: async (command) => {
+					await createVoidCallbackPromise((resolve) => {
+						window.__tcfapi?.(command, 2, (data, success) => {
+							expect(success).toBe(true);
+							expect(data).toBeDefined();
+							resolve();
+						});
 					});
-				});
-			}
+				},
+			});
 		});
 
 		it('should handle getInAppTCData as alias for getTCData', async () => {

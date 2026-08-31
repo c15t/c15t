@@ -185,7 +185,9 @@ const getStageResult = function getStageResult(
 	return 'completed';
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const optionalLength = (values: readonly unknown[] | undefined): number =>
+	values?.length ?? 0;
+
 const buildGenerateStageTelemetry = function buildGenerateStageTelemetry(
 	fromState: string,
 	toState: string,
@@ -193,21 +195,39 @@ const buildGenerateStageTelemetry = function buildGenerateStageTelemetry(
 	snapshot: MachineSnapshot
 ) {
 	const context = getGenerateContext(snapshot);
+	if (!context) {
+		return {
+			dependencyCount: 0,
+			durationMs,
+			errorsCount: 0,
+			filesCreatedCount: 0,
+			filesModifiedCount: 0,
+			hostedProvider: undefined,
+			installAttempted: undefined,
+			installConfirmed: undefined,
+			installSucceeded: undefined,
+			nextStage: normalizeGenerateStageName(toState),
+			reason: getStageReason(fromState, toState, context),
+			result: getStageResult(fromState, toState, context),
+			selectedMode: undefined,
+			stage: normalizeGenerateStageName(fromState),
+		};
+	}
 
 	return {
-		dependencyCount: context?.dependenciesToAdd?.length ?? 0,
+		dependencyCount: optionalLength(context.dependenciesToAdd),
 		durationMs,
-		errorsCount: context?.errors?.length ?? 0,
-		filesCreatedCount: context?.filesCreated?.length ?? 0,
-		filesModifiedCount: context?.filesModified?.length ?? 0,
-		hostedProvider: context?.hostedProvider ?? undefined,
-		installAttempted: context?.installAttempted ?? undefined,
-		installConfirmed: context?.installConfirmed ?? undefined,
-		installSucceeded: context?.installSucceeded ?? undefined,
+		errorsCount: optionalLength(context.errors),
+		filesCreatedCount: optionalLength(context.filesCreated),
+		filesModifiedCount: optionalLength(context.filesModified),
+		hostedProvider: context.hostedProvider,
+		installAttempted: context.installAttempted,
+		installConfirmed: context.installConfirmed,
+		installSucceeded: context.installSucceeded,
 		nextStage: normalizeGenerateStageName(toState),
 		reason: getStageReason(fromState, toState, context),
 		result: getStageResult(fromState, toState, context),
-		selectedMode: context?.selectedMode ?? undefined,
+		selectedMode: context.selectedMode,
 		stage: normalizeGenerateStageName(fromState),
 	};
 };

@@ -64,11 +64,50 @@ export interface Consent {
 	};
 }
 
+const policyIncludesCategory = (
+	init: InitOutput,
+	category: CONSENT_CATEGORY
+): boolean => {
+	const categories = init.policy?.consent?.categories;
+	if (!categories?.length || categories.includes('*')) {
+		return true;
+	}
+	return categories.includes(category);
+};
+
+const shouldGrantCategory = (
+	category: CONSENT_CATEGORY,
+	consent: Consent,
+	init: InitOutput,
+	gpc?: boolean
+): boolean => {
+	if (category === 'necessary') {
+		return true;
+	}
+	const choice = consent.categories[category];
+	if (choice !== undefined) {
+		return choice;
+	}
+	if (
+		!policyIncludesCategory(init, category) &&
+		init.policy?.consent?.scopeMode === 'strict'
+	) {
+		return false;
+	}
+
+	const modelGrantsByDefault = ['opt-out', 'none'].includes(
+		init.policy?.model ?? ''
+	);
+	const isTracking = ['marketing', 'measurement'].includes(category);
+	const gpcBlocksCategory =
+		gpc === true && init.policy?.consent?.gpc === true && isTracking;
+	return modelGrantsByDefault && !gpcBlocksCategory;
+};
+
 /**
  * Projects the subject's stored decisions onto the categories the active policy
  * actually governs, returning the categories that are effectively granted.
  */
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 export const interpretStoredConsent = function interpretStoredConsent(
 	consent: Consent,
 	init: InitOutput,
@@ -76,31 +115,7 @@ export const interpretStoredConsent = function interpretStoredConsent(
 ): CONSENT_CATEGORY[] {
 	const granted = new Set<CONSENT_CATEGORY>(['necessary']);
 	for (const category of CONSENT_CATEGORIES) {
-		if (category === 'necessary') {
-			continue;
-		}
-		const choice = consent.categories[category];
-		if (choice === false) {
-			continue;
-		}
-		if (choice === true) {
-			granted.add(category);
-			continue;
-		}
-		const outOfScope =
-			Boolean(init.policy?.consent?.categories?.length) &&
-			!init.policy?.consent?.categories?.includes('*') &&
-			!init.policy?.consent?.categories?.includes(category);
-		if (outOfScope && init.policy?.consent?.scopeMode === 'strict') {
-			continue;
-		}
-
-		// Silence: model default; GPC opts out tracking.
-		const isTracking = category === 'marketing' || category === 'measurement';
-		if (
-			(init.policy?.model === 'opt-out' || init.policy?.model === 'none') &&
-			!(gpc && init.policy?.consent?.gpc === true && isTracking)
-		) {
+		if (shouldGrantCategory(category, consent, init, gpc)) {
 			granted.add(category);
 		}
 	}

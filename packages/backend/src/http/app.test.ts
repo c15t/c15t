@@ -49,8 +49,7 @@ for (const engine of ENGINES) {
 
 	const seed = () =>
 		runtime.runPromise(
-			// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-			Effect.gen(function* seed() {
+			Effect.gen(function* seedDatabase() {
 				const sql = yield* SqlClient.SqlClient;
 				// Through the encoder, quoted by the dialect: SQLite binds neither a
 				// Date nor a boolean, and MySQL rejects double-quoted identifiers.

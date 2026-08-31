@@ -22,6 +22,7 @@ import type { Browser, Response } from 'playwright';
 
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
 import { evaluateDeniedConsentProbe } from './denied-consent';
+import { forEachSequential } from './for-each-sequential';
 import { failedPhases } from './report';
 import type {
 	LiveProbeCheckResult,
@@ -533,8 +534,7 @@ const probeVendorAttempt = async function probeVendorAttempt(
 				ok: false,
 			};
 
-			for (;;) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+			const pollRuntime = async (): Promise<void> => {
 				runtime = await page.evaluate<LiveProbeCheckResult, string>(
 					(vendor) => {
 						const harness = (globalThis as unknown as ProbeWindow)
@@ -548,12 +548,13 @@ const probeVendorAttempt = async function probeVendorAttempt(
 				);
 
 				if (runtime.ok || Date.now() >= deadline) {
-					break;
+					return;
 				}
 
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await page.waitForTimeout(RUNTIME_POLL_MS);
-			}
+				await pollRuntime();
+			};
+			await pollRuntime();
 
 			phases.runtime = runtime;
 		}
@@ -621,20 +622,22 @@ const probeVendor = async function probeVendor(
 	let lastOutcome: ProbeAttemptOutcome | undefined;
 	let lastError: string | undefined;
 
-	for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+	const runAttempt = async (
+		attempt: number
+	): Promise<LiveVendorResult | undefined> => {
+		if (attempt > MAX_ATTEMPTS) {
+			return undefined;
+		}
 		if (attempt > 1) {
 			// Retries exist to absorb transient third-party failures; give the
 			// vendor endpoint a moment before hitting it again.
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await createDeferredPromise((resolve) =>
 				setTimeout(resolve, RETRY_DELAY_MS)
 			);
 		}
 
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Vendor attempts intentionally run serially in one browser session.
 			lastOutcome = await probeVendorAttempt(
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				browser,
 				baseUrl,
 				config,
@@ -662,6 +665,13 @@ const probeVendor = async function probeVendor(
 				phases: lastOutcome?.phases ?? {},
 			};
 		}
+
+		return runAttempt(attempt + 1);
+	};
+
+	const successfulResult = await runAttempt(1);
+	if (successfulResult) {
+		return successfulResult;
 	}
 
 	return {
@@ -759,19 +769,16 @@ const main = async function main(): Promise<void> {
 	const results: LiveVendorResult[] = [];
 
 	try {
-		for (const config of configs) {
-			if (config.tier === 'skip') {
-				const result = buildSkippedResult(config);
+		await forEachSequential(configs, {
+			run: async (config) => {
+				const result =
+					config.tier === 'skip'
+						? buildSkippedResult(config)
+						: await probeVendor(browser, baseUrl, config);
 				results.push(result);
 				console.log(summarizeResult(result));
-				continue;
-			}
-
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			const result = await probeVendor(browser, baseUrl, config);
-			results.push(result);
-			console.log(summarizeResult(result));
-		}
+			},
+		});
 	} finally {
 		await browser.close();
 		server.stop(true);

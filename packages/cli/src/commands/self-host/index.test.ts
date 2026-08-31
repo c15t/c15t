@@ -8,8 +8,7 @@ const prompts = {
 	isCancel: vi.fn((value: unknown) => value === Symbol.for('CANCEL')),
 	select: vi.fn(),
 };
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-const migrate = vi.fn(async () => undefined);
+const migrate = vi.fn(() => Promise.resolve());
 const dependencies = {
 	...prompts,
 	migrate,

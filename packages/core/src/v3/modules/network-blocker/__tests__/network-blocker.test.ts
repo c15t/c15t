@@ -23,19 +23,31 @@ let fetchCalls: { input: RequestInfo | URL; init?: RequestInit }[] = [];
 class StubXMLHttpRequest {
 	onerror: ((e: unknown) => void) | null = null;
 	listeners = new Map<string, ((e: unknown) => void)[]>();
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
-	open(_method: string, _url: string) {}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
-	send(_body?: unknown) {}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
-	abort() {}
+	readyState = 0;
+	open(_method: string, _url: string) {
+		this.readyState = 1;
+	}
+	send(_body?: unknown) {
+		this.readyState = 2;
+	}
+	abort() {
+		this.readyState = 0;
+	}
 	addEventListener(event: string, handler: (e: unknown) => void) {
 		const bucket = this.listeners.get(event) ?? [];
 		bucket.push(handler);
 		this.listeners.set(event, bucket);
 	}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
-	removeEventListener() {}
+	removeEventListener(event: string, handler: (e: unknown) => void) {
+		const bucket = this.listeners.get(event);
+		if (!bucket) {
+			return;
+		}
+		this.listeners.set(
+			event,
+			bucket.filter((listener) => listener !== handler)
+		);
+	}
 	dispatchEvent(event: unknown) {
 		const type = (event as { type?: string })?.type;
 		if (type) {
@@ -155,7 +167,6 @@ describe('network-blocker: rule matching', () => {
 		createNetworkBlocker({
 			kernel,
 			rules: [
-				// oxlint-disable-next-line sort-keys -- Fixture preserves the v2 compatibility field order.
 				{
 					category: 'marketing',
 					domain: 'example.com',
@@ -313,15 +324,14 @@ describe('network-blocker: IAB evaluation when model="iab"', () => {
 			kernel,
 			logBlockedRequests: false,
 			rules: [
-				// oxlint-disable-next-line sort-keys -- Fixture preserves the v2 compatibility field order.
 				{
 					// @ts-expect-error: v2 NetworkBlockerRule doesn't currently
 					// expose vendorId directly; evaluateConsent handles it
 					// when passed through ConsentGate. We rely on structural
 					// typing of the shared has() helper for IAB rules.
-					vendorId: 755,
-					domain: 'example.com',
 					category: 'marketing',
+					domain: 'example.com',
+					vendorId: 755,
 				},
 			],
 		});

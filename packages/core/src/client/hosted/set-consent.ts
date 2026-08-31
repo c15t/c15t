@@ -131,14 +131,8 @@ export const setConsent = async function setConsent(
 	const response = await withFallback<
 		SetConsentResponse,
 		SetConsentRequestBody
-	>(
-		context,
-		API_ENDPOINTS.POST_SUBJECT,
-		'POST',
-		options,
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		async (fallbackOptions) =>
-			offlineFallbackForSetConsent(storageConfig, fallbackOptions)
+	>(context, API_ENDPOINTS.POST_SUBJECT, 'POST', options, (fallbackOptions) =>
+		offlineFallbackForSetConsent(storageConfig, fallbackOptions)
 	);
 
 	return response;

@@ -401,8 +401,7 @@ const createAction = async function createAction(
 /**
  * Main projects command (defaults to list)
  */
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-const projectsAction = async function projectsAction(
+const projectsAction = function projectsAction(
 	context: CliContext
 ): Promise<void> {
 	const { commandArgs } = context;

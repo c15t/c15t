@@ -77,8 +77,7 @@ describe('config-store', () => {
 			await saveConfig(config);
 
 			const saved = await fs.readFile(mockConfigPath, 'utf-8');
-			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-			const mode = (await fs.stat(mockConfigPath)).mode & 0o777;
+			const mode = (await fs.stat(mockConfigPath)).mode % 0o1000;
 			expect(saved).toContain('accessToken');
 			expect(mode).toBe(0o600);
 		});

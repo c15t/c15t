@@ -49,10 +49,8 @@ export const getIdentifySubjectId = function getIdentifySubjectId(
  */
 export const generateUUID = function generateUUID(): string {
 	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/gu, (c) => {
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		const r = (Math.random() * 16) | 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		const v = c === 'x' ? r : (r & 0x3) | 0x8;
+		const r = Math.floor(Math.random() * 16);
+		const v = c === 'x' ? r : (r % 4) + 8;
 		return v.toString(16);
 	});
 };

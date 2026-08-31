@@ -136,7 +136,6 @@ const mapPrivacyDialogCall = function mapPrivacyDialogCall(
 	return `${callee}(${uiArgument})`;
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): ActiveUiApiResult {
@@ -152,15 +151,15 @@ const transformSourceFile = function transformSourceFile(
 	const bindingElements = sourceFile.getDescendantsOfKind(
 		SyntaxKind.BindingElement
 	);
-	for (const element of bindingElements) {
+	bindingElements.forEach((element) => {
 		const propertyName = getBindingPropertyName(element);
 		if (!propertyName) {
-			continue;
+			return;
 		}
 
 		const localNameNode = element.getNameNode();
 		if (!Node.isIdentifier(localNameNode)) {
-			continue;
+			return;
 		}
 		const localName = localNameNode.getText();
 
@@ -185,7 +184,7 @@ const transformSourceFile = function transformSourceFile(
 
 			operations += 1;
 			summaries.push(`${propertyName} -> activeUI`);
-			continue;
+			return;
 		}
 
 		if (propertyName in LEGACY_SETTER_NAMES) {
@@ -209,12 +208,12 @@ const transformSourceFile = function transformSourceFile(
 			operations += 1;
 			summaries.push(`${propertyName} -> setActiveUI alias`);
 		}
-	}
+	});
 
 	const callExpressions = sourceFile.getDescendantsOfKind(
 		SyntaxKind.CallExpression
 	);
-	for (const callExpression of callExpressions) {
+	callExpressions.forEach((callExpression) => {
 		const expression = callExpression.getExpression();
 		const args = callExpression
 			.getArguments()
@@ -223,7 +222,7 @@ const transformSourceFile = function transformSourceFile(
 		if (Node.isPropertyAccessExpression(expression)) {
 			const methodName = expression.getName();
 			if (!(methodName in LEGACY_SETTER_NAMES)) {
-				continue;
+				return;
 			}
 
 			const receiver = expression.getExpression().getText();
@@ -240,17 +239,17 @@ const transformSourceFile = function transformSourceFile(
 
 			callExpression.replaceWithText(replacement);
 			operations += 1;
-			continue;
+			return;
 		}
 
 		if (!Node.isIdentifier(expression)) {
-			continue;
+			return;
 		}
 
 		const calleeName = expression.getText();
 		const aliasKind = setterAliases.get(calleeName);
 		if (!aliasKind) {
-			continue;
+			return;
 		}
 
 		if (aliasKind === 'setShowPopup') {
@@ -262,15 +261,15 @@ const transformSourceFile = function transformSourceFile(
 			summaries.push('setIsPrivacyDialogOpen alias call -> setActiveUI args');
 		}
 		operations += 1;
-	}
+	});
 
 	const propertyAccesses = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAccessExpression
 	);
-	for (const propertyAccess of propertyAccesses) {
+	propertyAccesses.forEach((propertyAccess) => {
 		const propertyName = propertyAccess.getName();
 		if (!(propertyName in BOOLEAN_STATE_PROPERTIES)) {
-			continue;
+			return;
 		}
 
 		const parent = propertyAccess.getParent();
@@ -278,7 +277,7 @@ const transformSourceFile = function transformSourceFile(
 			Node.isBinaryExpression(parent) &&
 			parent.getLeft() === propertyAccess
 		) {
-			continue;
+			return;
 		}
 
 		const receiver = propertyAccess.getExpression().getText();
@@ -291,37 +290,37 @@ const transformSourceFile = function transformSourceFile(
 		);
 		operations += 1;
 		summaries.push(`${propertyName} state check -> activeUI comparison`);
-	}
+	});
 
 	const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
-	for (const identifier of identifiers) {
+	identifiers.forEach((identifier) => {
 		if (identifier.wasForgotten()) {
-			continue;
+			return;
 		}
 
 		const identifierText = identifier.getText();
 		const aliasTarget = booleanAliases.get(identifierText);
 		if (!aliasTarget) {
-			continue;
+			return;
 		}
 
 		const parent = identifier.getParent();
 		if (Node.isBindingElement(parent) && parent.getNameNode() === identifier) {
-			continue;
+			return;
 		}
 
 		if (
 			Node.isPropertyAccessExpression(parent) &&
 			parent.getNameNode() === identifier
 		) {
-			continue;
+			return;
 		}
 
 		if (
 			Node.isPropertyAssignment(parent) &&
 			parent.getNameNode() === identifier
 		) {
-			continue;
+			return;
 		}
 
 		if (Node.isShorthandPropertyAssignment(parent)) {
@@ -329,13 +328,13 @@ const transformSourceFile = function transformSourceFile(
 			parent.replaceWithText(`${name}: (${name} === '${aliasTarget}')`);
 			operations += 1;
 			summaries.push(`${name} shorthand -> activeUI comparison`);
-			continue;
+			return;
 		}
 
 		identifier.replaceWithText(`(${identifierText} === '${aliasTarget}')`);
 		operations += 1;
 		summaries.push(`${identifierText} usage -> activeUI comparison`);
-	}
+	});
 
 	return {
 		changed: operations > 0,

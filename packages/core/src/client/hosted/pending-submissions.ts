@@ -5,6 +5,7 @@
  */
 
 import { getDebugLogger } from '../../libs/debug';
+import { forEachSequential } from '../../libs/for-each-sequential';
 import { sanitizeSubjectIdentifiers } from '../../libs/sanitize-subject-identifiers';
 import type {
 	IdentifyUserRequestBody,
@@ -88,55 +89,60 @@ export const processPendingConsentSubmissions =
 		const maxRetries = 3;
 		const remainingSubmissions = [...submissions];
 
-		for (let i = 0; i < maxRetries && remainingSubmissions.length > 0; i += 1) {
+		const retry = async (i: number): Promise<void> => {
+			if (i >= maxRetries || remainingSubmissions.length === 0) {
+				return;
+			}
 			// Try to send each pending submission
 			const successfulSubmissions: number[] = [];
 
-			for (let j = 0; j < remainingSubmissions.length; j += 1) {
-				const submission = remainingSubmissions[j];
-				if (!submission) {
-					continue;
-				}
+			await forEachSequential(remainingSubmissions.entries(), {
+				run: async ([j, submission]) => {
+					if (!submission) {
+						return;
+					}
 
-				try {
-					const { externalId: externalSubjectId, identityProvider } =
-						sanitizeSubjectIdentifiers({
-							externalId: submission.externalSubjectId,
-							identityProvider: submission.identityProvider,
+					try {
+						const { externalId: externalSubjectId, identityProvider } =
+							sanitizeSubjectIdentifiers({
+								externalId: submission.externalSubjectId,
+								identityProvider: submission.identityProvider,
+							});
+						const sanitizedSubmission: SetConsentRequestBody = {
+							...submission,
+						};
+
+						if (externalSubjectId) {
+							sanitizedSubmission.externalSubjectId = externalSubjectId;
+						} else {
+							delete sanitizedSubmission.externalSubjectId;
+						}
+						if (identityProvider) {
+							sanitizedSubmission.identityProvider = identityProvider;
+						} else {
+							delete sanitizedSubmission.identityProvider;
+						}
+
+						getDebugLogger().log('Retrying consent submission:', submission);
+
+						const response = await fetcher<
+							SetConsentResponse,
+							SetConsentRequestBody
+						>(context, API_ENDPOINTS.POST_SUBJECT, {
+							body: sanitizedSubmission,
+							method: 'POST',
 						});
-					const sanitizedSubmission: SetConsentRequestBody = { ...submission };
 
-					if (externalSubjectId) {
-						sanitizedSubmission.externalSubjectId = externalSubjectId;
-					} else {
-						delete sanitizedSubmission.externalSubjectId;
+						if (response.ok) {
+							getDebugLogger().log('Successfully resubmitted consent');
+							successfulSubmissions.push(j);
+						}
+					} catch (error) {
+						console.warn('Failed to resend consent submission:', error);
+						// Continue with the next submission
 					}
-					if (identityProvider) {
-						sanitizedSubmission.identityProvider = identityProvider;
-					} else {
-						delete sanitizedSubmission.identityProvider;
-					}
-
-					getDebugLogger().log('Retrying consent submission:', submission);
-
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const response = await fetcher<
-						SetConsentResponse,
-						SetConsentRequestBody
-					>(context, API_ENDPOINTS.POST_SUBJECT, {
-						body: sanitizedSubmission,
-						method: 'POST',
-					});
-
-					if (response.ok) {
-						getDebugLogger().log('Successfully resubmitted consent');
-						successfulSubmissions.push(j);
-					}
-				} catch (error) {
-					console.warn('Failed to resend consent submission:', error);
-					// Continue with the next submission
-				}
-			}
+				},
+			});
 
 			// Remove successful submissions from the list (in reverse order to not affect indices)
 			for (let k = successfulSubmissions.length - 1; k >= 0; k -= 1) {
@@ -148,17 +154,17 @@ export const processPendingConsentSubmissions =
 
 			// If we've processed all submissions, exit the loop
 			if (remainingSubmissions.length === 0) {
-				break;
+				return;
 			}
 
 			// Wait before retrying again
 			if (i < maxRetries - 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				// Increasing delay between retries
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await delay(1000 * (i + 1));
+				await retry(i + 1);
 			}
-		}
+		};
+		await retry(0);
 
 		// Update storage with remaining submissions (if any)
 		try {
@@ -244,64 +250,67 @@ export const processPendingIdentifySubmissions =
 		const maxRetries = 3;
 		const remainingSubmissions = [...submissions];
 
-		for (let i = 0; i < maxRetries && remainingSubmissions.length > 0; i += 1) {
+		const retry = async (i: number): Promise<void> => {
+			if (i >= maxRetries || remainingSubmissions.length === 0) {
+				return;
+			}
 			// Try to send each pending submission
 			const successfulSubmissions: number[] = [];
 
-			for (let j = 0; j < remainingSubmissions.length; j += 1) {
-				const submission = remainingSubmissions[j];
-				if (!submission) {
-					continue;
-				}
-
-				const subjectId = getIdentifySubjectId(submission);
-				if (!subjectId) {
-					console.warn(
-						'Dropping pending identify submission without a subject ID'
-					);
-					successfulSubmissions.push(j);
-					continue;
-				}
-				if (!submission.externalId) {
-					console.warn(
-						'Dropping pending identify submission without an externalId'
-					);
-					successfulSubmissions.push(j);
-					continue;
-				}
-
-				try {
-					getDebugLogger().log(
-						'Retrying identify user submission:',
-						submission
-					);
-
-					// Build the path with the subject ID
-					const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
-					const {
-						subjectId: _subjectId,
-						id: _legacySubjectId,
-						...patchBody
-					} = submission;
-
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const response = await fetcher<
-						IdentifyUserResponse,
-						typeof patchBody
-					>(context, path, {
-						body: patchBody,
-						method: 'PATCH',
-					});
-
-					if (response.ok) {
-						getDebugLogger().log('Successfully resubmitted identify user');
-						successfulSubmissions.push(j);
+			await forEachSequential(remainingSubmissions.entries(), {
+				run: async ([j, submission]) => {
+					if (!submission) {
+						return;
 					}
-				} catch (error) {
-					console.warn('Failed to resend identify user submission:', error);
-					// Continue with the next submission
-				}
-			}
+
+					const subjectId = getIdentifySubjectId(submission);
+					if (!subjectId) {
+						console.warn(
+							'Dropping pending identify submission without a subject ID'
+						);
+						successfulSubmissions.push(j);
+						return;
+					}
+					if (!submission.externalId) {
+						console.warn(
+							'Dropping pending identify submission without an externalId'
+						);
+						successfulSubmissions.push(j);
+						return;
+					}
+
+					try {
+						getDebugLogger().log(
+							'Retrying identify user submission:',
+							submission
+						);
+
+						// Build the path with the subject ID
+						const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
+						const {
+							subjectId: _subjectId,
+							id: _legacySubjectId,
+							...patchBody
+						} = submission;
+
+						const response = await fetcher<
+							IdentifyUserResponse,
+							typeof patchBody
+						>(context, path, {
+							body: patchBody,
+							method: 'PATCH',
+						});
+
+						if (response.ok) {
+							getDebugLogger().log('Successfully resubmitted identify user');
+							successfulSubmissions.push(j);
+						}
+					} catch (error) {
+						console.warn('Failed to resend identify user submission:', error);
+						// Continue with the next submission
+					}
+				},
+			});
 
 			// Remove successful submissions from the list (in reverse order to not affect indices)
 			for (let k = successfulSubmissions.length - 1; k >= 0; k -= 1) {
@@ -313,17 +322,17 @@ export const processPendingIdentifySubmissions =
 
 			// If we've processed all submissions, exit the loop
 			if (remainingSubmissions.length === 0) {
-				break;
+				return;
 			}
 
 			// Wait before retrying again
 			if (i < maxRetries - 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				// Increasing delay between retries
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await delay(1000 * (i + 1));
+				await retry(i + 1);
 			}
-		}
+		};
+		await retry(0);
 
 		// Update storage with remaining submissions (if any)
 		try {

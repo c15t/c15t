@@ -339,8 +339,7 @@ inspectBackendCache = (
 		}
 
 		headerDetail = `${headerName}=${headerValue}`;
-		// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/iu.test(
+		headerIndicatesHit = /\b(?:hit|stale|revalidated|updating)\b/iu.test(
 			headerValue
 		);
 		break;

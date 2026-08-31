@@ -46,8 +46,7 @@ const createStubApi = function createStubApi(): TCFApi {
 
 	const stub = ((
 		command: string,
-		// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-		version: number,
+		apiVersion: number,
 		handler: TCFApiCallback<unknown>,
 		parameter?: unknown
 	) => {
@@ -56,7 +55,12 @@ const createStubApi = function createStubApi(): TCFApi {
 			(handler as TCFApiCallback<PingData>)(createStubPingData(), true);
 		} else {
 			// Queue all other commands
-			queue.push([command, version, handler, parameter] as Parameters<TCFApi>);
+			queue.push([
+				command,
+				apiVersion,
+				handler,
+				parameter,
+			] as Parameters<TCFApi>);
 		}
 	}) as TCFApi;
 

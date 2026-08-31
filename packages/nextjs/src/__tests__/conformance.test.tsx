@@ -229,7 +229,6 @@ const consentCategoriesFor = function consentCategoriesFor(
 const activeUIForComponent = function activeUIForComponent(
 	component: MountableComponent
 ): 'banner' | 'dialog' {
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
@@ -239,6 +238,8 @@ const activeUIForComponent = function activeUIForComponent(
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
 			// @c15t/nextjs does not re-export the IAB components.
+			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
+		default:
 			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
 	}
 };
@@ -370,9 +371,8 @@ const lifecycleTransportFor = function lifecycleTransportFor(
 		return {
 			resolve: undefined,
 			transport: {
-				// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-				async init() {
-					throw new Error('conformance: init failed');
+				init() {
+					return Promise.reject(new Error('conformance: init failed'));
 				},
 			},
 		};
@@ -405,13 +405,14 @@ const waitForLazyComponent = async function waitForLazyComponent(
 		return;
 	}
 	const deadline = Date.now() + 5000;
-	while (Date.now() < deadline) {
-		if (document.querySelector(selector)) {
+	const poll = async (): Promise<void> => {
+		if (Date.now() >= deadline || document.querySelector(selector)) {
 			return;
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
-	}
+		await poll();
+	};
+	await poll();
 };
 
 /**
@@ -470,7 +471,6 @@ const componentFor = function componentFor(opts: MountOptions): ReactElement {
 			? providerOptions.trapFocus === true
 			: false;
 
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (opts.component) {
 		case 'consent-banner':
 			return (
@@ -499,6 +499,8 @@ const componentFor = function componentFor(opts: MountOptions): ReactElement {
 			return <ConsentWidget hideBranding />;
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
+			throw new DriverNotImplementedError('nextjs', `mount(${opts.component})`);
+		default:
 			throw new DriverNotImplementedError('nextjs', `mount(${opts.component})`);
 	}
 };
@@ -628,11 +630,12 @@ const driver: TestDriver = {
 			},
 		};
 	},
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	async serverRender(opts: MountOptions): Promise<string> {
+	serverRender(opts: MountOptions): Promise<string> {
 		const { config, options } = buildBoundaryProps(opts);
 		// Throwaway bridge: server render does not expose a live store.
-		return renderToString(renderTree(opts, config, options, createBridge()));
+		return Promise.resolve(
+			renderToString(renderTree(opts, config, options, createBridge()))
+		);
 	},
 };
 

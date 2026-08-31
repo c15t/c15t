@@ -57,8 +57,9 @@ describe('Telemetry', () => {
 		delete process.env.C15T_TELEMETRY_WRITE_KEY;
 		delete process.env.C15T_TELEMETRY_ORG_ID;
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+		fetchMock = vi.fn(() =>
+			Promise.resolve(new Response(null, { status: 204 }))
+		);
 		storageDir = await fs.mkdtemp(
 			path.join(os.tmpdir(), 'c15t-cli-telemetry-')
 		);
@@ -236,10 +237,9 @@ describe('Telemetry', () => {
 	});
 
 	it('queues dropped telemetry batches to disk and replays them later', async () => {
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		fetchMock.mockImplementation(async () => {
-			throw new Error('network down');
-		});
+		fetchMock.mockImplementation(() =>
+			Promise.reject(new Error('network down'))
+		);
 
 		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
 			attempt: 1,
@@ -254,8 +254,9 @@ describe('Telemetry', () => {
 		expect(queued).toHaveLength(1);
 		expect(queued[0]?.event).toBe(TelemetryEventName.CLI_INVOKED);
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		const replayFetch = vi.fn(async () => new Response(null, { status: 204 }));
+		const replayFetch = vi.fn(() =>
+			Promise.resolve(new Response(null, { status: 204 }))
+		);
 		const replayTelemetry = new Telemetry({
 			drainOptions: {
 				retry: {

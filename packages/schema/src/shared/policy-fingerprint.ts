@@ -45,23 +45,51 @@ const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 	]);
 
 	const bitLen = data.length * 8;
-	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-	const padLen = (((data.length + 9 + 63) >> 6) << 6) >>> 0;
+	const padLen = Math.ceil((data.length + 9) / 64) * 64;
 	const padded = new Uint8Array(padLen);
 	padded.set(data);
 	padded[data.length] = 0x80;
 	const view = new DataView(padded.buffer);
 	view.setUint32(padLen - 8, Math.floor(bitLen / 2 ** 32), false);
-	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-	view.setUint32(padLen - 4, bitLen >>> 0, false);
+	view.setUint32(padLen - 4, bitLen % 2 ** 32, false);
 
 	const H = new Uint32Array([
 		0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
 		0x1f83d9ab, 0x5be0cd19,
 	]);
 	const W = new Uint32Array(64);
-	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-	const r = (v: number, s: number) => (v >>> s) | (v << (32 - s));
+	const toUint32 = (value: number) => value % 2 ** 32;
+	const rightShift = (value: number, places: number) =>
+		Math.floor(value / 2 ** places);
+	const rotateRight = (value: number, places: number) =>
+		rightShift(value, places) + (value % 2 ** places) * 2 ** (32 - places);
+	const andWords = (left: number, right: number) => {
+		let result = 0;
+		for (let bit = 0; bit < 32; bit += 1) {
+			const place = 2 ** bit;
+			if (
+				Math.floor(left / place) % 2 === 1 &&
+				Math.floor(right / place) % 2 === 1
+			) {
+				result += place;
+			}
+		}
+		return result;
+	};
+	const xorWords = (...values: number[]) => {
+		let result = 0;
+		for (let bit = 0; bit < 32; bit += 1) {
+			const place = 2 ** bit;
+			const setBits = values.reduce(
+				(count, value) => count + (Math.floor(value / place) % 2),
+				0
+			);
+			if (setBits % 2 === 1) {
+				result += place;
+			}
+		}
+		return result;
+	};
 	const word = (array: Uint32Array, index: number) => {
 		const value = array[index];
 		if (value === undefined) {
@@ -77,12 +105,17 @@ const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 		for (let i = 16; i < 64; i += 1) {
 			const w15 = word(W, i - 15);
 			const w2 = word(W, i - 2);
-			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-			const s0 = r(w15, 7) ^ r(w15, 18) ^ (w15 >>> 3);
-			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-			const s1 = r(w2, 17) ^ r(w2, 19) ^ (w2 >>> 10);
-			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-			W[i] = (word(W, i - 16) + s0 + word(W, i - 7) + s1) >>> 0;
+			const s0 = xorWords(
+				rotateRight(w15, 7),
+				rotateRight(w15, 18),
+				rightShift(w15, 3)
+			);
+			const s1 = xorWords(
+				rotateRight(w2, 17),
+				rotateRight(w2, 19),
+				rightShift(w2, 10)
+			);
+			W[i] = toUint32(word(W, i - 16) + s0 + word(W, i - 7) + s1);
 		}
 		let a = word(H, 0);
 		let b = word(H, 1);
@@ -93,46 +126,34 @@ const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 		let g = word(H, 6);
 		let h = word(H, 7);
 		for (let i = 0; i < 64; i += 1) {
-			const t1 =
-				// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-				(h +
-					// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-					(r(e, 6) ^ r(e, 11) ^ r(e, 25)) +
-					// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-					((e & f) ^ (~e & g)) +
+			const t1 = toUint32(
+				h +
+					xorWords(rotateRight(e, 6), rotateRight(e, 11), rotateRight(e, 25)) +
+					xorWords(andWords(e, f), andWords(0xffff_ffff - e, g)) +
 					word(K, i) +
-					word(W, i)) >>>
-				0;
-			const t2 =
-				// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-				((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
+					word(W, i)
+			);
+			const t2 = toUint32(
+				xorWords(rotateRight(a, 2), rotateRight(a, 13), rotateRight(a, 22)) +
+					xorWords(andWords(a, b), andWords(a, c), andWords(b, c))
+			);
 			h = g;
 			g = f;
 			f = e;
-			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-			e = (d + t1) >>> 0;
+			e = toUint32(d + t1);
 			d = c;
 			c = b;
 			b = a;
-			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-			a = (t1 + t2) >>> 0;
+			a = toUint32(t1 + t2);
 		}
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[0] = (word(H, 0) + a) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[1] = (word(H, 1) + b) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[2] = (word(H, 2) + c) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[3] = (word(H, 3) + d) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[4] = (word(H, 4) + e) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[5] = (word(H, 5) + f) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[6] = (word(H, 6) + g) >>> 0;
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		H[7] = (word(H, 7) + h) >>> 0;
+		H[0] = toUint32(word(H, 0) + a);
+		H[1] = toUint32(word(H, 1) + b);
+		H[2] = toUint32(word(H, 2) + c);
+		H[3] = toUint32(word(H, 3) + d);
+		H[4] = toUint32(word(H, 4) + e);
+		H[5] = toUint32(word(H, 5) + f);
+		H[6] = toUint32(word(H, 6) + g);
+		H[7] = toUint32(word(H, 7) + h);
 	}
 
 	return Array.from(H)
@@ -160,15 +181,11 @@ export const createDeterministicFingerprintSync =
 	};
 
 export const createDeterministicFingerprint =
-	// oxlint-disable-next-line require-await -- Async signature preserves the public hashing contract.
-	async function createDeterministicFingerprint(
-		value: unknown
-	): Promise<string> {
+	function createDeterministicFingerprint(value: unknown): Promise<string> {
 		return hashSha256Hex(stableStringify(value));
 	};
 
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-export const createPolicyFingerprint = async function createPolicyFingerprint(
+export const createPolicyFingerprint = function createPolicyFingerprint(
 	policy: ResolvedPolicy
 ): Promise<string> {
 	return createDeterministicFingerprint(policy);
@@ -219,8 +236,7 @@ const createMaterialPolicyFingerprintInput =
 	};
 
 export const createMaterialPolicyFingerprint =
-	// oxlint-disable-next-line require-await -- Async signature preserves the public hashing contract.
-	async function createMaterialPolicyFingerprint(
+	function createMaterialPolicyFingerprint(
 		policy: ResolvedPolicy
 	): Promise<string> {
 		return createDeterministicFingerprint(

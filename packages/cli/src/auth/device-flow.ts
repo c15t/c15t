@@ -184,7 +184,11 @@ const parseJsonSafe = async function parseJsonSafe(
 	}
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const isDeviceCodeExpired = (
+	status: string | undefined,
+	responseStatus: number
+): boolean => status === 'expired' || responseStatus === 401;
+
 const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
 	response: Response,
 	payload: unknown
@@ -195,6 +199,7 @@ const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
 
 	const apiError = payload as ApiErrorPayload;
 	const errorCode = apiError.error?.code;
+	const message = apiError.error?.message;
 	const details =
 		apiError.error?.details && typeof apiError.error.details === 'object'
 			? (apiError.error.details as { status?: string })
@@ -204,7 +209,7 @@ const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
 	if (status === 'authorization_pending') {
 		return {
 			error: 'authorization_pending',
-			error_description: apiError.error?.message ?? 'Authorization pending',
+			error_description: message ?? 'Authorization pending',
 		};
 	}
 
@@ -212,29 +217,28 @@ const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
 		return {
 			error: 'access_denied',
 			error_description:
-				apiError.error?.message ??
-				'Device code already used. Start a new login flow.',
+				message ?? 'Device code already used. Start a new login flow.',
 		};
 	}
 
-	if (status === 'expired' || response.status === 401) {
+	if (isDeviceCodeExpired(status, response.status)) {
 		return {
 			error: 'expired_token',
-			error_description: apiError.error?.message ?? 'Device code expired',
+			error_description: message ?? 'Device code expired',
 		};
 	}
 
 	if (response.status === 409) {
 		return {
 			error: 'authorization_pending',
-			error_description: apiError.error?.message ?? 'Authorization pending',
+			error_description: message ?? 'Authorization pending',
 		};
 	}
 
 	if (errorCode === 'FORBIDDEN' || response.status === 403) {
 		return {
 			error: 'access_denied',
-			error_description: apiError.error?.message ?? 'Authorization denied',
+			error_description: message ?? 'Authorization denied',
 		};
 	}
 
@@ -329,8 +333,94 @@ export const initiateDeviceFlow = async function initiateDeviceFlow(
 const sleep = function sleep(ms: number): Promise<void> {
 	return createDeferredPromise((resolve) => setTimeout(resolve, ms));
 };
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
-export const pollForToken = async function pollForToken(
+
+type TokenPollResult =
+	| { kind: 'legacy' }
+	| { kind: 'pending' }
+	| { kind: 'slow-down' }
+	| { kind: 'token'; token: TokenResponse };
+
+const pollV1TokenEndpoint = async (
+	endpoint: string,
+	deviceCode: string
+): Promise<TokenPollResult> => {
+	const response = await fetch(endpoint, {
+		body: JSON.stringify({ deviceCode }),
+		headers: { 'Content-Type': 'application/json' },
+		method: 'POST',
+	});
+	const payload = await parseJsonSafe(response);
+	if (response.ok) {
+		const data = isApiSuccessPayload<TokenResponseV1>(payload)
+			? payload.data
+			: payload;
+		return { kind: 'token', token: normalizeTokenResponse(data) };
+	}
+	if (response.status === 404) {
+		return { kind: 'legacy' };
+	}
+
+	const mappedError = toDeviceFlowErrorFromV1(response, payload);
+	if (mappedError?.error === 'authorization_pending') {
+		return { kind: 'pending' };
+	}
+	if (mappedError?.error === 'expired_token') {
+		throw new CliError('DEVICE_FLOW_TIMEOUT', {
+			details: mappedError.error_description,
+		});
+	}
+	if (mappedError?.error === 'access_denied') {
+		throw new CliError('DEVICE_FLOW_DENIED', {
+			details: mappedError.error_description,
+		});
+	}
+
+	const apiError = payload as ApiErrorPayload | null;
+	throw new CliError('AUTH_FAILED', {
+		details: `Token request failed: ${response.status} ${apiError?.error?.message ?? 'Request failed'}`,
+	});
+};
+
+const pollLegacyTokenEndpoint = async (
+	endpoint: string,
+	deviceCode: string
+): Promise<TokenPollResult> => {
+	const response = await fetch(endpoint, {
+		body: new URLSearchParams({
+			client_id: 'c15t-cli',
+			device_code: deviceCode,
+			grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+		}),
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		method: 'POST',
+	});
+	const payload = await parseJsonSafe(response);
+	if (response.ok) {
+		return { kind: 'token', token: normalizeTokenResponse(payload) };
+	}
+
+	const error = payload as DeviceFlowError;
+	switch (error.error) {
+		case 'authorization_pending':
+			return { kind: 'pending' };
+		case 'slow_down':
+			return { kind: 'slow-down' };
+		case 'access_denied':
+			throw new CliError('DEVICE_FLOW_DENIED', {
+				details: error.error_description,
+			});
+		case 'expired_token':
+			throw new CliError('DEVICE_FLOW_TIMEOUT', {
+				details: 'The device code has expired',
+			});
+		default:
+			throw new CliError('AUTH_FAILED', {
+				details: error.error_description || `Unknown error: ${error.error}`,
+			});
+	}
+};
+
+export const pollForToken = function pollForToken(
 	baseUrl: string,
 	deviceCode: string,
 	interval: number = TIMEOUTS.DEVICE_FLOW_POLL_INTERVAL,
@@ -343,127 +433,46 @@ export const pollForToken = async function pollForToken(
 	let currentInterval = interval * 1000;
 	let useLegacyOAuthEndpoints = false;
 
-	while (Date.now() < expiryTime) {
-		// Wait for the interval
-		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+	const poll = async (): Promise<TokenResponse> => {
+		if (Date.now() >= expiryTime) {
+			throw new CliError('DEVICE_FLOW_TIMEOUT');
+		}
 		await sleep(currentInterval);
 
 		try {
-			// Prefer v1 control-plane token polling endpoint unless unavailable.
 			if (!useLegacyOAuthEndpoints) {
-				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const v1Response = await fetch(endpoints.deviceTokenV1Endpoint, {
-					body: JSON.stringify({ deviceCode }),
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					method: 'POST',
-				});
-
-				if (v1Response.ok) {
-					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-					const payload = await parseJsonSafe(v1Response);
-					const data = isApiSuccessPayload<TokenResponseV1>(payload)
-						? payload.data
-						: payload;
-					return normalizeTokenResponse(data);
+				const result = await pollV1TokenEndpoint(
+					endpoints.deviceTokenV1Endpoint,
+					deviceCode
+				);
+				if (result.kind === 'token') {
+					return result.token;
 				}
-
-				if (v1Response.status === 404) {
-					useLegacyOAuthEndpoints = true;
-				} else {
-					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-					const payload = await parseJsonSafe(v1Response);
-					const mappedError = toDeviceFlowErrorFromV1(v1Response, payload);
-
-					if (mappedError) {
-						// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
-						switch (mappedError.error) {
-							case 'authorization_pending':
-								continue;
-							case 'expired_token':
-								throw new CliError('DEVICE_FLOW_TIMEOUT', {
-									details: mappedError.error_description,
-								});
-							case 'access_denied':
-								throw new CliError('DEVICE_FLOW_DENIED', {
-									details: mappedError.error_description,
-								});
-						}
-					}
-
-					const message =
-						payload &&
-						typeof payload === 'object' &&
-						'error' in payload &&
-						(payload as ApiErrorPayload).error?.message
-							? (payload as ApiErrorPayload).error?.message
-							: 'Request failed';
-
-					throw new CliError('AUTH_FAILED', {
-						details: `Token request failed: ${v1Response.status} ${message}`,
-					});
+				if (result.kind === 'pending') {
+					return poll();
 				}
+				useLegacyOAuthEndpoints = true;
 			}
 
-			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const response = await fetch(endpoints.tokenEndpoint, {
-				body: new URLSearchParams({
-					client_id: 'c15t-cli',
-					device_code: deviceCode,
-					grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-				}),
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-				},
-				method: 'POST',
-			});
-
-			if (response.ok) {
-				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const payload = await parseJsonSafe(response);
-				const token = normalizeTokenResponse(payload);
-				return token;
+			const result = await pollLegacyTokenEndpoint(
+				endpoints.tokenEndpoint,
+				deviceCode
+			);
+			if (result.kind === 'token') {
+				return result.token;
 			}
-
-			// Check for known error codes
-			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const payload = await parseJsonSafe(response);
-			const error = payload as DeviceFlowError;
-
-			switch (error.error) {
-				case 'authorization_pending':
-					// User hasn't authorized yet, continue polling
-					continue;
-
-				case 'slow_down':
-					// Server is asking us to slow down, increase interval
-					currentInterval += 5000;
-					continue;
-
-				case 'access_denied':
-					throw new CliError('DEVICE_FLOW_DENIED', {
-						details: error.error_description,
-					});
-
-				case 'expired_token':
-					throw new CliError('DEVICE_FLOW_TIMEOUT', {
-						details: 'The device code has expired',
-					});
-
-				default:
-					throw new CliError('AUTH_FAILED', {
-						details: error.error_description || `Unknown error: ${error.error}`,
-					});
+			if (result.kind === 'slow-down') {
+				currentInterval += 5000;
 			}
 		} catch (error) {
 			if (error instanceof CliError) {
 				throw error;
 			}
 		}
-	}
+		return poll();
+	};
 
-	throw new CliError('DEVICE_FLOW_TIMEOUT');
+	return poll();
 };
 
 /**

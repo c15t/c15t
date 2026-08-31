@@ -42,14 +42,18 @@ export interface CodemodVersionMetadata {
 const parseVersion = function parseVersion(raw: string): ParsedVersion | null {
 	const match = raw
 		.trim()
-		// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-		.match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/u);
+		.match(
+			/^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:-(?<preRelease>[0-9A-Za-z.-]+))?$/u
+		);
 
 	if (!match) {
 		return null;
 	}
 
-	const [, majorPart, minorPart, patchPart, preReleasePart] = match;
+	const majorPart = match.groups?.major;
+	const minorPart = match.groups?.minor;
+	const patchPart = match.groups?.patch;
+	const preReleasePart = match.groups?.preRelease;
 	if (!majorPart || !minorPart || !patchPart) {
 		return null;
 	}
@@ -65,14 +69,14 @@ const parseVersion = function parseVersion(raw: string): ParsedVersion | null {
 const extractVersionFromSpecifier = function extractVersionFromSpecifier(
 	specifier: string
 ): string | null {
-	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-	const match = specifier.match(/(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/u);
+	const match = specifier.match(
+		/(?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/u
+	);
 	if (!match) {
 		return null;
 	}
 
-	const [, version] = match;
-	return version ?? null;
+	return match.groups?.version ?? null;
 };
 
 const isNumericSegment = function isNumericSegment(value: string): boolean {
@@ -163,14 +167,16 @@ const satisfiesComparator = function satisfiesComparator(
 ): boolean {
 	const match = comparator
 		.trim()
-		// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-		.match(/^(<=|>=|<|>|=)?\s*v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u);
+		.match(
+			/^(?<operator><=|>=|<|>|=)?\s*v?(?<target>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u
+		);
 
 	if (!match) {
 		return false;
 	}
 
-	const [, operatorRaw, target] = match;
+	const operatorRaw = match.groups?.operator;
+	const target = match.groups?.target;
 	if (!target) {
 		return false;
 	}

@@ -8,6 +8,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { forEachSequential } from '../../for-each-sequential';
 import { createCMPApi } from '../../tcf/cmp-api';
 import type { GlobalVendorList, TCData } from '../../tcf/iab-tcf-types';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
@@ -232,17 +233,22 @@ describe('Event System - IAB TCF 2.3', () => {
 		it('should assign unique listenerIds to each listener', async () => {
 			const listenerIds: number[] = [];
 
-			for (let i = 0; i < 5; i += 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await createVoidCallbackPromise((resolve) => {
-					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
-						if (tcData?.listenerId !== undefined) {
-							listenerIds.push(tcData.listenerId);
-						}
-						resolve();
+			await forEachSequential(Array.from({ length: 5 }), {
+				run: async () => {
+					await createVoidCallbackPromise((resolve) => {
+						window.__tcfapi?.(
+							'addEventListener',
+							2,
+							(tcData: TCData | null) => {
+								if (tcData?.listenerId !== undefined) {
+									listenerIds.push(tcData.listenerId);
+								}
+								resolve();
+							}
+						);
 					});
-				});
-			}
+				},
+			});
 
 			// All IDs should be unique
 			const uniqueIds = new Set(listenerIds);

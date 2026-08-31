@@ -480,7 +480,93 @@ const policyLabel = function policyLabel(
 	return `at index ${index}`;
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+type PolicySurface = NonNullable<NonNullable<PolicyConfig['ui']>['banner']>;
+
+const collectPrimaryActionErrors = (
+	surface: PolicySurface,
+	label: string,
+	surfaceName: 'banner' | 'dialog'
+): string[] => {
+	const allowed = surface.allowedActions;
+	const primary = surface.primaryActions;
+	if (!allowed?.length || !primary?.length) {
+		return [];
+	}
+	return primary
+		.filter((action) => !allowed.includes(action))
+		.map(
+			(action) =>
+				`Policy ${label} ui.${surfaceName}.primaryActions '${action}' is not in allowedActions [${allowed.join(', ')}].`
+		);
+};
+
+const collectLayoutErrors = (
+	surface: PolicySurface,
+	label: string,
+	surfaceName: 'banner' | 'dialog'
+): string[] => {
+	const { layout, allowedActions: allowed } = surface;
+	if (!layout) {
+		return [];
+	}
+
+	const errors: string[] = [];
+	const seen = new Set<PolicyUiAction>();
+	const effectiveActions = allowed
+		? new Set<PolicyUiAction>(allowed)
+		: undefined;
+	for (const group of layout) {
+		const actions = Array.isArray(group) ? group : [group];
+		if (actions.length === 0) {
+			errors.push(
+				`Policy ${label} ui.${surfaceName}.layout contains an empty action group.`
+			);
+			continue;
+		}
+		for (const action of actions) {
+			if (effectiveActions && !effectiveActions.has(action)) {
+				errors.push(
+					`Policy ${label} ui.${surfaceName}.layout contains '${action}' which is not in allowedActions [${allowed?.join(', ')}].`
+				);
+			}
+			if (seen.has(action)) {
+				errors.push(
+					`Policy ${label} ui.${surfaceName}.layout contains duplicate action '${action}'.`
+				);
+			}
+			seen.add(action);
+		}
+	}
+
+	if (allowed && seen.size !== allowed.length) {
+		const missing = allowed.filter((action) => !seen.has(action));
+		if (missing.length > 0) {
+			errors.push(
+				`Policy ${label} ui.${surfaceName}.layout must include every allowed action. Missing [${missing.join(', ')}].`
+			);
+		}
+	}
+	return errors;
+};
+
+const collectSurfaceErrors = (
+	policy: PolicyConfig,
+	label: string
+): string[] => {
+	const errors: string[] = [];
+	for (const surfaceName of ['banner', 'dialog'] as const) {
+		const surface = policy.ui?.[surfaceName];
+		if (!surface) {
+			continue;
+		}
+		errors.push(
+			...collectPrimaryActionErrors(surface, label, surfaceName),
+			...collectLayoutErrors(surface, label, surfaceName)
+		);
+	}
+	return errors;
+};
+
 const collectPolicyErrors = function collectPolicyErrors(
 	policies: PolicyConfig[],
 	options?: { iabEnabled?: boolean }
@@ -525,75 +611,19 @@ const collectPolicyErrors = function collectPolicyErrors(
 		);
 	}
 
-	for (const [index, policy] of policies.entries()) {
+	Array.from(policies.entries()).forEach(([index, policy]) => {
 		const label = policyLabel(policy, index);
-		for (const surfaceName of ['banner', 'dialog'] as const) {
-			const surface = policy.ui?.[surfaceName];
-			if (!surface) {
-				continue;
-			}
-			const allowed = surface.allowedActions;
-			if (allowed && allowed.length > 0) {
-				if (surface.primaryActions && surface.primaryActions.length > 0) {
-					for (const pa of surface.primaryActions) {
-						if (!allowed.includes(pa)) {
-							errors.push(
-								`Policy ${label} ui.${surfaceName}.primaryActions '${pa}' is not in allowedActions [${allowed.join(', ')}].`
-							);
-						}
-					}
-				}
-			}
-
-			const { layout } = surface;
-			if (layout) {
-				const seen = new Set<PolicyUiAction>();
-				const effectiveActions = allowed
-					? new Set<PolicyUiAction>(allowed)
-					: undefined;
-				for (const group of layout) {
-					const actions = Array.isArray(group) ? group : [group];
-					if (actions.length === 0) {
-						errors.push(
-							`Policy ${label} ui.${surfaceName}.layout contains an empty action group.`
-						);
-						continue;
-					}
-					for (const action of actions) {
-						if (effectiveActions && !effectiveActions.has(action)) {
-							errors.push(
-								`Policy ${label} ui.${surfaceName}.layout contains '${action}' which is not in allowedActions [${allowed?.join(', ')}].`
-							);
-						}
-						if (seen.has(action)) {
-							errors.push(
-								`Policy ${label} ui.${surfaceName}.layout contains duplicate action '${action}'.`
-							);
-						}
-						seen.add(action);
-					}
-				}
-
-				if (allowed && seen.size !== allowed.length) {
-					const missing = allowed.filter((action) => !seen.has(action));
-					if (missing.length > 0) {
-						errors.push(
-							`Policy ${label} ui.${surfaceName}.layout must include every allowed action. Missing [${missing.join(', ')}].`
-						);
-					}
-				}
-			}
-		}
-	}
+		errors.push(...collectSurfaceErrors(policy, label));
+	});
 
 	const idToIndex = new Map<string, number>();
-	for (const [index, policy] of policies.entries()) {
+	Array.from(policies.entries()).forEach(([index, policy]) => {
 		const id = policy.id?.trim();
 		if (!id) {
 			errors.push(
 				`Policy ${policyLabel(policy, index)} is missing a non-empty id.`
 			);
-			continue;
+			return;
 		}
 
 		const previousIndex = idToIndex.get(id);
@@ -614,7 +644,7 @@ const collectPolicyErrors = function collectPolicyErrors(
 				`Policy '${id}' has no matcher. Add countries or regions, or set match.isDefault=true.`
 			);
 		}
-	}
+	});
 
 	return errors;
 };

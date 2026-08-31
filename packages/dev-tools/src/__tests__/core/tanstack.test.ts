@@ -38,8 +38,7 @@ describe('tanstack integration', () => {
 
 	afterEach(async () => {
 		if (root) {
-			// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-			await act(async () => {
+			await act(() => {
 				root?.unmount();
 			});
 		}
@@ -69,8 +68,7 @@ describe('tanstack integration', () => {
 	});
 
 	it('mounts and destroys the embedded panel with React lifecycle', async () => {
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		await act(async () => {
+		await act(() => {
 			root?.render(
 				React.createElement(C15tTanStackDevtoolsPanel, {
 					createPanel: createDevToolsPanelMock,
@@ -90,8 +88,7 @@ describe('tanstack integration', () => {
 			shell?.querySelector('[data-testid="embedded-panel"]')
 		).not.toBeNull();
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		await act(async () => {
+		await act(() => {
 			root?.unmount();
 		});
 		root = null;
@@ -112,19 +109,16 @@ describe('tanstack integration', () => {
 			namespace: 'testStore',
 		});
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		await act(async () => {
+		await act(() => {
 			root?.render(plugin.render);
 		});
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		await act(async () => {
+		await act(() => {
 			root?.unmount();
 		});
 		root = createRoot(mountNode);
 
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		await act(async () => {
+		await act(() => {
 			root.render(plugin.render);
 		});
 

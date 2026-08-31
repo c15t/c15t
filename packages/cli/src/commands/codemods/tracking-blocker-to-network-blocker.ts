@@ -5,6 +5,8 @@ import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
+import { forEachSequential } from '../../utils/for-each-sequential';
+
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',
@@ -205,7 +207,6 @@ const getBindingPropertyName = function getBindingPropertyName(
 	return nameNode.getText();
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): TrackingBlockerResult {
@@ -214,28 +215,28 @@ const transformSourceFile = function transformSourceFile(
 	let hasC15tTrackingTypeImport = false;
 
 	const imports = sourceFile.getImportDeclarations();
-	for (const importDeclaration of imports) {
+	imports.forEach((importDeclaration) => {
 		if (!C15T_PACKAGES.has(importDeclaration.getModuleSpecifierValue())) {
-			continue;
+			return;
 		}
 
-		for (const namedImport of importDeclaration.getNamedImports()) {
+		importDeclaration.getNamedImports().forEach((namedImport) => {
 			if (namedImport.getNameNode().getText() !== LEGACY_TYPE_NAME) {
-				continue;
+				return;
 			}
 
 			namedImport.getNameNode().replaceWithText(NEXT_TYPE_NAME);
 			hasC15tTrackingTypeImport = true;
 			operations += 1;
 			summaries.push(`${LEGACY_TYPE_NAME} -> ${NEXT_TYPE_NAME}`);
-		}
-	}
+		});
+	});
 
 	if (hasC15tTrackingTypeImport) {
 		const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
-		for (const identifier of identifiers) {
+		identifiers.forEach((identifier) => {
 			if (identifier.getText() !== LEGACY_TYPE_NAME) {
-				continue;
+				return;
 			}
 
 			const parent = identifier.getParent();
@@ -243,36 +244,36 @@ const transformSourceFile = function transformSourceFile(
 				Node.isImportSpecifier(parent) &&
 				parent.getNameNode() === identifier
 			) {
-				continue;
+				return;
 			}
 
 			identifier.replaceWithText(NEXT_TYPE_NAME);
 			operations += 1;
 			summaries.push(`${LEGACY_TYPE_NAME} references -> ${NEXT_TYPE_NAME}`);
-		}
+		});
 	}
 
 	const propertyAssignments = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAssignment
 	);
-	for (const property of propertyAssignments) {
+	propertyAssignments.forEach((property) => {
 		if (property.wasForgotten()) {
-			continue;
+			return;
 		}
 
 		if (getPropertyName(property) !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const parentObject = property.getParentIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
 		if (!parentObject) {
-			continue;
+			return;
 		}
 
 		if (getProperty(parentObject, NEXT_CONFIG_KEY)) {
-			continue;
+			return;
 		}
 
 		const initializer = property.getInitializer();
@@ -286,42 +287,42 @@ const transformSourceFile = function transformSourceFile(
 			summaries.push(
 				'trackingBlockerConfig object -> networkBlocker rules/enabled'
 			);
-			continue;
+			return;
 		}
 
 		property.getNameNode().replaceWithText(NEXT_CONFIG_KEY);
 		operations += 1;
 		summaries.push('trackingBlockerConfig -> networkBlocker');
-	}
+	});
 
 	const shorthandAssignments = sourceFile.getDescendantsOfKind(
 		SyntaxKind.ShorthandPropertyAssignment
 	);
-	for (const shorthand of shorthandAssignments) {
+	shorthandAssignments.forEach((shorthand) => {
 		const name = shorthand.getNameNode().getText();
 		if (name !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const parent = shorthand.getParentIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
 		if (parent && getProperty(parent, NEXT_CONFIG_KEY)) {
-			continue;
+			return;
 		}
 
 		shorthand.replaceWithText(`${NEXT_CONFIG_KEY}: ${name}`);
 		operations += 1;
 		summaries.push('trackingBlockerConfig shorthand -> networkBlocker');
-	}
+	});
 
 	const bindingElements = sourceFile.getDescendantsOfKind(
 		SyntaxKind.BindingElement
 	);
-	for (const element of bindingElements) {
+	bindingElements.forEach((element) => {
 		const propertyName = getBindingPropertyName(element);
 		if (propertyName !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const propertyNameNode = element.getPropertyNameNode();
@@ -330,7 +331,7 @@ const transformSourceFile = function transformSourceFile(
 		} else {
 			const nameNode = element.getNameNode();
 			if (!Node.isIdentifier(nameNode)) {
-				continue;
+				return;
 			}
 
 			const localName = nameNode.getText();
@@ -344,21 +345,21 @@ const transformSourceFile = function transformSourceFile(
 
 		operations += 1;
 		summaries.push('trackingBlockerConfig destructuring -> networkBlocker');
-	}
+	});
 
 	const propertyAccesses = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAccessExpression
 	);
-	for (const propertyAccess of propertyAccesses) {
+	propertyAccesses.forEach((propertyAccess) => {
 		if (propertyAccess.getName() !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const expressionText = propertyAccess.getExpression().getText();
 		propertyAccess.replaceWithText(`${expressionText}.${NEXT_CONFIG_KEY}`);
 		operations += 1;
 		summaries.push('trackingBlockerConfig access -> networkBlocker');
-	}
+	});
 
 	return {
 		changed: operations > 0,
@@ -375,31 +376,32 @@ const collectSourceFiles = async function collectSourceFiles(
 	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
-		for (const entry of entries) {
-			if (entry.isSymbolicLink()) {
-				continue;
-			}
-
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
+		await forEachSequential(entries, {
+			run: async (entry) => {
+				if (entry.isSymbolicLink()) {
+					return;
 				}
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
 
-			if (!entry.isFile()) {
-				continue;
-			}
+				if (entry.isDirectory()) {
+					if (IGNORED_DIRS.has(entry.name)) {
+						return;
+					}
+					await walk(join(currentDir, entry.name));
+					return;
+				}
 
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
+				if (!entry.isFile()) {
+					return;
+				}
 
-			files.push(join(currentDir, entry.name));
-		}
+				const extension = extname(entry.name).toLowerCase();
+				if (!SUPPORTED_EXTENSIONS.has(extension)) {
+					return;
+				}
+
+				files.push(join(currentDir, entry.name));
+			},
+		});
 	};
 
 	await walk(rootDir);
@@ -431,35 +433,36 @@ export const runTrackingBlockerToNetworkBlockerCodemod =
 		}[] = [];
 		const errors: { filePath: string; error: string }[] = [];
 
-		for (const filePath of filePaths) {
-			try {
-				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-				if (!sourceFile) {
-					continue;
-				}
+		await forEachSequential(filePaths, {
+			run: async (filePath) => {
+				try {
+					const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+					if (!sourceFile) {
+						return;
+					}
 
-				const result = transformSourceFile(sourceFile);
-				if (!result.changed) {
-					continue;
-				}
+					const result = transformSourceFile(sourceFile);
+					if (!result.changed) {
+						return;
+					}
 
-				changedFiles.push({
-					filePath,
-					operations: result.operations,
-					summaries: result.summaries,
-				});
+					changedFiles.push({
+						filePath,
+						operations: result.operations,
+						summaries: result.summaries,
+					});
 
-				if (!options.dryRun) {
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					await sourceFile.save();
+					if (!options.dryRun) {
+						await sourceFile.save();
+					}
+				} catch (error) {
+					errors.push({
+						error: error instanceof Error ? error.message : String(error),
+						filePath,
+					});
 				}
-			} catch (error) {
-				errors.push({
-					error: error instanceof Error ? error.message : String(error),
-					filePath,
-				});
-			}
-		}
+			},
+		});
 
 		return {
 			changedFiles,

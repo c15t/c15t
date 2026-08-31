@@ -5,6 +5,8 @@
 import * as p from '@clack/prompts';
 import color from 'picocolors';
 
+import { forEachSequential } from './for-each-sequential';
+
 export interface TaskSpinner {
 	start: (message?: string) => void;
 	stop: (message?: string) => void;
@@ -194,20 +196,21 @@ export const createTaskGroup = function createTaskGroup(): TaskGroup {
 			const success: string[] = [];
 			const failed: string[] = [];
 
-			for (const { name, task } of tasks) {
-				const spinner = createTaskSpinner(name);
-				spinner.start();
+			await forEachSequential(tasks, {
+				run: async ({ name, task }) => {
+					const spinner = createTaskSpinner(name);
+					spinner.start();
 
-				try {
-					// oxlint-disable-next-line no-await-in-loop -- Tasks intentionally run serially to preserve output order.
-					await task();
-					spinner.success(name);
-					success.push(name);
-				} catch {
-					spinner.error(name);
-					failed.push(name);
-				}
-			}
+					try {
+						await task();
+						spinner.success(name);
+						success.push(name);
+					} catch {
+						spinner.error(name);
+						failed.push(name);
+					}
+				},
+			});
 
 			return { failed, success };
 		},
