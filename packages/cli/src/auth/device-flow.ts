@@ -15,6 +15,29 @@ import type {
 	TokenResponse,
 } from './types';
 
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
 /**
  * Device flow endpoints
  */
@@ -28,14 +51,16 @@ interface DeviceFlowEndpoints {
 /**
  * Get the device flow endpoints for a base URL
  */
-function getEndpoints(baseUrl: string): DeviceFlowEndpoints {
+const getEndpoints = function getEndpoints(
+	baseUrl: string
+): DeviceFlowEndpoints {
 	return {
+		deviceAuthorizationEndpoint: `${baseUrl}/oauth/device/code`,
 		deviceCodeV1Endpoint: `${baseUrl}/api/v1/auth/device/code`,
 		deviceTokenV1Endpoint: `${baseUrl}/api/v1/auth/device/token`,
-		deviceAuthorizationEndpoint: `${baseUrl}/oauth/device/code`,
 		tokenEndpoint: `${baseUrl}/oauth/token`,
 	};
-}
+};
 
 interface ApiErrorPayload {
 	success: false;
@@ -68,7 +93,7 @@ interface TokenResponseV1 {
 	scope?: string;
 }
 
-function isApiSuccessPayload<T>(
+const isApiSuccessPayload = function isApiSuccessPayload<T>(
 	payload: unknown
 ): payload is ApiSuccessPayload<T> {
 	return (
@@ -78,9 +103,11 @@ function isApiSuccessPayload<T>(
 		(payload as { success?: unknown }).success === true &&
 		'data' in payload
 	);
-}
+};
 
-function normalizeDeviceCodeResponse(payload: unknown): DeviceCodeResponse {
+const normalizeDeviceCodeResponse = function normalizeDeviceCodeResponse(
+	payload: unknown
+): DeviceCodeResponse {
 	if (
 		payload &&
 		typeof payload === 'object' &&
@@ -101,20 +128,22 @@ function normalizeDeviceCodeResponse(payload: unknown): DeviceCodeResponse {
 		const v1 = payload as DeviceCodeResponseV1;
 		return {
 			device_code: v1.deviceCode,
+			expires_in: v1.expiresIn,
+			interval: v1.interval,
 			user_code: v1.userCode,
 			verification_uri: v1.verificationUri,
 			verification_uri_complete: v1.verificationUriComplete,
-			expires_in: v1.expiresIn,
-			interval: v1.interval,
 		};
 	}
 
 	throw new CliError('AUTH_FAILED', {
 		details: 'Invalid device code response',
 	});
-}
+};
 
-function normalizeTokenResponse(payload: unknown): TokenResponse {
+const normalizeTokenResponse = function normalizeTokenResponse(
+	payload: unknown
+): TokenResponse {
 	if (
 		payload &&
 		typeof payload === 'object' &&
@@ -133,27 +162,34 @@ function normalizeTokenResponse(payload: unknown): TokenResponse {
 		const v1 = payload as TokenResponseV1;
 		return {
 			access_token: v1.accessToken,
-			token_type: v1.tokenType,
 			expires_in: v1.expiresIn,
 			refresh_token: v1.refreshToken,
 			scope: v1.scope,
+			token_type: v1.tokenType,
 		};
 	}
 
 	throw new CliError('AUTH_FAILED', {
 		details: 'Invalid token response',
 	});
-}
+};
 
-async function parseJsonSafe(response: Response): Promise<unknown> {
+const parseJsonSafe = async function parseJsonSafe(
+	response: Response
+): Promise<unknown> {
 	try {
 		return await response.json();
 	} catch {
 		return null;
 	}
-}
+};
 
-function toDeviceFlowErrorFromV1(
+const isDeviceCodeExpired = (
+	status: string | undefined,
+	responseStatus: number
+): boolean => status === 'expired' || responseStatus === 401;
+
+const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
 	response: Response,
 	payload: unknown
 ): DeviceFlowError | null {
@@ -163,6 +199,7 @@ function toDeviceFlowErrorFromV1(
 
 	const apiError = payload as ApiErrorPayload;
 	const errorCode = apiError.error?.code;
+	const message = apiError.error?.message;
 	const details =
 		apiError.error?.details && typeof apiError.error.details === 'object'
 			? (apiError.error.details as { status?: string })
@@ -172,7 +209,7 @@ function toDeviceFlowErrorFromV1(
 	if (status === 'authorization_pending') {
 		return {
 			error: 'authorization_pending',
-			error_description: apiError.error?.message ?? 'Authorization pending',
+			error_description: message ?? 'Authorization pending',
 		};
 	}
 
@@ -180,41 +217,40 @@ function toDeviceFlowErrorFromV1(
 		return {
 			error: 'access_denied',
 			error_description:
-				apiError.error?.message ??
-				'Device code already used. Start a new login flow.',
+				message ?? 'Device code already used. Start a new login flow.',
 		};
 	}
 
-	if (status === 'expired' || response.status === 401) {
+	if (isDeviceCodeExpired(status, response.status)) {
 		return {
 			error: 'expired_token',
-			error_description: apiError.error?.message ?? 'Device code expired',
+			error_description: message ?? 'Device code expired',
 		};
 	}
 
 	if (response.status === 409) {
 		return {
 			error: 'authorization_pending',
-			error_description: apiError.error?.message ?? 'Authorization pending',
+			error_description: message ?? 'Authorization pending',
 		};
 	}
 
 	if (errorCode === 'FORBIDDEN' || response.status === 403) {
 		return {
 			error: 'access_denied',
-			error_description: apiError.error?.message ?? 'Authorization denied',
+			error_description: message ?? 'Authorization denied',
 		};
 	}
 
 	return null;
-}
+};
 
 /**
  * Initiate the device authorization flow
  *
  * Requests a device code and user code from the authorization server.
  */
-export async function initiateDeviceFlow(
+export const initiateDeviceFlow = async function initiateDeviceFlow(
 	baseUrl: string = URLS.CONSENT_IO
 ): Promise<DeviceCodeResponse> {
 	const endpoints = getEndpoints(baseUrl);
@@ -222,11 +258,11 @@ export async function initiateDeviceFlow(
 	// Prefer v1 control-plane endpoints used in local dashboard/dev branches.
 	{
 		const v1Response = await fetch(endpoints.deviceCodeV1Endpoint, {
-			method: 'POST',
+			body: '{}',
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: '{}',
+			method: 'POST',
 		});
 
 		if (v1Response.ok) {
@@ -255,14 +291,14 @@ export async function initiateDeviceFlow(
 
 	// Fallback to legacy OAuth device endpoint.
 	const response = await fetch(endpoints.deviceAuthorizationEndpoint, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
-		},
 		body: new URLSearchParams({
 			client_id: 'c15t-cli',
 			scope: 'instances:read instances:write',
 		}),
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+		method: 'POST',
 	});
 
 	if (!response.ok) {
@@ -283,7 +319,7 @@ export async function initiateDeviceFlow(
 	}
 
 	return data;
-}
+};
 
 /**
  * Poll for the token
@@ -291,7 +327,100 @@ export async function initiateDeviceFlow(
  * Polls the token endpoint until the user authorizes the device,
  * the request expires, or is denied.
  */
-export async function pollForToken(
+/**
+ * Sleep for a specified duration
+ */
+const sleep = function sleep(ms: number): Promise<void> {
+	return createDeferredPromise((resolve) => setTimeout(resolve, ms));
+};
+
+type TokenPollResult =
+	| { kind: 'legacy' }
+	| { kind: 'pending' }
+	| { kind: 'slow-down' }
+	| { kind: 'token'; token: TokenResponse };
+
+const pollV1TokenEndpoint = async (
+	endpoint: string,
+	deviceCode: string
+): Promise<TokenPollResult> => {
+	const response = await fetch(endpoint, {
+		body: JSON.stringify({ deviceCode }),
+		headers: { 'Content-Type': 'application/json' },
+		method: 'POST',
+	});
+	const payload = await parseJsonSafe(response);
+	if (response.ok) {
+		const data = isApiSuccessPayload<TokenResponseV1>(payload)
+			? payload.data
+			: payload;
+		return { kind: 'token', token: normalizeTokenResponse(data) };
+	}
+	if (response.status === 404) {
+		return { kind: 'legacy' };
+	}
+
+	const mappedError = toDeviceFlowErrorFromV1(response, payload);
+	if (mappedError?.error === 'authorization_pending') {
+		return { kind: 'pending' };
+	}
+	if (mappedError?.error === 'expired_token') {
+		throw new CliError('DEVICE_FLOW_TIMEOUT', {
+			details: mappedError.error_description,
+		});
+	}
+	if (mappedError?.error === 'access_denied') {
+		throw new CliError('DEVICE_FLOW_DENIED', {
+			details: mappedError.error_description,
+		});
+	}
+
+	const apiError = payload as ApiErrorPayload | null;
+	throw new CliError('AUTH_FAILED', {
+		details: `Token request failed: ${response.status} ${apiError?.error?.message ?? 'Request failed'}`,
+	});
+};
+
+const pollLegacyTokenEndpoint = async (
+	endpoint: string,
+	deviceCode: string
+): Promise<TokenPollResult> => {
+	const response = await fetch(endpoint, {
+		body: new URLSearchParams({
+			client_id: 'c15t-cli',
+			device_code: deviceCode,
+			grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+		}),
+		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		method: 'POST',
+	});
+	const payload = await parseJsonSafe(response);
+	if (response.ok) {
+		return { kind: 'token', token: normalizeTokenResponse(payload) };
+	}
+
+	const error = payload as DeviceFlowError;
+	switch (error.error) {
+		case 'authorization_pending':
+			return { kind: 'pending' };
+		case 'slow_down':
+			return { kind: 'slow-down' };
+		case 'access_denied':
+			throw new CliError('DEVICE_FLOW_DENIED', {
+				details: error.error_description,
+			});
+		case 'expired_token':
+			throw new CliError('DEVICE_FLOW_TIMEOUT', {
+				details: 'The device code has expired',
+			});
+		default:
+			throw new CliError('AUTH_FAILED', {
+				details: error.error_description || `Unknown error: ${error.error}`,
+			});
+	}
+};
+
+export const pollForToken = function pollForToken(
 	baseUrl: string,
 	deviceCode: string,
 	interval: number = TIMEOUTS.DEVICE_FLOW_POLL_INTERVAL,
@@ -300,130 +429,58 @@ export async function pollForToken(
 	const endpoints = getEndpoints(baseUrl);
 	const startTime = Date.now();
 	const expiryTime = startTime + expiresIn * 1000;
-	let currentInterval = interval * 1000; // Convert to ms
+	// Convert to ms
+	let currentInterval = interval * 1000;
 	let useLegacyOAuthEndpoints = false;
 
-	while (Date.now() < expiryTime) {
-		// Wait for the interval
+	const poll = async (): Promise<TokenResponse> => {
+		if (Date.now() >= expiryTime) {
+			throw new CliError('DEVICE_FLOW_TIMEOUT');
+		}
 		await sleep(currentInterval);
 
 		try {
-			// Prefer v1 control-plane token polling endpoint unless unavailable.
 			if (!useLegacyOAuthEndpoints) {
-				const v1Response = await fetch(endpoints.deviceTokenV1Endpoint, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify({ deviceCode }),
-				});
-
-				if (v1Response.ok) {
-					const payload = await parseJsonSafe(v1Response);
-					const data = isApiSuccessPayload<TokenResponseV1>(payload)
-						? payload.data
-						: payload;
-					return normalizeTokenResponse(data);
+				const result = await pollV1TokenEndpoint(
+					endpoints.deviceTokenV1Endpoint,
+					deviceCode
+				);
+				if (result.kind === 'token') {
+					return result.token;
 				}
-
-				if (v1Response.status === 404) {
-					useLegacyOAuthEndpoints = true;
-				} else {
-					const payload = await parseJsonSafe(v1Response);
-					const mappedError = toDeviceFlowErrorFromV1(v1Response, payload);
-
-					if (mappedError) {
-						switch (mappedError.error) {
-							case 'authorization_pending':
-								continue;
-							case 'expired_token':
-								throw new CliError('DEVICE_FLOW_TIMEOUT', {
-									details: mappedError.error_description,
-								});
-							case 'access_denied':
-								throw new CliError('DEVICE_FLOW_DENIED', {
-									details: mappedError.error_description,
-								});
-						}
-					}
-
-					const message =
-						payload &&
-						typeof payload === 'object' &&
-						'error' in payload &&
-						(payload as ApiErrorPayload).error?.message
-							? (payload as ApiErrorPayload).error?.message
-							: 'Request failed';
-
-					throw new CliError('AUTH_FAILED', {
-						details: `Token request failed: ${v1Response.status} ${message}`,
-					});
+				if (result.kind === 'pending') {
+					return poll();
 				}
+				useLegacyOAuthEndpoints = true;
 			}
 
-			const response = await fetch(endpoints.tokenEndpoint, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded',
-				},
-				body: new URLSearchParams({
-					grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-					device_code: deviceCode,
-					client_id: 'c15t-cli',
-				}),
-			});
-
-			if (response.ok) {
-				const payload = await parseJsonSafe(response);
-				const token = normalizeTokenResponse(payload);
-				return token;
+			const result = await pollLegacyTokenEndpoint(
+				endpoints.tokenEndpoint,
+				deviceCode
+			);
+			if (result.kind === 'token') {
+				return result.token;
 			}
-
-			// Check for known error codes
-			const payload = await parseJsonSafe(response);
-			const error = payload as DeviceFlowError;
-
-			switch (error.error) {
-				case 'authorization_pending':
-					// User hasn't authorized yet, continue polling
-					continue;
-
-				case 'slow_down':
-					// Server is asking us to slow down, increase interval
-					currentInterval += 5000;
-					continue;
-
-				case 'access_denied':
-					throw new CliError('DEVICE_FLOW_DENIED', {
-						details: error.error_description,
-					});
-
-				case 'expired_token':
-					throw new CliError('DEVICE_FLOW_TIMEOUT', {
-						details: 'The device code has expired',
-					});
-
-				default:
-					throw new CliError('AUTH_FAILED', {
-						details: error.error_description || `Unknown error: ${error.error}`,
-					});
+			if (result.kind === 'slow-down') {
+				currentInterval += 5000;
 			}
 		} catch (error) {
 			if (error instanceof CliError) {
 				throw error;
 			}
 		}
-	}
+		return poll();
+	};
 
-	throw new CliError('DEVICE_FLOW_TIMEOUT');
-}
+	return poll();
+};
 
 /**
  * Run the complete device flow
  *
  * Returns a state object that can be used to track the flow progress.
  */
-export async function runDeviceFlow(
+export const runDeviceFlow = async function runDeviceFlow(
 	baseUrl: string = URLS.CONSENT_IO,
 	callbacks?: {
 		onDeviceCode?: (response: DeviceCodeResponse) => void;
@@ -464,12 +521,14 @@ export async function runDeviceFlow(
 		);
 		return state;
 	}
-}
+};
 
 /**
  * Format the user code for display (e.g., "ABCD-EFGH")
  */
-export function formatUserCode(userCode: string): string {
+export const formatUserCode = function formatUserCode(
+	userCode: string
+): string {
 	// If it's already formatted, return as-is
 	if (userCode.includes('-')) {
 		return userCode;
@@ -478,12 +537,14 @@ export function formatUserCode(userCode: string): string {
 	// Split into groups of 4
 	const midpoint = Math.ceil(userCode.length / 2);
 	return `${userCode.slice(0, midpoint)}-${userCode.slice(midpoint)}`;
-}
+};
 
 /**
  * Get the complete verification URL with user code
  */
-export function getVerificationUrl(response: DeviceCodeResponse): string {
+export const getVerificationUrl = function getVerificationUrl(
+	response: DeviceCodeResponse
+): string {
 	if (response.verification_uri_complete) {
 		return response.verification_uri_complete;
 	}
@@ -492,11 +553,4 @@ export function getVerificationUrl(response: DeviceCodeResponse): string {
 	const url = new URL(response.verification_uri);
 	url.searchParams.set('user_code', response.user_code);
 	return url.toString();
-}
-
-/**
- * Sleep for a specified duration
- */
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}
+};

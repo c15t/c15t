@@ -17,13 +17,13 @@ import type { ReactNode } from 'react';
  * hydration; after hydration this keeps the DOM in sync with the kernel
  * (e.g. removes the banner after consent is saved).
  */
-export function RscBannerGate({ children }: { children: ReactNode }) {
+export const RscBannerGate = ({ children }: { children: ReactNode }) => {
 	const activeUI = useActiveUI();
 	if (activeUI !== 'banner') {
 		return null;
 	}
 	return children;
-}
+};
 
 export interface RscBannerActionsProps {
 	acceptLabel: string;
@@ -38,12 +38,12 @@ export interface RscBannerActionsProps {
 }
 
 /** The interactive button row — the banner's one true client island. */
-export function RscBannerActions({
+export const RscBannerActions = ({
 	acceptLabel,
 	rejectLabel,
 	customizeLabel,
 	classNames,
-}: RscBannerActionsProps) {
+}: RscBannerActionsProps) => {
 	const save = useSaveConsents();
 	const setActiveUI = useSetActiveUI();
 
@@ -55,7 +55,9 @@ export function RscBannerActions({
 			<button
 				className={classNames?.rejectButton}
 				data-testid="consent-banner-reject-button"
-				onClick={() => void save('none')}
+				onClick={async () => {
+					await save('none');
+				}}
 				type="button"
 			>
 				{rejectLabel}
@@ -71,11 +73,13 @@ export function RscBannerActions({
 			<button
 				className={classNames?.acceptButton}
 				data-testid="consent-banner-accept-button"
-				onClick={() => void save('all')}
+				onClick={async () => {
+					await save('all');
+				}}
 				type="button"
 			>
 				{acceptLabel}
 			</button>
 		</div>
 	);
-}
+};

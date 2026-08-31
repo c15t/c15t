@@ -2,6 +2,7 @@
 
 import { useConsentManager } from 'c15t/react';
 import { useEffect, useState } from 'react';
+
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
@@ -15,107 +16,129 @@ const LANGUAGE_OPTIONS = [
 ] as const;
 
 const MODEL_LABELS: Record<string, string> = {
-	'opt-in': 'Opt-in',
-	'opt-out': 'Opt-out',
 	iab: 'IAB TCF 2.3',
 	none: 'No banner',
+	'opt-in': 'Opt-in',
+	'opt-out': 'Opt-out',
 };
 
-function StatusRow({ label, value }: { label: string; value: string }) {
-	return (
-		<div className="border-border/70 border-b pb-2">
-			<p className="label-pixel text-muted-foreground">{label}</p>
-			<p className="mt-1 font-mono text-xs">{value}</p>
-		</div>
-	);
-}
+const StatusRow = ({ label, value }: { label: string; value: string }) => (
+	<div className="border-border/70 border-b pb-2">
+		<p className="label-pixel text-muted-foreground">{label}</p>
+		<p className="mt-1 font-mono text-xs">{value}</p>
+	</div>
+);
+
+type ConsentManagerValue = ReturnType<typeof useConsentManager>;
+
+const formatLocation = function formatLocation(
+	location: ConsentManagerValue['locationInfo']
+): string {
+	if (!location?.countryCode) {
+		return '--';
+	}
+	const region = location.regionCode ? `-${location.regionCode}` : '';
+	return `${location.countryCode}${region}`;
+};
+
+const formatBannerMode = function formatBannerMode(
+	policy: NonNullable<ConsentManagerValue['lastBannerFetchData']>['policy']
+): string {
+	if (!policy?.ui || policy.ui.mode === 'none') {
+		return policy?.ui?.mode ?? 'default';
+	}
+	return policy.ui.mode;
+};
+
+const displayModel = function displayModel(state: ConsentManagerValue): string {
+	return MODEL_LABELS[state.model ?? 'none'] ?? (state.model || 'none');
+};
+
+const createDisplay = function createDisplay(
+	mounted: boolean,
+	state: ConsentManagerValue
+) {
+	if (!mounted) {
+		return {
+			banner: '…',
+			categories: [] as string[],
+			copy: '…',
+			hasSavedConsent: false,
+			iabEnabled: false,
+			language: '…',
+			location: '--',
+			model: '…',
+			policyId: '…',
+		};
+	}
+	const policy = state.lastBannerFetchData?.policy;
+	const requestedLanguage = state.overrides?.language;
+	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
+	const resolvedLanguage =
+		state.lastBannerFetchData?.translations.language ??
+		state.translationConfig.defaultLanguage ??
+		'en';
+	return {
+		banner: formatBannerMode(policy),
+		categories: (state.policyCategories ?? []).filter(
+			(category) => category !== '*'
+		),
+		copy:
+			messageProfile === 'default'
+				? 'stock translations'
+				: `custom ("${messageProfile}" profile)`,
+		hasSavedConsent:
+			state.consentInfo !== null && state.consentInfo !== undefined,
+		iabEnabled: state.iab?.config.enabled ?? false,
+		language: `${resolvedLanguage}${
+			requestedLanguage ? ` (requested ${requestedLanguage})` : ' (auto)'
+		}`,
+		location: formatLocation(state.locationInfo),
+		model: displayModel(state),
+		policyId: policy?.id ?? 'none',
+	};
+};
 
 /**
  * Live view of what the consent manager resolved: active policy, model,
  * location, language, plus the current consent decisions. Must be rendered
  * inside a `ConsentManagerProvider`.
  */
-export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
+export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const [mounted, setMounted] = useState(false);
+	const manager = useConsentManager();
 	const {
 		activeUI,
-		consentInfo,
 		consents,
 		iab,
 		initConsentManager,
 		lastBannerFetchData,
-		locationInfo,
-		model,
-		policyCategories,
 		resetConsents,
 		setActiveUI,
 		setLanguage,
 		setOverrides,
 		overrides,
-		translationConfig,
-	} = useConsentManager();
+	} = manager;
 
 	useEffect(() => {
-		setMounted(true);
+		const frame = requestAnimationFrame(() => setMounted(true));
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
 	const requestedLanguage = overrides?.language;
-	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
-	const resolvedLanguage =
-		lastBannerFetchData?.translations.language ??
-		translationConfig.defaultLanguage ??
-		'en';
-
-	const display = mounted
-		? {
-				policyId: policy?.id ?? 'none',
-				model: MODEL_LABELS[model ?? 'none'] ?? (model || 'none'),
-				iabEnabled: iab?.config.enabled ?? false,
-				location: locationInfo?.countryCode
-					? `${locationInfo.countryCode}${
-							locationInfo.regionCode ? `-${locationInfo.regionCode}` : ''
-						}`
-					: '--',
-				language: `${resolvedLanguage}${
-					requestedLanguage ? ` (requested ${requestedLanguage})` : ' (auto)'
-				}`,
-				copy:
-					messageProfile === 'default'
-						? 'stock translations'
-						: `custom ("${messageProfile}" profile)`,
-				banner:
-					policy?.ui?.mode === 'none' || !policy?.ui
-						? (policy?.ui?.mode ?? 'default')
-						: policy.ui.mode,
-				hasSavedConsent: consentInfo != null,
-				// IAB policies use a '*' wildcard — purposes replace categories there.
-				categories: (policyCategories ?? []).filter(
-					(category) => category !== '*'
-				),
-			}
-		: {
-				policyId: '…',
-				model: '…',
-				iabEnabled: false,
-				location: '--',
-				language: '…',
-				copy: '…',
-				banner: '…',
-				hasSavedConsent: false,
-				categories: [] as string[],
-			};
+	const display = createDisplay(mounted, manager);
 
 	const rawState = mounted
 		? {
-				mode,
-				policy: policy ?? null,
-				policyDecision: policyDecision ?? null,
 				activeUI,
 				consents,
 				iabEnabled: iab?.config.enabled ?? false,
+				mode,
 				overrides: overrides ?? null,
+				policy: policy ?? null,
+				policyDecision: policyDecision ?? null,
 			}
 		: null;
 
@@ -235,13 +258,13 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 			</div>
 
 			<details className="group">
-				<summary className="cursor-pointer select-none text-muted-foreground text-xs underline-offset-4 hover:text-foreground hover:underline">
+				<summary className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline-offset-4 select-none hover:underline">
 					Raw state (for developers)
 				</summary>
-				<pre className="mt-2 max-h-96 overflow-auto rounded-xl border border-border/80 bg-muted/20 p-3 font-mono text-[12px] text-foreground/90 leading-5">
+				<pre className="border-border/80 bg-muted/20 text-foreground/90 mt-2 max-h-96 overflow-auto rounded-xl border p-3 font-mono text-[12px] leading-5">
 					{JSON.stringify(rawState, null, 2)}
 				</pre>
 			</details>
 		</div>
 	);
-}
+};

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { evaluateDeniedConsentProbe } from './denied-consent';
 import type { DeniedConsentProbeConfig, LiveStorageSnapshot } from './types';
 
@@ -7,11 +8,11 @@ const config: DeniedConsentProbeConfig = {
 	storagePrefixes: ['mp_'],
 };
 
-function storage(
+const storage = function storage(
 	overrides?: Partial<LiveStorageSnapshot>
 ): LiveStorageSnapshot {
 	return { cookieNames: [], localStorageKeys: [], ...overrides };
-}
+};
 
 describe('evaluateDeniedConsentProbe', () => {
 	it('passes when only loader/config requests occurred and storage is clean', () => {

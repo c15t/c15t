@@ -47,14 +47,17 @@ export interface MountDeps {
  *
  * Throws on conflicting fields (`src && textContent` or no source at all).
  */
-export function mountScript(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const mountScript = function mountScript(
 	deps: MountDeps,
 	script: Script,
 	snapshot: ConsentSnapshot,
 	hasConsent: boolean,
 	batch: PendingMount[] | null
 ): void {
-	if (typeof document === 'undefined') return;
+	if (typeof document === 'undefined') {
+		return;
+	}
 	const elementId = deps.elementIds.resolve(script);
 
 	if (deps.loadedElements.has(script.id)) {
@@ -71,13 +74,13 @@ export function mountScript(
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
 			deps.emit({
-				source: 'script-loader',
-				scope: 'step',
 				action: 'already_loaded',
-				message: 'Script already loaded; fired onConsentChange',
-				scriptId: script.id,
 				elementId: info.elementId,
 				hasConsent: info.hasConsent,
+				message: 'Script already loaded; fired onConsentChange',
+				scope: 'step',
+				scriptId: script.id,
+				source: 'script-loader',
 				timestamp: Date.now(),
 			});
 		}
@@ -96,13 +99,13 @@ export function mountScript(
 		invokeCallback(script, 'onLoad', info, deps.emit);
 		deps.loadedElements.set(script.id, null);
 		deps.emit({
-			source: 'script-loader',
-			scope: 'lifecycle',
 			action: 'loaded',
-			message: 'Callback-only script loaded',
-			scriptId: script.id,
 			elementId: info.elementId,
 			hasConsent: info.hasConsent,
+			message: 'Callback-only script loaded',
+			scope: 'lifecycle',
+			scriptId: script.id,
+			source: 'script-loader',
 			timestamp: Date.now(),
 		});
 		return;
@@ -136,13 +139,13 @@ export function mountScript(
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
 			deps.emit({
-				source: 'script-loader',
-				scope: 'step',
 				action: 'already_loaded',
-				message: 'Script element already exists in DOM; reused it',
-				scriptId: script.id,
 				elementId: info.elementId,
 				hasConsent: info.hasConsent,
+				message: 'Script element already exists in DOM; reused it',
+				scope: 'step',
+				scriptId: script.id,
+				source: 'script-loader',
 				timestamp: Date.now(),
 			});
 		}
@@ -151,13 +154,23 @@ export function mountScript(
 
 	const element = document.createElement('script');
 	element.id = elementId;
-	if (script.src) element.src = script.src;
-	if (script.textContent) element.textContent = script.textContent;
-	if (script.async !== undefined) element.async = script.async;
-	if (script.defer !== undefined) element.defer = script.defer;
-	if (script.nonce) element.nonce = script.nonce;
+	if (script.src) {
+		element.src = script.src;
+	}
+	if (script.textContent) {
+		element.textContent = script.textContent;
+	}
+	if (script.async !== undefined) {
+		element.async = script.async;
+	}
+	if (script.defer !== undefined) {
+		element.defer = script.defer;
+	}
+	if (script.nonce) {
+		element.nonce = script.nonce;
+	}
 	if (script.fetchPriority) {
-		// biome-ignore lint/suspicious/noExplicitAny: browser API not yet in lib.dom
+		// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
 		(element as any).fetchPriority = script.fetchPriority;
 	}
 	if (script.attributes) {
@@ -175,7 +188,9 @@ export function mountScript(
 	const info = infoCallers
 		? buildCallbackInfo(script, snapshot, hasConsent, elementId, element)
 		: undefined;
-	if (info) invokeCallback(script, 'onBeforeLoad', info, deps.emit);
+	if (info) {
+		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
+	}
 
 	// Listeners only make sense on external scripts; inline scripts have
 	// no network event. Skip listener attach when no callback consumes it.
@@ -190,12 +205,12 @@ export function mountScript(
 			};
 			invokeCallback(script, 'onError', errorInfo, deps.emit);
 			deps.emit({
-				source: 'script-loader',
-				scope: 'lifecycle',
 				action: 'error',
-				message: `Script failed: ${script.src}`,
-				scriptId: script.id,
 				elementId,
+				message: `Script failed: ${script.src}`,
+				scope: 'lifecycle',
+				scriptId: script.id,
+				source: 'script-loader',
 				timestamp: Date.now(),
 			});
 		});
@@ -204,7 +219,7 @@ export function mountScript(
 	const target = script.target === 'body' ? document.body : document.head;
 
 	if (batch) {
-		batch.push({ script, element, target, elementId, hasConsent, info });
+		batch.push({ element, elementId, hasConsent, info, script, target });
 		return;
 	}
 
@@ -220,17 +235,17 @@ export function mountScript(
 
 	if (deps.hasDebugListener) {
 		deps.emit({
-			source: 'script-loader',
-			scope: 'lifecycle',
 			action: 'loaded',
-			message: 'Script mounted',
-			scriptId: script.id,
 			elementId,
 			hasConsent,
+			message: 'Script mounted',
+			scope: 'lifecycle',
+			scriptId: script.id,
+			source: 'script-loader',
 			timestamp: Date.now(),
 		});
 	}
-}
+};
 
 /**
  * Unmount a script. Honors `persistAfterConsentRevoked` (DOM stays,
@@ -240,14 +255,16 @@ export function mountScript(
  * Fires `onConsentChange` after detaching so consumers can react to
  * the consent transition.
  */
-export function unmountScript(
+export const unmountScript = function unmountScript(
 	deps: MountDeps,
 	script: Script,
 	snapshot: ConsentSnapshot,
 	hasConsent: boolean
 ): void {
 	const element = deps.loadedElements.get(script.id);
-	if (element === undefined) return;
+	if (element === undefined) {
+		return;
+	}
 
 	const elementId = deps.elementIds.resolve(script);
 
@@ -258,12 +275,12 @@ export function unmountScript(
 		deps.ownedScriptIds.delete(script.id);
 		if (deps.hasDebugListener) {
 			deps.emit({
-				source: 'script-loader',
-				scope: 'lifecycle',
 				action: 'unloaded',
-				message: 'Script persisted after consent revoked',
-				scriptId: script.id,
 				elementId,
+				message: 'Script persisted after consent revoked',
+				scope: 'lifecycle',
+				scriptId: script.id,
+				source: 'script-loader',
 				timestamp: Date.now(),
 			});
 		}
@@ -283,15 +300,15 @@ export function unmountScript(
 	}
 
 	deps.emit({
-		source: 'script-loader',
-		scope: 'lifecycle',
 		action: 'unloaded',
-		message: 'Script unmounted',
-		scriptId: script.id,
 		elementId,
+		message: 'Script unmounted',
+		scope: 'lifecycle',
+		scriptId: script.id,
+		source: 'script-loader',
 		timestamp: Date.now(),
 	});
-}
+};
 
 /**
  * Append every pending mount to its target in batched form.
@@ -305,31 +322,44 @@ export function unmountScript(
  * defer inline `onLoad` (one tick) so the browser parses first, and
  * emit the lifecycle event.
  */
-export function flushPendingMounts(
+export const flushPendingMounts = function flushPendingMounts(
 	deps: MountDeps,
 	batch: PendingMount[]
 ): void {
-	if (batch.length === 0) return;
+	if (batch.length === 0) {
+		return;
+	}
 
 	if (batch.length === 1) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const only = batch[0];
-		if (!only) return;
+		if (!only) {
+			return;
+		}
 		only.target.appendChild(only.element);
 	} else {
 		const byTarget = new Map<HTMLElement, HTMLScriptElement[]>();
 		for (const pending of batch) {
 			const list = byTarget.get(pending.target);
-			if (list) list.push(pending.element);
-			else byTarget.set(pending.target, [pending.element]);
+			if (list) {
+				list.push(pending.element);
+			} else {
+				byTarget.set(pending.target, [pending.element]);
+			}
 		}
 		for (const [target, elements] of byTarget) {
 			if (elements.length === 1) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				const first = elements[0];
-				if (first) target.appendChild(first);
+				if (first) {
+					target.appendChild(first);
+				}
 				continue;
 			}
 			const fragment = document.createDocumentFragment();
-			for (const element of elements) fragment.appendChild(element);
+			for (const element of elements) {
+				fragment.appendChild(element);
+			}
 			target.appendChild(fragment);
 		}
 	}
@@ -339,22 +369,22 @@ export function flushPendingMounts(
 		deps.ownedScriptIds.add(pending.script.id);
 
 		if (!pending.script.src && pending.info) {
-			const info = pending.info;
-			const script = pending.script;
+			const { info } = pending;
+			const { script } = pending;
 			setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
 		}
 
 		if (deps.hasDebugListener) {
 			deps.emit({
-				source: 'script-loader',
-				scope: 'lifecycle',
 				action: 'loaded',
-				message: 'Script mounted',
-				scriptId: pending.script.id,
 				elementId: pending.elementId,
 				hasConsent: pending.hasConsent,
+				message: 'Script mounted',
+				scope: 'lifecycle',
+				scriptId: pending.script.id,
+				source: 'script-loader',
 				timestamp: Date.now(),
 			});
 		}
 	}
-}
+};

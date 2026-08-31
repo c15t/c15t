@@ -2,9 +2,12 @@ import { expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { runTestIdLint, scanFileForViolations } from './testid-lint';
 
-function makeTempProject(files: Record<string, string>): string {
+const makeTempProject = function makeTempProject(
+	files: Record<string, string>
+): string {
 	const dir = mkdtempSync(join(tmpdir(), 'testid-lint-'));
 	for (const [rel, content] of Object.entries(files)) {
 		const abs = join(dir, rel);
@@ -12,7 +15,7 @@ function makeTempProject(files: Record<string, string>): string {
 		writeFileSync(abs, content);
 	}
 	return dir;
-}
+};
 
 test('accepts canonical literal test-ids', async () => {
 	const dir = makeTempProject({
@@ -41,9 +44,9 @@ test('rejects unknown literal test-ids', async () => {
 });
 
 test('accepts template literals matching a pattern', async () => {
+	const nameToken = `\${name}`;
 	const dir = makeTempProject({
-		'src/foo.svelte':
-			'<div data-testid={`consent-widget-switch-${name}`}></div>',
+		'src/foo.svelte': `<div data-testid={\`consent-widget-switch-${nameToken}\`}></div>`,
 	});
 	try {
 		const violations = await runTestIdLint([dir]);
@@ -54,8 +57,9 @@ test('accepts template literals matching a pattern', async () => {
 });
 
 test('rejects template literals that no pattern matches', async () => {
+	const nameToken = `\${name}`;
 	const dir = makeTempProject({
-		'src/foo.svelte': '<div data-testid={`totally-fake-prefix-${name}`}></div>',
+		'src/foo.svelte': `<div data-testid={\`totally-fake-prefix-${nameToken}\`}></div>`,
 	});
 	try {
 		const violations = await runTestIdLint([dir]);
@@ -67,9 +71,9 @@ test('rejects template literals that no pattern matches', async () => {
 });
 
 test('ignores data-testid inside querySelector strings', async () => {
+	const testIdToken = `\${testId}`;
 	const dir = makeTempProject({
-		'src/foo.tsx':
-			'const el = container.querySelector(`[data-testid="${testId}"]`);',
+		'src/foo.tsx': `const el = container.querySelector(\`[data-testid="${testIdToken}"]\`);`,
 	});
 	try {
 		const violations = await runTestIdLint([dir]);
@@ -81,9 +85,9 @@ test('ignores data-testid inside querySelector strings', async () => {
 
 test('skips test, spec, and story files', async () => {
 	const dir = makeTempProject({
-		'src/foo.test.tsx': `<div data-testid="not-canonical" />`,
-		'src/foo.stories.tsx': `<div data-testid="also-not-canonical" />`,
 		'src/__tests__/bar.tsx': `<div data-testid="third-non-canonical" />`,
+		'src/foo.stories.tsx': `<div data-testid="also-not-canonical" />`,
+		'src/foo.test.tsx': `<div data-testid="not-canonical" />`,
 	});
 	try {
 		const violations = await runTestIdLint([dir]);

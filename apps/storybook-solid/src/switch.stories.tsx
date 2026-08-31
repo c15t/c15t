@@ -2,16 +2,17 @@ import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { getSwitchState, switchVariants, toggleSwitchValue } from '@c15t/solid';
 import { createSignal } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;
 
-function SwitchDemo(props: {
+const SwitchDemo = (props: {
 	defaultChecked?: boolean;
 	disabled?: boolean;
 	size?: 'small' | 'medium';
 	label?: string;
-}) {
+}) => {
 	const [checked, setChecked] = createSignal(props.defaultChecked ?? false);
 	const classes = switchVariants({ size: props.size });
 
@@ -45,7 +46,7 @@ function SwitchDemo(props: {
 			<span>{props.label ?? consentTypes.measurement.title}</span>
 		</label>
 	);
-}
+};
 
 const meta = {
 	component: SwitchDemo,
@@ -71,7 +72,10 @@ export const Playground: Story = {
 export const Checked: Story = {
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem' }}>
-			<SwitchDemo defaultChecked label={consentTypes.measurement.title} />
+			<SwitchDemo
+				defaultChecked
+				label={consentTypes.measurement.title}
+			/>
 		</div>
 	),
 };
@@ -117,7 +121,10 @@ export const Controlled: Story = {
 export const Disabled: Story = {
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem' }}>
-			<SwitchDemo disabled label={consentTypes.measurement.title} />
+			<SwitchDemo
+				disabled
+				label={consentTypes.measurement.title}
+			/>
 		</div>
 	),
 };
@@ -125,7 +132,10 @@ export const Disabled: Story = {
 export const Sizes: Story = {
 	render: () => (
 		<div style={{ display: 'grid', gap: '1rem' }}>
-			<SwitchDemo defaultChecked label={consentTypes.necessary.title} />
+			<SwitchDemo
+				defaultChecked
+				label={consentTypes.necessary.title}
+			/>
 			<SwitchDemo
 				defaultChecked
 				size="small"

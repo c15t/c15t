@@ -1,14 +1,14 @@
 import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
+
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import {
-	createVueConsentKernelContext,
-	type VueConsentKernelContext,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
+import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -18,110 +18,135 @@ import {
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
 
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
 const translations: TranslationsResponse = {
 	common: {
 		acceptAll: 'Accept all',
-		rejectAll: 'Reject all',
 		customize: 'Customize',
+		rejectAll: 'Reject all',
 		save: 'Save settings',
 	},
-	cookieBanner: {
-		title: 'We value your privacy',
-		description: 'We use cookies to enhance your experience.',
-	},
 	consentManagerDialog: {
-		title: 'Privacy preferences',
 		description: 'Manage your choices.',
+		title: 'Privacy preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required for the site to function.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics and performance measurement.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
 		},
 	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
 	frame: {
-		title: 'Privacy',
 		actionButton: 'Manage',
+		title: 'Privacy',
 	},
 	legalLinks: {
+		cookiePolicy: 'Cookie policy',
 		privacyPolicy: 'Privacy policy',
 		termsOfService: 'Terms of service',
-		cookiePolicy: 'Cookie policy',
 	},
 };
 
 const init: InitOutput = {
+	branding: 'c15t',
 	jurisdiction: 'GDPR',
 	location: {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	translations: {
-		language: 'en',
-		translations,
-	},
-	branding: 'c15t',
 	policy: {
-		id: 'vue_a11y_policy',
-		model: 'opt-in',
 		consent: {
 			categories: ['necessary', 'functionality', 'measurement'],
 			scopeMode: 'permissive',
 		},
+		id: 'vue_a11y_policy',
+		model: 'opt-in',
 		ui: {
-			mode: 'dialog',
 			dialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				primaryActions: ['customize'],
 				scrollLock: false,
 			},
+			mode: 'dialog',
 		},
 	},
 	policyDecision: {
-		policyId: 'vue_a11y_policy',
-		fingerprint: 'vue_a11y_fingerprint',
-		matchedBy: 'default',
 		country: 'DE',
-		region: null,
+		fingerprint: 'vue_a11y_fingerprint',
 		jurisdiction: 'GDPR',
+		matchedBy: 'default',
+		policyId: 'vue_a11y_policy',
+		region: null,
 	},
 	policySnapshotToken: 'vue_a11y_token',
+	translations: {
+		language: 'en',
+		translations,
+	},
 };
 
-function mockFetch(): typeof fetch {
-	return vi.fn(async () => {
-		return new Response(JSON.stringify({ ok: true }), {
-			status: 200,
-			headers: { 'content-type': 'application/json' },
-		});
-	}) as unknown as typeof fetch;
-}
+const mockFetch = function mockFetch(): typeof fetch {
+	return vi.fn(
+		() =>
+			new Response(JSON.stringify({ ok: true }), {
+				headers: { 'content-type': 'application/json' },
 
-async function renderManager() {
+				status: 200,
+			})
+	) as unknown as typeof fetch;
+};
+
+const renderManager = async function renderManager() {
 	const config = {
 		backendURL: 'https://consent.example',
-		domain: 'consent.example',
 		consentCategories: ['necessary', 'functionality', 'measurement'],
 		customFetch: mockFetch(),
 		disableAnimation: true,
-		trapFocus: false,
+		domain: 'consent.example',
 		hideBranding: false,
+		trapFocus: false,
 	} as ConsentConfig;
 	const context = createVueConsentKernelContext({ config, prefetch: init });
 	context.activeUI.value = 'manager';
@@ -141,21 +166,21 @@ async function renderManager() {
 		},
 	});
 	await flushPromises();
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 
 	return { context, wrapper };
-}
+};
 
-async function cleanup(
+const cleanup = async function cleanup(
 	wrapper: VueWrapper<ComponentPublicInstance>,
 	context: VueConsentKernelContext
 ) {
-	const element = wrapper.element;
+	const { element } = wrapper;
 	wrapper.unmount();
 	element.remove();
 	context.dispose();
 	await flushPromises();
-}
+};
 
 describe('ConsentManager accordion accessibility', () => {
 	test('renders a dialog overlay even when focus trapping is disabled', async () => {
@@ -199,7 +224,7 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(content?.getAttribute('data-state')).toBe('closed');
 
 			switchEl.dispatchEvent(
-				new KeyboardEvent('keydown', { key: ' ', bubbles: true })
+				new KeyboardEvent('keydown', { bubbles: true, key: ' ' })
 			);
 			await flushPromises();
 
@@ -224,7 +249,7 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(content?.getAttribute('data-state')).toBe('closed');
 
 			trigger.dispatchEvent(
-				new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+				new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' })
 			);
 			await flushPromises();
 

@@ -19,6 +19,8 @@
 
 import type { ResponseContext } from './types';
 
+const assignInOrder = Object.assign;
+
 /**
  * Creates a mock ResponseContext for testing
  *
@@ -33,7 +35,7 @@ import type { ResponseContext } from './types';
  * expect(response.data?.id).toBe('sub_123');
  * ```
  */
-export function createMockResponse<T>(
+export const createMockResponse = function createMockResponse<T>(
 	data: T,
 	options: {
 		ok?: boolean;
@@ -53,41 +55,37 @@ export function createMockResponse<T>(
 	return {
 		data: isSuccess ? data : null,
 		error,
-		ok: isSuccess,
-		response,
-
-		unwrap(): T {
-			if (!isSuccess || data === null) {
-				throw new Error(error?.message || 'Request failed');
-			}
-			return data;
-		},
-
-		unwrapOr(defaultValue: T): T {
-			if (!isSuccess || data === null) {
-				return defaultValue;
-			}
-			return data;
-		},
-
 		expect(message: string): T {
 			if (!isSuccess || data === null) {
 				throw new Error(message);
 			}
 			return data;
 		},
-
 		map<U>(fn: (d: T) => U): ResponseContext<U> {
 			if (!isSuccess || data === null) {
 				return createMockResponse<U>(null as U, {
-					ok: false,
 					error: error ?? undefined,
+					ok: false,
 				});
 			}
 			return createMockResponse<U>(fn(data));
 		},
+		ok: isSuccess,
+		response,
+		unwrap(): T {
+			if (!isSuccess || data === null) {
+				throw new Error(error?.message || 'Request failed');
+			}
+			return data;
+		},
+		unwrapOr(defaultValue: T): T {
+			if (!isSuccess || data === null) {
+				return defaultValue;
+			}
+			return data;
+		},
 	};
-}
+};
 
 /**
  * Creates a mock error ResponseContext for testing
@@ -106,14 +104,16 @@ export function createMockResponse<T>(
  * expect(response.error?.status).toBe(404);
  * ```
  */
-export function createMockErrorResponse<T = unknown>(error: {
+export const createMockErrorResponse = function createMockErrorResponse<
+	T = unknown,
+>(error: {
 	message: string;
 	status: number;
 	code?: string;
 	details?: Record<string, unknown> | null;
 }): ResponseContext<T> {
-	return createMockResponse<T>(null as T, { ok: false, error });
-}
+	return createMockResponse<T>(null as T, { error, ok: false });
+};
 
 /**
  * Type for mock method implementations
@@ -158,12 +158,14 @@ export interface MockClientOverrides {
  * const result = await mockClient.getSubject('sub_123');
  * ```
  */
-export function createMockClient(overrides: MockClientOverrides = {}) {
+export const createMockClient = function createMockClient(
+	overrides: MockClientOverrides = {}
+) {
 	const defaultNotImplemented = () =>
 		createMockErrorResponse({
+			code: 'NOT_IMPLEMENTED',
 			message: 'Method not implemented in mock',
 			status: 501,
-			code: 'NOT_IMPLEMENTED',
 		});
 
 	const status = overrides.status ?? defaultNotImplemented;
@@ -174,44 +176,54 @@ export function createMockClient(overrides: MockClientOverrides = {}) {
 	const patchSubject = overrides.patchSubject ?? defaultNotImplemented;
 	const listSubjects = overrides.listSubjects ?? defaultNotImplemented;
 
-	return {
-		// Direct methods
-		status: () => Promise.resolve(status()),
-		init: () => Promise.resolve(init()),
-		checkConsent: (query: unknown) => Promise.resolve(checkConsent(query)),
-		createSubject: (input: unknown) => Promise.resolve(createSubject(input)),
-		getSubject: (id: string) => Promise.resolve(getSubject(id)),
-		patchSubject: (id: string, input: unknown) =>
-			Promise.resolve(
-				patchSubject({
-					id,
-					...(typeof input === 'object' && input !== null ? input : {}),
-				})
-			),
-		listSubjects: (query?: unknown) => Promise.resolve(listSubjects(query)),
+	return assignInOrder(
+		{},
+		{ status: () => Promise.resolve(status()) },
+		{ init: () => Promise.resolve(init()) },
+		{ checkConsent: (query: unknown) => Promise.resolve(checkConsent(query)) },
+		{
+			createSubject: (input: unknown) => Promise.resolve(createSubject(input)),
+		},
+		{ getSubject: (id: string) => Promise.resolve(getSubject(id)) },
+		{
+			patchSubject: (id: string, input: unknown) => {
+				const patchInput = { id };
+				if (typeof input === 'object' && input !== null) {
+					Object.assign(patchInput, input);
+				}
 
-		// Namespaced methods
-		consent: {
-			check: (query: unknown) => Promise.resolve(checkConsent(query)),
+				return Promise.resolve(patchSubject(patchInput));
+			},
 		},
-		subjects: {
-			create: (input: unknown) => Promise.resolve(createSubject(input)),
-			get: (id: string) => Promise.resolve(getSubject(id)),
-			patch: (id: string, input: unknown) =>
-				Promise.resolve(
-					patchSubject({
-						id,
-						...(typeof input === 'object' && input !== null ? input : {}),
-					})
-				),
-			list: (query?: unknown) => Promise.resolve(listSubjects(query)),
+		{ listSubjects: (query?: unknown) => Promise.resolve(listSubjects(query)) },
+		{
+			consent: {
+				check: (query: unknown) => Promise.resolve(checkConsent(query)),
+			},
 		},
-		meta: {
-			status: () => Promise.resolve(status()),
-			init: () => Promise.resolve(init()),
+		{
+			subjects: {
+				create: (input: unknown) => Promise.resolve(createSubject(input)),
+				get: (id: string) => Promise.resolve(getSubject(id)),
+				list: (query?: unknown) => Promise.resolve(listSubjects(query)),
+				patch: (id: string, input: unknown) => {
+					const patchInput = { id };
+					if (typeof input === 'object' && input !== null) {
+						Object.assign(patchInput, input);
+					}
+
+					return Promise.resolve(patchSubject(patchInput));
+				},
+			},
 		},
-	};
-}
+		{
+			meta: {
+				init: () => Promise.resolve(init()),
+				status: () => Promise.resolve(status()),
+			},
+		}
+	);
+};
 
 /**
  * Type representing the mock client returned by createMockClient

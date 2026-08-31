@@ -5,9 +5,12 @@
  */
 
 import path from 'node:path';
+
 import color from 'picocolors';
 import { fromPromise } from 'xstate';
+
 import type { CliContext } from '~/context/types';
+
 import type { GenerateMachineContext, PreflightCheckResult } from '../types';
 
 /**
@@ -31,7 +34,9 @@ export interface PreflightOutput {
 /**
  * Check if a file exists
  */
-async function fileExists(filePath: string): Promise<boolean> {
+const fileExists = async function fileExists(
+	filePath: string
+): Promise<boolean> {
 	try {
 		const fs = await import('node:fs/promises');
 		await fs.access(filePath);
@@ -39,12 +44,12 @@ async function fileExists(filePath: string): Promise<boolean> {
 	} catch {
 		return false;
 	}
-}
+};
 
 /**
  * Run all preflight checks
  */
-async function runPreflightChecks(
+const runPreflightChecks = async function runPreflightChecks(
 	context: CliContext
 ): Promise<PreflightOutput> {
 	const { projectRoot, framework, packageManager, logger } = context;
@@ -56,64 +61,64 @@ async function runPreflightChecks(
 	const packageJsonPath = path.join(projectRoot, 'package.json');
 	const hasPackageJson = await fileExists(packageJsonPath);
 	checks.push({
-		name: 'package.json',
-		status: hasPackageJson ? 'pass' : 'fail',
-		message: hasPackageJson ? 'Found package.json' : 'No package.json found',
 		hint: hasPackageJson
 			? undefined
 			: 'Make sure you are in a JavaScript/TypeScript project',
+		message: hasPackageJson ? 'Found package.json' : 'No package.json found',
+		name: 'package.json',
+		status: hasPackageJson ? 'pass' : 'fail',
 	});
 
 	// Check 2: Framework detected
 	checks.push({
-		name: 'Framework',
-		status: framework.framework ? 'pass' : 'warn',
+		hint: framework.framework ? undefined : 'Will use vanilla JavaScript setup',
 		message: framework.framework
 			? `Detected ${framework.framework}`
 			: 'No framework detected',
-		hint: framework.framework ? undefined : 'Will use vanilla JavaScript setup',
+		name: 'Framework',
+		status: framework.framework ? 'pass' : 'warn',
 	});
 
 	// Check 3: React detected (for React/Next.js packages)
 	if (framework.pkg !== 'c15t') {
 		checks.push({
-			name: 'React',
-			status: framework.hasReact ? 'pass' : 'warn',
+			hint: framework.hasReact ? undefined : 'c15t works best with React',
 			message: framework.hasReact
 				? `Found React ${framework.reactVersion || ''}`
 				: 'React not detected',
-			hint: framework.hasReact ? undefined : 'c15t works best with React',
+			name: 'React',
+			status: framework.hasReact ? 'pass' : 'warn',
 		});
 	}
 
 	// Check 4: Package manager
 	checks.push({
-		name: 'Package Manager',
-		status: packageManager.name ? 'pass' : 'warn',
+		hint: packageManager.name ? undefined : 'Will default to npm',
 		message: packageManager.name
 			? `Using ${packageManager.name}`
 			: 'No package manager detected',
-		hint: packageManager.name ? undefined : 'Will default to npm',
+		name: 'Package Manager',
+		status: packageManager.name ? 'pass' : 'warn',
 	});
 
 	// Determine if we can proceed
 	const hasFailures = checks.some((c) => c.status === 'fail');
 
 	return {
-		passed: !hasFailures,
 		checks,
-		projectRoot,
 		framework: {
-			name: framework.framework,
-			version: framework.frameworkVersion,
-			pkg: framework.pkg,
 			hasReact: framework.hasReact,
+			name: framework.framework,
+			pkg: framework.pkg,
 			reactVersion: framework.reactVersion,
 			tailwindVersion: framework.tailwindVersion,
+			version: framework.frameworkVersion,
 		},
 		packageManager,
+		passed: !hasFailures,
+		projectRoot,
 	};
-}
+};
 
 /**
  * Preflight actor definition
@@ -129,7 +134,7 @@ async function runPreflightChecks(
  * ```
  */
 export const preflightActor = fromPromise<PreflightOutput, PreflightInput>(
-	async ({ input }) => {
+	({ input }) => {
 		const { cliContext } = input;
 
 		if (!cliContext) {
@@ -143,7 +148,9 @@ export const preflightActor = fromPromise<PreflightOutput, PreflightInput>(
 /**
  * Get status icon for a preflight check
  */
-function getStatusIcon(status: PreflightCheckResult['status']): string {
+const getStatusIcon = function getStatusIcon(
+	status: PreflightCheckResult['status']
+): string {
 	switch (status) {
 		case 'pass':
 			return color.green('✓');
@@ -154,12 +161,12 @@ function getStatusIcon(status: PreflightCheckResult['status']): string {
 		default:
 			return ' ';
 	}
-}
+};
 
 /**
  * Display preflight results to the user (synchronous)
  */
-export function displayPreflightResults(
+export const displayPreflightResults = function displayPreflightResults(
 	context: CliContext,
 	checks: PreflightCheckResult[]
 ): void {
@@ -180,12 +187,12 @@ export function displayPreflightResults(
 
 	lines.push('');
 	logger.message(lines.join('\n'));
-}
+};
 
 /**
  * Display preflight failure message (synchronous)
  */
-export function displayPreflightFailure(
+export const displayPreflightFailure = function displayPreflightFailure(
 	context: CliContext,
 	checks: PreflightCheckResult[]
 ): void {
@@ -206,4 +213,4 @@ export function displayPreflightFailure(
 	lines.push('');
 	lines.push('Please fix the issues above and try again.');
 	logger.message(lines.join('\n'));
-}
+};

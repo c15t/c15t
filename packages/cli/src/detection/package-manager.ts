@@ -6,18 +6,20 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
+
 import type { CliLogger, PackageManager, PackageManagerResult } from '../types';
 
 /**
  * Lock file to package manager mapping
  */
 const LOCK_FILE_MAP: Record<string, PackageManager> = {
-	'bun.lockb': 'bun',
 	'bun.lock': 'bun',
+	'bun.lockb': 'bun',
+	'package-lock.json': 'npm',
 	'pnpm-lock.yaml': 'pnpm',
 	'yarn.lock': 'yarn',
-	'package-lock.json': 'npm',
 };
 
 /**
@@ -28,41 +30,42 @@ const PACKAGE_MANAGER_CONFIG: Record<
 	Omit<PackageManagerResult, 'name'>
 > = {
 	bun: {
-		installCommand: 'bun install',
 		addCommand: 'bun add',
-		runCommand: 'bun run',
 		execCommand: 'bunx',
-	},
-	pnpm: {
-		installCommand: 'pnpm install',
-		addCommand: 'pnpm add',
-		runCommand: 'pnpm',
-		execCommand: 'pnpm dlx',
-	},
-	yarn: {
-		installCommand: 'yarn',
-		addCommand: 'yarn add',
-		runCommand: 'yarn',
-		execCommand: 'yarn dlx',
+		installCommand: 'bun install',
+		runCommand: 'bun run',
 	},
 	npm: {
-		installCommand: 'npm install',
 		addCommand: 'npm install',
-		runCommand: 'npm run',
 		execCommand: 'npx',
+		installCommand: 'npm install',
+		runCommand: 'npm run',
+	},
+	pnpm: {
+		addCommand: 'pnpm add',
+		execCommand: 'pnpm dlx',
+		installCommand: 'pnpm install',
+		runCommand: 'pnpm',
+	},
+	yarn: {
+		addCommand: 'yarn add',
+		execCommand: 'yarn dlx',
+		installCommand: 'yarn',
+		runCommand: 'yarn',
 	},
 };
 
 /**
  * Detect the package manager from lock files
  */
-async function detectFromLockFile(
+const detectFromLockFile = async function detectFromLockFile(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<PackageManager | null> {
 	for (const [lockFile, pm] of Object.entries(LOCK_FILE_MAP)) {
 		const lockPath = path.join(projectRoot, lockFile);
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await fs.access(lockPath);
 			logger?.debug(`Found ${lockFile}, using ${pm}`);
 			return pm;
@@ -71,12 +74,12 @@ async function detectFromLockFile(
 		}
 	}
 	return null;
-}
+};
 
 /**
  * Detect the package manager from package.json packageManager field
  */
-async function detectFromPackageJson(
+const detectFromPackageJson = async function detectFromPackageJson(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<PackageManager | null> {
@@ -86,7 +89,9 @@ async function detectFromPackageJson(
 		const packageJson = JSON.parse(content);
 
 		if (packageJson.packageManager) {
-			const match = packageJson.packageManager.match(/^(npm|yarn|pnpm|bun)@/);
+			const match = packageJson.packageManager.match(
+				/^(?<capture1>npm|yarn|pnpm|bun)@/u
+			);
 			if (match) {
 				const pm = match[1] as PackageManager;
 				logger?.debug(`Found packageManager field: ${pm}`);
@@ -97,12 +102,12 @@ async function detectFromPackageJson(
 		// Ignore errors
 	}
 	return null;
-}
+};
 
 /**
  * Prompt user to select a package manager
  */
-async function promptForPackageManager(
+const promptForPackageManager = async function promptForPackageManager(
 	logger?: CliLogger
 ): Promise<PackageManager> {
 	logger?.debug('Prompting user to select package manager');
@@ -110,10 +115,10 @@ async function promptForPackageManager(
 	const result = await p.select({
 		message: 'Which package manager do you use?',
 		options: [
-			{ value: 'bun', label: 'bun', hint: 'Fast all-in-one toolkit' },
-			{ value: 'pnpm', label: 'pnpm', hint: 'Fast, disk space efficient' },
-			{ value: 'yarn', label: 'yarn', hint: 'Classic package manager' },
-			{ value: 'npm', label: 'npm', hint: 'Default Node.js package manager' },
+			{ hint: 'Fast all-in-one toolkit', label: 'bun', value: 'bun' },
+			{ hint: 'Fast, disk space efficient', label: 'pnpm', value: 'pnpm' },
+			{ hint: 'Classic package manager', label: 'yarn', value: 'yarn' },
+			{ hint: 'Default Node.js package manager', label: 'npm', value: 'npm' },
 		],
 	});
 
@@ -122,12 +127,12 @@ async function promptForPackageManager(
 	}
 
 	return result as PackageManager;
-}
+};
 
 /**
  * Detect the package manager being used in a project
  */
-export async function detectPackageManager(
+export const detectPackageManager = async function detectPackageManager(
 	projectRoot: string,
 	logger?: CliLogger,
 	options?: { interactive?: boolean }
@@ -144,11 +149,11 @@ export async function detectPackageManager(
 
 	// Fall back to interactive selection or default
 	if (!pm) {
-		if (options?.interactive !== false) {
-			pm = await promptForPackageManager(logger);
-		} else {
+		if (options?.interactive === false) {
 			pm = 'npm';
 			logger?.debug('Defaulting to npm');
+		} else {
+			pm = await promptForPackageManager(logger);
 		}
 	}
 
@@ -159,48 +164,49 @@ export async function detectPackageManager(
 		name: pm,
 		...config,
 	};
-}
+};
 
 /**
  * Get the install command for dependencies
  */
-export function getInstallCommand(
+export const getInstallCommand = function getInstallCommand(
 	pm: PackageManagerResult,
 	packages: string[],
 	options?: { dev?: boolean }
 ): string {
 	const pkgList = packages.join(' ');
+	// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 	const devFlag = options?.dev ? (pm.name === 'npm' ? '--save-dev' : '-D') : '';
 
-	return `${pm.addCommand} ${devFlag} ${pkgList}`.trim().replace(/\s+/g, ' ');
-}
+	return `${pm.addCommand} ${devFlag} ${pkgList}`.trim().replace(/\s+/gu, ' ');
+};
 
 /**
  * Get the run command for a script
  */
-export function getRunCommand(
+export const getRunCommand = function getRunCommand(
 	pm: PackageManagerResult,
 	script: string
 ): string {
 	return `${pm.runCommand} ${script}`;
-}
+};
 
 /**
  * Get the exec command for a binary
  */
-export function getExecCommand(
+export const getExecCommand = function getExecCommand(
 	pm: PackageManagerResult,
 	binary: string,
 	args?: string[]
 ): string {
 	const argString = args?.join(' ') || '';
 	return `${pm.execCommand} ${binary} ${argString}`.trim();
-}
+};
 
 /**
  * Check if a package is installed
  */
-export async function isPackageInstalled(
+export const isPackageInstalled = async function isPackageInstalled(
 	projectRoot: string,
 	packageName: string
 ): Promise<boolean> {
@@ -218,4 +224,4 @@ export async function isPackageInstalled(
 	} catch {
 		return false;
 	}
-}
+};

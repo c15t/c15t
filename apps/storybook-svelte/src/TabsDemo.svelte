@@ -19,21 +19,24 @@
 	const tabValues = ['overview', 'vendors', 'storage'];
 	const tabLabels: Record<string, string> = {
 		overview: 'Overview',
-		vendors: 'Vendors',
 		storage: 'Storage',
+		vendors: 'Vendors',
 	};
 
-	function getDescription(tab: string): string {
+	const getDescription = function getDescription(tab: string): string {
 		const descriptions: Record<string, string> = {
 			overview: overviewDescription,
-			vendors: vendorsDescription,
 			storage: storageDescription,
+			vendors: vendorsDescription,
 		};
 		return descriptions[tab] ?? '';
-	}
+	};
 </script>
 
-<Tabs.Root bind:value={activeTab} class={classes.root()}>
+<Tabs.Root
+	bind:value={activeTab}
+	class={classes.root()}
+>
 	<Tabs.List class={classes.list()}>
 		{#each tabValues as tab}
 			<Tabs.Trigger

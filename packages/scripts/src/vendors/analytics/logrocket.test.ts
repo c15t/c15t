@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
@@ -45,9 +46,9 @@ describe('logRocket', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -96,8 +97,8 @@ describe('logRocket', () => {
 		const globalRef = getTestGlobal();
 		const script = logRocket({
 			appId: 'org/app',
-			scriptUrl: 'https://proxy.example.com/LogRocket.min.js',
 			asyncScriptUrl: 'https://proxy.example.com/logger.min.js',
+			scriptUrl: 'https://proxy.example.com/LogRocket.min.js',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));

@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+
 import { IABConsentDialogCard } from './atoms/card';
 import { IABConsentDialogContent } from './atoms/content';
 import { IABConsentDialogFooter } from './atoms/footer';
@@ -20,18 +21,14 @@ import { IABConsentDialogRoot } from './atoms/root';
 import { StackItem } from './atoms/stack-item';
 import { IABConsentDialogTabButton, IABConsentDialogTabs } from './atoms/tabs';
 import { VendorList } from './atoms/vendor-list';
-import { useGVLData } from './hooks/use-gvl-data';
-import {
-	IABConsentDialog as IABConsentDialogComponent,
-	type IABConsentDialogProps,
-} from './iab-consent-dialog';
+import { IABConsentDialog as IABConsentDialogComponent } from './iab-consent-dialog';
+import type { IABConsentDialogProps } from './iab-consent-dialog';
 
 /**
  * This interface extends the base IABConsentDialog component with additional sub-components
  * that can be used to compose the consent dialog's structure.
  */
-export interface IABConsentDialogCompoundComponent
-	extends FC<IABConsentDialogProps> {
+export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogProps> {
 	Root: typeof IABConsentDialogRoot;
 	Card: typeof IABConsentDialogCard;
 	Header: typeof IABConsentDialogHeader;
@@ -85,16 +82,16 @@ export interface IABConsentDialogCompoundComponent
  * @public
  */
 const IABConsentDialog = Object.assign(IABConsentDialogComponent, {
-	Root: IABConsentDialogRoot,
 	Card: IABConsentDialogCard,
-	Header: IABConsentDialogHeader,
-	Tabs: IABConsentDialogTabs,
-	TabButton: IABConsentDialogTabButton,
 	Content: IABConsentDialogContent,
 	Footer: IABConsentDialogFooter,
+	Header: IABConsentDialogHeader,
 	Overlay: IABConsentDialogOverlay,
 	PurposeItem,
+	Root: IABConsentDialogRoot,
 	StackItem,
+	TabButton: IABConsentDialogTabButton,
+	Tabs: IABConsentDialogTabs,
 	VendorList,
 }) as IABConsentDialogCompoundComponent;
 
@@ -110,10 +107,7 @@ export { IABConsentDialogOverlay } from './atoms/overlay';
 export { PurposeItem } from './atoms/purpose-item';
 export { IABConsentDialogRoot } from './atoms/root';
 export { StackItem } from './atoms/stack-item';
-export {
-	IABConsentDialogTabButton,
-	IABConsentDialogTabs,
-} from './atoms/tabs';
+export { IABConsentDialogTabButton, IABConsentDialogTabs } from './atoms/tabs';
 export { VendorList } from './atoms/vendor-list';
 // Export hooks
 export { type GVLData, useGVLData } from './hooks/use-gvl-data';

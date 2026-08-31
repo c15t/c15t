@@ -1,140 +1,141 @@
 import type { CompleteTranslations } from '../types';
+
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Pieņemt visu',
-		rejectAll: 'Noraidīt visu',
-		customize: 'Pielāgot',
-		save: 'Saglabāt iestatījumus',
 		close: 'Aizvērt',
+		customize: 'Pielāgot',
+		rejectAll: 'Noraidīt visu',
+		save: 'Saglabāt iestatījumus',
 		securedBy: 'Aizsardzību nodrošina',
 	},
-	cookieBanner: {
-		title: 'Mēs novērtējam jūsu privātumu',
-		description:
-			'Šī vietne izmanto sīkdatnes, lai uzlabotu jūsu pārlūkošanas pieredzi, analizētu vietnes datplūsmu un rādītu personalizētu saturu.',
-	},
 	consentManagerDialog: {
-		title: 'Privātuma iestatījumi',
 		description:
 			'Pielāgojiet savus privātuma iestatījumus šeit. Jūs varat izvēlēties, kāda veida sīkdatnes un izsekošanas tehnoloģijas atļaut.',
+		title: 'Privātuma iestatījumi',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Stingri nepieciešamās',
-			description:
-				'Šīs sīkdatnes ir būtiskas, lai vietne darbotos pareizi, un tās nevar atspējot.',
-		},
-		functionality: {
-			title: 'Funkcionalitāte',
-			description:
-				'Šīs sīkdatnes nodrošina uzlabotu funkcionalitāti un vietnes personalizāciju.',
-		},
-		marketing: {
-			title: 'Mārketings',
-			description:
-				'Šīs sīkdatnes tiek izmantotas, lai piegādātu atbilstošas reklāmas un izsekotu to efektivitāti.',
-		},
-		measurement: {
-			title: 'Analītika',
-			description:
-				'Šīs sīkdatnes palīdz mums saprast, kā apmeklētāji mijiedarbojas ar vietni un uzlabo tās veiktspēju.',
-		},
 		experience: {
-			title: 'Pieredze',
 			description:
 				'Šīs sīkdatnes palīdz mums nodrošināt labāku lietotāja pieredzi un testēt jaunas funkcijas.',
+			title: 'Pieredze',
+		},
+		functionality: {
+			description:
+				'Šīs sīkdatnes nodrošina uzlabotu funkcionalitāti un vietnes personalizāciju.',
+			title: 'Funkcionalitāte',
+		},
+		marketing: {
+			description:
+				'Šīs sīkdatnes tiek izmantotas, lai piegādātu atbilstošas reklāmas un izsekotu to efektivitāti.',
+			title: 'Mārketings',
+		},
+		measurement: {
+			description:
+				'Šīs sīkdatnes palīdz mums saprast, kā apmeklētāji mijiedarbojas ar vietni un uzlabo tās veiktspēju.',
+			title: 'Analītika',
+		},
+		necessary: {
+			description:
+				'Šīs sīkdatnes ir būtiskas, lai vietne darbotos pareizi, un tās nevar atspējot.',
+			title: 'Stingri nepieciešamās',
 		},
 	},
+	cookieBanner: {
+		description:
+			'Šī vietne izmanto sīkdatnes, lai uzlabotu jūsu pārlūkošanas pieredzi, analizētu vietnes datplūsmu un rādītu personalizētu saturu.',
+		title: 'Mēs novērtējam jūsu privātumu',
+	},
 	frame: {
-		title: 'Pieņemiet {category} piekrišanu, lai skatītu šo saturu.',
 		actionButton: 'Iespējot {category} piekrišanu',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
-		loading: 'Loading content…',
-		error: 'This content could not be loaded.',
-	},
-	legalLinks: {
-		privacyPolicy: 'Privātuma politika',
-		cookiePolicy: 'Sīkdatņu politika',
-		termsOfService: 'Pakalpojumu sniegšanas noteikumi',
+		title: 'Pieņemiet {category} piekrišanu, lai skatītu šo saturu.',
 	},
 	iab: {
 		banner: {
-			title: 'Privātuma iestatījumi',
+			andMore: 'Un vēl {count}...',
 			description:
 				'Mēs un mūsu {partnerCount} partneri uzglabājam un/vai piekļūstam informācijai jūsu ierīcē un apstrādājam personas datus, piemēram, unikālus identifikatorus un pārlūkošanas datus, šai vietnei, lai:',
-			partnersLink: '{count} partneri',
-			andMore: 'Un vēl {count}...',
 			legitimateInterestNotice:
 				'Daži partneri pieprasa leģitīmas intereses jūsu datu apstrādei. Jums ir tiesības iebilst pret šo apstrādi, pielāgot savu izvēli un jebkurā laikā atsaukt savu piekrišanu.',
+			partnersLink: '{count} partneri',
+			scopeGroup: 'Jūsu izvēle attiecas uz visām mūsu vietnēm šajā grupā.',
 			scopeServiceSpecific:
 				'Jūsu piekrišana attiecas tikai uz šo vietni un neietekmēs citus pakalpojumus.',
-			scopeGroup: 'Jūsu izvēle attiecas uz visām mūsu vietnēm šajā grupā.',
+			title: 'Privātuma iestatījumi',
+		},
+		common: {
+			acceptAll: 'Pieņemt visu',
+			clearSelection: 'Notīrīt',
+			customPartner: 'Pielāgots partneris, kas nav reģistrēts IAB',
+			customize: 'Pielāgot',
+			loading: 'Ielādē...',
+			rejectAll: 'Noraidīt visu',
+			saveSettings: 'Saglabāt iestatījumus',
+			showingSelectedVendor: 'Rāda atlasīto piegādātāju',
 		},
 		preferenceCenter: {
-			title: 'Privātuma iestatījumi',
 			description:
 				'Pielāgojiet savus privātuma iestatījumus šeit. Jūs varat izvēlēties, kāda veida sīkdatnes un izsekošanas tehnoloģijas atļaut.',
-			tabs: {
-				purposes: 'Mērķi',
-				vendors: 'Piegādātāji',
+			footer: {
+				consentStorage:
+					'Piekrišanas iestatījumi tiek glabāti sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. Glabāšanas ilgums var tikt atjaunots, kad jūs atjaunināt savus iestatījumus.',
 			},
 			purposeItem: {
-				partners: '{count} partneri',
-				vendorsUseLegitimateInterest:
-					'{count} piegādātāji pieprasa leģitīmas intereses',
 				examples: 'Piemēri',
-				partnersUsingPurpose: 'Partneri, kas izmanto šo mērķi',
-				withYourPermission: 'Ar jūsu atļauju',
 				legitimateInterest: 'Leģitīmās intereses',
 				objectButton: 'Iebilst',
 				objected: 'Iebilsts',
+				partners: '{count} partneri',
+				partnersUsingPurpose: 'Partneri, kas izmanto šo mērķi',
 				rightToObject:
 					'Jums ir tiesības iebilst pret apstrādi, kuras pamatā ir leģitīmas intereses.',
+				vendorsUseLegitimateInterest:
+					'{count} piegādātāji pieprasa leģitīmas intereses',
+				withYourPermission: 'Ar jūsu atļauju',
 			},
 			specialPurposes: {
 				title: 'Būtiskas funkcijas (nepieciešams)',
 				tooltip:
 					'Tās ir nepieciešamas vietnes funkcionalitātei un drošībai. Saskaņā ar IAB TCF jūs nevarat iebilst pret šiem īpašajiem mērķiem.',
 			},
+			tabs: {
+				purposes: 'Mērķi',
+				vendors: 'Piegādātāji',
+			},
+			title: 'Privātuma iestatījumi',
 			vendorList: {
-				search: 'Meklēt piegādātājus...',
-				showingCount: 'Rāda {filtered} no {total} piegādātājiem',
-				iabVendorsHeading: 'IAB reģistrētie piegādātāji',
-				iabVendorsNotice:
-					'Šie partneri ir reģistrēti IAB Transparency & Consent Framework (TCF) — nozares standartā piekrišanas pārvaldībai',
 				customVendorsHeading: 'Pielāgoti partneri',
 				customVendorsNotice:
 					'Šie ir pielāgoti partneri, kas nav reģistrēti IAB Transparency & Consent Framework (TCF). Viņi apstrādā datus, pamatojoties uz jūsu piekrišanu, un viņiem var būt atšķirīga privātuma prakse nekā IAB reģistrētajiem piegādātājiem.',
-				purposes: 'Mērķi',
-				specialPurposes: 'Īpašie mērķi',
-				specialFeatures: 'Īpašās funkcijas',
-				features: 'Funkcijas',
 				dataCategories: 'Datu kategorijas',
-				usesCookies: 'Izmanto sīkdatnes',
-				nonCookieAccess: 'Piekļuve bez sīkdatnēm',
-				maxAge: 'Maks. vecums: {days}d',
-				retention: 'Saglabāšana: {days}d',
+				features: 'Funkcijas',
+				iabVendorsHeading: 'IAB reģistrētie piegādātāji',
+				iabVendorsNotice:
+					'Šie partneri ir reģistrēti IAB Transparency & Consent Framework (TCF) — nozares standartā piekrišanas pārvaldībai',
 				legitimateInterest: 'Leģ. intereses',
+				maxAge: 'Maks. vecums: {days}d',
+				nonCookieAccess: 'Piekļuve bez sīkdatnēm',
 				privacyPolicy: 'Privātuma politika',
-				storageDisclosure: 'Informācija par glabāšanu',
+				purposes: 'Mērķi',
 				requiredNotice: 'Nepieciešams vietnes funkcionalitātei, nevar atspējot',
-			},
-			footer: {
-				consentStorage:
-					'Piekrišanas iestatījumi tiek glabāti sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. Glabāšanas ilgums var tikt atjaunots, kad jūs atjaunināt savus iestatījumus.',
+				retention: 'Saglabāšana: {days}d',
+				search: 'Meklēt piegādātājus...',
+				showingCount: 'Rāda {filtered} no {total} piegādātājiem',
+				specialFeatures: 'Īpašās funkcijas',
+				specialPurposes: 'Īpašie mērķi',
+				storageDisclosure: 'Informācija par glabāšanu',
+				usesCookies: 'Izmanto sīkdatnes',
 			},
 		},
-		common: {
-			acceptAll: 'Pieņemt visu',
-			rejectAll: 'Noraidīt visu',
-			customize: 'Pielāgot',
-			saveSettings: 'Saglabāt iestatījumus',
-			loading: 'Ielādē...',
-			showingSelectedVendor: 'Rāda atlasīto piegādātāju',
-			clearSelection: 'Notīrīt',
-			customPartner: 'Pielāgots partneris, kas nav reģistrēts IAB',
-		},
+	},
+	legalLinks: {
+		cookiePolicy: 'Sīkdatņu politika',
+		privacyPolicy: 'Privātuma politika',
+		termsOfService: 'Pakalpojumu sniegšanas noteikumi',
 	},
 };
 export default translations;

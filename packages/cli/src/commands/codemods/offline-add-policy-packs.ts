@@ -1,12 +1,11 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import {
-	Node,
-	type ObjectLiteralExpression,
-	Project,
-	type PropertyAssignment,
-	SyntaxKind,
-} from 'ts-morph';
+
+import { Node, Project, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
+import type * as TsMorphTypes from 'ts-morph';
+
+import { forEachSequential } from '../../utils/for-each-sequential';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -20,11 +19,11 @@ const IGNORED_DIRS = new Set([
 	'out',
 ]);
 
-type CodemodResult = {
+interface CodemodResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	projectRoot: string;
@@ -33,20 +32,22 @@ export interface CodemodRunOptions {
 
 export interface CodemodRunResult {
 	totalFiles: number;
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
-	errors: Array<{ filePath: string; error: string }>;
+	}[];
+	errors: { filePath: string; error: string }[];
 }
 
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
-}
+	return rawName.replace(/^['"]|['"]$/gu, '');
+};
 
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -59,7 +60,7 @@ function getProperty(
 		}
 	}
 	return undefined;
-}
+};
 
 /**
  * Finds offline-mode config objects that lack offlinePolicy.policyPacks and
@@ -68,8 +69,8 @@ function getProperty(
 const STARTER_POLICY_PACK =
 	'[\n\t\t\tpolicyPackPresets.europeOptIn(),\n\t\t\tpolicyPackPresets.californiaOptOut(),\n\t\t\tpolicyPackPresets.worldNoBanner(),\n\t\t]';
 
-function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+const transformSourceFile = function transformSourceFile(
+	sourceFile: TsMorphTypes.SourceFile
 ): CodemodResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -111,28 +112,28 @@ function transformSourceFile(
 		}
 
 		// Add offlinePolicy with a starter pack if missing entirely
-		if (!offlinePolicyProperty) {
-			configObject.addPropertyAssignment({
-				name: 'offlinePolicy',
-				initializer: `{\n\t\tpolicyPacks: ${STARTER_POLICY_PACK},\n\t}`,
-			});
-			operations += 1;
-			needsImport = true;
-			summaries.push('added offlinePolicy.policyPacks with starter presets');
-		} else {
+		if (offlinePolicyProperty) {
 			// offlinePolicy exists but has no policyPacks field — add it
 			const offlinePolicyObject = offlinePolicyProperty.getInitializerIfKind(
 				SyntaxKind.ObjectLiteralExpression
 			);
 			if (offlinePolicyObject) {
 				offlinePolicyObject.addPropertyAssignment({
-					name: 'policyPacks',
 					initializer: STARTER_POLICY_PACK,
+					name: 'policyPacks',
 				});
 				operations += 1;
 				needsImport = true;
 				summaries.push('added policyPacks: starter presets');
 			}
+		} else {
+			configObject.addPropertyAssignment({
+				initializer: `{\n\t\tpolicyPacks: ${STARTER_POLICY_PACK},\n\t}`,
+				name: 'offlinePolicy',
+			});
+			operations += 1;
+			needsImport = true;
+			summaries.push('added offlinePolicy.policyPacks with starter presets');
 		}
 	}
 
@@ -160,8 +161,8 @@ function transformSourceFile(
 				summaries.push('added policyPackPresets to existing import');
 			} else {
 				sourceFile.addImportDeclaration({
-					namedImports: ['policyPackPresets'],
 					moduleSpecifier: 'c15t',
+					namedImports: ['policyPackPresets'],
 				});
 				summaries.push("added import { policyPackPresets } from 'c15t'");
 			}
@@ -174,93 +175,100 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
-		for (const entry of entries) {
-			if (entry.isSymbolicLink()) {
-				continue;
-			}
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
+		await forEachSequential(entries, {
+			run: async (entry) => {
+				if (entry.isSymbolicLink()) {
+					return;
 				}
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
-			if (!entry.isFile()) {
-				continue;
-			}
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
-			files.push(join(currentDir, entry.name));
-		}
-	}
+				if (entry.isDirectory()) {
+					if (IGNORED_DIRS.has(entry.name)) {
+						return;
+					}
+					await walk(join(currentDir, entry.name));
+					return;
+				}
+				if (!entry.isFile()) {
+					return;
+				}
+				const extension = extname(entry.name).toLowerCase();
+				if (!SUPPORTED_EXTENSIONS.has(extension)) {
+					return;
+				}
+				files.push(join(currentDir, entry.name));
+			},
+		});
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Adds `offlinePolicy.policyPacks` starter presets
  * to offline-mode configs that lack policy packs (v1 -> v2 migration).
  */
-export async function runOfflineAddPolicyPacksCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runOfflineAddPolicyPacksCodemod =
+	async function runOfflineAddPolicyPacksCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
-			}
+		await forEachSequential(filePaths, {
+			run: async (filePath) => {
+				try {
+					const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+					if (!sourceFile) {
+						return;
+					}
 
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
+					const result = transformSourceFile(sourceFile);
+					if (!result.changed) {
+						return;
+					}
 
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
+					changedFiles.push({
+						filePath,
+						operations: result.operations,
+						summaries: result.summaries,
+					});
 
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
-		}
-	}
+					if (!options.dryRun) {
+						await sourceFile.save();
+					}
+				} catch (error) {
+					errors.push({
+						error: error instanceof Error ? error.message : String(error),
+						filePath,
+					});
+				}
+			},
+		});
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

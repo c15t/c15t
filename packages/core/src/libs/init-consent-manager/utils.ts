@@ -12,7 +12,9 @@ import type { StoreAccess } from './types';
  * @param set - Store setter to update state if storage is unavailable
  * @returns True if localStorage is accessible, false otherwise
  */
-export function checkLocalStorageAccess(set: StoreAccess['set']): boolean {
+export const checkLocalStorageAccess = function checkLocalStorageAccess(
+	set: StoreAccess['set']
+): boolean {
 	try {
 		if (window.localStorage) {
 			window.localStorage.setItem('c15t-storage-test-key', 'test');
@@ -21,7 +23,7 @@ export function checkLocalStorageAccess(set: StoreAccess['set']): boolean {
 		}
 	} catch (error) {
 		console.warn('localStorage not available, skipping consent banner:', error);
-		set({ isLoadingConsentInfo: false, activeUI: 'none' as const });
+		set({ activeUI: 'none' as const, isLoadingConsentInfo: false });
 	}
 	return false;
-}
+};

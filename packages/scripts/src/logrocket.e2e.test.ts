@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
@@ -45,8 +46,8 @@ describe('logRocket contract', () => {
 					},
 				},
 			}),
-			id: 'logrocket-contract',
 			anonymizeId: false,
+			id: 'logrocket-contract',
 		};
 
 		loadScripts([script], deniedConsents);

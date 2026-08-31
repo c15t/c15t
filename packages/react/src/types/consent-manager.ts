@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 /**
  * React-specific configuration options
  */
-export interface ReactUIOptions extends UIOptions {}
+export type ReactUIOptions = UIOptions;
 
 /**
  * Extended configuration options for the React consent manager.

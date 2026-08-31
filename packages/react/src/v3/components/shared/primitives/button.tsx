@@ -1,10 +1,13 @@
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, type MouseEvent, useCallback } from 'react';
+import { forwardRef as createForwardRef, useCallback } from 'react';
+import type { MouseEvent } from 'react';
+
 import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { Slot } from '../libs/slot';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';
@@ -42,7 +45,7 @@ type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
  * 3. `theme.consentActions.default`
  * 4. Hardcoded fallback based on `isPrimary`
  */
-function resolveConsentButtonStyle(params: {
+const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
 	consentAction?: ConsentActionThemeKey;
 	isPrimary?: boolean;
 	theme?: ReturnType<typeof useTheme>['theme'];
@@ -51,25 +54,25 @@ function resolveConsentButtonStyle(params: {
 }) {
 	if (params.variant || params.mode) {
 		return {
-			variant: params.variant ?? 'neutral',
 			mode: params.mode ?? 'stroke',
+			variant: params.variant ?? 'neutral',
 		};
 	}
 
 	const defaultStyle = params.isPrimary
-		? { variant: 'primary' as const, mode: 'stroke' as const }
-		: { variant: 'neutral' as const, mode: 'stroke' as const };
+		? { mode: 'stroke' as const, variant: 'primary' as const }
+		: { mode: 'stroke' as const, variant: 'neutral' as const };
 	const themedDefault = params.theme?.consentActions?.default ?? {};
 	const themedAction = params.consentAction
 		? params.theme?.consentActions?.[params.consentAction]
 		: undefined;
 
 	return {
+		mode: themedAction?.mode ?? themedDefault.mode ?? defaultStyle.mode,
 		variant:
 			themedAction?.variant ?? themedDefault.variant ?? defaultStyle.variant,
-		mode: themedAction?.mode ?? themedDefault.mode ?? defaultStyle.mode,
 	};
-}
+};
 
 /**
  * Button component that allows users to reject non-essential cookies.
@@ -86,7 +89,7 @@ function resolveConsentButtonStyle(params: {
  *
  * @public
  */
-export const ConsentButton = forwardRef<
+export const ConsentButton = createForwardRef<
 	ConsentButtonElement,
 	ConsentButtonProps &
 		ButtonVariantsProps & {
@@ -135,9 +138,9 @@ export const ConsentButton = forwardRef<
 		const resolvedButtonStyle = resolveConsentButtonStyle({
 			consentAction,
 			isPrimary,
+			mode,
 			theme,
 			variant,
-			mode,
 		});
 
 		const defaultSlotKey =
@@ -149,17 +152,17 @@ export const ConsentButton = forwardRef<
 		const buttonStyleProps = mergeSlotProps(slotProps, {
 			baseClassName: [
 				Button.buttonVariants({
-					variant: resolvedButtonStyle.variant,
 					mode: resolvedButtonStyle.mode,
 					size,
+					variant: resolvedButtonStyle.variant,
 				}).root(),
 				baseClassName,
 			],
+			className: forwardedClassName,
+			noStyle: contextNoStyle || noStyle,
 			style: {
 				...(style as CSSPropertiesWithVars<CSSVariables>),
 			},
-			className: forwardedClassName,
-			noStyle: contextNoStyle || noStyle,
 		});
 
 		// Need to know what category to set

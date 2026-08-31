@@ -6,6 +6,7 @@ import { getOpenState } from '@c15t/ui/primitives';
 import { collapsibleVariants } from '@c15t/ui/styles/primitives';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { computed, ref } from 'vue';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;
@@ -33,16 +34,16 @@ export const Default: Story = {
 			};
 			const openState = computed(() => getOpenState(open.value));
 			return {
+				contentClass: variants.content(),
+				contentInnerClass: variants.contentInner(),
+				contentViewportClass: variants.contentViewport(),
+				description: consentTypes.measurement.description,
 				open,
-				toggle,
 				openState,
 				rootClass: variants.root(),
-				triggerClass: variants.trigger(),
-				contentClass: variants.content(),
-				contentViewportClass: variants.contentViewport(),
-				contentInnerClass: variants.contentInner(),
 				title: consentTypes.measurement.title,
-				description: consentTypes.measurement.description,
+				toggle,
+				triggerClass: variants.trigger(),
 			};
 		},
 		template: `
@@ -78,16 +79,16 @@ export const ClosedByDefault: Story = {
 			};
 			const openState = computed(() => getOpenState(open.value));
 			return {
+				contentClass: variants.content(),
+				contentInnerClass: variants.contentInner(),
+				contentViewportClass: variants.contentViewport(),
+				description: consentTypes.functionality.description,
 				open,
-				toggle,
 				openState,
 				rootClass: variants.root(),
-				triggerClass: variants.trigger(),
-				contentClass: variants.content(),
-				contentViewportClass: variants.contentViewport(),
-				contentInnerClass: variants.contentInner(),
 				title: consentTypes.functionality.title,
-				description: consentTypes.functionality.description,
+				toggle,
+				triggerClass: variants.trigger(),
 			};
 		},
 		template: `

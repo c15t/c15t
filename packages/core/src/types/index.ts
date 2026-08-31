@@ -84,7 +84,7 @@ export * from './iab-tcf';
 export * from './legal-links';
 export * from './non-iab-vendor';
 
-export type Overrides = {
+export interface Overrides {
 	/**
 	 * Country code to forcefully set
 	 * @example 'DE'
@@ -107,4 +107,4 @@ export type Overrides = {
 	 * When `undefined`, falls back to the browser's `navigator.globalPrivacyControl`.
 	 */
 	gpc?: boolean;
-};
+}

@@ -27,12 +27,23 @@
 import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { apply, plan } from './adopt';
 import { classify } from './classify';
 import { insertOnce } from './insert-once';
 import { up as baseline } from './migrations/1-baseline';
 import { up as indexes } from './migrations/2-hot-path-indexes';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 const mysql = ENGINES.find((engine) => engine.name === 'mysql');
 const suite = mysql ? describe : describe.skip;
@@ -44,7 +55,7 @@ suite('mysql', () => {
 	it.effect(
 		'applies the baseline',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 
@@ -61,7 +72,7 @@ suite('mysql', () => {
 	it.effect(
 		'creates the unique index fumadb cannot',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 
@@ -87,7 +98,7 @@ suite('mysql', () => {
 	it.effect(
 		'applies the hot-path indexes',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 				yield* indexes;
@@ -106,7 +117,7 @@ suite('mysql', () => {
 	it.effect(
 		'classifies and adopts an empty database',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 
 				assert.strictEqual((yield* classify)._tag, 'Empty');
@@ -119,7 +130,7 @@ suite('mysql', () => {
 	it.effect(
 		'adoption emits nothing destructive on mysql',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql.unsafe(
@@ -135,7 +146,8 @@ suite('mysql', () => {
 				for (const step of (yield* plan).steps) {
 					assert.notMatch(
 						step.sql,
-						/\b(drop|truncate)\b|\bdelete\s+from\b/i,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						/\b(drop|truncate)\b|\bdelete\s+from\b/iu,
 						step.description
 					);
 				}
@@ -146,7 +158,7 @@ suite('mysql', () => {
 	it.effect(
 		'indexes a legacy TEXT column by prefix',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 				const sql = yield* SqlClient.SqlClient;
@@ -179,7 +191,7 @@ suite('mysql', () => {
 	it.effect(
 		'indexes a fresh varchar column whole',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 				yield* indexes;
@@ -203,7 +215,7 @@ suite('mysql', () => {
 	it.effect(
 		'is idempotent on a second index run',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 				yield* indexes;
@@ -225,7 +237,7 @@ suite('mysql', () => {
 	it.effect(
 		'adopting a legacy database adds its missing columns',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				const sql = yield* SqlClient.SqlClient;
 
@@ -281,7 +293,7 @@ suite('insert-once only suppresses the duplicate', () => {
 	it.effect(
 		'a non-duplicate failure is not swallowed',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 
@@ -292,14 +304,14 @@ suite('insert-once only suppresses the duplicate', () => {
 				// disagreeing about what was stored is worse than either answer.
 				const result = yield* Effect.result(
 					insertOnce({
-						into: 'subject',
 						conflictOn: 'id',
+						into: 'subject',
 						values: {
-							id: 'x'.repeat(300),
+							createdAt: new Date(1_800_000_000_000),
 							externalId: null,
+							id: 'x'.repeat(300),
 							identityProvider: 'anonymous',
 							tenantId: null,
-							createdAt: new Date(1_800_000_000_000),
 							updatedAt: new Date(1_800_000_000_000),
 						},
 					})
@@ -312,33 +324,33 @@ suite('insert-once only suppresses the duplicate', () => {
 					select count(*) as n from ${sql('subject')}
 				`;
 				assert.strictEqual(Number(rows[0]?.n), 0, 'wrote a truncated row');
-			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? Mysql!)),
+			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? getDefined(Mysql))),
 		{ timeout: 60_000 }
 	);
 
 	it.effect(
 		'a duplicate still reports "not created" rather than failing',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* reset;
 				yield* baseline;
 
 				const row = {
-					id: 'sub_dup',
+					createdAt: new Date(1_800_000_000_000),
 					externalId: null,
+					id: 'sub_dup',
 					identityProvider: 'anonymous',
 					tenantId: null,
-					createdAt: new Date(1_800_000_000_000),
 					updatedAt: new Date(1_800_000_000_000),
 				};
 
 				assert.isTrue(
-					yield* insertOnce({ into: 'subject', conflictOn: 'id', values: row })
+					yield* insertOnce({ conflictOn: 'id', into: 'subject', values: row })
 				);
 				assert.isFalse(
-					yield* insertOnce({ into: 'subject', conflictOn: 'id', values: row })
+					yield* insertOnce({ conflictOn: 'id', into: 'subject', values: row })
 				);
-			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? Mysql!)),
+			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? getDefined(Mysql))),
 		{ timeout: 60_000 }
 	);
 });

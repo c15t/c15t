@@ -1,23 +1,26 @@
 'use client';
 
+import brandingStyles from '@c15t/ui/styles/v3/branding';
 /**
  * @packageDocumentation
  * A collection of components for building privacy consent management dialogs.
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
-
-import brandingStyles from '@c15t/ui/styles/v3/branding';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
-import { forwardRef, type ReactNode, type Ref } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { ReactNode, Ref } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentWidget } from '~/v3/components/consent-widget/consent-widget';
 import { Slot } from '~/v3/components/shared/libs/slot';
-import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';
+import { Box } from '~/v3/components/shared/primitives/box';
+import type { BoxProps } from '~/v3/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/v3/components/shared/primitives/legal-links';
-import {
-	BrandingLink,
-	type BrandingVariant,
+import { BrandingLink } from '~/v3/components/shared/ui/branding';
+import type {
+	BrandingSlotContext,
+	BrandingVariant,
 } from '~/v3/components/shared/ui/branding';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { ClassNameStyle } from '~/v3/types/theme';
@@ -34,21 +37,21 @@ type ConsentDialogCardProps = {
 	children?: ReactNode;
 } & ClassNameStyle;
 
-const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
-	({ children, ...props }, ref) => {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.card}
-				{...props}
-				slotKey="dialog.card"
-				data-testid="consent-dialog-card"
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+const ConsentDialogCard = createForwardRef<
+	HTMLDivElement,
+	ConsentDialogCardProps
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.card}
+		{...props}
+		slotKey="dialog.card"
+		data-testid="consent-dialog-card"
+	>
+		{children}
+	</Box>
+));
+ConsentDialogCard.displayName = 'ConsentDialogCard';
 
 /**
  * The header section of the consent dialog.
@@ -59,22 +62,21 @@ const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
  * - Should be the first child of ConsentDialogCard
  * - Styled according to the theme configuration
  */
-const ConsentDialogHeader = forwardRef<
+const ConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.header}
-			{...props}
-			slotKey="dialog.header"
-			data-testid="consent-dialog-header"
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.header}
+		{...props}
+		slotKey="dialog.header"
+		data-testid="consent-dialog-header"
+	>
+		{children}
+	</Box>
+));
+ConsentDialogHeader.displayName = 'ConsentDialogHeader';
 
 /**
  * The title component for the consent dialog header.
@@ -85,7 +87,7 @@ const ConsentDialogHeader = forwardRef<
  * - Should be used within ConsentDialogHeader
  * - Supports theme customization
  */
-const ConsentDialogHeaderTitle = forwardRef<
+const ConsentDialogHeaderTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
@@ -98,13 +100,13 @@ const ConsentDialogHeaderTitle = forwardRef<
 			{...props}
 			id="consent-dialog-title"
 			data-testid="consent-dialog-title"
-			role="heading"
-			aria-level={2}
+			asChild
 		>
-			{children ?? consentDialog.title}
+			<h2>{children ?? consentDialog.title}</h2>
 		</Box>
 	);
 });
+ConsentDialogHeaderTitle.displayName = 'ConsentDialogHeaderTitle';
 
 /**
  * The description component for the consent dialog header.
@@ -116,7 +118,7 @@ const ConsentDialogHeaderTitle = forwardRef<
  * - Important for explaining privacy choices to users
  * - Can include legal links inline with the description
  */
-const ConsentDialogHeaderDescription = forwardRef<
+const ConsentDialogHeaderDescription = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
@@ -168,6 +170,7 @@ const ConsentDialogHeaderDescription = forwardRef<
 		);
 	}
 );
+ConsentDialogHeaderDescription.displayName = 'ConsentDialogHeaderDescription';
 
 /**
  * The main content area of the consent dialog.
@@ -178,64 +181,61 @@ const ConsentDialogHeaderDescription = forwardRef<
  * - Supports custom content and styling
  * - Handles user interactions with privacy settings
  */
-const ConsentDialogContent = forwardRef<
+const ConsentDialogContent = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.content}
-			slotKey="dialog.content"
-			data-testid="consent-dialog-content"
-			{...props}
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.content}
+		slotKey="dialog.content"
+		data-testid="consent-dialog-content"
+		{...props}
+	>
+		{children}
+	</Box>
+));
+ConsentDialogContent.displayName = 'ConsentDialogContent';
 
 /**
  * The footer section of the consent dialog.
  * This contains the branding but can be overidden with a custom footer.
  */
-const ConsentDialogFooter = forwardRef<
+export const Branding = (props: BrandingProps) => <BrandingLink {...props} />;
+const ConsentDialogFooter = createForwardRef<
 	HTMLDivElement,
 	BoxProps & { hideBranding?: boolean; 'data-testid'?: string }
->(({ children, hideBranding, 'data-testid': testId, ...props }, ref) => {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={cn(
-				styles.footer,
-				children == null && !hideBranding && brandingStyles.brandingFooter
-			)}
-			data-testid={testId ?? 'consent-dialog-footer'}
-			{...props}
-			slotKey="manager.footer"
-		>
-			{children ?? (
-				<Branding
-					hideBranding={hideBranding ?? false}
-					variant="dialog-tag"
-					slotContext="dialog"
-					data-testid="consent-dialog-branding"
-				/>
-			)}
-		</Box>
-	);
-});
+>(({ children, hideBranding, 'data-testid': testId, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={cn(
+			styles.footer,
+			(children === null || children === undefined) &&
+				!hideBranding &&
+				brandingStyles.brandingFooter
+		)}
+		data-testid={testId ?? 'consent-dialog-footer'}
+		{...props}
+		slotKey="manager.footer"
+	>
+		{children ?? (
+			<Branding
+				hideBranding={hideBranding ?? false}
+				variant="dialog-tag"
+				slotContext="dialog"
+				data-testid="consent-dialog-branding"
+			/>
+		)}
+	</Box>
+));
+ConsentDialogFooter.displayName = 'ConsentDialogFooter';
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	slotContext?: import('~/v3/components/shared/ui/branding').BrandingSlotContext;
+	slotContext?: BrandingSlotContext;
 	className?: string;
 	'data-testid'?: string;
-};
-
-export function Branding(props: BrandingProps) {
-	return <BrandingLink {...props} />;
 }
 
 /**
@@ -269,29 +269,27 @@ const ConsentCustomizationCard = ({
 	noStyle?: boolean;
 	legalLinks?: InlineLegalLinksProps['links'];
 	hideBranding?: boolean;
-}) => {
-	return (
-		<ConsentDialogCard>
-			<ConsentDialogHeader>
-				<ConsentDialogHeaderTitle />
-				<ConsentDialogHeaderDescription legalLinks={legalLinks} />
-			</ConsentDialogHeader>
-			<ConsentDialogContent>
-				<ConsentWidget
-					hideBranding
-					noStyle={noStyle}
-					useProvider={true}
-				/>
-			</ConsentDialogContent>
-			<Branding
-				hideBranding={hideBranding ?? false}
-				variant="dialog-tag"
-				slotContext="dialog"
-				data-testid="consent-dialog-branding"
+}) => (
+	<ConsentDialogCard>
+		<ConsentDialogHeader>
+			<ConsentDialogHeaderTitle />
+			<ConsentDialogHeaderDescription legalLinks={legalLinks} />
+		</ConsentDialogHeader>
+		<ConsentDialogContent>
+			<ConsentWidget
+				hideBranding
+				noStyle={noStyle}
+				useProvider={true}
 			/>
-		</ConsentDialogCard>
-	);
-};
+		</ConsentDialogContent>
+		<Branding
+			hideBranding={hideBranding ?? false}
+			variant="dialog-tag"
+			slotContext="dialog"
+			data-testid="consent-dialog-branding"
+		/>
+	</ConsentDialogCard>
+);
 
 const Card = ConsentDialogCard;
 const Header = ConsentDialogHeader;

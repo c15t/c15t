@@ -1,11 +1,9 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
 import styles from '@c15t/ui/styles/v3/switch';
-import {
-	type ButtonHTMLAttributes,
-	forwardRef,
-	type KeyboardEvent,
-} from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
+
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { ThemeValue } from '~/v3/types/theme';
@@ -25,14 +23,15 @@ export const switchVariants = () => ({
 		[styles.track, options?.class].filter(Boolean).join(' '),
 });
 
-export type SwitchStylesKeys = {
+export interface SwitchStylesKeys {
 	'switch.root': ThemeValue;
 	'switch.thumb': ThemeValue;
 	'switch.track': ThemeValue;
-};
+}
 
 export interface SwitchProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
+	extends
+		Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
 		SwitchVariantsProps {
 	checked?: boolean;
 	defaultChecked?: boolean;
@@ -41,7 +40,7 @@ export interface SwitchProps
 	size?: SwitchSize;
 }
 
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
 	(
 		{
 			checked,
@@ -53,7 +52,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 			onClick,
 			onKeyDown,
 			size = 'medium',
-			type = 'button',
+			type: _type = 'button',
 			...rest
 		},
 		forwardedRef
@@ -120,7 +119,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
 				role="switch"
-				type={type}
+				type="button"
 			>
 				<span
 					{...trackProps}

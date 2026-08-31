@@ -1,7 +1,6 @@
 'use client';
 
 import '@c15t/react/styles.css';
-
 import type { AllConsentNames } from '@c15t/core';
 import {
 	ConsentBanner,
@@ -23,28 +22,7 @@ const CATEGORIES: AllConsentNames[] = [
 	'experience',
 ];
 
-export default function V3ReactFullAggregatePage() {
-	return (
-		<ConsentProvider
-			options={{
-				mode: 'offline',
-			}}
-		>
-			<ConsentDraftProvider>
-				<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-					<h1>React v3 Full Aggregate Benchmark</h1>
-					<p>This route imports the v3 UI experience from @c15t/react/v3.</p>
-					<TestComponent />
-				</main>
-				<ConsentBanner />
-				<ConsentDialog />
-				<ConsentWidget />
-			</ConsentDraftProvider>
-		</ConsentProvider>
-	);
-}
-
-function TestComponent() {
+const TestComponent = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
@@ -78,4 +56,24 @@ function TestComponent() {
 			</button>
 		</div>
 	);
-}
+};
+const V3ReactFullAggregatePage = () => (
+	<ConsentProvider
+		options={{
+			mode: 'offline',
+		}}
+	>
+		<ConsentDraftProvider>
+			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+				<h1>React v3 Full Aggregate Benchmark</h1>
+				<p>This route imports the v3 UI experience from @c15t/react/v3.</p>
+				<TestComponent />
+			</main>
+			<ConsentBanner />
+			<ConsentDialog />
+			<ConsentWidget />
+		</ConsentDraftProvider>
+	</ConsentProvider>
+);
+
+export default V3ReactFullAggregatePage;

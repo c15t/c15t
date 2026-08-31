@@ -1,23 +1,24 @@
 <script lang="ts">
-import { getDialogState } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getDialogRootContext } from './context';
+	import { getDialogState } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const dialog = getDialogRootContext();
+	import { getDialogRootContext } from './context';
 
-const open = $derived(dialog.open);
-const shouldRender = $derived(dialog.shouldRender);
-const dataState = $derived(getDialogState(open));
+	const dialog = getDialogRootContext();
 
-let {
-	children,
-	class: className,
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-} = $props();
+	const open = $derived(dialog.open);
+	const shouldRender = $derived(dialog.shouldRender);
+	const dataState = $derived(getDialogState(open));
+
+	let {
+		children,
+		class: className,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+	} = $props();
 </script>
 
 {#if shouldRender}

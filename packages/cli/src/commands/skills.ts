@@ -6,13 +6,24 @@
 
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 /**
  * Install c15t agent skills for AI coding assistants
  */
-export async function installSkills(context: CliContext) {
+export const installSkills = async function installSkills(context: CliContext) {
 	const { logger, packageManager, telemetry } = context;
 
 	logger.info(
@@ -24,9 +35,9 @@ export async function installSkills(context: CliContext) {
 
 	const execCommands: Record<string, string> = {
 		bun: 'bunx',
+		npm: 'npx',
 		pnpm: 'pnpm dlx',
 		yarn: 'yarn dlx',
-		npm: 'npx',
 	};
 	const execCommand = execCommands[packageManager.name] ?? 'npx';
 	const [cmd, ...baseArgs] = execCommand.split(' ');
@@ -34,10 +45,14 @@ export async function installSkills(context: CliContext) {
 	logger.info(`Running: ${execCommand} skills add c15t/skills`);
 
 	try {
-		const child = spawn(cmd!, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
-			cwd: context.projectRoot,
-			stdio: 'inherit',
-		});
+		const child = spawn(
+			getDefined(cmd),
+			[...baseArgs, 'skills', 'add', 'c15t/skills'],
+			{
+				cwd: context.projectRoot,
+				stdio: 'inherit',
+			}
+		);
 
 		const [exitCode] = await once(child, 'exit');
 
@@ -57,4 +72,4 @@ export async function installSkills(context: CliContext) {
 		);
 		logger.info('You can install manually with: npx skills add c15t/skills');
 	}
-}
+};

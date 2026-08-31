@@ -6,6 +6,7 @@
 
 import type { CornerPosition } from '@c15t/ui/utils/trigger-utils';
 import type { ReactNode } from 'react';
+
 import type { ClassNameStyle } from '~/types/theme';
 
 /**
@@ -167,8 +168,10 @@ export interface ConsentDialogTriggerToolbarPreferences {
 /**
  * Props for the standalone ConsentDialogTriggerToolbar component.
  */
-export interface ConsentDialogTriggerToolbarProps
-	extends Omit<ClassNameStyle, 'baseClassName'> {
+export interface ConsentDialogTriggerToolbarProps extends Omit<
+	ClassNameStyle,
+	'baseClassName'
+> {
 	/**
 	 * App-owned actions rendered alongside the built-in preferences action.
 	 *

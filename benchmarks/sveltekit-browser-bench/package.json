@@ -3,10 +3,10 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
 		"build": "vite build",
-		"start": "node build/index.js",
-		"check-types": "svelte-check --tsconfig ./tsconfig.json"
+		"check-types": "svelte-check --tsconfig ./tsconfig.json",
+		"dev": "vite dev",
+		"start": "node build/index.js"
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",

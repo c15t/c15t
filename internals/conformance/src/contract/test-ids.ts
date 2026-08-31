@@ -12,52 +12,9 @@
  */
 
 export const TEST_IDS = {
-	consentBanner: {
-		root: 'consent-banner-root',
-		card: 'consent-banner-card',
-		overlay: 'consent-banner-overlay',
-		header: 'consent-banner-header',
-		title: 'consent-banner-title',
-		description: 'consent-banner-description',
-		footer: 'consent-banner-footer',
-		footerSubGroup: 'consent-banner-footer-sub-group',
-		branding: 'consent-banner-branding',
-		acceptButton: 'consent-banner-accept-button',
-		rejectButton: 'consent-banner-reject-button',
-		customizeButton: 'consent-banner-customize-button',
-	},
-	consentDialog: {
-		root: 'consent-dialog-root',
-		card: 'consent-dialog-card',
-		overlay: 'consent-dialog-overlay',
-		header: 'consent-dialog-header',
-		title: 'consent-dialog-title',
-		description: 'consent-dialog-description',
-		content: 'consent-dialog-content',
-		footer: 'consent-dialog-footer',
-		branding: 'consent-dialog-branding',
-		link: 'consent-dialog-link',
-		trigger: 'consent-dialog-trigger',
-		// Vue reusable legal-links wrapper; React exposes per-link ids only.
-		legalLinks: 'consent-legal-links',
-	},
-	consentWidget: {
-		root: 'consent-widget-root',
-		branding: 'consent-widget-branding',
-		accordion: 'consent-widget-accordion',
-		footer: 'consent-widget-footer',
-		footerSubGroup: 'consent-widget-footer-sub-group',
-		rejectButton: 'consent-widget-reject-button',
-		footerAcceptAllButton: 'consent-widget-footer-accept-all-button',
-		/** React v3 widget variant of the accept action. */
-		footerAcceptButton: 'consent-widget-footer-accept-button',
-		footerCustomizeButton: 'consent-widget-footer-customize-button',
-		footerSaveButton: 'consent-widget-footer-save-button',
-	},
-	consentManager: {
-		root: 'consent-manager-root',
-		accordion: 'consent-manager-accordion',
-		footer: 'consent-manager-footer',
+	branding: {
+		icon: 'branding-icon',
+		link: 'branding-link',
 	},
 	/** Standalone consent atoms rendered by the Vue kernel components. */
 	consentAtoms: {
@@ -68,26 +25,81 @@ export const TEST_IDS = {
 		switch: 'consent-switch',
 		tag: 'consent-tag',
 	},
+	consentBanner: {
+		acceptButton: 'consent-banner-accept-button',
+		branding: 'consent-banner-branding',
+		card: 'consent-banner-card',
+		customizeButton: 'consent-banner-customize-button',
+		description: 'consent-banner-description',
+		footer: 'consent-banner-footer',
+		footerSubGroup: 'consent-banner-footer-sub-group',
+		header: 'consent-banner-header',
+		overlay: 'consent-banner-overlay',
+		rejectButton: 'consent-banner-reject-button',
+		root: 'consent-banner-root',
+		title: 'consent-banner-title',
+	},
+	consentDialog: {
+		branding: 'consent-dialog-branding',
+		card: 'consent-dialog-card',
+		content: 'consent-dialog-content',
+		description: 'consent-dialog-description',
+		footer: 'consent-dialog-footer',
+		header: 'consent-dialog-header',
+		// Vue reusable legal-links wrapper; React exposes per-link ids only.
+		legalLinks: 'consent-legal-links',
+
+		link: 'consent-dialog-link',
+		overlay: 'consent-dialog-overlay',
+		root: 'consent-dialog-root',
+		title: 'consent-dialog-title',
+		trigger: 'consent-dialog-trigger',
+	},
+	consentManager: {
+		accordion: 'consent-manager-accordion',
+		footer: 'consent-manager-footer',
+		root: 'consent-manager-root',
+	},
+	consentPreferencesAnchor: 'consent-preferences-anchor',
+	consentWidget: {
+		accordion: 'consent-widget-accordion',
+		branding: 'consent-widget-branding',
+		footer: 'consent-widget-footer',
+		footerAcceptAllButton: 'consent-widget-footer-accept-all-button',
+		/** React v3 widget variant of the accept action. */
+		footerAcceptButton: 'consent-widget-footer-accept-button',
+		footerCustomizeButton: 'consent-widget-footer-customize-button',
+		footerSaveButton: 'consent-widget-footer-save-button',
+		footerSubGroup: 'consent-widget-footer-sub-group',
+		rejectButton: 'consent-widget-reject-button',
+		root: 'consent-widget-root',
+	},
+	frame: {
+		openDialog: 'frame-open-dialog',
+		placeholder: 'frame-placeholder',
+	},
 	iabConsentBanner: {
-		root: 'iab-consent-banner-root',
-		card: 'iab-consent-banner-card',
-		overlay: 'iab-consent-banner-overlay',
-		header: 'iab-consent-banner-header',
-		footer: 'iab-consent-banner-footer',
-		branding: 'iab-consent-banner-branding',
 		acceptButton: 'iab-consent-banner-accept-button',
-		rejectButton: 'iab-consent-banner-reject-button',
+		branding: 'iab-consent-banner-branding',
+		card: 'iab-consent-banner-card',
 		customizeButton: 'iab-consent-banner-customize-button',
+		footer: 'iab-consent-banner-footer',
+		header: 'iab-consent-banner-header',
+		overlay: 'iab-consent-banner-overlay',
 		// Opens the IAB dialog on the vendors tab; Vue-only surface affordance.
 		partnersLink: 'iab-consent-banner-partners-link',
+
+		rejectButton: 'iab-consent-banner-reject-button',
+		root: 'iab-consent-banner-root',
 	},
 	iabConsentDialog: {
-		root: 'iab-consent-dialog-root',
-		card: 'iab-consent-dialog-card',
-		overlay: 'iab-consent-dialog-overlay',
 		branding: 'iab-consent-dialog-branding',
+		card: 'iab-consent-dialog-card',
 		// Close affordance rendered by the Vue IAB dialog card.
 		closeButton: 'iab-consent-dialog-close',
+
+		overlay: 'iab-consent-dialog-overlay',
+		root: 'iab-consent-dialog-root',
 	},
 	vuePrimitive: {
 		// Generic Vue wrapper around rendered policy action buttons.
@@ -95,15 +107,6 @@ export const TEST_IDS = {
 		// Generic Vue switch story/IAB switch id; consent-widget switches use patterned ids.
 		switch: 'consent-switch',
 	},
-	frame: {
-		placeholder: 'frame-placeholder',
-		openDialog: 'frame-open-dialog',
-	},
-	branding: {
-		icon: 'branding-icon',
-		link: 'branding-link',
-	},
-	consentPreferencesAnchor: 'consent-preferences-anchor',
 } as const;
 
 /**
@@ -112,30 +115,32 @@ export const TEST_IDS = {
  * kebab-case identifier ([a-z][a-z0-9-]*).
  */
 export const TEST_ID_PATTERNS = [
-	/^consent-banner-legal-link-(privacyPolicy|cookiePolicy|termsOfService)$/,
-	/^consent-dialog-legal-link-(privacyPolicy|cookiePolicy|termsOfService)$/,
-	/^consent-widget-accordion-item-[a-z][a-z0-9-]*$/,
-	/^consent-widget-accordion-trigger-[a-z][a-z0-9-]*$/,
-	/^consent-widget-accordion-arrow-[a-z][a-z0-9-]*$/,
-	/^consent-widget-accordion-content-[a-z][a-z0-9-]*$/,
-	/^consent-widget-switch-[a-z][a-z0-9-]*$/,
-	/^stack-item-[a-z0-9][a-z0-9-]*$/,
-	/^purpose-item-[a-z0-9][a-z0-9-]*$/,
-	/^vendor-[a-z0-9][a-z0-9-]*$/,
+	/^consent-banner-legal-link-(?:privacyPolicy|cookiePolicy|termsOfService)$/u,
+	/^consent-dialog-legal-link-(?:privacyPolicy|cookiePolicy|termsOfService)$/u,
+	/^consent-widget-accordion-item-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-accordion-trigger-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-accordion-arrow-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-accordion-content-[a-z][a-z0-9-]*$/u,
+	/^consent-widget-switch-[a-z][a-z0-9-]*$/u,
+	/^stack-item-[a-z0-9][a-z0-9-]*$/u,
+	/^purpose-item-[a-z0-9][a-z0-9-]*$/u,
+	/^vendor-[a-z0-9][a-z0-9-]*$/u,
 ] as const;
 
 /**
  * Flat list of every literal test-id. Computed at module load for lint lookup.
  */
-function flatten(value: unknown, out: Set<string>): void {
+const flatten = function flatten(value: unknown, out: Set<string>): void {
 	if (typeof value === 'string') {
 		out.add(value);
 		return;
 	}
 	if (value && typeof value === 'object') {
-		for (const v of Object.values(value)) flatten(v, out);
+		for (const v of Object.values(value)) {
+			flatten(v, out);
+		}
 	}
-}
+};
 
 const allIds = new Set<string>();
 flatten(TEST_IDS, allIds);
@@ -146,7 +151,11 @@ export const ALL_TEST_IDS: ReadonlySet<string> = allIds;
  * Returns true if `id` matches a canonical constant or an interpolated pattern.
  * Used by the static lint.
  */
-export function isCanonicalTestId(id: string): boolean {
-	if (ALL_TEST_IDS.has(id)) return true;
+export const isCanonicalTestId = function isCanonicalTestId(
+	id: string
+): boolean {
+	if (ALL_TEST_IDS.has(id)) {
+		return true;
+	}
 	return TEST_ID_PATTERNS.some((re) => re.test(id));
-}
+};

@@ -1,12 +1,9 @@
-@import "@c15t/react/styles.css";
+@import '@c15t/react/styles.css';
 
 :root {
 	color: #111827;
 	background: #f8fafc;
-	font-family:
-		"IBM Plex Sans",
-		"Segoe UI",
-		sans-serif;
+	font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
 	line-height: 1.5;
 	font-weight: 400;
 }
@@ -20,7 +17,11 @@ body {
 	min-width: 320px;
 	min-height: 100vh;
 	background:
-		radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 30%),
+		radial-gradient(
+			circle at top left,
+			rgba(59, 130, 246, 0.18),
+			transparent 30%
+		),
 		linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
 }
 

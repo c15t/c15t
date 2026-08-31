@@ -6,6 +6,7 @@
  */
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBoundary } from '../boundary';
 
 describe('ConsentBoundary module props', () => {
@@ -19,13 +20,13 @@ describe('ConsentBoundary module props', () => {
 				persistence={false}
 				scripts={[
 					{
+						category: 'marketing',
 						id: 'test-script',
 						src: 'https://example.com/test.js',
-						category: 'marketing',
 					},
 				]}
 			>
-				<div>{'boundary rendered'}</div>
+				<div>boundary rendered</div>
 			</ConsentBoundary>
 		);
 
@@ -49,7 +50,7 @@ describe('ConsentBoundary module props', () => {
 				config={{}}
 				persistence={false}
 			>
-				<div>{'plain boundary'}</div>
+				<div>plain boundary</div>
 			</ConsentBoundary>
 		);
 		await expect.element(getByText('plain boundary')).toBeInTheDocument();

@@ -1,12 +1,11 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { renderIabPanel } from '../../panels/iab';
 
-function createIabState(): ConsentStoreState {
+const createIabState = function createIabState(): ConsentStoreState {
 	return {
-		model: 'iab',
 		iab: {
-			tcString: 'TCF_STRING',
 			gvl: {
 				purposes: {
 					1: { name: 'Purpose 1' },
@@ -20,10 +19,12 @@ function createIabState(): ConsentStoreState {
 			},
 			purposeConsents: { 1: true },
 			specialFeatureOptIns: { 1: false },
+			tcString: 'TCF_STRING',
 			vendorConsents: { '755': true },
 		},
+		model: 'iab',
 	} as unknown as ConsentStoreState;
-}
+};
 
 describe('iab panel', () => {
 	let container: HTMLDivElement;
@@ -39,13 +40,13 @@ describe('iab panel', () => {
 
 		renderIabPanel(container, {
 			getState: () => createIabState(),
-			onSetPurposeConsent,
-			onSetVendorConsent,
-			onSetSpecialFeatureOptIn,
 			onAcceptAll: vi.fn(),
 			onRejectAll: vi.fn(),
-			onSave: vi.fn(),
 			onReset: vi.fn(),
+			onSave: vi.fn(),
+			onSetPurposeConsent,
+			onSetSpecialFeatureOptIn,
+			onSetVendorConsent,
 		});
 
 		(
@@ -77,13 +78,13 @@ describe('iab panel', () => {
 
 		renderIabPanel(container, {
 			getState: () => createIabState(),
-			onSetPurposeConsent: vi.fn(),
-			onSetVendorConsent: vi.fn(),
-			onSetSpecialFeatureOptIn: vi.fn(),
 			onAcceptAll,
 			onRejectAll,
-			onSave,
 			onReset,
+			onSave,
+			onSetPurposeConsent: vi.fn(),
+			onSetSpecialFeatureOptIn: vi.fn(),
+			onSetVendorConsent: vi.fn(),
 		});
 
 		const buttons = [...container.querySelectorAll('button')];

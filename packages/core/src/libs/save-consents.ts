@@ -1,7 +1,12 @@
 import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
 import type { StoreApi } from 'zustand';
+
 import type { ConsentStoreState } from '~/store/type';
-import type { ConsentManagerInterface } from '../client/client-interface';
+
+import type {
+	ConsentManagerInterface,
+	SetConsentRequestBody,
+} from '../client/client-interface';
 import type {
 	ConsentInfo,
 	ConsentState,
@@ -17,6 +22,42 @@ import {
 	stripDisallowedPreferenceKeys,
 } from './policy';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const _createDeferredPromise = function _createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
 
 /**
  * Storage key for pending consent sync after page reload.
@@ -63,7 +104,7 @@ interface SaveConsentsProps {
  * - User is declining consent for the first time (no prior consent)
  * - User is only adding consent (no revocations)
  */
-function shouldReloadOnConsentChange(
+const shouldReloadOnConsentChange = function shouldReloadOnConsentChange(
 	previousConsents: ConsentState,
 	newConsents: ConsentState,
 	previousConsentInfo: ConsentInfo | null,
@@ -97,9 +138,9 @@ function shouldReloadOnConsentChange(
 	);
 
 	return wasAnyConsentRevoked;
-}
+};
 
-function haveConsentsChanged(
+const haveConsentsChanged = function haveConsentsChanged(
 	previousConsents: ConsentState,
 	nextConsents: ConsentState,
 	consentTypes: ConsentType[]
@@ -108,9 +149,9 @@ function haveConsentsChanged(
 		(consentType) =>
 			previousConsents[consentType.name] !== nextConsents[consentType.name]
 	);
-}
+};
 
-function getConsentCategoryLists(
+const getConsentCategoryLists = function getConsentCategoryLists(
 	consents: ConsentState,
 	consentCategories: ConsentStoreState['consentCategories'],
 	consentTypes: ConsentType[]
@@ -135,9 +176,215 @@ function getConsentCategoryLists(
 		allowedCategories,
 		deniedCategories,
 	};
+};
+
+const applyRequestedSelection = (
+	type: SaveConsentsProps['type'],
+	consents: ConsentState,
+	consentTypes: ConsentType[],
+	consentCategories: ConsentStoreState['consentCategories']
+): void => {
+	if (type === 'all') {
+		consentTypes.forEach((consent) => {
+			if (consentCategories.includes(consent.name)) {
+				consents[consent.name] = true;
+			}
+		});
+		return;
+	}
+	if (type === 'necessary') {
+		consentTypes.forEach((consent) => {
+			consents[consent.name] =
+				consent.disabled === true ? consent.defaultValue : false;
+		});
+	}
+};
+
+const createConsentChangedPayload = (
+	didChange: boolean,
+	effectiveConsents: ConsentState,
+	previousConsents: ConsentState,
+	nextLists: ReturnType<typeof getConsentCategoryLists>,
+	previousLists: ReturnType<typeof getConsentCategoryLists>
+): OnConsentChangedPayload | null => {
+	if (!didChange) {
+		return null;
+	}
+	return {
+		allowedCategories: nextLists.allowedCategories,
+		deniedCategories: nextLists.deniedCategories,
+		preferences: effectiveConsents,
+		previousAllowedCategories: previousLists.allowedCategories,
+		previousDeniedCategories: previousLists.deniedCategories,
+		previousPreferences: previousConsents,
+	};
+};
+
+const resolveConsentSelection = (
+	type: SaveConsentsProps['type'],
+	state: ConsentStoreState
+) => {
+	const previousConsents = { ...state.consents };
+	const newConsents = {
+		...(state.selectedConsents ?? state.consents ?? {}),
+	};
+	applyRequestedSelection(
+		type,
+		newConsents,
+		state.consentTypes,
+		state.consentCategories
+	);
+	const effectivePolicy = getEffectivePolicy(state.lastBannerFetchData);
+	const policyCategories = effectivePolicy?.consent?.categories;
+	const enforceScope = shouldEnforcePolicyCategoryScope(
+		policyCategories,
+		effectivePolicy?.consent?.scopeMode ?? null
+	);
+	const effectiveConsents = enforceScope
+		? applyPolicyPurposeAllowlist(newConsents, policyCategories)
+		: newConsents;
+	const requestPreferences = enforceScope
+		? stripDisallowedPreferenceKeys(effectiveConsents, policyCategories)
+		: effectiveConsents;
+	const nextLists = getConsentCategoryLists(
+		effectiveConsents,
+		state.consentCategories,
+		state.consentTypes
+	);
+	const previousLists = getConsentCategoryLists(
+		previousConsents,
+		state.consentCategories,
+		state.consentTypes
+	);
+	return {
+		consentChangedPayload: createConsentChangedPayload(
+			haveConsentsChanged(
+				previousConsents,
+				effectiveConsents,
+				state.consentTypes
+			),
+			effectiveConsents,
+			previousConsents,
+			nextLists,
+			previousLists
+		),
+		effectiveConsents,
+		previousConsents,
+		requestPreferences,
+	};
+};
+
+const resolveConsentIdentity = (
+	state: ConsentStoreState,
+	get: SaveConsentsProps['get'],
+	givenAt: number,
+	materialPolicyFingerprint: ConsentInfo['materialPolicyFingerprint']
+) => {
+	const subjectId = state.consentInfo?.subjectId ?? generateSubjectId();
+	const currentState = get();
+	const storedIdentifiers = sanitizeSubjectIdentifiers({
+		externalId: currentState.consentInfo?.externalId,
+		identityProvider: currentState.consentInfo?.identityProvider,
+	});
+	const userIdentifiers = sanitizeSubjectIdentifiers({
+		externalId: currentState.user?.id,
+		identityProvider: currentState.user?.identityProvider,
+	});
+	const externalId = storedIdentifiers.externalId ?? userIdentifiers.externalId;
+	const identityProvider =
+		storedIdentifiers.identityProvider ?? userIdentifiers.identityProvider;
+	const nextConsentInfo: ConsentInfo = {
+		materialPolicyFingerprint,
+		subjectId,
+		time: givenAt,
+	};
+	if (externalId) {
+		nextConsentInfo.externalId = externalId;
+	}
+	if (identityProvider) {
+		nextConsentInfo.identityProvider = identityProvider;
+	}
+	return { externalId, identityProvider, nextConsentInfo, subjectId };
+};
+
+interface ConsentSubmissionData {
+	effectiveConsents: ConsentState;
+	externalId?: string;
+	givenAt: number;
+	identityProvider?: string;
+	requestPreferences: Partial<ConsentState>;
+	subjectId: string;
 }
 
-export async function saveConsents({
+const handleRevocationReload = (
+	state: ConsentStoreState,
+	type: SaveConsentsProps['type'],
+	options: SaveConsentsProps['options'],
+	emitConsentChanged: SaveConsentsProps['emitConsentChanged'],
+	consentChangedPayload: OnConsentChangedPayload | null,
+	data: ConsentSubmissionData
+): void => {
+	const pendingSync: PendingConsentSync = {
+		domain: window.location.hostname,
+		givenAt: data.givenAt,
+		jurisdiction: state.locationInfo?.jurisdiction ?? undefined,
+		jurisdictionModel: state.model,
+		policySnapshotToken: state.lastBannerFetchData?.policySnapshotToken,
+		preferences: data.requestPreferences,
+		subjectId: data.subjectId,
+		type,
+		uiSource: options?.uiSource ?? 'api',
+	};
+	if (data.externalId) {
+		pendingSync.externalId = data.externalId;
+	}
+	if (data.identityProvider) {
+		pendingSync.identityProvider = data.identityProvider;
+	}
+	try {
+		localStorage.setItem(PENDING_CONSENT_SYNC_KEY, JSON.stringify(pendingSync));
+	} catch {
+		// Consent is already persisted, so reload even if localStorage is unavailable.
+	}
+
+	state.callbacks.onConsentSet?.({ preferences: data.effectiveConsents });
+	if (consentChangedPayload) {
+		emitConsentChanged?.(consentChangedPayload);
+	}
+	state.callbacks.onBeforeConsentRevocationReload?.({
+		preferences: data.effectiveConsents,
+	});
+	window.location.reload();
+};
+
+const createConsentRequestBody = (
+	state: ConsentStoreState,
+	type: SaveConsentsProps['type'],
+	options: SaveConsentsProps['options'],
+	data: ConsentSubmissionData
+): SetConsentRequestBody => {
+	const body: SetConsentRequestBody = {
+		consentAction: type,
+		domain: typeof window === 'undefined' ? '' : window.location.hostname,
+		givenAt: data.givenAt,
+		jurisdiction: state.locationInfo?.jurisdiction ?? undefined,
+		jurisdictionModel: state.model ?? undefined,
+		policySnapshotToken: state.lastBannerFetchData?.policySnapshotToken,
+		preferences: data.requestPreferences,
+		subjectId: data.subjectId,
+		type: 'cookie_banner',
+		uiSource: options?.uiSource ?? 'api',
+	};
+	if (data.externalId) {
+		body.externalSubjectId = data.externalId;
+	}
+	if (data.identityProvider) {
+		body.identityProvider = data.identityProvider;
+	}
+	return body;
+};
+
+export const saveConsents = async function saveConsents({
 	manager,
 	type,
 	get,
@@ -145,115 +392,36 @@ export async function saveConsents({
 	options,
 	emitConsentChanged,
 }: SaveConsentsProps) {
+	const state = get();
 	const {
 		callbacks,
-		selectedConsents,
-		consents,
 		consentTypes,
 		updateScripts,
 		updateIframeConsents,
 		updateNetworkBlockerConsents,
-		consentCategories,
-		locationInfo,
-		model,
 		consentInfo,
 		reloadOnConsentRevoked,
-		lastBannerFetchData,
-	} = get();
+	} = state;
 
 	// Store previous consents for revocation detection
-	const previousConsents = { ...consents };
 	const previousConsentInfo = consentInfo;
 
 	// Always create a fresh object so the reference changes for React state
 	// comparisons. Without this, selectedConsents and consents can be the same
 	// reference after the first save, causing in-place mutation that Zustand
 	// and React (including React Compiler) cannot detect.
-	const newConsents = { ...(selectedConsents ?? consents ?? {}) };
 	const givenAt = Date.now();
-
-	if (type === 'all') {
-		for (const consent of consentTypes) {
-			// Only include consents that are configured in consentCategories
-			if (consentCategories.includes(consent.name)) {
-				newConsents[consent.name] = true;
-			}
-		}
-	} else if (type === 'necessary') {
-		for (const consent of consentTypes) {
-			newConsents[consent.name] =
-				consent.disabled === true ? consent.defaultValue : false;
-		}
-	}
-
-	const effectivePolicy = getEffectivePolicy(lastBannerFetchData);
-	const policyCategories = effectivePolicy?.consent?.categories;
-	const shouldEnforcePolicyScope = shouldEnforcePolicyCategoryScope(
-		policyCategories,
-		effectivePolicy?.consent?.scopeMode ?? null
-	);
-	const effectiveConsents = shouldEnforcePolicyScope
-		? applyPolicyPurposeAllowlist(newConsents, policyCategories)
-		: newConsents;
-	const requestPreferences = shouldEnforcePolicyScope
-		? stripDisallowedPreferenceKeys(effectiveConsents, policyCategories)
-		: effectiveConsents;
-	const didChange = haveConsentsChanged(
-		previousConsents,
+	const {
+		consentChangedPayload,
 		effectiveConsents,
-		consentTypes
-	);
-	const nextConsentCategoryLists = getConsentCategoryLists(
-		effectiveConsents,
-		consentCategories,
-		consentTypes
-	);
-	const previousConsentCategoryLists = getConsentCategoryLists(
 		previousConsents,
-		consentCategories,
-		consentTypes
-	);
-	const consentChangedPayload: OnConsentChangedPayload | null = didChange
-		? {
-				preferences: effectiveConsents,
-				previousPreferences: previousConsents,
-				allowedCategories: nextConsentCategoryLists.allowedCategories,
-				deniedCategories: nextConsentCategoryLists.deniedCategories,
-				previousAllowedCategories:
-					previousConsentCategoryLists.allowedCategories,
-				previousDeniedCategories: previousConsentCategoryLists.deniedCategories,
-			}
-		: null;
-	const materialPolicyFingerprint = lastBannerFetchData?.policy
-		? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
+		requestPreferences,
+	} = resolveConsentSelection(type, state);
+	const materialPolicyFingerprint = state.lastBannerFetchData?.policy
+		? await createMaterialPolicyFingerprint(state.lastBannerFetchData.policy)
 		: undefined;
-
-	// Get or generate subjectId
-	// If we have a subjectId from previous consent, reuse it
-	let subjectId = consentInfo?.subjectId;
-	if (!subjectId) {
-		subjectId = generateSubjectId();
-	}
-
-	// Use pending externalId from store or from user prop
-	const storedIdentifiers = sanitizeSubjectIdentifiers({
-		externalId: get().consentInfo?.externalId,
-		identityProvider: get().consentInfo?.identityProvider,
-	});
-	const userIdentifiers = sanitizeSubjectIdentifiers({
-		externalId: get().user?.id,
-		identityProvider: get().user?.identityProvider,
-	});
-	const externalId = storedIdentifiers.externalId ?? userIdentifiers.externalId;
-	const identityProvider =
-		storedIdentifiers.identityProvider ?? userIdentifiers.identityProvider;
-	const nextConsentInfo: ConsentInfo = {
-		time: givenAt,
-		subjectId,
-		materialPolicyFingerprint,
-		...(externalId ? { externalId } : {}),
-		...(identityProvider ? { identityProvider } : {}),
-	};
+	const { externalId, identityProvider, nextConsentInfo, subjectId } =
+		resolveConsentIdentity(state, get, givenAt, materialPolicyFingerprint);
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
@@ -263,21 +431,29 @@ export async function saveConsents({
 		reloadOnConsentRevoked,
 		consentTypes
 	);
+	const submissionData: ConsentSubmissionData = {
+		effectiveConsents,
+		externalId,
+		givenAt,
+		identityProvider,
+		requestPreferences,
+		subjectId,
+	};
 
 	// Immediately update the UI state to close banners/dialogs
 	// This makes the interface feel more responsive
 	// This also persists the consent to localStorage/cookies
 	set({
-		consents: effectiveConsents,
-		selectedConsents: effectiveConsents,
 		activeUI: 'none' as const,
 		consentInfo: nextConsentInfo,
+		consents: effectiveConsents,
+		selectedConsents: effectiveConsents,
 	});
 
 	saveConsentToStorage(
 		{
-			consents: effectiveConsents,
 			consentInfo: nextConsentInfo,
+			consents: effectiveConsents,
 		},
 		undefined,
 		get().storageConfig
@@ -285,49 +461,19 @@ export async function saveConsents({
 
 	// If consent was revoked and reload is enabled, store pending sync and reload
 	if (needsReload) {
-		// Store pending sync data for API call after reload
-		const pendingSync: PendingConsentSync = {
+		handleRevocationReload(
+			state,
 			type,
-			subjectId,
-			preferences: requestPreferences,
-			givenAt,
-			jurisdiction: locationInfo?.jurisdiction ?? undefined,
-			jurisdictionModel: model,
-			domain: window.location.hostname,
-			uiSource: options?.uiSource ?? 'api',
-			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
-			...(externalId ? { externalId } : {}),
-			...(identityProvider ? { identityProvider } : {}),
-		};
-
-		try {
-			localStorage.setItem(
-				PENDING_CONSENT_SYNC_KEY,
-				JSON.stringify(pendingSync)
-			);
-		} catch {
-			// localStorage might be unavailable, continue with reload anyway
-			// Consent is already persisted via the store's set() call
-		}
-
-		// Trigger callback before reload
-		callbacks.onConsentSet?.({
-			preferences: effectiveConsents,
-		});
-		if (consentChangedPayload) {
-			emitConsentChanged?.(consentChangedPayload);
-		}
-		callbacks.onBeforeConsentRevocationReload?.({
-			preferences: effectiveConsents,
-		});
-
-		// Reload the page to ensure complete cleanup of third-party scripts
-		window.location.reload();
+			options,
+			emitConsentChanged,
+			consentChangedPayload,
+			submissionData
+		);
 		return;
 	}
 
 	// Yield to the next task so the UI can paint before running heavier work
-	await new Promise<void>((resolve) => setTimeout(resolve, 0));
+	await createVoidDeferredPromise((resolve) => setTimeout(resolve, 0));
 
 	// Run after yielding to avoid blocking the click INP
 	updateIframeConsents();
@@ -342,21 +488,15 @@ export async function saveConsents({
 	}
 
 	// Send consent to API in the background - the UI is already updated
+	const consentBody = createConsentRequestBody(
+		state,
+		type,
+		options,
+		submissionData
+	);
+
 	const consent = await manager.setConsent({
-		body: {
-			type: 'cookie_banner',
-			domain: typeof window !== 'undefined' ? window.location.hostname : '',
-			preferences: requestPreferences,
-			subjectId,
-			jurisdiction: locationInfo?.jurisdiction ?? undefined,
-			jurisdictionModel: model ?? undefined,
-			givenAt,
-			uiSource: options?.uiSource ?? 'api',
-			consentAction: type,
-			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
-			...(externalId ? { externalSubjectId: externalId } : {}),
-			...(identityProvider ? { identityProvider } : {}),
-		},
+		body: consentBody,
 	});
 
 	// Handle error case if the API request fails
@@ -370,4 +510,4 @@ export async function saveConsents({
 			console.error(errorMsg);
 		}
 	}
-}
+};

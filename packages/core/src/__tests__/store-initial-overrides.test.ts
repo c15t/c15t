@@ -1,25 +1,28 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import { createConsentManagerStore } from '../store';
 
 // Mock DOM APIs needed by the store
 vi.stubGlobal('document', {
-	querySelectorAll: vi.fn().mockReturnValue([]),
-	cookie: '',
-	readyState: 'complete',
+	addEventListener: vi.fn(),
 	body: {
 		appendChild: vi.fn(),
 		removeChild: vi.fn(),
 	},
-	addEventListener: vi.fn(),
+	cookie: '',
+	querySelectorAll: vi.fn().mockReturnValue([]),
+	readyState: 'complete',
 });
 
 vi.stubGlobal(
 	'MutationObserver',
 	class {
-		constructor() {}
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		disconnect() {}
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		observe() {}
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		takeRecords() {
 			return [];
 		}
@@ -27,19 +30,19 @@ vi.stubGlobal(
 );
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
-	showConsentBanner: vi.fn(),
-	setConsent: vi.fn(),
-	verifyConsent: vi.fn(),
-	identifyUser: vi.fn(),
 	$fetch: vi.fn(),
+	identifyUser: vi.fn(),
+	setConsent: vi.fn(),
+	showConsentBanner: vi.fn(),
+	verifyConsent: vi.fn(),
 });
 
 describe('Store initialization with overrides', () => {
 	it('should initialize with overrides passed in options', () => {
 		const overrides = {
 			country: 'DE',
-			region: 'BE',
 			language: 'de',
+			region: 'BE',
 		};
 
 		const mockManager = createMockConsentManager();

@@ -21,18 +21,21 @@
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
-import { type PairedStory, pairStories } from '../src/pair-stories';
+import { pairStories } from '../src/pair-stories';
+import type { PairedStory } from '../src/pair-stories';
 import { loadStorybookIndex } from '../src/storybook-index';
 
 const FRAMEWORK_URLS: Record<string, string> = {
 	react: process.env.REACT_STORYBOOK_URL ?? 'http://127.0.0.1:6006',
+	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
 	vue: process.env.VUE_STORYBOOK_URL ?? 'http://127.0.0.1:6008',
-	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 };
 
 const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
@@ -44,15 +47,20 @@ const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
  * Load and pair stories once per worker. Playwright runs each spec file
  * in its own context, so this executes once per run unless sharded.
  */
-async function loadPairedStories(): Promise<PairedStory[]> {
+const loadPairedStories = async function loadPairedStories(): Promise<
+	PairedStory[]
+> {
 	const byFramework: Record<
 		string,
 		Awaited<ReturnType<typeof loadStorybookIndex>>
 	> = {};
 	for (const framework of ENABLED_FRAMEWORKS) {
 		const url = FRAMEWORK_URLS[framework];
-		if (!url) continue;
+		if (!url) {
+			continue;
+		}
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			byFramework[framework] = await loadStorybookIndex(url);
 		} catch (err) {
 			// If a Storybook isn't running, skip that framework's entries.
@@ -63,9 +71,9 @@ async function loadPairedStories(): Promise<PairedStory[]> {
 	return pairStories(byFramework).filter(
 		(pair) => Object.keys(pair.entries).length >= 2
 	);
-}
+};
 
-async function openStory(
+const openStory = async function openStory(
 	page: Page,
 	baseUrl: string,
 	storyId: string
@@ -78,37 +86,37 @@ async function openStory(
 	// would time out on them. Attachment is enough; the body content
 	// we actually care about settles with `networkidle`.
 	await page.locator('#storybook-root').waitFor({ state: 'attached' });
-}
+};
 
 /**
  * Snapshot file key: safe-for-filesystem slug derived from the paired key
  * (which itself is the storybook title with the framework segment stripped).
  */
-function snapshotKey(pairKey: string): string {
+const snapshotKey = function snapshotKey(pairKey: string): string {
 	return pairKey
-		.replace(/[^a-z0-9]+/gi, '-')
-		.replace(/^-+|-+$/g, '')
+		.replace(/[^a-z0-9]+/giu, '-')
+		.replace(/^-+|-+$/gu, '')
 		.toLowerCase();
-}
+};
 
-function findFirstDiff(
+const findFirstDiff = function findFirstDiff(
 	a: string,
 	b: string
 ): { offset: number; a: string; b: string } {
 	const len = Math.min(a.length, b.length);
-	for (let i = 0; i < len; i++) {
+	for (let i = 0; i < len; i += 1) {
 		if (a[i] !== b[i]) {
 			const start = Math.max(0, i - 40);
 			const end = i + 120;
-			return { offset: i, a: a.slice(start, end), b: b.slice(start, end) };
+			return { a: a.slice(start, end), b: b.slice(start, end), offset: i };
 		}
 	}
 	return {
-		offset: len,
 		a: a.slice(Math.max(0, len - 40), len + 120),
 		b: b.slice(Math.max(0, len - 40), len + 120),
+		offset: len,
 	};
-}
+};
 
 test.describe('cross-framework parity', () => {
 	// Load stories lazily so config errors surface as test failures, not
@@ -126,15 +134,25 @@ test.describe('cross-framework parity', () => {
 
 		for (const pair of paired) {
 			const entries = Object.entries(pair.entries);
-			if (entries.length < 2) continue;
+			if (entries.length < 2) {
+				continue;
+			}
 			const [[baselineFramework, baselineEntry], ...rest] = entries;
-			if (!baselineFramework || !baselineEntry) continue;
+			if (!baselineFramework || !baselineEntry) {
+				continue;
+			}
 
 			const baselineUrl = FRAMEWORK_URLS[baselineFramework];
-			if (!baselineUrl) continue;
+			if (!baselineUrl) {
+				continue;
+			}
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await openStory(page, baselineUrl, baselineEntry.id);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineDom = await captureDomSnapshot(page, '#storybook-root');
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineA11y = await captureA11yTree(page);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineStyles = await captureComputedStyleMap(
 				page,
 				'#storybook-root'
@@ -142,10 +160,16 @@ test.describe('cross-framework parity', () => {
 
 			for (const [framework, entry] of rest) {
 				const url = FRAMEWORK_URLS[framework];
-				if (!url) continue;
+				if (!url) {
+					continue;
+				}
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const dom = await captureDomSnapshot(page, '#storybook-root');
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const a11y = await captureA11yTree(page);
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const styles = await captureComputedStyleMap(page, '#storybook-root');
 
 				if (dom !== baselineDom) {
@@ -155,7 +179,7 @@ test.describe('cross-framework parity', () => {
 					if (process.env.PARITY_DEBUG) {
 						const firstDiff = findFirstDiff(baselineDom, dom);
 						console.log(
-							`\n[PARITY_DEBUG DOM] ${pair.key}\n  baseline (${baselineFramework}) len=${baselineDom.length}\n  other    (${framework}) len=${dom.length}\n  first diff @${firstDiff.offset}:\n    baseline: …${firstDiff.a}\n    other:    …${firstDiff.b}`
+							`\n[PARITY_DEBUG DOM] ${pair.key}\n  baseline (${baselineFramework}) len=${baselineDom.length}\n  other    (${framework}) len=${dom.length}\n  first diff @${firstDiff.offset}:\n, baseline: …${firstDiff.a}\n, other:    …${firstDiff.b}`
 						);
 					}
 				}
@@ -166,7 +190,7 @@ test.describe('cross-framework parity', () => {
 					if (process.env.PARITY_DEBUG) {
 						const firstDiff = findFirstDiff(baselineA11y, a11y);
 						console.log(
-							`\n[PARITY_DEBUG A11Y] ${pair.key}\n  first diff @${firstDiff.offset}:\n    baseline: …${firstDiff.a}\n    other:    …${firstDiff.b}`
+							`\n[PARITY_DEBUG A11Y] ${pair.key}\n  first diff @${firstDiff.offset}:\n, baseline: …${firstDiff.a}\n, other:    …${firstDiff.b}`
 						);
 					}
 				}
@@ -208,13 +232,19 @@ test.describe('cross-framework parity', () => {
 		for (const pair of paired) {
 			for (const [framework, entry] of Object.entries(pair.entries)) {
 				const url = FRAMEWORK_URLS[framework];
-				if (!url) continue;
+				if (!url) {
+					continue;
+				}
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
 				// Allow web fonts + CSS transitions to settle before snapshotting.
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await page.evaluate(() => document.fonts.ready);
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await page.waitForTimeout(100);
 				// Full-page screenshot: banner/dialog portals render to
 				// `document.body`, so `#storybook-root` alone misses them.
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await expect(page).toHaveScreenshot(
 					`${snapshotKey(pair.key)}-${framework}.png`,
 					{

@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import {
 	createManifestFetchInit,
 	createNextConsentRouteHandlers,
@@ -10,11 +11,11 @@ describe('@c15t/nextjs/v3/api', () => {
 	test('GET extracts geo, language, and GPC headers for local init', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
-				status: 200,
 				headers: {
 					'cache-control': 'public, s-maxage=120, stale-while-revalidate=60',
 					etag: '"manifest-revision"',
 				},
+				status: 200,
 			})
 		);
 		const { GET } = createNextConsentRouteHandlers({
@@ -26,10 +27,10 @@ describe('@c15t/nextjs/v3/api', () => {
 		const response = await GET(
 			new Request('https://app.example.com/api/c15t/init', {
 				headers: {
-					'x-vercel-ip-country': 'DE',
-					'x-vercel-ip-country-region': 'BE',
 					'accept-language': 'de-DE,de;q=0.9',
 					'sec-gpc': '1',
+					'x-vercel-ip-country': 'DE',
+					'x-vercel-ip-country-region': 'BE',
 				},
 			})
 		);
@@ -46,26 +47,26 @@ describe('@c15t/nextjs/v3/api', () => {
 		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(body.translations.language).toBe('de');
 		expect(body.policyDecision).toMatchObject({
-			policyId: 'eu-opt-in',
-			fingerprint: 'eu-fingerprint',
 			country: 'DE',
+			fingerprint: 'eu-fingerprint',
+			policyId: 'eu-opt-in',
 		});
 	});
 
 	test('manifestGET mirrors backend cache headers', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
-				status: 200,
 				headers: {
 					'cache-control': 'public, s-maxage=90, stale-while-revalidate=45',
 					etag: '"manifest-revision"',
 				},
+				status: 200,
 			})
 		);
 		const { manifestGET } = createNextConsentRouteHandlers({
-			manifestURL: 'https://consent.example.com/manifest',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			manifestRevalidateSeconds: 90,
+			manifestURL: 'https://consent.example.com/manifest',
 		});
 
 		const response = await manifestGET(
@@ -88,10 +89,10 @@ describe('@c15t/nextjs/v3/api', () => {
 	test('relative backendURL resolves from forwarded headers before request URL host', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
-				status: 200,
 				headers: {
 					'cache-control': 'public, s-maxage=120',
 				},
+				status: 200,
 			})
 		);
 		const { manifestGET } = createNextConsentRouteHandlers({
@@ -102,8 +103,8 @@ describe('@c15t/nextjs/v3/api', () => {
 		await manifestGET(
 			new Request('https://app.example.com/api/c15t/manifest', {
 				headers: {
-					'x-forwarded-proto': 'https',
 					'x-forwarded-host': 'edge.example.com',
+					'x-forwarded-proto': 'https',
 				},
 			})
 		);

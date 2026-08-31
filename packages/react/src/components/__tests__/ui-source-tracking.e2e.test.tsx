@@ -8,8 +8,9 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
@@ -19,19 +20,29 @@ import {
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
+		},
+		getItem: (key: string) => store[key] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -79,14 +90,14 @@ describe('UI Source Tracking E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			// Verify consent is saved
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents.necessary).toBe(true);
 				},
 				{ timeout: 3000 }
@@ -213,7 +224,7 @@ describe('UI Source Tracking E2E Tests', () => {
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
-			await userEvent.click(customizeButton!);
+			await userEvent.click(getDefined(customizeButton));
 
 			// Wait for dialog
 			await vi.waitFor(
@@ -230,14 +241,14 @@ describe('UI Source Tracking E2E Tests', () => {
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
-			await userEvent.click(saveButton!);
+			await userEvent.click(getDefined(saveButton));
 
 			// Verify consent was saved
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents).toBeTruthy();
 				},
 				{ timeout: 3000 }

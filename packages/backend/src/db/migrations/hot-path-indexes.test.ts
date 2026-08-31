@@ -16,13 +16,14 @@ import { SqliteClient } from '@effect/sql-sqlite-node';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { up as baseline } from './1-baseline';
 import { up as hotPathIndexes, INDEXES } from './2-hot-path-indexes';
 
 const Pglite = PgliteClient.layer({});
 
 /** Non-primary, non-unique index names present in the database. */
-const indexNames = Effect.fn('indexNames')(function* () {
+const indexNames = Effect.fn('indexNames')(function* indexNames() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{ indexname: string }>`
 		select indexname from pg_indexes where schemaname = 'public'
@@ -30,14 +31,15 @@ const indexNames = Effect.fn('indexNames')(function* () {
 	return rows.map((row) => row.indexname).sort();
 });
 
-const constraintFingerprint = Effect.fn('constraintFingerprint')(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{
-		table_name: string;
-		column_name: string;
-		is_unique: boolean;
-		is_primary: boolean;
-	}>`
+const constraintFingerprint = Effect.fn('constraintFingerprint')(
+	function* constraintFingerprint() {
+		const sql = yield* SqlClient.SqlClient;
+		const rows = yield* sql<{
+			table_name: string;
+			column_name: string;
+			is_unique: boolean;
+			is_primary: boolean;
+		}>`
 		select t.relname as table_name, a.attname as column_name,
 		       ix.indisunique as is_unique, ix.indisprimary as is_primary
 		from pg_class t
@@ -48,19 +50,20 @@ const constraintFingerprint = Effect.fn('constraintFingerprint')(function* () {
 		where n.nspname = 'public' and t.relkind = 'r'
 		  and (ix.indisunique or ix.indisprimary)
 	`;
-	return rows
-		.map(
-			(row) =>
-				`${row.table_name}.${row.column_name} unique=${row.is_unique} pk=${row.is_primary}`
-		)
-		.sort();
-});
+		return rows
+			.map(
+				(row) =>
+					`${row.table_name}.${row.column_name} unique=${row.is_unique} pk=${row.is_primary}`
+			)
+			.sort();
+	}
+);
 
 describe('hot-path indexes', () => {
 	it.effect(
 		'creates every index it declares',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* baseline;
 				yield* hotPathIndexes;
 
@@ -79,7 +82,7 @@ describe('hot-path indexes', () => {
 	it.effect(
 		'leaves the baseline primary key and unique constraints untouched',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* baseline;
 				const before = yield* constraintFingerprint();
 				yield* hotPathIndexes;
@@ -93,7 +96,7 @@ describe('hot-path indexes', () => {
 	it.effect(
 		'is idempotent',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* baseline;
 				yield* hotPathIndexes;
 				const once = yield* indexNames();
@@ -110,7 +113,7 @@ describe('hot-path indexes', () => {
 	it.effect(
 		'applies on sqlite too',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* baseline;
 				yield* hotPathIndexes;
 

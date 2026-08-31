@@ -1,76 +1,77 @@
 <script lang="ts">
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { switchVariants } from '@c15t/ui/styles/primitives';
-import type { IABTranslations } from '../iab-translations';
-import type { ProcessedStack, VendorId } from '../iab-types';
-import { PreferenceItem, Switch } from '../primitives';
-import IABPurposeItem from './iab-purpose-item.svelte';
-import ChevronRightIcon from './icons/chevron-right-icon.svelte';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import { switchVariants } from '@c15t/ui/styles/primitives';
 
-const sw = switchVariants();
+	import type { IABTranslations } from '../iab-translations';
+	import type { ProcessedStack, VendorId } from '../iab-types';
+	import { PreferenceItem, Switch } from '../primitives';
+	import IABPurposeItem from './iab-purpose-item.svelte';
+	import ChevronRightIcon from './icons/chevron-right-icon.svelte';
 
-let {
-	stack,
-	consents,
-	onToggle,
-	vendorConsents,
-	onVendorToggle,
-	onVendorClick,
-	vendorLegitimateInterests = {},
-	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
-	onPurposeLegitimateInterestToggle,
-	noStyle = false,
-	iabT,
-}: {
-	stack: ProcessedStack;
-	consents: Record<number, boolean>;
-	onToggle: (purposeId: number, value: boolean) => void;
-	vendorConsents: Record<string, boolean>;
-	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
-	onVendorClick: (vendorId: VendorId) => void;
-	vendorLegitimateInterests?: Record<string, boolean>;
-	onVendorLegitimateInterestToggle?: (
-		vendorId: VendorId,
-		value: boolean
-	) => void;
-	purposeLegitimateInterests?: Record<number, boolean>;
-	onPurposeLegitimateInterestToggle?: (
-		purposeId: number,
-		value: boolean
-	) => void;
-	noStyle?: boolean;
-	iabT: IABTranslations;
-} = $props();
+	const sw = switchVariants();
 
-let isExpanded = $state(false);
-let stackChecked = $state(false);
+	let {
+		stack,
+		consents,
+		onToggle,
+		vendorConsents,
+		onVendorToggle,
+		onVendorClick,
+		vendorLegitimateInterests = {},
+		onVendorLegitimateInterestToggle,
+		purposeLegitimateInterests = {},
+		onPurposeLegitimateInterestToggle,
+		noStyle = false,
+		iabT,
+	}: {
+		stack: ProcessedStack;
+		consents: Record<number, boolean>;
+		onToggle: (purposeId: number, value: boolean) => void;
+		vendorConsents: Record<string, boolean>;
+		onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+		onVendorClick: (vendorId: VendorId) => void;
+		vendorLegitimateInterests?: Record<string, boolean>;
+		onVendorLegitimateInterestToggle?: (
+			vendorId: VendorId,
+			value: boolean
+		) => void;
+		purposeLegitimateInterests?: Record<number, boolean>;
+		onPurposeLegitimateInterestToggle?: (
+			purposeId: number,
+			value: boolean
+		) => void;
+		noStyle?: boolean;
+		iabT: IABTranslations;
+	} = $props();
 
-const allEnabled = $derived(
-	stack.purposes.every((p) => consents[p.id] ?? false)
-);
-const someEnabled = $derived(
-	stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled
-);
+	let isExpanded = $state(false);
+	let stackChecked = $state(false);
 
-$effect(() => {
-	stackChecked = allEnabled;
-});
+	const allEnabled = $derived(
+		stack.purposes.every((p) => consents[p.id] ?? false)
+	);
+	const someEnabled = $derived(
+		stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled
+	);
 
-function handleStackToggle(value: boolean) {
-	for (const purpose of stack.purposes) {
-		onToggle(purpose.id, value);
-		for (const vendor of purpose.vendors) {
-			if (!vendor.usesLegitimateInterest) {
-				onVendorToggle(vendor.id, value);
+	$effect(() => {
+		stackChecked = allEnabled;
+	});
+
+	const handleStackToggle = function handleStackToggle(value: boolean) {
+		for (const purpose of stack.purposes) {
+			onToggle(purpose.id, value);
+			for (const vendor of purpose.vendors) {
+				if (!vendor.usesLegitimateInterest) {
+					onVendorToggle(vendor.id, value);
+				}
 			}
 		}
-	}
-}
+	};
 
-const totalVendors = $derived(
-	new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size
-);
+	const totalVendors = $derived(
+		new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size
+	);
 </script>
 
 <PreferenceItem.Root

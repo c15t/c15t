@@ -12,19 +12,6 @@ import { defineConfig, devices } from '@playwright/test';
  *   bun --cwd apps/parity-runner test
  */
 export default defineConfig({
-	testDir: './tests',
-	/**
-	 * Each test iterates every paired story (x every enabled framework), so
-	 * the default 30s budget is too tight — the screenshot test alone takes
-	 * ~30s with react+svelte+vue enabled.
-	 */
-	timeout: 120_000,
-	/** Each spec owns its own tmp dir; no need for isolation via parallelism. */
-	fullyParallel: true,
-	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 2 : 0,
-	workers: process.env.CI ? 1 : undefined,
-	reporter: [['list'], ['html', { open: 'never' }]],
 	expect: {
 		/** Screenshot-diff tolerance. Keep tight; real diffs should be real. */
 		toHaveScreenshot: {
@@ -32,14 +19,27 @@ export default defineConfig({
 			threshold: 0.2,
 		},
 	},
-	use: {
-		actionTimeout: 10_000,
-		trace: 'retain-on-failure',
-	},
+	forbidOnly: !!process.env.CI,
+	/** Each spec owns its own tmp dir; no need for isolation via parallelism. */
+	fullyParallel: true,
 	projects: [
 		{
 			name: 'chromium',
 			use: { ...devices['Desktop Chrome'] },
 		},
 	],
+	reporter: [['list'], ['html', { open: 'never' }]],
+	retries: process.env.CI ? 2 : 0,
+	testDir: './tests',
+	/**
+	 * Each test iterates every paired story (x every enabled framework), so
+	 * the default 30s budget is too tight — the screenshot test alone takes
+	 * ~30s with react+svelte+vue enabled.
+	 */
+	timeout: 120_000,
+	use: {
+		actionTimeout: 10_000,
+		trace: 'retain-on-failure',
+	},
+	workers: process.env.CI ? 1 : undefined,
 });

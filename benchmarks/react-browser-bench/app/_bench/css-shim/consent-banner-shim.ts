@@ -1,3 +1,4 @@
+import extras from './extras.module.css';
 /**
  * CSS-experiment shim: exposes the same style-map shape the v3
  * consent-banner components import from
@@ -11,34 +12,33 @@
  * so enter/exit map to empty strings.
  */
 import banner from '@c15t/ui/styles/v3/consent-banner.module.css';
-import extras from './extras.module.css';
 
 const styles: Record<string, string> = {
-	enter: '',
-	exit: '',
-	root: banner.root ?? '',
-	bannerVisible: banner.bannerVisible ?? '',
+	acceptButton: extras.acceptButton ?? '',
+	actionButtonFill: extras.actionButtonFill ?? '',
 	bannerHidden: banner.bannerHidden ?? '',
+	bannerVisible: banner.bannerVisible ?? '',
 	bottomLeft: extras.bottomLeft ?? '',
 	bottomRight: extras.bottomRight ?? '',
-	topLeft: extras.topLeft ?? '',
-	topRight: extras.topRight ?? '',
 	card: banner.card ?? '',
 	cardShell: banner.cardShell ?? '',
-	rejectButton: extras.rejectButton ?? '',
-	acceptButton: extras.acceptButton ?? '',
 	customizeButton: extras.customizeButton ?? '',
-	header: banner.header ?? '',
-	footer: banner.footer ?? '',
-	footerSubGroup: extras.footerSubGroup ?? '',
-	footerFill: extras.footerFill ?? '',
-	footerColumn: extras.footerColumn ?? '',
-	footerSubGroupFill: extras.footerSubGroupFill ?? '',
-	footerSubGroupColumn: extras.footerSubGroupColumn ?? '',
-	actionButtonFill: extras.actionButtonFill ?? '',
 	description: banner.description ?? '',
-	title: banner.title ?? '',
+	enter: '',
+	exit: '',
+	footer: banner.footer ?? '',
+	footerColumn: extras.footerColumn ?? '',
+	footerFill: extras.footerFill ?? '',
+	footerSubGroup: extras.footerSubGroup ?? '',
+	footerSubGroupColumn: extras.footerSubGroupColumn ?? '',
+	footerSubGroupFill: extras.footerSubGroupFill ?? '',
+	header: banner.header ?? '',
 	overlay: banner.overlay ?? '',
+	rejectButton: extras.rejectButton ?? '',
+	root: banner.root ?? '',
+	title: banner.title ?? '',
+	topLeft: extras.topLeft ?? '',
+	topRight: extras.topRight ?? '',
 };
 
 export default styles;

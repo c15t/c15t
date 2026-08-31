@@ -1,21 +1,22 @@
 /**
- * @fileoverview Tests for the network blocker core logic
+ * @file Tests for the network blocker core logic
  */
 
 import { describe, expect, it } from 'vitest';
+
 import type { ConsentState } from '../../../types';
 import { shouldBlockRequest } from '../core';
 import type { NetworkBlockerConfig } from '../types';
 
 const baseConsents: ConsentState = {
-	necessary: true,
-	functionality: false,
 	experience: false,
+	functionality: false,
 	marketing: false,
 	measurement: false,
+	necessary: true,
 };
 
-function createConfig(
+const createConfig = function createConfig(
 	config: Partial<NetworkBlockerConfig> = {}
 ): NetworkBlockerConfig {
 	return {
@@ -23,14 +24,14 @@ function createConfig(
 		rules: [],
 		...config,
 	} as NetworkBlockerConfig;
-}
+};
 
 describe('shouldBlockRequest', () => {
 	it('should return false when config is undefined', () => {
 		const result = shouldBlockRequest(
 			{
-				url: 'https://analytics.example.com/collect',
 				method: 'GET',
+				url: 'https://analytics.example.com/collect',
 			},
 			baseConsents,
 			undefined
@@ -44,16 +45,16 @@ describe('shouldBlockRequest', () => {
 			enabled: false,
 			rules: [
 				{
-					domain: 'analytics.example.com',
 					category: 'marketing',
+					domain: 'analytics.example.com',
 				},
 			],
 		});
 
 		const result = shouldBlockRequest(
 			{
-				url: 'https://analytics.example.com/collect',
 				method: 'GET',
+				url: 'https://analytics.example.com/collect',
 			},
 			baseConsents,
 			config
@@ -70,8 +71,8 @@ describe('shouldBlockRequest', () => {
 
 		const result = shouldBlockRequest(
 			{
-				url: 'https://analytics.example.com/collect',
 				method: 'GET',
+				url: 'https://analytics.example.com/collect',
 			},
 			baseConsents,
 			config
@@ -89,29 +90,29 @@ describe('shouldBlockRequest', () => {
 		const config = createConfig({
 			rules: [
 				{
-					id: 'ga-marketing',
-					domain: 'google-analytics.com',
 					category: 'marketing',
+					domain: 'google-analytics.com',
+					id: 'ga-marketing',
 				},
 			],
 		});
 
 		const result = shouldBlockRequest(
 			{
-				url: 'https://www.google-analytics.com/collect',
 				method: 'GET',
+				url: 'https://www.google-analytics.com/collect',
 			},
 			consents,
 			config
 		);
 
 		expect(result).toEqual({
-			shouldBlock: true,
 			rule: {
-				id: 'ga-marketing',
-				domain: 'google-analytics.com',
 				category: 'marketing',
+				domain: 'google-analytics.com',
+				id: 'ga-marketing',
 			},
+			shouldBlock: true,
 		});
 	});
 
@@ -124,17 +125,17 @@ describe('shouldBlockRequest', () => {
 		const config = createConfig({
 			rules: [
 				{
-					id: 'ga-marketing',
-					domain: 'google-analytics.com',
 					category: 'marketing',
+					domain: 'google-analytics.com',
+					id: 'ga-marketing',
 				},
 			],
 		});
 
 		const result = shouldBlockRequest(
 			{
-				url: 'https://www.google-analytics.com/collect',
 				method: 'GET',
+				url: 'https://www.google-analytics.com/collect',
 			},
 			consents,
 			config
@@ -152,31 +153,31 @@ describe('shouldBlockRequest', () => {
 		const config = createConfig({
 			rules: [
 				{
-					id: 'ga-marketing',
-					domain: 'google-analytics.com',
-					pathIncludes: '/collect',
 					category: 'marketing',
+					domain: 'google-analytics.com',
+					id: 'ga-marketing',
+					pathIncludes: '/collect',
 				},
 			],
 		});
 
 		const result = shouldBlockRequest(
 			{
-				url: 'https://stats.google-analytics.com/r/collect?v=1',
 				method: 'GET',
+				url: 'https://stats.google-analytics.com/r/collect?v=1',
 			},
 			consents,
 			config
 		);
 
 		expect(result).toEqual({
-			shouldBlock: true,
 			rule: {
-				id: 'ga-marketing',
-				domain: 'google-analytics.com',
-				pathIncludes: '/collect',
 				category: 'marketing',
+				domain: 'google-analytics.com',
+				id: 'ga-marketing',
+				pathIncludes: '/collect',
 			},
+			shouldBlock: true,
 		});
 	});
 
@@ -189,10 +190,10 @@ describe('shouldBlockRequest', () => {
 		const config = createConfig({
 			rules: [
 				{
-					id: 'api-experience',
-					domain: 'api.example.com',
-					methods: ['POST'],
 					category: 'experience',
+					domain: 'api.example.com',
+					id: 'api-experience',
+					methods: ['POST'],
 				},
 			],
 		});
@@ -200,8 +201,8 @@ describe('shouldBlockRequest', () => {
 		// Non-matching method should not block
 		const getResult = shouldBlockRequest(
 			{
-				url: 'https://api.example.com/events',
 				method: 'GET',
+				url: 'https://api.example.com/events',
 			},
 			consents,
 			config
@@ -210,8 +211,8 @@ describe('shouldBlockRequest', () => {
 		// Matching method with missing consent should block
 		const postResult = shouldBlockRequest(
 			{
-				url: 'https://api.example.com/events',
 				method: 'POST',
+				url: 'https://api.example.com/events',
 			},
 			consents,
 			config
@@ -219,13 +220,13 @@ describe('shouldBlockRequest', () => {
 
 		expect(getResult).toEqual({ shouldBlock: false });
 		expect(postResult).toEqual({
-			shouldBlock: true,
 			rule: {
-				id: 'api-experience',
-				domain: 'api.example.com',
-				methods: ['POST'],
 				category: 'experience',
+				domain: 'api.example.com',
+				id: 'api-experience',
+				methods: ['POST'],
 			},
+			shouldBlock: true,
 		});
 	});
 
@@ -238,17 +239,17 @@ describe('shouldBlockRequest', () => {
 		const config = createConfig({
 			rules: [
 				{
-					id: 'ga-marketing',
-					domain: 'google-analytics.com',
 					category: 'marketing',
+					domain: 'google-analytics.com',
+					id: 'ga-marketing',
 				},
 			],
 		});
 
 		const result = shouldBlockRequest(
 			{
-				url: '::not-a-valid-url::',
 				method: 'GET',
+				url: '::not-a-valid-url::',
 			},
 			consents,
 			config

@@ -1,18 +1,17 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the main consent banner component for privacy consent management.
  * Implements an accessible, customizable banner following GDPR requirements.
  */
-
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import {
-	type PolicyUiAction,
-	type PolicyUiActionDirection,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
-import { type FC, Fragment, type ReactNode } from 'react';
+import { shouldFillPolicyActions } from '@c15t/ui/utils';
+import type { PolicyUiAction, PolicyUiActionDirection } from '@c15t/ui/utils';
+import { Fragment } from 'react';
+import type { FC, ReactNode } from 'react';
+
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
@@ -20,6 +19,7 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
 import { useTranslations } from '~/hooks/use-translations';
 import { cnExt as cn } from '~/utils/cn';
+
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -183,7 +183,7 @@ export interface ConsentBannerProps {
 	 * Which consent models this banner responds to.
 	 * @default ['opt-in']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -218,13 +218,13 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 
-	const orderedActions = banner.orderedActions;
+	const { orderedActions } = banner;
 	const allowedActions = new Set(orderedActions);
 	const effectivePrimaryButton =
 		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
@@ -234,6 +234,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const resolvedDirection = direction ?? banner.direction ?? 'row';
 	const activeGroups = resolvedLayout
 		.map((item) =>
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 			Array.isArray(item)
 				? item.filter((action): action is PolicyUiAction =>
 						allowedActions.has(action)
@@ -244,9 +245,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		)
 		.filter((group) => group.length > 0);
 	const shouldFillActions = shouldFillPolicyActions({
-		uiProfile: banner.uiProfile,
 		actionGroups: activeGroups,
 		direction: resolvedDirection,
+		uiProfile: banner.uiProfile,
 	});
 
 	const renderButton = (type: ConsentBannerButton, className?: string) => {

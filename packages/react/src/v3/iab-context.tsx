@@ -5,10 +5,10 @@ import type {
 	KernelIABState,
 	NonIABVendor,
 } from '@c15t/core/v3';
-import { type CreateIABOptions, createIAB, type IABHandle } from '@c15t/iab/v3';
+import { createIAB } from '@c15t/iab/v3';
+import type { CreateIABOptions, IABHandle } from '@c15t/iab/v3';
 import {
 	createContext,
-	type ReactNode,
 	useContext,
 	useEffect,
 	useMemo,
@@ -16,6 +16,8 @@ import {
 	useState,
 	useSyncExternalStore,
 } from 'react';
+import type { ReactNode } from 'react';
+
 import { KernelContext } from './context';
 
 export interface ReactIABState extends KernelIABState {
@@ -26,32 +28,37 @@ export interface ReactIABState extends KernelIABState {
 	isLoadingGVL: boolean;
 	nonIABVendors: NonIABVendor[];
 	preferenceCenterTab: 'purposes' | 'vendors';
-	setPreferenceCenterTab(tab: 'purposes' | 'vendors'): void;
-	setVendorConsent(vendorId: string | number, value: boolean): void;
-	setVendorLegitimateInterest(vendorId: string | number, value: boolean): void;
-	setPurposeConsent(purposeId: number, value: boolean): void;
-	setPurposeLegitimateInterest(purposeId: number, value: boolean): void;
-	setSpecialFeatureOptIn(featureId: number, value: boolean): void;
-	acceptAll(): void;
-	rejectAll(): void;
-	save(): Promise<void>;
+	setPreferenceCenterTab: (tab: 'purposes' | 'vendors') => void;
+	setVendorConsent: (vendorId: string | number, value: boolean) => void;
+	setVendorLegitimateInterest: (
+		vendorId: string | number,
+		value: boolean
+	) => void;
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	acceptAll: () => void;
+	rejectAll: () => void;
+	save: () => Promise<void>;
 }
 
 interface IABContextValue {
 	handle: IABHandle | null;
 	tab: 'purposes' | 'vendors';
-	setTab(tab: 'purposes' | 'vendors'): void;
+	setTab: (tab: 'purposes' | 'vendors') => void;
 }
 
 const IABContext = createContext<IABContextValue | null>(null);
 
-export interface IABProviderProps
-	extends Omit<CreateIABOptions, 'kernel' | 'gvl'> {
+export interface IABProviderProps extends Omit<
+	CreateIABOptions,
+	'kernel' | 'gvl'
+> {
 	children: ReactNode;
 	gvl?: GlobalVendorList | null;
 }
 
-export function IABProvider({ children, ...options }: IABProviderProps) {
+export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
@@ -62,7 +69,10 @@ export function IABProvider({ children, ...options }: IABProviderProps) {
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
 	const [handle, setHandle] = useState<IABHandle | null>(null);
 	const optionsRef = useRef(options);
-	optionsRef.current = options;
+
+	useEffect(() => {
+		optionsRef.current = options;
+	}, [options]);
 
 	useEffect(() => {
 		const next = createIAB({ ...optionsRef.current, kernel });
@@ -73,14 +83,14 @@ export function IABProvider({ children, ...options }: IABProviderProps) {
 	}, [kernel]);
 
 	const value = useMemo<IABContextValue>(
-		() => ({ handle, tab, setTab }),
+		() => ({ handle, setTab, tab }),
 		[handle, tab]
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;
-}
+};
 
-export function useIAB(): ReactIABState | null {
+export const useIAB = function useIAB(): ReactIABState | null {
 	const kernel = useContext(KernelContext);
 	const iabContext = useContext(IABContext);
 	if (!kernel) {
@@ -96,32 +106,47 @@ export function useIAB(): ReactIABState | null {
 	);
 
 	return useMemo(() => {
-		if (!iab) return null;
+		if (!iab) {
+			return null;
+		}
 		const handle = iabContext?.handle;
-		const noop = () => {};
-		const noopAsync = async () => {};
+		const noop = () => {
+			// Intentionally empty.
+		};
+		const noopAsync = async () => {
+			// Intentionally empty.
+		};
+		const fallbackTo = <Value,>(
+			value: Value | undefined,
+			fallback: Value
+		): Value => value ?? fallback;
 
 		return {
 			...iab,
+			acceptAll: fallbackTo(handle?.acceptAll, noop),
 			config: {
-				enabled: iab.enabled && Boolean(handle),
 				cmpId: iab.cmpId,
+				enabled: iab.enabled && Boolean(handle),
 			},
 			isLoadingGVL: iab.enabled && (!iab.gvl || !handle),
 			nonIABVendors: iab.customVendors,
-			preferenceCenterTab: iabContext?.tab ?? 'purposes',
-			setPreferenceCenterTab: iabContext?.setTab ?? noop,
-			setVendorConsent: handle?.setVendorConsent ?? noop,
-			setVendorLegitimateInterest: handle?.setVendorLegitimateInterest ?? noop,
-			setPurposeConsent: handle?.setPurposeConsent ?? noop,
-			setPurposeLegitimateInterest:
-				handle?.setPurposeLegitimateInterest ?? noop,
-			setSpecialFeatureOptIn: handle?.setSpecialFeatureOptIn ?? noop,
-			acceptAll: handle?.acceptAll ?? noop,
-			rejectAll: handle?.rejectAll ?? noop,
-			save: handle?.save ?? noopAsync,
+			preferenceCenterTab: fallbackTo(iabContext?.tab, 'purposes'),
+			rejectAll: fallbackTo(handle?.rejectAll, noop),
+			save: fallbackTo(handle?.save, noopAsync),
+			setPreferenceCenterTab: fallbackTo(iabContext?.setTab, noop),
+			setPurposeConsent: fallbackTo(handle?.setPurposeConsent, noop),
+			setPurposeLegitimateInterest: fallbackTo(
+				handle?.setPurposeLegitimateInterest,
+				noop
+			),
+			setSpecialFeatureOptIn: fallbackTo(handle?.setSpecialFeatureOptIn, noop),
+			setVendorConsent: fallbackTo(handle?.setVendorConsent, noop),
+			setVendorLegitimateInterest: fallbackTo(
+				handle?.setVendorLegitimateInterest,
+				noop
+			),
 		};
 	}, [iab, iabContext]);
-}
+};
 
 export type { CreateIABOptions, IABHandle };

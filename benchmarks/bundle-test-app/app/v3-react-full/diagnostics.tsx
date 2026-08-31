@@ -26,27 +26,30 @@ interface DiagnosticsProps {
 	scripts: Script[];
 }
 
-export default function Diagnostics({ scripts }: DiagnosticsProps) {
-	return (
-		<>
-			<ModuleMount />
-			<ConsentControls />
-			<ConsentDebug />
-			<LoadedScripts scripts={scripts} />
-			<SnapshotDebug />
-			<div style={{ marginTop: '2rem', color: '#64748b', fontSize: 13 }}>
-				<ConsentDialogLink>Change your privacy preferences</ConsentDialogLink>
-			</div>
-		</>
-	);
-}
-
-function ModuleMount() {
+const ModuleMount = () => {
 	useIframeBlocker();
 	return null;
-}
-
-function ConsentControls() {
+};
+const sectionStyle: CSSProperties = {
+	background: '#fff',
+	border: '1px solid #e2e8f0',
+	borderRadius: 8,
+	marginTop: '2rem',
+	padding: '1.5rem',
+};
+const btnStyle = function btnStyle(bg: string): CSSProperties {
+	return {
+		background: bg,
+		border: 'none',
+		borderRadius: 6,
+		color: 'white',
+		cursor: 'pointer',
+		fontSize: 14,
+		fontWeight: 500,
+		padding: '10px 14px',
+	};
+};
+const ConsentControls = () => {
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
 	const hasConsented = useHasConsented();
@@ -73,14 +76,14 @@ function ConsentControls() {
 					<label
 						key={category}
 						style={{
-							display: 'flex',
 							alignItems: 'center',
-							gap: 8,
-							padding: 10,
 							background: '#f8fafc',
 							borderRadius: 6,
 							cursor: category === 'necessary' ? 'not-allowed' : 'pointer',
+							display: 'flex',
+							gap: 8,
 							opacity: category === 'necessary' ? 0.6 : 1,
+							padding: 10,
 						}}
 					>
 						<input
@@ -94,10 +97,12 @@ function ConsentControls() {
 				))}
 			</div>
 
-			<div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
 				<button
 					type="button"
-					onClick={() => void draft.save()}
+					onClick={async () => {
+						await draft.save();
+					}}
 					disabled={!draft.isDirty}
 					style={btnStyle(draft.isDirty ? '#16a34a' : '#94a3b8')}
 				>
@@ -114,14 +119,18 @@ function ConsentControls() {
 				<span style={{ flex: 1 }} />
 				<button
 					type="button"
-					onClick={() => void saveConsents('all')}
+					onClick={async () => {
+						await saveConsents('all');
+					}}
 					style={btnStyle('#2563eb')}
 				>
 					Accept All (commit)
 				</button>
 				<button
 					type="button"
-					onClick={() => void saveConsents('none')}
+					onClick={async () => {
+						await saveConsents('none');
+					}}
 					style={btnStyle('#dc2626')}
 				>
 					Reject All (commit)
@@ -129,24 +138,31 @@ function ConsentControls() {
 			</div>
 		</section>
 	);
-}
-
-function ConsentDebug() {
+};
+const preStyle: CSSProperties = {
+	background: '#f8fafc',
+	borderRadius: 6,
+	fontSize: 13,
+	margin: 0,
+	overflow: 'auto',
+	padding: 12,
+};
+const ConsentDebug = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
 
 	return (
 		<section style={sectionStyle}>
 			<h2 style={{ marginTop: 0 }}>Consent state</h2>
-			<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+			<div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }}>
 				<div>
-					<h3 style={{ margin: '0 0 6px 0', fontSize: 14 }}>
+					<h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>
 						Committed (kernel - gates scripts)
 					</h3>
 					<pre style={preStyle}>{JSON.stringify(consents, null, 2)}</pre>
 				</div>
 				<div>
-					<h3 style={{ margin: '0 0 6px 0', fontSize: 14 }}>
+					<h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>
 						Draft (UI - not yet saved)
 					</h3>
 					<pre style={preStyle}>{JSON.stringify(draft.values, null, 2)}</pre>
@@ -154,14 +170,23 @@ function ConsentDebug() {
 			</div>
 		</section>
 	);
-}
-
-function LoadedScripts({ scripts }: DiagnosticsProps) {
+};
+const cellHead: CSSProperties = {
+	fontSize: 13,
+	fontWeight: 600,
+	padding: 8,
+	textAlign: 'left',
+};
+const cellBody: CSSProperties = {
+	fontSize: 13,
+	padding: 8,
+};
+const LoadedScripts = ({ scripts }: DiagnosticsProps) => {
 	const [loaded, setLoaded] = useState<string[]>([]);
 	const consents = useConsents();
 
 	useEffect(() => {
-		const handle = setTimeout(() => {
+		const updateLoaded = () => {
 			const scriptNodes = Array.from(
 				document.head.querySelectorAll('script[id^="c15t"]')
 			);
@@ -171,17 +196,30 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 					return `${script.id} -> ${src}`;
 				})
 			);
-		}, 20);
-		return () => clearTimeout(handle);
-	}, [consents]);
+		};
+
+		const handle = setTimeout(updateLoaded, 20);
+		const observer = new MutationObserver(updateLoaded);
+		observer.observe(document.head, {
+			attributeFilter: ['id', 'src'],
+			attributes: true,
+			childList: true,
+			subtree: true,
+		});
+
+		return () => {
+			clearTimeout(handle);
+			observer.disconnect();
+		};
+	}, []);
 
 	const expected = scripts.map((script) => {
 		const active = consents[script.category as AllConsentNames] ?? false;
 		return {
+			active,
+			category: script.category,
 			id: script.id,
 			src: script.src,
-			category: script.category,
-			active,
 		};
 	});
 
@@ -193,7 +231,7 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 				consent and mounted.
 			</p>
 			<table
-				style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}
+				style={{ borderCollapse: 'collapse', fontSize: 14, width: '100%' }}
 			>
 				<thead>
 					<tr style={{ background: '#f1f5f9' }}>
@@ -234,15 +272,14 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 			</table>
 			{loaded.length === 0 ? (
 				<p style={{ color: '#94a3b8', fontSize: 13, marginTop: 12 }}>
-					No c15t-managed scripts in the DOM yet. Click "Accept All" or toggle a
-					category.
+					No c15t-managed scripts in the DOM yet. Click &quot;Accept All&quot;
+					or toggle a category.
 				</p>
 			) : null}
 		</section>
 	);
-}
-
-function SnapshotDebug() {
+};
+const SnapshotDebug = () => {
 	const marketing = useConsent('marketing');
 	const measurement = useConsent('measurement');
 	const functionality = useConsent('functionality');
@@ -259,57 +296,31 @@ function SnapshotDebug() {
 			</p>
 			<ul style={{ margin: 0, paddingLeft: 20 }}>
 				<li>
-					<code>useConsent('marketing')</code>: {String(marketing)}
+					<code>useConsent(&apos;marketing&apos;)</code>: {String(marketing)}
 				</li>
 				<li>
-					<code>useConsent('measurement')</code>: {String(measurement)}
+					<code>useConsent(&apos;measurement&apos;)</code>:{' '}
+					{String(measurement)}
 				</li>
 				<li>
-					<code>useConsent('functionality')</code>: {String(functionality)}
+					<code>useConsent(&apos;functionality&apos;)</code>:{' '}
+					{String(functionality)}
 				</li>
 			</ul>
 		</section>
 	);
-}
-
-const sectionStyle: CSSProperties = {
-	marginTop: '2rem',
-	padding: '1.5rem',
-	border: '1px solid #e2e8f0',
-	borderRadius: 8,
-	background: '#fff',
 };
+const Diagnostics = ({ scripts }: DiagnosticsProps) => (
+	<>
+		<ModuleMount />
+		<ConsentControls />
+		<ConsentDebug />
+		<LoadedScripts scripts={scripts} />
+		<SnapshotDebug />
+		<div style={{ color: '#64748b', fontSize: 13, marginTop: '2rem' }}>
+			<ConsentDialogLink>Change your privacy preferences</ConsentDialogLink>
+		</div>
+	</>
+);
 
-const preStyle: CSSProperties = {
-	background: '#f8fafc',
-	padding: 12,
-	borderRadius: 6,
-	margin: 0,
-	fontSize: 13,
-	overflow: 'auto',
-};
-
-const cellHead: CSSProperties = {
-	textAlign: 'left',
-	padding: 8,
-	fontWeight: 600,
-	fontSize: 13,
-};
-
-const cellBody: CSSProperties = {
-	padding: 8,
-	fontSize: 13,
-};
-
-function btnStyle(bg: string): CSSProperties {
-	return {
-		padding: '10px 14px',
-		borderRadius: 6,
-		border: 'none',
-		color: 'white',
-		background: bg,
-		fontSize: 14,
-		fontWeight: 500,
-		cursor: 'pointer',
-	};
-}
+export default Diagnostics;

@@ -4,18 +4,19 @@
  * Browser-based tests for GVL loading and content validation.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
+
 import {
 	clearConsentState,
 	defaultIABOptions,
-	mockGVL,
 	tcfApiPromise,
 	waitForCMP,
 	waitForElement,
@@ -68,7 +69,7 @@ describe('IAB GVL E2E Tests', () => {
 					?.textContent || '';
 
 			// Should contain a number
-			expect(bannerText).toMatch(/\d+/);
+			expect(bannerText).toMatch(/\d+/u);
 		});
 	});
 
@@ -226,6 +227,7 @@ describe('IAB GVL E2E Tests', () => {
 			expect(Object.keys(gvl.vendors).length).toBeGreaterThan(0);
 
 			// Check first vendor has required fields
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const firstVendor = Object.values(gvl.vendors)[0];
 			expect(firstVendor).toHaveProperty('id');
 			expect(firstVendor).toHaveProperty('name');

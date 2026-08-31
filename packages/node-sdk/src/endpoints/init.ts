@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+
 import type { FetcherContext } from '../fetcher';
 import { fetcher } from '../fetcher';
 import type { FetchOptions, ResponseContext } from '../types';
@@ -15,7 +16,7 @@ export const INIT_PATH = '/init';
  * @param options - Optional fetch options
  * @returns Init response with jurisdiction, location, translations, branding
  */
-export async function init(
+export const init = function init(
 	context: FetcherContext,
 	options?: FetchOptions<InitOutput>
 ): Promise<ResponseContext<InitOutput>> {
@@ -23,4 +24,4 @@ export async function init(
 		method: 'GET',
 		...options,
 	});
-}
+};

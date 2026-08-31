@@ -51,7 +51,7 @@ export interface TableSpec {
 	readonly foreignKeys: readonly ForeignKeySpec[];
 }
 
-const id: ColumnSpec = { name: 'id', type: 'id', nullable: false };
+const id: ColumnSpec = { name: 'id', nullable: false, type: 'id' };
 
 /**
  * In creation order. Foreign keys point backwards only, so this order is
@@ -59,148 +59,152 @@ const id: ColumnSpec = { name: 'id', type: 'id', nullable: false };
  */
 export const TABLES: readonly TableSpec[] = [
 	{
+		columns: [
+			id,
+			{ name: 'externalId', nullable: true, type: 'indexedText' },
+			{ name: 'identityProvider', nullable: true, type: 'text' },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
+			{ name: 'createdAt', nullable: false, type: 'timestamp' },
+			{ name: 'updatedAt', nullable: false, type: 'timestamp' },
+		],
+		foreignKeys: [],
 		name: 'subject',
-		columns: [
-			id,
-			{ name: 'externalId', type: 'indexedText', nullable: true },
-			{ name: 'identityProvider', type: 'text', nullable: true },
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
-			{ name: 'createdAt', type: 'timestamp', nullable: false },
-			{ name: 'updatedAt', type: 'timestamp', nullable: false },
-		],
-		foreignKeys: [],
 	},
 	{
+		columns: [
+			id,
+			{ name: 'name', nullable: false, type: 'indexedText' },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
+			{ name: 'createdAt', nullable: false, type: 'timestamp' },
+			{ name: 'updatedAt', nullable: false, type: 'timestamp' },
+		],
+		foreignKeys: [],
 		name: 'domain',
-		columns: [
-			id,
-			{ name: 'name', type: 'indexedText', nullable: false },
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
-			{ name: 'createdAt', type: 'timestamp', nullable: false },
-			{ name: 'updatedAt', type: 'timestamp', nullable: false },
-		],
-		foreignKeys: [],
 	},
 	{
+		columns: [
+			id,
+			{ name: 'version', nullable: false, type: 'text' },
+			{ name: 'type', nullable: false, type: 'indexedText' },
+			{ name: 'hash', nullable: true, type: 'text' },
+			{ name: 'effectiveDate', nullable: false, type: 'timestamp' },
+			{ name: 'isActive', nullable: false, type: 'bool' },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
+			{ name: 'createdAt', nullable: false, type: 'timestamp' },
+		],
+		foreignKeys: [],
 		name: 'consentPolicy',
-		columns: [
-			id,
-			{ name: 'version', type: 'text', nullable: false },
-			{ name: 'type', type: 'indexedText', nullable: false },
-			{ name: 'hash', type: 'text', nullable: true },
-			{ name: 'effectiveDate', type: 'timestamp', nullable: false },
-			{ name: 'isActive', type: 'bool', nullable: false },
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
-			{ name: 'createdAt', type: 'timestamp', nullable: false },
-		],
-		foreignKeys: [],
 	},
 	{
+		columns: [
+			id,
+			{ name: 'code', nullable: false, type: 'indexedText' },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
+			{ name: 'createdAt', nullable: false, type: 'timestamp' },
+			{ name: 'updatedAt', nullable: false, type: 'timestamp' },
+		],
+		foreignKeys: [],
 		name: 'consentPurpose',
-		columns: [
-			id,
-			{ name: 'code', type: 'indexedText', nullable: false },
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
-			{ name: 'createdAt', type: 'timestamp', nullable: false },
-			{ name: 'updatedAt', type: 'timestamp', nullable: false },
-		],
-		foreignKeys: [],
 	},
 	{
-		name: 'runtimePolicyDecision',
 		columns: [
 			id,
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
-			{ name: 'policyId', type: 'text', nullable: false },
-			{ name: 'fingerprint', type: 'text', nullable: false },
-			{ name: 'matchedBy', type: 'text', nullable: false },
-			{ name: 'countryCode', type: 'text', nullable: true },
-			{ name: 'regionCode', type: 'text', nullable: true },
-			{ name: 'jurisdiction', type: 'text', nullable: false },
-			{ name: 'language', type: 'text', nullable: true },
-			{ name: 'model', type: 'text', nullable: false },
-			{ name: 'policyI18n', type: 'json', nullable: true },
-			{ name: 'uiMode', type: 'text', nullable: true },
-			{ name: 'bannerUi', type: 'json', nullable: true },
-			{ name: 'dialogUi', type: 'json', nullable: true },
-			{ name: 'categories', type: 'json', nullable: true },
-			{ name: 'preselectedCategories', type: 'json', nullable: true },
-			{ name: 'proofConfig', type: 'json', nullable: true },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
+			{ name: 'policyId', nullable: false, type: 'text' },
+			{ name: 'fingerprint', nullable: false, type: 'text' },
+			{ name: 'matchedBy', nullable: false, type: 'text' },
+			{ name: 'countryCode', nullable: true, type: 'text' },
+			{ name: 'regionCode', nullable: true, type: 'text' },
+			{ name: 'jurisdiction', nullable: false, type: 'text' },
+			{ name: 'language', nullable: true, type: 'text' },
+			{ name: 'model', nullable: false, type: 'text' },
+			{ name: 'policyI18n', nullable: true, type: 'json' },
+			{ name: 'uiMode', nullable: true, type: 'text' },
+			{ name: 'bannerUi', nullable: true, type: 'json' },
+			{ name: 'dialogUi', nullable: true, type: 'json' },
+			{ name: 'categories', nullable: true, type: 'json' },
+			{ name: 'preselectedCategories', nullable: true, type: 'json' },
+			{ name: 'proofConfig', nullable: true, type: 'json' },
 			// Unique, so on MySQL this must be a bounded varchar — the exact
 			// constraint fumadb violates (RFC 0004 §3.5).
 			{
 				name: 'dedupeKey',
-				type: 'indexedText',
 				nullable: false,
+				type: 'indexedText',
 				unique: true,
 			},
-			{ name: 'createdAt', type: 'timestamp', nullable: false },
+			{ name: 'createdAt', nullable: false, type: 'timestamp' },
 		],
 		foreignKeys: [],
+		name: 'runtimePolicyDecision',
 	},
 	{
-		name: 'consent',
 		columns: [
 			id,
-			{ name: 'subjectId', type: 'indexedText', nullable: false },
-			{ name: 'domainId', type: 'indexedText', nullable: false },
-			{ name: 'policyId', type: 'indexedText', nullable: true },
-			{ name: 'purposeIds', type: 'json', nullable: false },
-			{ name: 'metadata', type: 'json', nullable: true },
-			{ name: 'ipAddress', type: 'text', nullable: true },
-			{ name: 'userAgent', type: 'text', nullable: true },
-			{ name: 'givenAt', type: 'timestamp', nullable: false },
-			{ name: 'validUntil', type: 'timestamp', nullable: true },
-			{ name: 'jurisdiction', type: 'text', nullable: true },
-			{ name: 'jurisdictionModel', type: 'text', nullable: true },
-			{ name: 'tcString', type: 'text', nullable: true },
-			{ name: 'uiSource', type: 'text', nullable: true },
-			{ name: 'consentAction', type: 'text', nullable: true },
-			{ name: 'runtimePolicyDecisionId', type: 'indexedText', nullable: true },
-			{ name: 'runtimePolicySource', type: 'text', nullable: true },
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
+			{ name: 'subjectId', nullable: false, type: 'indexedText' },
+			{ name: 'domainId', nullable: false, type: 'indexedText' },
+			{ name: 'policyId', nullable: true, type: 'indexedText' },
+			{ name: 'purposeIds', nullable: false, type: 'json' },
+			{ name: 'metadata', nullable: true, type: 'json' },
+			{ name: 'ipAddress', nullable: true, type: 'text' },
+			{ name: 'userAgent', nullable: true, type: 'text' },
+			{ name: 'givenAt', nullable: false, type: 'timestamp' },
+			{ name: 'validUntil', nullable: true, type: 'timestamp' },
+			{ name: 'jurisdiction', nullable: true, type: 'text' },
+			{ name: 'jurisdictionModel', nullable: true, type: 'text' },
+			{ name: 'tcString', nullable: true, type: 'text' },
+			{ name: 'uiSource', nullable: true, type: 'text' },
+			{ name: 'consentAction', nullable: true, type: 'text' },
+			{ name: 'runtimePolicyDecisionId', nullable: true, type: 'indexedText' },
+			{ name: 'runtimePolicySource', nullable: true, type: 'text' },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
 		],
 		foreignKeys: [
 			{
 				column: 'subjectId',
-				referencesTable: 'subject',
 				referencesColumn: 'id',
+
+				referencesTable: 'subject',
 			},
-			{ column: 'domainId', referencesTable: 'domain', referencesColumn: 'id' },
+			{ column: 'domainId', referencesColumn: 'id', referencesTable: 'domain' },
 			{
 				column: 'policyId',
-				referencesTable: 'consentPolicy',
 				referencesColumn: 'id',
+
+				referencesTable: 'consentPolicy',
 			},
 			{
 				column: 'runtimePolicyDecisionId',
-				referencesTable: 'runtimePolicyDecision',
 				referencesColumn: 'id',
+
+				referencesTable: 'runtimePolicyDecision',
 			},
 		],
+		name: 'consent',
 	},
 	{
-		name: 'auditLog',
 		columns: [
 			id,
-			{ name: 'entityType', type: 'text', nullable: false },
-			{ name: 'entityId', type: 'text', nullable: false },
-			{ name: 'actionType', type: 'text', nullable: false },
-			{ name: 'subjectId', type: 'indexedText', nullable: true },
-			{ name: 'ipAddress', type: 'text', nullable: true },
-			{ name: 'userAgent', type: 'text', nullable: true },
-			{ name: 'changes', type: 'json', nullable: true },
-			{ name: 'metadata', type: 'json', nullable: true },
-			{ name: 'tenantId', type: 'indexedText', nullable: true },
-			{ name: 'createdAt', type: 'timestamp', nullable: false },
+			{ name: 'entityType', nullable: false, type: 'text' },
+			{ name: 'entityId', nullable: false, type: 'text' },
+			{ name: 'actionType', nullable: false, type: 'text' },
+			{ name: 'subjectId', nullable: true, type: 'indexedText' },
+			{ name: 'ipAddress', nullable: true, type: 'text' },
+			{ name: 'userAgent', nullable: true, type: 'text' },
+			{ name: 'changes', nullable: true, type: 'json' },
+			{ name: 'metadata', nullable: true, type: 'json' },
+			{ name: 'tenantId', nullable: true, type: 'indexedText' },
+			{ name: 'createdAt', nullable: false, type: 'timestamp' },
 		],
 		foreignKeys: [
 			{
 				column: 'subjectId',
-				referencesTable: 'subject',
 				referencesColumn: 'id',
+
+				referencesTable: 'subject',
 			},
 		],
+		name: 'auditLog',
 	},
 ] as const;
 
@@ -211,7 +215,7 @@ export const TABLES: readonly TableSpec[] = [
  * MySQL delimits identifiers with backticks and rejects double-quoted ones
  * outright.
  */
-export function createTableSql(
+export const createTableSql = function createTableSql(
 	table: TableSpec,
 	types: PhysicalTypes,
 	quote: (name: string) => string
@@ -235,7 +239,7 @@ export function createTableSql(
 		...columns,
 		...foreignKeys,
 	].join(',\n\t')}\n)`;
-}
+};
 
 /**
  * `alter table … add column` for one column.
@@ -246,7 +250,7 @@ export function createTableSql(
  * so the looser constraint costs nothing that matters and avoids an adoption
  * that fails on any non-empty database.
  */
-export function addColumnSql(
+export const addColumnSql = function addColumnSql(
 	table: string,
 	column: ColumnSpec,
 	types: PhysicalTypes,
@@ -255,4 +259,4 @@ export function addColumnSql(
 	return `alter table ${quote(table)} add column ${quote(column.name)} ${
 		types[column.type]
 	}`;
-}
+};

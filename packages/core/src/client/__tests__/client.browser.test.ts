@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { configureConsentManager } from '../client-factory';
 import { CustomClient } from '../custom';
 import { C15tClient } from '../hosted';
 import type { OfflineClient } from '../offline';
+
+const assignInOrder = Object.assign;
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
 // as they're available in the browser environment
@@ -29,8 +32,8 @@ describe('c15t Client Browser Tests', () => {
 		// Default mock for fetch
 		fetchSpy.mockResolvedValue(
 			new Response(JSON.stringify({ success: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 	});
@@ -40,25 +43,25 @@ describe('c15t Client Browser Tests', () => {
 		fetchSpy.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
+					branding: 'c15t',
 					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
 					translations: {
 						language: 'en',
 						translations: {},
 					},
-					branding: 'c15t',
 				}),
 				{
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		}) as C15tClient;
 
 		// Call the API
@@ -72,19 +75,19 @@ describe('c15t Client Browser Tests', () => {
 		);
 		expect(response.ok).toBe(true);
 		expect(response.data).toEqual({
+			branding: 'c15t',
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			translations: {
 				language: 'en',
 				translations: {},
 			},
-			branding: 'c15t',
 		});
 	});
 
 	it('should set Content-Type header for POST requests', async () => {
 		// Direct fetch spy
-		const fetchSpy = vi.spyOn(window, 'fetch');
+		const fetchSpyLocal = vi.spyOn(window, 'fetch');
 
 		// Configure client
 		const client = new C15tClient({
@@ -92,20 +95,20 @@ describe('c15t Client Browser Tests', () => {
 		});
 
 		// Mock successful response
-		fetchSpy.mockResolvedValueOnce(
+		fetchSpyLocal.mockResolvedValueOnce(
 			new Response(JSON.stringify({ success: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
 		// Create test data
 		const consentData = {
-			type: 'cookie_banner' as const,
 			domain: 'example.com',
 			preferences: {
 				analytics: true,
 			},
+			type: 'cookie_banner' as const,
 		};
 
 		// Call API
@@ -115,13 +118,13 @@ describe('c15t Client Browser Tests', () => {
 
 		// Verify Content-Type header was set
 		// v2.0 uses POST /subjects endpoint
-		expect(fetchSpy).toHaveBeenCalledWith(
+		expect(fetchSpyLocal).toHaveBeenCalledWith(
 			expect.stringContaining('/api/c15t/subjects'),
 			expect.objectContaining({
-				method: 'POST',
 				headers: expect.objectContaining({
 					'Content-Type': 'application/json',
 				}),
+				method: 'POST',
 			})
 		);
 	});
@@ -129,16 +132,17 @@ describe('c15t Client Browser Tests', () => {
 	it('should handle network errors in browser', async () => {
 		// Reset the default mock and set up network error
 		fetchSpy.mockReset();
-		fetchSpy.mockImplementation(() => {
-			return Promise.reject(new TypeError('Failed to fetch'));
-		});
+		fetchSpy.mockImplementation(() =>
+			Promise.reject(new TypeError('Failed to fetch'))
+		);
 
 		// Configure the client with retry disabled to avoid multiple calls
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 0, // Disable retries for this test
+				// Disable retries for this test
+				maxRetries: 0,
 			},
 		}) as C15tClient;
 
@@ -179,12 +183,12 @@ describe('Offline Client Browser Tests', () => {
 		// Set consent data
 		const response = await client.setConsent({
 			body: {
-				type: 'cookie_banner',
 				domain: 'example.com',
 				preferences: {
 					analytics: true,
 					marketing: false,
 				},
+				type: 'cookie_banner',
 			},
 		});
 
@@ -235,29 +239,38 @@ describe('Offline Client Browser Tests', () => {
 });
 
 describe('Custom Client Browser Tests', () => {
+	const customMode = 'custom';
 	// Real implementations for required handlers
 	const handlers = {
-		init: async () => ({
-			data: {
-				jurisdiction: 'GDPR',
-				location: { countryCode: 'DE', regionCode: null },
-				translations: {
-					language: 'en',
-					translations: {},
+		identifyUser: () =>
+			Promise.resolve({
+				data: { success: true },
+				error: null,
+				ok: true,
+				response: null,
+			}),
+		init: () =>
+			Promise.resolve({
+				data: {
+					branding: 'c15t',
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: {
+						language: 'en',
+						translations: {},
+					},
 				},
-				branding: 'c15t',
-			},
-			ok: true,
-			error: null,
-			response: null,
-		}),
+				error: null,
+				ok: true,
+				response: null,
+			}),
 		setConsent: (options) => {
 			// Add consent data to localStorage to simulate real storage
 			try {
 				const key = 'custom-handler-consent';
 				const data = {
-					timestamp: new Date().toISOString(),
 					preferences: options?.body?.preferences || {},
+					timestamp: new Date().toISOString(),
 				};
 				localStorage.setItem(key, JSON.stringify(data));
 			} catch {
@@ -266,23 +279,18 @@ describe('Custom Client Browser Tests', () => {
 
 			return {
 				data: { success: true },
-				ok: true,
 				error: null,
+				ok: true,
 				response: null,
 			};
 		},
-		identifyUser: async () => ({
-			data: { success: true },
-			ok: true,
-			error: null,
-			response: null,
-		}),
-		verifyConsent: async () => ({
-			data: { valid: true },
-			ok: true,
-			error: null,
-			response: null,
-		}),
+		verifyConsent: () =>
+			Promise.resolve({
+				data: { valid: true },
+				error: null,
+				ok: true,
+				response: null,
+			}),
 	};
 
 	beforeEach(() => {
@@ -296,11 +304,13 @@ describe('Custom Client Browser Tests', () => {
 
 	it('should use custom handlers in browser environment', async () => {
 		// Configure the client
-		const client = configureConsentManager({
-			mode: 'custom',
-			//@ts-expect-error
-			endpointHandlers: handlers,
-		}) as CustomClient;
+		const client = configureConsentManager(
+			assignInOrder(
+				{ mode: customMode },
+				// @ts-expect-error Tests inject custom endpoint handlers.
+				{ endpointHandlers: handlers }
+			)
+		) as CustomClient;
 
 		// Call the API
 		const response = await client.init();
@@ -313,21 +323,23 @@ describe('Custom Client Browser Tests', () => {
 
 	it('should handle custom storage in browser', async () => {
 		// Configure the client
-		const client = configureConsentManager({
-			mode: 'custom',
-			//@ts-expect-error
-			endpointHandlers: handlers,
-		}) as CustomClient;
+		const client = configureConsentManager(
+			assignInOrder(
+				{ mode: customMode },
+				// @ts-expect-error Tests inject custom endpoint handlers.
+				{ endpointHandlers: handlers }
+			)
+		) as CustomClient;
 
 		// Set consent data with custom handler
 		await client.setConsent({
 			body: {
-				type: 'cookie_banner',
 				domain: 'example.com',
 				preferences: {
 					analytics: true,
 					marketing: false,
 				},
+				type: 'cookie_banner',
 			},
 		});
 
@@ -349,17 +361,19 @@ describe('Custom Client Browser Tests', () => {
 	it('should register and use dynamic handlers', async () => {
 		// Configure the client
 		const client = new CustomClient({
-			//@ts-expect-error
+			// @ts-expect-error Tests inject custom endpoint handlers.
 			endpointHandlers: handlers,
 		});
 
 		// Define a dynamic handler
-		const dynamicHandler = vi.fn().mockImplementation(async () => ({
-			data: { custom: true },
-			ok: true,
-			error: null,
-			response: null,
-		}));
+		const dynamicHandler = vi.fn().mockImplementation(() =>
+			Promise.resolve({
+				data: { custom: true },
+				error: null,
+				ok: true,
+				response: null,
+			})
+		);
 
 		// Register the dynamic handler
 		client.registerHandler('/custom-endpoint', dynamicHandler);

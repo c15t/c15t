@@ -12,29 +12,31 @@ type DemoScript = ReturnType<typeof databuddy>;
  * @returns An array of `DemoScript` objects representing the demo app's
  * third-party and example analytics integrations.
  */
-export function createDemoScripts(customVendorId: string): DemoScript[] {
+export const createDemoScripts = function createDemoScripts(
+	customVendorId: string
+): DemoScript[] {
 	return [
 		{
+			category: 'measurement',
 			id: 'example-analytics-iab',
 			src: 'https://www.example.com/analytics.js',
-			category: 'measurement',
 			vendorId: 1,
 		},
 		{
+			category: 'measurement',
 			id: 'example-analytics-custom',
 			src: 'https://www.example.com/custom-analytics.js',
-			category: 'measurement',
 			vendorId: customVendorId,
 		},
 		databuddy({
 			clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
-			configWhenGranted: {
-				clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
-				disabled: false,
-			},
 			configWhenDenied: {
 				clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
 				disabled: true,
+			},
+			configWhenGranted: {
+				clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+				disabled: false,
 			},
 		}),
 		xPixel({
@@ -44,4 +46,4 @@ export function createDemoScripts(customVendorId: string): DemoScript[] {
 			id: 'GTM-WL5L8NW7',
 		}),
 	];
-}
+};

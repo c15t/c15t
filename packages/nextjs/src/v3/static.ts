@@ -44,49 +44,53 @@ export interface StaticConsentResolution {
 
 const POLICY_STRICTNESS: Record<string, number> = {
 	iab: 4,
+	none: 0,
+	notice: 1,
 	'opt-in': 3,
 	'opt-out': 2,
-	notice: 1,
-	none: 0,
 };
 
-function readBrowserLanguage(): string | undefined {
-	if (typeof navigator === 'undefined') return undefined;
+const readBrowserLanguage = function readBrowserLanguage(): string | undefined {
+	if (typeof navigator === 'undefined') {
+		return undefined;
+	}
 	return navigator.languages?.[0] ?? navigator.language;
-}
+};
 
-function readBrowserGpc(): boolean | undefined {
-	if (typeof navigator === 'undefined') return undefined;
+const readBrowserGpc = function readBrowserGpc(): boolean | undefined {
+	if (typeof navigator === 'undefined') {
+		return undefined;
+	}
 	return (navigator as Navigator & { globalPrivacyControl?: boolean })
 		.globalPrivacyControl;
-}
+};
 
-function normalizeGeo(
+const normalizeGeo = function normalizeGeo(
 	geo: StaticGeoResult | null | undefined
 ): ResolveInitFromManifestInputs {
 	return {
 		country: geo?.country ?? geo?.countryCode ?? undefined,
 		region: geo?.region ?? geo?.regionCode ?? undefined,
 	};
-}
+};
 
-function comparePolicyStrictness(
+const comparePolicyStrictness = function comparePolicyStrictness(
 	left: ConsentManifestPolicyPack,
 	right: ConsentManifestPolicyPack
 ) {
 	const leftScore = POLICY_STRICTNESS[left.resolvedPolicy.model] ?? -1;
 	const rightScore = POLICY_STRICTNESS[right.resolvedPolicy.model] ?? -1;
 	return leftScore - rightScore;
-}
+};
 
-function pickStrictestPolicyPack(
+const pickStrictestPolicyPack = function pickStrictestPolicyPack(
 	manifest: ConsentManifest
 ): ConsentManifestPolicyPack | undefined {
 	const sorted = manifest.policyPacks?.slice().sort(comparePolicyStrictness);
 	return sorted?.[sorted.length - 1];
-}
+};
 
-export function resolveStrictestDefaultInit(
+export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
 	manifest: ConsentManifest,
 	inputs: Omit<ResolveInitFromManifestInputs, 'country' | 'region'> = {}
 ): InitOutput {
@@ -118,26 +122,28 @@ export function resolveStrictestDefaultInit(
 			region: null,
 		}
 	);
-}
+};
 
-async function fetchStaticGeo(
+const fetchStaticGeo = async function fetchStaticGeo(
 	geoURL: string,
 	fetchImpl: typeof globalThis.fetch
 ): Promise<StaticGeoResult | null> {
 	const response = await fetchImpl(geoURL, {
-		method: 'GET',
 		headers: { accept: 'application/json' },
+		method: 'GET',
 	});
-	if (!response.ok) return null;
+	if (!response.ok) {
+		return null;
+	}
 	return (await response.json()) as StaticGeoResult;
-}
+};
 
-export function createStaticConsentResolver(
+export const createStaticConsentResolver = function createStaticConsentResolver(
 	options: StaticConsentResolverOptions
 ): StaticConsentResolution {
 	const language = options.language ?? readBrowserLanguage() ?? 'en';
 	const gpc = options.gpc ?? readBrowserGpc();
-	const commonInputs = { language, gpc };
+	const commonInputs = { gpc, language };
 	const initialGeo = normalizeGeo(options.geo);
 	const hasGeo = Boolean(initialGeo.country || initialGeo.region);
 	const initial = hasGeo
@@ -150,24 +156,32 @@ export function createStaticConsentResolver(
 	return {
 		initial,
 		resolved: (async () => {
-			if (hasGeo) return initial;
-			if (!options.geoURL) return initial;
+			if (hasGeo) {
+				return initial;
+			}
+			if (!options.geoURL) {
+				return initial;
+			}
 			const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-			if (!fetchImpl) return initial;
+			if (!fetchImpl) {
+				return initial;
+			}
 			const geo = await fetchStaticGeo(options.geoURL, fetchImpl).catch(
 				() => null
 			);
 			const resolvedGeo = normalizeGeo(geo);
-			if (!resolvedGeo.country && !resolvedGeo.region) return initial;
+			if (!resolvedGeo.country && !resolvedGeo.region) {
+				return initial;
+			}
 			return resolveInitFromManifest(options.manifest, {
 				...commonInputs,
 				...resolvedGeo,
 			});
 		})(),
 	};
-}
+};
 
-export async function loadStaticManifest(
+export const loadStaticManifest = async function loadStaticManifest(
 	options: Omit<StaticManifestModuleOptions, 'exportName'>
 ): Promise<ConsentManifest> {
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
@@ -175,8 +189,8 @@ export async function loadStaticManifest(
 		throw new Error('@c15t/nextjs/v3/static: no fetch available.');
 	}
 	const response = await fetchImpl(options.manifestURL, {
-		method: 'GET',
 		headers: { accept: 'application/json' },
+		method: 'GET',
 	});
 	if (!response.ok) {
 		throw new Error(
@@ -184,7 +198,7 @@ export async function loadStaticManifest(
 		);
 	}
 	return (await response.json()) as ConsentManifest;
-}
+};
 
 /**
  * Build-time helper for `output: "export"` apps.
@@ -192,19 +206,20 @@ export async function loadStaticManifest(
  * Call this from a build script and write the returned TypeScript source to a
  * module imported by the client app.
  */
-export async function createStaticManifestModule(
-	options: StaticManifestModuleOptions
-): Promise<string> {
-	const exportName = options.exportName ?? 'consentManifest';
-	const manifest = await loadStaticManifest(options);
-	return [
-		"import type { ConsentManifest } from '@c15t/schema/types';",
-		'',
-		`export const ${exportName} = ${JSON.stringify(
-			manifest,
-			null,
-			2
-		)} as const satisfies ConsentManifest;`,
-		'',
-	].join('\n');
-}
+export const createStaticManifestModule =
+	async function createStaticManifestModule(
+		options: StaticManifestModuleOptions
+	): Promise<string> {
+		const exportName = options.exportName ?? 'consentManifest';
+		const manifest = await loadStaticManifest(options);
+		return [
+			"import type { ConsentManifest } from '@c15t/schema/types';",
+			'',
+			`export const ${exportName} = ${JSON.stringify(
+				manifest,
+				null,
+				2
+			)} as const satisfies ConsentManifest;`,
+			'',
+		].join('\n');
+	};

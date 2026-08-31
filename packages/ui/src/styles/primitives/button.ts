@@ -76,14 +76,14 @@ export const buttonVariants = ({
 		`${ButtonVariant}-${ButtonMode}`,
 		keyof typeof styles
 	> = {
-		'primary-filled': 'button-primary-filled',
-		'primary-stroke': 'button-primary-stroke',
-		'primary-lighter': 'button-primary-lighter',
-		'primary-ghost': 'button-primary-ghost',
 		'neutral-filled': 'button-neutral-filled',
-		'neutral-stroke': 'button-neutral-stroke',
-		'neutral-lighter': 'button-neutral-lighter',
 		'neutral-ghost': 'button-neutral-ghost',
+		'neutral-lighter': 'button-neutral-lighter',
+		'neutral-stroke': 'button-neutral-stroke',
+		'primary-filled': 'button-primary-filled',
+		'primary-ghost': 'button-primary-ghost',
+		'primary-lighter': 'button-primary-lighter',
+		'primary-stroke': 'button-primary-stroke',
 	};
 
 	rootClasses.push(styles[compoundMap[`${variant}-${mode}`]]);
@@ -92,20 +92,18 @@ export const buttonVariants = ({
 
 	return {
 		/**
-		 * Generates the CSS class string for the button root element.
-		 * @param options - Optional configuration with a custom class to append
-		 * @returns The combined CSS class string
-		 */
-		root: (options?: { class?: string }) => {
-			return [...rootClasses, options?.class].filter(Boolean).join(' ');
-		},
-		/**
 		 * Generates the CSS class string for the button icon element.
 		 * @param options - Optional configuration with a custom class to append
 		 * @returns The combined CSS class string
 		 */
-		icon: (options?: { class?: string }) => {
-			return [...iconClasses, options?.class].filter(Boolean).join(' ');
-		},
+		icon: (options?: { class?: string }) =>
+			[...iconClasses, options?.class].filter(Boolean).join(' '),
+		/**
+		 * Generates the CSS class string for the button root element.
+		 * @param options - Optional configuration with a custom class to append
+		 * @returns The combined CSS class string
+		 */
+		root: (options?: { class?: string }) =>
+			[...rootClasses, options?.class].filter(Boolean).join(' '),
 	};
 };

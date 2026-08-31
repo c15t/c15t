@@ -204,7 +204,7 @@ export interface DefineGlobalMethodsStep {
 	type: 'defineGlobalMethods';
 	/** Global object name to receive the methods */
 	target: string;
-	methods: Array<GlobalMethodBehavior>;
+	methods: GlobalMethodBehavior[];
 }
 
 export interface ConstructGlobalStep {

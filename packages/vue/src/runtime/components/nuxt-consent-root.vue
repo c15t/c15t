@@ -1,15 +1,14 @@
-<script
-	lang="ts"
-	setup
->
+<script lang="ts" setup>
+import { computed, onMounted, ref, watch } from 'vue';
+
+import { useHead } from '#imports';
+
 import {
 	useConsentActiveUI,
 	useConsentInit,
 	useConsentConfig,
 	useConsentKernel,
 } from '../composables';
-import { useHead } from '#imports';
-import { computed, onMounted, ref, watch } from 'vue';
 import ConsentBanner from './consent-banner.vue';
 import {
 	LazyConsentManager,
@@ -32,7 +31,9 @@ const kernel = useConsentKernel();
 watch(
 	() => [props.country, props.region] as const,
 	([country, region]) => {
-		if (!(country || region)) return;
+		if (!(country || region)) {
+			return;
+		}
 		kernel.set.overrides({ country, region });
 		void kernel.commands.init();
 	},
@@ -48,8 +49,8 @@ useHead(
 			? {
 					style: [
 						{
-							innerHTML: `:root { ${style} }`,
 							id: 'c15t-css-vars',
+							innerHTML: `:root { ${style} }`,
 						},
 					],
 				}
@@ -65,15 +66,21 @@ watch(
 	activeUI,
 	(ui) => {
 		if (ui === 'manager') {
-			if (init.value?.gvl) iabDialogNeeded.value = true;
-			else managerNeeded.value = true;
+			if (init.value?.gvl) {
+				iabDialogNeeded.value = true;
+			} else {
+				managerNeeded.value = true;
+			}
 		}
 	},
 	{ immediate: true }
 );
 onMounted(() => {
-	if (init.value?.gvl) prefetchIabConsentDialog();
-	else prefetchConsentManager();
+	if (init.value?.gvl) {
+		prefetchIabConsentDialog();
+	} else {
+		prefetchConsentManager();
+	}
 });
 </script>
 

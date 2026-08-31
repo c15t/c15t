@@ -1,36 +1,35 @@
-import {
-	existsSync,
-	type PathLike,
-	type PathOrFileDescriptor,
-	readdirSync,
-	readFileSync,
-	statSync,
-} from 'node:fs';
+import type { PathLike, PathOrFileDescriptor } from 'node:fs';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	analyzePackage,
-	type BundleStats,
 	compareBundles,
 	extractBundleSizes,
 	findRsdoctorDataFiles,
 	formatBytes,
 	generateMarkdownReport,
 	getSizeChangeEmoji,
-	type PackageBundleData,
+	setBundleDiffFileSystemForTests,
 } from './analyze-bundle-diff';
+import type { BundleStats, PackageBundleData } from './analyze-bundle-diff';
 
-// Mock fs module
-vi.mock('node:fs', () => ({
-	existsSync: vi.fn(),
-	readdirSync: vi.fn(),
-	readFileSync: vi.fn(),
-	statSync: vi.fn(),
-	writeFileSync: vi.fn(),
-}));
+const existsSync = vi.fn();
+const readdirSync = vi.fn();
+const readFileSync = vi.fn();
+const statSync = vi.fn();
+const writeFileSync = vi.fn();
 
 describe('analyze-bundle-diff', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setBundleDiffFileSystemForTests({
+			existsSync,
+			readFileSync,
+			readdirSync,
+			statSync,
+			writeFileSync,
+		});
 	});
 
 	describe('getSizeChangeEmoji', () => {
@@ -159,23 +158,23 @@ describe('analyze-bundle-diff', () => {
 			const mockData = {
 				data: {
 					chunkGraph: {
-						chunks: [
-							{
-								name: 'main.js',
-								id: 'chunk-1',
-								size: 1024,
-								assets: ['asset-1'],
-							},
-							{
-								name: 'vendor.js',
-								id: 'chunk-2',
-								size: 2048,
-							},
-						],
 						assets: [
 							{
-								id: 'asset-1',
 								gzipSize: 512,
+								id: 'asset-1',
+							},
+						],
+						chunks: [
+							{
+								assets: ['asset-1'],
+								id: 'chunk-1',
+								name: 'main.js',
+								size: 1024,
+							},
+							{
+								id: 'chunk-2',
+								name: 'vendor.js',
+								size: 2048,
 							},
 						],
 					},
@@ -188,16 +187,16 @@ describe('analyze-bundle-diff', () => {
 
 			expect(result).toHaveLength(2);
 			expect(result[0]).toEqual({
+				gzipSize: 512,
 				name: 'main.js',
 				path: '/test/rsdoctor-data.json',
 				size: 1024,
-				gzipSize: 512,
 			});
 			expect(result[1]).toEqual({
+				gzipSize: undefined,
 				name: 'vendor.js',
 				path: '/test/rsdoctor-data.json',
 				size: 2048,
-				gzipSize: undefined,
 			});
 		});
 
@@ -207,10 +206,10 @@ describe('analyze-bundle-diff', () => {
 					chunkGraph: {
 						assets: [
 							{
+								gzipSize: 512,
 								id: 'asset-1',
 								path: 'main.js',
 								size: 1024,
-								gzipSize: 512,
 							},
 						],
 					},
@@ -223,10 +222,10 @@ describe('analyze-bundle-diff', () => {
 
 			expect(result).toHaveLength(1);
 			expect(result[0]).toEqual({
+				gzipSize: 512,
 				name: 'main.js',
 				path: '/test/rsdoctor-data.json',
 				size: 1024,
-				gzipSize: 512,
 			});
 		});
 
@@ -264,12 +263,14 @@ describe('analyze-bundle-diff', () => {
 			expect(result.find((b) => b.name === 'chunk-1')).toEqual({
 				name: 'chunk-1',
 				path: '/test/rsdoctor-data.json',
-				size: 768, // 512 + 256
+				// 512 + 256
+				size: 768,
 			});
 			expect(result.find((b) => b.name === 'chunk-2')).toEqual({
 				name: 'chunk-2',
 				path: '/test/rsdoctor-data.json',
-				size: 384, // 256 + 128
+				// 256 + 128
+				size: 384,
 			});
 		});
 
@@ -340,9 +341,12 @@ describe('analyze-bundle-diff', () => {
 		];
 
 		const currentBundles: BundleStats[] = [
-			{ name: 'main.js', path: '/current', size: 1100 }, // changed
-			{ name: 'vendor.js', path: '/current', size: 2000 }, // unchanged
-			{ name: 'new.js', path: '/current', size: 300 }, // added
+			// changed
+			{ name: 'main.js', path: '/current', size: 1100 },
+			// unchanged
+			{ name: 'vendor.js', path: '/current', size: 2000 },
+			// added
+			{ name: 'new.js', path: '/current', size: 300 },
 		];
 
 		it('should identify added bundles', () => {
@@ -361,11 +365,11 @@ describe('analyze-bundle-diff', () => {
 			const result = compareBundles(baseBundles, currentBundles);
 			expect(result.changed).toHaveLength(1);
 			expect(result.changed[0]).toEqual({
-				name: 'main.js',
 				baseSize: 1000,
 				currentSize: 1100,
 				diff: 100,
 				diffPercent: 10,
+				name: 'main.js',
 			});
 		});
 
@@ -433,14 +437,14 @@ describe('analyze-bundle-diff', () => {
 		it('should generate summary table', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1100,
 					totalDiff: 100,
@@ -451,21 +455,22 @@ describe('analyze-bundle-diff', () => {
 			const result = generateMarkdownReport(packages);
 			expect(result).toContain('## Summary');
 			expect(result).toContain('test-package');
-			expect(result).toContain('1000.00 B'); // 1000 bytes < 1024, so it's formatted as bytes
+			// 1000 bytes < 1024, so it's formatted as bytes
+			expect(result).toContain('1000.00 B');
 			expect(result).toContain('10.00%');
 		});
 
 		it('should include added bundles section', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [{ name: 'new.js', path: '/test', size: 500 }],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 0,
 					totalCurrentSize: 500,
 					totalDiff: 500,
@@ -482,14 +487,14 @@ describe('analyze-bundle-diff', () => {
 		it('should include removed bundles section', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [{ name: 'old.js', path: '/test', size: 300 }],
 						changed: [],
+						removed: [{ name: 'old.js', path: '/test', size: 300 }],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 300,
 					totalCurrentSize: 0,
 					totalDiff: -300,
@@ -506,22 +511,22 @@ describe('analyze-bundle-diff', () => {
 		it('should include changed bundles section', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [
 							{
-								name: 'main.js',
 								baseSize: 1000,
 								currentSize: 1200,
 								diff: 200,
 								diffPercent: 20,
+								name: 'main.js',
 							},
 						],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1200,
 					totalDiff: 200,
@@ -532,35 +537,36 @@ describe('analyze-bundle-diff', () => {
 			const result = generateMarkdownReport(packages);
 			expect(result).toContain('### 📊 Changed Bundles');
 			expect(result).toContain('main.js');
-			expect(result).toContain('1000.00 B'); // 1000 bytes < 1024, so it's formatted as bytes
+			// 1000 bytes < 1024, so it's formatted as bytes
+			expect(result).toContain('1000.00 B');
 			expect(result).toContain('20.00%');
 		});
 
 		it('should skip packages with no changes', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'no-changes',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'no-changes',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1000,
 					totalDiff: 0,
 					totalDiffPercent: 0,
 				},
 				{
-					packageName: 'with-changes',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [{ name: 'new.js', path: '/test', size: 500 }],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'with-changes',
 					totalBaseSize: 0,
 					totalCurrentSize: 500,
 					totalDiff: 500,
@@ -569,43 +575,47 @@ describe('analyze-bundle-diff', () => {
 			];
 
 			const result = generateMarkdownReport(packages);
-			expect(result).toContain('no-changes'); // Should appear in summary
+			// Should appear in summary
+			expect(result).toContain('no-changes');
 			// no-changes package should not have a details section since it has no diffs
 			// Check that there's no details section specifically for no-changes
 			const noChangesInDetails = result.match(
-				/<details>[\s\S]*?no-changes[\s\S]*?<\/details>/
+				/<details>[\s\S]*?no-changes[\s\S]*?<\/details>/u
 			);
-			expect(noChangesInDetails).toBeNull(); // Should not find no-changes inside details
+			// Should not find no-changes inside details
+			expect(noChangesInDetails).toBeNull();
 			// with-changes package should have a details section
-			expect(result).toContain('<details>'); // Should have details section for with-changes
-			expect(result).toContain('with-changes'); // Should appear in details
+			// Should have details section for with-changes
+			expect(result).toContain('<details>');
+			// Should appear in details
+			expect(result).toContain('with-changes');
 		});
 
 		it('should use correct emojis for size changes', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'large-increase',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'large-increase',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1100,
 					totalDiff: 100,
 					totalDiffPercent: 10,
 				},
 				{
-					packageName: 'small-increase',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'small-increase',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1030,
 					totalDiff: 30,
@@ -614,8 +624,10 @@ describe('analyze-bundle-diff', () => {
 			];
 
 			const result = generateMarkdownReport(packages);
-			expect(result).toContain('🔴'); // Large increase
-			expect(result).toContain('🟡'); // Small increase
+			// Large increase
+			expect(result).toContain('🔴');
+			// Small increase
+			expect(result).toContain('🟡');
 		});
 	});
 
@@ -651,9 +663,9 @@ describe('analyze-bundle-diff', () => {
 				},
 			};
 
-			vi.mocked(existsSync).mockImplementation((path: PathLike) => {
-				return String(path).includes('dist');
-			});
+			vi.mocked(existsSync).mockImplementation((path: PathLike) =>
+				String(path).includes('dist')
+			);
 
 			vi.mocked(readdirSync).mockReturnValue([
 				'rsdoctor-data.json',

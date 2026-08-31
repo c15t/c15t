@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+
 import { legalDocumentPolicyTypeSchema } from '~/domain/consent-policy';
 
 export const legalDocumentCurrentParamsSchema = v.object({
@@ -10,30 +11,30 @@ export const legalDocumentCurrentParamsSchema = v.object({
 });
 
 export const legalDocumentCurrentInputSchema = v.object({
-	version: v.pipe(
+	effectiveDate: v.pipe(
 		v.string(),
-		v.description('Release version identifier for the legal document.'),
-		v.examples(['2026-01-01'])
+		v.description('ISO 8601 effective date for the legal document release.'),
+		v.examples(['2026-01-01T00:00:00.000Z'])
 	),
 	hash: v.pipe(
 		v.string(),
 		v.description('Content hash for the legal document release.'),
 		v.examples(['sha256:abc123'])
 	),
-	effectiveDate: v.pipe(
+	version: v.pipe(
 		v.string(),
-		v.description('ISO 8601 effective date for the legal document release.'),
-		v.examples(['2026-01-01T00:00:00.000Z'])
+		v.description('Release version identifier for the legal document.'),
+		v.examples(['2026-01-01'])
 	),
 });
 
 export const legalDocumentCurrentPolicySchema = v.object({
+	effectiveDate: v.date(),
+	hash: v.string(),
 	id: v.string(),
+	isActive: v.boolean(),
 	type: legalDocumentPolicyTypeSchema,
 	version: v.string(),
-	hash: v.string(),
-	effectiveDate: v.date(),
-	isActive: v.boolean(),
 });
 
 export const legalDocumentCurrentOutputSchema = v.object({
@@ -41,15 +42,16 @@ export const legalDocumentCurrentOutputSchema = v.object({
 });
 
 export const legalDocumentCurrentErrorSchemas = {
+	conflict: v.object({
+		code: v.literal('LEGAL_DOCUMENT_RELEASE_CONFLICT'),
+	}),
 	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
 		fieldErrors: v.record(v.string(), v.array(v.string())),
+
+		formErrors: v.array(v.string()),
 	}),
 	unauthorized: v.object({
 		message: v.string(),
-	}),
-	conflict: v.object({
-		code: v.literal('LEGAL_DOCUMENT_RELEASE_CONFLICT'),
 	}),
 };
 

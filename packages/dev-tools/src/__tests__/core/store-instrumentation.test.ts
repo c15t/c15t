@@ -1,43 +1,45 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
+
 import { registerStoreInstrumentation } from '../../core/store-instrumentation';
 
-function createMockStore(): StoreApi<ConsentStoreState> {
-	const listeners = new Set<(state: ConsentStoreState) => void>();
-	const state = {
-		callbacks: {
-			onBannerFetched: undefined,
-			onConsentSet: undefined,
-			onConsentChanged: undefined,
-			onError: undefined,
-			onBeforeConsentRevocationReload: undefined,
-		},
-		networkBlocker: undefined,
-		setCallback: (name: string, callback: unknown) => {
-			(state.callbacks as Record<string, unknown>)[name] = callback;
-		},
-		setNetworkBlocker: (networkBlocker: unknown) => {
-			state.networkBlocker =
-				networkBlocker as ConsentStoreState['networkBlocker'];
-			for (const listener of listeners) {
-				listener(state as unknown as ConsentStoreState);
-			}
-		},
-	} as unknown as ConsentStoreState;
+const createMockStore =
+	function createMockStore(): StoreApi<ConsentStoreState> {
+		const listeners = new Set<(state: ConsentStoreState) => void>();
+		const state = {
+			callbacks: {
+				onBannerFetched: undefined,
+				onBeforeConsentRevocationReload: undefined,
+				onConsentChanged: undefined,
+				onConsentSet: undefined,
+				onError: undefined,
+			},
+			networkBlocker: undefined,
+			setCallback: (name: string, handler: unknown) => {
+				(state.callbacks as Record<string, unknown>)[name] = handler;
+			},
+			setNetworkBlocker: (networkBlocker: unknown) => {
+				state.networkBlocker =
+					networkBlocker as ConsentStoreState['networkBlocker'];
+				for (const listener of listeners) {
+					listener(state as unknown as ConsentStoreState);
+				}
+			},
+		} as unknown as ConsentStoreState;
 
-	return {
-		getState: () => state,
-		getInitialState: () => state,
-		setState: () => state,
-		subscribe: (listener) => {
-			listeners.add(listener);
-			return () => {
-				listeners.delete(listener);
-			};
-		},
-	} as unknown as StoreApi<ConsentStoreState>;
-}
+		return {
+			getInitialState: () => state,
+			getState: () => state,
+			setState: () => state,
+			subscribe: (listener) => {
+				listeners.add(listener);
+				return () => {
+					listeners.delete(listener);
+				};
+			},
+		} as unknown as StoreApi<ConsentStoreState>;
+	};
 
 describe('store instrumentation', () => {
 	it('fans out callback events to all subscribers and restores originals', () => {
@@ -49,13 +51,13 @@ describe('store instrumentation', () => {
 		const eventsB: string[] = [];
 		const cleanupA = registerStoreInstrumentation({
 			namespace: 'testStore',
-			store,
 			onEvent: (event) => eventsA.push(event.type),
+			store,
 		});
 		const cleanupB = registerStoreInstrumentation({
 			namespace: 'testStore',
-			store,
 			onEvent: (event) => eventsB.push(event.type),
+			store,
 		});
 
 		const wrappedConsentSet = store.getState().callbacks.onConsentSet as
@@ -88,13 +90,12 @@ describe('store instrumentation', () => {
 		const events: string[] = [];
 		const cleanup = registerStoreInstrumentation({
 			namespace: 'testStore-consent-changed',
-			store,
 			onEvent: (event) => events.push(event.type),
+			store,
 		});
 
-		const wrappedConsentChanged = store.getState().callbacks.onConsentChanged as
-			| ((payload: unknown) => void)
-			| undefined;
+		const wrappedConsentChanged = store.getState().callbacks
+			.onConsentChanged as ((payload: unknown) => void) | undefined;
 		wrappedConsentChanged?.({
 			allowedCategories: ['necessary', 'measurement'],
 		});
@@ -119,10 +120,10 @@ describe('store instrumentation', () => {
 		const received: string[] = [];
 		const cleanup = registerStoreInstrumentation({
 			namespace: 'testStore-network',
-			store,
 			onEvent: (event) => {
 				received.push(event.type);
 			},
+			store,
 		});
 
 		const wrapped = store.getState().networkBlocker?.onRequestBlocked as

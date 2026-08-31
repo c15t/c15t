@@ -1,13 +1,11 @@
 'use client';
 
-import {
-	ConsentBanner,
-	ConsentDialog,
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '@c15t/react/v3';
+import { ConsentBanner, ConsentDialog, ConsentProvider } from '@c15t/react/v3';
+import type { ConsentProviderOptions } from '@c15t/react/v3';
 import type { ReactNode } from 'react';
-import { getBenchState, type ReactBenchScenario } from './state';
+
+import { getBenchState } from './state';
+import type { ReactBenchScenario } from './state';
 import { ReactV3BenchmarkProbe } from './v3-probe';
 
 const consentCategories = [
@@ -18,17 +16,15 @@ const consentCategories = [
 	'marketing',
 ] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
-export function ReactV3BenchmarkProvider({
+export const ReactV3BenchmarkProvider = ({
 	children,
 	scenario,
 }: {
 	children: ReactNode;
 	scenario: ReactBenchScenario;
-}) {
+}) => {
 	const options: ConsentProviderOptions = {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
-		consentCategories,
 		callbacks: {
 			onBannerFetched() {
 				const state = getBenchState(scenario);
@@ -55,6 +51,8 @@ export function ReactV3BenchmarkProvider({
 				state.onErrorCount += 1;
 			},
 		},
+		consentCategories,
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {
@@ -74,4 +72,4 @@ export function ReactV3BenchmarkProvider({
 			{children}
 		</ConsentProvider>
 	);
-}
+};

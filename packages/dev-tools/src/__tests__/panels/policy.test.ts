@@ -1,21 +1,22 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import { renderPolicyPanel } from '../../panels/policy';
 
-function createBaseState(
+const createBaseState = function createBaseState(
 	overrides: Partial<ConsentStoreState>
 ): ConsentStoreState {
 	return {
-		lastBannerFetchData: null,
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
 		initDataSource: null,
 		initDataSourceDetail: null,
+		lastBannerFetchData: null,
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
 describe('policy panel', () => {
 	let container: HTMLDivElement;
@@ -26,55 +27,61 @@ describe('policy panel', () => {
 
 	it('renders policy diagnostics grouped into sections', () => {
 		const state = createBaseState({
-			policyCategories: ['necessary', 'measurement'],
-			policyScopeMode: 'permissive',
+			initDataSource: 'backend-cache-hit',
+			initDataSourceDetail: 'x-vercel-cache=HIT',
+			lastBannerFetchData: {
+				branding: 'c15t',
+				jurisdiction: 'CCPA',
+				location: { countryCode: 'US', regionCode: 'CA' },
+				policy: {
+					consent: {
+						categories: ['necessary', 'measurement'],
+						expiryDays: 365,
+						preselectedCategories: ['measurement'],
+
+						scopeMode: 'permissive',
+					},
+					i18n: { messageProfile: 'us_ca' },
+					id: 'policy_us_ca',
+					model: 'opt-in',
+					proof: {
+						storeIp: true,
+						storeLanguage: false,
+
+						storeUserAgent: true,
+					},
+
+					ui: {
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							direction: 'row',
+
+							layout: [['accept', 'reject']],
+							primaryActions: ['accept'],
+						},
+
+						mode: 'banner',
+					},
+				},
+				policyDecision: {
+					country: 'US',
+					fingerprint:
+						'f470109af469620656707632979f2f8058edbb081c09848499cef03b305f8363',
+					jurisdiction: 'CCPA',
+
+					matchedBy: 'region',
+					policyId: 'policy_us_ca',
+					region: 'CA',
+				},
+				policySnapshotToken: 'token-123',
+				translations: { language: 'en', translations: {} },
+			} as unknown as ConsentStoreState['lastBannerFetchData'],
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
 				primaryActions: ['accept'],
 			},
-			initDataSource: 'backend-cache-hit',
-			initDataSourceDetail: 'x-vercel-cache=HIT',
-			lastBannerFetchData: {
-				jurisdiction: 'CCPA',
-				location: { countryCode: 'US', regionCode: 'CA' },
-				translations: { language: 'en', translations: {} },
-				branding: 'c15t',
-				policy: {
-					id: 'policy_us_ca',
-					model: 'opt-in',
-					i18n: { messageProfile: 'us_ca' },
-					consent: {
-						scopeMode: 'permissive',
-						expiryDays: 365,
-						categories: ['necessary', 'measurement'],
-						preselectedCategories: ['measurement'],
-					},
-					ui: {
-						mode: 'banner',
-						banner: {
-							allowedActions: ['accept', 'reject'],
-							primaryActions: ['accept'],
-							layout: [['accept', 'reject']],
-							direction: 'row',
-						},
-					},
-					proof: {
-						storeIp: true,
-						storeUserAgent: true,
-						storeLanguage: false,
-					},
-				},
-				policyDecision: {
-					policyId: 'policy_us_ca',
-					fingerprint:
-						'f470109af469620656707632979f2f8058edbb081c09848499cef03b305f8363',
-					matchedBy: 'region',
-					country: 'US',
-					region: 'CA',
-					jurisdiction: 'CCPA',
-				},
-				policySnapshotToken: 'token-123',
-			} as unknown as ConsentStoreState['lastBannerFetchData'],
+			policyCategories: ['necessary', 'measurement'],
+			policyScopeMode: 'permissive',
 		});
 
 		renderPolicyPanel(container, { getState: () => state });
@@ -113,10 +120,10 @@ describe('policy panel', () => {
 		const state = createBaseState({
 			initDataSource: 'offline-fallback',
 			lastBannerFetchData: {
+				branding: 'c15t',
 				jurisdiction: 'NONE',
 				location: { countryCode: 'AU', regionCode: null },
 				translations: { language: 'en', translations: {} },
-				branding: 'c15t',
 			} as unknown as ConsentStoreState['lastBannerFetchData'],
 		});
 
@@ -131,24 +138,24 @@ describe('policy panel', () => {
 	it('hides UI section when ui mode is none', () => {
 		const state = createBaseState({
 			lastBannerFetchData: {
+				branding: 'c15t',
 				jurisdiction: 'NONE',
 				location: { countryCode: 'US', regionCode: null },
-				translations: { language: 'en', translations: {} },
-				branding: 'c15t',
 				policy: {
+					consent: {},
 					id: 'world_no_banner',
 					model: 'none',
-					consent: {},
 					ui: { mode: 'none' },
 				},
 				policyDecision: {
-					policyId: 'world_no_banner',
-					fingerprint: 'abc',
-					matchedBy: 'default',
 					country: 'US',
-					region: null,
+					fingerprint: 'abc',
 					jurisdiction: 'NONE',
+					matchedBy: 'default',
+					policyId: 'world_no_banner',
+					region: null,
 				},
+				translations: { language: 'en', translations: {} },
 			} as unknown as ConsentStoreState['lastBannerFetchData'],
 		});
 
@@ -160,5 +167,37 @@ describe('policy panel', () => {
 		// UI section should not appear for mode: 'none'
 		expect(text).not.toContain('Banner Actions');
 		expect(text).not.toContain('Dialog Actions');
+	});
+
+	it('hides UI section when surfaces have no configuration', () => {
+		const state = createBaseState({
+			lastBannerFetchData: {
+				branding: 'c15t',
+				jurisdiction: 'GDPR',
+				location: { countryCode: 'DE', regionCode: null },
+				policy: {
+					consent: {},
+					id: 'empty_surfaces',
+					model: 'opt-in',
+					ui: { mode: 'banner' },
+				},
+				policyDecision: {
+					country: 'DE',
+					fingerprint: 'abc',
+					jurisdiction: 'GDPR',
+					matchedBy: 'default',
+					policyId: 'empty_surfaces',
+					region: null,
+				},
+				translations: { language: 'en', translations: {} },
+			} as unknown as ConsentStoreState['lastBannerFetchData'],
+		});
+
+		renderPolicyPanel(container, { getState: () => state });
+
+		const text = container.textContent ?? '';
+		expect(text).not.toContain('Banner Actions');
+		expect(text).not.toContain('Dialog Actions');
+		expect(text).not.toContain('Scroll Lock');
 	});
 });

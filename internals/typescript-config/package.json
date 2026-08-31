@@ -3,12 +3,11 @@
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",
-	"scripts": {
-		"dev": "echo '@c15t/typescript-config has no watch task'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ."
-	},
 	"publishConfig": {
 		"access": "public"
+	},
+	"scripts": {
+		"dev": "echo '@c15t/typescript-config has no watch task'",
+		"fmt": "bun oxfmt ."
 	}
 }

@@ -5,28 +5,24 @@ import {
 	getNextTabValue,
 	getTabPanelState,
 	getTabState,
-	type TabsOrientation,
 } from '@c15t/ui/primitives/tabs';
-import {
-	type TabsVariantsProps,
-	tabsVariants,
-} from '@c15t/ui/styles/primitives/tabs';
+import type { TabsOrientation } from '@c15t/ui/primitives/tabs';
+import { tabsVariants } from '@c15t/ui/styles/primitives/tabs';
+import type { TabsVariantsProps } from '@c15t/ui/styles/primitives/tabs';
 import {
 	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type KeyboardEvent,
-	type ReactNode,
-	type RefObject,
+	forwardRef as createForwardRef,
 	useContext,
 	useId,
 	useMemo,
 	useRef,
 } from 'react';
+import type { HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
+
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';
 
-type TabsContextValue = {
+interface TabsContextValue {
 	baseId: string;
 	disabled?: boolean;
 	loop: boolean;
@@ -35,11 +31,11 @@ type TabsContextValue = {
 	orientation: TabsOrientation;
 	registerTrigger: (value: string, node: HTMLButtonElement | null) => void;
 	value?: string;
-};
+}
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 
-function useTabsContext() {
+const useTabsContext = function useTabsContext() {
 	const context = useContext(TabsContext);
 
 	if (!context) {
@@ -47,10 +43,11 @@ function useTabsContext() {
 	}
 
 	return context;
-}
+};
 
 export interface TabsRootProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
+	extends
+		Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
 		TabsVariantsProps {
 	children: ReactNode;
 	defaultValue?: string;
@@ -61,7 +58,7 @@ export interface TabsRootProps
 	value?: string;
 }
 
-const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(
+const TabsRoot = createForwardRef<HTMLDivElement, TabsRootProps>(
 	(
 		{
 			children,
@@ -77,7 +74,7 @@ const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(
 		},
 		forwardedRef
 	) => {
-		const reactId = useId().replace(/:/g, '');
+		const reactId = useId().replace(/:/gu, '');
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = tabsVariants({ orientation });
 		const [currentValue, setCurrentValue] = useControllableState({
@@ -134,12 +131,13 @@ const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(
 TabsRoot.displayName = 'TabsRoot';
 
 export interface TabsListProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
+	extends
+		Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
 		TabsVariantsProps {
 	noStyle?: boolean;
 }
 
-const TabsList = forwardRef<HTMLDivElement, TabsListProps>(
+const TabsList = createForwardRef<HTMLDivElement, TabsListProps>(
 	({ className, noStyle, orientation, ...rest }, forwardedRef) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const {
@@ -175,7 +173,7 @@ export interface TabsTriggerProps extends HTMLAttributes<HTMLButtonElement> {
 	value: string;
 }
 
-const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
+const TabsTrigger = createForwardRef<HTMLButtonElement, TabsTriggerProps>(
 	(
 		{ children, className, noStyle, onClick, onKeyDown, value, ...rest },
 		forwardedRef
@@ -275,7 +273,7 @@ export interface TabsContentProps extends HTMLAttributes<HTMLDivElement> {
 	value: string;
 }
 
-const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
+const TabsContent = createForwardRef<HTMLDivElement, TabsContentProps>(
 	(
 		{ children, className, forceMount = false, noStyle, value, ...rest },
 		forwardedRef

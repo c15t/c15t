@@ -42,7 +42,9 @@ import { PgliteClient } from '@effect/sql-pglite';
 import { SqliteClient } from '@effect/sql-sqlite-node';
 import { Effect, Layer, Redacted } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
-import { singleTenant, type Tenant, layer as tenantLayer } from '../db/tenant';
+
+import { singleTenant, layer as tenantLayer } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
 
 const MYSQL_URL = process.env.C15T_TEST_MYSQL_URL;
 const PG_URL = process.env.C15T_TEST_PG_URL;
@@ -65,19 +67,20 @@ export interface TestEngine {
 }
 
 const client = {
-	pglite: () => PgliteClient.layer({}),
-	postgres: () => PgClient.layer({ url: Redacted.make(PG_URL ?? '') }),
-	sqlite: () => SqliteClient.layer({ filename: ':memory:' }),
 	// Redacted, not a plain string: the URL carries credentials, and Effect
 	// keeps them out of logs and error messages by construction.
 	mysql: () => MysqlClient.layer({ url: Redacted.make(MYSQL_URL ?? '') }),
+
+	pglite: () => PgliteClient.layer({}),
+	postgres: () => PgClient.layer({ url: Redacted.make(PG_URL ?? '') }),
+	sqlite: () => SqliteClient.layer({ filename: ':memory:' }),
 } as const;
 
 const engine = (name: TestEngine['name']): TestEngine => ({
-	name,
+	asTenant: (tenantId) => Layer.merge(client[name](), tenantLayer(tenantId)),
 	client: client[name]() as Layer.Layer<SqlClient.SqlClient>,
 	layer: Layer.merge(client[name](), singleTenant),
-	asTenant: (tenantId) => Layer.merge(client[name](), tenantLayer(tenantId)),
+	name,
 });
 
 /**
@@ -120,12 +123,12 @@ export const SHARED_ENGINES: ReadonlySet<TestEngine['name']> = new Set([
  * reusing one MySQL database across cases changed the migration *path* and
  * produced both a spurious failure and a spurious pass.
  */
-export const resetDatabase = Effect.gen(function* () {
+export const resetDatabase = Effect.gen(function* resetDatabase() {
 	const sql = yield* SqlClient.SqlClient;
 
 	yield* sql.onDialectOrElse({
 		mysql: () =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* sql`set foreign_key_checks = 0`;
 				const tables = yield* sql<{ name: string }>`
 					select table_name as name from information_schema.tables
@@ -136,8 +139,9 @@ export const resetDatabase = Effect.gen(function* () {
 				}
 				yield* sql`set foreign_key_checks = 1`;
 			}),
+		orElse: () => Effect.void,
 		pg: () =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				// PGlite is fresh per layer build and has nothing to drop, so this
 				// only does work against a real server. `cascade` because the
 				// schema has foreign keys and dropping in dependency order by hand
@@ -150,6 +154,5 @@ export const resetDatabase = Effect.gen(function* () {
 					yield* sql.unsafe(`drop table if exists "${table.name}" cascade`);
 				}
 			}),
-		orElse: () => Effect.void,
 	});
 });

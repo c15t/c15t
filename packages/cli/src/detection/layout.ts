@@ -10,23 +10,37 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import { LAYOUT_PATTERNS, PAGES_APP_PATTERNS, REGEX } from '../constants';
 import type { CliLogger, LayoutDetectionResult } from '../types';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 /**
  * Simple glob matcher for our layout patterns
  */
-function matchPattern(filepath: string, pattern: string): boolean {
+const _matchPattern = function _matchPattern(
+	filepath: string,
+	pattern: string
+): boolean {
 	// Convert glob pattern to regex
-	const regexPattern = pattern.replace(/\./g, '\\.').replace(/\*/g, '[^/]+');
-	const regex = new RegExp(`^${regexPattern}$`);
+	const regexPattern = pattern.replace(/\./gu, '\\.').replace(/\*/gu, '[^/]+');
+	const regex = new RegExp(`^${regexPattern}$`, 'u');
 	return regex.test(filepath);
-}
+};
 
 /**
  * Find files matching glob patterns
  */
-async function findMatchingFiles(
+const findMatchingFiles = async function findMatchingFiles(
 	projectRoot: string,
 	patterns: readonly string[],
 	logger?: CliLogger
@@ -42,15 +56,20 @@ async function findMatchingFiles(
 			// For patterns with wildcards, we need to walk the directory
 			const baseParts: string[] = [];
 			for (const part of parts) {
-				if (part === '*') break;
+				if (part === '*') {
+					break;
+				}
 				baseParts.push(part);
 			}
 			const baseDir = path.join(projectRoot, ...baseParts);
 
 			try {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const entries = await fs.readdir(baseDir, { withFileTypes: true });
 
-				for (const entry of entries) {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+				await Array.from(entries).reduce(async (previousIteration, entry) => {
+					await previousIteration;
 					if (entry.isDirectory()) {
 						// Build the potential path
 						const remainingParts = parts.slice(baseParts.length + 1);
@@ -63,7 +82,7 @@ async function findMatchingFiles(
 
 						// Check if the pattern matches
 						const patternWithDir = pattern.replace('*', entry.name);
-						if (relativePath === patternWithDir.replace(/\//g, path.sep)) {
+						if (relativePath === patternWithDir.replace(/\//gu, path.sep)) {
 							try {
 								await fs.access(potentialPath);
 								logger?.debug(`Found layout: ${relativePath}`);
@@ -73,7 +92,7 @@ async function findMatchingFiles(
 							}
 						}
 					}
-				}
+				}, Promise.resolve());
 			} catch {
 				// Directory doesn't exist
 			}
@@ -81,6 +100,7 @@ async function findMatchingFiles(
 			// For exact patterns, just check if the file exists
 			const filePath = path.join(projectRoot, pattern);
 			try {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await fs.access(filePath);
 				logger?.debug(`Found layout: ${pattern}`);
 				matches.push(pattern);
@@ -91,27 +111,29 @@ async function findMatchingFiles(
 	}
 
 	return matches;
-}
+};
 
 /**
  * Extract the locale segment from a path
  */
-function extractLocaleSegment(filepath: string): string | undefined {
+const extractLocaleSegment = function extractLocaleSegment(
+	filepath: string
+): string | undefined {
 	const match = filepath.match(REGEX.DYNAMIC_SEGMENT);
 	return match ? match[0] : undefined;
-}
+};
 
 /**
  * Determine if a path contains a locale segment
  */
-function hasLocaleSegment(filepath: string): boolean {
+const hasLocaleSegment = function hasLocaleSegment(filepath: string): boolean {
 	return REGEX.DYNAMIC_SEGMENT.test(filepath);
-}
+};
 
 /**
  * Get the app directory from a layout path
  */
-function getAppDirectory(layoutPath: string): string {
+const getAppDirectory = function getAppDirectory(layoutPath: string): string {
 	const parts = layoutPath.split(path.sep);
 
 	// Find the 'app' directory in the path
@@ -133,7 +155,7 @@ function getAppDirectory(layoutPath: string): string {
 	}
 
 	return parts.slice(0, appIndex + 1).join(path.sep);
-}
+};
 
 /**
  * Find the layout file in a project
@@ -143,7 +165,7 @@ function getAppDirectory(layoutPath: string): string {
  * 2. Dynamic segment matches (app/[locale]/layout.tsx)
  * 3. Pages router (_app.tsx)
  */
-export async function findLayoutFile(
+export const findLayoutFile = async function findLayoutFile(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<LayoutDetectionResult | null> {
@@ -163,24 +185,28 @@ export async function findLayoutFile(
 			const bHasLocale = hasLocaleSegment(b);
 
 			// Exact matches (without locale) come first
-			if (!aHasLocale && bHasLocale) return -1;
-			if (aHasLocale && !bHasLocale) return 1;
+			if (!aHasLocale && bHasLocale) {
+				return -1;
+			}
+			if (aHasLocale && !bHasLocale) {
+				return 1;
+			}
 
 			// Shorter paths come first
 			return a.length - b.length;
 		});
 
-		const layoutPath = appLayoutMatches[0]!;
+		const layoutPath = getDefined(appLayoutMatches[0]);
 		const localeSegment = extractLocaleSegment(layoutPath);
 
 		logger?.debug(`Selected layout: ${layoutPath}`);
 
 		return {
-			path: layoutPath,
-			type: 'app',
+			appDirectory: getAppDirectory(layoutPath),
 			hasLocaleSegment: !!localeSegment,
 			localeSegment,
-			appDirectory: getAppDirectory(layoutPath),
+			path: layoutPath,
+			type: 'app',
 		};
 	}
 
@@ -192,42 +218,46 @@ export async function findLayoutFile(
 	);
 
 	if (pagesLayoutMatches.length > 0) {
-		const layoutPath = pagesLayoutMatches[0]!;
+		const layoutPath = getDefined(pagesLayoutMatches[0]);
 
 		logger?.debug(`Selected pages layout: ${layoutPath}`);
 
 		return {
+			appDirectory: getAppDirectory(layoutPath),
+			hasLocaleSegment: false,
 			path: layoutPath,
 			type: 'pages',
-			hasLocaleSegment: false,
-			appDirectory: getAppDirectory(layoutPath),
 		};
 	}
 
 	logger?.debug('No layout file found');
 	return null;
-}
+};
 
 /**
  * Determine if a project uses App Router
  */
-export async function isAppRouter(projectRoot: string): Promise<boolean> {
+export const isAppRouter = async function isAppRouter(
+	projectRoot: string
+): Promise<boolean> {
 	const layout = await findLayoutFile(projectRoot);
 	return layout?.type === 'app';
-}
+};
 
 /**
  * Determine if a project uses Pages Router
  */
-export async function isPagesRouter(projectRoot: string): Promise<boolean> {
+export const isPagesRouter = async function isPagesRouter(
+	projectRoot: string
+): Promise<boolean> {
 	const layout = await findLayoutFile(projectRoot);
 	return layout?.type === 'pages';
-}
+};
 
 /**
  * Get the components directory path
  */
-export function getComponentsDirectory(
+export const getComponentsDirectory = function getComponentsDirectory(
 	projectRoot: string,
 	layout: LayoutDetectionResult
 ): string {
@@ -240,12 +270,12 @@ export function getComponentsDirectory(
 	}
 
 	return path.join(projectRoot, 'components');
-}
+};
 
 /**
  * Get the providers directory path
  */
-export function getProvidersDirectory(
+export const getProvidersDirectory = function getProvidersDirectory(
 	projectRoot: string,
 	layout: LayoutDetectionResult
 ): string {
@@ -263,4 +293,4 @@ export function getProvidersDirectory(
 
 	// For pages router, providers go in components/
 	return getComponentsDirectory(projectRoot, layout);
-}
+};

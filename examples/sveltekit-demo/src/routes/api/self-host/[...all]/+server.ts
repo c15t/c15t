@@ -1,24 +1,11 @@
 import { c15tInstance } from '@c15t/backend';
+
 import type { RequestHandler } from './$types';
 
 const handler = c15tInstance({
+	basePath: '/api/self-host',
 	// No Kysely instance to build: c15t opens its own connection.
 	database: { dialect: 'sqlite', filename: 'c15t.db' },
-	basePath: '/api/self-host',
-	trustedOrigins: ['localhost'],
-	tenantId: 'ins_1',
-	openapi: {
-		enabled: true,
-	},
-	manifest: {
-		tenantId: 'ins_1',
-		appName: 'c15t-self-host',
-		branding: 'c15t',
-		iab: {
-			enabled: true,
-			cmpId: 10,
-		},
-	},
 	gvl: {
 		vendorIds: [
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
@@ -39,6 +26,21 @@ const handler = c15tInstance({
 			245, 246, 247, 248, 249, 250,
 		],
 	},
+
+	manifest: {
+		appName: 'c15t-self-host',
+		branding: 'c15t',
+		iab: {
+			cmpId: 10,
+			enabled: true,
+		},
+		tenantId: 'ins_1',
+	},
+	openapi: {
+		enabled: true,
+	},
+	tenantId: 'ins_1',
+	trustedOrigins: ['localhost'],
 });
 
 const handleRequest: RequestHandler = ({ request }) => handler.handler(request);

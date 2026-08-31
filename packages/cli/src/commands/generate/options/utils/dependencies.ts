@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+
 import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
@@ -15,54 +17,55 @@ import { TelemetryEventName } from '~/utils/telemetry';
  * @param packageManager - The package manager to use (npm, yarn, pnpm, bun)
  * @returns Promise that resolves when installation is complete
  */
-export async function addAndInstallDependenciesViaPM(
-	projectRoot: string,
-	dependencies: string[],
-	packageManager: PackageManager
-): Promise<void> {
-	if (dependencies.length === 0) {
-		// Nothing to add
-		return;
-	}
-
-	let command = '';
-	let args: string[] = [];
-
-	switch (packageManager) {
-		case 'npm': {
-			command = 'npm';
-			args = ['install', ...dependencies];
-			break;
+export const addAndInstallDependenciesViaPM =
+	async function addAndInstallDependenciesViaPM(
+		projectRoot: string,
+		dependencies: string[],
+		packageManager: PackageManager
+	): Promise<void> {
+		if (dependencies.length === 0) {
+			// Nothing to add
+			return;
 		}
-		case 'yarn': {
-			command = 'yarn';
-			args = ['add', ...dependencies];
-			break;
-		}
-		case 'pnpm': {
-			command = 'pnpm';
-			args = ['add', ...dependencies];
-			break;
-		}
-		case 'bun': {
-			command = 'bun';
-			args = ['add', ...dependencies];
-			break;
-		}
-		default:
-			throw new Error(
-				`Unsupported package manager for dependency addition: ${packageManager}`
-			);
-	}
 
-	// Execute the command with spawn to prevent shell injection
-	const child = spawn(command, args, {
-		cwd: projectRoot,
-		stdio: 'inherit',
-	});
+		let command = '';
+		let args: string[] = [];
 
-	await once(child, 'exit');
-}
+		switch (packageManager) {
+			case 'npm': {
+				command = 'npm';
+				args = ['install', ...dependencies];
+				break;
+			}
+			case 'yarn': {
+				command = 'yarn';
+				args = ['add', ...dependencies];
+				break;
+			}
+			case 'pnpm': {
+				command = 'pnpm';
+				args = ['add', ...dependencies];
+				break;
+			}
+			case 'bun': {
+				command = 'bun';
+				args = ['add', ...dependencies];
+				break;
+			}
+			default:
+				throw new Error(
+					`Unsupported package manager for dependency addition: ${packageManager}`
+				);
+		}
+
+		// Execute the command with spawn to prevent shell injection
+		const child = spawn(command, args, {
+			cwd: projectRoot,
+			stdio: 'inherit',
+		});
+
+		await once(child, 'exit');
+	};
 
 /**
  * Generates the package manager command for manual installation
@@ -72,7 +75,7 @@ export async function addAndInstallDependenciesViaPM(
  * @param packageManager - The package manager to use
  * @returns The command string to run for manual installation
  */
-export function getManualInstallCommand(
+export const getManualInstallCommand = function getManualInstallCommand(
 	dependencies: string[],
 	packageManager: PackageManager
 ): string {
@@ -88,7 +91,7 @@ export function getManualInstallCommand(
 		default:
 			return `npm install ${dependencies.join(' ')}`;
 	}
-}
+};
 
 interface InstallDependenciesOptions {
 	context: CliContext;
@@ -97,7 +100,7 @@ interface InstallDependenciesOptions {
 	autoInstall?: boolean;
 }
 
-export async function installDependencies({
+export const installDependencies = async function installDependencies({
 	context,
 	dependenciesToAdd,
 	handleCancel,
@@ -114,8 +117,8 @@ export async function installDependencies({
 
 	if (!autoInstall) {
 		const addDepsSelection = await p.confirm({
-			message: `Add required dependencies using ${color.cyan(context.packageManager.name)}? (${depsString})`,
 			initialValue: true,
+			message: `Add required dependencies using ${color.cyan(context.packageManager.name)}? (${depsString})`,
 		});
 
 		if (handleCancel?.(addDepsSelection)) {
@@ -140,9 +143,9 @@ export async function installDependencies({
 			`✅ Dependencies installed: ${dependenciesToAdd.map((d) => color.cyan(d)).join(', ')}`
 		);
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
-			success: true,
 			dependencies: dependenciesToAdd.join(','),
 			packageManager: context.packageManager.name,
+			success: true,
 		});
 
 		return { installDepsConfirmed: true, ranInstall: true };
@@ -150,13 +153,13 @@ export async function installDependencies({
 		s.stop(color.yellow('⚠️ Dependency installation failed.'));
 		logger.error('Installation Error:', installError);
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
-			success: false,
+			dependencies: dependenciesToAdd.join(','),
 			error:
 				installError instanceof Error
 					? installError.message
 					: String(installError),
-			dependencies: dependenciesToAdd.join(','),
 			packageManager: context.packageManager.name,
+			success: false,
 		});
 		const pmCommand = getManualInstallCommand(
 			dependenciesToAdd,
@@ -167,4 +170,4 @@ export async function installDependencies({
 		);
 		return { installDepsConfirmed: true, ranInstall: false };
 	}
-}
+};

@@ -60,8 +60,12 @@ export class Log extends Context.Service<Log, RequestLog>()('Log') {}
  * tests have no wide event to attach to.
  */
 export const silent: Layer.Layer<Log> = Layer.succeed(Log, {
-	set: () => {},
-	error: () => {},
+	error: () => {
+		/* empty */
+	},
+	set: () => {
+		/* empty */
+	},
 });
 
 /** Wraps a concrete logger — in practice evlog's, from `c.get('log')`. */

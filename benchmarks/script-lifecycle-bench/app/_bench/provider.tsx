@@ -5,29 +5,29 @@ import {
 	createConsentManagerStore,
 	deleteConsentFromStorage,
 	generateSubjectId,
-	type Script,
 	saveConsentToStorage,
 } from '@c15t/core';
+import type { Script } from '@c15t/core';
 import {
 	createContext,
-	type ReactNode,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from 'react';
-import {
-	getScenarioScripts,
-	type ScriptLifecycleScenarioConfig,
-} from './fixtures';
+import type { ReactNode } from 'react';
+
+import { getScenarioScripts } from './fixtures';
+import type { ScriptLifecycleScenarioConfig } from './fixtures';
 import {
 	getBenchState,
 	incrementCounter,
 	listDomPresence,
 	normalizeIds,
 	nowMs,
-	type ScriptBenchState,
 } from './state';
+import type { ScriptBenchState } from './state';
 
 type Store = ReturnType<typeof createConsentManagerStore>;
 type StoreState = ReturnType<Store['getState']>;
@@ -45,20 +45,26 @@ interface ScriptLifecycleContextValue {
 const ScriptLifecycleContext =
 	createContext<ScriptLifecycleContextValue | null>(null);
 
-function sameIds(actual: string[], expected: string[]): boolean {
+const sameIds = function sameIds(
+	actual: string[],
+	expected: string[]
+): boolean {
 	const left = normalizeIds(actual);
 	const right = normalizeIds(expected);
 	return (
 		left.length === right.length &&
 		left.every((value, index) => value === right[index])
 	);
-}
+};
 
-function updateDomPresence(state: ScriptBenchState, scriptIds: string[]): void {
+const updateDomPresence = function updateDomPresence(
+	state: ScriptBenchState,
+	scriptIds: string[]
+): void {
 	state.domPresenceById = listDomPresence(scriptIds);
-}
+};
 
-function markIfReady(
+const markIfReady = function markIfReady(
 	state: ScriptBenchState,
 	config: ScriptLifecycleScenarioConfig,
 	phase: 'initial' | 'final'
@@ -85,9 +91,38 @@ function markIfReady(
 			(id) => (state.domPresenceById[id] ?? false) === expectedDom.includes(id)
 		)
 	);
-}
+};
 
-function evaluateCompletion(
+const hasStandardLoads = function hasStandardLoads(state: ScriptBenchState) {
+	return (
+		(state.loadEventCounts['fixture-standard-head'] ?? 0) >= 1 &&
+		(state.loadEventCounts['fixture-standard-body'] ?? 0) >= 1 &&
+		(state.loadEventCounts['fixture-inline'] ?? 0) >= 1
+	);
+};
+
+const hasReloadedTarget = function hasReloadedTarget(
+	state: ScriptBenchState,
+	config: ScriptLifecycleScenarioConfig
+) {
+	return (
+		state.reloadCount >= 1 &&
+		(state.loadEventCounts[config.reloadTargetId ?? 'fixture-standard-head'] ??
+			0) >= 2
+	);
+};
+
+const hasCallbackOnlyCycle = function hasCallbackOnlyCycle(
+	state: ScriptBenchState
+) {
+	return (
+		(state.beforeLoadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
+		(state.loadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
+		(state.domPresenceById['fixture-callback-only'] ?? false) === false
+	);
+};
+
+const evaluateCompletion = function evaluateCompletion(
 	state: ScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
 ): void {
@@ -106,12 +141,7 @@ function evaluateCompletion(
 
 	switch (config.name) {
 		case 'grant-standard': {
-			if (
-				isFinalReady &&
-				(state.loadEventCounts['fixture-standard-head'] ?? 0) >= 1 &&
-				(state.loadEventCounts['fixture-standard-body'] ?? 0) >= 1 &&
-				(state.loadEventCounts['fixture-inline'] ?? 0) >= 1
-			) {
+			if (isFinalReady && hasStandardLoads(state)) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
 			return;
@@ -123,24 +153,13 @@ function evaluateCompletion(
 			return;
 		}
 		case 'reload-single': {
-			if (
-				isFinalReady &&
-				state.reloadCount >= 1 &&
-				(state.loadEventCounts[
-					config.reloadTargetId ?? 'fixture-standard-head'
-				] ?? 0) >= 2
-			) {
+			if (isFinalReady && hasReloadedTarget(state, config)) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
 			return;
 		}
 		case 'callback-only-toggle': {
-			if (
-				isFinalReady &&
-				(state.beforeLoadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
-				(state.loadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
-				(state.domPresenceById['fixture-callback-only'] ?? false) === false
-			) {
+			if (isFinalReady && hasCallbackOnlyCycle(state)) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
 			return;
@@ -150,12 +169,14 @@ function evaluateCompletion(
 			if (isFinalReady) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
-			return;
+			break;
 		}
+		default:
+			break;
 	}
-}
+};
 
-function augmentScripts(
+const augmentScripts = function augmentScripts(
 	config: ScriptLifecycleScenarioConfig,
 	onStateChange: () => void
 ): Script[] {
@@ -169,14 +190,6 @@ function augmentScripts(
 			incrementCounter(state.beforeLoadEventCounts, info.id);
 			onStateChange();
 		},
-		onLoad(info) {
-			const state = getBenchState(config.name);
-			if (!state) {
-				return;
-			}
-			incrementCounter(state.loadEventCounts, info.id);
-			onStateChange();
-		},
 		onConsentChange(info) {
 			const state = getBenchState(config.name);
 			if (!state) {
@@ -185,19 +198,29 @@ function augmentScripts(
 			incrementCounter(state.consentChangeEventCounts, info.id);
 			onStateChange();
 		},
+		onLoad(info) {
+			const state = getBenchState(config.name);
+			if (!state) {
+				return;
+			}
+			incrementCounter(state.loadEventCounts, info.id);
+			onStateChange();
+		},
 	}));
-}
+};
 
-export function ScriptLifecycleProvider({
+export const ScriptLifecycleProvider = ({
 	children,
 	config,
 }: {
 	children: ReactNode;
 	config: ScriptLifecycleScenarioConfig;
-}) {
+}) => {
 	const storeRef = useRef<Store | null>(null);
 	const [ready, setReady] = useState(false);
-	const [, setStateVersion] = useState(0);
+	const [currentState, setCurrentState] = useState<ScriptBenchState | null>(
+		() => getBenchState(config.name) ?? null
+	);
 
 	useEffect(() => {
 		let disposed = false;
@@ -215,7 +238,7 @@ export function ScriptLifecycleProvider({
 			state.loadedIds = normalizeIds(current.getLoadedScriptIds());
 			updateDomPresence(state, config.scriptIds);
 			evaluateCompletion(state, config);
-			setStateVersion((version) => version + 1);
+			setCurrentState({ ...state });
 		};
 
 		const initialize = async () => {
@@ -223,7 +246,9 @@ export function ScriptLifecycleProvider({
 			try {
 				window.localStorage.clear();
 				window.sessionStorage.clear();
-			} catch {}
+			} catch {
+				// Storage may be unavailable in the benchmark browser.
+			}
 
 			const state = getBenchState(config.name);
 			if (!state) {
@@ -234,38 +259,30 @@ export function ScriptLifecycleProvider({
 				state.scriptEvents[id] = nowMs();
 				updateDomPresence(state, config.scriptIds);
 				evaluateCompletion(state, config);
-				setStateVersion((version) => version + 1);
+				setCurrentState({ ...state });
 			};
 
 			if (config.initialConsent === 'all') {
 				saveConsentToStorage({
+					consentInfo: {
+						subjectId: generateSubjectId(),
+						time: Date.now(),
+					},
 					consents: {
-						necessary: true,
-						functionality: true,
 						experience: true,
+						functionality: true,
 						marketing: true,
 						measurement: true,
-					},
-					consentInfo: {
-						time: Date.now(),
-						subjectId: generateSubjectId(),
+						necessary: true,
 					},
 				});
 			}
 
 			const manager = configureConsentManager({
-				mode: 'c15t',
 				backendURL: '/api/bench-consent',
+				mode: 'c15t',
 			});
 			const store = createConsentManagerStore(manager, {
-				reloadOnConsentRevoked: false,
-				initialConsentCategories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
 				callbacks: {
 					onError(info) {
 						const latest = getBenchState(config.name);
@@ -277,9 +294,17 @@ export function ScriptLifecycleProvider({
 								? info.error
 								: 'Script lifecycle benchmark error'
 						);
-						setStateVersion((version) => version + 1);
+						setCurrentState({ ...latest });
 					},
 				},
+				initialConsentCategories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				reloadOnConsentRevoked: false,
 			});
 			storeRef.current = store;
 
@@ -302,11 +327,8 @@ export function ScriptLifecycleProvider({
 		};
 	}, [config]);
 
-	const value: ScriptLifecycleContextValue = {
-		config,
-		ready,
-		state: getBenchState(config.name) ?? null,
-		runScenarioAction: async () => {
+	const value = useMemo<ScriptLifecycleContextValue>(() => {
+		const runScenarioAction = async () => {
 			const store = storeRef.current;
 			const state = getBenchState(config.name);
 			if (!store || !state) {
@@ -331,6 +353,8 @@ export function ScriptLifecycleProvider({
 						config.reloadTargetId ?? 'fixture-standard-head'
 					);
 					break;
+				default:
+					return;
 			}
 
 			const current = store.getState();
@@ -338,23 +362,31 @@ export function ScriptLifecycleProvider({
 			state.loadedIds = normalizeIds(current.getLoadedScriptIds());
 			updateDomPresence(state, config.scriptIds);
 			evaluateCompletion(state, config);
-			setStateVersion((version) => version + 1);
-		},
-	};
+			setCurrentState({ ...state });
+		};
+
+		return {
+			config,
+			ready,
+			runScenarioAction,
+			state: currentState,
+		};
+	}, [config, currentState, ready]);
 
 	return (
 		<ScriptLifecycleContext.Provider value={value}>
 			{children}
 		</ScriptLifecycleContext.Provider>
 	);
-}
+};
 
-export function useScriptLifecycleBench(): ScriptLifecycleContextValue {
-	const value = useContext(ScriptLifecycleContext);
-	if (!value) {
-		throw new Error(
-			'useScriptLifecycleBench must be used within ScriptLifecycleProvider'
-		);
-	}
-	return value;
-}
+export const useScriptLifecycleBench =
+	function useScriptLifecycleBench(): ScriptLifecycleContextValue {
+		const value = useContext(ScriptLifecycleContext);
+		if (!value) {
+			throw new Error(
+				'useScriptLifecycleBench must be used within ScriptLifecycleProvider'
+			);
+		}
+		return value;
+	};

@@ -1,9 +1,11 @@
 import { getOpenState } from './data-state';
 
-export function getCollapsibleState(open: boolean) {
+export const getCollapsibleState = function getCollapsibleState(open: boolean) {
 	return getOpenState(open);
-}
+};
 
-export function toggleCollapsibleValue(current: boolean) {
+export const toggleCollapsibleValue = function toggleCollapsibleValue(
+	current: boolean
+) {
 	return !current;
-}
+};

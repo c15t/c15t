@@ -47,8 +47,10 @@ import { buildInitialSnapshot } from './snapshot';
  * exposes `getSnapshot()`, `subscribe()`, `set.*`, `commands.*`, and
  * `events.*`. See the file-level invariants above for guarantees.
  */
-export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
-	const transport = config.transport;
+export const createConsentKernel = function createConsentKernel(
+	config: KernelConfig = {}
+): ConsentKernel {
+	const { transport } = config;
 
 	let snapshot: ConsentSnapshot = buildInitialSnapshot(config);
 	// The revision-0 snapshot, held immutably. This is what a server render
@@ -65,39 +67,41 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 	const getSnapshot = () => snapshot;
 	const getServerSnapshot = () => serverSnapshot;
 
-	function notifySnapshot(): void {
+	const notifySnapshot = function notifySnapshot(): void {
 		for (const listener of snapshotListeners) {
 			listener(snapshot);
 		}
-	}
+	};
 
-	function advance(patch: Parameters<typeof applyPatch>[1]): void {
+	const advance = function advance(
+		patch: Parameters<typeof applyPatch>[1]
+	): void {
 		snapshot = applyPatch(snapshot, patch);
 		notifySnapshot();
-	}
+	};
 
-	const set = buildSetters({ getSnapshot, advance, emit: eventBus.emit });
+	const set = buildSetters({ advance, emit: eventBus.emit, getSnapshot });
 	const commands = buildCommands({
-		getSnapshot,
 		advance,
 		emit: eventBus.emit,
+		getSnapshot,
 		transport,
 	});
 
 	return {
-		getSnapshot,
+		commands,
+		events: {
+			emit: eventBus.emit,
+			on: eventBus.on,
+		},
 		getServerSnapshot,
+		getSnapshot,
+		set,
 		subscribe(listener) {
 			snapshotListeners.add(listener);
 			return () => {
 				snapshotListeners.delete(listener);
 			};
 		},
-		set,
-		commands,
-		events: {
-			on: eventBus.on,
-			emit: eventBus.emit,
-		},
 	};
-}
+};

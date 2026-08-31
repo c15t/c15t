@@ -14,7 +14,7 @@ export interface IframeBlockerOptions {
 }
 
 export interface IframeBlockerHandle {
-	dispose(): void;
+	dispose: () => void;
 	/** Re-scan every iframe in the document and reapply the src toggle. */
-	processAllIframes(): void;
+	processAllIframes: () => void;
 }

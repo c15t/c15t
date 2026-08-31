@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
 import { setDebugEnabled } from '../../../libs/debug';
 import { STORAGE_KEY_V2 } from '../../../store/initial-state';
@@ -17,30 +18,30 @@ describe('Hosted Client identifyUser Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					id: 'sub_test123abc',
 					externalId: 'user_123',
+					id: 'sub_test123abc',
 					identityProvider: 'clerk',
 					updatedAt: Date.now(),
 				}),
 				{
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Call identifyUser
 		const response = await client.identifyUser({
 			body: {
-				subjectId: 'sub_test123abc',
 				externalId: 'user_123',
 				identityProvider: 'clerk',
+				subjectId: 'sub_test123abc',
 			},
 		});
 
@@ -59,15 +60,16 @@ describe('Hosted Client identifyUser Tests', () => {
 	it('should return error when subject ID is missing', async () => {
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Call identifyUser without subject ID
 		const response = await client.identifyUser({
 			body: {
-				subjectId: '', // Empty subject ID
 				externalId: 'user_123',
+				// Empty subject ID,
+				subjectId: '',
 			},
 		});
 
@@ -84,8 +86,8 @@ describe('Hosted Client identifyUser Tests', () => {
 
 		// Configure the client with retries disabled
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
 				maxRetries: 0,
 				retryOnNetworkError: false,
@@ -99,16 +101,17 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Call identifyUser
 		const response = await client.identifyUser({
 			body: {
-				subjectId: 'sub_test123abc',
 				externalId: 'user_123',
 				identityProvider: 'clerk',
+				subjectId: 'sub_test123abc',
 			},
 		});
 
 		// Assertions - should use offline fallback
 		expect(consoleWarnSpy).toHaveBeenCalled();
 		expect(consoleLogSpy).toHaveBeenCalled();
-		expect(response.ok).toBe(true); // Optimistic success
+		// Optimistic success
+		expect(response.ok).toBe(true);
 
 		// Check that submission was queued
 		const pendingSubmissions = mockLocalStorage.getItem(
@@ -128,10 +131,10 @@ describe('Hosted Client identifyUser Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					id: 'sub_test123abc',
 					externalId: 'user_123',
+					id: 'sub_test123abc',
 				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+				{ headers: { 'Content-Type': 'application/json' }, status: 200 }
 			)
 		);
 
@@ -140,16 +143,16 @@ describe('Hosted Client identifyUser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Call identifyUser
 		await client.identifyUser({
 			body: {
-				subjectId: 'sub_test123abc',
 				externalId: 'user_123',
 				identityProvider: 'clerk',
+				subjectId: 'sub_test123abc',
 			},
 		});
 
@@ -157,7 +160,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		expect(setItemSpy).toHaveBeenCalled();
 
 		// Find the call that contains our externalId
-		const calls = setItemSpy.mock.calls;
+		const { calls } = setItemSpy.mock;
 		const hasExternalId = calls.some(
 			([key, value]) =>
 				key === STORAGE_KEY_V2 &&
@@ -172,25 +175,25 @@ describe('Hosted Client identifyUser Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					id: 'sub_test123abc',
 					externalId: 'user_account_b',
+					id: 'sub_test123abc',
 				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+				{ headers: { 'Content-Type': 'application/json' }, status: 200 }
 			)
 		);
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Switch to account B
 		const response = await client.identifyUser({
 			body: {
-				subjectId: 'sub_test123abc',
 				externalId: 'user_account_b',
 				identityProvider: 'clerk',
+				subjectId: 'sub_test123abc',
 			},
 		});
 
@@ -204,8 +207,8 @@ describe('Hosted Client identifyUser Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					message: 'Subject not found',
 					code: 'SUBJECT_NOT_FOUND',
+					message: 'Subject not found',
 				}),
 				{
 					status: 404,
@@ -216,15 +219,15 @@ describe('Hosted Client identifyUser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Call identifyUser
 		const response = await client.identifyUser({
 			body: {
-				subjectId: 'sub_nonexistent',
 				externalId: 'user_123',
+				subjectId: 'sub_nonexistent',
 			},
 		});
 
@@ -236,25 +239,25 @@ describe('Hosted Client identifyUser Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					id: 'sub_test123abc',
 					externalId: 'user_123',
+					id: 'sub_test123abc',
 				}),
 				{
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
 
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		const response = await client.identifyUser({
 			body: {
-				id: 'sub_test123abc',
 				externalId: 'user_123',
+				id: 'sub_test123abc',
 			},
 		});
 

@@ -1,20 +1,21 @@
 <script lang="ts">
-import type { HTMLAttributes } from 'svelte/elements';
-import { getSwitchRootContext } from './context';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const root = getSwitchRootContext();
+	import { getSwitchRootContext } from './context';
 
-const checked = $derived(root.checked);
-const disabled = $derived(root.disabled);
+	const root = getSwitchRootContext();
 
-let {
-	name,
-	value = 'on',
-	...restProps
-}: HTMLAttributes<HTMLInputElement> & {
-	name?: string;
-	value?: string;
-} = $props();
+	const checked = $derived(root.checked);
+	const disabled = $derived(root.disabled);
+
+	let {
+		name,
+		value = 'on',
+		...restProps
+	}: HTMLAttributes<HTMLInputElement> & {
+		name?: string;
+		value?: string;
+	} = $props();
 </script>
 
 <input

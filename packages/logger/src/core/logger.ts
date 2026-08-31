@@ -77,11 +77,11 @@ export const createLogger = (options?: LoggerOptions | Logger): Logger => {
 	 */
 	// Map log levels to console methods
 	const consoleMethods: Record<LogLevel, (...args: unknown[]) => void> = {
-		error: console.error.bind(console),
-		warn: console.warn.bind(console),
-		info: console.log.bind(console),
 		debug: console.debug.bind(console),
+		error: console.error.bind(console),
+		info: console.log.bind(console),
 		success: console.log.bind(console),
+		warn: console.warn.bind(console),
 	};
 
 	/**
@@ -185,9 +185,9 @@ export const logger = createLogger();
  *
  * @public
  */
-export function extendLogger<T extends LoggerExtensions>(
+export const extendLogger = function extendLogger<T extends LoggerExtensions>(
 	baseLogger: Logger,
 	extensions: T
 ): ExtendedLogger<T> {
-	return Object.assign({}, baseLogger, extensions);
-}
+	return { ...baseLogger, ...extensions };
+};

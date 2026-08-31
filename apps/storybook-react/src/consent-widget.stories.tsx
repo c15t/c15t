@@ -1,5 +1,6 @@
 import { expandedCategories } from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { ConsentWidget } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
@@ -33,6 +34,7 @@ export const Default: Story = {
 };
 
 export const ExpandedCategories: Story = {
+	play: expandedCategories,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
@@ -43,5 +45,4 @@ export const ExpandedCategories: Story = {
 			</div>
 		</StorybookConsentProvider>
 	),
-	play: expandedCategories,
 };

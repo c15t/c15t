@@ -11,11 +11,12 @@
 
 import {
 	buildConsentManifestFromConfig,
-	type ConsentManifestConfig,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
+
 import { buildInitResponse, readInitSignals } from './init';
 import {
 	buildManifestResponse,
@@ -24,8 +25,8 @@ import {
 } from './manifest';
 
 const config: ConsentManifestConfig = {
-	tenantId: 'tenant_1',
 	appName: 'Example',
+	tenantId: 'tenant_1',
 };
 
 describe('init signals', () => {
@@ -69,9 +70,9 @@ describe('init and manifest parity', () => {
 		const manifest = await buildConsentManifestFromConfig(config);
 		const fromHost = resolveInitFromManifest(manifest, {
 			country: null,
-			region: null,
-			language: 'de-DE',
 			gpc: true,
+			language: 'de-DE',
+			region: null,
 		});
 
 		assert.deepStrictEqual(fromBackend.body, fromHost);
@@ -158,18 +159,18 @@ describe('init policy snapshot token', () => {
 
 describe('init GVL inclusion', () => {
 	const GVL = {
+		features: {},
 		gvlSpecificationVersion: 3,
-		vendorListVersion: 1,
-		tcfPolicyVersion: 4,
 		lastUpdated: '2026-01-01T00:00:00Z',
 		purposes: {},
-		specialPurposes: {},
-		features: {},
 		specialFeatures: {},
+		specialPurposes: {},
 		stacks: {},
+		tcfPolicyVersion: 4,
+		vendorListVersion: 1,
 		vendors: {},
 	};
-	const serve = (async () =>
+	const serve = (() =>
 		new Response(JSON.stringify(GVL))) as unknown as typeof globalThis.fetch;
 
 	it('omits the vendor list when IAB is disabled', async () => {
@@ -199,7 +200,7 @@ describe('init GVL inclusion', () => {
 	it('still resolves when the vendor list cannot be fetched', async () => {
 		const result = await buildInitResponse(config, new Headers(), undefined, {
 			enabled: true,
-			fetch: (async () => {
+			fetch: (() => {
 				throw new Error('gvl upstream down');
 			}) as unknown as typeof globalThis.fetch,
 		});
@@ -212,7 +213,7 @@ describe('init GVL inclusion', () => {
 
 	it('passes the request language through to the fetch', async () => {
 		let requested = '';
-		const capture = (async (url: string) => {
+		const capture = ((url: string) => {
 			requested = String(url);
 			return new Response(JSON.stringify(GVL));
 		}) as unknown as typeof globalThis.fetch;
@@ -241,9 +242,9 @@ describe('init with a matching policy', () => {
 	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
 
 	const withPolicy: ConsentManifestConfig = {
-		tenantId: 'tenant_1',
 		appName: 'Example',
 		policyPacks: [
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 			{
 				id: 'pol_default',
 				// isDefault so it matches regardless of geo, which keeps the case
@@ -252,6 +253,7 @@ describe('init with a matching policy', () => {
 				consent: { model: 'opt-in' },
 			},
 		],
+		tenantId: 'tenant_1',
 	};
 
 	it('resolves a policy decision', async () => {

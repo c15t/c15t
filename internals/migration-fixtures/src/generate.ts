@@ -20,14 +20,12 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-	connectionSource,
-	ENGINES,
-	type Engine,
-	engineByName,
-} from './engines';
+
+import { connectionSource, ENGINES, engineByName } from './engines';
+import type { Engine } from './engines';
 import { introspectSource } from './introspect';
-import { SHAPES, type Shape, shapeByName } from './shapes';
+import { DATABASE_FIXTURES, fixtureByName } from './shapes';
+import type { DatabaseFixture } from './shapes';
 
 const FIXTURES_DIR = join(
 	dirname(dirname(fileURLToPath(import.meta.url))),
@@ -35,20 +33,20 @@ const FIXTURES_DIR = join(
 );
 
 interface Args {
-	shapes: readonly Shape[];
+	fixtures: readonly DatabaseFixture[];
 	engines: readonly Engine[];
 	mysqlUrl: string | undefined;
 	allowAnyDatabase: boolean;
 	keepWorkspace: boolean;
 }
 
-function parseArgs(argv: readonly string[]): Args {
+const parseArgs = function parseArgs(argv: readonly string[]): Args {
 	const flag = (name: string): string | undefined => {
 		const index = argv.indexOf(`--${name}`);
 		return index === -1 ? undefined : argv[index + 1];
 	};
 
-	const shapeName = flag('shape');
+	const fixtureName = flag('shape');
 	const engineName = flag('engine');
 	const mysqlUrl = flag('mysql-url');
 	// The fixture run drops every table in the MySQL database it is given, so a
@@ -57,18 +55,19 @@ function parseArgs(argv: readonly string[]): Args {
 
 	const engines = engineName
 		? [engineByName(engineName)]
-		: // MySQL needs Docker, so it is opt-in via --engine mysql rather than
+		: // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+			// MySQL needs Docker, so it is opt-in via --engine mysql rather than
 			// something a bare `bun run generate` silently fails on.
 			ENGINES.filter((engine) => !engine.needsDocker);
 
 	return {
-		shapes: shapeName ? [shapeByName(shapeName)] : SHAPES,
-		engines,
-		mysqlUrl,
 		allowAnyDatabase,
+		engines,
+		fixtures: fixtureName ? [fixtureByName(fixtureName)] : DATABASE_FIXTURES,
 		keepWorkspace: argv.includes('--keep-workspace'),
+		mysqlUrl,
 	};
-}
+};
 
 /**
  * The kysely range a published release declares. 2.x declares none (it reaches
@@ -81,7 +80,7 @@ function parseArgs(argv: readonly string[]): Args {
  * Pinned rather than `latest`, because these decide the physical `dataType`
  * strings the fixtures record. On `latest`, regenerating after a driver release
  * moves the fixtures with no c15t release having changed — which destroys the
- * only property they are for: a fixture diff means a c15t shape really changed.
+ * only property they are for: a fixture diff means a c15t database shape really changed.
  * A `latest` driver can also resolve to something the pinned kysely below
  * cannot work with, breaking generation outright.
  *
@@ -90,19 +89,23 @@ function parseArgs(argv: readonly string[]): Args {
  * expect to review the fixture diff that comes with it.
  */
 const DRIVER_VERSIONS: Record<string, string> = {
-	'better-sqlite3': '13.0.2',
 	'@electric-sql/pglite': '0.5.4',
+	'better-sqlite3': '13.0.2',
 	'kysely-pglite': '0.6.1',
 	mysql2: '3.23.2',
 };
 
 const KYSELY_FALLBACK = '^0.28.15';
 
-async function kyselyRangeFor(version: string): Promise<string> {
+const kyselyRangeFor = async function kyselyRangeFor(
+	version: string
+): Promise<string> {
 	const response = await fetch(
 		`https://registry.npmjs.org/@c15t%2Fbackend/${version}`
 	);
-	if (!response.ok) return KYSELY_FALLBACK;
+	if (!response.ok) {
+		return KYSELY_FALLBACK;
+	}
 	const manifest = (await response.json()) as {
 		dependencies?: Record<string, string>;
 		peerDependencies?: Record<string, string>;
@@ -112,46 +115,50 @@ async function kyselyRangeFor(version: string): Promise<string> {
 		manifest.peerDependencies?.kysely ??
 		KYSELY_FALLBACK
 	);
-}
+};
 
 /** npm alias for a release, safe to use as a JS identifier prefix. */
-function aliasFor(version: string): string {
+const aliasFor = function aliasFor(version: string): string {
 	return `c15t_${version.replaceAll('.', '_')}`;
-}
+};
 
 /** Subpaths each era exposes, relative to the aliased package. */
-function eraSubpaths(era: Shape['era']): {
+const eraSubpaths = function eraSubpaths(era: DatabaseFixture['era']): {
 	migrator: string;
 	schema?: string;
 	adapter?: string;
 } {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (era) {
 		case 'legacy':
 			return { migrator: 'pkgs/migrations' };
 		case 'fumadb-v2-subpath':
 			return {
+				adapter: 'v2/db/adapters/kysely',
 				migrator: 'v2/db/migrator',
 				schema: 'v2/db/schema',
-				adapter: 'v2/db/adapters/kysely',
 			};
 		case 'fumadb-root':
 			return {
+				adapter: 'db/adapters/kysely',
 				migrator: 'db/migrator',
 				schema: 'db/schema',
-				adapter: 'db/adapters/kysely',
 			};
 	}
-}
+};
 
-function driverSource(shape: Shape, engine: Engine): string {
+const driverSource = function driverSource(
+	fixture: DatabaseFixture,
+	engine: Engine
+): string {
 	const imports: string[] = [];
 	const steps: string[] = [];
 
-	for (const version of shape.versions) {
+	for (const version of fixture.versions) {
 		const alias = aliasFor(version);
-		const paths = eraSubpaths(shape.era);
+		const paths = eraSubpaths(fixture.era);
 
-		if (shape.era === 'legacy') {
+		if (fixture.era === 'legacy') {
 			imports.push(
 				`import { getMigrations as getMigrations_${alias} } from '${alias}/${paths.migrator}';`
 			);
@@ -166,7 +173,7 @@ function driverSource(shape: Shape, engine: Engine): string {
       database: { db, type: '${engine.legacyType}' },
     });
     await result.runMigrations();
-    applied.push({ version: '${version}', era: '${shape.era}' });
+    applied.push({ version: '${version}', era: '${fixture.era}' });
   }`);
 		} else {
 			imports.push(
@@ -200,7 +207,7 @@ function driverSource(shape: Shape, engine: Engine): string {
     await plan.execute();
     applied.push({
       version: '${version}',
-      era: '${shape.era}',
+      era: '${fixture.era}',
       sql: planSql,
       ...(planSqlError ? { sqlRenderError: planSqlError } : {}),
     });
@@ -226,46 +233,43 @@ ${steps.join('\n')}
   await teardown();
 }
 `;
-}
+};
 
-async function generateOne(
-	shape: Shape,
+const generateOne = async function generateOne(
+	fixture: DatabaseFixture,
 	engine: Engine,
 	args: Args
 ): Promise<void> {
-	process.stderr.write(`  ${shape.name} / ${engine.name} … `);
+	process.stderr.write(`  ${fixture.name} / ${engine.name} … `);
 
 	// A combination the release provably cannot produce is recorded as such,
 	// so the absent fixture reads as a finding rather than missing coverage.
-	const blocker = shape.unsupported?.[engine.name];
+	const blocker = fixture.unsupported?.[engine.name];
 	if (blocker) {
-		const outDir = join(FIXTURES_DIR, shape.name);
+		const outDir = join(FIXTURES_DIR, fixture.name);
 		mkdirSync(outDir, { recursive: true });
+		const unsupportedSnapshot: Record<string, unknown> = {
+			engine: engine.name,
+			era: fixture.era,
+			unsupported: blocker,
+			versions: fixture.versions,
+		};
+		unsupportedSnapshot['shape'] = fixture.name;
 		await writeFile(
 			join(outDir, `${engine.name}.unsupported.json`),
-			`${JSON.stringify(
-				{
-					shape: shape.name,
-					engine: engine.name,
-					versions: shape.versions,
-					era: shape.era,
-					unsupported: blocker,
-				},
-				null,
-				'\t'
-			)}\n`
+			`${JSON.stringify(unsupportedSnapshot, null, '\t')}\n`
 		);
 		process.stderr.write('unsupported by the release (recorded)\n');
 		return;
 	}
 
 	const workspace = await mkdtemp(
-		join(tmpdir(), `c15t-fixture-${shape.name}-`)
+		join(tmpdir(), `c15t-fixture-${fixture.name}-`)
 	);
 
 	try {
 		const dependencies: Record<string, string> = {};
-		for (const version of shape.versions) {
+		for (const version of fixture.versions) {
 			dependencies[aliasFor(version)] = `npm:@c15t/backend@${version}`;
 		}
 		// Pinned, not `latest`. These drivers decide the `dataType` strings the
@@ -294,17 +298,17 @@ async function generateOne(
 		// anyway. For a multi-version chain, the newest release wins — that is
 		// what a real deployment that upgraded would have resolved to.
 		dependencies.kysely = await kyselyRangeFor(
-			shape.versions[shape.versions.length - 1] as string
+			fixture.versions[fixture.versions.length - 1] as string
 		);
 
 		await writeFile(
 			join(workspace, 'package.json'),
 			`${JSON.stringify(
 				{
+					dependencies,
 					name: 'fixture-workspace',
 					private: true,
 					type: 'module',
-					dependencies,
 				},
 				null,
 				2
@@ -318,7 +322,10 @@ async function generateOne(
 			join(workspace, 'introspect.mjs'),
 			introspectSource(engine.name)
 		);
-		await writeFile(join(workspace, 'driver.mjs'), driverSource(shape, engine));
+		await writeFile(
+			join(workspace, 'driver.mjs'),
+			driverSource(fixture, engine)
+		);
 
 		const install = spawnSync('bun', ['install', '--no-save'], {
 			cwd: workspace,
@@ -342,52 +349,57 @@ async function generateOne(
 		const captured = JSON.parse(
 			await readFile(join(workspace, 'result.json'), 'utf8')
 		);
-		const fixture = {
-			shape: shape.name,
+		const capturedFixture = {
 			engine: engine.name,
-			versions: shape.versions,
-			era: shape.era,
-			rationale: shape.rationale,
+			era: fixture.era,
+			rationale: fixture.rationale,
+			versions: fixture.versions,
 			...captured,
 		};
+		capturedFixture['shape'] = fixture.name;
 
-		const outDir = join(FIXTURES_DIR, shape.name);
+		const outDir = join(FIXTURES_DIR, fixture.name);
 		mkdirSync(outDir, { recursive: true });
 		await writeFile(
 			join(outDir, `${engine.name}.json`),
-			`${JSON.stringify(fixture, null, '\t')}\n`
+			`${JSON.stringify(capturedFixture, null, '\t')}\n`
 		);
 
 		process.stderr.write(
-			`${fixture.tables.length} tables${fixture.settings ? ', c15t_settings present' : ''}\n`
+			`${capturedFixture.tables.length} tables${capturedFixture.settings ? ', c15t_settings present' : ''}\n`
 		);
 	} finally {
 		if (args.keepWorkspace) {
 			process.stderr.write(`    workspace kept at ${workspace}\n`);
 		} else {
-			await rm(workspace, { recursive: true, force: true });
+			await rm(workspace, { force: true, recursive: true });
 		}
 	}
-}
+};
 
 const args = parseArgs(process.argv.slice(2));
 process.stderr.write(
-	`Generating ${args.shapes.length} shape(s) × ${args.engines.length} engine(s)\n`
+	`Generating ${args.fixtures.length} fixture(s) × ${args.engines.length} engine(s)\n`
 );
 
 let failures = 0;
-for (const shape of args.shapes) {
-	for (const engine of args.engines) {
+const combinations = args.fixtures.flatMap((fixture) =>
+	args.engines.map((engine) => ({ engine, fixture }))
+);
+await combinations.reduce<Promise<void>>(
+	async (previous, { engine, fixture }) => {
+		await previous;
 		try {
-			await generateOne(shape, engine, args);
+			await generateOne(fixture, engine, args);
 		} catch (error) {
 			failures += 1;
 			process.stderr.write(
 				`FAILED\n${error instanceof Error ? error.message : String(error)}\n`
 			);
 		}
-	}
-}
+	},
+	Promise.resolve()
+);
 
 if (failures > 0) {
 	process.stderr.write(`\n${failures} combination(s) failed\n`);

@@ -1,4 +1,5 @@
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Pre-create a manager for benchmarks that need it

@@ -33,7 +33,9 @@
 
 import { generateEntityId } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, type SqlError, Statement } from 'effect/unstable/sql';
+import { SqlClient, Statement } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
+
 import { insertOnce } from '../db/insert-once';
 import { tenantScope } from '../db/tenant';
 import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
@@ -125,25 +127,26 @@ export class SubjectTenantConflictError extends Data.TaggedError(
  * Both read paths differ only in how they filter and order, so the join itself
  * is built once.
  */
-const joinedSelect = Effect.fn('repository.joinedSelect')(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	const projection = Statement.csv(
-		JOINED_COLUMNS.map(
-			([column, alias]) => sql`${sql(column)} as ${sql(alias)}`
-		)
-	);
+const joinedSelect = Effect.fn('repository.joinedSelect')(
+	function* joinedSelect() {
+		const sql = yield* SqlClient.SqlClient;
+		const projection = Statement.csv(
+			JOINED_COLUMNS.map(
+				([column, alias]) => sql`${sql(column)} as ${sql(alias)}`
+			)
+		);
 
-	// Every joined table carries its own tenant predicate, not just `subject`.
-	// Scoping the driving table alone is only sufficient while `subjectId` is
-	// unique across tenants, and it is client-supplied — so two tenants can name
-	// the same subject, and an unscoped join then hands one tenant the other's
-	// consent rows. Measured before fixing: tenant A read 2 consents where one
-	// was tenant B's.
-	//
-	// On the join rather than in `where`, because these are left joins: a
-	// predicate in `where` would drop subjects that have no consent instead of
-	// returning them with none.
-	return sql`
+		// Every joined table carries its own tenant predicate, not just `subject`.
+		// Scoping the driving table alone is only sufficient while `subjectId` is
+		// unique across tenants, and it is client-supplied — so two tenants can name
+		// the same subject, and an unscoped join then hands one tenant the other's
+		// consent rows. Measured before fixing: tenant A read 2 consents where one
+		// was tenant B's.
+		//
+		// On the join rather than in `where`, because these are left joins: a
+		// predicate in `where` would drop subjects that have no consent instead of
+		// returning them with none.
+		return sql`
 		select ${projection}
 		from ${sql('subject')} s
 		left join ${sql('consent')} c
@@ -151,7 +154,8 @@ const joinedSelect = Effect.fn('repository.joinedSelect')(function* () {
 		left join ${sql('consentPolicy')} p
 			on ${sql('p.id')} = ${sql('c.policyId')} and ${yield* tenantScope('p')}
 	`;
-});
+	}
+);
 
 /**
  * Turns joined rows into subjects, each with its consents.
@@ -168,29 +172,30 @@ const groupSubjects = (
 
 	for (const row of rows) {
 		const subject: SubjectWithConsents = bySubject.get(row.subject_id) ?? {
-			id: row.subject_id,
-			externalId: row.subject_externalId,
-			createdAt: toDate(row.subject_createdAt),
 			consents: [],
+			createdAt: toDate(row.subject_createdAt),
+			externalId: row.subject_externalId,
+			id: row.subject_id,
 		};
 
 		if (row.consent_id !== null && row.consent_givenAt !== null) {
 			(subject.consents as ConsentRow[]).push({
+				givenAt: toDate(row.consent_givenAt),
 				id: row.consent_id,
+				isLatestPolicy:
+					row.consent_policyId !== null && latestIds.has(row.consent_policyId),
+
+				policyEffectiveDate:
+					orUndefined(toDateOrNull(row.policy_effectiveDate)) ?? undefined,
+				policyHash: orUndefined(row.policy_hash),
+				policyId: orUndefined(row.consent_policyId),
+				policyVersion: orUndefined(row.policy_version),
+				purposeIds: row.consent_purposeIds,
 				subjectId: row.subject_id,
 				// A consent whose policy row is gone still has to satisfy the
 				// contract's required `type`; '' is the honest answer rather
 				// than inventing one.
 				type: row.policy_type ?? '',
-				policyId: orUndefined(row.consent_policyId),
-				policyVersion: orUndefined(row.policy_version),
-				policyHash: orUndefined(row.policy_hash),
-				policyEffectiveDate:
-					orUndefined(toDateOrNull(row.policy_effectiveDate)) ?? undefined,
-				purposeIds: row.consent_purposeIds,
-				givenAt: toDate(row.consent_givenAt),
-				isLatestPolicy:
-					row.consent_policyId !== null && latestIds.has(row.consent_policyId),
 			});
 		}
 
@@ -209,7 +214,7 @@ const groupSubjects = (
  */
 export const latestPolicyIdByType = Effect.fn(
 	'repository.latestPolicyIdByType'
-)(function* () {
+)(function* latestPolicyIdByType() {
 	const sql = yield* SqlClient.SqlClient;
 	// SQLite has no boolean to bind; `true` has to become `1` there.
 	const encode = yield* encoder;
@@ -234,10 +239,12 @@ export const latestPolicyIdByType = Effect.fn(
 });
 
 /** The ids of the newest active policy of every type, for `isLatestPolicy`. */
-const latestPolicyIds = Effect.fn('repository.latestPolicyIds')(function* () {
-	const latest = yield* latestPolicyIdByType();
-	return new Set(latest.values());
-});
+const latestPolicyIds = Effect.fn('repository.latestPolicyIds')(
+	function* latestPolicyIds() {
+		const latest = yield* latestPolicyIdByType();
+		return new Set(latest.values());
+	}
+);
 
 /**
  * Every subject with a given external id, and each subject's consents.
@@ -246,7 +253,7 @@ const latestPolicyIds = Effect.fn('repository.latestPolicyIds')(function* () {
  * subject ids, sequentially, because it had no join available.
  */
 export const listByExternalId = Effect.fn('repository.listByExternalId')(
-	function* (externalId: string) {
+	function* listByExternalId(externalId: string) {
 		const sql = yield* SqlClient.SqlClient;
 		const select = yield* joinedSelect();
 
@@ -268,7 +275,7 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
  * means something else. A real `count(*)` costs one cheap indexed query.
  */
 export const countByExternalId = Effect.fn('repository.countByExternalId')(
-	function* (externalId: string) {
+	function* countByExternalId(externalId: string) {
 		const sql = yield* SqlClient.SqlClient;
 		const rows = yield* sql<{ total: number | string }>`
 			select count(*) as total from ${sql('subject')}
@@ -287,7 +294,7 @@ export type RepositoryError = SqlError.SqlError;
  * joined to their policies — rather than the three round trips the shipped
  * handler makes (subject, then consents, then policy enrichment).
  */
-export const findById = Effect.fn('repository.findById')(function* (
+export const findById = Effect.fn('repository.findById')(function* findById(
 	subjectId: string
 ) {
 	const sql = yield* SqlClient.SqlClient;
@@ -316,7 +323,7 @@ export const findById = Effect.fn('repository.findById')(function* (
  * trail is the product.
  */
 export const linkExternalId = Effect.fn('repository.linkExternalId')(
-	function* (input: {
+	function* linkExternalId(input: {
 		subjectId: string;
 		externalId: string;
 		identityProvider: string;
@@ -335,13 +342,15 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 			from ${sql('subject')}
 			where ${sql('id')} = ${input.subjectId} and ${scope}
 		`;
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const before = found[0];
 		if (before === undefined) {
 			return undefined;
 		}
 
 		yield* sql.withTransaction(
-			Effect.gen(function* () {
+			// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+			Effect.gen(function* linkExternalId() {
 				yield* sql`
 					update ${sql('subject')} set
 						${sql('externalId')} = ${input.externalId},
@@ -356,13 +365,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 				yield* sql`
 					insert into ${sql('auditLog')} ${sql.insert(
 						encodeRow(encode, {
-							id: generateEntityId('auditLog'),
-							subjectId: input.subjectId,
-							entityType: 'subject',
-							entityId: input.subjectId,
 							actionType: 'identify_user',
-							ipAddress: input.ipAddress,
-							userAgent: input.userAgent,
 							changes: JSON.stringify({
 								externalId: { from: before.externalId, to: input.externalId },
 								identityProvider: {
@@ -370,11 +373,17 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 									to: input.identityProvider,
 								},
 							}),
+							createdAt: new Date(),
+							entityId: input.subjectId,
+							entityType: 'subject',
+							id: generateEntityId('auditLog'),
+							ipAddress: input.ipAddress,
 							metadata: JSON.stringify({
 								externalId: input.externalId,
 								identityProvider: input.identityProvider,
 							}),
-							createdAt: new Date(),
+							subjectId: input.subjectId,
+							userAgent: input.userAgent,
 						})
 					)}
 				`;
@@ -382,8 +391,8 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		);
 
 		return {
-			id: input.subjectId,
 			externalId: input.externalId,
+			id: input.subjectId,
 			identityProvider: input.identityProvider,
 		};
 	}
@@ -402,7 +411,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
  * recording consent, which is what PATCH exists to do explicitly.
  */
 export const findOrCreate = Effect.fn('repository.findOrCreate')(
-	function* (input: {
+	function* findOrCreate(input: {
 		subjectId: string;
 		externalId?: string | null;
 		identityProvider?: string | null;
@@ -412,22 +421,22 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		const now = new Date();
 
 		const created = yield* insertOnce({
-			into: 'subject',
 			conflictOn: 'id',
+			into: 'subject',
 			values: {
-				id: input.subjectId,
+				createdAt: now,
 				externalId: input.externalId ?? null,
+				id: input.subjectId,
 				identityProvider: input.externalId
 					? (input.identityProvider ?? 'external')
 					: 'anonymous',
 				tenantId: input.tenantId ?? null,
-				createdAt: now,
 				updatedAt: now,
 			},
 		});
 
 		if (created) {
-			return { id: input.subjectId, created };
+			return { created, id: input.subjectId };
 		}
 
 		// The row already existed — but `id` is the primary key and is supplied
@@ -452,6 +461,6 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 			});
 		}
 
-		return { id: input.subjectId, created };
+		return { created, id: input.subjectId };
 	}
 );

@@ -9,6 +9,7 @@ import {
 	generateThemeCSS as baseGenerateThemeCSS,
 	themeToVars as baseThemeToVars,
 } from '@c15t/ui/theme';
+
 import type { Theme } from '../types/theme/style-types';
 
 /**
@@ -19,13 +20,18 @@ export const defaultTheme = baseDefaultTheme as Required<Omit<Theme, 'slots'>>;
 /**
  * Maps theme tokens to CSS variables.
  */
-export function themeToVars(theme: Theme, isDark = false): ThemeCSSVariables {
-	return baseThemeToVars(theme as any, isDark);
-}
+export const themeToVars = function themeToVars(
+	theme: Theme,
+	isDark = false
+): ThemeCSSVariables {
+	return baseThemeToVars(theme, isDark);
+};
 
 /**
  * Generates a CSS string for the theme variables.
  */
-export function generateThemeCSS(theme: Theme): string {
-	return baseGenerateThemeCSS(theme as any);
-}
+export const generateThemeCSS = function generateThemeCSS(
+	theme: Theme
+): string {
+	return baseGenerateThemeCSS(theme);
+};

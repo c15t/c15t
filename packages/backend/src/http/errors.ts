@@ -9,6 +9,7 @@
  * shrug.
  */
 
+// oxlint-disable-next-line max-classes-per-file -- Preserve declaration order, interface shape, and public compatibility.
 import { Data } from 'effect';
 import type { SqlError } from 'effect/unstable/sql';
 
@@ -36,20 +37,21 @@ export interface HttpFailure {
 	};
 }
 
-export function toHttp(error: RouteError): HttpFailure {
+export const toHttp = function toHttp(error: RouteError): HttpFailure {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (error._tag) {
 		case 'NotFoundError':
 			return {
-				status: 404,
 				body: {
-					message: `${error.resource} not found`,
 					cause: { code: 'NOT_FOUND' },
+					message: `${error.resource} not found`,
 				},
+				status: 404,
 			};
 		case 'BadRequestError':
 			return {
+				body: { cause: { code: error.code }, message: error.message },
 				status: 400,
-				body: { message: error.message, cause: { code: error.code } },
 			};
 		case 'SqlError':
 			// Deliberately opaque to the client: a database error message can
@@ -57,11 +59,11 @@ export function toHttp(error: RouteError): HttpFailure {
 			// information disclosure. The detail belongs in the wide event, not
 			// the response body.
 			return {
-				status: 500,
 				body: {
-					message: 'Internal server error',
 					cause: { code: 'DATABASE_ERROR' },
+					message: 'Internal server error',
 				},
+				status: 500,
 			};
 	}
-}
+};

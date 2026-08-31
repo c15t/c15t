@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	button,
 	clearElement,
@@ -74,8 +75,8 @@ describe('Renderer', () => {
 		it('should set data attributes', () => {
 			const el = createElement({
 				dataset: {
-					testAttr: 'value',
 					anotherAttr: 'another',
+					testAttr: 'value',
 				},
 			});
 			expect(el.dataset.testAttr).toBe('value');
@@ -226,7 +227,7 @@ describe('Renderer', () => {
 
 		it('should add change event listener', () => {
 			const onChange = vi.fn();
-			const el = createElement({ tag: 'input', onChange });
+			const el = createElement({ onChange, tag: 'input' });
 
 			el.dispatchEvent(new Event('change'));
 
@@ -235,7 +236,7 @@ describe('Renderer', () => {
 
 		it('should add input event listener', () => {
 			const onInput = vi.fn();
-			const el = createElement({ tag: 'input', onInput });
+			const el = createElement({ onInput, tag: 'input' });
 
 			el.dispatchEvent(new Event('input'));
 
@@ -348,9 +349,9 @@ describe('Renderer', () => {
 		it('should create options from options array', () => {
 			const el = select({
 				options: [
-					{ value: 'a', label: 'Option A' },
-					{ value: 'b', label: 'Option B' },
-					{ value: 'c', label: 'Option C' },
+					{ label: 'Option A', value: 'a' },
+					{ label: 'Option B', value: 'b' },
+					{ label: 'Option C', value: 'c' },
 				],
 			});
 
@@ -364,8 +365,8 @@ describe('Renderer', () => {
 		it('should select the option matching selectedValue', () => {
 			const el = select({
 				options: [
-					{ value: 'a', label: 'Option A' },
-					{ value: 'b', label: 'Option B' },
+					{ label: 'Option A', value: 'a' },
+					{ label: 'Option B', value: 'b' },
 				],
 				selectedValue: 'b',
 			});
@@ -406,7 +407,7 @@ describe('Renderer', () => {
 		});
 
 		it('should allow custom width and height', () => {
-			const svg = createSvgElement(testSvg, { width: 16, height: 16 });
+			const svg = createSvgElement(testSvg, { height: 16, width: 16 });
 			expect(svg.getAttribute('width')).toBe('16');
 			expect(svg.getAttribute('height')).toBe('16');
 		});

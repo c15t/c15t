@@ -7,10 +7,13 @@
  */
 
 import styles from '@c15t/ui/styles/v3/consent-dialog-trigger';
-import { forwardRef, type ReactNode } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { ReactNode } from 'react';
+
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
@@ -18,19 +21,19 @@ import { useTriggerContext } from './root';
  * Maps corner position to CSS class name.
  */
 const cornerClassMap = {
-	'bottom-right': styles.bottomRight,
 	'bottom-left': styles.bottomLeft,
-	'top-right': styles.topRight,
+	'bottom-right': styles.bottomRight,
 	'top-left': styles.topLeft,
+	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
 /**
  * Maps size to CSS class name.
  */
 const sizeClassMap = {
-	sm: styles.sm,
-	md: styles.md,
 	lg: styles.lg,
+	md: styles.md,
+	sm: styles.sm,
 } as const;
 
 /**
@@ -76,7 +79,10 @@ export interface TriggerButtonProps {
  * </ConsentDialogTrigger.Button>
  * ```
  */
-export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
+export const TriggerButton = createForwardRef<
+	HTMLButtonElement,
+	TriggerButtonProps
+>(
 	(
 		{
 			children,
@@ -125,9 +131,9 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 				isSnapping && styles.snapping,
 			],
 			className,
+			'data-testid': dataTestId,
 			noStyle: finalNoStyle,
 			style: dragStyle,
-			'data-testid': dataTestId,
 			...handlers,
 		});
 

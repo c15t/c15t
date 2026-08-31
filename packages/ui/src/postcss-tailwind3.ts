@@ -1,34 +1,36 @@
 const C15T_UI_DIST_STYLES_PATH =
-	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/]styles[\\/](?:v3[\\/])?[^\\/]+\.css$/;
+	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/]styles[\\/](?:v3[\\/])?[^\\/]+\.css$/u;
 
-type PostcssAtRule = {
+interface PostcssAtRule {
 	nodes?: unknown[];
-	remove(): void;
-	replaceWith(...nodes: unknown[]): void;
-};
+	remove: () => void;
+	replaceWith: (...nodes: unknown[]) => void;
+}
 
-type PostcssRoot = {
+interface PostcssRoot {
 	source?: {
 		input?: {
 			file?: string;
 		};
 	};
-	walkAtRules(name: string, callback: (rule: PostcssAtRule) => void): void;
-};
+	walkAtRules: (name: string, callback: (rule: PostcssAtRule) => void) => void;
+}
 
-export type PostcssTailwind3Plugin = {
+export interface PostcssTailwind3Plugin {
 	postcssPlugin: string;
-	Once(root: PostcssRoot): void;
-};
+	Once: (root: PostcssRoot) => void;
+}
 
-export type PostcssTailwind3PluginCreator = {
+export interface PostcssTailwind3PluginCreator {
 	(): PostcssTailwind3Plugin;
 	postcss: true;
-};
-
-export function isC15tUiStylesheetPath(filePath: string): boolean {
-	return C15T_UI_DIST_STYLES_PATH.test(filePath);
 }
+
+export const isC15tUiStylesheetPath = function isC15tUiStylesheetPath(
+	filePath: string
+): boolean {
+	return C15T_UI_DIST_STYLES_PATH.test(filePath);
+};
 
 /**
  * Tailwind 3 compatibility plugin for c15t v3 styles.
@@ -45,27 +47,26 @@ export function isC15tUiStylesheetPath(filePath: string): boolean {
  * important-modifier utilities such as `!bg-blue-600` or c15t theme slots.
  */
 const c15tTailwind3: PostcssTailwind3PluginCreator = Object.assign(
-	function c15tTailwind3(): PostcssTailwind3Plugin {
-		return {
-			postcssPlugin: 'c15t-tailwind3',
-			Once(root: PostcssRoot) {
-				const file = root.source?.input?.file ?? '';
-				if (!isC15tUiStylesheetPath(file)) {
+	(): PostcssTailwind3Plugin => ({
+		Once(root: PostcssRoot) {
+			const file = root.source?.input?.file ?? '';
+			if (!isC15tUiStylesheetPath(file)) {
+				return;
+			}
+
+			root.walkAtRules('layer', (rule: PostcssAtRule) => {
+				if (rule.nodes && rule.nodes.length > 0) {
+					rule.replaceWith(...rule.nodes);
 					return;
 				}
 
-				root.walkAtRules('layer', (rule: PostcssAtRule) => {
-					if (rule.nodes && rule.nodes.length > 0) {
-						rule.replaceWith(...rule.nodes);
-						return;
-					}
+				// Bare order statements have no effect once layer blocks are flat.
+				rule.remove();
+			});
+		},
 
-					// Bare order statements have no effect once layer blocks are flat.
-					rule.remove();
-				});
-			},
-		};
-	},
+		postcssPlugin: 'c15t-tailwind3',
+	}),
 	{ postcss: true as const }
 );
 

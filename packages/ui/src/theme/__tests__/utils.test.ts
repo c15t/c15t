@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import type { Theme } from '../types';
 import {
 	defaultTheme,
@@ -81,12 +82,12 @@ describe('themeToVars', () => {
 			typography: {
 				fontFamily: 'Arial, sans-serif',
 				fontSize: {
-					sm: '0.875rem',
 					base: '1rem',
+					sm: '0.875rem',
 				},
 				fontWeight: {
-					normal: 400,
 					medium: 500,
+					normal: 400,
 				},
 			},
 		};
@@ -101,9 +102,9 @@ describe('themeToVars', () => {
 	test('converts spacing tokens to CSS variables', () => {
 		const theme: Theme = {
 			spacing: {
-				xs: '0.25rem',
-				sm: '0.5rem',
 				md: '1rem',
+				sm: '0.5rem',
+				xs: '0.25rem',
 			},
 		};
 		const vars = themeToVars(theme);
@@ -115,10 +116,10 @@ describe('themeToVars', () => {
 	test('converts radius tokens to CSS variables', () => {
 		const theme: Theme = {
 			radius: {
-				sm: '4px',
-				md: '8px',
-				lg: '12px',
 				full: '9999px',
+				lg: '12px',
+				md: '8px',
+				sm: '4px',
 			},
 		};
 		const vars = themeToVars(theme);
@@ -131,8 +132,8 @@ describe('themeToVars', () => {
 	test('converts shadow tokens to CSS variables', () => {
 		const theme: Theme = {
 			shadows: {
-				sm: '0 1px 2px rgba(0,0,0,0.05)',
 				md: '0 4px 6px rgba(0,0,0,0.1)',
+				sm: '0 1px 2px rgba(0,0,0,0.05)',
 			},
 		};
 		const vars = themeToVars(theme);
@@ -148,8 +149,8 @@ describe('themeToVars', () => {
 					normal: '200ms',
 				},
 				easing: 'ease-in-out',
-				easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
 				easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
+				easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
 				easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 			},
 		};
@@ -324,8 +325,8 @@ describe('generateThemeCSS', () => {
 		const css = generateThemeCSS(theme);
 		// Should have opening and closing braces
 		// (light, dark, and no-transitions utility with pseudo-elements = 4 selectors)
-		const openBraces = css.match(/{/g)?.length ?? 0;
-		const closeBraces = css.match(/}/g)?.length ?? 0;
+		const openBraces = css.match(/\{/gu)?.length ?? 0;
+		const closeBraces = css.match(/\}/gu)?.length ?? 0;
 		expect(openBraces).toBe(closeBraces);
 		expect(openBraces).toBeGreaterThanOrEqual(3);
 	});

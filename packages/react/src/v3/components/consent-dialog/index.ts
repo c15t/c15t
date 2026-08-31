@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+
 import {
 	Card,
 	ConsentCustomizationCard,
@@ -26,10 +27,8 @@ import {
 } from './atoms/card';
 import { Overlay } from './atoms/overlay';
 import { Root } from './atoms/root';
-import {
-	ConsentDialog as ConsentDialogComponent,
-	type ConsentDialogProps,
-} from './consent-dialog';
+import { ConsentDialog as ConsentDialogComponent } from './consent-dialog';
+import type { ConsentDialogProps } from './consent-dialog';
 
 export type { ConsentDialogProps };
 
@@ -119,19 +118,19 @@ export interface ConsentDialogCompoundComponent extends FC<ConsentDialogProps> {
  */
 const ConsentDialog = Object.assign(ConsentDialogComponent, {
 	Card,
-	Header,
-	HeaderTitle,
-	HeaderDescription,
-	Content,
-	Footer,
 	ConsentCustomizationCard,
+	ConsentDialogContent,
 	ConsentDialogFooter,
 	ConsentDialogHeader,
-	ConsentDialogHeaderTitle,
 	ConsentDialogHeaderDescription,
-	ConsentDialogContent,
+	ConsentDialogHeaderTitle,
+	Content,
+	Footer,
+	Header,
+	HeaderDescription,
+	HeaderTitle,
 	Overlay,
-	Root: Root,
+	Root,
 }) as ConsentDialogCompoundComponent;
 
 // Export the main component as both default and named export

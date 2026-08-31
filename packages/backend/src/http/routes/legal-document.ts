@@ -9,21 +9,23 @@
 
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
-import {
-	LegalDocumentConflictError,
-	syncCurrent,
-} from '../../repository/legal-document';
+
+import { syncCurrent } from '../../repository/legal-document';
 import { validateRequestAuth } from '../auth';
 import type { RouteContext } from '../context';
 import { BadRequestError } from '../errors';
 
-export function register({ app, options, run }: RouteContext): void {
+export const register = function register({
+	app,
+	options,
+	run,
+}: RouteContext): void {
 	app.put(
 		'/legal-documents/:type/current',
 		describeRoute({
+			security: [{ bearerAuth: [] }],
 			summary: 'Sync the current legal document release',
 			tags: ['LegalDocument'],
-			security: [{ bearerAuth: [] }],
 		}),
 		async (c) => {
 			// API-key only: this decides which policy every subsequent consent is
@@ -31,8 +33,8 @@ export function register({ app, options, run }: RouteContext): void {
 			if (!validateRequestAuth(c.req.raw.headers, options.apiKeys)) {
 				return c.json(
 					{
-						message: 'API key required. Use Authorization: Bearer <api_key>',
 						cause: { code: 'UNAUTHORIZED' },
+						message: 'API key required. Use Authorization: Bearer <api_key>',
 					},
 					401
 				);
@@ -47,8 +49,8 @@ export function register({ app, options, run }: RouteContext): void {
 				// the value is unusable.
 				return c.json(
 					{
-						message: 'effectiveDate must be a valid ISO-8601 string',
 						cause: { code: 'INPUT_VALIDATION_FAILED' },
+						message: 'effectiveDate must be a valid ISO-8601 string',
 					},
 					422
 				);
@@ -57,15 +59,15 @@ export function register({ app, options, run }: RouteContext): void {
 			const result = await run(
 				c,
 				syncCurrent({
+					effectiveDate,
+					hash: body.hash,
 					type,
 					version: body.version,
-					hash: body.hash,
-					effectiveDate,
 				}).pipe(
 					Effect.map((policy) => ({ policy })),
 					Effect.catchTag('LegalDocumentConflictError', (error) =>
 						Effect.fail(
-							new BadRequestError({ message: error.message, code: 'CONFLICT' })
+							new BadRequestError({ code: 'CONFLICT', message: error.message })
 						)
 					)
 				)
@@ -78,4 +80,4 @@ export function register({ app, options, run }: RouteContext): void {
 			return c.json(result.value);
 		}
 	);
-}
+};

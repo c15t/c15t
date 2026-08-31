@@ -49,11 +49,11 @@ for (const dir of CSS_DIRS) {
 			let content = readFileSync(filePath, 'utf-8');
 			// Fix underscore naming
 			if (content.includes('_module.css')) {
-				content = content.replace(/_module\.css/g, '.module.css');
+				content = content.replace(/_module\.css/gu, '.module.css');
 			}
 			// Strip bare CSS side-effect imports: import"./foo.module.css";
 			content = content.replace(
-				/import\s*["'][^"']+\.module\.css["']\s*;?/g,
+				/import\s*["'][^"']+\.module\.css["']\s*;?/gu,
 				''
 			);
 			writeFileSync(filePath, content);
@@ -65,12 +65,14 @@ for (const dir of CSS_DIRS) {
 
 const IAB_PREFIX = 'iab-';
 
-function discoverModuleNames(dir: string): string[] {
+const discoverModuleNames = function discoverModuleNames(
+	dir: string
+): string[] {
 	return readdirSync(dir)
 		.filter((f) => f.endsWith('.module.css'))
 		.map((f) => f.replace('.module.css', ''))
 		.sort();
-}
+};
 
 const PRIMITIVES_DIR = join(DIST_DIR, 'styles', 'primitives');
 const COMPONENTS_DIR = join(DIST_DIR, 'styles', 'components');
@@ -101,7 +103,7 @@ if (NON_IAB_COMPONENTS.length === 0) {
  * directly into selectors without :root blocks or @layer wrappers — these
  * are treated as flat component rules.
  */
-function splitModuleCss(
+const splitModuleCss = function splitModuleCss(
 	css: string,
 	fileName?: string
 ): {
@@ -110,7 +112,7 @@ function splitModuleCss(
 } {
 	// Extract all :root { ... } blocks (they live outside @layer)
 	const rootBlocks: string[] = [];
-	const rootRegex = /:root\s*\{[^}]+\}/g;
+	const rootRegex = /:root\s*\{[^}]+\}/gu;
 	let match = rootRegex.exec(css);
 	while (match !== null) {
 		rootBlocks.push(match[0]);
@@ -118,7 +120,8 @@ function splitModuleCss(
 	}
 
 	// Extract the content inside @layer components { ... }
-	const layerMatch = css.match(/@layer\s+components\s*\{([\s\S]+)\}\s*$/);
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const layerMatch = css.match(/@layer\s+components\s*\{([\s\S]+)\}\s*$/u);
 	let componentRules = layerMatch ? layerMatch[1].trim() : '';
 
 	// If there's no @layer wrapper but the file has selectors (not just :root),
@@ -137,15 +140,15 @@ function splitModuleCss(
 	}
 
 	return {
-		rootVars: rootBlocks.join('\n'),
 		componentRules,
+		rootVars: rootBlocks.join('\n'),
 	};
-}
+};
 
 /**
  * Collect :root vars and component rules from module CSS files.
  */
-function collectCssParts(
+const collectCssParts = function collectCssParts(
 	primitives: string[],
 	components: string[]
 ): { rootParts: string[]; ruleParts: string[] } {
@@ -163,9 +166,12 @@ function collectCssParts(
 			readFileSync(filePath, 'utf-8'),
 			`primitives/${name}.module.css`
 		);
-		if (rootVars) rootParts.push(`/* primitives/${name} vars */\n${rootVars}`);
-		if (componentRules)
+		if (rootVars) {
+			rootParts.push(`/* primitives/${name} vars */\n${rootVars}`);
+		}
+		if (componentRules) {
 			ruleParts.push(`/* primitives/${name} */\n${componentRules}`);
+		}
 	}
 
 	for (const name of components) {
@@ -179,19 +185,25 @@ function collectCssParts(
 			readFileSync(filePath, 'utf-8'),
 			`components/${name}.module.css`
 		);
-		if (rootVars) rootParts.push(`/* components/${name} vars */\n${rootVars}`);
-		if (componentRules)
+		if (rootVars) {
+			rootParts.push(`/* components/${name} vars */\n${rootVars}`);
+		}
+		if (componentRules) {
 			ruleParts.push(`/* components/${name} */\n${componentRules}`);
+		}
 	}
 
 	return { rootParts, ruleParts };
-}
+};
 
 /**
  * Generate layered CSS: component rules wrapped in @layer components.
  * Use with Tailwind 4 — import Tailwind normally; c15t joins the components layer automatically.
  */
-function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
+const buildLayeredCss = function buildLayeredCss(
+	rootParts: string[],
+	ruleParts: string[]
+): string {
 	const parts: string[] = [];
 	if (rootParts.length) {
 		parts.push(rootParts.join('\n\n'));
@@ -202,14 +214,17 @@ function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
 		);
 	}
 	return parts.join('\n\n');
-}
+};
 
 /**
  * Generate flat CSS: component rules are emitted without any layer wrapper.
  * Use with Tailwind 3, where the stylesheet is typically imported from JS and
  * must not rely on a colocated `@tailwind components` directive.
  */
-function buildFlatCss(rootParts: string[], ruleParts: string[]): string {
+const buildFlatCss = function buildFlatCss(
+	rootParts: string[],
+	ruleParts: string[]
+): string {
 	const parts: string[] = [];
 	if (rootParts.length) {
 		parts.push(rootParts.join('\n\n'));
@@ -218,7 +233,7 @@ function buildFlatCss(rootParts: string[], ruleParts: string[]): string {
 		parts.push(ruleParts.join('\n\n'));
 	}
 	return parts.join('\n\n');
-}
+};
 
 // ── Non-IAB entrypoints ─────────────────────────────────────────────
 const nonIab = collectCssParts(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);

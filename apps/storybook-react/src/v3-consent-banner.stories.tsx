@@ -1,5 +1,6 @@
 import { bannerToDialogFlow } from '@c15t/conformance/play/consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -27,11 +28,11 @@ export const Default: Story = {
 };
 
 export const BannerToDialogFlow: Story = {
+	play: bannerToDialogFlow,
 	render: () => (
 		<StorybookV3ConsentProvider>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookV3ConsentProvider>
 	),
-	play: bannerToDialogFlow,
 };

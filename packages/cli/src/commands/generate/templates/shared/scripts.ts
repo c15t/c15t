@@ -23,144 +23,144 @@ interface ScriptSnippet {
  * `scripts-snippets.test.ts` fails when a registry vendor is missing here.
  */
 export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
-	'google-tag-manager': {
-		importName: 'googleTagManager',
-		example: "googleTagManager({ id: 'GTM-XXXXXX' })",
-	},
-	'google-tag': {
-		importName: 'gtag',
-		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
-	},
-	'ahrefs-analytics': {
-		importName: 'ahrefsAnalytics',
-		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
-	},
-	'cloudflare-web-analytics': {
-		importName: 'cloudflareWebAnalytics',
-		example: "cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })",
-	},
-	'microsoft-clarity': {
-		importName: 'clarity',
-		example: "clarity({ id: 'YOUR_PROJECT_ID' })",
-	},
-	databuddy: {
-		importName: 'databuddy',
-		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
-	},
-	'fathom-analytics': {
-		importName: 'fathomAnalytics',
-		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
-	},
-	'mixpanel-analytics': {
-		importName: 'mixpanelAnalytics',
-		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
-	},
-	hotjar: {
-		importName: 'hotjar',
-		example: 'hotjar({ siteId: 1234567 })',
-	},
-	'matomo-analytics': {
-		importName: 'matomoAnalytics',
-		example:
-			"matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 })",
-	},
-	posthog: {
-		importName: 'posthog',
-		example: "posthog({ id: 'phc_XXXXXXXXXX' })",
-	},
-	promptwatch: {
-		importName: 'promptwatch',
-		example: "promptwatch({ projectId: 'YOUR_PROJECT_ID' })",
-	},
-	segment: {
-		importName: 'segment',
-		example: "segment({ writeKey: 'YOUR_WRITE_KEY' })",
-	},
-	'rybbit-analytics': {
-		importName: 'rybbitAnalytics',
-		example: "rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })",
-	},
-	'plausible-analytics': {
-		importName: 'plausibleAnalytics',
-		example: "plausibleAnalytics({ domain: 'example.com' })",
-	},
-	'umami-analytics': {
-		importName: 'umamiAnalytics',
-		example: "umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })",
-	},
-	'vercel-analytics': {
-		importName: 'vercelAnalytics',
-		example: 'vercelAnalytics({})',
-	},
-	pirsch: {
-		importName: 'pirsch',
-		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",
-	},
-	clearbit: {
-		importName: 'clearbit',
-		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
-	},
 	'adobe-analytics': {
-		importName: 'adobeAnalytics',
 		example:
 			"adobeAnalytics({ scriptUrl: 'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js' })",
+		importName: 'adobeAnalytics',
 	},
-	logrocket: {
-		importName: 'logRocket',
-		example: "logRocket({ appId: 'org-slug/app-slug' })",
-	},
-	hightouch: {
-		importName: 'hightouch',
-		example: "hightouch({ writeKey: 'YOUR_WRITE_KEY' })",
-	},
-	rudderstack: {
-		importName: 'rudderstack',
-		example:
-			"rudderstack({ writeKey: 'YOUR_WRITE_KEY', dataPlaneUrl: 'https://your-dataplane.example.com' })",
+	'ahrefs-analytics': {
+		example: "ahrefsAnalytics({ key: 'YOUR_ANALYTICS_KEY' })",
+		importName: 'ahrefsAnalytics',
 	},
 	amplitude: {
-		importName: 'amplitude',
 		example: "amplitude({ apiKey: 'YOUR_API_KEY' })",
+		importName: 'amplitude',
 	},
-	heap: {
-		importName: 'heap',
-		example: "heap({ envId: 'YOUR_ENV_ID' })",
+	clearbit: {
+		example: "clearbit({ publishableKey: 'pk_XXXXXXXXXX' })",
+		importName: 'clearbit',
+	},
+	'cloudflare-web-analytics': {
+		example: "cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })",
+		importName: 'cloudflareWebAnalytics',
 	},
 	crisp: {
-		importName: 'crisp',
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
+		importName: 'crisp',
+	},
+	databuddy: {
+		example: "databuddy({ clientId: 'YOUR_CLIENT_ID' })",
+		importName: 'databuddy',
+	},
+	'fathom-analytics': {
+		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
+		importName: 'fathomAnalytics',
+	},
+	'google-tag': {
+		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
+		importName: 'gtag',
+	},
+	'google-tag-manager': {
+		example: "googleTagManager({ id: 'GTM-XXXXXX' })",
+		importName: 'googleTagManager',
+	},
+	heap: {
+		example: "heap({ envId: 'YOUR_ENV_ID' })",
+		importName: 'heap',
+	},
+	hightouch: {
+		example: "hightouch({ writeKey: 'YOUR_WRITE_KEY' })",
+		importName: 'hightouch',
+	},
+	hotjar: {
+		example: 'hotjar({ siteId: 1234567 })',
+		importName: 'hotjar',
 	},
 	intercom: {
-		importName: 'intercom',
 		example: "intercom({ appId: 'YOUR_APP_ID' })",
-	},
-	'meta-pixel': {
-		importName: 'metaPixel',
-		example: "metaPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
-	},
-	'reddit-pixel': {
-		importName: 'redditPixel',
-		example: "redditPixel({ pixelId: 't2_XXXXXXX' })",
-	},
-	'tiktok-pixel': {
-		importName: 'tiktokPixel',
-		example: "tiktokPixel({ pixelId: 'XXXXXXXXXXXXXXXXX' })",
+		importName: 'intercom',
 	},
 	'linkedin-insights': {
-		importName: 'linkedinInsights',
 		example: "linkedinInsights({ id: 'XXXXXXX' })",
+		importName: 'linkedinInsights',
+	},
+	logrocket: {
+		example: "logRocket({ appId: 'org-slug/app-slug' })",
+		importName: 'logRocket',
+	},
+	'matomo-analytics': {
+		example:
+			"matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 })",
+		importName: 'matomoAnalytics',
+	},
+	'meta-pixel': {
+		example: "metaPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
+		importName: 'metaPixel',
+	},
+	'microsoft-clarity': {
+		example: "clarity({ id: 'YOUR_PROJECT_ID' })",
+		importName: 'clarity',
 	},
 	'microsoft-uet': {
-		importName: 'microsoftUet',
 		example: "microsoftUet({ id: 'XXXXXXXXX' })",
+		importName: 'microsoftUet',
+	},
+	'mixpanel-analytics': {
+		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
+		importName: 'mixpanelAnalytics',
+	},
+	pirsch: {
+		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",
+		importName: 'pirsch',
+	},
+	'plausible-analytics': {
+		example: "plausibleAnalytics({ domain: 'example.com' })",
+		importName: 'plausibleAnalytics',
+	},
+	posthog: {
+		example: "posthog({ id: 'phc_XXXXXXXXXX' })",
+		importName: 'posthog',
+	},
+	promptwatch: {
+		example: "promptwatch({ projectId: 'YOUR_PROJECT_ID' })",
+		importName: 'promptwatch',
+	},
+	'reddit-pixel': {
+		example: "redditPixel({ pixelId: 't2_XXXXXXX' })",
+		importName: 'redditPixel',
+	},
+	rudderstack: {
+		example:
+			"rudderstack({ writeKey: 'YOUR_WRITE_KEY', dataPlaneUrl: 'https://your-dataplane.example.com' })",
+		importName: 'rudderstack',
+	},
+	'rybbit-analytics': {
+		example: "rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })",
+		importName: 'rybbitAnalytics',
+	},
+	segment: {
+		example: "segment({ writeKey: 'YOUR_WRITE_KEY' })",
+		importName: 'segment',
 	},
 	'snapchat-pixel': {
-		importName: 'snapchatPixel',
 		example: "snapchatPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
+		importName: 'snapchatPixel',
+	},
+	'tiktok-pixel': {
+		example: "tiktokPixel({ pixelId: 'XXXXXXXXXXXXXXXXX' })",
+		importName: 'tiktokPixel',
+	},
+	'umami-analytics': {
+		example: "umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })",
+		importName: 'umamiAnalytics',
+	},
+	'vercel-analytics': {
+		example: 'vercelAnalytics({})',
+		importName: 'vercelAnalytics',
 	},
 	'x-pixel': {
-		importName: 'xPixel',
 		example: "xPixel({ pixelId: 'oXXXX' })",
+		importName: 'xPixel',
 	},
 };
 
@@ -171,21 +171,23 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
  * @param scriptName - The script name (e.g., 'google-tag-manager')
  * @returns The camelCase version (e.g., 'googleTagManager')
  */
-export function toCamelCase(scriptName: string): string {
-	return scriptName.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-}
+export const toCamelCase = function toCamelCase(scriptName: string): string {
+	return scriptName.replace(/-(?<capture1>[a-z])/gu, (_, letter) =>
+		letter.toUpperCase()
+	);
+};
 
-function getSnippet(scriptName: string): ScriptSnippet {
+const getSnippet = function getSnippet(scriptName: string): ScriptSnippet {
 	const snippet = SCRIPT_SNIPPETS[scriptName];
 	if (snippet) {
 		return snippet;
 	}
 
 	return {
-		importName: toCamelCase(scriptName),
 		example: `${toCamelCase(scriptName)}({ /* TODO: configure ${scriptName} */ })`,
+		importName: toCamelCase(scriptName),
 	};
-}
+};
 
 /**
  * Generates the import statements for selected scripts
@@ -202,8 +204,12 @@ function getSnippet(scriptName: string): ScriptSnippet {
  * //  import { clarity } from '@c15t/scripts/microsoft-clarity';"
  * ```
  */
-export function generateScriptsImport(selectedScripts: string[]): string {
-	if (!selectedScripts.length) return '';
+export const generateScriptsImport = function generateScriptsImport(
+	selectedScripts: string[]
+): string {
+	if (!selectedScripts.length) {
+		return '';
+	}
 
 	return selectedScripts
 		.map(
@@ -211,7 +217,7 @@ export function generateScriptsImport(selectedScripts: string[]): string {
 				`import { ${getSnippet(script).importName} } from '@c15t/scripts/${script}';`
 		)
 		.join('\n');
-}
+};
 
 /**
  * Generates the scripts configuration array for ConsentManagerProvider options
@@ -233,8 +239,12 @@ export function generateScriptsImport(selectedScripts: string[]): string {
  * // ],"
  * ```
  */
-export function generateScriptsConfig(selectedScripts: string[]): string {
-	if (!selectedScripts.length) return '';
+export const generateScriptsConfig = function generateScriptsConfig(
+	selectedScripts: string[]
+): string {
+	if (!selectedScripts.length) {
+		return '';
+	}
 
 	const scriptConfigs = selectedScripts.map(
 		(script) => getSnippet(script).example
@@ -243,7 +253,7 @@ export function generateScriptsConfig(selectedScripts: string[]): string {
 	return `scripts: [
 					${scriptConfigs.join(',\n\t\t\t\t\t')},
 				],`;
-}
+};
 
 /**
  * Generates a comment block showing example script configuration
@@ -251,10 +261,11 @@ export function generateScriptsConfig(selectedScripts: string[]): string {
  *
  * @returns A comment block with example script usage
  */
-export function generateScriptsCommentPlaceholder(): string {
-	return `// Add your scripts here:
+export const generateScriptsCommentPlaceholder =
+	function generateScriptsCommentPlaceholder(): string {
+		return `// Add your scripts here:
 				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
 				// ],`;
-}
+	};

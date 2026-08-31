@@ -1,25 +1,37 @@
-function createMockElement() {
+const createMockElement = function createMockElement() {
 	return {
-		setAttribute: () => {},
-		getAttribute: () => null,
-		appendChild: () => {},
-		removeChild: () => {},
-		remove: () => {},
+		addEventListener: () => {
+			/* empty */
+		},
+		appendChild: () => {
+			/* empty */
+		},
+		async: true,
 		cloneNode: () => createMockElement(),
-		addEventListener: () => {},
-		removeEventListener: () => {},
 		dispatchEvent: () => true,
+		getAttribute: () => null,
+		parentNode: null,
 		querySelector: () => null,
 		querySelectorAll: () => [],
-		parentNode: null,
-		textContent: '',
+		remove: () => {
+			/* empty */
+		},
+		removeChild: () => {
+			/* empty */
+		},
+		removeEventListener: () => {
+			/* empty */
+		},
+		setAttribute: () => {
+			/* empty */
+		},
 		src: '',
-		async: true,
 		style: {},
+		textContent: '',
 	} as unknown as HTMLElement;
-}
+};
 
-export function ensureBenchmarkDom(): void {
+export const ensureBenchmarkDom = function ensureBenchmarkDom(): void {
 	if (typeof globalThis.window === 'undefined') {
 		globalThis.window = globalThis as unknown as Window & typeof globalThis;
 	}
@@ -27,43 +39,49 @@ export function ensureBenchmarkDom(): void {
 	if (typeof globalThis.document === 'undefined') {
 		const element = createMockElement();
 		globalThis.document = {
-			createElement: () => createMockElement(),
-			head: element,
 			body: element,
+			cookie: '',
+			createElement: () => createMockElement(),
 			getElementById: () => null,
+			head: element,
 			querySelector: () => null,
 			querySelectorAll: () => [],
-			cookie: '',
 		} as unknown as Document;
 	}
 
 	if (typeof globalThis.localStorage === 'undefined') {
 		const store: Record<string, string> = {};
 		globalThis.localStorage = {
-			getItem: (key: string) => store[key] ?? null,
-			setItem: (key: string, value: string) => {
-				store[key] = value;
-			},
-			removeItem: (key: string) => {
-				delete store[key];
-			},
 			clear: () => {
 				for (const key of Object.keys(store)) {
-					delete store[key];
+					Reflect.deleteProperty(store, key);
 				}
 			},
+			getItem: (key: string) => store[key] ?? null,
 			key: (index: number) => Object.keys(store)[index] ?? null,
 			get length() {
 				return Object.keys(store).length;
+			},
+			removeItem: (key: string) => {
+				Reflect.deleteProperty(store, key);
+			},
+			setItem: (key: string, value: string) => {
+				store[key] = value;
 			},
 		} as Storage;
 	}
 
 	if (typeof globalThis.MutationObserver === 'undefined') {
 		globalThis.MutationObserver = class MutationObserver {
-			constructor(_callback: MutationCallback) {}
-			disconnect() {}
-			observe(_target: Node, _options?: MutationObserverInit) {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
+			disconnect() {
+				/* empty */
+			}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
+			observe(_target: Node, _options?: MutationObserverInit) {
+				/* empty */
+			}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords(): MutationRecord[] {
 				return [];
 			}
@@ -73,17 +91,21 @@ export function ensureBenchmarkDom(): void {
 	if (!globalThis.window.location) {
 		globalThis.window.location = {
 			hostname: 'bench.local',
-			reload: () => {},
+			reload: () => {
+				/* empty */
+			},
 		} as Location;
 	}
 
 	if (typeof globalThis.fetch === 'undefined') {
-		globalThis.fetch = (async () =>
-			new Response(JSON.stringify({ ok: true }), {
-				status: 200,
-				headers: {
-					'Content-Type': 'application/json',
-				},
-			})) as typeof fetch;
+		globalThis.fetch = (() =>
+			Promise.resolve(
+				new Response(JSON.stringify({ ok: true }), {
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					status: 200,
+				})
+			)) as typeof fetch;
 	}
-}
+};

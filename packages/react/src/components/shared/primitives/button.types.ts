@@ -1,5 +1,6 @@
 import type { ButtonMode } from '@c15t/ui/styles/primitives';
 import type { ComponentRef, HTMLAttributes, MouseEvent } from 'react';
+
 import type { CSSVariables, ExtendThemeKeys } from '~/types/theme';
 
 export type ConsentButtonElement = ComponentRef<'button'>;
@@ -10,7 +11,8 @@ export type ConsentButtonElement = ComponentRef<'button'>;
  * @public
  */
 export interface ConsentButtonProps
-	extends Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
+	extends
+		Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
 		ExtendThemeKeys<CSSVariables> {
 	/**
 	 * @remarks

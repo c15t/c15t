@@ -16,13 +16,19 @@ import type { ScriptLoaderDebugEvent } from './types';
  * Dispatch a debug event to v2-compat listeners, if any are registered
  * on `window.__c15tScriptDebugListeners`. No-op outside the browser.
  */
-export function emitV2Debug(event: ScriptLoaderDebugEvent): void {
-	if (typeof window === 'undefined') return;
+export const emitV2Debug = function emitV2Debug(
+	event: ScriptLoaderDebugEvent
+): void {
+	if (typeof window === 'undefined') {
+		return;
+	}
 	const listeners = (window as unknown as Record<string, unknown>)
 		.__c15tScriptDebugListeners as
 		| Set<(e: ScriptLoaderDebugEvent) => void>
 		| undefined;
-	if (!listeners) return;
+	if (!listeners) {
+		return;
+	}
 	for (const listener of listeners) {
 		try {
 			listener(event);
@@ -30,7 +36,7 @@ export function emitV2Debug(event: ScriptLoaderDebugEvent): void {
 			// Listener errors are swallowed (v2 parity).
 		}
 	}
-}
+};
 
 export interface DebugEmitterOptions {
 	/** Optional consumer listener. */
@@ -44,7 +50,9 @@ export interface DebugEmitterOptions {
  * both callbacks behind a single function call site so other modules
  * don't have to know about the dual-path policy.
  */
-export function createDebugEmitter(options: DebugEmitterOptions) {
+export const createDebugEmitter = function createDebugEmitter(
+	options: DebugEmitterOptions
+) {
 	const { onDebug, emitToV2 } = options;
 	return function emit(event: ScriptLoaderDebugEvent): void {
 		if (onDebug) {
@@ -54,6 +62,8 @@ export function createDebugEmitter(options: DebugEmitterOptions) {
 				// Swallow consumer listener errors.
 			}
 		}
-		if (emitToV2) emitV2Debug(event);
+		if (emitToV2) {
+			emitV2Debug(event);
+		}
 	};
-}
+};

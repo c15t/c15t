@@ -1,23 +1,23 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useMemo,
-} from 'react';
+import { forwardRef as createForwardRef, useMemo } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
+
 import * as Tabs from '~/v3/components/shared/ui/tabs';
+
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
 
-interface IABConsentDialogTabsProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'> {
+interface IABConsentDialogTabsProps extends Omit<
+	HTMLAttributes<HTMLDivElement>,
+	'defaultValue' | 'onChange'
+> {
 	children?: ReactNode;
 	defaultTab?: 'purposes' | 'vendors';
 }
 
-const IABConsentDialogTabs = forwardRef<
+const IABConsentDialogTabs = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogTabsProps
 >(({ children, defaultTab = 'purposes', className, ...props }, ref) => {
@@ -86,30 +86,27 @@ const IABConsentDialogTabs = forwardRef<
 
 IABConsentDialogTabs.displayName = 'IABConsentDialogTabs';
 
-interface IABConsentDialogTabButtonProps
-	extends HTMLAttributes<HTMLButtonElement> {
+interface IABConsentDialogTabButtonProps extends HTMLAttributes<HTMLButtonElement> {
 	children: ReactNode;
 	tab: 'purposes' | 'vendors';
 }
 
-const IABConsentDialogTabButton = forwardRef<
+const IABConsentDialogTabButton = createForwardRef<
 	HTMLButtonElement,
 	IABConsentDialogTabButtonProps
->(({ tab, children, className, ...props }, ref) => {
-	return (
-		<Tabs.Trigger
-			ref={ref}
-			className={
-				className ? `${styles.tabButton} ${className}` : styles.tabButton
-			}
-			noStyle
-			value={tab}
-			{...(props as Omit<IABConsentDialogTabButtonProps, 'tab'>)}
-		>
-			{children}
-		</Tabs.Trigger>
-	);
-});
+>(({ tab, children, className, ...props }, ref) => (
+	<Tabs.Trigger
+		ref={ref}
+		className={
+			className ? `${styles.tabButton} ${className}` : styles.tabButton
+		}
+		noStyle
+		value={tab}
+		{...(props as Omit<IABConsentDialogTabButtonProps, 'tab'>)}
+	>
+		{children}
+	</Tabs.Trigger>
+));
 
 IABConsentDialogTabButton.displayName = 'IABConsentDialogTabButton';
 

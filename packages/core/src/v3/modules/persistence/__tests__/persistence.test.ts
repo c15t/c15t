@@ -10,9 +10,33 @@
  * - dispose stops further writes
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../index';
 import { deleteConsentFromStorage } from '../../../libs/cookie';
 import { createPersistence } from '../index';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 // localStorage + document.cookie are stubbed by packages/core/vitest.setup.ts
 // Let's just flush between tests.
@@ -28,9 +52,9 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-async function flushDebounce(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-}
+const flushDebounce = async function flushDebounce(): Promise<void> {
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
 
 describe('persistence: hydration', () => {
 	test('does nothing when nothing is stored', () => {
@@ -55,7 +79,7 @@ describe('persistence: hydration', () => {
 		createPersistence({ kernel });
 		expect(kernel.getSnapshot().consents.marketing).toBe(true);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
-		expect(kernel.getSnapshot().subjectId).toMatch(/^sub_/);
+		expect(kernel.getSnapshot().subjectId).toMatch(/^sub_/u);
 	});
 
 	test('hydration does not call transport.save', async () => {
@@ -124,11 +148,11 @@ describe('persistence: write path', () => {
 		deleteConsentFromStorage();
 		localStorage.clear();
 		await kernel.commands.save({
-			necessary: true,
-			functionality: true,
 			experience: true,
-			measurement: true,
+			functionality: true,
 			marketing: true,
+			measurement: true,
+			necessary: true,
 		});
 		await flushDebounce();
 

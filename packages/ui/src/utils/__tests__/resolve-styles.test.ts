@@ -1,15 +1,16 @@
 import { describe, expect, test } from 'vitest';
+
 import type { Theme } from '../../theme/types';
 import { resolveStyles } from '../resolve-styles';
 
 describe('resolveStyles', () => {
 	const mockTheme: Theme = {
 		slots: {
+			banner: 'theme-banner-class',
 			dialogCard: {
 				className: 'theme-dialog-class',
 				style: { color: 'blue' },
 			},
-			banner: 'theme-banner-class',
 		},
 	};
 
@@ -44,8 +45,8 @@ describe('resolveStyles', () => {
 			expect(result.className).toContain('theme-dialog-class');
 			expect(result.className).toContain('component-class');
 			expect(result.style).toEqual({
-				color: 'blue',
 				backgroundColor: 'red',
+				color: 'blue',
 			});
 		});
 
@@ -71,7 +72,8 @@ describe('resolveStyles', () => {
 					baseClassName: 'base-class',
 					className: 'component-class',
 				},
-				true // contextNoStyle
+				// contextNoStyle
+				true
 			);
 			expect(result.noStyle).toBe(true);
 			// Base classes should be included in the merge, but noStyle flag is set
@@ -106,7 +108,8 @@ describe('resolveStyles', () => {
 	describe('precedence', () => {
 		test('component style takes precedence over theme', () => {
 			const result = resolveStyles('dialogCard', mockTheme, {
-				style: { color: 'red' }, // Override theme's blue
+				// Override theme's blue
+				style: { color: 'red' },
 			});
 			expect(result.style?.color).toBe('red');
 		});

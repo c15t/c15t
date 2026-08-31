@@ -2,10 +2,12 @@
 
 import type { AllConsentNames } from '@c15t/core';
 import type { ComponentPropsWithoutRef, ReactNode } from 'react';
+
 import { useTranslations } from '~/hooks/use-translations';
+
 import { FrameButton, FrameRoot, FrameTitle } from '../frame';
 
-export function IntegrationPlaceholder({
+export const IntegrationPlaceholder = ({
 	category,
 	children,
 	showButton = true,
@@ -14,22 +16,20 @@ export function IntegrationPlaceholder({
 	category: AllConsentNames;
 	children?: ReactNode;
 	showButton?: boolean;
-} & Omit<ComponentPropsWithoutRef<typeof FrameRoot>, 'children'>) {
-	return (
-		<FrameRoot {...props}>
-			<FrameTitle category={category}>{children}</FrameTitle>
-			{showButton && <FrameButton category={category} />}
-		</FrameRoot>
-	);
-}
+} & Omit<ComponentPropsWithoutRef<typeof FrameRoot>, 'children'>) => (
+	<FrameRoot {...props}>
+		<FrameTitle category={category}>{children}</FrameTitle>
+		{showButton && <FrameButton category={category} />}
+	</FrameRoot>
+);
 
-export function IntegrationStatus({
+export const IntegrationStatus = ({
 	category,
 	status,
 }: {
 	category: AllConsentNames;
 	status: 'error' | 'loading';
-}) {
+}) => {
 	const { frame } = useTranslations();
 	const isLoading = status === 'loading';
 
@@ -45,4 +45,4 @@ export function IntegrationStatus({
 				: (frame?.error ?? 'This content could not be loaded.')}
 		</IntegrationPlaceholder>
 	);
-}
+};

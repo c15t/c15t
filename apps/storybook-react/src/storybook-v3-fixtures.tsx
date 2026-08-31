@@ -1,10 +1,10 @@
-import { type ReactNode, useRef } from 'react';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+
 import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
-import {
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '../../../packages/react/src/v3/index';
+import { ConsentProvider } from '../../../packages/react/src/v3/index';
+import type { ConsentProviderOptions } from '../../../packages/react/src/v3/index';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache as clearV3ConsentRuntimeCache,
@@ -26,7 +26,6 @@ interface StorybookV3ProviderProps {
 }
 
 export const defaultV3ConsentOptions: ConsentProviderOptions = {
-	mode: 'offline',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -34,10 +33,9 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
 		'experience',
 		'marketing',
 	],
+	mode: 'offline',
 	offlinePolicy: {
 		policy: {
-			id: 'storybook_v3',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -48,6 +46,8 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'storybook_v3',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},
@@ -60,15 +60,13 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
  * mode. v3 hydrates from the same storage format as v2, so the v2 seed
  * helpers are reused as-is.
  */
-export function StorybookV3ConsentProvider({
+export const StorybookV3ConsentProvider = ({
 	children,
 	options,
 	storedConsent,
 	tcString = null,
-}: StorybookV3ProviderProps) {
-	const initializedRef = useRef(false);
-
-	if (!initializedRef.current) {
+}: StorybookV3ProviderProps) => {
+	const [initialized, setInitialized] = useState(() => {
 		clearV3ConsentRuntimeCache();
 		resetStorybookConsentState();
 
@@ -77,8 +75,10 @@ export function StorybookV3ConsentProvider({
 		}
 
 		seedTCString(tcString);
-		initializedRef.current = true;
-	}
+		return true;
+	});
+	void initialized;
+	void setInitialized;
 
 	return (
 		<ConsentProvider
@@ -90,7 +90,7 @@ export function StorybookV3ConsentProvider({
 			{children}
 		</ConsentProvider>
 	);
-}
+};
 
 interface StorybookV3IABProviderProps {
 	children: ReactNode;
@@ -100,12 +100,12 @@ interface StorybookV3IABProviderProps {
 }
 
 export const defaultV3IABOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
 	}),
+	mode: 'offline',
 	offlinePolicy: {
 		policy: { id: 'storybook_iab_v3', model: 'iab' },
 	},
@@ -116,15 +116,13 @@ export const defaultV3IABOptions: ConsentManagerOptions = {
  * `ConsentManagerProvider` compat wrapper with an offline IAB policy and an
  * injected GVL (no network).
  */
-export function StorybookV3IABProvider({
+export const StorybookV3IABProvider = ({
 	children,
 	options,
 	storedConsent,
 	tcString = null,
-}: StorybookV3IABProviderProps) {
-	const initializedRef = useRef(false);
-
-	if (!initializedRef.current) {
+}: StorybookV3IABProviderProps) => {
+	const [initialized, setInitialized] = useState(() => {
 		clearV3ConsentRuntimeCache();
 		resetStorybookConsentState();
 
@@ -133,8 +131,10 @@ export function StorybookV3IABProvider({
 		}
 
 		seedTCString(tcString);
-		initializedRef.current = true;
-	}
+		return true;
+	});
+	void initialized;
+	void setInitialized;
 
 	return (
 		<ConsentManagerProvider
@@ -146,4 +146,4 @@ export function StorybookV3IABProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

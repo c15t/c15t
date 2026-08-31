@@ -17,9 +17,12 @@
  *   bun run --filter @c15t/scripts test:live-vendors -- --vendor microsoft-clarity
  *   bun run --filter @c15t/scripts test:live-vendors -- --report ./report.json
  */
-import { type Browser, chromium, type Response } from 'playwright';
+import { chromium } from 'playwright';
+import type { Browser, Response } from 'playwright';
+
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
 import { evaluateDeniedConsentProbe } from './denied-consent';
+import { forEachSequential } from './for-each-sequential';
 import { failedPhases } from './report';
 import type {
 	LiveProbeCheckResult,
@@ -32,6 +35,29 @@ import type {
 } from './types';
 import { liveVendorProbeConfigs } from './vendors';
 
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 2_000;
 const LOADER_TIMEOUT_MS = 20_000;
@@ -43,12 +69,14 @@ const CONSENT_QUIET_MS = 750;
  * Builds the loader allowlist for a probe config. Everything outside this
  * list (and the local harness origin) is answered with an empty 204.
  */
-function buildAllowList(config: LiveVendorProbeConfig): string[] {
+const buildAllowList = function buildAllowList(
+	config: LiveVendorProbeConfig
+): string[] {
 	return [
 		config.loaderUrlSubstring,
 		...(config.allowUrlSubstrings ?? []),
 	].filter((value): value is string => Boolean(value));
-}
+};
 
 const PAGE_HTML = `<!doctype html>
 <html lang="en">
@@ -60,9 +88,9 @@ const PAGE_HTML = `<!doctype html>
 	<body></body>
 </html>`;
 
-type ProbeWindow = {
+interface ProbeWindow {
 	__c15tLiveVendorProbe?: LiveVendorProbeHarness;
-};
+}
 
 interface CliOptions {
 	vendors?: string[];
@@ -74,17 +102,17 @@ interface CliOptions {
  *
  * @param argv - Arguments after the script path (`--vendor id`, `--report path`).
  * @returns The parsed vendor filter and report path.
- * @throws `Error` when `--vendor`/`--report` is missing its value or an
+ * @throws {Error} when `--vendor`/`--report` is missing its value or an
  * unknown argument is passed.
  */
-function parseArgs(argv: string[]): CliOptions {
+const parseArgs = function parseArgs(argv: string[]): CliOptions {
 	const options: CliOptions = { reportPath: 'live-vendors-report.json' };
 
-	for (let index = 0; index < argv.length; index++) {
+	for (let index = 0; index < argv.length; index += 1) {
 		const arg = argv[index];
 
 		if (arg === '--vendor') {
-			const value = argv[++index];
+			const value = argv[(index += 1)];
 			if (!value) {
 				throw new Error('--vendor requires a vendor id');
 			}
@@ -93,7 +121,7 @@ function parseArgs(argv: string[]): CliOptions {
 				...value.split(',').map((vendor) => vendor.trim()),
 			];
 		} else if (arg === '--report') {
-			const value = argv[++index];
+			const value = argv[(index += 1)];
 			if (!value) {
 				throw new Error('--report requires a file path');
 			}
@@ -104,29 +132,30 @@ function parseArgs(argv: string[]): CliOptions {
 	}
 
 	return options;
-}
+};
 
 /**
  * Bundles the browser-side harness with `Bun.build`.
  *
  * @returns The bundled harness JavaScript served to the probe page.
- * @throws `Error` with the collected build logs when bundling fails.
+ * @throws {Error} with the collected build logs when bundling fails.
  */
-async function buildHarnessBundle(): Promise<string> {
-	const entrypoint = new URL('./harness/entry.ts', import.meta.url).pathname;
-	const result = await Bun.build({
-		entrypoints: [entrypoint],
-		target: 'browser',
-		format: 'esm',
-	});
+const buildHarnessBundle =
+	async function buildHarnessBundle(): Promise<string> {
+		const entrypoint = new URL('./harness/entry.ts', import.meta.url).pathname;
+		const result = await Bun.build({
+			entrypoints: [entrypoint],
+			format: 'esm',
+			target: 'browser',
+		});
 
-	if (!result.success || !result.outputs[0]) {
-		const details = result.logs.map((log) => String(log)).join('\n');
-		throw new Error(`Failed to build live probe harness:\n${details}`);
-	}
+		if (!result.success || !result.outputs[0]) {
+			const details = result.logs.map((log) => String(log)).join('\n');
+			throw new Error(`Failed to build live probe harness:\n${details}`);
+		}
 
-	return result.outputs[0].text();
-}
+		return result.outputs[0].text();
+	};
 
 interface ProbeAttemptOutcome {
 	phases: LiveVendorResult['phases'];
@@ -136,7 +165,7 @@ interface ProbeAttemptOutcome {
 	pageErrors: string[];
 }
 
-async function loaderResponseDetails(
+const loaderResponseDetails = async function loaderResponseDetails(
 	response: Response
 ): Promise<NonNullable<LiveVendorResult['loader']>> {
 	const headers: Record<string, string> = await response
@@ -144,17 +173,17 @@ async function loaderResponseDetails(
 		.catch(() => ({}));
 
 	return {
-		url: response.url(),
-		status: response.status(),
 		contentType: headers['content-type'],
+		status: response.status(),
+		url: response.url(),
 	};
-}
+};
 
 /**
  * Fetches loader details from Node when the browser never surfaced a
  * response (for example when Chromium ORB-filters a non-script error page).
  */
-async function fetchLoaderDetails(
+const fetchLoaderDetails = async function fetchLoaderDetails(
 	url: string
 ): Promise<LiveVendorResult['loader']> {
 	try {
@@ -164,14 +193,14 @@ async function fetchLoaderDetails(
 		await response.body?.cancel();
 
 		return {
-			url,
-			status: response.status,
 			contentType: response.headers.get('content-type') ?? undefined,
+			status: response.status,
+			url,
 		};
 	} catch {
 		return undefined;
 	}
-}
+};
 
 const DENIED_EGRESS_QUIET_MS = 4_000;
 
@@ -182,7 +211,7 @@ const DENIED_EGRESS_QUIET_MS = 4_000;
  * Uses its own browser context so the warmed cache and any vendor state never
  * leak into the granted-consent probe that follows.
  */
-async function probeDeniedConsentEgress(
+const probeDeniedConsentEgress = async function probeDeniedConsentEgress(
 	browser: Browser,
 	baseUrl: string,
 	config: LiveVendorProbeConfig
@@ -190,9 +219,9 @@ async function probeDeniedConsentEgress(
 	const deniedProbe = config.deniedConsentProbe;
 	if (!deniedProbe) {
 		return {
-			ok: true,
 			detail:
 				'script declares alwaysLoad and manages consent internally; denied-consent gating not asserted',
+			ok: true,
 		};
 	}
 
@@ -215,7 +244,7 @@ async function probeDeniedConsentEgress(
 				return route.continue();
 			}
 
-			return route.fulfill({ status: 204, body: '' });
+			return route.fulfill({ body: '', status: 204 });
 		});
 
 		// Refuse WebSockets here too — HTTP routing does not cover them.
@@ -239,16 +268,16 @@ async function probeDeniedConsentEgress(
 		);
 
 		if (outcome.error) {
-			return { ok: false, detail: `harness error: ${outcome.error}` };
+			return { detail: `harness error: ${outcome.error}`, ok: false };
 		}
 
 		// A zero-violation result is only meaningful if the vendor actually
 		// loaded — otherwise a loader regression would read as a pass.
 		if (!outcome.requested) {
 			return {
-				ok: false,
 				detail:
 					'alwaysLoad script was not injected under denied consent; egress assertion could not run',
+				ok: false,
 			};
 		}
 
@@ -268,9 +297,10 @@ async function probeDeniedConsentEgress(
 	} finally {
 		await context.close();
 	}
-}
+};
 
-async function probeVendorAttempt(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+const probeVendorAttempt = async function probeVendorAttempt(
 	browser: Browser,
 	baseUrl: string,
 	config: LiveVendorProbeConfig,
@@ -296,7 +326,7 @@ async function probeVendorAttempt(
 			}
 
 			blocked.push(url);
-			return route.fulfill({ status: 204, body: '' });
+			return route.fulfill({ body: '', status: 204 });
 		});
 
 		// HTTP routing does not cover WebSockets; refuse every WS connection so
@@ -321,7 +351,7 @@ async function probeVendorAttempt(
 		let loaderRequestUrl: string | undefined;
 		let loaderFailure: string | undefined;
 		if (config.loaderUrlSubstring) {
-			const loaderUrlSubstring = config.loaderUrlSubstring;
+			const { loaderUrlSubstring } = config;
 			page.on('request', (request) => {
 				if (request.url().includes(loaderUrlSubstring)) {
 					sawLoaderRequest = true;
@@ -370,16 +400,16 @@ async function probeVendorAttempt(
 
 			if (deniedOutcome.error) {
 				phases.consent = {
-					ok: false,
 					detail: `harness error: ${deniedOutcome.error}`,
+					ok: false,
 				};
 			} else {
 				const leaked = deniedOutcome.requested || sawLoaderRequest;
 				phases.consent = {
-					ok: !leaked,
 					detail: leaked
 						? 'script loaded despite denied consent'
 						: 'script did not load while consent was denied',
+					ok: !leaked,
 				};
 			}
 
@@ -393,13 +423,17 @@ async function probeVendorAttempt(
 		}
 
 		const loaderResponsePromise = config.loaderUrlSubstring
-			? page
-					.waitForResponse(
-						(response) =>
-							response.url().includes(config.loaderUrlSubstring as string),
-						{ timeout: LOADER_TIMEOUT_MS }
-					)
-					.catch(() => undefined)
+			? (async () => {
+					try {
+						return await page.waitForResponse(
+							(response) =>
+								response.url().includes(config.loaderUrlSubstring as string),
+							{ timeout: LOADER_TIMEOUT_MS }
+						);
+					} catch {
+						return undefined;
+					}
+				})()
 			: Promise.resolve(undefined);
 
 		// Phase: bootstrap — granted consent; stub checks run synchronously
@@ -418,16 +452,16 @@ async function probeVendorAttempt(
 
 		if (grantedOutcome.error) {
 			phases.bootstrap = {
-				ok: false,
 				detail: `harness error: ${grantedOutcome.error}`,
-			};
-		} else if (!grantedOutcome.requested) {
-			phases.bootstrap = {
 				ok: false,
-				detail: 'script did not load with granted consent',
 			};
-		} else {
+		} else if (grantedOutcome.requested) {
 			phases.bootstrap = grantedOutcome.bootstrap;
+		} else {
+			phases.bootstrap = {
+				detail: 'script did not load with granted consent',
+				ok: false,
+			};
 		}
 
 		// Phase: load — the real vendor loader must answer.
@@ -444,7 +478,7 @@ async function probeVendorAttempt(
 				if (config.tier === 'loader-only') {
 					// Any HTTP response proves the endpoint is reachable; placeholder
 					// ids often return 404/204 instead of real container JS.
-					phases.load = { ok: true, detail };
+					phases.load = { detail, ok: true };
 				} else {
 					// Full tier requires actual JavaScript, not an empty 2xx. Clarity
 					// answers unknown project ids with an empty 204 that would
@@ -454,10 +488,10 @@ async function probeVendorAttempt(
 						loader.status !== 204 &&
 						(loader.contentType?.includes('javascript') ?? false);
 					phases.load = {
-						ok: servedScript,
 						detail: servedScript
 							? detail
 							: `${detail} — expected a 2xx JavaScript response`,
+						ok: servedScript,
 					};
 				}
 			} else if (
@@ -470,10 +504,10 @@ async function probeVendorAttempt(
 				// the endpoint answered. Fetch from Node to record the real status.
 				loader = await fetchLoaderDetails(loaderRequestUrl);
 				phases.load = {
-					ok: true,
 					detail: `loader answered but Chromium ORB-filtered the non-script response${
 						loader ? ` (HTTP ${loader.status})` : ''
 					} — expected for placeholder ids`,
+					ok: true,
 				};
 			} else {
 				let detail = 'loader request was never sent';
@@ -483,12 +517,12 @@ async function probeVendorAttempt(
 					detail = `loader request sent but no response within ${LOADER_TIMEOUT_MS}ms`;
 				}
 
-				phases.load = { ok: false, detail };
+				phases.load = { detail, ok: false };
 			}
 		} else {
 			phases.load = {
-				ok: true,
 				detail: 'no external loader for this vendor',
+				ok: true,
 			};
 		}
 
@@ -496,11 +530,11 @@ async function probeVendorAttempt(
 		if (config.tier === 'full' && phases.load.ok) {
 			const deadline = Date.now() + RUNTIME_TIMEOUT_MS;
 			let runtime: LiveProbeCheckResult = {
-				ok: false,
 				detail: 'runtime check never ran',
+				ok: false,
 			};
 
-			for (;;) {
+			const pollRuntime = async (): Promise<void> => {
 				runtime = await page.evaluate<LiveProbeCheckResult, string>(
 					(vendor) => {
 						const harness = (globalThis as unknown as ProbeWindow)
@@ -514,65 +548,70 @@ async function probeVendorAttempt(
 				);
 
 				if (runtime.ok || Date.now() >= deadline) {
-					break;
+					return;
 				}
 
 				await page.waitForTimeout(RUNTIME_POLL_MS);
-			}
+				await pollRuntime();
+			};
+			await pollRuntime();
 
 			phases.runtime = runtime;
 		}
 
 		// Phase: network — informational; the route handler guarantees blocking.
 		phases.network = {
-			ok: true,
 			detail: `${blocked.length} third-party request(s) answered with an empty 204`,
+			ok: true,
 		};
 
 		return {
-			phases,
-			loader,
 			blockedRequests: blocked.length,
 			consoleErrors,
+			loader,
 			pageErrors,
+			phases,
 		};
 	} finally {
 		await context.close();
 	}
-}
+};
 
-function buildSkippedResult(config: LiveVendorProbeConfig): LiveVendorResult {
+const buildSkippedResult = function buildSkippedResult(
+	config: LiveVendorProbeConfig
+): LiveVendorResult {
 	const integration = getBuiltInScriptIntegrationByVendor(config.vendor);
 
 	return {
-		vendor: config.vendor,
-		packageSubpath: integration?.packageSubpath ?? config.vendor,
-		label: integration?.label ?? config.vendor,
-		tier: config.tier,
-		ok: true,
-		skipped: true,
-		skipReason: config.skipReason ?? 'skipped without a reason',
 		attempts: 0,
-		phases: {},
 		blockedRequests: 0,
 		consoleErrors: [],
-		pageErrors: [],
+		label: integration?.label ?? config.vendor,
 		notes: config.notes,
+		ok: true,
+		packageSubpath: integration?.packageSubpath ?? config.vendor,
+		pageErrors: [],
+		phases: {},
+		skipReason: config.skipReason ?? 'skipped without a reason',
+		skipped: true,
+		tier: config.tier,
+		vendor: config.vendor,
 	};
-}
+};
 
-async function probeVendor(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+const probeVendor = async function probeVendor(
 	browser: Browser,
 	baseUrl: string,
 	config: LiveVendorProbeConfig
 ): Promise<LiveVendorResult> {
 	const integration = getBuiltInScriptIntegrationByVendor(config.vendor);
 	const base = {
-		vendor: config.vendor,
-		packageSubpath: integration?.packageSubpath ?? config.vendor,
 		label: integration?.label ?? config.vendor,
-		tier: config.tier,
 		notes: config.notes,
+		packageSubpath: integration?.packageSubpath ?? config.vendor,
+		tier: config.tier,
+		vendor: config.vendor,
 	};
 
 	// Inspect the script node-side so the probe knows about alwaysLoad before
@@ -583,11 +622,18 @@ async function probeVendor(
 	let lastOutcome: ProbeAttemptOutcome | undefined;
 	let lastError: string | undefined;
 
-	for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+	const runAttempt = async (
+		attempt: number
+	): Promise<LiveVendorResult | undefined> => {
+		if (attempt > MAX_ATTEMPTS) {
+			return undefined;
+		}
 		if (attempt > 1) {
 			// Retries exist to absorb transient third-party failures; give the
 			// vendor endpoint a moment before hitting it again.
-			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+			await createDeferredPromise((resolve) =>
+				setTimeout(resolve, RETRY_DELAY_MS)
+			);
 		}
 
 		try {
@@ -610,44 +656,52 @@ async function probeVendor(
 		if (ok) {
 			return {
 				...base,
-				ok: true,
 				attempts: attempt,
-				phases: lastOutcome?.phases ?? {},
-				loader: lastOutcome?.loader,
 				blockedRequests: lastOutcome?.blockedRequests ?? 0,
 				consoleErrors: lastOutcome?.consoleErrors ?? [],
+				loader: lastOutcome?.loader,
+				ok: true,
 				pageErrors: lastOutcome?.pageErrors ?? [],
+				phases: lastOutcome?.phases ?? {},
 			};
 		}
+
+		return runAttempt(attempt + 1);
+	};
+
+	const successfulResult = await runAttempt(1);
+	if (successfulResult) {
+		return successfulResult;
 	}
 
 	return {
 		...base,
-		ok: false,
 		attempts: MAX_ATTEMPTS,
-		phases: lastOutcome?.phases ?? {
-			load: {
-				ok: false,
-				detail: lastError ?? 'probe failed before any phase completed',
-			},
-		},
-		loader: lastOutcome?.loader,
 		blockedRequests: lastOutcome?.blockedRequests ?? 0,
 		consoleErrors: lastOutcome?.consoleErrors ?? [],
+		loader: lastOutcome?.loader,
+		ok: false,
 		pageErrors: lastError
 			? [...(lastOutcome?.pageErrors ?? []), lastError]
 			: (lastOutcome?.pageErrors ?? []),
+		phases: lastOutcome?.phases ?? {
+			load: {
+				detail: lastError ?? 'probe failed before any phase completed',
+
+				ok: false,
+			},
+		},
 	};
-}
+};
 
 /**
  * Resolves the probe configs for a `--vendor` filter.
  *
  * @param vendors - Vendor ids from the CLI, or `undefined` for all vendors.
  * @returns The matching probe configs, in filter order.
- * @throws `Error` listing the known vendors when an id has no probe config.
+ * @throws {Error} listing the known vendors when an id has no probe config.
  */
-function resolveConfigs(
+const resolveConfigs = function resolveConfigs(
 	vendors: string[] | undefined
 ): LiveVendorProbeConfig[] {
 	if (!vendors || vendors.length === 0) {
@@ -668,9 +722,11 @@ function resolveConfigs(
 
 		return config;
 	});
-}
+};
 
-function summarizeResult(result: LiveVendorResult): string {
+const summarizeResult = function summarizeResult(
+	result: LiveVendorResult
+): string {
 	if (result.skipped) {
 		return `⏭️  ${result.vendor} skipped — ${result.skipReason}`;
 	}
@@ -680,9 +736,9 @@ function summarizeResult(result: LiveVendorResult): string {
 	}
 
 	return `❌ ${result.vendor} failed phase(s): ${failedPhases(result).join(', ')}`;
-}
+};
 
-async function main(): Promise<void> {
+const main = async function main(): Promise<void> {
 	const options = parseArgs(Bun.argv.slice(2));
 	const configs = resolveConfigs(options.vendors);
 
@@ -692,7 +748,6 @@ async function main(): Promise<void> {
 
 	const harnessJs = await buildHarnessBundle();
 	const server = Bun.serve({
-		port: 0,
 		fetch(request) {
 			const { pathname } = new URL(request.url);
 
@@ -706,6 +761,7 @@ async function main(): Promise<void> {
 				headers: { 'content-type': 'text/html; charset=utf-8' },
 			});
 		},
+		port: 0,
 	});
 	const baseUrl = `http://localhost:${server.port}`;
 
@@ -713,26 +769,25 @@ async function main(): Promise<void> {
 	const results: LiveVendorResult[] = [];
 
 	try {
-		for (const config of configs) {
-			if (config.tier === 'skip') {
-				const result = buildSkippedResult(config);
+		await forEachSequential(configs, {
+			run: async (config) => {
+				const result =
+					config.tier === 'skip'
+						? buildSkippedResult(config)
+						: await probeVendor(browser, baseUrl, config);
 				results.push(result);
 				console.log(summarizeResult(result));
-				continue;
-			}
-
-			const result = await probeVendor(browser, baseUrl, config);
-			results.push(result);
-			console.log(summarizeResult(result));
-		}
+			},
+		});
 	} finally {
 		await browser.close();
 		server.stop(true);
 	}
 
 	const report: LiveVendorReport = {
-		generatedAt: new Date().toISOString(),
 		commitSha: Bun.env.GITHUB_SHA,
+		generatedAt: new Date().toISOString(),
+		results,
 		runUrl:
 			Bun.env.GITHUB_SERVER_URL &&
 			Bun.env.GITHUB_REPOSITORY &&
@@ -740,7 +795,6 @@ async function main(): Promise<void> {
 				? `${Bun.env.GITHUB_SERVER_URL}/${Bun.env.GITHUB_REPOSITORY}/actions/runs/${Bun.env.GITHUB_RUN_ID}`
 				: undefined,
 		vendorFilter: options.vendors,
-		results,
 	};
 
 	await Bun.write(
@@ -760,6 +814,6 @@ async function main(): Promise<void> {
 	if (failed.length > 0) {
 		process.exitCode = 1;
 	}
-}
+};
 
 await main();

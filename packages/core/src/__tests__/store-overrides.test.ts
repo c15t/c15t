@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import { createConsentManagerStore } from '../store';
 
 // Mock DOM APIs needed by the store
 Object.defineProperty(global, 'document', {
 	value: {
-		querySelectorAll: vi.fn().mockReturnValue([]),
-		cookie: '',
-		readyState: 'complete',
+		addEventListener: vi.fn(),
 		body: {
 			appendChild: vi.fn(),
 			removeChild: vi.fn(),
 		},
-		addEventListener: vi.fn(),
+		cookie: '',
+		querySelectorAll: vi.fn().mockReturnValue([]),
+		readyState: 'complete',
 	},
 	writable: true,
 });
@@ -20,18 +21,17 @@ Object.defineProperty(global, 'document', {
 // Mock MutationObserver
 if (typeof global.MutationObserver === 'undefined') {
 	global.MutationObserver = class MutationObserver {
-		constructor(_callback: MutationCallback) {
-			// Mock implementation
-		}
-
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		observe(_target: Node, _options?: MutationObserverInit) {
 			// Mock implementation
 		}
 
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		disconnect() {
 			// Mock implementation
 		}
 
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		takeRecords(): MutationRecord[] {
 			return [];
 		}
@@ -39,11 +39,11 @@ if (typeof global.MutationObserver === 'undefined') {
 }
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
+	$fetch: vi.fn(),
+	identifyUser: vi.fn(),
 	init: vi.fn(),
 	setConsent: vi.fn(),
 	verifyConsent: vi.fn(),
-	identifyUser: vi.fn(),
-	$fetch: vi.fn(),
 });
 
 describe('Store setOverrides', () => {
@@ -58,8 +58,8 @@ describe('Store setOverrides', () => {
 	it('should set overrides when called', () => {
 		const overrides = {
 			country: 'DE',
-			region: 'BE',
 			language: 'de',
+			region: 'BE',
 		};
 
 		store.getState().setOverrides(overrides);
@@ -71,8 +71,8 @@ describe('Store setOverrides', () => {
 		// Set initial overrides
 		store.getState().setOverrides({
 			country: 'DE',
-			region: 'BE',
 			language: 'de',
+			region: 'BE',
 		});
 
 		// Update only country
@@ -82,8 +82,8 @@ describe('Store setOverrides', () => {
 
 		expect(store.getState().overrides).toEqual({
 			country: 'FR',
-			region: 'BE',
 			language: 'de',
+			region: 'BE',
 		});
 	});
 
@@ -139,8 +139,8 @@ describe('Store setOverrides', () => {
 
 		expect(store.getState().overrides).toEqual({
 			country: 'DE',
-			region: 'BE',
 			language: 'de',
+			region: 'BE',
 		});
 	});
 

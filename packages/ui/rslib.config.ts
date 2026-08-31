@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
@@ -6,12 +7,6 @@ import {
 } from '../shared/rslib-utils';
 
 export default defineConfig({
-	source: {
-		entry: {
-			index: standardSourceEntries,
-		},
-		exclude: standardExcludePatterns,
-	},
 	lib: [
 		{
 			bundle: false,
@@ -22,17 +17,23 @@ export default defineConfig({
 		},
 	],
 	output: {
-		target: 'web',
 		cleanDistPath: true,
 		cssModules: {
 			auto: true,
-			localIdentName: 'c15t-ui-[local]-[hash:base64:5]',
 			exportLocalsConvention: 'camelCase',
+			localIdentName: 'c15t-ui-[local]-[hash:base64:5]',
 		},
 		injectStyles: false,
 		minify: {
 			css: true,
 		},
+		target: 'web',
+	},
+	source: {
+		entry: {
+			index: standardSourceEntries,
+		},
+		exclude: standardExcludePatterns,
 	},
 	tools: {
 		rspack: {

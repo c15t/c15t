@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { resolveUrl } from '../fetcher';
 
 describe('resolveUrl', () => {
@@ -159,7 +160,7 @@ describe('resolveUrl', () => {
 			const pathSlashes = '/'.repeat(50);
 			const result = resolveUrl(
 				`https://api.example.com${baseSlashes}`,
-				pathSlashes + 'users'
+				`${pathSlashes}users`
 			);
 			expect(result).toBe('https://api.example.com/users');
 		});

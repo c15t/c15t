@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import type { SetConsentRequestBody } from '../../client/client-interface';
 import type { ResponseContext } from '../../client/types';
 import type { InitDataSource, SSRInitialData } from '../../store/type';
 import {
@@ -14,13 +15,16 @@ import {
 	matchesStoredRequestContext,
 } from '../request-context';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
-import {
-	PENDING_CONSENT_SYNC_KEY,
-	type PendingConsentSync,
-} from '../save-consents';
+import { PENDING_CONSENT_SYNC_KEY } from '../save-consents';
+import type { PendingConsentSync } from '../save-consents';
 import { updateStore } from './store-updater';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 import { checkLocalStorageAccess } from './utils';
+// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+let inspectBackendCache: (headers: Headers) => {
+	isCacheHit: boolean;
+	detail: string | null;
+};
 
 // Re-export types for external use
 export type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
@@ -30,7 +34,7 @@ interface InitSourceMetadata {
 	initDataSourceDetail: string | null;
 }
 
-function shouldReuseSSRData(
+const shouldReuseSSRData = function shouldReuseSSRData(
 	config: InitConsentManagerConfig,
 	data: SSRInitialData
 ): boolean {
@@ -41,73 +45,56 @@ function shouldReuseSSRData(
 
 	const matcher = createRuntimeRequestContextMatcher({
 		backendURL: config.backendURL,
-		overrides: config.get().overrides,
 		credentials: config.requestCredentials,
+		overrides: config.get().overrides,
 	});
 	if (!matcher) {
 		return true;
 	}
 
 	return matchesStoredRequestContext(requestContext, matcher);
-}
+};
 
-/**
- * Initializes the consent manager by fetching jurisdiction, location,
- * translations, and branding information.
- *
- * This function handles:
- * - SSR data hydration (uses prefetched data if available)
- * - Client-side API fetching (fallback when no SSR data)
- * - Store state updates
- * - Callback triggers
- * - IAB TCF mode initialization (if enabled)
- *
- * @param config - Configuration object containing store and manager instances
- * @returns A promise that resolves with the consent banner response
- *
- * @example
- * ```typescript
- * const response = await initConsentManager({
- *   manager: consentManager,
- *   get: store.getState,
- *   set: store.setState,
- *   ssrData: ssrPrefetchedData,
- * });
- * ```
- */
-export async function initConsentManager(
-	config: InitConsentManagerConfig
-): Promise<ConsentBannerResponse | undefined> {
-	const { get, set, manager } = config;
-	const { callbacks } = get();
+const inferSSRInitSourceMetadata = function inferSSRInitSourceMetadata(
+	data: SSRInitialData
+): InitSourceMetadata {
+	const cache = data.metadata?.cache;
+	const requestDurationMs = data.metadata?.requestDurationMs;
+	const detailParts: string[] = ['via=ssr'];
 
-	// Skip on server-side
-	if (typeof window === 'undefined') {
-		return undefined;
+	if (cache?.detail) {
+		detailParts.push(cache.detail);
+	}
+	if (
+		typeof requestDurationMs === 'number' &&
+		Number.isFinite(requestDurationMs)
+	) {
+		detailParts.push(
+			`duration=${Math.max(0, Math.round(requestDurationMs))}ms`
+		);
 	}
 
-	// Check if localStorage is available
-	const hasLocalStorageAccess = checkLocalStorageAccess(set);
-	if (!hasLocalStorageAccess) {
-		return undefined;
+	const detail = detailParts.length > 0 ? detailParts.join(', ') : null;
+
+	if (cache?.isHit === true) {
+		return {
+			initDataSource: 'backend-cache-hit',
+			initDataSourceDetail: detail,
+		};
 	}
 
-	set({ isLoadingConsentInfo: true });
-
-	// Process any pending consent sync from a previous page reload
-	// This fires the API call that was deferred when consent was revoked
-	processPendingConsentSync(manager, callbacks);
-
-	// Try to use SSR-prefetched data first
-	const ssrResult = await tryUseSSRData(config);
-
-	if (ssrResult) {
-		return ssrResult;
+	if (cache) {
+		return {
+			initDataSource: 'backend',
+			initDataSourceDetail: detail,
+		};
 	}
 
-	// Fall back to client-side API fetch
-	return fetchFromAPI(config, hasLocalStorageAccess, manager, callbacks);
-}
+	return {
+		initDataSource: 'ssr',
+		initDataSourceDetail: detail,
+	};
+};
 
 /**
  * Attempts to use SSR-prefetched data if available.
@@ -115,7 +102,7 @@ export async function initConsentManager(
  * @param config - Init configuration
  * @returns The init data if SSR data was used, undefined otherwise
  */
-async function tryUseSSRData(
+const tryUseSSRData = async function tryUseSSRData(
 	config: InitConsentManagerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { ssrData, set } = config;
@@ -144,7 +131,39 @@ async function tryUseSSRData(
 
 	set({ ssrDataUsed: false, ssrSkippedReason: 'fetch_failed' });
 	return undefined;
-}
+};
+
+const inferInitSourceMetadata = function inferInitSourceMetadata(
+	initContext: Pick<ResponseContext<ConsentBannerResponse>, 'response'> | null,
+	mode: string
+): InitSourceMetadata {
+	const response = initContext?.response ?? null;
+	if (response) {
+		const cache = inspectBackendCache(response.headers);
+		if (cache.isCacheHit) {
+			return {
+				initDataSource: 'backend-cache-hit',
+				initDataSourceDetail: cache.detail,
+			};
+		}
+		return {
+			initDataSource: 'backend',
+			initDataSourceDetail: cache.detail,
+		};
+	}
+
+	if (mode === 'offline') {
+		return { initDataSource: 'offline-mode', initDataSourceDetail: null };
+	}
+	if (mode === 'custom') {
+		return { initDataSource: 'custom', initDataSourceDetail: null };
+	}
+	if (mode === 'hosted' || mode === 'c15t') {
+		return { initDataSource: 'offline-fallback', initDataSourceDetail: null };
+	}
+
+	return { initDataSource: 'backend', initDataSourceDetail: null };
+};
 
 /**
  * Fetches consent data from the API.
@@ -155,7 +174,7 @@ async function tryUseSSRData(
  * @param callbacks - Store callbacks
  * @returns The consent banner response or undefined on error
  */
-async function fetchFromAPI(
+const fetchFromAPI = async function fetchFromAPI(
 	config: InitConsentManagerConfig,
 	hasLocalStorageAccess: boolean,
 	manager: InitConsentManagerConfig['manager'],
@@ -206,7 +225,7 @@ async function fetchFromAPI(
 	} catch (error) {
 		console.error('Error fetching consent banner information:', error);
 
-		set({ isLoadingConsentInfo: false, activeUI: 'none' as const });
+		set({ activeUI: 'none' as const, isLoadingConsentInfo: false });
 
 		const errorMessage =
 			error instanceof Error
@@ -216,121 +235,7 @@ async function fetchFromAPI(
 
 		return undefined;
 	}
-}
-
-function inferInitSourceMetadata(
-	initContext: Pick<ResponseContext<ConsentBannerResponse>, 'response'> | null,
-	mode: string
-): InitSourceMetadata {
-	const response = initContext?.response ?? null;
-	if (response) {
-		const cache = inspectBackendCache(response.headers);
-		if (cache.isCacheHit) {
-			return {
-				initDataSource: 'backend-cache-hit',
-				initDataSourceDetail: cache.detail,
-			};
-		}
-		return {
-			initDataSource: 'backend',
-			initDataSourceDetail: cache.detail,
-		};
-	}
-
-	if (mode === 'offline') {
-		return { initDataSource: 'offline-mode', initDataSourceDetail: null };
-	}
-	if (mode === 'custom') {
-		return { initDataSource: 'custom', initDataSourceDetail: null };
-	}
-	if (mode === 'hosted' || mode === 'c15t') {
-		return { initDataSource: 'offline-fallback', initDataSourceDetail: null };
-	}
-
-	return { initDataSource: 'backend', initDataSourceDetail: null };
-}
-
-function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
-	const cache = data.metadata?.cache;
-	const requestDurationMs = data.metadata?.requestDurationMs;
-	const detailParts: string[] = ['via=ssr'];
-
-	if (cache?.detail) {
-		detailParts.push(cache.detail);
-	}
-	if (
-		typeof requestDurationMs === 'number' &&
-		Number.isFinite(requestDurationMs)
-	) {
-		detailParts.push(
-			`duration=${Math.max(0, Math.round(requestDurationMs))}ms`
-		);
-	}
-
-	const detail = detailParts.length > 0 ? detailParts.join(', ') : null;
-
-	if (cache?.isHit === true) {
-		return {
-			initDataSource: 'backend-cache-hit',
-			initDataSourceDetail: detail,
-		};
-	}
-
-	if (cache) {
-		return {
-			initDataSource: 'backend',
-			initDataSourceDetail: detail,
-		};
-	}
-
-	return {
-		initDataSource: 'ssr',
-		initDataSourceDetail: detail,
-	};
-}
-
-function inspectBackendCache(headers: Headers): {
-	isCacheHit: boolean;
-	detail: string | null;
-} {
-	const cacheHeaders = [
-		'x-vercel-cache',
-		'cf-cache-status',
-		'x-cache',
-		'cache-status',
-	] as const;
-
-	let headerDetail: string | null = null;
-	let headerIndicatesHit = false;
-
-	for (const headerName of cacheHeaders) {
-		const headerValue = headers.get(headerName);
-		if (!headerValue) {
-			continue;
-		}
-
-		headerDetail = `${headerName}=${headerValue}`;
-		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/i.test(
-			headerValue
-		);
-		break;
-	}
-
-	const ageHeader = headers.get('age');
-	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
-	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
-	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
-
-	const detail =
-		headerDetail && ageDetail
-			? `${headerDetail}, ${ageDetail}`
-			: (headerDetail ?? ageDetail);
-
-	return {
-		isCacheHit: headerIndicatesHit || ageIndicatesCache,
-		detail,
-	};
-}
+};
 
 /**
  * Processes any pending consent sync from a previous page reload.
@@ -342,7 +247,7 @@ function inspectBackendCache(headers: Headers): {
  * @param manager - Consent manager client
  * @param callbacks - Store callbacks for error handling
  */
-function processPendingConsentSync(
+const processPendingConsentSync = function processPendingConsentSync(
 	manager: InitConsentManagerConfig['manager'],
 	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
 ): void {
@@ -362,24 +267,30 @@ function processPendingConsentSync(
 				identityProvider: data.identityProvider,
 			});
 
+		const consentBody: SetConsentRequestBody = {
+			domain: data.domain,
+			givenAt: data.givenAt,
+			jurisdiction: data.jurisdiction,
+			jurisdictionModel: data.jurisdictionModel ?? undefined,
+			policySnapshotToken: data.policySnapshotToken,
+			preferences: data.preferences,
+			subjectId: data.subjectId,
+			type: 'cookie_banner',
+			uiSource: data.uiSource ?? 'api',
+		};
+		if (externalSubjectId) {
+			consentBody.externalSubjectId = externalSubjectId;
+		}
+		if (identityProvider) {
+			consentBody.identityProvider = identityProvider;
+		}
+
 		// Fire API call (non-blocking)
-		manager
-			.setConsent({
-				body: {
-					type: 'cookie_banner',
-					domain: data.domain,
-					preferences: data.preferences,
-					subjectId: data.subjectId,
-					jurisdiction: data.jurisdiction,
-					jurisdictionModel: data.jurisdictionModel ?? undefined,
-					givenAt: data.givenAt,
-					uiSource: data.uiSource ?? 'api',
-					policySnapshotToken: data.policySnapshotToken,
-					...(externalSubjectId ? { externalSubjectId } : {}),
-					...(identityProvider ? { identityProvider } : {}),
-				},
-			})
-			.then((result) => {
+		void (async () => {
+			try {
+				const result = await manager.setConsent({
+					body: consentBody,
+				});
 				if (!result.ok) {
 					const errorMsg =
 						result.error?.message ?? 'Failed to sync consent after reload';
@@ -388,8 +299,7 @@ function processPendingConsentSync(
 						console.error('Failed to sync consent after reload:', errorMsg);
 					}
 				}
-			})
-			.catch((err) => {
+			} catch (err) {
 				const errorMsg =
 					err instanceof Error
 						? err.message
@@ -398,9 +308,113 @@ function processPendingConsentSync(
 				if (!callbacks.onError) {
 					console.error('Failed to sync consent after reload:', err);
 				}
-			});
+			}
+		})();
 	} catch {
 		// localStorage might be unavailable or data might be corrupted
 		// Silently ignore - consent is already persisted locally
 	}
-}
+};
+
+inspectBackendCache = (
+	headers: Headers
+): {
+	isCacheHit: boolean;
+	detail: string | null;
+} => {
+	const cacheHeaders = [
+		'x-vercel-cache',
+		'cf-cache-status',
+		'x-cache',
+		'cache-status',
+	] as const;
+
+	let headerDetail: string | null = null;
+	let headerIndicatesHit = false;
+
+	for (const headerName of cacheHeaders) {
+		const headerValue = headers.get(headerName);
+		if (!headerValue) {
+			continue;
+		}
+
+		headerDetail = `${headerName}=${headerValue}`;
+		headerIndicatesHit = /\b(?:hit|stale|revalidated|updating)\b/iu.test(
+			headerValue
+		);
+		break;
+	}
+
+	const ageHeader = headers.get('age');
+	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
+	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
+	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
+
+	const detail =
+		headerDetail && ageDetail
+			? `${headerDetail}, ${ageDetail}`
+			: (headerDetail ?? ageDetail);
+
+	return {
+		detail,
+		isCacheHit: headerIndicatesHit || ageIndicatesCache,
+	};
+};
+
+/**
+ * Initializes the consent manager by fetching jurisdiction, location,
+ * translations, and branding information.
+ *
+ * This function handles:
+ * - SSR data hydration (uses prefetched data if available)
+ * - Client-side API fetching (fallback when no SSR data)
+ * - Store state updates
+ * - Callback triggers
+ * - IAB TCF mode initialization (if enabled)
+ *
+ * @param config - Configuration object containing store and manager instances
+ * @returns A promise that resolves with the consent banner response
+ *
+ * @example
+ * ```typescript
+ * const response = await initConsentManager({
+ *   manager: consentManager,
+ *   get: store.getState,
+ *   set: store.setState,
+ *   ssrData: ssrPrefetchedData,
+ * });
+ * ```
+ */
+export const initConsentManager = async function initConsentManager(
+	config: InitConsentManagerConfig
+): Promise<ConsentBannerResponse | undefined> {
+	const { get, set, manager } = config;
+	const { callbacks } = get();
+
+	// Skip on server-side
+	if (typeof window === 'undefined') {
+		return undefined;
+	}
+
+	// Check if localStorage is available
+	const hasLocalStorageAccess = checkLocalStorageAccess(set);
+	if (!hasLocalStorageAccess) {
+		return undefined;
+	}
+
+	set({ isLoadingConsentInfo: true });
+
+	// Process any pending consent sync from a previous page reload
+	// This fires the API call that was deferred when consent was revoked
+	processPendingConsentSync(manager, callbacks);
+
+	// Try to use SSR-prefetched data first
+	const ssrResult = await tryUseSSRData(config);
+
+	if (ssrResult) {
+		return ssrResult;
+	}
+
+	// Fall back to client-side API fetch
+	return fetchFromAPI(config, hasLocalStorageAccess, manager, callbacks);
+};

@@ -22,7 +22,9 @@
  *
  * Returns null for any other scheme, a malformed header, or an empty token.
  */
-export function extractBearerToken(authHeader: string | null): string | null {
+export const extractBearerToken = function extractBearerToken(
+	authHeader: string | null
+): string | null {
 	if (!authHeader) {
 		return null;
 	}
@@ -33,26 +35,30 @@ export function extractBearerToken(authHeader: string | null): string | null {
 	}
 
 	return parts[1] || null;
-}
+};
 
 /** Constant-time comparison for equal-length strings. */
-function timingSafeEqual(a: string, b: string): boolean {
+const timingSafeEqual = function timingSafeEqual(
+	a: string,
+	b: string
+): boolean {
 	if (a.length !== b.length) {
 		// Still iterate, so a length mismatch does not return measurably
 		// faster than a content mismatch.
-		let result = 0;
-		for (let index = 0; index < a.length; index++) {
-			result |= a.charCodeAt(index) ^ (b.charCodeAt(index % b.length) || 0);
+		let mismatch = false;
+		for (let index = 0; index < a.length; index += 1) {
+			const compared = b.charCodeAt(index % b.length) || 0;
+			mismatch = a.charCodeAt(index) !== compared || mismatch;
 		}
 		return false;
 	}
 
-	let result = 0;
-	for (let index = 0; index < a.length; index++) {
-		result |= a.charCodeAt(index) ^ b.charCodeAt(index);
+	let mismatch = false;
+	for (let index = 0; index < a.length; index += 1) {
+		mismatch = a.charCodeAt(index) !== b.charCodeAt(index) || mismatch;
 	}
-	return result === 0;
-}
+	return !mismatch;
+};
 
 /**
  * Checks a token against the configured keys.
@@ -60,7 +66,7 @@ function timingSafeEqual(a: string, b: string): boolean {
  * With no keys configured this returns false rather than true: an unconfigured
  * deployment authenticates nobody, instead of everybody.
  */
-export function validateApiKey(
+export const validateApiKey = function validateApiKey(
 	token: string | null,
 	validKeys: readonly string[] | undefined
 ): boolean {
@@ -69,10 +75,10 @@ export function validateApiKey(
 	}
 
 	return validKeys.some((key) => timingSafeEqual(token, key));
-}
+};
 
 /** Whether a request carries a valid API key. */
-export function validateRequestAuth(
+export const validateRequestAuth = function validateRequestAuth(
 	headers: Headers | undefined,
 	validKeys: readonly string[] | undefined
 ): boolean {
@@ -84,4 +90,4 @@ export function validateRequestAuth(
 		extractBearerToken(headers.get('Authorization')),
 		validKeys
 	);
-}
+};

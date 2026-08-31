@@ -3,6 +3,7 @@ import { Button, Dialog, Switch } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const meta = {
@@ -99,11 +100,17 @@ export const Default: Story = {
 								{consentTypes.measurement.description}
 							</div>
 						</div>
-						<Switch.Root aria-label="Enable analytics cookies" defaultChecked />
+						<Switch.Root
+							aria-label="Enable analytics cookies"
+							defaultChecked
+						/>
 					</div>
 					<div style={footerStyle}>
 						<Dialog.Close asChild>
-							<Button.Root variant="neutral" mode="ghost">
+							<Button.Root
+								variant="neutral"
+								mode="ghost"
+							>
 								{common.rejectAll}
 							</Button.Root>
 						</Dialog.Close>
@@ -123,7 +130,10 @@ export const Controlled: Story = {
 			const [open, setOpen] = useState(true);
 
 			return (
-				<Dialog.Root open={open} onOpenChange={setOpen}>
+				<Dialog.Root
+					open={open}
+					onOpenChange={setOpen}
+				>
 					<div style={triggerWrapStyle}>
 						<Button.Root onClick={() => setOpen(true)}>
 							Re-open dialog

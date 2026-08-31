@@ -1,6 +1,8 @@
 import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 /**
  * Microsoft Clarity Consent V2 storage state.
@@ -42,16 +44,15 @@ export type ClarityConsentValue =
 			>
 	  >;
 
-type ClarityFunction = {
+interface ClarityFunction {
 	(command: 'consent', value?: boolean): void;
 	(command: 'consentv2', value: ClarityConsentV2Payload): void;
-	(command: 'event', value: string): void;
+	(command: 'event' | 'upgrade', value: string): void;
 	(command: 'identify', id: string, session?: string, page?: string): unknown;
 	(command: 'set', key: string, value: string | string[]): void;
 	(command: 'start', options?: Record<string, unknown>): void;
-	(command: 'upgrade', reason: string): void;
 	(command: string, ...args: unknown[]): unknown;
-};
+}
 
 declare global {
 	interface Window {
@@ -66,7 +67,7 @@ declare global {
  *
  * @internal
  */
-function toClarityConsentState(
+const toClarityConsentState = function toClarityConsentState(
 	value: unknown
 ): ClarityConsentState | undefined {
 	if (value === true) {
@@ -91,9 +92,9 @@ function toClarityConsentState(
 	}
 
 	return undefined;
-}
+};
 
-function getConsentValue(
+const getConsentValue = function getConsentValue(
 	value: Record<string, unknown>,
 	keys: string[]
 ): ClarityConsentState | undefined {
@@ -105,9 +106,9 @@ function getConsentValue(
 	}
 
 	return undefined;
-}
+};
 
-function getConsentPayloadFromState(
+const getConsentPayloadFromState = function getConsentPayloadFromState(
 	consents: ConsentState
 ): ClarityConsentV2Payload {
 	let adStorage: ClarityConsentState;
@@ -128,14 +129,14 @@ function getConsentPayloadFromState(
 		ad_Storage: adStorage,
 		analytics_Storage: analyticsStorage,
 	};
-}
+};
 
 /**
  * Builds the Consent V2 payload for Clarity from c15t state and overrides.
  *
  * @internal
  */
-function getClarityConsentPayload(
+const getClarityConsentPayload = function getClarityConsentPayload(
 	consents: ConsentState,
 	defaultConsent?: ClarityConsentValue
 ): ClarityConsentV2Payload {
@@ -172,14 +173,14 @@ function getClarityConsentPayload(
 	}
 
 	return fallback;
-}
+};
 
 /**
  * Queues or sends the current Clarity Consent V2 payload.
  *
  * @internal
  */
-function syncClarityConsent(
+const syncClarityConsent = function syncClarityConsent(
 	info: ScriptCallbackInfo,
 	defaultConsent?: ClarityConsentValue
 ): void {
@@ -187,7 +188,7 @@ function syncClarityConsent(
 		'consentv2',
 		getClarityConsentPayload(info.consents, defaultConsent)
 	);
-}
+};
 
 /**
  * Microsoft Clarity vendor manifest.
@@ -197,27 +198,29 @@ function syncClarityConsent(
  */
 export const clarityManifest = {
 	...vendorManifestContract,
-	vendor: 'microsoft-clarity',
-	category: 'measurement',
-	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
+			ifUndefined: true,
+
 			name: 'clarity',
 			queue: {
 				property: 'q',
 			},
 			queueFormat: 'array',
-			ifUndefined: true,
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	persistAfterConsentRevoked: true,
+	vendor: 'microsoft-clarity',
 } as const satisfies VendorManifest;
 
 export interface ClarityOptions {
@@ -249,7 +252,7 @@ export interface ClarityOptions {
  * override is provided. Provide a valid Clarity project id string to prevent
  * this error.
  */
-export function clarity({
+export const clarity = function clarity({
 	id,
 	defaultConsent,
 	scriptUrl,
@@ -265,8 +268,8 @@ export function clarity({
 	const resolved = resolveManifest(clarityManifest, {
 		scriptUrl: scriptUrl ?? `https://www.clarity.ms/tag/${normalizedId}`,
 	});
-	const onBeforeLoad = resolved.onBeforeLoad;
-	const onConsentChange = resolved.onConsentChange;
+	const { onBeforeLoad } = resolved;
+	const { onConsentChange } = resolved;
 
 	return {
 		...resolved,
@@ -279,4 +282,4 @@ export function clarity({
 			syncClarityConsent(info);
 		},
 	};
-}
+};

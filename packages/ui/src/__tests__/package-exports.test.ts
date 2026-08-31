@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+
 import { describe, expect, test } from 'vitest';
 
 const COMPONENT_CSS_MODULES = [
@@ -39,6 +40,7 @@ const STYLE_LOADER_MARKERS = [
  */
 describe('package exports: .module.css resolves to CSS assets in dist/', () => {
 	for (const name of COMPONENT_CSS_MODULES) {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		test(`@c15t/ui/styles/components/${name}.module.css → dist CSS asset`, async () => {
 			const subpath = `./styles/components/${name}.module.css`;
 			const resolved = import.meta.resolve(`@c15t/ui/${subpath.slice(2)}`);
@@ -49,13 +51,14 @@ describe('package exports: .module.css resolves to CSS assets in dist/', () => {
 			expect(resolvedPath).not.toContain('/src/');
 
 			// Must be a real CSS file, not a JS bundle
-			expect(resolvedPath).toMatch(/\.module\.css$/);
+			expect(resolvedPath).toMatch(/\.module\.css$/u);
 		});
 	}
 });
 
 describe('package exports: .module.js resolves to JS class maps in dist/', () => {
 	for (const name of COMPONENT_CSS_MODULES) {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		test(`@c15t/ui/styles/components/${name}.module.js → dist JS class map`, async () => {
 			const resolved = import.meta.resolve(
 				`@c15t/ui/styles/components/${name}.module.js`
@@ -64,11 +67,13 @@ describe('package exports: .module.js resolves to JS class maps in dist/', () =>
 
 			expect(resolvedPath).toContain('/dist/');
 			expect(resolvedPath).not.toContain('/src/');
-			expect(resolvedPath).toMatch(/\.module\.(js|cjs)$/);
+			// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+			expect(resolvedPath).toMatch(/\.module\.(js|cjs)$/u);
 		});
 	}
 
 	for (const name of PRIMITIVE_CSS_MODULES) {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		test(`@c15t/ui/styles/primitives/${name}.module.js → dist JS class map`, async () => {
 			const resolved = import.meta.resolve(
 				`@c15t/ui/styles/primitives/${name}.module.js`
@@ -77,13 +82,15 @@ describe('package exports: .module.js resolves to JS class maps in dist/', () =>
 
 			expect(resolvedPath).toContain('/dist/');
 			expect(resolvedPath).not.toContain('/src/');
-			expect(resolvedPath).toMatch(/\.module\.(js|cjs)$/);
+			// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+			expect(resolvedPath).toMatch(/\.module\.(js|cjs)$/u);
 		});
 	}
 });
 
 describe('package exports: .module.js files contain no style-loader runtime', () => {
 	for (const name of COMPONENT_CSS_MODULES) {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		test(`components/${name}.module.js has no style-injection runtime`, async () => {
 			const resolved = import.meta.resolve(
 				`@c15t/ui/styles/components/${name}.module.js`
@@ -98,6 +105,7 @@ describe('package exports: .module.js files contain no style-loader runtime', ()
 	}
 
 	for (const name of PRIMITIVE_CSS_MODULES) {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		test(`primitives/${name}.module.js has no style-injection runtime`, async () => {
 			const resolved = import.meta.resolve(
 				`@c15t/ui/styles/primitives/${name}.module.js`

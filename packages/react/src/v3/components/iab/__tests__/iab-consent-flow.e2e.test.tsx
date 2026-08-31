@@ -5,14 +5,16 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
+
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
-	addCMPEventListener,
 	clearConsentState,
 	defaultIABOptions,
 	getCMPTCData,
@@ -271,13 +273,11 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener
-			let callCount = 0;
 			const events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
-					callCount++;
 					events.push(data.eventStatus);
 				});
 			}

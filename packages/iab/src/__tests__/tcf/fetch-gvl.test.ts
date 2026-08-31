@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { clearGVLCache, fetchGVL, getCachedGVL } from '../../tcf/fetch-gvl';
 import { setupFetchMock } from './test-setup';
 
@@ -70,10 +71,10 @@ describe('GVL Fetching', () => {
 		it('should throw on fetch failure', async () => {
 			fetchMock.cleanup();
 			fetchMock = {
+				cleanup: () => {},
 				mockFetch: vi.fn(() =>
 					Promise.resolve(new Response(null, { status: 500 }))
 				),
-				cleanup: () => {},
 			};
 			globalThis.fetch = fetchMock.mockFetch as typeof fetch;
 
@@ -83,12 +84,12 @@ describe('GVL Fetching', () => {
 		it('should throw on invalid GVL response', async () => {
 			fetchMock.cleanup();
 			fetchMock = {
+				cleanup: () => {},
 				mockFetch: vi.fn(() =>
 					Promise.resolve(
 						new Response(JSON.stringify({ invalid: 'data' }), { status: 200 })
 					)
 				),
-				cleanup: () => {},
 			};
 			globalThis.fetch = fetchMock.mockFetch as typeof fetch;
 
@@ -98,10 +99,10 @@ describe('GVL Fetching', () => {
 		it('should return null for 204 response (non-IAB region)', async () => {
 			fetchMock.cleanup();
 			fetchMock = {
+				cleanup: () => {},
 				mockFetch: vi.fn(() =>
 					Promise.resolve(new Response(null, { status: 204 }))
 				),
-				cleanup: () => {},
 			};
 			globalThis.fetch = fetchMock.mockFetch as typeof fetch;
 
@@ -166,10 +167,10 @@ describe('GVL Fetching', () => {
 		it('should return null after fetch returns 204', async () => {
 			fetchMock.cleanup();
 			fetchMock = {
+				cleanup: () => {},
 				mockFetch: vi.fn(() =>
 					Promise.resolve(new Response(null, { status: 204 }))
 				),
-				cleanup: () => {},
 			};
 			globalThis.fetch = fetchMock.mockFetch as typeof fetch;
 

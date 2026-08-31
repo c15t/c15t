@@ -1,15 +1,12 @@
 'use client';
 
 import { ConsentManagerProvider, useConsentManager } from '@c15t/react';
-import { useEffect, useMemo, useRef } from 'react';
-import {
-	createInitialBenchState,
-	listDomIds,
-	makeScripts,
-	type ScriptCountBenchState,
-} from './fixtures';
+import { useEffect, useMemo, useState } from 'react';
 
-function publish(
+import { createInitialBenchState, listDomIds, makeScripts } from './fixtures';
+import type { ScriptCountBenchState } from './fixtures';
+
+const publish = function publish(
 	state: ScriptCountBenchState,
 	patch: Partial<Omit<ScriptCountBenchState, 'recordScriptExecution'>>
 ) {
@@ -18,19 +15,16 @@ function publish(
 	(
 		window as unknown as { __c15tScriptBench?: ScriptCountBenchState }
 	).__c15tScriptBench = state;
-}
+};
 
-function V2Probe({ count }: { count: number }) {
+const V2Probe = ({ count }: { count: number }) => {
 	const consent = useConsentManager();
-	const benchRef = useRef<ScriptCountBenchState | null>(null);
-
-	if (!benchRef.current) {
-		benchRef.current = createInitialBenchState('v2', count);
-	}
+	const [bench, setBench] = useState(() =>
+		createInitialBenchState('v2', count)
+	);
+	void setBench;
 
 	useEffect(() => {
-		const bench = benchRef.current;
-		if (!bench) return;
 		window.__c15tScriptCountBench = bench;
 		publish(bench, {
 			activeUI: consent.activeUI,
@@ -38,14 +32,12 @@ function V2Probe({ count }: { count: number }) {
 		});
 
 		window.__c15tGetScriptCountBenchState = () => {
-			const bench = benchRef.current;
-			if (!bench) return null;
 			publish(bench, {
 				activeUI: consent.activeUI,
+				domIds: listDomIds(count),
 				loadedIds: consent
 					.getLoadedScriptIds()
 					.sort((left, right) => left.localeCompare(right)),
-				domIds: listDomIds(count),
 			});
 			return bench;
 		};
@@ -55,21 +47,18 @@ function V2Probe({ count }: { count: number }) {
 				delete window.__c15tGetScriptCountBenchState;
 			}
 		};
-	}, [consent, count]);
+	}, [bench, consent, count]);
 
 	return (
 		<>
 			<button
 				id="run-script-count"
 				onClick={() => {
-					const bench = benchRef.current;
-					if (bench) {
-						publish(bench, {
-							actionStartedAtMs: performance.now(),
-							completedAtMs: null,
-							complete: false,
-						});
-					}
+					publish(bench, {
+						actionStartedAtMs: performance.now(),
+						complete: false,
+						completedAtMs: null,
+					});
 					void consent.saveConsents('all');
 				}}
 				type="button"
@@ -79,9 +68,9 @@ function V2Probe({ count }: { count: number }) {
 			<pre id="script-count-state">ready</pre>
 		</>
 	);
-}
+};
 
-export function V2ScriptCountPage({ count }: { count: number }) {
+export const V2ScriptCountPage = ({ count }: { count: number }) => {
 	const scripts = useMemo(() => makeScripts(count), [count]);
 
 	return (
@@ -94,11 +83,11 @@ export function V2ScriptCountPage({ count }: { count: number }) {
 				},
 			}}
 		>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 				<h1>v2 @c15t/react script count benchmark</h1>
 				<p>Scripts: {count}</p>
 				<V2Probe count={count} />
 			</main>
 		</ConsentManagerProvider>
 	);
-}
+};

@@ -1,14 +1,16 @@
-type SubjectIdentifiers = {
+interface SubjectIdentifiers {
 	externalId?: unknown;
 	identityProvider?: unknown;
-};
+}
 
-type SanitizedSubjectIdentifiers = {
+interface SanitizedSubjectIdentifiers {
 	externalId?: string;
 	identityProvider?: string;
-};
+}
 
-function sanitizeIdentifier(value: unknown): string | undefined {
+const sanitizeIdentifier = function sanitizeIdentifier(
+	value: unknown
+): string | undefined {
 	if (typeof value !== 'string') {
 		return undefined;
 	}
@@ -24,7 +26,7 @@ function sanitizeIdentifier(value: unknown): string | undefined {
 	}
 
 	return normalized;
-}
+};
 
 /**
  * Sanitizes optional subject identifiers loaded from storage or request state.
@@ -32,14 +34,19 @@ function sanitizeIdentifier(value: unknown): string | undefined {
  * Treats nullish values, empty strings, and serialized sentinel strings from
  * previous buggy writes as absent fields.
  */
-export function sanitizeSubjectIdentifiers(
+export const sanitizeSubjectIdentifiers = function sanitizeSubjectIdentifiers(
 	identifiers: SubjectIdentifiers
 ): SanitizedSubjectIdentifiers {
 	const externalId = sanitizeIdentifier(identifiers.externalId);
 	const identityProvider = sanitizeIdentifier(identifiers.identityProvider);
+	const sanitized: SanitizedSubjectIdentifiers = {};
 
-	return {
-		...(externalId ? { externalId } : {}),
-		...(identityProvider ? { identityProvider } : {}),
-	};
-}
+	if (externalId) {
+		sanitized.externalId = externalId;
+	}
+	if (identityProvider) {
+		sanitized.identityProvider = identityProvider;
+	}
+
+	return sanitized;
+};

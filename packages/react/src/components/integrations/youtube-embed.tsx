@@ -1,14 +1,11 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import {
-	type ComponentPropsWithRef,
-	type CSSProperties,
-	forwardRef,
-	type ReactNode,
-	useState,
-} from 'react';
-import { Frame, type FrameProps } from '../frame';
+import { forwardRef as createForwardRef, useState } from 'react';
+import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
+
+import { Frame } from '../frame';
+import type { FrameProps } from '../frame';
 import { IntegrationStatus } from './shared';
 
 export type YouTubeEmbedParams = Record<
@@ -16,8 +13,10 @@ export type YouTubeEmbedParams = Record<
 	string | number | boolean | null | undefined
 >;
 
-interface YouTubeEmbedBaseProps
-	extends Omit<ComponentPropsWithRef<'iframe'>, 'children' | 'src' | 'title'> {
+interface YouTubeEmbedBaseProps extends Omit<
+	ComponentPropsWithRef<'iframe'>,
+	'children' | 'src' | 'title'
+> {
 	/**
 	 * Accessible title for the embedded player.
 	 */
@@ -109,7 +108,7 @@ export interface YouTubeSrcSource {
 export type YouTubeEmbedProps = YouTubeEmbedBaseProps &
 	(YouTubeVideoIdSource | YouTubeSrcSource);
 
-function buildYouTubeEmbedUrl({
+const buildYouTubeEmbedUrl = function buildYouTubeEmbedUrl({
 	videoId,
 	privacyEnhanced,
 	start,
@@ -124,7 +123,7 @@ function buildYouTubeEmbedUrl({
 
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {
-			if (value != null) {
+			if (value !== null && value !== undefined) {
 				query.set(
 					key,
 					typeof value === 'boolean' ? String(Number(value)) : String(value)
@@ -133,7 +132,7 @@ function buildYouTubeEmbedUrl({
 		}
 	}
 
-	if (start != null) {
+	if (start !== null && start !== undefined) {
 		query.set('start', String(start));
 	}
 
@@ -144,7 +143,7 @@ function buildYouTubeEmbedUrl({
 	const suffix = serializedQuery ? `?${serializedQuery}` : '';
 
 	return `${host}/embed/${encodeURIComponent(videoId)}${suffix}`;
-}
+};
 
 const defaultWrapperStyle: CSSProperties = {
 	aspectRatio: '16 / 9',
@@ -181,7 +180,10 @@ const defaultIframeStyle: CSSProperties = {
  * />
  * ```
  */
-export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
+export const YouTubeEmbed = createForwardRef<
+	HTMLIFrameElement,
+	YouTubeEmbedProps
+>(
 	(
 		{
 			videoId,
@@ -211,10 +213,10 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 			src ??
 			(videoId
 				? buildYouTubeEmbedUrl({
-						videoId,
+						params,
 						privacyEnhanced,
 						start,
-						params,
+						videoId,
 					})
 				: undefined);
 		const [loadState, setLoadState] = useState<{
@@ -292,6 +294,7 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 							onLoad?.(event);
 						}}
 						ref={forwardedRef}
+						sandbox="allow-scripts allow-presentation"
 						src={embedSrc}
 						style={{
 							...defaultIframeStyle,

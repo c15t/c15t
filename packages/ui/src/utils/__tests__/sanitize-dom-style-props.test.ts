@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'vitest';
+
 import { sanitizeDOMStyleProps } from '../sanitize-dom-style-props';
 
 describe('sanitizeDOMStyleProps', () => {
 	test('removes internal metadata while preserving className and style', () => {
 		const result = sanitizeDOMStyleProps({
 			className: 'custom-class',
-			style: { backgroundColor: 'red' },
 			noStyle: true,
+			style: { backgroundColor: 'red' },
 		});
 
 		expect(result).toEqual({
@@ -19,16 +20,16 @@ describe('sanitizeDOMStyleProps', () => {
 	test('does not mutate the original style object', () => {
 		const style = {
 			className: 'custom-class',
-			style: { color: 'blue' },
 			noStyle: true,
+			style: { color: 'blue' },
 		};
 
 		sanitizeDOMStyleProps(style);
 
 		expect(style).toEqual({
 			className: 'custom-class',
-			style: { color: 'blue' },
 			noStyle: true,
+			style: { color: 'blue' },
 		});
 	});
 

@@ -81,14 +81,14 @@ export interface IABTranslations {
 	};
 }
 
-// biome-ignore lint/style/noNonNullAssertion: enTranslations is guaranteed to exist in defaultTranslationConfig
+// oxlint-disable-next-line typescript/no-non-null-assertion -- enTranslations is guaranteed to exist in defaultTranslationConfig
 const DEFAULT_IAB_TRANSLATIONS = defaultTranslationConfig.translations.en!
 	.iab as IABTranslations;
 
 /**
  * Deep merge helper for IAB translations.
  */
-function deepMerge<T extends Record<string, unknown>>(
+const deepMerge = function deepMerge<T extends Record<string, unknown>>(
 	defaults: T,
 	overrides?: Partial<T>
 ): T {
@@ -120,13 +120,13 @@ function deepMerge<T extends Record<string, unknown>>(
 	}
 
 	return result;
-}
+};
 
 /**
  * Get IAB translations with fallback to defaults.
  * Svelte equivalent of the React `useIABTranslations` hook.
  */
-export function getIABTranslations(
+export const getIABTranslations = function getIABTranslations(
 	translationConfig?: TranslationConfig
 ): IABTranslations {
 	const translations = resolveTranslations(
@@ -154,4 +154,4 @@ export function getIABTranslations(
 			>
 		),
 	};
-}
+};

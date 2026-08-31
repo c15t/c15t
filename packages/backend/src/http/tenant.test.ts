@@ -25,6 +25,7 @@
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
+
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
@@ -35,12 +36,12 @@ const API_KEY = 'sk_test_key';
 const GIVEN_AT = new Date(1_800_000_000_000);
 
 const submission = {
-	subjectId: 'sub_tenanted',
 	domainId: 'dom_1',
-	policyId: 'pol_1',
 	externalId: 'ext_tenanted',
-	purposeIds: ['analytics'],
 	givenAt: GIVEN_AT.toISOString(),
+	policyId: 'pol_1',
+	purposeIds: ['analytics'],
+	subjectId: 'sub_tenanted',
 };
 
 for (const engine of ENGINES) {
@@ -52,15 +53,15 @@ for (const engine of ENGINES) {
 
 		const post = (app: ReturnType<typeof createApp>, body: unknown) =>
 			app.request('/subjects', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body),
+				headers: { 'Content-Type': 'application/json' },
+				method: 'POST',
 			});
 
 		beforeEach(async () => {
 			runtime = ManagedRuntime.make(engine.client);
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* indexes;
@@ -70,20 +71,20 @@ for (const engine of ENGINES) {
 					// tenant under test is the only variable.
 					yield* sql`insert into ${sql('domain')} ${sql.insert(
 						encodeRow(encode, {
+							createdAt: GIVEN_AT,
 							id: 'dom_1',
 							name: 'example.com',
-							createdAt: GIVEN_AT,
 							updatedAt: GIVEN_AT,
 						})
 					)}`;
 					yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
 						encodeRow(encode, {
-							id: 'pol_1',
-							version: '1.0',
-							type: 'cookie',
-							effectiveDate: GIVEN_AT,
-							isActive: true,
 							createdAt: GIVEN_AT,
+							effectiveDate: GIVEN_AT,
+							id: 'pol_1',
+							isActive: true,
+							type: 'cookie',
+							version: '1.0',
 						})
 					)}`;
 				})
@@ -96,7 +97,8 @@ for (const engine of ENGINES) {
 
 		const rowTenants = (table: string) =>
 			runtime.runPromise(
-				Effect.gen(function* () {
+				// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+				Effect.gen(function* rowTenants() {
 					const sql = yield* SqlClient.SqlClient;
 					const rows = yield* sql<{ tenantId: string | null }>`
 						select ${sql('tenantId')} from ${sql(table)}
@@ -111,13 +113,17 @@ for (const engine of ENGINES) {
 
 			// Every table the submission touches, not just the consent: a subject
 			// or audit entry under the wrong tenant is the same disclosure.
-			for (const table of ['subject', 'consent', 'auditLog']) {
-				assert.deepStrictEqual(
-					await rowTenants(table),
-					['tenant_a'],
-					`${table} row must carry the configured tenant`
-				);
-			}
+			await Array.from(['subject', 'consent', 'auditLog']).reduce(
+				async (previousIteration, table) => {
+					await previousIteration;
+					assert.deepStrictEqual(
+						await rowTenants(table),
+						['tenant_a'],
+						`${table} row must carry the configured tenant`
+					);
+				},
+				Promise.resolve()
+			);
 		});
 
 		it('reads back what it recorded', async () => {
@@ -167,22 +173,22 @@ for (const engine of ENGINES) {
 			const response = await appFor('tenant_a').request(
 				'/legal-documents/terms/current',
 				{
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${API_KEY}`,
-					},
 					body: JSON.stringify({
-						version: '2.0',
-						hash: 'sha256-terms',
 						effectiveDate: GIVEN_AT.toISOString(),
+						hash: 'sha256-terms',
+						version: '2.0',
 					}),
+					headers: {
+						Authorization: `Bearer ${API_KEY}`,
+						'Content-Type': 'application/json',
+					},
+					method: 'PUT',
 				}
 			);
 			assert.strictEqual(response.status, 200, await response.text());
 
 			const published = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* published() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{ tenantId: string | null }>`
 						select ${sql('tenantId')} from ${sql('consentPolicy')}
@@ -273,17 +279,17 @@ for (const engine of ENGINES) {
 			await post(appFor('tenant_a'), submission);
 
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					yield* sql`insert into ${sql('consent')} ${sql.insert(
 						encodeRow(encode, {
-							id: 'cns_planted',
-							subjectId: 'sub_tenanted',
 							domainId: 'dom_1',
+							givenAt: GIVEN_AT,
+							id: 'cns_planted',
 							policyId: 'pol_1',
 							purposeIds: '[]',
-							givenAt: GIVEN_AT,
+							subjectId: 'sub_tenanted',
 							tenantId: 'tenant_b',
 						})
 					)}`;

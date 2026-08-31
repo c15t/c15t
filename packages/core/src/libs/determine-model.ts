@@ -12,7 +12,7 @@ export type Model = 'opt-in' | 'opt-out' | 'iab' | null;
  * @param jurisdiction - The user's jurisdiction
  * @param iabEnabled - Whether IAB TCF mode is enabled in configuration
  */
-export function determineModel(
+export const determineModel = function determineModel(
 	jurisdiction: LocationInfo['jurisdiction'],
 	iabEnabled?: boolean
 ): Model {
@@ -48,4 +48,4 @@ export function determineModel(
 
 	// For unknown jurisdictions, default to the stricter opt-in model.
 	return 'opt-in';
-}
+};

@@ -1,17 +1,19 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
+
 import { createStoreConnector } from '../../core/store-connector';
 
-function createMockStore(): StoreApi<ConsentStoreState> {
-	const state = {} as ConsentStoreState;
-	return {
-		getState: () => state,
-		getInitialState: () => state,
-		setState: () => state,
-		subscribe: () => () => {},
-	} as unknown as StoreApi<ConsentStoreState>;
-}
+const createMockStore =
+	function createMockStore(): StoreApi<ConsentStoreState> {
+		const state = {} as ConsentStoreState;
+		return {
+			getInitialState: () => state,
+			getState: () => state,
+			setState: () => state,
+			subscribe: () => () => {},
+		} as unknown as StoreApi<ConsentStoreState>;
+	};
 
 describe('store-connector', () => {
 	beforeEach(() => {
@@ -65,7 +67,7 @@ describe('store-connector', () => {
 		const connector = createStoreConnector({
 			namespace: 'testStore',
 		});
-		const snapshots: Array<ReturnType<typeof connector.getDiagnostics>> = [];
+		const snapshots: ReturnType<typeof connector.getDiagnostics>[] = [];
 		const unsubscribe = connector.subscribeDiagnostics((diagnostics) => {
 			snapshots.push(diagnostics);
 		});

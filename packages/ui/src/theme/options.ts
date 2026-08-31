@@ -13,6 +13,7 @@ import type {
 	TranslationConfig,
 	User,
 } from '@c15t/core';
+
 import type { UIOptions } from '../theme/types';
 
 /**

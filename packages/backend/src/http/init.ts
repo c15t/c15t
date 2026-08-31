@@ -21,15 +21,14 @@
 import { getRegionFromHeaders, headersToRecord } from '@c15t/schema/geo';
 import {
 	buildConsentManifestFromConfig,
-	type ConsentManifestConfig,
-	type InitOutput,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
-import { type GvlOptions, resolveGvl } from './gvl';
-import {
-	createPolicySnapshotToken,
-	type PolicySnapshotOptions,
-} from './policy-snapshot';
+import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
+
+import { resolveGvl } from './gvl';
+import type { GvlOptions } from './gvl';
+import { createPolicySnapshotToken } from './policy-snapshot';
+import type { PolicySnapshotOptions } from './policy-snapshot';
 
 export interface InitRequestSignals {
 	readonly country: string | null;
@@ -45,21 +44,24 @@ export interface InitRequestSignals {
  * everything else comes from the manifest, which is why the manifest can be
  * cached per tenant and this cannot.
  */
-export function readInitSignals(headers: Headers): InitRequestSignals {
+export const readInitSignals = function readInitSignals(
+	headers: Headers
+): InitRequestSignals {
 	const { country, region } = getRegionFromHeaders(headersToRecord(headers));
 
 	return {
 		country: country ?? null,
-		region: region ?? null,
-		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
-		// primary subtag happens downstream in the resolver, not here.
-		language: headers.get('accept-language') || 'en',
 		// Global Privacy Control is a signal, not a preference: the spec
 		// defines '1' as the only affirmative value, so anything else is
 		// absence rather than a false.
 		gpc: headers.get('sec-gpc') === '1',
+
+		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
+		// primary subtag happens downstream in the resolver, not here.
+		language: headers.get('accept-language') || 'en',
+		region: region ?? null,
 	};
-}
+};
 
 /**
  * Resolves an `/init` response for one request.
@@ -67,7 +69,7 @@ export function readInitSignals(headers: Headers): InitRequestSignals {
  * Geo-dependent by definition, so unlike `/manifest` it must not be cached
  * across visitors.
  */
-export async function buildInitResponse(
+export const buildInitResponse = async function buildInitResponse(
 	config: ConsentManifestConfig,
 	headers: Headers,
 	snapshot?: PolicySnapshotOptions,
@@ -78,9 +80,9 @@ export async function buildInitResponse(
 
 	const resolved = resolveInitFromManifest(manifest, {
 		country: signals.country,
-		region: signals.region,
-		language: signals.language,
 		gpc: signals.gpc,
+		language: signals.language,
+		region: signals.region,
 	});
 
 	// Signed evidence of the decision just made, so the consent submitted
@@ -109,15 +111,15 @@ export async function buildInitResponse(
 
 	const token = await createPolicySnapshotToken(
 		{
-			policyId: decision.policyId,
-			fingerprint: decision.fingerprint,
-			matchedBy: decision.matchedBy,
 			country: signals.country,
-			region: signals.region,
+			fingerprint: decision.fingerprint,
 			jurisdiction: resolved.jurisdiction,
-			model: resolved.policy?.model ?? 'none',
-			tenantId: config.tenantId,
 			language: signals.language,
+			matchedBy: decision.matchedBy,
+			model: resolved.policy?.model ?? 'none',
+			policyId: decision.policyId,
+			region: signals.region,
+			tenantId: config.tenantId,
 		},
 		snapshot
 	);
@@ -126,4 +128,4 @@ export async function buildInitResponse(
 		body: token ? { ...withGvl, policySnapshotToken: token.token } : withGvl,
 		signals,
 	};
-}
+};

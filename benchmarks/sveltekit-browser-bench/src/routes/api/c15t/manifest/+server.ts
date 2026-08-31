@@ -1,5 +1,6 @@
-import { json } from '@sveltejs/kit';
 import { benchConsentManifestResponse } from '$lib/fixture';
+import { json } from '@sveltejs/kit';
+
 import type { RequestHandler } from './$types';
 
 const MANIFEST_ETAG = '"sveltekit-browser-bench-manifest"';
@@ -11,7 +12,7 @@ export const GET: RequestHandler = ({ request }) => {
 	};
 
 	if (request.headers.get('if-none-match') === MANIFEST_ETAG) {
-		return new Response(null, { status: 304, headers });
+		return new Response(null, { headers, status: 304 });
 	}
 
 	return json(benchConsentManifestResponse, { headers });

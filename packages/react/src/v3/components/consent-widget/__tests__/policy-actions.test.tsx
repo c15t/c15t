@@ -3,31 +3,15 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { ConsentProvider } from '~/v3/provider';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -35,29 +19,88 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['customize'],
-			layout: ['customize', ['reject', 'accept']],
-			direction: 'row',
-			uiProfile: 'balanced',
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
 		},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {
+			allowedActions: ['reject', 'accept', 'customize'],
+			direction: 'row',
+			layout: ['customize', ['reject', 'accept']],
+			primaryActions: ['customize'],
+			uiProfile: 'balanced',
+		},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-async function renderPolicyActions(
+const PolicyTestProvider = ({
+	children,
+	state,
+	providerOverrides,
+}: {
+	children: ReactNode;
+	state: ConsentStoreState;
+	providerOverrides?: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	>;
+}) => (
+	<ConsentProvider
+		options={{
+			components: providerOverrides?.components,
+			mode: 'offline',
+			persistence: false,
+			prefetch: {
+				initialConsents: state.consents,
+				initialPolicy: {
+					consent: {
+						categories: state.consentCategories,
+						scopeMode: 'permissive',
+					},
+					id: 'widget-policy-actions-test',
+					model: state.model,
+					ui: {
+						banner: state.policyBanner,
+						dialog: state.policyDialog,
+						mode: 'dialog',
+					},
+				},
+				initialTranslations: {
+					language: 'en',
+					translations: defaultTranslationConfig.translations.en as never,
+				},
+			},
+			theme: providerOverrides?.theme,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
+const renderPolicyActions = async function renderPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
@@ -80,9 +123,9 @@ async function renderPolicyActions(
 			/>
 		</PolicyTestProvider>
 	);
-}
+};
 
-async function renderDefaultPolicyActions(
+const renderDefaultPolicyActions = async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
@@ -92,9 +135,9 @@ async function renderDefaultPolicyActions(
 			<ConsentWidget.PolicyActions />
 		</PolicyTestProvider>
 	);
-}
+};
 
-async function renderWidget(
+const renderWidget = async function renderWidget(
 	stateOverrides: Partial<ConsentStoreState> = {},
 	providerOverrides: Partial<
 		ComponentProps<typeof ConsentProvider>['options']
@@ -110,52 +153,7 @@ async function renderWidget(
 			<ConsentWidget hideBranding={false} />
 		</PolicyTestProvider>
 	);
-}
-
-function PolicyTestProvider({
-	children,
-	state,
-	providerOverrides,
-}: {
-	children: ReactNode;
-	state: ConsentStoreState;
-	providerOverrides?: Partial<
-		ComponentProps<typeof ConsentProvider>['options']
-	>;
-}) {
-	return (
-		<ConsentProvider
-			options={{
-				mode: 'offline',
-				persistence: false,
-				components: providerOverrides?.components,
-				theme: providerOverrides?.theme,
-				prefetch: {
-					initialConsents: state.consents,
-					initialTranslations: {
-						language: 'en',
-						translations: defaultTranslationConfig.translations.en as never,
-					},
-					initialPolicy: {
-						id: 'widget-policy-actions-test',
-						model: state.model,
-						consent: {
-							categories: state.consentCategories,
-							scopeMode: 'permissive',
-						},
-						ui: {
-							mode: 'dialog',
-							banner: state.policyBanner,
-							dialog: state.policyDialog,
-						},
-					},
-				},
-			}}
-		>
-			{children}
-		</ConsentProvider>
-	);
-}
+};
 
 describe('ConsentWidget.PolicyActions', () => {
 	test('renders policy group ordering', async () => {
@@ -198,9 +196,9 @@ describe('ConsentWidget.PolicyActions', () => {
 		await renderPolicyActions({
 			policyDialog: {
 				allowedActions: ['reject', 'customize'],
-				primaryActions: ['customize'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'row',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['customize'],
 			},
 		});
 
@@ -219,9 +217,9 @@ describe('ConsentWidget.PolicyActions', () => {
 		await renderPolicyActions({
 			policyDialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['customize'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'column',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['customize'],
 				uiProfile: 'strict',
 			},
 		});
@@ -234,10 +232,10 @@ describe('ConsentWidget.PolicyActions', () => {
 		);
 
 		expect(
-			footer?.className.split(/\s+/).filter(Boolean).length
+			footer?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
-			firstGroup?.className.split(/\s+/).filter(Boolean).length
+			firstGroup?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
 			document.querySelector('[data-testid="widget-action-customize"]')

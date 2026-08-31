@@ -147,11 +147,11 @@ export interface LiveVendorProbeHarness {
 	/** Vendor ids available in this harness build. */
 	vendors: string[];
 	/** Loads one vendor with granted or denied consent and checks bootstrap. */
-	load(vendor: string, granted: boolean): LiveProbeLoadOutcome;
+	load: (vendor: string, granted: boolean) => LiveProbeLoadOutcome;
 	/** Runs the vendor's runtime check. */
-	check(vendor: string): LiveProbeCheckResult;
+	check: (vendor: string) => LiveProbeCheckResult;
 	/** Snapshots cookie names and localStorage keys in the probed page. */
-	inspectStorage(): LiveStorageSnapshot;
+	inspectStorage: () => LiveStorageSnapshot;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -39,8 +40,8 @@ describe('plausibleAnalytics', () => {
 
 	it('uses the new scriptId loader and drops domain/data-api attributes', () => {
 		const script = plausibleAnalytics({
-			scriptId: 'abc123',
 			endpoint: 'https://example.com/api/event',
+			scriptId: 'abc123',
 		});
 
 		expect(script.src).toBe('https://plausible.io/js/pa-abc123.js');
@@ -60,22 +61,22 @@ describe('plausibleAnalytics', () => {
 			'plausibleAnalytics: missing scriptId or domain'
 		);
 		expect(() =>
-			plausibleAnalytics({ scriptId: '   ', domain: '   ' })
+			plausibleAnalytics({ domain: '   ', scriptId: '   ' })
 		).toThrow('plausibleAnalytics: missing scriptId or domain');
 	});
 
 	it('seeds the plausible queue stub and buffers calls before the script loads', () => {
 		const globalRef = getTestGlobal();
 		const script = plausibleAnalytics({
+			autoCapturePageviews: false,
 			domain: 'example.com',
 			hashBasedRouting: true,
-			autoCapturePageviews: false,
 		});
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -88,8 +89,8 @@ describe('plausibleAnalytics', () => {
 
 		expect(typeof stub).toBe('function');
 		expect(stub?.o).toEqual({
-			hashBasedRouting: true,
 			autoCapturePageviews: false,
+			hashBasedRouting: true,
 		});
 
 		stub?.('pageview');

@@ -1,4 +1,5 @@
 import type { App, Plugin } from 'vue';
+
 import { consentConfigKey } from './runtime/composables/config';
 import type { ConsentConfig } from './runtime/config';
 import {

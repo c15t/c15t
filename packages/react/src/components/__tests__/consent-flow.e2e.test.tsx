@@ -7,8 +7,10 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
+import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
@@ -19,19 +21,29 @@ import {
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
+		},
+		getItem: (key: string) => store[key] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -98,7 +110,7 @@ describe('Consent Flow E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			await vi.waitFor(
 				() => {
@@ -131,7 +143,7 @@ describe('Consent Flow E2E Tests', () => {
 			const rejectButton = document.querySelector(
 				'[data-testid="consent-banner-reject-button"]'
 			);
-			await userEvent.click(rejectButton!);
+			await userEvent.click(getDefined(rejectButton));
 
 			await vi.waitFor(
 				() => {
@@ -166,13 +178,13 @@ describe('Consent Flow E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents).toBeTruthy();
 					expect(consent.consents.necessary).toBe(true);
 				},
@@ -200,13 +212,13 @@ describe('Consent Flow E2E Tests', () => {
 			const rejectButton = document.querySelector(
 				'[data-testid="consent-banner-reject-button"]'
 			);
-			await userEvent.click(rejectButton!);
+			await userEvent.click(getDefined(rejectButton));
 
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents.necessary).toBe(true);
 					expect(consent.consents.marketing).toBe(false);
 					expect(consent.consents.measurement).toBe(false);
@@ -220,16 +232,16 @@ describe('Consent Flow E2E Tests', () => {
 		test('should not show banner if user has already consented', async () => {
 			// Set existing consent
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem('c15t', JSON.stringify(consentData));
@@ -241,7 +253,7 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			// Wait a bit to ensure banner would have shown if it was going to
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -253,16 +265,16 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Preference Center Trigger', () => {
 		test('should show trigger after consent given when showWhen is always', async () => {
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem('c15t', JSON.stringify(consentData));
@@ -430,9 +442,11 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			await userEvent.click(
-				document.querySelector(
-					'[data-testid="consent-banner-customize-button"]'
-				)!
+				getDefined(
+					document.querySelector(
+						'[data-testid="consent-banner-customize-button"]'
+					)
+				)
 			);
 
 			await vi.waitFor(
@@ -487,7 +501,7 @@ describe('Consent Flow E2E Tests', () => {
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
-			await userEvent.click(customizeButton!);
+			await userEvent.click(getDefined(customizeButton));
 
 			// Step 3: Dialog should open
 			await vi.waitFor(
@@ -512,14 +526,14 @@ describe('Consent Flow E2E Tests', () => {
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
-			await userEvent.click(saveButton!);
+			await userEvent.click(getDefined(saveButton));
 
 			// Step 6: Verify consent was saved
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents).toBeTruthy();
 				},
 				{ timeout: 3000 }

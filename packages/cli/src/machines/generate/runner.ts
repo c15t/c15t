@@ -5,9 +5,11 @@
  */
 
 import { createActor } from 'xstate';
+
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import {
 	clearSnapshot,
 	createPersistenceSubscriber,
@@ -24,7 +26,30 @@ import type { MachineExecutionResult } from '../types';
 import { generateMachine } from './machine';
 import type { GenerateMachineContext } from './types';
 
-function getSetupTrigger(
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const getSetupTrigger = function getSetupTrigger(
 	modeArg: StorageMode | undefined,
 	resumed: boolean
 ): 'resume' | 'arg' | 'interactive' {
@@ -37,9 +62,9 @@ function getSetupTrigger(
 	}
 
 	return 'interactive';
-}
+};
 
-function normalizeSetupReason(
+const normalizeSetupReason = function normalizeSetupReason(
 	finalState: string,
 	finalContext: GenerateMachineContext
 ): string | undefined {
@@ -96,7 +121,7 @@ function normalizeSetupReason(
 	}
 
 	return 'machine_error';
-}
+};
 
 /**
  * Options for running the generate machine
@@ -120,7 +145,7 @@ export interface RunGenerateOptions {
  * @param options - Options for running the machine
  * @returns Promise that resolves when the machine completes
  */
-export async function runGenerateMachine(
+export const runGenerateMachine = async function runGenerateMachine(
 	options: RunGenerateOptions
 ): Promise<MachineExecutionResult<GenerateMachineContext>> {
 	const {
@@ -149,20 +174,24 @@ export async function runGenerateMachine(
 	}
 
 	// Create the actor
-	const actor = createActor(generateMachine, {
+	const actorOptions = {
 		input: { cliContext, modeArg },
-		...(snapshot ? { snapshot: snapshot as never } : {}),
-	});
+	};
+	if (snapshot) {
+		Object.assign(actorOptions, { snapshot });
+	}
+	const actor = createActor(generateMachine, actorOptions);
 
 	// Set up subscribers
-	const subscribers: Array<(snapshot: unknown) => void> = [];
+	const subscribers: ((snapshot: unknown) => void)[] = [];
 
 	// Telemetry subscriber
 	subscribers.push(
 		createTelemetrySubscriber({
-			telemetry,
 			machineId,
-			skipStates: ['routeToMode'], // Transient state
+			// Transient state
+			skipStates: ['routeToMode'],
+			telemetry,
 		}) as (snapshot: unknown) => void
 	);
 
@@ -184,17 +213,18 @@ export async function runGenerateMachine(
 
 	// Combine and subscribe
 	const combinedSubscriber = combineSubscribers(
-		...(subscribers as Array<
-			(snapshot: { value: unknown; context?: unknown }) => void
-		>)
+		...(subscribers as ((currentSnapshot: {
+			value: unknown;
+			context?: unknown;
+		}) => void)[])
 	);
-	actor.subscribe((snapshot) => combinedSubscriber(snapshot));
+	actor.subscribe((currentSnapshot) => combinedSubscriber(currentSnapshot));
 
 	// Track start
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_STARTED, {
+		requestedMode: modeArg ?? undefined,
 		resumed: resume && snapshot !== undefined,
 		trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
-		requestedMode: modeArg ?? undefined,
 	});
 	telemetry.flushSync();
 
@@ -207,7 +237,7 @@ export async function runGenerateMachine(
 	}
 
 	// Wait for completion
-	return new Promise((resolve) => {
+	return createDeferredPromise((resolve) => {
 		actor.subscribe({
 			complete: () => {
 				const finalSnapshot = actor.getSnapshot();
@@ -216,13 +246,20 @@ export async function runGenerateMachine(
 				const duration = Date.now() - startTime;
 
 				// Clear persisted state on completion
-				clearSnapshot(persistPath).catch(() => {});
+				void (async () => {
+					try {
+						await clearSnapshot(persistPath);
+					} catch {
+						// Snapshot cleanup is best effort after a failed run.
+					}
+				})();
 
 				// Only the explicit "complete" state is a successful outcome.
 				// Other terminal states (for example "exited") represent cancel/error exits.
 				const success = finalState === 'complete';
 				const durationMs = duration;
 				const reason = normalizeSetupReason(finalState, finalContext);
+				// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 				const result = success
 					? 'success'
 					: finalState === 'exited'
@@ -230,49 +267,49 @@ export async function runGenerateMachine(
 						: 'failed';
 
 				telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
-					success,
-					result,
-					reason,
-					trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
-					resumed: resume && snapshot !== undefined,
-					selectedMode: finalContext.selectedMode ?? undefined,
-					hostedProvider: finalContext.hostedProvider ?? undefined,
-					installDependencies: finalContext.installSucceeded,
-					installConfirmed: finalContext.installConfirmed,
-					installAttempted: finalContext.installAttempted,
-					installSucceeded: finalContext.installSucceeded,
-					dependencyCount: finalContext.dependenciesToAdd.length,
-					filesCreatedCount: finalContext.filesCreated.length,
-					filesModifiedCount: finalContext.filesModified.length,
-					errorsCount: finalContext.errors.length,
 					cancelReason: finalContext.cancelReason ?? undefined,
+					dependencyCount: finalContext.dependenciesToAdd.length,
 					duration,
 					durationMs,
+					errorsCount: finalContext.errors.length,
+					filesCreatedCount: finalContext.filesCreated.length,
+					filesModifiedCount: finalContext.filesModified.length,
 					finalState,
+					hostedProvider: finalContext.hostedProvider ?? undefined,
+					installAttempted: finalContext.installAttempted,
+					installConfirmed: finalContext.installConfirmed,
+					installDependencies: finalContext.installSucceeded,
+					installSucceeded: finalContext.installSucceeded,
+					reason,
+					result,
+					resumed: resume && snapshot !== undefined,
+					selectedMode: finalContext.selectedMode ?? undefined,
+					success,
+					trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
 				});
 
 				resolve({
-					success,
 					context: finalContext,
-					finalState,
 					duration,
 					errors: finalContext.errors,
+					finalState,
+					success,
 				});
 			},
 		});
 	});
-}
+};
 
 /**
  * Cancel signal handler for graceful shutdown
  *
  * @param actor - The running actor to cancel
  */
-export function setupCancelHandler(
+export const setupCancelHandler = function setupCancelHandler(
 	actor: ReturnType<typeof createActor<typeof generateMachine>>
 ): void {
 	const handleSignal = () => {
-		actor.send({ type: 'CANCEL', reason: 'Interrupted by signal' });
+		actor.send({ reason: 'Interrupted by signal', type: 'CANCEL' });
 	};
 
 	process.on('SIGINT', handleSignal);
@@ -285,4 +322,4 @@ export function setupCancelHandler(
 			process.off('SIGTERM', handleSignal);
 		},
 	});
-}
+};

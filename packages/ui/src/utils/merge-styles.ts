@@ -9,15 +9,19 @@ import { cn } from './cn';
  *
  * @returns The merged styles object
  */
-export function mergeStyles(
+export const mergeStyles = function mergeStyles(
 	style1: ThemeValue,
 	style2?: ThemeValue
 ): ClassNameStyle {
 	const normalize = (
 		style: ThemeValue | undefined
 	): ClassNameStyle | undefined => {
-		if (style === undefined) return undefined;
-		if (typeof style === 'string') return { className: style };
+		if (style === undefined) {
+			return undefined;
+		}
+		if (typeof style === 'string') {
+			return { className: style };
+		}
 		return style as ClassNameStyle;
 	};
 
@@ -30,8 +34,8 @@ export function mergeStyles(
 		if (s2?.noStyle) {
 			return {
 				className: s2.className,
-				style: s2.style,
 				noStyle: true,
+				style: s2.style,
 			};
 		}
 	}
@@ -51,7 +55,7 @@ export function mergeStyles(
 
 	return {
 		className: className || undefined,
-		style: Object.keys(mergedStyle).length > 0 ? mergedStyle : undefined,
 		noStyle: s1?.noStyle || s2?.noStyle,
+		style: Object.keys(mergedStyle).length > 0 ? mergedStyle : undefined,
 	};
-}
+};

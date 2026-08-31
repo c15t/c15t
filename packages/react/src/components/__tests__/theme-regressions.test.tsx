@@ -3,36 +3,23 @@ import { defaultTranslationConfig } from '@c15t/core';
 import { createRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
+
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
+import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -40,22 +27,39 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
 		subscribeToConsentChanges: vi.fn(() => () => undefined),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
 describe('Theme regressions', () => {
 	test('styles trigger toolbar atoms through theme slots and direct overrides', async () => {
@@ -65,7 +69,7 @@ describe('Theme regressions', () => {
 		});
 
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -74,29 +78,29 @@ describe('Theme regressions', () => {
 								className: 'themed-trigger',
 								style: { backgroundColor: 'rgb(1, 2, 3)' },
 							},
-							consentDialogTriggerToolbarItem: 'themed-trigger-item',
 							consentDialogTriggerToolbarIcon: 'themed-trigger-icon',
+							consentDialogTriggerToolbarItem: 'themed-trigger-item',
 						},
 					},
 				}}
 			>
-				<ConsentStateContext.Provider
+				<StableConsentStateProvider
 					value={{
+						manager: null,
 						state,
 						store: {
 							getState: () => state,
-							subscribe: () => () => undefined,
 							setState: () => undefined,
+							subscribe: () => () => undefined,
 						},
-						manager: null,
 					}}
 				>
 					<ConsentDialogTriggerToolbar
 						actions={[
 							{
+								icon: 'settings',
 								id: 'support',
 								label: 'Open support chat',
-								icon: 'settings',
 								onSelect: vi.fn(),
 							},
 						]}
@@ -108,8 +112,8 @@ describe('Theme regressions', () => {
 						showWhen="always"
 						style={{ borderRadius: '12px' }}
 					/>
-				</ConsentStateContext.Provider>
-			</GlobalThemeContext.Provider>
+				</StableConsentStateProvider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -137,7 +141,7 @@ describe('Theme regressions', () => {
 
 	test('does not forward slot noStyle to the DOM', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -153,7 +157,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerHeader data-testid="regression-header">
 					<div>Header content</div>
 				</IABConsentBannerHeader>
-			</GlobalThemeContext.Provider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -168,7 +172,7 @@ describe('Theme regressions', () => {
 
 	test('applies inline style from slot objects', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -187,7 +191,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerFooter data-testid="regression-footer">
 					<div>Footer content</div>
 				</IABConsentBannerFooter>
-			</GlobalThemeContext.Provider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -205,7 +209,7 @@ describe('Theme regressions', () => {
 
 	test('wires consentWidgetAccordion slot className and style', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -224,7 +228,7 @@ describe('Theme regressions', () => {
 				<ConsentWidgetAccordion data-testid="regression-accordion">
 					<div>Accordion content</div>
 				</ConsentWidgetAccordion>
-			</GlobalThemeContext.Provider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -245,16 +249,16 @@ describe('Theme regressions', () => {
 		const overlayRef = createRef<HTMLDivElement>();
 
 		await render(
-			<GlobalThemeContext.Provider value={{ noStyle: false }}>
-				<ConsentStateContext.Provider
+			<StableGlobalThemeProvider value={{ noStyle: false }}>
+				<StableConsentStateProvider
 					value={{
+						manager: null,
 						state,
 						store: {
 							getState: () => state,
-							subscribe: () => () => undefined,
 							setState: () => undefined,
+							subscribe: () => () => undefined,
 						},
-						manager: null,
 					}}
 				>
 					<ConsentDialogOverlay
@@ -265,8 +269,8 @@ describe('Theme regressions', () => {
 						noStyle
 						style={{ backgroundColor: 'rgb(7, 8, 9)' }}
 					/>
-				</ConsentStateContext.Provider>
-			</GlobalThemeContext.Provider>
+				</StableConsentStateProvider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {

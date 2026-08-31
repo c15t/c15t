@@ -1,12 +1,5 @@
-import {
-	type ComputedRef,
-	computed,
-	getCurrentScope,
-	onScopeDispose,
-	type Ref,
-	ref,
-	watch,
-} from 'vue';
+import { computed, getCurrentScope, onScopeDispose, ref, watch } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 
 export interface DraggablePosition {
 	x: number;
@@ -47,7 +40,7 @@ export interface UseDraggableReturn {
  * @param options - Drag behavior configuration
  * @returns The reactive position and drag state
  */
-export function useDraggable(
+export const useDraggable = function useDraggable(
 	target: Ref<HTMLElement | null>,
 	options: UseDraggableOptions = {}
 ): UseDraggableReturn {
@@ -57,16 +50,16 @@ export function useDraggable(
 	const pressedDelta = ref<DraggablePosition | null>(null);
 	const isDragging = computed(() => pressedDelta.value !== null);
 
-	function handleEvent(event: PointerEvent) {
+	const handleEvent = function handleEvent(event: PointerEvent) {
 		if (options.preventDefault) {
 			event.preventDefault();
 		}
 		if (options.stopPropagation) {
 			event.stopPropagation();
 		}
-	}
+	};
 
-	function onPointerDown(event: PointerEvent) {
+	const onPointerDown = function onPointerDown(event: PointerEvent) {
 		if (event.button !== 0) {
 			return;
 		}
@@ -81,9 +74,9 @@ export function useDraggable(
 			y: event.clientY - rect.top,
 		};
 		handleEvent(event);
-	}
+	};
 
-	function onPointerMove(event: PointerEvent) {
+	const onPointerMove = function onPointerMove(event: PointerEvent) {
 		if (!pressedDelta.value) {
 			return;
 		}
@@ -93,9 +86,9 @@ export function useDraggable(
 			y: event.clientY - pressedDelta.value.y,
 		};
 		handleEvent(event);
-	}
+	};
 
-	function onPointerUp(event: PointerEvent) {
+	const onPointerUp = function onPointerUp(event: PointerEvent) {
 		if (!pressedDelta.value) {
 			return;
 		}
@@ -103,7 +96,7 @@ export function useDraggable(
 		pressedDelta.value = null;
 		options.onEnd?.({ ...position.value }, event);
 		handleEvent(event);
-	}
+	};
 
 	if (typeof window !== 'undefined') {
 		watch(
@@ -112,7 +105,7 @@ export function useDraggable(
 				previousElement?.removeEventListener('pointerdown', onPointerDown);
 				element?.addEventListener('pointerdown', onPointerDown);
 			},
-			{ immediate: true, flush: 'post' }
+			{ flush: 'post', immediate: true }
 		);
 
 		window.addEventListener('pointermove', onPointerMove, true);
@@ -127,5 +120,5 @@ export function useDraggable(
 		}
 	}
 
-	return { position, isDragging };
-}
+	return { isDragging, position };
+};

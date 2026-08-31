@@ -1,11 +1,19 @@
 import { fileURLToPath } from 'node:url';
+
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	root: fileURLToPath(new URL('.', import.meta.url)),
 	test: {
+		coverage: {
+			enabled: true,
+			include: ['**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
+			provider: 'istanbul',
+			reportOnFailure: true,
+			reporter: ['text', 'json-summary', 'json', 'html'],
+			reportsDirectory: './coverage',
+		},
 		environment: 'node',
-		include: ['**/*.test.ts'],
 		exclude: [
 			'**/node_modules/**',
 			'**/dist/**',
@@ -13,13 +21,6 @@ export default defineConfig({
 			'**/.cache/**',
 			'**/coverage/**',
 		],
-		coverage: {
-			provider: 'istanbul',
-			reporter: ['text', 'json-summary', 'json', 'html'],
-			reportOnFailure: true,
-			enabled: true,
-			reportsDirectory: './coverage',
-			include: ['**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
-		},
+		include: ['**/*.test.ts'],
 	},
 });

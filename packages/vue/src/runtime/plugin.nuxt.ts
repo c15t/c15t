@@ -2,6 +2,7 @@ import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
 import { computed } from 'vue';
+
 import {
 	defineNuxtPlugin,
 	useAppConfig,
@@ -9,6 +10,7 @@ import {
 	useRequestHeaders,
 	useRuntimeConfig,
 } from '#imports';
+
 import { consentConfigKey } from './composables/config';
 import type { ConsentConfig } from './config';
 import {
@@ -16,9 +18,9 @@ import {
 	getNuxtInitFetchTarget,
 	INIT_HEADER_NAMES,
 	pickAllowedInitHeaders,
-	type RuntimeConsentConfig,
 	startVueConsentRuntime,
 } from './kernel';
+import type { RuntimeConsentConfig } from './kernel';
 import { resolveManifestMode } from './manifest';
 import {
 	symbolActiveUI,

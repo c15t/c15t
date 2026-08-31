@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	applyPolicyPurposeAllowlist,
 	applyPolicyScopeForRuntimeGating,
@@ -22,15 +23,15 @@ describe('validateUIAgainstPolicy', () => {
 				id: 'policy_1',
 				model: 'opt-in',
 				ui: {
-					mode: 'banner',
 					banner: {
 						allowedActions: ['accept', 'reject'],
 					},
+					mode: 'banner',
 				},
 			},
 			state: {
-				mode: 'dialog',
 				actions: ['accept', 'customize'],
+				mode: 'dialog',
 			},
 		});
 
@@ -45,16 +46,16 @@ describe('validateUIAgainstPolicy', () => {
 				model: 'opt-in',
 				ui: {
 					banner: {
-						layout: [['accept', 'reject', 'customize']],
 						direction: 'row',
+						layout: [['accept', 'reject', 'customize']],
 					},
 				},
 			},
 			state: {
-				mode: 'banner',
 				actions: ['reject', 'accept', 'customize'],
-				layout: ['reject', ['accept', 'customize']],
 				direction: 'column',
+				layout: ['reject', ['accept', 'customize']],
+				mode: 'banner',
 			},
 		});
 
@@ -77,8 +78,8 @@ describe('validateUIAgainstPolicy', () => {
 				},
 			},
 			state: {
-				mode: 'banner',
 				actions: ['accept', 'customize'],
+				mode: 'banner',
 				uiProfile: 'compact',
 			},
 		});
@@ -99,8 +100,8 @@ describe('validateUIAgainstPolicy', () => {
 				},
 			},
 			state: {
-				mode: 'banner',
 				actions: ['accept', 'customize'],
+				mode: 'banner',
 				scrollLock: false,
 			},
 		});
@@ -113,8 +114,8 @@ describe('validateUIAgainstPolicy', () => {
 describe('applyPolicyPurposeAllowlist', () => {
 	it('returns unchanged preferences when no allowlist is provided', () => {
 		const preferences = {
-			necessary: true,
 			marketing: true,
+			necessary: true,
 		};
 
 		expect(applyPolicyPurposeAllowlist(preferences, undefined)).toEqual(
@@ -124,11 +125,11 @@ describe('applyPolicyPurposeAllowlist', () => {
 
 	it('forces non-allowlisted preference keys to false', () => {
 		const preferences = {
-			necessary: true,
+			experience: false,
+			functionality: true,
 			marketing: true,
 			measurement: true,
-			functionality: true,
-			experience: false,
+			necessary: true,
 		};
 
 		expect(
@@ -138,21 +139,21 @@ describe('applyPolicyPurposeAllowlist', () => {
 				'marketing',
 			])
 		).toEqual({
-			necessary: true,
+			experience: false,
+			functionality: false,
 			marketing: true,
 			measurement: true,
-			functionality: false,
-			experience: false,
+			necessary: true,
 		});
 	});
 
 	it('returns unchanged preferences when allowlist includes wildcard', () => {
 		const preferences = {
-			necessary: true,
+			experience: false,
+			functionality: true,
 			marketing: true,
 			measurement: true,
-			functionality: true,
-			experience: false,
+			necessary: true,
 		};
 
 		expect(applyPolicyPurposeAllowlist(preferences, ['*'])).toEqual(
@@ -162,15 +163,15 @@ describe('applyPolicyPurposeAllowlist', () => {
 
 	it('preserves necessary even when it is missing from the allowlist', () => {
 		const preferences = {
-			necessary: true,
 			marketing: true,
 			measurement: true,
+			necessary: true,
 		};
 
 		expect(applyPolicyPurposeAllowlist(preferences, ['marketing'])).toEqual({
-			necessary: true,
 			marketing: true,
 			measurement: false,
+			necessary: true,
 		});
 	});
 });
@@ -178,8 +179,8 @@ describe('applyPolicyPurposeAllowlist', () => {
 describe('stripDisallowedPreferenceKeys', () => {
 	it('returns unchanged preferences when no allowlist is provided', () => {
 		const preferences = {
-			necessary: true,
 			marketing: true,
+			necessary: true,
 		};
 
 		expect(stripDisallowedPreferenceKeys(preferences, undefined)).toEqual(
@@ -189,11 +190,11 @@ describe('stripDisallowedPreferenceKeys', () => {
 
 	it('omits non-allowlisted preference keys', () => {
 		const preferences = {
-			necessary: true,
+			experience: false,
+			functionality: false,
 			marketing: true,
 			measurement: true,
-			functionality: false,
-			experience: false,
+			necessary: true,
 		};
 
 		expect(
@@ -203,19 +204,19 @@ describe('stripDisallowedPreferenceKeys', () => {
 				'marketing',
 			])
 		).toEqual({
-			necessary: true,
 			marketing: true,
 			measurement: true,
+			necessary: true,
 		});
 	});
 
 	it('returns unchanged preferences when allowlist includes wildcard', () => {
 		const preferences = {
-			necessary: true,
+			experience: false,
+			functionality: true,
 			marketing: true,
 			measurement: true,
-			functionality: true,
-			experience: false,
+			necessary: true,
 		};
 
 		expect(stripDisallowedPreferenceKeys(preferences, ['*'])).toEqual(
@@ -225,14 +226,14 @@ describe('stripDisallowedPreferenceKeys', () => {
 
 	it('preserves necessary key even when not in allowlist', () => {
 		const preferences = {
-			necessary: true,
 			marketing: true,
 			measurement: true,
+			necessary: true,
 		};
 
 		expect(stripDisallowedPreferenceKeys(preferences, ['marketing'])).toEqual({
-			necessary: true,
 			marketing: true,
+			necessary: true,
 		});
 	});
 });
@@ -287,11 +288,11 @@ describe('shouldEnforcePolicyCategoryScope', () => {
 describe('applyPolicyScopeForRuntimeGating', () => {
 	it('returns unchanged consents when no allowlist is provided', () => {
 		const consents = {
-			necessary: true,
-			functionality: true,
 			experience: false,
+			functionality: true,
 			marketing: false,
 			measurement: true,
+			necessary: true,
 		};
 
 		expect(applyPolicyScopeForRuntimeGating(consents, undefined)).toEqual(
@@ -301,11 +302,11 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 
 	it('respects out-of-policy category choices in permissive mode', () => {
 		const consents = {
-			necessary: true,
-			functionality: true,
 			experience: false,
+			functionality: true,
 			marketing: false,
 			measurement: true,
+			necessary: true,
 		};
 
 		expect(
@@ -315,21 +316,21 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 				'permissive'
 			)
 		).toEqual({
-			necessary: true,
-			functionality: true,
 			experience: false,
+			functionality: true,
 			marketing: false,
 			measurement: true,
+			necessary: true,
 		});
 	});
 
 	it('does not modify consents for wildcard scope', () => {
 		const consents = {
-			necessary: true,
-			functionality: false,
 			experience: false,
+			functionality: false,
 			marketing: false,
 			measurement: true,
+			necessary: true,
 		};
 
 		expect(
@@ -339,11 +340,11 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 
 	it('does not grant out-of-scope categories in strict mode', () => {
 		const consents = {
-			necessary: true,
-			functionality: false,
 			experience: false,
+			functionality: false,
 			marketing: false,
 			measurement: true,
+			necessary: true,
 		};
 
 		expect(

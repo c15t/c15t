@@ -3,14 +3,9 @@
  */
 export const API_ENDPOINTS = {
 	/**
-	 * Path for the init endpoint
+	 * Path for checking if externalId has consented (GET /consents/check)
 	 */
-	INIT: '/init',
-
-	/**
-	 * Path for recording consent (POST /subjects)
-	 */
-	POST_SUBJECT: '/subjects',
+	CHECK_CONSENT: '/consents/check',
 
 	/**
 	 * Path for checking a subject's consent (GET /subjects/:id)
@@ -18,20 +13,25 @@ export const API_ENDPOINTS = {
 	GET_SUBJECT: '/subjects',
 
 	/**
-	 * Path for linking external ID to subject (PATCH /subjects/:id)
+	 * Path for the init endpoint
 	 */
-	PATCH_SUBJECT: '/subjects',
-
-	/**
-	 * Path for checking if externalId has consented (GET /consents/check)
-	 */
-	CHECK_CONSENT: '/consents/check',
+	INIT: '/init',
 
 	/**
 	 * Path for listing subjects by externalId (GET /subjects)
 	 * @remarks Requires API key
 	 */
 	LIST_SUBJECTS: '/subjects',
+
+	/**
+	 * Path for linking external ID to subject (PATCH /subjects/:id)
+	 */
+	PATCH_SUBJECT: '/subjects',
+
+	/**
+	 * Path for recording consent (POST /subjects)
+	 */
+	POST_SUBJECT: '/subjects',
 } as const;
 
 /**

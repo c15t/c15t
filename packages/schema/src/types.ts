@@ -142,10 +142,7 @@ export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
-export {
-	type PolicyDefaults,
-	policyDefaults,
-} from './shared/policy-defaults';
+export { type PolicyDefaults, policyDefaults } from './shared/policy-defaults';
 export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,

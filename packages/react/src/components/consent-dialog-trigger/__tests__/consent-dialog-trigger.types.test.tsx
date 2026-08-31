@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import type {
 	ConsentDialogTriggerProps,
 	ConsentDialogTriggerToolbarProps,
@@ -12,17 +13,17 @@ const triggerProps = {
 const toolbarProps = {
 	actions: [
 		{
+			icon: 'settings',
 			id: 'theme',
 			label: 'Use dark theme',
-			icon: 'settings',
 			onSelect: () => undefined,
 			pressed: false,
 		},
 	],
+	orientation: 'vertical',
 	preferences: {
 		label: 'Manage privacy settings',
 	},
-	orientation: 'vertical',
 } satisfies ConsentDialogTriggerToolbarProps;
 
 const invalidTriggerProps: ConsentDialogTriggerProps = {

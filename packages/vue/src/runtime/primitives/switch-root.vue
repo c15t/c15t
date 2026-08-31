@@ -6,6 +6,7 @@
  * framework-agnostic helpers in @c15t/ui.
  */
 import { provide } from 'vue';
+
 import { switchCheckedKey } from './keys';
 
 const props = defineProps<{
@@ -15,12 +16,12 @@ const props = defineProps<{
 const model = defineModel<boolean>({ default: false });
 provide(switchCheckedKey, model);
 
-function toggle() {
+const toggle = function toggle() {
 	if (props.disabled) {
 		return;
 	}
 	model.value = !model.value;
-}
+};
 </script>
 
 <template>

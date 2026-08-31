@@ -1,15 +1,13 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import {
-	type HeadlessConsentBannerAction,
-	useHeadlessConsentUI,
-} from '~/v3/component-hooks/use-headless-consent-ui';
+
+import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
+import type { HeadlessConsentBannerAction } from '~/v3/component-hooks/use-headless-consent-ui';
+
 import { warmDialogChunk } from '../../chunk-warming';
-import {
-	type PolicyActionRenderProps,
-	PolicyActionsRenderer,
-} from '../shared/policy-actions';
+import { PolicyActionsRenderer } from '../shared/policy-actions';
+import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,
@@ -18,8 +16,8 @@ import {
 	ConsentBannerRejectButton,
 } from './components';
 
-export interface ConsentBannerPolicyActionRenderProps
-	extends PolicyActionRenderProps<HeadlessConsentBannerAction> {}
+export type ConsentBannerPolicyActionRenderProps =
+	PolicyActionRenderProps<HeadlessConsentBannerAction>;
 
 export interface ConsentBannerPolicyActionsProps {
 	renderAction?: (
@@ -28,7 +26,7 @@ export interface ConsentBannerPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentBannerAction,
 	props: ConsentBannerPolicyActionRenderProps
 ) {
@@ -69,11 +67,11 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
-export function ConsentBannerPolicyActions({
+export const ConsentBannerPolicyActions = ({
 	renderAction,
-}: ConsentBannerPolicyActionsProps) {
+}: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
 
 	return (
@@ -86,7 +84,7 @@ export function ConsentBannerPolicyActions({
 			renderDefaultAction={renderDefaultAction}
 		/>
 	);
-}
+};
 
 const PolicyActions = ConsentBannerPolicyActions;
 

@@ -4,6 +4,7 @@
  */
 
 import { useContext } from 'react';
+
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**
@@ -60,7 +61,7 @@ export interface SSRStatus {
  *
  * @public
  */
-export function useSSRStatus(): SSRStatus {
+export const useSSRStatus = function useSSRStatus(): SSRStatus {
 	const context = useContext(ConsentStateContext);
 
 	if (context === undefined) {
@@ -73,4 +74,4 @@ export function useSSRStatus(): SSRStatus {
 		ssrDataUsed: context.state.ssrDataUsed,
 		ssrSkippedReason: context.state.ssrSkippedReason,
 	};
-}
+};

@@ -6,6 +6,7 @@
 
 import type { TranslationConfig } from '@c15t/translations';
 import type { StoreApi } from 'zustand/vanilla';
+
 import type { ConsentManagerInterface } from '../../client/client-factory';
 import type { IABConfig } from '../../libs/iab-tcf/types';
 import type { ConsentStoreState, SSRInitialData } from '../../store/type';

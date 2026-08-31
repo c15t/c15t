@@ -1,4 +1,5 @@
 import { mergeStyles as baseMergeStyles } from '@c15t/ui/utils';
+
 import type { ClassNameStyle, ThemeValue } from '~/v3/types/theme';
 
 /**
@@ -10,9 +11,9 @@ import type { ClassNameStyle, ThemeValue } from '~/v3/types/theme';
  *
  * @returns The merged styles object
  */
-export function mergeStyles(
+export const mergeStyles = function mergeStyles(
 	style1: ThemeValue,
 	style2?: ThemeValue
 ): ClassNameStyle {
-	return baseMergeStyles(style1 as any, style2 as any) as ClassNameStyle;
-}
+	return baseMergeStyles(style1, style2) as ClassNameStyle;
+};

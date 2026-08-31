@@ -11,12 +11,12 @@
  */
 export interface WriteScheduler {
 	/** Request a write in a later macrotask. Idempotent within a tick. */
-	schedule(): void;
+	schedule: () => void;
 	/**
 	 * Run the write synchronously now. No-op when nothing is scheduled.
 	 * Useful for tests and for flushing on dispose.
 	 */
-	flush(): void;
+	flush: () => void;
 }
 
 /**
@@ -26,22 +26,17 @@ export interface WriteScheduler {
  * `flush()` runs the pending write synchronously and clears the queued
  * timer, so a flushed-then-completed task does not write a second time.
  */
-export function createWriteScheduler(write: () => void): WriteScheduler {
+export const createWriteScheduler = function createWriteScheduler(
+	write: () => void
+): WriteScheduler {
 	let pending = false;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
 	return {
-		schedule() {
-			if (pending) return;
-			pending = true;
-			timer = setTimeout(() => {
-				timer = null;
-				pending = false;
-				write();
-			}, 0);
-		},
 		flush() {
-			if (!pending) return;
+			if (!pending) {
+				return;
+			}
 			if (timer !== null) {
 				clearTimeout(timer);
 				timer = null;
@@ -49,5 +44,16 @@ export function createWriteScheduler(write: () => void): WriteScheduler {
 			pending = false;
 			write();
 		},
+		schedule() {
+			if (pending) {
+				return;
+			}
+			pending = true;
+			timer = setTimeout(() => {
+				timer = null;
+				pending = false;
+				write();
+			}, 0);
+		},
 	};
-}
+};

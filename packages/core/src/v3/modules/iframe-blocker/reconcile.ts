@@ -28,11 +28,13 @@ export interface ReconcilePass {
 /**
  * Build a `ReconcilePass` from the current snapshot. Pure.
  */
-export function buildReconcilePass(snapshot: ConsentSnapshot): ReconcilePass {
+export const buildReconcilePass = function buildReconcilePass(
+	snapshot: ConsentSnapshot
+): ReconcilePass {
 	return {
 		consents: snapshot.consents as ConsentState,
 	};
-}
+};
 
 /**
  * Read the `data-category` attribute and validate it as a known consent
@@ -41,11 +43,13 @@ export function buildReconcilePass(snapshot: ConsentSnapshot): ReconcilePass {
  * Throws on invalid values — that's a config bug, not user data, and
  * silent failure would be harder to debug than a throw.
  */
-export function determineCategory(
+export const determineCategory = function determineCategory(
 	iframe: HTMLIFrameElement
 ): AllConsentNames | undefined {
 	const raw = iframe.getAttribute('data-category');
-	if (!raw) return undefined;
+	if (!raw) {
+		return undefined;
+	}
 	if (!allConsentNames.includes(raw as AllConsentNames)) {
 		throw new Error(
 			`c15t iframe-blocker: invalid data-category "${raw}". Must be one of: ${allConsentNames.join(
@@ -54,19 +58,21 @@ export function determineCategory(
 		);
 	}
 	return raw as AllConsentNames;
-}
+};
 
 /**
  * Apply the consent gate to a single iframe. Mutates the iframe's
  * `src` / `data-src` attributes. No-op for iframes without a
  * `data-category` attribute.
  */
-export function reconcileIframe(
+export const reconcileIframe = function reconcileIframe(
 	iframe: HTMLIFrameElement,
 	pass: ReconcilePass
 ): void {
 	const category = determineCategory(iframe);
-	if (!category) return;
+	if (!category) {
+		return;
+	}
 
 	const allowed = has(category, pass.consents);
 	const dataSrc = iframe.getAttribute('data-src');
@@ -83,16 +89,18 @@ export function reconcileIframe(
 	if (iframe.getAttribute('src')) {
 		iframe.removeAttribute('src');
 	}
-}
+};
 
 /**
  * Walk every iframe in the document and apply the consent gate. Builds
  * the `ReconcilePass` once and reuses it across iframes — O(n) work.
  */
-export function reconcileAllIframes(snapshot: ConsentSnapshot): void {
+export const reconcileAllIframes = function reconcileAllIframes(
+	snapshot: ConsentSnapshot
+): void {
 	const iframes = document.querySelectorAll('iframe');
 	const pass = buildReconcilePass(snapshot);
 	for (const iframe of Array.from(iframes) as HTMLIFrameElement[]) {
 		reconcileIframe(iframe, pass);
 	}
-}
+};

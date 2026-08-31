@@ -7,14 +7,12 @@
  * would change what the shipped backend is held to as well.
  */
 
-import {
-	type Backend,
-	CASES,
-	type SeedFixture,
-} from '@c15t/backend-conformance';
+import { CASES } from '@c15t/backend-conformance';
+import type { Backend, SeedFixture } from '@c15t/backend-conformance';
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
+
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
@@ -30,7 +28,7 @@ for (const engine of ENGINES) {
 	beforeEach(async () => {
 		runtime = ManagedRuntime.make(engine.client);
 		await runtime.runPromise(
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* resetDatabase;
 				yield* baseline;
 				yield* indexes;
@@ -44,12 +42,13 @@ for (const engine of ENGINES) {
 		});
 
 		backend = {
-			name: 'backend',
 			apiKey: API_KEY,
+			name: 'backend',
+			request: (request) => app.request(request),
 			reset: async () => {},
 			seed: (fixture: SeedFixture) =>
 				runtime.runPromise(
-					Effect.gen(function* () {
+					Effect.gen(function* gen() {
 						const sql = yield* SqlClient.SqlClient;
 						// Through the encoder and the dialect's own quoting: the same
 						// fixture has to load on all four engines or the wire contract
@@ -60,10 +59,10 @@ for (const engine of ENGINES) {
 						for (const subject of fixture.subjects) {
 							yield* sql`insert into ${sql('subject')} ${sql.insert(
 								encodeRow(encode, {
-									id: subject.id,
-									externalId: subject.externalId ?? null,
-									identityProvider: subject.identityProvider ?? null,
 									createdAt: now,
+									externalId: subject.externalId ?? null,
+									id: subject.id,
+									identityProvider: subject.identityProvider ?? null,
 									updatedAt: now,
 								})
 							)}`;
@@ -71,9 +70,9 @@ for (const engine of ENGINES) {
 						for (const domain of fixture.domains) {
 							yield* sql`insert into ${sql('domain')} ${sql.insert(
 								encodeRow(encode, {
+									createdAt: now,
 									id: domain.id,
 									name: domain.name,
-									createdAt: now,
 									updatedAt: now,
 								})
 							)}`;
@@ -81,30 +80,31 @@ for (const engine of ENGINES) {
 						for (const policy of fixture.policies) {
 							yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
 								encodeRow(encode, {
-									id: policy.id,
-									version: policy.version,
-									type: policy.type,
-									effectiveDate: policy.effectiveDate,
-									isActive: policy.isActive,
 									createdAt: now,
+
+									effectiveDate: policy.effectiveDate,
+									id: policy.id,
+									isActive: policy.isActive,
+									type: policy.type,
+									version: policy.version,
 								})
 							)}`;
 						}
 						for (const consent of fixture.consents) {
 							yield* sql`insert into ${sql('consent')} ${sql.insert(
 								encodeRow(encode, {
-									id: consent.id,
-									subjectId: consent.subjectId,
 									domainId: consent.domainId,
+									givenAt: consent.givenAt,
+
+									id: consent.id,
 									policyId: consent.policyId,
 									purposeIds: '[]',
-									givenAt: consent.givenAt,
+									subjectId: consent.subjectId,
 								})
 							)}`;
 						}
 					})
 				),
-			request: (request) => app.request(request),
 		};
 	});
 
@@ -112,44 +112,51 @@ for (const engine of ENGINES) {
 		await runtime.dispose();
 	});
 
-	describe('conformance: backend', () => {
-		for (const testCase of CASES) {
-			const known = testCase.knownGap?.backend === 'backend';
-			// A recorded gap still runs — if it starts passing, the record is stale
-			// and should be removed rather than left to rot.
-			it(testCase.name, async () => {
-				if (testCase.seed) {
-					await backend.seed(testCase.seed);
-				}
+	const createBackendConformanceTest =
+		(currentTestCase: (typeof CASES)[number], known: boolean) => async () => {
+			if (currentTestCase.seed) {
+				await backend.seed(currentTestCase.seed);
+			}
 
-				const response = await backend.request(
-					testCase.request({ apiKey: backend.apiKey })
-				);
-				const body = await response
-					.clone()
-					.json()
-					.catch(() => undefined);
+			const response = await backend.request(
+				currentTestCase.request({ apiKey: backend.apiKey })
+			);
+			const body = await response
+				.clone()
+				.json()
+				.catch(() => undefined);
 
-				try {
-					await testCase.expect(response, body);
-					if (known) {
-						assert.fail(
-							`${testCase.name} now passes — remove its knownGap entry`
-						);
-					}
-				} catch (error) {
-					if (known) {
-						return;
-					}
-					// Surface the rationale on failure: a conformance break should
-					// say what behaviour was lost, not just which assertion tripped.
+			try {
+				await currentTestCase.expect(response, body);
+				if (known) {
 					assert.fail(
-						`${testCase.name}\n  why it matters: ${testCase.rationale}\n  ${
-							error instanceof Error ? error.message : String(error)
-						}`
+						`${currentTestCase.name} now passes — remove its knownGap entry`
 					);
 				}
-			});
+			} catch (error) {
+				if (known) {
+					return;
+				}
+				// Surface the rationale on failure: a conformance break should
+				// say what behaviour was lost, not just which assertion tripped.
+				assert.fail(
+					`${currentTestCase.name}\n  why it matters: ${currentTestCase.rationale}\n  ${
+						error instanceof Error ? error.message : String(error)
+					}`
+				);
+			}
+		};
+
+	describe('conformance: backend', () => {
+		for (const testCase of CASES) {
+			const currentTestCase = testCase;
+			const known = currentTestCase.knownGap?.backend === 'backend';
+			// A recorded gap still runs — if it starts passing, the record is stale
+			// and should be removed rather than left to rot.
+			it(
+				currentTestCase.name,
+				createBackendConformanceTest(currentTestCase, known)
+			);
 		}
 	});
 }

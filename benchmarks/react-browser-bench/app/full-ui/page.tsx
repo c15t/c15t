@@ -1,9 +1,10 @@
 'use client';
 
 import { ConsentDialogTrigger, useConsentManager } from '@c15t/react';
+
 import { BenchmarkProvider } from '../_bench/provider';
 
-function BenchmarkControls() {
+const BenchmarkControls = () => {
 	const { setActiveUI } = useConsentManager();
 
 	return (
@@ -15,17 +16,17 @@ function BenchmarkControls() {
 			Open Preferences
 		</button>
 	);
-}
+};
 
-export default function FullUIPage() {
-	return (
-		<BenchmarkProvider scenario="full-ui">
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>React Full UI Benchmark</h1>
-				<p>Hosted mode with banner and preferences dialog.</p>
-				<BenchmarkControls />
-				<ConsentDialogTrigger />
-			</main>
-		</BenchmarkProvider>
-	);
-}
+const FullUIPage = () => (
+	<BenchmarkProvider scenario="full-ui">
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>React Full UI Benchmark</h1>
+			<p>Hosted mode with banner and preferences dialog.</p>
+			<BenchmarkControls />
+			<ConsentDialogTrigger />
+		</main>
+	</BenchmarkProvider>
+);
+
+export default FullUIPage;

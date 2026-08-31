@@ -1,9 +1,7 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import brandingStyles from '@c15t/ui/styles/v3/branding';
 import { computed, onMounted, ref } from 'vue';
+
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
 const props = defineProps<{
@@ -15,8 +13,12 @@ const config = useConsentConfig();
 
 const branding = computed(() => init.value?.branding ?? 'c15t');
 const resolvedBranding = computed(() => {
-	if (branding.value === 'none') return 'none';
-	if (branding.value === 'inth' || branding.value === 'consent') return 'inth';
+	if (branding.value === 'none') {
+		return 'none';
+	}
+	if (branding.value === 'inth' || branding.value === 'consent') {
+		return 'inth';
+	}
 	return 'c15t';
 });
 
@@ -67,7 +69,11 @@ const testId = computed(() => {
 		target="_blank"
 		rel="noopener noreferrer"
 		:data-branding="resolvedBranding"
-		:data-variant="context === 'banner' || context === 'iab-banner' ? 'banner-tag' : 'dialog-tag'"
+		:data-variant="
+			context === 'banner' || context === 'iab-banner'
+				? 'banner-tag'
+				: 'dialog-tag'
+		"
 		:data-testid="testId"
 		:class="brandingStyles.brandingTag"
 		:data-context="context"

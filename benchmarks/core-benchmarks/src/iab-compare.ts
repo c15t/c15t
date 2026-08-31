@@ -14,59 +14,68 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  * framework overhead is the acceptAll/rejectAll orchestration.
  */
 import { join } from 'node:path';
+
 import type { GlobalVendorList } from '@c15t/core/v3';
 import { createConsentKernel } from '@c15t/core/v3';
 import { createIAB } from '@c15t/iab/v3';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();
 // The IAB stub installs event listeners on window; give it one.
-// biome-ignore lint/suspicious/noExplicitAny: bench stub
-(globalThis.window as any).addEventListener = () => {};
-// biome-ignore lint/suspicious/noExplicitAny: bench stub
-(globalThis.window as any).removeEventListener = () => {};
+// oxlint-disable-next-line typescript/no-explicit-any -- bench stub
+(globalThis.window as any).addEventListener = () => {
+	/* empty */
+};
+// oxlint-disable-next-line typescript/no-explicit-any -- bench stub
+(globalThis.window as any).removeEventListener = () => {
+	/* empty */
+};
 
 // Build a synthetic GVL with N vendors and the standard 11 purposes +
 // 2 special features. Larger vendor counts exercise the acceptAll hot
 // loop.
-function makeGvl(vendorCount: number): GlobalVendorList {
+const makeGvl = function makeGvl(vendorCount: number): GlobalVendorList {
 	const purposes: Record<number, unknown> = {};
 	for (let i = 1; i <= 11; i += 1) {
-		purposes[i] = { id: i, name: `Purpose ${i}`, description: '' };
+		purposes[i] = { description: '', id: i, name: `Purpose ${i}` };
 	}
 	const specialFeatures: Record<number, unknown> = {
-		1: { id: 1, name: 'Geo', description: '' },
-		2: { id: 2, name: 'Device', description: '' },
+		1: { description: '', id: 1, name: 'Geo' },
+		2: { description: '', id: 2, name: 'Device' },
 	};
 	const vendors: Record<string, unknown> = {};
 	for (let i = 1; i <= vendorCount; i += 1) {
 		vendors[String(i)] = {
-			id: i,
-			name: `Vendor ${i}`,
-			purposes: [1, 2, 3],
-			legIntPurposes: [],
-			flexiblePurposes: [],
-			specialPurposes: [],
 			features: [],
-			specialFeatures: [],
+			flexiblePurposes: [],
+			id: i,
+			legIntPurposes: [],
+			name: `Vendor ${i}`,
 			policyUrl: '',
+			purposes: [1, 2, 3],
+			specialFeatures: [],
+			specialPurposes: [],
 		};
 	}
 	return {
+		features: {},
 		gvlSpecificationVersion: 3,
-		vendorListVersion: 42,
-		tcfPolicyVersion: 4,
 		lastUpdated: '2026-01-01T00:00:00Z',
 		purposes,
-		specialPurposes: {},
-		features: {},
 		specialFeatures,
+		specialPurposes: {},
 		stacks: {},
+		tcfPolicyVersion: 4,
+		vendorListVersion: 42,
 		vendors,
 	} as unknown as GlobalVendorList;
-}
+};
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -74,21 +83,21 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '30');
 const SCENARIOS = [50, 500];
@@ -105,7 +114,7 @@ const results: Result[] = [];
 for (const vendorCount of SCENARIOS) {
 	const gvl = makeGvl(vendorCount);
 	const kernel = createConsentKernel();
-	const iab = createIAB({ kernel, cmpId: 28, gvl });
+	const iab = createIAB({ cmpId: 28, gvl, kernel });
 
 	const acceptSamples = measureSync(ITERATIONS, () => {
 		iab.acceptAll();
@@ -120,10 +129,10 @@ for (const vendorCount of SCENARIOS) {
 	});
 
 	results.push({
-		vendorCount,
 		acceptAll: summarize(acceptSamples),
 		rejectAll: summarize(rejectSamples),
 		singleVendor: summarize(singleSamples),
+		vendorCount,
 	});
 
 	iab.dispose();
@@ -146,5 +155,5 @@ const outputDir =
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(
 	join(outputDir, 'iab-compare.json'),
-	`${JSON.stringify({ suite: 'iab-compare', generatedAt: new Date().toISOString(), iterations: ITERATIONS, results }, null, 2)}\n`
+	`${JSON.stringify({ generatedAt: new Date().toISOString(), iterations: ITERATIONS, results, suite: 'iab-compare' }, null, 2)}\n`
 );

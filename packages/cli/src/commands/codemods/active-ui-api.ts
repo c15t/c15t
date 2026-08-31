@@ -1,6 +1,8 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+
 import { Node, Project, SyntaxKind } from 'ts-morph';
+import type * as TsMorphTypes from 'ts-morph';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -15,20 +17,20 @@ const IGNORED_DIRS = new Set([
 ]);
 
 const BOOLEAN_STATE_PROPERTIES = {
-	showPopup: 'banner',
 	isPrivacyDialogOpen: 'dialog',
+	showPopup: 'banner',
 } as const;
 
 const LEGACY_SETTER_NAMES = {
-	setShowPopup: 'banner',
 	setIsPrivacyDialogOpen: 'dialog',
+	setShowPopup: 'banner',
 } as const;
 
-type ActiveUiApiResult = {
+interface ActiveUiApiResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	/**
@@ -52,19 +54,19 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
-function getBindingPropertyName(
-	element: import('ts-morph').BindingElement
+const getBindingPropertyName = function getBindingPropertyName(
+	element: TsMorphTypes.BindingElement
 ): string | undefined {
 	const propertyNameNode = element.getPropertyNameNode();
 	if (propertyNameNode) {
@@ -85,9 +87,9 @@ function getBindingPropertyName(
 	}
 
 	return nameNode.getText();
-}
+};
 
-function mapBooleanExpressionToUi(
+const mapBooleanExpressionToUi = function mapBooleanExpressionToUi(
 	expressionText: string | undefined,
 	activeValue: 'banner' | 'dialog'
 ): string {
@@ -101,38 +103,41 @@ function mapBooleanExpressionToUi(
 	}
 
 	return `${trimmed} ? '${activeValue}' : 'none'`;
-}
+};
 
-function mapShowPopupCall(
+const mapShowPopupCall = function mapShowPopupCall(
 	callee: string,
 	args: string[]
 ): { text: string; operations: number } {
 	const uiArgument = mapBooleanExpressionToUi(args[0], 'banner');
 	const forceArg = args[1]?.trim();
 	if (!forceArg || forceArg === 'false' || forceArg === 'undefined') {
-		return { text: `${callee}(${uiArgument})`, operations: 1 };
+		return { operations: 1, text: `${callee}(${uiArgument})` };
 	}
 
 	if (forceArg === 'true') {
 		return {
-			text: `${callee}(${uiArgument}, { force: true })`,
 			operations: 1,
+			text: `${callee}(${uiArgument}, { force: true })`,
 		};
 	}
 
 	return {
-		text: `${callee}(${uiArgument}, ${forceArg} ? { force: true } : undefined)`,
 		operations: 1,
+		text: `${callee}(${uiArgument}, ${forceArg} ? { force: true } : undefined)`,
 	};
-}
+};
 
-function mapPrivacyDialogCall(callee: string, args: string[]): string {
+const mapPrivacyDialogCall = function mapPrivacyDialogCall(
+	callee: string,
+	args: string[]
+): string {
 	const uiArgument = mapBooleanExpressionToUi(args[0], 'dialog');
 	return `${callee}(${uiArgument})`;
-}
+};
 
-function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+const transformSourceFile = function transformSourceFile(
+	sourceFile: TsMorphTypes.SourceFile
 ): ActiveUiApiResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -146,15 +151,15 @@ function transformSourceFile(
 	const bindingElements = sourceFile.getDescendantsOfKind(
 		SyntaxKind.BindingElement
 	);
-	for (const element of bindingElements) {
+	bindingElements.forEach((element) => {
 		const propertyName = getBindingPropertyName(element);
 		if (!propertyName) {
-			continue;
+			return;
 		}
 
 		const localNameNode = element.getNameNode();
 		if (!Node.isIdentifier(localNameNode)) {
-			continue;
+			return;
 		}
 		const localName = localNameNode.getText();
 
@@ -179,7 +184,7 @@ function transformSourceFile(
 
 			operations += 1;
 			summaries.push(`${propertyName} -> activeUI`);
-			continue;
+			return;
 		}
 
 		if (propertyName in LEGACY_SETTER_NAMES) {
@@ -203,12 +208,12 @@ function transformSourceFile(
 			operations += 1;
 			summaries.push(`${propertyName} -> setActiveUI alias`);
 		}
-	}
+	});
 
 	const callExpressions = sourceFile.getDescendantsOfKind(
 		SyntaxKind.CallExpression
 	);
-	for (const callExpression of callExpressions) {
+	callExpressions.forEach((callExpression) => {
 		const expression = callExpression.getExpression();
 		const args = callExpression
 			.getArguments()
@@ -217,7 +222,7 @@ function transformSourceFile(
 		if (Node.isPropertyAccessExpression(expression)) {
 			const methodName = expression.getName();
 			if (!(methodName in LEGACY_SETTER_NAMES)) {
-				continue;
+				return;
 			}
 
 			const receiver = expression.getExpression().getText();
@@ -234,17 +239,17 @@ function transformSourceFile(
 
 			callExpression.replaceWithText(replacement);
 			operations += 1;
-			continue;
+			return;
 		}
 
 		if (!Node.isIdentifier(expression)) {
-			continue;
+			return;
 		}
 
 		const calleeName = expression.getText();
 		const aliasKind = setterAliases.get(calleeName);
 		if (!aliasKind) {
-			continue;
+			return;
 		}
 
 		if (aliasKind === 'setShowPopup') {
@@ -256,15 +261,15 @@ function transformSourceFile(
 			summaries.push('setIsPrivacyDialogOpen alias call -> setActiveUI args');
 		}
 		operations += 1;
-	}
+	});
 
 	const propertyAccesses = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAccessExpression
 	);
-	for (const propertyAccess of propertyAccesses) {
+	propertyAccesses.forEach((propertyAccess) => {
 		const propertyName = propertyAccess.getName();
 		if (!(propertyName in BOOLEAN_STATE_PROPERTIES)) {
-			continue;
+			return;
 		}
 
 		const parent = propertyAccess.getParent();
@@ -272,7 +277,7 @@ function transformSourceFile(
 			Node.isBinaryExpression(parent) &&
 			parent.getLeft() === propertyAccess
 		) {
-			continue;
+			return;
 		}
 
 		const receiver = propertyAccess.getExpression().getText();
@@ -285,37 +290,37 @@ function transformSourceFile(
 		);
 		operations += 1;
 		summaries.push(`${propertyName} state check -> activeUI comparison`);
-	}
+	});
 
 	const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
-	for (const identifier of identifiers) {
+	identifiers.forEach((identifier) => {
 		if (identifier.wasForgotten()) {
-			continue;
+			return;
 		}
 
 		const identifierText = identifier.getText();
 		const aliasTarget = booleanAliases.get(identifierText);
 		if (!aliasTarget) {
-			continue;
+			return;
 		}
 
 		const parent = identifier.getParent();
 		if (Node.isBindingElement(parent) && parent.getNameNode() === identifier) {
-			continue;
+			return;
 		}
 
 		if (
 			Node.isPropertyAccessExpression(parent) &&
 			parent.getNameNode() === identifier
 		) {
-			continue;
+			return;
 		}
 
 		if (
 			Node.isPropertyAssignment(parent) &&
 			parent.getNameNode() === identifier
 		) {
-			continue;
+			return;
 		}
 
 		if (Node.isShorthandPropertyAssignment(parent)) {
@@ -323,25 +328,27 @@ function transformSourceFile(
 			parent.replaceWithText(`${name}: (${name} === '${aliasTarget}')`);
 			operations += 1;
 			summaries.push(`${name} shorthand -> activeUI comparison`);
-			continue;
+			return;
 		}
 
 		identifier.replaceWithText(`(${identifierText} === '${aliasTarget}')`);
 		operations += 1;
 		summaries.push(`${identifierText} usage -> activeUI comparison`);
-	}
+	});
 
 	return {
 		changed: operations > 0,
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -353,6 +360,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -368,11 +376,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates showPopup/isPrivacyDialogOpen APIs to activeUI.
@@ -380,23 +388,23 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runActiveUiApiCodemod(
+export const runActiveUiApiCodemod = async function runActiveUiApiCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
 	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
 		compilerOptions: {
 			allowJs: true,
 		},
+		skipAddingFilesFromTsConfig: true,
 	});
 	const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
+	const changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+	}[] = [];
+	const errors: { filePath: string; error: string }[] = [];
 
 	for (const filePath of filePaths) {
 		try {
@@ -417,19 +425,20 @@ export async function runActiveUiApiCodemod(
 			});
 
 			if (!options.dryRun) {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await sourceFile.save();
 			}
 		} catch (error) {
 			errors.push({
-				filePath,
 				error: error instanceof Error ? error.message : String(error),
+				filePath,
 			});
 		}
 	}
 
 	return {
-		totalFiles: filePaths.length,
 		changedFiles,
 		errors,
+		totalFiles: filePaths.length,
 	};
-}
+};

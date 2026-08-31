@@ -26,9 +26,12 @@
  * only the identity tuple can find them.
  */
 
-import { buildConsentId, type ConsentSubmissionIdentity } from '@c15t/schema';
+import { buildConsentId } from '@c15t/schema';
+import type { ConsentSubmissionIdentity } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
+
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
 
@@ -58,14 +61,13 @@ export interface RecordedConsent {
  * rolling deploy an older process can write a random-id row *after* a newer
  * one has started, so process start time cannot be used to rule it out.
  */
-const findLegacySubmission = Effect.fn('consent.findLegacy')(function* (
-	identity: ConsentSubmissionIdentity
-) {
-	const sql = yield* SqlClient.SqlClient;
-	// SQLite stores this column as epoch milliseconds and cannot bind a Date.
-	const encode = yield* encoder;
+const findLegacySubmission = Effect.fn('consent.findLegacy')(
+	function* findLegacySubmission(identity: ConsentSubmissionIdentity) {
+		const sql = yield* SqlClient.SqlClient;
+		// SQLite stores this column as epoch milliseconds and cannot bind a Date.
+		const encode = yield* encoder;
 
-	const rows = yield* sql<{ id: string }>`
+		const rows = yield* sql<{ id: string }>`
 		select ${sql('id')} from ${sql('consent')}
 		where ${sql('subjectId')} = ${identity.subjectId}
 			and ${sql('domainId')} = ${identity.domainId}
@@ -83,8 +85,9 @@ const findLegacySubmission = Effect.fn('consent.findLegacy')(function* (
 		limit 1
 	`;
 
-	return rows[0]?.id;
-});
+		return rows[0]?.id;
+	}
+);
 
 /**
  * Records a consent, exactly once.
@@ -106,18 +109,18 @@ export class ConsentPurposeConflictError extends Data.TaggedError(
 	readonly message: string;
 }> {}
 
-/** Stored `purposeIds`, which SQLite hands back as a JSON string. */
-const normalisePurposeIds = (value: unknown): string[] | undefined => {
-	const parsed = typeof value === 'string' ? safeParse(value) : value;
-	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
-};
-
 const safeParse = (value: string): unknown => {
 	try {
 		return JSON.parse(value);
 	} catch {
 		return undefined;
 	}
+};
+
+/** Stored `purposeIds`, which SQLite hands back as a JSON string. */
+const normalisePurposeIds = (value: unknown): string[] | undefined => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
 };
 
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
@@ -131,11 +134,16 @@ const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
  * its purposes were recorded when the stored record says otherwise.
  */
 /**
- * @internal Exported for the tests that cover the lost-race branch, which no
+ * Exported for the tests that cover the lost-race branch, which no
  * engine in the matrix can be made to interleave on demand.
+ *
+ * @internal
  */
 export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
-	function* (storedRaw: unknown, submitted: readonly string[]) {
+	function* assertSamePurposes(
+		storedRaw: unknown,
+		submitted: readonly string[]
+	) {
 		const stored = normalisePurposeIds(storedRaw);
 		const incoming = [...submitted].sort();
 		if (stored === undefined || sameIds(stored, incoming)) {
@@ -151,7 +159,7 @@ export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
 	}
 );
 
-export const record = Effect.fn('consent.record')(function* (
+export const record = Effect.fn('consent.record')(function* record(
 	submission: ConsentSubmission
 ): Generator<
 	Effect.Effect<
@@ -185,7 +193,7 @@ export const record = Effect.fn('consent.record')(function* (
 		// in place with no audit entry, and changing the id to cover purposes
 		// would break the parity the derivation exists to preserve.
 		yield* assertSamePurposes(existing[0]?.purposeIds, submission.purposeIds);
-		return { id, created: false };
+		return { created: false, id };
 	}
 
 	// Only now check for a row written by an older process. It has a random
@@ -193,34 +201,34 @@ export const record = Effect.fn('consent.record')(function* (
 	// a query, so it must not run on the hot retry path above.
 	const legacyId = yield* findLegacySubmission(submission);
 	if (legacyId !== undefined) {
-		return { id: legacyId, created: false };
+		return { created: false, id: legacyId };
 	}
 
 	// `created: false` here means the conflict target matched — someone else
 	// wrote this exact submission, possibly concurrently. That is success, not
 	// failure, and it is the whole reason this is one statement.
 	const created = yield* insertOnce({
-		into: 'consent',
 		conflictOn: 'id',
+		into: 'consent',
 		values: {
-			id,
-			subjectId: submission.subjectId,
 			domainId: submission.domainId,
-			policyId: submission.policyId ?? null,
-			purposeIds: JSON.stringify(submission.purposeIds),
+			givenAt: submission.givenAt,
+			id,
+			ipAddress: submission.ipAddress ?? null,
 			metadata:
 				submission.metadata === undefined
 					? null
 					: JSON.stringify(submission.metadata),
-			ipAddress: submission.ipAddress ?? null,
-			userAgent: submission.userAgent ?? null,
-			givenAt: submission.givenAt,
+			policyId: submission.policyId ?? null,
+			purposeIds: JSON.stringify(submission.purposeIds),
+			subjectId: submission.subjectId,
 			tenantId: submission.tenantId ?? null,
+			userAgent: submission.userAgent ?? null,
 		},
 	});
 
 	if (created) {
-		return { id, created };
+		return { created, id };
 	}
 
 	// Lost the conflict, which the read above did not see: two submissions with
@@ -234,5 +242,5 @@ export const record = Effect.fn('consent.record')(function* (
 	`;
 	yield* assertSamePurposes(winner[0]?.purposeIds, submission.purposeIds);
 
-	return { id, created };
+	return { created, id };
 });

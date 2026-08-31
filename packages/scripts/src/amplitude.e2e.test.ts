@@ -3,28 +3,29 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 	updateScripts,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import {
 	AMPLITUDE_QUEUE_METHODS,
 	amplitude,
 	DEFAULT_AMPLITUDE_SCRIPT_URL,
 } from './vendors/analytics/amplitude';
 
-type QueueEntrySnapshot = {
+interface QueueEntrySnapshot {
 	name: string;
 	args: unknown[];
 	resolveType: string;
-};
+}
 
-function snapshotArg(arg: unknown): unknown {
+const snapshotArg = function snapshotArg(arg: unknown): unknown {
 	if (typeof arg === 'object' && arg !== null) {
 		const record = arg as Record<string, unknown>;
 		if (!Array.isArray(record._q)) {
@@ -37,15 +38,17 @@ function snapshotArg(arg: unknown): unknown {
 	}
 
 	return arg;
-}
+};
 
-function snapshotQueue(win: TestWindow): QueueEntrySnapshot[] {
+const snapshotQueue = function snapshotQueue(
+	win: TestWindow
+): QueueEntrySnapshot[] {
 	return (win.amplitude?._q ?? []).map((entry) => ({
-		name: entry.name,
 		args: entry.args.map((arg) => snapshotArg(arg)),
+		name: entry.name,
 		resolveType: typeof entry.resolve,
 	}));
-}
+};
 
 describe('amplitude contract', () => {
 	registerVendorContractCleanup();
@@ -109,32 +112,33 @@ describe('amplitude contract', () => {
 		);
 		expect(queueSnapshot).toEqual([
 			{
-				name: 'init',
 				args: ['AMPLITUDE-CONTRACT', { autocapture: false }],
+				name: 'init',
 				resolveType: 'function',
 			},
 			{
-				name: 'track',
 				args: ['Signup', { plan: 'pro' }],
+				name: 'track',
 				resolveType: 'function',
 			},
 			{
-				name: 'identify',
 				args: [
 					{
 						_q: [
 							{
-								name: 'set',
 								args: ['plan', 'pro'],
+
+								name: 'set',
 							},
 						],
 					},
 				],
+				name: 'identify',
 				resolveType: 'function',
 			},
 			{
-				name: 'setUserId',
 				args: ['user-12345'],
+				name: 'setUserId',
 				resolveType: 'function',
 			},
 		]);
@@ -188,10 +192,10 @@ describe('amplitude contract', () => {
 		loadScripts([script], grantedMeasurementConsents);
 
 		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
 			consents: deniedConsents,
+			elementId: script.id,
 			hasConsent: false,
+			id: script.id,
 		});
 
 		expect(setOptOut).toHaveBeenCalledWith(true);
@@ -215,10 +219,10 @@ describe('amplitude contract', () => {
 		};
 
 		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
 			consents: grantedMeasurementConsents,
+			elementId: script.id,
 			hasConsent: true,
+			id: script.id,
 		});
 
 		expect(setOptOut).toHaveBeenCalledWith(false);

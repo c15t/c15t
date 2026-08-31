@@ -18,19 +18,19 @@ const STANDALONE_PURPOSE_ID = 1;
  * Pure function — no framework reactivity. Each framework package
  * wraps this in its own reactive primitive (useMemo, $derived, computed, etc.).
  */
-export function resolveIABBannerSummary(
+export const resolveIABBannerSummary = function resolveIABBannerSummary(
 	iab: HeadlessIABStateInput | null
 ): HeadlessIABBannerState {
 	if (!iab?.gvl) {
 		return {
-			isReady: false,
-			vendorCount: 0,
 			displayItems: [],
+			isReady: false,
 			remainingCount: 0,
+			vendorCount: 0,
 		};
 	}
 
-	const gvl = iab.gvl;
+	const { gvl } = iab;
 	const customVendors = iab.nonIABVendors ?? iab.customVendors ?? [];
 	const vendorCount = Object.keys(gvl.vendors).length + customVendors.length;
 
@@ -52,11 +52,11 @@ export function resolveIABBannerSummary(
 	);
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 
-	const stackScores: Array<{
+	const stackScores: {
 		name: string;
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const stack of Object.values(gvl.stacks || {})) {
 		const coveredPurposeIds = stack.purposes.filter((purposeId) =>
@@ -64,8 +64,8 @@ export function resolveIABBannerSummary(
 		);
 		if (coveredPurposeIds.length >= 2) {
 			stackScores.push({
-				name: stack.name,
 				coveredPurposeIds,
+				name: stack.name,
 				score: coveredPurposeIds.length,
 			});
 		}
@@ -114,9 +114,9 @@ export function resolveIABBannerSummary(
 	}
 
 	return {
-		isReady: true,
-		vendorCount,
 		displayItems: items.slice(0, MAX_BANNER_DISPLAY_ITEMS),
+		isReady: true,
 		remainingCount: Math.max(0, items.length - MAX_BANNER_DISPLAY_ITEMS),
+		vendorCount,
 	};
-}
+};

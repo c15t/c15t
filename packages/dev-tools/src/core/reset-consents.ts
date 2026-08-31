@@ -5,6 +5,7 @@
 
 import type { ConsentStoreState } from '@c15t/core';
 import type { StoreApi } from 'zustand/vanilla';
+
 import type { StateManager } from './state-manager';
 
 /**
@@ -13,12 +14,12 @@ import type { StateManager } from './state-manager';
 const STORAGE_KEYS = {
 	/** Main c15t consent storage */
 	C15T: 'c15t',
-	/** Pending consent sync data */
-	PENDING_SYNC: 'c15t:pending-consent-sync',
-	/** Pending consent submissions */
-	PENDING_SUBMISSIONS: 'c15t-pending-consent-submissions',
 	/** IAB TCF euconsent string */
 	EUCONSENT: 'euconsent-v2',
+	/** Pending consent submissions */
+	PENDING_SUBMISSIONS: 'c15t-pending-consent-submissions',
+	/** Pending consent sync data */
+	PENDING_SYNC: 'c15t:pending-consent-sync',
 } as const;
 
 /**
@@ -34,22 +35,22 @@ const COOKIE_NAMES = {
 /**
  * Clears a cookie by setting it to expire in the past
  */
-function clearCookie(name: string): void {
+const clearCookie = function clearCookie(name: string): void {
 	document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-}
+};
 
 /**
  * Clears all c15t-related cookies
  */
-function clearAllCookies(): void {
+const clearAllCookies = function clearAllCookies(): void {
 	clearCookie(COOKIE_NAMES.C15T);
 	clearCookie(COOKIE_NAMES.EUCONSENT);
-}
+};
 
 /**
  * Clears all c15t-related localStorage entries
  */
-function clearAllLocalStorage(): void {
+const clearAllLocalStorage = function clearAllLocalStorage(): void {
 	try {
 		localStorage.removeItem(STORAGE_KEYS.C15T);
 		localStorage.removeItem(STORAGE_KEYS.PENDING_SYNC);
@@ -58,7 +59,7 @@ function clearAllLocalStorage(): void {
 	} catch {
 		// localStorage might be unavailable
 	}
-}
+};
 
 /**
  * Resets all consent data including:
@@ -70,7 +71,7 @@ function clearAllLocalStorage(): void {
  * @param store - The c15t store instance
  * @param stateManager - Optional state manager for event logging
  */
-export async function resetAllConsents(
+export const resetAllConsents = async function resetAllConsents(
 	store: StoreApi<ConsentStoreState>,
 	stateManager?: StateManager
 ): Promise<void> {
@@ -88,16 +89,16 @@ export async function resetAllConsents(
 
 	// Log event if state manager provided
 	stateManager?.addEvent({
-		type: 'consent_reset',
 		message: 'All consents reset (storage cleared)',
+		type: 'consent_reset',
 	});
-}
+};
 
 /**
  * Creates a reset handler function bound to a store connector
  * This is a convenience wrapper for use in panel callbacks
  */
-export function createResetHandler(
+export const createResetHandler = function createResetHandler(
 	getStore: () => StoreApi<ConsentStoreState> | null,
 	stateManager?: StateManager
 ): () => Promise<void> {
@@ -107,4 +108,4 @@ export function createResetHandler(
 			await resetAllConsents(store, stateManager);
 		}
 	};
-}
+};

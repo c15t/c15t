@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { applyPatch } from '../patch';
 import { buildInitialSnapshot } from '../snapshot';
 
@@ -26,8 +27,8 @@ describe('advance', () => {
 
 	test('undefined fields preserve current value', () => {
 		const initial = buildInitialSnapshot({
-			initialUser: { externalId: 'u1' },
 			initialSubjectId: 'sub_1',
+			initialUser: { externalId: 'u1' },
 		});
 		const next = applyPatch(initial, { hasConsented: true });
 		expect(next.user).toBe(initial.user);
@@ -36,10 +37,10 @@ describe('advance', () => {
 
 	test('null fields explicitly clear nullable values', () => {
 		const initial = buildInitialSnapshot({
-			initialUser: { externalId: 'u1' },
 			initialSubjectId: 'sub_1',
+			initialUser: { externalId: 'u1' },
 		});
-		const next = applyPatch(initial, { user: null, subjectId: null });
+		const next = applyPatch(initial, { subjectId: null, user: null });
 		expect(next.user).toBeNull();
 		expect(next.subjectId).toBeNull();
 	});
@@ -48,11 +49,11 @@ describe('advance', () => {
 		const initial = buildInitialSnapshot({});
 		const next = applyPatch(initial, {
 			consents: {
-				necessary: true,
+				experience: true,
 				functionality: true,
 				marketing: true,
 				measurement: true,
-				experience: true,
+				necessary: true,
 			},
 		});
 		expect(next.consents.marketing).toBe(true);

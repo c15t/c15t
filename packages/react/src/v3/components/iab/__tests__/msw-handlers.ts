@@ -5,6 +5,7 @@
  */
 
 import { HttpResponse, http } from 'msw';
+
 import { mockGVL } from './fixtures/mock-consent-state';
 
 /**

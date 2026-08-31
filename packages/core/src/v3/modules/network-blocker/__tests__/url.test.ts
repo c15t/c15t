@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import type { NetworkBlockerRule } from '../types';
 import {
 	hostnameMatchesRule,
@@ -9,9 +10,9 @@ import {
 } from '../url';
 
 const rule: NetworkBlockerRule = {
-	id: 'r',
-	domain: 'example.com',
 	category: 'marketing',
+	domain: 'example.com',
+	id: 'r',
 };
 
 describe('normalizeMethod', () => {

@@ -1,19 +1,19 @@
 import {
 	CssLayerScenarioRenderer,
-	type CssLayerSurface,
 	getCssLayerScenario,
 } from '@c15t/benchmarking';
+import type { CssLayerSurface } from '@c15t/benchmarking';
 import { notFound } from 'next/navigation';
 
 const VALID_SURFACES = new Set<CssLayerSurface>(['banner', 'dialog']);
 
-export default async function MatrixScenarioPage({
+const MatrixScenarioPage = async ({
 	params,
 	searchParams,
 }: {
 	params: Promise<{ scenario: string; surface: string }>;
 	searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}) => {
 	const resolvedParams = await params;
 	const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
@@ -34,8 +34,13 @@ export default async function MatrixScenarioPage({
 		<CssLayerScenarioRenderer
 			environmentId="no-tw"
 			environmentLabel="Plain CSS"
-			isPreview={resolvedSearchParams?.preview != null}
+			isPreview={
+				resolvedSearchParams?.preview !== null &&
+				resolvedSearchParams?.preview !== undefined
+			}
 			scenario={scenario}
 		/>
 	);
-}
+};
+
+export default MatrixScenarioPage;

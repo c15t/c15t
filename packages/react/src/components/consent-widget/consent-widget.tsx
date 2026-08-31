@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+
 import type { AccordionRootProps } from '~/components/shared/ui/accordion';
 import { BrandingLink } from '~/components/shared/ui/branding';
 import { useTheme } from '~/hooks/use-theme';
+
 import {
 	ConsentWidgetAccordion,
 	ConsentWidgetAccordionItems,
@@ -11,6 +13,7 @@ import {
 import { ConsentWidgetRoot } from './atoms/root';
 import { ConsentWidgetPolicyActions } from './policy-actions';
 import type { ConsentWidgetProps } from './types';
+
 export const ConsentWidget = ({
 	hideBranding,
 	noStyle: localNoStyle,
@@ -25,8 +28,8 @@ export const ConsentWidget = ({
 	const globalTheme = useTheme();
 
 	const mergedProps = {
-		noStyle: localNoStyle ?? globalTheme.noStyle,
 		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
+		noStyle: localNoStyle ?? globalTheme.noStyle,
 		scrollLock: localScrollLock ?? globalTheme.scrollLock,
 		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
 		...props,

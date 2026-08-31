@@ -14,11 +14,11 @@
  */
 export const GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING: Record<string, string[]> =
 	{
-		necessary: ['security_storage'],
-		functionality: ['functionality_storage'],
-		measurement: ['analytics_storage'],
-		marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
 		experience: ['personalization_storage'],
+		functionality: ['functionality_storage'],
+		marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+		measurement: ['analytics_storage'],
+		necessary: ['security_storage'],
 	};
 
 /**
@@ -50,7 +50,7 @@ export const GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING: Record<string, string[]> =
  * );
  * ```
  */
-export function withOptionalConsentMapping<
+export const withOptionalConsentMapping = function withOptionalConsentMapping<
 	TManifest extends {
 		consentMapping?: Record<string, string[]>;
 	},
@@ -66,4 +66,4 @@ export function withOptionalConsentMapping<
 		...manifest,
 		consentMapping,
 	};
-}
+};

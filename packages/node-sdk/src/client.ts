@@ -12,6 +12,7 @@ import type {
 	PostSubjectOutput,
 	StatusOutput,
 } from '@c15t/schema/types';
+
 import {
 	checkConsent,
 	createSubject,
@@ -21,12 +22,8 @@ import {
 	patchSubject,
 	status,
 } from './endpoints';
-import {
-	DEFAULT_RETRY_CONFIG,
-	DEFAULT_TIMEOUT_MS,
-	type FetcherContext,
-	fetcher,
-} from './fetcher';
+import { DEFAULT_RETRY_CONFIG, DEFAULT_TIMEOUT_MS, fetcher } from './fetcher';
+import type { FetcherContext } from './fetcher';
 import type {
 	C15TClientOptions,
 	FetchOptions,
@@ -74,7 +71,7 @@ export class C15TClient {
 		// Resolve baseUrl from options or environment variable
 		const baseUrlString =
 			options.baseUrl ||
-			(typeof process !== 'undefined' ? process.env?.C15T_API_URL : undefined);
+			(typeof process === 'undefined' ? undefined : process.env?.C15T_API_URL);
 
 		if (!baseUrlString) {
 			throw new TypeError(
@@ -93,9 +90,9 @@ export class C15TClient {
 		// Resolve token from options or environment variable
 		const token =
 			options.token ||
-			(typeof process !== 'undefined'
-				? process.env?.C15T_API_TOKEN
-				: undefined);
+			(typeof process === 'undefined'
+				? undefined
+				: process.env?.C15T_API_TOKEN);
 
 		// Prepare authorization header if token is provided
 		const authHeaders: Record<string, string> = token
@@ -111,21 +108,21 @@ export class C15TClient {
 		// Resolve debug mode from options or environment variable
 		const debug =
 			options.debug ??
-			(typeof process !== 'undefined'
-				? process.env?.C15T_DEBUG === 'true'
-				: false);
+			(typeof process === 'undefined'
+				? false
+				: process.env?.C15T_DEBUG === 'true');
 
 		// Resolve timeout from options or use default
 		const timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
 
 		this.context = {
 			baseUrl: baseUrl.toString(),
+			debug,
 			headers: {
 				...authHeaders,
 				...options.headers,
 			},
 			retryConfig,
-			debug,
 			timeout,
 		};
 	}
@@ -136,7 +133,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns Status response with version and client info
 	 */
-	async status(
+	status(
 		options?: FetchOptions<StatusOutput>
 	): Promise<ResponseContext<StatusOutput>> {
 		return status(this.context, options);
@@ -148,7 +145,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns Init response with jurisdiction, location, translations, branding
 	 */
-	async init(
+	init(
 		options?: FetchOptions<InitOutput>
 	): Promise<ResponseContext<InitOutput>> {
 		return init(this.context, options);
@@ -161,7 +158,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns Created subject response
 	 */
-	async createSubject(
+	createSubject(
 		input: PostSubjectInput,
 		options?: FetchOptions<PostSubjectOutput, PostSubjectInput>
 	): Promise<ResponseContext<PostSubjectOutput>> {
@@ -176,7 +173,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns Subject data response
 	 */
-	async getSubject(
+	getSubject(
 		id: string,
 		query?: GetSubjectQuery,
 		options?: FetchOptions<GetSubjectOutput, never, GetSubjectQuery>
@@ -192,7 +189,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns Updated subject response
 	 */
-	async patchSubject(
+	patchSubject(
 		id: string,
 		input: Omit<PatchSubjectFullInput, 'id'>,
 		options?: FetchOptions<
@@ -210,7 +207,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns List of subjects
 	 */
-	async listSubjects(
+	listSubjects(
 		query?: ListSubjectsQuery,
 		options?: FetchOptions<ListSubjectsOutput, never, ListSubjectsQuery>
 	): Promise<ResponseContext<ListSubjectsOutput>> {
@@ -224,7 +221,7 @@ export class C15TClient {
 	 * @param options - Optional fetch options
 	 * @returns Consent check response
 	 */
-	async checkConsent(
+	checkConsent(
 		query: CheckConsentQuery,
 		options?: FetchOptions<CheckConsentOutput, never, CheckConsentQuery>
 	): Promise<ResponseContext<CheckConsentOutput>> {
@@ -238,7 +235,7 @@ export class C15TClient {
 	 * @param options - Fetch options
 	 * @returns Response context
 	 */
-	async $fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
+	$fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
@@ -284,6 +281,14 @@ export class C15TClient {
 		) => this.getSubject(id, query, options),
 
 		/**
+		 * List subjects
+		 */
+		list: (
+			query?: ListSubjectsQuery,
+			options?: FetchOptions<ListSubjectsOutput, never, ListSubjectsQuery>
+		) => this.listSubjects(query, options),
+
+		/**
 		 * Update a subject
 		 */
 		patch: (
@@ -294,14 +299,6 @@ export class C15TClient {
 				Omit<PatchSubjectFullInput, 'id'>
 			>
 		) => this.patchSubject(id, input, options),
-
-		/**
-		 * List subjects
-		 */
-		list: (
-			query?: ListSubjectsQuery,
-			options?: FetchOptions<ListSubjectsOutput, never, ListSubjectsQuery>
-		) => this.listSubjects(query, options),
 	};
 
 	/**
@@ -309,13 +306,13 @@ export class C15TClient {
 	 */
 	meta = {
 		/**
-		 * Get API status
-		 */
-		status: (options?: FetchOptions<StatusOutput>) => this.status(options),
-
-		/**
 		 * Initialize consent manager
 		 */
 		init: (options?: FetchOptions<InitOutput>) => this.init(options),
+
+		/**
+		 * Get API status
+		 */
+		status: (options?: FetchOptions<StatusOutput>) => this.status(options),
 	};
 }

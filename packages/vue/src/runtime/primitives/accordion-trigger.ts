@@ -9,16 +9,14 @@
  * trigger semantics onto it, mirroring Reka's asChild behavior for the
  * exact usage the components need (nothing more).
  */
-import {
-	cloneVNode,
-	defineComponent,
-	inject,
-	mergeProps,
-	type VNode,
-} from 'vue';
+import { cloneVNode, defineComponent, inject, mergeProps } from 'vue';
+import type { VNode } from 'vue';
+
 import { accordionItemContextKey } from './keys';
 
-function firstElementVNode(nodes: VNode[] | undefined): VNode | null {
+const firstElementVNode = function firstElementVNode(
+	nodes: VNode[] | undefined
+): VNode | null {
 	if (!nodes) {
 		return null;
 	}
@@ -28,11 +26,11 @@ function firstElementVNode(nodes: VNode[] | undefined): VNode | null {
 		}
 	}
 	return null;
-}
+};
 
 export const AccordionHeader = defineComponent({
 	name: 'AccordionHeader',
-	props: { asChild: { type: Boolean, default: false } },
+	props: { asChild: { default: false, type: Boolean } },
 	setup(_props, { slots }) {
 		// Only the as-child form is used: header is a pure pass-through.
 		return () => slots.default?.();
@@ -40,17 +38,17 @@ export const AccordionHeader = defineComponent({
 });
 
 export const AccordionTrigger = defineComponent({
-	name: 'AccordionTrigger',
 	inheritAttrs: false,
-	props: { asChild: { type: Boolean, default: false } },
+	name: 'AccordionTrigger',
+	props: { asChild: { default: false, type: Boolean } },
 	setup(_props, { slots, attrs }) {
 		const item = inject(accordionItemContextKey);
 
-		function toggle() {
+		const toggle = function toggle() {
 			item?.toggle();
-		}
+		};
 
-		return () => {
+		return function setup() {
 			const child = firstElementVNode(slots.default?.());
 			if (!child) {
 				return null;
@@ -59,8 +57,6 @@ export const AccordionTrigger = defineComponent({
 			return cloneVNode(
 				child,
 				mergeProps(attrs, {
-					role: 'button',
-					tabindex: 0,
 					'aria-expanded': open ? 'true' : 'false',
 					'data-state': open ? 'open' : 'closed',
 					onClick: toggle,
@@ -70,6 +66,8 @@ export const AccordionTrigger = defineComponent({
 							toggle();
 						}
 					},
+					role: 'button',
+					tabindex: 0,
 				})
 			);
 		};

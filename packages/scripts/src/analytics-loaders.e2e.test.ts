@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	grantedMeasurementConsents,
 	installHeadProbe,
@@ -65,6 +66,7 @@ describe('analytics loader contracts', () => {
 			} else {
 				beaconConfig = undefined;
 			}
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			defer = node.defer;
 			node.dispatchEvent(new Event('load'));
 		});

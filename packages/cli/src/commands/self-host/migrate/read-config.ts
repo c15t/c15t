@@ -12,22 +12,33 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type { DatabaseOption } from '@c15t/backend';
 import { loadConfig } from 'c12';
+
 import type { CliContext } from '~/context/types';
 
 interface BackendConfig extends Record<string, unknown> {
 	database?: DatabaseOption;
 }
 
+interface ReadDatabaseConfigDependencies {
+	loadConfig: typeof loadConfig;
+}
+
+const defaultReadDatabaseConfigDependencies: ReadDatabaseConfigDependencies = {
+	loadConfig,
+};
+
 /**
  * Reads the config and returns its `database` option.
  *
- * @throws when the file is missing, unreadable, or has no `database`.
+ * @throws {Error} when the file is missing, unreadable, or has no `database`.
  */
-export async function readDatabaseConfig(
+export const readDatabaseConfig = async function readDatabaseConfig(
 	context: CliContext,
-	absoluteConfigPath: string
+	absoluteConfigPath: string,
+	dependencies: ReadDatabaseConfigDependencies = defaultReadDatabaseConfigDependencies
 ): Promise<DatabaseOption> {
 	const { logger } = context;
 	const resolvedPath = path.resolve(absoluteConfigPath);
@@ -41,7 +52,7 @@ export async function readDatabaseConfig(
 	}
 
 	try {
-		const { config } = await loadConfig<BackendConfig>({
+		const { config } = await dependencies.loadConfig<BackendConfig>({
 			configFile: absoluteConfigPath,
 			jitiOptions: {
 				extensions: [
@@ -77,6 +88,8 @@ export async function readDatabaseConfig(
 		if (error instanceof Error) {
 			throw error;
 		}
-		throw new Error(`Unknown error loading backend config: ${String(error)}`);
+		throw new Error(`Unknown error loading backend config: ${String(error)}`, {
+			cause: error,
+		});
 	}
-}
+};

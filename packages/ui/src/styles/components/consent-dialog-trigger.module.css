@@ -347,7 +347,7 @@
 	height: var(--cdtt-size-lg);
 }
 
-.toolbarItem[data-c15t-trigger-action="preferences"] {
+.toolbarItem[data-c15t-trigger-action='preferences'] {
 	color: var(--cdtt-primary-text);
 	background: var(--cdtt-primary);
 }
@@ -389,7 +389,7 @@
 		background: var(--cdtt-bg-hover);
 	}
 
-	.toolbarItem[data-c15t-trigger-action="preferences"]:hover:not(:disabled) {
+	.toolbarItem[data-c15t-trigger-action='preferences']:hover:not(:disabled) {
 		background: var(--cdtt-primary-hover);
 	}
 }

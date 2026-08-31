@@ -10,9 +10,10 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { resolveWorkspaceProtocol } from './workspace-protocol';
 
-type PackageJson = {
+interface PackageJson {
 	name?: string;
 	version?: string;
 	private?: boolean;
@@ -20,12 +21,12 @@ type PackageJson = {
 	devDependencies?: Record<string, string>;
 	peerDependencies?: Record<string, string>;
 	optionalDependencies?: Record<string, string>;
-};
+}
 
-type WorkspacePackage = {
+interface WorkspacePackage {
 	path: string;
 	manifest: PackageJson;
-};
+}
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKSPACE_DIRS = ['packages', 'configs', 'internals'];
@@ -36,7 +37,7 @@ const DEP_FIELDS = [
 	'optionalDependencies',
 ] as const;
 
-async function listDirs(dirPath: string): Promise<string[]> {
+const listDirs = async function listDirs(dirPath: string): Promise<string[]> {
 	try {
 		const entries = await readdir(dirPath, { withFileTypes: true });
 		return entries
@@ -45,9 +46,9 @@ async function listDirs(dirPath: string): Promise<string[]> {
 	} catch {
 		return [];
 	}
-}
+};
 
-async function readPackageJson(
+const readPackageJson = async function readPackageJson(
 	packageJsonPath: string
 ): Promise<PackageJson | null> {
 	try {
@@ -56,13 +57,16 @@ async function readPackageJson(
 	} catch {
 		return null;
 	}
-}
+};
 
-async function getWorkspacePackages(): Promise<WorkspacePackage[]> {
+const getWorkspacePackages = async function getWorkspacePackages(): Promise<
+	WorkspacePackage[]
+> {
 	const workspacePackages: WorkspacePackage[] = [];
 
 	for (const workspaceDir of WORKSPACE_DIRS) {
 		const workspaceDirPath = path.join(ROOT, workspaceDir);
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const subDirs = await listDirs(workspaceDirPath);
 
 		for (const subDir of subDirs) {
@@ -71,12 +75,15 @@ async function getWorkspacePackages(): Promise<WorkspacePackage[]> {
 				subDir,
 				'package.json'
 			);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const manifest = await readPackageJson(packageJsonPath);
-			if (!manifest?.name) continue;
+			if (!manifest?.name) {
+				continue;
+			}
 
 			workspacePackages.push({
-				path: packageJsonPath,
 				manifest,
+				path: packageJsonPath,
 			});
 		}
 	}
@@ -85,76 +92,84 @@ async function getWorkspacePackages(): Promise<WorkspacePackage[]> {
 	const rootManifest = await readPackageJson(rootManifestPath);
 	if (rootManifest?.name && !rootManifest.private) {
 		workspacePackages.push({
-			path: rootManifestPath,
 			manifest: rootManifest,
+			path: rootManifestPath,
 		});
 	}
 
 	return workspacePackages;
-}
+};
 
-async function resolveAllWorkspaceDependencies() {
-	const workspacePackages = await getWorkspacePackages();
-	const versionByPackageName = new Map<string, string>();
+const resolveAllWorkspaceDependencies =
+	async function resolveAllWorkspaceDependencies() {
+		const workspacePackages = await getWorkspacePackages();
+		const versionByPackageName = new Map<string, string>();
 
-	for (const pkg of workspacePackages) {
-		if (pkg.manifest.name && pkg.manifest.version) {
-			versionByPackageName.set(pkg.manifest.name, pkg.manifest.version);
-		}
-	}
-
-	console.log(
-		`Found ${versionByPackageName.size} workspace packages:`,
-		Object.fromEntries(versionByPackageName)
-	);
-
-	let totalResolved = 0;
-
-	for (const pkg of workspacePackages) {
-		let modified = false;
-
-		for (const field of DEP_FIELDS) {
-			const deps = pkg.manifest[field];
-			if (!deps) continue;
-
-			for (const [depName, depRange] of Object.entries(deps)) {
-				if (!depRange.startsWith('workspace:')) continue;
-
-				const resolvedVersion = versionByPackageName.get(depName);
-				if (!resolvedVersion) {
-					console.warn(
-						`  ${pkg.manifest.name}: ${depName} ${depRange} -> NOT FOUND in workspace`
-					);
-					continue;
-				}
-
-				const resolvedRange = resolveWorkspaceProtocol(
-					depRange,
-					resolvedVersion
-				);
-				if (resolvedRange !== depRange) {
-					deps[depName] = resolvedRange;
-					console.log(
-						`  ${pkg.manifest.name}: ${depName} ${depRange} -> ${resolvedRange}`
-					);
-					modified = true;
-					totalResolved += 1;
-				}
+		for (const pkg of workspacePackages) {
+			if (pkg.manifest.name && pkg.manifest.version) {
+				versionByPackageName.set(pkg.manifest.name, pkg.manifest.version);
 			}
 		}
 
-		if (modified) {
-			await writeFile(
-				pkg.path,
-				`${JSON.stringify(pkg.manifest, null, '\t')}\n`
-			);
+		console.log(
+			`Found ${versionByPackageName.size} workspace packages:`,
+			Object.fromEntries(versionByPackageName)
+		);
+
+		let totalResolved = 0;
+
+		for (const pkg of workspacePackages) {
+			let modified = false;
+
+			for (const field of DEP_FIELDS) {
+				const deps = pkg.manifest[field];
+				if (!deps) {
+					continue;
+				}
+
+				for (const [depName, depRange] of Object.entries(deps)) {
+					if (!depRange.startsWith('workspace:')) {
+						continue;
+					}
+
+					const resolvedVersion = versionByPackageName.get(depName);
+					if (!resolvedVersion) {
+						console.warn(
+							`  ${pkg.manifest.name}: ${depName} ${depRange} -> NOT FOUND in workspace`
+						);
+						continue;
+					}
+
+					const resolvedRange = resolveWorkspaceProtocol(
+						depRange,
+						resolvedVersion
+					);
+					if (resolvedRange !== depRange) {
+						deps[depName] = resolvedRange;
+						console.log(
+							`  ${pkg.manifest.name}: ${depName} ${depRange} -> ${resolvedRange}`
+						);
+						modified = true;
+						totalResolved += 1;
+					}
+				}
+			}
+
+			if (modified) {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+				await writeFile(
+					pkg.path,
+					`${JSON.stringify(pkg.manifest, null, '\t')}\n`
+				);
+			}
 		}
-	}
 
-	console.log(`\nResolved ${totalResolved} workspace: references.`);
-}
+		console.log(`\nResolved ${totalResolved} workspace: references.`);
+	};
 
-resolveAllWorkspaceDependencies().catch((error) => {
+try {
+	await resolveAllWorkspaceDependencies();
+} catch (error) {
 	console.error('Failed to resolve workspace dependencies:', error);
 	process.exit(1);
-});
+}

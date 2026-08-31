@@ -1,58 +1,59 @@
 <script lang="ts">
-import type { TabsOrientation } from '@c15t/ui/primitives';
-import { getDataDisabled } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { setTabsRootContext } from './context';
+	import type { TabsOrientation } from '@c15t/ui/primitives';
+	import { getDataDisabled } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const componentId = $props.id();
+	import { setTabsRootContext } from './context';
 
-let {
-	children,
-	class: className,
-	disabled = false,
-	loop = true,
-	orientation = 'horizontal',
-	value = $bindable<string | null>(null),
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-	disabled?: boolean;
-	loop?: boolean;
-	orientation?: TabsOrientation;
-	value?: string | null;
-} = $props();
+	const componentId = $props.id();
 
-const baseId = `c15t-tabs-${componentId}`;
-const dataDisabled = $derived(getDataDisabled(disabled));
+	let {
+		children,
+		class: className,
+		disabled = false,
+		loop = true,
+		orientation = 'horizontal',
+		value = $bindable<string | null>(null),
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		disabled?: boolean;
+		loop?: boolean;
+		orientation?: TabsOrientation;
+		value?: string | null;
+	} = $props();
 
-function setValue(nextValue: string) {
-	if (disabled) {
-		return;
-	}
+	const baseId = `c15t-tabs-${componentId}`;
+	const dataDisabled = $derived(getDataDisabled(disabled));
 
-	value = nextValue;
-}
+	const setValue = function setValue(nextValue: string) {
+		if (disabled) {
+			return;
+		}
 
-setTabsRootContext({
-	get baseId() {
-		return baseId;
-	},
-	get disabled() {
-		return disabled;
-	},
-	get loop() {
-		return loop;
-	},
-	get orientation() {
-		return orientation;
-	},
-	get value() {
-		return value;
-	},
-	setValue,
-});
+		value = nextValue;
+	};
+
+	setTabsRootContext({
+		get baseId() {
+			return baseId;
+		},
+		get disabled() {
+			return disabled;
+		},
+		get loop() {
+			return loop;
+		},
+		get orientation() {
+			return orientation;
+		},
+		setValue,
+		get value() {
+			return value;
+		},
+	});
 </script>
 
 <div

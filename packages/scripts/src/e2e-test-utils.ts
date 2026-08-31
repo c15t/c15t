@@ -1,16 +1,17 @@
 import { afterEach, vi } from 'vitest';
+
 import {
 	clearAllScripts,
 	loadScripts,
 	updateScripts,
 } from '../../core/src/libs/script-loader';
 
-export type GoogleTagDataState = {
+export interface GoogleTagDataState {
 	ics: {
 		usedDefault: boolean;
 		usedImplicit: boolean;
 	};
-};
+}
 
 type TikTokQueueMethodName =
 	| 'load'
@@ -50,9 +51,7 @@ type SnapchatQueueStub = ((...args: unknown[]) => void) & {
 export type TestWindow = Window &
 	typeof globalThis & {
 		TiktokAnalyticsObject?: string;
-		UET?: new (
-			options: Record<string, unknown>
-		) => {
+		UET?: new (options: Record<string, unknown>) => {
 			push: (...args: unknown[]) => void;
 		};
 		$crisp?: unknown[][];
@@ -77,18 +76,18 @@ export type TestWindow = Window &
 		_snaptr?: SnapchatQueueStub;
 		adobeDataLayer?: unknown[];
 		amplitude?: {
-			_q?: Array<{
+			_q?: {
 				name: string;
 				args: unknown[];
 				resolve: (value: unknown) => void;
-			}>;
+			}[];
 			_iq?: Record<string, unknown>;
 			invoked?: boolean;
 			Identify?: new () => {
-				_q?: Array<{
+				_q?: {
 					name: string;
 					args: unknown[];
-				}>;
+				}[];
 				set: (property: string, value: unknown) => unknown;
 			};
 			init?: (...args: unknown[]) => unknown;
@@ -119,10 +118,10 @@ export type TestWindow = Window &
 			identify?: (...args: unknown[]) => unknown;
 			track?: (...args: unknown[]) => unknown;
 		};
-		heapReadyCb?: Array<{
+		heapReadyCb?: {
 			name: string;
 			fn: () => void;
-		}>;
+		}[];
 		htevents?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		intercomSettings?: Record<string, unknown>;
@@ -170,11 +169,11 @@ export type TestWindow = Window &
 export { loadScripts, updateScripts };
 
 export const deniedConsents = {
-	necessary: true,
-	functionality: false,
-	measurement: false,
-	marketing: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
 };
 
 export const grantedMeasurementConsents = {
@@ -187,15 +186,17 @@ export const grantedMarketingConsents = {
 	marketing: true,
 };
 
-export function isArgumentsPayload(value: unknown): value is IArguments {
+export const isArgumentsPayload = function isArgumentsPayload(
+	value: unknown
+): value is IArguments {
 	return Object.prototype.toString.call(value) === '[object Arguments]';
-}
+};
 
-export function toArgs(value: unknown): unknown[] {
+export const toArgs = function toArgs(value: unknown): unknown[] {
 	return Array.from(value as IArguments);
-}
+};
 
-function installAppendProbe(
+const installAppendProbe = function installAppendProbe(
 	target: HTMLHeadElement | HTMLBodyElement,
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
@@ -210,21 +211,21 @@ function installAppendProbe(
 
 		return appended;
 	});
-}
+};
 
-export function installHeadProbe(
+export const installHeadProbe = function installHeadProbe(
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
 	return installAppendProbe(document.head, onAppend);
-}
+};
 
-export function installBodyProbe(
+export const installBodyProbe = function installBodyProbe(
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
 	return installAppendProbe(document.body, onAppend);
-}
+};
 
-function resetVendorGlobals() {
+const resetVendorGlobals = function resetVendorGlobals() {
 	const win = window as TestWindow;
 
 	for (const key of [
@@ -278,16 +279,17 @@ function resetVendorGlobals() {
 		'va',
 		'vaq',
 	] as const) {
-		delete win[key];
+		Reflect.deleteProperty(win, key);
 	}
-}
+};
 
-export function registerVendorContractCleanup() {
-	afterEach(() => {
-		clearAllScripts();
-		vi.restoreAllMocks();
-		document.head.innerHTML = '';
-		document.body.innerHTML = '';
-		resetVendorGlobals();
-	});
-}
+export const registerVendorContractCleanup =
+	function registerVendorContractCleanup() {
+		afterEach(() => {
+			clearAllScripts();
+			vi.restoreAllMocks();
+			document.head.innerHTML = '';
+			document.body.innerHTML = '';
+			resetVendorGlobals();
+		});
+	};

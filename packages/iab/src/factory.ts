@@ -8,6 +8,7 @@
  */
 
 import type { IABConfig, IABModule } from '@c15t/core';
+
 import { initializeIABMode } from './init/iab-initializer';
 import { fetchGVL } from './tcf/fetch-gvl';
 import { createIABManager } from './tcf/store';
@@ -20,8 +21,8 @@ export type IABUserConfig = Omit<IABConfig, 'enabled' | '_module'>;
 
 const iabModule: IABModule = {
 	createIABManager,
-	initializeIABMode,
 	fetchGVL,
+	initializeIABMode,
 };
 
 /**
@@ -40,10 +41,10 @@ const iabModule: IABModule = {
  * }}>
  * ```
  */
-export function iab(config: IABUserConfig): IABConfig {
+export const iab = function iab(config: IABUserConfig): IABConfig {
 	return {
 		...config,
-		enabled: true,
 		_module: iabModule,
+		enabled: true,
 	};
-}
+};

@@ -1,22 +1,23 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	import {
 		createConsentKernel,
 		createHostedTransport,
-		type ConsentKernel,
-		type ConsentSnapshot,
 	} from '../../../../../packages/core/src/v3';
-	import {
-		createScriptLoader,
-		type ScriptLoaderHandle,
-	} from '../../../../../packages/core/src/v3/modules/script-loader';
-	import { onMount } from 'svelte';
+	import type {
+		ConsentKernel,
+		ConsentSnapshot,
+	} from '../../../../../packages/core/src/v3';
+	import { createScriptLoader } from '../../../../../packages/core/src/v3/modules/script-loader';
+	import type { ScriptLoaderHandle } from '../../../../../packages/core/src/v3/modules/script-loader';
 	import {
 		createInitialBenchState,
 		listDomIds,
 		makeV3Scripts,
 		publishScriptBenchState,
-		type ScriptCountBenchState,
 	} from './script-count-state';
+	import type { ScriptCountBenchState } from './script-count-state';
 
 	let { count }: { count: number } = $props();
 
@@ -32,34 +33,41 @@
 			}),
 		});
 		loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts: makeV3Scripts(count),
-			emitToV2DebugListeners: false,
 		});
 		benchState = createInitialBenchState('v3', count);
 		activeUI = kernel.getSnapshot().activeUI ?? 'none';
 		publishScriptBenchState(benchState, { activeUI });
 
 		window.__c15tGetScriptCountBenchState = () => {
-			if (!benchState) return null;
+			if (!benchState) {
+				return null;
+			}
 			publishScriptBenchState(benchState, {
 				activeUI,
+				domIds: listDomIds(count),
 				loadedIds: [...(loader?.getLoadedScriptIds() ?? [])].sort(
 					(left: string, right: string) => left.localeCompare(right)
 				),
-				domIds: listDomIds(count),
 			});
 			return benchState;
 		};
 
 		const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
 			activeUI = snapshot.activeUI ?? 'none';
-			if (!benchState) return;
+			if (!benchState) {
+				return;
+			}
 			publishScriptBenchState(benchState, { activeUI });
 		});
 
-		void kernel.commands.init().then((result: { ok: boolean; error?: unknown }) => {
-			if (!benchState) return;
+		void (async () => {
+			const result = await kernel.commands.init();
+			if (!benchState) {
+				return;
+			}
 			if (!result.ok) {
 				benchState.errors.push(
 					String(result.error ?? 'kernel.commands.init() failed')
@@ -69,7 +77,7 @@
 				activeUI: kernel?.getSnapshot().activeUI ?? activeUI,
 				initialReady: result.ok,
 			});
-		});
+		})();
 
 		return () => {
 			unsubscribe();
@@ -80,21 +88,29 @@
 		};
 	});
 
-	function run() {
-		if (!benchState || !kernel) return;
+	const run = function run() {
+		if (!benchState || !kernel) {
+			return;
+		}
 		publishScriptBenchState(benchState, {
 			actionStartedAtMs: performance.now(),
-			completedAtMs: null,
 			complete: false,
+			completedAtMs: null,
 		});
 		void kernel.commands.save('all');
-	}
+	};
 </script>
 
-<main style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+<main
+	style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+>
 	<h1 style="margin: 0 0 8px;">Svelte c15t/v3 script benchmark</h1>
 	<p style="margin: 0 0 16px;">Scripts: {count}</p>
-	<button id="run-script-count" onclick={run} type="button">
+	<button
+		id="run-script-count"
+		onclick={run}
+		type="button"
+	>
 		Accept all
 	</button>
 </main>

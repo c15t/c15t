@@ -4,9 +4,10 @@ import {
 	saveFlow,
 } from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
+
 import ConsentBanner from '../../../packages/vue/src/runtime/components/consent-banner.vue';
 import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
-import { useStorybookConsent } from './storybook-consent-fixtures';
+import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentManager,
@@ -24,7 +25,7 @@ export const Default: Story = {
 	render: () => ({
 		components: { ConsentManager },
 		setup() {
-			useStorybookConsent('manager');
+			setupStorybookConsent('manager');
 		},
 		template: '<ConsentManager />',
 	}),
@@ -35,7 +36,7 @@ export const DialogContract: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner /><ConsentManager />',
 	}),
@@ -46,7 +47,7 @@ export const SaveFlow: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner /><ConsentManager />',
 	}),
@@ -57,7 +58,7 @@ export const DialogEscapeCloses: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner /><ConsentManager />',
 	}),

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { baseConfig } from '@c15t/vitest-config/base';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
@@ -14,6 +15,7 @@ export default mergeConfig(
 				'~': path.resolve(__dirname, './src'),
 			},
 		},
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		test: {
 			environment: 'node',
 			// PGlite and SQLite get a fresh in-process database per test, so files

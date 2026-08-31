@@ -26,7 +26,7 @@
 		width: fit-content;
 	}
 
-	.list[data-orientation="vertical"] {
+	.list[data-orientation='vertical'] {
 		grid-auto-flow: row;
 	}
 
@@ -44,7 +44,7 @@
 			color var(--c15t-duration-fast) ease;
 	}
 
-	.trigger[data-state="active"] {
+	.trigger[data-state='active'] {
 		background: var(--tabs-trigger-active-background);
 		color: var(--tabs-trigger-active-color);
 	}

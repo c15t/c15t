@@ -8,6 +8,7 @@ import type { Translations } from '@c15t/core';
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
+
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 
 describe('Translations', () => {
@@ -56,34 +57,34 @@ describe('Translations', () => {
 	test('returns German translations when German is selected', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
 				i18n: {
-					locale: 'de',
 					detectBrowserLanguage: false,
+					locale: 'de',
 					messages: {
 						de: {
 							common: {
 								acceptAll: 'German Accept All',
-								rejectAll: 'German Reject All',
 								customize: 'German Customize',
+								rejectAll: 'German Reject All',
 								save: 'German Save',
-							},
-							cookieBanner: {
-								title: 'German Title',
-								description: 'German Description',
 							},
 							consentManagerDialog: {
 								title: 'German Dialog Title',
 							},
 							consentTypes: {
 								necessary: {
-									title: 'German Necessary',
 									description: 'German Necessary Description',
+									title: 'German Necessary',
 								},
+							},
+							cookieBanner: {
+								description: 'German Description',
+								title: 'German Title',
 							},
 						},
 					},
 				},
+				mode: 'offline',
 			},
 		});
 
@@ -118,17 +119,18 @@ describe('Translations', () => {
 	test('merges custom translations with defaults', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
 				i18n: {
 					messages: {
 						en: {
 							cookieBanner: {
-								title: 'Custom Cookie Settings',
 								description: 'Custom Description',
+
+								title: 'Custom Cookie Settings',
 							},
 						} as Partial<Translations>,
 					},
 				},
+				mode: 'offline',
 			},
 		});
 
@@ -163,12 +165,13 @@ describe('Translations', () => {
 	test('falls back to English when selected language is not available', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
 				i18n: {
-					locale: 'fr', // Language with no messages provided
 					detectBrowserLanguage: false,
+					// Language with no messages provided
+					locale: 'fr',
 					messages: {},
 				},
+				mode: 'offline',
 			},
 		});
 
@@ -188,34 +191,34 @@ describe('Translations', () => {
 	test('Custom English overrides default English', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
 				i18n: {
-					locale: 'en',
 					detectBrowserLanguage: false,
+					locale: 'en',
 					messages: {
 						en: {
 							common: {
 								acceptAll: 'Custom English Accept All',
-								rejectAll: 'Custom English Reject All',
 								customize: 'Custom English Customize',
+								rejectAll: 'Custom English Reject All',
 								save: 'Custom English Save',
-							},
-							cookieBanner: {
-								title: 'Custom English Title',
-								description: 'Custom English Description',
 							},
 							consentManagerDialog: {
 								title: 'Custom English Dialog Title',
 							},
 							consentTypes: {
 								necessary: {
-									title: 'Custom English Necessary',
 									description: 'Custom English Necessary Description',
+									title: 'Custom English Necessary',
 								},
+							},
+							cookieBanner: {
+								description: 'Custom English Description',
+								title: 'Custom English Title',
 							},
 						},
 					},
 				},
+				mode: 'offline',
 			},
 		});
 
@@ -250,21 +253,21 @@ describe('Translations', () => {
 	test('supports the new i18n config shape', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
 				i18n: {
-					locale: 'de',
 					detectBrowserLanguage: false,
+					locale: 'de',
 					messages: {
 						de: {
-							cookieBanner: {
-								title: 'Neuer Titel',
-							},
 							common: {
 								acceptAll: 'Alles',
+							},
+							cookieBanner: {
+								title: 'Neuer Titel',
 							},
 						},
 					},
 				},
+				mode: 'offline',
 			},
 		});
 

@@ -1,7 +1,8 @@
 'use client';
 
 import type { ConsentComponentSlotKey } from '@c15t/schema/config';
-import { forwardRef, type HTMLAttributes } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { HTMLAttributes } from 'react';
 
 import { Slot } from '~/v3/components/shared/libs/slot';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -16,8 +17,7 @@ import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
  * @public
  */
 export interface BoxProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
-		ExtendThemeKeys {
+	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>, ExtendThemeKeys {
 	asChild?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
@@ -56,7 +56,7 @@ export interface BoxProps
  *
  * @public
  */
-export const Box = forwardRef<HTMLDivElement, BoxProps>(
+export const Box = createForwardRef<HTMLDivElement, BoxProps>(
 	(
 		{ asChild, className, style, slotKey, baseClassName, noStyle, ...props },
 		ref

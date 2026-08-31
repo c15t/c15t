@@ -11,20 +11,23 @@ export interface CollapsibleRootContextValue {
 	toggle: () => void;
 }
 
-export function setCollapsibleRootContext(value: CollapsibleRootContextValue) {
+export const setCollapsibleRootContext = function setCollapsibleRootContext(
+	value: CollapsibleRootContextValue
+) {
 	setContext(COLLAPSIBLE_ROOT_CONTEXT_KEY, value);
-}
+};
 
-export function getCollapsibleRootContext(): CollapsibleRootContextValue {
-	const context = getContext<CollapsibleRootContextValue | undefined>(
-		COLLAPSIBLE_ROOT_CONTEXT_KEY
-	);
-
-	if (!context) {
-		throw new Error(
-			'Collapsible primitives must be used within Collapsible.Root'
+export const getCollapsibleRootContext =
+	function getCollapsibleRootContext(): CollapsibleRootContextValue {
+		const context = getContext<CollapsibleRootContextValue | undefined>(
+			COLLAPSIBLE_ROOT_CONTEXT_KEY
 		);
-	}
 
-	return context;
-}
+		if (!context) {
+			throw new Error(
+				'Collapsible primitives must be used within Collapsible.Root'
+			);
+		}
+
+		return context;
+	};

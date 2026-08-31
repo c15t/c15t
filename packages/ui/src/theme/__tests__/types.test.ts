@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { defineTheme } from '../types';
 
 describe('defineTheme', () => {
@@ -18,11 +19,8 @@ describe('defineTheme', () => {
 				primary: '#ff0000',
 				surface: '#ffffff',
 			},
-			typography: {
-				fontFamily: 'Arial',
-			},
-			spacing: {
-				md: '1rem',
+			motion: {
+				easing: 'ease-in-out',
 			},
 			radius: {
 				md: '8px',
@@ -30,11 +28,14 @@ describe('defineTheme', () => {
 			shadows: {
 				md: '0 4px 6px rgba(0,0,0,0.1)',
 			},
-			motion: {
-				easing: 'ease-in-out',
-			},
 			slots: {
 				banner: 'custom-banner-class',
+			},
+			spacing: {
+				md: '1rem',
+			},
+			typography: {
+				fontFamily: 'Arial',
 			},
 		};
 		const result = defineTheme(theme);

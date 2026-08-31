@@ -23,11 +23,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import {
-	createDevTools,
-	type DevToolsInstance,
-	type DevToolsOptions,
-} from './core/devtools';
+
+import { createDevTools } from './core/devtools';
+import type { DevToolsInstance, DevToolsOptions } from './core/devtools';
 
 /**
  * Props for the C15TDevTools component
@@ -80,12 +78,12 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
  * <DevTools defaultOpen />
  * ```
  */
-export function C15TDevTools({
+export const C15TDevTools = ({
 	namespace = 'c15tStore',
 	position = 'bottom-right',
 	defaultOpen = false,
 	disabled = false,
-}: C15TDevToolsProps): null {
+}: C15TDevToolsProps): null => {
 	const devtoolsRef = useRef<DevToolsInstance | null>(null);
 
 	useEffect(() => {
@@ -101,9 +99,9 @@ export function C15TDevTools({
 
 		// Create devtools instance
 		devtoolsRef.current = createDevTools({
+			defaultOpen,
 			namespace,
 			position,
-			defaultOpen,
 		});
 
 		// Cleanup on unmount
@@ -115,7 +113,7 @@ export function C15TDevTools({
 
 	// Component renders nothing - devtools injects into document.body
 	return null;
-}
+};
 
 export type { DevToolsPosition, DevToolsTab } from './core/state-manager';
 

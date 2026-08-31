@@ -1,10 +1,7 @@
 import { expect, test } from 'bun:test';
-import {
-	frameworkOf,
-	pairStories,
-	type StoryEntry,
-	storyKey,
-} from './pair-stories';
+
+import { frameworkOf, pairStories, storyKey } from './pair-stories';
+import type { StoryEntry } from './pair-stories';
 
 test('frameworkOf extracts framework from title', () => {
 	expect(frameworkOf('COMPONENTS - REACT/Button')).toBe('react');
@@ -26,8 +23,8 @@ test('frameworkOf returns null for unrecognized titles', () => {
 test('storyKey strips framework segment and appends story name', () => {
 	const entry: StoryEntry = {
 		id: 'components-react-button--primary',
-		title: 'COMPONENTS - REACT/Button',
 		name: 'Primary',
+		title: 'COMPONENTS - REACT/Button',
 	};
 	expect(storyKey(entry)).toBe('Button/Primary');
 });
@@ -36,20 +33,20 @@ test('pairStories groups equivalent entries across frameworks', () => {
 	const react: StoryEntry[] = [
 		{
 			id: 'components-react-button--primary',
-			title: 'COMPONENTS - REACT/Button',
 			name: 'Primary',
+			title: 'COMPONENTS - REACT/Button',
 		},
 		{
 			id: 'components-react-banner--default',
-			title: 'COMPONENTS - REACT/Banner',
 			name: 'Default',
+			title: 'COMPONENTS - REACT/Banner',
 		},
 	];
 	const svelte: StoryEntry[] = [
 		{
 			id: 'components-svelte-button--primary',
-			title: 'COMPONENTS - SVELTE/Button',
 			name: 'Primary',
+			title: 'COMPONENTS - SVELTE/Button',
 		},
 	];
 
@@ -68,13 +65,13 @@ test('pairStories returns stable, sorted output', () => {
 	const react: StoryEntry[] = [
 		{
 			id: 'a',
-			title: 'COMPONENTS - REACT/Z-Comp',
 			name: 'Default',
+			title: 'COMPONENTS - REACT/Z-Comp',
 		},
 		{
 			id: 'b',
-			title: 'COMPONENTS - REACT/A-Comp',
 			name: 'Default',
+			title: 'COMPONENTS - REACT/A-Comp',
 		},
 	];
 	const paired = pairStories({ react });

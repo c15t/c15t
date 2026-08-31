@@ -1,30 +1,31 @@
 /**
- * @fileoverview Tests for the network blocker store integration
+ * @file Tests for the network blocker store integration
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentStoreState } from '../../../store/type';
 import type { ConsentState } from '../../../types';
-import { shouldBlockRequest } from '../core';
 import { createNetworkBlockerManager } from '../store';
 import type { NetworkBlockerConfig } from '../types';
 
-vi.mock('../core', () => ({
-	shouldBlockRequest: vi.fn(),
-}));
+const shouldBlockRequest = vi.fn();
+const networkDependencies = {
+	shouldBlockRequest,
+};
 
 const baseConsents: ConsentState = {
-	necessary: true,
-	functionality: false,
 	experience: false,
+	functionality: false,
 	marketing: false,
 	measurement: false,
+	necessary: true,
 };
 
 type MockSetState = ReturnType<typeof vi.fn> &
 	((partial: Partial<ConsentStoreState>) => void);
 
-function createState(
+const createState = function createState(
 	overrides: Partial<
 		Pick<ConsentStoreState, 'consents' | 'networkBlocker'>
 	> = {}
@@ -34,7 +35,7 @@ function createState(
 		networkBlocker: undefined,
 		...(overrides as Partial<ConsentStoreState>),
 	} as ConsentStoreState;
-}
+};
 
 describe('createNetworkBlockerManager', () => {
 	let getState: ReturnType<typeof vi.fn>;
@@ -61,9 +62,9 @@ describe('createNetworkBlockerManager', () => {
 			enabled: true,
 			rules: [
 				{
-					id: 'api-marketing',
-					domain: 'api.example.com',
 					category: 'marketing',
+					domain: 'api.example.com',
+					id: 'api-marketing',
 				},
 			],
 		};
@@ -90,13 +91,14 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 		shouldBlockRequestMock.mockReturnValue({
-			shouldBlock: true,
 			rule: config.rules[0],
+			shouldBlock: true,
 		} as unknown as ReturnType<typeof shouldBlockRequest>);
 
 		const warnSpy = vi
@@ -116,8 +118,8 @@ describe('createNetworkBlockerManager', () => {
 		expect(shouldBlockRequestMock).toHaveBeenCalledTimes(1);
 		expect(shouldBlockRequestMock).toHaveBeenCalledWith(
 			{
-				url: 'https://api.example.com/resource',
 				method: 'GET',
+				url: 'https://api.example.com/resource',
 			},
 			consents,
 			config
@@ -146,9 +148,9 @@ describe('createNetworkBlockerManager', () => {
 			logBlockedRequests: false,
 			rules: [
 				{
-					id: 'debug-only',
-					domain: 'debug.example.com',
 					category: 'experience',
+					domain: 'debug.example.com',
+					id: 'debug-only',
 				},
 			],
 		};
@@ -175,13 +177,14 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 		shouldBlockRequestMock.mockReturnValue({
-			shouldBlock: true,
 			rule: config.rules[0],
+			shouldBlock: true,
 		} as unknown as ReturnType<typeof shouldBlockRequest>);
 
 		const warnSpy = vi
@@ -203,9 +206,9 @@ describe('createNetworkBlockerManager', () => {
 			enabled: true,
 			rules: [
 				{
-					id: 'api-marketing',
-					domain: 'api.example.com',
 					category: 'marketing',
+					domain: 'api.example.com',
+					id: 'api-marketing',
 				},
 			],
 		};
@@ -243,17 +246,19 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 
 		// Block when marketing consent is false, allow when true
-		shouldBlockRequestMock.mockImplementation((_request, consents) => {
-			return {
-				shouldBlock: !consents.marketing,
-			} as unknown as ReturnType<typeof shouldBlockRequest>;
-		});
+		shouldBlockRequestMock.mockImplementation(
+			(_request, consents) =>
+				({
+					shouldBlock: !consents.marketing,
+				}) as unknown as ReturnType<typeof shouldBlockRequest>
+		);
 
 		manager.initializeNetworkBlocker();
 
@@ -279,9 +284,9 @@ describe('createNetworkBlockerManager', () => {
 			enabled: true,
 			rules: [
 				{
-					id: 'api-marketing',
-					domain: 'api.example.com',
 					category: 'marketing',
+					domain: 'api.example.com',
+					id: 'api-marketing',
 				},
 			],
 		};
@@ -319,17 +324,19 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 
 		// Block when marketing consent is false, allow when true
-		shouldBlockRequestMock.mockImplementation((_request, consents) => {
-			return {
-				shouldBlock: !consents.marketing,
-			} as unknown as ReturnType<typeof shouldBlockRequest>;
-		});
+		shouldBlockRequestMock.mockImplementation(
+			(_request, consents) =>
+				({
+					shouldBlock: !consents.marketing,
+				}) as unknown as ReturnType<typeof shouldBlockRequest>
+		);
 
 		manager.initializeNetworkBlocker();
 
@@ -356,9 +363,9 @@ describe('createNetworkBlockerManager', () => {
 			enabled: true,
 			rules: [
 				{
-					id: 'api-marketing',
-					domain: 'api.example.com',
 					category: 'marketing',
+					domain: 'api.example.com',
+					id: 'api-marketing',
 				},
 			],
 		};
@@ -379,7 +386,9 @@ describe('createNetworkBlockerManager', () => {
 			dispatchEvent = vi.fn(() => true);
 
 			// Prototype methods will be patched by the manager
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			open(_method: string, _url: string): void {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			send(_body?: Document | XMLHttpRequestBodyInit | null): void {}
 		}
 

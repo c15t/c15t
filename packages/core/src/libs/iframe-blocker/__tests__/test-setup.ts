@@ -1,5 +1,5 @@
 /**
- * @fileoverview Test setup for iframe blocker tests
+ * @file Test setup for iframe blocker tests
  */
 
 import { afterEach, beforeEach, vi } from 'vitest';
@@ -9,18 +9,17 @@ beforeEach(() => {
 	// Ensure MutationObserver is available
 	if (typeof global.MutationObserver === 'undefined') {
 		global.MutationObserver = class MutationObserver {
-			constructor(_callback: MutationCallback) {
-				// Mock implementation
-			}
-
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			observe(_target: Node, _options?: MutationObserverInit) {
 				// Mock implementation - in real tests we'll trigger manually
 			}
 
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			disconnect() {
 				// Mock implementation
 			}
 
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords(): MutationRecord[] {
 				return [];
 			}
@@ -48,9 +47,16 @@ beforeEach(() => {
 			const attributes: Record<string, string> = {};
 
 			const element = {
-				tagName: tagName.toUpperCase(),
-				src: '',
+				appendChild: vi.fn(),
 				getAttribute: vi.fn((name: string) => attributes[name] || null),
+				removeAttribute: vi.fn((name: string) => {
+					Reflect.deleteProperty(attributes, name);
+					// Update the src property when src attribute is removed
+					if (name === 'src') {
+						(element as unknown as { src: string }).src = '';
+					}
+				}),
+				removeChild: vi.fn(),
 				setAttribute: vi.fn((name: string, value: string) => {
 					attributes[name] = value;
 					// Update the src property when src attribute is set
@@ -58,15 +64,8 @@ beforeEach(() => {
 						(element as unknown as { src: string }).src = value;
 					}
 				}),
-				removeAttribute: vi.fn((name: string) => {
-					delete attributes[name];
-					// Update the src property when src attribute is removed
-					if (name === 'src') {
-						(element as unknown as { src: string }).src = '';
-					}
-				}),
-				appendChild: vi.fn(),
-				removeChild: vi.fn(),
+				src: '',
+				tagName: tagName.toUpperCase(),
 			} as unknown as Element;
 
 			// Track created elements
@@ -78,8 +77,8 @@ beforeEach(() => {
 		// Ensure body exists and has proper methods
 		if (!global.document.body) {
 			global.document.body = {
-				innerHTML: '',
 				appendChild: vi.fn(),
+				innerHTML: '',
 				removeChild: vi.fn(),
 			} as unknown as HTMLElement;
 		}

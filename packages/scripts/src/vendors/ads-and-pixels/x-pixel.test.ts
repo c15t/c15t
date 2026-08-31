@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	expectScriptMatchesIntegration,
 	expectStubCommandQueue,
@@ -57,17 +58,17 @@ describe('xPixelEvent', () => {
 		globalRef.twq = twq;
 
 		xPixelEvent('tw-pixel-event', {
-			value: 200,
+			conversion_id: 'order-123',
 			currency: 'USD',
 			status: 'completed',
-			conversion_id: 'order-123',
+			value: 200,
 		});
 
 		expect(twq).toHaveBeenCalledWith('event', 'tw-pixel-event', {
-			value: 200,
+			conversion_id: 'order-123',
 			currency: 'USD',
 			status: 'completed',
-			conversion_id: 'order-123',
+			value: 200,
 		});
 	});
 

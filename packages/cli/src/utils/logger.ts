@@ -1,4 +1,5 @@
-import { createLogger, type Logger } from '@c15t/logger';
+import { createLogger } from '@c15t/logger';
+import type { Logger } from '@c15t/logger';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
 
@@ -107,8 +108,8 @@ export const logMessage = (
 export const createCliLogger = (level: LogLevel): CliLogger => {
 	// Create the base logger with standard levels
 	const baseLogger = createLogger({
-		level,
 		appName: 'c15t',
+		level,
 		log: (logLevel, message, ...args) => {
 			// Level filtering is primarily handled by the createLogger factory's level setting.
 			// This function now just focuses on routing output.

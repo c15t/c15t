@@ -9,7 +9,9 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
+
 import { c15tVue } from '../vite';
 
 const packageDir = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -20,10 +22,12 @@ interface ResolvedPluginPaths {
 	composablesPath: string;
 }
 
-function resolvePluginPaths(factory: () => unknown): ResolvedPluginPaths {
+const resolvePluginPaths = function resolvePluginPaths(
+	factory: () => unknown
+): ResolvedPluginPaths {
 	const plugin = factory() as {
-		resolveId(id: string): string | undefined;
-		config(): { resolve: { alias: Record<string, string> } };
+		resolveId: (id: string) => string | undefined;
+		config: () => { resolve: { alias: Record<string, string> } };
 	};
 	const stubPath = plugin.resolveId('#imports');
 	const composablesPath = plugin.config().resolve.alias['#c15t/composables'];
@@ -31,7 +35,7 @@ function resolvePluginPaths(factory: () => unknown): ResolvedPluginPaths {
 		throw new Error('plugin did not resolve its runtime modules');
 	}
 	return { composablesPath, stubPath };
-}
+};
 
 describe('c15tVue plugin runtime resolution', () => {
 	it('resolves the committed .ts runtime modules from source', () => {

@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
-import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-} from '../../client-factory';
+import { configureConsentManager } from '../../client-factory';
+import type { ConsentManagerOptions } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
 
 describe('c15t Client Tests', () => {
@@ -18,18 +17,18 @@ describe('c15t Client Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					showConsentBanner: true,
 					jurisdiction: { code: 'EU', message: 'European Union' },
 					location: { countryCode: 'DE', regionCode: null },
+					showConsentBanner: true,
 				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } }
+				{ headers: { 'Content-Type': 'application/json' }, status: 200 }
 			)
 		);
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Call the API
@@ -43,9 +42,9 @@ describe('c15t Client Tests', () => {
 		);
 		expect(response.ok).toBe(true);
 		expect(response.data).toEqual({
-			showConsentBanner: true,
 			jurisdiction: { code: 'EU', message: 'European Union' },
 			location: { countryCode: 'DE', regionCode: null },
+			showConsentBanner: true,
 		});
 	});
 
@@ -54,8 +53,8 @@ describe('c15t Client Tests', () => {
 		fetchMock.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					message: 'Internal Server Error',
 					code: 'SERVER_ERROR',
+					message: 'Internal Server Error',
 				}),
 				{
 					status: 500,
@@ -66,8 +65,8 @@ describe('c15t Client Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Call the API - should fallback to offline mode
@@ -84,27 +83,27 @@ describe('c15t Client Tests', () => {
 		// Mock successful response
 		fetchMock.mockResolvedValueOnce(
 			new Response(JSON.stringify({ success: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		// Consent preferences to set - v2.0 requires subjectId
 		const consentData = {
-			subjectId: 'sub_test123abc',
-			type: 'cookie_banner' as const,
 			domain: 'example.com',
 			givenAt: Date.now(),
 			preferences: {
 				analytics: true,
 				marketing: false,
 			},
+			subjectId: 'sub_test123abc',
+			type: 'cookie_banner' as const,
 		};
 
 		// Call the API
@@ -118,8 +117,8 @@ describe('c15t Client Tests', () => {
 		expect(fetchMock).toHaveBeenCalledWith(
 			expect.stringContaining(API_ENDPOINTS.POST_SUBJECT),
 			expect.objectContaining({
-				method: 'POST',
 				body: JSON.stringify(consentData),
+				method: 'POST',
 			})
 		);
 		expect(response.ok).toBe(true);
@@ -130,19 +129,19 @@ describe('c15t Client Tests', () => {
 		// Mock successful response
 		fetchMock.mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
 		// Configure the client with custom headers and force a new instance
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: 'https://test.example.com/api/c15t',
 			headers: {
-				'X-Custom-Header': 'test-value',
 				Authorization: 'Bearer test-token',
+				'X-Custom-Header': 'test-value',
 			},
+			mode: 'hosted',
 		});
 
 		// Call the API
@@ -152,8 +151,11 @@ describe('c15t Client Tests', () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 
 		// Get the actual call arguments
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const mockCall = fetchMock.mock.calls[0];
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const url = mockCall[0];
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const options = mockCall[1];
 
 		// Check the URL
@@ -176,18 +178,19 @@ describe('c15t Client Tests', () => {
 			)
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ showConsentBanner: true }), {
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				})
 			);
 
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
+				// Small delay for test
+				initialDelayMs: 10,
 				maxRetries: 1,
-				initialDelayMs: 10, // Small delay for test
 				retryableStatusCodes: [503],
 			},
 		};

@@ -17,7 +17,9 @@ import { buildConsentManifestFromConfig } from '@c15t/schema';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
-import { onConflict, readThenWrite, type WriteResult } from './write';
+
+import { onConflict, readThenWrite } from './write';
+import type { WriteResult } from './write';
 
 const ITERATIONS = 200;
 const WARMUP = 20;
@@ -29,7 +31,7 @@ const stats = (values: number[]) => {
 	return { median: at(0.5), p95: at(0.95) };
 };
 
-const setup = Effect.gen(function* () {
+const setup = Effect.gen(function* setup() {
 	yield* baseline;
 	yield* hotPathIndexes;
 	const sql = yield* SqlClient.SqlClient;
@@ -47,7 +49,7 @@ const setup = Effect.gen(function* () {
  * or the same submission repeatedly — the retry case, which is the common one
  * in production.
  */
-const measureWrite = Effect.fn('measureWrite')(function* (
+const measureWrite = Effect.fn('measureWrite')(function* measureWrite(
 	arm: (submission: {
 		subjectId: string;
 		domainId: string;
@@ -58,23 +60,25 @@ const measureWrite = Effect.fn('measureWrite')(function* (
 	fresh: boolean
 ) {
 	const submission = (index: number) => ({
-		subjectId: 'sub_1',
 		domainId: 'dom_1',
-		policyId: null,
 		// A distinct givenAt makes each submission a distinct consent.
 		givenAt: new Date(1_800_000_000_000 + (fresh ? index : 0)),
+
+		policyId: null,
+		subjectId: 'sub_1',
 	});
 
-	for (let index = 0; index < WARMUP; index++) {
+	for (let index = 0; index < WARMUP; index += 1) {
 		yield* arm(submission(fresh ? -1 - index : 0));
 	}
 
 	const durations: number[] = [];
 	let queries = 0;
-	for (let index = 0; index < ITERATIONS; index++) {
+	for (let index = 0; index < ITERATIONS; index += 1) {
 		const start = performance.now();
 		const result = yield* arm(submission(index));
 		durations.push(performance.now() - start);
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		queries = result.queries;
 	}
 
@@ -87,13 +91,15 @@ const measureWrite = Effect.fn('measureWrite')(function* (
 });
 
 const writeCell = (fresh: boolean) =>
-	Effect.gen(function* () {
+	// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+	Effect.gen(function* writeCell() {
 		yield* setup;
 		return yield* measureWrite(readThenWrite, 'read-then-write', fresh);
 	}).pipe(Effect.provide(PgliteClient.layer({})));
 
 const writeCellNew = (fresh: boolean) =>
-	Effect.gen(function* () {
+	// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+	Effect.gen(function* writeCellNew() {
 		yield* setup;
 		return yield* measureWrite(onConflict, 'on-conflict', fresh);
 	}).pipe(Effect.provide(PgliteClient.layer({})));
@@ -106,24 +112,33 @@ const rows = [
 ];
 
 process.stdout.write(
-	'\nConsent write\n\n| arm | case | queries | median ms | p95 ms |\n| --- | --- | ---: | ---: | ---: |\n' +
-		rows
-			.map(
-				(row) =>
-					`| ${row.arm} | ${row.case} | ${row.queries} | ${row.median.toFixed(3)} | ${row.p95.toFixed(3)} |`
-			)
-			.join('\n') +
-		'\n'
+	`\nConsent write\n\n| arm | case | queries | median ms | p95 ms |\n| --- | --- | ---: | ---: | ---: |\n${rows
+		.map(
+			(row) =>
+				`| ${row.arm} | ${row.case} | ${row.queries} | ${row.median.toFixed(3)} | ${row.p95.toFixed(3)} |`
+		)
+		.join('\n')}\n`
 );
 
 // Manifest: both packages call the same shared builder, so this measures
 // whether that shared work is expensive at all, not a difference between them.
-const config = { tenantId: 'tenant_1', appName: 'Example' };
+const config = { appName: 'Example', tenantId: 'tenant_1' };
 const manifestDurations: number[] = [];
-for (let index = 0; index < ITERATIONS; index++) {
-	const start = performance.now();
-	await buildConsentManifestFromConfig(config);
-	manifestDurations.push(performance.now() - start);
+{
+	let index = 0;
+	const runSequentialLoop1 =
+		async function runSequentialLoop1(): Promise<void> {
+			if (!(index < ITERATIONS)) {
+				return;
+			}
+			const start = performance.now();
+			await buildConsentManifestFromConfig(config);
+			manifestDurations.push(performance.now() - start);
+
+			index += 1;
+			await runSequentialLoop1();
+		};
+	await runSequentialLoop1();
 }
 const manifest = stats(manifestDurations);
 

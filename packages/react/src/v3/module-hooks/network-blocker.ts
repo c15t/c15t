@@ -1,12 +1,16 @@
 'use client';
 
-import {
-	type BlockedRequestInfo,
-	type NetworkBlockerHandle,
-	type NetworkBlockerRule,
+import type {
+	BlockedRequestInfo,
+	NetworkBlockerHandle,
+	NetworkBlockerRule,
 } from '@c15t/core/v3/modules/network-blocker';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
 import { useRequiredKernel } from './shared';
+
+const loadNetworkBlockerModule = () =>
+	import('@c15t/core/v3/modules/network-blocker');
 
 export interface UseNetworkBlockerOptions {
 	rules: NetworkBlockerRule[];
@@ -15,7 +19,7 @@ export interface UseNetworkBlockerOptions {
 	onRequestBlocked?: (info: BlockedRequestInfo) => void;
 }
 
-export function useNetworkBlocker(
+export const useNetworkBlocker = function useNetworkBlocker(
 	options: UseNetworkBlockerOptions
 ): NetworkBlockerHandle {
 	const kernel = useRequiredKernel();
@@ -23,27 +27,26 @@ export function useNetworkBlocker(
 	const latestRulesRef = useRef(options.rules);
 	const latestEnabledRef = useRef(options.enabled);
 
-	latestRulesRef.current = options.rules;
-	latestEnabledRef.current = options.enabled;
+	const [handle, setHandle] = useState<NetworkBlockerHandle>(() => ({
+		dispose() {
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		},
+		setEnabled(enabled) {
+			latestEnabledRef.current = enabled;
+			handleRef.current?.setEnabled(enabled);
+		},
+		updateRules(next) {
+			latestRulesRef.current = next;
+			handleRef.current?.updateRules(next);
+		},
+	}));
+	void setHandle;
 
-	const facadeRef = useRef<NetworkBlockerHandle | null>(null);
-	if (!facadeRef.current) {
-		facadeRef.current = {
-			dispose() {
-				handleRef.current?.dispose();
-				handleRef.current = null;
-			},
-			updateRules(next) {
-				latestRulesRef.current = next;
-				handleRef.current?.updateRules(next);
-			},
-			setEnabled(enabled) {
-				latestEnabledRef.current = enabled;
-				handleRef.current?.setEnabled(enabled);
-			},
-		};
-	}
-	const handle = facadeRef.current;
+	useEffect(() => {
+		latestRulesRef.current = options.rules;
+		latestEnabledRef.current = options.enabled;
+	}, [options.enabled, options.rules]);
 
 	const firstRules = useRef(true);
 	useEffect(() => {
@@ -62,19 +65,20 @@ export function useNetworkBlocker(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('@c15t/core/v3/modules/network-blocker').then(
-			({ createNetworkBlocker }) => {
-				if (disposed) return;
-				const created = createNetworkBlocker({
-					kernel,
-					rules: latestRulesRef.current,
-					enabled: latestEnabledRef.current,
-					logBlockedRequests: options.logBlockedRequests,
-					onRequestBlocked: options.onRequestBlocked,
-				});
-				handleRef.current = created;
+		void (async () => {
+			const { createNetworkBlocker } = await loadNetworkBlockerModule();
+			if (disposed) {
+				return;
 			}
-		);
+			const created = createNetworkBlocker({
+				enabled: latestEnabledRef.current,
+				kernel,
+				logBlockedRequests: options.logBlockedRequests,
+				onRequestBlocked: options.onRequestBlocked,
+				rules: latestRulesRef.current,
+			});
+			handleRef.current = created;
+		})();
 
 		return () => {
 			disposed = true;
@@ -84,6 +88,6 @@ export function useNetworkBlocker(
 	}, [kernel, options.logBlockedRequests, options.onRequestBlocked]);
 
 	return handle;
-}
+};
 
 export type { BlockedRequestInfo, NetworkBlockerHandle, NetworkBlockerRule };

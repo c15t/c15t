@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { formatInitSource } from '../../utils/init-source';
 
 describe('formatInitSource', () => {

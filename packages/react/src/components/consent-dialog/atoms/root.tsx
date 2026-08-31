@@ -1,41 +1,76 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the root component for the Consent Dialog.
  * Implements context provider pattern with theme support, state management,
  * focus trapping, scroll locking and portal rendering.
  */
-
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
+import { LocalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
 import { useTextDirection } from '~/hooks';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
+import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { cnExt as cn } from '~/utils/cn';
+
 import { Overlay } from './overlay';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
+
+const resolveDialogOptions = (
+	localDisableAnimation: boolean | undefined,
+	globalDisableAnimation: boolean | undefined,
+	localNoStyle: boolean | undefined,
+	globalNoStyle: boolean | undefined,
+	localScrollLock: boolean | undefined,
+	policyScrollLock: boolean | undefined,
+	localTrapFocus: boolean | undefined,
+	globalTrapFocus: boolean | undefined
+) => ({
+	disableAnimation: localDisableAnimation ?? globalDisableAnimation ?? false,
+	noStyle: localNoStyle ?? globalNoStyle ?? false,
+	scrollLock: localScrollLock ?? policyScrollLock ?? true,
+	trapFocus: localTrapFocus ?? globalTrapFocus ?? true,
+});
+
+const getContainerClassName = (
+	noStyle: boolean,
+	disableAnimation: boolean,
+	isVisible: boolean
+): string | undefined => {
+	if (noStyle) {
+		return undefined;
+	}
+	if (disableAnimation) {
+		return styles.container;
+	}
+	return cn(
+		styles.container,
+		isVisible ? styles.contentVisible : styles.contentHidden
+	);
+};
 
 /**
  * Props for the root component of the ConsentDialog.
  *
  * @public
  */
-export interface ConsentDialogRootProps
-	extends HTMLAttributes<HTMLDialogElement> {
+export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement> {
 	/**
 	 * React children that will be rendered inside the dialog container.
 	 * Typically this includes `ConsentDialog.Card` and its sub-components.
@@ -52,7 +87,7 @@ export interface ConsentDialogRootProps
 	 * Which consent models this dialog responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * When true, the component will not apply any internal styles.
@@ -105,7 +140,7 @@ export interface ConsentDialogRootProps
 const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	children,
 	open: openProp,
-	models = ['opt-in', 'opt-out'],
+	models = DEFAULT_MODELS,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
@@ -119,16 +154,21 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
 
-	const disableAnimation =
-		localDisableAnimation ?? globalTheme.disableAnimation ?? false;
-	const noStyle = localNoStyle ?? globalTheme.noStyle ?? false;
-
 	// Consent manager state
 	const { activeUI, translationConfig, model, policyDialog } =
 		useConsentManager();
 	const { closeUI } = useHeadlessConsentUI();
-	const scrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
-	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
+	const { disableAnimation, noStyle, scrollLock, trapFocus } =
+		resolveDialogOptions(
+			localDisableAnimation,
+			globalTheme.disableAnimation,
+			localNoStyle,
+			globalTheme.noStyle,
+			localScrollLock,
+			policyDialog.scrollLock,
+			localTrapFocus,
+			globalTheme.trapFocus
+		);
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
@@ -142,10 +182,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const contentRef = useRef<HTMLDivElement>(null);
 
 	// Handle mounting (avoid SSR mismatch when using portal)
-	const [isMounted, setIsMounted] = useState(false);
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
+	const isMounted = useIsHydrated();
 
 	// Get animation duration from theme
 	const animationDuration = globalTheme.theme?.motion?.duration?.normal;
@@ -153,17 +190,19 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Manage visibility with respect to animation
 	useEffect(() => {
 		if (isOpen) {
-			setIsVisible(true);
-		} else if (disableAnimation) {
-			setIsVisible(false);
-		} else {
-			// Get duration from theme tokens, falling back to 200ms
-			const durationStr = animationDuration || '200ms';
-			const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
-
-			const timer = setTimeout(() => setIsVisible(false), duration);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+		if (disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+		// Get duration from theme tokens, falling back to 200ms
+		const durationStr = animationDuration || '200ms';
+		const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
+
+		const timer = setTimeout(() => setIsVisible(false), duration);
+		return () => clearTimeout(timer);
 	}, [isOpen, disableAnimation, animationDuration]);
 
 	// Trap focus when dialog open
@@ -200,21 +239,28 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const themedStyle = useStyles('consentDialog', {
 		baseClassName: undefined,
 		className: rootClasses,
-		style: style as CSSPropertiesWithVars<Record<string, never>>,
 		noStyle,
+		style: style as CSSPropertiesWithVars<Record<string, never>>,
 	});
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
-	const contextValue: ThemeContextValue = {
-		disableAnimation,
-		noStyle,
-		scrollLock,
-		trapFocus,
-		theme: globalTheme.theme,
-	};
+	const contextValue = useMemo<ThemeContextValue>(
+		() => ({
+			disableAnimation,
+			noStyle,
+			scrollLock,
+			theme: globalTheme.theme,
+			trapFocus,
+		}),
+		[disableAnimation, globalTheme.theme, noStyle, scrollLock, trapFocus]
+	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: uiSource ?? 'dialog' }),
+		[uiSource]
+	);
 
 	const dialogNode = (
-		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'dialog' }}>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
 				{isOpen && (
 					<>
@@ -235,18 +281,11 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						>
 							<div
 								ref={contentRef}
-								className={
-									noStyle
-										? undefined
-										: cn(
-												styles.container,
-												disableAnimation
-													? undefined
-													: isVisible
-														? styles.contentVisible
-														: styles.contentHidden
-											)
-								}
+								className={getContainerClassName(
+									noStyle,
+									disableAnimation,
+									isVisible
+								)}
 							>
 								{children}
 							</div>

@@ -1,4 +1,5 @@
 import { createElement } from 'react';
+
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -6,13 +7,11 @@ import {
 } from '../../../packages/react/src/index';
 import { benchmarkConsentOptions } from './fixtures';
 
-export function CurrentConsentSurfaces() {
-	return (
-		<ConsentManagerProvider options={benchmarkConsentOptions}>
-			<ConsentBanner />
-			<ConsentDialog />
-		</ConsentManagerProvider>
-	);
-}
+export const CurrentConsentSurfaces = () => (
+	<ConsentManagerProvider options={benchmarkConsentOptions}>
+		<ConsentBanner />
+		<ConsentDialog />
+	</ConsentManagerProvider>
+);
 
 export default createElement(CurrentConsentSurfaces);

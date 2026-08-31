@@ -1,12 +1,6 @@
 import { joinURL, withQuery } from 'ufo';
-import {
-	computed,
-	type MaybeRefOrGetter,
-	type Ref,
-	ref,
-	toValue,
-	watch,
-} from 'vue';
+import { computed, ref, toValue, watch } from 'vue';
+import type { MaybeRefOrGetter, Ref } from 'vue';
 
 type QueryPrimitive = string | number | boolean | null | undefined;
 type QueryValue = QueryPrimitive | MaybeRefOrGetter<QueryPrimitive>;
@@ -37,7 +31,7 @@ interface FetchCacheEntry<T> {
 
 const fetchCache = new Map<string, FetchCacheEntry<unknown>>();
 
-function flattenQuery(
+const flattenQuery = function flattenQuery(
 	params: SearchParams | undefined
 ): Record<string, string> {
 	if (!params) {
@@ -55,9 +49,9 @@ function flattenQuery(
 	}
 
 	return flat;
-}
+};
 
-function resolveFetchUrl(
+const resolveFetchUrl = function resolveFetchUrl(
 	path: string | null,
 	options: C15tUseFetchOptions
 ): string | null {
@@ -74,9 +68,9 @@ function resolveFetchUrl(
 	}
 
 	return withQuery(joined, query);
-}
+};
 
-function createFetchEntry<T>(
+const createFetchEntry = function createFetchEntry<T>(
 	target: string,
 	options: C15tUseFetchOptions
 ): FetchCacheEntry<T> {
@@ -84,14 +78,14 @@ function createFetchEntry<T>(
 	const pending = ref(false);
 	const error = ref<Error | null>(null);
 
-	async function execute(): Promise<void> {
+	const execute = async function execute(): Promise<void> {
 		pending.value = true;
 		error.value = null;
 
 		try {
 			const response = await fetch(target, {
-				method: toValue(options.method) ?? 'GET',
 				headers: toValue(options.headers),
+				method: toValue(options.method) ?? 'GET',
 			});
 
 			if (!response.ok) {
@@ -107,21 +101,21 @@ function createFetchEntry<T>(
 		} finally {
 			pending.value = false;
 		}
-	}
+	};
 
 	const entry: FetchCacheEntry<T> = {
 		data,
-		pending,
 		error,
+		pending,
 		refresh: execute,
 	};
 
 	void execute();
 
 	return entry;
-}
+};
 
-function getOrCreateEntry<T>(
+const getOrCreateEntry = function getOrCreateEntry<T>(
 	target: string,
 	options: C15tUseFetchOptions
 ): FetchCacheEntry<T> {
@@ -133,9 +127,9 @@ function getOrCreateEntry<T>(
 	const entry = createFetchEntry<T>(target, options);
 	fetchCache.set(target, entry as FetchCacheEntry<unknown>);
 	return entry;
-}
+};
 
-export function useFetch<T>(
+export const useFetch = function useFetch<T>(
 	url: MaybeRefOrGetter<string | null>,
 	options: C15tUseFetchOptions = {}
 ): C15tUseFetchReturn<T> {
@@ -146,12 +140,12 @@ export function useFetch<T>(
 	const error = ref<Error | null>(null);
 	let boundEntry: FetchCacheEntry<T> | null = null;
 
-	function bindEntry(entry: FetchCacheEntry<T>): void {
+	const bindEntry = function bindEntry(entry: FetchCacheEntry<T>): void {
 		boundEntry = entry;
 		data.value = entry.data.value;
 		pending.value = entry.pending.value;
 		error.value = entry.error.value;
-	}
+	};
 
 	watch(
 		requestUrl,
@@ -209,8 +203,8 @@ export function useFetch<T>(
 
 	return {
 		data,
-		pending,
 		error,
+		pending,
 		refresh: async () => {
 			const target = requestUrl.value;
 			if (!target) {
@@ -223,4 +217,4 @@ export function useFetch<T>(
 			}
 		},
 	};
-}
+};

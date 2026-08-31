@@ -20,6 +20,7 @@ import type {
 	ResolvedPolicy,
 	TranslationsResponse,
 } from '@c15t/schema/types';
+
 import type { AllConsentNames } from './consent/consent-types';
 
 // Re-export schema types that v3 consumers need so they don't have to
@@ -316,9 +317,9 @@ export interface SavePayload {
  * valid. Missing methods make the corresponding command a no-op.
  */
 export interface KernelTransport {
-	init?(ctx: InitContext): Promise<InitResponse>;
-	save?(payload: SavePayload): Promise<SaveResult>;
-	identify?(user: KernelUser): Promise<void>;
+	init?: (ctx: InitContext) => Promise<InitResponse>;
+	save?: (payload: SavePayload) => Promise<SaveResult>;
+	identify?: (user: KernelUser) => Promise<void>;
 }
 
 /**
@@ -370,7 +371,7 @@ export interface SaveResult {
  */
 export interface ConsentKernel {
 	/** Returns the current snapshot. Cheap, non-allocating. */
-	getSnapshot(): ConsentSnapshot;
+	getSnapshot: () => ConsentSnapshot;
 
 	/**
 	 * Returns the immutable revision-0 snapshot — the state a server render
@@ -380,28 +381,28 @@ export interface ConsentKernel {
 	 * before hydration completes, and rendering the mutated state during
 	 * hydration strands server-rendered consent UI as unowned DOM.
 	 */
-	getServerSnapshot(): ConsentSnapshot;
+	getServerSnapshot: () => ConsentSnapshot;
 
 	/**
 	 * Subscribe to snapshot changes. Called with the new snapshot on
 	 * every state mutation. Returns an unsubscribe function.
 	 */
-	subscribe(listener: Listener<ConsentSnapshot>): Unsubscribe;
+	subscribe: (listener: Listener<ConsentSnapshot>) => Unsubscribe;
 
 	/**
 	 * Sync mutations. Return nothing; notify subscribers synchronously.
 	 * Safe to call during render (no async, no I/O).
 	 */
 	readonly set: {
-		consent(input: Partial<ConsentState>): void;
-		overrides(input: KernelOverrides): void;
-		language(code: string): void;
-		subjectId(id: string | null): void;
-		hasConsented(value: boolean): void;
+		consent: (input: Partial<ConsentState>) => void;
+		overrides: (input: KernelOverrides) => void;
+		language: (code: string) => void;
+		subjectId: (id: string | null) => void;
+		hasConsented: (value: boolean) => void;
 		/** Set the active UI surface. */
-		activeUI(ui: KernelActiveUI): void;
+		activeUI: (ui: KernelActiveUI) => void;
 		/** Patch the IAB slice. Creates the slice if currently null. */
-		iab(patch: Partial<KernelIABState>): void;
+		iab: (patch: Partial<KernelIABState>) => void;
 	};
 
 	/**
@@ -409,19 +410,21 @@ export interface ConsentKernel {
 	 * where I/O lives in the v3 API. Adapters call these inside effects.
 	 */
 	readonly commands: {
-		init(): Promise<InitResult>;
-		save(input?: Partial<ConsentState> | 'all' | 'none'): Promise<SaveResult>;
-		identify(user: KernelUser): Promise<void>;
+		init: () => Promise<InitResult>;
+		save: (
+			input?: Partial<ConsentState> | 'all' | 'none'
+		) => Promise<SaveResult>;
+		identify: (user: KernelUser) => Promise<void>;
 	};
 
 	/**
 	 * Typed event stream for observability, devtools, analytics.
 	 */
 	readonly events: {
-		on<E extends KernelEvent['type']>(
+		on: <E extends KernelEvent['type']>(
 			type: E,
 			listener: Listener<Extract<KernelEvent, { type: E }>>
-		): Unsubscribe;
-		emit(event: KernelEvent): void;
+		) => Unsubscribe;
+		emit: (event: KernelEvent) => void;
 	};
 }

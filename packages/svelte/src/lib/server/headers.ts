@@ -28,7 +28,9 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
  *
  * @public
  */
-export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
+export const extractRelevantHeaders = function extractRelevantHeaders(
+	headersList: Headers
+): RelevantHeaders {
 	const relevantHeaders: RelevantHeaders = {};
 
 	for (const headerName of FORWARDED_HEADERS) {
@@ -39,8 +41,12 @@ export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
 	}
 
 	const inputs = extractConsentRequestInputs(headersList);
-	if (inputs.country) relevantHeaders['x-c15t-country'] = inputs.country;
-	if (inputs.region) relevantHeaders['x-c15t-region'] = inputs.region;
+	if (inputs.country) {
+		relevantHeaders['x-c15t-country'] = inputs.country;
+	}
+	if (inputs.region) {
+		relevantHeaders['x-c15t-region'] = inputs.region;
+	}
 
 	return relevantHeaders;
-}
+};

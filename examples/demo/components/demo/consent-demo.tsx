@@ -9,6 +9,7 @@ import {
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
+
 import { createDemoScripts } from '../../lib/demo-scripts';
 import {
 	DEFAULT_SCENARIO_ID,
@@ -59,10 +60,13 @@ interface DemoParams {
 	region: string;
 }
 
-function parseParams(searchParams: URLSearchParams): DemoParams {
+const parseParams = function parseParams(
+	searchParams: URLSearchParams
+): DemoParams {
 	const scenarioId =
 		searchParams.get('scenario') ??
-		searchParams.get('example') ?? // legacy links
+		// legacy links
+		searchParams.get('example') ??
 		DEFAULT_SCENARIO_ID;
 	const scenario = getScenarioById(scenarioId);
 	const mode: DemoMode =
@@ -76,10 +80,10 @@ function parseParams(searchParams: URLSearchParams): DemoParams {
 		''
 	).toUpperCase();
 
-	return { scenarioId: scenario.id, mode, country, region };
-}
+	return { country, mode, region, scenarioId: scenario.id };
+};
 
-function buildSearch(params: DemoParams): string {
+const buildSearch = function buildSearch(params: DemoParams): string {
 	const next = new URLSearchParams();
 	const scenario = getScenarioById(params.scenarioId);
 
@@ -99,9 +103,103 @@ function buildSearch(params: DemoParams): string {
 
 	const search = next.toString();
 	return search ? `?${search}` : '';
-}
+};
 
-export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
+/**
+ * Soft color fields behind the page so the Liquid Glass preset's backdrop
+ * blur has something to refract — over a flat background, frosted glass
+ * reads as plain gray.
+ */
+const GlassBackdrop = () => (
+	<div
+		aria-hidden
+		className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+	>
+		<div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-gradient-to-br from-indigo-400/40 via-sky-300/30 to-transparent blur-3xl dark:from-indigo-500/25 dark:via-sky-500/15" />
+		<div className="absolute top-1/3 -right-40 size-[32rem] rounded-full bg-gradient-to-bl from-pink-400/35 via-violet-300/25 to-transparent blur-3xl dark:from-pink-500/20 dark:via-violet-500/15" />
+		<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
+	</div>
+);
+const PillButton = ({
+	active,
+	onClick,
+	children,
+}: {
+	active: boolean;
+	onClick: () => void;
+	children: React.ReactNode;
+}) => (
+	<button
+		type="button"
+		onClick={onClick}
+		aria-pressed={active}
+		className={cn(
+			'rounded-full border px-4 py-2 text-left text-sm transition',
+			active
+				? 'border-foreground bg-foreground text-background'
+				: 'border-border text-foreground hover:border-foreground/40'
+		)}
+	>
+		{children}
+	</button>
+);
+const ScenarioGroup = ({
+	title,
+	description,
+	group,
+	activeId,
+	onSelect,
+}: {
+	title: string;
+	description: string;
+	group: 'preset' | 'custom';
+	activeId: string;
+	onSelect: (id: string) => void;
+}) => {
+	const scenarios = demoScenarios.filter(
+		(scenario) => scenario.group === group
+	);
+
+	return (
+		<div className="space-y-3">
+			<div>
+				<p className="text-sm font-medium">{title}</p>
+				<p className="text-muted-foreground text-xs">{description}</p>
+			</div>
+			<div className="flex flex-wrap gap-2">
+				{scenarios.map((scenario) => {
+					const isActive = scenario.id === activeId;
+					return (
+						<button
+							key={scenario.id}
+							type="button"
+							onClick={() => onSelect(scenario.id)}
+							aria-pressed={isActive}
+							className={cn(
+								'rounded-full border px-4 py-2 text-left text-sm transition',
+								isActive
+									? 'border-foreground bg-foreground text-background'
+									: 'border-border text-foreground hover:border-foreground/40'
+							)}
+						>
+							<span>{scenario.label}</span>
+							<span
+								className={cn(
+									'ml-2 font-mono text-[11px]',
+									isActive ? 'text-background/70' : 'text-muted-foreground'
+								)}
+							>
+								{scenario.country}
+								{scenario.region ? `-${scenario.region}` : ''}
+							</span>
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+};
+export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -128,9 +226,9 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 		(id: string) => {
 			const nextScenario = getScenarioById(id);
 			navigate({
-				scenarioId: nextScenario.id,
 				country: nextScenario.country,
 				region: nextScenario.region ?? '',
+				scenarioId: nextScenario.id,
 			});
 		},
 		[navigate]
@@ -138,6 +236,7 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 
 	const iabConfig = useMemo(
 		() =>
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 			iab({
 				// Offline mode has no server to supply a CMP ID, so the client
 				// config must provide one. Matches the self-host backend.
@@ -148,13 +247,16 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 		[]
 	);
 
-	const overrides = useMemo(
-		() => ({
-			...(params.country ? { country: params.country } : {}),
-			...(params.region ? { region: params.region } : {}),
-		}),
-		[params.country, params.region]
-	);
+	const overrides = useMemo(() => {
+		const nextOverrides: { country?: string; region?: string } = {};
+		if (params.country) {
+			nextOverrides.country = params.country;
+		}
+		if (params.region) {
+			nextOverrides.region = params.region;
+		}
+		return nextOverrides;
+	}, [params.country, params.region]);
 
 	// Remount the provider whenever the simulated environment changes so the
 	// consent manager re-initializes from scratch.
@@ -167,9 +269,9 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 	const activeTheme = themeMounted ? presetTheme : undefined;
 	const demoTheme = useMemo(
 		() => ({
-			...(activeTheme ?? {}),
+			...activeTheme,
 			slots: {
-				...(activeTheme?.slots ?? {}),
+				...activeTheme?.slots,
 				iabConsentBanner: {
 					style: { pointerEvents: 'none' },
 				},
@@ -191,14 +293,21 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 
 	const providerOptions =
 		params.mode === 'hosted'
-			? {
-					mode: 'c15t' as const,
-					backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
-					...(isSelfHost
-						? { headers: { [DEMO_SCENARIO_HEADER]: params.scenarioId } }
-						: {}),
-					...sharedOptions,
-				}
+			? (() => {
+					const hostedOptions = {
+						backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
+						mode: 'c15t' as const,
+					};
+					if (isSelfHost) {
+						Object.assign(hostedOptions, {
+							headers: { [DEMO_SCENARIO_HEADER]: params.scenarioId },
+						});
+					}
+					return {
+						...hostedOptions,
+						...sharedOptions,
+					};
+				})()
 			: {
 					mode: 'offline' as const,
 					offlinePolicy: {
@@ -212,7 +321,7 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 				};
 
 	return (
-		<main className="min-h-screen bg-background">
+		<main className="bg-background min-h-screen">
 			{themeMounted && preset === 'glass' && (
 				<>
 					<GlassBackdrop />
@@ -220,9 +329,9 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 				</>
 			)}
 			<div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-				<header className="flex flex-wrap items-center justify-between gap-4 border-border/80 border-b pb-6">
+				<header className="border-border/80 flex flex-wrap items-center justify-between gap-4 border-b pb-6">
 					<div className="space-y-1">
-						<h1 className="font-semibold text-xl tracking-tight">
+						<h1 className="text-xl font-semibold tracking-tight">
 							c15t demo{isSelfHost ? ' — self-hosted backend' : ''}
 						</h1>
 						<p className="text-muted-foreground text-sm">
@@ -231,12 +340,12 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 						</p>
 					</div>
 
-					<div className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+					<div className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
 						<a
 							href="https://c15t.com/docs"
 							target="_blank"
 							rel="noreferrer"
-							className="underline-offset-4 transition hover:text-foreground hover:underline"
+							className="hover:text-foreground underline-offset-4 transition hover:underline"
 						>
 							Docs
 						</a>
@@ -272,11 +381,14 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 										</PillButton>
 									</div>
 									<p className="text-muted-foreground text-sm">
-										{params.mode === 'offline'
-											? 'Offline mode simulates the selected scenario locally — no backend required.'
-											: isSelfHost
-												? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
-												: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'}
+										{
+											// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+											params.mode === 'offline'
+												? 'Offline mode simulates the selected scenario locally — no backend required.'
+												: isSelfHost
+													? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
+													: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'
+										}
 									</p>
 								</div>
 							)}
@@ -322,7 +434,7 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 											}
 											placeholder="DE"
 											maxLength={2}
-											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
 									<div className="space-y-1.5">
@@ -340,10 +452,10 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 											}
 											placeholder="CA"
 											maxLength={3}
-											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
-									<p className="pb-2 text-muted-foreground text-xs">
+									<p className="text-muted-foreground pb-2 text-xs">
 										Pretend the visitor is somewhere else without changing the
 										scenario.
 									</p>
@@ -354,12 +466,12 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 						</section>
 
 						{/* Live status */}
-						<section className="space-y-6 border-border/80 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+						<section className="border-border/80 space-y-6 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
 							<div className="space-y-2">
 								<p className="label-pixel text-muted-foreground">
 									Current scenario
 								</p>
-								<h2 className="font-semibold text-2xl tracking-tight">
+								<h2 className="text-2xl font-semibold tracking-tight">
 									{scenario.label}
 								</h2>
 								<p className="text-muted-foreground text-sm leading-6">
@@ -382,105 +494,4 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 			</div>
 		</main>
 	);
-}
-
-/**
- * Soft color fields behind the page so the Liquid Glass preset's backdrop
- * blur has something to refract — over a flat background, frosted glass
- * reads as plain gray.
- */
-function GlassBackdrop() {
-	return (
-		<div
-			aria-hidden
-			className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-		>
-			<div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-gradient-to-br from-indigo-400/40 via-sky-300/30 to-transparent blur-3xl dark:from-indigo-500/25 dark:via-sky-500/15" />
-			<div className="absolute top-1/3 -right-40 size-[32rem] rounded-full bg-gradient-to-bl from-pink-400/35 via-violet-300/25 to-transparent blur-3xl dark:from-pink-500/20 dark:via-violet-500/15" />
-			<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
-		</div>
-	);
-}
-
-function PillButton({
-	active,
-	onClick,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	children: React.ReactNode;
-}) {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			aria-pressed={active}
-			className={cn(
-				'rounded-full border px-4 py-2 text-left text-sm transition',
-				active
-					? 'border-foreground bg-foreground text-background'
-					: 'border-border text-foreground hover:border-foreground/40'
-			)}
-		>
-			{children}
-		</button>
-	);
-}
-
-function ScenarioGroup({
-	title,
-	description,
-	group,
-	activeId,
-	onSelect,
-}: {
-	title: string;
-	description: string;
-	group: 'preset' | 'custom';
-	activeId: string;
-	onSelect: (id: string) => void;
-}) {
-	const scenarios = demoScenarios.filter(
-		(scenario) => scenario.group === group
-	);
-
-	return (
-		<div className="space-y-3">
-			<div>
-				<p className="font-medium text-sm">{title}</p>
-				<p className="text-muted-foreground text-xs">{description}</p>
-			</div>
-			<div className="flex flex-wrap gap-2">
-				{scenarios.map((scenario) => {
-					const isActive = scenario.id === activeId;
-					return (
-						<button
-							key={scenario.id}
-							type="button"
-							onClick={() => onSelect(scenario.id)}
-							aria-pressed={isActive}
-							className={cn(
-								'rounded-full border px-4 py-2 text-left text-sm transition',
-								isActive
-									? 'border-foreground bg-foreground text-background'
-									: 'border-border text-foreground hover:border-foreground/40'
-							)}
-						>
-							<span>{scenario.label}</span>
-							<span
-								className={cn(
-									'ml-2 font-mono text-[11px]',
-									isActive ? 'text-background/70' : 'text-muted-foreground'
-								)}
-							>
-								{scenario.country}
-								{scenario.region ? `-${scenario.region}` : ''}
-							</span>
-						</button>
-					);
-				})}
-			</div>
-		</div>
-	);
-}
+};

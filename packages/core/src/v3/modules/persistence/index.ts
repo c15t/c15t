@@ -48,18 +48,18 @@ export type {
 
 export const CONSENT_STORAGE_KEY = STORAGE_KEY_V2;
 
-export function readStoredConsentFromCookie(
+export const readStoredConsentFromCookie = function readStoredConsentFromCookie(
 	cookieHeader: string | undefined,
 	storageConfig?: StorageConfig
 ): StoredPayload | null {
 	return getConsentFromCookieHeader<StoredPayload>(cookieHeader, storageConfig);
-}
+};
 
-export function createPersistence(
+export const createPersistence = function createPersistence(
 	options: PersistenceOptions
 ): PersistenceHandle {
 	const { kernel } = options;
-	const storageConfig = options.storageConfig;
+	const { storageConfig } = options;
 	const hasStorageAPIs =
 		typeof document !== 'undefined' && typeof localStorage !== 'undefined';
 
@@ -83,6 +83,12 @@ export function createPersistence(
 	}
 
 	return {
+		clear() {
+			if (!hasStorageAPIs) {
+				return;
+			}
+			deleteConsentFromStorage(storageConfig);
+		},
 		dispose() {
 			unsubscribe();
 			// A write queued in the current tick must not fire after dispose —
@@ -94,9 +100,5 @@ export function createPersistence(
 		hydrate() {
 			return hydrateFromStorage(kernel, storageConfig);
 		},
-		clear() {
-			if (!hasStorageAPIs) return;
-			deleteConsentFromStorage(storageConfig);
-		},
 	};
-}
+};

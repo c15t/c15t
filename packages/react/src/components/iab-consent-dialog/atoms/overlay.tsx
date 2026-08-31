@@ -1,7 +1,9 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes } from 'react';
+
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
@@ -12,7 +14,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	isOpen: boolean;
 }
 
-const IABConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
+const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, isOpen, ...props }, ref) => {
 		const {
 			disableAnimation,
@@ -24,21 +26,22 @@ const IABConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		useEffect(() => {
 			if (isOpen) {
-				setIsVisible(true);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--iab-cd-animation-duration'
-					) || '150',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs);
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
 			}
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-cd-animation-duration'
+				) || '150',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [isOpen, disableAnimation]);
 
 		const theme = useStyles('iabConsentDialogOverlay', {

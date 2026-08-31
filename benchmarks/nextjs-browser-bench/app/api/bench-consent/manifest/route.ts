@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
+
 import {
 	applyBenchConsentLatency,
 	benchConsentManifestResponse,
 	recordBenchConsentFixtureExecution,
 } from '../fixture';
 
-export async function GET() {
+export const GET = async function GET() {
 	recordBenchConsentFixtureExecution('manifest');
 	await applyBenchConsentLatency();
 
@@ -15,4 +16,4 @@ export async function GET() {
 			etag: '"nextjs-browser-bench-manifest"',
 		},
 	});
-}
+};

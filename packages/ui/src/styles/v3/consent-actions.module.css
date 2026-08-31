@@ -23,13 +23,13 @@
 	}
 
 	.actionRoot:not(:global(.headless))[data-fill],
-	.actionRoot:not(:global(.headless))[data-direction="column"] {
+	.actionRoot:not(:global(.headless))[data-direction='column'] {
 		flex-direction: column;
 	}
 
 	.actionRoot:not(:global(.headless))[data-fill] .actionGroup,
-	.actionRoot:not(:global(.headless))[data-direction="column"] .actionGroup,
-	.actionGroup:not(:global(.headless))[data-direction="column"] {
+	.actionRoot:not(:global(.headless))[data-direction='column'] .actionGroup,
+	.actionGroup:not(:global(.headless))[data-direction='column'] {
 		flex-direction: column;
 		width: 100%;
 	}
@@ -56,16 +56,16 @@
 			flex: none;
 		}
 
-		.actionRoot:not(:global(.headless))[data-direction="row"]:not([data-fill]) {
+		.actionRoot:not(:global(.headless))[data-direction='row']:not([data-fill]) {
 			flex-direction: row;
 		}
 
-		.actionRoot:not(:global(.headless))[data-direction="row"]:not([data-fill])
+		.actionRoot:not(:global(.headless))[data-direction='row']:not([data-fill])
 			.actionGroup {
 			width: auto;
 		}
 
-		.actionRoot:not(:global(.headless))[data-direction="row"]:not([data-fill])
+		.actionRoot:not(:global(.headless))[data-direction='row']:not([data-fill])
 			.actionGroup
 			button[data-action] {
 			width: auto;
@@ -75,7 +75,7 @@
 		.actionRoot:not(:global(.headless))[data-fill]
 			.actionGroup
 			button[data-action],
-		.actionRoot:not(:global(.headless))[data-direction="column"]
+		.actionRoot:not(:global(.headless))[data-direction='column']
 			.actionGroup
 			button[data-action] {
 			width: 100%;

@@ -24,21 +24,26 @@ export const defaultTheme = baseDefaultTheme as Required<Omit<Theme, 'slots'>>;
 /**
  * Maps theme tokens to CSS variables.
  */
-export function themeToVars(theme: Theme, isDark = false): ThemeCSSVariables {
+export const themeToVars = function themeToVars(
+	theme: Theme,
+	isDark = false
+): ThemeCSSVariables {
 	return baseThemeToVars(theme, isDark);
-}
+};
 
 /**
  * Generates a CSS string for the theme variables.
  */
-export function generateThemeCSS(theme: Theme): string {
+export const generateThemeCSS = function generateThemeCSS(
+	theme: Theme
+): string {
 	return baseGenerateThemeCSS(theme);
-}
+};
 
 /**
  * Resolves styles for a component, merging theme slot styles with component styles.
  */
-export function resolveComponentStyles(
+export const resolveComponentStyles = function resolveComponentStyles(
 	themeKey: AllThemeKeys,
 	theme: Theme | undefined,
 	componentStyle: ClassNameStyle | undefined,
@@ -50,4 +55,4 @@ export function resolveComponentStyles(
 		componentStyle as ThemeValue | undefined,
 		noStyle
 	) as ClassNameStyle;
-}
+};

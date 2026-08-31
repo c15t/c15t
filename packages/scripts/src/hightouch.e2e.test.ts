@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
@@ -57,8 +58,8 @@ describe('hightouch contract', () => {
 			[
 				{
 					...hightouch({
-						writeKey: 'HIGHTOUCH-CONTRACT',
 						apiHost: 'us-east-1.hightouch-events.com',
+						writeKey: 'HIGHTOUCH-CONTRACT',
 					}),
 					id: 'hightouch-contract',
 				},
@@ -103,8 +104,8 @@ describe('hightouch contract', () => {
 			[
 				{
 					...hightouch({
-						writeKey: 'HIGHTOUCH-CONTRACT',
 						trackPageView: false,
+						writeKey: 'HIGHTOUCH-CONTRACT',
 					}),
 					id: 'hightouch-contract',
 				},

@@ -117,11 +117,11 @@ export class C15TError extends Error {
 		details?: Record<string, unknown> | null;
 	} {
 		return {
-			name: this.name,
-			message: this.message,
-			status: this.status,
 			code: this.code,
 			details: this.details,
+			message: this.message,
+			name: this.name,
+			status: this.status,
 		};
 	}
 }
@@ -129,6 +129,8 @@ export class C15TError extends Error {
 /**
  * Type guard to check if an error is a C15TError
  */
-export function isC15TError(error: unknown): error is C15TError {
+export const isC15TError = function isC15TError(
+	error: unknown
+): error is C15TError {
 	return error instanceof C15TError;
-}
+};

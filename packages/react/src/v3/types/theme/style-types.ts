@@ -1,8 +1,6 @@
 import type {
 	ClassNameStyle as BaseClassNameStyle,
-	CSSPropertiesWithVars as BaseCSSPropertiesWithVars,
 	Theme as BaseTheme,
-	ThemeValue as BaseThemeValue,
 } from '@c15t/ui/theme';
 import type { CSSProperties } from 'react';
 
@@ -28,8 +26,9 @@ export type CSSPropertiesWithVars<
  * Represents a style configuration that can include both inline styles and class names.
  * @public
  */
-export interface ClassNameStyle<VariableMap = Record<string, string | number>>
-	extends Omit<BaseClassNameStyle<VariableMap>, 'style'> {
+export interface ClassNameStyle<
+	VariableMap = Record<string, string | number>,
+> extends Omit<BaseClassNameStyle<VariableMap>, 'style'> {
 	/** CSS properties to be applied inline to the component. */
 	style?: CSSPropertiesWithVars<VariableMap>;
 }
@@ -46,8 +45,8 @@ export type ThemeValue<VariableMap = Record<string, string | number>> =
  * Extends styling options with a reference to a global theme key.
  * @public
  */
-export interface ExtendThemeKeys<VariableMap = Record<string, string | number>>
-	extends ClassNameStyle<VariableMap> {}
+export type ExtendThemeKeys<VariableMap = Record<string, string | number>> =
+	ClassNameStyle<VariableMap>;
 
 /**
  * Complete theme configuration for c15t consent components (v2).
@@ -62,8 +61,8 @@ export interface Theme extends Omit<BaseTheme, 'slots'> {
  * Helper function to define a theme with full TypeScript autocompletion and validation.
  * @public
  */
-export function defineTheme<ThemeType extends Theme>(
+export const defineTheme = function defineTheme<ThemeType extends Theme>(
 	theme: ThemeType
 ): ThemeType {
 	return theme;
-}
+};

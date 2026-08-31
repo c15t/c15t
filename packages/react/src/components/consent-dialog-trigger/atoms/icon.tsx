@@ -7,9 +7,12 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { isValidElement, type ReactNode } from 'react';
+import { isValidElement } from 'react';
+import type { ReactNode } from 'react';
+
 import { BrandingCompactLogo } from '~/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';
+
 import type { TriggerIcon as TriggerIconType } from '../types';
 import { useTriggerContext } from './root';
 
@@ -55,11 +58,11 @@ export interface TriggerIconProps {
  * <ConsentDialogTrigger.Icon icon={<MyCustomIcon />} />
  * ```
  */
-export function TriggerIcon({
+export const TriggerIcon = ({
 	icon = 'branding',
 	className,
 	noStyle = false,
-}: TriggerIconProps): ReactNode {
+}: TriggerIconProps): ReactNode => {
 	const { branding } = useTriggerContext();
 
 	const iconClasses = noStyle
@@ -68,7 +71,14 @@ export function TriggerIcon({
 
 	// Render custom ReactNode
 	if (isValidElement(icon)) {
-		return <span className={iconClasses}>{icon}</span>;
+		return (
+			<span
+				aria-hidden="true"
+				className={iconClasses}
+			>
+				{icon}
+			</span>
+		);
 	}
 
 	// Render built-in icons
@@ -85,7 +95,14 @@ export function TriggerIcon({
 			iconElement = <BrandingCompactLogo branding={branding} />;
 	}
 
-	return <span className={iconClasses}>{iconElement}</span>;
-}
+	return (
+		<span
+			aria-hidden="true"
+			className={iconClasses}
+		>
+			{iconElement}
+		</span>
+	);
+};
 
 TriggerIcon.displayName = 'ConsentDialogTrigger.Icon';

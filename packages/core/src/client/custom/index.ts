@@ -58,7 +58,7 @@ export class CustomClient implements ConsentManagerInterface {
 	/**
 	 * Checks if a consent banner should be shown.
 	 */
-	async init(
+	init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
 		return init(this.endpointHandlers, options);
@@ -70,7 +70,7 @@ export class CustomClient implements ConsentManagerInterface {
 	 * @remarks
 	 * v2.0: This uses the subject endpoint handler.
 	 */
-	async setConsent(
+	setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
 		return setConsent(this.endpointHandlers, options);
@@ -82,7 +82,7 @@ export class CustomClient implements ConsentManagerInterface {
 	 * @remarks
 	 * v2.0: Uses identifyUser endpoint handler if provided, otherwise falls back to $fetch.
 	 */
-	async identifyUser(
+	identifyUser(
 		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>> {
 		if (this.endpointHandlers.identifyUser) {
@@ -91,16 +91,16 @@ export class CustomClient implements ConsentManagerInterface {
 		// Fallback: use $fetch with the path
 		const subjectId = options.body?.id;
 		if (!subjectId) {
-			return {
-				ok: false,
+			return Promise.resolve({
 				data: null,
-				response: null,
 				error: {
+					code: 'MISSING_SUBJECT_ID',
 					message: 'Subject ID is required to identify user',
 					status: 400,
-					code: 'MISSING_SUBJECT_ID',
 				},
-			};
+				ok: false,
+				response: null,
+			});
 		}
 		return this.$fetch(`/subjects/${subjectId}`, {
 			...options,
@@ -125,7 +125,7 @@ export class CustomClient implements ConsentManagerInterface {
 	/**
 	 * Makes a custom API request to any endpoint.
 	 */
-	async $fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
+	$fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {

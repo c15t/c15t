@@ -1,4 +1,8 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
+	import { createDevTools } from '@c15t/dev-tools';
+	import type { DevToolsInstance } from '@c15t/dev-tools';
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -7,11 +11,9 @@
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
-	import { createDevTools, type DevToolsInstance } from '@c15t/dev-tools';
 	import { baseTranslations } from '@c15t/translations/all';
-	import { page } from '$app/state';
-	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
 	import { onMount } from 'svelte';
+
 	import '../app.css';
 	import '@c15t/svelte/styles.css';
 	import '@c15t/svelte/iab/styles.css';
@@ -33,17 +35,21 @@
 	});
 
 	const activeTheme = $derived.by(() => {
-		if (!themePresetStore.mounted) return undefined;
-		const theme = themePresetStore.theme;
-		if (!theme) return undefined;
+		if (!themePresetStore.mounted) {
+			return undefined;
+		}
+		const { theme } = themePresetStore;
+		if (!theme) {
+			return undefined;
+		}
 		return {
 			...theme,
 			slots: {
 				...theme.slots,
 				iabBanner: {
 					style: {
-						inset: 0,
 						alignItems: 'center',
+						inset: 0,
 						justifyContent: 'end',
 					},
 				},

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentStoreState } from '../../../store/type';
 import { clearAllScripts, loadScripts, updateScripts } from '../core';
 import { createScriptManager } from '../store';
@@ -15,12 +16,12 @@ describe('Script Manager Store Integration', () => {
 
 	// Mock store state and setState function with required properties
 	const mockState = {
-		scripts: [] as Script[],
-		loadedScripts: {} as Record<string, boolean>,
-		scriptIdMap: {} as Record<string, string>,
 		consents: sampleConsents,
+		loadedScripts: {} as Record<string, boolean>,
 		policyCategories: null,
 		policyScopeMode: null,
+		scriptIdMap: {} as Record<string, string>,
+		scripts: [] as Script[],
 	} as ConsentStoreState;
 
 	const getState = vi.fn(() => mockState as ConsentStoreState);
@@ -31,19 +32,19 @@ describe('Script Manager Store Integration', () => {
 	// Sample scripts for testing
 	const scripts: Script[] = [
 		{
+			category: 'necessary',
 			id: 'necessary-script',
 			src: 'https://example.com/necessary.js',
-			category: 'necessary',
 		},
 		{
+			category: 'marketing',
 			id: 'marketing-script',
 			src: 'https://example.com/marketing.js',
-			category: 'marketing',
 		},
 		{
-			id: 'callback-only-script',
-			category: 'necessary',
 			callbackOnly: true,
+			category: 'necessary',
+			id: 'callback-only-script',
 			onBeforeLoad: vi.fn(),
 			onLoad: vi.fn(),
 		},
@@ -69,8 +70,8 @@ describe('Script Manager Store Integration', () => {
 			// Setup initial state with scripts and script ID mapping
 			mockState.scripts = [...scripts];
 			mockState.scriptIdMap = {
-				'necessary-script': 'random-id-1',
 				'marketing-script': 'random-id-2',
+				'necessary-script': 'random-id-1',
 			};
 
 			const scriptManager = createScriptManager(getState, setState);
@@ -84,17 +85,18 @@ describe('Script Manager Store Integration', () => {
 			// Should have called setState to update scripts array and scriptIdMap
 			expect(setState).toHaveBeenCalledWith(
 				expect.objectContaining({
-					scripts: scripts.filter((s) => s.id !== 'necessary-script'),
 					loadedScripts: {
 						'necessary-script': false,
 					},
 					scriptIdMap: {
 						'marketing-script': 'random-id-2',
 					},
+					scripts: scripts.filter((s) => s.id !== 'necessary-script'),
 				})
 			);
 
 			// Verify that the script ID was removed from the map
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const setStateCall = setState.mock.calls[0][0];
 			expect(setStateCall.scriptIdMap).toBeDefined();
 			expect(setStateCall.scriptIdMap?.['necessary-script']).toBeUndefined();
@@ -108,7 +110,8 @@ describe('Script Manager Store Integration', () => {
 		it('should update scripts based on consent state and use script ID mapping', () => {
 			// Setup initial state with scripts
 			mockState.scripts = [...scripts];
-			mockState.scriptIdMap = {}; // Start with empty map
+			// Start with empty map
+			mockState.scriptIdMap = {};
 
 			// Get the current state
 			const state = getState();
@@ -144,8 +147,8 @@ describe('Script Manager Store Integration', () => {
 			expect(setState).toHaveBeenCalledWith(
 				expect.objectContaining({
 					loadedScripts: {
-						'necessary-script': true,
 						'callback-only-script': true,
+						'necessary-script': true,
 					},
 				})
 			);
@@ -153,7 +156,7 @@ describe('Script Manager Store Integration', () => {
 			// Verify that the scriptIdMap was passed to the updateScripts function
 			// by checking that the scripts were loaded with the correct IDs
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 
 			// Only one script element should have been created (for the standard script)
@@ -167,8 +170,10 @@ describe('Script Manager Store Integration', () => {
 
 		it('should handle callback-only scripts without creating DOM elements', () => {
 			// Setup initial state with only the callback-only script
-			mockState.scripts = [scripts[2]]; // callback-only script
-			mockState.scriptIdMap = {}; // Start with empty map
+			// callback-only script
+			mockState.scripts = [scripts[2]];
+			// Start with empty map
+			mockState.scriptIdMap = {};
 
 			// Get the current state
 			const state = getState();
@@ -191,6 +196,7 @@ describe('Script Manager Store Integration', () => {
 			expect(document.head.appendChild).not.toHaveBeenCalled();
 
 			// The onBeforeLoad and onLoad callbacks should have been called
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const callbackScript = scripts[2];
 			expect(callbackScript.onBeforeLoad).toHaveBeenCalledTimes(1);
 			expect(callbackScript.onLoad).toHaveBeenCalledTimes(1);

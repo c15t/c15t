@@ -18,25 +18,35 @@ export interface EventBus {
 	 * in registration order and may not unsubscribe themselves during
 	 * dispatch (the change applies after the current dispatch completes).
 	 */
-	on<E extends KernelEvent['type']>(
+	on: <E extends KernelEvent['type']>(
 		type: E,
 		listener: Listener<Extract<KernelEvent, { type: E }>>
-	): Unsubscribe;
+	) => Unsubscribe;
 
 	/**
 	 * Dispatch an event to all listeners registered for its type.
 	 * No-op if no listeners are registered.
 	 */
-	emit(event: KernelEvent): void;
+	emit: (event: KernelEvent) => void;
 }
 
 /**
  * Create a fresh event bus. Each kernel instance owns its own bus.
  */
-export function createEventBus(): EventBus {
+export const createEventBus = function createEventBus(): EventBus {
 	const listeners = new Map<KernelEvent['type'], Set<Listener<KernelEvent>>>();
 
 	return {
+		emit(event) {
+			const bucket = listeners.get(event.type);
+			if (!bucket) {
+				return;
+			}
+			for (const listener of bucket) {
+				listener(event);
+			}
+		},
+
 		on(type, listener) {
 			let bucket = listeners.get(type);
 			if (!bucket) {
@@ -49,13 +59,5 @@ export function createEventBus(): EventBus {
 				bucket?.delete(cast);
 			};
 		},
-
-		emit(event) {
-			const bucket = listeners.get(event.type);
-			if (!bucket) return;
-			for (const listener of bucket) {
-				listener(event);
-			}
-		},
 	};
-}
+};

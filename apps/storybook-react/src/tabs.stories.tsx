@@ -40,19 +40,28 @@ export const Default: Story = {
 				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
 				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content style={panelStyle} value="overview">
+			<Tabs.Content
+				style={panelStyle}
+				value="overview"
+			>
 				<strong>Overview</strong>
 				<p style={{ margin: 0 }}>
 					Use tabs for grouped content that shares a single disclosure region.
 				</p>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="vendors">
+			<Tabs.Content
+				style={panelStyle}
+				value="vendors"
+			>
 				<strong>Vendors</strong>
 				<p style={{ margin: 0 }}>
 					The IAB dialog uses this pattern for purposes and vendor disclosures.
 				</p>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="storage">
+			<Tabs.Content
+				style={panelStyle}
+				value="storage"
+			>
 				<strong>Storage</strong>
 				<p style={{ margin: 0 }}>
 					Keyboard navigation supports arrow keys, Home, and End.
@@ -71,13 +80,22 @@ export const KeyboardNavigation: Story = {
 				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
 				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content style={panelStyle} value="overview">
+			<Tabs.Content
+				style={panelStyle}
+				value="overview"
+			>
 				<strong>Overview</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="vendors">
+			<Tabs.Content
+				style={panelStyle}
+				value="vendors"
+			>
 				<strong>Vendors</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="storage">
+			<Tabs.Content
+				style={panelStyle}
+				value="storage"
+			>
 				<strong>Storage</strong>
 			</Tabs.Content>
 		</Tabs.Root>
@@ -93,13 +111,22 @@ export const ArrowLeftNavigation: Story = {
 				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
 				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content style={panelStyle} value="overview">
+			<Tabs.Content
+				style={panelStyle}
+				value="overview"
+			>
 				<strong>Overview</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="vendors">
+			<Tabs.Content
+				style={panelStyle}
+				value="vendors"
+			>
 				<strong>Vendors</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="storage">
+			<Tabs.Content
+				style={panelStyle}
+				value="storage"
+			>
 				<strong>Storage</strong>
 			</Tabs.Content>
 		</Tabs.Root>
@@ -115,13 +142,22 @@ export const HomeAndEndKeys: Story = {
 				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
 				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content style={panelStyle} value="overview">
+			<Tabs.Content
+				style={panelStyle}
+				value="overview"
+			>
 				<strong>Overview</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="vendors">
+			<Tabs.Content
+				style={panelStyle}
+				value="vendors"
+			>
 				<strong>Vendors</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="storage">
+			<Tabs.Content
+				style={panelStyle}
+				value="storage"
+			>
 				<strong>Storage</strong>
 			</Tabs.Content>
 		</Tabs.Root>
@@ -137,13 +173,22 @@ export const TabKeySkipsInactiveTabs: Story = {
 				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
 				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
 			</Tabs.List>
-			<Tabs.Content style={panelStyle} value="overview">
+			<Tabs.Content
+				style={panelStyle}
+				value="overview"
+			>
 				<strong>Overview</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="vendors">
+			<Tabs.Content
+				style={panelStyle}
+				value="vendors"
+			>
 				<strong>Vendors</strong>
 			</Tabs.Content>
-			<Tabs.Content style={panelStyle} value="storage">
+			<Tabs.Content
+				style={panelStyle}
+				value="storage"
+			>
 				<strong>Storage</strong>
 			</Tabs.Content>
 		</Tabs.Root>
@@ -155,15 +200,24 @@ export const Controlled: Story = {
 		const Demo = () => {
 			const [value, setValue] = useState('vendors');
 			return (
-				<Tabs.Root onValueChange={setValue} value={value}>
+				<Tabs.Root
+					onValueChange={setValue}
+					value={value}
+				>
 					<Tabs.List>
 						<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
 						<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
 					</Tabs.List>
-					<Tabs.Content style={panelStyle} value="overview">
+					<Tabs.Content
+						style={panelStyle}
+						value="overview"
+					>
 						Current tab: {value}
 					</Tabs.Content>
-					<Tabs.Content style={panelStyle} value="vendors">
+					<Tabs.Content
+						style={panelStyle}
+						value="vendors"
+					>
 						Current tab: {value}
 					</Tabs.Content>
 				</Tabs.Root>

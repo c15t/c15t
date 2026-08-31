@@ -1,5 +1,6 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Default implementation of the Consent Dialog that ships with c15t.
@@ -8,15 +9,14 @@
  * This default export simply composes those primitives so consumers that
  * prefer a one-line `<ConsentDialog />` usage still have it.
  */
-
 import type { FC } from 'react';
-import {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerProps,
-} from '~/components/consent-dialog-trigger';
+
+import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import type { ConsentDialogTriggerProps } from '~/components/consent-dialog-trigger';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+
 import { ConsentCustomizationCard } from './atoms/card';
 import { Root as ConsentDialogRoot } from './atoms/root';
 
@@ -105,7 +105,7 @@ export interface ConsentDialogProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -131,8 +131,8 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -147,8 +147,11 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		showTrigger === true
-			? {} // Use defaults
+			? // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+				// Use defaults
+				{}
 			: showTrigger === false
 				? null
 				: showTrigger;

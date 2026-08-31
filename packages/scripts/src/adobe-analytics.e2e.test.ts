@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
@@ -69,9 +70,9 @@ describe('adobeAnalytics contract', () => {
 			[
 				{
 					...adobeAnalytics({
+						async: false,
 						scriptUrl:
 							'https://assets.adobedtm.com/c15tfake/c15tfake/launch-sync.min.js',
-						async: false,
 					}),
 					id: 'adobe-analytics-sync-contract',
 				},

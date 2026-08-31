@@ -60,7 +60,11 @@ export {
 	policyPackPresets,
 	UK_COUNTRY_CODES,
 } from '@c15t/schema';
-export type { Shape } from './db/classify';
+export type { DatabaseClassification } from './db/classify';
+// oxlint-disable anti-slop/no-shape-in-symbol-names -- Preserve the published v3 type alias while callers migrate.
+/** @deprecated Use `DatabaseClassification` instead. */
+export type { DatabaseClassification as Shape } from './db/classify';
+// oxlint-enable anti-slop/no-shape-in-symbol-names
 export { classify } from './db/classify';
 export type { DatabaseConfig, DatabaseOption } from './db/connect';
 export {
@@ -68,11 +72,7 @@ export {
 	MissingDatabaseError,
 	toLayer,
 } from './db/connect';
-export type {
-	MigrateOptions,
-	MigrateReport,
-	Migration,
-} from './db/migrate';
+export type { MigrateOptions, MigrateReport, Migration } from './db/migrate';
 export { MIGRATIONS, migrate } from './db/migrate';
 export { defineConfig } from './define-config';
 export type { AppOptions } from './http/context';

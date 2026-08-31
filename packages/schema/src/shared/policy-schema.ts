@@ -31,16 +31,37 @@ export const policyUiProfileSchema = v.picklist([
 
 export const policyUiSurfaceConfigSchema = v.object({
 	allowedActions: v.optional(v.array(policyUiActionSchema)),
-	primaryActions: v.optional(v.array(policyUiActionSchema)),
-	layout: v.optional(v.array(policyUiActionGroupSchema)),
 	direction: v.optional(policyUiActionDirectionSchema),
-	uiProfile: v.optional(policyUiProfileSchema),
+	layout: v.optional(v.array(policyUiActionGroupSchema)),
+	primaryActions: v.optional(v.array(policyUiActionSchema)),
 	scrollLock: v.optional(v.boolean()),
+	uiProfile: v.optional(policyUiProfileSchema),
 });
 
 export const policyConfigSchema = v.object({
+	consent: v.optional(
+		v.object({
+			categories: v.optional(v.array(v.string())),
+			expiryDays: v.optional(v.number()),
+			gpc: v.optional(v.boolean()),
+
+			model: v.optional(policyModelSchema),
+			preselectedCategories: v.optional(v.array(v.string())),
+			scopeMode: v.optional(policyScopeModeSchema),
+		})
+	),
+	i18n: v.optional(
+		v.object({
+			language: v.optional(v.string()),
+			messageProfile: v.optional(v.string()),
+		})
+	),
 	id: v.string(),
 	match: v.object({
+		countries: v.optional(v.array(v.string())),
+		fallback: v.optional(v.boolean()),
+
+		isDefault: v.optional(v.boolean()),
 		regions: v.optional(
 			v.array(
 				v.object({
@@ -49,38 +70,21 @@ export const policyConfigSchema = v.object({
 				})
 			)
 		),
-		countries: v.optional(v.array(v.string())),
-		isDefault: v.optional(v.boolean()),
-		fallback: v.optional(v.boolean()),
 	}),
-	i18n: v.optional(
+	proof: v.optional(
 		v.object({
-			language: v.optional(v.string()),
-			messageProfile: v.optional(v.string()),
-		})
-	),
-	consent: v.optional(
-		v.object({
-			model: v.optional(policyModelSchema),
-			expiryDays: v.optional(v.number()),
-			scopeMode: v.optional(policyScopeModeSchema),
-			categories: v.optional(v.array(v.string())),
-			preselectedCategories: v.optional(v.array(v.string())),
-			gpc: v.optional(v.boolean()),
+			storeIp: v.optional(v.boolean()),
+			storeLanguage: v.optional(v.boolean()),
+
+			storeUserAgent: v.optional(v.boolean()),
 		})
 	),
 	ui: v.optional(
 		v.object({
-			mode: v.optional(policyUiModeSchema),
 			banner: v.optional(policyUiSurfaceConfigSchema),
 			dialog: v.optional(policyUiSurfaceConfigSchema),
-		})
-	),
-	proof: v.optional(
-		v.object({
-			storeIp: v.optional(v.boolean()),
-			storeUserAgent: v.optional(v.boolean()),
-			storeLanguage: v.optional(v.boolean()),
+
+			mode: v.optional(policyUiModeSchema),
 		})
 	),
 });

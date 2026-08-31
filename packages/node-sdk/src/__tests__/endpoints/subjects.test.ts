@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	createSubject,
 	getSubject,
@@ -35,26 +36,27 @@ describe('Subjects Endpoints', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						id: 'sub_123',
 						consents: {},
+						id: 'sub_123',
 					}),
 					{
-						status: 201,
 						headers: { 'content-type': 'application/json' },
+						status: 201,
 					}
 				)
 			);
 			globalThis.fetch = mockFetch;
 
 			const result = await createSubject(context, {
-				type: 'new',
-				subjectId: 'sub_123',
 				consents: {},
+				subjectId: 'sub_123',
+				type: 'new',
 			});
 
 			expect(result.ok).toBe(true);
 			expect(result.data?.id).toBe('sub_123');
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('/subjects');
 			expect(fetchCall[1].method).toBe('POST');
@@ -63,16 +65,16 @@ describe('Subjects Endpoints', () => {
 		it('should handle validation errors', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Invalid input' }), {
-					status: 400,
 					headers: { 'content-type': 'application/json' },
+					status: 400,
 				})
 			);
 			globalThis.fetch = mockFetch;
 
 			const result = await createSubject(context, {
-				type: 'new',
-				subjectId: '',
 				consents: {},
+				subjectId: '',
+				type: 'new',
 			});
 
 			expect(result.ok).toBe(false);
@@ -85,12 +87,12 @@ describe('Subjects Endpoints', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						id: 'sub_123',
 						consents: [],
+						id: 'sub_123',
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -101,6 +103,7 @@ describe('Subjects Endpoints', () => {
 			expect(result.ok).toBe(true);
 			expect(result.data?.id).toBe('sub_123');
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('/subjects/sub_123');
 			expect(fetchCall[1].method).toBe('GET');
@@ -109,8 +112,8 @@ describe('Subjects Endpoints', () => {
 		it('should handle not found error', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Subject not found' }), {
-					status: 404,
 					headers: { 'content-type': 'application/json' },
+					status: 404,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -127,12 +130,12 @@ describe('Subjects Endpoints', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						id: 'sub_123',
 						externalId: 'user_456',
+						id: 'sub_123',
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -144,6 +147,7 @@ describe('Subjects Endpoints', () => {
 
 			expect(result.ok).toBe(true);
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('/subjects/sub_123');
 			expect(fetchCall[1].method).toBe('PATCH');
@@ -159,8 +163,8 @@ describe('Subjects Endpoints', () => {
 						total: 2,
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -171,6 +175,7 @@ describe('Subjects Endpoints', () => {
 			expect(result.ok).toBe(true);
 			expect(result.data?.subjects).toHaveLength(2);
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('/subjects');
 			expect(fetchCall[1].method).toBe('GET');
@@ -184,8 +189,8 @@ describe('Subjects Endpoints', () => {
 						total: 0,
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -197,6 +202,7 @@ describe('Subjects Endpoints', () => {
 				offset: 0,
 			});
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('externalId=user_123');
 			expect(fetchCall[0]).toContain('limit=10');

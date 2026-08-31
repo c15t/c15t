@@ -1,11 +1,7 @@
-import { default as styles } from '@c15t/ui/styles/v3/button';
-import {
-	type ButtonHTMLAttributes,
-	type ElementType,
-	forwardRef,
-	type ReactElement,
-	useId,
-} from 'react';
+import styles from '@c15t/ui/styles/v3/button';
+import { forwardRef as createForwardRef, useId } from 'react';
+import type { ButtonHTMLAttributes, ElementType, ReactElement } from 'react';
+
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
 import { Slot } from '../../libs/slot';
@@ -22,10 +18,10 @@ export interface ButtonVariantsProps {
 
 // Re-export the helper function
 export const buttonVariants = (_props: ButtonVariantsProps = {}) => ({
-	root: (options?: { class?: string }) =>
-		[styles.button, options?.class].filter(Boolean).join(' '),
 	icon: (options?: { class?: string }) =>
 		[styles.buttonIcon, options?.class].filter(Boolean).join(' '),
+	root: (options?: { class?: string }) =>
+		[styles.button, options?.class].filter(Boolean).join(' '),
 });
 
 /**
@@ -87,7 +83,7 @@ type ButtonRootProps = ButtonSharedProps &
  *
  * @public
  */
-const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
+const ButtonRoot = createForwardRef<HTMLButtonElement, ButtonRootProps>(
 	(
 		{
 			children,
@@ -108,7 +104,7 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 		// Only apply button variants if noStyle is false
 		const variantClasses = noStyle
 			? ''
-			: buttonVariants({ variant, mode, size }).root();
+			: buttonVariants({ mode, size, variant }).root();
 
 		// Always include custom className
 		const finalClassName = [variantClasses, className]
@@ -167,19 +163,19 @@ ButtonRoot.displayName = BUTTON_ROOT_NAME;
  *
  * @public
  */
-function ButtonIcon<T extends ElementType>({
+const ButtonIcon = <T extends ElementType>({
 	variant,
 	mode,
 	size,
 	as,
 	className,
 	...rest
-}: PolymorphicComponentProps<T, ButtonIconProps>) {
+}: PolymorphicComponentProps<T, ButtonIconProps>) => {
 	const Component = as || 'div';
 	const { icon } = buttonVariants({
-		variant: variant as ButtonVariant | undefined,
 		mode: mode as ButtonMode | undefined,
 		size: size as ButtonSize | undefined,
+		variant: variant as ButtonVariant | undefined,
 	});
 
 	return (
@@ -188,7 +184,7 @@ function ButtonIcon<T extends ElementType>({
 			{...rest}
 		/>
 	);
-}
+};
 ButtonIcon.displayName = BUTTON_ICON_NAME;
 
 /**

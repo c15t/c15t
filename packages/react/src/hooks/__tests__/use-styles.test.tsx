@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
-import { GlobalThemeContext } from '~/context/theme-context';
+
+import { StableGlobalThemeProvider } from '~/__tests__/stable-context-providers';
+import type { ThemeContextValue } from '~/context/theme-context';
+
 import { useStyles } from '../use-styles';
 
 describe('useStyles', () => {
@@ -14,7 +17,7 @@ describe('useStyles', () => {
 				},
 			},
 		},
-	};
+	} satisfies ThemeContextValue;
 
 	test('returns component styles when no theme is provided', async () => {
 		const componentStyle = {
@@ -26,11 +29,11 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider
-						value={{ noStyle: false, theme: { slots: {} } as any }}
+					<StableGlobalThemeProvider
+						value={{ noStyle: false, theme: { slots: {} } }}
 					>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);
@@ -49,9 +52,9 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockTheme as any}>
+					<StableGlobalThemeProvider value={mockTheme}>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);
@@ -59,8 +62,8 @@ describe('useStyles', () => {
 		expect(result.current.className).toContain('theme-class');
 		expect(result.current.className).toContain('component-class');
 		expect(result.current.style).toEqual({
-			color: 'blue',
 			backgroundColor: 'red',
+			color: 'blue',
 		});
 	});
 
@@ -71,9 +74,9 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockTheme as any}>
+					<StableGlobalThemeProvider value={mockTheme}>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);
@@ -88,29 +91,29 @@ describe('useStyles', () => {
 				slots: {
 					dialogCard: {
 						className: 'theme-class',
-						style: { color: 'blue' },
 						noStyle: true,
+						style: { color: 'blue' },
 					},
 				},
 			},
-		};
+		} satisfies ThemeContextValue;
 
 		// When noStyle is true, base/default styles are removed but
 		// explicitly-set classNames are preserved
 		const componentStyle = {
 			baseClassName: 'base-class-to-remove',
 			className: 'component-class',
-			style: { backgroundColor: 'red' },
 			noStyle: true,
+			style: { backgroundColor: 'red' },
 		};
 
 		const { result } = await renderHook(
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockNoStyleTheme as any}>
+					<StableGlobalThemeProvider value={mockNoStyleTheme}>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);

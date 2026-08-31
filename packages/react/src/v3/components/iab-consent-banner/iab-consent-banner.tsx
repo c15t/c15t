@@ -1,14 +1,16 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the IAB TCF 2.3 compliant cookie banner component.
  * Implements an accessible, pre-built banner following IAB requirements.
  */
-
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { type FC, type RefObject, useRef } from 'react';
+import { useRef } from 'react';
+import type { FC, RefObject } from 'react';
+
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { Box } from '~/v3/components/shared/primitives/box';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
@@ -18,6 +20,7 @@ import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 
@@ -60,7 +63,7 @@ export interface IABConsentBannerProps {
 	 * Which consent models this banner responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -90,6 +93,7 @@ export interface IABConsentBannerProps {
  *
  * @public
  */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
@@ -110,12 +114,12 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const { components } = useUIConfig();
 	const resolvedScrollLock = localScrollLock ?? policyBanner.scrollLock ?? true;
 
-	const cardRef = useRef<HTMLDivElement>(null);
+	const cardRef = useRef<HTMLDialogElement>(null);
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -232,94 +236,98 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 					data-testid="iab-consent-banner-branding"
 				/>
 				<Box
-					ref={cardRef}
 					baseClassName={styles.card}
 					slotKey="iab-banner.card"
 					tabIndex={-1}
-					role="dialog"
 					aria-modal={config.trapFocus ? 'true' : undefined}
 					aria-label={iabT.banner.title}
 					data-testid="iab-consent-banner-card"
+					asChild
 				>
-					{/* Header */}
-					<Box
-						baseClassName={styles.header}
-						slotKey="iab-banner.header"
-						data-testid="iab-consent-banner-header"
+					<dialog
+						ref={cardRef}
+						open
 					>
-						<h2 {...titleProps}>{iabT.banner.title}</h2>
-						<p {...descriptionProps}>
-							{descriptionText.split(partnersLinkText)[0]}
-							<button
-								{...partnersLinkProps}
-								type="button"
-								onClick={handleViewVendors}
-								onMouseEnter={() => {
-									// Prefetch vendor list on hover
-								}}
-							>
-								{partnersLinkText}
-							</button>
-							{descriptionText.split(partnersLinkText)[1]}
-						</p>
-						<ul {...purposeListProps}>
-							{banner.displayItems.map((name, index) => (
-								<li key={index}>{name}</li>
-							))}
-							{banner.remainingCount > 0 && (
-								<li {...purposeMoreProps}>
-									{iabT.banner.andMore.replace(
-										'{count}',
-										String(banner.remainingCount)
-									)}
-								</li>
-							)}
-						</ul>
-						<p {...legitimateInterestNoticeProps}>
-							{iabT.banner.legitimateInterestNotice} {scopeNotice}
-						</p>
-					</Box>
-
-					{/* Footer with buttons */}
-					<Box
-						baseClassName={styles.footer}
-						slotKey="iab-banner.footer"
-						data-testid="iab-consent-banner-footer"
-						{...actionsProps}
-					>
-						<div {...actionGroupProps}>
-							<Button.Root
-								variant={isPrimary('reject') ? 'primary' : 'neutral'}
-								mode="stroke"
-								size="small"
-								onClick={handleRejectAll}
-								data-action="reject"
-								data-testid="iab-consent-banner-reject-button"
-							>
-								{iabT.common.rejectAll}
-							</Button.Root>
-							<Button.Root
-								variant={isPrimary('accept') ? 'primary' : 'neutral'}
-								mode={isPrimary('accept') ? 'filled' : 'stroke'}
-								size="small"
-								onClick={handleAcceptAll}
-								data-action="accept"
-								data-testid="iab-consent-banner-accept-button"
-							>
-								{iabT.common.acceptAll}
-							</Button.Root>
-						</div>
-						<Button.Root
-							variant={isPrimary('customize') ? 'primary' : 'neutral'}
-							mode={isPrimary('customize') ? 'filled' : 'stroke'}
-							size="small"
-							onClick={handleCustomize}
-							data-action="customize"
-							data-testid="iab-consent-banner-customize-button"
+						{/* Header */}
+						<Box
+							baseClassName={styles.header}
+							slotKey="iab-banner.header"
+							data-testid="iab-consent-banner-header"
 						>
-							{iabT.common.customize}
-						</Button.Root>
-					</Box>
+							<h2 {...titleProps}>{iabT.banner.title}</h2>
+							<p {...descriptionProps}>
+								{descriptionText.split(partnersLinkText)[0]}
+								<button
+									{...partnersLinkProps}
+									type="button"
+									onClick={handleViewVendors}
+									onMouseEnter={() => {
+										// Prefetch vendor list on hover
+									}}
+								>
+									{partnersLinkText}
+								</button>
+								{descriptionText.split(partnersLinkText)[1]}
+							</p>
+							<ul {...purposeListProps}>
+								{banner.displayItems.map((name, index) => (
+									<li key={index}>{name}</li>
+								))}
+								{banner.remainingCount > 0 && (
+									<li {...purposeMoreProps}>
+										{iabT.banner.andMore.replace(
+											'{count}',
+											String(banner.remainingCount)
+										)}
+									</li>
+								)}
+							</ul>
+							<p {...legitimateInterestNoticeProps}>
+								{iabT.banner.legitimateInterestNotice} {scopeNotice}
+							</p>
+						</Box>
+
+						{/* Footer with buttons */}
+						<Box
+							baseClassName={styles.footer}
+							slotKey="iab-banner.footer"
+							data-testid="iab-consent-banner-footer"
+							{...actionsProps}
+						>
+							<div {...actionGroupProps}>
+								<Button.Root
+									variant={isPrimary('reject') ? 'primary' : 'neutral'}
+									mode="stroke"
+									size="small"
+									onClick={handleRejectAll}
+									data-action="reject"
+									data-testid="iab-consent-banner-reject-button"
+								>
+									{iabT.common.rejectAll}
+								</Button.Root>
+								<Button.Root
+									variant={isPrimary('accept') ? 'primary' : 'neutral'}
+									mode={isPrimary('accept') ? 'filled' : 'stroke'}
+									size="small"
+									onClick={handleAcceptAll}
+									data-action="accept"
+									data-testid="iab-consent-banner-accept-button"
+								>
+									{iabT.common.acceptAll}
+								</Button.Root>
+							</div>
+							<Button.Root
+								variant={isPrimary('customize') ? 'primary' : 'neutral'}
+								mode={isPrimary('customize') ? 'filled' : 'stroke'}
+								size="small"
+								onClick={handleCustomize}
+								data-action="customize"
+								data-testid="iab-consent-banner-customize-button"
+							>
+								{iabT.common.customize}
+							</Button.Root>
+						</Box>
+					</dialog>
 				</Box>
 			</Box>
 		</IABConsentBannerRoot>

@@ -1,13 +1,10 @@
 import { fetchInitialData } from '@c15t/nextjs/v3';
 import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
 import type { ReactNode } from 'react';
+
 import { NextjsV3PrefetchedBenchmarkProvider } from '../_bench/v3-provider';
 
-export default async function V3SSRLayout({
-	children,
-}: {
-	children: ReactNode;
-}) {
+const V3SSRLayout = async ({ children }: { children: ReactNode }) => {
 	const config = await prefetchInitialConsent({
 		backendURL: '/api/bench-consent',
 	});
@@ -27,4 +24,6 @@ export default async function V3SSRLayout({
 			{children}
 		</NextjsV3PrefetchedBenchmarkProvider>
 	);
-}
+};
+
+export default V3SSRLayout;

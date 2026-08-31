@@ -9,14 +9,14 @@ import {
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
 
-export interface ManifestModeRuntimeConfig
-	extends Pick<
-		ConsentConfig,
-		'backendURL' | 'manifestURL' | 'initRoute' | 'manifestRoute'
-	> {}
+export type ManifestModeRuntimeConfig = Pick<
+	ConsentConfig,
+	'backendURL' | 'manifestURL' | 'initRoute' | 'manifestRoute'
+>;
 
 /**
  * Just the call signature the manifest routes need.
@@ -43,50 +43,63 @@ interface CacheEntry extends CachedManifestResponse {
 
 const manifestCache = new Map<string, CacheEntry>();
 
-function trimSlash(value: string): string {
+const trimSlash = function trimSlash(value: string): string {
 	return value.endsWith('/') ? value.slice(0, -1) : value;
-}
+};
 
-function normalizeHeader(value: string | string[] | undefined): string | null {
-	if (!value) return null;
+const normalizeHeader = function normalizeHeader(
+	value: string | string[] | undefined
+): string | null {
+	if (!value) {
+		return null;
+	}
 	return Array.isArray(value) ? (value[0] ?? null) : value;
-}
+};
 
-function normalizeHeaders(headers: Headers): Record<string, string> {
+const normalizeHeaders = function normalizeHeaders(
+	headers: Headers
+): Record<string, string> {
 	const normalized: Record<string, string> = {};
 	headers.forEach((value, key) => {
 		normalized[key.toLowerCase()] = value;
 	});
 	return normalized;
-}
+};
 
-function parseCacheDirectiveSeconds(
+const parseCacheDirectiveSeconds = function parseCacheDirectiveSeconds(
 	cacheControl: string | undefined,
 	directive: string
 ): number | undefined {
-	if (!cacheControl) return undefined;
+	if (!cacheControl) {
+		return undefined;
+	}
 	for (const part of cacheControl.split(',')) {
 		const [rawKey, rawValue] = part.trim().split('=');
-		if (rawKey?.toLowerCase() !== directive) continue;
+		if (rawKey?.toLowerCase() !== directive) {
+			continue;
+		}
 		const seconds = Number(rawValue);
 		return Number.isFinite(seconds) && seconds >= 0
 			? Math.floor(seconds)
 			: undefined;
 	}
 	return undefined;
-}
+};
 
-export function getManifestSMaxAge(cacheControl: string | undefined): number {
-	return parseCacheDirectiveSeconds(cacheControl, 's-maxage') ?? 0;
-}
-
-export function getManifestStaleWhileRevalidate(
+export const getManifestSMaxAge = function getManifestSMaxAge(
 	cacheControl: string | undefined
 ): number {
-	return (
-		parseCacheDirectiveSeconds(cacheControl, 'stale-while-revalidate') ?? 0
-	);
-}
+	return parseCacheDirectiveSeconds(cacheControl, 's-maxage') ?? 0;
+};
+
+export const getManifestStaleWhileRevalidate =
+	function getManifestStaleWhileRevalidate(
+		cacheControl: string | undefined
+	): number {
+		return (
+			parseCacheDirectiveSeconds(cacheControl, 'stale-while-revalidate') ?? 0
+		);
+	};
 
 /**
  * In-process dedupe floor, in seconds, for backends that serve `/manifest`
@@ -100,8 +113,12 @@ export function getManifestStaleWhileRevalidate(
 export const MANIFEST_DEDUPE_TTL_SECONDS = 5;
 
 /** `true` when the backend explicitly forbids reusing the response. */
-function forbidsReuse(cacheControl: string | undefined): boolean {
-	if (!cacheControl) return false;
+const forbidsReuse = function forbidsReuse(
+	cacheControl: string | undefined
+): boolean {
+	if (!cacheControl) {
+		return false;
+	}
 	return cacheControl
 		.split(',')
 		.some((part) =>
@@ -109,22 +126,24 @@ function forbidsReuse(cacheControl: string | undefined): boolean {
 				part.trim().split('=')[0]?.toLowerCase() ?? ''
 			)
 		);
-}
+};
 
 /**
  * How long to keep an entry in the in-process cache. Prefers the backend's
  * `s-maxage`, falls back to the dedupe floor, and honours an explicit
  * `no-store`/`no-cache`/`private` by not caching at all.
  */
-function resolveCacheTtlSeconds(
+const resolveCacheTtlSeconds = function resolveCacheTtlSeconds(
 	cacheControl: string | undefined,
 	sMaxAge: number
 ): number {
-	if (sMaxAge > 0) return sMaxAge;
+	if (sMaxAge > 0) {
+		return sMaxAge;
+	}
 	return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
-}
+};
 
-export function resolveManifestSourceURL(
+export const resolveManifestSourceURL = function resolveManifestSourceURL(
 	config: ManifestModeRuntimeConfig
 ): string {
 	if (config.manifestURL) {
@@ -136,30 +155,33 @@ export function resolveManifestSourceURL(
 		);
 	}
 	return `${trimSlash(config.backendURL)}/manifest`;
-}
+};
 
-export function resolveNuxtInitRoute(
+export const resolveNuxtInitRoute = function resolveNuxtInitRoute(
 	config: Pick<ConsentConfig, 'initRoute'>
 ): string {
 	return config.initRoute ?? DEFAULT_NUXT_INIT_ROUTE;
-}
+};
 
-export function resolveNuxtManifestRoute(
+export const resolveNuxtManifestRoute = function resolveNuxtManifestRoute(
 	config: Pick<ConsentConfig, 'manifestRoute'>
 ): string {
 	return config.manifestRoute ?? DEFAULT_MANIFEST_ROUTE;
-}
+};
 
-export function createManifestRequestURL(input: {
-	sourceURL: string;
-	query?: string;
-}): string {
-	if (!input.query) return input.sourceURL;
-	const separator = input.sourceURL.includes('?') ? '&' : '?';
-	return `${input.sourceURL}${separator}${input.query}`;
-}
+export const createManifestRequestURL =
+	function createManifestRequestURL(input: {
+		sourceURL: string;
+		query?: string;
+	}): string {
+		if (!input.query) {
+			return input.sourceURL;
+		}
+		const separator = input.sourceURL.includes('?') ? '&' : '?';
+		return `${input.sourceURL}${separator}${input.query}`;
+	};
 
-export async function fetchCachedManifest(input: {
+export const fetchCachedManifest = async function fetchCachedManifest(input: {
 	config: ManifestModeRuntimeConfig;
 	fetch?: ManifestFetch;
 	query?: string;
@@ -173,8 +195,8 @@ export async function fetchCachedManifest(input: {
 	}
 
 	const sourceURL = createManifestRequestURL({
-		sourceURL: resolveManifestSourceURL(input.config),
 		query: input.query,
+		sourceURL: resolveManifestSourceURL(input.config),
 	});
 	const now = input.now ?? Date.now();
 	const cached = manifestCache.get(sourceURL);
@@ -191,8 +213,8 @@ export async function fetchCachedManifest(input: {
 	}
 
 	const response = await fetchImpl(sourceURL, {
-		method: 'GET',
 		headers,
+		method: 'GET',
 	});
 
 	if (response.status === 304 && cached) {
@@ -207,9 +229,9 @@ export async function fetchCachedManifest(input: {
 		);
 		const refreshed = {
 			...cached,
+			expiresAt: now + ttl * 1000,
 			headers: responseHeaders,
 			sMaxAge,
-			expiresAt: now + ttl * 1000,
 		};
 		if (ttl > 0) {
 			manifestCache.set(sourceURL, refreshed);
@@ -230,40 +252,42 @@ export async function fetchCachedManifest(input: {
 	const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
 	const ttl = resolveCacheTtlSeconds(responseHeaders['cache-control'], sMaxAge);
 	const entry: CacheEntry = {
-		sourceURL,
-		manifest,
-		headers: responseHeaders,
-		sMaxAge,
 		expiresAt: now + ttl * 1000,
+		headers: responseHeaders,
+		manifest,
+		sMaxAge,
+		sourceURL,
 	};
 	if (ttl > 0) {
 		manifestCache.set(sourceURL, entry);
 	}
 	return entry;
-}
+};
 
-export function clearManifestRouteCache(): void {
-	manifestCache.clear();
-}
-
-export function getResolverInputsFromHeaders(
-	headers: Record<string, string | string[] | undefined>
-): ResolveInitFromManifestInputs {
-	const normalized: Record<string, string | undefined> = {};
-	for (const [key, value] of Object.entries(headers)) {
-		normalized[key.toLowerCase()] = normalizeHeader(value) ?? undefined;
-	}
-	const inputs = extractConsentRequestInputs(normalized);
-
-	return {
-		country: inputs.country,
-		region: inputs.region,
-		language: inputs.language ?? 'en',
-		gpc: inputs.gpc,
+export const clearManifestRouteCache =
+	function clearManifestRouteCache(): void {
+		manifestCache.clear();
 	};
-}
 
-export function resolveManifestInit(input: {
+export const getResolverInputsFromHeaders =
+	function getResolverInputsFromHeaders(
+		headers: Record<string, string | string[] | undefined>
+	): ResolveInitFromManifestInputs {
+		const normalized: Record<string, string | undefined> = {};
+		for (const [key, value] of Object.entries(headers)) {
+			normalized[key.toLowerCase()] = normalizeHeader(value) ?? undefined;
+		}
+		const inputs = extractConsentRequestInputs(normalized);
+
+		return {
+			country: inputs.country,
+			gpc: inputs.gpc,
+			language: inputs.language ?? 'en',
+			region: inputs.region,
+		};
+	};
+
+export const resolveManifestInit = function resolveManifestInit(input: {
 	manifest: ConsentManifest;
 	headers: Record<string, string | string[] | undefined>;
 }): InitOutput {
@@ -274,9 +298,9 @@ export function resolveManifestInit(input: {
 		// the fields dropped instead.
 		resolvedOverrides: consentInputsToOverrides({
 			country: inputs.country ?? undefined,
-			region: inputs.region ?? undefined,
-			language: inputs.language ?? undefined,
 			gpc: inputs.gpc,
+			language: inputs.language ?? undefined,
+			region: inputs.region ?? undefined,
 		}),
 	} as InitOutput;
-}
+};

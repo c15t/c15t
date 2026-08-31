@@ -18,6 +18,7 @@ import type {
 	TranslationsResponse,
 } from '@c15t/schema/types';
 import { buildDefaultOptInPolicy, resolvePolicySync } from '@c15t/schema/types';
+
 import type {
 	InitContext,
 	InitResponse,
@@ -69,7 +70,7 @@ export interface OfflineTransportOptions {
  * - `KernelTranslations`         → passed through.
  * - raw `TranslationsResponse`   → wrapped with `defaultLanguage`.
  */
-function normalizeTranslations(
+const normalizeTranslations = function normalizeTranslations(
 	input: KernelTranslations | TranslationsResponse | undefined,
 	defaultLanguage: string
 ): KernelTranslations {
@@ -90,13 +91,13 @@ function normalizeTranslations(
 		language: defaultLanguage,
 		translations: input as TranslationsResponse,
 	};
-}
+};
 
 /**
  * Build an offline transport. The returned object is plain — no
  * listeners, no caches, no state. Safe to create per request.
  */
-export function createOfflineTransport(
+export const createOfflineTransport = function createOfflineTransport(
 	options: OfflineTransportOptions = {}
 ): KernelTransport {
 	const defaultLanguage = options.defaultLanguage ?? 'en';
@@ -108,17 +109,17 @@ export function createOfflineTransport(
 	);
 
 	return {
-		async init(ctx: InitContext): Promise<InitResponse> {
+		init(ctx: InitContext): Promise<InitResponse> {
 			const country = ctx.overrides.country ?? null;
 			const region = ctx.overrides.region ?? null;
 
 			// Resolve policy pack locally. Returns undefined if no pack matches.
 			const match = options.policyPacks
 				? resolvePolicySync({
-						policies: options.policyPacks,
 						countryCode: country,
-						regionCode: region,
 						iabEnabled,
+						policies: options.policyPacks,
+						regionCode: region,
 					})
 				: undefined;
 
@@ -136,8 +137,8 @@ export function createOfflineTransport(
 
 			const policyDecision: PolicyDecision | undefined = match
 				? ({
-						matchedBy: match.matchedBy,
 						fingerprint: '',
+						matchedBy: match.matchedBy,
 					} as unknown as PolicyDecision)
 				: undefined;
 
@@ -150,27 +151,27 @@ export function createOfflineTransport(
 				: translations;
 
 			const response: InitResponse = {
+				branding,
 				location: {
 					countryCode: country,
 					regionCode: region,
 				},
-				translations: resolvedTranslations,
-				branding,
 				policy,
+				translations: resolvedTranslations,
 			};
 			if (policyDecision) {
 				response.policyDecision = policyDecision;
 			}
-			return response;
+			return Promise.resolve(response);
 		},
 
-		async save(payload: SavePayload): Promise<SaveResult> {
+		save(payload: SavePayload): Promise<SaveResult> {
 			// Offline mode — no server to acknowledge the save. The caller's
 			// persistence module handles client-side storage. Echo the kernel's
 			// subject ID so save results stay consistent across transports.
-			return { ok: true, subjectId: payload.subjectId };
+			return Promise.resolve({ ok: true, subjectId: payload.subjectId });
 		},
 
 		// identify is a no-op in offline mode — no server to notify.
 	};
-}
+};

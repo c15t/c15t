@@ -13,7 +13,31 @@ import type { KernelConfig } from '@c15t/core/v3';
 import { useConsent, useSnapshot } from '@c15t/react/v3';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBoundary } from '../boundary';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 type WindowWithC15t = Window & {
 	c15t?: {
@@ -33,8 +57,8 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 	test('boundary reports Next.js adapter identity on window.c15t', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ policy: POLICY }), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 		const originalFetch = globalThis.fetch;
@@ -54,8 +78,8 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 			await vi.waitFor(() => {
 				expect((window as WindowWithC15t).c15t).toMatchObject({
-					pkg: '@c15t/nextjs',
 					mode: 'hosted',
+					pkg: '@c15t/nextjs',
 				});
 			});
 			expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
@@ -70,27 +94,27 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(
 				JSON.stringify({
+					branding: 'c15t',
 					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
-					translations: { language: 'en', translations: { common: {} } },
-					branding: 'c15t',
 					policy: POLICY,
+					translations: { language: 'en', translations: { common: {} } },
 				}),
 				{
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const snap = useSnapshot();
 			return (
 				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
-		}
+		};
 
 		try {
 			const { getByTestId } = await render(
@@ -118,10 +142,10 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const allowed = useConsent('marketing');
 			return <div data-testid="probe">{String(allowed)}</div>;
-		}
+		};
 
 		try {
 			const { getByTestId } = await render(
@@ -146,13 +170,13 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const allowed = useConsent('marketing');
 			const snap = useSnapshot();
 			return (
 				<div data-testid="probe">{`${String(allowed)}|${snap.activeUI ?? 'null'}`}</div>
 			);
-		}
+		};
 
 		try {
 			const { getByTestId } = await render(
@@ -166,7 +190,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 			);
 
 			await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
-			await new Promise((r) => setTimeout(r, 10));
+			await createDeferredPromise((r) => setTimeout(r, 10));
 			expect(fetchSpy).not.toHaveBeenCalled();
 		} finally {
 			globalThis.fetch = originalFetch;
@@ -178,28 +202,27 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 	test('prefetched policy-derived UI is visible before init finishes', async () => {
 		// Fetch that resolves on demand — simulates a slow roundtrip.
 		let resolveInit: (value: unknown) => void = () => undefined;
-		const fetchSpy = vi.fn(
-			() =>
-				new Promise<Response>((resolve) => {
-					resolveInit = (value: unknown) => {
-						resolve(
-							new Response(JSON.stringify(value), {
-								status: 200,
-								headers: { 'content-type': 'application/json' },
-							})
-						);
-					};
-				})
+		const fetchSpy = vi.fn(() =>
+			createDeferredPromise<Response>((resolve) => {
+				resolveInit = (value: unknown) => {
+					resolve(
+						new Response(JSON.stringify(value), {
+							headers: { 'content-type': 'application/json' },
+							status: 200,
+						})
+					);
+				};
+			})
 		);
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const snap = useSnapshot();
 			return (
 				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
-		}
+		};
 
 		const config: KernelConfig = {
 			initialPolicy: POLICY as never,
@@ -224,7 +247,7 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 
 			// Now resolve the slow init. Snapshot should not regress.
 			resolveInit({ policy: POLICY });
-			await new Promise((r) => setTimeout(r, 10));
+			await createDeferredPromise((r) => setTimeout(r, 10));
 			await expect
 				.element(getByTestId('probe'))
 				.toHaveTextContent('gdpr|opt-in|banner');

@@ -11,12 +11,13 @@ import {
 import styles from '@c15t/ui/styles/v3/preference-item';
 import {
 	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
+	forwardRef as createForwardRef,
 	useContext,
 	useId,
+	useMemo,
 } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
+
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
@@ -49,20 +50,20 @@ export const preferenceItemVariants = () => ({
 		[styles.trigger, options?.class].filter(Boolean).join(' '),
 });
 
-type PreferenceItemContextValue = {
+interface PreferenceItemContextValue {
 	contentId: string;
 	disabled?: boolean;
 	noStyle?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
-};
+}
 
 const PreferenceItemContext = createContext<PreferenceItemContextValue | null>(
 	null
 );
 
-function usePreferenceItemContext() {
+const usePreferenceItemContext = function usePreferenceItemContext() {
 	const context = useContext(PreferenceItemContext);
 
 	if (!context) {
@@ -72,11 +73,10 @@ function usePreferenceItemContext() {
 	}
 
 	return context;
-}
+};
 
 export interface PreferenceItemRootProps
-	extends HTMLAttributes<HTMLDivElement>,
-		PreferenceItemVariantsProps {
+	extends HTMLAttributes<HTMLDivElement>, PreferenceItemVariantsProps {
 	children: ReactNode;
 	defaultOpen?: boolean;
 	disabled?: boolean;
@@ -86,7 +86,10 @@ export interface PreferenceItemRootProps
 	slotKey?: ConsentComponentSlotKey;
 }
 
-const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
+const PreferenceItemRoot = createForwardRef<
+	HTMLDivElement,
+	PreferenceItemRootProps
+>(
 	(
 		{
 			children,
@@ -109,7 +112,7 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			onChange: onOpenChange,
 			value: open,
 		});
-		const reactId = useId().replace(/:/g, '');
+		const reactId = useId().replace(/:/gu, '');
 		const finalNoStyle = noStyle ?? contextNoStyle;
 		const rootProps = mergeSlotProps(getSlotProps(components, slotKey), {
 			baseClassName: variants.root(),
@@ -117,18 +120,20 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			noStyle: finalNoStyle,
 			...rest,
 		});
+		const contextValue = useMemo(
+			() => ({
+				contentId: `c15t-preference-item-content-${reactId}`,
+				disabled,
+				noStyle: finalNoStyle,
+				open: isOpen,
+				setOpen: setIsOpen,
+				triggerId: `c15t-preference-item-trigger-${reactId}`,
+			}),
+			[disabled, finalNoStyle, isOpen, reactId, setIsOpen]
+		);
 
 		return (
-			<PreferenceItemContext.Provider
-				value={{
-					contentId: `c15t-preference-item-content-${reactId}`,
-					disabled,
-					noStyle: finalNoStyle,
-					open: isOpen,
-					setOpen: setIsOpen,
-					triggerId: `c15t-preference-item-trigger-${reactId}`,
-				}}
-			>
+			<PreferenceItemContext.Provider value={contextValue}>
 				<div
 					{...rootProps}
 					ref={forwardedRef}
@@ -145,13 +150,15 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 
 PreferenceItemRoot.displayName = 'PreferenceItemRoot';
 
-export interface PreferenceItemTriggerProps
-	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface PreferenceItemTriggerProps extends Omit<
+	React.ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	noStyle?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
 
-const PreferenceItemTrigger = forwardRef<
+const PreferenceItemTrigger = createForwardRef<
 	HTMLButtonElement,
 	PreferenceItemTriggerProps
 >(
@@ -206,18 +213,17 @@ const PreferenceItemTrigger = forwardRef<
 
 PreferenceItemTrigger.displayName = 'PreferenceItemTrigger';
 
-export interface PreferenceItemSlotProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface PreferenceItemSlotProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
 
-function createSlotComponent(
+const createSlotComponent = function createSlotComponent(
 	displayName: string,
 	slot: (typeof PREFERENCE_ITEM_SLOTS)[keyof typeof PREFERENCE_ITEM_SLOTS],
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
 ) {
-	const Component = forwardRef<HTMLDivElement, PreferenceItemSlotProps>(
+	const Component = createForwardRef<HTMLDivElement, PreferenceItemSlotProps>(
 		({ className, noStyle, slotKey, ...rest }, forwardedRef) => {
 			const { components } = useUIConfig();
 			const { noStyle: contextNoStyle } = useTheme();
@@ -243,7 +249,7 @@ function createSlotComponent(
 
 	Component.displayName = displayName;
 	return Component;
-}
+};
 
 const PreferenceItemLeading = createSlotComponent(
 	'PreferenceItemLeading',
@@ -275,16 +281,15 @@ const PreferenceItemControl = createSlotComponent(
 	'control'
 );
 
-export interface PreferenceItemTitleProps
-	extends HTMLAttributes<HTMLHeadingElement> {
+export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 	noStyle?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
 
-const PreferenceItemTitle = forwardRef<
+const PreferenceItemTitle = createForwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
->(({ className, noStyle, ...rest }, forwardedRef) => {
+>(({ children, className, noStyle, ...rest }, forwardedRef) => {
 	const { components } = useUIConfig();
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
@@ -303,14 +308,15 @@ const PreferenceItemTitle = forwardRef<
 			{...titleProps}
 			ref={forwardedRef}
 			data-slot={PREFERENCE_ITEM_SLOTS.title}
-		/>
+		>
+			{children}
+		</h3>
 	);
 });
 
 PreferenceItemTitle.displayName = 'PreferenceItemTitle';
 
-export interface PreferenceItemContentProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElement> {
 	innerClassName?: string;
 	innerSlotKey?: ConsentComponentSlotKey;
 	noStyle?: boolean;
@@ -319,7 +325,7 @@ export interface PreferenceItemContentProps
 	viewportSlotKey?: ConsentComponentSlotKey;
 }
 
-const PreferenceItemContent = forwardRef<
+const PreferenceItemContent = createForwardRef<
 	HTMLDivElement,
 	PreferenceItemContentProps
 >(

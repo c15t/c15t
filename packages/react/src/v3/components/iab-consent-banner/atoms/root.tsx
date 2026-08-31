@@ -1,16 +1,16 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import {
-	type CSSProperties,
-	type FC,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
+	forwardRef as createForwardRef,
 	useEffect,
+	useMemo,
 	useState,
 } from 'react';
+import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import {
@@ -19,11 +19,15 @@ import {
 	usePolicyBanner,
 	useTranslations,
 } from '~/v3/hooks';
+import { useIsHydrated } from '~/v3/hooks/use-is-hydrated';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { IABConsentBannerOverlay } from './overlay';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
 
 interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
@@ -35,7 +39,7 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Which consent models this banner responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 	/**
 	 * Override the UI source identifier sent with consent API calls.
 	 * @default 'iab_banner'
@@ -43,57 +47,7 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	uiSource?: string;
 }
 
-const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
-	children,
-	className,
-	noStyle,
-	disableAnimation,
-	scrollLock,
-	trapFocus = true,
-	models,
-	uiSource,
-	...props
-}) => {
-	const policyBanner = usePolicyBanner();
-	const contextValue = {
-		disableAnimation,
-		noStyle,
-		scrollLock: scrollLock ?? policyBanner?.scrollLock ?? undefined,
-		trapFocus,
-	};
-
-	return (
-		<ConsentTrackingContext.Provider
-			value={{ uiSource: uiSource ?? 'iab_banner' }}
-		>
-			<LocalThemeContext.Provider value={contextValue}>
-				<IABConsentBannerRootChildren
-					disableAnimation={disableAnimation}
-					className={className}
-					noStyle={noStyle}
-					models={models}
-					{...props}
-				>
-					{children}
-				</IABConsentBannerRootChildren>
-			</LocalThemeContext.Provider>
-		</ConsentTrackingContext.Provider>
-	);
-};
-
-interface IABConsentBannerRootChildrenProps
-	extends HTMLAttributes<HTMLDivElement> {
-	children: ReactNode;
-	noStyle?: boolean;
-	disableAnimation?: boolean;
-	/**
-	 * Which consent models this banner responds to.
-	 * @default ['iab']
-	 */
-	models?: import('@c15t/core').Model[];
-}
-
-const IABConsentBannerRootChildren = forwardRef<
+const IABConsentBannerRootChildren = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerRootChildrenProps
 >(
@@ -105,7 +59,7 @@ const IABConsentBannerRootChildren = forwardRef<
 			className: forwardedClassName,
 			disableAnimation,
 			noStyle,
-			models = ['iab'],
+			models = DEFAULT_MODELS,
 			...props
 		}: IABConsentBannerRootChildrenProps & {
 			style?: CSSProperties;
@@ -132,47 +86,51 @@ const IABConsentBannerRootChildren = forwardRef<
 				) || '200',
 				10
 			);
-			setAnimationDurationMs(duration);
+			const frame = requestAnimationFrame(() => {
+				setAnimationDurationMs(duration);
+			});
+			return () => cancelAnimationFrame(frame);
 		}, []);
 
 		useEffect(() => {
 			if (shouldShowBanner) {
 				if (hasAnimated) {
+					const frame = requestAnimationFrame(() => setIsVisible(true));
+					return () => cancelAnimationFrame(frame);
+				}
+				const animationTimer = setTimeout(() => {
 					setIsVisible(true);
-				} else {
-					const animationTimer = setTimeout(() => {
-						setIsVisible(true);
-						setHasAnimated(true);
-					}, 10);
-					return () => clearTimeout(animationTimer);
-				}
-			} else {
-				setHasAnimated(false);
-
-				if (disableAnimation) {
-					setIsVisible(false);
-				} else {
-					const timer = setTimeout(() => {
-						setIsVisible(false);
-					}, animationDurationMs);
-					return () => clearTimeout(timer);
-				}
+					setHasAnimated(true);
+				}, 10);
+				return () => clearTimeout(animationTimer);
 			}
+
+			if (disableAnimation) {
+				const frame = requestAnimationFrame(() => {
+					setHasAnimated(false);
+					setIsVisible(false);
+				});
+				return () => cancelAnimationFrame(frame);
+			}
+			const frame = requestAnimationFrame(() => setHasAnimated(false));
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
+			return () => {
+				cancelAnimationFrame(frame);
+				clearTimeout(timer);
+			};
 		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
 
 		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {
 			baseClassName: [styles.root],
-			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,
+			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			...props,
 		});
 
-		const [isMounted, setIsMounted] = useState(false);
-
-		useEffect(() => {
-			setIsMounted(true);
-		}, []);
+		const isMounted = useIsHydrated();
 
 		if (!isMounted) {
 			return null;
@@ -202,6 +160,61 @@ const IABConsentBannerRootChildren = forwardRef<
 		);
 	}
 );
+const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
+	children,
+	className,
+	noStyle,
+	disableAnimation,
+	scrollLock,
+	trapFocus = true,
+	models,
+	uiSource,
+	...props
+}) => {
+	const policyBanner = usePolicyBanner();
+	const resolvedScrollLock =
+		scrollLock ?? policyBanner?.scrollLock ?? undefined;
+	const contextValue = useMemo(
+		() => ({
+			disableAnimation,
+			noStyle,
+			scrollLock: resolvedScrollLock,
+			trapFocus,
+		}),
+		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: uiSource ?? 'iab_banner' }),
+		[uiSource]
+	);
+
+	return (
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
+			<LocalThemeContext.Provider value={contextValue}>
+				<IABConsentBannerRootChildren
+					disableAnimation={disableAnimation}
+					className={className}
+					noStyle={noStyle}
+					models={models}
+					{...props}
+				>
+					{children}
+				</IABConsentBannerRootChildren>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
+	);
+};
+
+interface IABConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> {
+	children: ReactNode;
+	noStyle?: boolean;
+	disableAnimation?: boolean;
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['iab']
+	 */
+	models?: C15tCoreTypes.Model[];
+}
 
 IABConsentBannerRootChildren.displayName = 'IABConsentBannerRootChildren';
 

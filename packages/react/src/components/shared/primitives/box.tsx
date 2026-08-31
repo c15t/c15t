@@ -1,7 +1,8 @@
 'use client';
 
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef, type HTMLAttributes } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { HTMLAttributes } from 'react';
 
 import { Slot } from '~/components/shared/libs/slot';
 import { useStyles } from '~/hooks/use-styles';
@@ -14,8 +15,7 @@ import type { AllThemeKeys, ExtendThemeKeys } from '~/types/theme';
  * @public
  */
 export interface BoxProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
-		ExtendThemeKeys {
+	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>, ExtendThemeKeys {
 	asChild?: boolean;
 }
 
@@ -53,7 +53,7 @@ export interface BoxProps
  *
  * @public
  */
-export const Box = forwardRef<HTMLDivElement, BoxProps>(
+export const Box = createForwardRef<HTMLDivElement, BoxProps>(
 	(
 		{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
 		ref
@@ -65,8 +65,8 @@ export const Box = forwardRef<HTMLDivElement, BoxProps>(
 		const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
 			baseClassName,
 			className,
-			style,
 			noStyle,
+			style,
 		});
 		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 

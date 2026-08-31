@@ -1,30 +1,31 @@
 <script lang="ts">
-import { getTabPanelState } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getTabsRootContext } from './context';
+	import { getTabPanelState } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const root = getTabsRootContext();
+	import { getTabsRootContext } from './context';
 
-let {
-	children,
-	class: className,
-	forceMount = false,
-	value,
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-	forceMount?: boolean;
-	value: string;
-} = $props();
+	const root = getTabsRootContext();
 
-const baseId = $derived(root.baseId);
-const selectedValue = $derived(root.value);
-const isSelected = $derived(selectedValue === value);
-const dataState = $derived(getTabPanelState(isSelected));
-const contentId = $derived(`${baseId}-content-${value}`);
-const triggerId = $derived(`${baseId}-trigger-${value}`);
+	let {
+		children,
+		class: className,
+		forceMount = false,
+		value,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		forceMount?: boolean;
+		value: string;
+	} = $props();
+
+	const baseId = $derived(root.baseId);
+	const selectedValue = $derived(root.value);
+	const isSelected = $derived(selectedValue === value);
+	const dataState = $derived(getTabPanelState(isSelected));
+	const contentId = $derived(`${baseId}-content-${value}`);
+	const triggerId = $derived(`${baseId}-trigger-${value}`);
 </script>
 
 {#if forceMount || isSelected}

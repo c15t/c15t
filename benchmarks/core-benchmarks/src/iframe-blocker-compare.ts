@@ -13,9 +13,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - 100 iframes, install + consent grant
  */
 import { join } from 'node:path';
+
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core/v3';
 import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();
@@ -26,72 +28,83 @@ interface MockIframe {
 	tagName: 'IFRAME';
 	nodeType: 1;
 	attrs: Map<string, string>;
-	getAttribute(k: string): string | null;
-	setAttribute(k: string, v: string): void;
-	removeAttribute(k: string): void;
-	querySelectorAll(): MockIframe[];
+	getAttribute: (k: string) => string | null;
+	setAttribute: (k: string, v: string) => void;
+	removeAttribute: (k: string) => void;
+	querySelectorAll: () => MockIframe[];
 	get src(): string | null;
 	set src(v: string | null);
 }
 
 interface MockBody {
 	children: MockIframe[];
-	appendChild(child: MockIframe): void;
+	appendChild: (child: MockIframe) => void;
 }
 
-function createMockIframe(category: string, dataSrc?: string): MockIframe {
+const createMockIframe = function createMockIframe(
+	category: string,
+	dataSrc?: string
+): MockIframe {
 	const attrs = new Map<string, string>();
 	attrs.set('data-category', category);
-	if (dataSrc) attrs.set('data-src', dataSrc);
+	if (dataSrc) {
+		attrs.set('data-src', dataSrc);
+	}
 	return {
-		tagName: 'IFRAME',
-		nodeType: 1,
 		attrs,
 		getAttribute(k) {
 			return attrs.get(k) ?? null;
 		},
-		setAttribute(k, v) {
-			attrs.set(k, v);
+		nodeType: 1,
+		querySelectorAll() {
+			return [];
 		},
 		removeAttribute(k) {
 			attrs.delete(k);
 		},
-		querySelectorAll() {
-			return [];
+		setAttribute(k, v) {
+			attrs.set(k, v);
 		},
 		get src() {
 			return attrs.get('src') ?? null;
 		},
 		set src(v) {
-			if (v === null || v === undefined) attrs.delete('src');
-			else attrs.set('src', v);
+			if (v === null || v === undefined) {
+				attrs.delete('src');
+			} else {
+				attrs.set('src', v);
+			}
 		},
+		tagName: 'IFRAME',
 	};
-}
+};
 
-function setupDom(iframeCount: number): MockBody {
+const setupDom = function setupDom(iframeCount: number): MockBody {
 	const body: MockBody = {
-		children: [],
 		appendChild(child) {
 			body.children.push(child);
 		},
+		children: [],
 	};
-	for (let i = 0; i < iframeCount; i++) {
+	for (let i = 0; i < iframeCount; i += 1) {
 		const category = i % 2 === 0 ? 'marketing' : 'measurement';
 		body.children.push(createMockIframe(category, `https://example.com/i${i}`));
 	}
 	const doc = {
 		body,
-		querySelectorAll: () => body.children,
 		createElement: () => createMockIframe('marketing'),
 		head: body,
+		querySelectorAll: () => body.children,
 	};
-	// biome-ignore lint/suspicious/noExplicitAny: test env stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- test env stub
 	(globalThis as any).document = doc;
 	return body;
-}
+};
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -99,31 +112,31 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '30');
 const SCENARIOS = [10, 50, 100];
 
-function pct(a: number, b: number): string {
+const pct = function pct(a: number, b: number): string {
 	const d = ((b - a) / a) * 100;
-	return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
-}
+	return `${(d >= 0 ? '+' : '') + d.toFixed(1)}%`;
+};
 
-function resetBodyConsent(body: MockBody): void {
+const resetBodyConsent = function resetBodyConsent(body: MockBody): void {
 	for (const child of body.children) {
 		child.attrs.delete('src');
 		child.attrs.set(
@@ -131,9 +144,9 @@ function resetBodyConsent(body: MockBody): void {
 			child.attrs.get('data-src') ?? 'https://example.com/'
 		);
 	}
-}
+};
 
-function runV2(iframeCount: number): Stats {
+const runV2 = function runV2(iframeCount: number): Stats {
 	const body = setupDom(iframeCount);
 	const manager = configureConsentManager({ mode: 'offline' });
 	const store = createConsentManagerStore(manager, {
@@ -149,9 +162,9 @@ function runV2(iframeCount: number): Stats {
 			.updateIframeConsents({ marketing: true, measurement: true });
 	});
 	return summarize(samples);
-}
+};
 
-function runV3(iframeCount: number): Stats {
+const runV3 = function runV3(iframeCount: number): Stats {
 	const body = setupDom(iframeCount);
 	// Start from "consent denied" baseline, reset to denied each iteration.
 	const kernel = createConsentKernel();
@@ -166,7 +179,7 @@ function runV3(iframeCount: number): Stats {
 		kernel.set.consent({ marketing: toggle, measurement: toggle });
 	});
 	return summarize(samples);
-}
+};
 
 const results = SCENARIOS.map((count) => ({
 	iframeCount: count,
@@ -195,10 +208,10 @@ writeFileSync(
 	join(outputDir, 'iframe-blocker-compare.json'),
 	`${JSON.stringify(
 		{
-			suite: 'iframe-blocker-compare',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
 			results,
+			suite: 'iframe-blocker-compare',
 		},
 		null,
 		2

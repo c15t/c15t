@@ -6,24 +6,15 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { GlobalVendorList, TCFConsentData } from '../../tcf/iab-tcf-types';
-import { decodeTCString, generateTCString } from '../../tcf/tc-string';
+import { describe, expect, it } from 'vitest';
+
 import {
-	createMockGVL,
 	createMockPublisherRestriction,
 	createMockPublisherRestrictions,
-	createMockTCFConsentAllGranted,
 	RestrictionType,
 } from './test-setup';
 
 describe('Publisher Restrictions - IAB TCF 2.3', () => {
-	let mockGVL: GlobalVendorList;
-
-	beforeEach(() => {
-		mockGVL = createMockGVL();
-	});
-
 	describe('Restriction Type Definitions', () => {
 		it('should define Type 0: Purpose flatly not allowed', () => {
 			expect(RestrictionType.NOT_ALLOWED).toBe(0);

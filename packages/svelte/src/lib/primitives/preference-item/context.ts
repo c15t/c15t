@@ -12,20 +12,23 @@ export interface PreferenceItemContextValue {
 	toggle: () => void;
 }
 
-export function setPreferenceItemContext(value: PreferenceItemContextValue) {
+export const setPreferenceItemContext = function setPreferenceItemContext(
+	value: PreferenceItemContextValue
+) {
 	setContext(PREFERENCE_ITEM_CONTEXT_KEY, value);
-}
+};
 
-export function getPreferenceItemContext(): PreferenceItemContextValue {
-	const context = getContext<PreferenceItemContextValue | undefined>(
-		PREFERENCE_ITEM_CONTEXT_KEY
-	);
-
-	if (!context) {
-		throw new Error(
-			'PreferenceItem primitives must be used within PreferenceItem.Root'
+export const getPreferenceItemContext =
+	function getPreferenceItemContext(): PreferenceItemContextValue {
+		const context = getContext<PreferenceItemContextValue | undefined>(
+			PREFERENCE_ITEM_CONTEXT_KEY
 		);
-	}
 
-	return context;
-}
+		if (!context) {
+			throw new Error(
+				'PreferenceItem primitives must be used within PreferenceItem.Root'
+			);
+		}
+
+		return context;
+	};

@@ -10,8 +10,32 @@
  */
 
 import { vi } from 'vitest';
+
 import type { ConsentInfo, ConsentState } from '../types';
 import type { AllConsentNames } from '../types/consent-types';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LocalStorage Mock Factory
@@ -20,7 +44,7 @@ import type { AllConsentNames } from '../types/consent-types';
 /**
  * Creates a mock localStorage instance.
  */
-export function createMockLocalStorage(): {
+export const createMockLocalStorage = function createMockLocalStorage(): {
 	storage: Map<string, string>;
 	mock: Storage;
 	cleanup: () => void;
@@ -28,39 +52,41 @@ export function createMockLocalStorage(): {
 	const storage = new Map<string, string>();
 
 	const mock: Storage = {
-		getItem: vi.fn((key: string) => storage.get(key) ?? null),
-		setItem: vi.fn((key: string, value: string) => {
-			storage.set(key, value);
-		}),
-		removeItem: vi.fn((key: string) => {
-			storage.delete(key);
-		}),
 		clear: vi.fn(() => {
 			storage.clear();
 		}),
-		get length() {
-			return storage.size;
-		},
+		getItem: vi.fn((key: string) => storage.get(key) ?? null),
 		key: vi.fn((index: number) => {
 			const keys = Array.from(storage.keys());
 			return keys[index] ?? null;
 		}),
+		get length() {
+			return storage.size;
+		},
+		removeItem: vi.fn((key: string) => {
+			storage.delete(key);
+		}),
+		setItem: vi.fn((key: string, value: string) => {
+			storage.set(key, value);
+		}),
 	};
 
 	return {
-		storage,
-		mock,
 		cleanup: () => {
 			storage.clear();
 			vi.clearAllMocks();
 		},
+		mock,
+		storage,
 	};
-}
+};
 
 /**
  * Sets up localStorage mock on window.
  */
-export function setupLocalStorageMock(initialData?: Record<string, string>): {
+export const setupLocalStorageMock = function setupLocalStorageMock(
+	initialData?: Record<string, string>
+): {
 	storage: Map<string, string>;
 	cleanup: () => void;
 } {
@@ -73,55 +99,50 @@ export function setupLocalStorageMock(initialData?: Record<string, string>): {
 	}
 
 	Object.defineProperty(window, 'localStorage', {
+		configurable: true,
 		value: mock,
 		writable: true,
-		configurable: true,
 	});
 
-	return { storage, cleanup };
-}
+	return { cleanup, storage };
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Cookie Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a mock document.cookie implementation.
- */
-export function createMockCookies(): {
+export const createMockCookies = function createMockCookies(): {
 	cookies: Map<string, string>;
 	getCookieString: () => string;
 	cleanup: () => void;
 } {
 	const cookies = new Map<string, string>();
 
-	const getCookieString = () => {
-		return Array.from(cookies.entries())
+	const getCookieString = () =>
+		Array.from(cookies.entries())
 			.map(([name, value]) => `${name}=${value}`)
 			.join('; ');
-	};
 
 	return {
-		cookies,
-		getCookieString,
 		cleanup: () => {
 			cookies.clear();
 		},
+		cookies,
+		getCookieString,
 	};
-}
+};
 
 /**
  * Sets up document.cookie mock.
  */
-export function setupCookieMock(): {
+export const setupCookieMock = function setupCookieMock(): {
 	cookies: Map<string, string>;
 	cleanup: () => void;
 } {
 	const { cookies, getCookieString, cleanup } = createMockCookies();
 
-	let cookieValue = '';
-
 	Object.defineProperty(document, 'cookie', {
+		configurable: true,
 		get: () => getCookieString(),
 		set: (value: string) => {
 			// Parse the cookie string
@@ -131,7 +152,7 @@ export function setupCookieMock(): {
 			const cookieVal = valueParts.join('=');
 
 			// Check for expiry (deletion)
-			const expiresMatch = value.match(/expires=([^;]+)/i);
+			const expiresMatch = value.match(/expires=(?<date>[^;]+)/iu);
 			if (expiresMatch) {
 				const expiresDate = new Date(expiresMatch[1]);
 				if (expiresDate < new Date()) {
@@ -143,68 +164,57 @@ export function setupCookieMock(): {
 			if (cookieVal) {
 				cookies.set(name.trim(), cookieVal);
 			}
-			cookieValue = value;
 		},
-		configurable: true,
 	});
 
-	return { cookies, cleanup };
-}
+	return { cleanup, cookies };
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent State Fixtures
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Creates a default consent state (all false except necessary).
- */
-export function createDefaultConsentState(): ConsentState {
-	return {
-		necessary: true,
-		functionality: false,
-		marketing: false,
-		measurement: false,
-		experience: false,
+export const createDefaultConsentState =
+	function createDefaultConsentState(): ConsentState {
+		return {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		};
 	};
-}
 
-/**
- * Creates a consent state with all consents granted.
- */
-export function createAllGrantedConsentState(): ConsentState {
-	return {
-		necessary: true,
-		functionality: true,
-		marketing: true,
-		measurement: true,
-		experience: true,
+export const createAllGrantedConsentState =
+	function createAllGrantedConsentState(): ConsentState {
+		return {
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		};
 	};
-}
 
-/**
- * Creates a consent state with all consents denied (except necessary).
- */
-export function createAllDeniedConsentState(): ConsentState {
-	return {
-		necessary: true,
-		functionality: false,
-		marketing: false,
-		measurement: false,
-		experience: false,
+export const createAllDeniedConsentState =
+	function createAllDeniedConsentState(): ConsentState {
+		return {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		};
 	};
-}
 
-/**
- * Creates a custom consent state.
- */
-export function createConsentState(
+export const createConsentState = function createConsentState(
 	overrides?: Partial<ConsentState>
 ): ConsentState {
 	return {
 		...createDefaultConsentState(),
 		...overrides,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent Info Fixtures
@@ -213,16 +223,16 @@ export function createConsentState(
 /**
  * Creates mock consent info.
  */
-export function createMockConsentInfo(
+export const createMockConsentInfo = function createMockConsentInfo(
 	overrides?: Partial<ConsentInfo>
 ): ConsentInfo {
 	return {
+		subjectId: 'test-subject-id-123',
 		time: Date.now(),
 		type: 'custom',
-		subjectId: 'test-subject-id-123',
 		...overrides,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Stored Consent Fixtures
@@ -231,15 +241,16 @@ export function createMockConsentInfo(
 /**
  * Creates a mock stored consent object (as saved to localStorage/cookie).
  */
-export function createMockStoredConsent(overrides?: {
-	consents?: Partial<ConsentState>;
-	consentInfo?: Partial<ConsentInfo>;
-}) {
-	return {
-		consents: createConsentState(overrides?.consents),
-		consentInfo: createMockConsentInfo(overrides?.consentInfo),
+export const createMockStoredConsent =
+	function createMockStoredConsent(overrides?: {
+		consents?: Partial<ConsentState>;
+		consentInfo?: Partial<ConsentInfo>;
+	}) {
+		return {
+			consentInfo: createMockConsentInfo(overrides?.consentInfo),
+			consents: createConsentState(overrides?.consents),
+		};
 	};
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Clear Consent State
@@ -248,7 +259,7 @@ export function createMockStoredConsent(overrides?: {
 /**
  * Clears all consent state from localStorage and cookies.
  */
-export function clearConsentState(): void {
+export const clearConsentState = function clearConsentState(): void {
 	// Clear localStorage
 	try {
 		if (typeof window !== 'undefined' && window.localStorage) {
@@ -269,7 +280,7 @@ export function clearConsentState(): void {
 	} catch {
 		// Ignore errors
 	}
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock Manager Factory
@@ -278,21 +289,21 @@ export function clearConsentState(): void {
 /**
  * Creates a mock ConsentManagerInterface for testing.
  */
-export function createMockManager() {
+export const createMockManager = function createMockManager() {
 	return {
+		$fetch: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+		identifyUser: vi.fn().mockResolvedValue({ data: {}, ok: true }),
 		init: vi.fn().mockResolvedValue({
-			ok: true,
 			data: {
 				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				translations: { language: 'en', translations: {} },
 			},
+			ok: true,
 		}),
-		setConsent: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-		identifyUser: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-		$fetch: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+		setConsent: vi.fn().mockResolvedValue({ data: {}, ok: true }),
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fetch Mock Helper
@@ -301,28 +312,25 @@ export function createMockManager() {
 /**
  * Creates a mock fetch function.
  */
-export function createMockFetch(
-	responses?: Array<{ status: number; data: unknown }>
+export const createMockFetch = function createMockFetch(
+	responses?: { status: number; data: unknown }[]
 ) {
 	const responseQueue = [...(responses || [])];
-	let defaultResponse = { status: 200, data: {} };
+	const defaultResponse = { data: {}, status: 200 };
 
 	return vi.fn().mockImplementation(() => {
 		const response = responseQueue.shift() || defaultResponse;
 		return Promise.resolve(
 			new Response(JSON.stringify(response.data), {
-				status: response.status,
 				headers: { 'Content-Type': 'application/json' },
+				status: response.status,
 			})
 		);
 	});
-}
+};
 
-/**
- * Sets up fetch mock globally.
- */
-export function setupFetchMock(
-	responses?: Array<{ status: number; data: unknown }>
+export const setupFetchMock = function setupFetchMock(
+	responses?: { status: number; data: unknown }[]
 ) {
 	const mockFetch = createMockFetch(responses);
 	const originalFetch = globalThis.fetch;
@@ -330,12 +338,12 @@ export function setupFetchMock(
 	globalThis.fetch = mockFetch as typeof fetch;
 
 	return {
-		mockFetch,
 		cleanup: () => {
 			globalThis.fetch = originalFetch;
 		},
+		mockFetch,
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent Types
@@ -359,22 +367,25 @@ export const testConsentNames: AllConsentNames[] = [
 /**
  * Waits for all pending promises to resolve.
  */
-export async function flushPromises(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-}
+export const flushPromises = async function flushPromises(): Promise<void> {
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
 
-/**
- * Waits for a condition to be true.
- */
-export async function waitFor(
+export const waitFor = async function waitFor(
 	condition: () => boolean,
 	timeout = 1000
 ): Promise<void> {
 	const start = Date.now();
-	while (!condition()) {
+	const poll = async (): Promise<void> => {
+		if (condition()) {
+			return;
+		}
 		if (Date.now() - start > timeout) {
 			throw new Error('Timeout waiting for condition');
 		}
-		await new Promise((resolve) => setTimeout(resolve, 10));
-	}
-}
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
+		await poll();
+	};
+
+	await poll();
+};

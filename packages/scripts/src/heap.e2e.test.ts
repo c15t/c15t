@@ -3,37 +3,40 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 	updateScripts,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import {
 	DEFAULT_HEAP_CONFIG_BASE_URL,
 	HEAP_QUEUE_METHODS,
 	heap,
 } from './vendors/analytics/heap';
 
-function snapshotHeapReadyQueue(win: TestWindow): Array<{
+const snapshotHeapReadyQueue = function snapshotHeapReadyQueue(
+	win: TestWindow
+): {
 	name: string;
 	fnType: string;
-}> {
+}[] {
 	return (win.heapReadyCb ?? []).map((entry) => ({
-		name: entry.name,
 		fnType: typeof entry.fn,
+		name: entry.name,
 	}));
-}
+};
 
 describe('heap contract', () => {
 	registerVendorContractCleanup();
 
 	it('boots the heap.js callback queue contract before the loader appends', () => {
 		let methodTypes: Record<string, string> | undefined;
-		let queueSnapshot: Array<{ name: string; fnType: string }> | undefined;
+		let queueSnapshot: { name: string; fnType: string }[] | undefined;
 		let scriptSrc: string | undefined;
 		let envId: string | undefined;
 		let appid: string | undefined;
@@ -62,10 +65,10 @@ describe('heap contract', () => {
 			[
 				{
 					...heap({
-						envId: '123456789',
 						clientConfig: {
 							disableTextCapture: true,
 						},
+						envId: '123456789',
 					}),
 					id: 'heap-contract',
 				},
@@ -89,12 +92,12 @@ describe('heap contract', () => {
 		);
 		expect(queueSnapshot).toEqual([
 			{
-				name: 'track',
 				fnType: 'function',
+				name: 'track',
 			},
 			{
-				name: 'identify',
 				fnType: 'function',
+				name: 'identify',
 			},
 		]);
 	});

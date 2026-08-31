@@ -1,7 +1,7 @@
 import type { RequestHandler } from '@sveltejs/kit';
 import { text } from '@sveltejs/kit';
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = ({ params }) => {
 	const { id } = params;
 	const body = [
 		`window.__c15tScriptBench?.recordScriptExecution?.(${JSON.stringify(id)});`,

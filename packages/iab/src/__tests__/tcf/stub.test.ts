@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	clearStubQueue,
 	destroyIABStub,
@@ -52,8 +53,8 @@ describe('IAB TCF Stub', () => {
 
 			expect(callback).toHaveBeenCalledWith(
 				expect.objectContaining({
-					cmpStatus: 'stub',
 					cmpLoaded: false,
+					cmpStatus: 'stub',
 				}),
 				true
 			);
@@ -156,19 +157,21 @@ describe('IAB TCF Stub', () => {
 
 			expect(callback).toHaveBeenCalledWith(
 				expect.objectContaining({
-					gdprApplies: undefined,
+					// apiVersion can be 2.2 or 2.3 depending on implementation
+					cmpId: 0,
 					cmpLoaded: false,
 					cmpStatus: 'stub',
 					displayStatus: 'hidden',
-					// apiVersion can be 2.2 or 2.3 depending on implementation
-					cmpId: 0,
+					gdprApplies: undefined,
 					gvlVersion: 0,
-					tcfPolicyVersion: 5, // TCF 2.3
+					// TCF 2.3
+					tcfPolicyVersion: 5,
 				}),
 				true
 			);
 
 			// Also verify apiVersion is a valid TCF 2.x version
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const pingData = callback.mock.calls[0][0];
 			expect(['2.2', '2.3']).toContain(pingData.apiVersion);
 		});

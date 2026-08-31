@@ -1,6 +1,7 @@
 'use client';
 
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 
 /**
  * Props for the ErrorBoundary component.
@@ -56,17 +57,20 @@ export class ErrorBoundary extends Component<
 	ErrorBoundaryProps,
 	ErrorBoundaryState
 > {
+	private errorInfo: ErrorInfo | null = null;
+
 	constructor(props: ErrorBoundaryProps) {
 		super(props);
-		this.state = { hasError: false, error: null, errorInfo: null };
+		this.state = { error: null, errorInfo: null, hasError: false };
 	}
 
 	static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-		return { hasError: true, error, errorInfo: null };
+		return { error, errorInfo: null, hasError: true };
 	}
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-		this.setState({ error, errorInfo });
+		this.errorInfo = errorInfo;
+		this.forceUpdate();
 		// console.error('Uncaught error:', error, errorInfo);
 		// Optionally log error to an external service
 		// logErrorToService(error, errorInfo)
@@ -75,8 +79,8 @@ export class ErrorBoundary extends Component<
 	render() {
 		if (this.state.hasError) {
 			if (typeof this.props.fallback === 'function') {
-				// biome-ignore lint/style/noNonNullAssertion: it's fine
-				return this.props.fallback(this.state.error!, this.state.errorInfo!);
+				// oxlint-disable-next-line typescript/no-non-null-assertion -- it's fine
+				return this.props.fallback(this.state.error!, this.errorInfo!);
 			}
 			return this.props.fallback;
 		}

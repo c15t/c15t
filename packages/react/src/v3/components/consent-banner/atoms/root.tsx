@@ -1,15 +1,15 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/consent-banner';
 import {
-	type CSSProperties,
-	type FC,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
+	forwardRef as createForwardRef,
 	useEffect,
+	useMemo,
 	useState,
 } from 'react';
+import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
+
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import {
@@ -23,7 +23,20 @@ import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { Overlay } from './overlay';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in'];
+
+const getBannerAnimationClass = (
+	disableAnimation: boolean | undefined,
+	isVisible: boolean
+): string => {
+	if (disableAnimation) {
+		return '';
+	}
+	return isVisible ? styles.bannerVisible : styles.bannerHidden;
+};
 
 /**
  * Props for the root component of the ConsentBanner.
@@ -77,7 +90,7 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Which consent models this banner responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -156,83 +169,6 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
-	children,
-	className,
-	noStyle,
-	disableAnimation,
-	scrollLock,
-	trapFocus = true,
-	models,
-	uiSource,
-	...props
-}) => {
-	const policyBanner = usePolicyBanner();
-
-	/**
-	 * Combine consent manager state with styling configuration
-	 * to create the context value for child components
-	 */
-	const contextValue = {
-		disableAnimation,
-		noStyle,
-		scrollLock: scrollLock ?? policyBanner?.scrollLock ?? undefined,
-		trapFocus,
-	};
-
-	return (
-		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'banner' }}>
-			<LocalThemeContext.Provider value={contextValue}>
-				<ConsentBannerRootChildren
-					disableAnimation={disableAnimation}
-					className={className}
-					noStyle={noStyle}
-					models={models}
-					{...props}
-				>
-					{children}
-				</ConsentBannerRootChildren>
-			</LocalThemeContext.Provider>
-		</ConsentTrackingContext.Provider>
-	);
-};
-
-/**
- * Props for the content section of the ConsentBanner.
- *
- * @public
- */
-interface ConsentBannerRootChildrenProps
-	extends HTMLAttributes<HTMLDivElement> {
-	/**
-	 * @remarks
-	 * React elements to be rendered within the content section.
-	 * This typically includes the title, description, and action buttons.
-	 */
-	children: ReactNode;
-
-	/**
-	 * @remarks
-	 * When true, the component will not apply any styles.
-	 */
-	noStyle?: boolean;
-
-	/**
-	 * @remarks
-	 * When true, the component will render its children directly without wrapping them in a DOM element.
-	 * This enables better composition with other components.
-	 */
-	asChild?: boolean;
-
-	disableAnimation?: boolean;
-
-	/**
-	 * Which consent models this banner responds to.
-	 * @default ['opt-in', 'opt-out']
-	 */
-	models?: import('@c15t/core').Model[];
-}
-
 /**
  * Content component for the ConsentBanner that handles layout and animations.
  *
@@ -270,20 +206,20 @@ interface ConsentBannerRootChildrenProps
  *
  * @public
  */
-const ConsentBannerRootChildren = forwardRef<
+const ConsentBannerRootChildren = createForwardRef<
 	HTMLDivElement,
 	ConsentBannerRootChildrenProps
 >(
 	(
 		{
-			asChild,
+			asChild: _asChild,
 			children,
 			className,
 			style,
 			className: forwardedClassName,
 			disableAnimation,
 			noStyle,
-			models = ['opt-in'],
+			models = DEFAULT_MODELS,
 			...props
 		}: ConsentBannerRootChildrenProps & {
 			style?: CSSProperties;
@@ -300,7 +236,8 @@ const ConsentBannerRootChildren = forwardRef<
 		);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
-		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
+		// Default fallback for SSR
+		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// ConsentBanner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
@@ -315,50 +252,63 @@ const ConsentBannerRootChildren = forwardRef<
 				) || '200',
 				10
 			);
-			setAnimationDurationMs(duration);
+			const frame = requestAnimationFrame(() => {
+				setAnimationDurationMs(duration);
+			});
+			return () => cancelAnimationFrame(frame);
 		}, []);
 
 		// Handle animation visibility state
 		useEffect(() => {
 			if (!hasInitializedVisibility) {
-				setHasInitializedVisibility(true);
-				setIsVisible(shouldShowBanner);
-				if (shouldShowBanner) {
-					setHasAnimated(true);
-				}
-				return;
+				const frame = requestAnimationFrame(() => {
+					setHasInitializedVisibility(true);
+					setIsVisible(shouldShowBanner);
+					if (shouldShowBanner) {
+						setHasAnimated(true);
+					}
+				});
+				return () => cancelAnimationFrame(frame);
 			}
 
 			if (shouldShowBanner) {
 				if (disableAnimation) {
-					setIsVisible(true);
-					setHasAnimated(true);
-					return;
+					const frame = requestAnimationFrame(() => {
+						setIsVisible(true);
+						setHasAnimated(true);
+					});
+					return () => cancelAnimationFrame(frame);
 				}
 				// If banner is showing but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
+					const frame = requestAnimationFrame(() => setIsVisible(true));
+					return () => cancelAnimationFrame(frame);
+				}
+				// Small delay to ensure the component is mounted and ready for animation
+				const animationTimer = setTimeout(() => {
 					setIsVisible(true);
-				} else {
-					// Small delay to ensure the component is mounted and ready for animation
-					const animationTimer = setTimeout(() => {
-						setIsVisible(true);
-						setHasAnimated(true);
-					}, 10);
-					return () => clearTimeout(animationTimer);
-				}
-			} else {
-				// Reset animation state when hiding so it can animate again next time
-				setHasAnimated(false);
-
-				if (disableAnimation) {
-					setIsVisible(false);
-				} else {
-					const timer = setTimeout(() => {
-						setIsVisible(false);
-					}, animationDurationMs); // Match CSS animation duration
-					return () => clearTimeout(timer);
-				}
+					setHasAnimated(true);
+				}, 10);
+				return () => clearTimeout(animationTimer);
 			}
+
+			// Reset animation state when hiding so it can animate again next time
+			if (disableAnimation) {
+				const frame = requestAnimationFrame(() => {
+					setHasAnimated(false);
+					setIsVisible(false);
+				});
+				return () => cancelAnimationFrame(frame);
+			}
+			const frame = requestAnimationFrame(() => setHasAnimated(false));
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+				// Match CSS animation duration
+			}, animationDurationMs);
+			return () => {
+				cancelAnimationFrame(frame);
+				clearTimeout(timer);
+			};
 		}, [
 			shouldShowBanner,
 			disableAnimation,
@@ -369,22 +319,19 @@ const ConsentBannerRootChildren = forwardRef<
 
 		const contentStyle = mergeSlotProps(components?.banner?.root, {
 			baseClassName: styles.root,
-			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,
+			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			...props,
 		});
 
 		// Create a final class name that respects the noStyle flag
 		const finalClassName = noStyle
 			? contentStyle.className || ''
-			: `${contentStyle.className || ''} ${
-					disableAnimation
-						? ''
-						: isVisible
-							? styles.bannerVisible
-							: styles.bannerHidden
-				}`;
+			: `${contentStyle.className || ''} ${getBannerAnimationClass(
+					disableAnimation,
+					isVisible
+				)}`;
 		// Only render when the banner should be shown
 		return shouldShowBanner ? (
 			<>
@@ -405,6 +352,90 @@ const ConsentBannerRootChildren = forwardRef<
 		) : null;
 	}
 );
+const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
+	children,
+	className,
+	noStyle,
+	disableAnimation,
+	scrollLock,
+	trapFocus = true,
+	models,
+	uiSource,
+	...props
+}) => {
+	const policyBanner = usePolicyBanner();
+
+	/**
+	 * Combine consent manager state with styling configuration
+	 * to create the context value for child components
+	 */
+	const resolvedScrollLock =
+		scrollLock ?? policyBanner?.scrollLock ?? undefined;
+	const contextValue = useMemo(
+		() => ({
+			disableAnimation,
+			noStyle,
+			scrollLock: resolvedScrollLock,
+			trapFocus,
+		}),
+		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: uiSource ?? 'banner' }),
+		[uiSource]
+	);
+
+	return (
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
+			<LocalThemeContext.Provider value={contextValue}>
+				<ConsentBannerRootChildren
+					disableAnimation={disableAnimation}
+					className={className}
+					noStyle={noStyle}
+					models={models}
+					{...props}
+				>
+					{children}
+				</ConsentBannerRootChildren>
+			</LocalThemeContext.Provider>
+		</ConsentTrackingContext.Provider>
+	);
+};
+
+/**
+ * Props for the content section of the ConsentBanner.
+ *
+ * @public
+ */
+interface ConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> {
+	/**
+	 * @remarks
+	 * React elements to be rendered within the content section.
+	 * This typically includes the title, description, and action buttons.
+	 */
+	children: ReactNode;
+
+	/**
+	 * @remarks
+	 * When true, the component will not apply any styles.
+	 */
+	noStyle?: boolean;
+
+	/**
+	 * @remarks
+	 * When true, the component will render its children directly without wrapping them in a DOM element.
+	 * This enables better composition with other components.
+	 */
+	asChild?: boolean;
+
+	disableAnimation?: boolean;
+
+	/**
+	 * Which consent models this banner responds to.
+	 * @default ['opt-in', 'opt-out']
+	 */
+	models?: C15tCoreTypes.Model[];
+}
 
 ConsentBannerRootChildren.displayName = 'ConsentBannerRootChildren';
 

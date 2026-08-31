@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	buildPrefetchScript,
 	getMatchingPrefetchedInitialData,
@@ -28,17 +29,17 @@ describe('prefetch utilities', () => {
 		const fetchMock = vi.fn().mockResolvedValue(
 			new Response(
 				JSON.stringify({
+					branding: 'c15t',
+					gvl: null,
 					jurisdiction: 'CCPA',
 					location: { countryCode: 'US', regionCode: 'CA' },
 					translations: { language: 'de', translations: {} },
-					branding: 'c15t',
-					gvl: null,
 				}),
 				{
-					status: 200,
 					headers: {
 						'content-type': 'application/json',
 					},
+					status: 200,
 				}
 			)
 		);
@@ -46,8 +47,8 @@ describe('prefetch utilities', () => {
 
 		const result = primePrefetchedInitialData({
 			backendURL: '/api/c15t/',
-			overrides: { language: 'de' },
 			credentials: 'same-origin',
+			overrides: { language: 'de' },
 		});
 
 		await expect(result).resolves.toMatchObject({
@@ -55,10 +56,10 @@ describe('prefetch utilities', () => {
 				requestContext: {
 					backendURL: `${window.location.origin}/api/c15t`,
 					country: null,
-					region: null,
-					language: 'de',
-					gpc: true,
 					credentials: 'same-origin',
+					gpc: true,
+					language: 'de',
+					region: null,
 				},
 			},
 		});
@@ -91,17 +92,17 @@ describe('prefetch utilities', () => {
 			vi.fn().mockResolvedValue(
 				new Response(
 					JSON.stringify({
+						branding: 'c15t',
+						gvl: null,
 						jurisdiction: 'GDPR',
 						location: { countryCode: 'DE', regionCode: 'BE' },
 						translations: { language: 'de', translations: {} },
-						branding: 'c15t',
-						gvl: null,
 					}),
 					{
-						status: 200,
 						headers: {
 							'content-type': 'application/json',
 						},
+						status: 200,
 					}
 				)
 			)
@@ -148,17 +149,17 @@ describe('prefetch utilities', () => {
 			vi.fn().mockResolvedValue(
 				new Response(
 					JSON.stringify({
+						branding: 'c15t',
+						gvl: null,
 						jurisdiction: 'CCPA',
 						location: { countryCode: 'US', regionCode: 'CA' },
 						translations: { language: 'en', translations: {} },
-						branding: 'c15t',
-						gvl: null,
 					}),
 					{
-						status: 200,
 						headers: {
 							'content-type': 'application/json',
 						},
+						status: 200,
 					}
 				)
 			)

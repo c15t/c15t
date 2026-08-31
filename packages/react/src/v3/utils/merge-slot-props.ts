@@ -1,7 +1,9 @@
 import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import type { ClassValue } from '@c15t/ui/utils';
+
 import type { ReactComponentSlots, ReactSlotProps } from '~/v3/types/slots';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+
 import { cnExt as cn } from './cn';
 
 type MergeSlotPropsInput = ReactSlotProps & {
@@ -9,7 +11,7 @@ type MergeSlotPropsInput = ReactSlotProps & {
 	noStyle?: boolean;
 };
 
-export function getSlotProps(
+export const getSlotProps = function getSlotProps(
 	components: ReactComponentSlots | undefined,
 	slotKey: ConsentComponentSlotKey | undefined
 ): ReactSlotProps | undefined {
@@ -24,13 +26,13 @@ export function getSlotProps(
 	return components?.[group]?.[
 		slot as keyof (typeof components)[typeof group]
 	] as ReactSlotProps | undefined;
-}
+};
 
 export type MergedSlotProps = Omit<ReactSlotProps, 'style'> & {
 	style?: CSSPropertiesWithVars;
 };
 
-export function mergeSlotProps(
+export const mergeSlotProps = function mergeSlotProps(
 	slotProps: ReactSlotProps | undefined,
 	{ baseClassName, className, noStyle, style, ...ownProps }: MergeSlotPropsInput
 ): MergedSlotProps {
@@ -48,4 +50,4 @@ export function mergeSlotProps(
 		className: mergedClassName || undefined,
 		style: mergedStyle as CSSPropertiesWithVars | undefined,
 	};
-}
+};

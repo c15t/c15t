@@ -1,4 +1,5 @@
-import { onMounted, type Ref, ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * Track whether the consuming component has mounted.
@@ -8,7 +9,7 @@ import { onMounted, type Ref, ref } from 'vue';
  *
  * @returns A ref that becomes `true` after mount
  */
-export function useMounted(): Ref<boolean> {
+export const useMounted = function useMounted(): Ref<boolean> {
 	const mounted = ref(false);
 
 	onMounted(() => {
@@ -16,4 +17,4 @@ export function useMounted(): Ref<boolean> {
 	});
 
 	return mounted;
-}
+};

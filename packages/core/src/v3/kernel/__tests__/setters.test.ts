@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import type { ConsentSnapshot } from '../../types';
 import type { SnapshotPatch } from '../patch';
 import { applyPatch } from '../patch';
@@ -20,14 +21,14 @@ describe('mergeConsent', () => {
 
 	test('drops non-boolean values', () => {
 		const snap = buildInitialSnapshot({});
-		// biome-ignore lint/suspicious/noExplicitAny: deliberately invalid input
+		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
 		const next = mergeConsent(snap.consents, { marketing: 'yes' as any });
 		expect(next).toBeNull();
 	});
 
 	test('drops unknown keys', () => {
 		const snap = buildInitialSnapshot({});
-		// biome-ignore lint/suspicious/noExplicitAny: deliberately invalid input
+		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
 		const next = mergeConsent(snap.consents, { analytics: true as any });
 		expect(next).toBeNull();
 	});
@@ -47,7 +48,7 @@ describe('mergeIab', () => {
 	});
 
 	test('detects scalar field flip', () => {
-		const baseline = mergeIab(null, { enabled: true, cmpId: 1 }).next;
+		const baseline = mergeIab(null, { cmpId: 1, enabled: true }).next;
 		const result = mergeIab(baseline, { cmpId: 2 });
 		expect(result.changed).toBe(true);
 		expect(result.next.cmpId).toBe(2);
@@ -55,20 +56,20 @@ describe('mergeIab', () => {
 });
 
 describe('buildSetters', () => {
-	function makeKernelStub() {
+	const makeKernelStub = function makeKernelStub() {
 		let snapshot: ConsentSnapshot = buildInitialSnapshot({});
 		const events: { type: string }[] = [];
 		const setters = buildSetters({
-			getSnapshot: () => snapshot,
 			advance: (patch: SnapshotPatch) => {
 				snapshot = applyPatch(snapshot, patch);
 			},
 			emit: (event) => {
 				events.push({ type: event.type });
 			},
+			getSnapshot: () => snapshot,
 		});
-		return { setters, events, getSnapshot: () => snapshot };
-	}
+		return { events, getSnapshot: () => snapshot, setters };
+	};
 
 	test('set.consent emits when a key changes', () => {
 		const { setters, events, getSnapshot } = makeKernelStub();
@@ -112,15 +113,15 @@ describe('buildSetters', () => {
 			initialPolicy: {
 				model: 'iab',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		const setters = buildSetters({
-			getSnapshot: () => snapshot,
 			advance: (patch: SnapshotPatch) => {
 				snapshot = applyPatch(snapshot, patch);
 			},
 			emit: () => {},
+			getSnapshot: () => snapshot,
 		});
 		expect(snapshot.model).toBeNull();
 		setters.iab({ enabled: true });

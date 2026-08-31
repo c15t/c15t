@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 // Static consent mount, aliased per build: full builds get consent-mount.vue
 // (static `<ConsentRoot />`), baseline builds (C15T_BENCH_BASELINE=1) get an
 // empty stub so they never reference @c15t/vue. Static resolution matters:

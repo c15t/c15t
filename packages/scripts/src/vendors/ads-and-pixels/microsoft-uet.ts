@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 // Extended Window interface to include microsoft uet specific properties
 declare global {
@@ -17,77 +19,86 @@ declare global {
  */
 export const microsoftUetManifest = {
 	...vendorManifestContract,
-	vendor: 'microsoft-uet',
-	category: 'marketing',
-	alwaysLoad: true,
-	persistAfterConsentRevoked: true,
-	bootstrap: [
+	afterLoad: [
 		{
-			type: 'setGlobal',
-			name: 'uetq',
-			value: [],
-			ifUndefined: true,
+			args: [
+				{
+					enableAutoSpaTracking: true,
+
+					ti: '{{id}}',
+				},
+			],
+			assignTo: 'uetq',
+			constructor: 'UET',
+			copyAssignedValueToArgProperty: 'q',
+
+			type: 'constructGlobal',
 		},
-	],
-	onBeforeLoadGranted: [
 		{
-			type: 'callGlobal',
+			args: ['pageLoad'],
+
 			global: 'uetq',
 			method: 'push',
-			args: ['consent', 'default', { ad_storage: 'granted' }],
+			type: 'callGlobal',
+		},
+	],
+	alwaysLoad: true,
+	bootstrap: [
+		{
+			ifUndefined: true,
+
+			name: 'uetq',
+			type: 'setGlobal',
+			value: [],
+		},
+	],
+	category: 'marketing',
+	install: [
+		{
+			async: true,
+
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
 		},
 	],
 	onBeforeLoadDenied: [
 		{
-			type: 'callGlobal',
-			global: 'uetq',
-			method: 'push',
 			args: ['consent', 'default', { ad_storage: 'denied' }],
-		},
-	],
-	install: [
-		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
-			async: true,
-		},
-	],
-	afterLoad: [
-		{
-			type: 'constructGlobal',
-			constructor: 'UET',
-			assignTo: 'uetq',
-			args: [
-				{
-					ti: '{{id}}',
-					enableAutoSpaTracking: true,
-				},
-			],
-			copyAssignedValueToArgProperty: 'q',
-		},
-		{
-			type: 'callGlobal',
+
 			global: 'uetq',
 			method: 'push',
-			args: ['pageLoad'],
+			type: 'callGlobal',
 		},
 	],
-	onConsentGranted: [
+	onBeforeLoadGranted: [
 		{
-			type: 'callGlobal',
+			args: ['consent', 'default', { ad_storage: 'granted' }],
+
 			global: 'uetq',
 			method: 'push',
-			args: ['consent', 'update', { ad_storage: 'granted' }],
+			type: 'callGlobal',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
+			args: ['consent', 'update', { ad_storage: 'denied' }],
+
 			global: 'uetq',
 			method: 'push',
-			args: ['consent', 'update', { ad_storage: 'denied' }],
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			args: ['consent', 'update', { ad_storage: 'granted' }],
+
+			global: 'uetq',
+			method: 'push',
+			type: 'callGlobal',
+		},
+	],
+	persistAfterConsentRevoked: true,
+	vendor: 'microsoft-uet',
 } as const satisfies VendorManifest;
 
 export interface MicrosoftUetOptions {
@@ -118,11 +129,14 @@ export interface MicrosoftUetOptions {
  *
  * @see https://learn.microsoft.com/en-us/advertising/guides/universal-event-tracking?view=bingads-13
  */
-export function microsoftUet({ id, scriptSrc }: MicrosoftUetOptions): Script {
+export const microsoftUet = function microsoftUet({
+	id,
+	scriptSrc,
+}: MicrosoftUetOptions): Script {
 	const resolved = resolveManifest(microsoftUetManifest, {
 		id,
 		scriptSrc: scriptSrc ?? '//bat.bing.com/bat.js',
 	});
 
 	return resolved;
-}
+};

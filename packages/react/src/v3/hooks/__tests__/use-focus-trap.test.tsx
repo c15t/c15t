@@ -6,9 +6,20 @@
 
 import { useRef, useState } from 'react';
 import { describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
 import { useFocusTrap } from '../use-focus-trap';
+
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 describe('useFocusTrap', () => {
 	// Component that uses the focus trap hook
@@ -19,22 +30,33 @@ describe('useFocusTrap', () => {
 		shouldTrap?: boolean;
 		onKeyDown?: (e: React.KeyboardEvent) => void;
 	}) => {
-		const containerRef = useRef<HTMLDivElement>(null);
+		const containerRef = useRef<HTMLDialogElement>(null);
 		useFocusTrap(shouldTrap, containerRef);
 
 		return (
-			<div
+			<dialog
 				ref={containerRef}
 				data-testid="trap-container"
 				onKeyDown={onKeyDown}
+				open
 			>
-				<button data-testid="button-1">First</button>
+				<button
+					data-testid="button-1"
+					type="button"
+				>
+					First
+				</button>
 				<input
 					data-testid="input-1"
 					type="text"
 				/>
-				<button data-testid="button-2">Second</button>
-			</div>
+				<button
+					data-testid="button-2"
+					type="button"
+				>
+					Second
+				</button>
+			</dialog>
 		);
 	};
 
@@ -48,6 +70,7 @@ describe('useFocusTrap', () => {
 			<div>
 				<button
 					data-testid="toggle"
+					type="button"
 					onClick={() => setTrapEnabled((prev) => !prev)}
 				>
 					Toggle Trap ({trapEnabled ? 'enabled' : 'disabled'})
@@ -56,8 +79,18 @@ describe('useFocusTrap', () => {
 					ref={containerRef}
 					data-testid="trap-container"
 				>
-					<button data-testid="button-1">First</button>
-					<button data-testid="button-2">Second</button>
+					<button
+						data-testid="button-1"
+						type="button"
+					>
+						First
+					</button>
+					<button
+						data-testid="button-2"
+						type="button"
+					>
+						Second
+					</button>
 				</div>
 			</div>
 		);
@@ -96,7 +129,7 @@ describe('useFocusTrap', () => {
 	});
 
 	describe('Focus Trap Behavior', () => {
-		test('should not throw when container ref is null', async () => {
+		test('should not throw when container ref is null', () => {
 			// Component that uses null ref
 			const NullRefComponent = () => {
 				useFocusTrap(true, null);
@@ -135,7 +168,7 @@ describe('useFocusTrap', () => {
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
 			// Toggle on
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('enabled');
@@ -144,7 +177,7 @@ describe('useFocusTrap', () => {
 			);
 
 			// Toggle off
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('disabled');
@@ -200,7 +233,7 @@ describe('useFocusTrap', () => {
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
 			// Enable trap
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('enabled');
@@ -209,7 +242,7 @@ describe('useFocusTrap', () => {
 			);
 
 			// Disable trap (should cleanup)
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('disabled');
@@ -218,7 +251,7 @@ describe('useFocusTrap', () => {
 			);
 
 			// Re-enable trap (should work without issues)
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('enabled');

@@ -5,12 +5,16 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
+import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
+
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	addCMPEventListener,
 	clearConsentState,
@@ -18,7 +22,6 @@ import {
 	removeCMPEventListener,
 	waitForCMP,
 	waitForElement,
-	waitForElementRemoved,
 } from './e2e-setup';
 
 describe('IAB Events E2E Tests', () => {
@@ -58,7 +61,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener to capture events
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -93,7 +96,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -135,7 +138,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			let called = false;
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, () => {
 					called = true;
@@ -145,7 +148,9 @@ describe('IAB Events E2E Tests', () => {
 			// Should be called almost immediately
 			await vi.waitFor(
 				() => {
-					if (!called) throw new Error('Not called');
+					if (!called) {
+						throw new Error('Not called');
+					}
 				},
 				{ timeout: 100 }
 			);
@@ -192,10 +197,11 @@ describe('IAB Events E2E Tests', () => {
 			let callCount = 0;
 			let listenerId: number | undefined;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
-					callCount++;
+					callCount += 1;
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 					listenerId = data.listenerId;
 				});
 			}
@@ -203,7 +209,9 @@ describe('IAB Events E2E Tests', () => {
 			// Wait for initial call
 			await vi.waitFor(
 				() => {
-					if (callCount === 0) throw new Error('Not called');
+					if (callCount === 0) {
+						throw new Error('Not called');
+					}
 				},
 				{ timeout: 100 }
 			);
@@ -225,7 +233,7 @@ describe('IAB Events E2E Tests', () => {
 			}
 
 			// Wait a bit
-			await new Promise((r) => setTimeout(r, 100));
+			await createVoidDeferredPromise((r) => setTimeout(r, 100));
 
 			// Call count should still be 1 (removed listener doesn't receive)
 			expect(callCount).toBe(1);
@@ -246,7 +254,7 @@ describe('IAB Events E2E Tests', () => {
 			const listener2Events: string[] = [];
 			const listener3Events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					listener1Events.push(data.eventStatus);
@@ -294,7 +302,7 @@ describe('IAB Events E2E Tests', () => {
 
 			let receivedData: Record<string, unknown> | null = null;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: Record<string, unknown>) => {
 					receivedData = data;
@@ -303,7 +311,9 @@ describe('IAB Events E2E Tests', () => {
 
 			await vi.waitFor(
 				() => {
-					if (!receivedData) throw new Error('No data received');
+					if (!receivedData) {
+						throw new Error('No data received');
+					}
 				},
 				{ timeout: 500 }
 			);

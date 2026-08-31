@@ -2,13 +2,14 @@
 
 import { useConsentManager } from '@c15t/react';
 import { useEffect, useRef } from 'react';
+
 import {
 	getBenchState,
 	hasRunningAnimations,
 	isElementVisible,
 	nowMs,
-	type ReactBenchScenario,
 } from './state';
+import type { ReactBenchScenario } from './state';
 
 const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
 
@@ -18,7 +19,7 @@ interface BenchmarkElementTimingEntry extends PerformanceEntry {
 	loadTime?: number;
 }
 
-function readBannerPaintMs(): number | null {
+const readBannerPaintMs = function readBannerPaintMs(): number | null {
 	const entries = performance
 		.getEntriesByType('element')
 		.filter(
@@ -27,28 +28,32 @@ function readBannerPaintMs(): number | null {
 				BANNER_ELEMENT_TIMING_NAME
 		);
 	const entry = entries.at(-1);
-	if (!entry) return null;
+	if (!entry) {
+		return null;
+	}
 	for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
 		if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
 			return value;
 		}
 	}
 	return null;
-}
+};
 
-export function ReactBenchmarkProbe({
+export const ReactBenchmarkProbe = ({
 	scenario,
 }: {
 	scenario: ReactBenchScenario;
-}) {
+}) => {
 	const { activeUI } = useConsentManager();
 	const renderRef = useRef(0);
-	renderRef.current += 1;
 
-	const state = getBenchState(scenario);
-	if (state) {
-		state.renderCount = renderRef.current;
-	}
+	useEffect(() => {
+		renderRef.current += 1;
+		const state = getBenchState(scenario);
+		if (state) {
+			state.renderCount = renderRef.current;
+		}
+	});
 
 	useEffect(() => {
 		const current = getBenchState(scenario);
@@ -64,7 +69,9 @@ export function ReactBenchmarkProbe({
 			return;
 		}
 
-		current.cls = current.cls ?? 0;
+		if (current.cls === undefined) {
+			current.cls = 0;
+		}
 		try {
 			const observer = new PerformanceObserver((list) => {
 				const latest = getBenchState(scenario);
@@ -81,10 +88,10 @@ export function ReactBenchmarkProbe({
 					}
 				}
 			});
-			observer.observe({ type: 'layout-shift', buffered: true });
+			observer.observe({ buffered: true, type: 'layout-shift' });
 			return () => observer.disconnect();
 		} catch {
-			return;
+			// PerformanceObserver is optional in benchmark browsers.
 		}
 	}, [scenario]);
 
@@ -145,4 +152,4 @@ export function ReactBenchmarkProbe({
 	}, [activeUI, scenario]);
 
 	return null;
-}
+};

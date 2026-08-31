@@ -8,6 +8,7 @@
  */
 
 import type { ReactNode } from 'react';
+
 import { TriggerRoot } from './atoms/root';
 import { TriggerToolbar } from './atoms/toolbar';
 import type {
@@ -42,7 +43,7 @@ const DEFAULT_PREFERENCES: ConsentDialogTriggerToolbarPreferences = {};
  *
  * @returns The toolbar portal, or `null` while hidden or server-rendered.
  */
-export function ConsentDialogTriggerToolbar({
+export const ConsentDialogTriggerToolbar = ({
 	actions = EMPTY_ACTIONS,
 	preferences = DEFAULT_PREFERENCES,
 	orientation = 'horizontal',
@@ -55,26 +56,24 @@ export function ConsentDialogTriggerToolbar({
 	style,
 	noStyle = false,
 	onPositionChange,
-}: ConsentDialogTriggerToolbarProps): ReactNode {
-	return (
-		<TriggerRoot
-			defaultPosition={defaultPosition}
-			onPositionChange={onPositionChange}
-			persistPosition={persistPosition}
-			showWhen={showWhen}
-		>
-			<TriggerToolbar
-				actions={actions}
-				ariaLabel={ariaLabel}
-				className={className}
-				noStyle={noStyle}
-				orientation={orientation}
-				preferences={preferences}
-				size={size}
-				style={style}
-			/>
-		</TriggerRoot>
-	);
-}
+}: ConsentDialogTriggerToolbarProps): ReactNode => (
+	<TriggerRoot
+		defaultPosition={defaultPosition}
+		onPositionChange={onPositionChange}
+		persistPosition={persistPosition}
+		showWhen={showWhen}
+	>
+		<TriggerToolbar
+			actions={actions}
+			ariaLabel={ariaLabel}
+			className={className}
+			noStyle={noStyle}
+			orientation={orientation}
+			preferences={preferences}
+			size={size}
+			style={style}
+		/>
+	</TriggerRoot>
+);
 
 ConsentDialogTriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

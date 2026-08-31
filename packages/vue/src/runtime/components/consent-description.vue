@@ -1,10 +1,9 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
 import { computed } from 'vue';
+
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
+
 import ConsentLegalLinks from './consent-legal-links.vue';
 
 const props = defineProps<{
@@ -44,7 +43,9 @@ const testId = computed(() =>
 				{{ init?.translations?.translations?.cookieBanner?.description }}
 			</template>
 			<template v-else>
-				{{ init?.translations?.translations?.consentManagerDialog?.description }}
+				{{
+					init?.translations?.translations?.consentManagerDialog?.description
+				}}
 			</template>
 		</slot>
 		<ConsentLegalLinks

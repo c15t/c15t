@@ -14,9 +14,9 @@ export const editableConsentOptions = {
 };
 
 export const editableStoredConsent: Record<string, boolean> = {
-	necessary: true,
-	measurement: false,
-	marketing: false,
-	functionality: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
 };

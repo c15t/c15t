@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { determineModel } from './determine-model';
 
 describe('determineModel', () => {

@@ -10,4 +10,3 @@
 {:else}
 	<ScriptCountV2 count={data.count} />
 {/if}
-

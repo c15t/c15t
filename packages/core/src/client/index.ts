@@ -24,13 +24,7 @@ export {
 	type EndpointHandler,
 } from './custom';
 // Export HTTP client for advanced usage scenarios
-export {
-	C15tClient,
-	type C15tInternalClientOptions,
-} from './hosted';
+export { C15tClient, type C15tInternalClientOptions } from './hosted';
 
 // Export Offline client for testing and development
-export {
-	OfflineClient,
-	type OfflineClientOptions,
-} from './offline';
+export { OfflineClient, type OfflineClientOptions } from './offline';

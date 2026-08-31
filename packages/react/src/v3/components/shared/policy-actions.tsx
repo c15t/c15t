@@ -1,7 +1,9 @@
 'use client';
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
-import { type ComponentType, Fragment, type ReactNode } from 'react';
+import { Fragment } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+
 import type { HeadlessConsentSurfaceState } from '~/v3/component-hooks/use-headless-consent-ui';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/v3/types/theme';
 import { cnExt as cn } from '~/v3/utils/cn';
@@ -46,21 +48,21 @@ interface PolicyActionsRendererProps<TAction extends string> {
 	) => ReactNode;
 }
 
-export function PolicyActionsRenderer<TAction extends string>({
+export const PolicyActionsRenderer = <TAction extends string>({
 	state,
 	Footer,
 	FooterSubGroup,
 	classNames,
 	renderDefaultAction,
 	renderAction,
-}: PolicyActionsRendererProps<TAction>) {
-	const shouldFillActions = state.shouldFillActions;
+}: PolicyActionsRendererProps<TAction>) => {
+	const { shouldFillActions } = state;
 	const isColumn = state.direction === 'column';
 	const isSplit = state.actionGroups.length > 1;
 	const actionStyle = shouldFillActions
 		? ({
-				width: '100%',
 				flex: 1,
+				width: '100%',
 			} satisfies CSSPropertiesWithVars<CSSVariables>)
 		: undefined;
 
@@ -89,9 +91,9 @@ export function PolicyActionsRenderer<TAction extends string>({
 					{group.map((action) => {
 						const itemKey = `action-${action}`;
 						const renderProps: PolicyActionRenderProps<TAction> = {
-							key: itemKey,
 							consentAction: action,
 							isPrimary: state.primaryActions.includes(action),
+							key: itemKey,
 							style: actionStyle,
 						};
 
@@ -106,4 +108,4 @@ export function PolicyActionsRenderer<TAction extends string>({
 			))}
 		</Footer>
 	);
-}
+};

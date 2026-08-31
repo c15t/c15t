@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -34,8 +35,8 @@ describe('mixpanelAnalytics', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -56,14 +57,14 @@ describe('mixpanelAnalytics', () => {
 	it('registers init options in _i for the snippet init registry', () => {
 		const globalRef = getTestGlobal();
 		const script = mixpanelAnalytics({
-			token: MOCK_MIXPANEL_TOKEN,
 			initOptions: { debug: true },
+			token: MOCK_MIXPANEL_TOKEN,
 		});
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -82,23 +83,23 @@ describe('mixpanelAnalytics', () => {
 		};
 
 		const script = mixpanelAnalytics({
-			token: MOCK_MIXPANEL_TOKEN,
 			initOptions: { debug: true },
+			token: MOCK_MIXPANEL_TOKEN,
 		});
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 		expect(optOut).toHaveBeenCalledTimes(1);
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 		expect(optIn).toHaveBeenCalledTimes(1);

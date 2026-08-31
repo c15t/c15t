@@ -1,13 +1,13 @@
 import { resolveBackendURL } from '@c15t/schema/types';
 
-const ABSOLUTE_URL_REGEX = /^https?:\/\//;
+const ABSOLUTE_URL_REGEX = /^https?:\/\//u;
 
-function trimTrailingSlash(url: string): string {
+const trimTrailingSlash = function trimTrailingSlash(url: string): string {
 	if (url === '/') {
 		return url;
 	}
 	return url.endsWith('/') ? url.slice(0, -1) : url;
-}
+};
 
 /**
  * Validates and normalizes a backend URL.
@@ -18,14 +18,16 @@ function trimTrailingSlash(url: string): string {
  *
  * @public
  */
-export function validateBackendURL(backendURL: string): {
+export const validateBackendURL = function validateBackendURL(
+	backendURL: string
+): {
 	isAbsolute: boolean;
 	normalizedURL: string;
 } {
 	const isAbsolute = ABSOLUTE_URL_REGEX.test(backendURL);
 
 	if (isAbsolute) {
-		new URL(backendURL);
+		String(new URL(backendURL));
 
 		return {
 			isAbsolute: true,
@@ -43,7 +45,7 @@ export function validateBackendURL(backendURL: string): {
 	throw new Error(
 		`Invalid URL format: ${backendURL}. URL must be absolute (https://...) or relative starting with (/)`
 	);
-}
+};
 
 /**
  * Normalizes a backend URL, resolving relative URLs using request headers.
@@ -54,9 +56,9 @@ export function validateBackendURL(backendURL: string): {
  *
  * @public
  */
-export function normalizeBackendURL(
+export const normalizeBackendURL = function normalizeBackendURL(
 	backendURL: string,
 	headersList: Headers
 ): string | null {
 	return resolveBackendURL(backendURL, headersList);
-}
+};

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { extractRelevantHeaders } from './headers';
 
 describe('extractRelevantHeaders', () => {
@@ -23,23 +24,23 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toEqual({
-			'cf-ipcountry': 'US',
-			'x-vercel-ip-country': 'GB',
-			'x-amz-cf-ipcountry': 'DE',
-			'x-country-code': 'FR',
-			'x-vercel-ip-country-region': 'CA-ON',
-			'x-region-code': 'WEST',
 			'accept-language': 'en-US,en;q=0.9',
-			'user-agent': 'Mozilla/5.0',
-			'x-c15t-country': 'US',
-			'x-c15t-region': 'CA-ON',
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-for': '127.0.0.1',
-			'x-c15t-version': '2.1.0',
+			'cf-ipcountry': 'US',
+			'next-router-prefetch': '1',
 			purpose: 'prefetch',
 			'sec-purpose': 'prefetch',
-			'next-router-prefetch': '1',
+			'user-agent': 'Mozilla/5.0',
+			'x-amz-cf-ipcountry': 'DE',
+			'x-c15t-country': 'US',
+			'x-c15t-region': 'CA-ON',
+			'x-c15t-version': '2.1.0',
+			'x-country-code': 'FR',
+			'x-forwarded-for': '127.0.0.1',
+			'x-forwarded-host': 'example.com',
 			'x-middleware-prefetch': '1',
+			'x-region-code': 'WEST',
+			'x-vercel-ip-country': 'GB',
+			'x-vercel-ip-country-region': 'CA-ON',
 		});
 	});
 
@@ -83,8 +84,8 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toEqual({
-			'sec-gpc': '1',
 			'cf-ipcountry': 'CA',
+			'sec-gpc': '1',
 			'x-c15t-country': 'CA',
 		});
 	});
@@ -108,9 +109,9 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toEqual({
+			'next-router-prefetch': '1',
 			purpose: 'prefetch',
 			'sec-purpose': 'prefetch',
-			'next-router-prefetch': '1',
 			'x-middleware-prefetch': '1',
 		});
 	});
@@ -131,8 +132,10 @@ describe('extractRelevantHeaders', () => {
 		const result = extractRelevantHeaders(headers);
 
 		expect(result).toMatchObject({
-			'x-c15t-country': 'US', // Should take the first available country header
-			'x-c15t-region': 'CA-ON', // Should take the first available region header
+			// Should take the first available country header
+			'x-c15t-country': 'US',
+			// Should take the first available region header
+			'x-c15t-region': 'CA-ON',
 		});
 
 		// Test with only one country header

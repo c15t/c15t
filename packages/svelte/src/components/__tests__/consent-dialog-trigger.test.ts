@@ -8,8 +8,20 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
@@ -43,9 +55,9 @@ describe('ConsentDialogTrigger', () => {
 			expect(acceptButton).toBeInTheDocument();
 		});
 
-		const acceptButton = document.querySelector(
-			'[data-testid="consent-banner-accept-button"]'
-		)!;
+		const acceptButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+		);
 		await fireEvent.click(acceptButton);
 
 		await waitFor(() => {
@@ -56,7 +68,7 @@ describe('ConsentDialogTrigger', () => {
 		});
 
 		// Trigger should NOT appear even after consent
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		await createVoidDeferredPromise((resolve) => setTimeout(resolve, 300));
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);
@@ -84,9 +96,9 @@ describe('ConsentDialogTrigger', () => {
 		expect(trigger).not.toBeInTheDocument();
 
 		// Accept consent
-		const acceptButton = document.querySelector(
-			'[data-testid="consent-banner-accept-button"]'
-		)!;
+		const acceptButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+		);
 		await fireEvent.click(acceptButton);
 
 		// Now trigger should appear
@@ -112,9 +124,9 @@ describe('ConsentDialogTrigger', () => {
 			expect(acceptButton).toBeInTheDocument();
 		});
 
-		const acceptButton = document.querySelector(
-			'[data-testid="consent-banner-accept-button"]'
-		)!;
+		const acceptButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+		);
 		await fireEvent.click(acceptButton);
 
 		await waitFor(() => {
@@ -160,9 +172,9 @@ describe('ConsentDialogTrigger', () => {
 			expect(acceptButton).toBeInTheDocument();
 		});
 
-		const acceptButton = document.querySelector(
-			'[data-testid="consent-banner-accept-button"]'
-		)!;
+		const acceptButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+		);
 		await fireEvent.click(acceptButton);
 
 		// Wait for trigger
@@ -174,9 +186,9 @@ describe('ConsentDialogTrigger', () => {
 		});
 
 		// Press Enter on trigger
-		const trigger = document.querySelector(
-			'button[aria-label="Open privacy settings"]'
-		)!;
+		const trigger = getDefined(
+			document.querySelector('button[aria-label="Open privacy settings"]')
+		);
 		await fireEvent.keyDown(trigger, { key: 'Enter' });
 
 		// Dialog should open
@@ -202,9 +214,9 @@ describe('ConsentDialogTrigger', () => {
 			expect(acceptButton).toBeInTheDocument();
 		});
 
-		const acceptButton = document.querySelector(
-			'[data-testid="consent-banner-accept-button"]'
-		)!;
+		const acceptButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+		);
 		await fireEvent.click(acceptButton);
 
 		await waitFor(() => {

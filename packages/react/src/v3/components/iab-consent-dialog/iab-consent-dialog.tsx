@@ -1,32 +1,30 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the IAB TCF 2.3 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
-
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import {
-	type ComponentPropsWithoutRef,
-	type FC,
-	type RefObject,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 	useState,
 } from 'react';
+import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { createPortal } from 'react-dom';
+
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { ConsentDialogTrigger } from '~/v3/components/consent-dialog-trigger';
+import type { ConsentDialogTriggerProps } from '~/v3/components/consent-dialog-trigger';
 import { Branding } from '~/v3/components/consent-dialog/atoms/card';
-import {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerProps,
-} from '~/v3/components/consent-dialog-trigger';
 import * as Button from '~/v3/components/shared/ui/button';
 import * as Tabs from '~/v3/components/shared/ui/tabs';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
@@ -38,6 +36,7 @@ import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
@@ -45,6 +44,8 @@ import { VendorList } from './atoms/vendor-list';
 import { useGVLData } from './hooks/use-gvl-data';
 import type { VendorId } from './types';
 import { useIABTranslations } from './use-iab-translations';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
 
 const dialogFocusTargetProps = { tabIndex: -1 } as const;
 
@@ -104,7 +105,7 @@ export interface IABConsentDialogProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -126,6 +127,7 @@ export interface IABConsentDialogProps {
  *
  * @public
  */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
@@ -134,7 +136,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	showTrigger = false,
-	models = ['iab'],
+	models = DEFAULT_MODELS,
 	uiSource: _uiSource,
 }) => {
 	const iabTranslations = useIABTranslations();
@@ -152,7 +154,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
-	const cardRef = useRef<HTMLDivElement>(null);
+	const cardRef = useRef<HTMLDialogElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 	const previousHeightRef = useRef<number | null>(null);
 
@@ -170,8 +172,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -271,32 +273,43 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Mount state for portal
 	useEffect(() => {
-		setIsMounted(true);
+		const frame = requestAnimationFrame(() => setIsMounted(true));
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	// Visibility animation
 	useEffect(() => {
 		if (isOpen) {
-			setIsVisible(true);
-		} else if (config.disableAnimation) {
-			setIsVisible(false);
-		} else {
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, 150);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+
+		if (config.disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+		}, 150);
+		return () => clearTimeout(timer);
 	}, [isOpen, config.disableAnimation]);
 
 	useEffect(() => {
-		if (isOpen && iabState?.preferenceCenterTab) {
-			setActiveTab(iabState.preferenceCenterTab);
+		const preferenceCenterTab = iabState?.preferenceCenterTab;
+		if (isOpen && preferenceCenterTab) {
+			const frame = requestAnimationFrame(() => {
+				setActiveTab(preferenceCenterTab);
+			});
+			return () => cancelAnimationFrame(frame);
 		}
 	}, [isOpen, iabState?.preferenceCenterTab]);
 
 	// Smooth height animation when switching tabs
-	// biome-ignore lint/correctness/useExhaustiveDependencies: activeTab is intentionally used as a trigger
 	useLayoutEffect(() => {
+		if (activeTab !== 'purposes' && activeTab !== 'vendors') {
+			return;
+		}
 		const content = contentRef.current;
 		if (!content || previousHeightRef.current === null) {
 			return;
@@ -320,6 +333,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		content.style.transition = 'none';
 
 		// Use double-RAF to ensure browser has laid out new content
+		// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
 		let rafId1: number;
 		let rafId2: number;
 
@@ -343,7 +357,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				}
 
 				// Force reflow before enabling transition
-				content.offsetHeight;
+				content.getBoundingClientRect();
 
 				// Animate to new height
 				content.style.transition =
@@ -381,6 +395,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			openDialog({ tab });
 		},
 		[openDialog]
+	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: _uiSource ?? 'iab_dialog' }),
+		[_uiSource]
 	);
 
 	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)
@@ -501,11 +519,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			noStyle: config.noStyle,
 		}
 	);
-
 	const dialogContent = (
-		<ConsentTrackingContext.Provider
-			value={{ uiSource: _uiSource ?? 'iab_dialog' }}
-		>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={config}>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
@@ -513,10 +528,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>
-					<div
+					<dialog
 						{...cardProps}
 						ref={cardRef}
-						role="dialog"
+						open
 						aria-modal={config.trapFocus ? 'true' : undefined}
 						aria-label={iabTranslations.preferenceCenter.title}
 						{...dialogFocusTargetProps}
@@ -540,7 +555,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							>
 								<svg
 									aria-hidden="true"
-									style={{ width: '1rem', height: '1rem' }}
+									style={{ height: '1rem', width: '1rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -679,10 +694,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												<PurposeItem
 													key={`feature-${feature.id}`}
 													purpose={{
-														id: feature.id,
-														name: feature.name,
 														description: feature.description,
+														id: feature.id,
 														illustrations: feature.illustrations,
+														name: feature.name,
 														vendors: feature.vendors,
 													}}
 													isEnabled={
@@ -811,7 +826,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																	key={`special-${purpose.id}`}
 																	purpose={purpose}
 																	isEnabled={true}
-																	onToggle={() => {}}
+																	onToggle={() => {
+																		/* empty */
+																	}}
 																	vendorConsents={iabState.vendorConsents}
 																	onVendorToggle={handleVendorToggle}
 																	onVendorClick={handleVendorClick}
@@ -824,14 +841,16 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																<PurposeItem
 																	key={`feature-${feature.id}`}
 																	purpose={{
-																		id: feature.id,
-																		name: feature.name,
 																		description: feature.description,
+																		id: feature.id,
 																		illustrations: feature.illustrations,
+																		name: feature.name,
 																		vendors: feature.vendors,
 																	}}
 																	isEnabled={true}
-																	onToggle={() => {}}
+																	onToggle={() => {
+																		/* empty */
+																	}}
 																	vendorConsents={iabState.vendorConsents}
 																	onVendorToggle={handleVendorToggle}
 																	onVendorClick={handleVendorClick}
@@ -922,7 +941,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							slotContext="iab-dialog"
 							data-testid="iab-consent-dialog-branding"
 						/>
-					</div>
+					</dialog>
 				</div>
 			</LocalThemeContext.Provider>
 		</ConsentTrackingContext.Provider>
@@ -930,8 +949,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		showTrigger === true
-			? {} // Use defaults
+			? // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+				// Use defaults
+				{}
 			: showTrigger === false
 				? null
 				: showTrigger;

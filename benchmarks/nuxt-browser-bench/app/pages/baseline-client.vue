@@ -18,14 +18,14 @@ onMounted(() => {
 	};
 	if (!w.__c15tNuxtBench) {
 		w.__c15tNuxtBench = {
-			scenario: 'baseline-client',
-			startedAtMs: performance.now(),
-			mountCount: 1,
-			renderCount: 1,
 			activeUI: 'none',
+			mountCount: 1,
 			onBannerFetchedCount: 0,
 			onConsentSetCount: 0,
 			onErrorCount: 0,
+			renderCount: 1,
+			scenario: 'baseline-client',
+			startedAtMs: performance.now(),
 		};
 	}
 	requestAnimationFrame(() => {

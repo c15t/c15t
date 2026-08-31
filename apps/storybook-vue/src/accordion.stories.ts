@@ -10,6 +10,7 @@ import {
 import { accordionVariants } from '@c15t/ui/styles/primitives';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { ref } from 'vue';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentManagerDialog, consentTypes } = enTranslations;
@@ -35,10 +36,10 @@ export const Single: Story = {
 
 			const toggleItem = (itemValue: string) => {
 				value.value = toggleAccordionValue({
+					collapsible: true,
+					itemValue,
 					type: 'single',
 					value: value.value,
-					itemValue,
-					collapsible: true,
 				}) as string | undefined;
 			};
 
@@ -48,19 +49,19 @@ export const Single: Story = {
 				isAccordionItemOpen('single', value.value, itemValue);
 
 			return {
-				value,
-				toggleItem,
-				itemState,
-				itemOpen,
-				rootClass: variants.root(),
-				itemClass: variants.item(),
-				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
 				contentInnerClass: variants.contentInner(),
-				necessaryTitle: consentTypes.necessary.title,
-				necessaryDesc: consentTypes.necessary.description,
-				measurementTitle: consentTypes.measurement.title,
+				itemClass: variants.item(),
+				itemOpen,
+				itemState,
 				measurementDesc: consentTypes.measurement.description,
+				measurementTitle: consentTypes.measurement.title,
+				necessaryDesc: consentTypes.necessary.description,
+				necessaryTitle: consentTypes.necessary.title,
+				rootClass: variants.root(),
+				toggleItem,
+				triggerClass: variants.trigger(),
+				value,
 			};
 		},
 		template: `
@@ -102,9 +103,9 @@ export const Multiple: Story = {
 
 			const toggleItem = (itemValue: string) => {
 				value.value = toggleAccordionValue({
+					itemValue,
 					type: 'multiple',
 					value: value.value,
-					itemValue,
 				}) as string[];
 			};
 
@@ -114,19 +115,19 @@ export const Multiple: Story = {
 				isAccordionItemOpen('multiple', value.value, itemValue);
 
 			return {
-				value,
-				toggleItem,
-				itemState,
-				itemOpen,
-				rootClass: variants.root(),
-				itemClass: variants.item(),
-				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
 				contentInnerClass: variants.contentInner(),
-				marketingTitle: consentTypes.marketing.title,
-				marketingDesc: consentTypes.marketing.description,
-				functionalityTitle: consentTypes.functionality.title,
 				functionalityDesc: consentTypes.functionality.description,
+				functionalityTitle: consentTypes.functionality.title,
+				itemClass: variants.item(),
+				itemOpen,
+				itemState,
+				marketingDesc: consentTypes.marketing.description,
+				marketingTitle: consentTypes.marketing.title,
+				rootClass: variants.root(),
+				toggleItem,
+				triggerClass: variants.trigger(),
+				value,
 			};
 		},
 		template: `
@@ -167,10 +168,10 @@ export const WithIntroduction: Story = {
 
 			const toggleItem = (itemValue: string) => {
 				value.value = toggleAccordionValue({
+					collapsible: true,
+					itemValue,
 					type: 'single',
 					value: value.value,
-					itemValue,
-					collapsible: true,
 				}) as string | undefined;
 			};
 
@@ -180,21 +181,21 @@ export const WithIntroduction: Story = {
 				isAccordionItemOpen('single', value.value, itemValue);
 
 			return {
-				value,
-				toggleItem,
-				itemState,
-				itemOpen,
-				rootClass: variants.root(),
-				itemClass: variants.item(),
-				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
 				contentInnerClass: variants.contentInner(),
-				dialogTitle: consentManagerDialog.title,
 				dialogDesc: consentManagerDialog.description,
-				necessaryTitle: consentTypes.necessary.title,
-				necessaryDesc: consentTypes.necessary.description,
-				measurementTitle: consentTypes.measurement.title,
+				dialogTitle: consentManagerDialog.title,
+				itemClass: variants.item(),
+				itemOpen,
+				itemState,
 				measurementDesc: consentTypes.measurement.description,
+				measurementTitle: consentTypes.measurement.title,
+				necessaryDesc: consentTypes.necessary.description,
+				necessaryTitle: consentTypes.necessary.title,
+				rootClass: variants.root(),
+				toggleItem,
+				triggerClass: variants.trigger(),
+				value,
 			};
 		},
 		template: `

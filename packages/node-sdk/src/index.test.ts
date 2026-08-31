@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { gunzipSync } from 'node:zlib';
+
 import type { C15TOptions } from '@c15t/backend';
 import { c15tInstance } from '@c15t/backend';
 import {
@@ -11,17 +12,54 @@ import {
 	it,
 	vi,
 } from 'vitest';
+
 import { C15TClient, c15tClient } from './index';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const _createDeferredPromise = function _createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
 
 // An in-memory SQLite database, which is all these tests need: they exercise
 // the client against a real handler, not the storage layer. 3.0 replaced the
 // hand-rolled mock adapter this used to pass — there is no adapter interface
 // to mock any more, and a real database is simpler than faking one.
 const mockOptions: C15TOptions = {
-	database: { dialect: 'sqlite', filename: ':memory:' },
 	basePath: '/',
-	trustedOrigins: ['localhost', 'test.example.com'],
+	database: { dialect: 'sqlite', filename: ':memory:' },
 	manifest: { appName: 'C15T Test Server' },
+	trustedOrigins: ['localhost', 'test.example.com'],
 };
 
 describe('C15T Node SDK', () => {
@@ -50,10 +88,10 @@ describe('C15T Node SDK', () => {
 
 				// Convert Node.js request to web standard Request
 				const request = new Request(`http://localhost:${PORT}${req.url}`, {
-					method: req.method,
-					headers: req.headers as Record<string, string>,
-					body: body,
+					body,
 					duplex: 'half',
+					headers: req.headers as Record<string, string>,
+					method: req.method,
 				});
 
 				// Handle the request with c15tInstance
@@ -101,7 +139,7 @@ describe('C15T Node SDK', () => {
 			}
 		});
 
-		await new Promise<void>((resolve) => {
+		await createVoidDeferredPromise((resolve) => {
 			httpServer.listen(PORT, () => {
 				console.log(`Test server listening on port ${PORT}`);
 				resolve();
@@ -116,7 +154,7 @@ describe('C15T Node SDK', () => {
 	});
 
 	afterAll(async () => {
-		await new Promise<void>((resolve) => {
+		await createVoidDeferredPromise((resolve) => {
 			httpServer.close(() => resolve());
 		});
 		// The instance owns a connection pool; a process that leaves one open
@@ -190,9 +228,9 @@ describe('C15T Node SDK', () => {
 				const testClient = c15tClient({
 					baseUrl: mockBaseUrl,
 					retryConfig: {
-						maxRetries: 5,
-						initialDelayMs: 200,
 						backoffFactor: 3,
+						initialDelayMs: 200,
+						maxRetries: 5,
 					},
 				});
 
@@ -295,17 +333,17 @@ describe('C15T Node SDK', () => {
 
 			expect(response.ok).toBe(true);
 			expect(response.data).toEqual({
-				version: expect.any(String),
-				timestamp: expect.any(String),
 				client: {
-					ip: expect.any(String),
-					userAgent: expect.any(String),
 					acceptLanguage: null,
+					ip: expect.any(String),
 					region: {
 						countryCode: null,
 						regionCode: null,
 					},
+					userAgent: expect.any(String),
 				},
+				timestamp: expect.any(String),
+				version: expect.any(String),
 			});
 		});
 
@@ -335,8 +373,8 @@ describe('C15T Node SDK', () => {
 			expect(onSuccess).toHaveBeenCalledOnce();
 			expect(onSuccess).toHaveBeenCalledWith(
 				expect.objectContaining({
-					ok: true,
 					data: expect.any(Object),
+					ok: true,
 				})
 			);
 		});

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { preferenceItemVariants } from '../preference-item';
 
 describe('preferenceItemVariants', () => {

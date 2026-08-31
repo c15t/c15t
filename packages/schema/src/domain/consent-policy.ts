@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+
 import type { LegalDocumentPolicyType } from '../shared/legal-document-types';
 import { isLegalDocumentType } from '../shared/legal-document-types';
 
@@ -59,14 +60,14 @@ export const consentPolicyTypeSchema = v.union([
 ]);
 
 export const consentPolicySchema = v.object({
-	id: v.string(),
-	version: v.string(),
-	type: consentPolicyTypeSchema,
-	hash: v.nullish(v.string()),
-	effectiveDate: v.date(),
-	isActive: v.optional(v.boolean(), true),
 	createdAt: v.optional(v.date(), () => new Date()),
+	effectiveDate: v.date(),
+	hash: v.nullish(v.string()),
+	id: v.string(),
+	isActive: v.optional(v.boolean(), true),
 	tenantId: v.nullish(v.string()),
+	type: consentPolicyTypeSchema,
+	version: v.string(),
 });
 
 export type PolicyType = v.InferOutput<typeof policyTypeSchema>;

@@ -9,7 +9,7 @@ import { executeHandler } from './utils';
 /**
  * Sets consent preferences for a subject.
  */
-export async function setConsent(
+export const setConsent = async function setConsent(
 	endpointHandlers: EndpointHandlers,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
@@ -18,4 +18,4 @@ export async function setConsent(
 		'setConsent',
 		options
 	);
-}
+};

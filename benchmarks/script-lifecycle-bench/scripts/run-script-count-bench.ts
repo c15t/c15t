@@ -4,7 +4,45 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium, type Page } from 'playwright';
+
+import { chromium } from 'playwright';
+import type { Page } from 'playwright';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const _createDeferredPromise = function _createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
 
 const HOST = '127.0.0.1';
 const PORT = 4314;
@@ -42,19 +80,19 @@ interface Stats {
 	max: number;
 }
 
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((left, right) => left - right);
 	return {
 		avg: samples.reduce((acc, value) => acc + value, 0) / samples.length,
-		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
-		min: sorted[0] ?? 0,
 		max: sorted[sorted.length - 1] ?? 0,
+		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
+		min: sorted[0] ?? 0,
+		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
-async function runCommand(args: string[], label: string) {
-	await new Promise<void>((resolvePromise, rejectPromise) => {
+const runCommand = async function runCommand(args: string[], label: string) {
+	await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -79,25 +117,33 @@ async function runCommand(args: string[], label: string) {
 		});
 		command.on('error', rejectPromise);
 	});
-}
+};
 
-async function ensureBuild() {
-	rmSync(join(appDir, '.next'), { recursive: true, force: true });
+const ensureBuild = async function ensureBuild() {
+	rmSync(join(appDir, '.next'), { force: true, recursive: true });
 	await runCommand(['run', 'build'], 'script count benchmark build');
-}
+};
 
-async function waitForServer() {
-	for (let attempt = 0; attempt < 120; attempt += 1) {
+const waitForServer = async function waitForServer() {
+	const poll = async (attempt: number): Promise<void> => {
+		if (attempt >= 120) {
+			throw new Error('Timed out waiting for script count benchmark server');
+		}
 		try {
 			const response = await fetch(`${BASE_URL}/script-count`);
-			if (response.ok) return;
-		} catch {}
+			if (response.ok) {
+				return;
+			}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
 		await sleep(500);
-	}
-	throw new Error('Timed out waiting for script count benchmark server');
-}
+		return poll(attempt + 1);
+	};
+	await poll(0);
+};
 
-async function readState(page: Page): Promise<BenchState> {
+const readState = async function readState(page: Page): Promise<BenchState> {
 	const state = await page.evaluate(() =>
 		JSON.parse(
 			JSON.stringify(
@@ -107,11 +153,17 @@ async function readState(page: Page): Promise<BenchState> {
 			)
 		)
 	);
-	if (!state) throw new Error('Missing window.__c15tScriptCountBench');
+	if (!state) {
+		throw new Error('Missing window.__c15tScriptCountBench');
+	}
 	return state as BenchState;
-}
+};
 
-function assertState(state: BenchState, version: Version, count: number) {
+const assertState = function assertState(
+	state: BenchState,
+	version: Version,
+	count: number
+) {
 	if (state.version !== version) {
 		throw new Error(`Expected ${version} state, saw ${state.version}`);
 	}
@@ -134,9 +186,13 @@ function assertState(state: BenchState, version: Version, count: number) {
 			`${version}/${count}: expected ${count} loaded IDs, saw ${state.loadedIds.length}`
 		);
 	}
-}
+};
 
-async function collectSample(page: Page, version: Version, count: number) {
+const collectSample = async function collectSample(
+	page: Page,
+	version: Version,
+	count: number
+) {
 	await page.goto(`/script-count?version=${version}&count=${count}`);
 	await page.waitForFunction(
 		() => window.__c15tScriptCountBench?.initialReady === true,
@@ -167,9 +223,9 @@ async function collectSample(page: Page, version: Version, count: number) {
 		playwrightDurationMs,
 		state,
 	};
-}
+};
 
-async function run() {
+const run = async function run() {
 	await ensureBuild();
 	const server = spawn(
 		'bun',
@@ -188,40 +244,54 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let cleanupError: Error | undefined;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
-		const results: Array<{
+		const results: {
 			version: Version;
 			count: number;
 			inPageDurationMs: Stats;
 			playwrightDurationMs: Stats;
-		}> = [];
+		}[] = [];
 
-		for (const count of counts) {
-			for (const version of ['v2', 'v3'] as const) {
+		const combinations = counts.flatMap((count) =>
+			(['v2', 'v3'] as const).map((version) => ({ count, version }))
+		);
+		await combinations.reduce<Promise<void>>(
+			async (previousCombination, { count, version }) => {
+				await previousCombination;
 				const inPageSamples: number[] = [];
 				const playwrightSamples: number[] = [];
 
-				for (let index = 0; index < warmupIterations + iterations; index += 1) {
-					const context = await browser.newContext({ baseURL: BASE_URL });
-					const page = await context.newPage();
-					const sample = await collectSample(page, version, count);
-					if (index >= warmupIterations) {
-						inPageSamples.push(sample.inPageDurationMs);
-						playwrightSamples.push(sample.playwrightDurationMs);
-					}
-					await context.close();
-				}
+				const iterationIndexes = Array.from(
+					{ length: warmupIterations + iterations },
+					(_, index) => index
+				);
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
+						const sample = await collectSample(page, version, count);
+						if (index >= warmupIterations) {
+							inPageSamples.push(sample.inPageDurationMs);
+							playwrightSamples.push(sample.playwrightDurationMs);
+						}
+						await context.close();
+					},
+					Promise.resolve()
+				);
 
 				results.push({
-					version,
 					count,
 					inPageDurationMs: summarize(inPageSamples),
 					playwrightDurationMs: summarize(playwrightSamples),
+					version,
 				});
-			}
-		}
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 
@@ -230,12 +300,12 @@ async function run() {
 			join(outputDir, 'react-v2-v3-script-count.json'),
 			`${JSON.stringify(
 				{
-					suite: 'react-script-count',
+					counts,
 					generatedAt: new Date().toISOString(),
 					iterations,
-					warmupIterations,
-					counts,
 					results,
+					suite: 'react-script-count',
+					warmupIterations,
 				},
 				null,
 				2
@@ -255,7 +325,9 @@ async function run() {
 			const v3 = results.find(
 				(result) => result.count === count && result.version === 'v3'
 			);
-			if (!v2 || !v3) continue;
+			if (!v2 || !v3) {
+				continue;
+			}
 			const medianDelta =
 				((v3.inPageDurationMs.median - v2.inPageDurationMs.median) /
 					v2.inPageDurationMs.median) *
@@ -275,12 +347,17 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Script count bench server failed');
+			cleanupError = new Error(logs || 'Script count bench server failed');
 		}
 	}
-}
+	if (cleanupError) {
+		throw cleanupError;
+	}
+};
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

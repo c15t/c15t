@@ -63,33 +63,42 @@ export interface ConsentRequestHeaderInputs {
 
 type HeaderSource = Headers | Record<string, string | undefined>;
 
-function getHeader(source: HeaderSource, name: string): string | undefined {
+const getHeader = function getHeader(
+	source: HeaderSource,
+	name: string
+): string | undefined {
 	if (typeof (source as Headers).get === 'function') {
 		return (source as Headers).get(name) ?? undefined;
 	}
 	const record = source as Record<string, string | undefined>;
 	return record[name] ?? record[name.toLowerCase()];
-}
+};
 
-function pickHeader(
+const pickHeader = function pickHeader(
 	source: HeaderSource,
 	names: readonly string[]
 ): string | undefined {
 	for (const name of names) {
 		const value = getHeader(source, name);
-		if (value) return value;
+		if (value) {
+			return value;
+		}
 	}
 	return undefined;
-}
+};
 
 /** Parse a `Sec-GPC` header value. Only `'1'`/`'0'` are meaningful. */
-export function parseGlobalPrivacyControl(
+export const parseGlobalPrivacyControl = function parseGlobalPrivacyControl(
 	value: string | null | undefined
 ): boolean | undefined {
-	if (value === '1') return true;
-	if (value === '0') return false;
+	if (value === '1') {
+		return true;
+	}
+	if (value === '0') {
+		return false;
+	}
 	return undefined;
-}
+};
 
 /**
  * Extract the consent request inputs from request headers.
@@ -98,42 +107,52 @@ export function parseGlobalPrivacyControl(
  * every server runtime (Next.js, SvelteKit, Nitro/H3, edge, Node) can feed
  * whatever its native API returns.
  */
-export function extractConsentRequestInputs(
+export const extractConsentRequestInputs = function extractConsentRequestInputs(
 	headers: HeaderSource,
 	overrides: Partial<ConsentRequestHeaderInputs> = {}
 ): ConsentRequestHeaderInputs {
 	const acceptLanguage = getHeader(headers, 'accept-language');
 	return {
 		country: overrides.country ?? pickHeader(headers, COUNTRY_HEADERS),
-		region: overrides.region ?? pickHeader(headers, REGION_HEADERS),
-		language: overrides.language ?? parseAcceptLanguage(acceptLanguage)[0],
 		gpc:
 			overrides.gpc ?? parseGlobalPrivacyControl(getHeader(headers, 'sec-gpc')),
+		language: overrides.language ?? parseAcceptLanguage(acceptLanguage)[0],
+		region: overrides.region ?? pickHeader(headers, REGION_HEADERS),
 	};
-}
+};
 
 /**
  * Inputs → kernel-overrides record, dropping absent fields. Shared by the
  * server helpers that seed `KernelConfig.initialOverrides`.
  */
-export function consentInputsToOverrides(
+export const consentInputsToOverrides = function consentInputsToOverrides(
 	inputs: ConsentRequestHeaderInputs
 ): Record<string, string | boolean> {
 	const overrides: Record<string, string | boolean> = {};
-	if (inputs.country) overrides.country = inputs.country;
-	if (inputs.region) overrides.region = inputs.region;
-	if (inputs.language) overrides.language = inputs.language;
-	if (inputs.gpc !== undefined) overrides.gpc = inputs.gpc;
+	if (inputs.country) {
+		overrides.country = inputs.country;
+	}
+	if (inputs.region) {
+		overrides.region = inputs.region;
+	}
+	if (inputs.language) {
+		overrides.language = inputs.language;
+	}
+	if (inputs.gpc !== undefined) {
+		overrides.gpc = inputs.gpc;
+	}
 	return overrides;
-}
+};
 
-export function headersToRecord(headers: Headers): Record<string, string> {
+export const headersToRecord = function headersToRecord(
+	headers: Headers
+): Record<string, string> {
 	const record: Record<string, string> = {};
 	headers.forEach((value, key) => {
 		record[key.toLowerCase()] = value;
 	});
 	return record;
-}
+};
 
 /**
  * Resolves country and region from common geo IP headers.
@@ -141,7 +160,7 @@ export function headersToRecord(headers: Headers): Record<string, string> {
  * @deprecated Use {@link extractConsentRequestInputs} — same precedence,
  * plus language and GPC. Kept for the backend's existing call sites.
  */
-export function getRegionFromHeaders(
+export const getRegionFromHeaders = function getRegionFromHeaders(
 	headers: Record<string, string | undefined>
 ): {
 	region?: string;
@@ -154,7 +173,7 @@ export function getRegionFromHeaders(
 		...(country && { country }),
 		...(region && { region }),
 	};
-}
+};
 
 // Client IP derivation lives alongside geo: both recover request metadata
 // from proxy headers, and both are shared so two backends cannot disagree.

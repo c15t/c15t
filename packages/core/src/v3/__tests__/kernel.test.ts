@@ -7,6 +7,7 @@
  * run against the v3 kernel here once the adapter rewrite lands.
  */
 import { describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../index';
 
 describe('v3 kernel: pure construction', () => {
@@ -15,11 +16,11 @@ describe('v3 kernel: pure construction', () => {
 		const guardedWindow = new Proxy(
 			{},
 			{
+				get: () => undefined,
 				set(_target, prop) {
 					writes.add(prop);
 					return true;
 				},
-				get: () => undefined,
 			}
 		);
 		vi.stubGlobal('window', guardedWindow);
@@ -52,6 +53,7 @@ describe('v3 kernel: pure construction', () => {
 				observeCalls.push(1);
 			});
 			disconnect = vi.fn();
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords = () => [];
 		}
 		vi.stubGlobal('MutationObserver', TrackingObserver);
@@ -96,7 +98,8 @@ describe('v3 kernel: snapshot identity', () => {
 	test('no-op mutation does NOT produce a new snapshot', () => {
 		const kernel = createConsentKernel();
 		const before = kernel.getSnapshot();
-		kernel.set.consent({ necessary: true }); // already true
+		// already true
+		kernel.set.consent({ necessary: true });
 		const after = kernel.getSnapshot();
 
 		expect(after).toBe(before);
@@ -114,7 +117,8 @@ describe('v3 kernel: subscribe', () => {
 		expect(listener).toHaveBeenCalledTimes(1);
 		expect(listener.mock.calls[0]?.[0]?.consents.marketing).toBe(true);
 
-		kernel.set.consent({ marketing: true }); // no-op
+		// no-op
+		kernel.set.consent({ marketing: true });
 		expect(listener).toHaveBeenCalledTimes(1);
 
 		kernel.set.consent({ marketing: false });
@@ -169,7 +173,7 @@ describe('v3 kernel: commands', () => {
 
 		const snap = kernel.getSnapshot();
 		expect(snap.hasConsented).toBe(true);
-		expect(snap.subjectId).toMatch(/^sub_/);
+		expect(snap.subjectId).toMatch(/^sub_/u);
 		expect(listener).toHaveBeenCalledTimes(1);
 		expect(listener.mock.calls[0]?.[0]?.hasConsented).toBe(true);
 	});

@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 export type PlausibleExtension =
 	| 'hash'
@@ -33,7 +35,9 @@ declare global {
 	}
 }
 
-function buildPlausibleScriptUrl(options: PlausibleAnalyticsOptions): string {
+const buildPlausibleScriptUrl = function buildPlausibleScriptUrl(
+	options: PlausibleAnalyticsOptions
+): string {
 	if (options.scriptId) {
 		return `https://plausible.io/js/pa-${options.scriptId}.js`;
 	}
@@ -50,9 +54,9 @@ function buildPlausibleScriptUrl(options: PlausibleAnalyticsOptions): string {
 	}
 
 	return 'https://plausible.io/js/script.js';
-}
+};
 
-function buildPlausibleInitOptions(
+const buildPlausibleInitOptions = function buildPlausibleInitOptions(
 	options: PlausibleAnalyticsOptions
 ): PlausibleInitOptions {
 	const initOptions: PlausibleInitOptions = {};
@@ -82,7 +86,7 @@ function buildPlausibleInitOptions(
 	}
 
 	return initOptions;
-}
+};
 
 /**
  * Plausible Analytics vendor manifest.
@@ -94,33 +98,36 @@ function buildPlausibleInitOptions(
  */
 export const plausibleAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'plausible-analytics',
-	category: 'measurement',
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
+			ifUndefined: true,
+
 			name: 'plausible',
+			properties: {
+				o: '{{initOptions}}',
+			},
 			queue: {
 				property: 'q',
 			},
 			queueFormat: 'array',
-			properties: {
-				o: '{{initOptions}}',
-			},
-			ifUndefined: true,
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			defer: true,
 			attributes: {
-				'data-domain': '{{domain}}',
 				'data-api': '{{apiAttribute}}',
+
+				'data-domain': '{{domain}}',
 			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'plausible-analytics',
 } as const satisfies VendorManifest;
 
 export interface PlausibleAnalyticsOptions {
@@ -199,7 +206,9 @@ export interface PlausibleAnalyticsOptions {
  * });
  * ```
  */
-export function plausibleAnalytics(options: PlausibleAnalyticsOptions): Script {
+export const plausibleAnalytics = function plausibleAnalytics(
+	options: PlausibleAnalyticsOptions
+): Script {
 	let scriptId: string | undefined;
 	if (options.scriptId) {
 		scriptId = options.scriptId.trim();
@@ -227,11 +236,11 @@ export function plausibleAnalytics(options: PlausibleAnalyticsOptions): Script {
 	}
 
 	const manifestOptions = {
+		apiAttribute: undefined as string | undefined,
+		domain: undefined as string | undefined,
+		initOptions: buildPlausibleInitOptions(normalizedOptions),
 		scriptUrl:
 			normalizedOptions.scriptUrl ?? buildPlausibleScriptUrl(normalizedOptions),
-		domain: undefined as string | undefined,
-		apiAttribute: undefined as string | undefined,
-		initOptions: buildPlausibleInitOptions(normalizedOptions),
 	};
 
 	if (scriptId) {
@@ -245,4 +254,4 @@ export function plausibleAnalytics(options: PlausibleAnalyticsOptions): Script {
 	const resolved = resolveManifest(plausibleAnalyticsManifest, manifestOptions);
 
 	return resolved;
-}
+};

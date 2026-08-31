@@ -1,13 +1,16 @@
 import { beforeEach, expect, test } from 'bun:test';
+
 import { domSnapshot, domSnapshotFor } from './dom-snapshot';
 
-function makeEl(html: string): Element {
+const makeEl = function makeEl(html: string): Element {
 	const div = document.createElement('div');
 	div.innerHTML = html.trim();
 	const el = div.firstElementChild;
-	if (!el) throw new Error('makeEl: no element parsed from html');
+	if (!el) {
+		throw new Error('makeEl: no element parsed from html');
+	}
 	return el;
-}
+};
 
 beforeEach(() => {
 	document.body.innerHTML = '';

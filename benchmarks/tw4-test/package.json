@@ -3,8 +3,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "next dev --port 3122",
 		"build": "rm -rf .next && next build",
+		"dev": "next dev --port 3122",
 		"start": "next start --port 3122"
 	},
 	"dependencies": {

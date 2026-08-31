@@ -1,61 +1,62 @@
 <script lang="ts">
-import {
-	getCollapsibleState,
-	getDataDisabled,
-	toggleCollapsibleValue,
-} from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { setCollapsibleRootContext } from './context';
+	import {
+		getCollapsibleState,
+		getDataDisabled,
+		toggleCollapsibleValue,
+	} from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const componentId = $props.id();
+	import { setCollapsibleRootContext } from './context';
 
-let {
-	children,
-	class: className,
-	disabled = false,
-	open = $bindable(false),
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-	disabled?: boolean;
-	open?: boolean;
-} = $props();
+	const componentId = $props.id();
 
-const dataState = $derived(getCollapsibleState(open));
-const dataDisabled = $derived(getDataDisabled(disabled));
-const triggerId = `c15t-collapsible-trigger-${componentId}`;
-const contentId = `c15t-collapsible-content-${componentId}`;
+	let {
+		children,
+		class: className,
+		disabled = false,
+		open = $bindable(false),
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		disabled?: boolean;
+		open?: boolean;
+	} = $props();
 
-function setOpen(nextOpen: boolean) {
-	if (disabled) {
-		return;
-	}
+	const dataState = $derived(getCollapsibleState(open));
+	const dataDisabled = $derived(getDataDisabled(disabled));
+	const triggerId = `c15t-collapsible-trigger-${componentId}`;
+	const contentId = `c15t-collapsible-content-${componentId}`;
 
-	open = nextOpen;
-}
+	const setOpen = function setOpen(nextOpen: boolean) {
+		if (disabled) {
+			return;
+		}
 
-function toggle() {
-	setOpen(toggleCollapsibleValue(open));
-}
+		open = nextOpen;
+	};
 
-setCollapsibleRootContext({
-	get contentId() {
-		return contentId;
-	},
-	get disabled() {
-		return disabled;
-	},
-	get open() {
-		return open;
-	},
-	get triggerId() {
-		return triggerId;
-	},
-	setOpen,
-	toggle,
-});
+	const toggle = function toggle() {
+		setOpen(toggleCollapsibleValue(open));
+	};
+
+	setCollapsibleRootContext({
+		get contentId() {
+			return contentId;
+		},
+		get disabled() {
+			return disabled;
+		},
+		get open() {
+			return open;
+		},
+		setOpen,
+		toggle,
+		get triggerId() {
+			return triggerId;
+		},
+	});
 </script>
 
 <div

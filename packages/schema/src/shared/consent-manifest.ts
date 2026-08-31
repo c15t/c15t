@@ -1,6 +1,7 @@
 import type { Translations } from '@c15t/translations';
+
 import type { InitOutput, PolicyDecision, ResolvedPolicy } from '../api/init';
-import { brandingValues } from './constants';
+import type { brandingValues } from './constants';
 import {
 	checkJurisdiction,
 	getJurisdictionFromLocation,
@@ -11,16 +12,15 @@ import {
 } from './policy-fingerprint';
 import {
 	createResolvedPolicyFromConfig,
-	type JurisdictionCode,
-	type PolicyConfig,
-	type PolicyMatchedBy,
 	validatePolicies,
 } from './policy-runtime';
-import {
-	getTranslationsData,
-	type I18nOptions,
-	type LoggerLike,
-} from './translations-runtime';
+import type {
+	JurisdictionCode,
+	PolicyConfig,
+	PolicyMatchedBy,
+} from './policy-runtime';
+import { getTranslationsData } from './translations-runtime';
+import type { I18nOptions, LoggerLike } from './translations-runtime';
 
 export type ConsentManifestBranding = (typeof brandingValues)[number];
 
@@ -74,27 +74,30 @@ export interface ResolveInitFromManifestOptions {
 	logger?: LoggerLike;
 }
 
-function normalizeLanguageSlice(value: string): string {
+const normalizeLanguageSlice = function normalizeLanguageSlice(
+	value: string
+): string {
 	const normalized = value.split(',')[0]?.split(';')[0]?.trim().toLowerCase();
 	return normalized?.split('-')[0] ?? value;
-}
+};
 
-function stripIabTranslations(
+const stripIabTranslations = function stripIabTranslations(
 	translations: Record<string, unknown>
 ): Record<string, unknown> {
 	const { iab: _iab, ...rest } = translations;
 	return rest;
-}
+};
 
-export function resolveNoPolicyFallback(): ResolvedPolicy {
-	return {
-		id: 'no_banner',
-		model: 'none',
-		ui: {
-			mode: 'none',
-		},
+export const resolveNoPolicyFallback =
+	function resolveNoPolicyFallback(): ResolvedPolicy {
+		return {
+			id: 'no_banner',
+			model: 'none',
+			ui: {
+				mode: 'none',
+			},
+		};
 	};
-}
 
 const DEFAULT_CONSENT_CATEGORIES = [
 	'necessary',
@@ -104,10 +107,10 @@ const DEFAULT_CONSENT_CATEGORIES = [
 	'experience',
 ] as const;
 
-export function buildDefaultOptInPolicy(categories?: string[]): ResolvedPolicy {
+export const buildDefaultOptInPolicy = function buildDefaultOptInPolicy(
+	categories?: string[]
+): ResolvedPolicy {
 	return {
-		id: 'default-opt-in',
-		model: 'opt-in',
 		consent: {
 			categories:
 				categories && categories.length > 0
@@ -115,21 +118,27 @@ export function buildDefaultOptInPolicy(categories?: string[]): ResolvedPolicy {
 					: [...DEFAULT_CONSENT_CATEGORIES],
 			scopeMode: 'permissive',
 		},
+		id: 'default-opt-in',
+		model: 'opt-in',
 		ui: {
 			mode: 'banner',
 		},
 	};
-}
+};
 
-function normalizeCountryCode(countryCode: string | null): string | null {
+const normalizeCountryCode = function normalizeCountryCode(
+	countryCode: string | null
+): string | null {
 	if (!countryCode) {
 		return null;
 	}
 
 	return countryCode.toUpperCase();
-}
+};
 
-function normalizeRegionCode(regionCode: string | null): string | null {
+const normalizeRegionCode = function normalizeRegionCode(
+	regionCode: string | null
+): string | null {
 	if (!regionCode) {
 		return null;
 	}
@@ -139,16 +148,17 @@ function normalizeRegionCode(regionCode: string | null): string | null {
 			?.toUpperCase()
 			.trim() ?? null
 	);
-}
+};
 
-function createRegionMatcherKey(
+const createRegionMatcherKey = function createRegionMatcherKey(
 	countryCode: string,
 	regionCode: string
 ): string {
 	return `${countryCode}:${regionCode}`;
-}
+};
 
-function resolvePolicyPackMatch(params: {
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+const resolvePolicyPackMatch = function resolvePolicyPackMatch(params: {
 	packs: ConsentManifestPolicyPack[];
 	countryCode: string | null;
 	regionCode: string | null;
@@ -199,7 +209,7 @@ function resolvePolicyPackMatch(params: {
 					normalizedRegion.region
 				) === regionKey
 			) {
-				return { pack, matchedBy: 'region' };
+				return { matchedBy: 'region', pack };
 			}
 		}
 	}
@@ -207,7 +217,7 @@ function resolvePolicyPackMatch(params: {
 	for (const pack of params.packs) {
 		for (const country of pack.policy.match.countries ?? []) {
 			if (countryCode && country.trim().toUpperCase() === countryCode) {
-				return { pack, matchedBy: 'country' };
+				return { matchedBy: 'country', pack };
 			}
 		}
 	}
@@ -222,17 +232,17 @@ function resolvePolicyPackMatch(params: {
 	}
 
 	if (!countryCode && fallbackPack) {
-		return { pack: fallbackPack, matchedBy: 'fallback' };
+		return { matchedBy: 'fallback', pack: fallbackPack };
 	}
 
 	if (defaultPack) {
-		return { pack: defaultPack, matchedBy: 'default' };
+		return { matchedBy: 'default', pack: defaultPack };
 	}
 
 	return undefined;
-}
+};
 
-function createPolicyDecision(params: {
+const createPolicyDecision = function createPolicyDecision(params: {
 	pack: ConsentManifestPolicyPack;
 	matchedBy: PolicyMatchedBy;
 	countryCode: string | null;
@@ -240,72 +250,75 @@ function createPolicyDecision(params: {
 	jurisdiction: JurisdictionCode;
 }): PolicyDecision {
 	return {
-		policyId: params.pack.resolvedPolicy.id,
-		fingerprint: params.pack.fingerprint,
-		matchedBy: params.matchedBy,
 		country: params.countryCode,
-		region: params.regionCode,
+		fingerprint: params.pack.fingerprint,
 		jurisdiction: params.jurisdiction,
+		matchedBy: params.matchedBy,
+		policyId: params.pack.resolvedPolicy.id,
+		region: params.regionCode,
 	};
-}
+};
 
-export function createConsentManifestPolicyPack(input: {
-	policy: PolicyConfig;
-	fingerprint: string;
-}): ConsentManifestPolicyPack {
-	return {
-		policy: input.policy,
-		resolvedPolicy: createResolvedPolicyFromConfig(input.policy),
-		fingerprint: input.fingerprint,
+export const createConsentManifestPolicyPack =
+	function createConsentManifestPolicyPack(input: {
+		policy: PolicyConfig;
+		fingerprint: string;
+	}): ConsentManifestPolicyPack {
+		return {
+			fingerprint: input.fingerprint,
+			policy: input.policy,
+			resolvedPolicy: createResolvedPolicyFromConfig(input.policy),
+		};
 	};
-}
 
-export function sliceConsentManifestLanguage(
-	manifest: ConsentManifest,
-	language: string
-): ConsentManifest {
-	const normalizedLanguage = normalizeLanguageSlice(language);
-	const customTranslations = manifest.translations?.customTranslations;
-	const i18n = manifest.translations?.i18n;
+export const sliceConsentManifestLanguage =
+	function sliceConsentManifestLanguage(
+		manifest: ConsentManifest,
+		language: string
+	): ConsentManifest {
+		const normalizedLanguage = normalizeLanguageSlice(language);
+		const customTranslations = manifest.translations?.customTranslations;
+		const i18n = manifest.translations?.i18n;
 
-	return {
-		...manifest,
-		translations: {
-			customTranslations: customTranslations
-				? {
-						...(customTranslations[normalizedLanguage] && {
-							[normalizedLanguage]: customTranslations[normalizedLanguage],
-						}),
-					}
-				: undefined,
-			i18n: i18n
-				? {
-						...i18n,
-						messages: i18n.messages
-							? Object.fromEntries(
-									Object.entries(i18n.messages).map(
-										([profileName, profile]) => [
-											profileName,
-											{
-												...profile,
-												translations: {
-													...(profile.translations[normalizedLanguage] && {
-														[normalizedLanguage]:
-															profile.translations[normalizedLanguage],
-													}),
+		return {
+			...manifest,
+			translations: {
+				customTranslations: customTranslations
+					? {
+							...(customTranslations[normalizedLanguage] && {
+								[normalizedLanguage]: customTranslations[normalizedLanguage],
+							}),
+						}
+					: undefined,
+				i18n: i18n
+					? {
+							...i18n,
+							messages: i18n.messages
+								? Object.fromEntries(
+										Object.entries(i18n.messages).map(
+											([profileName, profile]) => [
+												profileName,
+												{
+													...profile,
+													translations: {
+														...(profile.translations[normalizedLanguage] && {
+															[normalizedLanguage]:
+																profile.translations[normalizedLanguage],
+														}),
+													},
 												},
-											},
-										]
+											]
+										)
 									)
-								)
-							: undefined,
-					}
-				: undefined,
-		},
+								: undefined,
+						}
+					: undefined,
+			},
+		};
 	};
-}
 
-export function resolveInitFromManifest(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const resolveInitFromManifest = function resolveInitFromManifest(
 	manifest: ConsentManifest,
 	inputs: ResolveInitFromManifestInputs,
 	options?: ResolveInitFromManifestOptions
@@ -324,10 +337,10 @@ export function resolveInitFromManifest(
 		isExplicitEmptyPolicyPack || !manifest.policyPacks
 			? undefined
 			: resolvePolicyPackMatch({
-					packs: manifest.policyPacks,
 					countryCode: location.countryCode,
-					regionCode: location.regionCode,
 					iabEnabled: manifest.iab?.enabled,
+					packs: manifest.policyPacks,
+					regionCode: location.regionCode,
 				});
 	const resolvedPolicy = hasExplicitPolicyPack
 		? (policyMatch?.pack.resolvedPolicy ?? resolveNoPolicyFallback())
@@ -341,8 +354,8 @@ export function resolveInitFromManifest(
 		manifest.translations?.customTranslations,
 		{
 			i18n: manifest.translations?.i18n,
-			policyI18n: resolvedPolicy?.i18n,
 			logger: options?.logger,
+			policyI18n: resolvedPolicy?.i18n,
 		}
 	);
 	const responseTranslations = shouldIncludeIabPayload
@@ -355,19 +368,19 @@ export function resolveInitFromManifest(
 			};
 	const policyDecision = policyMatch
 		? createPolicyDecision({
-				pack: policyMatch.pack,
-				matchedBy: policyMatch.matchedBy,
 				countryCode: location.countryCode,
-				regionCode: location.regionCode,
 				jurisdiction,
+				matchedBy: policyMatch.matchedBy,
+				pack: policyMatch.pack,
+				regionCode: location.regionCode,
 			})
 		: undefined;
 
 	return {
+		branding: manifest.branding,
 		jurisdiction,
 		location,
 		translations: responseTranslations as InitOutput['translations'],
-		branding: manifest.branding,
 		...(shouldIncludeIabPayload && {
 			customVendors: manifest.iab?.customVendors,
 		}),
@@ -378,11 +391,12 @@ export function resolveInitFromManifest(
 			policyDecision,
 		}),
 		...(shouldIncludeIabPayload &&
-			manifest.cmpId != null && {
+			manifest.cmpId !== null &&
+			manifest.cmpId !== undefined && {
 				cmpId: manifest.cmpId,
 			}),
 	};
-}
+};
 
 export { checkJurisdiction };
 
@@ -423,7 +437,7 @@ export interface ConsentManifestConfig {
 
 const DEFAULT_GVL_ENDPOINT = 'https://gvl.inth.app';
 
-function buildGvlReference(
+const buildGvlReference = function buildGvlReference(
 	config: ConsentManifestConfig
 ): ConsentManifest['iab'] {
 	if (config.iab?.enabled !== true) {
@@ -431,11 +445,11 @@ function buildGvlReference(
 	}
 
 	return {
-		enabled: true,
 		customVendors: config.iab.customVendors,
+		enabled: true,
 		gvl: { url: config.iab.endpoint ?? DEFAULT_GVL_ENDPOINT },
 	};
-}
+};
 
 /**
  * Builds a consent manifest from per-tenant configuration.
@@ -449,39 +463,40 @@ function buildGvlReference(
  *
  * Pure and geo-independent by construction: nothing here reads a request.
  */
-export async function buildConsentManifestFromConfig(
-	config: ConsentManifestConfig
-): Promise<ConsentManifest> {
-	const policyPacks = config.policyPacks
-		? await Promise.all(
-				config.policyPacks.map(async (policy) => {
-					const resolvedPolicy = createResolvedPolicyFromConfig(policy);
-					const fingerprint = await createPolicyFingerprint(resolvedPolicy);
-					return createConsentManifestPolicyPack({ policy, fingerprint });
-				})
-			)
-		: undefined;
+export const buildConsentManifestFromConfig =
+	async function buildConsentManifestFromConfig(
+		config: ConsentManifestConfig
+	): Promise<ConsentManifest> {
+		const policyPacks = config.policyPacks
+			? await Promise.all(
+					config.policyPacks.map(async (policy) => {
+						const resolvedPolicy = createResolvedPolicyFromConfig(policy);
+						const fingerprint = await createPolicyFingerprint(resolvedPolicy);
+						return createConsentManifestPolicyPack({ fingerprint, policy });
+					})
+				)
+			: undefined;
 
-	const manifest: ConsentManifest = {
-		schemaVersion: 1,
-		revision: '',
-		tenantId: config.tenantId,
-		appName: config.appName,
-		branding: config.branding || 'c15t',
-		defaults: { disableGeoLocation: config.disableGeoLocation },
-		policyPacks,
-		translations: {
-			customTranslations: config.customTranslations,
-			i18n: config.i18n,
-		},
-		cmpId: config.iab?.cmpId,
-		iab: buildGvlReference(config),
-	};
+		const manifest: ConsentManifest = {
+			appName: config.appName,
+			branding: config.branding || 'c15t',
+			cmpId: config.iab?.cmpId,
+			defaults: { disableGeoLocation: config.disableGeoLocation },
+			iab: buildGvlReference(config),
+			policyPacks,
+			revision: '',
+			schemaVersion: 1,
+			tenantId: config.tenantId,
+			translations: {
+				customTranslations: config.customTranslations,
+				i18n: config.i18n,
+			},
+		};
 
-	// The revision is a fingerprint of the manifest itself, so a client can
-	// tell two manifests apart without diffing them.
-	return {
-		...manifest,
-		revision: createDeterministicFingerprintSync(manifest),
+		// The revision is a fingerprint of the manifest itself, so a client can
+		// tell two manifests apart without diffing them.
+		return {
+			...manifest,
+			revision: createDeterministicFingerprintSync(manifest),
+		};
 	};
-}

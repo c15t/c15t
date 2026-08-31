@@ -7,32 +7,32 @@ const response = {
 		countryCode: 'DE',
 		regionCode: 'BE',
 	},
+	policySnapshotToken: 'script-lifecycle-bench',
 	translations: {
 		language: 'en',
 		translations: {
 			common: {
 				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
 				customize: 'Customize',
+				rejectAll: 'Reject All',
 				save: 'Save',
 			},
-			cookieBanner: {
-				title: 'Script Lifecycle Benchmark Banner',
-				description: 'Deterministic script benchmark fixture.',
-			},
 			consentManagerDialog: {
-				title: 'Script Lifecycle Preferences',
 				description: 'Benchmark preferences description.',
+				title: 'Script Lifecycle Preferences',
+			},
+			cookieBanner: {
+				description: 'Deterministic script benchmark fixture.',
+				title: 'Script Lifecycle Benchmark Banner',
 			},
 		},
 	},
-	policySnapshotToken: 'script-lifecycle-bench',
 };
 
-export async function GET() {
+export const GET = function GET() {
 	return NextResponse.json(response, {
 		headers: {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

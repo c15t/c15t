@@ -1,30 +1,91 @@
 import {
-	type I18nConfig,
 	normalizeI18nConfig,
 	resolveTranslationInput,
 } from '@c15t/translations';
+import type { I18nConfig } from '@c15t/translations';
+
 import { version } from '~/version';
-import {
-	type ConsentManagerOptions,
-	clearClientRegistry,
-	configureConsentManager,
-} from '../client';
+
+import { clearClientRegistry, configureConsentManager } from '../client';
+import type { ConsentManagerOptions } from '../client';
 import { getMatchingPrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { createConsentManagerStore } from '../store';
 import type { StoreOptions } from '../store/type';
 import type { AllConsentNames, TranslationConfig } from '../types';
 
+const assignInOrder = Object.assign;
+
 type ConsentManagerInstance = ReturnType<typeof configureConsentManager>;
 type ConsentStoreInstance = ReturnType<typeof createConsentManagerStore>;
+
+interface ConsentRuntimeDependencies {
+	configureConsentManager: typeof configureConsentManager;
+	createConsentManagerStore: typeof createConsentManagerStore;
+	getMatchingPrefetchedInitialData: typeof getMatchingPrefetchedInitialData;
+	clearClientRegistry: typeof clearClientRegistry;
+}
+
+const defaultConsentRuntimeDependencies: ConsentRuntimeDependencies = {
+	clearClientRegistry,
+	configureConsentManager,
+	createConsentManagerStore,
+	getMatchingPrefetchedInitialData,
+};
 
 const DEFAULT_BACKEND_URL = '/api/c15t';
 
 const managerCache = new Map<string, ConsentManagerInstance>();
 const storeCache = new Map<string, ConsentStoreInstance>();
 
+const firstDefined = <Value>(
+	primary: Value | undefined,
+	fallback: Value | undefined
+): Value | undefined => primary ?? fallback;
+
+const getNormalizedI18nConfig = (
+	translationConfig: ReturnType<typeof resolveTranslationInput>
+) => (translationConfig ? normalizeI18nConfig(translationConfig) : undefined);
+
+const getNormalizedLanguageSet = (
+	config: ReturnType<typeof normalizeI18nConfig> | undefined
+): string[] => (config ? Object.keys(config.messages).sort() : []);
+
+const getLanguageSetKey = (languages: string[]): string | undefined =>
+	languages.length > 0 ? languages.join(',') : undefined;
+
+const serializeIfDefined = (value: unknown): string | undefined =>
+	value ? JSON.stringify(value) : undefined;
+
+const orDefault = <Value>(value: Value | undefined, fallback: Value): Value =>
+	value || fallback;
+
+const objectOrEmpty = <Value extends object>(
+	value: Value | undefined
+): Partial<Value> => value ?? {};
+
+const getEndpointHandlers = (
+	options: ConsentRuntimeOptions
+): unknown | undefined =>
+	'endpointHandlers' in options ? options.endpointHandlers : undefined;
+
+const getPrefetchedSsrData = (
+	mode: ReturnType<typeof normalizeRuntimeMode>,
+	explicitData: StoreOptions['ssrData'],
+	backendURL: string,
+	overrides: ConsentRuntimeOptions['overrides'],
+	dependencies: ConsentRuntimeDependencies
+) =>
+	mode === 'hosted' && typeof window !== 'undefined' && !explicitData
+		? dependencies.getMatchingPrefetchedInitialData({
+				backendURL,
+				credentials: 'include',
+				overrides,
+			})
+		: undefined;
+
 type RuntimeMode = 'hosted' | 'c15t' | 'offline' | 'custom';
 
-function normalizeRuntimeMode(
+const normalizeRuntimeMode = function normalizeRuntimeMode(
 	mode?: RuntimeMode
 ): 'hosted' | 'offline' | 'custom' {
 	if (mode === 'offline' || mode === 'custom') {
@@ -32,7 +93,7 @@ function normalizeRuntimeMode(
 	}
 
 	return 'hosted';
-}
+};
 
 export type ConsentRuntimeOptions = ConsentManagerOptions &
 	Partial<StoreOptions> & {
@@ -62,7 +123,7 @@ export interface ConsentRuntimeResult {
 	cacheKey: string;
 }
 
-function generateRuntimeCacheKey(options: {
+const generateRuntimeCacheKey = function generateRuntimeCacheKey(options: {
 	mode?: ConsentRuntimeOptions['mode'];
 	backendURL?: string;
 	endpointHandlers?: unknown;
@@ -91,13 +152,13 @@ function generateRuntimeCacheKey(options: {
 	];
 
 	return cacheParts.join(':');
-}
+};
 
 /**
  * Stable cache-key fragment for custom HTTP headers, so hosted clients with
  * different headers never share a cached runtime.
  */
-function generateHeadersKey(
+const generateHeadersKey = function generateHeadersKey(
 	headers?: Record<string, string>
 ): string | undefined {
 	if (!headers) {
@@ -113,11 +174,12 @@ function generateHeadersKey(
 	}
 
 	return entries.map(([key, value]) => `${key}=${value}`).join(',');
-}
+};
 
-export function getOrCreateConsentRuntime(
+export const getOrCreateConsentRuntime = function getOrCreateConsentRuntime(
 	options: ConsentRuntimeOptions,
-	pkgInfo?: ConsentRuntimePkgInfo
+	pkgInfo?: ConsentRuntimePkgInfo,
+	dependencies: ConsentRuntimeDependencies = defaultConsentRuntimeDependencies
 ): ConsentRuntimeResult {
 	const optionBag = options as ConsentRuntimeOptions & {
 		headers?: Record<string, string>;
@@ -168,79 +230,83 @@ export function getOrCreateConsentRuntime(
 		...storeWithoutTranslationInputs
 	} = store ?? {};
 
-	const preferredLegacyTranslationConfig =
-		translations ?? store?.initialTranslationConfig;
-	const preferredI18nConfig = i18n ?? store?.initialI18nConfig;
+	const preferredLegacyTranslationConfig = firstDefined(
+		translations,
+		store?.initialTranslationConfig
+	);
+	const preferredI18nConfig = firstDefined(i18n, store?.initialI18nConfig);
 
 	const normalizedInitialTranslationConfig = resolveTranslationInput(
 		preferredLegacyTranslationConfig,
 		preferredI18nConfig
 	);
-	const normalizedI18nConfig = normalizedInitialTranslationConfig
-		? normalizeI18nConfig(normalizedInitialTranslationConfig)
-		: undefined;
-	const normalizedLanguageSet = normalizedI18nConfig
-		? Object.keys(normalizedI18nConfig.messages).sort()
-		: [];
-	const resolvedIab = iab ?? storeWithoutTranslationInputs.iab;
-	const resolvedOfflinePolicy =
-		offlinePolicy ?? storeWithoutTranslationInputs.offlinePolicy;
-	const resolvedStorageConfig =
-		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
-	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;
+	const normalizedI18nConfig = getNormalizedI18nConfig(
+		normalizedInitialTranslationConfig
+	);
+	const normalizedLanguageSet = getNormalizedLanguageSet(normalizedI18nConfig);
+	const resolvedIab = firstDefined(iab, storeWithoutTranslationInputs.iab);
+	const resolvedOfflinePolicy = firstDefined(
+		offlinePolicy,
+		storeWithoutTranslationInputs.offlinePolicy
+	);
+	const resolvedStorageConfig = firstDefined(
+		storageConfig,
+		storeWithoutTranslationInputs.storageConfig
+	);
+	const resolvedEnabled = firstDefined(
+		enabled,
+		storeWithoutTranslationInputs.enabled
+	);
 	// A top-level `nonce` wins over `store.nonce` so the value the provider
 	// applies to the theme stylesheet always matches the one scripts receive.
-	const resolvedNonce = nonce ?? storeWithoutTranslationInputs.nonce;
-	const resolvedBackendURL = backendURL || DEFAULT_BACKEND_URL;
-	const explicitSSRData = topLevelSSRData ?? storeSSRData;
+	const resolvedNonce = firstDefined(
+		nonce,
+		storeWithoutTranslationInputs.nonce
+	);
+	const resolvedBackendURL = orDefault(backendURL, DEFAULT_BACKEND_URL);
+	const explicitSSRData = firstDefined(topLevelSSRData, storeSSRData);
 
 	const cacheKey = generateRuntimeCacheKey({
-		mode,
 		backendURL,
-		endpointHandlers:
-			'endpointHandlers' in options ? options.endpointHandlers : undefined,
-		storageConfig: resolvedStorageConfig,
 		defaultLanguage: normalizedI18nConfig?.locale,
-		languageSetKey:
-			normalizedLanguageSet.length > 0
-				? normalizedLanguageSet.join(',')
-				: undefined,
-		offlinePolicyKey: resolvedOfflinePolicy
-			? JSON.stringify(resolvedOfflinePolicy)
-			: undefined,
-		headersKey: generateHeadersKey(headers),
 		enabled: resolvedEnabled,
+		endpointHandlers: getEndpointHandlers(options),
+		headersKey: generateHeadersKey(headers),
+		languageSetKey: getLanguageSetKey(normalizedLanguageSet),
+		mode,
+		offlinePolicyKey: serializeIfDefined(resolvedOfflinePolicy),
+		storageConfig: resolvedStorageConfig,
 	});
 
 	let consentManager = managerCache.get(cacheKey);
 	if (!consentManager) {
 		const normalizedStoreOptions = {
 			...storeWithoutTranslationInputs,
-			initialTranslationConfig: normalizedInitialTranslationConfig,
 			iab: resolvedIab,
+			initialTranslationConfig: normalizedInitialTranslationConfig,
 			offlinePolicy: resolvedOfflinePolicy,
 		};
 
 		if (mode === 'offline') {
-			consentManager = configureConsentManager({
+			consentManager = dependencies.configureConsentManager({
 				mode: 'offline',
-				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
+				store: normalizedStoreOptions,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
-			consentManager = configureConsentManager({
-				mode: 'custom',
+			consentManager = dependencies.configureConsentManager({
 				endpointHandlers: options.endpointHandlers,
-				store: normalizedStoreOptions,
+				mode: 'custom',
 				storageConfig: resolvedStorageConfig,
+				store: normalizedStoreOptions,
 			});
 		} else {
-			consentManager = configureConsentManager({
-				mode: mode === 'c15t' ? 'c15t' : 'hosted',
-				backendURL: backendURL || DEFAULT_BACKEND_URL,
+			consentManager = dependencies.configureConsentManager({
+				backendURL: orDefault(backendURL, DEFAULT_BACKEND_URL),
 				headers,
-				store: normalizedStoreOptions,
+				mode: mode === 'c15t' ? 'c15t' : 'hosted',
 				storageConfig: resolvedStorageConfig,
+				store: normalizedStoreOptions,
 			});
 		}
 
@@ -253,54 +319,59 @@ export function getOrCreateConsentRuntime(
 		const normalizedMode = normalizeRuntimeMode(
 			mode as RuntimeMode | undefined
 		);
-		const userConfig = storeConfig ?? topLevelConfig;
-		const autoPrefetchedSSRData =
-			normalizedMode === 'hosted' &&
-			typeof window !== 'undefined' &&
-			!explicitSSRData
-				? getMatchingPrefetchedInitialData({
-						backendURL: resolvedBackendURL,
-						overrides: options.overrides,
-						credentials: 'include',
-					})
-				: undefined;
-		const resolvedSSRData = explicitSSRData ?? autoPrefetchedSSRData;
+		const userConfig = firstDefined(storeConfig, topLevelConfig);
+		const autoPrefetchedSSRData = getPrefetchedSsrData(
+			normalizedMode,
+			explicitSSRData,
+			resolvedBackendURL,
+			options.overrides,
+			dependencies
+		);
+		const resolvedSSRData = firstDefined(
+			explicitSSRData,
+			autoPrefetchedSSRData
+		);
+		const meta = { ...firstDefined(userConfig?.meta, {}) };
+		if (normalizedMode === 'hosted') {
+			meta.backendURL = resolvedBackendURL;
+			meta.requestCredentials = 'include';
+		}
 
-		consentStore = createConsentManagerStore(consentManager, {
-			config: {
-				...(userConfig ?? {}),
-				pkg: pkgInfo?.pkg || 'c15t',
-				version: pkgInfo?.version || version,
-				mode: normalizedMode,
-				meta: {
-					...(userConfig?.meta ?? {}),
-					...(normalizedMode === 'hosted'
-						? {
-								backendURL: resolvedBackendURL,
-								requestCredentials: 'include',
-							}
-						: {}),
+		consentStore = dependencies.createConsentManagerStore(
+			consentManager,
+			assignInOrder(
+				{},
+				{
+					config: {
+						...objectOrEmpty(userConfig),
+						meta,
+						mode: normalizedMode,
+						pkg: orDefault(pkgInfo?.pkg, 'c15t'),
+						version: orDefault(pkgInfo?.version, version),
+					},
 				},
-			},
-			...cleanStoreOptionOverrides,
-			...storeWithoutTranslationInputs,
-			iab: resolvedIab,
-			offlinePolicy: resolvedOfflinePolicy,
-			storageConfig: resolvedStorageConfig,
-			enabled: resolvedEnabled,
-			nonce: resolvedNonce,
-			initialTranslationConfig: normalizedInitialTranslationConfig,
-			initialConsentCategories: consentCategories,
-			ssrData: resolvedSSRData,
-			debug,
-			__internal:
-				normalizedMode === 'hosted'
-					? {
-							backendURL: resolvedBackendURL,
-							requestCredentials: 'include',
-						}
-					: undefined,
-		} as InternalStoreOptions);
+				{ ...cleanStoreOptionOverrides },
+				{ ...storeWithoutTranslationInputs },
+				{ iab: resolvedIab },
+				{ offlinePolicy: resolvedOfflinePolicy },
+				{ storageConfig: resolvedStorageConfig },
+				{ enabled: resolvedEnabled },
+				{ nonce: resolvedNonce },
+				{ initialTranslationConfig: normalizedInitialTranslationConfig },
+				{ initialConsentCategories: consentCategories },
+				{ ssrData: resolvedSSRData },
+				{ debug },
+				{
+					__internal:
+						normalizedMode === 'hosted'
+							? {
+									backendURL: resolvedBackendURL,
+									requestCredentials: 'include',
+								}
+							: undefined,
+				}
+			) as InternalStoreOptions
+		);
 
 		storeCache.set(cacheKey, consentStore);
 	} else if (consentStore.getState().nonce !== resolvedNonce) {
@@ -313,14 +384,19 @@ export function getOrCreateConsentRuntime(
 	}
 
 	return {
+		cacheKey,
 		consentManager,
 		consentStore,
-		cacheKey,
 	};
-}
+};
 
-export function clearConsentRuntimeCache(): void {
+export const clearConsentRuntimeCache = function clearConsentRuntimeCache(
+	dependencies: Pick<
+		ConsentRuntimeDependencies,
+		'clearClientRegistry'
+	> = defaultConsentRuntimeDependencies
+): void {
 	managerCache.clear();
 	storeCache.clear();
-	clearClientRegistry();
-}
+	dependencies.clearClientRegistry();
+};

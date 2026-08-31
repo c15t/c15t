@@ -1,12 +1,8 @@
 'use client';
 
-import {
-	type ComponentType,
-	type LazyExoticComponent,
-	lazy,
-	type ReactNode,
-	Suspense,
-} from 'react';
+import { lazy, Suspense } from 'react';
+import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
+
 import { registerDialogChunkWarmer } from './chunk-warming';
 import type {
 	ConsentDialogCompoundComponent,
@@ -18,31 +14,30 @@ import type {
 } from './components/consent-widget';
 import { useActiveUI } from './hooks';
 
-type AnyComponent = ComponentType<any>;
+type AnyComponent = ComponentType<Record<string, unknown>>;
 
-function withSuspense(
+const withSuspense = function withSuspense(
 	Component: LazyExoticComponent<AnyComponent>
 ): AnyComponent {
-	function LazyAggregateComponent(props: Record<string, unknown>) {
-		return (
-			<Suspense fallback={null}>
-				<Component {...props} />
-			</Suspense>
-		);
-	}
+	const LazyAggregateComponent = (props: Record<string, unknown>) => (
+		<Suspense fallback={null}>
+			<Component {...props} />
+		</Suspense>
+	);
 	return LazyAggregateComponent;
-}
+};
 
-function lazyDialogExport(name: string) {
+const lazyDialogExport = function lazyDialogExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/consent-dialog');
+			const exports = module as Record<string, unknown>;
 			return {
-				default: (module as Record<string, AnyComponent>)[name] as AnyComponent,
+				default: exports[name] as AnyComponent,
 			};
 		})
 	);
-}
+};
 
 // Warm the dialog chunk on user intent (customize-button hover/focus) so the
 // first open never pays network+parse on the click path.
@@ -50,16 +45,17 @@ registerDialogChunkWarmer(() => {
 	void import('./components/consent-dialog');
 });
 
-function lazyWidgetExport(name: string) {
+const lazyWidgetExport = function lazyWidgetExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/consent-widget');
+			const exports = module as Record<string, unknown>;
 			return {
-				default: (module as Record<string, AnyComponent>)[name] as AnyComponent,
+				default: exports[name] as AnyComponent,
 			};
 		})
 	);
-}
+};
 
 const LazyConsentDialogComponent = lazyDialogExport(
 	'ConsentDialog'
@@ -68,7 +64,7 @@ const LazyConsentWidgetComponent = lazyWidgetExport(
 	'ConsentWidget'
 ) as ComponentType<ConsentWidgetProps & { children?: ReactNode }>;
 
-function LazyConsentDialog(props: ConsentDialogProps) {
+const LazyConsentDialog = (props: ConsentDialogProps) => {
 	const activeUI = useActiveUI();
 	const shouldLoadDialog =
 		props.open === true || activeUI === 'dialog' || Boolean(props.showTrigger);
@@ -76,13 +72,13 @@ function LazyConsentDialog(props: ConsentDialogProps) {
 		return null;
 	}
 	return <LazyConsentDialogComponent {...props} />;
-}
+};
 
-function LazyConsentWidget(props: ConsentWidgetProps) {
-	return <LazyConsentWidgetComponent {...props} />;
-}
+const LazyConsentWidget = (props: ConsentWidgetProps) => (
+	<LazyConsentWidgetComponent {...props} />
+);
 
-function withLazyProperties<T extends AnyComponent>(
+const withLazyProperties = function withLazyProperties<T extends AnyComponent>(
 	component: T,
 	names: readonly string[],
 	factory: (name: string) => AnyComponent
@@ -99,7 +95,7 @@ function withLazyProperties<T extends AnyComponent>(
 		});
 	}
 	return component;
-}
+};
 
 export const ConsentDialog = withLazyProperties(
 	LazyConsentDialog,

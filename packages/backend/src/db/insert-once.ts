@@ -41,7 +41,9 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
+
 import { encodeRow, encoder } from './values';
 
 /**
@@ -52,7 +54,7 @@ import { encodeRow, encoder } from './values';
  * is driver-shaped data crossing into typed code, and a missing field must
  * read as "did not insert" rather than throw.
  */
-const affectedRows = (result: unknown): number =>
+const _affectedRows = (result: unknown): number =>
 	typeof result === 'object' &&
 	result !== null &&
 	'affectedRows' in result &&
@@ -89,7 +91,7 @@ export interface InsertOnceOptions {
  * });
  * ```
  */
-export const insertOnce = Effect.fn('db.insertOnce')(function* (
+export const insertOnce = Effect.fn('db.insertOnce')(function* insertOnce(
 	options: InsertOnceOptions
 ) {
 	const sql = yield* SqlClient.SqlClient;

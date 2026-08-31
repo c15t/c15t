@@ -3,6 +3,7 @@
  * server helper and transport uses (shared-logic audit #4).
  */
 import { describe, expect, test } from 'vitest';
+
 import {
 	initOutputToKernelConfig,
 	mapInitOutputToInitResponse,
@@ -15,7 +16,7 @@ const BASE_PAYLOAD = {
 		language: 'en',
 		translations: {},
 	},
-	// biome-ignore lint/suspicious/noExplicitAny: minimal rich-init fixture
+	// oxlint-disable-next-line typescript/no-explicit-any -- minimal rich-init fixture
 } as any;
 
 describe('mapInitOutputToInitResponse: consent inference', () => {
@@ -58,18 +59,18 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 
 	test('derives overrides from location/translations; resolvedOverrides win', () => {
 		const merged = mergeInitResponseIntoKernelConfig(
-			{ initialOverrides: { language: 'en', gpc: true } },
+			{ initialOverrides: { gpc: true, language: 'en' } },
 			{
 				location: { countryCode: 'DE', regionCode: 'BE' },
-				translations: { language: 'de', translations: {} },
 				resolvedOverrides: { country: 'FR' },
+				translations: { language: 'de', translations: {} },
 			}
 		);
 		// base < derived < resolvedOverrides
 		expect(merged.initialOverrides).toEqual({
-			language: 'de',
-			gpc: true,
 			country: 'FR',
+			gpc: true,
+			language: 'de',
 			region: 'BE',
 		});
 	});
@@ -92,7 +93,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
 		const merged = mergeInitResponseIntoKernelConfig(
 			{},
-			// biome-ignore lint/suspicious/noExplicitAny: backend can send 'none'
+			// oxlint-disable-next-line typescript/no-explicit-any -- backend can send 'none'
 			{ branding: 'none' as any }
 		);
 		expect(merged.initialBranding).toBeUndefined();
@@ -106,12 +107,13 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		const merged = mergeInitResponseIntoKernelConfig(
 			{},
 			{
-				subjectId: 'sub_9',
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
-				// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
 				policyDecision: { policyId: 'p1' } as any,
 				policySnapshotToken: 'tok',
+
+				subjectId: 'sub_9',
 			}
 		);
 		expect(merged.initialSubjectId).toBe('sub_9');
@@ -123,8 +125,8 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 	test('IAB folding: gvl null disables, fields accumulate', () => {
 		const withGvl = mergeInitResponseIntoKernelConfig(
 			{},
-			// biome-ignore lint/suspicious/noExplicitAny: minimal gvl fixture
-			{ gvl: { vendors: {} } as any, cmpId: 28 }
+			// oxlint-disable-next-line typescript/no-explicit-any -- minimal gvl fixture
+			{ cmpId: 28, gvl: { vendors: {} } as any }
 		);
 		expect(withGvl.initialIab?.enabled).toBe(true);
 		expect(withGvl.initialIab?.cmpId).toBe(28);
@@ -136,18 +138,19 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 	test('initOutputToKernelConfig wraps the full pipeline', () => {
 		const config = initOutputToKernelConfig(
 			{
-				location: { countryCode: 'DE', regionCode: null },
-				translations: { language: 'de', translations: {} },
 				branding: 'c15t',
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				location: { countryCode: 'DE', regionCode: null },
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
+
+				translations: { language: 'de', translations: {} },
 			},
 			{ 'sec-gpc': '1' }
 		);
 		expect(config.initialOverrides).toMatchObject({
 			country: 'DE',
-			language: 'de',
 			gpc: true,
+			language: 'de',
 		});
 		expect(config.initialPolicy?.id).toBe('p1');
 		expect(config.initialBranding).toBe('c15t');

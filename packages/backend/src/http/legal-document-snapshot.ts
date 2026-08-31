@@ -18,6 +18,7 @@
  */
 
 import { jwtVerify, SignJWT } from 'jose';
+
 import type { SnapshotVerification } from './policy-snapshot';
 
 const JWT_HEADER = { alg: 'HS256', typ: 'JWT' } as const;
@@ -49,9 +50,11 @@ export interface LegalDocumentSnapshotClaims {
 	readonly tenantId?: string;
 }
 
-function resolveIssuer(options: LegalDocumentSnapshotOptions): string {
+const resolveIssuer = function resolveIssuer(
+	options: LegalDocumentSnapshotOptions
+): string {
 	return options.issuer?.trim() || DEFAULT_ISSUER;
-}
+};
 
 /**
  * Audience is tenant-scoped when a tenant is known.
@@ -59,7 +62,7 @@ function resolveIssuer(options: LegalDocumentSnapshotOptions): string {
  * Without it a token minted for one tenant would verify against another, which
  * for signed evidence is a confused-deputy problem rather than a convenience.
  */
-function resolveAudience(
+const resolveAudience = function resolveAudience(
 	options: LegalDocumentSnapshotOptions,
 	tenantId: string | undefined
 ): string {
@@ -68,7 +71,7 @@ function resolveAudience(
 		return configured;
 	}
 	return tenantId ? `${DEFAULT_AUDIENCE}:${tenantId}` : DEFAULT_AUDIENCE;
-}
+};
 
 const signingKey = (secret: string): Uint8Array =>
 	new TextEncoder().encode(secret);
@@ -80,39 +83,41 @@ const signingKey = (secret: string): Uint8Array =>
  * cannot be verified is worse than absent evidence, because a caller may treat
  * its presence as meaningful.
  */
-export async function createLegalDocumentSnapshotToken(
-	claims: LegalDocumentSnapshotClaims,
-	options: LegalDocumentSnapshotOptions | undefined
-): Promise<{ token: string; payload: Record<string, unknown> } | undefined> {
-	if (!options?.signingKey) {
-		return undefined;
-	}
+export const createLegalDocumentSnapshotToken =
+	async function createLegalDocumentSnapshotToken(
+		claims: LegalDocumentSnapshotClaims,
+		options: LegalDocumentSnapshotOptions | undefined
+	): Promise<{ token: string; payload: Record<string, unknown> } | undefined> {
+		if (!options?.signingKey) {
+			return undefined;
+		}
 
-	const iat = Math.floor(Date.now() / 1000);
-	const exp = iat + (options.ttlSeconds ?? DEFAULT_TTL_SECONDS);
+		const iat = Math.floor(Date.now() / 1000);
+		const exp = iat + (options.ttlSeconds ?? DEFAULT_TTL_SECONDS);
 
-	const payload = {
-		iss: resolveIssuer(options),
-		aud: resolveAudience(options, claims.tenantId),
-		// The document identity is the subject of the claim.
-		sub: `${claims.type}:${claims.version}`,
-		tenantId: claims.tenantId,
-		type: claims.type,
-		version: claims.version,
-		hash: claims.hash,
-		effectiveDate: claims.effectiveDate,
-		iat,
-		exp,
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
+		const payload = {
+			iss: resolveIssuer(options),
+			aud: resolveAudience(options, claims.tenantId),
+			// The document identity is the subject of the claim.
+			sub: `${claims.type}:${claims.version}`,
+			tenantId: claims.tenantId,
+			type: claims.type,
+			version: claims.version,
+			hash: claims.hash,
+			effectiveDate: claims.effectiveDate,
+			iat,
+			exp,
+		};
+
+		const token = await new SignJWT(payload)
+			.setProtectedHeader(JWT_HEADER)
+			.setIssuedAt(iat)
+			.setExpirationTime(exp)
+			.sign(signingKey(options.signingKey));
+
+		return { payload, token };
 	};
-
-	const token = await new SignJWT(payload)
-		.setProtectedHeader(JWT_HEADER)
-		.setIssuedAt(iat)
-		.setExpirationTime(exp)
-		.sign(signingKey(options.signingKey));
-
-	return { token, payload };
-}
 
 /**
  * Verifies a token against the configured key, issuer and tenant audience.
@@ -121,22 +126,27 @@ export async function createLegalDocumentSnapshotToken(
  * "wrong signature" from "wrong audience" from "expired" tells an attacker
  * which part of a forged token to fix next.
  */
-export async function verifyLegalDocumentSnapshotToken(
-	token: string | undefined,
-	options: LegalDocumentSnapshotOptions | undefined,
-	tenantId: string | undefined
-): Promise<SnapshotVerification> {
-	if (!options?.signingKey || !token) {
-		return { valid: false, reason: 'missing' };
-	}
+export const verifyLegalDocumentSnapshotToken =
+	async function verifyLegalDocumentSnapshotToken(
+		token: string | undefined,
+		options: LegalDocumentSnapshotOptions | undefined,
+		tenantId: string | undefined
+	): Promise<SnapshotVerification> {
+		if (!options?.signingKey || !token) {
+			return { reason: 'missing', valid: false };
+		}
 
-	try {
-		const { payload } = await jwtVerify(token, signingKey(options.signingKey), {
-			issuer: resolveIssuer(options),
-			audience: resolveAudience(options, tenantId),
-		});
-		return { valid: true, payload: payload as Record<string, unknown> };
-	} catch {
-		return { valid: false, reason: 'invalid' };
-	}
-}
+		try {
+			const { payload } = await jwtVerify(
+				token,
+				signingKey(options.signingKey),
+				{
+					audience: resolveAudience(options, tenantId),
+					issuer: resolveIssuer(options),
+				}
+			);
+			return { payload: payload as Record<string, unknown>, valid: true };
+		} catch {
+			return { reason: 'invalid', valid: false };
+		}
+	};

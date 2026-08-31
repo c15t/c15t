@@ -1,12 +1,12 @@
 <script lang="ts">
-import { Dialog, Switch, Tabs } from '../../lib/primitives';
+	import { Dialog, Switch, Tabs } from '../../lib/primitives';
 
-let checked = $state(false);
-let dialogOpen = $state(false);
-let tab = $state<string | null>('one');
-let switchClicks = $state(0);
-let closeClicks = $state(0);
-let tabClicks = $state(0);
+	let checked = $state(false);
+	let dialogOpen = $state(false);
+	let tab = $state<string | null>('one');
+	let switchClicks = $state(0);
+	let closeClicks = $state(0);
+	let tabClicks = $state(0);
 </script>
 
 <Switch.Root
@@ -17,7 +17,7 @@ let tabClicks = $state(0);
 		switchClicks += 1;
 	}}
 >
-	<Switch.Control> <Switch.Thumb /> </Switch.Control>
+	<Switch.Control><Switch.Thumb /></Switch.Control>
 </Switch.Root>
 <div data-testid="checked-value">{String(checked)}</div>
 <div data-testid="switch-clicks">{switchClicks}</div>

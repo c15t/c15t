@@ -1,10 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import {
-	runtimeTimestampValue,
-	type VendorManifest,
-	vendorManifestContract,
-} from '../../types';
+import { runtimeTimestampValue, vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,
@@ -28,47 +26,52 @@ declare global {
  */
 export const googleTagManagerManifest = {
 	...vendorManifestContract,
-	vendor: 'google-tag-manager',
-	category: 'necessary',
 	alwaysLoad: true,
 	bootstrap: [
 		{
-			type: 'setGlobal',
-			name: 'dataLayer',
-			value: [],
 			ifUndefined: true,
+
+			name: 'dataLayer',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'defineQueueFunction',
+			ifUndefined: true,
+
 			name: 'gtag',
 			queue: 'dataLayer',
-			ifUndefined: true,
+			type: 'defineQueueFunction',
 		},
 	],
+	category: 'necessary',
+	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	consentSignal: 'gtag',
 	install: [
 		{
-			type: 'pushToQueue',
 			queue: 'dataLayer',
+			type: 'pushToQueue',
 			value: {
-				'gtm.start': runtimeTimestampValue,
 				event: 'gtm.js',
+
+				'gtm.start': runtimeTimestampValue,
 			},
 		},
 		{
-			type: 'loadScript',
-			src: 'https://www.googletagmanager.com/gtm.js?id={{id}}',
 			async: true,
+
+			src: 'https://www.googletagmanager.com/gtm.js?id={{id}}',
+			type: 'loadScript',
 		},
 	],
 	onConsentChange: [
 		{
-			type: 'callGlobal',
-			global: 'gtag',
 			args: ['event', '{{updateEventName}}'],
+
+			global: 'gtag',
+			type: 'callGlobal',
 		},
 	],
-	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
-	consentSignal: 'gtag',
+	vendor: 'google-tag-manager',
 } as const satisfies VendorManifest;
 
 export interface GoogleTagManagerOptions {
@@ -112,7 +115,7 @@ export interface GoogleTagManagerOptions {
  * @param options - The options for the Google Tag Manager script.
  * @returns The Google Tag Manager script.
  */
-export function googleTagManager({
+export const googleTagManager = function googleTagManager({
 	id,
 	updateEventName,
 	consentMapping,
@@ -128,4 +131,4 @@ export function googleTagManager({
 	});
 
 	return resolved;
-}
+};

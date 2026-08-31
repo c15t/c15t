@@ -1,7 +1,9 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes } from 'react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
@@ -12,7 +14,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
 }
 
-const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
+const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, ...props }, ref) => {
 		const { activeUI } = useConsentManager();
 		const {
@@ -28,21 +30,22 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		useEffect(() => {
 			if (shouldShow) {
-				setIsVisible(true);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--iab-consent-banner-animation-duration'
-					) || '200',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs);
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
 			}
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [shouldShow, disableAnimation]);
 
 		const theme = useStyles('iabConsentBannerOverlay', {

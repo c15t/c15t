@@ -5,6 +5,7 @@ import {
 import { collapsibleVariants, getOpenState } from '@c15t/solid';
 import { createSignal } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;
@@ -15,7 +16,7 @@ interface CollapsibleDemoProps {
 	description: string;
 }
 
-function CollapsibleDemo(props: CollapsibleDemoProps) {
+const CollapsibleDemo = (props: CollapsibleDemoProps) => {
 	const [open, setOpen] = createSignal(props.defaultOpen ?? true);
 	const classes = collapsibleVariants();
 
@@ -46,7 +47,10 @@ function CollapsibleDemo(props: CollapsibleDemoProps) {
 				<span>{props.title}</span>
 				<span aria-hidden="true">+</span>
 			</button>
-			<div class={classes.content()} data-state={getOpenState(open())}>
+			<div
+				class={classes.content()}
+				data-state={getOpenState(open())}
+			>
 				<div class={classes.contentViewport()}>
 					<div class={classes.contentInner()}>
 						<p style={{ margin: '0' }}>{props.description}</p>
@@ -55,7 +59,7 @@ function CollapsibleDemo(props: CollapsibleDemoProps) {
 			</div>
 		</div>
 	);
-}
+};
 
 const meta = {
 	component: CollapsibleDemo,

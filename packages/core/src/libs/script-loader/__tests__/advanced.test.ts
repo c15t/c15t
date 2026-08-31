@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentState } from '../../../types/compliance';
 import {
 	clearAllScripts,
@@ -16,24 +17,24 @@ describe('Script Loader Advanced Features', () => {
 	describe('Complex Consent Conditions', () => {
 		// Sample consent state for testing
 		const consents: ConsentState = {
-			necessary: true,
+			experience: false,
 			functionality: true,
 			marketing: false,
 			measurement: true,
-			experience: false,
+			necessary: true,
 		};
 
 		it('should handle AND conditions correctly', () => {
 			const scripts: Script[] = [
 				{
+					category: { and: ['necessary', 'functionality'] },
 					id: 'and-script',
 					src: 'https://example.com/and.js',
-					category: { and: ['necessary', 'functionality'] },
 				},
 				{
+					category: { and: ['necessary', 'marketing'] },
 					id: 'and-script-fail',
 					src: 'https://example.com/and-fail.js',
-					category: { and: ['necessary', 'marketing'] },
 				},
 			];
 
@@ -49,19 +50,19 @@ describe('Script Loader Advanced Features', () => {
 		it('should handle OR conditions correctly', () => {
 			const scripts: Script[] = [
 				{
+					category: { or: ['necessary', 'marketing'] },
 					id: 'or-script-pass1',
 					src: 'https://example.com/or1.js',
-					category: { or: ['necessary', 'marketing'] },
 				},
 				{
+					category: { or: ['marketing', 'measurement'] },
 					id: 'or-script-pass2',
 					src: 'https://example.com/or2.js',
-					category: { or: ['marketing', 'measurement'] },
 				},
 				{
+					category: { or: ['marketing', 'experience'] },
 					id: 'or-script-fail',
 					src: 'https://example.com/or-fail.js',
-					category: { or: ['marketing', 'experience'] },
 				},
 			];
 
@@ -80,14 +81,14 @@ describe('Script Loader Advanced Features', () => {
 		it('should handle NOT conditions correctly', () => {
 			const scripts: Script[] = [
 				{
+					category: { not: 'marketing' },
 					id: 'not-script-pass',
 					src: 'https://example.com/not-pass.js',
-					category: { not: 'marketing' },
 				},
 				{
+					category: { not: 'necessary' },
 					id: 'not-script-fail',
 					src: 'https://example.com/not-fail.js',
-					category: { not: 'necessary' },
 				},
 			];
 
@@ -103,8 +104,6 @@ describe('Script Loader Advanced Features', () => {
 		it('should handle nested complex conditions correctly', () => {
 			const scripts: Script[] = [
 				{
-					id: 'complex-pass',
-					src: 'https://example.com/complex-pass.js',
 					category: {
 						and: [
 							'necessary',
@@ -112,10 +111,10 @@ describe('Script Loader Advanced Features', () => {
 							{ not: 'marketing' },
 						],
 					},
+					id: 'complex-pass',
+					src: 'https://example.com/complex-pass.js',
 				},
 				{
-					id: 'complex-fail',
-					src: 'https://example.com/complex-fail.js',
 					category: {
 						and: [
 							'necessary',
@@ -123,6 +122,8 @@ describe('Script Loader Advanced Features', () => {
 							'measurement',
 						],
 					},
+					id: 'complex-fail',
+					src: 'https://example.com/complex-fail.js',
 				},
 			];
 
@@ -139,11 +140,11 @@ describe('Script Loader Advanced Features', () => {
 	describe('Edge Cases', () => {
 		it('should handle empty scripts array', () => {
 			const consents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			const loadedIds = loadScripts([], consents);
@@ -152,11 +153,11 @@ describe('Script Loader Advanced Features', () => {
 
 		it('should handle anonymized IDs with updateScripts function', () => {
 			const consents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Mock the generateRandomScriptId function to return predictable values
@@ -164,14 +165,14 @@ describe('Script Loader Advanced Features', () => {
 
 			const scripts: Script[] = [
 				{
+					category: 'necessary',
 					id: 'anon-script-1',
 					src: 'https://example.com/anon1.js',
-					category: 'necessary',
 				},
 				{
+					category: 'marketing',
 					id: 'anon-script-2',
 					src: 'https://example.com/anon2.js',
-					category: 'marketing',
 				},
 			];
 
@@ -205,28 +206,28 @@ describe('Script Loader Advanced Features', () => {
 		it('should only load scripts with granted consent', () => {
 			// Create a complete consent state to avoid errors
 			const consents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			const scripts: Script[] = [
 				{
+					category: 'necessary',
 					id: 'necessary-script',
 					src: 'https://example.com/necessary.js',
-					category: 'necessary',
 				},
 				{
+					category: 'functionality',
 					id: 'functionality-script',
 					src: 'https://example.com/functionality.js',
-					category: 'functionality',
 				},
 				{
+					category: 'marketing',
 					id: 'marketing-script',
 					src: 'https://example.com/marketing.js',
-					category: 'marketing',
 				},
 			];
 
@@ -239,18 +240,18 @@ describe('Script Loader Advanced Features', () => {
 
 		it('should handle duplicate script loading attempts', () => {
 			const consents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			const scripts: Script[] = [
 				{
+					category: 'necessary',
 					id: 'duplicate-script',
 					src: 'https://example.com/duplicate.js',
-					category: 'necessary',
 				},
 			];
 
@@ -274,18 +275,18 @@ describe('Script Loader Advanced Features', () => {
 	describe('Script Lifecycle Management', () => {
 		it('should handle script lifecycle from load to unload correctly', () => {
 			const initialConsents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: true,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			const scripts: Script[] = [
 				{
+					category: 'functionality',
 					id: 'lifecycle-script',
 					src: 'https://example.com/lifecycle.js',
-					category: 'functionality',
 				},
 			];
 
@@ -307,11 +308,11 @@ describe('Script Loader Advanced Features', () => {
 
 		it('should handle mixed anonymized and non-anonymized scripts', () => {
 			const consents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: true,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Mock the generateRandomScriptId function to return predictable values
@@ -319,16 +320,17 @@ describe('Script Loader Advanced Features', () => {
 
 			const scripts: Script[] = [
 				{
-					id: 'anonymized-script',
-					src: 'https://example.com/anonymized.js',
 					category: 'necessary',
 					// Default anonymizeId (true)
+
+					id: 'anonymized-script',
+					src: 'https://example.com/anonymized.js',
 				},
 				{
+					anonymizeId: false,
+					category: 'functionality',
 					id: 'non-anonymized-script',
 					src: 'https://example.com/non-anonymized.js',
-					category: 'functionality',
-					anonymizeId: false,
 				},
 			];
 
@@ -343,7 +345,7 @@ describe('Script Loader Advanced Features', () => {
 
 			// Get the created script elements
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElements = mockCreateElement.mock.results;
 
@@ -366,33 +368,33 @@ describe('Script Loader Advanced Features', () => {
 
 		it('should handle consent changes affecting multiple scripts', () => {
 			const initialConsents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: true,
 				marketing: false,
 				measurement: true,
-				experience: false,
+				necessary: true,
 			};
 
 			const scripts: Script[] = [
 				{
+					category: 'necessary',
 					id: 'necessary-script',
 					src: 'https://example.com/necessary.js',
-					category: 'necessary',
 				},
 				{
+					category: 'functionality',
 					id: 'functionality-script',
 					src: 'https://example.com/functionality.js',
-					category: 'functionality',
 				},
 				{
+					category: 'measurement',
 					id: 'measurement-script',
 					src: 'https://example.com/measurement.js',
-					category: 'measurement',
 				},
 				{
+					category: 'marketing',
 					id: 'marketing-script',
 					src: 'https://example.com/marketing.js',
-					category: 'marketing',
 				},
 			];
 
@@ -407,11 +409,11 @@ describe('Script Loader Advanced Features', () => {
 
 			// Change multiple consents
 			const updatedConsents: ConsentState = {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: true,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Update scripts

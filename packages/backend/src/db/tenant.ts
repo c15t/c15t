@@ -25,7 +25,8 @@
  */
 
 import { Context, Effect, Layer } from 'effect';
-import { SqlClient, type Statement } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { Statement } from 'effect/unstable/sql';
 
 /**
  * The tenant a request belongs to.
@@ -64,7 +65,7 @@ export const singleTenant: Layer.Layer<Tenant> = layer(undefined);
  * yield* sql`select * from "subject" where "externalId" = ${id} and ${scope}`;
  * ```
  */
-export const tenantScope = Effect.fn('tenant.scope')(function* (
+export const tenantScope = Effect.fn('tenant.scope')(function* tenantScope(
 	table?: string
 ): Generator<
 	Effect.Effect<unknown, never, SqlClient.SqlClient | Tenant>,

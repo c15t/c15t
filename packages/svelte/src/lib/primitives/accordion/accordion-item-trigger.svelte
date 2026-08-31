@@ -1,38 +1,39 @@
 <script lang="ts">
-import { getDataDisabled, getOpenState } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getAccordionItemContext, getAccordionRootContext } from './context';
+	import { getDataDisabled, getOpenState } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const root = getAccordionRootContext();
-const item = getAccordionItemContext();
+	import { getAccordionItemContext, getAccordionRootContext } from './context';
 
-const open = $derived(item.open);
-const disabled = $derived(item.disabled);
-const triggerId = $derived(item.triggerId);
-const contentId = $derived(item.contentId);
-const itemValue = $derived(item.value);
-const dataState = $derived(getOpenState(open));
-const dataDisabled = $derived(getDataDisabled(disabled));
+	const root = getAccordionRootContext();
+	const item = getAccordionItemContext();
 
-let {
-	children,
-	class: className,
-	onclick,
-	type = 'button',
-	...restProps
-}: HTMLAttributes<HTMLButtonElement> & {
-	children?: Snippet;
-	class?: string;
-	type?: 'button' | 'submit' | 'reset';
-} = $props();
+	const open = $derived(item.open);
+	const disabled = $derived(item.disabled);
+	const triggerId = $derived(item.triggerId);
+	const contentId = $derived(item.contentId);
+	const itemValue = $derived(item.value);
+	const dataState = $derived(getOpenState(open));
+	const dataDisabled = $derived(getDataDisabled(disabled));
 
-function handleClick(
-	event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	root.toggleItem(itemValue);
-	onclick?.(event);
-}
+	let {
+		children,
+		class: className,
+		onclick,
+		type = 'button',
+		...restProps
+	}: HTMLAttributes<HTMLButtonElement> & {
+		children?: Snippet;
+		class?: string;
+		type?: 'button' | 'submit' | 'reset';
+	} = $props();
+
+	const handleClick = function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		root.toggleItem(itemValue);
+		onclick?.(event);
+	};
 </script>
 
 <button

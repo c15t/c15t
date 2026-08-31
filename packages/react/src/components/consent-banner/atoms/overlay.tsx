@@ -4,7 +4,9 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes } from 'react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
@@ -49,8 +51,8 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	({ className, style, noStyle, asChild, ...props }, ref) => {
+const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
+	({ className, style, noStyle, asChild: _asChild, ...props }, ref) => {
 		const { activeUI } = useConsentManager();
 		const {
 			disableAnimation,
@@ -64,27 +66,30 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		// Handle animation visibility state
 		useEffect(() => {
 			if (showBanner) {
-				setIsVisible(true);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--consent-banner-animation-duration'
-					) || '200',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs); // Match CSS animation duration
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
 			}
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+				// Match CSS animation duration
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [showBanner, disableAnimation]);
 
 		// Apply theme styles
 		const theme = useStyles('consentBannerOverlay', {
 			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
-			className, // Always pass custom className
+			// Always pass custom className
+			className,
 			noStyle: contextNoStyle || noStyle,
 		});
 
@@ -115,6 +120,8 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		) : null;
 	}
 );
+
+ConsentBannerOverlay.displayName = 'ConsentBannerOverlay';
 
 const Overlay = ConsentBannerOverlay;
 

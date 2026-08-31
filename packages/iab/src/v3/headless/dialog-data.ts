@@ -10,6 +10,7 @@
  */
 
 import type { GlobalVendorList, NonIABVendor } from '@c15t/core/v3';
+
 import type {
 	HeadlessIABDialogData,
 	HeadlessIABProcessedFeature,
@@ -23,80 +24,82 @@ import type {
 const STANDALONE_PURPOSE_ID = 1;
 
 const EMPTY_DIALOG_DATA: HeadlessIABDialogData = {
-	purposes: [],
-	specialPurposes: [],
-	specialFeatures: [],
 	features: [],
+	isLoading: true,
+	isReady: false,
+	purposes: [],
+	specialFeatures: [],
+	specialPurposes: [],
 	stacks: [],
 	standalonePurposes: [],
 	totalVendors: 0,
-	isLoading: true,
-	isReady: false,
 };
 
 type GvlVendor = GlobalVendorList['vendors'][number];
 
-function getCustomVendors(iab: HeadlessIABStateInput): NonIABVendor[] {
+const getCustomVendors = function getCustomVendors(
+	iab: HeadlessIABStateInput
+): NonIABVendor[] {
 	return iab.nonIABVendors ?? iab.customVendors ?? [];
-}
+};
 
-function mapGvlVendor(
+const mapGvlVendor = function mapGvlVendor(
 	vendorId: string,
 	vendor: GvlVendor,
 	purposeId?: number
 ): HeadlessIABProcessedVendor {
 	return {
-		id: Number(vendorId),
-		name: vendor.name,
-		policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-		usesNonCookieAccess: vendor.usesNonCookieAccess,
-		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-		usesCookies: vendor.usesCookies,
 		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 		cookieRefresh: vendor.cookieRefresh,
+		dataRetention: vendor.dataRetention,
+		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+		features: vendor.features || [],
+		id: Number(vendorId),
+		isCustom: false,
+		legIntPurposes: vendor.legIntPurposes || [],
 		legitimateInterestUrl:
 			vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-		specialPurposes: vendor.specialPurposes || [],
-		specialFeatures: vendor.specialFeatures || [],
-		features: vendor.features || [],
+		name: vendor.name,
+		policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 		purposes: vendor.purposes || [],
-		legIntPurposes: vendor.legIntPurposes || [],
+		specialFeatures: vendor.specialFeatures || [],
+		specialPurposes: vendor.specialPurposes || [],
+		usesCookies: vendor.usesCookies,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		dataRetention: vendor.dataRetention,
-		isCustom: false,
+		usesNonCookieAccess: vendor.usesNonCookieAccess,
 	};
-}
+};
 
-function mapCustomVendor(
+const mapCustomVendor = function mapCustomVendor(
 	vendor: NonIABVendor,
 	purposeId?: number
 ): HeadlessIABProcessedVendor {
 	return {
-		id: vendor.id,
-		name: vendor.name,
-		policyUrl: vendor.privacyPolicyUrl,
-		usesNonCookieAccess: vendor.usesNonCookieAccess ?? false,
-		deviceStorageDisclosureUrl: null,
-		usesCookies: vendor.usesCookies ?? false,
 		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds ?? null,
 		cookieRefresh: undefined,
-		legitimateInterestUrl: null,
-		specialPurposes: [],
-		specialFeatures: vendor.specialFeatures || [],
+		dataRetention: undefined,
+		deviceStorageDisclosureUrl: null,
 		features: vendor.features || [],
-		purposes: vendor.purposes || [],
+		id: vendor.id,
+		isCustom: true,
 		legIntPurposes: vendor.legIntPurposes || [],
+		legitimateInterestUrl: null,
+		name: vendor.name,
+		policyUrl: vendor.privacyPolicyUrl,
+		purposes: vendor.purposes || [],
+		specialFeatures: vendor.specialFeatures || [],
+		specialPurposes: [],
+		usesCookies: vendor.usesCookies ?? false,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		dataRetention: undefined,
-		isCustom: true,
+		usesNonCookieAccess: vendor.usesNonCookieAccess ?? false,
 	};
-}
+};
 
-function processPurposes(
+const processPurposes = function processPurposes(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[]
 ): HeadlessIABProcessedPurpose[] {
@@ -104,107 +107,101 @@ function processPurposes(
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
 			const iabVendorsForPurpose = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => {
-					return (
+				.filter(
+					([, vendor]) =>
 						vendor.purposes?.includes(purposeId) ||
 						vendor.legIntPurposes?.includes(purposeId)
-					);
-				})
+				)
 				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor, purposeId));
 
 			const customVendorsForPurpose = customVendors
-				.filter((vendor) => {
-					return (
+				.filter(
+					(vendor) =>
 						vendor.purposes?.includes(purposeId) ||
 						vendor.legIntPurposes?.includes(purposeId)
-					);
-				})
+				)
 				.map((vendor) => mapCustomVendor(vendor, purposeId));
 
 			return {
-				id: purposeId,
-				name: purpose.name,
 				description: purpose.description,
 				descriptionLegal: purpose.descriptionLegal,
+				id: purposeId,
 				illustrations: purpose.illustrations || [],
+				name: purpose.name,
 				vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
 			};
 		})
 		.filter((purpose) => purpose.vendors.length > 0);
-}
+};
 
-function processSpecialPurposes(
+const processSpecialPurposes = function processSpecialPurposes(
 	gvl: GlobalVendorList
 ): HeadlessIABProcessedPurpose[] {
 	return Object.entries(gvl.specialPurposes || {})
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
 			const vendorsForPurpose = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => {
-					return vendor.specialPurposes?.includes(purposeId);
-				})
+				.filter(([, vendor]) => vendor.specialPurposes?.includes(purposeId))
 				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor));
 
 			return {
-				id: purposeId,
-				name: purpose.name,
 				description: purpose.description,
 				descriptionLegal: purpose.descriptionLegal,
+				id: purposeId,
 				illustrations: purpose.illustrations || [],
-				vendors: vendorsForPurpose,
 				isSpecialPurpose: true,
+				name: purpose.name,
+				vendors: vendorsForPurpose,
 			};
 		})
 		.filter((purpose) => purpose.vendors.length > 0);
-}
+};
 
-function processSpecialFeatures(
+const processSpecialFeatures = function processSpecialFeatures(
 	gvl: GlobalVendorList
 ): HeadlessIABProcessedSpecialFeature[] {
 	return Object.entries(gvl.specialFeatures || {})
 		.map(([id, feature]) => {
 			const featureId = Number(id);
 			const vendorsForFeature = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => {
-					return vendor.specialFeatures?.includes(featureId);
-				})
+				.filter(([, vendor]) => vendor.specialFeatures?.includes(featureId))
 				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor));
 
 			return {
-				id: featureId,
-				name: feature.name,
 				description: feature.description,
 				descriptionLegal: feature.descriptionLegal,
+				id: featureId,
 				illustrations: feature.illustrations || [],
+				name: feature.name,
 				vendors: vendorsForFeature,
 			};
 		})
 		.filter((feature) => feature.vendors.length > 0);
-}
+};
 
-function processFeatures(gvl: GlobalVendorList): HeadlessIABProcessedFeature[] {
+const processFeatures = function processFeatures(
+	gvl: GlobalVendorList
+): HeadlessIABProcessedFeature[] {
 	return Object.entries(gvl.features || {})
 		.map(([id, feature]) => {
 			const featureId = Number(id);
 			const vendorsForFeature = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => {
-					return vendor.features?.includes(featureId);
-				})
+				.filter(([, vendor]) => vendor.features?.includes(featureId))
 				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor));
 
 			return {
-				id: featureId,
-				name: feature.name,
 				description: feature.description,
 				descriptionLegal: feature.descriptionLegal,
+				id: featureId,
 				illustrations: feature.illustrations || [],
+				name: feature.name,
 				vendors: vendorsForFeature,
 			};
 		})
 		.filter((feature) => feature.vendors.length > 0);
-}
+};
 
-function groupPurposesIntoStacks(
+const groupPurposesIntoStacks = function groupPurposesIntoStacks(
 	gvl: GlobalVendorList,
 	purposes: HeadlessIABProcessedPurpose[]
 ): Pick<HeadlessIABDialogData, 'stacks' | 'standalonePurposes'> {
@@ -217,12 +214,12 @@ function groupPurposesIntoStacks(
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 	const gvlStacks = gvl.stacks || {};
 
-	const stackScores: Array<{
+	const stackScores: {
 		stackId: number;
 		stack: (typeof gvlStacks)[number];
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
 		const coveredPurposeIds = stack.purposes.filter((purposeId) =>
@@ -230,10 +227,10 @@ function groupPurposesIntoStacks(
 		);
 		if (coveredPurposeIds.length >= 2) {
 			stackScores.push({
-				stackId: Number(stackIdStr),
-				stack,
 				coveredPurposeIds,
 				score: coveredPurposeIds.length,
+				stack,
+				stackId: Number(stackIdStr),
 			});
 		}
 	}
@@ -251,9 +248,9 @@ function groupPurposesIntoStacks(
 				unassignedPurposeIds.includes(purpose.id)
 			);
 			stacks.push({
+				description: stack.description,
 				id: stackId,
 				name: stack.name,
-				description: stack.description,
 				purposes: stackPurposes,
 			});
 			for (const purposeId of unassignedPurposeIds) {
@@ -270,7 +267,7 @@ function groupPurposesIntoStacks(
 		: uncoveredPurposes;
 
 	return { stacks, standalonePurposes };
-}
+};
 
 /**
  * Processes GVL data into a format suitable for the consent dialog UI.
@@ -278,7 +275,7 @@ function groupPurposesIntoStacks(
  * @param iab - IAB state with GVL and optional custom vendors
  * @returns Processed GVL data for rendering
  */
-export function processGVLForDialog(
+export const processGVLForDialog = function processGVLForDialog(
 	iab: HeadlessIABStateInput | null
 ): HeadlessIABDialogData {
 	if (!iab?.gvl) {
@@ -288,7 +285,7 @@ export function processGVLForDialog(
 		};
 	}
 
-	const gvl = iab.gvl;
+	const { gvl } = iab;
 	const customVendors = getCustomVendors(iab);
 	const purposes = processPurposes(gvl, customVendors);
 	const specialPurposes = processSpecialPurposes(gvl);
@@ -297,17 +294,17 @@ export function processGVLForDialog(
 	const { stacks, standalonePurposes } = groupPurposesIntoStacks(gvl, purposes);
 
 	return {
-		purposes,
-		specialPurposes,
-		specialFeatures,
 		features,
+		isLoading: Boolean(iab.isLoadingGVL || !iab.gvl),
+		isReady: true,
+		purposes,
+		specialFeatures,
+		specialPurposes,
 		stacks,
 		standalonePurposes,
 		totalVendors: Object.keys(gvl.vendors).length + customVendors.length,
-		isLoading: Boolean(iab.isLoadingGVL || !iab.gvl),
-		isReady: true,
 	};
-}
+};
 
 export type {
 	HeadlessIABDialogData as ProcessedGVLData,

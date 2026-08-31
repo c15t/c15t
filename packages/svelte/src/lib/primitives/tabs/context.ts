@@ -12,18 +12,21 @@ export interface TabsRootContextValue {
 	setValue: (value: string) => void;
 }
 
-export function setTabsRootContext(value: TabsRootContextValue) {
+export const setTabsRootContext = function setTabsRootContext(
+	value: TabsRootContextValue
+) {
 	setContext(TABS_ROOT_CONTEXT_KEY, value);
-}
+};
 
-export function getTabsRootContext(): TabsRootContextValue {
-	const context = getContext<TabsRootContextValue | undefined>(
-		TABS_ROOT_CONTEXT_KEY
-	);
+export const getTabsRootContext =
+	function getTabsRootContext(): TabsRootContextValue {
+		const context = getContext<TabsRootContextValue | undefined>(
+			TABS_ROOT_CONTEXT_KEY
+		);
 
-	if (!context) {
-		throw new Error('Tabs primitives must be used within Tabs.Root');
-	}
+		if (!context) {
+			throw new Error('Tabs primitives must be used within Tabs.Root');
+		}
 
-	return context;
-}
+		return context;
+	};

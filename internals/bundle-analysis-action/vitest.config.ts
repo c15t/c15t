@@ -2,8 +2,15 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
+		coverage: {
+			enabled: true,
+			include: ['src/**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
+			provider: 'istanbul',
+			reportOnFailure: true,
+			reporter: ['text', 'json-summary', 'json', 'html'],
+			reportsDirectory: './coverage',
+		},
 		environment: 'node',
-		include: ['src/**/*.test.ts'],
 		exclude: [
 			'**/node_modules/**',
 			'**/dist/**',
@@ -11,13 +18,6 @@ export default defineConfig({
 			'**/.cache/**',
 			'**/coverage/**',
 		],
-		coverage: {
-			provider: 'istanbul',
-			reporter: ['text', 'json-summary', 'json', 'html'],
-			reportOnFailure: true,
-			enabled: true,
-			reportsDirectory: './coverage',
-			include: ['src/**/*.ts', '!**/*.d.ts', '!**/node_modules/**'],
-		},
+		include: ['src/**/*.test.ts'],
 	},
 });

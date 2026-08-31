@@ -10,6 +10,7 @@
  * pointing the demo at a real Postgres.
  */
 import { defineConfig } from '@c15t/backend';
+
 import { createAdapter } from './lib/adapter';
 
 const { database } = await createAdapter();

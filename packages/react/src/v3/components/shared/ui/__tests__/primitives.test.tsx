@@ -6,9 +6,11 @@
 
 import type { ReactNode, RefObject } from 'react';
 import { describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import { GlobalThemeContext } from '~/v3/context/theme-context';
+import { userEvent } from 'vitest/browser';
+
+import { StableGlobalThemeProvider } from '~/v3/__tests__/stable-context-providers';
+
 import {
 	Content as AccordionContent,
 	Item as AccordionItem,
@@ -51,9 +53,9 @@ import {
 
 // Wrapper to provide theme context for accordion tests
 const ThemeWrapper = ({ children }: { children: ReactNode }) => (
-	<GlobalThemeContext.Provider value={{ noStyle: false }}>
+	<StableGlobalThemeProvider value={{ noStyle: false }}>
 		{children}
-	</GlobalThemeContext.Provider>
+	</StableGlobalThemeProvider>
 );
 
 describe('Button', () => {
@@ -543,9 +545,10 @@ describe('Accordion', () => {
 					const firstTrigger = document.querySelector(
 						'button[data-state="closed"]'
 					);
-					const secondTrigger = document.querySelectorAll('button')[1];
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					const secondTriggerLocal = document.querySelectorAll('button')[1];
 					expect(firstTrigger).toBeInTheDocument();
-					expect(secondTrigger?.getAttribute('data-state')).toBe('open');
+					expect(secondTriggerLocal?.getAttribute('data-state')).toBe('open');
 				},
 				{ timeout: 3000 }
 			);
@@ -777,7 +780,7 @@ describe('Dialog', () => {
 		await userEvent.click(trigger);
 
 		await vi.waitFor(() => {
-			const dialog = document.querySelector('[role="dialog"]');
+			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
 			expect(dialog?.getAttribute('aria-labelledby')).toBeTruthy();
 			expect(dialog?.getAttribute('aria-describedby')).toBeTruthy();
@@ -792,7 +795,7 @@ describe('Dialog', () => {
 		await userEvent.click(closeButton);
 
 		await vi.waitFor(() => {
-			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.querySelector('dialog[open]')).not.toBeInTheDocument();
 		});
 	});
 
@@ -811,7 +814,7 @@ describe('Dialog', () => {
 		trigger.focus();
 		await userEvent.click(trigger);
 
-		const dialog = document.querySelector('[role="dialog"]');
+		const dialog = document.querySelector('dialog[open]');
 		expect(dialog).toBeInstanceOf(HTMLElement);
 		if (!dialog) {
 			throw new Error('Expected dialog to exist');
@@ -820,7 +823,7 @@ describe('Dialog', () => {
 		await userEvent.keyboard('{Escape}');
 
 		await vi.waitFor(() => {
-			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.querySelector('dialog[open]')).not.toBeInTheDocument();
 			expect(document.activeElement).toBe(trigger);
 		});
 	});
@@ -841,7 +844,7 @@ describe('Dialog', () => {
 		await userEvent.click(trigger);
 
 		await vi.waitFor(() => {
-			const dialog = document.querySelector('[role="dialog"]');
+			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
 			// Focus trap moves focus into the dialog — either to the
 			// initialFocusRef element or to the dialog container itself.

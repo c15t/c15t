@@ -27,10 +27,12 @@ export interface ProcessedGVLData {
  * @param iab - The IAB manager instance
  * @returns Processed GVL data for rendering
  */
-export function processGVLForDialog(iab: IABManager | null): ProcessedGVLData {
+export const processGVLForDialog = function processGVLForDialog(
+	iab: IABManager | null
+): ProcessedGVLData {
 	if (!iab?.gvl) {
 		return { isReady: false };
 	}
 
 	return { isReady: true };
-}
+};

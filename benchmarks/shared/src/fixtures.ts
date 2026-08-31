@@ -1,4 +1,5 @@
 import type { Script, Translations } from '@c15t/core';
+
 import type { BenchmarkFixtureDescriptor } from './schema';
 
 export interface CoreBenchmarkFixture extends BenchmarkFixtureDescriptor {
@@ -15,21 +16,21 @@ const SUPPORTED_CONSENT_CATEGORIES = [
 	'measurement',
 ] as const;
 
-function createScripts(count: number): Script[] {
+const createScripts = function createScripts(count: number): Script[] {
 	return Array.from({ length: count }, (_, index) => {
 		const category =
 			SUPPORTED_CONSENT_CATEGORIES[
 				index % SUPPORTED_CONSENT_CATEGORIES.length
 			] ?? 'measurement';
 		return {
+			category,
 			id: `script-${index + 1}`,
 			src: `https://cdn.example.com/script-${index + 1}.js`,
-			category,
 		};
 	});
-}
+};
 
-function createTranslations(
+const createTranslations = function createTranslations(
 	localeCount: number
 ): Record<string, Partial<Translations>> {
 	const entries: Record<string, Partial<Translations>> = {};
@@ -75,25 +76,25 @@ function createTranslations(
 		entries[locale] = {
 			common: {
 				acceptAll: `Accept All ${locale}`,
-				rejectAll: `Reject All ${locale}`,
 				customize: `Customize ${locale}`,
+				rejectAll: `Reject All ${locale}`,
 				save: `Save ${locale}`,
 			},
-			cookieBanner: {
-				title: `Consent Banner ${locale}`,
-				description: `Benchmark fixture translation payload for ${locale}.`,
-			},
 			consentManagerDialog: {
-				title: `Preference Center ${locale}`,
 				description: `Benchmark fixture preference center payload for ${locale}.`,
+				title: `Preference Center ${locale}`,
+			},
+			cookieBanner: {
+				description: `Benchmark fixture translation payload for ${locale}.`,
+				title: `Consent Banner ${locale}`,
 			},
 		};
 	}
 
 	return entries;
-}
+};
 
-function createFixture(
+const createFixture = function createFixture(
 	name: string,
 	consentCount: number,
 	scriptCount: number,
@@ -101,19 +102,15 @@ function createFixture(
 	themeComplexity: 'minimal' | 'complex'
 ): CoreBenchmarkFixture {
 	return {
-		name,
-		consentCount,
-		scriptCount,
-		localeCount,
-		themeComplexity,
 		consentCategories: [
 			...SUPPORTED_CONSENT_CATEGORIES.slice(
 				0,
 				Math.min(consentCount, SUPPORTED_CONSENT_CATEGORIES.length)
 			),
 		],
-		scripts: createScripts(scriptCount),
-		translations: createTranslations(localeCount),
+		consentCount,
+		localeCount,
+		name,
 		notes: [
 			...(themeComplexity === 'complex'
 				? ['includes heavier theme tokens and translation payloads']
@@ -124,14 +121,18 @@ function createFixture(
 					]
 				: []),
 		],
+		scriptCount,
+		scripts: createScripts(scriptCount),
+		themeComplexity,
+		translations: createTranslations(localeCount),
 	};
-}
+};
 
 export const coreFixtures = {
-	tiny: createFixture('tiny', 3, 0, 1, 'minimal'),
-	small: createFixture('small', 8, 3, 4, 'minimal'),
-	medium: createFixture('medium', 15, 7, 8, 'minimal'),
 	large: createFixture('large', 30, 15, 16, 'complex'),
+	medium: createFixture('medium', 15, 7, 8, 'minimal'),
+	small: createFixture('small', 8, 3, 4, 'minimal'),
+	tiny: createFixture('tiny', 3, 0, 1, 'minimal'),
 	xlarge: createFixture('xlarge', 30, 30, 34, 'complex'),
 } satisfies Record<string, CoreBenchmarkFixture>;
 

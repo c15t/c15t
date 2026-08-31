@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import {
 	prefetchInitialConsent,
 	readInitialConsentConfig,
@@ -26,9 +27,9 @@ describe('extractRelevantHeaders', () => {
 
 	test('extracts only relevant headers, ignores others', () => {
 		const headers = new Headers({
+			authorization: 'Bearer token',
 			'cf-ipcountry': 'DE',
 			'content-type': 'application/json',
-			authorization: 'Bearer token',
 		});
 		const result = extractRelevantHeaders(headers);
 		expect(result['cf-ipcountry']).toBe('DE');
@@ -71,8 +72,8 @@ describe('extractRelevantHeaders', () => {
 
 	test('region priority: x-vercel-ip-country-region wins over x-region-code', () => {
 		const headers = new Headers({
-			'x-vercel-ip-country-region': 'CA',
 			'x-region-code': 'NY',
+			'x-vercel-ip-country-region': 'CA',
 		});
 		const result = extractRelevantHeaders(headers);
 		expect(result['x-c15t-region']).toBe('CA');
@@ -96,13 +97,13 @@ describe('extractRelevantHeaders', () => {
 
 	test('extracts all relevant headers when present', () => {
 		const headers = new Headers({
-			'cf-ipcountry': 'DE',
-			'x-vercel-ip-country-region': 'BY',
 			'accept-language': 'de-DE',
-			'user-agent': 'Mozilla/5.0',
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-for': '1.2.3.4',
+			'cf-ipcountry': 'DE',
 			'sec-gpc': '1',
+			'user-agent': 'Mozilla/5.0',
+			'x-forwarded-for': '1.2.3.4',
+			'x-forwarded-host': 'example.com',
+			'x-vercel-ip-country-region': 'BY',
 		});
 		const result = extractRelevantHeaders(headers);
 		expect(result['cf-ipcountry']).toBe('DE');
@@ -118,10 +119,10 @@ describe('extractRelevantHeaders', () => {
 
 	test('preserves explicit x-c15t override headers over infra headers', () => {
 		const headers = new Headers({
-			'x-c15t-country': 'NL',
 			'cf-ipcountry': 'DE',
-			'x-c15t-region': 'NH',
 			'cf-region-code': 'BY',
+			'x-c15t-country': 'NL',
+			'x-c15t-region': 'NH',
 		});
 		const result = extractRelevantHeaders(headers);
 		expect(result['x-c15t-country']).toBe('NL');
@@ -168,7 +169,7 @@ describe('validateBackendURL', () => {
 
 	test('URL without / or https:// throws', () => {
 		expect(() => validateBackendURL('api/consent')).toThrow(
-			/Invalid URL format/
+			/Invalid URL format/u
 		);
 	});
 
@@ -279,6 +280,7 @@ describe('v3 server helpers', () => {
 	});
 
 	test('readInitialConsentConfig reads geo, language, and consent cookie', async () => {
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 			'x-vercel-ip-country-region': 'BE',
@@ -292,8 +294,8 @@ describe('v3 server helpers', () => {
 
 		expect(result.initialOverrides).toEqual({
 			country: 'DE',
-			region: 'BE',
 			language: 'de',
+			region: 'BE',
 		});
 		expect(result.initialConsents?.marketing).toBe(true);
 	});
@@ -304,8 +306,8 @@ describe('v3 server helpers', () => {
 		});
 		const result = await prefetchInitialConsent({
 			backendURL: '/api/consent',
-			headers,
 			fetch: mockFetch,
+			headers,
 		});
 		expect(result.initialOverrides?.country).toBe('DE');
 		expect(mockFetch).not.toHaveBeenCalled();
@@ -313,13 +315,13 @@ describe('v3 server helpers', () => {
 
 	test('prefetchInitialConsent calls normalized URL /init', async () => {
 		const initData = {
-			location: { countryCode: 'DE', regionCode: null },
 			branding: 'c15t',
+			location: { countryCode: 'DE', regionCode: null },
 		};
 		mockFetch.mockResolvedValue(
 			new Response(JSON.stringify(initData), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
@@ -328,8 +330,8 @@ describe('v3 server helpers', () => {
 		});
 		await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
-			headers,
 			fetch: mockFetch,
+			headers,
 		});
 
 		expect(mockFetch).toHaveBeenCalledOnce();
@@ -339,20 +341,20 @@ describe('v3 server helpers', () => {
 
 	test('prefetchInitialConsent folds init response into KernelConfig', async () => {
 		const initData = {
-			location: { countryCode: 'DE', regionCode: null },
-			translations: { language: 'en', translations: {} },
 			branding: 'c15t',
-			policy: { id: 'gdpr', model: 'opt-in', ui: { mode: 'banner' } },
-			policySnapshotToken: 'token',
-			gvl: { vendors: {}, purposes: {}, stacks: {}, specialFeatures: {} },
-			customVendors: [],
 			cmpId: 123,
 			consents: { marketing: true },
+			customVendors: [],
+			gvl: { purposes: {}, specialFeatures: {}, stacks: {}, vendors: {} },
+			location: { countryCode: 'DE', regionCode: null },
+			policy: { id: 'gdpr', model: 'opt-in', ui: { mode: 'banner' } },
+			policySnapshotToken: 'token',
+			translations: { language: 'en', translations: {} },
 		};
 		mockFetch.mockResolvedValue(
 			new Response(JSON.stringify(initData), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
@@ -361,8 +363,8 @@ describe('v3 server helpers', () => {
 		});
 		const result = await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
-			headers,
 			fetch: mockFetch,
+			headers,
 		});
 
 		expect(result.initialLocation).toEqual(initData.location);
@@ -383,8 +385,8 @@ describe('v3 server helpers', () => {
 		});
 		const result = await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
-			headers,
 			fetch: mockFetch,
+			headers,
 		});
 
 		expect(result.initialOverrides?.country).toBe('DE');
@@ -399,8 +401,8 @@ describe('v3 server helpers', () => {
 		});
 		const result = await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
-			headers,
 			fetch: mockFetch,
+			headers,
 		});
 
 		expect(result.initialOverrides?.country).toBe('DE');

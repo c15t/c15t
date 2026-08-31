@@ -1,54 +1,55 @@
 <script lang="ts">
-import type { AccordionType } from '@c15t/ui/primitives';
-import { toggleAccordionValue } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { setAccordionRootContext } from './context';
+	import type { AccordionType } from '@c15t/ui/primitives';
+	import { toggleAccordionValue } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-let {
-	children,
-	class: className,
-	collapsible = false,
-	type,
-	value = $bindable<string | string[] | undefined>(
-		type === 'multiple' ? [] : undefined
-	),
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-	collapsible?: boolean;
-	type: AccordionType;
-	value?: string | string[];
-} = $props();
+	import { setAccordionRootContext } from './context';
 
-function setValue(nextValue: string | string[] | undefined) {
-	value = nextValue;
-}
+	let {
+		children,
+		class: className,
+		collapsible = false,
+		type,
+		value = $bindable<string | string[] | undefined>(
+			type === 'multiple' ? [] : undefined
+		),
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		collapsible?: boolean;
+		type: AccordionType;
+		value?: string | string[];
+	} = $props();
 
-function toggleItem(itemValue: string) {
-	setValue(
-		toggleAccordionValue({
-			collapsible,
-			itemValue,
-			type,
-			value,
-		})
-	);
-}
+	const setValue = function setValue(nextValue: string | string[] | undefined) {
+		value = nextValue;
+	};
 
-setAccordionRootContext({
-	get collapsible() {
-		return collapsible;
-	},
-	get type() {
-		return type;
-	},
-	get value() {
-		return value;
-	},
-	toggleItem,
-});
+	const toggleItem = function toggleItem(itemValue: string) {
+		setValue(
+			toggleAccordionValue({
+				collapsible,
+				itemValue,
+				type,
+				value,
+			})
+		);
+	};
+
+	setAccordionRootContext({
+		get collapsible() {
+			return collapsible;
+		},
+		toggleItem,
+		get type() {
+			return type;
+		},
+		get value() {
+			return value;
+		},
+	});
 </script>
 
 <div

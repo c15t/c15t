@@ -1,6 +1,6 @@
 import type { PolicyUiSurfaceConfig } from './policy-runtime';
 
-export function dedupeDefinedValues<T>(
+export const dedupeDefinedValues = function dedupeDefinedValues<T>(
 	values?: readonly T[] | null
 ): T[] | undefined {
 	if (!values || values.length === 0) {
@@ -8,9 +8,9 @@ export function dedupeDefinedValues<T>(
 	}
 
 	return [...new Set(values)];
-}
+};
 
-export function dedupeTrimmedStrings(
+export const dedupeTrimmedStrings = function dedupeTrimmedStrings(
 	values?: readonly string[] | null
 ): string[] | undefined {
 	if (!values || values.length === 0) {
@@ -21,11 +21,11 @@ export function dedupeTrimmedStrings(
 		...new Set(values.map((value) => value.trim()).filter(Boolean)),
 	];
 	return normalized.length > 0 ? normalized : undefined;
-}
+};
 
-export function compactDefined<T extends Record<string, unknown>>(
-	value: T
-): T | undefined {
+export const compactDefined = function compactDefined<
+	T extends Record<string, unknown>,
+>(value: T): T | undefined {
 	const entries = Object.entries(value).filter(
 		([, field]) => field !== undefined
 	);
@@ -34,9 +34,9 @@ export function compactDefined<T extends Record<string, unknown>>(
 	}
 
 	return Object.fromEntries(entries) as T;
-}
+};
 
-export function hasRealPolicyUiHints(
+export const hasRealPolicyUiHints = function hasRealPolicyUiHints(
 	surface?: PolicyUiSurfaceConfig | null
 ): boolean {
 	if (!surface) {
@@ -50,4 +50,4 @@ export function hasRealPolicyUiHints(
 
 		return value !== undefined;
 	});
-}
+};

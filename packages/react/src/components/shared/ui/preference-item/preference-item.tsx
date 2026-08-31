@@ -7,35 +7,34 @@ import {
 	PREFERENCE_ITEM_SLOTS,
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives/preference-item';
-import {
-	type PreferenceItemVariantsProps,
-	preferenceItemVariants,
-} from '@c15t/ui/styles/primitives/preference-item';
+import { preferenceItemVariants } from '@c15t/ui/styles/primitives/preference-item';
+import type { PreferenceItemVariantsProps } from '@c15t/ui/styles/primitives/preference-item';
 import {
 	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
+	forwardRef as createForwardRef,
 	useContext,
 	useId,
+	useMemo,
 } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
+
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';
 
-type PreferenceItemContextValue = {
+interface PreferenceItemContextValue {
 	contentId: string;
 	disabled?: boolean;
 	noStyle?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
-};
+}
 
 const PreferenceItemContext = createContext<PreferenceItemContextValue | null>(
 	null
 );
 
-function usePreferenceItemContext() {
+const usePreferenceItemContext = function usePreferenceItemContext() {
 	const context = useContext(PreferenceItemContext);
 
 	if (!context) {
@@ -45,11 +44,10 @@ function usePreferenceItemContext() {
 	}
 
 	return context;
-}
+};
 
 export interface PreferenceItemRootProps
-	extends HTMLAttributes<HTMLDivElement>,
-		PreferenceItemVariantsProps {
+	extends HTMLAttributes<HTMLDivElement>, PreferenceItemVariantsProps {
 	children: ReactNode;
 	defaultOpen?: boolean;
 	disabled?: boolean;
@@ -58,7 +56,10 @@ export interface PreferenceItemRootProps
 	open?: boolean;
 }
 
-const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
+const PreferenceItemRoot = createForwardRef<
+	HTMLDivElement,
+	PreferenceItemRootProps
+>(
 	(
 		{
 			children,
@@ -79,20 +80,22 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			onChange: onOpenChange,
 			value: open,
 		});
-		const reactId = useId().replace(/:/g, '');
+		const reactId = useId().replace(/:/gu, '');
 		const finalNoStyle = contextNoStyle || noStyle;
+		const contextValue = useMemo(
+			() => ({
+				contentId: `c15t-preference-item-content-${reactId}`,
+				disabled,
+				noStyle: finalNoStyle,
+				open: isOpen,
+				setOpen: setIsOpen,
+				triggerId: `c15t-preference-item-trigger-${reactId}`,
+			}),
+			[disabled, finalNoStyle, isOpen, reactId, setIsOpen]
+		);
 
 		return (
-			<PreferenceItemContext.Provider
-				value={{
-					contentId: `c15t-preference-item-content-${reactId}`,
-					disabled,
-					noStyle: finalNoStyle,
-					open: isOpen,
-					setOpen: setIsOpen,
-					triggerId: `c15t-preference-item-trigger-${reactId}`,
-				}}
-			>
+			<PreferenceItemContext.Provider value={contextValue}>
 				<div
 					ref={forwardedRef}
 					className={
@@ -112,12 +115,14 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 
 PreferenceItemRoot.displayName = 'PreferenceItemRoot';
 
-export interface PreferenceItemTriggerProps
-	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface PreferenceItemTriggerProps extends Omit<
+	React.ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	noStyle?: boolean;
 }
 
-const PreferenceItemTrigger = forwardRef<
+const PreferenceItemTrigger = createForwardRef<
 	HTMLButtonElement,
 	PreferenceItemTriggerProps
 >(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
@@ -163,17 +168,16 @@ const PreferenceItemTrigger = forwardRef<
 
 PreferenceItemTrigger.displayName = 'PreferenceItemTrigger';
 
-export interface PreferenceItemSlotProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface PreferenceItemSlotProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
 }
 
-function createSlotComponent(
+const createSlotComponent = function createSlotComponent(
 	displayName: string,
 	slot: (typeof PREFERENCE_ITEM_SLOTS)[keyof typeof PREFERENCE_ITEM_SLOTS],
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
 ) {
-	const Component = forwardRef<HTMLDivElement, PreferenceItemSlotProps>(
+	const Component = createForwardRef<HTMLDivElement, PreferenceItemSlotProps>(
 		({ className, noStyle, ...rest }, forwardedRef) => {
 			const { noStyle: contextNoStyle } = useTheme();
 			const { noStyle: rootNoStyle } = usePreferenceItemContext();
@@ -197,7 +201,7 @@ function createSlotComponent(
 
 	Component.displayName = displayName;
 	return Component;
-}
+};
 
 const PreferenceItemLeading = createSlotComponent(
 	'PreferenceItemLeading',
@@ -229,15 +233,14 @@ const PreferenceItemControl = createSlotComponent(
 	'control'
 );
 
-export interface PreferenceItemTitleProps
-	extends HTMLAttributes<HTMLHeadingElement> {
+export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 	noStyle?: boolean;
 }
 
-const PreferenceItemTitle = forwardRef<
+const PreferenceItemTitle = createForwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
->(({ className, noStyle, ...rest }, forwardedRef) => {
+>(({ children, className, noStyle, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
 	const variants = preferenceItemVariants();
@@ -251,19 +254,20 @@ const PreferenceItemTitle = forwardRef<
 			}
 			data-slot={PREFERENCE_ITEM_SLOTS.title}
 			{...rest}
-		/>
+		>
+			{children}
+		</h3>
 	);
 });
 
 PreferenceItemTitle.displayName = 'PreferenceItemTitle';
 
-export interface PreferenceItemContentProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElement> {
 	innerClassName?: string;
 	noStyle?: boolean;
 }
 
-const PreferenceItemContent = forwardRef<
+const PreferenceItemContent = createForwardRef<
 	HTMLDivElement,
 	PreferenceItemContentProps
 >(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {

@@ -52,7 +52,7 @@ export type {
  * @param input - The adapter's provider options (structural subset).
  * @returns The transport kind to report on `window.c15t`.
  */
-export function resolveWindowDebugMode(
+export const resolveWindowDebugMode = function resolveWindowDebugMode(
 	input: WindowDebugModeInput
 ): WindowDebugMode {
 	const mode = input.mode ?? (input.backendURL ? 'hosted' : 'offline');
@@ -63,14 +63,16 @@ export function resolveWindowDebugMode(
 		return 'hosted';
 	}
 	return 'offline';
-}
+};
 
 type WindowWithC15tDebug = Window & {
 	c15t?: C15tWindowDebug;
 };
 
 const inertHandle: WindowDebugHandle = {
-	dispose() {},
+	dispose() {
+		/* empty */
+	},
 };
 
 /**
@@ -90,7 +92,7 @@ const inertHandle: WindowDebugHandle = {
  * handle.dispose();
  * ```
  */
-export function createWindowDebug(
+export const createWindowDebug = function createWindowDebug(
 	options: WindowDebugOptions
 ): WindowDebugHandle {
 	if (typeof window === 'undefined') {
@@ -99,9 +101,9 @@ export function createWindowDebug(
 
 	const target = window as WindowWithC15tDebug;
 	const installed: C15tWindowDebug = Object.freeze({
-		version,
-		pkg: options.pkg,
 		mode: options.mode,
+		pkg: options.pkg,
+		version,
 	});
 
 	try {
@@ -124,4 +126,4 @@ export function createWindowDebug(
 			}
 		},
 	};
-}
+};

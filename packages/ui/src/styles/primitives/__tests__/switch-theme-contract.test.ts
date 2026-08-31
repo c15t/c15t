@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import { describe, expect, test } from 'vitest';
 
 const packageRoot = existsSync(
@@ -35,7 +36,7 @@ describe('switch theme contract', () => {
 		expect(switchCss).toContain(
 			'background-color: var(--switch-background-color);'
 		);
-		expect(switchCss).toContain('.root[data-state="checked"] .track {');
+		expect(switchCss).toContain(".root[data-state='checked'] .track {");
 		expect(switchCss).toContain(
 			'background-color: var(--switch-background-color-checked);'
 		);

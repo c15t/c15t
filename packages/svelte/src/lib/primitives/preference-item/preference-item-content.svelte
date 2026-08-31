@@ -1,39 +1,40 @@
 <script lang="ts">
-import {
-	getPreferenceItemState,
-	PREFERENCE_ITEM_INTERNAL_SLOTS,
-	PREFERENCE_ITEM_SLOTS,
-} from '@c15t/ui/primitives';
-import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getPreferenceItemContext } from './context';
+	import {
+		getPreferenceItemState,
+		PREFERENCE_ITEM_INTERNAL_SLOTS,
+		PREFERENCE_ITEM_SLOTS,
+	} from '@c15t/ui/primitives';
+	import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const context = getPreferenceItemContext();
-const variants = preferenceItemVariants();
+	import { getPreferenceItemContext } from './context';
 
-const open = $derived(context.open);
-const triggerId = $derived(context.triggerId);
-const contentId = $derived(context.contentId);
-const dataState = $derived(getPreferenceItemState(open));
-const contentClassName = $derived.by(() =>
-	variants.content({ class: localClassName })
-);
-const viewportClassName = $derived.by(() => variants.contentViewport());
-const innerClassNameValue = $derived.by(() =>
-	variants.contentInner({ class: innerClassName })
-);
+	const context = getPreferenceItemContext();
+	const variants = preferenceItemVariants();
 
-let {
-	children,
-	class: localClassName,
-	innerClassName,
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-	innerClassName?: string;
-} = $props();
+	let {
+		children,
+		class: localClassName,
+		innerClassName,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		innerClassName?: string;
+	} = $props();
+
+	const open = $derived(context.open);
+	const triggerId = $derived(context.triggerId);
+	const contentId = $derived(context.contentId);
+	const dataState = $derived(getPreferenceItemState(open));
+	const contentClassName = $derived.by(() =>
+		variants.content({ class: localClassName })
+	);
+	const viewportClassName = $derived.by(() => variants.contentViewport());
+	const innerClassNameValue = $derived.by(() =>
+		variants.contentInner({ class: innerClassName })
+	);
 </script>
 
 <div

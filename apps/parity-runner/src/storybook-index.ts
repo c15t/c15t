@@ -4,17 +4,18 @@
  */
 
 import { request } from '@playwright/test';
+
 import type { StoryEntry } from './pair-stories';
 
-type RawStorybookIndex = {
+interface RawStorybookIndex {
 	entries?: Record<
 		string,
 		{ id: string; title: string; name: string; type?: string }
 	>;
 	stories?: Record<string, { id: string; title: string; name: string }>;
-};
+}
 
-export async function loadStorybookIndex(
+export const loadStorybookIndex = async function loadStorybookIndex(
 	baseUrl: string
 ): Promise<StoryEntry[]> {
 	const ctx = await request.newContext();
@@ -30,8 +31,8 @@ export async function loadStorybookIndex(
 		const source = raw.entries ?? raw.stories ?? {};
 		return Object.values(source)
 			.filter((e) => !('type' in e) || e.type === 'story')
-			.map((e) => ({ id: e.id, title: e.title, name: e.name }));
+			.map((e) => ({ id: e.id, name: e.name, title: e.title }));
 	} finally {
 		await ctx.dispose();
 	}
-}
+};

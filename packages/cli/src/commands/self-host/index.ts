@@ -1,23 +1,40 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import { migrate } from './migrate';
 
 // Define self-host subcommands
 const subcommands = [
 	{
-		name: 'migrate',
-		label: 'Migrate database',
-		hint: 'Run latest database migrations',
 		action: migrate,
+		hint: 'Run latest database migrations',
+		label: 'Migrate database',
+		name: 'migrate',
 	},
 ];
+
+interface SelfHostDependencies {
+	isCancel: typeof p.isCancel;
+	migrate: typeof migrate;
+	select: typeof p.select;
+}
+
+const defaultSelfHostDependencies: SelfHostDependencies = {
+	isCancel: p.isCancel,
+	migrate,
+	select: p.select,
+};
 
 /**
  * Self-host command - parent command for self-hosting related functionality
  */
-export async function selfHost(context: CliContext) {
+export const selfHost = async function selfHost(
+	context: CliContext,
+	dependencies: SelfHostDependencies = defaultSelfHostDependencies
+) {
 	const { logger, telemetry, commandArgs, error } = context;
 	logger.debug('Starting self-host command...');
 
@@ -30,15 +47,15 @@ export async function selfHost(context: CliContext) {
 		// If subcommand is provided, execute it directly
 		switch (subcommand) {
 			case 'migrate':
-				await migrate(context);
+				await dependencies.migrate(context);
 				break;
 			default:
 				logger.error(`Unknown self-host subcommand: ${subcommand}`);
 				logger.info('Available subcommands: migrate');
 				logger.info('Usage: c15t self-host <migrate>');
 				telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-					success: false,
 					reason: 'unknown_subcommand',
+					success: false,
 				});
 				return;
 		}
@@ -52,18 +69,18 @@ export async function selfHost(context: CliContext) {
 	});
 
 	const promptOptions = subcommands.map((cmd) => ({
-		value: cmd.name,
-		label: cmd.label,
 		hint: cmd.hint,
+		label: cmd.label,
+		value: cmd.name,
 	}));
 
 	promptOptions.push({
-		value: 'exit',
-		label: 'Exit',
 		hint: 'Close the CLI',
+		label: 'Exit',
+		value: 'exit',
 	});
 
-	const selectedSubcommandName = await p.select({
+	const selectedSubcommandName = await dependencies.select({
 		message: formatLogMessage(
 			'info',
 			'Which self-host task would you like to run?'
@@ -71,7 +88,7 @@ export async function selfHost(context: CliContext) {
 		options: promptOptions,
 	});
 
-	if (p.isCancel(selectedSubcommandName)) {
+	if (dependencies.isCancel(selectedSubcommandName)) {
 		logger.debug('Self-host interactive selection cancelled.');
 		telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
 			action: 'cancelled',
@@ -100,12 +117,12 @@ export async function selfHost(context: CliContext) {
 
 	if (selectedSubcommand) {
 		logger.debug(`User selected subcommand: ${selectedSubcommand.name}`);
-		await selectedSubcommand.action(context);
+		await dependencies.migrate(context);
 	} else {
 		logger.error(`Unknown subcommand: ${selectedSubcommandName}`);
 		telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-			success: false,
 			reason: 'invalid_selection',
+			success: false,
 		});
 		return;
 	}
@@ -113,4 +130,4 @@ export async function selfHost(context: CliContext) {
 	telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
 		success: true,
 	});
-}
+};

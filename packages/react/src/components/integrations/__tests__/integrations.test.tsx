@@ -1,21 +1,61 @@
-import { type ConsentStoreState, defaultTranslationConfig } from '@c15t/core';
-import { createRef, type ReactNode, useRef, useState } from 'react';
+import { defaultTranslationConfig } from '@c15t/core';
+import type { ConsentStoreState } from '@c15t/core';
+import { createRef, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentStateContext } from '~/context/consent-manager-context';
+
+import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
 import { useConsentScript } from '~/hooks/use-consent-script';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
-import { GoogleMap } from '../google-map';
-import { YouTubeEmbed, type YouTubeEmbedProps } from '../youtube-embed';
 
-async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
+import { GoogleMap } from '../google-map';
+import { YouTubeEmbed } from '../youtube-embed';
+import type { YouTubeEmbedProps } from '../youtube-embed';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createConstructorMock = <Instance extends object>(
+	factory: () => Instance
+) =>
+	vi.fn(
+		new Proxy(Object, {
+			construct: () => factory(),
+		})
+	);
+
+const waitFor = function waitFor(
+	assertion: () => undefined | boolean,
+	timeoutMs = 1000
+) {
 	const start = Date.now();
 	let lastError: unknown;
 
-	while (Date.now() - start < timeoutMs) {
+	const poll = async (): Promise<void> => {
 		try {
 			const result = assertion();
 			if (result !== false) {
@@ -24,30 +64,37 @@ async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 		} catch (error) {
 			lastError = error;
 		}
-		await new Promise((resolve) => setTimeout(resolve, 20));
-	}
+		if (Date.now() - start >= timeoutMs) {
+			if (lastError) {
+				throw lastError;
+			}
+			throw new Error('Timed out waiting for assertion');
+		}
+		await createDeferredPromise((resolve) => setTimeout(resolve, 20));
+		return poll();
+	};
 
-	if (lastError) {
-		throw lastError;
-	}
-	throw new Error('Timed out waiting for assertion');
-}
+	return poll();
+};
 
-function Provider({ children }: { children: ReactNode }) {
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-				noStyle: true,
-			}}
-		>
-			{children}
-		</ConsentManagerProvider>
-	);
-}
+const Provider = ({ children }: { children: ReactNode }) => (
+	<ConsentManagerProvider
+		options={{
+			mode: 'offline',
+			noStyle: true,
+		}}
+	>
+		{children}
+	</ConsentManagerProvider>
+);
 
-function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
+const createMockConsentState = function createMockConsentState(
+	overrides: Partial<ConsentStoreState> = {}
+) {
 	const state = {
+		consentCategories: ['necessary'],
+		consentInfo: null,
+		consentTypes: [],
 		consents: {
 			experience: false,
 			functionality: false,
@@ -55,59 +102,57 @@ function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
 			measurement: false,
 			necessary: true,
 		},
-		consentInfo: null,
-		consentCategories: ['necessary'],
-		consentTypes: [],
+		getDisplayedConsents: () => [],
 		loadedScripts: {},
 		policyCategories: ['*'],
 		policyScopeMode: 'permissive',
-		scripts: [],
-		translationConfig: defaultTranslationConfig,
 		removeScript: vi.fn(),
+		scripts: [],
 		setScripts: vi.fn(),
 		subscribeToConsentChanges: () => () => undefined,
-		getDisplayedConsents: () => [],
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
 
 	return state;
-}
+};
 
-function MockConsentProvider({
+const MockConsentProvider = ({
 	children,
 	state,
 }: {
 	children: ReactNode;
 	state: ConsentStoreState;
-}) {
-	const stateRef = useRef(state);
-	stateRef.current = state;
-	const storeRef = useRef({
-		getState: () => stateRef.current,
-		setState: () => undefined,
-		subscribe: () => () => undefined,
-	});
+}) => {
+	const store = useMemo(
+		() => ({
+			getState: () => state,
+			setState: () => undefined,
+			subscribe: () => () => undefined,
+		}),
+		[state]
+	);
 
 	return (
-		<ConsentStateContext.Provider
+		<StableConsentStateProvider
 			value={{
-				state,
-				store: storeRef.current,
 				manager: null,
+				state,
+				store,
 			}}
 		>
 			{children}
-		</ConsentStateContext.Provider>
+		</StableConsentStateProvider>
 	);
-}
+};
 
-function ConsentScriptProbe({
+const ConsentScriptProbe = ({
 	retryKey,
 	script,
 }: {
 	retryKey?: string | number;
 	script: Parameters<typeof useConsentScript>[0]['script'];
-}) {
+}) => {
 	const result = useConsentScript({ retryKey, script });
 	let readyText = 'missing-ready-promise';
 	if (result.ready) {
@@ -121,22 +166,22 @@ function ConsentScriptProbe({
 			<span>{result.error?.message}</span>
 		</div>
 	);
-}
+};
 
-function InlineConsentScriptProbe({ onLoad }: { onLoad: () => void }) {
+const InlineConsentScriptProbe = ({ onLoad }: { onLoad: () => void }) => {
 	const result = useConsentScript({
 		script: {
-			id: 'inline-script',
-			src: 'https://example.com/inline.js',
 			category: 'necessary',
+			id: 'inline-script',
 			onLoad: () => onLoad(),
+			src: 'https://example.com/inline.js',
 		},
 	});
 
 	return <span>{result.status}</span>;
-}
+};
 
-function ToggleGoogleMap({ onReady }: { onReady: () => void }) {
+const ToggleGoogleMap = ({ onReady }: { onReady: () => void }) => {
 	const [visible, setVisible] = useState(true);
 
 	return (
@@ -158,9 +203,9 @@ function ToggleGoogleMap({ onReady }: { onReady: () => void }) {
 			)}
 		</>
 	);
-}
+};
 
-function UpdatingGoogleMap() {
+const UpdatingGoogleMap = () => {
 	const [renderCount, setRenderCount] = useState(0);
 	const [useAlternateView, setUseAlternateView] = useState(false);
 
@@ -203,7 +248,7 @@ function UpdatingGoogleMap() {
 			/>
 		</>
 	);
-}
+};
 
 describe('renderable integrations', () => {
 	beforeEach(() => {
@@ -227,7 +272,7 @@ describe('renderable integrations', () => {
 			</Provider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(container.querySelector('iframe')).toBeNull();
 		expect(container.textContent).toContain('Marketing');
@@ -361,7 +406,7 @@ describe('renderable integrations', () => {
 			</Provider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(container.querySelector('iframe')).toBeNull();
 		expect(container.textContent).toContain(
@@ -385,8 +430,8 @@ describe('renderable integrations', () => {
 				measurement: false,
 				necessary: true,
 			},
-			setScripts,
 			removeScript,
+			setScripts,
 		});
 
 		const { container } = await render(
@@ -402,7 +447,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(removeScript).not.toHaveBeenCalled();
@@ -424,7 +469,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain(
@@ -483,7 +528,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('requires an API key');
@@ -506,7 +551,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('Consent required first');
@@ -526,9 +571,9 @@ describe('renderable integrations', () => {
 			<MockConsentProvider state={state}>
 				<ConsentScriptProbe
 					script={{
+						category: 'necessary',
 						id: 'pending-script',
 						src: 'https://example.com/pending.js',
-						category: 'necessary',
 					}}
 				/>
 			</MockConsentProvider>
@@ -543,11 +588,8 @@ describe('renderable integrations', () => {
 	test('does not re-register inline script objects or lifecycle callbacks', async () => {
 		const onLoad = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			script?.onLoad?.({
-				id: script.id,
-				elementId: script.id,
-				hasConsent: true,
 				consents: {
 					experience: false,
 					functionality: false,
@@ -555,6 +597,9 @@ describe('renderable integrations', () => {
 					measurement: false,
 					necessary: true,
 				},
+				elementId: script.id,
+				hasConsent: true,
+				id: script.id,
 			});
 		});
 		const state = createMockConsentState({ setScripts });
@@ -568,7 +613,7 @@ describe('renderable integrations', () => {
 		await waitFor(() => {
 			expect(container.textContent).toContain('ready');
 		});
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 50));
 
 		expect(setScripts).toHaveBeenCalledTimes(1);
 		expect(onLoad).toHaveBeenCalledTimes(1);
@@ -576,9 +621,9 @@ describe('renderable integrations', () => {
 
 	test('adopts but never removes a compatible manager-owned script', async () => {
 		const script = {
+			category: 'necessary' as const,
 			id: 'manager-owned-script',
 			src: 'https://example.com/manager-owned.js',
-			category: 'necessary' as const,
 		};
 		const setScripts = vi.fn();
 		const removeScript = vi.fn();
@@ -612,17 +657,17 @@ describe('renderable integrations', () => {
 				<ConsentScriptProbe
 					script={{
 						attributes: { 'data-tenant': 'first' },
+						category: 'necessary',
 						id: 'shared-script',
 						src: 'https://example.com/shared.js',
-						category: 'necessary',
 					}}
 				/>
 				<ConsentScriptProbe
 					script={{
 						attributes: { 'data-tenant': 'second' },
+						category: 'necessary',
 						id: 'shared-script',
 						src: 'https://example.com/shared.js',
-						category: 'necessary',
 					}}
 				/>
 			</MockConsentProvider>
@@ -645,14 +690,11 @@ describe('renderable integrations', () => {
 		let attempt = 0;
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			attempt += 1;
 
 			setTimeout(() => {
 				const info = {
-					id: script?.id ?? 'retry-script',
-					elementId: script?.id ?? 'retry-script',
-					hasConsent: true,
 					consents: {
 						experience: false,
 						functionality: false,
@@ -660,6 +702,9 @@ describe('renderable integrations', () => {
 						measurement: false,
 						necessary: true,
 					},
+					elementId: script?.id ?? 'retry-script',
+					hasConsent: true,
+					id: script?.id ?? 'retry-script',
 				};
 
 				if (attempt === 1) {
@@ -675,9 +720,9 @@ describe('renderable integrations', () => {
 		});
 		const state = createMockConsentState({ removeScript, setScripts });
 		const script = {
+			category: 'necessary' as const,
 			id: 'retry-script',
 			src: 'https://example.com/retry.js',
-			category: 'necessary' as const,
 		};
 		const rendered = await render(
 			<MockConsentProvider state={state}>
@@ -714,14 +759,11 @@ describe('renderable integrations', () => {
 		let attempt = 0;
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			attempt += 1;
 
 			setTimeout(() => {
 				const info = {
-					id: script?.id ?? 'shared-retry-script',
-					elementId: script?.id ?? 'shared-retry-script',
-					hasConsent: true,
 					consents: {
 						experience: false,
 						functionality: false,
@@ -729,6 +771,9 @@ describe('renderable integrations', () => {
 						measurement: false,
 						necessary: true,
 					},
+					elementId: script?.id ?? 'shared-retry-script',
+					hasConsent: true,
+					id: script?.id ?? 'shared-retry-script',
 				};
 
 				if (attempt === 1) {
@@ -744,9 +789,9 @@ describe('renderable integrations', () => {
 		});
 		const state = createMockConsentState({ removeScript, setScripts });
 		const script = {
+			category: 'necessary' as const,
 			id: 'shared-retry-script',
 			src: 'https://example.com/shared-retry.js',
-			category: 'necessary' as const,
 		};
 		const rendered = await render(
 			<MockConsentProvider state={state}>
@@ -843,18 +888,18 @@ describe('renderable integrations', () => {
 				<MockConsentProvider state={firstState}>
 					<ConsentScriptProbe
 						script={{
+							category: 'necessary',
 							id: 'provider-scoped-script',
 							src: 'https://first.example.com/sdk.js',
-							category: 'necessary',
 						}}
 					/>
 				</MockConsentProvider>
 				<MockConsentProvider state={secondState}>
 					<ConsentScriptProbe
 						script={{
+							category: 'necessary',
 							id: 'provider-scoped-script',
 							src: 'https://second.example.com/sdk.js',
-							category: 'necessary',
 						}}
 					/>
 				</MockConsentProvider>
@@ -877,9 +922,7 @@ describe('renderable integrations', () => {
 			setZoom: vi.fn(),
 		};
 		let mapsApi: unknown;
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return mapInstance;
-		});
+		const mapConstructor = createConstructorMock(() => mapInstance);
 		const clearInstanceListeners = vi.fn();
 		const onReady = vi.fn();
 		const consents = {
@@ -890,7 +933,7 @@ describe('renderable integrations', () => {
 			necessary: true,
 		};
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			let callbackName: string | null = null;
 			if (script?.src) {
 				callbackName = new URL(script.src).searchParams.get('callback');
@@ -908,27 +951,27 @@ describe('renderable integrations', () => {
 				(window as unknown as Record<string, unknown>).google = mapsApi;
 
 				if (callbackName) {
-					const callback = (window as unknown as Record<string, unknown>)[
+					const handler = (window as unknown as Record<string, unknown>)[
 						callbackName
 					];
-					if (typeof callback === 'function') {
-						callback();
+					if (typeof handler === 'function') {
+						handler();
 					}
 				}
 
 				script?.onLoad?.({
-					id: script.id,
+					consents,
 					elementId: script.id,
 					hasConsent: true,
-					consents,
+					id: script.id,
 				});
 			}, 0);
 		});
 		const removeScript = vi.fn();
 		const state = createMockConsentState({
 			consents,
-			setScripts,
 			removeScript,
+			setScripts,
 		});
 
 		const { container } = await render(
@@ -991,9 +1034,7 @@ describe('renderable integrations', () => {
 			setOptions: vi.fn(),
 			setZoom: vi.fn(),
 		};
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return mapInstance;
-		});
+		const mapConstructor = createConstructorMock(() => mapInstance);
 		(window as unknown as Record<string, unknown>).google = {
 			maps: {
 				Map: mapConstructor,
@@ -1026,7 +1067,7 @@ describe('renderable integrations', () => {
 		await waitFor(() => {
 			expect(container.textContent).toContain('renders: 1');
 		});
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(mapConstructor).toHaveBeenCalledTimes(1);
 		expect(mapInstance.setCenter).not.toHaveBeenCalled();
@@ -1053,17 +1094,15 @@ describe('renderable integrations', () => {
 	});
 
 	test('shares one Google Maps script across multiple map instances', async () => {
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return {
-				setCenter: vi.fn(),
-				setOptions: vi.fn(),
-				setZoom: vi.fn(),
-			};
-		});
+		const mapConstructor = createConstructorMock(() => ({
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		}));
 		const onFirstReady = vi.fn();
 		const onSecondReady = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			let callbackName: string | null = null;
 			if (script?.src) {
 				callbackName = new URL(script.src).searchParams.get('callback');
@@ -1077,18 +1116,15 @@ describe('renderable integrations', () => {
 				};
 
 				if (callbackName) {
-					const callback = (window as unknown as Record<string, unknown>)[
+					const handler = (window as unknown as Record<string, unknown>)[
 						callbackName
 					];
-					if (typeof callback === 'function') {
-						callback();
+					if (typeof handler === 'function') {
+						handler();
 					}
 				}
 
 				script?.onLoad?.({
-					id: script.id,
-					elementId: script.id,
-					hasConsent: true,
 					consents: {
 						experience: false,
 						functionality: false,
@@ -1096,6 +1132,9 @@ describe('renderable integrations', () => {
 						measurement: false,
 						necessary: true,
 					},
+					elementId: script.id,
+					hasConsent: true,
+					id: script.id,
 				});
 			}, 0);
 		});
@@ -1136,9 +1175,7 @@ describe('renderable integrations', () => {
 			setOptions: vi.fn(),
 			setZoom: vi.fn(),
 		};
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return mapInstance;
-		});
+		const mapConstructor = createConstructorMock(() => mapInstance);
 		(window as unknown as Record<string, unknown>).google = {
 			maps: {
 				Map: mapConstructor,
@@ -1172,17 +1209,15 @@ describe('renderable integrations', () => {
 	});
 
 	test('retains one Google Maps loader across route-style remounts', async () => {
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return {
-				setCenter: vi.fn(),
-				setOptions: vi.fn(),
-				setZoom: vi.fn(),
-			};
-		});
+		const mapConstructor = createConstructorMock(() => ({
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		}));
 		const onReady = vi.fn();
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			const callbackName = script?.src
 				? new URL(script.src).searchParams.get('callback')
 				: null;
@@ -1198,11 +1233,11 @@ describe('renderable integrations', () => {
 				};
 
 				if (callbackName) {
-					const callback = (window as unknown as Record<string, unknown>)[
+					const handler = (window as unknown as Record<string, unknown>)[
 						callbackName
 					];
-					if (typeof callback === 'function') {
-						callback();
+					if (typeof handler === 'function') {
+						handler();
 					}
 				}
 			}, 0);
@@ -1239,7 +1274,7 @@ describe('renderable integrations', () => {
 
 	test('renders the error fallback when Google Maps construction fails', async () => {
 		const initializationError = new Error('Map constructor failed');
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
+		const mapConstructor = createConstructorMock(() => {
 			throw initializationError;
 		});
 		(window as unknown as Record<string, unknown>).google = {
@@ -1278,13 +1313,11 @@ describe('renderable integrations', () => {
 	});
 
 	test('surfaces Google Maps authentication failures', async () => {
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return {
-				setCenter: vi.fn(),
-				setOptions: vi.fn(),
-				setZoom: vi.fn(),
-			};
-		});
+		const mapConstructor = createConstructorMock(() => ({
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		}));
 		(window as unknown as Record<string, unknown>).google = {
 			maps: {
 				Map: mapConstructor,

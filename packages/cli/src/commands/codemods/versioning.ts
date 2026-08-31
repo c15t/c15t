@@ -1,20 +1,20 @@
 import { join } from 'node:path';
 
-type ParsedVersion = {
+interface ParsedVersion {
 	major: number;
 	minor: number;
 	patch: number;
 	preRelease: string[];
-};
+}
 
 type DependencyMap = Record<string, string>;
 
-type PackageJsonLike = {
+interface PackageJsonLike {
 	dependencies?: DependencyMap;
 	devDependencies?: DependencyMap;
 	peerDependencies?: DependencyMap;
 	optionalDependencies?: DependencyMap;
-};
+}
 
 const C15T_PACKAGE_PREFIX = '@c15t/';
 
@@ -39,16 +39,21 @@ export interface CodemodVersionMetadata {
 	toRange?: string;
 }
 
-function parseVersion(raw: string): ParsedVersion | null {
+const parseVersion = function parseVersion(raw: string): ParsedVersion | null {
 	const match = raw
 		.trim()
-		.match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
+		.match(
+			/^v?(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)(?:-(?<preRelease>[0-9A-Za-z.-]+))?$/u
+		);
 
 	if (!match) {
 		return null;
 	}
 
-	const [, majorPart, minorPart, patchPart, preReleasePart] = match;
+	const majorPart = match.groups?.major;
+	const minorPart = match.groups?.minor;
+	const patchPart = match.groups?.patch;
+	const preReleasePart = match.groups?.preRelease;
 	if (!majorPart || !minorPart || !patchPart) {
 		return null;
 	}
@@ -59,23 +64,29 @@ function parseVersion(raw: string): ParsedVersion | null {
 	const preRelease = preReleasePart ? preReleasePart.split('.') : [];
 
 	return { major, minor, patch, preRelease };
-}
+};
 
-function extractVersionFromSpecifier(specifier: string): string | null {
-	const match = specifier.match(/(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/);
+const extractVersionFromSpecifier = function extractVersionFromSpecifier(
+	specifier: string
+): string | null {
+	const match = specifier.match(
+		/(?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/u
+	);
 	if (!match) {
 		return null;
 	}
 
-	const [, version] = match;
-	return version ?? null;
-}
+	return match.groups?.version ?? null;
+};
 
-function isNumericSegment(value: string): boolean {
-	return /^\d+$/.test(value);
-}
+const isNumericSegment = function isNumericSegment(value: string): boolean {
+	return /^\d+$/u.test(value);
+};
 
-function comparePreRelease(a: string[], b: string[]): number {
+const comparePreRelease = function comparePreRelease(
+	a: string[],
+	b: string[]
+): number {
 	// No pre-release > any pre-release
 	if (a.length === 0 && b.length === 0) {
 		return 0;
@@ -124,9 +135,12 @@ function comparePreRelease(a: string[], b: string[]): number {
 	}
 
 	return 0;
-}
+};
 
-function compareVersions(a: string, b: string): number | null {
+const compareVersions = function compareVersions(
+	a: string,
+	b: string
+): number | null {
 	const parsedA = parseVersion(a);
 	const parsedB = parseVersion(b);
 
@@ -145,18 +159,24 @@ function compareVersions(a: string, b: string): number | null {
 	}
 
 	return comparePreRelease(parsedA.preRelease, parsedB.preRelease);
-}
+};
 
-function satisfiesComparator(version: string, comparator: string): boolean {
+const satisfiesComparator = function satisfiesComparator(
+	version: string,
+	comparator: string
+): boolean {
 	const match = comparator
 		.trim()
-		.match(/^(<=|>=|<|>|=)?\s*v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/);
+		.match(
+			/^(?<operator><=|>=|<|>|=)?\s*v?(?<target>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u
+		);
 
 	if (!match) {
 		return false;
 	}
 
-	const [, operatorRaw, target] = match;
+	const operatorRaw = match.groups?.operator;
+	const target = match.groups?.target;
 	if (!target) {
 		return false;
 	}
@@ -179,15 +199,18 @@ function satisfiesComparator(version: string, comparator: string): boolean {
 		default:
 			return comparison === 0;
 	}
-}
+};
 
 /**
  * Evaluates simple semver comparator ranges.
  *
  * Supports comparator sets such as `>=1.0.0 <2.0.0`.
  */
-export function satisfiesSimpleRange(version: string, range: string): boolean {
-	const comparators = range.trim().split(/\s+/).filter(Boolean);
+export const satisfiesSimpleRange = function satisfiesSimpleRange(
+	version: string,
+	range: string
+): boolean {
+	const comparators = range.trim().split(/\s+/u).filter(Boolean);
 
 	if (comparators.length === 0) {
 		return true;
@@ -196,32 +219,33 @@ export function satisfiesSimpleRange(version: string, range: string): boolean {
 	return comparators.every((comparator) =>
 		satisfiesComparator(version, comparator)
 	);
-}
+};
 
 /**
  * Determines whether a codemod should be shown for a detected project version.
  */
-export function isCodemodApplicableForVersion(
-	version: string | null,
-	metadata: CodemodVersionMetadata
-): boolean {
-	if (!version) {
+export const isCodemodApplicableForVersion =
+	function isCodemodApplicableForVersion(
+		version: string | null,
+		metadata: CodemodVersionMetadata
+	): boolean {
+		if (!version) {
+			return true;
+		}
+
+		if (
+			metadata.fromRange &&
+			!satisfiesSimpleRange(version, metadata.fromRange)
+		) {
+			return false;
+		}
+
+		if (metadata.toRange && satisfiesSimpleRange(version, metadata.toRange)) {
+			return false;
+		}
+
 		return true;
-	}
-
-	if (
-		metadata.fromRange &&
-		!satisfiesSimpleRange(version, metadata.fromRange)
-	) {
-		return false;
-	}
-
-	if (metadata.toRange && satisfiesSimpleRange(version, metadata.toRange)) {
-		return false;
-	}
-
-	return true;
-}
+	};
 
 /**
  * Best-effort c15t version detection from a package.json object.
@@ -229,86 +253,88 @@ export function isCodemodApplicableForVersion(
  * Returns the lowest detected c15t version to avoid missing required upgrades
  * in mixed-version dependency graphs.
  */
-export function detectInstalledC15tVersionFromPackageJson(
-	manifest: PackageJsonLike
-): string | null {
-	const dependencyGroups: Array<DependencyMap | undefined> = [
-		manifest.dependencies,
-		manifest.devDependencies,
-		manifest.peerDependencies,
-		manifest.optionalDependencies,
-	];
+export const detectInstalledC15tVersionFromPackageJson =
+	function detectInstalledC15tVersionFromPackageJson(
+		manifest: PackageJsonLike
+	): string | null {
+		const dependencyGroups: (DependencyMap | undefined)[] = [
+			manifest.dependencies,
+			manifest.devDependencies,
+			manifest.peerDependencies,
+			manifest.optionalDependencies,
+		];
 
-	const versions: string[] = [];
-	for (const dependencies of dependencyGroups) {
-		if (!dependencies) {
-			continue;
-		}
-
-		for (const [packageName, specifier] of Object.entries(dependencies)) {
-			if (
-				packageName !== 'c15t' &&
-				!packageName.startsWith(C15T_PACKAGE_PREFIX)
-			) {
+		const versions: string[] = [];
+		for (const dependencies of dependencyGroups) {
+			if (!dependencies) {
 				continue;
 			}
 
-			const extracted = extractVersionFromSpecifier(specifier);
-			if (!extracted) {
-				continue;
-			}
+			for (const [packageName, specifier] of Object.entries(dependencies)) {
+				if (
+					packageName !== 'c15t' &&
+					!packageName.startsWith(C15T_PACKAGE_PREFIX)
+				) {
+					continue;
+				}
 
-			if (parseVersion(extracted)) {
-				versions.push(extracted);
+				const extracted = extractVersionFromSpecifier(specifier);
+				if (!extracted) {
+					continue;
+				}
+
+				if (parseVersion(extracted)) {
+					versions.push(extracted);
+				}
 			}
 		}
-	}
 
-	if (versions.length === 0) {
-		return null;
-	}
-
-	const firstVersion = versions.at(0);
-	if (!firstVersion) {
-		return null;
-	}
-
-	let selected = firstVersion;
-	for (const current of versions.slice(1)) {
-		const comparison = compareVersions(current, selected);
-		if (comparison !== null && comparison < 0) {
-			selected = current;
+		if (versions.length === 0) {
+			return null;
 		}
-	}
 
-	return selected;
-}
+		const firstVersion = versions.at(0);
+		if (!firstVersion) {
+			return null;
+		}
+
+		let selected = firstVersion;
+		for (const current of versions.slice(1)) {
+			const comparison = compareVersions(current, selected);
+			if (comparison !== null && comparison < 0) {
+				selected = current;
+			}
+		}
+
+		return selected;
+	};
 
 /**
  * Best-effort c15t version detection from `<projectRoot>/package.json`.
  */
-export async function detectInstalledC15tVersion(
-	projectRoot: string
-): Promise<string | null> {
-	const manifestPath = join(projectRoot, 'package.json');
+export const detectInstalledC15tVersion =
+	async function detectInstalledC15tVersion(
+		projectRoot: string
+	): Promise<string | null> {
+		const manifestPath = join(projectRoot, 'package.json');
 
-	try {
-		let content: string;
-		const bunRuntime = (
-			globalThis as {
-				Bun?: { file: (filePath: string) => { text: () => Promise<string> } };
+		try {
+			let content: string;
+			const bunRuntime = (
+				globalThis as {
+					Bun?: { file: (filePath: string) => { text: () => Promise<string> } };
+				}
+			).Bun;
+
+			if (bunRuntime) {
+				content = await bunRuntime.file(manifestPath).text();
+			} else {
+				const fs = await import('node:fs/promises');
+				content = await fs.readFile(manifestPath, 'utf-8');
 			}
-		).Bun;
-
-		if (bunRuntime) {
-			content = await bunRuntime.file(manifestPath).text();
-		} else {
-			const fs = await import('node:fs/promises');
-			content = await fs.readFile(manifestPath, 'utf-8');
+			const parsed = JSON.parse(content) as PackageJsonLike;
+			return detectInstalledC15tVersionFromPackageJson(parsed);
+		} catch {
+			return null;
 		}
-		const parsed = JSON.parse(content) as PackageJsonLike;
-		return detectInstalledC15tVersionFromPackageJson(parsed);
-	} catch {
-		return null;
-	}
-}
+	};

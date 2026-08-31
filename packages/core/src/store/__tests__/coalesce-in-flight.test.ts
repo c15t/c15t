@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { coalesceInFlight } from '../coalesce-in-flight';
 
 describe('coalesceInFlight', () => {
 	it('returns the same request for the same in-flight key', async () => {
 		const requests = new Map<string, Promise<string>>();
-		const createRequest = vi.fn(async () => 'result');
+		const createRequest = vi.fn(() => 'result');
 
 		const first = coalesceInFlight(requests, 'same', createRequest);
 		const second = coalesceInFlight(requests, 'same', createRequest);
@@ -16,7 +17,7 @@ describe('coalesceInFlight', () => {
 
 	it('does not coalesce different keys', async () => {
 		const requests = new Map<string, Promise<string>>();
-		const createRequest = vi.fn(async () => 'result');
+		const createRequest = vi.fn(() => 'result');
 
 		const first = coalesceInFlight(requests, 'first', createRequest);
 		const second = coalesceInFlight(requests, 'second', createRequest);

@@ -30,22 +30,25 @@ const DEFAULT_POLICY_ACTIONS: PolicyUiAction[] = [
 	'customize',
 ];
 
-function dedupeActions(actions?: PolicyUiAction[]): PolicyUiAction[] {
+const dedupeActions = function dedupeActions(
+	actions?: PolicyUiAction[]
+): PolicyUiAction[] {
 	if (!actions || actions.length === 0) {
 		return [];
 	}
 
 	return [...new Set(actions)];
-}
+};
 
-export function resolvePolicyAllowedActions(params: {
-	allowedActions?: PolicyUiAction[];
-}): PolicyUiAction[] {
-	const allowed = dedupeActions(params.allowedActions);
-	return allowed.length > 0 ? allowed : [...DEFAULT_POLICY_ACTIONS];
-}
+export const resolvePolicyAllowedActions =
+	function resolvePolicyAllowedActions(params: {
+		allowedActions?: PolicyUiAction[];
+	}): PolicyUiAction[] {
+		const allowed = dedupeActions(params.allowedActions);
+		return allowed.length > 0 ? allowed : [...DEFAULT_POLICY_ACTIONS];
+	};
 
-export function flattenPolicyActionGroups(
+export const flattenPolicyActionGroups = function flattenPolicyActionGroups(
 	layout?: PolicyUiActionGroup[]
 ): PolicyUiAction[] {
 	if (!layout || layout.length === 0) {
@@ -53,76 +56,79 @@ export function flattenPolicyActionGroups(
 	}
 
 	return layout.flatMap((group) => (Array.isArray(group) ? group : [group]));
-}
+};
 
-export function resolvePolicyActionGroups(params: {
-	allowedActions: PolicyUiAction[];
-	layout?: PolicyUiActionGroup[];
-}): PolicyUiAction[][] {
-	const allowedActions = dedupeActions(params.allowedActions);
-	if (allowedActions.length === 0) {
-		return [];
-	}
-
-	if (!params.layout || params.layout.length === 0) {
-		return [[...allowedActions]];
-	}
-
-	const allowedSet = new Set(allowedActions);
-	const groups: PolicyUiAction[][] = [];
-	const seen = new Set<PolicyUiAction>();
-
-	for (const group of params.layout) {
-		const actions = dedupeActions(
-			Array.isArray(group) ? group : [group]
-		).filter((action) => {
-			if (!allowedSet.has(action) || seen.has(action)) {
-				return false;
-			}
-
-			seen.add(action);
-			return true;
-		});
-
-		if (actions.length > 0) {
-			groups.push(actions);
+export const resolvePolicyActionGroups =
+	function resolvePolicyActionGroups(params: {
+		allowedActions: PolicyUiAction[];
+		layout?: PolicyUiActionGroup[];
+	}): PolicyUiAction[][] {
+		const allowedActions = dedupeActions(params.allowedActions);
+		if (allowedActions.length === 0) {
+			return [];
 		}
-	}
 
-	return groups.length > 0 ? groups : [[...allowedActions]];
-}
+		if (!params.layout || params.layout.length === 0) {
+			return [[...allowedActions]];
+		}
 
-export function resolvePolicyOrderedActions(params: {
-	allowedActions: PolicyUiAction[];
-	layout?: PolicyUiActionGroup[];
-}): PolicyUiAction[] {
-	return flattenPolicyActionGroups(
-		resolvePolicyActionGroups({
-			allowedActions: params.allowedActions,
-			layout: params.layout,
-		})
-	);
-}
+		const allowedSet = new Set(allowedActions);
+		const groups: PolicyUiAction[][] = [];
+		const seen = new Set<PolicyUiAction>();
 
-export function resolvePolicyPrimaryActions(params: {
-	orderedActions: PolicyUiAction[];
-	primaryActions?: PolicyUiAction[];
-}): PolicyUiAction[] {
-	const defaultPrimary = params.orderedActions.includes('customize')
-		? (['customize'] satisfies PolicyUiAction[])
-		: [];
+		for (const group of params.layout) {
+			const actions = dedupeActions(
+				Array.isArray(group) ? group : [group]
+			).filter((action) => {
+				if (!allowedSet.has(action) || seen.has(action)) {
+					return false;
+				}
 
-	if (!params.primaryActions || params.primaryActions.length === 0) {
-		return defaultPrimary;
-	}
+				seen.add(action);
+				return true;
+			});
 
-	const filtered = params.primaryActions.filter((action) =>
-		params.orderedActions.includes(action)
-	);
-	return filtered.length > 0 ? filtered : defaultPrimary;
-}
+			if (actions.length > 0) {
+				groups.push(actions);
+			}
+		}
 
-export function resolvePolicyDirection(
+		return groups.length > 0 ? groups : [[...allowedActions]];
+	};
+
+export const resolvePolicyOrderedActions =
+	function resolvePolicyOrderedActions(params: {
+		allowedActions: PolicyUiAction[];
+		layout?: PolicyUiActionGroup[];
+	}): PolicyUiAction[] {
+		return flattenPolicyActionGroups(
+			resolvePolicyActionGroups({
+				allowedActions: params.allowedActions,
+				layout: params.layout,
+			})
+		);
+	};
+
+export const resolvePolicyPrimaryActions =
+	function resolvePolicyPrimaryActions(params: {
+		orderedActions: PolicyUiAction[];
+		primaryActions?: PolicyUiAction[];
+	}): PolicyUiAction[] {
+		const defaultPrimary = params.orderedActions.includes('customize')
+			? (['customize'] satisfies PolicyUiAction[])
+			: [];
+
+		if (!params.primaryActions || params.primaryActions.length === 0) {
+			return defaultPrimary;
+		}
+
+		const filtered = params.primaryActions.filter((action) =>
+			params.orderedActions.includes(action)
+		);
+		return filtered.length > 0 ? filtered : defaultPrimary;
+	};
+
+export const resolvePolicyDirection = function resolvePolicyDirection(
 	direction?: PolicyUiActionDirection
 ): PolicyUiActionDirection {
 	if (direction === 'column') {
@@ -130,9 +136,9 @@ export function resolvePolicyDirection(
 	}
 
 	return 'row';
-}
+};
 
-export function resolvePolicyUiProfile(
+export const resolvePolicyUiProfile = function resolvePolicyUiProfile(
 	profile?: PolicyUiProfile
 ): PolicyUiProfile {
 	if (profile === 'balanced' || profile === 'compact' || profile === 'strict') {
@@ -140,26 +146,30 @@ export function resolvePolicyUiProfile(
 	}
 
 	return 'compact';
-}
+};
 
-export function shouldFillPolicyActions(params: {
-	uiProfile?: PolicyUiProfile;
-	actionGroups: PolicyUiAction[][];
-	direction?: PolicyUiActionDirection;
-}): boolean {
-	const effectiveUiProfile = resolvePolicyUiProfile(params.uiProfile);
-	const actionCount = new Set(params.actionGroups.flat()).size;
-	const isSplitLayout = params.actionGroups.length > 1;
-	const isColumn = params.direction === 'column';
+export const shouldFillPolicyActions =
+	function shouldFillPolicyActions(params: {
+		uiProfile?: PolicyUiProfile;
+		actionGroups: PolicyUiAction[][];
+		direction?: PolicyUiActionDirection;
+	}): boolean {
+		const effectiveUiProfile = resolvePolicyUiProfile(params.uiProfile);
+		const actionCount = new Set(params.actionGroups.flat()).size;
+		const isSplitLayout = params.actionGroups.length > 1;
+		const isColumn = params.direction === 'column';
 
-	return (
-		effectiveUiProfile === 'strict' ||
-		(effectiveUiProfile === 'balanced' &&
-			(actionCount <= 2 || (actionCount === 3 && (isSplitLayout || isColumn))))
-	);
-}
+		return (
+			effectiveUiProfile === 'strict' ||
+			(effectiveUiProfile === 'balanced' &&
+				(actionCount <= 2 ||
+					(actionCount === 3 && (isSplitLayout || isColumn))))
+		);
+	};
 
-export function hasPolicyHints(surface?: PolicyUiSurfaceConfig): boolean {
+export const hasPolicyHints = function hasPolicyHints(
+	surface?: PolicyUiSurfaceConfig
+): boolean {
 	if (!surface) {
 		return false;
 	}
@@ -171,4 +181,4 @@ export function hasPolicyHints(surface?: PolicyUiSurfaceConfig): boolean {
 
 		return value !== undefined;
 	});
-}
+};

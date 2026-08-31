@@ -3,14 +3,15 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import { databuddy } from './vendors/analytics/databuddy';
 
 describe('databuddy contract', () => {
@@ -36,9 +37,9 @@ describe('databuddy contract', () => {
 
 			initialConfig = { ...(win.databuddyConfig ?? {}) };
 			attributes = {
-				crossorigin: node.getAttribute('crossorigin'),
-				clientId: node.getAttribute('data-client-id'),
 				apiUrl: node.getAttribute('data-api-url'),
+				clientId: node.getAttribute('data-client-id'),
+				crossorigin: node.getAttribute('crossorigin'),
 			};
 
 			win.databuddy = {
@@ -51,8 +52,8 @@ describe('databuddy contract', () => {
 		const script = {
 			...databuddy({
 				clientId: 'db-contract',
-				configWhenGranted,
 				configWhenDenied,
+				configWhenGranted,
 			}),
 			id: 'databuddy-contract',
 		};
@@ -61,9 +62,9 @@ describe('databuddy contract', () => {
 
 		expect(initialConfig).toEqual(configWhenDenied);
 		expect(attributes).toEqual({
-			crossorigin: 'anonymous',
-			clientId: 'db-contract',
 			apiUrl: 'https://basket.databuddy.cc',
+			clientId: 'db-contract',
+			crossorigin: 'anonymous',
 		});
 		expect((window as TestWindow).databuddy?.options.disabled).toBe(true);
 

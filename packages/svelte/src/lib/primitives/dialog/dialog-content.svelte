@@ -1,61 +1,62 @@
 <script lang="ts">
-import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { focusTrap } from '../../actions/focus-trap';
-import { scrollLock } from '../../actions/scroll-lock';
-import { getDialogRootContext } from './context';
+	import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const dialog = getDialogRootContext();
+	import { focusTrap } from '../../actions/focus-trap';
+	import { scrollLock } from '../../actions/scroll-lock';
+	import { getDialogRootContext } from './context';
 
-let node = $state<HTMLElement | null>(null);
+	const dialog = getDialogRootContext();
 
-const open = $derived(dialog.open);
-const shouldRender = $derived(dialog.shouldRender);
-const contentId = $derived(dialog.contentId);
-const titleId = $derived(dialog.titleId);
-const descriptionId = $derived(dialog.descriptionId);
-const dataState = $derived(getDialogState(open));
+	let node = $state<HTMLElement | null>(null);
 
-let {
-	children,
-	class: className,
-	onkeydown,
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-} = $props();
+	const open = $derived(dialog.open);
+	const shouldRender = $derived(dialog.shouldRender);
+	const contentId = $derived(dialog.contentId);
+	const titleId = $derived(dialog.titleId);
+	const descriptionId = $derived(dialog.descriptionId);
+	const dataState = $derived(getDialogState(open));
 
-function handleKeyDown(
-	event: KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement }
-) {
-	if (isDialogDismissKey(event.key)) {
-		event.preventDefault();
-		dialog.requestClose('escape');
-	}
-	onkeydown?.(event);
-}
+	let {
+		children,
+		class: className,
+		onkeydown,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+	} = $props();
 
-$effect(() => {
-	if (!open || !node) {
-		return;
-	}
+	const handleKeyDown = function handleKeyDown(
+		event: KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement }
+	) {
+		if (isDialogDismissKey(event.key)) {
+			event.preventDefault();
+			dialog.requestClose('escape');
+		}
+		onkeydown?.(event);
+	};
 
-	queueMicrotask(() => {
-		if (!node || !open) {
+	$effect(() => {
+		if (!open || !node) {
 			return;
 		}
 
-		const activeElement = document.activeElement;
-		if (!activeElement || !node.contains(activeElement)) {
-			const preferredFocusTarget = node.querySelector<HTMLElement>(
-				'[data-c15t-dialog-focus="true"]'
-			);
-			(preferredFocusTarget ?? node).focus();
-		}
+		queueMicrotask(() => {
+			if (!node || !open) {
+				return;
+			}
+
+			const { activeElement } = document;
+			if (!activeElement || !node.contains(activeElement)) {
+				const preferredFocusTarget = node.querySelector<HTMLElement>(
+					'[data-c15t-dialog-focus="true"]'
+				);
+				(preferredFocusTarget ?? node).focus();
+			}
+		});
 	});
-});
 </script>
 
 {#if shouldRender}

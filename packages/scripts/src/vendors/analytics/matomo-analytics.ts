@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { joinUrlPath, stripTrailingSlashes } from '../_shared/script-url';
 
 declare global {
@@ -16,7 +18,7 @@ declare global {
  * @returns The input without a leading HTTP(S) protocol; unchanged when no
  * protocol prefix is present.
  */
-function stripProtocol(value: string): string {
+const stripProtocol = function stripProtocol(value: string): string {
 	if (value.startsWith('https://')) {
 		return value.slice('https://'.length);
 	}
@@ -26,7 +28,7 @@ function stripProtocol(value: string): string {
 	}
 
 	return value;
-}
+};
 
 /**
  * Resolves the Matomo origin from integration options.
@@ -37,7 +39,7 @@ function stripProtocol(value: string): string {
  * @returns A normalized Matomo origin with protocol/trailing slashes removed as
  * needed, or `undefined` when neither `matomoUrl` nor `cloudId` is provided.
  */
-function resolveMatomoOrigin(
+const resolveMatomoOrigin = function resolveMatomoOrigin(
 	options: MatomoAnalyticsOptions
 ): string | undefined {
 	if (options.matomoUrl) {
@@ -54,78 +56,78 @@ function resolveMatomoOrigin(
 	}
 
 	return undefined;
-}
+};
 
-type MatomoManifestOptions = {
+interface MatomoManifestOptions {
 	enableConsentMode: boolean;
 	consentInitiallyGiven: boolean;
 	enableLinkTracking: boolean;
 	disableCookies: boolean;
 	trackPageView: boolean;
-};
+}
 
 interface MatomoGrantedHooks {
 	onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'];
 	onConsentGranted: VendorManifest['onConsentGranted'];
 }
 
-function buildInstallSteps(
+const buildInstallSteps = function buildInstallSteps(
 	options: MatomoManifestOptions
 ): VendorManifest['install'] {
 	const install: VendorManifest['install'] = [
 		{
-			type: 'setGlobal',
-			name: '_paq',
-			value: [],
 			ifUndefined: true,
+			name: '_paq',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['setTrackerUrl', '{{trackerUrl}}'],
 		},
 		{
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['setSiteId', '{{siteId}}'],
 		},
 	];
 
 	if (options.enableLinkTracking) {
 		install.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['enableLinkTracking'],
 		});
 	}
 
 	if (options.disableCookies) {
 		install.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['disableCookies'],
 		});
 	}
 
 	if (options.enableConsentMode && !options.consentInitiallyGiven) {
 		install.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['requireConsent'],
 		});
 	}
 
 	if (options.enableConsentMode && options.consentInitiallyGiven) {
 		install.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['setConsentGiven'],
 		});
 
 		if (options.trackPageView) {
 			install.push({
-				type: 'pushToQueue',
 				queue: '_paq',
+				type: 'pushToQueue',
 				value: ['trackPageView'],
 			});
 		}
@@ -133,27 +135,29 @@ function buildInstallSteps(
 
 	if (options.trackPageView && !options.enableConsentMode) {
 		install.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['trackPageView'],
 		});
 	}
 
 	install.push({
-		type: 'loadScript',
-		src: '{{scriptUrl}}',
 		async: true,
+		src: '{{scriptUrl}}',
+		type: 'loadScript',
 	});
 
 	return install;
-}
+};
 
-function buildGrantedHooks(options: MatomoManifestOptions): MatomoGrantedHooks {
+const buildGrantedHooks = function buildGrantedHooks(
+	options: MatomoManifestOptions
+): MatomoGrantedHooks {
 	const onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'] = [];
 	if (options.enableConsentMode && !options.consentInitiallyGiven) {
 		onBeforeLoadGranted.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['setConsentGiven'],
 		});
 	}
@@ -163,8 +167,8 @@ function buildGrantedHooks(options: MatomoManifestOptions): MatomoGrantedHooks {
 		!options.consentInitiallyGiven
 	) {
 		onBeforeLoadGranted.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['trackPageView'],
 		});
 	}
@@ -172,15 +176,15 @@ function buildGrantedHooks(options: MatomoManifestOptions): MatomoGrantedHooks {
 	const onConsentGranted: VendorManifest['onConsentGranted'] = [];
 	if (options.enableConsentMode) {
 		onConsentGranted.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['setConsentGiven'],
 		});
 
 		if (options.trackPageView) {
 			onConsentGranted.push({
-				type: 'pushToQueue',
 				queue: '_paq',
+				type: 'pushToQueue',
 				value: ['trackPageView'],
 			});
 		}
@@ -190,22 +194,22 @@ function buildGrantedHooks(options: MatomoManifestOptions): MatomoGrantedHooks {
 		onBeforeLoadGranted,
 		onConsentGranted,
 	};
-}
+};
 
-function buildDeniedHooks(
+const buildDeniedHooks = function buildDeniedHooks(
 	options: MatomoManifestOptions
 ): VendorManifest['onConsentDenied'] {
 	const onConsentDenied: VendorManifest['onConsentDenied'] = [];
 	if (options.enableConsentMode) {
 		onConsentDenied.push({
-			type: 'pushToQueue',
 			queue: '_paq',
+			type: 'pushToQueue',
 			value: ['forgetConsentGiven'],
 		});
 	}
 
 	return onConsentDenied;
-}
+};
 
 /**
  * Builds a Matomo `VendorManifest` from helper options.
@@ -223,7 +227,7 @@ function buildDeniedHooks(
  * and consent metadata (`alwaysLoad`, `persistAfterConsentRevoked`) derived
  * from `enableConsentMode`.
  */
-function createMatomoAnalyticsManifest(
+const createMatomoAnalyticsManifest = function createMatomoAnalyticsManifest(
 	options: MatomoManifestOptions
 ): VendorManifest {
 	const { onBeforeLoadGranted, onConsentGranted } = buildGrantedHooks(options);
@@ -236,22 +240,22 @@ function createMatomoAnalyticsManifest(
 
 	return {
 		...vendorManifestContract,
-		vendor: 'matomo-analytics',
-		category: 'measurement',
 		alwaysLoad,
-		persistAfterConsentRevoked,
+		category: 'measurement',
 		install: buildInstallSteps(options),
 		onBeforeLoadGranted,
-		onConsentGranted,
 		onConsentDenied: buildDeniedHooks(options),
+		onConsentGranted,
+		persistAfterConsentRevoked,
+		vendor: 'matomo-analytics',
 	};
-}
+};
 
 export const matomoAnalyticsManifest = createMatomoAnalyticsManifest({
-	enableConsentMode: false,
 	consentInitiallyGiven: false,
-	enableLinkTracking: false,
 	disableCookies: false,
+	enableConsentMode: false,
+	enableLinkTracking: false,
 	trackPageView: true,
 });
 
@@ -288,14 +292,16 @@ export interface MatomoAnalyticsOptions {
  * `trackerUrl`/`scriptUrl` values are not supplied). Provide `matomoUrl`, or
  * provide both explicit `trackerUrl` and `scriptUrl`.
  */
-export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
+export const matomoAnalytics = function matomoAnalytics(
+	options: MatomoAnalyticsOptions = {}
+): Script {
 	const origin = resolveMatomoOrigin(options);
-	let trackerUrl = options.trackerUrl;
+	let { trackerUrl } = options;
 	if (!trackerUrl && origin) {
 		trackerUrl = joinUrlPath(origin, 'matomo.php');
 	}
 
-	let scriptUrl = options.scriptUrl;
+	let { scriptUrl } = options;
 	if (!scriptUrl && origin) {
 		scriptUrl = joinUrlPath(origin, 'matomo.js');
 	}
@@ -311,16 +317,16 @@ export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
 	const consentInitiallyGiven = options.defaultConsent === 'given';
 
 	const manifest = createMatomoAnalyticsManifest({
-		enableConsentMode,
 		consentInitiallyGiven,
-		enableLinkTracking: options.enableLinkTracking ?? false,
 		disableCookies: options.disableCookies ?? false,
+		enableConsentMode,
+		enableLinkTracking: options.enableLinkTracking ?? false,
 		trackPageView: options.trackPageView ?? true,
 	});
 
 	return resolveManifest(manifest, {
+		scriptUrl,
 		siteId: String(options.siteId ?? 1),
 		trackerUrl,
-		scriptUrl,
 	});
-}
+};

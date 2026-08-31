@@ -25,7 +25,6 @@ import type { AllConsentNames } from '@c15t/core';
 import type { ConsentState } from '@c15t/core/v3';
 import {
 	createContext,
-	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,
@@ -33,6 +32,8 @@ import {
 	useState,
 	useSyncExternalStore,
 } from 'react';
+import type { ReactNode } from 'react';
+
 import { KernelContext } from './context';
 
 export interface ConsentDraftHandle {
@@ -41,44 +42,41 @@ export interface ConsentDraftHandle {
 	/** Has the draft diverged from the kernel's current consents? */
 	isDirty: boolean;
 	/** Update a single category in the draft. Does not touch the kernel. */
-	set(category: AllConsentNames, value: boolean): void;
+	set: (category: AllConsentNames, value: boolean) => void;
 	/** Replace the whole draft with a partial update. */
-	update(patch: Partial<ConsentState>): void;
+	update: (patch: Partial<ConsentState>) => void;
 	/** Select every category (except stays as-is for necessary). */
-	acceptAll(): void;
+	acceptAll: () => void;
 	/** Flip every category to false except `necessary`. */
-	rejectAll(): void;
+	rejectAll: () => void;
 	/** Commit the draft through `kernel.commands.save(values)`. */
-	save(): Promise<void>;
+	save: () => Promise<void>;
 	/** Reseed the draft from the kernel's current consents. */
-	reset(): void;
+	reset: () => void;
 }
 
 interface DraftStore {
-	getSnapshot(): Readonly<ConsentState>;
-	subscribe(listener: () => void): () => void;
-	setCategory(category: AllConsentNames, value: boolean): void;
-	replace(patch: Partial<ConsentState>): void;
-	overwrite(next: ConsentState): void;
+	getSnapshot: () => Readonly<ConsentState>;
+	subscribe: (listener: () => void) => () => void;
+	setCategory: (category: AllConsentNames, value: boolean) => void;
+	replace: (patch: Partial<ConsentState>) => void;
+	overwrite: (next: ConsentState) => void;
 }
 
-function createDraftStore(initial: ConsentState): DraftStore {
+const createDraftStore = function createDraftStore(
+	initial: ConsentState
+): DraftStore {
 	let current: ConsentState = { ...initial };
 	const listeners = new Set<() => void>();
-	function notify(): void {
-		for (const l of listeners) l();
-	}
+	const notify = function notify(): void {
+		for (const l of listeners) {
+			l();
+		}
+	};
 	return {
 		getSnapshot: () => current,
-		subscribe(listener) {
-			listeners.add(listener);
-			return () => {
-				listeners.delete(listener);
-			};
-		},
-		setCategory(category, value) {
-			if (current[category] === value) return;
-			current = { ...current, [category]: value };
+		overwrite(next) {
+			current = { ...next };
 			notify();
 		},
 		replace(patch) {
@@ -91,16 +89,27 @@ function createDraftStore(initial: ConsentState): DraftStore {
 					changed = true;
 				}
 			}
-			if (!changed) return;
+			if (!changed) {
+				return;
+			}
 			current = next;
 			notify();
 		},
-		overwrite(next) {
-			current = { ...next };
+		setCategory(category, value) {
+			if (current[category] === value) {
+				return;
+			}
+			current = { ...current, [category]: value };
 			notify();
 		},
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
 	};
-}
+};
 
 /**
  * Context for a shared draft store. When provided, sibling components
@@ -114,10 +123,10 @@ export interface ConsentDraftProviderProps {
 	initial?: Partial<ConsentState>;
 }
 
-export function ConsentDraftProvider({
+export const ConsentDraftProvider = ({
 	children,
 	initial,
-}: ConsentDraftProviderProps) {
+}: ConsentDraftProviderProps) => {
 	const kernel = useContext(KernelContext);
 	const parentStore = useContext(DraftContext);
 	if (!kernel) {
@@ -129,11 +138,12 @@ export function ConsentDraftProvider({
 	const shouldUseParentStore = Boolean(parentStore && !initial);
 
 	// Seed the store exactly once. `initial` wins, then kernel's current consents.
-	const [store] = useState(() => {
+	const [store, setStore] = useState(() => {
 		const base = kernel.getSnapshot().consents as ConsentState;
 		const seed: ConsentState = initial ? { ...base, ...initial } : base;
 		return createDraftStore(seed);
 	});
+	void setStore;
 
 	// Re-seed whenever the kernel's consents change externally (e.g.
 	// another tab wrote to storage and persistence hydrated). Only fires
@@ -146,11 +156,15 @@ export function ConsentDraftProvider({
 	// every external kernel change would look "dirty" simply because the
 	// kernel moved on.
 	useEffect(() => {
-		if (shouldUseParentStore) return;
+		if (shouldUseParentStore) {
+			return;
+		}
 		let lastKernelConsents = kernel.getSnapshot().consents as ConsentState;
 		return kernel.subscribe((snap) => {
 			const nextKernelConsents = snap.consents as ConsentState;
-			if (nextKernelConsents === lastKernelConsents) return;
+			if (nextKernelConsents === lastKernelConsents) {
+				return;
+			}
 			const drafts = store.getSnapshot();
 			let dirty = false;
 			for (const key of Object.keys(drafts) as AllConsentNames[]) {
@@ -160,20 +174,22 @@ export function ConsentDraftProvider({
 				}
 			}
 			lastKernelConsents = nextKernelConsents;
-			if (!dirty) store.overwrite(nextKernelConsents);
+			if (!dirty) {
+				store.overwrite(nextKernelConsents);
+			}
 		});
 	}, [kernel, shouldUseParentStore, store]);
 
 	if (shouldUseParentStore) {
-		return <>{children}</>;
+		return children;
 	}
 
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
 	);
-}
+};
 
-function useKernelOrThrow() {
+const useKernelOrThrow = function useKernelOrThrow() {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
@@ -181,22 +197,23 @@ function useKernelOrThrow() {
 		);
 	}
 	return kernel;
-}
+};
 
 /**
  * Read + mutate the current consent draft. When used inside a
  * `<ConsentDraftProvider>`, draft state is shared across siblings.
  * Without a provider, a fresh local draft is created per hook call.
  */
-export function useConsentDraft(): ConsentDraftHandle {
+export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
 	const kernel = useKernelOrThrow();
 	const shared = useContext(DraftContext);
 
 	// If no provider is in scope, create a component-local draft store.
 	// This is fine for single-dialog usage.
-	const [local] = useState(() =>
+	const [local, setLocal] = useState(() =>
 		createDraftStore(kernel.getSnapshot().consents as ConsentState)
 	);
+	void setLocal;
 	const store = shared ?? local;
 
 	const values = useSyncExternalStore(
@@ -213,7 +230,9 @@ export function useConsentDraft(): ConsentDraftHandle {
 
 	const isDirty = useMemo(() => {
 		for (const key of Object.keys(values) as AllConsentNames[]) {
-			if (values[key] !== kernelConsents[key]) return true;
+			if (values[key] !== kernelConsents[key]) {
+				return true;
+			}
 		}
 		return false;
 	}, [values, kernelConsents]);
@@ -260,13 +279,13 @@ export function useConsentDraft(): ConsentDraftHandle {
 	}, [kernel, store]);
 
 	return {
-		values,
+		acceptAll,
 		isDirty,
+		rejectAll,
+		reset,
+		save,
 		set,
 		update,
-		acceptAll,
-		rejectAll,
-		save,
-		reset,
+		values,
 	};
-}
+};

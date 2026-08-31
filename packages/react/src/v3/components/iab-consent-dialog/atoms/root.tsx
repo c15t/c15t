@@ -1,19 +1,26 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { type FC, type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FC, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import { useSetActiveUI } from '~/v3/hooks';
 import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
+import { useIsHydrated } from '~/v3/hooks/use-is-hydrated';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { IABConsentDialogOverlay } from './overlay';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
 
 interface IABConsentDialogRootProps {
 	children: ReactNode;
@@ -29,7 +36,7 @@ interface IABConsentDialogRootProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 	/**
 	 * Override the UI source identifier sent with consent API calls.
 	 * @default 'iab_dialog'
@@ -48,7 +55,7 @@ interface IABConsentDialogRootProps {
 const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	children,
 	open,
-	models = ['iab'],
+	models = DEFAULT_MODELS,
 	noStyle,
 	disableAnimation,
 	scrollLock,
@@ -66,19 +73,22 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const { components } = useUIConfig();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
-	const [isMounted, setIsMounted] = useState(false);
+	const isMounted = useIsHydrated();
 	const [isVisible, setIsVisible] = useState(false);
 
 	// IABConsentDialog only opens when the consent model matches
 	const isOpen = models.includes(model) && (open ?? activeUI === 'dialog');
 	const resolvedScrollLock = scrollLock ?? policyDialog.scrollLock ?? true;
 
-	const contextValue = {
-		disableAnimation,
-		noStyle,
-		scrollLock: resolvedScrollLock,
-		trapFocus,
-	};
+	const contextValue = useMemo(
+		() => ({
+			disableAnimation,
+			noStyle,
+			scrollLock: resolvedScrollLock,
+			trapFocus,
+		}),
+		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+	);
 
 	// Scroll lock
 	useScrollLock(Boolean(isOpen && resolvedScrollLock));
@@ -99,28 +109,26 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen, setActiveUI]);
 
-	// Mount state for portal
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
-
 	// Visibility animation
 	useEffect(() => {
 		if (isOpen) {
-			setIsVisible(true);
-		} else if (disableAnimation) {
-			setIsVisible(false);
-		} else {
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, 150);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+		if (disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+		}, 150);
+		return () => clearTimeout(timer);
 	}, [isOpen, disableAnimation]);
 
 	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.root, {
 		baseClassName: cn(
 			styles.root,
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 			disableAnimation
 				? undefined
 				: isVisible
@@ -128,6 +136,11 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 					: styles.dialogHidden
 		),
 	});
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: uiSource ?? 'iab_dialog' }),
+		[uiSource]
+	);
+
 	// Don't render if not mounted or IAB is disabled
 	if (!isMounted || !iabState?.config.enabled) {
 		return null;
@@ -138,9 +151,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	}
 
 	const dialogContent = (
-		<ConsentTrackingContext.Provider
-			value={{ uiSource: uiSource ?? 'iab_dialog' }}
-		>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div

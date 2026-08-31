@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, vi } from 'vitest';
+
 import type { ConsentState } from '../../../types/compliance';
 import { clearAllScripts } from '../core';
 
@@ -13,37 +14,45 @@ export const mockBody = {
 };
 
 // Registry to track created elements for proper getElementById mocking
-const createdElements: Map<string, HTMLElement> = new Map();
+const createdElements = new Map<string, HTMLElement>();
 
 // Factory function to create mock script elements for testing
-export function createMockScriptElement() {
+export const createMockScriptElement = function createMockScriptElement() {
 	return {
-		id: '',
-		src: '',
-		textContent: '',
-		fetchPriority: undefined as 'high' | 'low' | 'auto' | undefined,
+		addEventListener: vi.fn(),
 		async: false,
 		defer: false,
+		fetchPriority: undefined as 'high' | 'low' | 'auto' | undefined,
+		id: '',
 		nonce: '',
-		addEventListener: vi.fn(),
-		setAttribute: vi.fn(),
 		remove: vi.fn(),
+		setAttribute: vi.fn(),
+		src: '',
+		textContent: '',
 	};
-}
+};
 
 // Sample consent state for testing
 export const sampleConsents: ConsentState = {
-	necessary: true,
+	experience: false,
 	functionality: true,
 	marketing: false,
 	measurement: true,
-	experience: false,
+	necessary: true,
+};
+
+/**
+ * Mocks the Math.random function to return predictable values for testing
+ */
+export const mockRandomForTesting = function mockRandomForTesting() {
+	// Mock only the random function to return a consistent value
+	vi.spyOn(Math, 'random').mockImplementation(() => 0.5);
 };
 
 /**
  * Sets up mocks for DOM manipulation in tests
  */
-export function setupDomMocks() {
+export const setupDomMocks = function setupDomMocks() {
 	// Save original createElement before mocking
 	const originalCreateElement = document.createElement;
 
@@ -56,14 +65,14 @@ export function setupDomMocks() {
 			// Override the id property to track elements
 			let elementId = '';
 			Object.defineProperty(element, 'id', {
-				set: function (value: string) {
+				configurable: true,
+				get: () => elementId,
+				set(value: string) {
 					elementId = value;
 					if (value) {
 						createdElements.set(value, this as HTMLElement);
 					}
 				},
-				get: () => elementId,
-				configurable: true,
 			});
 			return element;
 		}
@@ -72,12 +81,11 @@ export function setupDomMocks() {
 
 	// Mock document.getElementById by adding it to the document object
 	if (!document.getElementById) {
-		(document as any).getElementById = vi
-			.fn()
-			.mockImplementation((id: string) => {
+		(document as unknown).getElementById = vi.fn().mockImplementation(
+			(id: string) =>
 				// Return the actual element from our registry, or null if not found
-				return createdElements.get(id) || null;
-			});
+				createdElements.get(id) || null
+		);
 	}
 
 	// Mock document.head
@@ -104,21 +112,21 @@ export function setupDomMocks() {
 
 	// Reset mocks
 	vi.clearAllMocks();
-}
+};
 
 /**
  * Tears down mocks after tests
  */
-export function teardownDomMocks() {
+export const teardownDomMocks = function teardownDomMocks() {
 	vi.restoreAllMocks();
 	clearAllScripts();
 	createdElements.clear();
-}
+};
 
 /**
  * Sets up test hooks for before and after each test
  */
-export function setupTestHooks() {
+export const setupTestHooks = function setupTestHooks() {
 	// Setup mocks before each test
 	beforeEach(() => {
 		setupDomMocks();
@@ -128,12 +136,4 @@ export function setupTestHooks() {
 	afterEach(() => {
 		teardownDomMocks();
 	});
-}
-
-/**
- * Mocks the Math.random function to return predictable values for testing
- */
-export function mockRandomForTesting() {
-	// Mock only the random function to return a consistent value
-	vi.spyOn(Math, 'random').mockImplementation(() => 0.5);
-}
+};

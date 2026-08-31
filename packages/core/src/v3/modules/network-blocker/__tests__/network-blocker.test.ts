@@ -12,30 +12,51 @@
  * - IAB-aware evaluation via shared has()
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../index';
 import { createNetworkBlocker } from '../index';
 
 const originalFetch = globalThis.fetch;
 
-let fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+let fetchCalls: { input: RequestInfo | URL; init?: RequestInit }[] = [];
 
 class StubXMLHttpRequest {
 	onerror: ((e: unknown) => void) | null = null;
-	listeners = new Map<string, Array<(e: unknown) => void>>();
-	open(_method: string, _url: string) {}
-	send(_body?: unknown) {}
-	abort() {}
+	listeners = new Map<string, ((e: unknown) => void)[]>();
+	readyState = 0;
+	open(_method: string, _url: string) {
+		this.readyState = 1;
+	}
+	send(_body?: unknown) {
+		this.readyState = 2;
+	}
+	abort() {
+		this.readyState = 0;
+	}
 	addEventListener(event: string, handler: (e: unknown) => void) {
 		const bucket = this.listeners.get(event) ?? [];
 		bucket.push(handler);
 		this.listeners.set(event, bucket);
 	}
-	removeEventListener() {}
+	removeEventListener(event: string, handler: (e: unknown) => void) {
+		const bucket = this.listeners.get(event);
+		if (!bucket) {
+			return;
+		}
+		this.listeners.set(
+			event,
+			bucket.filter((listener) => listener !== handler)
+		);
+	}
 	dispatchEvent(event: unknown) {
 		const type = (event as { type?: string })?.type;
 		if (type) {
 			const bucket = this.listeners.get(type);
-			if (bucket) for (const h of bucket) h(event);
+			if (bucket) {
+				for (const h of bucket) {
+					h(event);
+				}
+			}
 		}
 		return true;
 	}
@@ -47,15 +68,15 @@ beforeEach(() => {
 	// Pretend we're in a browser — the blocker's hasBrowserAPIs check
 	// relies on window.fetch, window.location, and XMLHttpRequest.
 	const win = {
-		location: { href: 'https://app.example.com/' },
 		fetch: (input: RequestInfo | URL, init?: RequestInit) => {
-			fetchCalls.push({ input, init });
+			fetchCalls.push({ init, input });
 			return Promise.resolve(new Response('ok', { status: 200 }));
 		},
+		location: { href: 'https://app.example.com/' },
 	};
 	vi.stubGlobal('window', win);
 	vi.stubGlobal('fetch', win.fetch);
-	// biome-ignore lint/suspicious/noExplicitAny: test stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- test stub
 	vi.stubGlobal('XMLHttpRequest', StubXMLHttpRequest as any);
 });
 
@@ -69,7 +90,7 @@ describe('network-blocker: fetch interception', () => {
 		const kernel = createConsentKernel();
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'google-analytics.com', category: 'marketing' }],
+			rules: [{ category: 'marketing', domain: 'google-analytics.com' }],
 		});
 
 		const response = await window.fetch(
@@ -77,7 +98,8 @@ describe('network-blocker: fetch interception', () => {
 		);
 		expect(response.status).toBe(451);
 		expect(response.statusText).toBe('Request blocked by consent');
-		expect(fetchCalls).toHaveLength(0); // originalFetch not reached
+		// originalFetch not reached
+		expect(fetchCalls).toHaveLength(0);
 	});
 
 	test('allows fetch when consent is granted', async () => {
@@ -86,7 +108,7 @@ describe('network-blocker: fetch interception', () => {
 		});
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'google-analytics.com', category: 'marketing' }],
+			rules: [{ category: 'marketing', domain: 'google-analytics.com' }],
 		});
 
 		const response = await window.fetch(
@@ -102,7 +124,7 @@ describe('network-blocker: fetch interception', () => {
 		});
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'google-analytics.com', category: 'marketing' }],
+			rules: [{ category: 'marketing', domain: 'google-analytics.com' }],
 		});
 
 		const first = await window.fetch(
@@ -124,7 +146,7 @@ describe('network-blocker: rule matching', () => {
 		const kernel = createConsentKernel();
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 		const res = await window.fetch('https://sub.example.com/x');
 		expect(res.status).toBe(451);
@@ -134,7 +156,7 @@ describe('network-blocker: rule matching', () => {
 		const kernel = createConsentKernel();
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 		const res = await window.fetch('https://example.org/x');
 		expect(res.status).toBe(200);
@@ -146,9 +168,9 @@ describe('network-blocker: rule matching', () => {
 			kernel,
 			rules: [
 				{
+					category: 'marketing',
 					domain: 'example.com',
 					pathIncludes: '/collect',
-					category: 'marketing',
 				},
 			],
 		});
@@ -166,9 +188,9 @@ describe('network-blocker: rule matching', () => {
 			kernel,
 			rules: [
 				{
+					category: 'marketing',
 					domain: 'example.com',
 					methods: ['POST'],
-					category: 'marketing',
 				},
 			],
 		});
@@ -189,9 +211,9 @@ describe('network-blocker: config controls', () => {
 		const kernel = createConsentKernel();
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing', id: 'r1' }],
-			onRequestBlocked,
 			logBlockedRequests: false,
+			onRequestBlocked,
+			rules: [{ category: 'marketing', domain: 'example.com', id: 'r1' }],
 		});
 
 		await window.fetch('https://example.com/x');
@@ -207,8 +229,8 @@ describe('network-blocker: config controls', () => {
 		const kernel = createConsentKernel();
 		createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
 			logBlockedRequests: false,
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 
 		await window.fetch('https://example.com/x');
@@ -220,8 +242,8 @@ describe('network-blocker: config controls', () => {
 		const kernel = createConsentKernel();
 		const blocker = createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
 			logBlockedRequests: false,
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 
 		const blocked = await window.fetch('https://example.com/x');
@@ -236,13 +258,13 @@ describe('network-blocker: config controls', () => {
 		const kernel = createConsentKernel();
 		const blocker = createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
 			logBlockedRequests: false,
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 
 		expect((await window.fetch('https://example.com/x')).status).toBe(451);
 
-		blocker.updateRules([{ domain: 'other.com', category: 'marketing' }]);
+		blocker.updateRules([{ category: 'marketing', domain: 'other.com' }]);
 		expect((await window.fetch('https://example.com/x')).status).toBe(200);
 		expect((await window.fetch('https://other.com/x')).status).toBe(451);
 	});
@@ -255,8 +277,8 @@ describe('network-blocker: dispose', () => {
 
 		const blocker = createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
 			logBlockedRequests: false,
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 
 		// The patched fetch replaces the original reference.
@@ -276,8 +298,8 @@ describe('network-blocker: dispose', () => {
 		const kernel = createConsentKernel();
 		const blocker = createNetworkBlocker({
 			kernel,
-			rules: [{ domain: 'example.com', category: 'marketing' }],
 			logBlockedRequests: false,
+			rules: [{ category: 'marketing', domain: 'example.com' }],
 		});
 		blocker.dispose();
 
@@ -289,29 +311,29 @@ describe('network-blocker: dispose', () => {
 describe('network-blocker: IAB evaluation when model="iab"', () => {
 	test('rule with vendorId blocks when vendor consent missing', async () => {
 		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
+			initialHasConsented: true,
 			initialIab: { enabled: true },
 			initialPolicy: {
 				id: 'iab',
 				model: 'iab',
 				ui: { mode: 'banner' },
 			} as never,
-			initialConsents: { marketing: true },
-			initialHasConsented: true,
 		});
 		createNetworkBlocker({
 			kernel,
+			logBlockedRequests: false,
 			rules: [
 				{
 					// @ts-expect-error: v2 NetworkBlockerRule doesn't currently
 					// expose vendorId directly; evaluateConsent handles it
 					// when passed through ConsentGate. We rely on structural
 					// typing of the shared has() helper for IAB rules.
-					vendorId: 755,
-					domain: 'example.com',
 					category: 'marketing',
+					domain: 'example.com',
+					vendorId: 755,
 				},
 			],
-			logBlockedRequests: false,
 		});
 
 		// NOTE: The current v2 NetworkBlockerRule shape doesn't carry IAB

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { resolveBackendURL } from './server-url';
 
 describe('resolveBackendURL', () => {
@@ -20,8 +21,8 @@ describe('resolveBackendURL', () => {
 	it('resolves relative URLs from proxy headers', () => {
 		expect(
 			resolveBackendURL('/api/c15t/', {
-				'x-forwarded-proto': 'http',
 				'x-forwarded-host': 'app.example.com',
+				'x-forwarded-proto': 'http',
 			})
 		).toBe('http://app.example.com/api/c15t');
 	});
@@ -29,8 +30,8 @@ describe('resolveBackendURL', () => {
 	it('uses x-forwarded-ssl when proto is absent', () => {
 		expect(
 			resolveBackendURL('/api/c15t', {
-				'x-forwarded-ssl': 'on',
 				host: 'secure.example.com',
+				'x-forwarded-ssl': 'on',
 			})
 		).toBe('https://secure.example.com/api/c15t');
 	});

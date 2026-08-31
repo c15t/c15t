@@ -13,8 +13,11 @@
 
 import { hashSha256Hex } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
-import { currentTenantId, type Tenant, tenantScope } from '../db/tenant';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
+
+import { currentTenantId, tenantScope } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
 import { encodeRow, encoder, toBoolean, toDate } from '../db/values';
 
 export interface LegalDocumentRelease {
@@ -54,14 +57,16 @@ export class LegalDocumentConflictError extends Data.TaggedError(
  * inputs joined the same way — so re-syncing the same release through either
  * backend resolves to the same row rather than creating a second one.
  */
-export const buildLegalDocumentPolicyId = (input: {
+export const buildLegalDocumentPolicyId = async (input: {
 	tenantId?: string;
 	type: string;
 	hash: string;
-}): Promise<string> =>
-	hashSha256Hex(
+}): Promise<string> => {
+	const digest = await hashSha256Hex(
 		[input.tenantId ?? 'default', input.type, input.hash].join('|')
-	).then((digest) => `pol_${digest}`);
+	);
+	return `pol_${digest}`;
+};
 
 /**
  * Marks a release as the current one for its type.
@@ -69,118 +74,123 @@ export const buildLegalDocumentPolicyId = (input: {
  * Idempotent: syncing the same release twice returns the same policy without
  * a second row.
  */
-export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
-	release: LegalDocumentRelease
-): Generator<
-	Effect.Effect<
-		unknown,
-		SqlError.SqlError | LegalDocumentConflictError,
-		SqlClient.SqlClient | Tenant
-	>,
-	SyncedPolicy
-> {
-	const sql = yield* SqlClient.SqlClient;
-	// SQLite binds neither a Date nor a boolean; see `../db/values.ts`.
-	const encode = yield* encoder;
-	// From the scope, for the same reason the consent write path takes its
-	// tenant from there: the reads below filter on the scope, and a route that
-	// forgot to pass one wrote rows the instance could not then see.
-	const tenantId = yield* currentTenantId;
-	const id = yield* Effect.promise(() =>
-		buildLegalDocumentPolicyId({
-			tenantId,
-			type: release.type,
-			hash: release.hash,
-		})
-	);
+export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(
+	function* syncCurrent(
+		release: LegalDocumentRelease
+	): Generator<
+		Effect.Effect<
+			unknown,
+			SqlError.SqlError | LegalDocumentConflictError,
+			SqlClient.SqlClient | Tenant
+		>,
+		SyncedPolicy
+	> {
+		const sql = yield* SqlClient.SqlClient;
+		// SQLite binds neither a Date nor a boolean; see `../db/values.ts`.
+		const encode = yield* encoder;
+		// From the scope, for the same reason the consent write path takes its
+		// tenant from there: the reads below filter on the scope, and a route that
+		// forgot to pass one wrote rows the instance could not then see.
+		const tenantId = yield* currentTenantId;
+		const id = yield* Effect.promise(() =>
+			buildLegalDocumentPolicyId({
+				hash: release.hash,
+				tenantId,
+				type: release.type,
+			})
+		);
 
-	const scope = yield* tenantScope();
+		const scope = yield* tenantScope();
 
-	return yield* sql.withTransaction(
-		Effect.gen(function* () {
-			const existing = yield* sql<{
-				id: string;
-				type: string;
-				version: string;
-				hash: string | null;
-				// Engine-shaped rather than decoded: SQLite returns epoch
-				// milliseconds and `0`/`1` where the others return a Date and a
-				// boolean.
-				effectiveDate: unknown;
-				isActive: unknown;
-			}>`select * from ${sql('consentPolicy')} where ${sql('id')} = ${id} and ${scope}`;
+		return yield* sql.withTransaction(
+			// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+			Effect.gen(function* syncCurrent() {
+				const existing = yield* sql<{
+					id: string;
+					type: string;
+					version: string;
+					hash: string | null;
+					// Engine-shaped rather than decoded: SQLite returns epoch
+					// milliseconds and `0`/`1` where the others return a Date and a
+					// boolean.
+					effectiveDate: unknown;
+					isActive: unknown;
+				}>`select * from ${sql('consentPolicy')} where ${sql('id')} = ${id} and ${scope}`;
 
-			const found = existing[0];
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+				const found = existing[0];
 
-			if (found) {
-				// Same content hash must mean same metadata, or the caller has
-				// two different ideas about what this document says.
-				if (
-					found.version !== release.version ||
-					toDate(found.effectiveDate).getTime() !==
-						release.effectiveDate.getTime()
-				) {
-					return yield* new LegalDocumentConflictError({
-						message: 'Release metadata conflicts with existing consent policy',
-					});
-				}
+				if (found) {
+					// Same content hash must mean same metadata, or the caller has
+					// two different ideas about what this document says.
+					if (
+						found.version !== release.version ||
+						toDate(found.effectiveDate).getTime() !==
+							release.effectiveDate.getTime()
+					) {
+						return yield* new LegalDocumentConflictError({
+							message:
+								'Release metadata conflicts with existing consent policy',
+						});
+					}
 
-				// Scoped: without this, syncing a release for one tenant would
-				// deactivate another tenant's active policy of the same type.
-				yield* sql`
+					// Scoped: without this, syncing a release for one tenant would
+					// deactivate another tenant's active policy of the same type.
+					yield* sql`
 					update ${sql('consentPolicy')} set ${sql('isActive')} = ${encode(false)}
 					where ${sql('type')} = ${release.type}
 						and ${sql('isActive')} = ${encode(true)}
 						and ${sql('id')} <> ${id} and ${scope}
 				`;
 
-				if (!toBoolean(found.isActive)) {
-					yield* sql`
+					if (!toBoolean(found.isActive)) {
+						yield* sql`
 						update ${sql('consentPolicy')} set ${sql('isActive')} = ${encode(true)}
 						where ${sql('id')} = ${id} and ${scope}
 					`;
+					}
+
+					return {
+						effectiveDate: toDate(found.effectiveDate),
+						hash: found.hash ?? release.hash,
+						id: found.id,
+						isActive: true,
+						type: found.type,
+						version: found.version,
+					};
 				}
 
-				return {
-					id: found.id,
-					type: found.type,
-					version: found.version,
-					hash: found.hash ?? release.hash,
-					effectiveDate: toDate(found.effectiveDate),
-					isActive: true,
-				};
-			}
-
-			yield* sql`
+				yield* sql`
 				update ${sql('consentPolicy')} set ${sql('isActive')} = ${encode(false)}
 				where ${sql('type')} = ${release.type}
 					and ${sql('isActive')} = ${encode(true)}
 					and ${scope}
 			`;
 
-			yield* sql`
+				yield* sql`
 				insert into ${sql('consentPolicy')} ${sql.insert(
 					encodeRow(encode, {
-						id,
-						version: release.version,
-						type: release.type,
-						hash: release.hash,
-						effectiveDate: release.effectiveDate,
-						isActive: true,
 						createdAt: new Date(),
+						effectiveDate: release.effectiveDate,
+						hash: release.hash,
+						id,
+						isActive: true,
 						tenantId: tenantId ?? null,
+						type: release.type,
+						version: release.version,
 					})
 				)}
 			`;
 
-			return {
-				id,
-				type: release.type,
-				version: release.version,
-				hash: release.hash,
-				effectiveDate: release.effectiveDate,
-				isActive: true,
-			};
-		})
-	);
-});
+				return {
+					effectiveDate: release.effectiveDate,
+					hash: release.hash,
+					id,
+					isActive: true,
+					type: release.type,
+					version: release.version,
+				};
+			})
+		);
+	}
+);

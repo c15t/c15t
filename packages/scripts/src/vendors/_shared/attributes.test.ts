@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { booleanDataAttribute, listDataAttribute } from './attributes';
 
 describe('vendor attribute helpers', () => {

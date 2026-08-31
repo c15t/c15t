@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type {
 	GlobalVendorList,
 	NonIABVendor,
@@ -9,6 +6,7 @@ import type {
 } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -16,6 +14,7 @@ import {
 	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
+
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
@@ -31,8 +30,8 @@ const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 /** Canonical contract test-ids (parity with the React/Svelte IAB banners). */
 const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {
 	accept: 'iab-consent-banner-accept-button',
-	reject: 'iab-consent-banner-reject-button',
 	customize: 'iab-consent-banner-customize-button',
+	reject: 'iab-consent-banner-reject-button',
 };
 
 const props = withDefaults(
@@ -70,10 +69,6 @@ const disableAnimation = computed(() =>
 	Boolean(toValue(config).disableAnimation)
 );
 
-const showBanner = computed(
-	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady
-);
-
 const iabT = computed(() => {
 	const translations = toValue(init)?.translations?.translations as
 		| { iab?: Record<string, unknown> }
@@ -99,11 +94,11 @@ const iabT = computed(() => {
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
-	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 	customize: iabT.value?.common?.customize ?? 'Customize',
+	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-function resolveBannerSummary(
+const resolveBannerSummary = function resolveBannerSummary(
 	gvlData: GlobalVendorList,
 	vendors: NonIABVendor[]
 ) {
@@ -127,11 +122,11 @@ function resolveBannerSummary(
 	);
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 
-	const stackScores: Array<{
+	const stackScores: {
 		name: string;
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const stack of Object.values(gvlData.stacks || {})) {
 		const coveredPurposeIds = stack.purposes.filter((purposeId) =>
@@ -139,8 +134,8 @@ function resolveBannerSummary(
 		);
 		if (coveredPurposeIds.length >= 2) {
 			stackScores.push({
-				name: stack.name,
 				coveredPurposeIds,
+				name: stack.name,
 				score: coveredPurposeIds.length,
 			});
 		}
@@ -189,25 +184,29 @@ function resolveBannerSummary(
 	}
 
 	return {
-		vendorCount,
 		displayItems: items.slice(0, MAX_DISPLAY_ITEMS),
-		remainingCount: Math.max(0, items.length - MAX_DISPLAY_ITEMS),
 		isReady: true,
+		remainingCount: Math.max(0, items.length - MAX_DISPLAY_ITEMS),
+		vendorCount,
 	};
-}
+};
 
 const bannerSummary = computed(() => {
 	if (!gvl.value) {
 		return {
-			isReady: false,
-			vendorCount: 0,
 			displayItems: [] as string[],
+			isReady: false,
 			remainingCount: 0,
+			vendorCount: 0,
 		};
 	}
 
 	return resolveBannerSummary(gvl.value, customVendors.value);
 });
+
+const showBanner = computed(
+	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady
+);
 
 const descriptionText = computed(() =>
 	(iabT.value?.banner?.description ?? '').replace(
@@ -227,14 +226,14 @@ const descriptionParts = computed(() => {
 	const text = descriptionText.value;
 	const link = partnersLinkText.value;
 	if (!link || !text.includes(link)) {
-		return { before: text, after: '' };
+		return { after: '', before: text };
 	}
 
 	const [before, after] = text.split(link);
-	return { before: before ?? text, after: after ?? '' };
+	return { after: after ?? '', before: before ?? text };
 });
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		iabSelection.value.preferenceCenterTab = 'purposes';
 		activeUI.value = 'manager';
@@ -247,12 +246,12 @@ function onAction(action: PolicyUiAction) {
 	if (action === 'reject') {
 		save('none');
 	}
-}
+};
 
-function openVendors() {
+const openVendors = function openVendors() {
 	iabSelection.value.preferenceCenterTab = 'vendors';
 	activeUI.value = 'manager';
-}
+};
 
 const scrollLock = computed(
 	() => initValue.value?.policy?.ui?.banner?.scrollLock ?? true
@@ -360,16 +359,18 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 									v-bind="config.components?.['iab-banner']?.purposeMore"
 									:class="bannerStyles.purposeMore"
 								>
-									{{ (iabT?.banner?.andMore ?? '').replace(
-										'{count}',
-										String(bannerSummary.remainingCount),
-									) }}
+									{{
+										(iabT?.banner?.andMore ?? '').replace(
+											'{count}',
+											String(bannerSummary.remainingCount)
+										)
+									}}
 								</li>
 							</ul>
 							<p
 								v-bind="
-										config.components?.['iab-banner']?.legitimateInterestNotice
-									"
+									config.components?.['iab-banner']?.legitimateInterestNotice
+								"
 								:class="bannerStyles.legitimateInterestNotice"
 							>
 								{{ iabT?.banner?.legitimateInterestNotice }}
@@ -387,10 +388,14 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								:labels="labels"
 								:test-ids="IAB_BANNER_ACTION_TEST_IDS"
 								secondary-mode="stroke"
-								:root-attrs="config.components?.['iab-banner']?.actions as
-										object | undefined"
-								:group-attrs="config.components?.['iab-banner']?.actionGroup as
-										object | undefined"
+								:root-attrs="
+									config.components?.['iab-banner']?.actions as
+										object | undefined
+								"
+								:group-attrs="
+									config.components?.['iab-banner']?.actionGroup as
+										object | undefined
+								"
 								@action="onAction"
 							/>
 						</div>

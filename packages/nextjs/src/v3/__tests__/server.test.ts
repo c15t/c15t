@@ -2,34 +2,47 @@
  * Tests for readInitialConsentConfig — the server-only helper that
  * produces a KernelConfig from the incoming Next.js request.
  *
- * next/headers is mocked per test so each one controls cookies and
- * headers independently. No real Next.js request context is needed.
+ * Tests supply a tiny Next-compatible request context so each one controls
+ * cookies and headers independently.
  */
 
 import type { KernelConfig } from '@c15t/core/v3';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { readInitialConsentConfig } from '../server';
+import { beforeEach, describe, expect, test } from 'vitest';
+
+import { readInitialConsentConfig as baseReadInitialConsentConfig } from '../server';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
 
-vi.mock('next/headers', () => ({
+const createCookieHeader = () =>
+	Array.from(cookieStore.entries())
+		.map(([key, value]) => `${key}=${value}`)
+		.join('; ');
+
+const createHeaders = () => {
+	const headers = new Headers(Array.from(headerStore.entries()));
+	const cookieHeader = createCookieHeader();
+	if (cookieHeader && !headers.has('cookie')) {
+		headers.set('cookie', cookieHeader);
+	}
+	return headers;
+};
+
+const request = {
 	cookies: () =>
 		Promise.resolve({
 			get: (name: string) => {
 				const value = cookieStore.get(name);
 				return value === undefined ? undefined : { name, value };
 			},
-			toString: () =>
-				Array.from(cookieStore.entries())
-					.map(([k, v]) => `${k}=${v}`)
-					.join('; '),
+			toString: createCookieHeader,
 		}),
-	headers: () =>
-		Promise.resolve({
-			get: (name: string) => headerStore.get(name.toLowerCase()) ?? null,
-		}),
-}));
+	headers: () => Promise.resolve(createHeaders()),
+};
+
+const readInitialConsentConfig = (
+	options: Parameters<typeof baseReadInitialConsentConfig>[0] = {}
+) => baseReadInitialConsentConfig({ ...options, request });
 
 beforeEach(() => {
 	cookieStore.clear();
@@ -53,9 +66,9 @@ describe('readInitialConsentConfig: cookies', () => {
 		const config = await readInitialConsentConfig();
 		expect(config.initialHasConsented).toBe(true);
 		expect(config.initialConsents).toMatchObject({
-			necessary: true,
 			marketing: true,
 			measurement: false,
+			necessary: true,
 		});
 	});
 

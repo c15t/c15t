@@ -8,10 +8,14 @@
  */
 
 import { describeRoute } from 'hono-openapi';
+
 import type { RouteContext } from '../context';
 import { buildInitResponse } from '../init';
 
-export function register({ app, options, run }: RouteContext): void {
+export const register = function register({
+	app,
+	options,
+}: RouteContext): void {
 	app.get(
 		'/init',
 		describeRoute({
@@ -31,4 +35,4 @@ export function register({ app, options, run }: RouteContext): void {
 			return c.json(body);
 		}
 	);
-}
+};

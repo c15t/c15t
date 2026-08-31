@@ -22,7 +22,7 @@ export interface CacheAdapter {
 	 * @param key - Cache key
 	 * @returns The cached value, or null if not found or expired
 	 */
-	get<T>(key: string): Promise<T | null>;
+	get: <T>(key: string) => Promise<T | null>;
 
 	/**
 	 * Set a value in the cache.
@@ -31,14 +31,14 @@ export interface CacheAdapter {
 	 * @param value - Value to cache
 	 * @param ttlMs - Time to live in milliseconds (optional)
 	 */
-	set<T>(key: string, value: T, ttlMs?: number): Promise<void>;
+	set: <T>(key: string, value: T, ttlMs?: number) => Promise<void>;
 
 	/**
 	 * Delete a value from the cache.
 	 *
 	 * @param key - Cache key
 	 */
-	delete(key: string): Promise<void>;
+	delete: (key: string) => Promise<void>;
 
 	/**
 	 * Check if a key exists in the cache.
@@ -46,7 +46,7 @@ export interface CacheAdapter {
 	 * @param key - Cache key
 	 * @returns True if the key exists and is not expired
 	 */
-	has(key: string): Promise<boolean>;
+	has: (key: string) => Promise<boolean>;
 }
 
 /**
@@ -55,7 +55,8 @@ export interface CacheAdapter {
  *
  * @public
  */
-export const GVL_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+// 3 days
+export const GVL_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
  * Default TTL for in-memory cache entries (5 minutes).
@@ -63,4 +64,5 @@ export const GVL_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
  *
  * @public
  */
-export const MEMORY_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// 5 minutes
+export const MEMORY_TTL_MS = 5 * 60 * 1000;

@@ -1,5 +1,15 @@
 import type { JurisdictionCode } from '@c15t/schema/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Determines the jurisdiction code based on the provided country code.
  *
@@ -8,11 +18,17 @@ import type { JurisdictionCode } from '@c15t/schema/types';
  * jurisdiction code. Banner visibility is derived elsewhere using
  * `jurisdiction !== 'NONE'`.
  */
-export function checkJurisdiction(
+export const checkJurisdiction = function checkJurisdiction(
 	countryCode: string | null,
 	regionCode?: string | null
 ): JurisdictionCode {
 	const jurisdictions = {
+		AU: new Set(['AU']),
+		BR: new Set(['BR']),
+		CA: new Set(['CA']),
+		CA_QC_REGIONS: new Set(['QC']),
+		CH: new Set(['CH']),
+		EEA: new Set(['IS', 'NO', 'LI']),
 		EU: new Set([
 			'AT',
 			'BE',
@@ -42,15 +58,9 @@ export function checkJurisdiction(
 			'ES',
 			'SE',
 		]),
-		EEA: new Set(['IS', 'NO', 'LI']),
-		UK: new Set(['GB']),
-		CH: new Set(['CH']),
-		BR: new Set(['BR']),
-		CA: new Set(['CA']),
-		AU: new Set(['AU']),
 		JP: new Set(['JP']),
 		KR: new Set(['KR']),
-		CA_QC_REGIONS: new Set(['QC']),
+		UK: new Set(['GB']),
 	};
 
 	// Default to no jurisdiction
@@ -65,7 +75,7 @@ export function checkJurisdiction(
 		const normalizedRegionCode =
 			regionCode && typeof regionCode === 'string'
 				? (regionCode.includes('-')
-						? regionCode.split('-').pop()!
+						? getDefined(regionCode.split('-').pop())
 						: regionCode
 					).toUpperCase()
 				: null;
@@ -80,20 +90,20 @@ export function checkJurisdiction(
 		}
 
 		// Map jurisdiction sets to their respective codes
-		const jurisdictionMap: Array<{
+		const jurisdictionMap: {
 			sets: Set<string>[];
 			code: JurisdictionCode;
-		}> = [
+		}[] = [
 			{
-				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
 				code: 'GDPR',
+				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
 			},
-			{ sets: [jurisdictions.CH], code: 'CH' },
-			{ sets: [jurisdictions.BR], code: 'BR' },
-			{ sets: [jurisdictions.CA], code: 'PIPEDA' },
-			{ sets: [jurisdictions.AU], code: 'AU' },
-			{ sets: [jurisdictions.JP], code: 'APPI' },
-			{ sets: [jurisdictions.KR], code: 'PIPA' },
+			{ code: 'CH', sets: [jurisdictions.CH] },
+			{ code: 'BR', sets: [jurisdictions.BR] },
+			{ code: 'PIPEDA', sets: [jurisdictions.CA] },
+			{ code: 'AU', sets: [jurisdictions.AU] },
+			{ code: 'APPI', sets: [jurisdictions.JP] },
+			{ code: 'PIPA', sets: [jurisdictions.KR] },
 		];
 
 		// Find matching jurisdiction
@@ -106,4 +116,4 @@ export function checkJurisdiction(
 	}
 
 	return jurisdictionCode;
-}
+};

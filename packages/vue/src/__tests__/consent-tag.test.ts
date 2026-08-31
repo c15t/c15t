@@ -9,26 +9,29 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { computed, createSSRApp, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+
 import ConsentTag from '../runtime/components/consent-tag.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { symbolInit } from '../runtime/utils/symbols';
 
-function provides(branding: InitOutput['branding']) {
+const provides = function provides(branding: InitOutput['branding']) {
 	return {
 		[consentConfigKey as symbol]: computed(() => ({}) as ConsentConfig),
 		[symbolInit]: ref({ branding } as InitOutput),
 	};
-}
+};
 
-function mountTag(branding: InitOutput['branding'] = 'c15t') {
+const mountTag = function mountTag(branding: InitOutput['branding'] = 'c15t') {
 	return mount(ConsentTag, {
-		props: { context: 'banner' as const },
 		global: { provide: provides(branding) },
+		props: { context: 'banner' as const },
 	});
-}
+};
 
-async function renderTagOnServer(branding: InitOutput['branding'] = 'c15t') {
+const renderTagOnServer = function renderTagOnServer(
+	branding: InitOutput['branding'] = 'c15t'
+) {
 	const app = createSSRApp(ConsentTag, { context: 'banner' });
 	const injected = provides(branding);
 	// `Object.entries` drops symbol keys, and every injection key here is one.
@@ -36,7 +39,7 @@ async function renderTagOnServer(branding: InitOutput['branding'] = 'c15t') {
 		app.provide(key as symbol, injected[key as keyof typeof injected]);
 	}
 	return renderToString(app);
-}
+};
 
 describe('consent tag branding link', () => {
 	test('server-rendered markup carries no ref param', async () => {

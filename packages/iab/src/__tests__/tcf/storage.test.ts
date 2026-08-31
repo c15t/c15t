@@ -6,7 +6,8 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { createCMPApi } from '../../tcf/cmp-api';
 import { IAB_STORAGE_KEYS } from '../../tcf/constants';
 import type { GlobalVendorList } from '../../tcf/iab-tcf-types';
@@ -23,7 +24,7 @@ import {
 const STORAGE_KEY = IAB_STORAGE_KEYS.TC_STRING_LOCAL;
 
 // Helper to clear all cookies
-function clearAllCookies() {
+const clearAllCookies = function clearAllCookies() {
 	const cookies = document.cookie.split(';');
 	for (const cookie of cookies) {
 		const name = cookie.split('=')[0]?.trim();
@@ -31,7 +32,7 @@ function clearAllCookies() {
 			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 		}
 	}
-}
+};
 
 describe('Storage Compliance - IAB TCF 2.3', () => {
 	let cmpApi: CMPApi;
@@ -49,8 +50,8 @@ describe('Storage Compliance - IAB TCF 2.3', () => {
 		cmpApi = createCMPApi({
 			cmpId: 28,
 			cmpVersion: 1,
-			gvl: mockGVL,
 			gdprApplies: true,
+			gvl: mockGVL,
 		});
 	});
 

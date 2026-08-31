@@ -30,23 +30,23 @@ jobs:
         run: |
           # Use a fixed branch name for syncing
           SYNC_BRANCH="sync-main-to-canary"
-          
+
           # Fetch latest remote refs
           git fetch origin main
-          
+
           # Check if sync branch exists locally and switch to it or create it
           if git show-ref --verify --quiet refs/heads/$SYNC_BRANCH; then
             git checkout $SYNC_BRANCH
           else
             git checkout -b $SYNC_BRANCH
           fi
-          
+
           # Reset branch hard to latest main
           git reset --hard origin/main
-          
+
           # Push the sync branch (force update if it exists)
           git push origin $SYNC_BRANCH --force-with-lease
-          
+
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
 
       - name: Create Pull Request

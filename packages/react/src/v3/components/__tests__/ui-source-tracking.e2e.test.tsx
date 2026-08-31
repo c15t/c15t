@@ -8,8 +8,9 @@
  */
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
@@ -17,19 +18,29 @@ import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
+		},
+		getItem: (key: string) => store[key] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -39,7 +50,6 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -47,10 +57,9 @@ const defaultOptions: ConsentManagerOptions = {
 		'marketing',
 		'measurement',
 	],
+	mode: 'offline',
 	offlinePolicy: {
 		policy: {
-			id: 'ui-source-tracking-test',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -61,6 +70,8 @@ const defaultOptions: ConsentManagerOptions = {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'ui-source-tracking-test',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},
@@ -103,14 +114,14 @@ describe('UI Source Tracking E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			// Verify consent is saved
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents.necessary).toBe(true);
 				},
 				{ timeout: 3000 }
@@ -237,7 +248,7 @@ describe('UI Source Tracking E2E Tests', () => {
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
-			await userEvent.click(customizeButton!);
+			await userEvent.click(getDefined(customizeButton));
 
 			// Wait for dialog
 			await vi.waitFor(
@@ -254,14 +265,14 @@ describe('UI Source Tracking E2E Tests', () => {
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
-			await userEvent.click(saveButton!);
+			await userEvent.click(getDefined(saveButton));
 
 			// Verify consent was saved
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents).toBeTruthy();
 				},
 				{ timeout: 3000 }

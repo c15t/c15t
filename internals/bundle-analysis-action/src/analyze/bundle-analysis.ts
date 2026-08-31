@@ -2,14 +2,7 @@
  * @packageDocumentation
  * Bundle analysis logic for comparing rsdoctor outputs.
  */
-import {
-	existsSync,
-	promises as fs,
-	readdirSync,
-	readFileSync,
-	statSync,
-	writeFileSync,
-} from 'node:fs';
+import * as nodeFs from 'node:fs';
 import { basename, join } from 'node:path';
 
 export interface BundleStats {
@@ -28,13 +21,13 @@ export interface PackageBundleData {
 	diffs: {
 		added: BundleStats[];
 		removed: BundleStats[];
-		changed: Array<{
+		changed: {
 			name: string;
 			baseSize: number;
 			currentSize: number;
 			diff: number;
 			diffPercent: number;
-		}>;
+		}[];
 	};
 	totalBaseSize: number;
 	totalCurrentSize: number;
@@ -56,14 +49,48 @@ interface WorkspacePackageNode {
 	dependencies: string[];
 }
 
-async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
+interface BundleAnalysisFileSystem {
+	existsSync: typeof nodeFs.existsSync;
+	readdir: typeof nodeFs.promises.readdir;
+	readdirSync: typeof nodeFs.readdirSync;
+	readFileSync: typeof nodeFs.readFileSync;
+	statSync: typeof nodeFs.statSync;
+	writeFileSync: typeof nodeFs.writeFileSync;
+}
+
+const defaultFileSystem: BundleAnalysisFileSystem = {
+	existsSync: nodeFs.existsSync,
+	readFileSync: nodeFs.readFileSync,
+	readdir: nodeFs.promises.readdir,
+	readdirSync: nodeFs.readdirSync,
+	statSync: nodeFs.statSync,
+	writeFileSync: nodeFs.writeFileSync,
+};
+
+let fileSystem: BundleAnalysisFileSystem = defaultFileSystem;
+
+export const setBundleAnalysisFileSystemForTests =
+	function setBundleAnalysisFileSystemForTests(
+		nextFileSystem: BundleAnalysisFileSystem
+	): () => void {
+		fileSystem = nextFileSystem;
+		return () => {
+			fileSystem = defaultFileSystem;
+		};
+	};
+
+const findRsdoctorDataFiles = async function findRsdoctorDataFiles(
+	dir: string
+): Promise<string[]> {
 	const files: string[] = [];
-	if (!existsSync(dir)) {
+	if (!fileSystem.existsSync(dir)) {
 		return files;
 	}
 
-	async function walk(currentDir: string): Promise<void> {
-		const entries = await fs.readdir(currentDir, { withFileTypes: true });
+	const walk = async function walk(currentDir: string): Promise<void> {
+		const entries = await fileSystem.readdir(currentDir, {
+			withFileTypes: true,
+		});
 		const promises: Promise<void>[] = [];
 
 		for (const entry of entries) {
@@ -80,103 +107,105 @@ async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 		}
 
 		await Promise.all(promises);
-	}
+	};
 
 	await walk(dir);
 	return files;
-}
+};
 
-export function extractBundleSizes(jsonPath: string): BundleStats[] {
+type RsdoctorData = ReturnType<typeof JSON.parse>;
+
+const gzipSizeForChunk = function gzipSizeForChunk(
+	assets: RsdoctorData[],
+	assetIds: (string | number)[]
+): number | undefined {
+	for (const assetId of assetIds) {
+		const asset = assets.find(
+			(candidate) => String(candidate.id) === String(assetId)
+		);
+		if (asset?.gzipSize) {
+			return asset.gzipSize;
+		}
+	}
+	return undefined;
+};
+
+const bundlesFromChunks = function bundlesFromChunks(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const assets = data?.data?.chunkGraph?.assets ?? [];
+	const chunks = data?.data?.chunkGraph?.chunks ?? [];
+	return chunks.map((chunk: RsdoctorData) => {
+		const chunkFlags: Pick<BundleStats, 'initial' | 'entry'> = {};
+		if (typeof chunk.initial === 'boolean') {
+			chunkFlags.initial = chunk.initial;
+		}
+		if (typeof chunk.entry === 'boolean') {
+			chunkFlags.entry = chunk.entry;
+		}
+		return {
+			gzipSize: gzipSizeForChunk(assets, chunk.assets ?? []),
+			name: chunk.name || chunk.id || 'unknown',
+			path: jsonPath,
+			size: chunk.size || 0,
+			...chunkFlags,
+		};
+	});
+};
+
+const bundlesFromAssets = function bundlesFromAssets(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	return (data?.data?.chunkGraph?.assets ?? []).map((asset: RsdoctorData) => ({
+		gzipSize: asset.gzipSize,
+		name: asset.path || asset.id || 'unknown',
+		path: jsonPath,
+		size: asset.size || 0,
+	}));
+};
+
+const bundlesFromModules = function bundlesFromModules(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const chunkMap = new Map<string, BundleStats>();
+	for (const module of data?.data?.modules ?? []) {
+		const size = module.size?.transformedSize || module.size?.sourceSize || 0;
+		for (const chunkName of module.chunks ?? []) {
+			const bundle = chunkMap.get(chunkName) ?? {
+				name: chunkName,
+				path: jsonPath,
+				size: 0,
+			};
+			bundle.size += size;
+			chunkMap.set(chunkName, bundle);
+		}
+	}
+	return Array.from(chunkMap.values());
+};
+
+export const extractBundleSizes = function extractBundleSizes(
+	jsonPath: string
+): BundleStats[] {
 	try {
-		const content = readFileSync(jsonPath, 'utf-8');
-		const data = JSON.parse(content);
-		const bundles: BundleStats[] = [];
-
-		// Extract bundle information from rsdoctor data structure
-		if (data?.data?.chunkGraph?.chunks) {
-			for (const chunk of data.data.chunkGraph.chunks || []) {
-				const chunkName = chunk.name || chunk.id || 'unknown';
-				const chunkSize = chunk.size || 0;
-
-				// Try to find corresponding asset for gzip size
-				let gzipSize: number | undefined;
-				if (data?.data?.chunkGraph?.assets && chunk.assets) {
-					for (const assetId of chunk.assets) {
-						const asset = data.data.chunkGraph.assets.find(
-							(a: { id: string | number }) => String(a.id) === String(assetId)
-						);
-						if (asset?.gzipSize) {
-							gzipSize = asset.gzipSize;
-							break;
-						}
-					}
-				}
-
-				const chunkFlags: Pick<BundleStats, 'initial' | 'entry'> = {};
-				if (typeof chunk.initial === 'boolean') {
-					chunkFlags.initial = chunk.initial;
-				}
-				if (typeof chunk.entry === 'boolean') {
-					chunkFlags.entry = chunk.entry;
-				}
-
-				bundles.push({
-					name: chunkName,
-					path: jsonPath,
-					size: chunkSize,
-					gzipSize,
-					...chunkFlags,
-				});
-			}
+		const data = JSON.parse(fileSystem.readFileSync(jsonPath, 'utf-8'));
+		const chunks = bundlesFromChunks(data, jsonPath);
+		if (chunks.length > 0) {
+			return chunks;
 		}
-
-		// Fallback: extract from assets if chunks not available
-		if (bundles.length === 0 && data?.data?.chunkGraph?.assets) {
-			for (const asset of data.data.chunkGraph.assets || []) {
-				bundles.push({
-					name: asset.path || asset.id || 'unknown',
-					path: jsonPath,
-					size: asset.size || 0,
-					gzipSize: asset.gzipSize,
-				});
-			}
-		}
-
-		// Last resort: try to get from modules
-		if (bundles.length === 0 && data?.data?.modules) {
-			const chunkMap = new Map<string, BundleStats>();
-
-			for (const module of data.data.modules || []) {
-				const chunkNames = module.chunks || [];
-				const size =
-					module.size?.transformedSize || module.size?.sourceSize || 0;
-
-				for (const chunkName of chunkNames) {
-					if (!chunkMap.has(chunkName)) {
-						chunkMap.set(chunkName, {
-							name: chunkName,
-							path: jsonPath,
-							size: 0,
-						});
-					}
-					const bundle = chunkMap.get(chunkName);
-					if (bundle) {
-						bundle.size += size;
-					}
-				}
-			}
-
-			bundles.push(...Array.from(chunkMap.values()));
-		}
-
-		return bundles;
+		const assets = bundlesFromAssets(data, jsonPath);
+		return assets.length > 0 ? assets : bundlesFromModules(data, jsonPath);
 	} catch (error) {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
 	}
-}
+};
 
-function selectBundlesForTotals(bundles: BundleStats[]): BundleStats[] {
+const selectBundlesForTotals = function selectBundlesForTotals(
+	bundles: BundleStats[]
+): BundleStats[] {
 	// Prefer initial chunks when rsdoctor provides that metadata.
 	// This avoids counting lazy-loaded chunks in top-level package totals.
 	const hasInitialMetadata = bundles.some(
@@ -188,9 +217,9 @@ function selectBundlesForTotals(bundles: BundleStats[]): BundleStats[] {
 
 	const initialBundles = bundles.filter((bundle) => bundle.initial === true);
 	return initialBundles.length > 0 ? initialBundles : bundles;
-}
+};
 
-export function compareBundles(
+export const compareBundles = function compareBundles(
 	baseBundles: BundleStats[],
 	currentBundles: BundleStats[]
 ): PackageBundleData['diffs'] {
@@ -199,13 +228,13 @@ export function compareBundles(
 
 	const added: BundleStats[] = [];
 	const removed: BundleStats[] = [];
-	const changed: Array<{
+	const changed: {
 		name: string;
 		baseSize: number;
 		currentSize: number;
 		diff: number;
 		diffPercent: number;
-	}> = [];
+	}[] = [];
 
 	// Find added bundles
 	for (const [name, bundle] of currentMap) {
@@ -229,19 +258,19 @@ export function compareBundles(
 			const diffPercent =
 				baseBundle.size > 0 ? (diff / baseBundle.size) * 100 : null;
 			changed.push({
-				name,
 				baseSize: baseBundle.size,
 				currentSize: currentBundle.size,
 				diff,
 				diffPercent: diffPercent ?? 0,
+				name,
 			});
 		}
 	}
 
-	return { added, removed, changed };
-}
+	return { added, changed, removed };
+};
 
-async function analyzePackage(
+const analyzePackage = async function analyzePackage(
 	packageDir: string,
 	baseDir: string,
 	currentDir: string
@@ -282,46 +311,56 @@ async function analyzePackage(
 		totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
 
 	return {
-		packageName,
 		baseBundles,
 		currentBundles,
 		diffs,
+		packageName,
 		totalBaseSize,
 		totalCurrentSize,
 		totalDiff,
 		totalDiffPercent,
 	};
-}
+};
 
-export function formatBytes(bytes: number): string {
-	if (bytes === 0) return '0 B';
+export const formatBytes = function formatBytes(bytes: number): string {
+	if (bytes === 0) {
+		return '0 B';
+	}
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
 	const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
 	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
-}
+};
 
-function getChangeEmoji(diffPercent: number): string {
-	if (diffPercent > 5) return '🔴';
-	if (diffPercent > 0) return '🟡';
-	if (diffPercent < -5) return '🟢';
+const getChangeEmoji = function getChangeEmoji(diffPercent: number): string {
+	if (diffPercent > 5) {
+		return '🔴';
+	}
+	if (diffPercent > 0) {
+		return '🟡';
+	}
+	if (diffPercent < -5) {
+		return '🟢';
+	}
 	return '⚪';
-}
+};
 
-function sortByAbsoluteChange(
+const sortByAbsoluteChange = function sortByAbsoluteChange(
 	packages: PackageBundleData[]
 ): PackageBundleData[] {
 	return [...packages].sort(
 		(a, b) => Math.abs(b.totalDiff) - Math.abs(a.totalDiff)
 	);
-}
+};
 
-function formatSignedBytes(bytes: number): string {
+const formatSignedBytes = function formatSignedBytes(bytes: number): string {
 	const sign = bytes >= 0 ? '+' : '';
 	return `${sign}${formatBytes(bytes)}`;
-}
+};
 
-function parseWorkspaceDependencyName(version: string): string | undefined {
+const parseWorkspaceDependencyName = function parseWorkspaceDependencyName(
+	version: string
+): string | undefined {
 	if (!version.startsWith('workspace:')) {
 		return undefined;
 	}
@@ -343,37 +382,40 @@ function parseWorkspaceDependencyName(version: string): string | undefined {
 	}
 
 	// Matches `workspace:pkg` and `workspace:pkg@range`
-	const match = specifier.match(/^(@[^/]+\/[^@/]+|[^@/][^@/]*)(?:@.+)?$/);
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const match = specifier.match(/^(@[^/]+\/[^@/]+|[^@/][^@/]*)(?:@.+)?$/u);
 	if (!match) {
 		return undefined;
 	}
 
 	return match[1];
-}
+};
 
-function buildWorkspaceGraph(
+const buildWorkspaceGraph = function buildWorkspaceGraph(
 	repoDir: string,
 	packagesDir: string
 ): Map<string, WorkspacePackageNode> {
 	const graph = new Map<string, WorkspacePackageNode>();
 	const packagesRoot = join(repoDir, packagesDir);
 
-	if (!existsSync(packagesRoot)) {
+	if (!fileSystem.existsSync(packagesRoot)) {
 		return graph;
 	}
 
-	const packageFolders = readdirSync(packagesRoot).filter((entry) =>
-		statSync(join(packagesRoot, entry)).isDirectory()
-	);
+	const packageFolders = fileSystem
+		.readdirSync(packagesRoot)
+		.filter((entry) =>
+			fileSystem.statSync(join(packagesRoot, entry)).isDirectory()
+		);
 
 	for (const folder of packageFolders) {
 		const manifestPath = join(packagesRoot, folder, 'package.json');
-		if (!existsSync(manifestPath)) {
+		if (!fileSystem.existsSync(manifestPath)) {
 			continue;
 		}
 
 		try {
-			const content = readFileSync(manifestPath, 'utf-8');
+			const content = fileSystem.readFileSync(manifestPath, 'utf-8');
 			const manifest = JSON.parse(content) as {
 				name?: string;
 				dependencies?: Record<string, string>;
@@ -398,8 +440,8 @@ function buildWorkspaceGraph(
 			}
 
 			graph.set(manifest.name, {
-				dirName: folder,
 				dependencies: workspaceDeps,
+				dirName: folder,
 			});
 		} catch (error) {
 			console.error(`Failed to parse ${manifestPath}:`, error);
@@ -407,9 +449,9 @@ function buildWorkspaceGraph(
 	}
 
 	return graph;
-}
+};
 
-function collectTransitivePackageDirs(
+const collectTransitivePackageDirs = function collectTransitivePackageDirs(
 	graph: Map<string, WorkspacePackageNode>,
 	rootPackage: string
 ): string[] {
@@ -442,7 +484,7 @@ function collectTransitivePackageDirs(
 	}
 
 	return Array.from(dirNames).sort((a, b) => a.localeCompare(b));
-}
+};
 
 /**
  * Analyze effective bundle impact including transitive workspace dependencies.
@@ -451,7 +493,7 @@ function collectTransitivePackageDirs(
  * If both `baseDir` and `currentDir` are provided, closure is computed from the union of both
  * graphs so dependency adds/removals are reflected in totals.
  */
-export function analyzeTransitiveImpact(
+export const analyzeTransitiveImpact = function analyzeTransitiveImpact(
 	packages: PackageBundleData[],
 	currentDir: string,
 	packagesDir = 'packages',
@@ -491,17 +533,66 @@ export function analyzeTransitiveImpact(
 			totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
 
 		return {
-			rootPackage,
 			includedPackageDirs,
+			rootPackage,
 			totalBaseSize,
 			totalCurrentSize,
 			totalDiff,
 			totalDiffPercent,
 		};
 	});
-}
+};
 
-export function generateMarkdownReport(
+const generateBundleChangeDetails = function generateBundleChangeDetails(
+	packages: PackageBundleData[]
+): string {
+	const changedPackages = packages.filter(
+		(pkg) =>
+			pkg.diffs.added.length > 0 ||
+			pkg.diffs.removed.length > 0 ||
+			pkg.diffs.changed.length > 0
+	);
+	if (changedPackages.length === 0) {
+		return '';
+	}
+	let markdown =
+		'\n<details>\n<summary><strong>Bundle-Level Change Details</strong></summary>\n';
+	for (const pkg of changedPackages) {
+		const sign = pkg.totalDiff >= 0 ? '+' : '';
+		const emoji = getChangeEmoji(pkg.totalDiffPercent);
+		const summary = `${emoji} \`${pkg.packageName}\`: ${formatSignedBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
+		markdown += `\n<details>\n<summary><strong>${summary}</strong></summary>\n\n`;
+		if (pkg.diffs.added.length > 0) {
+			markdown += '### ➕ Added Bundles\n\n';
+			for (const bundle of pkg.diffs.added) {
+				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
+			}
+			markdown += '\n';
+		}
+		if (pkg.diffs.removed.length > 0) {
+			markdown += '### ➖ Removed Bundles\n\n';
+			for (const bundle of pkg.diffs.removed) {
+				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
+			}
+			markdown += '\n';
+		}
+		if (pkg.diffs.changed.length > 0) {
+			markdown += '### 📊 Changed Bundles\n\n';
+			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
+			markdown += '|--------|-----------|--------------|--------|----------|\n';
+			for (const change of pkg.diffs.changed) {
+				const changeSign = change.diff >= 0 ? '+' : '';
+				const changeEmoji = getChangeEmoji(change.diffPercent);
+				markdown += `| ${changeEmoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${changeSign}${formatBytes(change.diff)} | ${changeSign}${change.diffPercent.toFixed(2)}% |\n`;
+			}
+			markdown += '\n';
+		}
+		markdown += '</details>\n';
+	}
+	return `${markdown}\n</details>\n`;
+};
+
+export const generateMarkdownReport = function generateMarkdownReport(
 	packages: PackageBundleData[],
 	transitive: TransitiveBundleData[] = []
 ): string {
@@ -599,135 +690,79 @@ export function generateMarkdownReport(
 	}
 	markdown += '\n</details>\n';
 
-	const packagesWithBundleChanges = packages.filter(
-		(pkg) =>
-			pkg.diffs.added.length > 0 ||
-			pkg.diffs.removed.length > 0 ||
-			pkg.diffs.changed.length > 0
-	);
-
-	if (packagesWithBundleChanges.length > 0) {
-		markdown +=
-			'\n<details>\n<summary><strong>Bundle-Level Change Details</strong></summary>\n';
-	}
-
-	// Detailed bundle-level changes per package (collapsible)
-	for (const pkg of packagesWithBundleChanges) {
-		if (
-			pkg.diffs.added.length === 0 &&
-			pkg.diffs.removed.length === 0 &&
-			pkg.diffs.changed.length === 0
-		) {
-			continue;
-		}
-
-		const sign = pkg.totalDiff >= 0 ? '+' : '';
-		const emoji = getChangeEmoji(pkg.totalDiffPercent);
-		const summaryText = `${emoji} \`${pkg.packageName}\`: ${formatSignedBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
-
-		markdown += `\n<details>\n<summary><strong>${summaryText}</strong></summary>\n\n`;
-
-		if (pkg.diffs.added.length > 0) {
-			markdown += '### ➕ Added Bundles\n\n';
-			for (const bundle of pkg.diffs.added) {
-				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
-			}
-			markdown += '\n';
-		}
-
-		if (pkg.diffs.removed.length > 0) {
-			markdown += '### ➖ Removed Bundles\n\n';
-			for (const bundle of pkg.diffs.removed) {
-				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
-			}
-			markdown += '\n';
-		}
-
-		if (pkg.diffs.changed.length > 0) {
-			markdown += '### 📊 Changed Bundles\n\n';
-			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
-			markdown += '|--------|-----------|--------------|--------|----------|\n';
-			for (const change of pkg.diffs.changed) {
-				const sign = change.diff >= 0 ? '+' : '';
-				const emoji = getChangeEmoji(change.diffPercent);
-				markdown += `| ${emoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${sign}${formatBytes(change.diff)} | ${sign}${change.diffPercent.toFixed(2)}% |\n`;
-			}
-			markdown += '\n';
-		}
-
-		markdown += '</details>\n';
-	}
-	if (packagesWithBundleChanges.length > 0) {
-		markdown += '\n</details>\n';
-	}
+	markdown += generateBundleChangeDetails(packages);
 
 	markdown +=
 		'\n---\n*This analysis was generated automatically by [rsdoctor](https://rsdoctor.rs/).*';
 
 	return markdown;
-}
+};
 
 /**
  * Analyzes bundle differences between base and current branches.
  */
-export async function analyzeBundles(
+export const analyzeBundles = async function analyzeBundles(
 	baseDir: string,
 	currentDir: string,
 	packagesDir = 'packages'
 ): Promise<PackageBundleData[]> {
 	const packages: string[] = [];
 
-	if (existsSync(packagesDir)) {
-		const entries = readdirSync(packagesDir);
+	if (fileSystem.existsSync(packagesDir)) {
+		const entries = fileSystem.readdirSync(packagesDir);
 		for (const entry of entries) {
 			const fullPath = join(packagesDir, entry);
-			if (statSync(fullPath).isDirectory()) {
+			if (fileSystem.statSync(fullPath).isDirectory()) {
 				packages.push(join(packagesDir, entry));
 			}
 		}
 	}
 
 	const results: PackageBundleData[] = [];
-	for (const pkg of packages) {
+	await packages.reduce<Promise<void>>(async (previousPackage, pkg) => {
+		await previousPackage;
 		const result = await analyzePackage(pkg, baseDir, currentDir);
 		if (result && (result.totalBaseSize > 0 || result.totalCurrentSize > 0)) {
 			results.push(result);
 		}
-	}
+	}, Promise.resolve());
 
 	return results;
-}
+};
 
 /**
  * Writes the bundle analysis report to a file.
  */
-export function writeReport(
+export const writeReport = function writeReport(
 	packages: PackageBundleData[],
 	outputPath: string,
 	transitive: TransitiveBundleData[] = []
 ): void {
 	try {
 		const report = generateMarkdownReport(packages, transitive);
-		writeFileSync(outputPath, report, 'utf-8');
+		fileSystem.writeFileSync(outputPath, report, 'utf-8');
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const errorStack =
 			error instanceof Error && error.stack ? error.stack : errorMessage;
 		throw new Error(
-			`Failed to write bundle analysis report to ${outputPath}: ${errorStack}`
+			`Failed to write bundle analysis report to ${outputPath}: ${errorStack}`,
+			{ cause: error }
 		);
 	}
-}
+};
 
 /**
  * Calculates total bundle size change percentage across all packages.
  */
-export function calculateTotalDiffPercent(
+export const calculateTotalDiffPercent = function calculateTotalDiffPercent(
 	packages: PackageBundleData[]
 ): number {
-	if (packages.length === 0) return 0;
+	if (packages.length === 0) {
+		return 0;
+	}
 	const totalBase = packages.reduce((sum, p) => sum + p.totalBaseSize, 0);
 	const totalCurrent = packages.reduce((sum, p) => sum + p.totalCurrentSize, 0);
 	const totalDiff = totalCurrent - totalBase;
 	return totalBase > 0 ? (totalDiff / totalBase) * 100 : 0;
-}
+};

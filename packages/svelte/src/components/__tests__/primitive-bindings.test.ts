@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, test } from 'vitest';
+
 import BindablePrimitivesFixture from '../../__tests__/fixtures/bindable-primitives-fixture.svelte';
 
 describe('Svelte primitive bindings', () => {

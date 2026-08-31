@@ -82,7 +82,7 @@
 		transition:
 			opacity var(--iab-cd-animation-duration) var(--iab-cd-animation-timing),
 			transform var(--iab-cd-animation-duration)
-			cubic-bezier(0.34, 1.56, 0.64, 1);
+				cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
 	.contentHidden {
@@ -123,9 +123,12 @@
 		width: min(100%, var(--iab-cd-max-width));
 		max-height: var(--iab-cd-max-height);
 		min-height: 0;
+		margin: 0;
+		padding: 0;
 		border-radius: var(--iab-cd-border-radius);
 		border: 1px solid var(--iab-cd-border-color);
 		background-color: var(--iab-cd-background-color);
+		color: inherit;
 		box-shadow: var(--iab-cd-shadow);
 		display: flex;
 		flex-direction: column;
@@ -277,7 +280,7 @@
 		outline-offset: 2px;
 	}
 
-	.tabButton[data-state="active"] {
+	.tabButton[data-state='active'] {
 		color: var(--iab-cd-text-color);
 	}
 
@@ -289,7 +292,7 @@
 		color: var(--iab-cd-text-color-dark);
 	}
 
-	:global(.c15t-dark) .tabButton[data-state="active"] {
+	:global(.c15t-dark) .tabButton[data-state='active'] {
 		color: var(--iab-cd-text-color-dark);
 	}
 
@@ -316,13 +319,13 @@
 	}
 
 	/* Tab indicator positions based on data attribute */
-	.tabIndicator[data-active-tab="purposes"] {
+	.tabIndicator[data-active-tab='purposes'] {
 		transform: translateX(0);
 		width: calc(50% - 0.125rem);
 		left: 0.25rem;
 	}
 
-	.tabIndicator[data-active-tab="vendors"] {
+	.tabIndicator[data-active-tab='vendors'] {
 		transform: translateX(100%);
 		width: calc(50% - 0.125rem);
 		left: 0.125rem;

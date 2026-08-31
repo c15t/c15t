@@ -1,6 +1,7 @@
 import { RscConsentBanner } from '@c15t/nextjs/v3/rsc';
 import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
 import type { ReactNode } from 'react';
+
 import { NextjsV3ManifestBenchmarkProvider } from '../_bench/v3-provider';
 
 /**
@@ -9,11 +10,7 @@ import { NextjsV3ManifestBenchmarkProvider } from '../_bench/v3-provider';
  * action-button islands hydrate). Compare against `v3-manifest-ssr`, which
  * is identical except the banner is the fully client-hydrated component.
  */
-export default async function V3RscSSRLayout({
-	children,
-}: {
-	children: ReactNode;
-}) {
+const V3RscSSRLayout = async ({ children }: { children: ReactNode }) => {
 	const config = await prefetchInitialConsent({
 		backendURL: '/api/c15t',
 		manifestURL: '/api/c15t/manifest',
@@ -29,4 +26,6 @@ export default async function V3RscSSRLayout({
 			{children}
 		</NextjsV3ManifestBenchmarkProvider>
 	);
-}
+};
+
+export default V3RscSSRLayout;

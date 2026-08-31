@@ -10,10 +10,22 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
@@ -56,9 +68,9 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Click customize
-		const customizeButton = document.querySelector(
-			'[data-testid="consent-banner-customize-button"]'
-		)!;
+		const customizeButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-customize-button"]')
+		);
 		await fireEvent.click(customizeButton);
 
 		// Dialog should open
@@ -88,9 +100,9 @@ describe('activeUI Transitions E2E Tests', () => {
 			);
 			expect(btn).toBeInTheDocument();
 		});
-		const customizeButton = document.querySelector(
-			'[data-testid="consent-banner-customize-button"]'
-		)!;
+		const customizeButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-customize-button"]')
+		);
 		await fireEvent.click(customizeButton);
 
 		// Wait for dialog
@@ -102,9 +114,11 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Click save in dialog
-		const saveButton = document.querySelector(
-			'[data-testid="consent-widget-footer-save-button"]'
-		)!;
+		const saveButton = getDefined(
+			document.querySelector(
+				'[data-testid="consent-widget-footer-save-button"]'
+			)
+		);
 		await fireEvent.click(saveButton);
 
 		// Both banner and dialog should be gone
@@ -122,23 +136,23 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('banner hidden for returning visitor', async () => {
 		const consentData = {
-			consents: {
-				necessary: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				experience: true,
-			},
 			consentInfo: {
 				time: Date.now(),
 				type: 'accept-all',
+			},
+			consents: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		};
 		window.localStorage.setItem('c15t', JSON.stringify(consentData));
 
 		render(BannerFixture, { options: defaultOptions });
 
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
 
 		const banner = document.querySelector(
 			'[data-testid="consent-banner-root"]'
@@ -158,9 +172,9 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Accept all
-		const acceptButton = document.querySelector(
-			'[data-testid="consent-banner-accept-button"]'
-		)!;
+		const acceptButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+		);
 		await fireEvent.click(acceptButton);
 
 		// Banner should disappear
@@ -180,9 +194,9 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Click trigger — dialog should open
-		const trigger = document.querySelector(
-			'button[aria-label="Open privacy settings"]'
-		)!;
+		const trigger = getDefined(
+			document.querySelector('button[aria-label="Open privacy settings"]')
+		);
 		await fireEvent.click(trigger);
 
 		await waitFor(() => {
@@ -205,9 +219,9 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Step 2: Click customize → transitions to dialog
-		const customizeButton = document.querySelector(
-			'[data-testid="consent-banner-customize-button"]'
-		)!;
+		const customizeButton = getDefined(
+			document.querySelector('[data-testid="consent-banner-customize-button"]')
+		);
 		await fireEvent.click(customizeButton);
 
 		await waitFor(() => {
@@ -218,9 +232,11 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Step 3: Save from dialog → hides everything
-		const saveButton = document.querySelector(
-			'[data-testid="consent-widget-footer-save-button"]'
-		)!;
+		const saveButton = getDefined(
+			document.querySelector(
+				'[data-testid="consent-widget-footer-save-button"]'
+			)
+		);
 		await fireEvent.click(saveButton);
 
 		await waitFor(() => {
@@ -239,9 +255,9 @@ describe('activeUI Transitions E2E Tests', () => {
 		});
 
 		// Step 5: Click trigger → dialog opens again
-		const trigger = document.querySelector(
-			'button[aria-label="Open privacy settings"]'
-		)!;
+		const trigger = getDefined(
+			document.querySelector('button[aria-label="Open privacy settings"]')
+		);
 		await fireEvent.click(trigger);
 
 		await waitFor(() => {

@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
 import { resolveScriptUrl } from '../_shared/script-url';
 
@@ -97,7 +99,7 @@ export interface RedditPixelInitOptions {
 	partner_version?: string;
 
 	/** Source integration name reported to Reddit. */
-	integration?: 'reddit' | 'gtm' | (string & {});
+	integration?: 'reddit' | 'gtm' | (string & Record<never, never>);
 
 	/** Enable Reddit Pixel debug logging. */
 	debug?: boolean;
@@ -127,13 +129,13 @@ export interface RedditPixelEventMetadata {
 	customEventName?: string;
 	products?:
 		| string
-		| Array<{
+		| {
 				id?: string | number;
 				name?: string;
 				category?: string;
 				quantity?: number | string;
 				itemPrice?: number | string;
-		  }>;
+		  }[];
 	/**
 	 * Conversion ID used to deduplicate Pixel events against Conversions API
 	 * events.
@@ -144,17 +146,16 @@ export interface RedditPixelEventMetadata {
 	[key: string]: unknown;
 }
 
-type RedditPixelFunction = {
+interface RedditPixelFunction {
 	(command: 'init', pixelId: string, options?: RedditPixelInitOptions): void;
-	(command: 'enableFirstPartyCookies'): void;
-	(command: 'disableFirstPartyCookies'): void;
+	(command: 'enableFirstPartyCookies' | 'disableFirstPartyCookies'): void;
 	(
 		command: 'track',
-		eventName: RedditPixelEventName | (string & {}),
+		eventName: RedditPixelEventName | (string & Record<never, never>),
 		properties?: RedditPixelEventMetadata
 	): void;
 	(command: string, ...args: unknown[]): void;
-};
+}
 
 declare global {
 	interface Window {
@@ -173,52 +174,58 @@ declare global {
  */
 export const redditPixelManifest = {
 	...vendorManifestContract,
-	vendor: 'reddit-pixel',
-	category: 'marketing',
-	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
+			dispatchProperty: 'sendEvent',
+			ifUndefined: true,
+
 			name: 'rdt',
 			queue: {
 				property: 'callQueue',
 			},
-			dispatchProperty: 'sendEvent',
 			queueFormat: 'array',
-			ifUndefined: true,
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'marketing',
 	install: [
 		{
-			type: 'callGlobal',
-			global: 'rdt',
 			args: ['init', '{{pixelId}}'],
+
+			global: 'rdt',
+			type: 'callGlobal',
 		},
 		{
-			type: 'callGlobal',
-			global: 'rdt',
 			args: ['track', 'PageVisit'],
-		},
-		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			async: true,
-		},
-	],
-	onConsentGranted: [
-		{
-			type: 'callGlobal',
+
 			global: 'rdt',
-			args: ['enableFirstPartyCookies'],
+			type: 'callGlobal',
+		},
+		{
+			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
-			global: 'rdt',
 			args: ['disableFirstPartyCookies'],
+
+			global: 'rdt',
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			args: ['enableFirstPartyCookies'],
+
+			global: 'rdt',
+			type: 'callGlobal',
+		},
+	],
+	persistAfterConsentRevoked: true,
+	vendor: 'reddit-pixel',
 } as const satisfies VendorManifest;
 
 export interface RedditPixelOptions {
@@ -251,12 +258,38 @@ export interface RedditPixelOptions {
 }
 
 /**
+ * Merges optional init options with an explicit first-party cookie flag.
+ *
+ * @param initOptions - Optional Reddit Pixel init options.
+ * @param disableFirstPartyCookies - Optional first-party cookie disable flag.
+ * @returns Reddit Pixel init options, or `undefined` when no options are set.
+ *
+ * @internal
+ */
+const getRedditPixelInitOptions = function getRedditPixelInitOptions({
+	initOptions,
+	disableFirstPartyCookies,
+}: {
+	initOptions?: RedditPixelInitOptions;
+	disableFirstPartyCookies?: boolean;
+}): RedditPixelInitOptions | undefined {
+	if (disableFirstPartyCookies === undefined) {
+		return initOptions;
+	}
+
+	return {
+		...initOptions,
+		disableFirstPartyCookies,
+	};
+};
+
+/**
  * Creates a Reddit Pixel script.
  *
  * @param options - The options for the Reddit Pixel script.
  * @returns The Reddit Pixel script configuration.
  */
-export function redditPixel({
+export const redditPixel = function redditPixel({
 	pixelId,
 	trackPageVisit = true,
 	initOptions,
@@ -272,8 +305,8 @@ export function redditPixel({
 	}
 
 	const resolvedInitOptions = getRedditPixelInitOptions({
-		initOptions,
 		disableFirstPartyCookies,
+		initOptions,
 	});
 	const initArgs: unknown[] = ['init', '{{pixelId}}'];
 	if (resolvedInitOptions !== undefined) {
@@ -292,40 +325,14 @@ export function redditPixel({
 	} as const satisfies VendorManifest;
 
 	return resolveManifest(manifest, {
-		pixelId,
 		initOptions: resolvedInitOptions,
+		pixelId,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://www.redditstatic.com/ads/pixel.js'
 		),
 	});
-}
-
-/**
- * Merges optional init options with an explicit first-party cookie flag.
- *
- * @param initOptions - Optional Reddit Pixel init options.
- * @param disableFirstPartyCookies - Optional first-party cookie disable flag.
- * @returns Reddit Pixel init options, or `undefined` when no options are set.
- *
- * @internal
- */
-function getRedditPixelInitOptions({
-	initOptions,
-	disableFirstPartyCookies,
-}: {
-	initOptions?: RedditPixelInitOptions;
-	disableFirstPartyCookies?: boolean;
-}): RedditPixelInitOptions | undefined {
-	if (disableFirstPartyCookies === undefined) {
-		return initOptions;
-	}
-
-	return {
-		...initOptions,
-		disableFirstPartyCookies,
-	};
-}
+};
 
 /**
  * Tracks a Reddit Pixel event.
@@ -335,7 +342,7 @@ function getRedditPixelInitOptions({
  * Pixel plus Conversions API deduplication.
  */
 export const redditPixelEvent = (
-	eventName: RedditPixelEventName | (string & {}),
+	eventName: RedditPixelEventName | (string & Record<never, never>),
 	metadata?: RedditPixelEventMetadata
 ) => {
 	if (typeof window === 'undefined' || typeof window.rdt !== 'function') {

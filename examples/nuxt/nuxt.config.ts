@@ -15,13 +15,13 @@
  *   to call the backend `/init` directly (the v2-compatible default).
  */
 export default defineNuxtConfig({
-	compatibilityDate: '2026-07-04',
-	modules: ['c15t/vue'],
 	c15t: {
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
 		manifest: true,
 	},
+	compatibilityDate: '2026-07-04',
 	devtools: { enabled: true },
+	modules: ['c15t/vue'],
 	typescript: { strict: true },
 	vite: {
 		ssr: {

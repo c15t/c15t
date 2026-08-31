@@ -3,33 +3,18 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps, ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentDialogFooter } from '~/v3/components/consent-dialog/atoms/card';
 import { ConsentProvider } from '~/v3/provider';
+
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
 		branding: 'c15t',
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -37,23 +22,40 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-async function renderWithConsentState(
+const renderWithConsentState = async function renderWithConsentState(
 	ui: ReactElement,
 	stateOverrides: Partial<ConsentStoreState> = {},
 	providerOverrides: Partial<
@@ -65,24 +67,23 @@ async function renderWithConsentState(
 	await render(
 		<ConsentProvider
 			options={{
+				components: providerOverrides.components,
 				mode: 'offline',
 				persistence: false,
-				components: providerOverrides.components,
-				theme: providerOverrides.theme,
 				prefetch: {
 					initialBranding: state.branding,
 					initialConsents: state.consents,
 					initialPolicy: {
-						id: 'branding-test-policy',
-						model: state.model ?? 'opt-in',
 						consent: {
 							categories: state.consentCategories,
 							scopeMode: state.policyScopeMode ?? 'permissive',
 						},
+						id: 'branding-test-policy',
+						model: state.model ?? 'opt-in',
 						ui: {
-							mode: state.activeUI === 'dialog' ? 'dialog' : 'banner',
 							banner: state.policyBanner,
 							dialog: state.policyDialog,
+							mode: state.activeUI === 'dialog' ? 'dialog' : 'banner',
 						},
 					},
 					initialTranslations: {
@@ -93,12 +94,13 @@ async function renderWithConsentState(
 							] ?? state.translationConfig.translations.en,
 					},
 				},
+				theme: providerOverrides.theme,
 			}}
 		>
 			{ui}
 		</ConsentProvider>
 	);
-}
+};
 
 describe('BrandingLink', () => {
 	test('maps deprecated consent branding to the INTH tag treatment', async () => {

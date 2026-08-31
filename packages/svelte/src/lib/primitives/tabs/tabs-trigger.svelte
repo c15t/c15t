@@ -1,88 +1,91 @@
 <script lang="ts">
-import {
-	getDataDisabled,
-	getNextTabValue,
-	getTabState,
-} from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getTabsRootContext } from './context';
+	import {
+		getDataDisabled,
+		getNextTabValue,
+		getTabState,
+	} from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const root = getTabsRootContext();
+	import { getTabsRootContext } from './context';
 
-let {
-	children,
-	class: className,
-	onclick,
-	onkeydown,
-	type = 'button',
-	value,
-	...restProps
-}: HTMLAttributes<HTMLButtonElement> & {
-	children?: Snippet;
-	class?: string;
-	type?: 'button' | 'submit' | 'reset';
-	value: string;
-} = $props();
+	const root = getTabsRootContext();
 
-const baseId = $derived(root.baseId);
-const disabled = $derived(root.disabled);
-const selectedValue = $derived(root.value);
-const isSelected = $derived(selectedValue === value);
-const dataState = $derived(getTabState(isSelected));
-const dataDisabled = $derived(getDataDisabled(disabled));
-const triggerId = $derived(`${baseId}-trigger-${value}`);
-const contentId = $derived(`${baseId}-content-${value}`);
+	let {
+		children,
+		class: className,
+		onclick,
+		onkeydown,
+		type = 'button',
+		value,
+		...restProps
+	}: HTMLAttributes<HTMLButtonElement> & {
+		children?: Snippet;
+		class?: string;
+		type?: 'button' | 'submit' | 'reset';
+		value: string;
+	} = $props();
 
-function moveFocus(nextValue: string) {
-	root.setValue(nextValue);
+	const baseId = $derived(root.baseId);
+	const disabled = $derived(root.disabled);
+	const selectedValue = $derived(root.value);
+	const isSelected = $derived(selectedValue === value);
+	const dataState = $derived(getTabState(isSelected));
+	const dataDisabled = $derived(getDataDisabled(disabled));
+	const triggerId = $derived(`${baseId}-trigger-${value}`);
+	const contentId = $derived(`${baseId}-content-${value}`);
 
-	if (typeof document === 'undefined') {
-		return;
-	}
+	const moveFocus = function moveFocus(nextValue: string) {
+		root.setValue(nextValue);
 
-	const nextButton = document.getElementById(`${baseId}-trigger-${nextValue}`);
+		if (typeof document === 'undefined') {
+			return;
+		}
 
-	if (nextButton instanceof HTMLButtonElement) {
-		nextButton.focus();
-	}
-}
+		const nextButton = document.getElementById(
+			`${baseId}-trigger-${nextValue}`
+		);
 
-function handleKeyDown(
-	event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	if (typeof document === 'undefined') {
+		if (nextButton instanceof HTMLButtonElement) {
+			nextButton.focus();
+		}
+	};
+
+	const handleKeyDown = function handleKeyDown(
+		event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		if (typeof document === 'undefined') {
+			onkeydown?.(event);
+			return;
+		}
+
+		const triggerValues = Array.from(
+			document.querySelectorAll<HTMLButtonElement>(
+				`[data-c15t-tabs-base="${baseId}"] [data-slot="tabs-trigger"]`
+			)
+		).map((button) => button.id.replace(`${baseId}-trigger-`, ''));
+
+		const nextValue = getNextTabValue({
+			currentValue: value,
+			key: event.key,
+			loop: root.loop,
+			orientation: root.orientation,
+			triggerValues,
+		});
+
+		if (nextValue !== value || event.key === 'Home' || event.key === 'End') {
+			event.preventDefault();
+			moveFocus(nextValue);
+		}
 		onkeydown?.(event);
-		return;
-	}
+	};
 
-	const triggerValues = Array.from(
-		document.querySelectorAll<HTMLButtonElement>(
-			`[data-c15t-tabs-base="${baseId}"] [data-slot="tabs-trigger"]`
-		)
-	).map((button) => button.id.replace(`${baseId}-trigger-`, ''));
-
-	const nextValue = getNextTabValue({
-		currentValue: value,
-		key: event.key,
-		loop: root.loop,
-		orientation: root.orientation,
-		triggerValues,
-	});
-
-	if (nextValue !== value || event.key === 'Home' || event.key === 'End') {
-		event.preventDefault();
-		moveFocus(nextValue);
-	}
-	onkeydown?.(event);
-}
-
-function handleClick(
-	event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	root.setValue(value);
-	onclick?.(event);
-}
+	const handleClick = function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		root.setValue(value);
+		onclick?.(event);
+	};
 </script>
 
 <button

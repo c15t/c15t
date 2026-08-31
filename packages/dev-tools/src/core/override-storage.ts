@@ -7,19 +7,36 @@ export type PersistedDevToolsOverrides = Pick<
 	'country' | 'region' | 'language' | 'gpc'
 >;
 
-function normalizeStringValue(value: unknown): string | undefined {
+const normalizeStringValue = function normalizeStringValue(
+	value: unknown
+): string | undefined {
 	if (typeof value !== 'string') {
 		return undefined;
 	}
 	const normalized = value.trim();
 	return normalized.length > 0 ? normalized : undefined;
-}
+};
 
-function normalizeBooleanValue(value: unknown): boolean | undefined {
+const normalizeBooleanValue = function normalizeBooleanValue(
+	value: unknown
+): boolean | undefined {
 	return typeof value === 'boolean' ? value : undefined;
-}
+};
 
-function normalizeOverrides(value: unknown): PersistedDevToolsOverrides | null {
+export const hasPersistedOverrides = function hasPersistedOverrides(
+	overrides: PersistedDevToolsOverrides
+): boolean {
+	return Boolean(
+		overrides.country ||
+		overrides.region ||
+		overrides.language ||
+		overrides.gpc !== undefined
+	);
+};
+
+const normalizeOverrides = function normalizeOverrides(
+	value: unknown
+): PersistedDevToolsOverrides | null {
 	if (!value || typeof value !== 'object') {
 		return null;
 	}
@@ -27,26 +44,15 @@ function normalizeOverrides(value: unknown): PersistedDevToolsOverrides | null {
 	const source = value as Record<string, unknown>;
 	const overrides: PersistedDevToolsOverrides = {
 		country: normalizeStringValue(source.country),
-		region: normalizeStringValue(source.region),
-		language: normalizeStringValue(source.language),
 		gpc: normalizeBooleanValue(source.gpc),
+		language: normalizeStringValue(source.language),
+		region: normalizeStringValue(source.region),
 	};
 
 	return hasPersistedOverrides(overrides) ? overrides : null;
-}
+};
 
-export function hasPersistedOverrides(
-	overrides: PersistedDevToolsOverrides
-): boolean {
-	return Boolean(
-		overrides.country ||
-			overrides.region ||
-			overrides.language ||
-			overrides.gpc !== undefined
-	);
-}
-
-export function loadPersistedOverrides(
+export const loadPersistedOverrides = function loadPersistedOverrides(
 	storageKey = DEVTOOLS_OVERRIDES_STORAGE_KEY
 ): PersistedDevToolsOverrides | null {
 	if (typeof window === 'undefined') {
@@ -64,9 +70,9 @@ export function loadPersistedOverrides(
 	} catch {
 		return null;
 	}
-}
+};
 
-export function persistOverrides(
+export const persistOverrides = function persistOverrides(
 	overrides: PersistedDevToolsOverrides,
 	storageKey = DEVTOOLS_OVERRIDES_STORAGE_KEY
 ): void {
@@ -84,9 +90,9 @@ export function persistOverrides(
 	} catch {
 		// Silently fail if localStorage is unavailable
 	}
-}
+};
 
-export function clearPersistedOverrides(
+export const clearPersistedOverrides = function clearPersistedOverrides(
 	storageKey = DEVTOOLS_OVERRIDES_STORAGE_KEY
 ): void {
 	if (typeof window === 'undefined') {
@@ -98,4 +104,4 @@ export function clearPersistedOverrides(
 	} catch {
 		// Silently fail if localStorage is unavailable
 	}
-}
+};

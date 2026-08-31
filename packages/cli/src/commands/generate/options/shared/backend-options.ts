@@ -4,6 +4,7 @@
  */
 
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 interface BackendOptionsInput {
@@ -26,9 +27,9 @@ interface BackendOptionsResult {
  * @param options.handleCancel - Function to handle prompt cancellations
  * @returns Configuration for env file and Next.js proxy
  */
-export async function getBackendOptions({
+export const getBackendOptions = async function getBackendOptions({
 	context,
-	backendURL,
+	backendURL: _backendURL,
 	handleCancel,
 }: BackendOptionsInput): Promise<BackendOptionsResult> {
 	let useEnvFile = false;
@@ -36,9 +37,9 @@ export async function getBackendOptions({
 
 	// Prompt for env file storage
 	const useEnvFileSelection = await p.confirm({
+		initialValue: true,
 		message:
 			'Store the backendURL in a .env file? (Recommended, URL is public)',
-		initialValue: true,
 	});
 
 	if (handleCancel?.(useEnvFileSelection)) {
@@ -57,9 +58,9 @@ export async function getBackendOptions({
 		);
 
 		const proxyNextjsSelection = await p.confirm({
+			initialValue: true,
 			message:
 				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
-			initialValue: true,
 		});
 
 		if (handleCancel?.(proxyNextjsSelection)) {
@@ -73,7 +74,7 @@ export async function getBackendOptions({
 	}
 
 	return {
-		useEnvFile,
 		proxyNextjs,
+		useEnvFile,
 	};
-}
+};

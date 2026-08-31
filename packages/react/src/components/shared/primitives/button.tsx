@@ -1,5 +1,7 @@
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, type MouseEvent, useCallback } from 'react';
+import { forwardRef as createForwardRef, useCallback } from 'react';
+import type { MouseEvent } from 'react';
+
 import { useConsentTracking } from '~/context/consent-tracking-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -9,6 +11,7 @@ import type {
 	CSSPropertiesWithVars,
 	CSSVariables,
 } from '~/types/theme';
+
 import { Slot } from '../libs/slot';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';
@@ -28,6 +31,11 @@ const NON_DOM_PROPS = [
 
 type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
 
+const firstDefined = <Value,>(
+	fallback: Value,
+	...values: (Value | undefined)[]
+): Value => values.find((value) => value !== undefined) ?? fallback;
+
 /**
  * Resolves the final variant and mode for a consent button.
  *
@@ -46,52 +54,55 @@ type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
  * 4. `theme.consentActions.default`
  * 5. `params.fallback`, or the hardcoded fallback based on `isPrimary`
  */
-export function resolveConsentButtonStyle(params: {
-	consentAction?: ConsentActionThemeKey;
-	isPrimary?: boolean;
-	theme?: ReturnType<typeof useTheme>['theme'];
-	variant?: ButtonVariantsProps['variant'];
-	mode?: ButtonVariantsProps['mode'];
-	fallback?: {
-		variant: NonNullable<ButtonVariantsProps['variant']>;
-		mode: NonNullable<ButtonVariantsProps['mode']>;
-	};
-}) {
-	if (params.variant || params.mode) {
-		return {
-			variant: params.variant ?? 'neutral',
-			mode: params.mode ?? 'stroke',
+export const resolveConsentButtonStyle =
+	function resolveConsentButtonStyle(params: {
+		consentAction?: ConsentActionThemeKey;
+		isPrimary?: boolean;
+		theme?: ReturnType<typeof useTheme>['theme'];
+		variant?: ButtonVariantsProps['variant'];
+		mode?: ButtonVariantsProps['mode'];
+		fallback?: {
+			variant: NonNullable<ButtonVariantsProps['variant']>;
+			mode: NonNullable<ButtonVariantsProps['mode']>;
 		};
-	}
+	}) {
+		if (params.variant || params.mode) {
+			return {
+				mode: params.mode ?? 'stroke',
+				variant: params.variant ?? 'neutral',
+			};
+		}
 
-	const defaultStyle =
-		params.fallback ??
-		(params.isPrimary
-			? { variant: 'primary' as const, mode: 'stroke' as const }
-			: { variant: 'neutral' as const, mode: 'stroke' as const });
-	const themedDefault = params.theme?.consentActions?.default ?? {};
-	// The policy decides which action is primary; the theme decides how a
-	// primary action looks.
-	const themedPrimary = params.isPrimary
-		? (params.theme?.consentActions?.primary ?? {})
-		: {};
-	const themedAction = params.consentAction
-		? params.theme?.consentActions?.[params.consentAction]
-		: undefined;
+		const defaultStyle =
+			params.fallback ??
+			(params.isPrimary
+				? { mode: 'stroke' as const, variant: 'primary' as const }
+				: { mode: 'stroke' as const, variant: 'neutral' as const });
+		const themedDefault = params.theme?.consentActions?.default ?? {};
+		// The policy decides which action is primary; the theme decides how a
+		// primary action looks.
+		const themedPrimary = params.isPrimary
+			? (params.theme?.consentActions?.primary ?? {})
+			: {};
+		const themedAction = params.consentAction
+			? params.theme?.consentActions?.[params.consentAction]
+			: undefined;
 
-	return {
-		variant:
-			themedAction?.variant ??
-			themedPrimary.variant ??
-			themedDefault.variant ??
-			defaultStyle.variant,
-		mode:
-			themedAction?.mode ??
-			themedPrimary.mode ??
-			themedDefault.mode ??
-			defaultStyle.mode,
+		return {
+			mode: firstDefined(
+				defaultStyle.mode,
+				themedAction?.mode,
+				themedPrimary.mode,
+				themedDefault.mode
+			),
+			variant: firstDefined(
+				defaultStyle.variant,
+				themedAction?.variant,
+				themedPrimary.variant,
+				themedDefault.variant
+			),
+		};
 	};
-}
 
 /**
  * Button component that allows users to reject non-essential cookies.
@@ -108,7 +119,7 @@ export function resolveConsentButtonStyle(params: {
  *
  * @public
  */
-export const ConsentButton = forwardRef<
+export const ConsentButton = createForwardRef<
 	ConsentButtonElement,
 	ConsentButtonProps &
 		ButtonVariantsProps & {
@@ -133,7 +144,7 @@ export const ConsentButton = forwardRef<
 			noStyle,
 			action,
 			themeKey,
-			baseClassName,
+			baseClassName: _baseClassName,
 			variant,
 			mode,
 			size = 'small',
@@ -153,9 +164,9 @@ export const ConsentButton = forwardRef<
 		const resolvedButtonStyle = resolveConsentButtonStyle({
 			consentAction,
 			isPrimary,
+			mode,
 			theme,
 			variant,
-			mode,
 		});
 
 		const defaultThemeKey =
@@ -169,16 +180,16 @@ export const ConsentButton = forwardRef<
 				baseClassName: [
 					!(contextNoStyle || noStyle) &&
 						Button.buttonVariants({
-							variant: resolvedButtonStyle.variant,
 							mode: resolvedButtonStyle.mode,
 							size,
+							variant: resolvedButtonStyle.variant,
 						}).root(),
 				],
+				className: forwardedClassName,
+				noStyle: contextNoStyle || noStyle,
 				style: {
 					...(style as CSSPropertiesWithVars<CSSVariables>),
 				},
-				className: forwardedClassName,
-				noStyle: contextNoStyle || noStyle,
 			}
 		);
 		const { noStyle: _resolvedNoStyle, ...buttonStyleProps } = buttonStyle;

@@ -12,22 +12,25 @@ const region = computed(() =>
 );
 
 const regionPresets = [
-	{ id: 'california', label: 'California', to: "/?country=US&region=CA" },
+	{ id: 'california', label: 'California', to: '/?country=US&region=CA' },
 	{ id: 'usa', label: 'USA', to: '/?country=US' },
 	{ id: 'europe', label: 'Europe', to: '/?country=DE' },
 	{ id: 'quebec', label: 'Quebec', to: '/?country=CA&region=QC' },
 ] as const;
 
-function openBanner() {
+const openBanner = function openBanner() {
 	activeUI.value = 'banner';
-}
+};
 </script>
 
 <template>
-	<nav class="region-toggle" aria-label="Region preview">
+	<nav
+		class="region-toggle"
+		aria-label="Region preview"
+	>
 		<span class="region-toggle__label">Region</span>
 		<NuxtLink
-			v-for="{id, label, to} in regionPresets"
+			v-for="{ id, label, to } in regionPresets"
 			:key="id"
 			:to="to"
 			class="region-toggle__button"
@@ -37,21 +40,26 @@ function openBanner() {
 		</NuxtLink>
 	</nav>
 
+	<ConsentRoot
+		:country="country"
+		:region="region"
+	/>
 
-	<ConsentRoot :country="country" :region="region" />
-
-	<div v-if="init" class="playground-status">
+	<div
+		v-if="init"
+		class="playground-status"
+	>
 		{{ activeUI }}
 		<p>backend: {{ config.backendURL }}</p>
 		<p>
 			location:
 			{{ init.location?.countryCode ?? '—' }}
-			<span v-if="init.location?.regionCode">/ {{ init.location.regionCode }}</span>
+			<span v-if="init.location?.regionCode"
+				>/ {{ init.location.regionCode }}</span
+			>
 		</p>
 		<p>policy: {{ init.policy?.id }} (ui: {{ init.policy?.ui?.mode }})</p>
-		<button  @click="openBanner">
-			Open banner (dev)
-		</button>
+		<button @click="openBanner">Open banner (dev)</button>
 	</div>
 	<p v-else>Loading init…</p>
 </template>

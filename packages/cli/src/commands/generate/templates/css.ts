@@ -1,10 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { UMBRELLA_PACKAGE } from '~/constants';
-import {
-	type EnsureGlobalCssStylesheetImportsResult,
-	ensureGlobalCssStylesheetImports,
-	type StyledPackageName,
+
+import { ensureGlobalCssStylesheetImports } from '../../shared/stylesheets';
+import type {
+	EnsureGlobalCssStylesheetImportsResult,
+	StyledPackageName,
 } from '../../shared/stylesheets';
 
 export interface UpdateAppStylesheetImportsOptions {
@@ -17,8 +19,8 @@ export interface UpdateAppStylesheetImportsOptions {
 }
 
 const SCOPED_STYLESHEET_PACKAGES = {
-	'c15t/react': '@c15t/react',
 	'c15t/next': '@c15t/nextjs',
+	'c15t/react': '@c15t/react',
 } as const;
 
 /**
@@ -35,53 +37,55 @@ const SCOPED_STYLESHEET_PACKAGES = {
  * @returns The scoped package name for scoped-only apps, otherwise the
  * requested package name
  */
-async function resolveStylesheetPackageName(
-	projectRoot: string,
-	packageName: UpdateAppStylesheetImportsOptions['packageName']
-): Promise<UpdateAppStylesheetImportsOptions['packageName']> {
-	if (!(packageName in SCOPED_STYLESHEET_PACKAGES)) {
-		return packageName;
-	}
-
-	const scopedPackage =
-		SCOPED_STYLESHEET_PACKAGES[
-			packageName as keyof typeof SCOPED_STYLESHEET_PACKAGES
-		];
-
-	try {
-		const packageJson = JSON.parse(
-			await readFile(join(projectRoot, 'package.json'), 'utf-8')
-		);
-		const allDeps = {
-			...packageJson.dependencies,
-			...packageJson.devDependencies,
-		};
-
-		if (!(UMBRELLA_PACKAGE in allDeps) && scopedPackage in allDeps) {
-			return scopedPackage;
+const resolveStylesheetPackageName =
+	async function resolveStylesheetPackageName(
+		projectRoot: string,
+		packageName: UpdateAppStylesheetImportsOptions['packageName']
+	): Promise<UpdateAppStylesheetImportsOptions['packageName']> {
+		if (!(packageName in SCOPED_STYLESHEET_PACKAGES)) {
+			return packageName;
 		}
-	} catch {
-		// No readable manifest — keep the requested umbrella entry point.
-	}
 
-	return packageName;
-}
+		const scopedPackage =
+			SCOPED_STYLESHEET_PACKAGES[
+				packageName as keyof typeof SCOPED_STYLESHEET_PACKAGES
+			];
 
-export async function updateAppStylesheetImports(
-	options: UpdateAppStylesheetImportsOptions
-): Promise<EnsureGlobalCssStylesheetImportsResult> {
-	const packageName = await resolveStylesheetPackageName(
-		options.projectRoot,
-		options.packageName
-	);
+		try {
+			const packageJson = JSON.parse(
+				await readFile(join(projectRoot, 'package.json'), 'utf-8')
+			);
+			const allDeps = {
+				...packageJson.dependencies,
+				...packageJson.devDependencies,
+			};
 
-	return ensureGlobalCssStylesheetImports({
-		projectRoot: options.projectRoot,
-		packageName,
-		tailwindVersion: options.tailwindVersion,
-		entrypointPath: options.entrypointPath,
-		includeBase: true,
-		includeIab: options.includeIab ?? false,
-		dryRun: options.dryRun,
-	});
-}
+			if (!(UMBRELLA_PACKAGE in allDeps) && scopedPackage in allDeps) {
+				return scopedPackage;
+			}
+		} catch {
+			// No readable manifest — keep the requested umbrella entry point.
+		}
+
+		return packageName;
+	};
+
+export const updateAppStylesheetImports =
+	async function updateAppStylesheetImports(
+		options: UpdateAppStylesheetImportsOptions
+	): Promise<EnsureGlobalCssStylesheetImportsResult> {
+		const packageName = await resolveStylesheetPackageName(
+			options.projectRoot,
+			options.packageName
+		);
+
+		return ensureGlobalCssStylesheetImports({
+			dryRun: options.dryRun,
+			entrypointPath: options.entrypointPath,
+			includeBase: true,
+			includeIab: options.includeIab ?? false,
+			packageName,
+			projectRoot: options.projectRoot,
+			tailwindVersion: options.tailwindVersion,
+		});
+	};

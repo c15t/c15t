@@ -49,6 +49,7 @@
 
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import * as Dialect from '../dialect';
 
 interface IndexSpec {
@@ -61,62 +62,62 @@ interface IndexSpec {
 
 export const INDEXES: readonly IndexSpec[] = [
 	{
-		name: 'c15t_subject_externalId_idx',
-		table: 'subject',
 		columns: ['externalId'],
+		name: 'c15t_subject_externalId_idx',
 		reason:
 			'GET /subjects?externalId= — the entry point of the subject list path.',
+		table: 'subject',
 	},
 	{
-		name: 'c15t_consent_subjectId_idx',
-		table: 'consent',
 		columns: ['subjectId'],
+		name: 'c15t_consent_subjectId_idx',
 		reason:
 			'The chunked `subjectId in (…)` fan-out in list.handler.ts, previously a sequential scan per chunk.',
+		table: 'consent',
 	},
 	{
-		name: 'c15t_consent_domainId_idx',
-		table: 'consent',
 		columns: ['domainId'],
+		name: 'c15t_consent_domainId_idx',
 		reason: 'Foreign key with no index on the referencing side.',
+		table: 'consent',
 	},
 	{
-		name: 'c15t_consent_policyId_idx',
-		table: 'consent',
 		columns: ['policyId'],
+		name: 'c15t_consent_policyId_idx',
 		reason: 'Foreign key with no index on the referencing side.',
-	},
-	{
-		name: 'c15t_consent_runtimePolicyDecisionId_idx',
 		table: 'consent',
+	},
+	{
 		columns: ['runtimePolicyDecisionId'],
+		name: 'c15t_consent_runtimePolicyDecisionId_idx',
 		reason: 'Foreign key with no index on the referencing side.',
+		table: 'consent',
 	},
 	{
-		name: 'c15t_auditLog_subjectId_idx',
-		table: 'auditLog',
 		columns: ['subjectId'],
+		name: 'c15t_auditLog_subjectId_idx',
 		reason: 'Foreign key, and the audit trail is queried per subject.',
+		table: 'auditLog',
 	},
 	{
-		name: 'c15t_consentPolicy_type_isActive_effectiveDate_idx',
-		table: 'consentPolicy',
 		columns: ['type', 'isActive', 'effectiveDate'],
+		name: 'c15t_consentPolicy_type_isActive_effectiveDate_idx',
 		reason:
 			'findLatestPolicyByType filters isActive = true and type = ? ordered by effectiveDate desc. Leading with type because isActive is a boolean and carries almost no selectivity.',
+		table: 'consentPolicy',
 	},
 	{
-		name: 'c15t_domain_name_idx',
-		table: 'domain',
 		columns: ['name'],
+		name: 'c15t_domain_name_idx',
 		reason:
 			'Domain lookup by name. The legacy schema indexed this; 2.0.0 dropped it.',
+		table: 'domain',
 	},
 	{
-		name: 'c15t_consentPurpose_code_idx',
-		table: 'consentPurpose',
 		columns: ['code'],
+		name: 'c15t_consentPurpose_code_idx',
 		reason: 'Purpose lookup by code.',
+		table: 'consentPurpose',
 	},
 
 	// Every table carries tenantId, and `withTenantScope`
@@ -143,11 +144,11 @@ export const INDEXES: readonly IndexSpec[] = [
 			'auditLog',
 		] as const
 	).map((table) => ({
-		name: `c15t_${table}_tenantId_idx`,
-		table,
 		columns: ['tenantId'] as const,
+		name: `c15t_${table}_tenantId_idx`,
 		reason:
 			'Tenant scoping filters every query on this table on tenantId; no shipped version indexed it.',
+		table,
 	})),
 ] as const;
 
@@ -160,7 +161,7 @@ export const INDEXES: readonly IndexSpec[] = [
  * check has to happen before the DDL. Postgres and SQLite both accept the
  * clause and get an empty set, keeping one code path for all three.
  */
-const existingIndexNames = Effect.gen(function* () {
+const existingIndexNames = Effect.gen(function* existingIndexNames() {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql.onDialectOrElse({
 		mysql: () =>
@@ -200,7 +201,7 @@ const TEXT_PREFIX = 191;
  * the tables most likely to be large, to buy nothing this index does not
  * already buy.
  */
-const blobColumns = Effect.gen(function* () {
+const blobColumns = Effect.gen(function* blobColumns() {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql.onDialectOrElse({
 		mysql: () =>
@@ -221,7 +222,7 @@ const blobColumns = Effect.gen(function* () {
 	});
 });
 
-export const up = Effect.gen(function* () {
+export const up = Effect.gen(function* up() {
 	const sql = yield* SqlClient.SqlClient;
 	// Resolved so an unsupported dialect fails here rather than part-way
 	// through emitting DDL.

@@ -3,12 +3,11 @@
 	"private": true,
 	"description": "Developer-first consent management platform for cookie banners, preference centers, Consent Mode v2, IAB TCF, and self-hosted CMP workflows.",
 	"homepage": "https://c15t.com",
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git"
 	},
-	"license": "Apache-2.0",
-	"type": "module",
 	"workspaces": [
 		"benchmarks/**",
 		"apps/*",
@@ -17,6 +16,7 @@
 		"internals/**",
 		"examples/*"
 	],
+	"type": "module",
 	"scripts": {
 		"bench": "turbo run bench --filter=@c15t/core-benchmarks --filter=@c15t/benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/nuxt-browser-bench --filter=@c15t/script-lifecycle-bench",
 		"bench:ci": "turbo run bench:ci --filter=@c15t/core-benchmarks --filter=@c15t/benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/nuxt-browser-bench --filter=@c15t/script-lifecycle-bench",
@@ -37,17 +37,19 @@
 		"dev": "turbo run dev --filter=@c15t/example-demo",
 		"dev:bench:nextjs": "turbo run dev --filter=@c15t/nextjs-browser-bench",
 		"e2e:consent": "node scripts/verify-consent-e2e.mjs",
-		"fmt": "turbo run fmt",
+		"fmt": "oxfmt .",
+		"fmt:check": "oxfmt . --check",
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"generate:package-docs": "bun scripts/generate-package-docs.ts",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
 		"generate:umbrella": "bun scripts/generate-umbrella-exports.ts",
-		"postinstall": "git rev-parse --git-dir >/dev/null 2>&1 && lefthook install || true",
 		"knip": "knip",
-		"lint": "turbo run lint && bun run lint:testids",
+		"lint": "turbo run lint && bun run lint:repo && bun run lint:testids",
 		"lint:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
-		"lint:fix": "turbo run lint -- --write",
+		"lint:fix": "turbo run lint -- --fix && bun run lint:repo -- --fix",
+		"lint:repo": "oxlint .",
 		"lint:testids": "bun internals/conformance/src/lint/testid-lint.ts",
+		"postinstall": "git rev-parse --git-dir >/dev/null 2>&1 && lefthook install || true",
 		"prepare": "./scripts/prepare-effect.sh",
 		"release": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
 		"release:canary": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish --tag canary",
@@ -66,23 +68,8 @@
 		"version:rc:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
 	},
-	"overrides": {
-		"@grpc/grpc-js": ">=1.14.4",
-		"defu": "6.1.7",
-		"hono": "4.12.27",
-		"kysely": "0.28.17",
-		"next@>=15.3.0-canary.0 <15.5.16": "15.5.16",
-		"next@>=16.0.0-beta.0 <16.2.3": "16.2.3",
-		"postcss": "8.5.16",
-		"protobufjs": "7.6.5",
-		"shell-quote": ">=1.9.0",
-		"typeorm": ">=0.3.26",
-		"vite@>=7.0.0 <=7.3.1": "7.3.2",
-		"vite@>=8.0.0 <8.1.3": "8.1.3"
-	},
 	"dependencies": {},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.2",
 		"@changesets/changelog-github": "0.7.0",
 		"@changesets/cli": "2.31.0",
 		"@rsbuild/core": "1.7.5",
@@ -115,6 +102,8 @@
 		"mdast-util-mdxjs-esm": "2.0.1",
 		"mdast-util-to-markdown": "2.1.2",
 		"mdast-util-to-string": "4.0.0",
+		"oxfmt": "0.65.0",
+		"oxlint": "1.80.0",
 		"playwright": "1.61.1",
 		"react": "19.2.7",
 		"react-dom": "19.2.7",
@@ -128,7 +117,7 @@
 		"tsx": "4.23.0",
 		"turbo": "2.10.7",
 		"typescript": "6.0.3",
-		"ultracite": "7.5.9",
+		"ultracite": "7.10.7",
 		"unified": "11.0.5",
 		"unist-builder": "4.0.0",
 		"unist-util-is": "6.0.1",
@@ -137,8 +126,22 @@
 		"vitest": "4.1.9",
 		"vitest-browser-react": "2.2.0"
 	},
-	"packageManager": "bun@1.3.11",
+	"overrides": {
+		"@grpc/grpc-js": ">=1.14.4",
+		"defu": "6.1.7",
+		"hono": "4.12.27",
+		"kysely": "0.28.17",
+		"next@>=15.3.0-canary.0 <15.5.16": "15.5.16",
+		"next@>=16.0.0-beta.0 <16.2.3": "16.2.3",
+		"postcss": "8.5.16",
+		"protobufjs": "7.6.5",
+		"shell-quote": ">=1.9.0",
+		"typeorm": ">=0.3.26",
+		"vite@>=7.0.0 <=7.3.1": "7.3.2",
+		"vite@>=8.0.0 <8.1.3": "8.1.3"
+	},
 	"engines": {
 		"node": ">=18.17.0"
-	}
+	},
+	"packageManager": "bun@1.3.11"
 }

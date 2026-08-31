@@ -9,7 +9,7 @@
  * per framework, passes it through `normalizeA11ySnapshot`, then diffs.
  */
 
-export type RawA11yNode = {
+export interface RawA11yNode {
 	role?: string;
 	name?: string;
 	value?: string | number;
@@ -21,42 +21,58 @@ export type RawA11yNode = {
 	focused?: boolean;
 	level?: number;
 	children?: RawA11yNode[];
-};
+}
 
-export type NormalizedA11yNode = {
+export interface NormalizedA11yNode {
 	role: string;
 	name: string;
 	state: Record<string, boolean | 'mixed' | string | number>;
 	children: NormalizedA11yNode[];
-};
+}
 
 /**
  * Strip framework-specific noise (leading/trailing whitespace in names,
  * undefined states, role aliases) so snapshots can be compared by equality.
  */
-export function normalizeA11ySnapshot(raw: RawA11yNode): NormalizedA11yNode {
+export const normalizeA11ySnapshot = function normalizeA11ySnapshot(
+	raw: RawA11yNode
+): NormalizedA11yNode {
 	const state: NormalizedA11yNode['state'] = {};
-	if (raw.checked !== undefined) state.checked = raw.checked;
-	if (raw.pressed !== undefined) state.pressed = raw.pressed;
-	if (raw.selected !== undefined) state.selected = raw.selected;
-	if (raw.expanded !== undefined) state.expanded = raw.expanded;
-	if (raw.disabled !== undefined) state.disabled = raw.disabled;
-	if (raw.level !== undefined) state.level = raw.level;
-	if (raw.value !== undefined) state.value = raw.value;
+	if (raw.checked !== undefined) {
+		state.checked = raw.checked;
+	}
+	if (raw.pressed !== undefined) {
+		state.pressed = raw.pressed;
+	}
+	if (raw.selected !== undefined) {
+		state.selected = raw.selected;
+	}
+	if (raw.expanded !== undefined) {
+		state.expanded = raw.expanded;
+	}
+	if (raw.disabled !== undefined) {
+		state.disabled = raw.disabled;
+	}
+	if (raw.level !== undefined) {
+		state.level = raw.level;
+	}
+	if (raw.value !== undefined) {
+		state.value = raw.value;
+	}
 
 	return {
-		role: raw.role ?? 'unknown',
-		name: (raw.name ?? '').trim().replace(/\s+/g, ' '),
-		state,
 		children: (raw.children ?? []).map(normalizeA11ySnapshot),
+		name: (raw.name ?? '').trim().replace(/\s+/gu, ' '),
+		role: raw.role ?? 'unknown',
+		state,
 	};
-}
+};
 
 /**
  * Deep-equality structural diff. Returns a human-readable path of the first
  * divergence or `null` if trees match.
  */
-export function diffA11yTrees(
+export const diffA11yTrees = function diffA11yTrees(
 	a: NormalizedA11yNode,
 	b: NormalizedA11yNode,
 	path = '$'
@@ -76,12 +92,16 @@ export function diffA11yTrees(
 	if (a.children.length !== b.children.length) {
 		return `${path}.children.length: ${a.children.length} vs ${b.children.length}`;
 	}
-	for (let i = 0; i < a.children.length; i++) {
+	for (let i = 0; i < a.children.length; i += 1) {
 		const childA = a.children[i];
 		const childB = b.children[i];
-		if (!childA || !childB) continue;
+		if (!childA || !childB) {
+			continue;
+		}
 		const diff = diffA11yTrees(childA, childB, `${path}.children[${i}]`);
-		if (diff) return diff;
+		if (diff) {
+			return diff;
+		}
 	}
 	return null;
-}
+};

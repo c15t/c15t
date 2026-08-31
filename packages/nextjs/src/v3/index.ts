@@ -1,5 +1,5 @@
 /**
- * @c15t/nextjs/v3 — Next.js App Router adapter (experimental).
+ * `@c15t/nextjs/v3` — Next.js App Router adapter (experimental).
  *
  * Unstable. API may change before v3.0 stable.
  *
@@ -30,6 +30,7 @@
  */
 
 export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
+// oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from '@c15t/react/v3';
 export type { ConsentBoundaryProps } from './boundary';
 export { ConsentBoundary } from './boundary';

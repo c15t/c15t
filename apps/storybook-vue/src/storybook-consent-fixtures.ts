@@ -1,13 +1,12 @@
 import type { InitOutput } from '@c15t/schema/types';
 import type { App } from 'vue';
 import { onUnmounted, provide } from 'vue';
+
 import { enTranslations } from '../../../packages/translations/src';
 import { consentConfigKey } from '../../../packages/vue/src/runtime/composables/config';
 import type { ConsentConfig } from '../../../packages/vue/src/runtime/config';
-import {
-	createVueConsentKernelContext,
-	type VueConsentKernelContext,
-} from '../../../packages/vue/src/runtime/kernel';
+import { createVueConsentKernelContext } from '../../../packages/vue/src/runtime/kernel';
+import type { VueConsentKernelContext } from '../../../packages/vue/src/runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -20,19 +19,13 @@ import {
 type StoryActiveUI = 'banner' | 'manager' | null;
 
 export const storybookInit: InitOutput = {
+	branding: 'c15t',
 	jurisdiction: 'GDPR',
 	location: {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	translations: {
-		language: 'en',
-		translations: enTranslations,
-	},
-	branding: 'c15t',
 	policy: {
-		id: 'storybook_vue_policy',
-		model: 'opt-in',
 		consent: {
 			categories: [
 				'necessary',
@@ -43,8 +36,9 @@ export const storybookInit: InitOutput = {
 			],
 			scopeMode: 'permissive',
 		},
+		id: 'storybook_vue_policy',
+		model: 'opt-in',
 		ui: {
-			mode: 'banner',
 			banner: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				primaryActions: ['customize'],
@@ -52,35 +46,41 @@ export const storybookInit: InitOutput = {
 			},
 			dialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
+				direction: 'row',
 				// Mirrors the react/svelte offline compact profile so the
 				// widget/dialog footers group actions identically across
 				// frameworks ([reject, accept] + [customize]).
 				layout: [['reject', 'accept'], 'customize'],
-				direction: 'row',
-				uiProfile: 'compact',
 				primaryActions: ['customize'],
 				scrollLock: false,
+
+				uiProfile: 'compact',
 			},
+			mode: 'banner',
 		},
 	},
 	policyDecision: {
-		policyId: 'storybook_vue_policy',
-		fingerprint: 'storybook_vue_fingerprint',
-		matchedBy: 'default',
 		country: 'DE',
-		region: null,
+		fingerprint: 'storybook_vue_fingerprint',
 		jurisdiction: 'GDPR',
+		matchedBy: 'default',
+		policyId: 'storybook_vue_policy',
+		region: null,
 	},
 	policySnapshotToken: 'storybook_vue_token',
+	translations: {
+		language: 'en',
+		translations: enTranslations,
+	},
 };
 
-function storybookFetch(): typeof fetch {
-	return (async (input: RequestInfo | URL, request?: RequestInit) => {
+const storybookFetch = function storybookFetch(): typeof fetch {
+	return ((input: RequestInfo | URL, request?: RequestInit) => {
 		const url = String(input);
 		if (url.endsWith('/init')) {
 			return new Response(JSON.stringify(storybookInit), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			});
 		}
 		if (url.endsWith('/subjects')) {
@@ -90,18 +90,17 @@ function storybookFetch(): typeof fetch {
 			return new Response(
 				JSON.stringify({ ok: true, subjectId: body.subjectId }),
 				{
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				}
 			);
 		}
 		return new Response('not found', { status: 404 });
 	}) as typeof fetch;
-}
+};
 
 export const storybookConsentConfig: ConsentConfig = {
 	backendURL: 'https://consent.example',
-	domain: 'consent.example',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -110,40 +109,43 @@ export const storybookConsentConfig: ConsentConfig = {
 		'marketing',
 	],
 	customFetch: storybookFetch(),
+	domain: 'consent.example',
+	hideBranding: false,
+
 	// Animations left ON to match the React/Svelte storybooks (their fixtures
 	// don't disable them) so the Vue stories showcase the real dialog +
 	// accordion motion. The parity-runner freezes animations itself via
 	// Playwright's `animations: 'disabled'`, so screenshots stay stable.
 	trapFocus: true,
-	hideBranding: false,
 } as ConsentConfig;
 
-export function provideStorybookConsentContext(
-	app: App | null,
-	context: VueConsentKernelContext,
-	config: ConsentConfig
-) {
-	if (app) {
-		app.provide(consentConfigKey, config);
-		app.provide(symbolKernelContext, context);
-		app.provide(symbolKernel, context.kernel);
-		app.provide(symbolSnapshot, context.snapshot);
-		app.provide(symbolInit, context.init);
-		app.provide(symbolActiveUI, context.activeUI);
-		app.provide(symbolConsent, context.storedConsent);
-		return;
-	}
+export const provideStorybookConsentContext =
+	function provideStorybookConsentContext(
+		app: App | null,
+		context: VueConsentKernelContext,
+		config: ConsentConfig
+	) {
+		if (app) {
+			app.provide(consentConfigKey, config);
+			app.provide(symbolKernelContext, context);
+			app.provide(symbolKernel, context.kernel);
+			app.provide(symbolSnapshot, context.snapshot);
+			app.provide(symbolInit, context.init);
+			app.provide(symbolActiveUI, context.activeUI);
+			app.provide(symbolConsent, context.storedConsent);
+			return;
+		}
 
-	provide(consentConfigKey, config);
-	provide(symbolKernelContext, context);
-	provide(symbolKernel, context.kernel);
-	provide(symbolSnapshot, context.snapshot);
-	provide(symbolInit, context.init);
-	provide(symbolActiveUI, context.activeUI);
-	provide(symbolConsent, context.storedConsent);
-}
+		provide(consentConfigKey, config);
+		provide(symbolKernelContext, context);
+		provide(symbolKernel, context.kernel);
+		provide(symbolSnapshot, context.snapshot);
+		provide(symbolInit, context.init);
+		provide(symbolActiveUI, context.activeUI);
+		provide(symbolConsent, context.storedConsent);
+	};
 
-export function useStorybookConsent(
+export const useStorybookConsent = function useStorybookConsent(
 	activeUI: StoryActiveUI,
 	configOverrides?: Partial<ConsentConfig>
 ) {
@@ -158,4 +160,4 @@ export function useStorybookConsent(
 	provideStorybookConsentContext(null, context, config);
 	onUnmounted(() => context.dispose());
 	return context;
-}
+};

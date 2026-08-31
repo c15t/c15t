@@ -10,42 +10,43 @@ import {
 } from 'geist/font/pixel';
 import { GeistSans } from 'geist/font/sans';
 import type React from 'react';
+
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
 import { ThemeProvider } from '../../components/theme-provider';
 
 export const metadata = {
-	title: 'c15t Demo',
 	description:
 		'Interactive demo of c15t consent management: policy scenarios, IAB TCF, theming, and i18n.',
+	title: 'c15t Demo',
 };
 
-export default function RootLayout({
+const RootLayout = ({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
-}>) {
-	return (
-		<html
-			lang="en"
-			suppressHydrationWarning
+}>) => (
+	<html
+		lang="en"
+		suppressHydrationWarning
+	>
+		<body
+			className={`${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable} ${GeistPixelCircle.variable} ${GeistPixelTriangle.variable} ${GeistPixelLine.variable} font-sans antialiased`}
 		>
-			<body
-				className={`${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable} ${GeistPixelCircle.variable} ${GeistPixelTriangle.variable} ${GeistPixelLine.variable} font-sans antialiased`}
+			<ThemeProvider
+				defaultTheme="light"
+				enableSystem
 			>
-				<ThemeProvider
-					defaultTheme="light"
-					enableSystem
-				>
-					<ConsentManager>
-						{children}
-						{/* Always on, including production — this demo exists to show
+				<ConsentManager>
+					{children}
+					{/* Always on, including production — this demo exists to show
 						    what the consent manager is doing under the hood. */}
-						<DevTools position="bottom-right" />
-						<Analytics />
-					</ConsentManager>
-				</ThemeProvider>
-			</body>
-		</html>
-	);
-}
+					<DevTools position="bottom-right" />
+					<Analytics />
+				</ConsentManager>
+			</ThemeProvider>
+		</body>
+	</html>
+);
+
+export default RootLayout;

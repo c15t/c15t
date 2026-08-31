@@ -1,8 +1,7 @@
-import {
-	type ScriptDebugEvent,
-	subscribeToScriptDebugEvents,
-} from '@c15t/core';
+import { subscribeToScriptDebugEvents } from '@c15t/core';
+import type { ScriptDebugEvent } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -15,13 +14,13 @@ import { resolveManifest } from './resolve';
 import {
 	VENDOR_MANIFEST_KIND,
 	VENDOR_MANIFEST_SCHEMA_VERSION,
-	type VendorManifest,
 	vendorManifestContract,
 } from './types';
+import type { VendorManifest } from './types';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
 
-function setupMockBrowser() {
+const setupMockBrowser = function setupMockBrowser() {
 	const globalRef = globalThis as TestGlobal;
 	const scriptAnchor = {
 		parentNode: {
@@ -30,30 +29,31 @@ function setupMockBrowser() {
 	};
 
 	const document = {
-		head: {
-			appendChild: vi.fn((node: Record<string, unknown>) => node),
-		},
 		createElement: vi.fn((_tag: string) => ({
-			textContent: '',
 			async: false,
 			defer: false,
 			setAttribute: vi.fn(),
+
+			textContent: '',
 		})),
 		getElementsByTagName: vi.fn(() => [scriptAnchor]),
+		head: {
+			appendChild: vi.fn((node: Record<string, unknown>) => node),
+		},
 	};
 
 	vi.stubGlobal('window', globalRef as unknown as Window & typeof globalThis);
 	vi.stubGlobal('document', document as unknown as Document);
-}
+};
 
-function createManifest(
+const createManifest = function createManifest(
 	manifest: Omit<VendorManifest, 'kind' | 'schemaVersion'>
 ): VendorManifest {
 	return {
 		...vendorManifestContract,
 		...manifest,
 	};
-}
+};
 
 describe('scripts engine', () => {
 	beforeEach(() => {
@@ -83,13 +83,8 @@ describe('scripts engine', () => {
 	it('preserves typed values for exact placeholders', () => {
 		const manifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'typed-values',
-			category: 'measurement',
-			install: [],
 			afterLoad: [
 				{
-					type: 'callGlobal',
-					global: 'recorder',
 					args: [
 						'{{id}}',
 						'{{initOptions}}',
@@ -97,19 +92,23 @@ describe('scripts engine', () => {
 							payload: ['{{initOptions}}', '{{enabled}}'],
 						},
 					],
+
+					global: 'recorder',
+					type: 'callGlobal',
 				},
 			],
+			category: 'measurement',
+			install: [],
+			vendor: 'typed-values',
 		};
 
 		const resolved = compileManifest(manifest, {
-			id: 'phc_123',
 			enabled: false,
+			id: 'phc_123',
 			initOptions: { api_host: 'https://eu.i.posthog.com', autocapture: false },
 		});
 
 		expect(resolved.afterLoadSteps[0]).toEqual({
-			type: 'callGlobal',
-			global: 'recorder',
 			args: [
 				'phc_123',
 				{ api_host: 'https://eu.i.posthog.com', autocapture: false },
@@ -120,39 +119,42 @@ describe('scripts engine', () => {
 					],
 				},
 			],
+			global: 'recorder',
+			type: 'callGlobal',
 		});
 	});
 
 	it('stringifies embedded placeholders while recursing through values', () => {
 		const manifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'embedded-placeholders',
 			category: 'marketing',
 			install: [
 				{
-					type: 'loadScript',
-					src: 'https://example.com/script.js?config={{config}}',
 					attributes: {
 						'data-id': 'prefix-{{id}}',
 					},
+
+					src: 'https://example.com/script.js?config={{config}}',
+					type: 'loadScript',
 				},
 			],
 			onConsentChange: [
 				{
-					type: 'pushToQueue',
 					queue: 'dataLayer',
+					type: 'pushToQueue',
 					value: {
 						label: 'state={{state}}',
 						nested: ['{{id}}', 'config={{config}}'],
 					},
 				},
 			],
+			vendor: 'embedded-placeholders',
 		};
 
 		const resolved = compileManifest(manifest, {
+			config: { enabled: true },
 			id: 'abc',
 			state: 'granted',
-			config: { enabled: true },
 		});
 
 		expect(resolved.loadScript?.src).toBe(
@@ -162,8 +164,8 @@ describe('scripts engine', () => {
 			'data-id': 'prefix-abc',
 		});
 		expect(resolved.onConsentChangeSteps[0]).toEqual({
-			type: 'pushToQueue',
 			queue: 'dataLayer',
+			type: 'pushToQueue',
 			value: {
 				label: 'state=granted',
 				nested: ['abc', 'config={"enabled":true}'],
@@ -174,59 +176,60 @@ describe('scripts engine', () => {
 	it('extracts install steps into loadScript and setup phases', () => {
 		const loadManifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'load-script',
 			category: 'necessary',
 			install: [
-				{ type: 'setGlobal', name: 'before', value: true },
+				{ name: 'before', type: 'setGlobal', value: true },
 				{
-					type: 'loadScript',
-					src: 'https://cdn.example.com/a.js',
 					async: true,
+
+					src: 'https://cdn.example.com/a.js',
+					type: 'loadScript',
 				},
-				{ type: 'callGlobal', global: 'boot', args: ['after-load'] },
+				{ args: ['after-load'], global: 'boot', type: 'callGlobal' },
 			],
+			vendor: 'load-script',
 		};
 		const setupOnlyManifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'setup-only',
 			category: 'necessary',
 			install: [
-				{ type: 'setGlobal', name: 'config', value: { ready: true } },
-				{ type: 'callGlobal', global: 'boot', args: ['inline-a'] },
-				{ type: 'callGlobal', global: 'boot', args: ['inline-b'] },
+				{ name: 'config', type: 'setGlobal', value: { ready: true } },
+				{ args: ['inline-a'], global: 'boot', type: 'callGlobal' },
+				{ args: ['inline-b'], global: 'boot', type: 'callGlobal' },
 			],
+			vendor: 'setup-only',
 		};
 
 		const loadResolved = compileManifest(loadManifest);
 		const setupOnlyResolved = compileManifest(setupOnlyManifest);
 
 		expect(loadResolved.loadScript).toEqual({
-			type: 'loadScript',
-			src: 'https://cdn.example.com/a.js',
 			async: true,
+			src: 'https://cdn.example.com/a.js',
+			type: 'loadScript',
 		});
 		expect(loadResolved.setupSteps).toEqual([
-			{ type: 'setGlobal', name: 'before', value: true },
-			{ type: 'callGlobal', global: 'boot', args: ['after-load'] },
+			{ name: 'before', type: 'setGlobal', value: true },
+			{ args: ['after-load'], global: 'boot', type: 'callGlobal' },
 		]);
 
 		expect(setupOnlyResolved.loadScript).toBeUndefined();
 		expect(setupOnlyResolved.setupSteps).toEqual([
-			{ type: 'setGlobal', name: 'config', value: { ready: true } },
-			{ type: 'callGlobal', global: 'boot', args: ['inline-a'] },
-			{ type: 'callGlobal', global: 'boot', args: ['inline-b'] },
+			{ name: 'config', type: 'setGlobal', value: { ready: true } },
+			{ args: ['inline-a'], global: 'boot', type: 'callGlobal' },
+			{ args: ['inline-b'], global: 'boot', type: 'callGlobal' },
 		]);
 	});
 
 	it('throws when install declares multiple loadScript steps', () => {
 		const manifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'invalid',
 			category: 'necessary',
 			install: [
-				{ type: 'loadScript', src: 'https://cdn.example.com/a.js' },
-				{ type: 'loadScript', src: 'https://cdn.example.com/b.js' },
+				{ src: 'https://cdn.example.com/a.js', type: 'loadScript' },
+				{ src: 'https://cdn.example.com/b.js', type: 'loadScript' },
 			],
+			vendor: 'invalid',
 		};
 
 		expect(() => compileManifest(manifest)).toThrow('single loadScript step');
@@ -234,14 +237,15 @@ describe('scripts engine', () => {
 
 	it('throws when loadScript src becomes empty after interpolation', () => {
 		const manifest = createManifest({
-			vendor: 'invalid-load-script',
 			category: 'measurement',
 			install: [
 				{
-					type: 'loadScript',
 					src: '{{scriptSrc}}',
+
+					type: 'loadScript',
 				},
 			],
+			vendor: 'invalid-load-script',
 		});
 
 		expect(() =>
@@ -254,55 +258,58 @@ describe('scripts engine', () => {
 	it('produces a serializable resolved manifest without unresolved placeholders', () => {
 		const manifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'serializable',
 			category: 'measurement',
 			install: [
 				{
-					type: 'loadScript',
 					src: 'https://cdn.example.com/{{id}}.js',
+
+					type: 'loadScript',
 				},
 			],
 			onConsentGranted: [
 				{
-					type: 'callGlobal',
-					global: 'recorder',
 					args: ['{{id}}', '{{config}}'],
+
+					global: 'recorder',
+					type: 'callGlobal',
 				},
 			],
+			vendor: 'serializable',
 		};
 
 		const resolved = compileManifest(manifest, {
-			id: 'vendor-id',
 			config: { enabled: true },
+			id: 'vendor-id',
 		});
 		const json = JSON.stringify(resolved);
 
 		expect(json).not.toContain('{{');
 		expect(JSON.parse(json)).toEqual({
-			kind: 'c15t.vendor-manifest',
-			schemaVersion: 1,
-			vendor: 'serializable',
-			category: 'measurement',
-			bootstrapSteps: [],
-			setupSteps: [],
-			loadScript: {
-				type: 'loadScript',
-				src: 'https://cdn.example.com/vendor-id.js',
-			},
 			afterLoadSteps: [],
-			onBeforeLoadGrantedSteps: [],
+			bootstrapSteps: [],
+			category: 'measurement',
+			kind: 'c15t.vendor-manifest',
+			loadScript: {
+				src: 'https://cdn.example.com/vendor-id.js',
+				type: 'loadScript',
+			},
 			onBeforeLoadDeniedSteps: [],
-			onLoadGrantedSteps: [],
-			onLoadDeniedSteps: [],
+			onBeforeLoadGrantedSteps: [],
 			onConsentChangeSteps: [],
+			onConsentDeniedSteps: [],
 			onConsentGrantedSteps: [
 				{
-					type: 'callGlobal',
-					global: 'recorder',
 					args: ['vendor-id', { enabled: true }],
+
+					global: 'recorder',
+					type: 'callGlobal',
 				},
 			],
-			onConsentDeniedSteps: [],
+			onLoadDeniedSteps: [],
+			onLoadGrantedSteps: [],
+			schemaVersion: 1,
+			setupSteps: [],
+			vendor: 'serializable',
 		});
 	});
 
@@ -310,14 +317,15 @@ describe('scripts engine', () => {
 		const compileSpy = vi.spyOn(compileEngine, 'compileManifest');
 		const manifest: VendorManifest = {
 			...vendorManifestContract,
-			vendor: 'cached-resolve',
 			category: 'measurement',
 			install: [
 				{
-					type: 'loadScript',
 					src: 'https://cdn.example.com/{{id}}.js',
+
+					type: 'loadScript',
 				},
 			],
+			vendor: 'cached-resolve',
 		};
 
 		const first = resolveManifest(manifest, { id: 'vendor-id' });
@@ -333,92 +341,96 @@ describe('scripts engine', () => {
 
 	it('converts resolved manifests into Script objects for external and callback-only flows', () => {
 		const external = resolvedManifestToScript({
-			kind: VENDOR_MANIFEST_KIND,
-			schemaVersion: VENDOR_MANIFEST_SCHEMA_VERSION,
-			vendor: 'external',
-			category: 'measurement',
-			bootstrapSteps: [],
-			setupSteps: [],
-			loadScript: {
-				type: 'loadScript',
-				src: 'https://cdn.example.com/external.js',
-				async: true,
-				defer: true,
-				attributes: { 'data-test': 'ok' },
-			},
 			afterLoadSteps: [],
-			onBeforeLoadGrantedSteps: [],
+			bootstrapSteps: [],
+			category: 'measurement',
+			kind: VENDOR_MANIFEST_KIND,
+			loadScript: {
+				async: true,
+				attributes: { 'data-test': 'ok' },
+				defer: true,
+				src: 'https://cdn.example.com/external.js',
+				type: 'loadScript',
+			},
 			onBeforeLoadDeniedSteps: [],
-			onLoadGrantedSteps: [],
-			onLoadDeniedSteps: [],
+			onBeforeLoadGrantedSteps: [],
 			onConsentChangeSteps: [],
-			onConsentGrantedSteps: [],
 			onConsentDeniedSteps: [],
+			onConsentGrantedSteps: [],
+			onLoadDeniedSteps: [],
+			onLoadGrantedSteps: [],
+			schemaVersion: VENDOR_MANIFEST_SCHEMA_VERSION,
+			setupSteps: [],
+			vendor: 'external',
 		});
 		const callbackOnly = resolvedManifestToScript({
-			kind: VENDOR_MANIFEST_KIND,
-			schemaVersion: VENDOR_MANIFEST_SCHEMA_VERSION,
-			vendor: 'callback-only',
-			category: 'marketing',
-			bootstrapSteps: [],
-			setupSteps: [],
 			afterLoadSteps: [],
-			onBeforeLoadGrantedSteps: [],
+			bootstrapSteps: [],
+			category: 'marketing',
+			kind: VENDOR_MANIFEST_KIND,
 			onBeforeLoadDeniedSteps: [],
-			onLoadGrantedSteps: [],
-			onLoadDeniedSteps: [],
+			onBeforeLoadGrantedSteps: [],
 			onConsentChangeSteps: [],
-			onConsentGrantedSteps: [],
 			onConsentDeniedSteps: [],
+			onConsentGrantedSteps: [],
+			onLoadDeniedSteps: [],
+			onLoadGrantedSteps: [],
+			schemaVersion: VENDOR_MANIFEST_SCHEMA_VERSION,
+			setupSteps: [],
+			vendor: 'callback-only',
 		});
 
 		expect(external).toMatchObject({
-			id: 'external',
-			category: 'measurement',
-			src: 'https://cdn.example.com/external.js',
 			async: true,
-			defer: true,
 			attributes: { 'data-test': 'ok' },
+			category: 'measurement',
+			defer: true,
+			id: 'external',
+			src: 'https://cdn.example.com/external.js',
 		});
 		expect(callbackOnly).toMatchObject({
-			id: 'callback-only',
-			category: 'marketing',
 			callbackOnly: true,
+			category: 'marketing',
+			id: 'callback-only',
 		});
 	});
 
 	it('executes structured startup steps directly during onBeforeLoad', () => {
 		const manifest = createManifest({
-			vendor: 'structured-startup',
-			category: 'measurement',
 			bootstrap: [
-				{ type: 'setGlobal', name: 'dataLayer', value: [] },
+				{ name: 'dataLayer', type: 'setGlobal', value: [] },
 				{
-					type: 'defineQueueFunction',
 					name: 'gtag',
 					queue: 'dataLayer',
+
+					type: 'defineQueueFunction',
 				},
 			],
-			install: [
-				{
-					type: 'callGlobal',
-					global: 'gtag',
-					args: ['js', '{{loadTime}}'],
-				},
-				{
-					type: 'callGlobal',
-					global: 'gtag',
-					args: ['config', 'G-ORDER'],
-				},
-				{
-					type: 'loadScript',
-					src: 'https://cdn.example.com/vendor.js',
-				},
-			],
+			category: 'measurement',
 			consentMapping: {
 				marketing: ['ad_storage'],
 			},
 			consentSignal: 'gtag',
+			install: [
+				{
+					args: ['js', '{{loadTime}}'],
+
+					global: 'gtag',
+					type: 'callGlobal',
+				},
+				{
+					args: ['config', 'G-ORDER'],
+
+					global: 'gtag',
+					type: 'callGlobal',
+				},
+				{
+					src: 'https://cdn.example.com/vendor.js',
+
+					type: 'loadScript',
+				},
+			],
+			vendor: 'structured-startup',
 		});
 
 		const resolved = resolvedManifestToScript(
@@ -431,8 +443,8 @@ describe('scripts engine', () => {
 
 		resolved.onBeforeLoad?.(
 			createCallbackInfo({
-				id: resolved.id,
 				consents: deniedConsentState,
+				id: resolved.id,
 			})
 		);
 
@@ -453,35 +465,39 @@ describe('scripts engine', () => {
 
 	it('supports methodCall queue formats and queued helper classes', async () => {
 		const manifest = createManifest({
-			vendor: 'method-call-queue',
-			category: 'measurement',
 			bootstrap: [
 				{
-					type: 'setGlobal',
-					name: 'vendorSdk',
-					value: { _q: [] },
 					ifUndefined: true,
+
+					name: 'vendorSdk',
+					type: 'setGlobal',
+					value: { _q: [] },
 				},
 				{
-					type: 'defineQueueMethods',
-					target: 'vendorSdk',
 					methods: ['track'],
 					queue: { property: '_q' },
 					queueFormat: 'methodCall',
+
+					target: 'vendorSdk',
+					type: 'defineQueueMethods',
 				},
 				{
-					type: 'defineQueueClass',
-					target: 'vendorSdk',
-					name: 'Identify',
 					methods: ['set'],
+
+					name: 'Identify',
+					target: 'vendorSdk',
+					type: 'defineQueueClass',
 				},
 			],
+			category: 'measurement',
 			install: [
 				{
-					type: 'loadScript',
 					src: 'https://cdn.example.com/vendor.js',
+
+					type: 'loadScript',
 				},
 			],
+			vendor: 'method-call-queue',
 		});
 
 		const resolved = resolvedManifestToScript(compileManifest(manifest, {}));
@@ -489,21 +505,21 @@ describe('scripts engine', () => {
 
 		resolved.onBeforeLoad?.(
 			createCallbackInfo({
-				id: resolved.id,
 				consents: grantedMeasurementConsentState,
+				id: resolved.id,
 			})
 		);
 
 		const sdk = globalRef.vendorSdk as {
-			_q: Array<{
+			_q: {
 				name: string;
 				args: unknown[];
 				resolve: (value: unknown) => void;
-			}>;
+			}[];
 			track: (event: string) => Promise<unknown>;
 			Identify: new () => {
 				set: (key: string, value: unknown) => unknown;
-				_q: Array<{ name: string; args: unknown[] }>;
+				_q: { name: string; args: unknown[] }[];
 			};
 		};
 
@@ -517,42 +533,46 @@ describe('scripts engine', () => {
 
 		const identify = new sdk.Identify();
 		expect(identify.set('plan', 'pro')).toBe(identify);
-		expect(identify._q).toEqual([{ name: 'set', args: ['plan', 'pro'] }]);
+		expect(identify._q).toEqual([{ args: ['plan', 'pro'], name: 'set' }]);
 
 		delete globalRef.vendorSdk;
 	});
 
 	it('supports callback queue formats that replay against the current global', () => {
 		const manifest = createManifest({
-			vendor: 'callback-queue',
-			category: 'measurement',
 			bootstrap: [
 				{
-					type: 'setGlobal',
+					ifUndefined: true,
+
 					name: 'vendorReadyCb',
-					value: [],
-					ifUndefined: true,
-				},
-				{
 					type: 'setGlobal',
-					name: 'vendorSdk',
 					value: [],
-					ifUndefined: true,
 				},
 				{
-					type: 'defineQueueMethods',
-					target: 'vendorSdk',
+					ifUndefined: true,
+
+					name: 'vendorSdk',
+					type: 'setGlobal',
+					value: [],
+				},
+				{
 					methods: ['track'],
 					queue: { global: 'vendorReadyCb' },
 					queueFormat: 'callback',
+
+					target: 'vendorSdk',
+					type: 'defineQueueMethods',
 				},
 			],
+			category: 'measurement',
 			install: [
 				{
-					type: 'loadScript',
 					src: 'https://cdn.example.com/vendor.js',
+
+					type: 'loadScript',
 				},
 			],
+			vendor: 'callback-queue',
 		});
 		const resolved = resolvedManifestToScript(compileManifest(manifest));
 		const globalRef = globalThis as TestGlobal;
@@ -560,8 +580,8 @@ describe('scripts engine', () => {
 
 		resolved.onBeforeLoad?.(
 			createCallbackInfo({
-				id: resolved.id,
 				consents: grantedMeasurementConsentState,
+				id: resolved.id,
 			})
 		);
 
@@ -570,10 +590,10 @@ describe('scripts engine', () => {
 		};
 		sdkStub.track('Signup', { plan: 'pro' });
 
-		const readyQueue = globalRef.vendorReadyCb as Array<{
+		const readyQueue = globalRef.vendorReadyCb as {
 			name: string;
 			fn: () => void;
-		}>;
+		}[];
 		globalRef.vendorSdk = {
 			track: (...args: unknown[]) => {
 				calls.push(args);
@@ -591,38 +611,42 @@ describe('scripts engine', () => {
 
 	it('runs bootstrap before default consent signaling and setup', () => {
 		const manifest = createManifest({
-			vendor: 'ordered-google',
-			category: 'necessary',
 			alwaysLoad: true,
 			bootstrap: [
 				{
-					type: 'setGlobal',
-					name: 'dataLayer',
-					value: [],
 					ifUndefined: true,
+
+					name: 'dataLayer',
+					type: 'setGlobal',
+					value: [],
 				},
 				{
-					type: 'defineQueueFunction',
 					name: 'gtag',
-					queue: 'dataLayer',
 					pushStyle: 'array',
+
+					queue: 'dataLayer',
+					type: 'defineQueueFunction',
 				},
 			],
-			install: [
-				{
-					type: 'callGlobal',
-					global: 'gtag',
-					args: ['event', 'boot'],
-				},
-				{
-					type: 'loadScript',
-					src: 'https://cdn.example.com/google.js',
-				},
-			],
+			category: 'necessary',
 			consentMapping: {
 				marketing: ['ad_storage'],
 			},
 			consentSignal: 'gtag',
+			install: [
+				{
+					args: ['event', 'boot'],
+
+					global: 'gtag',
+					type: 'callGlobal',
+				},
+				{
+					src: 'https://cdn.example.com/google.js',
+
+					type: 'loadScript',
+				},
+			],
+			vendor: 'ordered-google',
 		});
 
 		const script = resolvedManifestToScript(compileManifest(manifest));
@@ -631,8 +655,8 @@ describe('scripts engine', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -646,17 +670,17 @@ describe('scripts engine', () => {
 	it('interpolates manifest category conditions and booleans from config', () => {
 		const resolved = compileManifest(
 			createManifest({
-				vendor: 'variable-top-level',
-				category: '{{category}}',
 				alwaysLoad: '{{alwaysLoad}}',
-				persistAfterConsentRevoked: '{{persistAfterConsentRevoked}}',
+				category: '{{category}}',
 				install: [],
+				persistAfterConsentRevoked: '{{persistAfterConsentRevoked}}',
+				vendor: 'variable-top-level',
 			}),
 			{
+				alwaysLoad: true,
 				category: {
 					and: ['measurement', { not: 'marketing' }],
 				},
-				alwaysLoad: true,
 				persistAfterConsentRevoked: false,
 			}
 		);
@@ -672,37 +696,38 @@ describe('scripts engine', () => {
 		const script = resolvedManifestToScript(
 			compileManifest({
 				...vendorManifestContract,
-				vendor: 'conditional-lifecycle',
 				category: 'measurement',
 				install: [
 					{
-						type: 'loadScript',
 						src: 'https://cdn.example.com/vendor.js',
+
+						type: 'loadScript',
 					},
 				],
 				onBeforeLoadDenied: [
 					{
-						type: 'setGlobal',
 						name: 'databuddyConfig',
+						type: 'setGlobal',
 						value: {
 							disabled: true,
 						},
 					},
 				],
-				onLoadGranted: [
-					{
-						type: 'setGlobalPath',
-						path: ['databuddy', 'options', 'disabled'],
-						value: false,
-					},
-				],
 				onConsentDenied: [
 					{
-						type: 'setGlobalPath',
 						path: ['databuddy', 'options', 'disabled'],
+						type: 'setGlobalPath',
 						value: true,
 					},
 				],
+				onLoadGranted: [
+					{
+						path: ['databuddy', 'options', 'disabled'],
+						type: 'setGlobalPath',
+						value: false,
+					},
+				],
+				vendor: 'conditional-lifecycle',
 			})
 		);
 		const globalRef = globalThis as TestGlobal;
@@ -714,8 +739,8 @@ describe('scripts engine', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -725,9 +750,9 @@ describe('scripts engine', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -738,8 +763,8 @@ describe('scripts engine', () => {
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -760,37 +785,37 @@ describe('scripts engine', () => {
 		};
 
 		const manifest = createManifest({
-			vendor: 'consent-order',
 			category: 'marketing',
-			install: [],
-			onConsentChange: [
-				{ type: 'callGlobal', global: 'recorder', args: ['change'] },
-			],
-			onConsentGranted: [
-				{ type: 'callGlobal', global: 'recorder', args: ['granted'] },
-			],
-			onConsentDenied: [
-				{ type: 'callGlobal', global: 'recorder', args: ['denied'] },
-			],
 			consentMapping: {
 				marketing: ['ad_storage'],
 			},
 			consentSignal: 'gtag',
+			install: [],
+			onConsentChange: [
+				{ args: ['change'], global: 'recorder', type: 'callGlobal' },
+			],
+			onConsentDenied: [
+				{ args: ['denied'], global: 'recorder', type: 'callGlobal' },
+			],
+			onConsentGranted: [
+				{ args: ['granted'], global: 'recorder', type: 'callGlobal' },
+			],
+			vendor: 'consent-order',
 		});
 
 		const script = resolvedManifestToScript(compileManifest(manifest));
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: {
-					necessary: true,
-					functionality: false,
-					measurement: false,
-					marketing: true,
 					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: false,
+					necessary: true,
 				},
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -809,34 +834,34 @@ describe('scripts engine', () => {
 		globalRef.vendorQueue = { track: liveTrack };
 
 		const manifest = createManifest({
-			vendor: 'queue-regrant',
-			category: 'measurement',
 			bootstrap: [
 				{
-					type: 'setGlobal',
-					name: 'vendorQueue',
-					value: [],
 					ifUndefined: true,
+					name: 'vendorQueue',
+					type: 'setGlobal',
+					value: [],
 				},
 				{
-					type: 'defineQueueMethods',
-					target: 'vendorQueue',
 					methods: ['track'],
+					target: 'vendorQueue',
+					type: 'defineQueueMethods',
 				},
 			],
+			category: 'measurement',
 			install: [
 				{
-					type: 'loadScript',
 					src: 'https://cdn.example.com/vendor.js',
+					type: 'loadScript',
 				},
 			],
+			vendor: 'queue-regrant',
 		});
 
 		const script = resolvedManifestToScript(compileManifest(manifest, {}));
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
+				id: script.id,
 			})
 		);
 
@@ -858,31 +883,31 @@ describe('scripts engine', () => {
 		};
 
 		const manifest = createManifest({
-			vendor: 'rudderstack-signal',
-			category: 'measurement',
 			alwaysLoad: true,
-			install: [],
+			category: 'measurement',
 			consentMapping: {
-				measurement: ['product-analytics'],
 				marketing: ['ad-destinations', 'retargeting'],
+				measurement: ['product-analytics'],
 			},
 			consentSignal: 'rudderstack',
 			consentSignalTarget: 'rudderanalytics',
+			install: [],
+			vendor: 'rudderstack-signal',
 		});
 
 		const script = resolvedManifestToScript(compileManifest(manifest));
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: {
-					necessary: true,
-					functionality: false,
-					measurement: true,
-					marketing: false,
 					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: true,
+					necessary: true,
 				},
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -890,10 +915,10 @@ describe('scripts engine', () => {
 			[
 				{
 					consentManagement: {
-						enabled: true,
-						provider: 'custom',
 						allowedConsentIds: ['product-analytics'],
 						deniedConsentIds: ['ad-destinations', 'retargeting'],
+						enabled: true,
+						provider: 'custom',
 					},
 				},
 			],
@@ -908,27 +933,27 @@ describe('scripts engine', () => {
 			events.push(event);
 		});
 		const manifest = createManifest({
-			vendor: 'debuggable-manifest',
+			bootstrap: [{ name: 'dataLayer', type: 'setGlobal', value: [] }],
 			category: 'measurement',
-			bootstrap: [{ type: 'setGlobal', name: 'dataLayer', value: [] }],
 			install: [
 				{
-					type: 'pushToQueue',
 					queue: 'dataLayer',
+					type: 'pushToQueue',
 					value: { event: 'boot' },
 				},
 				{
-					type: 'loadScript',
 					src: 'https://cdn.example.com/vendor.js',
+					type: 'loadScript',
 				},
 			],
 			onConsentChange: [
 				{
-					type: 'pushToQueue',
 					queue: 'dataLayer',
+					type: 'pushToQueue',
 					value: { event: 'consent-update' },
 				},
 			],
+			vendor: 'debuggable-manifest',
 		});
 
 		const script = resolvedManifestToScript(compileManifest(manifest));
@@ -937,17 +962,17 @@ describe('scripts engine', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -956,29 +981,29 @@ describe('scripts engine', () => {
 		expect(events).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({
-					source: 'manifest-runtime',
-					scope: 'phase',
 					action: 'phase_start',
-					scriptId: 'debuggable-manifest',
 					callback: 'onBeforeLoad',
 					phase: 'bootstrap',
+					scope: 'phase',
+					scriptId: 'debuggable-manifest',
+					source: 'manifest-runtime',
 				}),
 				expect.objectContaining({
-					source: 'manifest-runtime',
-					scope: 'step',
 					action: 'step_executed',
-					scriptId: 'debuggable-manifest',
 					callback: 'onBeforeLoad',
 					phase: 'setup',
+					scope: 'step',
+					scriptId: 'debuggable-manifest',
+					source: 'manifest-runtime',
 					stepType: 'pushToQueue',
 				}),
 				expect.objectContaining({
-					source: 'manifest-runtime',
-					scope: 'phase',
 					action: 'phase_complete',
-					scriptId: 'debuggable-manifest',
 					callback: 'onConsentChange',
 					phase: 'onConsentChange',
+					scope: 'phase',
+					scriptId: 'debuggable-manifest',
+					source: 'manifest-runtime',
 				}),
 			])
 		);
@@ -988,20 +1013,20 @@ describe('scripts engine', () => {
 		expect(() =>
 			compileManifest({
 				...vendorManifestContract,
-				schemaVersion: 999 as typeof VENDOR_MANIFEST_SCHEMA_VERSION,
-				vendor: 'unsupported-version',
 				category: 'necessary',
 				install: [],
+				schemaVersion: 999 as typeof VENDOR_MANIFEST_SCHEMA_VERSION,
+				vendor: 'unsupported-version',
 			})
 		).toThrow('Unsupported manifest schema version');
 
 		expect(() =>
 			compileManifest({
 				...vendorManifestContract,
-				kind: 'legacy-manifest' as typeof VENDOR_MANIFEST_KIND,
-				vendor: 'unsupported-kind',
 				category: 'necessary',
 				install: [],
+				kind: 'legacy-manifest' as typeof VENDOR_MANIFEST_KIND,
+				vendor: 'unsupported-kind',
 			})
 		).toThrow('Unsupported manifest kind');
 	});

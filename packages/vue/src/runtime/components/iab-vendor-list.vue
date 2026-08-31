@@ -1,11 +1,10 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, toValue, watch } from 'vue';
+
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
+
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 
@@ -56,18 +55,18 @@ const iabVendors = computed(() => {
 
 	return Object.entries(props.vendorData.vendors).map(([id, vendor]) => ({
 		id: Number(id),
+		isCustom: false,
 		name: vendor.name,
 		policyUrl: (vendor as { policyUrl?: string }).policyUrl ?? '',
-		isCustom: false,
 	}));
 });
 
 const customVendorItems = computed(() =>
 	(props.customVendors ?? []).map((vendor) => ({
 		id: vendor.id,
+		isCustom: true,
 		name: vendor.name,
 		policyUrl: vendor.privacyPolicyUrl,
-		isCustom: true,
 	}))
 );
 
@@ -113,9 +112,9 @@ const filteredCount = computed(
 	() => filteredIabVendors.value.length + filteredCustomVendors.value.length
 );
 
-function getVendorConsent(vendorId: IabVendorId) {
+const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
-}
+};
 
 watch(
 	() => props.selectedVendorId,
@@ -171,9 +170,11 @@ watch(
 				/>
 			</div>
 			<p :class="dialogStyles.vendorCount">
-				{{ (iabT?.preferenceCenter?.vendorList?.showingCount ?? '')
+				{{
+					(iabT?.preferenceCenter?.vendorList?.showingCount ?? '')
 						.replace('{filtered}', String(filteredCount))
-						.replace('{total}', String(totalCount)) }}
+						.replace('{total}', String(totalCount))
+				}}
 			</p>
 		</div>
 

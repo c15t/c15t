@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -21,18 +23,19 @@ declare global {
  */
 export const cloudflareWebAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'cloudflare-web-analytics',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			defer: true,
 			attributes: {
 				'data-cf-beacon': '{{beaconConfig}}',
 			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'cloudflare-web-analytics',
 } as const satisfies VendorManifest;
 
 export interface CloudflareWebAnalyticsOptions {
@@ -74,7 +77,7 @@ export interface CloudflareWebAnalyticsOptions {
  * });
  * ```
  */
-export function cloudflareWebAnalytics(
+export const cloudflareWebAnalytics = function cloudflareWebAnalytics(
 	options: CloudflareWebAnalyticsOptions
 ): Script {
 	let token: string;
@@ -88,15 +91,16 @@ export function cloudflareWebAnalytics(
 	}
 
 	const resolved = resolveManifest(cloudflareWebAnalyticsManifest, {
+		beaconConfig: JSON.stringify({
+			spa: options.spa ?? true,
+
+			token,
+		}),
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			'https://static.cloudflareinsights.com/beacon.min.js'
 		),
-		beaconConfig: JSON.stringify({
-			token,
-			spa: options.spa ?? true,
-		}),
 	});
 
 	return resolved;
-}
+};

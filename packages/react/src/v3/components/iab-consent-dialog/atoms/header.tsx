@@ -1,11 +1,14 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef, type ReactNode } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { ReactNode } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useSetActiveUI } from '~/v3/hooks';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogHeaderProps {
@@ -37,7 +40,7 @@ interface IABConsentDialogHeaderProps {
  *
  * @public
  */
-const IABConsentDialogHeader = forwardRef<
+const IABConsentDialogHeader = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogHeaderProps
 >(
@@ -84,7 +87,7 @@ const IABConsentDialogHeader = forwardRef<
 								aria-label={common.close}
 							>
 								<svg
-									style={{ width: '1rem', height: '1rem' }}
+									style={{ height: '1rem', width: '1rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"

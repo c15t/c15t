@@ -3,6 +3,7 @@ import type { Consent } from '@c15t/core/v3/consent-record';
 import type { InitOutput } from '@c15t/schema';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import type { InjectionKey, Ref } from 'vue';
+
 import type { VueConsentKernelContext } from '../kernel';
 
 export const symbolInit = Symbol('c15t:init') as InjectionKey<

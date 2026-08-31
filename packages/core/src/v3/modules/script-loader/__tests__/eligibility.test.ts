@@ -1,22 +1,25 @@
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import { buildReconcilePass, isEligible } from '../eligibility';
 import { normalizeScripts } from '../normalize';
 import type { Script } from '../types';
 
-function snapshotForKernel(opts: Parameters<typeof createConsentKernel>[0]) {
+const snapshotForKernel = function snapshotForKernel(
+	opts: Parameters<typeof createConsentKernel>[0]
+) {
 	return createConsentKernel(opts).getSnapshot();
-}
+};
 
 describe('buildReconcilePass', () => {
 	test('marks isIabMode true when snapshot.model is iab', () => {
 		const snap = snapshotForKernel({
+			initialIab: { enabled: true },
 			initialPolicy: {
 				model: 'iab',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
-			initialIab: { enabled: true },
 		});
 		const pass = buildReconcilePass(snap);
 		expect(pass.isIabMode).toBe(true);
@@ -37,13 +40,15 @@ describe('isEligible', () => {
 		const pass = buildReconcilePass(snap);
 		const [entry] = normalizeScripts([
 			{
+				alwaysLoad: true,
+				category: 'marketing',
 				id: 's',
 				src: 'https://x.example/s.js',
-				category: 'marketing',
-				alwaysLoad: true,
 			},
 		]);
-		if (!entry) throw new Error('entry');
+		if (!entry) {
+			throw new Error('entry');
+		}
 		expect(isEligible(entry, pass)).toBe(true);
 	});
 
@@ -51,16 +56,18 @@ describe('isEligible', () => {
 		// IAB mode with iab=null is not a real runtime state (the IAB
 		// module would have set the slice), but we exercise the guard.
 		const snap = snapshotForKernel({});
-		const pass = { ...buildReconcilePass(snap), isIabMode: true, iab: null };
+		const pass = { ...buildReconcilePass(snap), iab: null, isIabMode: true };
 		const [entry] = normalizeScripts([
 			{
+				category: 'marketing',
 				id: 's',
 				src: 'https://x.example/s.js',
-				category: 'marketing',
 				vendorId: 'v1',
 			},
 		]);
-		if (!entry) throw new Error('entry');
+		if (!entry) {
+			throw new Error('entry');
+		}
 		expect(isEligible(entry, pass)).toBe(false);
 	});
 
@@ -70,9 +77,11 @@ describe('isEligible', () => {
 		});
 		const pass = buildReconcilePass(snap);
 		const [entry] = normalizeScripts([
-			{ id: 's', src: 'https://x.example/s.js', category: 'marketing' },
+			{ category: 'marketing', id: 's', src: 'https://x.example/s.js' },
 		]);
-		if (!entry) throw new Error('entry');
+		if (!entry) {
+			throw new Error('entry');
+		}
 		expect(isEligible(entry, pass)).toBe(true);
 	});
 
@@ -80,9 +89,11 @@ describe('isEligible', () => {
 		const snap = snapshotForKernel({});
 		const pass = buildReconcilePass(snap);
 		const [entry] = normalizeScripts([
-			{ id: 's', src: 'https://x.example/s.js', category: 'marketing' },
+			{ category: 'marketing', id: 's', src: 'https://x.example/s.js' },
 		]);
-		if (!entry) throw new Error('entry');
+		if (!entry) {
+			throw new Error('entry');
+		}
 		expect(isEligible(entry, pass)).toBe(false);
 	});
 
@@ -90,15 +101,15 @@ describe('isEligible', () => {
 		const snap = snapshotForKernel({});
 		const pass = buildReconcilePass(snap);
 		const script = {
+			category: 'analytics' as Script['category'],
 			id: 's',
 			src: 'https://x.example/s.js',
-			category: 'analytics' as Script['category'],
 		};
 		const entry = {
-			script: script as Script,
 			hasIabMeta: false,
+			script: script as Script,
 			simpleCategory: 'analytics' as never,
 		};
-		expect(() => isEligible(entry, pass)).toThrow(/not found/);
+		expect(() => isEligible(entry, pass)).toThrow(/not found/u);
 	});
 });

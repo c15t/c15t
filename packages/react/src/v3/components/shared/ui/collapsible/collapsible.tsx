@@ -7,42 +7,42 @@ import {
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import styles from '@c15t/ui/styles/v3/collapsible';
 import {
-	type ButtonHTMLAttributes,
 	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
+	forwardRef as createForwardRef,
 	useContext,
 	useId,
+	useMemo,
 } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
+
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
 
 export const collapsibleVariants = () => ({
+	content: (options?: { class?: string }) =>
+		[styles.content, options?.class].filter(Boolean).join(' '),
+	contentInner: (options?: { class?: string }) =>
+		[styles.contentInner, options?.class].filter(Boolean).join(' '),
+	contentViewport: (options?: { class?: string }) =>
+		[styles.contentViewport, options?.class].filter(Boolean).join(' '),
 	root: (options?: { class?: string }) =>
 		[styles.root, options?.class].filter(Boolean).join(' '),
 	trigger: (options?: { class?: string }) =>
 		[styles.trigger, options?.class].filter(Boolean).join(' '),
-	content: (options?: { class?: string }) =>
-		[styles.content, options?.class].filter(Boolean).join(' '),
-	contentViewport: (options?: { class?: string }) =>
-		[styles.contentViewport, options?.class].filter(Boolean).join(' '),
-	contentInner: (options?: { class?: string }) =>
-		[styles.contentInner, options?.class].filter(Boolean).join(' '),
 });
 
-type CollapsibleContextValue = {
+interface CollapsibleContextValue {
 	contentId: string;
 	disabled?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
 	noStyle?: boolean;
-};
+}
 
 const CollapsibleContext = createContext<CollapsibleContextValue | null>(null);
 
-function useCollapsibleContext() {
+const useCollapsibleContext = function useCollapsibleContext() {
 	const context = useContext(CollapsibleContext);
 
 	if (!context) {
@@ -52,7 +52,7 @@ function useCollapsibleContext() {
 	}
 
 	return context;
-}
+};
 
 export interface CollapsibleRootProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
@@ -63,7 +63,7 @@ export interface CollapsibleRootProps extends HTMLAttributes<HTMLDivElement> {
 	open?: boolean;
 }
 
-const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
+const CollapsibleRoot = createForwardRef<HTMLDivElement, CollapsibleRootProps>(
 	(
 		{
 			children,
@@ -77,7 +77,7 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 		},
 		forwardedRef
 	) => {
-		const reactId = useId().replace(/:/g, '');
+		const reactId = useId().replace(/:/gu, '');
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = collapsibleVariants();
 		const [isOpen, setIsOpen] = useControllableState({
@@ -86,18 +86,20 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 			value: open,
 		});
 		const finalNoStyle = contextNoStyle || noStyle;
+		const contextValue = useMemo(
+			() => ({
+				contentId: `c15t-collapsible-content-${reactId}`,
+				disabled,
+				noStyle: finalNoStyle,
+				open: isOpen,
+				setOpen: setIsOpen,
+				triggerId: `c15t-collapsible-trigger-${reactId}`,
+			}),
+			[disabled, finalNoStyle, isOpen, reactId, setIsOpen]
+		);
 
 		return (
-			<CollapsibleContext.Provider
-				value={{
-					contentId: `c15t-collapsible-content-${reactId}`,
-					disabled,
-					noStyle: finalNoStyle,
-					open: isOpen,
-					setOpen: setIsOpen,
-					triggerId: `c15t-collapsible-trigger-${reactId}`,
-				}}
-			>
+			<CollapsibleContext.Provider value={contextValue}>
 				<div
 					ref={forwardedRef}
 					className={
@@ -117,12 +119,14 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 
 CollapsibleRoot.displayName = 'CollapsibleRoot';
 
-export interface CollapsibleTriggerProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface CollapsibleTriggerProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	noStyle?: boolean;
 }
 
-const CollapsibleTrigger = forwardRef<
+const CollapsibleTrigger = createForwardRef<
 	HTMLButtonElement,
 	CollapsibleTriggerProps
 >(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
@@ -168,48 +172,48 @@ const CollapsibleTrigger = forwardRef<
 
 CollapsibleTrigger.displayName = 'CollapsibleTrigger';
 
-export interface CollapsibleContentProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface CollapsibleContentProps extends HTMLAttributes<HTMLDivElement> {
 	innerClassName?: string;
 	noStyle?: boolean;
 }
 
-const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
-	({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
-		const { noStyle: contextNoStyle } = useTheme();
-		const variants = collapsibleVariants();
-		const {
-			contentId,
-			noStyle: rootNoStyle,
-			open,
-			triggerId,
-		} = useCollapsibleContext();
-		const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+const CollapsibleContent = createForwardRef<
+	HTMLDivElement,
+	CollapsibleContentProps
+>(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
+	const { noStyle: contextNoStyle } = useTheme();
+	const variants = collapsibleVariants();
+	const {
+		contentId,
+		noStyle: rootNoStyle,
+		open,
+		triggerId,
+	} = useCollapsibleContext();
+	const _finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
 
-		return (
+	return (
+		<div
+			ref={forwardedRef}
+			aria-hidden={!open}
+			aria-labelledby={triggerId}
+			className={variants.content({ class: className })}
+			data-slot="collapsible-content"
+			data-state={getCollapsibleState(open)}
+			id={contentId}
+			inert={!open}
+			{...rest}
+		>
 			<div
-				ref={forwardedRef}
-				aria-hidden={!open}
-				aria-labelledby={triggerId}
-				className={variants.content({ class: className })}
-				data-slot="collapsible-content"
-				data-state={getCollapsibleState(open)}
-				id={contentId}
-				inert={!open}
-				{...rest}
+				className={variants.contentViewport({ class: undefined })}
+				data-slot="collapsible-content-viewport"
 			>
-				<div
-					className={variants.contentViewport({ class: undefined })}
-					data-slot="collapsible-content-viewport"
-				>
-					<div className={variants.contentInner({ class: innerClassName })}>
-						{children}
-					</div>
+				<div className={variants.contentInner({ class: innerClassName })}>
+					{children}
 				</div>
 			</div>
-		);
-	}
-);
+		</div>
+	);
+});
 
 CollapsibleContent.displayName = 'CollapsibleContent';
 

@@ -1,12 +1,13 @@
 <script lang="ts">
-import type { ConsentKernel } from '@c15t/core/v3';
-import { getConsentKernel } from '../../lib/context.svelte';
+	import type { ConsentKernel } from '@c15t/core/v3';
 
-let {
-	onKernel,
-}: {
-	onKernel?: (kernel: ConsentKernel) => void;
-} = $props();
+	import { getConsentKernel } from '../../lib/context.svelte';
 
-onKernel?.(getConsentKernel());
+	let {
+		onKernel,
+	}: {
+		onKernel?: (kernel: ConsentKernel) => void;
+	} = $props();
+
+	onKernel?.(getConsentKernel());
 </script>

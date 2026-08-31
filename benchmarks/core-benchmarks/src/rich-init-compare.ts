@@ -8,92 +8,93 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  * it onto the store/snapshot. Isolates framework overhead from network.
  */
 import { join } from 'node:path';
+
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
-import {
-	createConsentKernel,
-	type InitResponse,
-	type KernelTransport,
-} from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core/v3';
+import type { InitResponse, KernelTransport } from '@c15t/core/v3';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();
 
 const FULL_INIT_PAYLOAD: InitResponse = {
-	jurisdiction: 'GDPR',
-	showConsentBanner: true,
-	location: { countryCode: 'DE', regionCode: 'BE' },
-	translations: {
-		language: 'de',
-		// biome-ignore lint/suspicious/noExplicitAny: schema typing
-		translations: {
-			common: {
-				acceptAll: 'Alle akzeptieren',
-				rejectAll: 'Alle ablehnen',
-				customize: 'Anpassen',
-				save: 'Speichern',
-			},
-			cookieBanner: {
-				title: 'Wir verwenden Cookies',
-				description: 'Diese Website verwendet Cookies...',
-			},
-		} as any,
-	},
 	branding: 'c15t',
+	jurisdiction: 'GDPR',
+	location: { countryCode: 'DE', regionCode: 'BE' },
 	policy: {
-		id: 'gdpr-default',
-		model: 'opt-in',
 		consent: {
-			model: 'opt-in',
 			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
+			model: 'opt-in',
 			preselectedCategories: ['necessary'],
 			scopeMode: 'permissive',
 		},
+		id: 'gdpr-default',
+		model: 'opt-in',
 		ui: {
-			mode: 'banner',
 			banner: {
 				allowedActions: ['accept', 'reject', 'customize'],
-				primaryActions: ['accept', 'reject'],
 				direction: 'row',
-				uiProfile: 'balanced',
+				primaryActions: ['accept', 'reject'],
 				scrollLock: false,
+				uiProfile: 'balanced',
 			},
 			dialog: {
 				allowedActions: ['accept', 'reject', 'customize'],
-				primaryActions: ['accept'],
 				direction: 'column',
-				uiProfile: 'balanced',
+				primaryActions: ['accept'],
 				scrollLock: true,
+				uiProfile: 'balanced',
 			},
+			mode: 'banner',
 		},
-		// biome-ignore lint/suspicious/noExplicitAny: schema type
-	} as any,
+	} as InitResponse['policy'],
 	policyDecision: {
-		matchedBy: 'region',
 		fingerprint: 'abc123',
-		// biome-ignore lint/suspicious/noExplicitAny: schema type
-	} as any,
+		matchedBy: 'region',
+	} as InitResponse['policyDecision'],
 	policySnapshotToken: 'sig-abc123',
+	showConsentBanner: true,
+	translations: {
+		language: 'de',
+		translations: {
+			common: {
+				acceptAll: 'Alle akzeptieren',
+				customize: 'Anpassen',
+				rejectAll: 'Alle ablehnen',
+				save: 'Speichern',
+			},
+			cookieBanner: {
+				description: 'Diese Website verwendet Cookies...',
+				title: 'Wir verwenden Cookies',
+			},
+		} as InitResponse['translations']['translations'],
+	},
 };
 
 const V2_API_PAYLOAD = {
-	showConsentBanner: true,
+	branding: 'c15t',
 	jurisdiction: { code: 'GDPR' },
 	location: { countryCode: 'DE', regionCode: 'BE' },
-	translations: FULL_INIT_PAYLOAD.translations,
-	branding: 'c15t',
 	policy: FULL_INIT_PAYLOAD.policy,
 	policyDecision: FULL_INIT_PAYLOAD.policyDecision,
 	policySnapshotToken: FULL_INIT_PAYLOAD.policySnapshotToken,
+	showConsentBanner: true,
+	translations: FULL_INIT_PAYLOAD.translations,
 };
 
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const mockFetchV2 = async () =>
 	new Response(JSON.stringify(V2_API_PAYLOAD), {
-		status: 200,
 		headers: { 'content-type': 'application/json' },
+		status: 200,
 	});
-const mockFetchV3 = async () => new Response('ok');
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
+const mockFetchV3 = () => Promise.resolve(new Response('ok'));
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const _measureSync = function _measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -101,39 +102,44 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
-async function measureAsync(
+const measureAsync = async function measureAsync(
 	iterations: number,
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	const samples: number[] = [];
-	for (let i = 0; i < iterations; i += 1) {
+	const iterationIndexes = Array.from(
+		{ length: iterations },
+		(_, index) => index
+	);
+	await iterationIndexes.reduce<Promise<void>>(async (previous, _index) => {
+		await previous;
 		const start = performance.now();
 		await fn();
 		samples.push((performance.now() - start) * 1000);
-	}
+	}, Promise.resolve());
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
-function pct(a: number, b: number): string {
+const pct = function pct(a: number, b: number): string {
 	const d = ((b - a) / a) * 100;
-	return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
-}
+	return `${(d >= 0 ? '+' : '') + d.toFixed(1)}%`;
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '50');
 
@@ -153,8 +159,8 @@ const v2Samples = await measureAsync(ITERATIONS, async () => {
 globalThis.fetch = mockFetchV3 as unknown as typeof globalThis.fetch;
 
 const richTransport: KernelTransport = {
-	async init() {
-		return FULL_INIT_PAYLOAD;
+	init() {
+		return Promise.resolve(FULL_INIT_PAYLOAD);
 	},
 };
 
@@ -185,5 +191,5 @@ const outputDir =
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(
 	join(outputDir, 'rich-init-compare.json'),
-	`${JSON.stringify({ suite: 'rich-init-compare', generatedAt: new Date().toISOString(), iterations: ITERATIONS, v2, v3 }, null, 2)}\n`
+	`${JSON.stringify({ generatedAt: new Date().toISOString(), iterations: ITERATIONS, suite: 'rich-init-compare', v2, v3 }, null, 2)}\n`
 );

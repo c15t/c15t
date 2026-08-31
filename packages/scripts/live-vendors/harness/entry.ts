@@ -6,7 +6,9 @@
  * production `c15t` script loader and runs the probe checks defined in
  * `../vendors`.
  */
-import { type ConsentState, loadScripts } from '@c15t/core';
+import { loadScripts } from '@c15t/core';
+import type { ConsentState } from '@c15t/core';
+
 import type {
 	LiveProbeCheckResult,
 	LiveProbeLoadOutcome,
@@ -21,35 +23,35 @@ declare global {
 }
 
 const deniedConsents: ConsentState = {
-	necessary: true,
-	functionality: false,
 	experience: false,
-	measurement: false,
+	functionality: false,
 	marketing: false,
+	measurement: false,
+	necessary: true,
 };
 
 const grantedConsents: ConsentState = {
-	necessary: true,
-	functionality: true,
 	experience: true,
-	measurement: true,
+	functionality: true,
 	marketing: true,
+	measurement: true,
+	necessary: true,
 };
 
-function runCheck(
+const runCheck = function runCheck(
 	check: (() => LiveProbeCheckResult) | undefined,
 	missingDetail: string
 ): LiveProbeCheckResult {
 	if (!check) {
-		return { ok: true, detail: missingDetail };
+		return { detail: missingDetail, ok: true };
 	}
 
 	try {
 		return check();
 	} catch (error) {
-		return { ok: false, detail: `check threw: ${String(error)}` };
+		return { detail: `check threw: ${String(error)}`, ok: false };
 	}
-}
+};
 
 /**
  * Pre-load global references captured per vendor, keyed by vendor id. Used to
@@ -58,12 +60,81 @@ function runCheck(
  */
 const capturedStubRefs = new Map<string, Map<string, unknown>>();
 
-function windowRecord(): Record<string, unknown> {
+const windowRecord = function windowRecord(): Record<string, unknown> {
 	return window as unknown as Record<string, unknown>;
-}
+};
 
 const harness: LiveVendorProbeHarness = {
-	vendors: liveVendorProbeConfigs.map((config) => config.vendor),
+	/**
+	 * Runs the vendor's runtime assertion.
+	 *
+	 * When the config declares `runtimeReplacedGlobals`, every listed global
+	 * must be defined and differ by identity from the pre-load stub snapshot
+	 * before any custom `runtimeCheck` runs — proving the remote bundle
+	 * actually executed.
+	 *
+	 * @param vendor - Registry vendor id with a probe config.
+	 * @returns The runtime assertion result; never throws across the
+	 * `page.evaluate` boundary.
+	 */
+	check(vendor: string): LiveProbeCheckResult {
+		const config = getLiveVendorProbeConfig(vendor);
+
+		if (!config) {
+			return { detail: `unknown vendor "${vendor}"`, ok: false };
+		}
+
+		if (config.runtimeReplacedGlobals) {
+			const snapshot = capturedStubRefs.get(vendor);
+			for (const name of config.runtimeReplacedGlobals) {
+				const current = windowRecord()[name];
+				if (current === undefined) {
+					return {
+						detail: `window.${name} is undefined after load`,
+						ok: false,
+					};
+				}
+				if (snapshot && current === snapshot.get(name)) {
+					return {
+						detail: `window.${name} still references the pre-load stub; the vendor runtime never replaced it`,
+						ok: false,
+					};
+				}
+			}
+
+			if (!config.runtimeCheck) {
+				return {
+					detail: `vendor runtime replaced ${config.runtimeReplacedGlobals
+						.map((name) => `window.${name}`)
+						.join(', ')}`,
+					ok: true,
+				};
+			}
+		}
+
+		return runCheck(config.runtimeCheck, 'no runtime check defined');
+	},
+
+	inspectStorage() {
+		const cookieNames = document.cookie
+			.split(';')
+			.map((entry) => entry.split('=')[0]?.trim() ?? '')
+			.filter((name) => name.length > 0);
+
+		const localStorageKeys: string[] = [];
+		try {
+			for (let index = 0; index < window.localStorage.length; index += 1) {
+				const key = window.localStorage.key(index);
+				if (key !== null) {
+					localStorageKeys.push(key);
+				}
+			}
+		} catch {
+			// Storage access can throw in exotic contexts; report what we have.
+		}
+
+		return { cookieNames, localStorageKeys };
+	},
 
 	/**
 	 * Loads one vendor through the production script loader.
@@ -81,10 +152,10 @@ const harness: LiveVendorProbeHarness = {
 
 		if (!config?.createScript) {
 			return {
-				requested: false,
 				alwaysLoad: false,
 				bootstrap: { ok: false },
 				error: `no probe config with createScript for vendor "${vendor}"`,
+				requested: false,
 			};
 		}
 
@@ -111,8 +182,9 @@ const harness: LiveVendorProbeHarness = {
 			// Bootstrap steps run synchronously in onBeforeLoad, so the queue
 			// stubs must already exist here — before the remote loader responds.
 			let bootstrap: LiveProbeCheckResult = {
-				ok: true,
 				detail: 'script not loaded; bootstrap not asserted',
+
+				ok: true,
 			};
 			if (requested) {
 				bootstrap = runCheck(
@@ -122,90 +194,23 @@ const harness: LiveVendorProbeHarness = {
 			}
 
 			return {
-				requested,
 				alwaysLoad: script.alwaysLoad === true,
 				bootstrap,
+
+				requested,
 			};
 		} catch (error) {
 			return {
-				requested: false,
 				alwaysLoad: false,
 				bootstrap: { ok: false },
 				error: String(error),
+
+				requested: false,
 			};
 		}
 	},
 
-	/**
-	 * Runs the vendor's runtime assertion.
-	 *
-	 * When the config declares `runtimeReplacedGlobals`, every listed global
-	 * must be defined and differ by identity from the pre-load stub snapshot
-	 * before any custom `runtimeCheck` runs — proving the remote bundle
-	 * actually executed.
-	 *
-	 * @param vendor - Registry vendor id with a probe config.
-	 * @returns The runtime assertion result; never throws across the
-	 * `page.evaluate` boundary.
-	 */
-	check(vendor: string): LiveProbeCheckResult {
-		const config = getLiveVendorProbeConfig(vendor);
-
-		if (!config) {
-			return { ok: false, detail: `unknown vendor "${vendor}"` };
-		}
-
-		if (config.runtimeReplacedGlobals) {
-			const snapshot = capturedStubRefs.get(vendor);
-			for (const name of config.runtimeReplacedGlobals) {
-				const current = windowRecord()[name];
-				if (current === undefined) {
-					return {
-						ok: false,
-						detail: `window.${name} is undefined after load`,
-					};
-				}
-				if (snapshot && current === snapshot.get(name)) {
-					return {
-						ok: false,
-						detail: `window.${name} still references the pre-load stub; the vendor runtime never replaced it`,
-					};
-				}
-			}
-
-			if (!config.runtimeCheck) {
-				return {
-					ok: true,
-					detail: `vendor runtime replaced ${config.runtimeReplacedGlobals
-						.map((name) => `window.${name}`)
-						.join(', ')}`,
-				};
-			}
-		}
-
-		return runCheck(config.runtimeCheck, 'no runtime check defined');
-	},
-
-	inspectStorage() {
-		const cookieNames = document.cookie
-			.split(';')
-			.map((entry) => entry.split('=')[0]?.trim() ?? '')
-			.filter((name) => name.length > 0);
-
-		const localStorageKeys: string[] = [];
-		try {
-			for (let index = 0; index < window.localStorage.length; index++) {
-				const key = window.localStorage.key(index);
-				if (key !== null) {
-					localStorageKeys.push(key);
-				}
-			}
-		} catch {
-			// Storage access can throw in exotic contexts; report what we have.
-		}
-
-		return { cookieNames, localStorageKeys };
-	},
+	vendors: liveVendorProbeConfigs.map((config) => config.vendor),
 };
 
 window.__c15tLiveVendorProbe = harness;

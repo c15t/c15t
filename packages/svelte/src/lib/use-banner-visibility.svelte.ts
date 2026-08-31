@@ -2,18 +2,24 @@ import { onMount, tick } from 'svelte';
 
 const DEFAULT_DURATION_MS = 200;
 
-function readDurationMs(target: Element | null): number {
-	if (typeof document === 'undefined') return DEFAULT_DURATION_MS;
+const readDurationMs = function readDurationMs(target: Element | null): number {
+	if (typeof document === 'undefined') {
+		return DEFAULT_DURATION_MS;
+	}
 	const value = getComputedStyle(target ?? document.documentElement)
 		.getPropertyValue('--consent-banner-animation-duration')
 		.trim();
-	if (!value) return DEFAULT_DURATION_MS;
-	if (value.endsWith('ms'))
+	if (!value) {
+		return DEFAULT_DURATION_MS;
+	}
+	if (value.endsWith('ms')) {
 		return Number.parseFloat(value) || DEFAULT_DURATION_MS;
-	if (value.endsWith('s'))
+	}
+	if (value.endsWith('s')) {
 		return Number.parseFloat(value) * 1000 || DEFAULT_DURATION_MS;
+	}
 	return Number.parseFloat(value) || DEFAULT_DURATION_MS;
-}
+};
 
 /**
  * Visibility / mount lifecycle for the consent banner.
@@ -27,7 +33,7 @@ function readDurationMs(target: Element | null): number {
  * - When animation is disabled (provider option or `prefers-reduced-motion`):
  *   toggles synchronously, skipping the show reflow and the hide timer.
  */
-export function useBannerVisibility(
+export const useBannerVisibility = function useBannerVisibility(
 	getShouldShow: () => boolean,
 	getDisableAnimation: () => boolean
 ) {
@@ -51,14 +57,17 @@ export function useBannerVisibility(
 				return;
 			}
 			let cancelled = false;
-			void tick().then(() => {
-				if (cancelled) return;
+			void (async () => {
+				await tick();
+				if (cancelled) {
+					return;
+				}
 				// Force layout so the browser observes `bannerHidden` before we
 				// flip to `bannerVisible`. Without this, a fresh mount can
 				// compute the final style first and skip the entry transition.
 				void bannerEl?.offsetHeight;
 				isVisible = true;
-			});
+			})();
 			return () => {
 				cancelled = true;
 			};
@@ -86,20 +95,20 @@ export function useBannerVisibility(
 	});
 
 	return {
-		get isVisible() {
-			return isVisible;
-		},
-		get isMounted() {
-			return isMounted;
-		},
-		get shouldRender() {
-			return shouldRender;
-		},
 		get bannerEl() {
 			return bannerEl;
 		},
 		set bannerEl(el: HTMLElement | undefined) {
 			bannerEl = el;
 		},
+		get isMounted() {
+			return isMounted;
+		},
+		get isVisible() {
+			return isVisible;
+		},
+		get shouldRender() {
+			return shouldRender;
+		},
 	};
-}
+};

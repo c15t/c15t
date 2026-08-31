@@ -8,6 +8,7 @@ import {
 } from '@c15t/ui/utils';
 import type { SVGProps } from 'react';
 import { useContext, useMemo } from 'react';
+
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useTheme } from '~/hooks/use-theme';
 import type {
@@ -18,6 +19,7 @@ import type {
 import { cnExt as cn } from '~/utils/cn';
 import { mergeStyles } from '~/utils/merge-styles';
 import { KernelContext } from '~/v3/context';
+
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';
@@ -29,25 +31,27 @@ export type BrandingThemeKey =
 	| 'iabConsentBannerTag'
 	| 'iabConsentDialogTag';
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
 	themeKey?: BrandingThemeKey;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
-};
+}
 
-type BrandingFullLogoProps = {
+interface BrandingFullLogoProps {
 	branding: Branding | string;
 	className?: string;
-};
+}
 
 type BrandingCompactLogoProps = SVGProps<SVGSVGElement> & {
 	branding: Branding | string;
 };
 
-export function resolveBranding(branding: Branding | string): ResolvedBranding {
+export const resolveBranding = function resolveBranding(
+	branding: Branding | string
+): ResolvedBranding {
 	if (branding === 'none') {
 		return 'none';
 	}
@@ -57,21 +61,21 @@ export function resolveBranding(branding: Branding | string): ResolvedBranding {
 	}
 
 	return 'c15t';
-}
+};
 
-export function getBrandingHref(
+export const getBrandingHref = function getBrandingHref(
 	branding: Branding | string,
 	refParam = ''
 ): string {
 	return resolveBranding(branding) === 'inth'
 		? `https://inth.com${refParam}`
 		: `https://c15t.com${refParam}`;
-}
+};
 
-export function BrandingFullLogo({
+export const BrandingFullLogo = ({
 	branding,
 	className,
-}: BrandingFullLogoProps) {
+}: BrandingFullLogoProps) => {
 	if (resolveBranding(branding) === 'inth') {
 		return (
 			<span
@@ -94,25 +98,25 @@ export function BrandingFullLogo({
 			<span className={styles.brandingWordmarkLabel}>c15t</span>
 		</span>
 	);
-}
+};
 
-export function BrandingCompactLogo({
+export const BrandingCompactLogo = ({
 	branding,
 	...props
-}: BrandingCompactLogoProps) {
+}: BrandingCompactLogoProps) => {
 	const Logo =
 		resolveBranding(branding) === 'inth' ? InthIconOnly : C15TIconOnly;
 	return <Logo {...props} />;
-}
+};
 
-export function BrandingLink({
+export const BrandingLink = ({
 	hideBranding,
 	variant = 'footer',
 	themeKey,
 	className,
 	style,
 	'data-testid': testId,
-}: BrandingProps) {
+}: BrandingProps) => {
 	const consentState = useContext(ConsentStateContext);
 	const kernel = useContext(KernelContext);
 	const { noStyle: contextNoStyle, theme } = useTheme();
@@ -137,7 +141,7 @@ export function BrandingLink({
 		consentState?.state.branding ?? kernel?.getSnapshot().branding ?? 'c15t';
 	const resolvedBranding = resolveBranding(branding);
 	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+		typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
 	const brandingStyle = useMemo(() => {
 		const componentStyle: ClassNameStyle = {
 			baseClassName: cn(
@@ -189,4 +193,4 @@ export function BrandingLink({
 			/>
 		</a>
 	);
-}
+};

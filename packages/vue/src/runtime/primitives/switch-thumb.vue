@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { inject, ref } from 'vue';
+
 import { switchCheckedKey } from './keys';
 
 const checked = inject(switchCheckedKey, ref(false));

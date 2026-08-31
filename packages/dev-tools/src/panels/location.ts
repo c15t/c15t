@@ -4,22 +4,18 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import {
 	createButton,
 	createDisconnectedState,
 	createGrid,
 	createSection,
 } from '../components/ui';
-import {
-	clearElement,
-	div,
-	input,
-	type SelectOption,
-	select,
-	span,
-} from '../core/renderer';
-import componentStyles from '../styles/components.module.css';
+import { clearElement, div, input, select, span } from '../core/renderer';
+import type { SelectOption } from '../core/renderer';
 import { formatInitSource } from '../utils/init-source';
+
+import componentStyles from '../styles/components.module.css';
 
 interface OverridePayload {
 	country?: string;
@@ -49,12 +45,359 @@ export interface LocationPanelOptions {
 }
 
 /**
+ * Creates an override input field
+ */
+const createOverrideInput = function createOverrideInput(options: {
+	label: string;
+	placeholder: string;
+	value: string;
+}): OverrideField<HTMLInputElement> {
+	const { label, placeholder, value } = options;
+
+	const inputField = input({
+		className:
+			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
+		placeholder,
+		value,
+	}) as HTMLInputElement;
+
+	return {
+		control: inputField,
+		element: div({
+			children: [
+				span({
+					className: componentStyles.overrideLabel,
+					text: label,
+				}),
+				inputField,
+			],
+
+			className: componentStyles.overrideField,
+		}),
+	};
+};
+
+/**
+ * Creates an override select field
+ */
+const createOverrideSelect = function createOverrideSelect(options: {
+	label: string;
+	selectOptions: SelectOption[];
+	value: string;
+}): OverrideField<HTMLSelectElement> {
+	const { label, selectOptions, value } = options;
+
+	const selectField = select({
+		className:
+			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
+		options: selectOptions,
+		selectedValue: value,
+	});
+
+	return {
+		control: selectField,
+		element: div({
+			children: [
+				span({
+					className: componentStyles.overrideLabel,
+					text: label,
+				}),
+				selectField,
+			],
+
+			className: componentStyles.overrideField,
+		}),
+	};
+};
+
+const normalizeAlphaCode = function normalizeAlphaCode(
+	value: string
+): string | undefined {
+	const normalized = value.trim().toUpperCase();
+	return normalized || undefined;
+};
+
+const normalizeLanguageCode = function normalizeLanguageCode(
+	value: string
+): string | undefined {
+	const normalized = value.trim();
+	return normalized || undefined;
+};
+
+const normalizeOverrideDraft = function normalizeOverrideDraft(
+	draft: OverrideDraft
+): OverridePayload {
+	return {
+		country: normalizeAlphaCode(draft.country),
+		gpc:
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+			draft.gpc === 'true' ? true : draft.gpc === 'false' ? false : undefined,
+		language: normalizeLanguageCode(draft.language),
+		region: normalizeAlphaCode(draft.region),
+	};
+};
+
+const getDraftFromOverrides = function getDraftFromOverrides(
+	overrides: OverridePayload | undefined
+): OverrideDraft {
+	return {
+		country: overrides?.country ?? '',
+		gpc:
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+			overrides?.gpc === true
+				? 'true'
+				: overrides?.gpc === false
+					? 'false'
+					: '',
+		language: overrides?.language ?? '',
+		region: overrides?.region ?? '',
+	};
+};
+
+const overridesEqual = function overridesEqual(
+	a: OverridePayload,
+	b: OverridePayload
+): boolean {
+	return (
+		a.country === b.country &&
+		a.region === b.region &&
+		a.language === b.language &&
+		a.gpc === b.gpc
+	);
+};
+
+const hasOverridesValue = function hasOverridesValue(
+	overrides: OverridePayload
+): boolean {
+	return Boolean(
+		overrides.country ||
+		overrides.region ||
+		overrides.language ||
+		overrides.gpc !== undefined
+	);
+};
+
+/**
+ * Creates a compact info card for grid layouts
+ */
+const createCompactInfoCard = function createCompactInfoCard(
+	label: string,
+	value: string
+): HTMLElement {
+	return div({
+		children: [
+			span({
+				style: {
+					color: 'var(--c15t-text-muted)',
+
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+				},
+				text: label,
+			}),
+			span({
+				style: {
+					fontFamily: 'ui-monospace, monospace',
+
+					fontSize: 'var(--c15t-font-size-sm)',
+					fontWeight: '500',
+				},
+				text: value,
+			}),
+		],
+		className: componentStyles.gridCard ?? '',
+		style: {
+			alignItems: 'flex-start',
+			flexDirection: 'column',
+			gap: '2px',
+			minHeight: 'auto',
+			padding: '8px 10px',
+		},
+	});
+};
+
+/**
+ * Gets a short label for the consent model
+ */
+const getModelLabel = function getModelLabel(
+	model: string | undefined
+): string {
+	switch (model) {
+		case 'opt-in':
+			return 'Opt-In';
+		case 'opt-out':
+			return 'Opt-Out';
+		case 'iab':
+			return 'IAB TCF';
+		default:
+			return 'None';
+	}
+};
+
+/**
+ * Returns a label showing the effective GPC state.
+ * Override takes precedence over the browser signal.
+ */
+const getEffectiveGpcLabel = function getEffectiveGpcLabel(
+	gpcOverride: boolean | undefined
+): string {
+	if (gpcOverride === true) {
+		return 'On (Override)';
+	}
+	if (gpcOverride === false) {
+		return 'Off (Override)';
+	}
+	// No override - read real browser signal
+	if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+		return 'Unknown';
+	}
+	try {
+		const nav = navigator as Navigator & {
+			globalPrivacyControl?: boolean | string;
+		};
+		const value = nav.globalPrivacyControl;
+		return value === true || value === '1' ? 'Active' : 'Inactive';
+	} catch {
+		return 'Unknown';
+	}
+};
+
+/**
+ * GPC override options for the select dropdown
+ */
+const GPC_OPTIONS: SelectOption[] = [
+	{ label: '-- Browser Default --', value: '' },
+	{ label: 'Force On (Simulated)', value: 'true' },
+	{ label: 'Force Off (Simulated)', value: 'false' },
+];
+
+/**
+ * Common country codes for consent testing
+ */
+const COUNTRY_OPTIONS: SelectOption[] = [
+	{ label: '-- Select --', value: '' },
+	{ label: 'US - United States', value: 'US' },
+	{ label: 'CA - Canada', value: 'CA' },
+	{ label: 'GB - United Kingdom', value: 'GB' },
+	{ label: 'DE - Germany', value: 'DE' },
+	{ label: 'FR - France', value: 'FR' },
+	{ label: 'IT - Italy', value: 'IT' },
+	{ label: 'ES - Spain', value: 'ES' },
+	{ label: 'NL - Netherlands', value: 'NL' },
+	{ label: 'BE - Belgium', value: 'BE' },
+	{ label: 'AT - Austria', value: 'AT' },
+	{ label: 'CH - Switzerland', value: 'CH' },
+	{ label: 'PL - Poland', value: 'PL' },
+	{ label: 'SE - Sweden', value: 'SE' },
+	{ label: 'NO - Norway', value: 'NO' },
+	{ label: 'DK - Denmark', value: 'DK' },
+	{ label: 'FI - Finland', value: 'FI' },
+	{ label: 'IE - Ireland', value: 'IE' },
+	{ label: 'PT - Portugal', value: 'PT' },
+	{ label: 'AU - Australia', value: 'AU' },
+	{ label: 'NZ - New Zealand', value: 'NZ' },
+	{ label: 'JP - Japan', value: 'JP' },
+	{ label: 'BR - Brazil', value: 'BR' },
+	{ label: 'MX - Mexico', value: 'MX' },
+	{ label: 'IN - India', value: 'IN' },
+	{ label: 'CN - China', value: 'CN' },
+	{ label: 'KR - South Korea', value: 'KR' },
+	{ label: 'SG - Singapore', value: 'SG' },
+	{ label: 'HK - Hong Kong', value: 'HK' },
+	{ label: 'ZA - South Africa', value: 'ZA' },
+];
+
+const createActivePolicySummarySection =
+	function createActivePolicySummarySection(options: {
+		policy:
+			| {
+					id: string;
+			  }
+			| undefined;
+		policyDecision:
+			| {
+					policyId: string;
+					fingerprint: string;
+					matchedBy: 'region' | 'country' | 'default' | 'fallback';
+					country: string | null;
+					region: string | null;
+			  }
+			| undefined;
+		policySnapshotToken: string | undefined;
+	}): HTMLElement {
+		const { policy, policyDecision, policySnapshotToken } = options;
+
+		if (!policy && !policyDecision) {
+			return createSection({
+				children: [
+					div({
+						style: {
+							color: 'var(--c15t-text-muted)',
+
+							fontSize: 'var(--c15t-devtools-font-size-sm)',
+							padding: '10px 12px',
+						},
+						text: 'No active policy matched.',
+					}),
+				],
+				title: 'Active Policy',
+			});
+		}
+
+		const cards = [
+			createCompactInfoCard(
+				'Policy ID',
+				policy?.id ?? policyDecision?.policyId ?? '—'
+			),
+			createCompactInfoCard('Matched By', policyDecision?.matchedBy ?? '—'),
+			createCompactInfoCard(
+				'Snapshot Token',
+				policySnapshotToken ? 'present' : 'missing'
+			),
+		];
+
+		return createSection({
+			children: [
+				div({
+					children: cards,
+
+					style: {
+						display: 'grid',
+						gap: 'var(--c15t-space-sm, 0.5rem)',
+						gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+					},
+				}),
+				span({
+					className: componentStyles.overrideHint,
+					text: 'Open the Policy tab for full policy-pack diagnostics.',
+				}),
+			],
+			title: 'Active Policy',
+		});
+	};
+
+/**
  * Renders the location panel content
  */
+// oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
 export function renderLocationPanel(
 	container: HTMLElement,
 	options: LocationPanelOptions
 ): void {
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let updateFormState: () => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let setDraftValues: (draft: OverrideDraft) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let getDraftOverrides: () => OverridePayload;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let clearDraftAndOverrides: () => Promise<void>;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let applyDraft: () => Promise<void>;
+
 	const { getState, onApplyOverrides, onClearOverrides } = options;
 
 	clearElement(container);
@@ -66,9 +409,9 @@ export function renderLocationPanel(
 		return;
 	}
 
-	const locationInfo = state.locationInfo;
-	const overrides = state.overrides;
-	const translationConfig = state.translationConfig;
+	const { locationInfo } = state;
+	const { overrides } = state;
+	const { translationConfig } = state;
 	const initData = state.lastBannerFetchData;
 	const activePolicy = initData?.policy;
 	const policyDecision = initData?.policyDecision;
@@ -99,8 +442,8 @@ export function renderLocationPanel(
 	}
 
 	const locationGrid = createGrid({
-		columns: 3,
 		children: gridItems,
+		columns: 3,
 	});
 
 	const initialDraft = getDraftFromOverrides(overrides);
@@ -137,49 +480,48 @@ export function renderLocationPanel(
 	});
 
 	const applyButton = createButton({
-		text: 'Apply',
-		variant: 'primary',
-		small: true,
 		disabled: true,
 		onClick: () => {
 			void applyDraft();
 		},
+		small: true,
+		text: 'Apply',
+		variant: 'primary',
 	});
 
 	const revertButton = createButton({
-		text: 'Revert',
-		small: true,
 		disabled: true,
 		onClick: () => {
 			setDraftValues(getDraftFromOverrides(appliedOverrides));
 			updateFormState();
 		},
+		small: true,
+		text: 'Revert',
 	});
 
 	const clearButton = createButton({
-		text: 'Clear',
-		small: true,
 		onClick: () => {
 			void clearDraftAndOverrides();
 		},
+		small: true,
+		text: 'Clear',
 	});
 
 	const overrideFieldsGrid = div({
-		style: {
-			display: 'grid',
-			gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-			gap: '8px 10px',
-		},
 		children: [
 			countryField.element,
 			regionField.element,
 			languageField.element,
 			gpcField.element,
 		],
+		style: {
+			display: 'grid',
+			gap: '8px 10px',
+			gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+		},
 	});
 
 	const overrideSection = createSection({
-		title: 'Override Settings',
 		children: [
 			overrideFieldsGrid,
 			span({
@@ -187,16 +529,19 @@ export function renderLocationPanel(
 				text: 'GPC override only affects opt-out or unregulated jurisdictions.',
 			}),
 			div({
-				className: componentStyles.overrideActions,
 				children: [
 					div({
-						className: componentStyles.overrideActionButtons,
 						children: [revertButton, applyButton, clearButton],
+
+						className: componentStyles.overrideActionButtons,
 					}),
 					formStatus,
 				],
+
+				className: componentStyles.overrideActions,
 			}),
 		],
+		title: 'Override Settings',
 	});
 
 	container.appendChild(overrideSection);
@@ -210,14 +555,7 @@ export function renderLocationPanel(
 		})
 	);
 
-	countryField.control.addEventListener('change', updateFormState);
-	regionField.control.addEventListener('input', updateFormState);
-	languageField.control.addEventListener('input', updateFormState);
-	gpcField.control.addEventListener('change', updateFormState);
-
-	updateFormState();
-
-	async function applyDraft(): Promise<void> {
+	applyDraft = async (): Promise<void> => {
 		if (isSubmitting) {
 			return;
 		}
@@ -237,9 +575,9 @@ export function renderLocationPanel(
 			isSubmitting = false;
 			updateFormState();
 		}
-	}
+	};
 
-	async function clearDraftAndOverrides(): Promise<void> {
+	clearDraftAndOverrides = async (): Promise<void> => {
 		if (isSubmitting) {
 			return;
 		}
@@ -255,25 +593,25 @@ export function renderLocationPanel(
 			isSubmitting = false;
 			updateFormState();
 		}
-	}
+	};
 
-	function getDraftOverrides(): OverridePayload {
-		return normalizeOverrideDraft({
+	getDraftOverrides = (): OverridePayload =>
+		normalizeOverrideDraft({
 			country: countryField.control.value,
-			region: regionField.control.value,
-			language: languageField.control.value,
 			gpc: gpcField.control.value as GpcOverrideSelect,
-		});
-	}
 
-	function setDraftValues(draft: OverrideDraft): void {
+			language: languageField.control.value,
+			region: regionField.control.value,
+		});
+
+	setDraftValues = (draft: OverrideDraft): void => {
 		countryField.control.value = draft.country;
 		regionField.control.value = draft.region;
 		languageField.control.value = draft.language;
 		gpcField.control.value = draft.gpc;
-	}
+	};
 
-	function updateFormState(): void {
+	updateFormState = (): void => {
 		const draftOverrides = getDraftOverrides();
 		const hasDraftChanges = !overridesEqual(draftOverrides, appliedOverrides);
 
@@ -281,9 +619,11 @@ export function renderLocationPanel(
 		revertButton.disabled = !hasDraftChanges || isSubmitting;
 		clearButton.disabled = isSubmitting;
 
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		formStatus.textContent = isSubmitting
 			? 'Applying...'
-			: hasDraftChanges
+			: // oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+				hasDraftChanges
 				? 'Unsaved changes'
 				: hasOverridesValue(appliedOverrides)
 					? 'Overrides active'
@@ -294,309 +634,12 @@ export function renderLocationPanel(
 				!isSubmitting && hasDraftChanges
 			);
 		}
-	}
-}
-
-/**
- * Creates an override input field
- */
-function createOverrideInput(options: {
-	label: string;
-	placeholder: string;
-	value: string;
-}): OverrideField<HTMLInputElement> {
-	const { label, placeholder, value } = options;
-
-	const inputField = input({
-		className:
-			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
-		placeholder,
-		value,
-	}) as HTMLInputElement;
-
-	return {
-		element: div({
-			className: componentStyles.overrideField,
-			children: [
-				span({
-					className: componentStyles.overrideLabel,
-					text: label,
-				}),
-				inputField,
-			],
-		}),
-		control: inputField,
 	};
-}
 
-/**
- * Creates an override select field
- */
-function createOverrideSelect(options: {
-	label: string;
-	selectOptions: SelectOption[];
-	value: string;
-}): OverrideField<HTMLSelectElement> {
-	const { label, selectOptions, value } = options;
+	countryField.control.addEventListener('change', updateFormState);
+	regionField.control.addEventListener('input', updateFormState);
+	languageField.control.addEventListener('input', updateFormState);
+	gpcField.control.addEventListener('change', updateFormState);
 
-	const selectField = select({
-		className:
-			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
-		options: selectOptions,
-		selectedValue: value,
-	});
-
-	return {
-		element: div({
-			className: componentStyles.overrideField,
-			children: [
-				span({
-					className: componentStyles.overrideLabel,
-					text: label,
-				}),
-				selectField,
-			],
-		}),
-		control: selectField,
-	};
-}
-
-function getDraftFromOverrides(
-	overrides: OverridePayload | undefined
-): OverrideDraft {
-	return {
-		country: overrides?.country ?? '',
-		region: overrides?.region ?? '',
-		language: overrides?.language ?? '',
-		gpc:
-			overrides?.gpc === true
-				? 'true'
-				: overrides?.gpc === false
-					? 'false'
-					: '',
-	};
-}
-
-function normalizeOverrideDraft(draft: OverrideDraft): OverridePayload {
-	return {
-		country: normalizeAlphaCode(draft.country),
-		region: normalizeAlphaCode(draft.region),
-		language: normalizeLanguageCode(draft.language),
-		gpc:
-			draft.gpc === 'true' ? true : draft.gpc === 'false' ? false : undefined,
-	};
-}
-
-function normalizeAlphaCode(value: string): string | undefined {
-	const normalized = value.trim().toUpperCase();
-	return normalized || undefined;
-}
-
-function normalizeLanguageCode(value: string): string | undefined {
-	const normalized = value.trim();
-	return normalized || undefined;
-}
-
-function overridesEqual(a: OverridePayload, b: OverridePayload): boolean {
-	return (
-		a.country === b.country &&
-		a.region === b.region &&
-		a.language === b.language &&
-		a.gpc === b.gpc
-	);
-}
-
-function hasOverridesValue(overrides: OverridePayload): boolean {
-	return Boolean(
-		overrides.country ||
-			overrides.region ||
-			overrides.language ||
-			overrides.gpc !== undefined
-	);
-}
-
-/**
- * Common country codes for consent testing
- */
-const COUNTRY_OPTIONS: SelectOption[] = [
-	{ value: '', label: '-- Select --' },
-	{ value: 'US', label: 'US - United States' },
-	{ value: 'CA', label: 'CA - Canada' },
-	{ value: 'GB', label: 'GB - United Kingdom' },
-	{ value: 'DE', label: 'DE - Germany' },
-	{ value: 'FR', label: 'FR - France' },
-	{ value: 'IT', label: 'IT - Italy' },
-	{ value: 'ES', label: 'ES - Spain' },
-	{ value: 'NL', label: 'NL - Netherlands' },
-	{ value: 'BE', label: 'BE - Belgium' },
-	{ value: 'AT', label: 'AT - Austria' },
-	{ value: 'CH', label: 'CH - Switzerland' },
-	{ value: 'PL', label: 'PL - Poland' },
-	{ value: 'SE', label: 'SE - Sweden' },
-	{ value: 'NO', label: 'NO - Norway' },
-	{ value: 'DK', label: 'DK - Denmark' },
-	{ value: 'FI', label: 'FI - Finland' },
-	{ value: 'IE', label: 'IE - Ireland' },
-	{ value: 'PT', label: 'PT - Portugal' },
-	{ value: 'AU', label: 'AU - Australia' },
-	{ value: 'NZ', label: 'NZ - New Zealand' },
-	{ value: 'JP', label: 'JP - Japan' },
-	{ value: 'BR', label: 'BR - Brazil' },
-	{ value: 'MX', label: 'MX - Mexico' },
-	{ value: 'IN', label: 'IN - India' },
-	{ value: 'CN', label: 'CN - China' },
-	{ value: 'KR', label: 'KR - South Korea' },
-	{ value: 'SG', label: 'SG - Singapore' },
-	{ value: 'HK', label: 'HK - Hong Kong' },
-	{ value: 'ZA', label: 'ZA - South Africa' },
-];
-
-/**
- * GPC override options for the select dropdown
- */
-const GPC_OPTIONS: SelectOption[] = [
-	{ value: '', label: '-- Browser Default --' },
-	{ value: 'true', label: 'Force On (Simulated)' },
-	{ value: 'false', label: 'Force Off (Simulated)' },
-];
-
-/**
- * Returns a label showing the effective GPC state.
- * Override takes precedence over the browser signal.
- */
-function getEffectiveGpcLabel(gpcOverride: boolean | undefined): string {
-	if (gpcOverride === true) {
-		return 'On (Override)';
-	}
-	if (gpcOverride === false) {
-		return 'Off (Override)';
-	}
-	// No override - read real browser signal
-	if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-		return 'Unknown';
-	}
-	try {
-		const nav = navigator as Navigator & {
-			globalPrivacyControl?: boolean | string;
-		};
-		const value = nav.globalPrivacyControl;
-		return value === true || value === '1' ? 'Active' : 'Inactive';
-	} catch {
-		return 'Unknown';
-	}
-}
-
-/**
- * Gets a short label for the consent model
- */
-function getModelLabel(model: string | undefined): string {
-	switch (model) {
-		case 'opt-in':
-			return 'Opt-In';
-		case 'opt-out':
-			return 'Opt-Out';
-		case 'iab':
-			return 'IAB TCF';
-		default:
-			return 'None';
-	}
-}
-
-function createActivePolicySummarySection(options: {
-	policy:
-		| {
-				id: string;
-		  }
-		| undefined;
-	policyDecision:
-		| {
-				policyId: string;
-				fingerprint: string;
-				matchedBy: 'region' | 'country' | 'default' | 'fallback';
-				country: string | null;
-				region: string | null;
-		  }
-		| undefined;
-	policySnapshotToken: string | undefined;
-}): HTMLElement {
-	const { policy, policyDecision, policySnapshotToken } = options;
-
-	if (!policy && !policyDecision) {
-		return createSection({
-			title: 'Active Policy',
-			children: [
-				div({
-					style: {
-						padding: '10px 12px',
-						fontSize: 'var(--c15t-devtools-font-size-sm)',
-						color: 'var(--c15t-text-muted)',
-					},
-					text: 'No active policy matched.',
-				}),
-			],
-		});
-	}
-
-	const cards = [
-		createCompactInfoCard(
-			'Policy ID',
-			policy?.id ?? policyDecision?.policyId ?? '—'
-		),
-		createCompactInfoCard('Matched By', policyDecision?.matchedBy ?? '—'),
-		createCompactInfoCard(
-			'Snapshot Token',
-			policySnapshotToken ? 'present' : 'missing'
-		),
-	];
-
-	return createSection({
-		title: 'Active Policy',
-		children: [
-			div({
-				style: {
-					display: 'grid',
-					gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-					gap: 'var(--c15t-space-sm, 0.5rem)',
-				},
-				children: cards,
-			}),
-			span({
-				className: componentStyles.overrideHint,
-				text: 'Open the Policy tab for full policy-pack diagnostics.',
-			}),
-		],
-	});
-}
-
-/**
- * Creates a compact info card for grid layouts
- */
-function createCompactInfoCard(label: string, value: string): HTMLElement {
-	return div({
-		className: componentStyles.gridCard ?? '',
-		style: {
-			padding: '8px 10px',
-			minHeight: 'auto',
-			flexDirection: 'column',
-			alignItems: 'flex-start',
-			gap: '2px',
-		},
-		children: [
-			span({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-text-muted)',
-				},
-				text: label,
-			}),
-			span({
-				style: {
-					fontSize: 'var(--c15t-font-size-sm)',
-					fontWeight: '500',
-					fontFamily: 'ui-monospace, monospace',
-				},
-				text: value,
-			}),
-		],
-	});
+	updateFormState();
 }

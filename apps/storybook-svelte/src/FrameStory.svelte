@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Frame } from '@c15t/svelte';
+
 	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
 
 	let { granted = false }: { granted?: boolean } = $props();
@@ -7,14 +8,14 @@
 	const storedConsent = $derived(
 		granted
 			? {
-					necessary: true,
 					marketing: true,
+					necessary: true,
 				}
 			: undefined
 	);
 </script>
 
-<StorybookConsentProvider storedConsent={storedConsent}>
+<StorybookConsentProvider {storedConsent}>
 	<div style="width: 32rem;">
 		<Frame category="marketing">
 			<div

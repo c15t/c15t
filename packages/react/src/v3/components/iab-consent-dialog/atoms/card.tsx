@@ -1,23 +1,19 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	type RefObject,
-	useEffect,
-	useState,
-} from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
+
 import { useActiveUI } from '~/v3/hooks';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { useIABTranslations } from '../use-iab-translations';
 
-interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
 	children: ReactNode;
 	'data-testid'?: string;
 }
@@ -30,8 +26,8 @@ interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const IABConsentDialogCard = forwardRef<
-	HTMLDivElement,
+const IABConsentDialogCard = createForwardRef<
+	HTMLDialogElement,
 	IABConsentDialogCardProps
 >(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { trapFocus } = useTheme();
@@ -45,13 +41,13 @@ const IABConsentDialogCard = forwardRef<
 
 	useEffect(() => {
 		if (showDialog) {
-			setIsVisible(true);
-		} else {
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, 150);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+		}, 150);
+		return () => clearTimeout(timer);
 	}, [showDialog]);
 
 	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.card, {
@@ -65,16 +61,16 @@ const IABConsentDialogCard = forwardRef<
 	});
 
 	return (
-		<div
+		<dialog
 			ref={ref}
 			{...themedStyle}
-			role="dialog"
+			open
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}
 			tabIndex={-1}
 		>
 			{children}
-		</div>
+		</dialog>
 	);
 });
 

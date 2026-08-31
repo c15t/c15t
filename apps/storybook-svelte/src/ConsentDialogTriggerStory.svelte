@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { ConsentDialog, ConsentDialogTrigger } from '@c15t/svelte';
-	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
+
 	import {
 		editableConsentOptions,
 		editableStoredConsent,
 	} from './storybook-consent-fixtures';
+	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
 
 	let {
 		defaultPosition = 'bottom-right',

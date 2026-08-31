@@ -21,23 +21,23 @@ import {
 	clearBrowserConsentStorage,
 	conformanceTest,
 	queryByTestId,
-	type SuiteApi,
 	waitForCondition,
 } from './helpers';
+import type { SuiteApi } from './helpers';
 
 const BANNER_ROOT = 'consent-banner-root';
 const ACCEPT_BUTTON = 'consent-banner-accept-button';
 
-type PersistedState = {
+interface PersistedState {
 	consents?: Record<string, boolean>;
 	hasConsented?: unknown;
-};
-
-function readState(driver: TestDriver): PersistedState {
-	return driver.getStore().getState() as PersistedState;
 }
 
-export function runPersistenceConformance(
+const readState = function readState(driver: TestDriver): PersistedState {
+	return driver.getStore().getState() as PersistedState;
+};
+
+export const runPersistenceConformance = function runPersistenceConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
@@ -54,7 +54,10 @@ export function runPersistenceConformance(
 						persistence: true,
 					});
 					try {
-						api.expect(queryByTestId(first.root, BANNER_ROOT)).not.toBeNull();
+						const bannerVisible = await waitForCondition(
+							() => queryByTestId(first.root, BANNER_ROOT) !== null
+						);
+						api.expect(bannerVisible).toBe(true);
 						// Pre-consent under an opt-in policy: optional categories denied.
 						api.expect(readState(driver).consents?.marketing).toBe(false);
 
@@ -84,6 +87,10 @@ export function runPersistenceConformance(
 						persistence: true,
 					});
 					try {
+						const restored = await waitForCondition(
+							() => readState(driver).consents?.marketing === true
+						);
+						api.expect(restored).toBe(true);
 						api.expect(queryByTestId(second.root, BANNER_ROOT)).toBe(null);
 						const state = readState(driver);
 						api.expect(state.consents?.necessary).toBe(true);
@@ -111,7 +118,10 @@ export function runPersistenceConformance(
 					persistence: true,
 				});
 				try {
-					api.expect(queryByTestId(mounted.root, BANNER_ROOT)).not.toBeNull();
+					const bannerVisible = await waitForCondition(
+						() => queryByTestId(mounted.root, BANNER_ROOT) !== null
+					);
+					api.expect(bannerVisible).toBe(true);
 					api.expect(readState(driver).consents?.marketing).toBe(false);
 				} finally {
 					await mounted.unmount();
@@ -120,4 +130,4 @@ export function runPersistenceConformance(
 			}
 		);
 	});
-}
+};

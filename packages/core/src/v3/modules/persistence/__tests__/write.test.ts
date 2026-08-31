@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import * as cookie from '../../../libs/cookie';
 import { writeToStorage } from '../write';
@@ -43,6 +44,6 @@ describe('writeToStorage', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.subjectId).not.toBeNull();
 		// generateSubjectId emits `sub_<base58>` IDs.
-		expect(snap.subjectId).toMatch(/^sub_/);
+		expect(snap.subjectId).toMatch(/^sub_/u);
 	});
 });

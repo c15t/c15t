@@ -1,15 +1,8 @@
 import * as React from 'react';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-const { createDevToolsPanelMock } = vi.hoisted(() => ({
-	createDevToolsPanelMock: vi.fn(),
-}));
-
-vi.mock('../../core/devtools', () => ({
-	createDevToolsPanel: createDevToolsPanelMock,
-}));
 
 import {
 	C15tTanStackDevtoolsPanel,
@@ -17,10 +10,12 @@ import {
 	c15tDevtoolsPlugin,
 } from '../../tanstack';
 
+const createDevToolsPanelMock = vi.fn();
+
 describe('tanstack integration', () => {
 	let mountNode: HTMLDivElement;
 	let root: Root | null;
-	let destroyCallbacks: Array<ReturnType<typeof vi.fn>>;
+	let destroyCallbacks: ReturnType<typeof vi.fn>[];
 
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -35,15 +30,15 @@ describe('tanstack integration', () => {
 			const destroy = vi.fn();
 			destroyCallbacks.push(destroy);
 			return {
-				element,
 				destroy,
+				element,
 			};
 		});
 	});
 
 	afterEach(async () => {
 		if (root) {
-			await act(async () => {
+			await act(() => {
 				root?.unmount();
 			});
 		}
@@ -58,8 +53,8 @@ describe('tanstack integration', () => {
 
 	it('creates a React-compatible plugin config', () => {
 		const plugin = c15tDevtools({
-			namespace: 'testStore',
 			defaultOpen: true,
+			namespace: 'testStore',
 		});
 
 		expect(plugin.id).toBe('c15t');
@@ -73,18 +68,19 @@ describe('tanstack integration', () => {
 	});
 
 	it('mounts and destroys the embedded panel with React lifecycle', async () => {
-		await act(async () => {
+		await act(() => {
 			root?.render(
 				React.createElement(C15tTanStackDevtoolsPanel, {
-					namespace: 'testStore',
+					createPanel: createDevToolsPanelMock,
 					'data-testid': 'panel-shell',
+					namespace: 'testStore',
 				})
 			);
 		});
 
 		expect(createDevToolsPanelMock).toHaveBeenCalledWith({
-			namespace: 'testStore',
 			mode: 'embedded',
+			namespace: 'testStore',
 		});
 
 		const shell = mountNode.querySelector('[data-testid="panel-shell"]');
@@ -92,7 +88,7 @@ describe('tanstack integration', () => {
 			shell?.querySelector('[data-testid="embedded-panel"]')
 		).not.toBeNull();
 
-		await act(async () => {
+		await act(() => {
 			root?.unmount();
 		});
 		root = null;
@@ -109,19 +105,20 @@ describe('tanstack integration', () => {
 
 	it('reuses the embedded panel after a remount', async () => {
 		const plugin = c15tDevtools({
+			createPanel: createDevToolsPanelMock,
 			namespace: 'testStore',
 		});
 
-		await act(async () => {
+		await act(() => {
 			root?.render(plugin.render);
 		});
 
-		await act(async () => {
+		await act(() => {
 			root?.unmount();
 		});
 		root = createRoot(mountNode);
 
-		await act(async () => {
+		await act(() => {
 			root.render(plugin.render);
 		});
 

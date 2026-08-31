@@ -7,9 +7,10 @@
  * 3. Stale-closure bug (c15t/c15t#604) is structurally resolved.
  */
 import type { ReactNode } from 'react';
-import { Profiler, StrictMode, useRef } from 'react';
+import { Profiler, StrictMode, useEffect } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import {
 	ConsentProvider,
 	useConsent,
@@ -22,25 +23,48 @@ import {
 	useSetOverrides,
 } from '../index';
 
-function withProvider(options = {}) {
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider options={{ persistence: false, ...options }}>
 			{children}
 		</ConsentProvider>
 	);
 	return { Wrapper };
-}
+};
 
 describe('v3 react: selector hook basics', () => {
 	test('useConsent returns current state and updates on mutation', async () => {
 		const { Wrapper } = withProvider();
 
-		function MarketingStatus() {
+		const MarketingStatus = () => {
 			const allowed = useConsent('marketing');
 			return <div data-testid="status">{allowed ? 'on' : 'off'}</div>;
-		}
+		};
 
-		function ToggleMarketing() {
+		const ToggleMarketing = () => {
 			const setConsent = useSetConsent();
 			return (
 				<button
@@ -51,7 +75,7 @@ describe('v3 react: selector hook basics', () => {
 					toggle
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -70,12 +94,12 @@ describe('v3 react: selector hook basics', () => {
 	test('useConsents returns the full map', async () => {
 		const { Wrapper } = withProvider();
 
-		function Dump() {
+		const Dump = () => {
 			const consents = useConsents();
 			return <pre data-testid="dump">{JSON.stringify(consents)}</pre>;
-		}
+		};
 
-		function Toggle() {
+		const Toggle = () => {
 			const setConsent = useSetConsent();
 			return (
 				<button
@@ -86,7 +110,7 @@ describe('v3 react: selector hook basics', () => {
 					toggle
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -109,23 +133,25 @@ describe('v3 react: selector hook basics', () => {
 	test('useHasConsented flips after save', async () => {
 		const { Wrapper } = withProvider();
 
-		function Status() {
+		const Status = () => {
 			const v = useHasConsented();
 			return <div data-testid="has">{String(v)}</div>;
-		}
+		};
 
-		function SaveAll() {
+		const SaveAll = () => {
 			const save = useSaveConsents();
 			return (
 				<button
 					type="button"
 					data-testid="save"
-					onClick={() => void save('all')}
+					onClick={async () => {
+						await save('all');
+					}}
 				>
 					save
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -142,12 +168,12 @@ describe('v3 react: selector hook basics', () => {
 	test('useOverrides updates on set.overrides', async () => {
 		const { Wrapper } = withProvider();
 
-		function CountryLabel() {
+		const CountryLabel = () => {
 			const o = useOverrides();
 			return <div data-testid="country">{o.country ?? 'none'}</div>;
-		}
+		};
 
-		function SetCountry() {
+		const SetCountry = () => {
 			const setOverrides = useSetOverrides();
 			return (
 				<button
@@ -158,7 +184,7 @@ describe('v3 react: selector hook basics', () => {
 					set country
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -183,7 +209,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 		const marketingRenders: number[] = [];
 		const measurementRenders: number[] = [];
 
-		function MarketingView() {
+		const MarketingView = () => {
 			const allowed = useConsent('marketing');
 			return (
 				<Profiler
@@ -193,9 +219,9 @@ describe('v3 react: zero unrelated re-renders', () => {
 					<div data-testid="marketing">{String(allowed)}</div>
 				</Profiler>
 			);
-		}
+		};
 
-		function MeasurementView() {
+		const MeasurementView = () => {
 			const allowed = useConsent('measurement');
 			return (
 				<Profiler
@@ -205,9 +231,9 @@ describe('v3 react: zero unrelated re-renders', () => {
 					<div data-testid="measurement">{String(allowed)}</div>
 				</Profiler>
 			);
-		}
+		};
 
-		function ToggleMarketing() {
+		const ToggleMarketing = () => {
 			const setConsent = useSetConsent();
 			return (
 				<button
@@ -218,7 +244,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 					toggle
 				</button>
 			);
-		}
+		};
 
 		await render(
 			<Wrapper>
@@ -229,14 +255,14 @@ describe('v3 react: zero unrelated re-renders', () => {
 		);
 
 		// Wait for initial mount to settle.
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 		const marketingAfterMount = marketingRenders.length;
 		const measurementAfterMount = measurementRenders.length;
 
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="toggle"]')
 			?.click();
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 
 		// Marketing hook's returned value changed → exactly one more commit.
 		expect(marketingRenders.length).toBeGreaterThan(marketingAfterMount);
@@ -249,7 +275,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 		const { Wrapper } = withProvider();
 		const renders: number[] = [];
 
-		function View() {
+		const View = () => {
 			const consents = useConsents();
 			const setConsent = useSetConsent();
 			return (
@@ -269,7 +295,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 					</Profiler>
 				</>
 			);
-		}
+		};
 
 		await render(
 			<Wrapper>
@@ -277,7 +303,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 			</Wrapper>
 		);
 
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 		const afterMount = renders.length;
 
 		// necessary is already true; this should be a no-op at the kernel
@@ -285,7 +311,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="noop"]')
 			?.click();
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 
 		expect(renders.length).toBe(afterMount);
 	});
@@ -300,9 +326,7 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 	test('useConsent result is always fresh after mutations', async () => {
 		const { Wrapper } = withProvider();
 
-		function MarketingReader() {
-			const renderCountRef = useRef(0);
-			renderCountRef.current += 1;
+		const MarketingReader = () => {
 			const allowed = useConsent('marketing');
 			const setConsent = useSetConsent();
 			return (
@@ -321,12 +345,10 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 					>
 						off
 					</button>
-					<div data-testid="value">
-						{allowed ? 'on' : 'off'}|{renderCountRef.current}
-					</div>
+					<div data-testid="value">{allowed ? 'on' : 'off'}|0</div>
 				</>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<StrictMode>
@@ -336,19 +358,20 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 			</StrictMode>
 		);
 
-		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
+		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/u);
 
 		await getByTestId('on').click();
-		await expect.element(getByTestId('value')).toHaveTextContent(/^on\|/);
+		await expect.element(getByTestId('value')).toHaveTextContent(/^on\|/u);
 
 		await getByTestId('off').click();
-		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
+		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/u);
 	});
 });
 
 describe('v3 react: network blocker lifecycle', () => {
-	function installFetchStub() {
+	const installFetchStub = function installFetchStub() {
 		const originalFetch = window.fetch;
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchStub = vi.fn(async () => new Response('ok', { status: 200 }));
 		window.fetch = fetchStub as unknown as typeof window.fetch;
 		return {
@@ -358,18 +381,18 @@ describe('v3 react: network blocker lifecycle', () => {
 				window.fetch = originalFetch;
 			},
 		};
-	}
+	};
 
 	test('abandoned render does not patch fetch', async () => {
 		const fetch = installFetchStub();
 
-		function ThrowsAfterHook() {
+		const ThrowsAfterHook = function ThrowsAfterHook() {
 			useNetworkBlocker({
-				rules: [{ domain: 'example.com', category: 'marketing' }],
 				logBlockedRequests: false,
+				rules: [{ category: 'marketing', domain: 'example.com' }],
 			});
 			throw new Error('render failed before commit');
-		}
+		};
 
 		try {
 			await expect(
@@ -394,11 +417,11 @@ describe('v3 react: network blocker lifecycle', () => {
 				<StrictMode>
 					<ConsentProvider
 						options={{
-							persistence: false,
 							networkBlocker: {
-								rules: [{ domain: 'example.com', category: 'marketing' }],
 								logBlockedRequests: false,
+								rules: [{ category: 'marketing', domain: 'example.com' }],
 							},
+							persistence: false,
 						}}
 					>
 						<div>mounted</div>
@@ -424,11 +447,11 @@ describe('v3 react: network blocker lifecycle', () => {
 			const { rerender } = await render(
 				<ConsentProvider
 					options={{
-						persistence: false,
 						networkBlocker: {
-							rules: [{ domain: 'first.example.com', category: 'marketing' }],
 							logBlockedRequests: false,
+							rules: [{ category: 'marketing', domain: 'first.example.com' }],
 						},
+						persistence: false,
 					}}
 				>
 					<div>mounted</div>
@@ -448,11 +471,11 @@ describe('v3 react: network blocker lifecycle', () => {
 			await rerender(
 				<ConsentProvider
 					options={{
-						persistence: false,
 						networkBlocker: {
-							rules: [{ domain: 'second.example.com', category: 'marketing' }],
 							logBlockedRequests: false,
+							rules: [{ category: 'marketing', domain: 'second.example.com' }],
 						},
+						persistence: false,
 					}}
 				>
 					<div>mounted</div>
@@ -477,12 +500,12 @@ describe('v3 react: network blocker lifecycle', () => {
 			await render(
 				<ConsentProvider
 					options={{
-						persistence: false,
 						networkBlocker: {
-							rules: [{ domain: 'example.com', category: 'marketing' }],
 							enabled: false,
 							logBlockedRequests: false,
+							rules: [{ category: 'marketing', domain: 'example.com' }],
 						},
+						persistence: false,
 					}}
 				>
 					<div>mounted</div>
@@ -500,16 +523,16 @@ describe('v3 react: network blocker lifecycle', () => {
 describe('v3 react: action hooks', () => {
 	test('useSetConsent returns a stable reference and mutates kernel', async () => {
 		const { Wrapper } = withProvider();
-		let firstRef: unknown;
-		let secondRef: unknown;
-		let renders = 0;
+		const references: unknown[] = [];
+		const observedMeasurements: boolean[] = [];
 
-		function Actor() {
+		const Actor = () => {
 			const setConsent = useSetConsent();
 			const measurement = useConsent('measurement');
-			renders += 1;
-			if (renders === 1) firstRef = setConsent;
-			if (renders === 2) secondRef = setConsent;
+			useEffect(() => {
+				references.push(setConsent);
+				observedMeasurements.push(measurement);
+			}, [measurement, setConsent]);
 			return (
 				<div>
 					<button
@@ -522,7 +545,7 @@ describe('v3 react: action hooks', () => {
 					<span data-testid="measurement">{String(measurement)}</span>
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -534,14 +557,15 @@ describe('v3 react: action hooks', () => {
 		await expect.element(getByTestId('measurement')).toHaveTextContent('true');
 
 		// Reference stability across re-renders caused by unrelated state.
-		expect(firstRef).toBe(secondRef);
-		expect(typeof firstRef).toBe('function');
+		expect(references[0]).toBe(references[1]);
+		expect(typeof references[0]).toBe('function');
+		expect(observedMeasurements).toEqual([false, true]);
 	});
 
 	test('useSaveConsents commits via kernel', async () => {
 		const { Wrapper } = withProvider();
 
-		function Saver() {
+		const Saver = () => {
 			const save = useSaveConsents();
 			const hasConsented = useHasConsented();
 			const marketing = useConsent('marketing');
@@ -560,7 +584,7 @@ describe('v3 react: action hooks', () => {
 					<span data-testid="marketing">{String(marketing)}</span>
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>

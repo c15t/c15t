@@ -32,7 +32,7 @@ export type ElementAttributes = {
 /**
  * Event handlers that can be attached to an element
  */
-export type ElementEvents = {
+export interface ElementEvents {
 	onClick?: EventListener;
 	onMouseEnter?: EventListener;
 	onMouseLeave?: EventListener;
@@ -44,7 +44,7 @@ export type ElementEvents = {
 	onInput?: EventListener;
 	onAnimationEnd?: EventListener;
 	onTransitionEnd?: EventListener;
-};
+}
 
 /**
  * Options for creating an element
@@ -63,7 +63,10 @@ export interface CreateElementOptions extends ElementAttributes, ElementEvents {
 /**
  * Creates an HTML element with the given options
  */
-export function createElement(options: CreateElementOptions = {}): HTMLElement {
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const createElement = function createElement(
+	options: CreateElementOptions = {}
+): HTMLElement {
 	const {
 		tag = 'div',
 		text,
@@ -104,7 +107,7 @@ export function createElement(options: CreateElementOptions = {}): HTMLElement {
 		for (const [key, value] of Object.entries(style)) {
 			if (value !== undefined) {
 				element.style.setProperty(
-					key.replace(/([A-Z])/g, '-$1').toLowerCase(),
+					key.replace(/[A-Z]/gu, (letter) => `-${letter}`).toLowerCase(),
 					String(value)
 				);
 			}
@@ -211,21 +214,21 @@ export function createElement(options: CreateElementOptions = {}): HTMLElement {
 	}
 
 	return element;
-}
+};
 
 /**
  * Shorthand for creating a div element
  */
-export function div(
+export const div = function div(
 	options: Omit<CreateElementOptions, 'tag'> = {}
 ): HTMLDivElement {
 	return createElement({ ...options, tag: 'div' }) as HTMLDivElement;
-}
+};
 
 /**
  * Shorthand for creating a button element
  */
-export function button(
+export const button = function button(
 	options: Omit<CreateElementOptions, 'tag'> = {}
 ): HTMLButtonElement {
 	return createElement({
@@ -233,34 +236,34 @@ export function button(
 		tag: 'button',
 		type: (options.type as string | undefined) ?? 'button',
 	}) as HTMLButtonElement;
-}
+};
 
 /**
  * Shorthand for creating a span element
  */
-export function span(
+export const span = function span(
 	options: Omit<CreateElementOptions, 'tag'> = {}
 ): HTMLSpanElement {
 	return createElement({ ...options, tag: 'span' }) as HTMLSpanElement;
-}
+};
 
 /**
  * Shorthand for creating a label element
  */
-export function label(
+export const label = function label(
 	options: Omit<CreateElementOptions, 'tag'> = {}
 ): HTMLLabelElement {
 	return createElement({ ...options, tag: 'label' }) as HTMLLabelElement;
-}
+};
 
 /**
  * Shorthand for creating an input element
  */
-export function input(
+export const input = function input(
 	options: Omit<CreateElementOptions, 'tag'> = {}
 ): HTMLInputElement {
 	return createElement({ ...options, tag: 'input' }) as HTMLInputElement;
-}
+};
 
 /**
  * Options for creating a select element
@@ -273,7 +276,7 @@ export interface SelectOption {
 /**
  * Shorthand for creating a select element with options
  */
-export function select(
+export const select = function select(
 	options: Omit<CreateElementOptions, 'tag'> & {
 		options?: SelectOption[];
 		selectedValue?: string;
@@ -298,12 +301,12 @@ export function select(
 	}
 
 	return selectElement;
-}
+};
 
 /**
  * Creates an SVG element
  */
-export function createSvgElement(
+export const createSvgElement = function createSvgElement(
 	svgContent: string,
 	options: {
 		className?: string;
@@ -331,21 +334,21 @@ export function createSvgElement(
 	}
 
 	return svg;
-}
+};
 
 /**
  * Removes all children from an element
  */
-export function clearElement(element: HTMLElement): void {
+export const clearElement = function clearElement(element: HTMLElement): void {
 	while (element.firstChild) {
 		element.removeChild(element.firstChild);
 	}
-}
+};
 
 /**
  * Replaces all children of an element with new children
  */
-export function replaceChildren(
+export const replaceChildren = function replaceChildren(
 	element: HTMLElement,
 	children: (HTMLElement | string | null | undefined)[]
 ): void {
@@ -360,12 +363,12 @@ export function replaceChildren(
 			element.appendChild(child);
 		}
 	}
-}
+};
 
 /**
  * Adds or removes a class based on a condition
  */
-export function toggleClass(
+export const toggleClass = function toggleClass(
 	element: HTMLElement,
 	className: string,
 	condition: boolean
@@ -375,24 +378,26 @@ export function toggleClass(
 	} else {
 		element.classList.remove(className);
 	}
-}
+};
 
 /**
  * Sets multiple classes at once
  */
-export function setClasses(
+export const setClasses = function setClasses(
 	element: HTMLElement,
 	classes: Record<string, boolean>
 ): void {
 	for (const [className, condition] of Object.entries(classes)) {
 		toggleClass(element, className, condition);
 	}
-}
+};
 
 /**
  * Creates a portal - appends element to document.body
  */
-export function createPortal(element: HTMLElement): () => void {
+export const createPortal = function createPortal(
+	element: HTMLElement
+): () => void {
 	document.body.appendChild(element);
 
 	return () => {
@@ -400,4 +405,4 @@ export function createPortal(element: HTMLElement): () => void {
 			element.parentNode.removeChild(element);
 		}
 	};
-}
+};

@@ -14,7 +14,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 class Cancelled extends Error {
@@ -29,39 +31,51 @@ export const CONFIG_FILENAME = 'c15t-backend.config.ts';
 
 /** The engines c15t supports, and what each needs to connect. */
 export const DIALECTS = {
-	postgres: {
-		label: 'PostgreSQL',
-		driver: '@effect/sql-pg',
-		envVar: 'DATABASE_URL',
-		field: 'url',
-		placeholder: 'postgres://user:password@localhost:5432/c15t',
-	},
 	mysql: {
-		label: 'MySQL',
 		driver: '@effect/sql-mysql2',
 		envVar: 'DATABASE_URL',
 		field: 'url',
+		label: 'MySQL',
 		placeholder: 'mysql://user:password@localhost:3306/c15t',
 	},
+	postgres: {
+		driver: '@effect/sql-pg',
+		envVar: 'DATABASE_URL',
+		field: 'url',
+		label: 'PostgreSQL',
+		placeholder: 'postgres://user:password@localhost:5432/c15t',
+	},
 	sqlite: {
-		label: 'SQLite',
 		driver: '@effect/sql-sqlite-node',
 		envVar: 'DATABASE_PATH',
 		field: 'filename',
+		label: 'SQLite',
 		placeholder: './c15t.db',
 	},
 } as const;
 
 export type Dialect = keyof typeof DIALECTS;
 
-export async function pathExists(filePath: string): Promise<boolean> {
+interface PromptDependencies {
+	select: typeof p.select;
+	isCancel: typeof p.isCancel;
+}
+
+const defaultPromptDependencies: PromptDependencies = {
+	isCancel: p.isCancel,
+	select: p.select,
+};
+
+export const pathExists = async function pathExists(
+	filePath: string
+): Promise<boolean> {
 	try {
 		await fs.access(filePath);
 		return true;
 	} catch {
 		return false;
 	}
-}
+};
 
 /**
  * The generated config file.
@@ -70,7 +84,7 @@ export async function pathExists(filePath: string): Promise<boolean> {
  * that lands in version control — a database URL carries credentials. The 2.x
  * templates did the same, for the same reason.
  */
-export function buildConfig(dialect: Dialect): string {
+export const buildConfig = function buildConfig(dialect: Dialect): string {
 	const { envVar, placeholder, field } = DIALECTS[dialect];
 
 	// Postgres is the only engine that needs an isolation option: MySQL scopes
@@ -92,22 +106,24 @@ export default defineConfig({
 	},
 });
 `;
-}
+};
 
-async function promptDialect(): Promise<Dialect> {
-	const selected = await p.select({
+const promptDialect = async function promptDialect(
+	dependencies: PromptDependencies = defaultPromptDependencies
+): Promise<Dialect> {
+	const selected = await dependencies.select({
 		message: 'Which database?',
 		options: (Object.keys(DIALECTS) as Dialect[]).map((dialect) => ({
-			value: dialect,
 			label: DIALECTS[dialect].label,
+			value: dialect,
 		})),
 	});
 
-	if (p.isCancel(selected)) {
+	if (dependencies.isCancel(selected)) {
 		throw new Cancelled('dialect_select');
 	}
 	return selected;
-}
+};
 
 export interface EnsuredConfig {
 	readonly path: string;
@@ -120,8 +136,9 @@ export interface EnsuredConfig {
  *
  * @returns `null` when the operator cancels.
  */
-export async function ensureBackendConfig(
-	context: CliContext
+export const ensureBackendConfig = async function ensureBackendConfig(
+	context: CliContext,
+	dependencies: PromptDependencies = defaultPromptDependencies
 ): Promise<EnsuredConfig | null> {
 	const { cwd, logger } = context;
 	const targetPath = path.join(cwd, CONFIG_FILENAME);
@@ -130,11 +147,11 @@ export async function ensureBackendConfig(
 		logger.debug(`Backend config already exists at ${targetPath}`);
 		// Nothing to install: whatever an existing config needs is already a
 		// dependency, or it would never have loaded.
-		return { path: targetPath, dependencies: [] };
+		return { dependencies: [], path: targetPath };
 	}
 
 	try {
-		const dialect = await promptDialect();
+		const dialect = await promptDialect(dependencies);
 		await fs.writeFile(targetPath, buildConfig(dialect), 'utf8');
 		logger.success(`Created ${path.relative(cwd, targetPath)}`);
 
@@ -144,7 +161,7 @@ export async function ensureBackendConfig(
 			'Environment'
 		);
 
-		return { path: targetPath, dependencies: [DIALECTS[dialect].driver] };
+		return { dependencies: [DIALECTS[dialect].driver], path: targetPath };
 	} catch (err) {
 		if (err instanceof Cancelled) {
 			return context.error.handleCancel('Operation cancelled.', {
@@ -154,4 +171,4 @@ export async function ensureBackendConfig(
 		}
 		throw err;
 	}
-}
+};

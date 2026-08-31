@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type {
 	GlobalVendorList,
 	NonIABVendor,
@@ -10,8 +7,8 @@ import type {
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
+
 import {
-	type ConsentIabSelection,
 	createDefaultIabSelection,
 	useConsentActiveUI,
 	useConsentConfig,
@@ -19,6 +16,8 @@ import {
 	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
+import type { ConsentIabSelection } from '#c15t/composables';
+
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
@@ -101,11 +100,11 @@ const iabT = computed(
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
-	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 	customize: iabT.value?.common?.saveSettings ?? 'Save settings',
+	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-function mapVendor(
+const mapVendor = function mapVendor(
 	_gvl: GlobalVendorList,
 	vendorId: string,
 	vendor: GlobalVendorList['vendors'][string],
@@ -113,42 +112,47 @@ function mapVendor(
 ): IabProcessedVendor {
 	return {
 		id: Number(vendorId),
+		isCustom: false,
 		name: vendor.name,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		isCustom: false,
 	};
-}
+};
 
-function mapCustomVendor(
+const mapCustomVendor = function mapCustomVendor(
 	vendor: NonIABVendor,
 	purposeId?: number
 ): IabProcessedVendor {
 	return {
 		id: vendor.id,
+		isCustom: true,
 		name: vendor.name,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		isCustom: true,
 	};
-}
+};
 
-function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
-	const processedPurposes: IabProcessedPurpose[] = Object.entries(gvl.purposes)
+const processGvlData = function processGvlData(
+	gvlData: GlobalVendorList,
+	customVendorList: NonIABVendor[]
+) {
+	const processedPurposes: IabProcessedPurpose[] = Object.entries(
+		gvlData.purposes
+	)
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
-			const iabVendors = Object.entries(gvl.vendors)
+			const iabVendors = Object.entries(gvlData.vendors)
 				.filter(
 					([, vendor]) =>
 						vendor.purposes?.includes(purposeId) ||
 						vendor.legIntPurposes?.includes(purposeId)
 				)
 				.map(([vendorId, vendor]) =>
-					mapVendor(gvl, vendorId, vendor, purposeId)
+					mapVendor(gvlData, vendorId, vendor, purposeId)
 				);
-			const customForPurpose = customVendors
+			const customForPurpose = customVendorList
 				.filter(
 					(vendor) =>
 						vendor.purposes?.includes(purposeId) ||
@@ -157,52 +161,52 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 				.map((vendor) => mapCustomVendor(vendor, purposeId));
 
 			return {
-				id: purposeId,
-				name: purpose.name,
 				description: purpose.description,
+				id: purposeId,
 				illustrations: purpose.illustrations ?? [],
+				name: purpose.name,
 				vendors: [...iabVendors, ...customForPurpose],
 			};
 		})
 		.filter((purpose) => purpose.vendors.length > 0);
 
 	const specialPurposes: IabProcessedPurpose[] = Object.entries(
-		gvl.specialPurposes ?? {}
+		gvlData.specialPurposes ?? {}
 	)
 		.map(([id, purpose]) => ({
-			id: Number(id),
-			name: purpose.name,
 			description: purpose.description,
+			id: Number(id),
 			illustrations: purpose.illustrations ?? [],
-			vendors: Object.entries(gvl.vendors)
+			name: purpose.name,
+			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvl, vendorId, vendor)),
+				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
 		}))
 		.filter((purpose) => purpose.vendors.length > 0);
 
 	const specialFeatures: IabProcessedPurpose[] = Object.entries(
-		gvl.specialFeatures ?? {}
+		gvlData.specialFeatures ?? {}
 	)
 		.map(([id, feature]) => ({
-			id: Number(id),
-			name: feature.name,
 			description: feature.description,
+			id: Number(id),
 			illustrations: feature.illustrations ?? [],
-			vendors: Object.entries(gvl.vendors)
+			name: feature.name,
+			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvl, vendorId, vendor)),
+				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
 		}))
 		.filter((feature) => feature.vendors.length > 0);
 
-	const features: IabProcessedPurpose[] = Object.entries(gvl.features ?? {})
+	const features: IabProcessedPurpose[] = Object.entries(gvlData.features ?? {})
 		.map(([id, feature]) => ({
-			id: Number(id),
-			name: feature.name,
 			description: feature.description,
+			id: Number(id),
 			illustrations: feature.illustrations ?? [],
-			vendors: Object.entries(gvl.vendors)
+			name: feature.name,
+			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.features?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvl, vendorId, vendor)),
+				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
 		}))
 		.filter((feature) => feature.vendors.length > 0);
 
@@ -214,23 +218,23 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 	);
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 
-	const stackScores: Array<{
+	const stackScores: {
 		stackId: number;
 		stack: GlobalVendorList['stacks'][string];
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
-	for (const [stackIdStr, stack] of Object.entries(gvl.stacks ?? {})) {
+	for (const [stackIdStr, stack] of Object.entries(gvlData.stacks ?? {})) {
 		const coveredIds = stack.purposes.filter((purposeId) =>
 			otherPurposeIds.has(purposeId)
 		);
 		if (coveredIds.length >= 2) {
 			stackScores.push({
-				stackId: Number(stackIdStr),
-				stack,
 				coveredPurposeIds: coveredIds,
 				score: coveredIds.length,
+				stack,
+				stackId: Number(stackIdStr),
 			});
 		}
 	}
@@ -246,9 +250,9 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 		);
 		if (unassigned.length >= 2) {
 			stacks.push({
+				description: stack.description,
 				id: stackId,
 				name: stack.name,
-				description: stack.description,
 				purposes: otherPurposes.filter((purpose) =>
 					unassigned.includes(purpose.id)
 				),
@@ -267,22 +271,22 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 		: uncoveredPurposes;
 
 	return {
-		purposes: processedPurposes,
-		specialPurposes,
-		specialFeatures,
 		features,
+		purposes: processedPurposes,
+		specialFeatures,
+		specialPurposes,
 		stacks,
 		standalonePurposes,
 	};
-}
+};
 
 const processed = computed(() => {
 	if (!gvl.value) {
 		return {
-			purposes: [] as IabProcessedPurpose[],
-			specialPurposes: [] as IabProcessedPurpose[],
-			specialFeatures: [] as IabProcessedPurpose[],
 			features: [] as IabProcessedPurpose[],
+			purposes: [] as IabProcessedPurpose[],
+			specialFeatures: [] as IabProcessedPurpose[],
+			specialPurposes: [] as IabProcessedPurpose[],
 			stacks: [] as IabProcessedStack[],
 			standalonePurposes: [] as IabProcessedPurpose[],
 		};
@@ -321,37 +325,49 @@ const essentialPartnerCount = computed(
 		]).size
 );
 
-function setPurposeConsent(purposeId: number, value: boolean) {
+const setPurposeConsent = function setPurposeConsent(
+	purposeId: number,
+	value: boolean
+) {
 	draftIab.value.purposeConsents = {
 		...draftIab.value.purposeConsents,
 		[purposeId]: value,
 	};
-}
+};
 
-function setPurposeLegitimateInterest(purposeId: number, value: boolean) {
+const setPurposeLegitimateInterest = function setPurposeLegitimateInterest(
+	purposeId: number,
+	value: boolean
+) {
 	draftIab.value.purposeLegitimateInterests = {
 		...draftIab.value.purposeLegitimateInterests,
 		[purposeId]: value,
 	};
-}
+};
 
-function setVendorConsent(vendorId: IabVendorId, value: boolean) {
+const setVendorConsent = function setVendorConsent(
+	vendorId: IabVendorId,
+	value: boolean
+) {
 	draftIab.value.vendorConsents = {
 		...draftIab.value.vendorConsents,
 		[String(vendorId)]: value,
 	};
-}
+};
 
-function setSpecialFeatureOptIn(featureId: number, value: boolean) {
+const setSpecialFeatureOptIn = function setSpecialFeatureOptIn(
+	featureId: number,
+	value: boolean
+) {
 	draftIab.value.specialFeatureOptIns = {
 		...draftIab.value.specialFeatureOptIns,
 		[featureId]: value,
 	};
-}
+};
 
-function syncDraftFromSelection() {
+const syncDraftFromSelection = function syncDraftFromSelection() {
 	draftIab.value = structuredClone(iabSelection.value);
-}
+};
 
 watch(
 	isOpen,
@@ -376,24 +392,24 @@ watch(
 	}
 );
 
-function handleTabChange(tab: 'purposes' | 'vendors') {
+const handleTabChange = function handleTabChange(tab: 'purposes' | 'vendors') {
 	activeTab.value = tab;
 	draftIab.value.preferenceCenterTab = tab;
 	iabSelection.value.preferenceCenterTab = tab;
-}
+};
 
-function closeDialog() {
+const closeDialog = function closeDialog() {
 	activeUI.value = null;
-}
+};
 
-function onDialogKeydown(event: KeyboardEvent) {
+const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 	if (isDialogDismissKey(event.key)) {
 		event.preventDefault();
 		closeDialog();
 	}
-}
+};
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		save(
 			{
@@ -411,12 +427,12 @@ function onAction(action: PolicyUiAction) {
 	if (action === 'reject') {
 		save('none', activeTab.value);
 	}
-}
+};
 
-function handleVendorClick(vendorId: IabVendorId) {
+const handleVendorClick = function handleVendorClick(vendorId: IabVendorId) {
 	selectedVendorId.value = vendorId;
 	handleTabChange('vendors');
-}
+};
 
 const scrollLock = computed(
 	() => initValue.value?.policy?.ui?.dialog?.scrollLock ?? true
@@ -558,7 +574,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										:class="dialogStyles.tabButton"
 										role="tab"
 										:aria-selected="activeTab === 'purposes'"
-										:data-state="activeTab === 'purposes' ? 'active' : 'inactive'"
+										:data-state="
+											activeTab === 'purposes' ? 'active' : 'inactive'
+										"
 										@click="handleTabChange('purposes')"
 									>
 										{{ iabT?.preferenceCenter?.tabs?.purposes }}
@@ -570,7 +588,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										:class="dialogStyles.tabButton"
 										role="tab"
 										:aria-selected="activeTab === 'vendors'"
-										:data-state="activeTab === 'vendors' ? 'active' : 'inactive'"
+										:data-state="
+											activeTab === 'vendors' ? 'active' : 'inactive'
+										"
 										@click="handleTabChange('vendors')"
 									>
 										{{ iabT?.preferenceCenter?.tabs?.vendors }}
@@ -610,19 +630,25 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											v-for="purpose in processed.standalonePurposes"
 											:key="purpose.id"
 											:purpose="purpose"
-											:is-enabled="draftIab.purposeConsents[purpose.id] ?? false"
+											:is-enabled="
+												draftIab.purposeConsents[purpose.id] ?? false
+											"
 											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
-											:purpose-legitimate-interests="draftIab.purposeLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
+											:purpose-legitimate-interests="
+												draftIab.purposeLegitimateInterests
+											"
 											@toggle="(value) => setPurposeConsent(purpose.id, value)"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@vendor-click="handleVendorClick"
 											@purpose-legitimate-interest-toggle="
-										(value) =>
-											setPurposeLegitimateInterest(purpose.id, value)
-									"
+												(value) =>
+													setPurposeLegitimateInterest(purpose.id, value)
+											"
 										/>
 
 										<IabStackItem
@@ -631,45 +657,54 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											:stack="stack"
 											:consents="draftIab.purposeConsents"
 											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
-											:purpose-legitimate-interests="draftIab.purposeLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
+											:purpose-legitimate-interests="
+												draftIab.purposeLegitimateInterests
+											"
 											@toggle="
-										(purposeId, value) => setPurposeConsent(purposeId, value)
-									"
+												(purposeId, value) =>
+													setPurposeConsent(purposeId, value)
+											"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@vendor-click="handleVendorClick"
 											@purpose-legitimate-interest-toggle="
-										(purposeId, value) =>
-											setPurposeLegitimateInterest(purposeId, value)
-									"
+												(purposeId, value) =>
+													setPurposeLegitimateInterest(purposeId, value)
+											"
 										/>
 
 										<IabPurposeItem
 											v-for="feature in processed.specialFeatures"
 											:key="`feature-${feature.id}`"
 											:purpose="feature"
-											:is-enabled="draftIab.specialFeatureOptIns[feature.id] ?? false"
+											:is-enabled="
+												draftIab.specialFeatureOptIns[feature.id] ?? false
+											"
 											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
 											@toggle="
-										(value) => setSpecialFeatureOptIn(feature.id, value)
-									"
+												(value) => setSpecialFeatureOptIn(feature.id, value)
+											"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@vendor-click="handleVendorClick"
 										/>
 
 										<div
 											v-if="
-										processed.specialPurposes.length > 0 ||
-										processed.features.length > 0
-									"
+												processed.specialPurposes.length > 0 ||
+												processed.features.length > 0
+											"
 											v-bind="
-													config.components?.['iab-dialog']?.specialPurposes
-												"
+												config.components?.['iab-dialog']?.specialPurposes
+											"
 											:class="dialogStyles.specialPurposesSection"
 										>
 											<div :class="dialogStyles.specialPurposesHeader">
@@ -678,8 +713,8 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													:class="dialogStyles.purposeTrigger"
 													:aria-expanded="specialPurposesExpanded"
 													@click="
-												specialPurposesExpanded = !specialPurposesExpanded
-											"
+														specialPurposesExpanded = !specialPurposesExpanded
+													"
 												>
 													<svg
 														aria-hidden="true"
@@ -700,7 +735,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													</svg>
 													<div :class="dialogStyles.purposeInfo">
 														<h3 :class="dialogStyles.specialPurposesTitle">
-															{{ iabT?.preferenceCenter?.specialPurposes?.title }}
+															{{
+																iabT?.preferenceCenter?.specialPurposes?.title
+															}}
 															<svg
 																aria-hidden="true"
 																:class="dialogStyles.lockIcon"
@@ -766,8 +803,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													is-locked
 													:vendor-consents="draftIab.vendorConsents"
 													@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
+														(vendorId, value) =>
+															setVendorConsent(vendorId, value)
+													"
 													@vendor-click="handleVendorClick"
 												/>
 												<IabPurposeItem
@@ -778,8 +816,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													is-locked
 													:vendor-consents="draftIab.vendorConsents"
 													@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
+														(vendorId, value) =>
+															setVendorConsent(vendorId, value)
+													"
 													@vendor-click="handleVendorClick"
 												/>
 											</div>
@@ -807,10 +846,12 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											:vendor-consents="draftIab.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
 											:custom-vendors="customVendors"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@clear-selection="selectedVendorId = null"
 										/>
 									</div>
@@ -828,10 +869,14 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								:labels="labels"
 								secondary-mode="stroke"
 								:disabled="isLoading"
-								:root-attrs="config.components?.['iab-dialog']?.actions as
-										object | undefined"
-								:group-attrs="config.components?.['iab-dialog']?.actionGroup as
-										object | undefined"
+								:root-attrs="
+									config.components?.['iab-dialog']?.actions as
+										object | undefined
+								"
+								:group-attrs="
+									config.components?.['iab-dialog']?.actionGroup as
+										object | undefined
+								"
 								@action="onAction"
 							/>
 						</div>

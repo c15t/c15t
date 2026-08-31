@@ -3,13 +3,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	grantedMarketingConsents,
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import { microsoftUet } from './vendors/ads-and-pixels/microsoft-uet';
 
 describe('microsoftUet contract', () => {
@@ -50,9 +51,9 @@ describe('microsoftUet contract', () => {
 
 		expect(constructorArgs).toHaveLength(1);
 		expect(constructorArgs[0]).toMatchObject({
-			ti: 'UET-CONTRACT',
 			enableAutoSpaTracking: true,
 			q: ['consent', 'default', { ad_storage: 'granted' }],
+			ti: 'UET-CONTRACT',
 		});
 		expect(pushCalls).toEqual([['pageLoad']]);
 	});

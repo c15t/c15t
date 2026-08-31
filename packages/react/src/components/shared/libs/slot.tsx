@@ -1,14 +1,13 @@
 import {
-	cloneElement,
-	forwardRef,
+	createElement,
+	forwardRef as createForwardRef,
 	isValidElement,
-	type ReactElement,
-	type ReactNode,
-	type Ref,
-	type RefCallback,
 } from 'react';
+import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
 
-function composeRefs<T>(...refs: Array<Ref<T> | undefined>): RefCallback<T> {
+const composeRefs = function composeRefs<T>(
+	...refs: (Ref<T> | undefined)[]
+): RefCallback<T> {
 	return (node) => {
 		for (const ref of refs) {
 			if (typeof ref === 'function') {
@@ -21,9 +20,9 @@ function composeRefs<T>(...refs: Array<Ref<T> | undefined>): RefCallback<T> {
 			}
 		}
 	};
-}
+};
 
-function mergeEventHandlers(
+const mergeEventHandlers = function mergeEventHandlers(
 	slotHandler: unknown,
 	childHandler: unknown
 ): unknown {
@@ -39,13 +38,13 @@ function mergeEventHandlers(
 		(childHandler as (event: Event) => void)(event);
 		(slotHandler as (event: Event) => void)(event);
 	};
-}
+};
 
 type SlotProps = Record<string, unknown> & {
 	children: ReactNode;
 };
 
-export const Slot = forwardRef<HTMLElement, SlotProps>(
+export const Slot = createForwardRef<HTMLElement, SlotProps>(
 	({ children, ...slotProps }, forwardedRef) => {
 		if (!isValidElement(children)) {
 			return null;
@@ -60,22 +59,25 @@ export const Slot = forwardRef<HTMLElement, SlotProps>(
 			className: [slotProps.className, childProps.className]
 				.filter(Boolean)
 				.join(' '),
+			ref: composeRefs(forwardedRef, childRef),
 			style: {
 				...(slotProps.style as Record<string, unknown> | undefined),
 				...(childProps.style as Record<string, unknown> | undefined),
 			},
-			ref: composeRefs(forwardedRef, childRef),
 		};
 
 		for (const [key, value] of Object.entries(slotProps)) {
-			if (!/^on[A-Z]/.test(key)) {
+			if (!/^on[A-Z]/u.test(key)) {
 				continue;
 			}
 
 			mergedProps[key] = mergeEventHandlers(value, childProps[key]);
 		}
 
-		return cloneElement(child, mergedProps);
+		return createElement(child.type, {
+			key: child.key ?? undefined,
+			...mergedProps,
+		});
 	}
 );
 

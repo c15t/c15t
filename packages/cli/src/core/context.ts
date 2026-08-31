@@ -7,13 +7,16 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
 import { loadConfig } from 'c12';
+
 import { detectFramework, detectProjectRoot } from '../detection/framework';
 import { detectPackageManager } from '../detection/package-manager';
 import type { CliContext, PackageInfo, ParsedArgs } from '../types';
 import { CliError, createErrorHandlers } from './errors';
-import { createCliLogger, LOG_LEVELS, type LogLevel } from './logger';
+import { createCliLogger, LOG_LEVELS } from './logger';
+import type { LogLevel } from './logger';
 import { createTelemetry, TelemetryEventName } from './telemetry';
 
 // --- Context Options ---
@@ -31,18 +34,18 @@ export interface CreateContextOptions {
 /**
  * Get the CLI package.json info
  */
-function getCliPackageInfo(): PackageInfo {
+const getCliPackageInfo = function getCliPackageInfo(): PackageInfo {
 	// This is injected during build or read from package.json
 	return {
 		name: '@c15t/cli',
 		version: '2.0.0',
 	};
-}
+};
 
 /**
  * Get the project's package.json info
  */
-async function getProjectPackageInfo(
+const _getProjectPackageInfo = async function _getProjectPackageInfo(
 	projectRoot: string
 ): Promise<PackageInfo> {
 	try {
@@ -52,54 +55,54 @@ async function getProjectPackageInfo(
 	} catch {
 		return { name: 'unknown', version: '0.0.0' };
 	}
-}
+};
 
 // --- Config Loading ---
 
 /**
  * Load c15t configuration from the project
  */
-async function loadProjectConfig(
+const loadProjectConfig = async function loadProjectConfig(
 	projectRoot: string,
 	configPath?: string
 ): Promise<unknown | null> {
 	try {
 		const { config } = await loadConfig({
-			name: 'c15t',
-			cwd: projectRoot,
 			configFile: configPath,
+			cwd: projectRoot,
+			name: 'c15t',
 		});
 		return config;
 	} catch {
 		return null;
 	}
-}
+};
 
 // --- Path Alias Resolution ---
 
 /**
  * Get path aliases from tsconfig.json or jsconfig.json
  */
-function getPathAliases(
+const getPathAliases = function getPathAliases(
 	projectRoot: string,
 	configPath?: string
 ): Record<string, string> | null {
 	try {
-		const configFile = configPath || path.join(projectRoot, 'tsconfig.json');
+		const _configFile = configPath || path.join(projectRoot, 'tsconfig.json');
 		// This would need to read and parse the tsconfig
 		// For now, return null - can be implemented later
 		return null;
 	} catch {
 		return null;
 	}
-}
+};
 
 // --- Context Creation ---
 
 /**
  * Create the CLI context
  */
-export async function createCliContext(
+export const createCliContext = async function createCliContext(
 	options: CreateContextOptions
 ): Promise<CliContext> {
 	const { args, cwd = process.cwd(), skipDetection = false } = options;
@@ -118,8 +121,8 @@ export async function createCliContext(
 
 	// Create telemetry
 	const telemetry = createTelemetry({
-		disabled: parsedFlags['no-telemetry'] === true,
 		debug: parsedFlags['telemetry-debug'] === true,
+		disabled: parsedFlags['no-telemetry'] === true,
 		logger,
 	});
 
@@ -137,8 +140,8 @@ export async function createCliContext(
 		? {
 				framework: null,
 				frameworkVersion: null,
-				pkg: 'c15t' as const,
 				hasReact: false,
+				pkg: 'c15t' as const,
 				reactVersion: null,
 				tailwindVersion: null,
 			}
@@ -147,11 +150,11 @@ export async function createCliContext(
 	// Detect package manager
 	const packageManager = skipDetection
 		? {
-				name: 'npm' as const,
-				installCommand: 'npm install',
 				addCommand: 'npm install',
-				runCommand: 'npm run',
 				execCommand: 'npx',
+				installCommand: 'npm install',
+				name: 'npm' as const,
+				runCommand: 'npm run',
 			}
 		: await detectPackageManager(projectRoot, logger);
 
@@ -164,20 +167,14 @@ export async function createCliContext(
 
 	// Create the context
 	const context: CliContext = {
-		logger,
-		flags: parsedFlags,
-		commandName,
 		commandArgs,
-		cwd,
-		projectRoot,
-		framework,
-		packageManager,
-		telemetry,
-		error: errorHandlers,
+		commandName,
 
 		// Config management
 		config: {
-			loadConfig: async () => {
+			getPathAliases: (configPath?: string) =>
+				getPathAliases(projectRoot, configPath),
+			loadConfig: () => {
 				const configPath =
 					typeof parsedFlags.config === 'string'
 						? parsedFlags.config
@@ -191,30 +188,6 @@ export async function createCliContext(
 				}
 				return config;
 			},
-			getPathAliases: (configPath?: string) =>
-				getPathAliases(projectRoot, configPath),
-		},
-
-		// File system utilities
-		fs: {
-			getPackageInfo: () => getCliPackageInfo(),
-			exists: async (filePath: string) => {
-				try {
-					await fs.access(filePath);
-					return true;
-				} catch {
-					return false;
-				}
-			},
-			read: async (filePath: string) => {
-				return fs.readFile(filePath, 'utf-8');
-			},
-			write: async (filePath: string, content: string) => {
-				await fs.writeFile(filePath, content, 'utf-8');
-			},
-			mkdir: async (dirPath: string) => {
-				await fs.mkdir(dirPath, { recursive: true });
-			},
 		},
 
 		// User interaction
@@ -225,8 +198,8 @@ export async function createCliContext(
 			}
 
 			const result = await p.confirm({
-				message,
 				initialValue,
+				message,
 			});
 
 			if (p.isCancel(result)) {
@@ -235,15 +208,44 @@ export async function createCliContext(
 
 			return result as boolean;
 		},
+
+		cwd,
+		error: errorHandlers,
+		flags: parsedFlags,
+		framework,
+
+		// File system utilities
+		fs: {
+			exists: async (filePath: string) => {
+				try {
+					await fs.access(filePath);
+					return true;
+				} catch {
+					return false;
+				}
+			},
+			getPackageInfo: () => getCliPackageInfo(),
+			mkdir: async (dirPath: string) => {
+				await fs.mkdir(dirPath, { recursive: true });
+			},
+			read: (filePath: string) => fs.readFile(filePath, 'utf-8'),
+			write: async (filePath: string, content: string) => {
+				await fs.writeFile(filePath, content, 'utf-8');
+			},
+		},
+		logger,
+		packageManager,
+		projectRoot,
+		telemetry,
 	};
 
 	return context;
-}
+};
 
 /**
  * Create a minimal context for testing
  */
-export function createTestContext(
+export const createTestContext = function createTestContext(
 	overrides: Partial<CliContext> = {}
 ): CliContext {
 	const logger = createCliLogger('error');
@@ -251,44 +253,48 @@ export function createTestContext(
 	const errorHandlers = createErrorHandlers(logger, telemetry);
 
 	return {
-		logger,
-		flags: {},
-		commandName: undefined,
 		commandArgs: [],
+		commandName: undefined,
+		config: {
+			getPathAliases: () => null,
+			loadConfig: () => Promise.resolve(null),
+			requireConfig: () => {
+				throw new CliError('CONFIG_NOT_FOUND');
+			},
+		},
+		confirm: () => Promise.resolve(true),
 		cwd: process.cwd(),
-		projectRoot: process.cwd(),
+		error: errorHandlers,
+		flags: {},
 		framework: {
 			framework: null,
 			frameworkVersion: null,
-			pkg: 'c15t',
 			hasReact: false,
+			pkg: 'c15t',
 			reactVersion: null,
 			tailwindVersion: null,
 		},
-		packageManager: {
-			name: 'npm',
-			installCommand: 'npm install',
-			addCommand: 'npm install',
-			runCommand: 'npm run',
-			execCommand: 'npx',
-		},
-		telemetry,
-		error: errorHandlers,
-		config: {
-			loadConfig: async () => null,
-			requireConfig: async () => {
-				throw new CliError('CONFIG_NOT_FOUND');
-			},
-			getPathAliases: () => null,
-		},
 		fs: {
+			exists: () => Promise.resolve(false),
 			getPackageInfo: () => ({ name: 'test', version: '0.0.0' }),
-			exists: async () => false,
-			read: async () => '',
-			write: async () => {},
-			mkdir: async () => {},
+			mkdir: async () => {
+				/* empty */
+			},
+			read: () => Promise.resolve(''),
+			write: async () => {
+				/* empty */
+			},
 		},
-		confirm: async () => true,
+		logger,
+		packageManager: {
+			addCommand: 'npm install',
+			execCommand: 'npx',
+			installCommand: 'npm install',
+			name: 'npm',
+			runCommand: 'npm run',
+		},
+		projectRoot: process.cwd(),
+		telemetry,
 		...overrides,
 	};
-}
+};

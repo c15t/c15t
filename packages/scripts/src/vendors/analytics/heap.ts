@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import {
 	joinUrlPath,
 	resolveScriptUrl,
@@ -52,7 +54,9 @@ export const HEAP_QUEUE_METHODS = [
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-type JsonRecord = { [key: string]: JsonValue };
+interface JsonRecord {
+	[key: string]: JsonValue;
+}
 
 export interface HeapReadyCallback {
 	/** Heap method name captured by the pre-load snippet stub. */
@@ -261,49 +265,53 @@ declare global {
  */
 export const heapManifest = {
 	...vendorManifestContract,
-	vendor: 'heap',
 	category: 'measurement',
 	install: [
 		{
-			type: 'setGlobal',
+			ifUndefined: true,
+
 			name: 'heapReadyCb',
-			value: [],
-			ifUndefined: true,
-		},
-		{
 			type: 'setGlobal',
-			name: 'heap',
 			value: [],
+		},
+		{
 			ifUndefined: true,
+
+			name: 'heap',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['heap', 'envId'],
+			type: 'setGlobalPath',
 			value: '{{envId}}',
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['heap', 'appid'],
+			type: 'setGlobalPath',
 			value: '{{envId}}',
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['heap', 'clientConfig'],
+			type: 'setGlobalPath',
 			value: '{{clientConfig}}',
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'heap',
+			methods: [...HEAP_QUEUE_METHODS],
+
 			queue: { global: 'heapReadyCb' },
 			queueFormat: 'callback',
-			methods: [...HEAP_QUEUE_METHODS],
+			target: 'heap',
+			type: 'defineQueueMethods',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'heap',
 } as const satisfies VendorManifest;
 
 export interface HeapOptions {
@@ -331,7 +339,7 @@ export interface HeapOptions {
 	scriptUrl?: string;
 }
 
-function validateEnvId(envId: unknown): string {
+const validateEnvId = function validateEnvId(envId: unknown): string {
 	const normalized = typeof envId === 'string' ? envId.trim() : '';
 
 	if (normalized.length === 0) {
@@ -339,18 +347,23 @@ function validateEnvId(envId: unknown): string {
 	}
 
 	return normalized;
-}
+};
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
+const isPlainRecord = function isPlainRecord(
+	value: unknown
+): value is Record<string, unknown> {
 	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
 		return false;
 	}
 
 	const prototype = Object.getPrototypeOf(value);
 	return prototype === Object.prototype || prototype === null;
-}
+};
 
-function toJsonValue(value: unknown, path: string): JsonValue {
+const toJsonValue = function toJsonValue(
+	value: unknown,
+	path: string
+): JsonValue {
 	if (value === null) {
 		return null;
 	}
@@ -386,9 +399,9 @@ function toJsonValue(value: unknown, path: string): JsonValue {
 	throw new TypeError(
 		`heap: clientConfig${path ? `.${path}` : ''} must be JSON-serializable`
 	);
-}
+};
 
-function normalizeClientConfig(
+const normalizeClientConfig = function normalizeClientConfig(
 	clientConfig: Record<string, unknown> | undefined
 ): JsonRecord {
 	const config = clientConfig ?? {};
@@ -402,9 +415,9 @@ function normalizeClientConfig(
 		...normalized,
 		shouldFetchServerConfig: false,
 	};
-}
+};
 
-function resolveHeapScriptUrl(
+const resolveHeapScriptUrl = function resolveHeapScriptUrl(
 	envId: string,
 	scriptUrl: string | undefined
 ): string {
@@ -412,7 +425,7 @@ function resolveHeapScriptUrl(
 		trimToUndefined(scriptUrl),
 		joinUrlPath(DEFAULT_HEAP_CONFIG_BASE_URL, `${envId}/heap_config.js`)
 	);
-}
+};
 
 /**
  * Creates a Heap web analytics script.
@@ -441,12 +454,16 @@ function resolveHeapScriptUrl(
  * });
  * ```
  */
-export function heap({ envId, clientConfig, scriptUrl }: HeapOptions): Script {
+export const heap = function heap({
+	envId,
+	clientConfig,
+	scriptUrl,
+}: HeapOptions): Script {
 	const normalizedEnvId = validateEnvId(envId);
 
 	return resolveManifest(heapManifest, {
-		envId: normalizedEnvId,
 		clientConfig: normalizeClientConfig(clientConfig),
+		envId: normalizedEnvId,
 		scriptUrl: resolveHeapScriptUrl(normalizedEnvId, scriptUrl),
 	});
-}
+};

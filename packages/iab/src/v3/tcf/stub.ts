@@ -21,47 +21,53 @@ let locatorIframe: HTMLIFrameElement | null = null;
 /**
  * Creates the initial stub ping response.
  */
-function createStubPingData(): PingData {
+const createStubPingData = function createStubPingData(): PingData {
 	return {
-		gdprApplies: undefined,
+		apiVersion: '2.3',
+		cmpId: 0,
 		cmpLoaded: false,
 		cmpStatus: 'stub',
-		displayStatus: 'hidden',
-		apiVersion: '2.3',
 		cmpVersion: version,
-		cmpId: 0,
+		displayStatus: 'hidden',
+		gdprApplies: undefined,
 		gvlVersion: 0,
-		tcfPolicyVersion: 5, // TCF 2.3
+		// TCF 2.3
+		tcfPolicyVersion: 5,
 	};
-}
+};
 
 /**
  * The stub implementation of __tcfapi.
  *
  * Queues all calls except 'ping' for processing when the real CMP loads.
  */
-function createStubApi(): TCFApi {
-	const queue: Array<Parameters<TCFApi>> = [];
+const createStubApi = function createStubApi(): TCFApi {
+	const queue: Parameters<TCFApi>[] = [];
 
 	const stub = ((
 		command: string,
-		version: number,
-		callback: TCFApiCallback<unknown>,
+		apiVersion: number,
+		handler: TCFApiCallback<unknown>,
 		parameter?: unknown
 	) => {
 		if (command === 'ping') {
 			// Ping can be handled immediately
-			(callback as TCFApiCallback<PingData>)(createStubPingData(), true);
+			(handler as TCFApiCallback<PingData>)(createStubPingData(), true);
 		} else {
 			// Queue all other commands
-			queue.push([command, version, callback, parameter] as Parameters<TCFApi>);
+			queue.push([
+				command,
+				apiVersion,
+				handler,
+				parameter,
+			] as Parameters<TCFApi>);
 		}
 	}) as TCFApi;
 
 	stub.queue = queue;
 
 	return stub;
-}
+};
 
 /**
  * Creates the __tcfapiLocator iframe for cross-frame communication.
@@ -69,33 +75,36 @@ function createStubApi(): TCFApi {
  * This allows child iframes (e.g., ad iframes) to locate the CMP
  * by looking for this named iframe in parent frames.
  */
-function createLocatorIframe(): HTMLIFrameElement | null {
-	if (typeof document === 'undefined') {
-		return null;
-	}
+const createLocatorIframe =
+	function createLocatorIframe(): HTMLIFrameElement | null {
+		if (typeof document === 'undefined') {
+			return null;
+		}
 
-	// Check if locator already exists
-	if (document.querySelector('iframe[name="__tcfapiLocator"]')) {
-		return null;
-	}
+		// Check if locator already exists
+		if (document.querySelector('iframe[name="__tcfapiLocator"]')) {
+			return null;
+		}
 
-	const iframe = document.createElement('iframe');
-	iframe.name = '__tcfapiLocator';
-	iframe.style.display = 'none';
-	iframe.setAttribute('aria-hidden', 'true');
-	iframe.tabIndex = -1;
+		const iframe = document.createElement('iframe');
+		iframe.name = '__tcfapiLocator';
+		iframe.style.display = 'none';
+		iframe.setAttribute('aria-hidden', 'true');
+		iframe.tabIndex = -1;
 
-	// Add to body or document element
-	const target = document.body ?? document.documentElement;
-	target.appendChild(iframe);
+		// Add to body or document element
+		const target = document.body ?? document.documentElement;
+		target.appendChild(iframe);
 
-	return iframe;
-}
+		return iframe;
+	};
 
 /**
  * Message handler for cross-frame __tcfapi communication.
  */
-function handlePostMessage(event: MessageEvent): void {
+const handlePostMessage = function handlePostMessage(
+	event: MessageEvent
+): void {
 	if (typeof window === 'undefined' || !window.__tcfapi) {
 		return;
 	}
@@ -123,7 +132,7 @@ function handlePostMessage(event: MessageEvent): void {
 		window.__tcfapi as (
 			command: string,
 			version: number,
-			callback: TCFApiCallback<unknown>,
+			handler: TCFApiCallback<unknown>,
 			parameter?: unknown
 		) => void
 	)(
@@ -132,9 +141,9 @@ function handlePostMessage(event: MessageEvent): void {
 		(returnValue: unknown, success: boolean) => {
 			const response = {
 				__tcfapiReturn: {
+					callId: call.callId,
 					returnValue,
 					success,
-					callId: call.callId,
 				},
 			};
 
@@ -145,7 +154,7 @@ function handlePostMessage(event: MessageEvent): void {
 		},
 		call.parameter
 	);
-}
+};
 
 /**
  * Initializes the IAB TCF stub.
@@ -169,7 +178,7 @@ function handlePostMessage(event: MessageEvent): void {
  *
  * @public
  */
-export function initializeIABStub(): void {
+export const initializeIABStub = function initializeIABStub(): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -191,7 +200,7 @@ export function initializeIABStub(): void {
 	window.addEventListener('message', handlePostMessage);
 
 	stubInitialized = true;
-}
+};
 
 /**
  * Gets the queued calls from the stub.
@@ -200,24 +209,24 @@ export function initializeIABStub(): void {
  *
  * @public
  */
-export function getStubQueue(): Array<Parameters<TCFApi>> {
+export const getStubQueue = function getStubQueue(): Parameters<TCFApi>[] {
 	if (typeof window === 'undefined' || !window.__tcfapi) {
 		return [];
 	}
 
 	return window.__tcfapi.queue ?? [];
-}
+};
 
 /**
  * Clears the stub queue after processing.
  *
  * @public
  */
-export function clearStubQueue(): void {
+export const clearStubQueue = function clearStubQueue(): void {
 	if (typeof window !== 'undefined' && window.__tcfapi?.queue) {
 		window.__tcfapi.queue = [];
 	}
-}
+};
 
 /**
  * Checks if the stub is currently active (vs the real CMP).
@@ -226,21 +235,21 @@ export function clearStubQueue(): void {
  *
  * @public
  */
-export function isStubActive(): boolean {
+export const isStubActive = function isStubActive(): boolean {
 	if (typeof window === 'undefined' || !window.__tcfapi) {
 		return false;
 	}
 
 	// The stub has a queue property
 	return Array.isArray(window.__tcfapi.queue);
-}
+};
 
 /**
  * Destroys the IAB stub and cleans up.
  *
  * @public
  */
-export function destroyIABStub(): void {
+export const destroyIABStub = function destroyIABStub(): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -256,7 +265,7 @@ export function destroyIABStub(): void {
 
 	// Don't remove __tcfapi as the real CMP might be using it
 	stubInitialized = false;
-}
+};
 
 /**
  * Checks if the stub has been initialized.
@@ -265,6 +274,6 @@ export function destroyIABStub(): void {
  *
  * @public
  */
-export function isStubInitialized(): boolean {
+export const isStubInitialized = function isStubInitialized(): boolean {
 	return stubInitialized;
-}
+};

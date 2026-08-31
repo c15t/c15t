@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { IABConsentDialog } from '../../../packages/react/src/v3/iab';
 import { StorybookV3IABProvider } from './storybook-v3-fixtures';
 

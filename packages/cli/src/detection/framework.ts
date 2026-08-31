@@ -6,13 +6,16 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { type AvailablePackage, FRAMEWORK_KEYS, PACKAGES } from '../constants';
+
+import { FRAMEWORK_KEYS, PACKAGES } from '../constants';
+import type { AvailablePackage } from '../constants';
 import type { CliLogger, FrameworkDetectionResult } from '../types';
 
 /**
  * Detect the framework and React usage in the project
  */
-export async function detectFramework(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const detectFramework = async function detectFramework(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<FrameworkDetectionResult> {
@@ -79,8 +82,8 @@ export async function detectFramework(
 		return {
 			framework,
 			frameworkVersion,
-			pkg,
 			hasReact,
+			pkg,
 			reactVersion,
 			tailwindVersion,
 		};
@@ -91,18 +94,18 @@ export async function detectFramework(
 		return {
 			framework: null,
 			frameworkVersion: null,
-			pkg: PACKAGES.CORE,
 			hasReact: false,
+			pkg: PACKAGES.CORE,
 			reactVersion: null,
 			tailwindVersion: null,
 		};
 	}
-}
+};
 
 /**
  * Detect the project root by finding the package.json file
  */
-export async function detectProjectRoot(
+export const detectProjectRoot = async function detectProjectRoot(
 	cwd: string,
 	logger?: CliLogger
 ): Promise<string> {
@@ -121,6 +124,7 @@ export async function detectProjectRoot(
 				const packageJsonPath = path.join(projectRoot, 'package.json');
 				logger?.debug(`Looking for package.json at: ${packageJsonPath}`);
 
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await fs.access(packageJsonPath);
 				logger?.debug(`Found package.json at: ${projectRoot}`);
 				break;
@@ -128,7 +132,7 @@ export async function detectProjectRoot(
 				logger?.debug(`No package.json found in ${projectRoot}`);
 				prevDir = projectRoot;
 				projectRoot = path.dirname(projectRoot);
-				depth++;
+				depth += 1;
 			}
 		}
 
@@ -155,36 +159,40 @@ export async function detectProjectRoot(
 		logger?.debug(`Falling back to current directory: ${cwd}`);
 		return cwd;
 	}
-}
+};
 
 /**
  * Check if a framework is Next.js
  */
-export function isNextJs(framework: FrameworkDetectionResult): boolean {
+export const isNextJs = function isNextJs(
+	framework: FrameworkDetectionResult
+): boolean {
 	return framework.framework === 'Next.js';
-}
+};
 
 /**
  * Check if a framework is React-based
  */
-export function isReactBased(framework: FrameworkDetectionResult): boolean {
+export const isReactBased = function isReactBased(
+	framework: FrameworkDetectionResult
+): boolean {
 	return framework.hasReact;
-}
+};
 
 /**
  * Get the display name for a framework
  */
-export function getFrameworkDisplayName(
+export const getFrameworkDisplayName = function getFrameworkDisplayName(
 	framework: FrameworkDetectionResult
 ): string {
 	return framework.framework || 'JavaScript';
-}
+};
 
 /**
  * Get the recommended package for a framework
  */
-export function getRecommendedPackage(
+export const getRecommendedPackage = function getRecommendedPackage(
 	framework: FrameworkDetectionResult
 ): string {
 	return framework.pkg;
-}
+};

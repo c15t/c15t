@@ -1,7 +1,8 @@
 'use client';
 
 import { setupFocusTrap } from '@c15t/ui/utils/dom';
-import { type RefObject, useEffect } from 'react';
+import { useEffect } from 'react';
+import type { RefObject } from 'react';
 
 /**
  * Hook that manages focus trapping within a container.
@@ -15,7 +16,7 @@ import { type RefObject, useEffect } from 'react';
  *
  * @public
  */
-export function useFocusTrap(
+export const useFocusTrap = function useFocusTrap(
 	shouldTrap: boolean,
 	containerRef: RefObject<HTMLElement | null> | null
 ): void {
@@ -26,4 +27,4 @@ export function useFocusTrap(
 
 		return setupFocusTrap(containerRef.current);
 	}, [shouldTrap, containerRef]);
-}
+};

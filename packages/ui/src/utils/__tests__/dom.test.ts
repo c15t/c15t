@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+
 import {
 	getFocusableElements,
 	getTextDirection,
@@ -7,10 +8,33 @@ import {
 	setupTextDirection,
 } from '../dom';
 
-/** Flushes the trap's deferred (setTimeout 0) focus operations. */
-function flushFocusTimers(): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, 0));
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
 }
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+/** Flushes the trap's deferred (setTimeout 0) focus operations. */
+const flushFocusTimers = function flushFocusTimers(): Promise<void> {
+	return createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
 
 describe('getTextDirection', () => {
 	test('returns ltr for undefined language', () => {
@@ -42,12 +66,18 @@ describe('getTextDirection', () => {
 	});
 
 	test('returns rtl for other RTL languages', () => {
-		expect(getTextDirection('fa')).toBe('rtl'); // Farsi/Persian
-		expect(getTextDirection('ur')).toBe('rtl'); // Urdu
-		expect(getTextDirection('ps')).toBe('rtl'); // Pashto
-		expect(getTextDirection('sd')).toBe('rtl'); // Sindhi
-		expect(getTextDirection('ku')).toBe('rtl'); // Kurdish
-		expect(getTextDirection('dv')).toBe('rtl'); // Divehi
+		// Farsi/Persian
+		expect(getTextDirection('fa')).toBe('rtl');
+		// Urdu
+		expect(getTextDirection('ur')).toBe('rtl');
+		// Pashto
+		expect(getTextDirection('ps')).toBe('rtl');
+		// Sindhi
+		expect(getTextDirection('sd')).toBe('rtl');
+		// Kurdish
+		expect(getTextDirection('ku')).toBe('rtl');
+		// Divehi
+		expect(getTextDirection('dv')).toBe('rtl');
 	});
 
 	test('handles case insensitively', () => {
@@ -347,7 +377,7 @@ describe('setupFocusTrap tab wrapping', () => {
 	let outside: HTMLButtonElement;
 	let cleanup: (() => void) | undefined;
 
-	function pressTab(shiftKey = false) {
+	const pressTab = function pressTab(shiftKey = false) {
 		document.dispatchEvent(
 			new KeyboardEvent('keydown', {
 				bubbles: true,
@@ -356,7 +386,7 @@ describe('setupFocusTrap tab wrapping', () => {
 				shiftKey,
 			})
 		);
-	}
+	};
 
 	beforeEach(() => {
 		outside = document.createElement('button');

@@ -1,10 +1,9 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, toValue } from 'vue';
+
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
+
 import ConsentSwitch from './consent-switch.vue';
 
 export type IabVendorId = number | string;
@@ -91,17 +90,17 @@ const checked = computed({
 	},
 });
 
-function getVendorConsent(vendorId: IabVendorId) {
+const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
-}
+};
 
-function handlePurposeLiObjection() {
+const handlePurposeLiObjection = function handlePurposeLiObjection() {
 	const nextValue = !isPurposeLiAllowed.value;
 	emit('purposeLegitimateInterestToggle', nextValue);
 	for (const vendor of legIntVendors.value) {
 		emit('vendorToggle', vendor.id, nextValue);
 	}
-}
+};
 </script>
 
 <template>
@@ -162,10 +161,12 @@ function handlePurposeLiObjection() {
 						</svg>
 					</h3>
 					<p :class="dialogStyles.purposeMeta">
-						{{ (iabT?.preferenceCenter?.purposeItem?.partners ?? '').replace(
+						{{
+							(iabT?.preferenceCenter?.purposeItem?.partners ?? '').replace(
 								'{count}',
-								String(purpose.vendors.length),
-							) }}
+								String(purpose.vendors.length)
+							)
+						}}
 					</p>
 				</div>
 			</button>
@@ -191,10 +192,12 @@ function handlePurposeLiObjection() {
 				<div :class="dialogStyles.purposeLiSectionHeader">
 					<div :class="dialogStyles.purposeLiInfo">
 						<span>
-							{{ (
+							{{
+								(
 									iabT?.preferenceCenter?.purposeItem
 										?.vendorsUseLegitimateInterest ?? ''
-								).replace('{count}', String(legIntVendors.length)) }}
+								).replace('{count}', String(legIntVendors.length))
+							}}
 						</span>
 					</div>
 					<button
@@ -204,9 +207,11 @@ function handlePurposeLiObjection() {
 						:aria-pressed="!isPurposeLiAllowed"
 						@click="handlePurposeLiObjection"
 					>
-						{{ isPurposeLiAllowed
+						{{
+							isPurposeLiAllowed
 								? iabT?.preferenceCenter?.purposeItem?.objectButton
-								: iabT?.preferenceCenter?.purposeItem?.objected }}
+								: iabT?.preferenceCenter?.purposeItem?.objected
+						}}
 					</button>
 				</div>
 				<p :class="dialogStyles.liExplanation">

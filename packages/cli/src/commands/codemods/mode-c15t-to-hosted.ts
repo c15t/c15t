@@ -1,6 +1,11 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { Project, type PropertyAssignment, SyntaxKind } from 'ts-morph';
+
+import { Project, SyntaxKind } from 'ts-morph';
+import type { PropertyAssignment } from 'ts-morph';
+import type * as TsMorphTypes from 'ts-morph';
+
+import { forEachSequential } from '../../utils/for-each-sequential';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -14,11 +19,11 @@ const IGNORED_DIRS = new Set([
 	'out',
 ]);
 
-type C15tModeToHostedResult = {
+interface C15tModeToHostedResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	/**
@@ -42,15 +47,15 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
 /**
@@ -59,10 +64,12 @@ export interface CodemodRunResult {
  * @param property Property assignment to inspect.
  * @returns Normalized property key without surrounding quotes.
  */
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
-}
+	return rawName.replace(/^['"]|['"]$/gu, '');
+};
 
 /**
  * Rewrites legacy `mode: 'c15t'` string literals to `mode: 'hosted'`.
@@ -70,8 +77,8 @@ function getPropertyName(property: PropertyAssignment): string {
  * @param sourceFile Source file being transformed.
  * @returns Transformation summary for this source file.
  */
-function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+const transformSourceFile = function transformSourceFile(
+	sourceFile: TsMorphTypes.SourceFile
 ): C15tModeToHostedResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -80,6 +87,7 @@ function transformSourceFile(
 		SyntaxKind.PropertyAssignment
 	);
 
+	// oxlint-disable-next-line no-warning-comments -- Preserve declaration order, interface shape, and public compatibility.
 	// TODO(codemod-scope): This codemod intentionally rewrites all object
 	// properties shaped as `mode: 'c15t'` because projects often wrap c15t
 	// config in custom helpers/types. We prefer broad migration coverage over
@@ -108,44 +116,48 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
-		for (const entry of entries) {
-			if (entry.isSymbolicLink()) {
-				continue;
-			}
-
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
+		await forEachSequential(entries, {
+			run: async (entry) => {
+				if (entry.isSymbolicLink()) {
+					return;
 				}
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
 
-			if (!entry.isFile()) {
-				continue;
-			}
+				if (entry.isDirectory()) {
+					if (IGNORED_DIRS.has(entry.name)) {
+						return;
+					}
+					await walk(join(currentDir, entry.name));
+					return;
+				}
 
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
+				if (!entry.isFile()) {
+					return;
+				}
 
-			files.push(join(currentDir, entry.name));
-		}
-	}
+				const extension = extname(entry.name).toLowerCase();
+				if (!SUPPORTED_EXTENSIONS.has(extension)) {
+					return;
+				}
+
+				files.push(join(currentDir, entry.name));
+			},
+		});
+	};
 
 	await walk(rootDir);
 
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates mode: 'c15t' to mode: 'hosted'.
@@ -153,58 +165,61 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  *
- * @throws Propagates unexpected setup failures such as directory traversal errors.
+ * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
-export async function runC15tModeToHostedCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runC15tModeToHostedCodemod =
+	async function runC15tModeToHostedCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
-			}
+		await forEachSequential(filePaths, {
+			run: async (filePath) => {
+				try {
+					const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+					if (!sourceFile) {
+						return;
+					}
 
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
+					const result = transformSourceFile(sourceFile);
+					if (!result.changed) {
+						return;
+					}
 
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
+					changedFiles.push({
+						filePath,
+						operations: result.operations,
+						summaries: result.summaries,
+					});
 
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
-		}
-	}
+					if (!options.dryRun) {
+						await sourceFile.save();
+					}
+				} catch (error) {
+					errors.push({
+						error: error instanceof Error ? error.message : String(error),
+						filePath,
+					});
+				}
+			},
+		});
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

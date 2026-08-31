@@ -1,15 +1,45 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { useIsHydrated } from '~/v3/hooks/use-is-hydrated';
+
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
-const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
+const DefaultPlaceholder = ({
+	category,
+	policyBlocked,
+	policyBlockedMessage,
+}: {
+	category: AllConsentNames;
+	policyBlocked: boolean;
+	policyBlockedMessage?: string;
+}) => (
+	<FrameRoot>
+		<FrameTitle category={category}>
+			{policyBlocked
+				? (policyBlockedMessage ??
+					"This content is unavailable under your region's consent policy.")
+				: undefined}
+		</FrameTitle>
+		{policyBlocked ? null : <FrameButton category={category} />}
+	</FrameRoot>
+);
+const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
 	(
-		{ children, category, placeholder, noStyle, className, theme, ...props },
+		{
+			children,
+			category,
+			placeholder,
+			noStyle: _noStyle,
+			className,
+			theme: _theme,
+			...props
+		},
 		ref
 	) => {
 		const {
@@ -20,7 +50,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			policyScopeMode,
 		} = useConsentManager();
 		const { frame } = useTranslations();
-		const [isMounted, setIsMounted] = useState(false);
+		const isMounted = useIsHydrated();
 		const [isReady, setIsReady] = useState(false);
 
 		const hasConsent = has(category);
@@ -33,11 +63,11 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		const isStrictPolicyBlocked =
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
-		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
 		useEffect(() => {
-			setIsMounted(true);
-			updateConsentCategories([...consentCategories, category]);
-		}, [category]);
+			if (!consentCategories.includes(category)) {
+				updateConsentCategories([...consentCategories, category]);
+			}
+		}, [category, consentCategories, updateConsentCategories]);
 
 		// Wait for next frame to ensure styles are loaded
 		useEffect(() => {
@@ -84,27 +114,5 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 );
 
 FrameComponent.displayName = 'Frame';
-
-const DefaultPlaceholder = ({
-	category,
-	policyBlocked,
-	policyBlockedMessage,
-}: {
-	category: AllConsentNames;
-	policyBlocked: boolean;
-	policyBlockedMessage?: string;
-}) => {
-	return (
-		<FrameRoot>
-			<FrameTitle category={category}>
-				{policyBlocked
-					? (policyBlockedMessage ??
-						"This content is unavailable under your region's consent policy.")
-					: undefined}
-			</FrameTitle>
-			{!policyBlocked ? <FrameButton category={category} /> : null}
-		</FrameRoot>
-	);
-};
 
 export const Frame = FrameComponent;

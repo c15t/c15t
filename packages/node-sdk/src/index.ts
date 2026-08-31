@@ -35,9 +35,11 @@ import type { C15TClientOptions } from './types';
  * });
  * ```
  */
-export function c15tClient(options?: C15TClientOptions): C15TClient {
+export const c15tClient = function c15tClient(
+	options?: C15TClientOptions
+): C15TClient {
 	return new C15TClient(options);
-}
+};
 
 // Re-export schema types for convenience
 export type {

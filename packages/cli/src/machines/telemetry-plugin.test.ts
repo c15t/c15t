@@ -1,12 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import { createTelemetrySubscriber } from './telemetry-plugin';
 
-function createTelemetryMock() {
+const createTelemetryMock = function createTelemetryMock() {
 	return {
 		trackEvent: vi.fn(),
 	} as const;
-}
+};
 
 describe('createTelemetrySubscriber', () => {
 	afterEach(() => {
@@ -16,9 +18,9 @@ describe('createTelemetrySubscriber', () => {
 	it('tracks generate stage completion with duration and stable stage names', () => {
 		const telemetry = createTelemetryMock();
 		const subscriber = createTelemetrySubscriber({
-			telemetry: telemetry as never,
 			machineId: 'generate',
 			skipStates: ['routeToMode'],
+			telemetry: telemetry as never,
 		});
 		const nowSpy = vi
 			.spyOn(Date, 'now')
@@ -26,32 +28,32 @@ describe('createTelemetrySubscriber', () => {
 			.mockReturnValueOnce(500);
 
 		subscriber({
-			value: 'preflight',
 			context: {
-				errors: [],
 				dependenciesToAdd: [],
+				errors: [],
 				filesCreated: [],
 				filesModified: [],
 			},
+			value: 'preflight',
 		});
 		subscriber({
-			value: 'modeSelection',
 			context: {
-				errors: [],
 				dependenciesToAdd: [],
+				errors: [],
 				filesCreated: [],
 				filesModified: [],
 			},
+			value: 'modeSelection',
 		});
 
 		expect(telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.ONBOARDING_STAGE,
 			expect.objectContaining({
-				stage: 'preflight',
-				nextStage: 'mode_selection',
 				durationMs: 500,
-				result: 'completed',
 				errorsCount: 0,
+				nextStage: 'mode_selection',
+				result: 'completed',
+				stage: 'preflight',
 			})
 		);
 		expect(nowSpy).toHaveBeenCalledTimes(2);
@@ -60,9 +62,9 @@ describe('createTelemetrySubscriber', () => {
 	it('classifies generate cancellations with stable reasons', () => {
 		const telemetry = createTelemetryMock();
 		const subscriber = createTelemetrySubscriber({
-			telemetry: telemetry as never,
 			machineId: 'generate',
 			skipStates: ['routeToMode'],
+			telemetry: telemetry as never,
 		});
 		const nowSpy = vi
 			.spyOn(Date, 'now')
@@ -70,33 +72,33 @@ describe('createTelemetrySubscriber', () => {
 			.mockReturnValueOnce(1_250);
 
 		subscriber({
-			value: 'modeSelection',
 			context: {
-				errors: [],
 				dependenciesToAdd: [],
+				errors: [],
 				filesCreated: [],
 				filesModified: [],
 			},
+			value: 'modeSelection',
 		});
 		subscriber({
-			value: 'cancelling',
 			context: {
 				cancelReason: 'Mode selection cancelled',
-				errors: [],
 				dependenciesToAdd: [],
+				errors: [],
 				filesCreated: [],
 				filesModified: [],
 			},
+			value: 'cancelling',
 		});
 
 		expect(telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.ONBOARDING_STAGE,
 			expect.objectContaining({
-				stage: 'mode_selection',
-				nextStage: 'cancelling',
 				durationMs: 250,
-				result: 'cancelled',
+				nextStage: 'cancelling',
 				reason: 'mode_selection_cancelled',
+				result: 'cancelled',
+				stage: 'mode_selection',
 			})
 		);
 		expect(nowSpy).toHaveBeenCalledTimes(2);
@@ -105,9 +107,9 @@ describe('createTelemetrySubscriber', () => {
 	it('marks dependency install stage failures with install context', () => {
 		const telemetry = createTelemetryMock();
 		const subscriber = createTelemetrySubscriber({
-			telemetry: telemetry as never,
 			machineId: 'generate',
 			skipStates: ['routeToMode'],
+			telemetry: telemetry as never,
 		});
 		const nowSpy = vi
 			.spyOn(Date, 'now')
@@ -115,44 +117,44 @@ describe('createTelemetrySubscriber', () => {
 			.mockReturnValueOnce(3_000);
 
 		subscriber({
-			value: 'dependencyInstall',
 			context: {
-				errors: [],
 				dependenciesToAdd: ['c15t', '@c15t/dev-tools'],
+				errors: [],
 				filesCreated: ['a.ts'],
-				filesModified: [{ path: 'b.ts', backup: 'x', type: 'modified' }],
-				installConfirmed: true,
+				filesModified: [{ backup: 'x', path: 'b.ts', type: 'modified' }],
 				installAttempted: true,
+				installConfirmed: true,
 				installSucceeded: false,
 			},
+			value: 'dependencyInstall',
 		});
 		subscriber({
-			value: 'summary',
 			context: {
-				errors: [],
 				dependenciesToAdd: ['c15t', '@c15t/dev-tools'],
+				errors: [],
 				filesCreated: ['a.ts'],
-				filesModified: [{ path: 'b.ts', backup: 'x', type: 'modified' }],
-				installConfirmed: true,
+				filesModified: [{ backup: 'x', path: 'b.ts', type: 'modified' }],
 				installAttempted: true,
+				installConfirmed: true,
 				installSucceeded: false,
 			},
+			value: 'summary',
 		});
 
 		expect(telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.ONBOARDING_STAGE,
 			expect.objectContaining({
-				stage: 'dependency_install',
-				nextStage: 'summary',
-				durationMs: 1000,
-				result: 'failed',
-				reason: 'dependency_install_failed',
 				dependencyCount: 2,
+				durationMs: 1000,
 				filesCreatedCount: 1,
 				filesModifiedCount: 1,
-				installConfirmed: true,
 				installAttempted: true,
+				installConfirmed: true,
 				installSucceeded: false,
+				nextStage: 'summary',
+				reason: 'dependency_install_failed',
+				result: 'failed',
+				stage: 'dependency_install',
 			})
 		);
 		expect(nowSpy).toHaveBeenCalledTimes(2);
@@ -161,13 +163,13 @@ describe('createTelemetrySubscriber', () => {
 	it('does not emit onboarding stage events for non-generate machines', () => {
 		const telemetry = createTelemetryMock();
 		const subscriber = createTelemetrySubscriber({
-			telemetry: telemetry as never,
 			machineId: 'self-host',
+			telemetry: telemetry as never,
 		});
 		vi.spyOn(Date, 'now').mockReturnValueOnce(0).mockReturnValueOnce(100);
 
-		subscriber({ value: 'idle', context: {} });
-		subscriber({ value: 'complete', context: {} });
+		subscriber({ context: {}, value: 'idle' });
+		subscriber({ context: {}, value: 'complete' });
 
 		expect(telemetry.trackEvent).not.toHaveBeenCalledWith(
 			TelemetryEventName.ONBOARDING_STAGE,

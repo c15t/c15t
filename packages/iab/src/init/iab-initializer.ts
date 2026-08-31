@@ -11,13 +11,14 @@ import type {
 	IABState,
 } from '@c15t/core';
 import { getConsentFromStorage } from '@c15t/core';
+
 import { version } from '../version';
 
 /** Store access methods needed by the IAB initializer. */
-type StoreAccess = {
+interface StoreAccess {
 	get: () => ConsentStoreState;
 	set: (partial: Partial<ConsentStoreState>) => void;
-};
+}
 
 /** Default CMP ID fallback (0 = no registered CMP). */
 const CMP_ID = 0;
@@ -28,7 +29,7 @@ const CMP_VERSION = version;
 /**
  * Helper to update nested IAB state.
  */
-function updateIABState(
+const updateIABState = function updateIABState(
 	{ get, set }: StoreAccess,
 	updates: Partial<IABState>
 ): void {
@@ -39,7 +40,61 @@ function updateIABState(
 	set({
 		iab: { ...iab, ...updates },
 	});
-}
+};
+
+/**
+ * Restores consent state from an existing TC String.
+ *
+ * @param tcString - The TC String to decode
+ * @param storeAccess - Store getters and setters
+ */
+const restoreConsentFromTCString = async function restoreConsentFromTCString(
+	tcString: string,
+	storeAccess: StoreAccess
+): Promise<void> {
+	const { set } = storeAccess;
+
+	try {
+		const { decodeTCString, iabPurposesToC15tConsents } =
+			await import('../tcf');
+		const decoded = await decodeTCString(tcString);
+		const storedConsent = getConsentFromStorage<{
+			iabCustomVendorConsents?: Record<string, boolean>;
+			iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+		}>(storeAccess.get().storageConfig);
+		const mergedVendorConsents = {
+			...decoded.vendorConsents,
+			...(storedConsent?.iabCustomVendorConsents ?? {}),
+		};
+		const mergedVendorLegitimateInterests = {
+			...decoded.vendorLegitimateInterests,
+			...(storedConsent?.iabCustomVendorLegitimateInterests ?? {}),
+		};
+
+		// Map IAB consents to c15t consents
+		const c15tConsents = iabPurposesToC15tConsents(decoded.purposeConsents);
+
+		// Update IAB state with decoded TC String data
+		updateIABState(storeAccess, {
+			purposeConsents: decoded.purposeConsents,
+			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
+			specialFeatureOptIns: decoded.specialFeatureOptIns,
+			tcString,
+			vendorConsents: mergedVendorConsents,
+			vendorLegitimateInterests: mergedVendorLegitimateInterests,
+		});
+
+		// Update core consent state
+		set({
+			// User already has consent
+			activeUI: 'none' as const,
+			consents: c15tConsents,
+			selectedConsents: c15tConsents,
+		});
+	} catch {
+		// Invalid TC String, ignore
+	}
+};
 
 /**
  * Initializes IAB TCF mode.
@@ -57,7 +112,7 @@ function updateIABState(
  *   - `null` means non-IAB region (204 response, skip initialization)
  *   - `GlobalVendorList` means prefetched data to use
  */
-export async function initializeIABMode(
+export const initializeIABMode = async function initializeIABMode(
 	iab: IABConfig,
 	storeAccess: StoreAccess,
 	prefetchedGVL?: GlobalVendorList | null
@@ -78,9 +133,8 @@ export async function initializeIABMode(
 
 	try {
 		// Dynamically import IAB modules (lazy loading)
-		const { initializeIABStub, fetchGVL, createCMPApi } = await import(
-			'../tcf'
-		);
+		const { initializeIABStub, fetchGVL, createCMPApi } =
+			await import('../tcf');
 
 		// Initialize IAB stub immediately to start queuing __tcfapi calls
 		initializeIABStub();
@@ -181,8 +235,8 @@ export async function initializeIABMode(
 		const cmpApi = createCMPApi({
 			cmpId: effectiveCmpId,
 			cmpVersion: effectiveCmpVersion,
-			gvl,
 			gdprApplies: true,
+			gvl,
 		});
 
 		updateIABState(storeAccess, { cmpApi });
@@ -203,58 +257,4 @@ export async function initializeIABMode(
 		console.error('Failed to initialize IAB mode:', error);
 		updateIABState(storeAccess, { isLoadingGVL: false });
 	}
-}
-
-/**
- * Restores consent state from an existing TC String.
- *
- * @param tcString - The TC String to decode
- * @param storeAccess - Store getters and setters
- */
-async function restoreConsentFromTCString(
-	tcString: string,
-	storeAccess: StoreAccess
-): Promise<void> {
-	const { set } = storeAccess;
-
-	try {
-		const { decodeTCString, iabPurposesToC15tConsents } = await import(
-			'../tcf'
-		);
-		const decoded = await decodeTCString(tcString);
-		const storedConsent = getConsentFromStorage<{
-			iabCustomVendorConsents?: Record<string, boolean>;
-			iabCustomVendorLegitimateInterests?: Record<string, boolean>;
-		}>(storeAccess.get().storageConfig);
-		const mergedVendorConsents = {
-			...decoded.vendorConsents,
-			...(storedConsent?.iabCustomVendorConsents ?? {}),
-		};
-		const mergedVendorLegitimateInterests = {
-			...decoded.vendorLegitimateInterests,
-			...(storedConsent?.iabCustomVendorLegitimateInterests ?? {}),
-		};
-
-		// Map IAB consents to c15t consents
-		const c15tConsents = iabPurposesToC15tConsents(decoded.purposeConsents);
-
-		// Update IAB state with decoded TC String data
-		updateIABState(storeAccess, {
-			tcString,
-			purposeConsents: decoded.purposeConsents,
-			purposeLegitimateInterests: decoded.purposeLegitimateInterests,
-			vendorConsents: mergedVendorConsents,
-			vendorLegitimateInterests: mergedVendorLegitimateInterests,
-			specialFeatureOptIns: decoded.specialFeatureOptIns,
-		});
-
-		// Update core consent state
-		set({
-			consents: c15tConsents,
-			selectedConsents: c15tConsents,
-			activeUI: 'none' as const, // User already has consent
-		});
-	} catch {
-		// Invalid TC String, ignore
-	}
-}
+};

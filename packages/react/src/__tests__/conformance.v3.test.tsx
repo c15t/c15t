@@ -11,12 +11,14 @@ import {
 	IAB_FIXTURE_CMP_ID,
 	IAB_FIXTURE_CMP_VERSION,
 	MINIMAL_GVL,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import type { AllConsentNames } from '@c15t/core';
 import type {
@@ -27,19 +29,55 @@ import type {
 	TranslationsResponse,
 } from '@c15t/core/v3';
 import type { GlobalVendorList } from '@c15t/schema/types';
-import { type ReactElement, useContext, useEffect } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { useContext, useEffect } from 'react';
+import type { ReactElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
+
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { KernelContext } from '~/v3/context';
 import { IABConsentBanner, IABConsentDialog } from '~/v3/iab';
-import {
-	ConsentBanner,
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '~/v3/index';
+import { ConsentBanner, ConsentProvider } from '~/v3/index';
+import type { ConsentProviderOptions } from '~/v3/index';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
 
 type ProviderOptions = ConsentProviderOptions & {
 	i18n?: {
@@ -70,61 +108,62 @@ const DEFAULT_CONSENT_CATEGORIES = [
 const DEFAULT_TRANSLATIONS: TranslationsResponse = {
 	common: {
 		acceptAll: 'Accept all',
-		rejectAll: 'Reject all',
 		customize: 'Customize',
+		rejectAll: 'Reject all',
 		save: 'Save',
 	},
-	cookieBanner: {
-		title: 'We value your privacy',
-		description: 'We use cookies to enhance your experience.',
-	},
 	consentManagerDialog: {
-		title: 'Privacy preferences',
 		description: 'Manage your choices.',
+		title: 'Privacy preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required for the site to function.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics and performance measurement.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
 		},
 	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
 	frame: {
-		title: 'Privacy',
 		actionButton: 'Manage',
+		title: 'Privacy',
 	},
 	legalLinks: {
+		cookiePolicy: 'Cookie policy',
 		privacyPolicy: 'Privacy policy',
 		termsOfService: 'Terms of service',
-		cookiePolicy: 'Cookie policy',
 	},
 };
 
-function mergeTranslations(
+const mergeTranslations = function mergeTranslations(
 	base: TranslationsResponse,
 	override: Partial<TranslationsResponse> | undefined
 ): TranslationsResponse {
-	if (!override || typeof override !== 'object') return base;
+	if (!override || typeof override !== 'object') {
+		return base;
+	}
 	return {
 		...base,
 		...override,
 		common: { ...base.common, ...override.common },
-		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		consentManagerDialog: {
 			...base.consentManagerDialog,
 			...override.consentManagerDialog,
@@ -133,12 +172,16 @@ function mergeTranslations(
 			...base.consentTypes,
 			...override.consentTypes,
 		},
+		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		frame: { ...base.frame, ...override.frame },
 		legalLinks: { ...base.legalLinks, ...override.legalLinks },
 	};
-}
+};
 
-function resolveTranslations(options: ProviderOptions, locale?: string) {
+const resolveTranslations = function resolveTranslations(
+	options: ProviderOptions,
+	locale?: string
+) {
 	const language =
 		locale ??
 		options.i18n?.locale ??
@@ -157,21 +200,27 @@ function resolveTranslations(options: ProviderOptions, locale?: string) {
 		language,
 		translations: mergeTranslations(DEFAULT_TRANSLATIONS, override),
 	};
-}
+};
 
-function consentCategoriesFor(options: ProviderOptions): AllConsentNames[] {
+const consentCategoriesFor = function consentCategoriesFor(
+	options: ProviderOptions
+): AllConsentNames[] {
 	return options.consentCategories?.length === 0
 		? [...DEFAULT_CONSENT_CATEGORIES]
 		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
-}
+};
 
-function isIabComponent(component: MountableComponent): boolean {
+const isIabComponent = function isIabComponent(
+	component: MountableComponent
+): boolean {
 	return (
 		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
 	);
-}
+};
 
-function activeUIForComponent(component: MountableComponent): KernelActiveUI {
+const activeUIForComponent = function activeUIForComponent(
+	component: MountableComponent
+): KernelActiveUI {
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
@@ -180,10 +229,12 @@ function activeUIForComponent(component: MountableComponent): KernelActiveUI {
 		case 'consent-banner':
 		case 'iab-consent-banner':
 			return 'banner';
+		default:
+			throw new Error(`Unsupported component: ${component}`);
 	}
-}
+};
 
-function buildPolicy(
+const buildPolicy = function buildPolicy(
 	opts: MountOptions,
 	options: ProviderOptions
 ): ResolvedPolicy {
@@ -191,18 +242,19 @@ function buildPolicy(
 		| { activeUI?: 'none' | 'banner' | 'dialog' }
 		| undefined;
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
+	const consent: ResolvedPolicy['consent'] = {
+		categories: consentCategoriesFor(options),
+		scopeMode: 'permissive',
+	};
+	if (opts.policy?.respectGpc !== undefined) {
+		consent.gpc = opts.policy.respectGpc;
+	}
+
 	return {
+		consent,
 		id: 'react_v3_conformance_policy',
 		model: opts.policy?.model ?? 'opt-in',
-		consent: {
-			categories: consentCategoriesFor(options),
-			scopeMode: 'permissive',
-			...(opts.policy?.respectGpc === undefined
-				? {}
-				: { gpc: opts.policy.respectGpc }),
-		},
 		ui: {
-			mode,
 			banner: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				scrollLock: false,
@@ -211,9 +263,10 @@ function buildPolicy(
 				allowedActions: ['reject', 'accept', 'customize'],
 				scrollLock: false,
 			},
+			mode,
 		},
 	};
-}
+};
 
 /**
  * IAB mounts mirror the production wiring (and the v3 IAB unit tests):
@@ -221,20 +274,20 @@ function buildPolicy(
  * `iab` option, which routes through `createIAB` and seeds the kernel's
  * IAB slice with the shared minimal GVL fixture.
  */
-function buildIabProviderOptions(opts: MountOptions): ConsentProviderOptions {
+const buildIabProviderOptions = function buildIabProviderOptions(
+	opts: MountOptions
+): ConsentProviderOptions {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
 	return {
 		...provided,
-		mode: 'offline',
-		persistence: opts.persistence ?? false,
 		disableAnimation: true,
-		trapFocus: false,
 		iab: {
-			enabled: true,
 			cmpId: IAB_FIXTURE_CMP_ID,
 			cmpVersion: IAB_FIXTURE_CMP_VERSION,
+			enabled: true,
 			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
 		},
+		mode: 'offline',
 		offlinePolicy: {
 			policy: {
 				id: 'react_v3_conformance_iab_policy',
@@ -244,10 +297,14 @@ function buildIabProviderOptions(opts: MountOptions): ConsentProviderOptions {
 				},
 			},
 		},
+		persistence: opts.persistence ?? false,
+		trapFocus: false,
 	};
-}
+};
 
-function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
+const buildProviderOptions = function buildProviderOptions(
+	opts: MountOptions
+): ConsentProviderOptions {
 	if (isIabComponent(opts.component)) {
 		return buildIabProviderOptions(opts);
 	}
@@ -273,88 +330,92 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 		initMode === 'authoritative'
 			? {
 					...basePrefetch,
+					initialBranding: 'c15t',
 					initialLocation: {
 						countryCode: 'DE',
 						regionCode: null,
 					},
-					initialBranding: 'c15t',
 					initialPolicy: buildPolicy(opts, provided),
 					initialPolicyDecision: {
-						policyId: 'react_v3_conformance_policy',
-						fingerprint: 'react_v3_conformance_fingerprint',
-						matchedBy: 'default',
 						country: 'DE',
-						region: null,
+						fingerprint: 'react_v3_conformance_fingerprint',
 						jurisdiction: 'GDPR',
+						matchedBy: 'default',
+						policyId: 'react_v3_conformance_policy',
+						region: null,
 					},
 					initialPolicySnapshotToken: 'react_v3_conformance_token',
 				}
 			: basePrefetch;
 
-	return {
+	const options: ProviderOptions = {
 		...provided,
+		consentCategories: consentCategoriesFor(provided),
+		disableAnimation: true,
 		mode: 'offline',
 		persistence: opts.persistence ?? false,
-		disableAnimation: true,
-		trapFocus: false,
-		consentCategories: consentCategoriesFor(provided),
-		// GPC uses the provider's public `overrides` input — the same channel
-		// a real app (or the nextjs server plumbing) delivers the signal on.
-		...(opts.gpc === undefined ? {} : { overrides: { gpc: opts.gpc } }),
 		prefetch,
+		trapFocus: false,
 	};
-}
+	// GPC uses the provider's public `overrides` input — the same channel
+	// a real app (or the nextjs server plumbing) delivers the signal on.
+	if (opts.gpc !== undefined) {
+		options.overrides = { gpc: opts.gpc };
+	}
 
-function createPendingInit() {
+	return options;
+};
+
+const createPendingInit = function createPendingInit() {
 	let resolve!: () => void;
-	const promise = new Promise<Record<string, never>>((settle) => {
+	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
-}
+};
 
-function lifecycleTransportFor(opts: MountOptions) {
+const lifecycleTransportFor = function lifecycleTransportFor(
+	opts: MountOptions
+) {
 	if ((opts.initMode ?? 'authoritative') === 'pending') {
 		const deferred = createPendingInit();
 		return {
+			resolve: deferred.resolve,
 			transport: {
 				init: () => deferred.promise,
 			},
-			resolve: deferred.resolve,
 		};
 	}
 	if (opts.initMode === 'failing') {
 		return {
-			transport: {
-				async init() {
-					throw new Error('conformance: init failed');
-				},
-			},
 			resolve: undefined,
+			transport: {
+				init: () => Promise.reject(new Error('conformance: init failed')),
+			},
 		};
 	}
-	return { transport: undefined, resolve: undefined };
-}
+	return { resolve: undefined, transport: undefined };
+};
 
-async function flushScheduler() {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-	await new Promise((resolve) => setTimeout(resolve, 0));
-}
+const flushScheduler = async function flushScheduler() {
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
 
-function KernelCapture({
+const KernelCapture = ({
 	onKernel,
 }: {
 	onKernel: (kernel: ConsentKernel) => void;
-}) {
+}) => {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error('React v3 driver: missing kernel context');
 	}
 	onKernel(kernel);
 	return null;
-}
+};
 
-function componentFor(opts: MountOptions): ReactElement {
+const componentFor = function componentFor(opts: MountOptions): ReactElement {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
 	const trapFocus = provided.trapFocus ?? false;
 
@@ -388,35 +449,35 @@ function componentFor(opts: MountOptions): ReactElement {
 			return <IABConsentBanner />;
 		case 'iab-consent-dialog':
 			return <IABConsentDialog />;
+		default:
+			throw new Error(`Unsupported component: ${opts.component}`);
 	}
-}
+};
 
-function Harness({
+const Harness = ({
 	opts,
 	onKernel,
 }: {
 	opts: MountOptions;
 	onKernel: (kernel: ConsentKernel) => void;
-}) {
-	return (
-		<div
-			data-testid="react-v3-conformance-root"
-			dir={opts.locale === 'ar' ? 'rtl' : undefined}
-		>
-			<KernelCapture onKernel={onKernel} />
-			{componentFor(opts)}
-		</div>
-	);
-}
+}) => (
+	<div
+		data-testid="react-v3-conformance-root"
+		dir={opts.locale === 'ar' ? 'rtl' : undefined}
+	>
+		<KernelCapture onKernel={onKernel} />
+		{componentFor(opts)}
+	</div>
+);
 
-function ClientSettled({ onSettled }: { onSettled: () => void }) {
+const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
 	useEffect(() => {
 		onSettled();
 	}, [onSettled]);
 	return null;
-}
+};
 
-function renderTree(
+const renderTree = function renderTree(
 	opts: MountOptions,
 	options: ConsentProviderOptions,
 	onKernel: (kernel: ConsentKernel) => void,
@@ -431,38 +492,56 @@ function renderTree(
 			/>
 		</ConsentProvider>
 	);
-}
+};
 
-function activeUIForStore(activeUI: KernelActiveUI): StoreState['activeUI'] {
-	if (activeUI === 'banner' || activeUI === 'dialog') return activeUI;
+const activeUIForStore = function activeUIForStore(
+	activeUI: KernelActiveUI
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
 	return 'none';
-}
+};
 
-function projectStoreState(kernel: ConsentKernel): StoreState {
+const projectStoreState = function projectStoreState(
+	kernel: ConsentKernel
+): StoreState {
 	const snapshot = kernel.getSnapshot();
 	const consents = { ...snapshot.consents } as Record<string, boolean>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
-		consents,
-		selectedConsents: { ...consents },
 		activeUI: activeUIForStore(snapshot.activeUI),
 		consentCategories: [...snapshot.policyCategories],
+		consents,
+		selectedConsents: { ...consents },
 	};
-}
+};
 
 let lastKernel: ConsentKernel | null = null;
 
 const driver: TestDriver = {
 	framework: 'react',
+	getStore() {
+		if (!lastKernel) {
+			throw new Error('React v3 driver: getStore called before mount');
+		}
+		return {
+			getState: () => projectStoreState(lastKernel as ConsentKernel),
+			subscribe: (listener) =>
+				(lastKernel as ConsentKernel).subscribe(() => {
+					listener();
+				}),
+		};
+	},
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const lifecycle = lifecycleTransportFor(opts);
-		const options = {
-			...buildProviderOptions(opts),
-			...(lifecycle.transport ? { transport: lifecycle.transport } : {}),
-		};
+		const options = buildProviderOptions(opts);
+		if (lifecycle.transport) {
+			options.transport = lifecycle.transport;
+		}
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};
-		const settled = new Promise<void>((resolve) => {
+		const settled = createVoidDeferredPromise((resolve) => {
 			resolveSettled = resolve;
 		});
 
@@ -489,48 +568,40 @@ const driver: TestDriver = {
 		}
 
 		return {
-			root: container,
 			resolveInit: lifecycle.resolve
 				? async () => {
 						lifecycle.resolve?.();
 						await flushScheduler();
 					}
 				: undefined,
+			root: container,
 			unmount: async () => {
 				root.unmount();
 				await flushScheduler();
 				container.replaceChildren();
 				container.remove();
-				if (lastKernel === mountedKernel) lastKernel = null;
+				if (lastKernel === mountedKernel) {
+					lastKernel = null;
+				}
 			},
 		};
 	},
-	getStore() {
-		if (!lastKernel) {
-			throw new Error('React v3 driver: getStore called before mount');
-		}
-		return {
-			getState: () => projectStoreState(lastKernel as ConsentKernel),
-			subscribe: (listener) =>
-				(lastKernel as ConsentKernel).subscribe(() => {
-					listener();
-				}),
-		};
-	},
-	async serverRender(opts: MountOptions): Promise<string> {
+	serverRender(opts: MountOptions): Promise<string> {
 		const options = buildProviderOptions(opts);
-		return renderToString(
-			renderTree(opts, options, () => {
-				// Server render does not expose a live store to the conformance suite.
-			})
+		return Promise.resolve(
+			renderToString(
+				renderTree(opts, options, () => {
+					// Server render does not expose a live store to the conformance suite.
+				})
+			)
 		);
 	},
 };
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

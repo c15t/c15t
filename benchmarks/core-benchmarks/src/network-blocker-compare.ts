@@ -15,12 +15,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - install/dispose lifecycle cost
  */
 import { join } from 'node:path';
+
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import type { NetworkBlockerConfig as V2NetworkBlockerConfig } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core/v3';
-import {
-	createNetworkBlocker,
-	type NetworkBlockerRule,
-} from '@c15t/core/v3/modules/network-blocker';
+import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
+import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();
@@ -28,44 +29,54 @@ ensureBenchmarkDom();
 // Pretend browser: minimal XMLHttpRequest + window.fetch on window.
 class StubXHR {
 	onerror: ((e: unknown) => void) | null = null;
-	listeners = new Map<string, Array<(e: unknown) => void>>();
-	open(_m: string, _u: string) {}
-	send() {}
-	abort() {}
+	listeners = new Map<string, ((e: unknown) => void)[]>();
+	open(_m: string, _u: string) {
+		void this.listeners;
+	}
+	send() {
+		void this.listeners;
+	}
+	abort() {
+		void this.listeners;
+	}
 	addEventListener(e: string, h: (e: unknown) => void) {
 		const b = this.listeners.get(e) ?? [];
 		b.push(h);
 		this.listeners.set(e, b);
 	}
-	removeEventListener() {}
+	removeEventListener() {
+		void this.listeners;
+	}
 	dispatchEvent() {
+		void this.listeners;
 		return true;
 	}
 }
-// biome-ignore lint/suspicious/noExplicitAny: node global stub
+// oxlint-disable-next-line typescript/no-explicit-any -- node global stub
 (globalThis as any).XMLHttpRequest = StubXHR;
 // Ensure window.fetch exists and returns cheaply.
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const baseFetch = async () => new Response('ok', { status: 200 });
-// biome-ignore lint/suspicious/noExplicitAny: node stub
+// oxlint-disable-next-line typescript/no-explicit-any -- node stub
 (globalThis.window as any).fetch = baseFetch;
 // v2's blocker dispatches ProgressEvent on XHR errors; stub it.
 if (
 	typeof (globalThis as unknown as { ProgressEvent?: unknown })
 		.ProgressEvent === 'undefined'
 ) {
-	// biome-ignore lint/suspicious/noExplicitAny: minimal stub
-	(globalThis as any).ProgressEvent = class {
-		type: string;
-		constructor(type: string) {
-			this.type = type;
-		}
+	// oxlint-disable-next-line typescript/no-explicit-any -- minimal stub
+	(globalThis as any).ProgressEvent = function ProgressEvent(
+		this: { type: string },
+		type: string
+	) {
+		this.type = type;
 	};
 }
 
 const RULES: NetworkBlockerRule[] = [
-	{ domain: 'google-analytics.com', category: 'marketing' },
-	{ domain: 'facebook.net', category: 'marketing' },
-	{ domain: 'hotjar.com', category: 'measurement' },
+	{ category: 'marketing', domain: 'google-analytics.com' },
+	{ category: 'marketing', domain: 'facebook.net' },
+	{ category: 'measurement', domain: 'hotjar.com' },
 ];
 
 // Target URLs: 1 in 3 hits a blocked rule (marketing declined).
@@ -78,7 +89,10 @@ const URLS = [
 	'https://hotjar.com/trace',
 ];
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -86,113 +100,121 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '1000');
 
-function pct(v2: number, v3: number): string {
+const pct = function pct(v2: number, v3: number): string {
 	const d = ((v3 - v2) / v2) * 100;
 	const sign = d >= 0 ? '+' : '';
 	return `${sign}${d.toFixed(1)}%`;
-}
+};
 
 // ---- v2: createConsentManagerStore installs blocker via networkBlocker config
 
-function runV2Fetch(): number[] {
+const runV2Fetch = function runV2Fetch(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
+	const networkBlocker = {
+		enabled: true,
+		logBlockedRequests: false,
+		rules: RULES,
+	} satisfies V2NetworkBlockerConfig;
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
-		// biome-ignore lint/suspicious/noExplicitAny: v2 config shape
-		networkBlocker: {
-			enabled: true,
-			rules: RULES,
-			logBlockedRequests: false,
-		} as any,
+		networkBlocker,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
-		void window.fetch(URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		void window.fetch(url);
 	});
-}
+};
 
-function runV2XHR(): number[] {
+const runV2XHR = function runV2XHR(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
+	const networkBlocker = {
+		enabled: true,
+		logBlockedRequests: false,
+		rules: RULES,
+	} satisfies V2NetworkBlockerConfig;
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
-		// biome-ignore lint/suspicious/noExplicitAny: v2 config shape
-		networkBlocker: {
-			enabled: true,
-			rules: RULES,
-			logBlockedRequests: false,
-		} as any,
+		networkBlocker,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
 		const xhr = new XMLHttpRequest();
-		xhr.open('GET', URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		xhr.open('GET', url);
 		xhr.send();
 	});
-}
+};
 
 // ---- v3: createNetworkBlocker hook-style
 
-function runV3Fetch(): number[] {
+const runV3Fetch = function runV3Fetch(): number[] {
 	const kernel = createConsentKernel({
 		initialConsents: {
-			necessary: true,
+			experience: false,
 			functionality: true,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		},
 	});
 	createNetworkBlocker({
 		kernel,
-		rules: RULES,
 		logBlockedRequests: false,
+		rules: RULES,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
-		void window.fetch(URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		void window.fetch(url);
 	});
-}
+};
 
-function runV3XHR(): number[] {
+const runV3XHR = function runV3XHR(): number[] {
 	const kernel = createConsentKernel({
 		initialConsents: {
-			necessary: true,
+			experience: false,
 			functionality: true,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		},
 	});
 	createNetworkBlocker({
 		kernel,
-		rules: RULES,
 		logBlockedRequests: false,
+		rules: RULES,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
 		const xhr = new XMLHttpRequest();
-		xhr.open('GET', URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		xhr.open('GET', url);
 		xhr.send();
 	});
-}
+};
 
 const v2Fetch = summarize(runV2Fetch());
 const v3Fetch = summarize(runV3Fetch());
@@ -225,9 +247,9 @@ writeFileSync(
 	join(outputDir, 'network-blocker-compare.json'),
 	`${JSON.stringify(
 		{
-			suite: 'network-blocker-compare',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
+			suite: 'network-blocker-compare',
 			v2: { fetch: v2Fetch, xhr: v2Xhr },
 			v3: { fetch: v3Fetch, xhr: v3Xhr },
 		},

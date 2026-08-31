@@ -1,9 +1,29 @@
 import type { TranslationConfig, Translations } from '@c15t/core';
 
 /**
+ * Type guard to check if a value is a valid Translations object.
+ */
+export const isTranslations = function isTranslations(
+	value: unknown
+): value is Translations {
+	if (!value || typeof value !== 'object') {
+		return false;
+	}
+
+	const obj = value as Record<string, unknown>;
+	const hasRequiredKeys =
+		'cookieBanner' in obj &&
+		'consentManagerDialog' in obj &&
+		'consentTypes' in obj &&
+		'common' in obj;
+
+	return hasRequiredKeys;
+};
+
+/**
  * Resolves translations based on the provided configuration and default language.
  */
-export function resolveTranslations(
+export const resolveTranslations = function resolveTranslations(
 	translationConfig: Partial<TranslationConfig>,
 	defaultTranslationConfig: TranslationConfig
 ): Translations {
@@ -22,22 +42,4 @@ export function resolveTranslations(
 
 	// Fallback to core default English translations
 	return defaultTranslationConfig.translations.en as Translations;
-}
-
-/**
- * Type guard to check if a value is a valid Translations object.
- */
-export function isTranslations(value: unknown): value is Translations {
-	if (!value || typeof value !== 'object') {
-		return false;
-	}
-
-	const obj = value as Record<string, unknown>;
-	const hasRequiredKeys =
-		'cookieBanner' in obj &&
-		'consentManagerDialog' in obj &&
-		'consentTypes' in obj &&
-		'common' in obj;
-
-	return hasRequiredKeys;
-}
+};

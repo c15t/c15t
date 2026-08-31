@@ -1,6 +1,9 @@
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import { forwardRef, type Ref } from 'react';
-import { Box, type BoxProps } from '../../shared/primitives/box';
+import { forwardRef as createForwardRef } from 'react';
+import type { Ref } from 'react';
+
+import { Box } from '../../shared/primitives/box';
+import type { BoxProps } from '../../shared/primitives/box';
 
 /**
  * Footer component for consent management actions.
@@ -10,38 +13,39 @@ import { Box, type BoxProps } from '../../shared/primitives/box';
  * - Supports customization through theme
  * - Maintains consistent layout
  */
-export const ConsentWidgetFooter = forwardRef<
+export const ConsentWidgetFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.footer}
-			data-testid="consent-widget-footer"
-			{...props}
-			themeKey="consentWidgetFooter"
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.footer}
+		data-testid="consent-widget-footer"
+		{...props}
+		themeKey="consentWidgetFooter"
+	>
+		{children}
+	</Box>
+));
 
-export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
-	({ children, ...props }, ref) => {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.footerSubGroup}
-				data-testid="consent-widget-footer-sub-group"
-				{...props}
-				themeKey="consentWidgetFooterSubGroup"
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+ConsentWidgetFooter.displayName = 'ConsentWidgetFooter';
+
+export const ConsentWidgetFooterSubGroup = createForwardRef<
+	HTMLDivElement,
+	BoxProps
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.footerSubGroup}
+		data-testid="consent-widget-footer-sub-group"
+		{...props}
+		themeKey="consentWidgetFooterSubGroup"
+	>
+		{children}
+	</Box>
+));
+
+ConsentWidgetFooterSubGroup.displayName = 'ConsentWidgetFooterSubGroup';
 
 const Footer = ConsentWidgetFooter;
 const FooterSubGroup = ConsentWidgetFooterSubGroup;

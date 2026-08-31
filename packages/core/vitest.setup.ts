@@ -9,26 +9,17 @@ import 'vitest-localstorage-mock';
 
 // Create simple storage implementation
 const mockStorage = {
-	store: new Map(),
-	getItem: vi.fn((key) => mockStorage.store.get(key) || null),
-	setItem: vi.fn((key, value) => mockStorage.store.set(key, value)),
-	removeItem: vi.fn((key) => mockStorage.store.delete(key)),
 	clear: vi.fn(() => mockStorage.store.clear()),
-	length: 0,
+	getItem: vi.fn((key) => mockStorage.store.get(key) || null),
 	key: vi.fn(() => null),
+	length: 0,
+	removeItem: vi.fn((key) => mockStorage.store.delete(key)),
+	setItem: vi.fn((key, value) => mockStorage.store.set(key, value)),
+	store: new Map(),
 };
 
 // Create a mock window object with location property
 const mockWindow = {
-	localStorage: mockStorage,
-	location: {
-		origin: 'https://test.example.com',
-		pathname: '/',
-		search: '',
-		hash: '',
-		href: 'https://test.example.com/',
-	},
-	fetch: vi.fn(() => Promise.resolve(new Response())),
 	XMLHttpRequest: class MockXMLHttpRequest {
 		static UNSENT = 0;
 		static OPENED = 1;
@@ -51,6 +42,15 @@ const mockWindow = {
 		getResponseHeader = vi.fn();
 		getAllResponseHeaders = vi.fn();
 	},
+	fetch: vi.fn(() => Promise.resolve(new Response())),
+	localStorage: mockStorage,
+	location: {
+		hash: '',
+		href: 'https://test.example.com/',
+		origin: 'https://test.example.com',
+		pathname: '/',
+		search: '',
+	},
 };
 
 // If globals don't exist (Node.js environment), mock them
@@ -65,12 +65,12 @@ if (typeof location === 'undefined') {
 
 if (typeof document === 'undefined') {
 	vi.stubGlobal('document', {
+		addEventListener: vi.fn(),
+		cookie: '',
 		createElement: vi.fn(),
 		dispatchEvent: vi.fn(),
-		addEventListener: vi.fn(),
-		removeEventListener: vi.fn(),
 		querySelector: vi.fn(),
-		cookie: '',
+		removeEventListener: vi.fn(),
 	});
 }
 
@@ -86,7 +86,7 @@ export const mockDocument = globalThis.document;
 export { fetchMock };
 
 // Helper function for tracking blocker tests
-export function createRejectingFetch(
+export const createRejectingFetch = function createRejectingFetch(
 	predicateFn: (url: string, options?: RequestInit) => boolean
 ) {
 	return vi.fn().mockImplementation((url: string, options?: RequestInit) => {
@@ -97,4 +97,4 @@ export function createRejectingFetch(
 		}
 		return Promise.resolve(new Response());
 	});
-}
+};

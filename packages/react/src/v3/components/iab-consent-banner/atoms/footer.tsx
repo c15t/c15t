@@ -1,7 +1,9 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
+
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
@@ -19,7 +21,7 @@ interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const IABConsentBannerFooter = forwardRef<
+const IABConsentBannerFooter = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps
 >(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
@@ -28,8 +30,8 @@ const IABConsentBannerFooter = forwardRef<
 	const themedStyle = mergeSlotProps(components?.['iab-banner']?.footer, {
 		baseClassName: styles.footer,
 		className,
-		noStyle,
 		'data-testid': dataTestId ?? 'iab-consent-banner-footer',
+		noStyle,
 		...props,
 	});
 

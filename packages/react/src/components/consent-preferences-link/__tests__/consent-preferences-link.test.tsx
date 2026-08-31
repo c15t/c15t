@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogLink } from '~/components/consent-dialog-link';
 import {

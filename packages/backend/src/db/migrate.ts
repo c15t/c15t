@@ -30,13 +30,20 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
-import { type ApplyOptions, apply, LEDGER_TABLE, plan } from './adopt';
-import { classify, type Shape } from './classify';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
+
+import { apply, LEDGER_TABLE, plan } from './adopt';
+import type { ApplyOptions } from './adopt';
+import { classify } from './classify';
+import type { DatabaseClassification } from './classify';
 import type { UnsupportedDialectError } from './dialect';
 import { up as baselineUp } from './migrations/1-baseline';
 import { up as indexesUp } from './migrations/2-hot-path-indexes';
 import { encodeRow, encoder } from './values';
+
+const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
+const assignInOrder = Object.assign;
 
 export interface Migration {
 	/** Ledger id. Ordered, and never reused once shipped. */
@@ -78,7 +85,7 @@ export interface MigrateOptions extends ApplyOptions {
 
 export interface MigrateReport {
 	/** What the database looked like before anything ran. */
-	readonly shape: Shape;
+	readonly [DATABASE_CLASSIFICATION_KEY]: DatabaseClassification;
 	/** Adoption steps applied, or that would be, reaching the baseline. */
 	readonly adoption: readonly string[];
 	/** Numbered migrations applied, or that would be, after the baseline. */
@@ -105,14 +112,9 @@ export interface MigrateReport {
  * `migrate` creates the ledger part-way through, so it is precisely the code
  * that would trip over this.
  */
-const ledgerExists = Effect.gen(function* () {
+const ledgerExists = Effect.gen(function* ledgerExists() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{ name: string }>`
-				select name from sqlite_master
-				where type = 'table' and name = ${LEDGER_TABLE}
-			`,
 		mysql: () =>
 			sql<{ name: string }>`
 				select table_name as name from information_schema.tables
@@ -123,12 +125,17 @@ const ledgerExists = Effect.gen(function* () {
 				select table_name as name from information_schema.tables
 				where table_schema = current_schema() and table_name = ${LEDGER_TABLE}
 			`,
+		sqlite: () =>
+			sql<{ name: string }>`
+				select name from sqlite_master
+				where type = 'table' and name = ${LEDGER_TABLE}
+			`,
 	});
 	return rows.length > 0;
 });
 
 /** Migration ids already recorded in the ledger. */
-const appliedIds = Effect.gen(function* () {
+const appliedIds = Effect.gen(function* appliedIds() {
 	if (!(yield* ledgerExists)) {
 		// The state of every database that has not been adopted yet.
 		return new Set<number>();
@@ -141,14 +148,14 @@ const appliedIds = Effect.gen(function* () {
 	return new Set(rows.map((row) => Number(row.id)));
 });
 
-const stamp = Effect.fn('migrate.stamp')(function* (migration: Migration) {
+const stamp = Effect.fn('migrate.stamp')(function* stamp(migration: Migration) {
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`
 		insert into ${sql(LEDGER_TABLE)} ${sql.insert(
 			encodeRow(yield* encoder, {
+				appliedAt: new Date(),
 				id: migration.id,
 				name: migration.name,
-				appliedAt: new Date(),
 			})
 		)}
 	`;
@@ -166,12 +173,13 @@ const stamp = Effect.fn('migrate.stamp')(function* (migration: Migration) {
  * Postgres only: MySQL scopes by database and SQLite by file, neither of
  * which a migrator should be creating behind the operator's back.
  */
-const ensureSchema = Effect.gen(function* () {
+const ensureSchema = Effect.gen(function* ensureSchema() {
 	const sql = yield* SqlClient.SqlClient;
 
 	yield* sql.onDialectOrElse({
+		orElse: () => Effect.void,
 		pg: () =>
-			Effect.gen(function* () {
+			Effect.gen(function* pg() {
 				const rows = yield* sql<{ schema: string | null }>`
 					select current_schema() as ${sql('schema')}
 				`;
@@ -185,14 +193,13 @@ const ensureSchema = Effect.gen(function* () {
 				const head = (path[0]?.search_path ?? '')
 					.split(',')[0]
 					?.trim()
-					.replace(/^"|"$/g, '');
+					.replace(/^"|"$/gu, '');
 
 				if (!head || head === '$user') {
 					return;
 				}
 				yield* sql.unsafe(`create schema if not exists "${head}"`);
 			}),
-		orElse: () => Effect.void,
 	});
 });
 
@@ -211,12 +218,12 @@ const ensureSchema = Effect.gen(function* () {
  * }
  * ```
  */
-export const migrate = Effect.fn('db.migrate')(function* (
+export const migrate = Effect.fn('db.migrate')(function* migrate(
 	options: MigrateOptions = {}
 ) {
 	yield* ensureSchema;
 
-	const shape = yield* classify;
+	const classification = yield* classify;
 	const adoption = yield* plan;
 
 	// A blocked plan is reported, not attempted. The caller decides whether to
@@ -225,14 +232,14 @@ export const migrate = Effect.fn('db.migrate')(function* (
 	const skippable =
 		adoption.orphans.length > 0 && options.skipForeignKeys === true;
 	if (adoption.blocked !== undefined && !skippable) {
-		return {
-			shape,
-			adoption: [],
-			pending: [],
-			retained: adoption.retained,
-			blocked: adoption.blocked,
-			applied: false,
-		} satisfies MigrateReport;
+		return assignInOrder(
+			{ [DATABASE_CLASSIFICATION_KEY]: classification },
+			{ adoption: [] },
+			{ pending: [] },
+			{ retained: adoption.retained },
+			{ blocked: adoption.blocked },
+			{ applied: false }
+		) satisfies MigrateReport;
 	}
 
 	// Read before adopting: adoption stamps id 1, so asking afterwards would
@@ -246,14 +253,14 @@ export const migrate = Effect.fn('db.migrate')(function* (
 	const adoptionSteps = adoption.steps.map((step) => step.description);
 
 	if (options.dryRun === true) {
-		return {
-			shape,
-			adoption: adoptionSteps,
-			pending: pending.map((migration) => migration.name),
-			retained: adoption.retained,
-			blocked: undefined,
-			applied: false,
-		} satisfies MigrateReport;
+		return assignInOrder(
+			{ [DATABASE_CLASSIFICATION_KEY]: classification },
+			{ adoption: adoptionSteps },
+			{ pending: pending.map((migration) => migration.name) },
+			{ retained: adoption.retained },
+			{ blocked: undefined },
+			{ applied: false }
+		) satisfies MigrateReport;
 	}
 
 	if (adoptionSteps.length > 0) {
@@ -265,12 +272,12 @@ export const migrate = Effect.fn('db.migrate')(function* (
 		yield* stamp(migration);
 	}
 
-	return {
-		shape,
-		adoption: adoptionSteps,
-		pending: pending.map((migration) => migration.name),
-		retained: adoption.retained,
-		blocked: undefined,
-		applied: true,
-	} satisfies MigrateReport;
+	return assignInOrder(
+		{ [DATABASE_CLASSIFICATION_KEY]: classification },
+		{ adoption: adoptionSteps },
+		{ pending: pending.map((migration) => migration.name) },
+		{ retained: adoption.retained },
+		{ blocked: undefined },
+		{ applied: true }
+	) satisfies MigrateReport;
 });

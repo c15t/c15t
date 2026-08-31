@@ -1,10 +1,7 @@
-<script
-	setup
-	lang="ts"
-	generic="T extends string"
->
+<script setup lang="ts" generic="T extends string">
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import { computed } from 'vue';
+
 import ConsentButton from './consent-button.vue';
 
 type ConsentActionsDirection = 'row' | 'column';
@@ -30,9 +27,9 @@ const props = withDefaults(
 	}>(),
 	{
 		direction: 'row',
-		uiProfile: 'compact',
 		primaryMode: 'stroke',
 		secondaryMode: 'stroke',
+		uiProfile: 'compact',
 	}
 );
 
@@ -85,7 +82,7 @@ const shouldFill = computed(() => {
 	return false;
 });
 
-function isPrimary(action: T) {
+const isPrimary = function isPrimary(action: T) {
 	if (props.primaryActions && props.primaryActions.length > 0) {
 		return props.primaryActions.includes(action);
 	}
@@ -93,22 +90,22 @@ function isPrimary(action: T) {
 		actionGroups.value.flat().includes('customize' as T) &&
 		action === ('customize' as T)
 	);
-}
+};
 
-function actionLabel(action: T) {
+const actionLabel = function actionLabel(action: T) {
 	return props.labels?.[action] ?? String(action);
-}
+};
 
-function actionTestId(action: T) {
+const actionTestId = function actionTestId(action: T) {
 	return props.testIds?.[action] ?? `consent-actions-${action}-button`;
-}
+};
 
-function buttonMode(action: T) {
+const buttonMode = function buttonMode(action: T) {
 	if (isPrimary(action)) {
 		return props.primaryMode;
 	}
 	return props.secondaryMode;
-}
+};
 </script>
 
 <template>

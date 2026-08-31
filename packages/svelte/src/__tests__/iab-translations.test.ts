@@ -8,18 +8,30 @@
 import type { TranslationConfig } from '@c15t/core';
 import { defaultTranslationConfig } from '@c15t/core';
 import { describe, expect, it } from 'vitest';
+
 import { getIABTranslations } from '../lib/iab-translations';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 /**
  * Helper to create a TranslationConfig with IAB overrides.
  * The config must pass isTranslations() which requires cookieBanner,
  * consentManagerDialog, consentTypes, and common keys.
  */
-function createConfigWithIABOverrides(
+const createConfigWithIABOverrides = function createConfigWithIABOverrides(
 	iabOverrides: Record<string, unknown>
 ): TranslationConfig {
-	const defaultEn = defaultTranslationConfig.translations.en!;
+	const defaultEn = getDefined(defaultTranslationConfig.translations.en);
 	return {
+		defaultLanguage: 'en',
 		translations: {
 			en: {
 				...defaultEn,
@@ -32,9 +44,8 @@ function createConfigWithIABOverrides(
 				},
 			} as TranslationConfig['translations'][string],
 		},
-		defaultLanguage: 'en',
 	};
-}
+};
 
 describe('getIABTranslations', () => {
 	describe('with no config', () => {

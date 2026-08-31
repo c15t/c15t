@@ -6,59 +6,55 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-type PackageDocsConfig = {
+interface PackageDocsConfig {
 	name: string;
 	outDir: string;
 	summary: string;
 	include: string[];
-};
+}
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
-		name: '@c15t/core',
-		outDir: 'packages/core',
-		summary:
-			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/core for root c15t imports, @c15t/react for c15t/react, and @c15t/nextjs for c15t/next.',
 		include: [
 			'frameworks/javascript/**/*.mdx',
 			'shared/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
+		name: '@c15t/core',
+		outDir: 'packages/core',
+		summary:
+			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/core for root c15t imports, @c15t/react for c15t/react, and @c15t/nextjs for c15t/next.',
 	},
 	{
-		name: '@c15t/react',
-		outDir: 'packages/react',
-		summary:
-			'React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/react for c15t/react, @c15t/core for root c15t imports, and @c15t/nextjs for c15t/next.',
 		include: [
 			'frameworks/react/**/*.mdx',
 			'shared/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
+		name: '@c15t/react',
+		outDir: 'packages/react',
+		summary:
+			'React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/react for c15t/react, @c15t/core for root c15t imports, and @c15t/nextjs for c15t/next.',
 	},
 	{
-		name: '@c15t/nextjs',
-		outDir: 'packages/nextjs',
-		summary:
-			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/nextjs for c15t/next, @c15t/core for root c15t imports, and @c15t/react for c15t/react.',
 		include: [
 			'frameworks/next/**/*.mdx',
 			'shared/**/*.mdx',
 			'integrations/**/*.mdx',
 		],
+		name: '@c15t/nextjs',
+		outDir: 'packages/nextjs',
+		summary:
+			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/nextjs for c15t/next, @c15t/core for root c15t imports, and @c15t/react for c15t/react.',
 	},
 	{
+		include: ['self-host/**/*.mdx', 'self-host/**/*.md'],
 		name: '@c15t/backend',
 		outDir: 'packages/backend',
 		summary:
 			'Self-hosted c15t backend docs for configuration, APIs, storage, policy packs, and operations.',
-		include: ['self-host/**/*.mdx', 'self-host/**/*.md'],
 	},
 	{
-		name: '@c15t/scripts',
-		outDir: 'packages/scripts',
-		summary:
-			'Consent-aware script integration docs for analytics, advertising pixels, tag managers, widgets, and custom loaders.',
 		include: [
 			'frameworks/javascript/script-loader.mdx',
 			'frameworks/react/script-loader.mdx',
@@ -66,13 +62,17 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'shared/react/guides/script-loader.mdx',
 			'integrations/**/*.mdx',
 		],
+		name: '@c15t/scripts',
+		outDir: 'packages/scripts',
+		summary:
+			'Consent-aware script integration docs for analytics, advertising pixels, tag managers, widgets, and custom loaders.',
 	},
 	{
+		include: ['cli/**/*.mdx'],
 		name: '@c15t/cli',
 		outDir: 'packages/cli',
 		summary:
 			'c15t CLI docs for setup, generation, codemods, authentication, telemetry, and self-host workflows.',
-		include: ['cli/**/*.mdx'],
 	},
 ];
 
@@ -80,7 +80,7 @@ const configsByName = new Map(
 	PACKAGE_DOCS_CONFIGS.map((config) => [config.name, config])
 );
 
-function selectedConfigs() {
+const selectedConfigs = function selectedConfigs() {
 	const requested = process.argv.slice(2);
 	if (requested.length === 0 || requested.includes('all')) {
 		return PACKAGE_DOCS_CONFIGS;
@@ -93,12 +93,12 @@ function selectedConfigs() {
 		}
 		return config;
 	});
-}
+};
 
-async function runLeadtype(config: PackageDocsConfig) {
+const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 	const outDir = join(ROOT_DIR, config.outDir);
 	rmSync(join(outDir, 'AGENTS.md'), { force: true });
-	rmSync(join(outDir, 'docs'), { recursive: true, force: true });
+	rmSync(join(outDir, 'docs'), { force: true, recursive: true });
 
 	const command = [
 		'bunx',
@@ -121,8 +121,6 @@ async function runLeadtype(config: PackageDocsConfig) {
 
 	const proc = Bun.spawn(command, {
 		cwd: ROOT_DIR,
-		stderr: 'inherit',
-		stdout: 'inherit',
 		env: {
 			...process.env,
 			// leadtype's MDX bundling exceeds Node's default heap on the larger
@@ -131,6 +129,8 @@ async function runLeadtype(config: PackageDocsConfig) {
 			NODE_OPTIONS:
 				`${process.env.NODE_OPTIONS ?? ''} --max-old-space-size=6144`.trim(),
 		},
+		stderr: 'inherit',
+		stdout: 'inherit',
 	});
 	const exitCode = await proc.exited;
 	if (exitCode !== 0) {
@@ -146,9 +146,13 @@ async function runLeadtype(config: PackageDocsConfig) {
 		agentsContent.replaceAll('(./docs/', '(./'),
 		'utf8'
 	);
-}
+};
 
-for (const config of selectedConfigs()) {
-	console.log(`Generating package docs for ${config.name}`);
-	await runLeadtype(config);
-}
+await Array.from(selectedConfigs()).reduce(
+	async (previousIteration, config) => {
+		await previousIteration;
+		console.log(`Generating package docs for ${config.name}`);
+		await runLeadtype(config);
+	},
+	Promise.resolve()
+);

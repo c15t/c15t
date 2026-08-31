@@ -5,10 +5,10 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
+
 import {
 	artifactBudgets,
 	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
 	bundleBudgets,
 	getEnvironment,
 	safeBaseSha,
@@ -16,6 +16,40 @@ import {
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking';
+import type { BenchmarkResult } from '@c15t/benchmarking';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 interface RouteSize {
 	route: string;
@@ -33,46 +67,53 @@ const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/': 'baseline',
 	'/core-only': 'core-only',
 	'/css-v2-banner-monolith': 'css-v2-banner-monolith',
-	'/css-v3-banner-modules': 'css-v3-banner-modules',
 	'/css-v2-iab-monolith': 'css-v2-iab-monolith',
-	'/css-v3-iab-modules': 'css-v3-iab-modules',
+	'/css-v3-banner-modules': 'css-v3-banner-modules',
 	'/css-v3-iab-lazy': 'css-v3-iab-lazy',
-	'/react-headless': 'react-headless',
-	'/react-banner-only': 'react-banner-only',
-	'/react-full': 'react-full',
+	'/css-v3-iab-modules': 'css-v3-iab-modules',
 	'/nextjs-basic': 'nextjs-basic',
 	'/nextjs-ssr': 'nextjs-ssr',
+	'/react-banner-only': 'react-banner-only',
+	'/react-full': 'react-full',
+	'/react-headless': 'react-headless',
 	'/v3-react-full': 'v3-react-full',
 	'/v3-react-full-aggregate': 'v3-react-full-aggregate',
 	'/v3-react-full-split': 'v3-react-full-split',
 	'/v3-react-standard-script-loader': 'v3-react-standard-script-loader',
 };
 
-async function waitForServer() {
-	for (let attempt = 0; attempt < 120; attempt += 1) {
+const waitForServer = async function waitForServer() {
+	const poll = async (attempt: number): Promise<void> => {
+		if (attempt >= 120) {
+			throw new Error('Timed out waiting for bundle benchmark server');
+		}
 		try {
 			const response = await fetch(BASE_URL);
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// The temporary artifact may already be absent.
+		}
 		await sleep(500);
-	}
+		return poll(attempt + 1);
+	};
+	await poll(0);
+};
 
-	throw new Error('Timed out waiting for bundle benchmark server');
-}
-
-async function analyzeRouteSizes() {
+const analyzeRouteSizes = async function analyzeRouteSizes() {
 	const chunkSizes = new Map<string, number>();
 
-	async function getGzipSize(chunkPath: string): Promise<number> {
+	const getGzipSize = async function getGzipSize(
+		chunkPath: string
+	): Promise<number> {
 		if (chunkSizes.has(chunkPath)) {
-			return chunkSizes.get(chunkPath)!;
+			return getDefined(chunkSizes.get(chunkPath));
 		}
 
 		try {
 			const content = await readFile(
-				join('.next', chunkPath.replace(/^\/_next\//, '')),
+				join('.next', chunkPath.replace(/^\/_next\//u, '')),
 				'utf8'
 			);
 			const gzip = gzipSync(Buffer.from(content)).length;
@@ -82,49 +123,62 @@ async function analyzeRouteSizes() {
 		} catch {
 			return 0;
 		}
-	}
+	};
 
 	const routes: RouteSize[] = [];
 	let baselineGzip = 0;
 
-	for (const routeName of Object.keys(ROUTE_TO_SCENARIO)) {
-		const response = await fetch(`${BASE_URL}${routeName}`);
-		const html = await response.text();
-		const scripts = Array.from(
-			html.matchAll(/<script[^>]+src="([^"]+)"/g),
-			(match) => match[1]
-		).filter((scriptPath): scriptPath is string =>
-			Boolean(scriptPath?.startsWith('/_next/'))
-		);
-		const styles = Array.from(
-			html.matchAll(/<link[^>]+href="([^"]+\.css[^"]*)"[^>]*>/g),
-			(match) => match[1]?.split('?')[0]
-		).filter((stylePath): stylePath is string =>
-			Boolean(stylePath?.startsWith('/_next/'))
-		);
+	await Object.keys(ROUTE_TO_SCENARIO).reduce<Promise<void>>(
+		async (previousRoute, routeName) => {
+			await previousRoute;
+			const response = await fetch(`${BASE_URL}${routeName}`);
+			const html = await response.text();
+			const scripts = Array.from(
+				html.matchAll(/<script[^>]+src="[^"]+"/gu),
+				(match) => match[0].slice(match[0].lastIndexOf('src="') + 5, -1)
+			).filter((scriptPath): scriptPath is string =>
+				Boolean(scriptPath?.startsWith('/_next/'))
+			);
+			const styles = Array.from(
+				html.matchAll(/<link[^>]+href="[^"]+\.css[^"]*"/gu),
+				(match) =>
+					match[0].slice(match[0].lastIndexOf('href="') + 6, -1).split('?')[0]
+			).filter((stylePath): stylePath is string =>
+				Boolean(stylePath?.startsWith('/_next/'))
+			);
 
-		let jsTotal = 0;
-		for (const scriptPath of new Set(scripts)) {
-			jsTotal += await getGzipSize(scriptPath);
-		}
+			let jsTotal = 0;
+			await Array.from(new Set(scripts)).reduce<Promise<void>>(
+				async (previousScript, scriptPath) => {
+					await previousScript;
+					jsTotal += await getGzipSize(scriptPath);
+				},
+				Promise.resolve()
+			);
 
-		let cssTotal = 0;
-		for (const stylePath of new Set(styles)) {
-			cssTotal += await getGzipSize(stylePath);
-		}
+			let cssTotal = 0;
+			await Array.from(new Set(styles)).reduce<Promise<void>>(
+				async (previousStyle, stylePath) => {
+					await previousStyle;
+					cssTotal += await getGzipSize(stylePath);
+				},
+				Promise.resolve()
+			);
 
-		if (routeName === '/') {
-			baselineGzip = jsTotal + cssTotal;
-		}
+			if (routeName === '/') {
+				baselineGzip = jsTotal + cssTotal;
+			}
 
-		routes.push({
-			route: routeName,
-			jsGzip: jsTotal,
-			cssGzip: cssTotal,
-			totalGzip: jsTotal + cssTotal,
-			c15tAddition: 0,
-		});
-	}
+			routes.push({
+				c15tAddition: 0,
+				cssGzip: cssTotal,
+				jsGzip: jsTotal,
+				route: routeName,
+				totalGzip: jsTotal + cssTotal,
+			});
+		},
+		Promise.resolve()
+	);
 
 	for (const route of routes) {
 		route.c15tAddition =
@@ -133,9 +187,9 @@ async function analyzeRouteSizes() {
 
 	routes.sort((a, b) => a.route.localeCompare(b.route));
 	return { routes };
-}
+};
 
-function runTarballSize(packageDir: string): {
+const runTarballSize = function runTarballSize(packageDir: string): {
 	size: number | null;
 	notes: string[];
 } {
@@ -146,15 +200,15 @@ function runTarballSize(packageDir: string): {
 	});
 
 	if (result.status !== 0 || !result.stdout) {
-		return { size: null, notes: [] };
+		return { notes: [], size: null };
 	}
 
 	try {
-		const parsed = JSON.parse(result.stdout) as Array<{
+		const parsed = JSON.parse(result.stdout) as {
 			filename?: string;
 			size?: number;
-		}>;
-		const artifact = parsed[0];
+		}[];
+		const [artifact] = parsed;
 		const notes: string[] = [];
 
 		if (artifact?.filename) {
@@ -167,23 +221,23 @@ function runTarballSize(packageDir: string): {
 			}
 		}
 
-		return { size: artifact?.size ?? null, notes };
+		return { notes, size: artifact?.size ?? null };
 	} catch {
-		return { size: null, notes: [] };
+		return { notes: [], size: null };
 	}
-}
+};
 
-function routeFixture(route: RouteSize) {
+const routeFixture = function routeFixture(route: RouteSize) {
 	return {
-		name: ROUTE_TO_SCENARIO[route.route] ?? route.route,
 		consentCount: 5,
-		scriptCount: 0,
 		localeCount: 1,
+		name: ROUTE_TO_SCENARIO[route.route] ?? route.route,
+		scriptCount: 0,
 		themeComplexity: 'minimal' as const,
 	};
-}
+};
 
-function toMarkdown(
+const toMarkdown = function toMarkdown(
 	results: BenchmarkResult[],
 	artifactResult: BenchmarkResult
 ): string {
@@ -210,18 +264,19 @@ function toMarkdown(
 	lines.push('');
 
 	return `${lines.join('\n')}\n`;
-}
+};
 
-async function stopServer(
+const stopServer = async function stopServer(
 	server: ReturnType<typeof spawn>,
 	logs: string
 ): Promise<void> {
 	const waitForExit = () =>
-		new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
-			(resolve) => {
-				server.once('exit', (code, signal) => resolve({ code, signal }));
-			}
-		);
+		createDeferredPromise<{
+			code: number | null;
+			signal: NodeJS.Signals | null;
+		}>((fulfill) => {
+			server.once('exit', (code, signal) => fulfill({ code, signal }));
+		});
 
 	let result =
 		server.exitCode !== null || server.signalCode !== null
@@ -253,9 +308,9 @@ async function stopServer(
 	if (!expectedShutdown) {
 		throw new Error(logs || 'Bundle benchmark server failed');
 	}
-}
+};
 
-async function main() {
+const main = async function main() {
 	const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/bundle';
 	const args = new Set(process.argv.slice(2));
 	const server = spawn(
@@ -279,22 +334,24 @@ async function main() {
 	const { routes } = await analyzeRouteSizes();
 
 	try {
+		const frameworkForRoute = (
+			route: RouteSize
+		): BenchmarkResult['framework'] => {
+			if (route.route.startsWith('/nextjs')) {
+				return 'nextjs';
+			}
+			return route.route === '/core-only' ? 'core' : 'react';
+		};
 		const bundleResults: BenchmarkResult[] = routes.map((route) => ({
-			schemaVersion: BENCHMARK_SCHEMA_VERSION,
-			suite: 'bundle',
-			package: '@c15t/next-bundle-bench',
-			framework: route.route.startsWith('/nextjs')
-				? 'nextjs'
-				: route.route === '/core-only'
-					? 'core'
-					: 'react',
-			runtime: 'next',
-			scenario: ROUTE_TO_SCENARIO[route.route] ?? route.route,
-			commitSha: safeCommitSha(),
 			baseSha: safeBaseSha(),
-			timestamp: new Date().toISOString(),
+			budgetDefinitions: bundleBudgets.filter(
+				(budget) => budget.metric === routeFixture(route).name
+			),
+			budgets: [],
+			commitSha: safeCommitSha(),
 			environment: getEnvironment(),
 			fixture: routeFixture(route),
+			framework: frameworkForRoute(route),
 			metrics: [
 				summarizeMetric('gzipSize', 'bytes', [route.totalGzip]),
 				summarizeMetric('jsGzipSize', 'bytes', [route.jsGzip]),
@@ -303,13 +360,13 @@ async function main() {
 					route.c15tAddition,
 				]),
 			],
-			budgetDefinitions: [
-				...bundleBudgets.filter(
-					(budget) => budget.metric === routeFixture(route).name
-				),
-			],
-			budgets: [],
 			notes: ['Route-level client bundle size benchmark.'],
+			package: '@c15t/next-bundle-bench',
+			runtime: 'next',
+			scenario: ROUTE_TO_SCENARIO[route.route] ?? route.route,
+			schemaVersion: BENCHMARK_SCHEMA_VERSION,
+			suite: 'bundle',
+			timestamp: new Date().toISOString(),
 		}));
 
 		for (const result of bundleResults) {
@@ -321,36 +378,36 @@ async function main() {
 		const nextjsTarball = runTarballSize('../../packages/nextjs');
 
 		const artifactResult: BenchmarkResult = {
-			schemaVersion: BENCHMARK_SCHEMA_VERSION,
-			suite: 'artifact',
-			package: '@c15t/next-bundle-bench',
-			framework: 'core',
-			runtime: 'npm-pack',
-			scenario: 'tarballs',
-			commitSha: safeCommitSha(),
 			baseSha: safeBaseSha(),
-			timestamp: new Date().toISOString(),
+			budgetDefinitions: artifactBudgets,
+			budgets: [],
+			commitSha: safeCommitSha(),
 			environment: getEnvironment(),
 			fixture: {
-				name: 'tarballs',
 				consentCount: 0,
-				scriptCount: 0,
 				localeCount: 0,
+				name: 'tarballs',
+				scriptCount: 0,
 				themeComplexity: 'minimal',
 			},
+			framework: 'core',
 			metrics: [
 				summarizeMetric('c15t', 'bytes', [coreTarball.size ?? 0]),
 				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size ?? 0]),
 				summarizeMetric('@c15t/nextjs', 'bytes', [nextjsTarball.size ?? 0]),
 			],
-			budgetDefinitions: artifactBudgets,
-			budgets: [],
 			notes: [
 				'Tarball sizes are captured with npm pack --json when npm is available.',
 				...coreTarball.notes,
 				...reactTarball.notes,
 				...nextjsTarball.notes,
 			],
+			package: '@c15t/next-bundle-bench',
+			runtime: 'npm-pack',
+			scenario: 'tarballs',
+			schemaVersion: BENCHMARK_SCHEMA_VERSION,
+			suite: 'artifact',
+			timestamp: new Date().toISOString(),
 		};
 
 		writeJson(
@@ -362,9 +419,9 @@ async function main() {
 			console.log(
 				JSON.stringify(
 					{
-						results: bundleResults,
 						artifact: artifactResult,
 						budgets: bundleBudgets,
+						results: bundleResults,
 					},
 					null,
 					2
@@ -377,9 +434,11 @@ async function main() {
 	} finally {
 		await stopServer(server, logs);
 	}
-}
+};
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+
 import { focusTrap } from '../../lib/actions/focus-trap';
 
 describe('focusTrap action', () => {

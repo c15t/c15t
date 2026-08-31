@@ -32,13 +32,14 @@
 
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import * as Dialect from '../dialect';
 import { createTableSql, TABLES } from '../schema';
 
 /** Table names in creation order, for callers that need the order. */
 export const TABLE_ORDER = TABLES.map((table) => table.name);
 
-export const up = Effect.gen(function* () {
+export const up = Effect.gen(function* up() {
 	const sql = yield* SqlClient.SqlClient;
 	const dialect = yield* Dialect.current;
 	const types = Dialect.typesFor(dialect);

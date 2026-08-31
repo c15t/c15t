@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { CONSENT_COMPONENT_SLOT_KEYS } from '@c15t/schema/config';
 import { describe, expect, test } from 'vitest';
 
@@ -11,8 +12,8 @@ const runtimeComponentsDir = join(
 
 const DYNAMIC_CONTEXT_SLOTS = {
 	description: ['banner', 'dialog', 'manager'],
-	tag: ['banner', 'dialog', 'manager', 'iab-banner', 'iab-dialog'],
 	link: ['banner', 'dialog', 'manager'],
+	tag: ['banner', 'dialog', 'manager', 'iab-banner', 'iab-dialog'],
 } as const;
 
 const MUST_BE_REACHABLE_SLOTS = [
@@ -52,16 +53,16 @@ const MUST_BE_REACHABLE_SLOTS = [
 	'iab-stack-item.root',
 ] as const;
 
-function getVueComponentSources() {
+const getVueComponentSources = function getVueComponentSources() {
 	return readdirSync(runtimeComponentsDir)
 		.filter((file) => file.endsWith('.vue'))
 		.map((file) => readFileSync(join(runtimeComponentsDir, file), 'utf8'));
-}
+};
 
-function extractStaticSlotPaths(source: string) {
+const extractStaticSlotPaths = function extractStaticSlotPaths(source: string) {
 	const paths = new Set<string>();
 	const componentPathPattern =
-		/config(?:\.value)?\.components\?\.(?:\[['"]([^'"]+)['"]\]|([A-Za-z_$][\w$-]*))\?\.(?:\[['"]([^'"]+)['"]\]|([A-Za-z_$][\w$-]*))/g;
+		/config(?:\.value)?\.components\?\.(?:\[['"](?<capture1>[^'"]+)['"]\]|(?<capture2>[A-Za-z_$][\w$-]*))\?\.(?:\[['"](?<capture3>[^'"]+)['"]\]|(?<capture4>[A-Za-z_$][\w$-]*))/gu;
 	let match = componentPathPattern.exec(source);
 
 	while (match) {
@@ -74,12 +75,14 @@ function extractStaticSlotPaths(source: string) {
 	}
 
 	return paths;
-}
+};
 
-function extractDynamicContextSlotPaths(source: string) {
+const extractDynamicContextSlotPaths = function extractDynamicContextSlotPaths(
+	source: string
+) {
 	const paths = new Set<string>();
 	const dynamicContextPattern =
-		/config(?:\.value)?\.components\?\.(description|tag|link)\?\.\[context\]/g;
+		/config(?:\.value)?\.components\?\.(?<capture1>description|tag|link)\?\.\[context\]/gu;
 	let match = dynamicContextPattern.exec(source);
 
 	while (match) {
@@ -91,9 +94,9 @@ function extractDynamicContextSlotPaths(source: string) {
 	}
 
 	return paths;
-}
+};
 
-function extractReachableSlotPaths() {
+const extractReachableSlotPaths = function extractReachableSlotPaths() {
 	const paths = new Set<string>();
 	for (const source of getVueComponentSources()) {
 		for (const path of extractStaticSlotPaths(source)) {
@@ -104,7 +107,7 @@ function extractReachableSlotPaths() {
 		}
 	}
 	return [...paths].sort();
-}
+};
 
 describe('Vue theme slot contract', () => {
 	test('every declared schema slot has an exact reachable Vue binding', () => {

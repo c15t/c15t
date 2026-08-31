@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 /**
@@ -170,33 +172,34 @@ declare global {
  */
 export const amplitudeManifest = {
 	...vendorManifestContract,
-	vendor: 'amplitude',
 	category: 'measurement',
 	install: [
 		{
-			type: 'setGlobal',
+			ifUndefined: true,
+
 			name: 'amplitude',
+			type: 'setGlobal',
 			value: {
-				_q: [],
 				_iq: {},
+				_q: [],
 				invoked: true,
 			},
-			ifUndefined: true,
 		},
 		{
-			type: 'defineQueueClass',
-			target: 'amplitude',
+			methods: [...AMPLITUDE_IDENTIFY_METHODS],
 			name: 'Identify',
 			queueProperty: '_q',
-			methods: [...AMPLITUDE_IDENTIFY_METHODS],
+			target: 'amplitude',
+			type: 'defineQueueClass',
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'amplitude',
+			methods: [...AMPLITUDE_PROMISE_QUEUE_METHODS],
 			queue: { property: '_q' },
 			queueFormat: 'wrappedMethodCall',
-			methods: [...AMPLITUDE_PROMISE_QUEUE_METHODS],
+			target: 'amplitude',
+			type: 'defineQueueMethods',
 		},
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		{
 			// Amplitude's snippet treats these as synchronous: queue, return void.
 			type: 'defineQueueMethods',
@@ -206,41 +209,42 @@ export const amplitudeManifest = {
 			methods: [...AMPLITUDE_SYNC_QUEUE_METHODS],
 		},
 		{
-			type: 'callGlobal',
+			args: ['{{apiKey}}', '{{initOptions}}'],
 			global: 'amplitude',
 			method: 'init',
-			args: ['{{apiKey}}', '{{initOptions}}'],
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
-		},
-	],
-	onLoadDenied: [
-		{
-			type: 'callGlobal',
-			global: 'amplitude',
-			method: 'setOptOut',
-			args: [true],
-		},
-	],
-	onConsentGranted: [
-		{
-			type: 'callGlobal',
-			global: 'amplitude',
-			method: 'setOptOut',
-			args: [false],
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
+			args: [true],
 			global: 'amplitude',
 			method: 'setOptOut',
-			args: [true],
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			args: [false],
+			global: 'amplitude',
+			method: 'setOptOut',
+			type: 'callGlobal',
+		},
+	],
+	onLoadDenied: [
+		{
+			args: [true],
+			global: 'amplitude',
+			method: 'setOptOut',
+			type: 'callGlobal',
+		},
+	],
+	vendor: 'amplitude',
 } as const satisfies VendorManifest;
 
 export interface AmplitudeOptions {
@@ -286,7 +290,7 @@ export interface AmplitudeOptions {
  * });
  * ```
  */
-export function amplitude({
+export const amplitude = function amplitude({
 	apiKey,
 	initOptions = {},
 	scriptUrl,
@@ -305,4 +309,4 @@ export function amplitude({
 			DEFAULT_AMPLITUDE_SCRIPT_URL
 		),
 	});
-}
+};

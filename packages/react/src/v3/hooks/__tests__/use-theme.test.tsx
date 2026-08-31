@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import {
-	GlobalThemeContext,
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/v3/context/theme-context';
+	StableGlobalThemeProvider,
+	StableLocalThemeProvider,
+} from '~/v3/__tests__/stable-context-providers';
+import type { ThemeContextValue } from '~/v3/context/theme-context';
+
 import { useTheme } from '../use-theme';
 
 describe('useTheme', () => {
@@ -20,9 +22,9 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
 					{children}
-				</GlobalThemeContext.Provider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -43,19 +45,19 @@ describe('useTheme', () => {
 		const localTheme: ThemeContextValue = {
 			theme: {
 				colors: {
-					primary: '#ffffff',
 					border: '#eeeeee',
+					primary: '#ffffff',
 				},
 			},
 		};
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -63,9 +65,9 @@ describe('useTheme', () => {
 			noStyle: false,
 			theme: {
 				colors: {
+					border: '#eeeeee',
 					primary: '#ffffff',
 					secondary: '#111111',
-					border: '#eeeeee',
 				},
 			},
 		});
@@ -92,11 +94,11 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 

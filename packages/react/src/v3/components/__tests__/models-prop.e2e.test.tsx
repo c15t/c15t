@@ -9,31 +9,55 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
+import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
+import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import {
 	clearConsentState,
 	defaultIABOptions,
 } from '~/v3/components/iab/__tests__/e2e-setup';
-import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
-import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
-		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
 		clear: () => {
 			store = {};
+		},
+		getItem: (key: string) => store[key] || null,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -43,7 +67,6 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 const optInOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -51,10 +74,9 @@ const optInOptions: ConsentManagerOptions = {
 		'marketing',
 		'measurement',
 	],
+	mode: 'offline',
 	offlinePolicy: {
 		policy: {
-			id: 'models-prop-opt-in-test',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -65,6 +87,8 @@ const optInOptions: ConsentManagerOptions = {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'models-prop-opt-in-test',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},
@@ -114,7 +138,7 @@ describe('models Prop E2E Tests', () => {
 			);
 
 			// Wait long enough to confirm it doesn't appear
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const banner = document.querySelector(
 				'[data-testid="iab-consent-banner-card"]'
@@ -147,7 +171,7 @@ describe('models Prop E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const dialog = document.querySelector(
 				'[data-testid="iab-consent-dialog-root"]'
@@ -183,7 +207,7 @@ describe('models Prop E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -218,7 +242,7 @@ describe('models Prop E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'

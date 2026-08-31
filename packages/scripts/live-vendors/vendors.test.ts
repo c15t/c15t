@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
+
 import { builtInScriptIntegrations } from '../src/registry';
 import type { LiveVendorProbeConfig } from './types';
 import { liveVendorProbeConfigs } from './vendors';
 
-function configsForVendor(vendor: string): LiveVendorProbeConfig[] {
+const configsForVendor = function configsForVendor(
+	vendor: string
+): LiveVendorProbeConfig[] {
 	return liveVendorProbeConfigs.filter((config) => config.vendor === vendor);
-}
+};
 
 describe('live vendor probe configs', () => {
 	it('covers every built-in script integration exactly once', () => {

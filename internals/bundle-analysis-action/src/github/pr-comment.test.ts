@@ -1,28 +1,24 @@
-import * as core from '@actions/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	createComment,
 	ensureComment,
 	findPreviousComment,
+	setPrCommentActionCoreForTests,
 	updateComment,
 } from '../github/pr-comment';
 
-// Mock @actions/core
-vi.mock('@actions/core', () => ({
-	default: {
-		setFailed: vi.fn(),
-		setOutput: vi.fn(),
-	},
+const actionCore = {
 	setFailed: vi.fn(),
 	setOutput: vi.fn(),
-}));
+};
 
 // Mock @actions/github
 const mockOctokit = {
 	rest: {
 		issues: {
-			listComments: vi.fn(),
 			createComment: vi.fn(),
+			listComments: vi.fn(),
 			updateComment: vi.fn(),
 		},
 	},
@@ -31,16 +27,17 @@ const mockOctokit = {
 describe('pr-comment', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setPrCommentActionCoreForTests(actionCore);
 	});
 
 	describe('findPreviousComment', () => {
 		it('should find previous comment with header', async () => {
 			const comments = [
 				{
-					id: 1,
 					body: '<!-- c15t:bundle-analysis:START -->\nComment content\n<!-- c15t:bundle-analysis:END -->',
+					id: 1,
 				},
-				{ id: 2, body: 'Other comment' },
+				{ body: 'Other comment', id: 2 },
 			];
 
 			mockOctokit.rest.issues.listComments.mockResolvedValue({
@@ -48,25 +45,25 @@ describe('pr-comment', () => {
 			});
 
 			const result = await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
 			);
 
 			expect(result).toEqual({
-				id: 1,
 				body: comments[0].body,
+				id: 1,
 			});
 		});
 
 		it('should return undefined when no comment found', async () => {
 			mockOctokit.rest.issues.listComments.mockResolvedValue({
-				data: [{ id: 1, body: 'Other comment' }],
+				data: [{ body: 'Other comment', id: 1 }],
 			});
 
 			const result = await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
@@ -77,14 +74,14 @@ describe('pr-comment', () => {
 
 		it('should paginate through comments', async () => {
 			const firstPage = Array.from({ length: 100 }, (_, i) => ({
-				id: i + 1,
 				body: `Comment ${i + 1}`,
+				id: i + 1,
 			}));
 
 			const secondPage = [
 				{
-					id: 101,
 					body: '<!-- c15t:bundle-analysis:START -->\nFound\n<!-- c15t:bundle-analysis:END -->',
+					id: 101,
 				},
 			];
 
@@ -93,23 +90,23 @@ describe('pr-comment', () => {
 				.mockResolvedValueOnce({ data: secondPage });
 
 			const result = await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
 			);
 
 			expect(result).toEqual({
-				id: 101,
 				body: secondPage[0].body,
+				id: 101,
 			});
 			expect(mockOctokit.rest.issues.listComments).toHaveBeenCalledTimes(2);
 		});
 
 		it('should stop pagination when fewer than perPage results', async () => {
 			const comments = [
-				{ id: 1, body: 'Comment 1' },
-				{ id: 2, body: 'Comment 2' },
+				{ body: 'Comment 1', id: 1 },
+				{ body: 'Comment 2', id: 2 },
 			];
 
 			mockOctokit.rest.issues.listComments.mockResolvedValue({
@@ -117,7 +114,7 @@ describe('pr-comment', () => {
 			});
 
 			await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
@@ -134,7 +131,7 @@ describe('pr-comment', () => {
 			});
 
 			const result = await createComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'Comment body',
@@ -143,10 +140,10 @@ describe('pr-comment', () => {
 
 			expect(result).toEqual({ id: 123 });
 			expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith({
+				body: '<!-- c15t:bundle-analysis:START -->\nComment body\n<!-- c15t:bundle-analysis:END -->',
+				issue_number: 456,
 				owner: 'test',
 				repo: 'repo',
-				issue_number: 456,
-				body: '<!-- c15t:bundle-analysis:START -->\nComment body\n<!-- c15t:bundle-analysis:END -->',
 			});
 		});
 
@@ -156,7 +153,7 @@ describe('pr-comment', () => {
 			);
 
 			const result = await createComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'Comment body',
@@ -164,7 +161,7 @@ describe('pr-comment', () => {
 			);
 
 			expect(result).toBeUndefined();
-			expect(core.setFailed).toHaveBeenCalledWith(
+			expect(actionCore.setFailed).toHaveBeenCalledWith(
 				'Failed to create comment: API Error'
 			);
 		});
@@ -175,7 +172,7 @@ describe('pr-comment', () => {
 			});
 
 			await createComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'Comment body',
@@ -195,7 +192,7 @@ describe('pr-comment', () => {
 			mockOctokit.rest.issues.updateComment.mockResolvedValue({});
 
 			await updateComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				789,
 				'Updated body',
@@ -203,10 +200,10 @@ describe('pr-comment', () => {
 			);
 
 			expect(mockOctokit.rest.issues.updateComment).toHaveBeenCalledWith({
+				body: '<!-- c15t:bundle-analysis:START -->\nUpdated body\n<!-- c15t:bundle-analysis:END -->',
+				comment_id: 789,
 				owner: 'test',
 				repo: 'repo',
-				comment_id: 789,
-				body: '<!-- c15t:bundle-analysis:START -->\nUpdated body\n<!-- c15t:bundle-analysis:END -->',
 			});
 		});
 
@@ -216,14 +213,14 @@ describe('pr-comment', () => {
 			);
 
 			await updateComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				789,
 				'Updated body',
 				'bundle-analysis'
 			);
 
-			expect(core.setFailed).toHaveBeenCalledWith(
+			expect(actionCore.setFailed).toHaveBeenCalledWith(
 				'Failed to update comment: Update failed'
 			);
 		});
@@ -232,8 +229,8 @@ describe('pr-comment', () => {
 	describe('ensureComment', () => {
 		it('should update existing comment', async () => {
 			const existingComment = {
-				id: 123,
 				body: '<!-- c15t:bundle-analysis:START -->\nOld\n<!-- c15t:bundle-analysis:END -->',
+				id: 123,
 			};
 
 			mockOctokit.rest.issues.listComments.mockResolvedValue({
@@ -242,7 +239,7 @@ describe('pr-comment', () => {
 			mockOctokit.rest.issues.updateComment.mockResolvedValue({});
 
 			await ensureComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'New body',
@@ -251,7 +248,10 @@ describe('pr-comment', () => {
 
 			expect(mockOctokit.rest.issues.updateComment).toHaveBeenCalled();
 			expect(mockOctokit.rest.issues.createComment).not.toHaveBeenCalled();
-			expect(core.setOutput).toHaveBeenCalledWith('updated_comment_id', 123);
+			expect(actionCore.setOutput).toHaveBeenCalledWith(
+				'updated_comment_id',
+				123
+			);
 		});
 
 		it('should create new comment when none exists', async () => {
@@ -263,7 +263,7 @@ describe('pr-comment', () => {
 			});
 
 			await ensureComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'New body',
@@ -272,7 +272,10 @@ describe('pr-comment', () => {
 
 			expect(mockOctokit.rest.issues.createComment).toHaveBeenCalled();
 			expect(mockOctokit.rest.issues.updateComment).not.toHaveBeenCalled();
-			expect(core.setOutput).toHaveBeenCalledWith('created_comment_id', 789);
+			expect(actionCore.setOutput).toHaveBeenCalledWith(
+				'created_comment_id',
+				789
+			);
 		});
 
 		it('should handle create failure gracefully', async () => {
@@ -282,14 +285,14 @@ describe('pr-comment', () => {
 			mockOctokit.rest.issues.createComment.mockResolvedValue(undefined);
 
 			await ensureComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'New body',
 				'bundle-analysis'
 			);
 
-			expect(core.setOutput).not.toHaveBeenCalledWith(
+			expect(actionCore.setOutput).not.toHaveBeenCalledWith(
 				'created_comment_id',
 				expect.anything()
 			);

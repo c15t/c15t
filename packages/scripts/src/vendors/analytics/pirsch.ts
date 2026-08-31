@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -31,24 +33,26 @@ const DEFAULT_PIRSCH_EXTENDED_SCRIPT_URL =
  */
 export const pirschManifest = {
 	...vendorManifestContract,
-	vendor: 'pirsch',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			defer: true,
 			attributes: {
-				id: '{{scriptElementId}}',
 				'data-code': '{{identificationCode}}',
-				'data-domain': '{{domain}}',
 				'data-dev': '{{dev}}',
-				'data-hit-endpoint': '{{hitEndpoint}}',
-				'data-event-endpoint': '{{eventEndpoint}}',
 				'data-disable-page-views': '{{disablePageViews}}',
+
+				'data-domain': '{{domain}}',
+				'data-event-endpoint': '{{eventEndpoint}}',
+				'data-hit-endpoint': '{{hitEndpoint}}',
+				id: '{{scriptElementId}}',
 			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'pirsch',
 } as const satisfies VendorManifest;
 
 export interface PirschOptions {
@@ -95,7 +99,7 @@ export interface PirschOptions {
 	scriptUrl?: string;
 }
 
-function commaListDataAttribute(
+const commaListDataAttribute = function commaListDataAttribute(
 	value: string | string[] | undefined
 ): string | undefined {
 	if (value === undefined) {
@@ -115,32 +119,38 @@ function commaListDataAttribute(
 	}
 
 	return trimToUndefined(value);
-}
+};
 
-function presenceDataAttribute(value: boolean | undefined): string | undefined {
+const presenceDataAttribute = function presenceDataAttribute(
+	value: boolean | undefined
+): string | undefined {
 	if (value === true) {
 		return '';
 	}
 
 	return undefined;
-}
+};
 
-function getPirschScriptElementId(options: PirschOptions): string {
+const getPirschScriptElementId = function getPirschScriptElementId(
+	options: PirschOptions
+): string {
 	if (options.extended === true) {
 		return 'pirschextendedjs';
 	}
 
 	return 'pianjs';
-}
+};
 
-function getPirschScriptUrl(options: PirschOptions): string {
+const getPirschScriptUrl = function getPirschScriptUrl(
+	options: PirschOptions
+): string {
 	const defaultScriptUrl =
 		options.extended === true
 			? DEFAULT_PIRSCH_EXTENDED_SCRIPT_URL
 			: DEFAULT_PIRSCH_SCRIPT_URL;
 
 	return resolveScriptUrl(trimToUndefined(options.scriptUrl), defaultScriptUrl);
-}
+};
 
 /**
  * Creates a Pirsch Analytics script.
@@ -162,7 +172,7 @@ function getPirschScriptUrl(options: PirschOptions): string {
  * });
  * ```
  */
-export function pirsch(options: PirschOptions): Script {
+export const pirsch = function pirsch(options: PirschOptions): Script {
 	const identificationCode = options.identificationCode.trim();
 	if (identificationCode.length === 0) {
 		throw new Error(
@@ -171,12 +181,12 @@ export function pirsch(options: PirschOptions): Script {
 	}
 
 	const resolved = resolveManifest(pirschManifest, {
-		identificationCode,
-		domain: commaListDataAttribute(options.domain),
 		dev: trimToUndefined(options.dev),
-		hitEndpoint: trimToUndefined(options.hitEndpoint),
-		eventEndpoint: trimToUndefined(options.eventEndpoint),
 		disablePageViews: presenceDataAttribute(options.disablePageViews),
+		domain: commaListDataAttribute(options.domain),
+		eventEndpoint: trimToUndefined(options.eventEndpoint),
+		hitEndpoint: trimToUndefined(options.hitEndpoint),
+		identificationCode,
 		scriptElementId: getPirschScriptElementId(options),
 		scriptUrl: getPirschScriptUrl(options),
 	});
@@ -195,4 +205,4 @@ export function pirsch(options: PirschOptions): Script {
 	};
 
 	return resolved;
-}
+};

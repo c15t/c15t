@@ -29,7 +29,7 @@ import {
  *
  * @internal
  */
-export function createScriptManager(
+export const createScriptManager = function createScriptManager(
 	getState: () => ConsentStoreState,
 	setState: (partial: Partial<ConsentStoreState>) => void
 ) {
@@ -46,11 +46,11 @@ export function createScriptManager(
 		} = getState();
 		const iabConsent = iab?.config.enabled
 			? {
-					vendorConsents: iab.vendorConsents,
-					vendorLegitimateInterests: iab.vendorLegitimateInterests,
 					purposeConsents: iab.purposeConsents,
 					purposeLegitimateInterests: iab.purposeLegitimateInterests,
 					specialFeatureOptIns: iab.specialFeatureOptIns,
+					vendorConsents: iab.vendorConsents,
+					vendorLegitimateInterests: iab.vendorLegitimateInterests,
 				}
 			: undefined;
 
@@ -61,8 +61,8 @@ export function createScriptManager(
 		);
 
 		const result = updateScripts(scripts, runtimeConsents, scriptIdMap, {
-			model,
 			iabConsent,
+			model,
 			nonce,
 		});
 
@@ -85,42 +85,56 @@ export function createScriptManager(
 
 	return {
 		/**
-		 * Updates scripts based on current consent state.
-		 * Loads scripts that have consent and aren't loaded yet.
-		 * Unloads scripts that no longer have consent.
+		 * Gets all currently loaded script IDs.
 		 *
-		 * @returns Object containing arrays of loaded and unloaded script IDs
+		 * @returns Array of loaded script IDs
 		 */
-		updateScripts: () => updateScriptsFn(),
+		getLoadedScriptIds: () => getLoadedScriptIds(),
 
 		/**
-		 * Sets multiple script configurations to the store.
+		 * Checks if a script is currently loaded.
 		 *
-		 * @param scripts - Array of script configurations to add
+		 * @param scriptId - ID of the script to check
+		 * @returns True if the script is loaded, false otherwise
 		 */
-		setScripts: (scripts: Script[]) => {
+		isScriptLoaded: (scriptId: string) => isScriptLoaded(scriptId),
+
+		/**
+		 * Reloads a specific script based on its configuration and current
+		 * consent state.
+		 *
+		 * @param scriptId - ID of the script to reload
+		 * @returns A promise that resolves to the reloaded script element, or
+		 * `null` if the script could not be reloaded
+		 */
+		reloadScript: (scriptId: string) => {
 			const state = getState();
-			const newScriptIdMap = { ...state.scriptIdMap };
+			const iabConsent = state.iab?.config.enabled
+				? {
+						purposeConsents: state.iab.purposeConsents,
+						purposeLegitimateInterests: state.iab.purposeLegitimateInterests,
+						specialFeatureOptIns: state.iab.specialFeatureOptIns,
 
-			// Generate random IDs for scripts that need anonymization
-			scripts.forEach((script) => {
-				if (script.anonymizeId !== false) {
-					newScriptIdMap[script.id] = generateRandomScriptId();
-				}
-			});
-
-			// Extract categories from new scripts and update consentCategories
-			const newCategories = scripts.flatMap((script) =>
-				extractConsentNamesFromCondition(script.category)
+						vendorConsents: state.iab.vendorConsents,
+						vendorLegitimateInterests: state.iab.vendorLegitimateInterests,
+					}
+				: undefined;
+			const runtimeConsents = applyPolicyScopeForRuntimeGating(
+				state.consents,
+				state.policyCategories,
+				state.policyScopeMode
 			);
-
-			setState({
-				scripts: [...state.scripts, ...scripts],
-				scriptIdMap: newScriptIdMap,
-			});
-			getState().updateConsentCategories(newCategories);
-
-			updateScriptsFn();
+			return reloadScript(
+				scriptId,
+				state.scripts,
+				runtimeConsents,
+				state.scriptIdMap,
+				{
+					iabConsent,
+					model: state.model,
+					nonce: state.nonce,
+				}
+			);
 		},
 
 		/**
@@ -146,73 +160,58 @@ export function createScriptManager(
 
 			// Create a new scriptIdMap without the removed script
 			const newScriptIdMap = { ...state.scriptIdMap };
-			delete newScriptIdMap[scriptId];
+			Reflect.deleteProperty(newScriptIdMap, scriptId);
 
 			// Remove from scripts array
 			setState({
-				scripts: state.scripts.filter((script) => script.id !== scriptId),
 				loadedScripts: {
 					...state.loadedScripts,
 					[scriptId]: false,
 				},
 				scriptIdMap: newScriptIdMap,
+
+				scripts: state.scripts.filter((script) => script.id !== scriptId),
 			});
 		},
 
 		/**
-		 * Reloads a specific script based on its configuration and current
-		 * consent state.
+		 * Sets multiple script configurations to the store.
 		 *
-		 * @param scriptId - ID of the script to reload
-		 * @returns A promise that resolves to the reloaded script element, or
-		 * `null` if the script could not be reloaded
+		 * @param scripts - Array of script configurations to add
 		 */
-		reloadScript: (scriptId: string) => {
+		setScripts: (scripts: Script[]) => {
 			const state = getState();
-			const iabConsent = state.iab?.config.enabled
-				? {
-						vendorConsents: state.iab.vendorConsents,
-						vendorLegitimateInterests: state.iab.vendorLegitimateInterests,
-						purposeConsents: state.iab.purposeConsents,
-						purposeLegitimateInterests: state.iab.purposeLegitimateInterests,
-						specialFeatureOptIns: state.iab.specialFeatureOptIns,
-					}
-				: undefined;
-			const runtimeConsents = applyPolicyScopeForRuntimeGating(
-				state.consents,
-				state.policyCategories,
-				state.policyScopeMode
-			);
-			return reloadScript(
-				scriptId,
-				state.scripts,
-				runtimeConsents,
-				state.scriptIdMap,
-				{
-					model: state.model,
-					iabConsent,
-					nonce: state.nonce,
+			const newScriptIdMap = { ...state.scriptIdMap };
+
+			// Generate random IDs for scripts that need anonymization
+			scripts.forEach((script) => {
+				if (script.anonymizeId !== false) {
+					newScriptIdMap[script.id] = generateRandomScriptId();
 				}
+			});
+
+			// Extract categories from new scripts and update consentCategories
+			const newCategories = scripts.flatMap((script) =>
+				extractConsentNamesFromCondition(script.category)
 			);
+
+			setState({
+				scriptIdMap: newScriptIdMap,
+
+				scripts: [...state.scripts, ...scripts],
+			});
+			getState().updateConsentCategories(newCategories);
+
+			updateScriptsFn();
 		},
 
 		/**
-		 * Checks if a script is currently loaded.
+		 * Updates scripts based on current consent state.
+		 * Loads scripts that have consent and aren't loaded yet.
+		 * Unloads scripts that no longer have consent.
 		 *
-		 * @param scriptId - ID of the script to check
-		 * @returns True if the script is loaded, false otherwise
+		 * @returns Object containing arrays of loaded and unloaded script IDs
 		 */
-		isScriptLoaded: (scriptId: string) => {
-			return isScriptLoaded(scriptId);
-		},
-
-		/**
-		 * Gets all currently loaded script IDs.
-		 *
-		 * @returns Array of loaded script IDs
-		 */
-		getLoadedScriptIds: () => {
-			return getLoadedScriptIds();
-		},
+		updateScripts: () => updateScriptsFn(),
 	};
-}
+};

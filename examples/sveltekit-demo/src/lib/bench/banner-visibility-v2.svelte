@@ -1,10 +1,8 @@
 <script lang="ts">
 	import type { ConsentStoreState } from 'c15t';
-	import {
-		clearConsentRuntimeCache,
-		getOrCreateConsentRuntime,
-	} from 'c15t';
+	import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from 'c15t';
 	import { onMount } from 'svelte';
+
 	import { observeBannerVisibility, getBenchState } from './banner-state';
 	import BenchmarkBanner from './benchmark-banner.svelte';
 
@@ -13,18 +11,20 @@
 	onMount(() => {
 		const runtime = getOrCreateConsentRuntime(
 			{
-				mode: 'hosted',
 				backendURL: '/api/bench-consent',
-				storageConfig: {
-					storageKey: 'svelte-bench-banner-v2',
-				},
 				callbacks: {
 					onError({ error }) {
 						const state = getBenchState('v2');
-						if (!state) return;
+						if (!state) {
+							return;
+						}
 						state.errorCount += 1;
 						state.errors.push(String(error));
 					},
+				},
+				mode: 'hosted',
+				storageConfig: {
+					storageKey: 'svelte-bench-banner-v2',
 				},
 			},
 			{ pkg: '@c15t/svelte-bench', version: '0.0.0' }
@@ -58,11 +58,12 @@
 	});
 </script>
 
-<main style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+<main
+	style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+>
 	<h1 style="margin: 0;">Svelte current API banner benchmark</h1>
 </main>
 
 {#if consentState?.activeUI === 'banner'}
 	<BenchmarkBanner onAccept={() => void consentState?.saveConsents('all')} />
 {/if}
-

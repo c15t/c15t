@@ -9,11 +9,23 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
+
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
@@ -55,9 +67,9 @@ describe('Consent Flow E2E Tests', () => {
 				expect(acceptButton).toBeInTheDocument();
 			});
 
-			const acceptButton = document.querySelector(
-				'[data-testid="consent-banner-accept-button"]'
-			)!;
+			const acceptButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-accept-button"]')
+			);
 			await fireEvent.click(acceptButton);
 
 			await waitFor(() => {
@@ -78,9 +90,9 @@ describe('Consent Flow E2E Tests', () => {
 				expect(rejectButton).toBeInTheDocument();
 			});
 
-			const rejectButton = document.querySelector(
-				'[data-testid="consent-banner-reject-button"]'
-			)!;
+			const rejectButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-reject-button"]')
+			);
 			await fireEvent.click(rejectButton);
 
 			await waitFor(() => {
@@ -103,15 +115,15 @@ describe('Consent Flow E2E Tests', () => {
 				expect(acceptButton).toBeInTheDocument();
 			});
 
-			const acceptButton = document.querySelector(
-				'[data-testid="consent-banner-accept-button"]'
-			)!;
+			const acceptButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-accept-button"]')
+			);
 			await fireEvent.click(acceptButton);
 
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(stored!);
+				const consent = JSON.parse(getDefined(stored));
 				expect(consent.consents).toBeTruthy();
 				expect(consent.consents.necessary).toBe(true);
 			});
@@ -127,15 +139,15 @@ describe('Consent Flow E2E Tests', () => {
 				expect(rejectButton).toBeInTheDocument();
 			});
 
-			const rejectButton = document.querySelector(
-				'[data-testid="consent-banner-reject-button"]'
-			)!;
+			const rejectButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-reject-button"]')
+			);
 			await fireEvent.click(rejectButton);
 
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(stored!);
+				const consent = JSON.parse(getDefined(stored));
 				expect(consent.consents.necessary).toBe(true);
 				expect(consent.consents.marketing).toBe(false);
 				expect(consent.consents.measurement).toBe(false);
@@ -146,23 +158,23 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Returning Visitor Flow', () => {
 		test('should not show banner if user has already consented', async () => {
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem('c15t', JSON.stringify(consentData));
 
 			render(BannerFixture, { options: defaultOptions });
 
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -203,7 +215,7 @@ describe('Consent Flow E2E Tests', () => {
 
 	describe('Dialog Integration', () => {
 		test('should show dialog when open prop is true', async () => {
-			render(DialogFixture, { options: defaultOptions, open: true });
+			render(DialogFixture, { open: true, options: defaultOptions });
 
 			await waitFor(() => {
 				const dialog = document.querySelector(
@@ -214,7 +226,7 @@ describe('Consent Flow E2E Tests', () => {
 		});
 
 		test('should contain widget inside dialog', async () => {
-			render(DialogFixture, { options: defaultOptions, open: true });
+			render(DialogFixture, { open: true, options: defaultOptions });
 
 			await waitFor(() => {
 				const widget = document.querySelector(
@@ -238,9 +250,11 @@ describe('Consent Flow E2E Tests', () => {
 			});
 
 			// Step 2: Click customize
-			const customizeButton = document.querySelector(
-				'[data-testid="consent-banner-customize-button"]'
-			)!;
+			const customizeButton = getDefined(
+				document.querySelector(
+					'[data-testid="consent-banner-customize-button"]'
+				)
+			);
 			await fireEvent.click(customizeButton);
 
 			// Step 3: Dialog should open
@@ -263,16 +277,18 @@ describe('Consent Flow E2E Tests', () => {
 			}
 
 			// Step 5: Save preferences
-			const saveButton = document.querySelector(
-				'[data-testid="consent-widget-footer-save-button"]'
-			)!;
+			const saveButton = getDefined(
+				document.querySelector(
+					'[data-testid="consent-widget-footer-save-button"]'
+				)
+			);
 			await fireEvent.click(saveButton);
 
 			// Step 6: Verify consent was saved
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(stored!);
+				const consent = JSON.parse(getDefined(stored));
 				expect(consent.consents).toBeTruthy();
 			});
 		});

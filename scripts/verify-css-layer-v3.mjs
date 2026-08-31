@@ -1,7 +1,14 @@
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 import { setTimeout as delay } from 'node:timers/promises';
+
 import { chromium } from 'playwright';
+
+const createDeferredPromise = function createDeferredPromise(run) {
+	const deferred = Promise.withResolvers();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 /**
  * The v3 Tailwind override contract:
@@ -17,14 +24,15 @@ import { chromium } from 'playwright';
  */
 const apps = [
 	{
-		env: 'tw3',
-		label: 'Tailwind 3',
-		port: 3211,
 		dir: 'benchmarks/tw3-test',
+		env: 'tw3',
 		expectBareUtilities: false,
 		expectImportantUtilities: true,
 		expectPreflightSurvival: true,
+		label: 'Tailwind 3',
+		port: 3211,
 	},
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	{
 		env: 'tw4',
 		label: 'Tailwind 4',
@@ -37,13 +45,13 @@ const apps = [
 		expectPreflightSurvival: false,
 	},
 	{
-		env: 'no-tw',
-		label: 'No Tailwind',
-		port: 3213,
 		dir: 'benchmarks/no-tw-test',
+		env: 'no-tw',
 		expectBareUtilities: false,
 		expectImportantUtilities: false,
 		expectPreflightSurvival: false,
+		label: 'No Tailwind',
+		port: 3213,
 	},
 ];
 
@@ -67,7 +75,7 @@ const expectedTailwindButtonByEnv = {
 /** V3_THEME colors.primary — proves tokens + data-variant chrome applied. */
 const expectedThemePrimaryBackground = 'rgb(15, 23, 42)';
 
-function startServer(app) {
+const startServer = function startServer(app) {
 	return spawn(
 		'./node_modules/.bin/next',
 		['start', '--port', String(app.port)],
@@ -76,41 +84,45 @@ function startServer(app) {
 			stdio: ['ignore', 'pipe', 'pipe'],
 		}
 	);
-}
+};
 
-async function waitForServer(url, timeoutMs = 20_000) {
+const waitForServer = async function waitForServer(url, timeoutMs = 20_000) {
 	const startedAt = Date.now();
 
 	while (Date.now() - startedAt < timeoutMs) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(url);
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// The optional generated file may not exist.
+		}
 
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await delay(250);
 	}
 
 	throw new Error(`Timed out waiting for ${url}`);
-}
+};
 
-async function stopServer(server) {
-	if (server.exitCode != null) {
+const stopServer = async function stopServer(server) {
+	if (server.exitCode !== null && server.exitCode !== undefined) {
 		return;
 	}
 
 	server.kill('SIGTERM');
-	await new Promise((resolve) => server.once('exit', resolve));
-}
+	await createDeferredPromise((resolve) => server.once('exit', resolve));
+};
 
-function assertEqual(actual, expected, message) {
+const assertEqual = function assertEqual(actual, expected, message) {
 	if (actual !== expected) {
 		throw new Error(`${message}: expected ${expected}, received ${actual}`);
 	}
-}
+};
 
-function assertNotTransparent(value, message) {
+const assertNotTransparent = function assertNotTransparent(value, message) {
 	if (
 		value === 'rgba(0, 0, 0, 0)' ||
 		value === 'transparent' ||
@@ -118,9 +130,9 @@ function assertNotTransparent(value, message) {
 	) {
 		throw new Error(`${message}: expected non-transparent, received ${value}`);
 	}
-}
+};
 
-function assertBorderIntact(styles, selector) {
+const assertBorderIntact = function assertBorderIntact(styles, selector) {
 	if (styles.borderTopStyle === 'none') {
 		throw new Error(`${selector}: expected border style to survive preflight`);
 	}
@@ -135,9 +147,9 @@ function assertBorderIntact(styles, selector) {
 		styles.borderTopColor,
 		`${selector}: expected border color to survive preflight`
 	);
-}
+};
 
-async function readStyles(locator) {
+const readStyles = function readStyles(locator) {
 	return locator.evaluate((element) => {
 		const styles = window.getComputedStyle(element);
 		return {
@@ -152,9 +164,9 @@ async function readStyles(locator) {
 			padding: styles.padding,
 		};
 	});
-}
+};
 
-async function verifyBanner(page, app) {
+const verifyBanner = async function verifyBanner(page, app) {
 	await page.goto(`http://127.0.0.1:${app.port}/v3-matrix/banner`, {
 		waitUntil: 'networkidle',
 	});
@@ -229,9 +241,9 @@ async function verifyBanner(page, app) {
 		`${app.label} v3 banner card background`
 	);
 	assertBorderIntact(cardStyles, `${app.label} v3 banner card`);
-}
+};
 
-async function verifyDialog(page, app) {
+const verifyDialog = async function verifyDialog(page, app) {
 	await page.goto(`http://127.0.0.1:${app.port}/v3-matrix/dialog`, {
 		waitUntil: 'networkidle',
 	});
@@ -245,9 +257,9 @@ async function verifyDialog(page, app) {
 		`${app.label} v3 dialog card background`
 	);
 	assertBorderIntact(dialogStyles, `${app.label} v3 dialog card`);
-}
+};
 
-async function verifyWidget(page, app) {
+const verifyWidget = async function verifyWidget(page, app) {
 	await page.goto(`http://127.0.0.1:${app.port}/v3-matrix/widget`, {
 		waitUntil: 'networkidle',
 	});
@@ -268,9 +280,9 @@ async function verifyWidget(page, app) {
 		`${app.label} v3 widget accordion item background`
 	);
 	assertBorderIntact(itemStyles, `${app.label} v3 widget accordion item`);
-}
+};
 
-async function verifyApp(browser, app) {
+const verifyApp = async function verifyApp(browser, app) {
 	const server = startServer(app);
 	const stderr = [];
 	server.stderr.on('data', (chunk) => stderr.push(chunk.toString()));
@@ -278,7 +290,7 @@ async function verifyApp(browser, app) {
 	try {
 		await waitForServer(`http://127.0.0.1:${app.port}`);
 		const page = await browser.newPage({
-			viewport: { width: 1280, height: 900 },
+			viewport: { height: 900, width: 1280 },
 		});
 
 		try {
@@ -296,22 +308,25 @@ async function verifyApp(browser, app) {
 	} finally {
 		await stopServer(server);
 	}
-}
+};
 
-async function main() {
+const main = async function main() {
 	const browser = await chromium.launch({ headless: true });
 
 	try {
-		for (const app of apps) {
+		await apps.reduce(async (previous, app) => {
+			await previous;
 			await verifyApp(browser, app);
 			console.log(`✓ ${app.label} v3 CSS compatibility checks passed`);
-		}
+		}, Promise.resolve());
 	} finally {
 		await browser.close();
 	}
-}
+};
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exitCode = 1;
-});
+}

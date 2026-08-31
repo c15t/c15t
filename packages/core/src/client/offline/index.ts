@@ -5,6 +5,7 @@
 
  */
 
+import type * as LibsCookieTypes from '../../libs/cookie';
 import type { TranslationConfig } from '../../types';
 import type {
 	ConsentManagerInterface,
@@ -19,7 +20,6 @@ import { init } from './init';
 import { setConsent } from './set-consent';
 import type { IABFallbackConfig, OfflineClientOptions } from './types';
 import { handleOfflineResponse } from './utils';
-
 /**
  * Offline implementation of the consent client interface.
  * Returns empty successful responses without making any HTTP requests.
@@ -28,13 +28,13 @@ import { handleOfflineResponse } from './utils';
  * v2.0: Subject-centric API. Use setConsent for all consent operations.
  */
 export class OfflineClient implements ConsentManagerInterface {
-	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
+	private readonly storageConfig?: LibsCookieTypes.StorageConfig;
 	private readonly initialTranslationConfig?: Partial<TranslationConfig>;
 	private readonly iabConfig?: IABFallbackConfig;
 	private readonly policyConfig?: OfflineClientOptions['policyConfig'];
 
 	constructor(
-		storageConfig?: import('../../libs/cookie').StorageConfig,
+		storageConfig?: LibsCookieTypes.StorageConfig,
 		initialTranslationConfig?: Partial<TranslationConfig>,
 		iabConfig?: IABFallbackConfig,
 		policyConfig?: OfflineClientOptions['policyConfig']
@@ -49,7 +49,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * Checks if a consent banner should be shown.
 	 * The location can be controlled via overrides in the store, but defaults to GB.
 	 */
-	async init(
+	init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
 		return init(
@@ -67,7 +67,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * @remarks
 	 * v2.0: This stores the client-generated subjectId.
 	 */
-	async setConsent(
+	setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
 		return setConsent(this.storageConfig, options);
@@ -80,7 +80,8 @@ export class OfflineClient implements ConsentManagerInterface {
 	 * @remarks
 	 * v2.0: Offline mode cannot actually link to external ID.
 	 */
-	async identifyUser(
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
+	identifyUser(
 		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>> {
 		console.warn(
@@ -92,6 +93,7 @@ export class OfflineClient implements ConsentManagerInterface {
 	/**
 	 * Makes a custom API request to any endpoint.
 	 */
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 	async $fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
 		_path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -17,6 +18,9 @@ describe('posthog', () => {
 		const optIn = vi.fn();
 		const optOut = vi.fn();
 		globalRef.posthog = {
+			capture: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
+			// oxlint-disable-next-line func-name-matching -- Preserve declaration order, interface shape, and public compatibility.
 			init: function initWithReceiver(
 				token: string,
 				options: Record<string, unknown>
@@ -25,21 +29,19 @@ describe('posthog', () => {
 			},
 			opt_in_capturing: optIn,
 			opt_out_capturing: optOut,
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			capture: vi.fn(),
 		};
 
 		const script = posthog({
-			id: 'phc_123',
 			apiHost: 'https://eu.i.posthog.com',
-			scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+			id: 'phc_123',
 			initOptions: {
 				api_host: 'https://eu.i.posthog.com',
-				ui_host: 'https://eu.i.posthog.com',
 				autocapture: false,
-				person_profiles: 'identified_only',
 				cookieless_mode: 'on_reject',
+				person_profiles: 'identified_only',
+				ui_host: 'https://eu.i.posthog.com',
 			},
+			scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
 		});
 
 		expect(script.src).toBe('https://eu-assets.i.posthog.com/static/array.js');
@@ -51,26 +53,26 @@ describe('posthog', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
 		expect(init).toHaveBeenCalledWith(globalRef.posthog, 'phc_123', {
 			api_host: 'https://eu.i.posthog.com',
-			ui_host: 'https://eu.posthog.com',
 			autocapture: false,
-			person_profiles: 'identified_only',
 			cookieless_mode: 'on_reject',
 			defaults: '2026-01-30',
+			person_profiles: 'identified_only',
+			ui_host: 'https://eu.posthog.com',
 		});
 		expect(optOut).toHaveBeenCalledTimes(1);
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -81,11 +83,11 @@ describe('posthog', () => {
 		const globalRef = getTestGlobal();
 		const init = vi.fn();
 		globalRef.posthog = {
+			capture: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
 			init,
 			opt_in_capturing: vi.fn(),
 			opt_out_capturing: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			capture: vi.fn(),
 		};
 
 		const script = posthog({
@@ -101,16 +103,16 @@ describe('posthog', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
+				id: script.id,
 			})
 		);
 
 		expect(init).toHaveBeenCalledWith('phc_defaults', {
 			api_host: 'https://eu.i.posthog.com',
-			ui_host: 'https://eu.posthog.com',
-			defaults: '2026-01-30',
 			cookieless_mode: 'on_reject',
+			defaults: '2026-01-30',
+			ui_host: 'https://eu.posthog.com',
 		});
 	});
 
@@ -118,11 +120,11 @@ describe('posthog', () => {
 		const globalRef = getTestGlobal();
 		const init = vi.fn();
 		globalRef.posthog = {
+			capture: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
 			init,
 			opt_in_capturing: vi.fn(),
 			opt_out_capturing: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			capture: vi.fn(),
 		};
 
 		const script = posthog({
@@ -139,23 +141,23 @@ describe('posthog', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
+				id: script.id,
 			})
 		);
 
 		expect(init).toHaveBeenCalledWith('phc_us', {
 			api_host: 'https://us.i.posthog.com',
-			ui_host: 'https://us.posthog.com',
-			defaults: '2026-01-30',
 			cookieless_mode: 'on_reject',
+			defaults: '2026-01-30',
+			ui_host: 'https://us.posthog.com',
 		});
 	});
 
 	it('derives the bootstrap script URL from an explicit API host', () => {
 		const script = posthog({
-			id: 'phc_us_host',
 			apiHost: 'https://us.i.posthog.com',
+			id: 'phc_us_host',
 		});
 
 		expect(script.src).toBe('https://us-assets.i.posthog.com/static/array.js');
@@ -170,19 +172,19 @@ describe('posthog', () => {
 		const globalRef = getTestGlobal();
 		const init = vi.fn();
 		globalRef.posthog = {
+			capture: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
 			init,
 			opt_in_capturing: vi.fn(),
 			opt_out_capturing: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			capture: vi.fn(),
 		};
 
 		const script = posthog({
+			apiHost: 'https://events.example.com/posthog',
 			id: 'phc_custom',
 			region: 'us',
-			apiHost: 'https://events.example.com/posthog',
-			uiHost: 'https://app.example.com/posthog',
 			scriptUrl: 'https://cdn.example.com/posthog/array.js',
+			uiHost: 'https://app.example.com/posthog',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/posthog/array.js');
@@ -194,24 +196,24 @@ describe('posthog', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
+				id: script.id,
 			})
 		);
 
 		expect(init).toHaveBeenCalledWith('phc_custom', {
 			api_host: 'https://events.example.com/posthog',
-			ui_host: 'https://app.example.com/posthog',
-			defaults: '2026-01-30',
 			cookieless_mode: 'on_reject',
+			defaults: '2026-01-30',
+			ui_host: 'https://app.example.com/posthog',
 		});
 	});
 
 	it('uses explicit region UI host for custom API hosts', () => {
 		const script = posthog({
+			apiHost: 'https://events.example.com/posthog',
 			id: 'phc_custom_region',
 			region: 'us',
-			apiHost: 'https://events.example.com/posthog',
 		});
 
 		expect(script.attributes).toEqual({
@@ -238,9 +240,9 @@ describe('posthog', () => {
 		});
 
 		expect(script).toEqual({
-			id: 'posthog',
-			category: 'measurement',
 			callbackOnly: true,
+			category: 'measurement',
+			id: 'posthog',
 		});
 		expect(script.src).toBeUndefined();
 		expect(script.onBeforeLoad).toBeUndefined();
@@ -252,36 +254,36 @@ describe('posthog', () => {
 		const globalRef = getTestGlobal();
 		const init = vi.fn();
 		globalRef.posthog = {
+			capture: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
 			init,
 			opt_in_capturing: vi.fn(),
 			opt_out_capturing: vi.fn(),
-			get_explicit_consent_status: vi.fn(() => 'pending'),
-			capture: vi.fn(),
 		};
 
 		const script = posthog({
-			id: 'phc_overrides',
 			apiHost: 'https://eu.i.posthog.com',
+			id: 'phc_overrides',
 			initOptions: {
 				api_host: 'https://us.i.posthog.com',
-				ui_host: 'https://us.posthog.com',
-				defaults: '2025-05-24',
 				cookieless_mode: 'always',
+				defaults: '2025-05-24',
+				ui_host: 'https://us.posthog.com',
 			},
 		});
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
 		expect(init).toHaveBeenCalledWith('phc_overrides', {
 			api_host: 'https://eu.i.posthog.com',
-			ui_host: 'https://eu.posthog.com',
-			defaults: '2025-05-24',
 			cookieless_mode: 'always',
+			defaults: '2025-05-24',
+			ui_host: 'https://eu.posthog.com',
 		});
 	});
 });

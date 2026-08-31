@@ -5,6 +5,7 @@
  */
 
 import * as v from 'valibot';
+
 import { subjectIdSchema } from './post';
 
 export const patchSubjectParamsSchema = v.object({
@@ -46,11 +47,12 @@ export const patchSubjectFullInputSchema = v.object({
  * PATCH /subject/:id output schema
  */
 export const patchSubjectOutputSchema = v.object({
-	success: v.boolean(),
 	subject: v.object({
-		id: v.string(),
 		externalId: v.string(),
+
+		id: v.string(),
 	}),
+	success: v.boolean(),
 });
 
 /**
@@ -58,8 +60,8 @@ export const patchSubjectOutputSchema = v.object({
  */
 export const patchSubjectErrorSchemas = {
 	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
 		fieldErrors: v.record(v.string(), v.array(v.string())),
+		formErrors: v.array(v.string()),
 	}),
 	subjectNotFound: v.object({
 		subjectId: v.string(),

@@ -1,5 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import type { NextConfig } from 'next';
 
 const projectDir = dirname(fileURLToPath(import.meta.url));
@@ -32,32 +33,31 @@ const transpilePackages = [
 	'@c15t/core',
 ];
 
+const turbopackResolveAlias: Record<string, string> = {
+	'bench-css-entry': cssEntryRel,
+};
+if (useStylesCss) {
+	turbopackResolveAlias['@c15t/ui/styles/components/consent-banner.module.js'] =
+		bannerShimRel;
+}
+
 const config: NextConfig = {
 	transpilePackages,
 	turbopack: {
+		resolveAlias: turbopackResolveAlias,
 		root: monorepoRoot,
-		resolveAlias: {
-			'bench-css-entry': cssEntryRel,
-			...(useStylesCss
-				? {
-						'@c15t/ui/styles/components/consent-banner.module.js':
-							bannerShimRel,
-					}
-				: {}),
-		},
 	},
 	webpack: (webpackConfig) => {
-		webpackConfig.resolve = webpackConfig.resolve ?? {};
-		webpackConfig.resolve.alias = {
+		webpackConfig.resolve ??= {};
+		const resolveAlias = {
 			...webpackConfig.resolve.alias,
 			'bench-css-entry$': cssEntryAbs,
-			...(useStylesCss
-				? {
-						'@c15t/ui/styles/components/consent-banner.module.js$':
-							bannerShimAbs,
-					}
-				: {}),
 		};
+		if (useStylesCss) {
+			resolveAlias['@c15t/ui/styles/components/consent-banner.module.js$'] =
+				bannerShimAbs;
+		}
+		webpackConfig.resolve.alias = resolveAlias;
 		return webpackConfig;
 	},
 };

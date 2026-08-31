@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 const DEFAULT_RUDDERSTACK_SCRIPT_URL =
@@ -230,58 +232,63 @@ declare global {
  */
 export const rudderstackManifest = {
 	...vendorManifestContract,
-	vendor: 'rudderstack',
-	category: 'measurement',
 	bootstrap: [
 		{
-			type: 'setGlobal',
-			name: 'rudderanalytics',
-			value: [],
 			ifUndefined: true,
+
+			name: 'rudderanalytics',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'setGlobal',
 			name: 'RudderSnippetVersion',
+			type: 'setGlobal',
 			value: '3.0.32',
 		},
 		{
-			type: 'setGlobal',
 			name: 'rudderAnalyticsBuildType',
+			type: 'setGlobal',
 			value: 'modern',
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['rudderanalytics', 'snippetExecuted'],
+			type: 'setGlobalPath',
 			value: true,
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'rudderanalytics',
 			methods: [...RUDDERSTACK_QUEUE_METHODS],
+
+			target: 'rudderanalytics',
+			type: 'defineQueueMethods',
 		},
 	],
+	category: 'measurement',
 	install: [
 		{
-			type: 'callGlobal',
+			args: ['{{writeKey}}', '{{dataPlaneUrl}}', '{{loadOptions}}'],
+
 			global: 'rudderanalytics',
 			method: 'load',
-			args: ['{{writeKey}}', '{{dataPlaneUrl}}', '{{loadOptions}}'],
+			type: 'callGlobal',
 		},
 		{
-			type: 'callGlobal',
 			global: 'rudderanalytics',
 			method: 'page',
+
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
 			attributes: {
 				'data-loader': 'RS_JS_SDK',
 				'data-rsa-write-key': '{{writeKey}}',
 			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'rudderstack',
 } as const satisfies VendorManifest;
 
 /**
@@ -371,7 +378,10 @@ export interface RudderStackOptions {
 	scriptUrl?: string;
 }
 
-function validateRequiredString(value: unknown, label: string): string {
+const validateRequiredString = function validateRequiredString(
+	value: unknown,
+	label: string
+): string {
 	const normalized = typeof value === 'string' ? value.trim() : '';
 
 	if (normalized.length === 0) {
@@ -379,9 +389,9 @@ function validateRequiredString(value: unknown, label: string): string {
 	}
 
 	return normalized;
-}
+};
 
-function validateOptionalHttpsScriptUrl(
+const validateOptionalHttpsScriptUrl = function validateOptionalHttpsScriptUrl(
 	scriptUrl: string | undefined
 ): string | undefined {
 	if (scriptUrl === undefined) {
@@ -400,13 +410,15 @@ function validateOptionalHttpsScriptUrl(
 	}
 
 	return scriptUrl;
-}
+};
 
-function isJsonObjectValue(value: unknown): value is JsonObject {
+const isJsonObjectValue = function isJsonObjectValue(
+	value: unknown
+): value is JsonObject {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+};
 
-function validateConsentMapping(
+const validateConsentMapping = function validateConsentMapping(
 	consentManagement: RudderStackConsentManagementOptions
 ): Record<string, string[]> {
 	const normalized: Record<string, string[]> = {};
@@ -445,9 +457,9 @@ function validateConsentMapping(
 	}
 
 	return normalized;
-}
+};
 
-function buildPreConsentLoadOptions(
+const buildPreConsentLoadOptions = function buildPreConsentLoadOptions(
 	loadOptions: RudderStackLoadOptions
 ): RudderStackLoadOptions {
 	let userConsentManagement: JsonObject = {};
@@ -464,9 +476,11 @@ function buildPreConsentLoadOptions(
 	// may relax it (for example 'session' for session stitching).
 	let storage: JsonObject = { strategy: 'none' };
 	if (isJsonObjectValue(userPreConsent.storage)) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		storage = userPreConsent.storage;
 	}
 
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	return {
 		...loadOptions,
 		// Deep-merged so a partial user preConsent can never drop the
@@ -476,8 +490,8 @@ function buildPreConsentLoadOptions(
 		preConsent: {
 			...userPreConsent,
 			enabled: true,
-			storage,
 			events: { delivery: 'buffer' },
+			storage,
 		},
 		consentManagement: {
 			...userConsentManagement,
@@ -485,9 +499,11 @@ function buildPreConsentLoadOptions(
 			provider: 'custom',
 		},
 	};
-}
+};
 
-function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
+const validateDataPlaneUrl = function validateDataPlaneUrl(
+	dataPlaneUrl: unknown
+): string {
 	const normalized = validateRequiredString(dataPlaneUrl, 'dataPlaneUrl');
 	let parsed: URL;
 
@@ -502,7 +518,7 @@ function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
 	}
 
 	return normalized;
-}
+};
 
 /**
  * Creates a RudderStack JavaScript SDK script.
@@ -540,7 +556,7 @@ function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
  * });
  * ```
  */
-export function rudderstack({
+export const rudderstack = function rudderstack({
 	writeKey,
 	dataPlaneUrl,
 	consentManagement,
@@ -563,10 +579,10 @@ export function rudderstack({
 		manifest = {
 			...manifest,
 			alwaysLoad: true,
-			persistAfterConsentRevoked: true,
 			consentMapping,
 			consentSignal: 'rudderstack',
 			consentSignalTarget: 'rudderanalytics',
+			persistAfterConsentRevoked: true,
 		} satisfies VendorManifest;
 		resolvedLoadOptions = buildPreConsentLoadOptions(loadOptions);
 	}
@@ -588,10 +604,10 @@ export function rudderstack({
 	return resolveManifest(manifest, {
 		dataPlaneUrl: normalizedDataPlaneUrl,
 		loadOptions: resolvedLoadOptions,
-		writeKey: normalizedWriteKey,
 		scriptUrl: resolveScriptUrl(
 			validateOptionalHttpsScriptUrl(trimToUndefined(scriptUrl)),
 			DEFAULT_RUDDERSTACK_SCRIPT_URL
 		),
+		writeKey: normalizedWriteKey,
 	});
-}
+};

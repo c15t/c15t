@@ -1,24 +1,31 @@
 import { inject } from 'vue';
+
 import {
 	symbolKernel,
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../utils/symbols';
 
-export function useConsentKernel() {
+export const useConsentKernel = function useConsentKernel() {
 	const kernel = inject(symbolKernel);
-	if (!kernel) throw new Error('[c15t] Kernel not found');
+	if (!kernel) {
+		throw new Error('[c15t] Kernel not found');
+	}
 	return kernel;
-}
+};
 
-export function useConsentSnapshot() {
+export const useConsentSnapshot = function useConsentSnapshot() {
 	const snapshot = inject(symbolSnapshot);
-	if (!snapshot) throw new Error('[c15t] Kernel snapshot not found');
+	if (!snapshot) {
+		throw new Error('[c15t] Kernel snapshot not found');
+	}
 	return snapshot;
-}
+};
 
-export function useConsentKernelContext() {
+export const useConsentKernelContext = function useConsentKernelContext() {
 	const context = inject(symbolKernelContext);
-	if (!context) throw new Error('[c15t] Kernel context not found');
+	if (!context) {
+		throw new Error('[c15t] Kernel context not found');
+	}
 	return context;
-}
+};

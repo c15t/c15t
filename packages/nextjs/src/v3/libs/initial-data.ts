@@ -6,6 +6,7 @@ import {
 } from '@c15t/react/v3/server';
 import { unstable_cache } from 'next/cache';
 import { headers as nextHeaders } from 'next/headers';
+
 import type { FetchInitialDataOptions } from '~/v3/types';
 
 const DEFAULT_REVALIDATE_SECONDS = 1;
@@ -40,7 +41,7 @@ const DEFAULT_REVALIDATE_SECONDS = 1;
  * )
  * ```
  */
-export async function fetchInitialData(
+export const fetchInitialData = async function fetchInitialData(
 	options: FetchInitialDataOptions
 ): Promise<SSRInitialData | undefined> {
 	const headers = await nextHeaders();
@@ -59,8 +60,8 @@ export async function fetchInitialData(
 	}
 
 	const cacheKey = createSSRInitCacheKey({
-		normalizedURL,
 		headers,
+		normalizedURL,
 		overrides: options.overrides,
 	});
 	const cacheTTL = revalidateSeconds ?? DEFAULT_REVALIDATE_SECONDS;
@@ -79,4 +80,4 @@ export async function fetchInitialData(
 	);
 
 	return cachedFetch();
-}
+};

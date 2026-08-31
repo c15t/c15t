@@ -3,7 +3,7 @@ name: Report Coverage
 on:
   workflow_run:
     # Important: Match the name of your testing workflow file (ci.yml -> CI)
-    workflows: ["CI"]
+    workflows: ['CI']
     types:
       - completed # Trigger when the CI workflow finishes
 
@@ -164,7 +164,7 @@ jobs:
               matrix+=("{ \"name\": \"$display_name\", \"summary_path\": \"$file\", \"final_path\": \"\" }") 
             fi
           done < <(find coverage-artifacts -path '*/coverage/coverage-summary.json' -type f)
-          
+
           echo "Generated matrix: $(IFS=,; echo "[${matrix[*]}]")"
           echo "matrix=[$(IFS=,; echo "${matrix[*]}")]" >> "$GITHUB_OUTPUT"
 
@@ -191,7 +191,7 @@ jobs:
           path: coverage-artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
-          
+
       - name: 📊 Report Coverage Comment on PR
         uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b
         with:

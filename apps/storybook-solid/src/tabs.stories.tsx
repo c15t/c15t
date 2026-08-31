@@ -3,6 +3,16 @@ import { tabsVariants } from '@c15t/solid';
 import { createSignal, For, Show } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 interface Tab {
 	value: string;
 	label: string;
@@ -11,30 +21,30 @@ interface Tab {
 
 const defaultTabs: Tab[] = [
 	{
-		value: 'overview',
-		label: 'Overview',
 		content:
 			'Use tabs for grouped content that shares a single disclosure region.',
+		label: 'Overview',
+		value: 'overview',
 	},
 	{
-		value: 'vendors',
-		label: 'Vendors',
 		content:
 			'The IAB dialog uses this pattern for purposes and vendor disclosures.',
+		label: 'Vendors',
+		value: 'vendors',
 	},
 	{
-		value: 'storage',
-		label: 'Storage',
 		content: 'Keyboard navigation supports arrow keys, Home, and End.',
+		label: 'Storage',
+		value: 'storage',
 	},
 ];
 
-function TabsDemo(props: { tabs?: Tab[] }) {
+const TabsDemo = (props: { tabs?: Tab[] }) => {
 	const tabs = () => props.tabs ?? defaultTabs;
 	const [active, setActive] = createSignal('overview');
 	const classes = tabsVariants();
 
-	function handleKeyDown(e: KeyboardEvent) {
+	const handleKeyDown = function handleKeyDown(e: KeyboardEvent) {
 		const tabValues = tabs().map((t) => t.value);
 		const currentIndex = tabValues.indexOf(active());
 
@@ -56,7 +66,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 
 		if (nextIndex !== undefined) {
 			e.preventDefault();
-			const nextValue = tabValues[nextIndex]!;
+			const nextValue = getDefined(tabValues[nextIndex]);
 			setActive(nextValue);
 			const tabList = e.currentTarget as HTMLElement;
 			const nextTab = tabList.querySelector(
@@ -64,11 +74,16 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 			) as HTMLElement | null;
 			nextTab?.focus();
 		}
-	}
+	};
 
 	return (
 		<div class={classes.root()}>
-			<div class={classes.list()} role="tablist" onKeyDown={handleKeyDown}>
+			<div
+				class={classes.list()}
+				role="tablist"
+				onKeyDown={handleKeyDown}
+				tabIndex={-1}
+			>
 				<For each={tabs()}>
 					{(tab) => (
 						<button
@@ -109,7 +124,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 			</For>
 		</div>
 	);
-}
+};
 
 const meta = {
 	component: TabsDemo,
@@ -138,7 +153,7 @@ export const Controlled: Story = {
 		const [value, setValue] = createSignal('vendors');
 		const classes = tabsVariants();
 
-		function handleKeyDown(e: KeyboardEvent) {
+		const handleKeyDown = function handleKeyDown(e: KeyboardEvent) {
 			const tabValues = ['overview', 'vendors'];
 			const currentIndex = tabValues.indexOf(value());
 
@@ -160,7 +175,7 @@ export const Controlled: Story = {
 
 			if (nextIndex !== undefined) {
 				e.preventDefault();
-				const nextValue = tabValues[nextIndex]!;
+				const nextValue = getDefined(tabValues[nextIndex]);
 				setValue(nextValue);
 				const tabList = e.currentTarget as HTMLElement;
 				const nextTab = tabList.querySelector(
@@ -168,11 +183,16 @@ export const Controlled: Story = {
 				) as HTMLElement | null;
 				nextTab?.focus();
 			}
-		}
+		};
 
 		return (
 			<div class={classes.root()}>
-				<div class={classes.list()} role="tablist" onKeyDown={handleKeyDown}>
+				<div
+					tabIndex={0}
+					class={classes.list()}
+					role="tablist"
+					onKeyDown={handleKeyDown}
+				>
 					<button
 						class={classes.trigger()}
 						role="tab"

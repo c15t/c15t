@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { C15tClient } from '../hosted';
 import { API_ENDPOINTS } from '../types';
 
@@ -29,8 +30,8 @@ describe('CORS functionality', () => {
 		// Mock the response
 		vi.mocked(window.fetch).mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
@@ -55,8 +56,8 @@ describe('CORS functionality', () => {
 		// Mock the response
 		vi.mocked(window.fetch).mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
@@ -67,7 +68,8 @@ describe('CORS functionality', () => {
 		expect(window.fetch).toHaveBeenCalledWith(
 			expect.stringContaining('/api/c15t'),
 			expect.objectContaining({
-				mode: 'cors', // Default mode
+				// Default mode
+				mode: 'cors',
 			})
 		);
 	});
@@ -80,8 +82,8 @@ describe('CORS functionality', () => {
 		// Mock the response
 		vi.mocked(window.fetch).mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
@@ -115,7 +117,8 @@ describe('CORS functionality', () => {
 		});
 
 		// Verify offline fallback behavior
-		expect(response.ok).toBe(true); // Offline fallback returns success
+		// Offline fallback returns success
+		expect(response.ok).toBe(true);
 		expect(response.data).toBeDefined();
 		// onError is called by fetcher when error occurs, before fallback
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
@@ -130,11 +133,11 @@ describe('CORS functionality', () => {
 		// Mock the response with CORS headers
 		vi.mocked(window.fetch).mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: {
-					'Content-Type': 'application/json',
 					'Access-Control-Allow-Origin': '*',
+					'Content-Type': 'application/json',
 				},
+				status: 200,
 			})
 		);
 
@@ -145,8 +148,8 @@ describe('CORS functionality', () => {
 		expect(window.fetch).toHaveBeenCalledWith(
 			expect.stringContaining('https://api.example.com/c15t'),
 			expect.objectContaining({
-				mode: 'cors',
 				credentials: 'include',
+				mode: 'cors',
 			})
 		);
 		expect(response.ok).toBe(true);
@@ -163,14 +166,14 @@ describe('CORS functionality', () => {
 		vi.mocked(window.fetch).mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					message: 'CORS policy violation: Origin not allowed',
 					code: 'CORS_ERROR',
+					message: 'CORS policy violation: Origin not allowed',
 				}),
 				{
-					status: 403,
 					headers: {
 						'Content-Type': 'application/json',
 					},
+					status: 403,
 				}
 			)
 		);
@@ -184,7 +187,8 @@ describe('CORS functionality', () => {
 		});
 
 		// Verify offline fallback behavior
-		expect(response.ok).toBe(true); // Offline fallback returns success
+		// Offline fallback returns success
+		expect(response.ok).toBe(true);
 		expect(response.data).toBeDefined();
 		// onError is called by fetcher when error occurs, before fallback
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
@@ -211,7 +215,8 @@ describe('CORS functionality', () => {
 		});
 
 		// Verify offline fallback behavior
-		expect(response.ok).toBe(true); // Offline fallback returns success
+		// Offline fallback returns success
+		expect(response.ok).toBe(true);
 		expect(response.data).toBeDefined();
 		// onError is called by fetcher when error occurs, before fallback
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
@@ -233,24 +238,26 @@ describe('CORS functionality', () => {
 
 		// Make the request with a custom header to trigger preflight - should fallback to offline mode
 		const response = await client.setConsent({
-			onError: onErrorMock,
-			headers: {
-				'X-Custom-Header': 'value', // Custom header would trigger preflight
-			},
 			body: {
-				type: 'terms_and_conditions',
+				domain: 'example.com',
 				externalSubjectId: '',
 				givenAt: Date.now(),
-				subjectId: '',
-				domain: 'example.com',
 				preferences: {
 					analytics: true,
 				},
+				subjectId: '',
+				type: 'terms_and_conditions',
 			},
+			headers: {
+				// Custom header would trigger preflight
+				'X-Custom-Header': 'value',
+			},
+			onError: onErrorMock,
 		});
 
 		// Verify offline fallback behavior
-		expect(response.ok).toBe(true); // Offline fallback returns success
+		// Offline fallback returns success
+		expect(response.ok).toBe(true);
 		// onError is called by fetcher when error occurs, before fallback
 		expect(onErrorMock).toHaveBeenCalledTimes(1);
 	});
@@ -261,8 +268,8 @@ describe('CORS functionality', () => {
 		// Override fetch to capture the actual options passed
 		const fetchMock = vi.fn().mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 		window.fetch = fetchMock;
@@ -275,7 +282,8 @@ describe('CORS functionality', () => {
 		// Make the request with request-specific fetch options
 		await client.$fetch(API_ENDPOINTS.INIT, {
 			fetchOptions: {
-				credentials: 'omit', // Override the default 'include'
+				// Override the default 'include'
+				credentials: 'omit',
 			},
 		});
 
@@ -300,12 +308,12 @@ describe('CORS functionality', () => {
 		// Mock successful response
 		vi.mocked(window.fetch).mockResolvedValueOnce(
 			new Response(JSON.stringify({ showConsentBanner: true }), {
-				status: 200,
 				headers: {
-					'Content-Type': 'application/json',
-					'Access-Control-Allow-Origin': '*',
 					'Access-Control-Allow-Headers': 'X-API-Key, X-Client-ID',
+					'Access-Control-Allow-Origin': '*',
+					'Content-Type': 'application/json',
 				},
+				status: 200,
 			})
 		);
 
@@ -335,11 +343,11 @@ describe('CORS functionality', () => {
 			// Second request succeeds
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ showConsentBanner: true }), {
-					status: 200,
 					headers: {
-						'Content-Type': 'application/json',
 						'Access-Control-Allow-Origin': '*',
+						'Content-Type': 'application/json',
 					},
+					status: 200,
 				})
 			);
 
@@ -350,9 +358,10 @@ describe('CORS functionality', () => {
 		const client = new C15tClient({
 			backendURL: 'https://api.example.com/c15t',
 			retryConfig: {
-				maxRetries: 1,
 				initialDelayMs: 10,
-				retryOnNetworkError: true, // Important for CORS errors which manifest as network errors
+				maxRetries: 1,
+				// Important for CORS errors which manifest as network errors
+				retryOnNetworkError: true,
 			},
 		});
 
@@ -360,8 +369,8 @@ describe('CORS functionality', () => {
 		const originalSetTimeout = global.setTimeout;
 		global.setTimeout = vi
 			.fn()
-			.mockImplementation((callback: (...args: unknown[]) => void) => {
-				callback();
+			.mockImplementation((timerHandler: (...args: unknown[]) => void) => {
+				timerHandler();
 				return 1;
 			}) as unknown as typeof setTimeout;
 

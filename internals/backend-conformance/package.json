@@ -1,9 +1,9 @@
 {
 	"name": "@c15t/backend-conformance",
 	"version": "1.0.0",
-	"type": "module",
 	"private": true,
 	"description": "One HTTP conformance suite, run against both @c15t/backend and its Effect rewrite.",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./src/index.ts",
@@ -12,8 +12,8 @@
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",
-		"lint": "bun biome lint ./src",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write"
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

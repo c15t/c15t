@@ -1,7 +1,9 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes } from 'react';
+
 import { useActiveUI } from '~/v3/hooks';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -13,7 +15,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
 }
 
-const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
+const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, ...props }, ref) => {
 		const activeUI = useActiveUI();
 		const {
@@ -30,21 +32,25 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		useEffect(() => {
 			if (shouldShow) {
-				setIsVisible(true);
-			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--iab-consent-banner-animation-duration'
-					) || '200',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs);
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			}
+
+			if (disableAnimation) {
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
+			}
+
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [shouldShow, disableAnimation]);
 
 		const theme = mergeSlotProps(components?.['iab-banner']?.overlay, {

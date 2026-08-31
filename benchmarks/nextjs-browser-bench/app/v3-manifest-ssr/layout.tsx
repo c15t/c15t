@@ -1,12 +1,9 @@
 import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
 import type { ReactNode } from 'react';
+
 import { NextjsV3ManifestBenchmarkProvider } from '../_bench/v3-provider';
 
-export default async function V3ManifestSSRLayout({
-	children,
-}: {
-	children: ReactNode;
-}) {
+const V3ManifestSSRLayout = async ({ children }: { children: ReactNode }) => {
 	const config = await prefetchInitialConsent({
 		backendURL: '/api/c15t',
 		manifestURL: '/api/c15t/manifest',
@@ -20,4 +17,6 @@ export default async function V3ManifestSSRLayout({
 			{children}
 		</NextjsV3ManifestBenchmarkProvider>
 	);
-}
+};
+
+export default V3ManifestSSRLayout;

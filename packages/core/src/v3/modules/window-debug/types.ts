@@ -28,7 +28,7 @@ export interface WindowDebugHandle {
 	 * handle installed, so an unmounting older provider cannot clobber a
 	 * newer provider's debug object.
 	 */
-	dispose(): void;
+	dispose: () => void;
 }
 
 /**

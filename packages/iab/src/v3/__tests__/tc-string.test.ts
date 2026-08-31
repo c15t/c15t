@@ -4,6 +4,7 @@
 
 import { createConsentKernel } from '@c15t/core/v3';
 import { describe, expect, test } from 'vitest';
+
 import { MINIMAL_TC_STRING } from '../../__tests__/tcf/fixtures/tc-strings';
 import {
 	createMockGVL,
@@ -27,11 +28,11 @@ describe('@c15t/iab/v3 TC string encode/decode', () => {
 		const consentData: TCFConsentData = {
 			...createMockTCFConsentAllGranted(),
 			purposeConsents: { 1: true, 2: true, 7: true },
-			purposeLegitimateInterests: { 9: true, 10: true },
+			purposeLegitimateInterests: { 10: true, 9: true },
+			specialFeatureOptIns: { 1: true, 2: false },
 			vendorConsents: { 1: true, 2: false, 755: true },
 			vendorLegitimateInterests: { 10: true },
-			specialFeatureOptIns: { 1: true, 2: false },
-			vendorsDisclosed: { 1: true, 2: true, 10: true, 755: true },
+			vendorsDisclosed: { 1: true, 10: true, 2: true, 755: true },
 		};
 
 		const tcString = await generateTCString(consentData, gvl, {
@@ -49,8 +50,8 @@ describe('@c15t/iab/v3 TC string encode/decode', () => {
 			7: true,
 		});
 		expect(decoded.purposeLegitimateInterests).toMatchObject({
-			9: true,
 			10: true,
+			9: true,
 		});
 		expect(decoded.vendorConsents[1]).toBe(true);
 		expect(decoded.vendorConsents[2]).toBeUndefined();
@@ -60,8 +61,8 @@ describe('@c15t/iab/v3 TC string encode/decode', () => {
 		expect(decoded.specialFeatureOptIns[2]).toBeUndefined();
 		expect(decoded.vendorsDisclosed).toMatchObject({
 			1: true,
-			2: true,
 			10: true,
+			2: true,
 			755: true,
 		});
 	});
@@ -69,7 +70,7 @@ describe('@c15t/iab/v3 TC string encode/decode', () => {
 	test('createIAB encodes vendorsDisclosed from considered vendor consent state', async () => {
 		const gvl = createMockGVL();
 		const kernel = createConsentKernel();
-		const iab = createIAB({ kernel, cmpId: 28, gvl });
+		const iab = createIAB({ cmpId: 28, gvl, kernel });
 
 		iab.setVendorConsent(1, true);
 		iab.setVendorConsent(2, false);

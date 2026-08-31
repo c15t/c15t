@@ -8,11 +8,11 @@ import type { StorageMode } from '~/constants';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { PackageManagerResult } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
+
 import type {
 	BaseMachineContext,
 	FileModification,
-	MachineError,
-	StateHistoryEntry,
+	StateHistoryEntry as _StateHistoryEntry,
 } from '../types';
 
 /**
@@ -228,90 +228,92 @@ export type GenerateMachineStateValue =
 /**
  * Initial context for the generate machine
  */
-export function createInitialContext(
+export const createInitialContext = function createInitialContext(
 	cliContext?: CliContext,
 	modeArg?: StorageMode
 ): GenerateMachineContext {
 	return {
-		// CLI Context
-		cliContext: cliContext ?? null,
-
-		// Environment
-		projectRoot: cliContext?.projectRoot ?? '',
-		framework: null,
-		packageManager: null,
-
-		// Preflight
-		preflightPassed: false,
-		preflightChecks: [],
-
-		// Mode
-		selectedMode: null,
-		modeArg: modeArg ?? null,
-		hostedProvider: null,
+		// Scripts
+		addScripts: false,
 
 		// Backend options
 		backendURL: null,
-		useEnvFile: true,
-		proxyNextjs: true,
-
-		// Frontend options
-		enableSSR: false,
-		enableDevTools: false,
-		uiStyle: 'prebuilt',
-		expandedTheme: null,
-
-		// Scripts
-		addScripts: false,
-		selectedScripts: [],
-
-		// File tracking
-		filesCreated: [],
-		filesModified: [],
-
-		// Dependencies
-		dependenciesToAdd: [],
-		installConfirmed: false,
-		installAttempted: false,
-		installSucceeded: false,
-
-		// Self-hosted
-		runMigrations: false,
-
-		// Skills
-		skillsInstalled: false,
 
 		// Cancellation
 		cancelReason: null,
 		cleanupDone: false,
+		// CLI Context
+		cliContext: cliContext ?? null,
+
+		// Dependencies
+		dependenciesToAdd: [],
+		enableDevTools: false,
+
+		// Frontend options
+		enableSSR: false,
 
 		// Base context
 		errors: [],
+		expandedTheme: null,
+
+		// File tracking
+		filesCreated: [],
+		filesModified: [],
+		framework: null,
+		hostedProvider: null,
+		installAttempted: false,
+		installConfirmed: false,
+		installSucceeded: false,
+		modeArg: modeArg ?? null,
+		packageManager: null,
+		preflightChecks: [],
+
+		// Preflight
+		preflightPassed: false,
+
+		// Environment
+		projectRoot: cliContext?.projectRoot ?? '',
+		proxyNextjs: true,
+
+		// Self-hosted
+		runMigrations: false,
+
+		// Mode
+		selectedMode: null,
+		selectedScripts: [],
+
+		// Skills
+		skillsInstalled: false,
 		stateHistory: [],
+
+		uiStyle: 'prebuilt',
+		useEnvFile: true,
 	};
-}
+};
 
 /**
  * Type guard for checking if a mode requires backend URL
  */
-export function modeRequiresBackend(mode: StorageMode): boolean {
+export const modeRequiresBackend = function modeRequiresBackend(
+	mode: StorageMode
+): boolean {
 	return mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted';
-}
+};
 
 /**
  * Type guard for checking if framework is Next.js
  */
-export function isNextjsFramework(
+export const isNextjsFramework = function isNextjsFramework(
 	framework: GenerateMachineContext['framework']
 ): boolean {
 	return framework?.pkg === 'c15t/next';
-}
+};
 
 /**
  * Type guard for checking if framework has React
  */
-export function hasReactFramework(
+export const hasReactFramework = function hasReactFramework(
 	framework: GenerateMachineContext['framework']
 ): boolean {
 	return framework?.hasReact ?? false;
-}
+};

@@ -4,6 +4,7 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import {
 	createButton,
 	createDisconnectedState,
@@ -23,9 +24,16 @@ export interface ConsentsPanelOptions {
 }
 
 /**
+ * Formats consent name for display
+ */
+const formatConsentName = function formatConsentName(name: string): string {
+	return name.replace(/_/gu, ' ').replace(/\b\w/gu, (l) => l.toUpperCase());
+};
+
+/**
  * Renders the consents panel content
  */
-export function renderConsentsPanel(
+export const renderConsentsPanel = function renderConsentsPanel(
 	container: HTMLElement,
 	options: ConsentsPanelOptions
 ): void {
@@ -92,10 +100,10 @@ export function renderConsentsPanel(
 		container.appendChild(
 			div({
 				style: {
-					padding: '24px',
-					textAlign: 'center',
 					color: 'var(--c15t-devtools-text-muted)',
 					fontSize: 'var(--c15t-devtools-font-size-sm)',
+					padding: '24px',
+					textAlign: 'center',
 				},
 				text: 'No consents configured',
 			})
@@ -105,12 +113,12 @@ export function renderConsentsPanel(
 		if (isIabMode) {
 			const iabNotice = div({
 				style: {
-					padding: '8px 12px',
-					margin: '0 0 8px',
 					backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
 					borderRadius: '4px',
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
 					color: 'var(--c15t-devtools-badge-info)',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					margin: '0 0 8px',
+					padding: '8px 12px',
 				},
 				text: 'IAB TCF mode: Consents are managed via the IAB framework',
 			});
@@ -129,17 +137,17 @@ export function renderConsentsPanel(
 
 			// Create toggle - disabled in IAB mode or for necessary consents
 			const toggle = createToggle({
+				ariaLabel: `Toggle ${displayName} consent`,
 				checked: Boolean(value),
 				disabled: isNecessary || isIabMode,
-				ariaLabel: `Toggle ${displayName} consent`,
 				onChange: (newValue) => onConsentChange(String(name), newValue),
 			});
 
 			// Create grid card with unsaved indicator (not shown in IAB mode)
 			const card = createGridCard({
+				action: toggle,
 				title:
 					formatConsentName(displayName) + (!isIabMode && !isSaved ? ' •' : ''),
-				action: toggle,
 			});
 
 			gridCards.push(card);
@@ -147,8 +155,8 @@ export function renderConsentsPanel(
 
 		// Create 2-column grid (no animation - updates frequently)
 		const grid = createGrid({
-			columns: 2,
 			children: gridCards,
+			columns: 2,
 		});
 
 		container.appendChild(grid);
@@ -158,107 +166,102 @@ export function renderConsentsPanel(
 	if (isIabMode) {
 		// In IAB mode, only show reset button
 		const footer = div({
-			style: {
-				display: 'flex',
-				alignItems: 'center',
-				justifyContent: 'flex-end',
-				padding: '12px 16px',
-				marginTop: 'auto',
-				borderTop: '1px solid var(--c15t-border)',
-				backgroundColor: 'var(--c15t-surface)',
-			},
 			children: [
 				createButton({
+					onClick: onReset,
+					small: true,
 					text: 'Reset All',
 					variant: 'danger',
-					small: true,
-					onClick: onReset,
 				}),
 			],
+			style: {
+				alignItems: 'center',
+				backgroundColor: 'var(--c15t-surface)',
+				borderTop: '1px solid var(--c15t-border)',
+				display: 'flex',
+				justifyContent: 'flex-end',
+				marginTop: 'auto',
+				padding: '12px 16px',
+			},
 		});
 		container.appendChild(footer);
 		return;
 	}
 
 	const footer = div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			padding: '12px 16px',
-			marginTop: 'auto',
-			borderTop: '1px solid var(--c15t-border)',
-			backgroundColor: hasUnsavedChanges
-				? 'var(--c15t-devtools-badge-warning-bg)'
-				: 'var(--c15t-surface)',
-		},
 		children: [
 			// Left side: quick actions
 			div({
+				children: [
+					createButton({
+						onClick: onAcceptAll,
+						small: true,
+						text: 'Accept',
+						variant: 'primary',
+					}),
+					createButton({
+						onClick: onRejectAll,
+						small: true,
+						text: 'Reject',
+						variant: 'default',
+					}),
+					createButton({
+						onClick: onReset,
+						small: true,
+						text: 'Reset',
+						variant: 'danger',
+					}),
+				],
+
 				style: {
 					display: 'flex',
 					gap: '6px',
 				},
-				children: [
-					createButton({
-						text: 'Accept',
-						variant: 'primary',
-						small: true,
-						onClick: onAcceptAll,
-					}),
-					createButton({
-						text: 'Reject',
-						variant: 'default',
-						small: true,
-						onClick: onRejectAll,
-					}),
-					createButton({
-						text: 'Reset',
-						variant: 'danger',
-						small: true,
-						onClick: onReset,
-					}),
-				],
 			}),
 			// Right side: unsaved indicator or save button
 			hasUnsavedChanges
 				? div({
-						style: {
-							display: 'flex',
-							alignItems: 'center',
-							gap: '8px',
-						},
 						children: [
 							span({
 								style: {
-									fontSize: 'var(--c15t-devtools-font-size-xs)',
 									color: 'var(--c15t-devtools-badge-warning)',
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
 								},
 								text: 'Unsaved',
 							}),
 							createButton({
+								onClick: onSave,
+								small: true,
 								text: 'Save',
 								variant: 'primary',
-								small: true,
-								onClick: onSave,
 							}),
 						],
+
+						style: {
+							alignItems: 'center',
+							display: 'flex',
+							gap: '8px',
+						},
 					})
 				: span({
 						style: {
-							fontSize: 'var(--c15t-devtools-font-size-xs)',
 							color: 'var(--c15t-text-muted)',
+							fontSize: 'var(--c15t-devtools-font-size-xs)',
 						},
 						text: 'No changes',
 					}),
 		],
+		style: {
+			alignItems: 'center',
+			backgroundColor: hasUnsavedChanges
+				? 'var(--c15t-devtools-badge-warning-bg)'
+				: 'var(--c15t-surface)',
+			borderTop: '1px solid var(--c15t-border)',
+			display: 'flex',
+			justifyContent: 'space-between',
+			marginTop: 'auto',
+			padding: '12px 16px',
+		},
 	});
 	container.appendChild(footer);
-}
-
-/**
- * Formats consent name for display
- */
-function formatConsentName(name: string): string {
-	return name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-}
+};

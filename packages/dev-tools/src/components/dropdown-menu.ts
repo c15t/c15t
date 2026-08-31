@@ -4,6 +4,7 @@
  */
 
 import { button, createSvgElement, div, span } from '../core/renderer';
+
 import panelStyles from '../styles/panel.module.css';
 
 // Icons - matches C15TIconOnly from @c15t/react
@@ -64,7 +65,10 @@ export interface DropdownMenuInstance {
 /**
  * Get menu position class based on corner
  */
-function getMenuPositionClass(position: CornerPosition): string {
+const getMenuPositionClass = function getMenuPositionClass(
+	position: CornerPosition
+): string {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (position) {
 		case 'bottom-left':
 			return panelStyles.dropdownMenuBottomLeft ?? '';
@@ -75,38 +79,42 @@ function getMenuPositionClass(position: CornerPosition): string {
 		case 'top-right':
 			return panelStyles.dropdownMenuTopRight ?? '';
 	}
-}
+};
 
 /**
  * Creates a dropdown menu
  */
-export function createDropdownMenu(
+export const createDropdownMenu = function createDropdownMenu(
 	options: DropdownMenuOptions
 ): DropdownMenuInstance {
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let close: () => void;
+
 	const { items, onOpen, onClose } = options;
 	let isMenuOpen = false;
 	let currentPosition = options.position;
-	let referenceElement = options.referenceElement;
+	let { referenceElement } = options;
 
 	// Create menu element
 	const menu = div({
+		ariaLabel: 'c15t Options',
 		className: `${panelStyles.dropdownMenu ?? ''} ${getMenuPositionClass(currentPosition)}`,
 		role: 'menu',
-		ariaLabel: 'c15t Options',
 	});
 	menu.dataset.state = 'closed';
 
 	/**
 	 * Position the menu based on reference element
 	 */
-	function positionMenu(): void {
+	const positionMenu = function positionMenu(): void {
 		if (!referenceElement) {
 			return;
 		}
 
 		const rect = referenceElement.getBoundingClientRect();
-		const menuRect = menu.getBoundingClientRect();
-		const gap = 8; // Gap between button and menu
+		const _menuRect = menu.getBoundingClientRect();
+		// Gap between button and menu
+		const gap = 8;
 
 		// Calculate position based on corner
 		if (currentPosition.includes('bottom')) {
@@ -126,7 +134,7 @@ export function createDropdownMenu(
 			menu.style.right = `${window.innerWidth - rect.right}px`;
 			menu.style.left = '';
 		}
-	}
+	};
 
 	// Track menu item elements for updates
 	const menuItemElements = new Map<
@@ -134,29 +142,39 @@ export function createDropdownMenu(
 		{ element: HTMLElement; toggleIndicator?: HTMLElement }
 	>();
 
+	const createMenuItemClickHandler =
+		(menuEntry: MenuItem, isToggle: boolean) => () => {
+			menuEntry.onClick();
+			// Don't close on toggle items
+			if (!isToggle) {
+				close();
+			}
+		};
+
 	// Create menu items
 	for (const item of items) {
-		const isToggle = item.type === 'toggle';
+		const menuEntry = item;
+		const isToggle = menuEntry.type === 'toggle';
 
 		const menuItem = button({
 			className: panelStyles.menuItem ?? '',
+			onClick: createMenuItemClickHandler(menuEntry, isToggle),
 			role: isToggle ? 'menuitemcheckbox' : 'menuitem',
-			onClick: () => {
-				item.onClick();
-				// Don't close on toggle items
-				if (!isToggle) {
-					close();
-				}
-			},
 		});
 
 		if (isToggle) {
-			menuItem.setAttribute('aria-checked', item.checked ? 'true' : 'false');
+			menuItem.setAttribute(
+				'aria-checked',
+				menuEntry.checked ? 'true' : 'false'
+			);
 		}
 
-		if (item.icon) {
+		if (menuEntry.icon) {
 			const iconWrapper = div({ className: panelStyles.menuItemIcon ?? '' });
-			const iconSvg = createSvgElement(item.icon, { width: 20, height: 20 });
+			const iconSvg = createSvgElement(menuEntry.icon, {
+				height: 20,
+				width: 20,
+			});
 			iconWrapper.appendChild(iconSvg);
 			menuItem.appendChild(iconWrapper);
 		}
@@ -166,14 +184,14 @@ export function createDropdownMenu(
 		});
 		const label = span({
 			className: panelStyles.menuItemLabel ?? '',
-			text: item.label,
+			text: menuEntry.label,
 		});
 		labelContainer.appendChild(label);
 
-		if (item.description) {
+		if (menuEntry.description) {
 			const description = div({
 				className: panelStyles.menuItemDescription ?? '',
-				text: item.description,
+				text: menuEntry.description,
 			});
 			labelContainer.appendChild(description);
 		}
@@ -186,7 +204,7 @@ export function createDropdownMenu(
 			toggleIndicator = div({
 				className: [
 					panelStyles.menuItemToggle ?? '',
-					item.checked ? (panelStyles.menuItemToggleChecked ?? '') : '',
+					menuEntry.checked ? (panelStyles.menuItemToggleChecked ?? '') : '',
 				]
 					.filter(Boolean)
 					.join(' '),
@@ -203,24 +221,24 @@ export function createDropdownMenu(
 		}
 
 		menu.appendChild(menuItem);
-		menuItemElements.set(item.id, { element: menuItem, toggleIndicator });
+		menuItemElements.set(menuEntry.id, { element: menuItem, toggleIndicator });
 	}
 
 	// Close handler for clicking outside
-	function handleClickOutside(e: MouseEvent): void {
+	const handleClickOutside = function handleClickOutside(e: MouseEvent): void {
 		if (!menu.contains(e.target as Node)) {
 			close();
 		}
-	}
+	};
 
 	// Escape key handler
-	function handleKeydown(e: KeyboardEvent): void {
+	const handleKeydown = function handleKeydown(e: KeyboardEvent): void {
 		if (e.key === 'Escape') {
 			close();
 		}
-	}
+	};
 
-	function open(): void {
+	const open = function open(): void {
 		if (isMenuOpen) {
 			return;
 		}
@@ -237,9 +255,9 @@ export function createDropdownMenu(
 			document.addEventListener('click', handleClickOutside);
 			document.addEventListener('keydown', handleKeydown);
 		}, 10);
-	}
+	};
 
-	function close(): void {
+	close = (): void => {
 		if (!isMenuOpen) {
 			return;
 		}
@@ -248,17 +266,19 @@ export function createDropdownMenu(
 		onClose?.();
 		document.removeEventListener('click', handleClickOutside);
 		document.removeEventListener('keydown', handleKeydown);
-	}
+	};
 
-	function toggle(): void {
+	const toggle = function toggle(): void {
 		if (isMenuOpen) {
 			close();
 		} else {
 			open();
 		}
-	}
+	};
 
-	function updatePosition(position: CornerPosition): void {
+	const updatePosition = function updatePosition(
+		position: CornerPosition
+	): void {
 		// Remove old position class
 		menu.classList.remove(
 			panelStyles.dropdownMenuBottomLeft ?? '',
@@ -274,17 +294,22 @@ export function createDropdownMenu(
 		if (isMenuOpen) {
 			positionMenu();
 		}
-	}
+	};
 
-	function setReferenceElement(element: HTMLElement): void {
+	const setReferenceElement = function setReferenceElement(
+		element: HTMLElement
+	): void {
 		referenceElement = element;
-	}
+	};
 
-	function destroy(): void {
+	const destroy = function destroy(): void {
 		close();
-	}
+	};
 
-	function updateItemChecked(itemId: string, checked: boolean): void {
+	const updateItemChecked = function updateItemChecked(
+		itemId: string,
+		checked: boolean
+	): void {
 		const itemData = menuItemElements.get(itemId);
 		if (!itemData) {
 			return;
@@ -302,20 +327,20 @@ export function createDropdownMenu(
 				);
 			}
 		}
-	}
+	};
 
 	return {
+		close,
+		destroy,
 		element: menu,
 		isOpen: () => isMenuOpen,
 		open,
-		close,
-		toggle,
-		updatePosition,
 		setReferenceElement,
+		toggle,
 		updateItemChecked,
-		destroy,
+		updatePosition,
 	};
-}
+};
 
 // Re-export from utilities for backwards compatibility
 export {

@@ -6,14 +6,15 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref } from 'vue';
-import {
-	type UseDraggableOptions,
-	type UseDraggableReturn,
-	useDraggable,
+
+import { useDraggable as createDraggable } from '../runtime/composables/use-draggable';
+import type {
+	UseDraggableOptions,
+	UseDraggableReturn,
 } from '../runtime/composables/use-draggable';
 import { useLocalStorageRef } from '../runtime/composables/use-local-storage-ref';
 
-function pointerEvent(
+const pointerEvent = function pointerEvent(
 	type: string,
 	init: { clientX?: number; clientY?: number; button?: number } = {}
 ): PointerEvent {
@@ -21,26 +22,28 @@ function pointerEvent(
 	// the composable reads.
 	return new MouseEvent(type, {
 		bubbles: true,
-		cancelable: true,
 		button: 0,
+		cancelable: true,
 		...init,
 	}) as unknown as PointerEvent;
-}
+};
 
-function mountDraggable(options: UseDraggableOptions = {}) {
+const mountDraggable = function mountDraggable(
+	options: UseDraggableOptions = {}
+) {
 	let result!: UseDraggableReturn;
 	const wrapper = mount(
 		defineComponent({
 			setup() {
 				const target = ref<HTMLElement | null>(null);
-				result = useDraggable(target, options);
+				result = createDraggable(target, options);
 				return () => h('button', { ref: target, type: 'button' });
 			},
 		}),
 		{ attachTo: document.body }
 	);
-	return { wrapper, result };
-}
+	return { result, wrapper };
+};
 
 afterEach(() => {
 	window.localStorage.clear();
@@ -91,7 +94,7 @@ describe('useDraggable', () => {
 
 		const button = wrapper.get('button').element;
 		button.dispatchEvent(
-			pointerEvent('pointerdown', { clientX: 5, clientY: 8, button: 2 })
+			pointerEvent('pointerdown', { button: 2, clientX: 5, clientY: 8 })
 		);
 		expect(result.isDragging.value).toBe(false);
 

@@ -2,9 +2,10 @@
 
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import { useEffect, useRef, useState } from 'react';
+
 import { getBenchState } from '../_bench/state';
 
-export default function VanillaCorePage() {
+const VanillaCorePage = () => {
 	const [activeUI, setActiveUI] = useState('none');
 	const storeRef = useRef<ReturnType<typeof createConsentManagerStore> | null>(
 		null
@@ -12,8 +13,8 @@ export default function VanillaCorePage() {
 
 	useEffect(() => {
 		const manager = configureConsentManager({
-			mode: 'c15t',
 			backendURL: '/api/bench-consent',
+			mode: 'c15t',
 		});
 		const store = createConsentManagerStore(manager);
 		storeRef.current = store;
@@ -22,23 +23,21 @@ export default function VanillaCorePage() {
 			state.mountCount += 1;
 		}
 
-		void store
-			.getState()
-			.initConsentManager()
-			.then(() => {
-				const current = store.getState();
-				setActiveUI(current.activeUI);
-				const bench = getBenchState('vanilla-core');
-				if (bench) {
-					bench.activeUI = current.activeUI;
-					bench.bannerReadyMs = performance.now();
-					bench.bannerVisibleMs = performance.now();
-				}
-			});
+		void (async () => {
+			await store.getState().initConsentManager();
+			const current = store.getState();
+			setActiveUI(current.activeUI);
+			const bench = getBenchState('vanilla-core');
+			if (bench) {
+				bench.activeUI = current.activeUI;
+				bench.bannerReadyMs = performance.now();
+				bench.bannerVisibleMs = performance.now();
+			}
+		})();
 	}, []);
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>Vanilla Core Benchmark</h1>
 			<p data-testid="vanilla-core-state">Active UI: {activeUI}</p>
 			<button
@@ -64,4 +63,6 @@ export default function VanillaCorePage() {
 			</button>
 		</main>
 	);
-}
+};
+
+export default VanillaCorePage;

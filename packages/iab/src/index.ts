@@ -1,5 +1,5 @@
 /**
- * @c15t/iab — IAB TCF 2.3 and GPP addon for c15t
+ * `@c15t/iab` — IAB TCF 2.3 and GPP addon for c15t
  *
  * Provides IAB Transparency & Consent Framework support as an opt-in addon.
  * Non-IAB users pay zero bundle cost — this package is only loaded when

@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
@@ -6,24 +7,24 @@ import {
 } from '../shared/rslib-utils';
 
 export default defineConfig({
+	lib: [
+		{
+			bundle: false,
+			dts: {
+				distPath: './dist-types',
+			},
+			format: 'esm',
+		},
+	],
+	output: {
+		cleanDistPath: true,
+		target: 'web',
+	},
 	source: {
 		entry: {
 			'**': standardSourceEntries,
 		},
 		exclude: standardExcludePatterns,
-	},
-	lib: [
-		{
-			dts: {
-				distPath: './dist-types',
-			},
-			bundle: false,
-			format: 'esm',
-		},
-	],
-	output: {
-		target: 'web',
-		cleanDistPath: true,
 	},
 	tools: {
 		rspack: {

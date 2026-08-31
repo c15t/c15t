@@ -28,6 +28,29 @@ import type {
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
 /**
  * Finalize a provisional policy when init cannot improve on it — the
  * transport has no `init`, or init failed. The placeholder becomes the
@@ -35,17 +58,19 @@ import type { SnapshotPatch } from './patch';
  * the compliance fallback (an unstyled/missing banner is worse than a
  * default-copy one when the backend is unreachable).
  */
-function resolveProvisionalPolicy(
+const resolveProvisionalPolicy = function resolveProvisionalPolicy(
 	snapshot: ConsentSnapshot
 ): SnapshotPatch | null {
-	if (!snapshot.policyProvisional) return null;
+	if (!snapshot.policyProvisional) {
+		return null;
+	}
 	return {
-		policyProvisional: false,
 		activeUI: snapshot.hasConsented
 			? 'none'
 			: deriveActiveUI(snapshot.model, snapshot.policy),
+		policyProvisional: false,
 	};
-}
+};
 
 /**
  * Result of resolving a `save()` input against the current snapshot.
@@ -70,22 +95,24 @@ export interface ResolvedSave {
  * - `undefined` — finalize the current consents in place. Action
  *   is `custom`.
  */
-export function resolveSavePatch(
+export const resolveSavePatch = function resolveSavePatch(
 	current: ConsentSnapshot,
 	subjectId: string,
 	input: Partial<ConsentState> | 'all' | 'none' | undefined
 ): ResolvedSave {
 	if (input === 'all') {
 		const all: ConsentState = { ...current.consents };
-		for (const name of allConsentNames) all[name] = true;
+		for (const name of allConsentNames) {
+			all[name] = true;
+		}
 		return {
-			patch: {
-				consents: all,
-				subjectId,
-				hasConsented: true,
-				activeUI: 'none',
-			},
 			consentAction: 'all',
+			patch: {
+				activeUI: 'none',
+				consents: all,
+				hasConsented: true,
+				subjectId,
+			},
 		};
 	}
 
@@ -95,13 +122,13 @@ export function resolveSavePatch(
 			none[name] = name === 'necessary';
 		}
 		return {
-			patch: {
-				consents: none,
-				subjectId,
-				hasConsented: true,
-				activeUI: 'none',
-			},
 			consentAction: 'necessary',
+			patch: {
+				activeUI: 'none',
+				consents: none,
+				hasConsented: true,
+				subjectId,
+			},
 		};
 	}
 
@@ -120,34 +147,34 @@ export function resolveSavePatch(
 		}
 		if (changed) {
 			return {
-				patch: {
-					consents: next,
-					subjectId,
-					hasConsented: true,
-					activeUI: 'none',
-				},
 				consentAction: 'custom',
+				patch: {
+					activeUI: 'none',
+					consents: next,
+					hasConsented: true,
+					subjectId,
+				},
 			};
 		}
 		// No category changed, but save() is still an explicit consent act.
 		// Advance with a fresh consent object so persistence subscribers can
 		// refresh storage timestamps and policy acknowledgements.
 		return {
-			patch: {
-				consents: next,
-				subjectId,
-				hasConsented: true,
-				activeUI: 'none',
-			},
 			consentAction: 'custom',
+			patch: {
+				activeUI: 'none',
+				consents: next,
+				hasConsented: true,
+				subjectId,
+			},
 		};
 	}
 
 	return {
-		patch: { subjectId, hasConsented: true, activeUI: 'none' },
 		consentAction: 'custom',
+		patch: { activeUI: 'none', hasConsented: true, subjectId },
 	};
-}
+};
 
 /**
  * Dependencies required by `buildCommands`. The kernel index supplies
@@ -164,10 +191,22 @@ export interface CommandDeps {
 /**
  * Build the `kernel.commands.*` object given the kernel's runtime deps.
  */
-export function buildCommands(deps: CommandDeps) {
+export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { getSnapshot, advance, emit, transport } = deps;
 
 	return {
+		async identify(user: KernelUser): Promise<void> {
+			advance({ user: { ...user } });
+			emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			if (transport?.identify) {
+				try {
+					await transport.identify({ ...user });
+				} catch (error) {
+					emit({ command: 'identify', error, type: 'command:error' });
+				}
+			}
+		},
+
 		async init(): Promise<InitResult> {
 			emit({ type: 'command:init:started' });
 
@@ -175,10 +214,10 @@ export function buildCommands(deps: CommandDeps) {
 				const finalize = resolveProvisionalPolicy(getSnapshot());
 				if (finalize) {
 					advance(finalize);
-					emit({ type: 'init:applied', snapshot: getSnapshot() });
+					emit({ snapshot: getSnapshot(), type: 'init:applied' });
 				}
 				const result: InitResult = { ok: true };
-				emit({ type: 'command:init:completed', result });
+				emit({ result, type: 'command:init:completed' });
 				return result;
 			}
 
@@ -192,20 +231,20 @@ export function buildCommands(deps: CommandDeps) {
 				const patch = applyInitResponse(getSnapshot(), response);
 				if (patch) {
 					advance(patch);
-					emit({ type: 'init:applied', snapshot: getSnapshot() });
+					emit({ snapshot: getSnapshot(), type: 'init:applied' });
 				}
 				const result: InitResult = { ok: true };
-				emit({ type: 'command:init:completed', result });
+				emit({ result, type: 'command:init:completed' });
 				return result;
 			} catch (error) {
-				emit({ type: 'command:error', command: 'init', error });
+				emit({ command: 'init', error, type: 'command:error' });
 				const finalize = resolveProvisionalPolicy(getSnapshot());
 				if (finalize) {
 					advance(finalize);
-					emit({ type: 'init:applied', snapshot: getSnapshot() });
+					emit({ snapshot: getSnapshot(), type: 'init:applied' });
 				}
-				const result: InitResult = { ok: false, error };
-				emit({ type: 'command:init:completed', result });
+				const result: InitResult = { error, ok: false };
+				emit({ result, type: 'command:init:completed' });
 				return result;
 			}
 		},
@@ -232,53 +271,42 @@ export function buildCommands(deps: CommandDeps) {
 
 			if (!transport?.save) {
 				const result: SaveResult = { ok: true, subjectId };
-				emit({ type: 'command:save:completed', result });
+				emit({ result, type: 'command:save:completed' });
 				return result;
 			}
 
 			try {
 				const payload: SavePayload = {
-					subjectId,
-					consents: after.consents,
-					overrides: after.overrides,
-					user: after.user,
-					model: after.model,
-					uiSource,
 					consentAction,
+					consents: after.consents,
+					model: after.model,
+					overrides: after.overrides,
 					policySnapshotToken: after.policySnapshotToken,
+					subjectId,
 					tcString: after.iab?.tcString ?? null,
+
+					uiSource,
+					user: after.user,
 				};
 				// Yield one macrotask before the network call so the UI commit
 				// from `advance()` above can paint first — starting the fetch in
 				// the click task contends with the banner-dismiss frame under
 				// CPU throttle. Mirrors v2's yielded background save.
-				await new Promise((resolve) => {
+				await createDeferredPromise((resolve) => {
 					setTimeout(resolve, 0);
 				});
 				const result = await transport.save(payload);
 				if (result.subjectId && result.subjectId !== getSnapshot().subjectId) {
 					advance({ subjectId: result.subjectId });
 				}
-				emit({ type: 'command:save:completed', result });
+				emit({ result, type: 'command:save:completed' });
 				return result;
 			} catch (error) {
-				emit({ type: 'command:error', command: 'save', error });
+				emit({ command: 'save', error, type: 'command:error' });
 				const result: SaveResult = { ok: false };
-				emit({ type: 'command:save:completed', result });
+				emit({ result, type: 'command:save:completed' });
 				return result;
-			}
-		},
-
-		async identify(user: KernelUser): Promise<void> {
-			advance({ user: { ...user } });
-			emit({ type: 'user:identified', snapshot: getSnapshot() });
-			if (transport?.identify) {
-				try {
-					await transport.identify({ ...user });
-				} catch (error) {
-					emit({ type: 'command:error', command: 'identify', error });
-				}
 			}
 		},
 	};
-}
+};

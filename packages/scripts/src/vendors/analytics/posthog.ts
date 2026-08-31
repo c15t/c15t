@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { stripTrailingSlashes } from '../_shared/script-url';
 
 declare global {
@@ -40,32 +42,44 @@ interface PosthogHostProfile {
 const REGION_HOSTS = {
 	eu: {
 		apiHost: DEFAULT_API_HOST,
-		uiHost: DEFAULT_UI_HOST,
 		scriptUrl: DEFAULT_SCRIPT_URL,
+		uiHost: DEFAULT_UI_HOST,
 	},
 	us: {
 		apiHost: 'https://us.i.posthog.com',
-		uiHost: 'https://us.posthog.com',
 		scriptUrl: 'https://us-assets.i.posthog.com/static/array.js',
+		uiHost: 'https://us.posthog.com',
 	},
 } as const satisfies Record<PosthogRegion, PosthogHostProfile>;
 
-function normalizeHost(host: string): string {
+const normalizeHost = function normalizeHost(host: string): string {
 	return stripTrailingSlashes(host);
-}
+};
 
-function regionFromHost(host: string): PosthogRegion | undefined {
+const regionFromHost = function regionFromHost(
+	host: string
+): PosthogRegion | undefined {
 	const normalized = normalizeHost(host);
-	if (/^https:\/\/(app|us|us-assets)(\.i)?\.posthog\.com$/i.test(normalized)) {
+	if (
+		/^https:\/\/(?<capture1>app|us|us-assets)(?<capture2>\.i)?\.posthog\.com$/iu.test(
+			normalized
+		)
+	) {
 		return 'us';
 	}
 
-	if (/^https:\/\/(eu|eu-assets)(\.i)?\.posthog\.com$/i.test(normalized)) {
+	if (
+		/^https:\/\/(?<capture1>eu|eu-assets)(?<capture2>\.i)?\.posthog\.com$/iu.test(
+			normalized
+		)
+	) {
 		return 'eu';
 	}
-}
+};
 
-function deriveScriptUrlFromApiHost(apiHost: string): string {
+const deriveScriptUrlFromApiHost = function deriveScriptUrlFromApiHost(
+	apiHost: string
+): string {
 	const normalized = normalizeHost(apiHost);
 	const region = regionFromHost(normalized);
 	if (region) {
@@ -73,7 +87,7 @@ function deriveScriptUrlFromApiHost(apiHost: string): string {
 	}
 
 	return `${normalized}/static/array.js`;
-}
+};
 
 /**
  * Resolves the PostHog host profile from helper options.
@@ -105,7 +119,7 @@ function deriveScriptUrlFromApiHost(apiHost: string): string {
  * `{ apiHost: 'https://events.example.com' }` resolves UI to the same custom
  * host and script URL to `https://events.example.com/static/array.js`.
  */
-function resolvePosthogHosts(
+const resolvePosthogHosts = function resolvePosthogHosts(
 	options: PosthogConsentOptions
 ): PosthogHostProfile {
 	const regionDefaults = REGION_HOSTS[options.region ?? 'eu'];
@@ -113,30 +127,35 @@ function resolvePosthogHosts(
 	const inferredRegion = regionFromHost(apiHost);
 	let uiHost: string;
 	if (options.uiHost !== undefined) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		uiHost = options.uiHost;
 	} else if (inferredRegion) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		uiHost = REGION_HOSTS[inferredRegion].uiHost;
-	} else if (options.region !== undefined) {
-		uiHost = REGION_HOSTS[options.region].uiHost;
-	} else {
+	} else if (options.region === undefined) {
 		uiHost = apiHost;
+	} else {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+		uiHost = REGION_HOSTS[options.region].uiHost;
 	}
 
 	let scriptUrl: string;
 	if (options.scriptUrl !== undefined) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		scriptUrl = options.scriptUrl;
-	} else if (options.apiHost !== undefined) {
-		scriptUrl = deriveScriptUrlFromApiHost(apiHost);
-	} else {
+	} else if (options.apiHost === undefined) {
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		scriptUrl = regionDefaults.scriptUrl;
+	} else {
+		scriptUrl = deriveScriptUrlFromApiHost(apiHost);
 	}
 
 	return {
 		apiHost,
-		uiHost: normalizeHost(uiHost),
 		scriptUrl,
+		uiHost: normalizeHost(uiHost),
 	};
-}
+};
 
 /**
  * PostHog vendor manifest.
@@ -147,80 +166,88 @@ function resolvePosthogHosts(
  */
 export const posthogManifest = {
 	...vendorManifestContract,
-	vendor: 'posthog',
-	category: 'measurement',
+	afterLoad: [
+		{
+			args: ['{{id}}', '{{initOptions}}'],
+
+			global: 'posthog',
+			method: 'init',
+			type: 'callGlobal',
+		},
+	],
 	alwaysLoad: true,
 	bootstrap: [
 		{
-			type: 'setGlobal',
-			name: 'posthog',
-			value: {},
 			ifUndefined: true,
+
+			name: 'posthog',
+			type: 'setGlobal',
+			value: {},
 		},
 		{
-			type: 'defineGlobalMethods',
-			target: 'posthog',
 			methods: [
-				{ name: 'init', behavior: 'noop' },
-				{ name: 'capture', behavior: 'noop' },
-				{ name: 'opt_in_capturing', behavior: 'noop' },
-				{ name: 'opt_out_capturing', behavior: 'noop' },
+				{ behavior: 'noop', name: 'init' },
+				{ behavior: 'noop', name: 'capture' },
+				{ behavior: 'noop', name: 'opt_in_capturing' },
+				{ behavior: 'noop', name: 'opt_out_capturing' },
 				{
-					name: 'get_explicit_consent_status',
 					behavior: 'return',
+					name: 'get_explicit_consent_status',
 					value: 'pending',
 				},
 			],
+
+			target: 'posthog',
+			type: 'defineGlobalMethods',
 		},
 	],
+	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
 			attributes: {
 				crossorigin: 'anonymous',
 				'data-api-host': '{{apiHost}}',
 				'data-ui-host': '{{uiHost}}',
 			},
-		},
-	],
-	afterLoad: [
-		{
-			type: 'callGlobal',
-			global: 'posthog',
-			method: 'init',
-			args: ['{{id}}', '{{initOptions}}'],
-		},
-	],
-	onLoadGranted: [
-		{
-			type: 'callGlobal',
-			global: 'posthog',
-			method: 'opt_in_capturing',
-		},
-	],
-	onLoadDenied: [
-		{
-			type: 'callGlobal',
-			global: 'posthog',
-			method: 'opt_out_capturing',
-		},
-	],
-	onConsentGranted: [
-		{
-			type: 'callGlobal',
-			global: 'posthog',
-			method: 'opt_in_capturing',
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
 			global: 'posthog',
 			method: 'opt_out_capturing',
+
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			global: 'posthog',
+			method: 'opt_in_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	onLoadDenied: [
+		{
+			global: 'posthog',
+			method: 'opt_out_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	onLoadGranted: [
+		{
+			global: 'posthog',
+			method: 'opt_in_capturing',
+
+			type: 'callGlobal',
+		},
+	],
+	vendor: 'posthog',
 } as const satisfies VendorManifest;
 
 export interface PosthogConsentOptions {
@@ -288,28 +315,30 @@ export interface PosthogConsentOptions {
  * @param options - Optional configuration for the PostHog consent script
  * @returns The Posthog script
  */
-export function posthog(options: PosthogConsentOptions): Script {
+export const posthog = function posthog(
+	options: PosthogConsentOptions
+): Script {
 	if (options.loadMode === 'disabled') {
 		return {
-			id: 'posthog',
-			category: 'measurement',
 			callbackOnly: true,
+			category: 'measurement',
+			id: 'posthog',
 		};
 	}
 
 	const { apiHost, uiHost, scriptUrl } = resolvePosthogHosts(options);
 	const resolved = resolveManifest(posthogManifest, {
-		id: options.id,
 		apiHost,
-		uiHost,
-		scriptUrl,
+		id: options.id,
 		initOptions: {
-			defaults: DEFAULTS_DATE,
 			cookieless_mode: 'on_reject',
+			defaults: DEFAULTS_DATE,
 			...options.initOptions,
 			api_host: apiHost,
 			ui_host: uiHost,
 		},
+		scriptUrl,
+		uiHost,
 	});
 
 	if (options.loadMode === 'after-consent') {
@@ -317,4 +346,4 @@ export function posthog(options: PosthogConsentOptions): Script {
 	}
 
 	return resolved;
-}
+};

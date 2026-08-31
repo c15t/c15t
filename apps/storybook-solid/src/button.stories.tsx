@@ -2,19 +2,22 @@ import { buttonRenders } from '@c15t/conformance/play/button';
 import { buttonVariants } from '@c15t/solid';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 
-function Demo() {
+const Demo = () => {
 	const classes = buttonVariants({
-		variant: 'primary',
 		mode: 'filled',
 		size: 'medium',
+		variant: 'primary',
 	});
 
 	return (
-		<button class={classes.root()} type="button">
+		<button
+			class={classes.root()}
+			type="button"
+		>
 			Open preferences
 		</button>
 	);
-}
+};
 
 const meta = {
 	component: Demo,
@@ -35,13 +38,16 @@ export const Playground: Story = {
 export const WithIcon: Story = {
 	render: () => {
 		const classes = buttonVariants({
-			variant: 'primary',
 			mode: 'filled',
 			size: 'medium',
+			variant: 'primary',
 		});
 
 		return (
-			<button class={classes.root()} type="button">
+			<button
+				class={classes.root()}
+				type="button"
+			>
 				<span class={classes.icon()}>+</span>
 				Open preferences
 			</button>
@@ -52,13 +58,16 @@ export const WithIcon: Story = {
 export const NeutralGhost: Story = {
 	render: () => {
 		const classes = buttonVariants({
-			variant: 'neutral',
 			mode: 'ghost',
 			size: 'medium',
+			variant: 'neutral',
 		});
 
 		return (
-			<button class={classes.root()} type="button">
+			<button
+				class={classes.root()}
+				type="button"
+			>
 				Secondary action
 			</button>
 		);
@@ -68,34 +77,34 @@ export const NeutralGhost: Story = {
 export const AllModes: Story = {
 	render: () => {
 		const primaryFilled = buttonVariants({
-			variant: 'primary',
 			mode: 'filled',
 			size: 'medium',
+			variant: 'primary',
 		});
 		const neutralFilled = buttonVariants({
-			variant: 'neutral',
 			mode: 'filled',
 			size: 'medium',
+			variant: 'neutral',
 		});
 		const primaryStroke = buttonVariants({
-			variant: 'primary',
 			mode: 'stroke',
 			size: 'medium',
+			variant: 'primary',
 		});
 		const neutralStroke = buttonVariants({
-			variant: 'neutral',
 			mode: 'stroke',
 			size: 'medium',
+			variant: 'neutral',
 		});
 		const primaryLighter = buttonVariants({
-			variant: 'primary',
 			mode: 'lighter',
 			size: 'medium',
+			variant: 'primary',
 		});
 		const neutralGhost = buttonVariants({
-			variant: 'neutral',
 			mode: 'ghost',
 			size: 'medium',
+			variant: 'neutral',
 		});
 
 		return (
@@ -106,22 +115,40 @@ export const AllModes: Story = {
 					'grid-template-columns': 'repeat(2, minmax(0, max-content))',
 				}}
 			>
-				<button class={primaryFilled.root()} type="button">
+				<button
+					class={primaryFilled.root()}
+					type="button"
+				>
 					Primary filled
 				</button>
-				<button class={neutralFilled.root()} type="button">
+				<button
+					class={neutralFilled.root()}
+					type="button"
+				>
 					Neutral filled
 				</button>
-				<button class={primaryStroke.root()} type="button">
+				<button
+					class={primaryStroke.root()}
+					type="button"
+				>
 					Primary stroke
 				</button>
-				<button class={neutralStroke.root()} type="button">
+				<button
+					class={neutralStroke.root()}
+					type="button"
+				>
 					Neutral stroke
 				</button>
-				<button class={primaryLighter.root()} type="button">
+				<button
+					class={primaryLighter.root()}
+					type="button"
+				>
 					Primary lighter
 				</button>
-				<button class={neutralGhost.root()} type="button">
+				<button
+					class={neutralGhost.root()}
+					type="button"
+				>
 					Neutral ghost
 				</button>
 			</div>

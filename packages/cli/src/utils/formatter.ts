@@ -4,8 +4,6 @@
  * Provides Prettier integration for formatting generated code.
  */
 
-import { basename, dirname } from 'node:path';
-
 /**
  * Format options
  */
@@ -29,7 +27,7 @@ export interface FormatOptions {
 /**
  * Infer the Prettier parser from a file path
  */
-function inferParser(filepath: string): string {
+const inferParser = function inferParser(filepath: string): string {
 	const ext = filepath.split('.').pop()?.toLowerCase();
 
 	switch (ext) {
@@ -60,14 +58,14 @@ function inferParser(filepath: string): string {
 		default:
 			return 'typescript';
 	}
-}
+};
 
 /**
  * Format code using Prettier
  *
  * Falls back to returning the original code if Prettier is not available.
  */
-export async function formatCode(
+export const formatCode = async function formatCode(
 	code: string,
 	options?: FormatOptions
 ): Promise<string> {
@@ -85,11 +83,11 @@ export async function formatCode(
 
 		const formatted = await prettier.format(code, {
 			parser,
-			tabWidth: options?.tabWidth ?? 2,
-			useTabs: options?.useTabs ?? true,
-			singleQuote: options?.singleQuote ?? true,
 			semi: options?.semi ?? true,
+			singleQuote: options?.singleQuote ?? true,
+			tabWidth: options?.tabWidth ?? 2,
 			trailingComma: options?.trailingComma ?? 'es5',
+			useTabs: options?.useTabs ?? true,
 		});
 
 		return formatted;
@@ -97,51 +95,53 @@ export async function formatCode(
 		// If Prettier is not available, return the original code
 		return code;
 	}
-}
+};
 
 /**
  * Format TypeScript/JavaScript code
  */
-export async function formatTypeScript(code: string): Promise<string> {
+export const formatTypeScript = function formatTypeScript(
+	code: string
+): Promise<string> {
 	return formatCode(code, { parser: 'typescript' });
-}
+};
 
 /**
  * Format JSON
  */
-export async function formatJson(data: unknown): Promise<string> {
+export const formatJson = function formatJson(data: unknown): Promise<string> {
 	const code = JSON.stringify(data, null, 2);
 	return formatCode(code, { parser: 'json' });
-}
+};
 
 /**
  * Format CSS
  */
-export async function formatCss(code: string): Promise<string> {
+export const formatCss = function formatCss(code: string): Promise<string> {
 	return formatCode(code, { parser: 'css' });
-}
+};
 
 /**
  * Basic code indentation (for when Prettier is not available)
  */
-export function indent(code: string, spaces = 2): string {
+export const indent = function indent(code: string, spaces = 2): string {
 	const indentStr = ' '.repeat(spaces);
 	return code
 		.split('\n')
 		.map((line) => (line.trim() ? indentStr + line : line))
 		.join('\n');
-}
+};
 
 /**
  * Remove leading indentation from a template literal
  */
-export function dedent(
+export const dedent = function dedent(
 	strings: TemplateStringsArray,
 	...values: unknown[]
 ): string {
 	// Combine the template literal
 	let result = strings[0] || '';
-	for (let i = 0; i < values.length; i++) {
+	for (let i = 0; i < values.length; i += 1) {
 		result += String(values[i]) + (strings[i + 1] || '');
 	}
 
@@ -152,8 +152,8 @@ export function dedent(
 	let minIndent = Number.POSITIVE_INFINITY;
 	for (const line of lines) {
 		if (line.trim()) {
-			const indent = line.match(/^(\s*)/)?.[1]?.length || 0;
-			minIndent = Math.min(minIndent, indent);
+			const indentLocal = line.match(/^(?<capture1>\s*)/u)?.[1]?.length || 0;
+			minIndent = Math.min(minIndent, indentLocal);
 		}
 	}
 
@@ -166,49 +166,51 @@ export function dedent(
 		.map((line) => (line.trim() ? line.slice(minIndent) : ''))
 		.join('\n')
 		.trim();
-}
+};
 
 /**
  * Capitalize the first letter of a string
  */
-export function capitalize(str: string): string {
-	if (!str) return '';
+export const capitalize = function capitalize(str: string): string {
+	if (!str) {
+		return '';
+	}
 	return str.charAt(0).toUpperCase() + str.slice(1);
-}
+};
 
 /**
  * Convert a string to camelCase
  */
-export function camelCase(str: string): string {
+export const camelCase = function camelCase(str: string): string {
 	return str
-		.replace(/[-_\s]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ''))
-		.replace(/^(.)/, (c) => c.toLowerCase());
-}
+		.replace(/[-_\s]+(?<capture1>.)?/gu, (_, c) => (c ? c.toUpperCase() : ''))
+		.replace(/^(?<capture1>.)/u, (c) => c.toLowerCase());
+};
 
 /**
  * Convert a string to PascalCase
  */
-export function pascalCase(str: string): string {
+export const pascalCase = function pascalCase(str: string): string {
 	const camel = camelCase(str);
 	return camel.charAt(0).toUpperCase() + camel.slice(1);
-}
+};
 
 /**
  * Convert a string to kebab-case
  */
-export function kebabCase(str: string): string {
+export const kebabCase = function kebabCase(str: string): string {
 	return str
-		.replace(/([a-z])([A-Z])/g, '$1-$2')
-		.replace(/[\s_]+/g, '-')
+		.replace(/(?<capture1>[a-z])(?<capture2>[A-Z])/gu, '$1-$2')
+		.replace(/[\s_]+/gu, '-')
 		.toLowerCase();
-}
+};
 
 /**
  * Convert a string to snake_case
  */
-export function snakeCase(str: string): string {
+export const snakeCase = function snakeCase(str: string): string {
 	return str
-		.replace(/([a-z])([A-Z])/g, '$1_$2')
-		.replace(/[\s-]+/g, '_')
+		.replace(/(?<capture1>[a-z])(?<capture2>[A-Z])/gu, '$1_$2')
+		.replace(/[\s-]+/gu, '_')
 		.toLowerCase();
-}
+};

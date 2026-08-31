@@ -1,25 +1,29 @@
-@import "@c15t/ui/styles/v3/button.css";
-@import "@c15t/ui/styles/v3/consent-actions.css";
-@import "@c15t/ui/styles/v3/consent-banner.css";
-@import "@c15t/ui/styles/v3/consent-dialog.css";
-@import "@c15t/ui/styles/v3/consent-manager.css";
-@import "@c15t/ui/styles/v3/legal-links.css";
-@import "@c15t/ui/styles/v3/accordion.css";
-@import "@c15t/ui/styles/v3/switch.css";
-@import "@c15t/ui/styles/v3/preference-item.css";
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v3 directives are required for this compatibility fixture. */
+@import '@c15t/ui/styles/v3/button.css';
+@import '@c15t/ui/styles/v3/consent-actions.css';
+@import '@c15t/ui/styles/v3/consent-banner.css';
+@import '@c15t/ui/styles/v3/consent-dialog.css';
+@import '@c15t/ui/styles/v3/consent-manager.css';
+@import '@c15t/ui/styles/v3/legal-links.css';
+@import '@c15t/ui/styles/v3/accordion.css';
+@import '@c15t/ui/styles/v3/switch.css';
+@import '@c15t/ui/styles/v3/preference-item.css';
+/* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind base;
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v3 directives are required for this compatibility fixture. */
+/* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind components;
-/* biome-ignore lint/correctness/noInvalidPositionAtImportRule: This fixture verifies c15t layer ordering between Tailwind v3 layers. */
-@import "@c15t/nextjs/styles.tw3.css";
-/* biome-ignore lint/suspicious/noUnknownAtRules: Tailwind v3 directives are required for this compatibility fixture. */
+/* This fixture verifies c15t layer ordering between Tailwind v3 layers. */
+@import '@c15t/nextjs/styles.tw3.css';
+/* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind utilities;
 
 :root {
 	color-scheme: light;
 	font-family:
-		"Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+		'Inter',
+		'Segoe UI',
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
 		sans-serif;
 }
 
@@ -46,7 +50,7 @@ a {
 
 code {
 	font-family:
-		"SFMono-Regular", ui-monospace, "Cascadia Code", Consolas, monospace;
+		'SFMono-Regular', ui-monospace, 'Cascadia Code', Consolas, monospace;
 }
 
 .css-layer-home,

@@ -13,15 +13,41 @@
  * it can feed the continuous-monitoring scoreboard.
  */
 import { defaultTranslationConfig } from '@c15t/core';
-import { Profiler, type ReactNode } from 'react';
+import { Profiler } from 'react';
+import type { ReactNode } from 'react';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/v3/providers/consent-manager-provider';
+
 import { ConsentProvider, useConsent, useSetConsent } from '../index';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 type Category =
 	| 'necessary'
@@ -42,14 +68,14 @@ const CHILDREN = 10;
 const mockFetch = vi.fn().mockResolvedValue(
 	new Response(
 		JSON.stringify({
-			showConsentBanner: true,
 			jurisdiction: { code: 'GDPR' },
+			showConsentBanner: true,
 			translations: {
 				language: 'en',
 				translations: defaultTranslationConfig.translations.en,
 			},
 		}),
-		{ status: 200, headers: { 'Content-Type': 'application/json' } }
+		{ headers: { 'Content-Type': 'application/json' }, status: 200 }
 	)
 );
 
@@ -62,18 +88,18 @@ afterAll(() => {
 	clearConsentRuntimeCache();
 });
 
-const settle = () => new Promise((r) => setTimeout(r, 20));
+const settle = () => createDeferredPromise((r) => setTimeout(r, 20));
 
 interface Run {
 	mountRenders: number;
 	mutationRenders: number;
 }
 
-async function runV2(): Promise<Run> {
+const runV2 = async function runV2(): Promise<Run> {
 	clearConsentRuntimeCache();
 	const counts = new Map<number, number>();
 
-	function V2Child({ index }: { index: number }) {
+	const V2Child = ({ index }: { index: number }) => {
 		// Each child reads the full manager object — same pattern v2
 		// consumers use. Accessing any field pulls in the context snapshot.
 		const manager = useConsentManager();
@@ -91,17 +117,15 @@ async function runV2(): Promise<Run> {
 				</div>
 			</Profiler>
 		);
-	}
+	};
 
-	function Tree({ children }: { children: ReactNode }) {
-		return (
-			<ConsentManagerProvider
-				options={{ mode: 'offline', initialConsentCategories: CATEGORIES }}
-			>
-				{children}
-			</ConsentManagerProvider>
-		);
-	}
+	const Tree = ({ children }: { children: ReactNode }) => (
+		<ConsentManagerProvider
+			options={{ initialConsentCategories: CATEGORIES, mode: 'offline' }}
+		>
+			{children}
+		</ConsentManagerProvider>
+	);
 
 	const { container } = await render(
 		<Tree>
@@ -141,12 +165,12 @@ async function runV2(): Promise<Run> {
 	// Best-effort cleanup so the next test has a clean container.
 	container.remove();
 	return { mountRenders, mutationRenders };
-}
+};
 
-async function runV3(): Promise<Run> {
+const runV3 = async function runV3(): Promise<Run> {
 	const counts = new Map<number, number>();
 
-	function V3Child({ index }: { index: number }) {
+	const V3Child = ({ index }: { index: number }) => {
 		const category = CATEGORIES[index % CATEGORIES.length] as Category;
 		const allowed = useConsent(category);
 		return (
@@ -161,9 +185,9 @@ async function runV3(): Promise<Run> {
 				</div>
 			</Profiler>
 		);
-	}
+	};
 
-	function V3Mutator() {
+	const V3Mutator = () => {
 		const setConsent = useSetConsent();
 		return (
 			<button
@@ -174,7 +198,7 @@ async function runV3(): Promise<Run> {
 				flip marketing
 			</button>
 		);
-	}
+	};
 
 	const { getByTestId } = await render(
 		<ConsentProvider
@@ -182,11 +206,11 @@ async function runV3(): Promise<Run> {
 				persistence: false,
 				prefetch: {
 					initialConsents: {
-						necessary: true,
+						experience: false,
 						functionality: false,
 						marketing: false,
 						measurement: false,
-						experience: false,
+						necessary: true,
 					},
 				},
 			}}
@@ -211,7 +235,7 @@ async function runV3(): Promise<Run> {
 	const mutationRenders = afterMutation - mountRenders;
 
 	return { mountRenders, mutationRenders };
-}
+};
 
 describe('v3 render-count bench', () => {
 	test('v3 isolates re-renders; v2 fans out', async () => {
@@ -219,15 +243,15 @@ describe('v3 render-count bench', () => {
 		const v2 = await runV2();
 
 		const payload = {
-			suite: 'react-render-counts',
-			generatedAt: new Date().toISOString(),
 			children: CHILDREN,
-			v2,
-			v3,
 			delta: {
 				mountRenders: v3.mountRenders - v2.mountRenders,
 				mutationRenders: v3.mutationRenders - v2.mutationRenders,
 			},
+			generatedAt: new Date().toISOString(),
+			suite: 'react-render-counts',
+			v2,
+			v3,
 		};
 
 		// Stash on window so a test-runner reporter (or adjacent node

@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts';
 import { detect } from 'package-manager-detector/detect';
+
 import type { CliLogger } from '~/utils/logger';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
@@ -20,7 +21,7 @@ export interface PackageManagerResult {
  * @param pm - Package manager name
  * @returns The version of the package manager or null if not found
  */
-async function getPackageManagerVersion(
+const getPackageManagerVersion = async function getPackageManagerVersion(
 	pm: PackageManager
 ): Promise<string | null> {
 	try {
@@ -30,7 +31,7 @@ async function getPackageManagerVersion(
 	} catch {
 		return null;
 	}
-}
+};
 
 /**
  * Detects the package manager used in the project
@@ -39,7 +40,7 @@ async function getPackageManagerVersion(
  * @param logger - Optional logger instance for debug messages
  * @returns The detected package manager
  */
-export async function detectPackageManager(
+export const detectPackageManager = async function detectPackageManager(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<PackageManagerResult> {
@@ -73,14 +74,14 @@ export async function detectPackageManager(
 
 	// If no package manager found, prompt user for package manager
 	const selectedPackageManager = await p.select<PackageManager>({
+		initialValue: 'npm',
 		message: 'Please select your package manager:',
 		options: [
-			{ value: 'npm', label: 'npm' },
-			{ value: 'yarn', label: 'yarn' },
-			{ value: 'pnpm', label: 'pnpm' },
-			{ value: 'bun', label: 'bun' },
+			{ label: 'npm', value: 'npm' },
+			{ label: 'yarn', value: 'yarn' },
+			{ label: 'pnpm', value: 'pnpm' },
+			{ label: 'bun', value: 'bun' },
 		],
-		initialValue: 'npm',
 	});
 
 	if (p.isCancel(selectedPackageManager)) {
@@ -96,4 +97,4 @@ export async function detectPackageManager(
 	);
 
 	return { name: selectedPackageManager, version };
-}
+};

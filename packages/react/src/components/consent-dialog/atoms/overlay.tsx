@@ -5,13 +5,9 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import {
-	type CSSProperties,
-	forwardRef,
-	type HTMLAttributes,
-	useEffect,
-	useState,
-} from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
+import type { CSSProperties, HTMLAttributes } from 'react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
@@ -29,8 +25,10 @@ import { cnExt as cn } from '~/utils/cn';
  * @public
  */
 
-export interface OverlayProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'> {
+export interface OverlayProps extends Omit<
+	HTMLAttributes<HTMLDivElement>,
+	'style'
+> {
 	/**
 	 * Custom styles to override default overlay styling.
 	 *
@@ -53,7 +51,7 @@ export interface OverlayProps
 	noStyle?: boolean;
 }
 
-const ConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
+const ConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 	({ className, noStyle, style, ...props }, ref) => {
 		const { activeUI } = useConsentManager();
 		const { disableAnimation, noStyle: isThemeNoStyle } = useTheme();
@@ -64,21 +62,24 @@ const ConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		// Handle animation visibility state
 		useEffect(() => {
 			if (showDialog) {
-				setIsVisible(true);
-			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--consent-dialog-animation-duration'
-					) || '200',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs); // Match CSS animation duration
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			}
+			if (disableAnimation) {
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
+			}
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--consent-dialog-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+				// Match CSS animation duration
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [showDialog, disableAnimation]);
 
 		let legacyStyleClassName: string | undefined;

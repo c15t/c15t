@@ -2,8 +2,8 @@
 	"name": "@c15t/no-tw-css-test",
 	"private": true,
 	"scripts": {
-		"dev": "next dev --port 3123",
 		"build": "rm -rf .next && next build",
+		"dev": "next dev --port 3123",
 		"start": "next start --port 3123"
 	},
 	"dependencies": {

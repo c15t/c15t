@@ -29,7 +29,7 @@ export interface BuildQueuePixelInstallOptions {
  * @returns Manifest install steps containing the required init call, an
  * optional tracking call, and an async `loadScript` step.
  */
-export function buildQueuePixelInstall({
+export const buildQueuePixelInstall = function buildQueuePixelInstall({
 	global,
 	initArgs,
 	trackStep,
@@ -37,25 +37,25 @@ export function buildQueuePixelInstall({
 }: BuildQueuePixelInstallOptions): VendorManifest['install'] {
 	const install: VendorManifest['install'] = [
 		{
-			type: 'callGlobal',
-			global,
 			args: initArgs,
+			global,
+			type: 'callGlobal',
 		},
 	];
 
 	if (trackStep !== undefined) {
 		install.push({
-			type: 'callGlobal',
-			global,
 			args: trackStep.args,
+			global,
+			type: 'callGlobal',
 		});
 	}
 
 	install.push({
-		type: 'loadScript',
-		src: scriptPlaceholder,
 		async: true,
+		src: scriptPlaceholder,
+		type: 'loadScript',
 	});
 
 	return install;
-}
+};

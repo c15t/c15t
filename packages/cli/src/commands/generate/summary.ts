@@ -6,9 +6,12 @@
 
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+
 import type { PackageManagerResult } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
-import { STORAGE_MODES, type StorageMode, URLS } from '../../constants';
+
+import { STORAGE_MODES, URLS } from '../../constants';
+import type { StorageMode } from '../../constants';
 import { getModeInfo } from './prompts/mode-select';
 
 /**
@@ -26,7 +29,7 @@ export interface ExecutionPlan {
 /**
  * Display the execution plan and ask for confirmation
  */
-export async function displayExecutionPlan(
+export const displayExecutionPlan = async function displayExecutionPlan(
 	context: CliContext,
 	plan: ExecutionPlan
 ): Promise<boolean> {
@@ -90,8 +93,8 @@ export async function displayExecutionPlan(
 	}
 
 	const confirmed = await p.confirm({
-		message: 'Proceed with these changes?',
 		initialValue: true,
+		message: 'Proceed with these changes?',
 	});
 
 	if (p.isCancel(confirmed)) {
@@ -99,85 +102,12 @@ export async function displayExecutionPlan(
 	}
 
 	return confirmed;
-}
-
-/**
- * Display completion summary
- */
-export function displayCompletionSummary(
-	context: CliContext,
-	options: {
-		mode: StorageMode;
-		backendUrl?: string;
-		filesCreated: string[];
-		filesModified: string[];
-		dependenciesInstalled: boolean;
-	}
-): void {
-	const { logger, framework } = context;
-	const packageManager = context.packageManager as PackageManagerResult;
-	const {
-		mode,
-		backendUrl,
-		filesCreated,
-		filesModified,
-		dependenciesInstalled,
-	} = options;
-
-	logger.message('');
-	logger.success('c15t setup complete!');
-	logger.message('');
-
-	// Files created/modified summary
-	if (filesCreated.length > 0 || filesModified.length > 0) {
-		logger.message(color.bold('Changes made:'));
-		for (const file of filesCreated) {
-			logger.message(`  ${color.green('+ Created')} ${file}`);
-		}
-		for (const file of filesModified) {
-			logger.message(`  ${color.yellow('~ Modified')} ${file}`);
-		}
-		logger.message('');
-	}
-
-	// Next steps based on mode
-	logger.message(color.bold('Next steps:'));
-	logger.message('');
-
-	const steps = getNextSteps(mode, {
-		framework: framework.framework,
-		backendUrl,
-		dependenciesInstalled,
-		packageManager: packageManager.name,
-	});
-
-	for (let i = 0; i < steps.length; i++) {
-		logger.message(`  ${color.cyan(`${i + 1}.`)} ${steps[i]}`);
-	}
-
-	logger.message('');
-
-	// Resources
-	logger.message(color.bold('Resources:'));
-	logger.message(
-		`  ${color.dim('•')} Documentation: ${color.underline(URLS.DOCS)}`
-	);
-	logger.message(
-		`  ${color.dim('•')} Discord: ${color.underline(URLS.DISCORD)}`
-	);
-	logger.message(`  ${color.dim('•')} GitHub: ${color.underline(URLS.GITHUB)}`);
-	logger.message('');
-
-	// Verification
-	logger.message(
-		color.dim('Run your app to see the consent banner in action!')
-	);
-}
+};
 
 /**
  * Get next steps based on mode
  */
-function getNextSteps(
+const getNextSteps = function getNextSteps(
 	mode: StorageMode,
 	options: {
 		framework: string | null;
@@ -198,6 +128,7 @@ function getNextSteps(
 	}
 
 	// Mode-specific steps
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (mode) {
 		case STORAGE_MODES.HOSTED:
 		case STORAGE_MODES.C15T:
@@ -242,12 +173,87 @@ function getNextSteps(
 	steps.push('Customize the banner appearance and messaging');
 
 	return steps;
-}
+};
+
+/**
+ * Display completion summary
+ */
+export const displayCompletionSummary = function displayCompletionSummary(
+	context: CliContext,
+	options: {
+		mode: StorageMode;
+		backendUrl?: string;
+		filesCreated: string[];
+		filesModified: string[];
+		dependenciesInstalled: boolean;
+	}
+): void {
+	const { logger, framework } = context;
+	const packageManager = context.packageManager as PackageManagerResult;
+	const {
+		mode,
+		backendUrl,
+		filesCreated,
+		filesModified,
+		dependenciesInstalled,
+	} = options;
+
+	logger.message('');
+	logger.success('c15t setup complete!');
+	logger.message('');
+
+	// Files created/modified summary
+	if (filesCreated.length > 0 || filesModified.length > 0) {
+		logger.message(color.bold('Changes made:'));
+		for (const file of filesCreated) {
+			logger.message(`  ${color.green('+ Created')} ${file}`);
+		}
+		for (const file of filesModified) {
+			logger.message(`  ${color.yellow('~ Modified')} ${file}`);
+		}
+		logger.message('');
+	}
+
+	// Next steps based on mode
+	logger.message(color.bold('Next steps:'));
+	logger.message('');
+
+	const steps = getNextSteps(mode, {
+		backendUrl,
+		dependenciesInstalled,
+		framework: framework.framework,
+		packageManager: packageManager.name,
+	});
+
+	for (let i = 0; i < steps.length; i += 1) {
+		logger.message(`  ${color.cyan(`${i + 1}.`)} ${steps[i]}`);
+	}
+
+	logger.message('');
+
+	// Resources
+	logger.message(color.bold('Resources:'));
+	logger.message(
+		`  ${color.dim('•')} Documentation: ${color.underline(URLS.DOCS)}`
+	);
+	logger.message(
+		`  ${color.dim('•')} Discord: ${color.underline(URLS.DISCORD)}`
+	);
+	logger.message(`  ${color.dim('•')} GitHub: ${color.underline(URLS.GITHUB)}`);
+	logger.message('');
+
+	// Verification
+	logger.message(
+		color.dim('Run your app to see the consent banner in action!')
+	);
+};
 
 /**
  * Display GitHub star prompt
  */
-export async function promptGitHubStar(context: CliContext): Promise<void> {
+export const promptGitHubStar = async function promptGitHubStar(
+	context: CliContext
+): Promise<void> {
 	const { logger, telemetry } = context;
 
 	logger.message('');
@@ -255,8 +261,8 @@ export async function promptGitHubStar(context: CliContext): Promise<void> {
 	logger.message('');
 
 	const shouldStar = await p.confirm({
-		message: `If c15t helps you, consider starring us on GitHub! ${color.dim('(Opens browser)')}`,
 		initialValue: false,
+		message: `If c15t helps you, consider starring us on GitHub! ${color.dim('(Opens browser)')}`,
 	});
 
 	if (shouldStar && !p.isCancel(shouldStar)) {
@@ -265,4 +271,4 @@ export async function promptGitHubStar(context: CliContext): Promise<void> {
 		telemetry.trackEvent('onboarding.github_star', { clicked: true });
 		logger.info('Thanks for your support!');
 	}
-}
+};

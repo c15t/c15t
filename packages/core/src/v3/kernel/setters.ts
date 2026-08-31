@@ -30,7 +30,7 @@ import { DEFAULT_IAB } from './snapshot';
  * consents object only when at least one category actually changed;
  * returns `null` to signal a no-op.
  */
-export function mergeConsent(
+export const mergeConsent = function mergeConsent(
 	current: ConsentState,
 	input: Partial<ConsentState>
 ): ConsentState | null {
@@ -47,7 +47,7 @@ export function mergeConsent(
 		}
 	}
 	return changed ? next : null;
-}
+};
 
 /**
  * Merge an IAB patch onto the current IAB slice, returning the next
@@ -58,7 +58,7 @@ export function mergeConsent(
  * Object fields (e.g. `vendorConsents`) always allocate a new
  * reference; callers are responsible for avoiding churn there.
  */
-export function mergeIab(
+export const mergeIab = function mergeIab(
 	current: KernelIABState | null,
 	input: Partial<KernelIABState>
 ): { next: KernelIABState; changed: boolean } {
@@ -71,9 +71,11 @@ export function mergeIab(
 			break;
 		}
 	}
-	if (!current && input) changed = true;
-	return { next, changed };
-}
+	if (!current && input) {
+		changed = true;
+	}
+	return { changed, next };
+};
 
 /**
  * Dependencies required by `buildSetters`. The kernel index supplies
@@ -92,49 +94,39 @@ export interface SetterDeps {
  * Each setter is a thin wrapper that computes a patch from the current
  * snapshot, short-circuits on no-op, then advances + emits.
  */
-export function buildSetters(deps: SetterDeps) {
+export const buildSetters = function buildSetters(deps: SetterDeps) {
 	const { getSnapshot, advance, emit } = deps;
 
 	return {
+		activeUI(ui: KernelActiveUI): void {
+			if (getSnapshot().activeUI === ui) {
+				return;
+			}
+			advance({ activeUI: ui });
+		},
+
 		consent(input: Partial<ConsentState>): void {
 			const next = mergeConsent(getSnapshot().consents, input);
-			if (!next) return;
+			if (!next) {
+				return;
+			}
 			advance({ consents: next });
-			emit({ type: 'consent:set', snapshot: getSnapshot() });
-		},
-
-		overrides(input: KernelOverrides): void {
-			const snapshot = getSnapshot();
-			advance({ overrides: { ...snapshot.overrides, ...input } });
-			emit({ type: 'overrides:set', snapshot: getSnapshot() });
-		},
-
-		language(code: string): void {
-			const snapshot = getSnapshot();
-			if (snapshot.overrides.language === code) return;
-			advance({ overrides: { ...snapshot.overrides, language: code } });
-			emit({ type: 'overrides:set', snapshot: getSnapshot() });
-		},
-
-		subjectId(id: string | null): void {
-			if (getSnapshot().subjectId === id) return;
-			advance({ subjectId: id });
+			emit({ snapshot: getSnapshot(), type: 'consent:set' });
 		},
 
 		hasConsented(value: boolean): void {
-			if (getSnapshot().hasConsented === value) return;
+			if (getSnapshot().hasConsented === value) {
+				return;
+			}
 			advance({ hasConsented: value });
-		},
-
-		activeUI(ui: KernelActiveUI): void {
-			if (getSnapshot().activeUI === ui) return;
-			advance({ activeUI: ui });
 		},
 
 		iab(input: Partial<KernelIABState>): void {
 			const snapshot = getSnapshot();
 			const { next, changed } = mergeIab(snapshot.iab, input);
-			if (!changed) return;
+			if (!changed) {
+				return;
+			}
 
 			const patch: SnapshotPatch = { iab: next };
 			// If enable/disable flipped, re-derive model + activeUI so the
@@ -145,7 +137,29 @@ export function buildSetters(deps: SetterDeps) {
 				patch.activeUI = deriveActiveUI(nextModel, snapshot.policy);
 			}
 			advance(patch);
-			emit({ type: 'iab:set', snapshot: getSnapshot() });
+			emit({ snapshot: getSnapshot(), type: 'iab:set' });
+		},
+
+		language(code: string): void {
+			const snapshot = getSnapshot();
+			if (snapshot.overrides.language === code) {
+				return;
+			}
+			advance({ overrides: { ...snapshot.overrides, language: code } });
+			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+		},
+
+		overrides(input: KernelOverrides): void {
+			const snapshot = getSnapshot();
+			advance({ overrides: { ...snapshot.overrides, ...input } });
+			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+		},
+
+		subjectId(id: string | null): void {
+			if (getSnapshot().subjectId === id) {
+				return;
+			}
+			advance({ subjectId: id });
 		},
 	};
-}
+};

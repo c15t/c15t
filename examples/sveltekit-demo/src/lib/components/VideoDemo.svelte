@@ -2,23 +2,31 @@
 	import { Frame } from '@c15t/svelte';
 </script>
 
-<section id="video-demo" class="py-24 bg-background">
+<section
+	id="video-demo"
+	class="bg-background py-24"
+>
 	<div class="container mx-auto px-4">
-		<div class="max-w-4xl mx-auto">
-			<div class="text-center mb-12">
-				<h2 class="text-4xl font-bold mb-4 text-balance">See PigeonPost in Action</h2>
-				<p class="text-xl text-muted-foreground text-balance">
+		<div class="mx-auto max-w-4xl">
+			<div class="mb-12 text-center">
+				<h2 class="mb-4 text-4xl font-bold text-balance">
+					See PigeonPost in Action
+				</h2>
+				<p class="text-muted-foreground text-xl text-balance">
 					Watch how our revolutionary pigeon-powered delivery system works
 				</p>
 			</div>
 
-			<Frame category="experience" class="relative w-full aspect-video">
+			<Frame
+				category="experience"
+				class="relative aspect-video w-full"
+			>
 				<iframe
 					src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&start=36"
 					title="PigeonPost Demo Video"
 					allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 					allowfullscreen
-					class="inset-0 w-full h-full"
+					class="inset-0 h-full w-full"
 				></iframe>
 			</Frame>
 		</div>

@@ -7,19 +7,23 @@
  */
 
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
-type StateShape = {
+interface StoreSnapshot {
 	consents: Record<string, boolean>;
 	selectedConsents: Record<string, boolean>;
 	activeUI: 'none' | 'banner' | 'dialog';
-};
-
-function readState(driver: TestDriver): StateShape {
-	return driver.getStore().getState() as unknown as StateShape;
 }
 
-export function runStoreConformance(driver: TestDriver, api: SuiteApi): void {
+const readState = function readState(driver: TestDriver): StoreSnapshot {
+	return driver.getStore().getState() as unknown as StoreSnapshot;
+};
+
+export const runStoreConformance = function runStoreConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] store`, () => {
 		conformanceTest(
 			api,
@@ -67,4 +71,4 @@ export function runStoreConformance(driver: TestDriver, api: SuiteApi): void {
 			}
 		);
 	});
-}
+};

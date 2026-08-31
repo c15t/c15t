@@ -1,10 +1,10 @@
 'use client';
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
-interface IABConsentBannerButtonGroupProps
-	extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
 }
 
@@ -16,25 +16,23 @@ interface IABConsentBannerButtonGroupProps
  *
  * @public
  */
-const IABConsentBannerButtonGroup = forwardRef<
+const IABConsentBannerButtonGroup = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerButtonGroupProps
->(({ children, className, ...props }, ref) => {
-	return (
-		<div
-			ref={ref}
-			className={
-				className
-					? `${actionStyles.actionGroup} ${className}`
-					: actionStyles.actionGroup
-			}
-			data-direction="row"
-			{...props}
-		>
-			{children}
-		</div>
-	);
-});
+>(({ children, className, ...props }, ref) => (
+	<div
+		ref={ref}
+		className={
+			className
+				? `${actionStyles.actionGroup} ${className}`
+				: actionStyles.actionGroup
+		}
+		data-direction="row"
+		{...props}
+	>
+		{children}
+	</div>
+));
 
 IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
 
@@ -43,18 +41,16 @@ IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
  *
  * @public
  */
-const IABConsentBannerFooterSpacer = forwardRef<
+const IABConsentBannerFooterSpacer = createForwardRef<
 	HTMLDivElement,
 	HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-	return (
-		<div
-			ref={ref}
-			className={className}
-			{...props}
-		/>
-	);
-});
+>(({ className, ...props }, ref) => (
+	<div
+		ref={ref}
+		className={className}
+		{...props}
+	/>
+));
 
 IABConsentBannerFooterSpacer.displayName = 'IABConsentBannerFooterSpacer';
 

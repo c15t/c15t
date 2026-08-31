@@ -62,9 +62,11 @@ export interface PolicySnapshotClaims {
 	readonly proofConfig?: unknown;
 }
 
-function resolveIssuer(options: PolicySnapshotOptions): string {
+const resolveIssuer = function resolveIssuer(
+	options: PolicySnapshotOptions
+): string {
 	return options.issuer?.trim() || DEFAULT_ISSUER;
-}
+};
 
 /**
  * Audience is tenant-scoped when a tenant is known.
@@ -73,7 +75,7 @@ function resolveIssuer(options: PolicySnapshotOptions): string {
  * without it a snapshot would be portable across tenants, which for signed
  * evidence is a confused-deputy problem rather than a convenience.
  */
-function resolveAudience(
+const resolveAudience = function resolveAudience(
 	options: PolicySnapshotOptions,
 	tenantId: string | undefined
 ): string {
@@ -82,7 +84,7 @@ function resolveAudience(
 		return configured;
 	}
 	return tenantId ? `${DEFAULT_AUDIENCE}:${tenantId}` : DEFAULT_AUDIENCE;
-}
+};
 
 const signingKey = (secret: string): Uint8Array =>
 	new TextEncoder().encode(secret);
@@ -94,55 +96,56 @@ const signingKey = (secret: string): Uint8Array =>
  * cannot be verified is worse than absent evidence, because a caller may treat
  * its presence as meaningful.
  */
-export async function createPolicySnapshotToken(
-	claims: PolicySnapshotClaims,
-	options: PolicySnapshotOptions | undefined
-): Promise<{ token: string; payload: Record<string, unknown> } | undefined> {
-	if (!options?.signingKey) {
-		return undefined;
-	}
+export const createPolicySnapshotToken =
+	async function createPolicySnapshotToken(
+		claims: PolicySnapshotClaims,
+		options: PolicySnapshotOptions | undefined
+	): Promise<{ token: string; payload: Record<string, unknown> } | undefined> {
+		if (!options?.signingKey) {
+			return undefined;
+		}
 
-	const iat = Math.floor(Date.now() / 1000);
-	const exp = iat + (options.ttlSeconds ?? DEFAULT_TTL_SECONDS);
+		const iat = Math.floor(Date.now() / 1000);
+		const exp = iat + (options.ttlSeconds ?? DEFAULT_TTL_SECONDS);
 
-	// Claim order matches @c15t/backend's payload construction. It does not
-	// affect verification, but keeping it identical makes the two payloads
-	// diffable when the parity test fails.
-	const payload = {
-		iss: resolveIssuer(options),
-		aud: resolveAudience(options, claims.tenantId),
-		sub: claims.policyId,
-		tenantId: claims.tenantId,
-		policyId: claims.policyId,
-		fingerprint: claims.fingerprint,
-		matchedBy: claims.matchedBy,
-		country: claims.country,
-		region: claims.region,
-		jurisdiction: claims.jurisdiction,
-		language: claims.language,
-		model: claims.model,
-		policyI18n: claims.policyI18n,
-		expiryDays: claims.expiryDays,
-		scopeMode: claims.scopeMode,
-		uiMode: claims.uiMode,
-		bannerUi: claims.bannerUi,
-		dialogUi: claims.dialogUi,
-		categories: claims.categories,
-		preselectedCategories: claims.preselectedCategories,
-		gpc: claims.gpc,
-		proofConfig: claims.proofConfig,
-		iat,
-		exp,
+		// Claim order matches @c15t/backend's payload construction. It does not
+		// affect verification, but keeping it identical makes the two payloads
+		// diffable when the parity test fails.
+		const payload = {
+			aud: resolveAudience(options, claims.tenantId),
+			bannerUi: claims.bannerUi,
+			categories: claims.categories,
+			country: claims.country,
+			dialogUi: claims.dialogUi,
+			exp,
+			expiryDays: claims.expiryDays,
+			fingerprint: claims.fingerprint,
+			gpc: claims.gpc,
+			iat,
+			iss: resolveIssuer(options),
+			jurisdiction: claims.jurisdiction,
+			language: claims.language,
+			matchedBy: claims.matchedBy,
+			model: claims.model,
+			policyI18n: claims.policyI18n,
+			policyId: claims.policyId,
+			preselectedCategories: claims.preselectedCategories,
+			proofConfig: claims.proofConfig,
+			region: claims.region,
+			scopeMode: claims.scopeMode,
+			sub: claims.policyId,
+			tenantId: claims.tenantId,
+			uiMode: claims.uiMode,
+		};
+
+		const token = await new SignJWT(payload)
+			.setProtectedHeader(JWT_HEADER)
+			.setIssuedAt(iat)
+			.setExpirationTime(exp)
+			.sign(signingKey(options.signingKey));
+
+		return { payload, token };
 	};
-
-	const token = await new SignJWT(payload)
-		.setProtectedHeader(JWT_HEADER)
-		.setIssuedAt(iat)
-		.setExpirationTime(exp)
-		.sign(signingKey(options.signingKey));
-
-	return { token, payload };
-}
 
 export type SnapshotVerification =
 	| { readonly valid: true; readonly payload: Record<string, unknown> }
@@ -155,22 +158,27 @@ export type SnapshotVerification =
  * "wrong signature" from "wrong audience" from "expired" tells an attacker
  * which part of a forged token to fix next.
  */
-export async function verifyPolicySnapshotToken(
-	token: string | undefined,
-	options: PolicySnapshotOptions | undefined,
-	tenantId: string | undefined
-): Promise<SnapshotVerification> {
-	if (!options?.signingKey || !token) {
-		return { valid: false, reason: 'missing' };
-	}
+export const verifyPolicySnapshotToken =
+	async function verifyPolicySnapshotToken(
+		token: string | undefined,
+		options: PolicySnapshotOptions | undefined,
+		tenantId: string | undefined
+	): Promise<SnapshotVerification> {
+		if (!options?.signingKey || !token) {
+			return { reason: 'missing', valid: false };
+		}
 
-	try {
-		const { payload } = await jwtVerify(token, signingKey(options.signingKey), {
-			issuer: resolveIssuer(options),
-			audience: resolveAudience(options, tenantId),
-		});
-		return { valid: true, payload: payload as Record<string, unknown> };
-	} catch {
-		return { valid: false, reason: 'invalid' };
-	}
-}
+		try {
+			const { payload } = await jwtVerify(
+				token,
+				signingKey(options.signingKey),
+				{
+					audience: resolveAudience(options, tenantId),
+					issuer: resolveIssuer(options),
+				}
+			);
+			return { payload: payload as Record<string, unknown>, valid: true };
+		} catch {
+			return { reason: 'invalid', valid: false };
+		}
+	};

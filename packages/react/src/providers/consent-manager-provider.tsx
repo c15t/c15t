@@ -2,17 +2,15 @@
 
 import {
 	clearConsentRuntimeCache as baseClearCache,
-	type Callbacks,
-	type ConsentStoreState,
 	getOrCreateConsentRuntime,
 } from '@c15t/core';
+import type { Callbacks, ConsentStoreState } from '@c15t/core';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge } from '@c15t/ui/utils';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
-import {
-	ConsentStateContext,
-	type ConsentStateContextValue,
-} from '../context/consent-manager-context';
+
+import { ConsentStateContext } from '../context/consent-manager-context';
+import type { ConsentStateContextValue } from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
@@ -29,9 +27,10 @@ import { version } from '../version';
  *
  * @internal
  */
-export function clearConsentRuntimeCache(): void {
-	baseClearCache();
-}
+export const clearConsentRuntimeCache =
+	function clearConsentRuntimeCache(): void {
+		baseClearCache();
+	};
 
 const CALLBACK_KEYS = [
 	'onBannerFetched',
@@ -41,15 +40,17 @@ const CALLBACK_KEYS = [
 	'onBeforeConsentRevocationReload',
 ] as const;
 
-function pickCallbackProps(callbacks?: Callbacks): Callbacks {
+const pickCallbackProps = function pickCallbackProps(
+	callbacks?: Callbacks
+): Callbacks {
 	return {
 		onBannerFetched: callbacks?.onBannerFetched,
-		onConsentSet: callbacks?.onConsentSet,
-		onConsentChanged: callbacks?.onConsentChanged,
-		onError: callbacks?.onError,
 		onBeforeConsentRevocationReload: callbacks?.onBeforeConsentRevocationReload,
+		onConsentChanged: callbacks?.onConsentChanged,
+		onConsentSet: callbacks?.onConsentSet,
+		onError: callbacks?.onError,
 	};
-}
+};
 
 /**
  * Provider component for consent management functionality.
@@ -78,17 +79,19 @@ function pickCallbackProps(callbacks?: Callbacks): Callbacks {
  *
  * @public
  */
-export function ConsentManagerProvider({
+export const ConsentManagerProvider = ({
 	children,
 	options,
-}: ConsentManagerProviderProps) {
+}: ConsentManagerProviderProps) => {
 	// Initialize consent manager and store using shared runtime logic from core
-	const { consentManager, consentStore } = useMemo(() => {
-		return getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version,
-		});
-	}, [options]);
+	const { consentManager, consentStore } = useMemo(
+		() =>
+			getOrCreateConsentRuntime(options, {
+				pkg: '@c15t/react',
+				version,
+			}),
+		[options]
+	);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<ConsentStoreState>(() => {
@@ -101,8 +104,10 @@ export function ConsentManagerProvider({
 
 	// Track if we've initialized to avoid redundant state updates during hydration
 	const initializedRef = useRef(false);
+	const optionsOverrides = options.overrides;
+	const optionsCallbacks = options.callbacks;
 	const appliedCallbacksRef = useRef<Callbacks>(
-		pickCallbackProps(options.callbacks)
+		pickCallbackProps(optionsCallbacks)
 	);
 
 	// Set up subscription immediately and separately from initialization
@@ -141,7 +146,7 @@ export function ConsentManagerProvider({
 		}
 
 		const currentOverrides = consentStore.getState().overrides ?? {};
-		const nextOverrides = options.overrides ?? {};
+		const nextOverrides = optionsOverrides ?? {};
 		const hasDiff =
 			currentOverrides.country !== nextOverrides.country ||
 			currentOverrides.region !== nextOverrides.region ||
@@ -154,24 +159,18 @@ export function ConsentManagerProvider({
 
 		void consentStore.getState().setOverrides({
 			country: nextOverrides.country,
-			region: nextOverrides.region,
-			language: nextOverrides.language,
 			gpc: nextOverrides.gpc,
+			language: nextOverrides.language,
+			region: nextOverrides.region,
 		});
-	}, [
-		consentStore,
-		options.overrides?.country,
-		options.overrides?.region,
-		options.overrides?.language,
-		options.overrides?.gpc,
-	]);
+	}, [consentStore, optionsOverrides]);
 
 	useEffect(() => {
 		if (!consentStore) {
 			return;
 		}
 
-		const nextCallbacks = pickCallbackProps(options.callbacks);
+		const nextCallbacks = pickCallbackProps(optionsCallbacks);
 		const previousCallbacks = appliedCallbacksRef.current;
 		const hasDiff = CALLBACK_KEYS.some(
 			(key) => previousCallbacks[key] !== nextCallbacks[key]
@@ -188,14 +187,7 @@ export function ConsentManagerProvider({
 			},
 		}));
 		appliedCallbacksRef.current = nextCallbacks;
-	}, [
-		consentStore,
-		options.callbacks?.onBannerFetched,
-		options.callbacks?.onConsentSet,
-		options.callbacks?.onConsentChanged,
-		options.callbacks?.onError,
-		options.callbacks?.onBeforeConsentRevocationReload,
-	]);
+	}, [consentStore, optionsCallbacks]);
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {
@@ -210,18 +202,19 @@ export function ConsentManagerProvider({
 		const mergedTheme = deepMerge(defaultTheme, theme);
 
 		return {
-			theme: mergedTheme,
-			noStyle,
-			disableAnimation,
-			trapFocus,
 			colorScheme,
+			disableAnimation,
+			noStyle,
+			theme: mergedTheme,
+			trapFocus,
 		};
 	}, [options]);
 
 	// Generate CSS variables for the theme
-	const themeCSS = useMemo(() => {
-		return generateThemeCSS(themeContextValue.theme);
-	}, [themeContextValue.theme]);
+	const themeCSS = useMemo(
+		() => generateThemeCSS(themeContextValue.theme),
+		[themeContextValue.theme]
+	);
 
 	// `nonce` is accepted at the top level and via the `store` escape hatch.
 	// Resolve it with the same precedence the core runtime uses, so the theme
@@ -238,9 +231,9 @@ export function ConsentManagerProvider({
 			);
 		}
 		return {
+			manager: consentManager,
 			state,
 			store: consentStore,
-			manager: consentManager,
 		};
 	}, [state, consentStore, consentManager]);
 
@@ -251,7 +244,7 @@ export function ConsentManagerProvider({
 					<style
 						id="c15t-theme"
 						nonce={nonce}
-						// biome-ignore lint/security/noDangerouslySetInnerHtml: It's safe to set innerHTML here
+						// oxlint-disable-next-line react/no-danger -- It's safe to set innerHTML here
 						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>
 				) : null}
@@ -259,4 +252,4 @@ export function ConsentManagerProvider({
 			</GlobalThemeContext.Provider>
 		</ConsentStateContext.Provider>
 	);
-}
+};

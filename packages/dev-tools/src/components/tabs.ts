@@ -5,6 +5,7 @@
 
 import { button, createSvgElement, div } from '../core/renderer';
 import type { DevToolsTab } from '../core/state-manager';
+
 import tabStyles from '../styles/tabs.module.css';
 
 // Tab icons
@@ -58,13 +59,13 @@ interface TabConfig {
 }
 
 const TABS: TabConfig[] = [
-	{ id: 'location', label: 'Location', icon: LOCATION_ICON },
-	{ id: 'policy', label: 'Policy', icon: POLICY_ICON },
-	{ id: 'consents', label: 'Consents', icon: CONSENTS_ICON },
-	{ id: 'scripts', label: 'Scripts', icon: SCRIPTS_ICON },
-	{ id: 'iab', label: 'IAB', icon: IAB_ICON },
-	{ id: 'actions', label: 'Actions', icon: ACTIONS_ICON },
-	{ id: 'events', label: 'Events', icon: EVENTS_ICON },
+	{ icon: LOCATION_ICON, id: 'location', label: 'Location' },
+	{ icon: POLICY_ICON, id: 'policy', label: 'Policy' },
+	{ icon: CONSENTS_ICON, id: 'consents', label: 'Consents' },
+	{ icon: SCRIPTS_ICON, id: 'scripts', label: 'Scripts' },
+	{ icon: IAB_ICON, id: 'iab', label: 'IAB' },
+	{ icon: ACTIONS_ICON, id: 'actions', label: 'Actions' },
+	{ icon: EVENTS_ICON, id: 'events', label: 'Events' },
 ];
 
 export interface TabsOptions {
@@ -83,15 +84,76 @@ export interface TabsInstance {
 /**
  * Creates a tabs component
  */
-export function createTabs(options: TabsOptions): TabsInstance {
+export const createTabs = function createTabs(
+	options: TabsOptions
+): TabsInstance {
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let setActiveTab: (tab: DevToolsTab) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let handleOverflowKeyDown: (
+		e: KeyboardEvent,
+		currentTab: DevToolsTab
+	) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let handleKeyDown: (e: KeyboardEvent, currentTab: DevToolsTab) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let handleEscapeKey: (e: KeyboardEvent) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let handleOutsideClick: (e: MouseEvent) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let toggleOverflowMenu: () => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let closeOverflowMenu: () => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let openOverflowMenu: () => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let focusFirstEnabledOverflowItem: () => void;
+
 	const { onTabChange, disabledTabs = [] } = options;
-	let activeTab = options.activeTab;
+	let { activeTab } = options;
 	let isOverflowMenuOpen = false;
 	let visibleTabIds: DevToolsTab[] = [];
 	let hiddenTabIds: DevToolsTab[] = [];
 
-	const tabButtons: Map<DevToolsTab, HTMLButtonElement> = new Map();
-	const overflowButtons: Map<DevToolsTab, HTMLButtonElement> = new Map();
+	const tabButtons = new Map<DevToolsTab, HTMLButtonElement>();
+	const overflowButtons = new Map<DevToolsTab, HTMLButtonElement>();
+
+	const createTabClickHandler =
+		(tabId: DevToolsTab, isDisabled: boolean) => () => {
+			if (!isDisabled) {
+				closeOverflowMenu();
+				setActiveTab(tabId);
+				onTabChange(tabId);
+			}
+		};
+
+	const createTabKeyDownHandler =
+		(tabId: DevToolsTab) => (e: KeyboardEvent) => {
+			handleKeyDown(e, tabId);
+		};
+
+	const createOverflowClickHandler =
+		(tabId: DevToolsTab, isDisabled: boolean) => () => {
+			if (!isDisabled) {
+				setActiveTab(tabId);
+				onTabChange(tabId);
+				closeOverflowMenu();
+				tabButtons.get(tabId)?.focus();
+			}
+		};
+
+	const createOverflowKeyDownHandler =
+		(tabId: DevToolsTab) => (e: KeyboardEvent) => {
+			handleOverflowKeyDown(e, tabId);
+		};
 
 	// Create tab list wrapper
 	const tabList = div({
@@ -100,24 +162,24 @@ export function createTabs(options: TabsOptions): TabsInstance {
 
 	// Main tabs strip
 	const tabStrip = div({
+		ariaLabel: 'DevTools tabs',
 		className: tabStyles.tabStrip,
 		role: 'tablist',
-		ariaLabel: 'DevTools tabs',
 	});
 	tabList.appendChild(tabStrip);
 
 	// Overflow menu for quick tab access
 	const overflowMenu = div({
+		ariaLabel: 'All tabs',
 		className: tabStyles.overflowMenu,
 		role: 'menu',
-		ariaLabel: 'All tabs',
 	});
 	overflowMenu.dataset.state = 'closed';
 
 	const overflowButton = button({
-		className: tabStyles.overflowButton,
-		ariaLabel: 'More tabs',
 		ariaExpanded: 'false',
+		ariaLabel: 'More tabs',
+		className: tabStyles.overflowButton,
 		onClick: () => toggleOverflowMenu(),
 		onKeyDown: (e: KeyboardEvent) => {
 			if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
@@ -130,80 +192,70 @@ export function createTabs(options: TabsOptions): TabsInstance {
 	overflowButton.setAttribute('aria-haspopup', 'menu');
 	const overflowIcon = div({ className: tabStyles.overflowButtonIcon });
 	overflowIcon.appendChild(
-		createSvgElement(MORE_ICON, { width: 14, height: 14 })
+		createSvgElement(MORE_ICON, { height: 14, width: 14 })
 	);
 	overflowButton.appendChild(overflowIcon);
 
 	const overflowContainer = div({
-		className: tabStyles.overflowContainer,
 		children: [overflowButton, overflowMenu],
+		className: tabStyles.overflowContainer,
 	});
 	tabList.appendChild(overflowContainer);
 
 	// Create tab buttons + overflow items
 	for (const tab of TABS) {
-		const isActive = tab.id === activeTab;
-		const isDisabled = disabledTabs.includes(tab.id);
+		const tabId = tab.id;
+		const tabIcon = tab.icon;
+		const tabLabel = tab.label;
+		const isActive = tabId === activeTab;
+		const isDisabled = disabledTabs.includes(tabId);
 
 		const tabButton = button({
-			className: `${tabStyles.tab} ${isActive ? tabStyles.tabActive : ''} ${isDisabled ? tabStyles.tabDisabled : ''}`,
-			role: 'tab',
-			ariaSelected: isActive ? 'true' : 'false',
-			ariaControls: `panel-${tab.id}`,
+			ariaControls: `panel-${tabId}`,
 			ariaDisabled: isDisabled ? 'true' : undefined,
-			tabIndex: isActive ? 0 : -1,
+			ariaSelected: isActive ? 'true' : 'false',
+			className: `${tabStyles.tab} ${isActive ? tabStyles.tabActive : ''} ${isDisabled ? tabStyles.tabDisabled : ''}`,
 			disabled: isDisabled,
-			onClick: () => {
-				if (!isDisabled) {
-					closeOverflowMenu();
-					setActiveTab(tab.id);
-					onTabChange(tab.id);
-				}
-			},
-			onKeyDown: (e: KeyboardEvent) => handleKeyDown(e, tab.id),
+			onClick: createTabClickHandler(tabId, isDisabled),
+			onKeyDown: createTabKeyDownHandler(tabId),
+			role: 'tab',
+			tabIndex: isActive ? 0 : -1,
 		});
 
 		// Add icon
 		const iconWrapper = div({ className: tabStyles.tabIcon });
 		iconWrapper.appendChild(
-			createSvgElement(tab.icon, { width: 14, height: 14 })
+			createSvgElement(tabIcon, { height: 14, width: 14 })
 		);
 		tabButton.appendChild(iconWrapper);
 
 		// Add label
-		tabButton.appendChild(document.createTextNode(tab.label));
+		tabButton.appendChild(document.createTextNode(tabLabel));
 
-		tabButtons.set(tab.id, tabButton);
+		tabButtons.set(tabId, tabButton);
 		tabStrip.appendChild(tabButton);
 
 		const overflowItem = button({
-			className: `${tabStyles.overflowItem} ${isActive ? tabStyles.overflowItemActive : ''} ${isDisabled ? tabStyles.overflowItemDisabled : ''}`,
-			role: 'menuitemradio',
 			ariaChecked: isActive ? 'true' : 'false',
+			className: `${tabStyles.overflowItem} ${isActive ? tabStyles.overflowItemActive : ''} ${isDisabled ? tabStyles.overflowItemDisabled : ''}`,
 			disabled: isDisabled,
-			onClick: () => {
-				if (!isDisabled) {
-					setActiveTab(tab.id);
-					onTabChange(tab.id);
-					closeOverflowMenu();
-					tabButtons.get(tab.id)?.focus();
-				}
-			},
-			onKeyDown: (e: KeyboardEvent) => handleOverflowKeyDown(e, tab.id),
+			onClick: createOverflowClickHandler(tabId, isDisabled),
+			onKeyDown: createOverflowKeyDownHandler(tabId),
+			role: 'menuitemradio',
 		});
 
 		const overflowItemIcon = div({ className: tabStyles.overflowItemIcon });
 		overflowItemIcon.appendChild(
-			createSvgElement(tab.icon, { width: 14, height: 14 })
+			createSvgElement(tabIcon, { height: 14, width: 14 })
 		);
 		overflowItem.appendChild(overflowItemIcon);
-		overflowItem.appendChild(document.createTextNode(tab.label));
+		overflowItem.appendChild(document.createTextNode(tabLabel));
 
-		overflowButtons.set(tab.id, overflowItem);
+		overflowButtons.set(tabId, overflowItem);
 		overflowMenu.appendChild(overflowItem);
 	}
 
-	function applyActiveState(tab: DevToolsTab): void {
+	const applyActiveState = function applyActiveState(tab: DevToolsTab): void {
 		for (const [tabId, tabButton] of tabButtons) {
 			const isActive = tabId === tab;
 			if (tabStyles.tabActive) {
@@ -220,9 +272,10 @@ export function createTabs(options: TabsOptions): TabsInstance {
 			}
 			overflowItem.setAttribute('aria-checked', isActive ? 'true' : 'false');
 		}
-	}
+	};
 
-	function updateVisibleTabs(): void {
+	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+	const updateVisibleTabs = function updateVisibleTabs(): void {
 		const allTabIds = TABS.map((t) => t.id);
 		const iabEnabled = !disabledTabs.includes('iab');
 		const preferredSecondTab: DevToolsTab = iabEnabled ? 'iab' : 'consents';
@@ -291,7 +344,7 @@ export function createTabs(options: TabsOptions): TabsInstance {
 					continue;
 				}
 
-				const width = tabButton.getBoundingClientRect().width;
+				const { width } = tabButton.getBoundingClientRect();
 				const nextUsed =
 					nextVisible.length === 0 ? width : usedWidth + stripGap + width;
 
@@ -415,18 +468,18 @@ export function createTabs(options: TabsOptions): TabsInstance {
 		if (hiddenTabIds.length === 0) {
 			closeOverflowMenu();
 		}
-	}
+	};
 
-	function focusFirstEnabledOverflowItem(): void {
+	focusFirstEnabledOverflowItem = (): void => {
 		const firstEnabled = hiddenTabIds.find(
 			(tabId) => !disabledTabs.includes(tabId)
 		);
 		if (firstEnabled) {
 			overflowButtons.get(firstEnabled)?.focus();
 		}
-	}
+	};
 
-	function openOverflowMenu(): void {
+	openOverflowMenu = (): void => {
 		if (isOverflowMenuOpen || hiddenTabIds.length === 0) {
 			return;
 		}
@@ -436,9 +489,9 @@ export function createTabs(options: TabsOptions): TabsInstance {
 		overflowButton.setAttribute('aria-expanded', 'true');
 		document.addEventListener('click', handleOutsideClick);
 		document.addEventListener('keydown', handleEscapeKey);
-	}
+	};
 
-	function closeOverflowMenu(): void {
+	closeOverflowMenu = (): void => {
 		if (!isOverflowMenuOpen) {
 			return;
 		}
@@ -448,32 +501,32 @@ export function createTabs(options: TabsOptions): TabsInstance {
 		overflowButton.setAttribute('aria-expanded', 'false');
 		document.removeEventListener('click', handleOutsideClick);
 		document.removeEventListener('keydown', handleEscapeKey);
-	}
+	};
 
-	function toggleOverflowMenu(): void {
+	toggleOverflowMenu = (): void => {
 		if (isOverflowMenuOpen) {
 			closeOverflowMenu();
 		} else {
 			openOverflowMenu();
 		}
-	}
+	};
 
-	function handleOutsideClick(e: MouseEvent): void {
+	handleOutsideClick = (e: MouseEvent): void => {
 		if (!overflowContainer.contains(e.target as Node)) {
 			closeOverflowMenu();
 		}
-	}
+	};
 
-	function handleEscapeKey(e: KeyboardEvent): void {
+	handleEscapeKey = (e: KeyboardEvent): void => {
 		if (e.key === 'Escape') {
 			closeOverflowMenu();
 		}
-	}
+	};
 
 	/**
 	 * Handle keyboard navigation (skips disabled tabs)
 	 */
-	function handleKeyDown(e: KeyboardEvent, currentTab: DevToolsTab): void {
+	handleKeyDown = (e: KeyboardEvent, currentTab: DevToolsTab): void => {
 		const enabledTabIds = visibleTabIds.filter(
 			(tabId) => !disabledTabs.includes(tabId)
 		);
@@ -506,12 +559,9 @@ export function createTabs(options: TabsOptions): TabsInstance {
 			onTabChange(newTab);
 			tabButtons.get(newTab)?.focus();
 		}
-	}
+	};
 
-	function handleOverflowKeyDown(
-		e: KeyboardEvent,
-		currentTab: DevToolsTab
-	): void {
+	handleOverflowKeyDown = (e: KeyboardEvent, currentTab: DevToolsTab): void => {
 		const enabledTabIds = hiddenTabIds.filter(
 			(tabId) => !disabledTabs.includes(tabId)
 		);
@@ -542,29 +592,29 @@ export function createTabs(options: TabsOptions): TabsInstance {
 		if (newTab) {
 			overflowButtons.get(newTab)?.focus();
 		}
-	}
+	};
 
 	/**
 	 * Updates the active tab visually
 	 */
-	function setActiveTab(tab: DevToolsTab): void {
+	setActiveTab = (tab: DevToolsTab): void => {
 		activeTab = tab;
 		applyActiveState(tab);
 		updateVisibleTabs();
-	}
+	};
 
 	const handleWindowResize = () => {
 		updateVisibleTabs();
 	};
 
 	let resizeObserver: ResizeObserver | null = null;
-	if (typeof ResizeObserver !== 'undefined') {
+	if (typeof ResizeObserver === 'undefined') {
+		window.addEventListener('resize', handleWindowResize);
+	} else {
 		resizeObserver = new ResizeObserver(() => {
 			updateVisibleTabs();
 		});
 		resizeObserver.observe(tabList);
-	} else {
-		window.addEventListener('resize', handleWindowResize);
 	}
 
 	// Set initial active state before tab measurements are available.
@@ -574,10 +624,6 @@ export function createTabs(options: TabsOptions): TabsInstance {
 	});
 
 	return {
-		element: tabList,
-
-		setActiveTab,
-
 		destroy: () => {
 			closeOverflowMenu();
 			if (resizeObserver) {
@@ -589,5 +635,9 @@ export function createTabs(options: TabsOptions): TabsInstance {
 			tabButtons.clear();
 			overflowButtons.clear();
 		},
+
+		element: tabList,
+
+		setActiveTab,
 	};
-}
+};

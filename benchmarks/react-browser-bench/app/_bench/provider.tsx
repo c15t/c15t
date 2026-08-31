@@ -4,13 +4,15 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentManagerProvider,
-	type ConsentManagerProviderProps,
 } from '@c15t/react';
+import type { ConsentManagerProviderProps } from '@c15t/react';
 import type { ReactNode } from 'react';
-import { ReactBenchmarkProbe } from './probe';
-import { getBenchState, type ReactBenchScenario } from './state';
 
-export function BenchmarkProvider({
+import { ReactBenchmarkProbe } from './probe';
+import { getBenchState } from './state';
+import type { ReactBenchScenario } from './state';
+
+export const BenchmarkProvider = ({
 	children,
 	scenario,
 	headless = false,
@@ -18,9 +20,8 @@ export function BenchmarkProvider({
 	children: ReactNode;
 	scenario: ReactBenchScenario;
 	headless?: boolean;
-}) {
+}) => {
 	const options: ConsentManagerProviderProps['options'] = {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
 		callbacks: {
 			onBannerFetched() {
@@ -48,6 +49,7 @@ export function BenchmarkProvider({
 				state.onErrorCount += 1;
 			},
 		},
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {
@@ -62,13 +64,13 @@ export function BenchmarkProvider({
 	return (
 		<ConsentManagerProvider options={options}>
 			<ReactBenchmarkProbe scenario={scenario} />
-			{!headless ? (
+			{headless ? null : (
 				<>
 					<ConsentBanner disableAnimation />
 					<ConsentDialog disableAnimation />
 				</>
-			) : null}
+			)}
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

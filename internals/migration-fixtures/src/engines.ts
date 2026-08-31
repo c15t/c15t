@@ -27,36 +27,36 @@ export interface Engine {
 
 export const ENGINES: readonly Engine[] = [
 	{
-		name: 'sqlite',
 		deps: ['kysely', 'better-sqlite3'],
-		legacyType: 'sqlite',
 		fumadbProvider: 'sqlite',
+		legacyType: 'sqlite',
+		name: 'sqlite',
 		needsDocker: false,
 	},
 	{
-		name: 'postgres',
 		deps: ['kysely', '@electric-sql/pglite', 'kysely-pglite'],
-		legacyType: 'postgres',
 		fumadbProvider: 'postgresql',
+		legacyType: 'postgres',
+		name: 'postgres',
 		needsDocker: false,
 	},
 	{
-		name: 'mysql',
 		deps: ['kysely', 'mysql2'],
-		legacyType: 'mysql',
 		fumadbProvider: 'mysql',
+		legacyType: 'mysql',
+		name: 'mysql',
 		needsDocker: true,
 	},
 ] as const;
 
-export function engineByName(name: string): Engine {
+export const engineByName = function engineByName(name: string): Engine {
 	const engine = ENGINES.find((candidate) => candidate.name === name);
 	if (!engine) {
 		const known = ENGINES.map((candidate) => candidate.name).join(', ');
 		throw new Error(`Unknown engine "${name}". Known engines: ${known}`);
 	}
 	return engine;
-}
+};
 
 /**
  * Source for the Kysely instance the driver script runs against, evaluated
@@ -75,7 +75,9 @@ export function engineByName(name: string): Engine {
  * names this exists to stop, since a real deployment's database is far more
  * likely to be called that than `unrelated_db`.
  */
-const DISPOSABLE = /^(c15t|.*[_-](fixture|fixtures|test|tests|tmp|scratch))$/i;
+const DISPOSABLE =
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	/^(c15t|.*[_-](?<capture1>fixture|fixtures|test|tests|tmp|scratch))$/iu;
 
 /**
  * Refuses to reset a database that does not look disposable.
@@ -84,8 +86,11 @@ const DISPOSABLE = /^(c15t|.*[_-](fixture|fixtures|test|tests|tmp|scratch))$/i;
  * cannot hit this — they get a fresh in-process database per run — so the check
  * lives with the one engine that talks to a server the operator supplied.
  */
-export function assertDisposable(url: string, allowAnyDatabase: boolean): void {
-	const name = new URL(url).pathname.replace(/^\//, '');
+export const assertDisposable = function assertDisposable(
+	url: string,
+	allowAnyDatabase: boolean
+): void {
+	const name = new URL(url).pathname.replace(/^\//u, '');
 
 	if (name === '') {
 		throw new Error(
@@ -105,13 +110,14 @@ export function assertDisposable(url: string, allowAnyDatabase: boolean): void {
 			'anything ending in _test), or pass --allow-any-database if you are ' +
 			'certain.'
 	);
-}
+};
 
-export function connectionSource(
+export const connectionSource = function connectionSource(
 	engine: Engine,
 	mysqlUrl: string | undefined,
 	allowAnyDatabase = false
 ): string {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (engine.name) {
 		case 'sqlite':
 			return `
@@ -170,4 +176,4 @@ export const teardown = async () => { await db.destroy(); };
 `;
 		}
 	}
-}
+};

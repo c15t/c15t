@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
+
 import { recordBenchConsentFixtureExecution } from '../fixture';
 
-export async function POST(request: Request) {
+export const POST = async function POST(request: Request) {
 	recordBenchConsentFixtureExecution('subjects');
 	const body = await request.json();
 	return NextResponse.json(
@@ -15,4 +16,4 @@ export async function POST(request: Request) {
 			},
 		}
 	);
-}
+};

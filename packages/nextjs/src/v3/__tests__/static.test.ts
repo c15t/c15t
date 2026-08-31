@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import {
 	createStaticConsentResolver,
 	createStaticManifestModule,
@@ -17,6 +18,23 @@ describe('@c15t/nextjs/v3/static', () => {
 		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
 	});
 
+	test('uses the browser language when no language is configured', () => {
+		const languagesSpy = vi
+			.spyOn(navigator, 'languages', 'get')
+			.mockReturnValue(['de-DE']);
+
+		try {
+			const resolution = createStaticConsentResolver({
+				gpc: false,
+				manifest: MANIFEST_FIXTURE,
+			});
+
+			expect(resolution.initial.translations.language).toBe('de');
+		} finally {
+			languagesSpy.mockRestore();
+		}
+	});
+
 	test('geo microfetch resolves the geo-specific policy after initial strict default', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
@@ -25,10 +43,10 @@ describe('@c15t/nextjs/v3/static', () => {
 		);
 
 		const resolution = createStaticConsentResolver({
-			manifest: MANIFEST_FIXTURE,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			geoURL: 'https://geo.example.com/context',
 			language: 'en',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifest: MANIFEST_FIXTURE,
 		});
 
 		expect(resolution.initial.policy?.id).toBe('eu-opt-in');
@@ -45,9 +63,9 @@ describe('@c15t/nextjs/v3/static', () => {
 			);
 
 		const source = await createStaticManifestModule({
-			manifestURL: 'https://consent.example.com/manifest',
 			exportName: 'testManifest',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
 		});
 
 		expect(source).toContain(

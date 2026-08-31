@@ -1,45 +1,46 @@
 <script lang="ts">
-import bannerStyles from '@c15t/ui/styles/components/consent-banner.module.js';
-import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { getThemeContext } from '../context.svelte';
-import { resolveComponentStyles } from '../utils';
+	import bannerStyles from '@c15t/ui/styles/components/consent-banner.module.js';
+	import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
 
-let {
-	variant = 'banner',
-	visible = true,
-}: {
-	variant?: 'banner' | 'dialog';
-	visible?: boolean;
-} = $props();
+	import { getThemeContext } from '../context.svelte';
+	import { resolveComponentStyles } from '../utils';
 
-const theme = getThemeContext();
+	let {
+		variant = 'banner',
+		visible = true,
+	}: {
+		variant?: 'banner' | 'dialog';
+		visible?: boolean;
+	} = $props();
 
-const styles = $derived(variant === 'dialog' ? dialogStyles : bannerStyles);
+	const theme = getThemeContext();
 
-const themeKey = $derived(
-	variant === 'dialog'
-		? ('consentDialogOverlay' as const)
-		: ('consentBannerOverlay' as const)
-);
+	const styles = $derived(variant === 'dialog' ? dialogStyles : bannerStyles);
 
-const testId = $derived(
-	variant === 'dialog' ? 'consent-dialog-overlay' : 'consent-banner-overlay'
-);
+	const themeKey = $derived(
+		variant === 'dialog'
+			? ('consentDialogOverlay' as const)
+			: ('consentBannerOverlay' as const)
+	);
 
-const themeStyle = $derived(
-	resolveComponentStyles(
-		themeKey,
-		theme.theme,
-		{ baseClassName: styles.overlay },
+	const testId = $derived(
+		variant === 'dialog' ? 'consent-dialog-overlay' : 'consent-banner-overlay'
+	);
+
+	const themeStyle = $derived(
+		resolveComponentStyles(
+			themeKey,
+			theme.theme,
+			{ baseClassName: styles.overlay },
+			theme.noStyle
+		)
+	);
+
+	const className = $derived(
 		theme.noStyle
-	)
-);
-
-const className = $derived(
-	theme.noStyle
-		? themeStyle.className || ''
-		: `${themeStyle.className || ''} ${visible ? styles.overlayVisible : styles.overlayHidden}`
-);
+			? themeStyle.className || ''
+			: `${themeStyle.className || ''} ${visible ? styles.overlayVisible : styles.overlayHidden}`
+	);
 </script>
 
 <div

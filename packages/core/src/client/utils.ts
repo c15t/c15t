@@ -3,7 +3,7 @@ import type { ResponseContext } from './types';
 /**
  * Regex pattern to remove leading slashes
  */
-export const LEADING_SLASHES_REGEX = /^\/+/;
+export const LEADING_SLASHES_REGEX = /^\/+/u;
 
 /**
  * Creates a response context object for success or error cases.
@@ -14,7 +14,7 @@ export const LEADING_SLASHES_REGEX = /^\/+/;
  * @param response - The raw response object
  * @returns A response context object
  */
-export function createResponseContext<T>(
+export const createResponseContext = function createResponseContext<T>(
 	isSuccess: boolean,
 	data: T | null = null,
 	error: {
@@ -32,12 +32,12 @@ export function createResponseContext<T>(
 		ok: isSuccess,
 		response,
 	};
-}
+};
 
 /**
  * Creates a basic response context for error cases.
  */
-export function createErrorResponse<T>(
+export const createErrorResponse = function createErrorResponse<T>(
 	message: string,
 	status = 500,
 	code = 'ERROR',
@@ -47,11 +47,11 @@ export function createErrorResponse<T>(
 		false,
 		null,
 		{
+			cause,
+			code,
 			message,
 			status,
-			code,
-			cause,
 		},
 		null
 	);
-}
+};

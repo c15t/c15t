@@ -1,9 +1,9 @@
-@import url("./animations/fade-in.css");
+@import url('./animations/fade-in.css');
 
 :root {
 	--frame-font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
+		system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+		'Apple Color Emoji', 'Segoe UI Emoji';
 	--frame-line-height: 1.5;
 	--frame-placeholder-gap: 1rem;
 

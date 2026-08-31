@@ -1,8 +1,9 @@
 /**
- * @fileoverview Tests for the iframe blocker core functionality
+ * @file Tests for the iframe blocker core functionality
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentState } from '../../../types';
 import { createIframeBlocker } from '../core';
 import './test-setup';
@@ -55,11 +56,11 @@ describe('createIframeBlocker', () => {
 			const blocker = createIframeBlocker(
 				{},
 				{
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				}
 			);
 
@@ -80,11 +81,11 @@ describe('createIframeBlocker', () => {
 			const blocker = createIframeBlocker(
 				{},
 				{
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				}
 			);
 
@@ -155,11 +156,11 @@ describe('createIframeBlocker', () => {
 
 			// Now grant consent
 			blocker.updateConsents({
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
+				necessary: true,
 			});
 
 			// Should now be loaded
@@ -172,11 +173,11 @@ describe('createIframeBlocker', () => {
 			const blocker = createIframeBlocker(
 				{},
 				{
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				}
 			);
 
@@ -193,11 +194,11 @@ describe('createIframeBlocker', () => {
 
 			// Now revoke consent
 			blocker.updateConsents({
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			});
 
 			// Should now be blocked
@@ -211,11 +212,11 @@ describe('createIframeBlocker', () => {
 			const blocker = createIframeBlocker(
 				{},
 				{
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				}
 			);
 
@@ -268,11 +269,11 @@ describe('createIframeBlocker', () => {
 
 		it('should use initial consents when provided', () => {
 			const initialConsents: ConsentState = {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
+				necessary: true,
 			};
 
 			const blocker = createIframeBlocker({}, initialConsents);
@@ -325,11 +326,11 @@ describe('createIframeBlocker', () => {
 			const blocker = createIframeBlocker(
 				{},
 				{
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				}
 			);
 

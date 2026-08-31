@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	clearDismissedResources,
 	createDomScannerSection,
@@ -19,9 +20,9 @@ describe('DOM Scanner', () => {
 
 		// Reset window.location
 		Object.defineProperty(window, 'location', {
+			configurable: true,
 			value: { hostname: 'localhost', origin: 'http://localhost' },
 			writable: true,
-			configurable: true,
 		});
 	});
 
@@ -105,9 +106,9 @@ describe('DOM Scanner', () => {
 			const mockState = {
 				scripts: [
 					{
+						category: 'analytics',
 						id: 'analytics',
 						src: 'https://analytics.example.com/track.js',
-						category: 'analytics',
 					},
 				],
 			} as unknown as Parameters<typeof scanDOM>[0];
@@ -122,9 +123,9 @@ describe('DOM Scanner', () => {
 		it('should skip first-party scripts', () => {
 			// Mock window.location.hostname
 			Object.defineProperty(window, 'location', {
+				configurable: true,
 				value: { hostname: 'example.com', origin: 'https://example.com' },
 				writable: true,
-				configurable: true,
 			});
 
 			// Add a same-origin script
@@ -266,9 +267,9 @@ describe('DOM Scanner', () => {
 			const mockState = {
 				scripts: [
 					{
+						category: 'analytics',
 						id: 'analytics',
 						src: 'https://analytics.com/track.js',
-						category: 'analytics',
 					},
 				],
 			} as unknown as Parameters<typeof createDomScannerSection>[0];
@@ -360,9 +361,9 @@ describe('DOM Scanner', () => {
 			const mockState = {
 				scripts: [
 					{
+						category: 'analytics',
 						id: 'managed-script',
 						src: 'https://managed.com/script.js',
-						category: 'analytics',
 					},
 				],
 			} as unknown as Parameters<typeof createDomScannerSection>[0];

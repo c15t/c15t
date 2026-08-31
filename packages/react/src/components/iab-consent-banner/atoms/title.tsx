@@ -1,10 +1,10 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
-interface IABConsentBannerTitleProps
-	extends HTMLAttributes<HTMLHeadingElement> {
+interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 	children: ReactNode;
 }
 
@@ -13,20 +13,18 @@ interface IABConsentBannerTitleProps
  *
  * @public
  */
-const IABConsentBannerTitle = forwardRef<
+const IABConsentBannerTitle = createForwardRef<
 	HTMLHeadingElement,
 	IABConsentBannerTitleProps
->(({ children, className, ...props }, ref) => {
-	return (
-		<h2
-			ref={ref}
-			className={className ? `${styles.title} ${className}` : styles.title}
-			{...props}
-		>
-			{children}
-		</h2>
-	);
-});
+>(({ children, className, ...props }, ref) => (
+	<h2
+		ref={ref}
+		className={className ? `${styles.title} ${className}` : styles.title}
+		{...props}
+	>
+		{children}
+	</h2>
+));
 
 IABConsentBannerTitle.displayName = 'IABConsentBannerTitle';
 

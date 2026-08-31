@@ -1,5 +1,6 @@
 import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
+
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
@@ -16,12 +17,6 @@ const externals = [
 ];
 
 export default defineConfig({
-	source: {
-		entry: {
-			index: standardSourceEntries,
-		},
-		exclude: standardExcludePatterns,
-	},
 	lib: [
 		{
 			bundle: false,
@@ -35,18 +30,24 @@ export default defineConfig({
 		},
 	],
 	output: {
-		target: 'web',
 		cleanDistPath: true,
-		externals,
 		cssModules: {
 			auto: true,
 			localIdentName: 'c15t-[local]-[hash:base64:5]',
 		},
+		externals,
 		minify: {
 			css: true,
 		},
+		target: 'web',
 	},
 	plugins: [pluginReact()],
+	source: {
+		entry: {
+			index: standardSourceEntries,
+		},
+		exclude: standardExcludePatterns,
+	},
 	tools: {
 		rspack: {
 			plugins: [...getRsdoctorPlugins()],

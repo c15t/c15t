@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	deniedConsents,
 	installHeadProbe,
@@ -31,6 +32,7 @@ describe('posthog contract', () => {
 			};
 
 			win.posthog = {
+				get_explicit_consent_status: () => 'pending',
 				init: (...args: unknown[]) => {
 					initCalls.push(args);
 				},
@@ -40,7 +42,6 @@ describe('posthog contract', () => {
 				opt_out_capturing: () => {
 					consentCalls.push('opt_out');
 				},
-				get_explicit_consent_status: () => 'pending',
 			};
 
 			node.dispatchEvent(new Event('load'));
@@ -65,9 +66,9 @@ describe('posthog contract', () => {
 			[
 				'phc_contract',
 				{
-					defaults: '2026-01-30',
-					cookieless_mode: 'on_reject',
 					api_host: 'https://eu.i.posthog.com',
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
 					ui_host: 'https://eu.posthog.com',
 				},
 			],

@@ -9,6 +9,7 @@ import {
 } from '@c15t/solid';
 import { createSignal, For } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentManagerDialog, consentTypes } = enTranslations;
@@ -19,10 +20,10 @@ interface AccordionDemoProps {
 	type: AccordionType;
 	collapsible?: boolean;
 	defaultValue: string | string[];
-	items: Array<{ value: string; title: string; content: string }>;
+	items: { value: string; title: string; content: string }[];
 }
 
-function AccordionDemo(props: AccordionDemoProps) {
+const AccordionDemo = (props: AccordionDemoProps) => {
 	const [value, setValue] = createSignal<string | string[] | undefined>(
 		props.defaultValue
 	);
@@ -50,10 +51,10 @@ function AccordionDemo(props: AccordionDemoProps) {
 								onClick={() =>
 									setValue(
 										toggleAccordionValue({
+											collapsible: props.collapsible,
+											itemValue: item.value,
 											type: props.type,
 											value: value(),
-											itemValue: item.value,
-											collapsible: props.collapsible,
 										})
 									)
 								}
@@ -78,7 +79,7 @@ function AccordionDemo(props: AccordionDemoProps) {
 			</For>
 		</div>
 	);
-}
+};
 
 const meta = {
 	component: AccordionDemo,
@@ -101,14 +102,14 @@ export const Single: Story = {
 			defaultValue="purpose-1"
 			items={[
 				{
-					value: 'purpose-1',
-					title: consentTypes.necessary.title,
 					content: consentTypes.necessary.description,
+					title: consentTypes.necessary.title,
+					value: 'purpose-1',
 				},
 				{
-					value: 'purpose-2',
-					title: consentTypes.measurement.title,
 					content: consentTypes.measurement.description,
+					title: consentTypes.measurement.title,
+					value: 'purpose-2',
 				},
 			]}
 		/>
@@ -123,14 +124,14 @@ export const Multiple: Story = {
 			defaultValue={['purpose-1', 'purpose-2']}
 			items={[
 				{
-					value: 'purpose-1',
-					title: consentTypes.marketing.title,
 					content: consentTypes.marketing.description,
+					title: consentTypes.marketing.title,
+					value: 'purpose-1',
 				},
 				{
-					value: 'purpose-2',
-					title: consentTypes.functionality.title,
 					content: consentTypes.functionality.description,
+					title: consentTypes.functionality.title,
+					value: 'purpose-2',
 				},
 			]}
 		/>
@@ -154,14 +155,14 @@ export const WithIntroduction: Story = {
 				defaultValue="purpose-1"
 				items={[
 					{
-						value: 'purpose-1',
-						title: consentTypes.necessary.title,
 						content: consentTypes.necessary.description,
+						title: consentTypes.necessary.title,
+						value: 'purpose-1',
 					},
 					{
-						value: 'purpose-2',
-						title: consentTypes.measurement.title,
 						content: consentTypes.measurement.description,
+						title: consentTypes.measurement.title,
+						value: 'purpose-2',
 					},
 				]}
 			/>

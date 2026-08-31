@@ -1,20 +1,21 @@
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '../consent-manager-provider';
 
 // Mock a simple provider component
-const MockSSRProvider = ({ children }: { children: ReactNode }) => {
-	return <div data-testid="ssr-provider">{children}</div>;
-};
+const MockSSRProvider = ({ children }: { children: ReactNode }) => (
+	<div data-testid="ssr-provider">{children}</div>
+);
 
 // Component that tracks render timing
-const RenderTracker = ({ label }: { label: string }) => {
-	return <div data-testid={`render-${label}`}>{label}</div>;
-};
+const RenderTracker = ({ label }: { label: string }) => (
+	<div data-testid={`render-${label}`}>{label}</div>
+);
 
 describe('ConsentManagerProvider Hydration Behavior', () => {
 	beforeEach(() => {
@@ -32,8 +33,8 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline',
 					consentCategories: ['necessary', 'marketing'],
+					mode: 'offline',
 				}}
 			>
 				<RenderTracker label="child" />
@@ -55,8 +56,8 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline',
 					consentCategories: ['necessary', 'marketing'],
+					mode: 'offline',
 				}}
 			>
 				<MockSSRProvider>
@@ -83,8 +84,8 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 			<MockSSRProvider>
 				<ConsentManagerProvider
 					options={{
-						mode: 'offline',
 						consentCategories: ['necessary', 'marketing'],
+						mode: 'offline',
 					}}
 				>
 					<RenderTracker label="nested-content" />
@@ -111,8 +112,8 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		const { rerender, getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline',
 					consentCategories: ['necessary'],
+					mode: 'offline',
 				}}
 			>
 				<RenderTracker label="rapid-render" />
@@ -123,38 +124,43 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		expect(getByTestId('render-rapid-render')).toBeInTheDocument();
 
 		// Simulate rapid re-renders
-		for (let i = 0; i < 3; i++) {
-			rerender(
-				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-						consentCategories: ['necessary', 'marketing'],
-					}}
-				>
-					<RenderTracker label="rapid-render" />
-				</ConsentManagerProvider>
-			);
+		{
+			let i = 0;
+			const runSequentialLoop1 =
+				async function runSequentialLoop1(): Promise<void> {
+					if (!(i < 3)) {
+						return;
+					}
+					rerender(
+						<ConsentManagerProvider
+							options={{
+								consentCategories: ['necessary', 'marketing'],
+								mode: 'offline',
+							}}
+						>
+							<RenderTracker label="rapid-render" />
+						</ConsentManagerProvider>
+					);
 
-			// Children should remain visible during re-renders
-			expect(getByTestId('render-rapid-render')).toBeInTheDocument();
-			await vi.runAllTimersAsync();
+					// Children should remain visible during re-renders
+					expect(getByTestId('render-rapid-render')).toBeInTheDocument();
+					await vi.runAllTimersAsync();
+
+					i += 1;
+					await runSequentialLoop1();
+				};
+			await runSequentialLoop1();
 		}
 	});
 
 	it('should use startTransition for non-blocking state updates during hydration', async () => {
-		// Track if children render before state updates complete
-		let childrenRendered = false;
-
-		const TestComponent = () => {
-			childrenRendered = true;
-			return <div data-testid="hydration-test">Content</div>;
-		};
+		const TestComponent = () => <div data-testid="hydration-test">Content</div>;
 
 		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline',
 					consentCategories: ['necessary'],
+					mode: 'offline',
 				}}
 			>
 				<TestComponent />
@@ -162,7 +168,6 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		);
 
 		// Children should render immediately (before timers advance)
-		expect(childrenRendered).toBe(true);
 		expect(getByTestId('hydration-test')).toBeInTheDocument();
 
 		// Advance timers to allow state updates

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -14,22 +15,23 @@ import {
 	DEFAULT_AMPLITUDE_SCRIPT_URL,
 } from './amplitude';
 
-type QueueEntrySnapshot = {
+interface QueueEntrySnapshot {
 	name: string;
 	args: unknown[];
 	resolveType: string;
-};
-
-function snapshotAmplitudeQueue(): QueueEntrySnapshot[] {
-	const globalRef = getTestGlobal();
-	const amplitudeGlobal = globalRef.amplitude as Window['amplitude'];
-
-	return (amplitudeGlobal?._q ?? []).map((entry) => ({
-		name: entry.name,
-		args: entry.args,
-		resolveType: typeof entry.resolve,
-	}));
 }
+
+const snapshotAmplitudeQueue =
+	function snapshotAmplitudeQueue(): QueueEntrySnapshot[] {
+		const globalRef = getTestGlobal();
+		const amplitudeGlobal = globalRef.amplitude as Window['amplitude'];
+
+		return (amplitudeGlobal?._q ?? []).map((entry) => ({
+			args: entry.args,
+			name: entry.name,
+			resolveType: typeof entry.resolve,
+		}));
+	};
 
 describe('amplitude', () => {
 	setupScriptHelperTest();
@@ -57,9 +59,9 @@ describe('amplitude', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -95,8 +97,8 @@ describe('amplitude', () => {
 		);
 		expect(snapshotAmplitudeQueue()).toEqual([
 			{
-				name: 'init',
 				args: ['AMPLITUDE_API_KEY', { autocapture: false }],
+				name: 'init',
 				resolveType: 'function',
 			},
 		]);
@@ -110,9 +112,9 @@ describe('amplitude', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -138,29 +140,29 @@ describe('amplitude', () => {
 		expect(optOutResult).toBeUndefined();
 		expect(identify?._q).toEqual([
 			{
-				name: 'set',
 				args: ['plan', 'pro'],
+				name: 'set',
 			},
 		]);
 		expect(snapshotAmplitudeQueue()).toEqual([
 			{
-				name: 'init',
 				args: ['AMPLITUDE_API_KEY', {}],
+				name: 'init',
 				resolveType: 'function',
 			},
 			{
-				name: 'track',
 				args: ['Signup', { plan: 'pro' }],
+				name: 'track',
 				resolveType: 'function',
 			},
 			{
-				name: 'identify',
 				args: [identify],
+				name: 'identify',
 				resolveType: 'function',
 			},
 			{
-				name: 'setOptOut',
 				args: [true],
+				name: 'setOptOut',
 				resolveType: 'function',
 			},
 		]);
@@ -201,26 +203,26 @@ describe('amplitude', () => {
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 		expect(setOptOut).toHaveBeenCalledWith(true);
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 		expect(setOptOut).toHaveBeenCalledWith(false);
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
 				hasConsent: false,
+				id: script.id,
 			})
 		);
 		expect(setOptOut).toHaveBeenCalledWith(true);

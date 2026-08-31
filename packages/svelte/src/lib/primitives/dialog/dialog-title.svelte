@@ -1,20 +1,21 @@
 <script lang="ts">
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getDialogRootContext } from './context';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const dialog = getDialogRootContext();
+	import { getDialogRootContext } from './context';
 
-const titleId = $derived(dialog.titleId);
+	const dialog = getDialogRootContext();
 
-let {
-	children,
-	class: className,
-	...restProps
-}: HTMLAttributes<HTMLHeadingElement> & {
-	children?: Snippet;
-	class?: string;
-} = $props();
+	const titleId = $derived(dialog.titleId);
+
+	let {
+		children,
+		class: className,
+		...restProps
+	}: HTMLAttributes<HTMLHeadingElement> & {
+		children?: Snippet;
+		class?: string;
+	} = $props();
 </script>
 
 <h2

@@ -22,13 +22,19 @@
 
 import type { ConsentManifestConfig } from '@c15t/schema';
 import type { IpAddressConfig } from '@c15t/schema/geo';
-import { Effect, Layer, type ManagedRuntime } from 'effect';
+import { Effect, Layer } from 'effect';
+import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
-import { type Tenant, layer as tenantLayer } from '../db/tenant';
+import type { Context, Hono } from 'hono';
+
+import { layer as tenantLayer } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
 import type { ObservabilityOptions } from '../observability/evlog';
 import { toRequestLog } from '../observability/evlog';
-import { type Log, layer as logLayer, silent } from '../observability/log';
-import { type RouteError, toHttp } from './errors';
+import { layer as logLayer, silent } from '../observability/log';
+import type { Log } from '../observability/log';
+import { toHttp } from './errors';
+import type { RouteError } from './errors';
 import type { GvlOptions } from './gvl';
 import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
@@ -44,7 +50,6 @@ export interface AppLayers {
  * The runtime is constructed once by the caller and reused for every request —
  * building a layer per request would open a connection pool per request.
  */
-import type { Context, Hono } from 'hono';
 
 export interface AppOptions {
 	/**
@@ -182,5 +187,5 @@ export const makeRun =
 			log.error(result.failure);
 		}
 
-		return { ok: false, failure: toHttp(result.failure) };
+		return { failure: toHttp(result.failure), ok: false };
 	};

@@ -1,7 +1,6 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
+import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
 /**
  * Inline consent-management widget for settings and privacy pages.
  *
@@ -21,11 +20,8 @@ import {
 	switchVariants,
 } from '@c15t/ui/styles/primitives';
 import { getTextDirection } from '@c15t/ui/utils/dom';
-import {
-	type CONSENT_CATEGORY,
-	getConsentAvailableCategories,
-} from '@c15t/core/v3/consent-record';
 import { computed, ref, useId, watch } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -47,8 +43,8 @@ const props = withDefaults(
 	}>(),
 	{
 		hideBranding: true,
-		noStyle: false,
 		language: undefined,
+		noStyle: false,
 	}
 );
 
@@ -88,36 +84,40 @@ const consentTypeTranslations = computed(
 		>
 );
 
-function formatConsentName(category: CONSENT_CATEGORY): string {
+const formatConsentName = function formatConsentName(
+	category: CONSENT_CATEGORY
+): string {
 	return category
-		.replace(/_/g, ' ')
-		.replace(/\b\w/g, (character) => character.toUpperCase());
-}
+		.replace(/_/gu, ' ')
+		.replace(/\b\w/gu, (character) => character.toUpperCase());
+};
 
-function consentTitle(category: CONSENT_CATEGORY): string {
+const consentTitle = function consentTitle(category: CONSENT_CATEGORY): string {
 	return (
 		consentTypeTranslations.value[category]?.title ??
 		formatConsentName(category)
 	);
-}
+};
 
-function consentDescription(category: CONSENT_CATEGORY): string {
+const consentDescription = function consentDescription(
+	category: CONSENT_CATEGORY
+): string {
 	return consentTypeTranslations.value[category]?.description ?? '';
-}
+};
 
 /** Draft selection, saved only when the user hits the save action. */
 const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
 	{} as Record<CONSENT_CATEGORY, boolean>
 );
 
-function resetDraft() {
+const resetDraft = function resetDraft() {
 	const grantedSet = new Set(granted.value);
 	const next = {} as Record<CONSENT_CATEGORY, boolean>;
 	for (const category of categories.value) {
 		next[category] = category === 'necessary' || grantedSet.has(category);
 	}
 	draft.value = next;
-}
+};
 
 watch(
 	() => [categories.value.join(','), granted.value.join(',')] as const,
@@ -128,11 +128,11 @@ watch(
 /** Single-open accordion state (opening one category closes the rest). */
 const openItems = ref<Record<string, boolean>>({});
 
-function isOpen(category: CONSENT_CATEGORY): boolean {
+const isOpen = function isOpen(category: CONSENT_CATEGORY): boolean {
 	return openItems.value[category] ?? false;
-}
+};
 
-function toggleOpenItem(category: CONSENT_CATEGORY) {
+const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
 	const nextOpen = !isOpen(category);
 	openItems.value = Object.fromEntries(
 		categories.value.map((current) => [
@@ -140,47 +140,53 @@ function toggleOpenItem(category: CONSENT_CATEGORY) {
 			nextOpen && current === category,
 		])
 	);
-}
+};
 
-function toggleConsent(category: CONSENT_CATEGORY) {
-	if (category === 'necessary') return;
+const toggleConsent = function toggleConsent(category: CONSENT_CATEGORY) {
+	if (category === 'necessary') {
+		return;
+	}
 	draft.value = {
 		...draft.value,
 		[category]: !(draft.value[category] ?? false),
 	};
-}
+};
 
-function triggerId(index: number): string {
+const triggerId = function triggerId(index: number): string {
 	return `c15t-preference-item-trigger-${uid}-${index}`;
-}
+};
 
-function contentId(index: number): string {
+const contentId = function contentId(index: number): string {
 	return `c15t-preference-item-content-${uid}-${index}`;
-}
+};
 
 const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
-		reject: common?.rejectAll ?? 'Reject all',
 		customize: common?.save ?? 'Save',
+		reject: common?.rejectAll ?? 'Reject all',
 	} as Record<PolicyUiAction, string>;
 });
 
 const ACTION_TEST_IDS: Record<PolicyUiAction, string> = {
 	accept: 'consent-widget-footer-accept-all-button',
-	reject: 'consent-widget-reject-button',
 	customize: 'consent-widget-footer-save-button',
+	reject: 'consent-widget-reject-button',
 };
 
-function actionClass(action: PolicyUiAction): string | undefined {
-	if (props.noStyle) return undefined;
+const actionClass = function actionClass(
+	action: PolicyUiAction
+): string | undefined {
+	if (props.noStyle) {
+		return undefined;
+	}
 	return buttonVariants({
-		variant: primaryActions.value.includes(action) ? 'primary' : 'neutral',
 		mode: 'stroke',
 		size: 'small',
+		variant: primaryActions.value.includes(action) ? 'primary' : 'neutral',
 	}).root();
-}
+};
 
 const isColumn = computed(() => direction.value === 'column');
 
@@ -208,7 +214,7 @@ const footerSubGroupClass = computed(() =>
 				.join(' ')
 );
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'accept') {
 		save('all');
 	} else if (action === 'reject') {
@@ -222,7 +228,7 @@ function onAction(action: PolicyUiAction) {
 		return;
 	}
 	activeUI.value = null;
-}
+};
 </script>
 
 <template>
@@ -301,11 +307,19 @@ function onAction(action: PolicyUiAction) {
 							@click="toggleConsent(category)"
 						>
 							<span
-								:class="noStyle ? undefined : sw.track({ disabled: category === 'necessary' })"
+								:class="
+									noStyle
+										? undefined
+										: sw.track({ disabled: category === 'necessary' })
+								"
 								data-slot="switch-track"
 							>
 								<span
-									:class="noStyle ? undefined : sw.thumb({ disabled: category === 'necessary' })"
+									:class="
+										noStyle
+											? undefined
+											: sw.thumb({ disabled: category === 'necessary' })
+									"
 									data-slot="switch-thumb"
 								/>
 							</span>
@@ -316,7 +330,9 @@ function onAction(action: PolicyUiAction) {
 					:id="contentId(index)"
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
-					:class="pi.content({ class: noStyle ? undefined : styles.accordionContent })"
+					:class="
+						pi.content({ class: noStyle ? undefined : styles.accordionContent })
+					"
 					data-slot="preference-item-content"
 					:data-state="isOpen(category) ? 'open' : 'closed'"
 					:data-testid="`consent-widget-accordion-content-${category}`"

@@ -1,5 +1,6 @@
 import { expandedCategories } from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
+
 import ConsentWidgetStory from './ConsentWidgetStory.svelte';
 
 const meta = {

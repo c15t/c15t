@@ -3,49 +3,64 @@
 	"version": "2.2.0-canary-20260731105620",
 	"description": "React cookie banner, consent manager, preference center, and headless CMP components with IAB TCF and Consent Mode support.",
 	"keywords": [
+		"ccpa",
+		"cmp",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"consent-management-platform",
+		"consent-manager-react",
+		"consent-mode-v2",
+		"cookie-banner",
+		"cookie-consent",
+		"gdpr",
+		"google-consent-mode",
+		"headless",
+		"iab",
+		"lgpd",
+		"preference-center",
+		"privacy",
 		"react",
+		"react-cmp",
 		"react-consent",
 		"react-cookie-banner",
 		"react-cookie-consent",
-		"consent",
-		"privacy",
-		"gdpr",
-		"ccpa",
-		"lgpd",
-		"tcf",
-		"iab",
-		"cmp",
-		"headless",
-		"typescript",
-		"cookie-banner",
-		"cookie-consent",
-		"consent-management-platform",
-		"consent-management",
-		"consent-banner",
-		"consent-manager-react",
-		"preference-center",
 		"react-server-components",
 		"rsc",
-		"use-client",
+		"tcf",
 		"tracking-consent",
-		"google-consent-mode",
-		"consent-mode-v2",
-		"react-cmp"
+		"typescript",
+		"use-client"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/quickstart",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/react"
 	},
-	"license": "Apache-2.0",
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs",
+		"client",
+		"styles.css",
+		"styles.tw3.css",
+		"iab",
+		"src/styles.tw3.css",
+		"src/iab/styles.tw3.css",
+		"!dist/mockServiceWorker.js"
+	],
+	"type": "module",
 	"sideEffects": [
 		"**/*.css"
 	],
-	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./styles.tw3.css": "./dist/styles.tw3.css",
@@ -281,40 +296,23 @@
 			"default": "./dist/v3/compat.js"
 		}
 	},
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
-	"files": [
-		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs",
-		"client",
-		"styles.css",
-		"styles.tw3.css",
-		"iab",
-		"src/styles.tw3.css",
-		"src/iab/styles.tw3.css",
-		"!dist/mockServiceWorker.js"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && bun run test:types && vitest run",
 		"test:types": "tsc --noEmit --project tsconfig.type-tests.json",
 		"test:watch": "bun prebuild && vitest"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	],
 	"dependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/iab": "workspace:*",
@@ -345,9 +343,11 @@
 			"optional": true
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"msw": {
 		"workerDirectory": [
 			"public"

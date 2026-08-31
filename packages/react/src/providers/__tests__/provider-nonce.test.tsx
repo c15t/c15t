@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentManagerProvider } from '~/index';
+
 import { clearConsentRuntimeCache } from '../consent-manager-provider';
 
 /**
@@ -103,10 +105,10 @@ describe('ConsentManagerProvider CSP nonce', () => {
 					nonce: 'shared-nonce',
 					scripts: [
 						{
+							alwaysLoad: true,
+							category: 'necessary',
 							id: 'nonce-e2e',
 							src,
-							category: 'necessary',
-							alwaysLoad: true,
 						},
 					],
 				}}

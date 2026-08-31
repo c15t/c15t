@@ -7,26 +7,29 @@ import {
 	saveConsentToStorage,
 	setCookie,
 } from '@c15t/core';
+
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Mock localStorage for Node.js environment
 if (typeof globalThis.localStorage === 'undefined') {
 	const store: Record<string, string> = {};
 	globalThis.localStorage = {
+		clear: () => {
+			for (const key in store) {
+				if (Object.hasOwn(store, key)) {
+					Reflect.deleteProperty(store, key);
+				}
+			}
+		},
 		getItem: (key: string) => store[key] || null,
+		key: (index: number) => Object.keys(store)[index] || null,
+		length: Object.keys(store).length,
+		removeItem: (key: string) => {
+			Reflect.deleteProperty(store, key);
+		},
 		setItem: (key: string, value: string) => {
 			store[key] = value;
 		},
-		removeItem: (key: string) => {
-			delete store[key];
-		},
-		clear: () => {
-			for (const key in store) {
-				delete store[key];
-			}
-		},
-		key: (index: number) => Object.keys(store)[index] || null,
-		length: Object.keys(store).length,
 	} as Storage;
 }
 
@@ -45,34 +48,34 @@ if (typeof globalThis.document === 'undefined') {
 
 // Sample consent data (typical structure)
 const sampleConsents = {
-	necessary: true,
-	measurement: true,
-	marketing: false,
-	functionality: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: true,
+	necessary: true,
 };
 
 const sampleConsentInfo = {
+	identified: false,
 	time: 1704067200000,
 	type: 'custom' as const,
-	identified: false,
 };
 
 // All consents true (larger cookie)
 const allConsentsTrue = {
-	necessary: true,
-	measurement: true,
-	marketing: true,
-	functionality: true,
 	experience: true,
+	functionality: true,
+	marketing: true,
+	measurement: true,
+	necessary: true,
 };
 
 // Storage configuration options
-const defaultStorageConfig = undefined;
+const _defaultStorageConfig = undefined;
 const customStorageConfig = {
-	storageKey: 'custom-consent',
 	crossSubdomain: true,
 	defaultExpiryDays: 365,
+	storageKey: 'custom-consent',
 };
 
 // High-level storage benchmarks

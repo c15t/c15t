@@ -49,15 +49,16 @@ interface PackageReadmeConfig {
 	prerequisites?: string[];
 	installation?: string[];
 	manualInstallation?: string[];
-	usage?: string[]; // items may include fenced code blocks as strings beginning with ```
-	commands?: Array<{
+	// items may include fenced code blocks as strings beginning with ```
+	usage?: string[];
+	commands?: {
 		name: string;
 		description: string;
-	}>;
-	globalFlags?: Array<{
+	}[];
+	globalFlags?: {
 		flag: string;
 		description: string;
-	}>;
+	}[];
 	telemetry?: {
 		description: string;
 		details?: string[];
@@ -81,9 +82,9 @@ const INTH_ICON_LOGO =
 	'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8+PHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==';
 
 const INTH_BADGE_QUERY = new URLSearchParams({
-	logo: INTH_ICON_LOGO,
 	color: 'ffc803',
 	labelTextColor: '000000',
+	logo: INTH_ICON_LOGO,
 	valueColor: '000000',
 }).toString();
 
@@ -145,7 +146,7 @@ const renderNumberedWithCodeBlocks = (items: string[]) => {
 	}
 	return `${lines
 		.join('\n')
-		.replace(/\n{3,}/g, '\n\n')
+		.replace(/\n{3,}/gu, '\n\n')
 		.trim()}\n\n\n\n`;
 };
 
@@ -155,11 +156,16 @@ const addSection = (
 	content: string[] | undefined,
 	formatter: (item: string, index?: number) => string = (item) => `- ${item}`
 ) => {
-	if (!content || content.length === 0) return '';
+	if (!content || content.length === 0) {
+		return '';
+	}
 	const body = content.map(formatter).join('\n');
-	return `${header}\n\n\n\n\n${body}\n\n\n\n`.replace(/\n{3,}/g, '\n\n').trim();
+	return `${header}\n\n\n\n\n${body}\n\n\n\n`
+		.replace(/\n{3,}/gu, '\n\n')
+		.trim();
 };
 
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const config: PackageReadmeConfig = { ...rawConfig };
 
@@ -369,8 +375,9 @@ For further information, guides, and examples visit the [reference documentation
 	]
 		.filter((section) => isNonEmpty(section))
 		.join('\n\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.replace(/\n{2,}$/, '\n'); // Remove multiple trailing newlines
+		.replace(/\n{3,}/gu, '\n\n')
+		// Remove multiple trailing newlines
+		.replace(/\n{2,}$/u, '\n');
 
 	return `${readmeContent.trim()}\n`;
 };
@@ -381,7 +388,7 @@ For further information, guides, and examples visit the [reference documentation
  * @throws {SyntaxError} If readme.json or package.json contains invalid JSON
  * @throws {Error} If file write operations fail
  */
-async function generateReadmes() {
+const generateReadmes = async function generateReadmes() {
 	const packagesDir = path.resolve(__dirname, '../packages');
 
 	if (!fssync.existsSync(packagesDir)) {
@@ -397,7 +404,8 @@ async function generateReadmes() {
 			fssync.existsSync(path.join(packagesDir, dir, 'readme.json'))
 		);
 
-	for (const packageName of packageDirs) {
+	await packageDirs.reduce<Promise<void>>(async (previous, packageName) => {
+		await previous;
 		try {
 			const readmeConfigPath = path.join(
 				packagesDir,
@@ -434,10 +442,12 @@ async function generateReadmes() {
 		} catch (error) {
 			console.error(`Error generating README for ${packageName}:`, error);
 		}
-	}
-}
+	}, Promise.resolve());
+};
 
-generateReadmes().catch((err) => {
-	console.error('Fatal error generating READMEs:', err);
+try {
+	await generateReadmes();
+} catch (error) {
+	console.error('Fatal error generating READMEs:', error);
 	process.exit(1);
-});
+}

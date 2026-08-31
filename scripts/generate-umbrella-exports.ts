@@ -89,6 +89,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { normalizePackagePath } from './manifest-utils';
 
 /**
@@ -171,11 +172,11 @@ export interface SourcePackage {
 	/**
 	 * Analyzes the module behind a concrete (wildcard-substituted) subpath.
 	 */
-	analyzeEntry(subpath: string, entry: ConditionalExport): EntryModuleInfo;
+	analyzeEntry: (subpath: string, entry: ConditionalExport) => EntryModuleInfo;
 	/**
 	 * Enumerates the concrete names a wildcard subpath expands to.
 	 */
-	expandWildcard(subpath: string, entry: ConditionalExport): string[];
+	expandWildcard: (subpath: string, entry: ConditionalExport) => string[];
 	/**
 	 * Enumerates the concrete file names a raw string wildcard target expands
 	 * to. Unlike {@link expandWildcard}, `*` in a string export captures the
@@ -183,7 +184,7 @@ export interface SourcePackage {
 	 * built extensions (`components/consent-banner.vue`,
 	 * `composables/consent.js`).
 	 */
-	expandStringWildcard(subpath: string, target: string): string[];
+	expandStringWildcard: (subpath: string, target: string) => string[];
 }
 
 export interface CssCopy {
@@ -218,13 +219,16 @@ const GENERATED_BANNER =
  * shim.
  */
 const SHIM_EXTENSIONS: Record<string, string> = {
-	types: '.d.ts',
+	default: '.js',
 	import: '.js',
 	svelte: '.js',
-	default: '.js',
+	types: '.d.ts',
 };
 
-function mapSubpath(prefix: string, subpath: string): string {
+const mapSubpath = function mapSubpath(
+	prefix: string,
+	subpath: string
+): string {
 	if (!prefix) {
 		return subpath;
 	}
@@ -232,23 +236,29 @@ function mapSubpath(prefix: string, subpath: string): string {
 		return `./${prefix}`;
 	}
 	return `./${prefix}/${subpath.slice(2)}`;
-}
+};
 
-function toSpecifier(packageName: string, subpath: string): string {
+const toSpecifier = function toSpecifier(
+	packageName: string,
+	subpath: string
+): string {
 	if (subpath === '.') {
 		return packageName;
 	}
 	return `${packageName}/${subpath.slice(2)}`;
-}
+};
 
-function toShimBase(umbrellaSubpath: string): string {
+const toShimBase = function toShimBase(umbrellaSubpath: string): string {
 	if (umbrellaSubpath === '.') {
 		return 'shims/index';
 	}
 	return `shims/${umbrellaSubpath.slice(2)}`;
-}
+};
 
-function renderEsmShim(specifier: string, info: EntryModuleInfo): string {
+const renderEsmShim = function renderEsmShim(
+	specifier: string,
+	info: EntryModuleInfo
+): string {
 	const lines: string[] = [];
 	if (info.isClientModule) {
 		lines.push("'use client';", '');
@@ -258,17 +268,20 @@ function renderEsmShim(specifier: string, info: EntryModuleInfo): string {
 		lines.push(`export { default } from '${specifier}';`);
 	}
 	return `${lines.join('\n')}\n`;
-}
+};
 
-function renderTypesShim(specifier: string, info: EntryModuleInfo): string {
+const renderTypesShim = function renderTypesShim(
+	specifier: string,
+	info: EntryModuleInfo
+): string {
 	const lines: string[] = [GENERATED_BANNER, `export * from '${specifier}';`];
 	if (info.hasDefaultExport) {
 		lines.push(`export { default } from '${specifier}';`);
 	}
 	return `${lines.join('\n')}\n`;
-}
+};
 
-function renderShimCondition(
+const renderShimCondition = function renderShimCondition(
 	condition: string,
 	specifier: string,
 	info: EntryModuleInfo
@@ -277,9 +290,9 @@ function renderShimCondition(
 		return renderTypesShim(specifier, info);
 	}
 	return renderEsmShim(specifier, info);
-}
+};
 
-function buildConditionalEntry(
+const buildConditionalEntry = function buildConditionalEntry(
 	source: SourcePackage,
 	subpath: string,
 	entry: ConditionalExport,
@@ -305,7 +318,7 @@ function buildConditionalEntry(
 	}
 
 	return mapped;
-}
+};
 
 /**
  * Renders a wrapper SFC shim for a `.vue` module reached through a raw string
@@ -313,9 +326,9 @@ function buildConditionalEntry(
  * the wrapped component is the same object as the scoped one, so props,
  * emits, and provide/inject behavior are identical.
  */
-function renderVueSfcShim(specifier: string): string {
+const renderVueSfcShim = function renderVueSfcShim(specifier: string): string {
 	return `<script>\n${GENERATED_BANNER}\nimport Component from '${specifier}';\nexport default Component;\n</script>\n`;
-}
+};
 
 /**
  * Renders the declaration sibling for a wrapped `.vue` SFC shim. Scoped SFC
@@ -325,9 +338,11 @@ function renderVueSfcShim(specifier: string): string {
  * own `.d.vue.ts`/`.vue.d.ts` layout, and the explicit default re-export
  * carries the component (`export *` never forwards `default`).
  */
-function renderVueDeclarationShim(specifier: string): string {
+const renderVueDeclarationShim = function renderVueDeclarationShim(
+	specifier: string
+): string {
 	return `${GENERATED_BANNER}\nexport * from '${specifier}';\nexport { default } from '${specifier}';\n`;
-}
+};
 
 /**
  * Mirrors a raw string wildcard export (`./runtime/*` → `./dist/runtime/*`).
@@ -336,7 +351,7 @@ function renderVueDeclarationShim(specifier: string): string {
  * sibling `.d.ts`, `.vue` modules get a wrapper SFC plus the
  * `.d.vue.ts`/`.vue.d.ts` declaration siblings mkdist ships.
  */
-function buildStringWildcardEntry(
+const buildStringWildcardEntry = function buildStringWildcardEntry(
 	source: SourcePackage,
 	subpath: string,
 	target: string,
@@ -384,9 +399,9 @@ function buildStringWildcardEntry(
 	}
 
 	return `./${shimRoot}/*`;
-}
+};
 
-function buildCssEntry(
+const buildCssEntry = function buildCssEntry(
 	source: SourcePackage,
 	subpath: string,
 	target: string,
@@ -408,14 +423,14 @@ function buildCssEntry(
 
 	const copyTarget = `dist/${umbrellaSubpath.slice(2)}`;
 	cssCopies.push({
-		target: copyTarget,
 		sourceDirectory: source.config.directory,
 		sourcePath,
+		target: copyTarget,
 	});
 	return `./${copyTarget}`;
-}
+};
 
-function buildWildcardEntry(
+const buildWildcardEntry = function buildWildcardEntry(
 	source: SourcePackage,
 	subpath: string,
 	entry: ConditionalExport,
@@ -456,7 +471,7 @@ function buildWildcardEntry(
 		mapped[condition] = `./${shimBase}${extension}`;
 	}
 	return mapped;
-}
+};
 
 /**
  * Derives the umbrella's `sideEffects` claim from the mirrored packages' own
@@ -469,7 +484,9 @@ function buildWildcardEntry(
  * scoped import survives. Any declaration shape this mapping cannot mirror
  * fails generation loudly.
  */
-function deriveSideEffects(sources: SourcePackage[]): string[] {
+const deriveSideEffects = function deriveSideEffects(
+	sources: SourcePackage[]
+): string[] {
 	const sideEffects: string[] = ['**/*.css'];
 
 	for (const source of sources) {
@@ -490,7 +507,7 @@ function deriveSideEffects(sources: SourcePackage[]): string[] {
 		if (declared === undefined || declared === true) {
 			// The whole scoped package is side-effectful, so every shim that
 			// re-exports it must stay side-effectful too.
-			const prefix = source.config.prefix;
+			const { prefix } = source.config;
 			if (prefix) {
 				sideEffects.push(`shims/${prefix}.*`, `shims/${prefix}/**`);
 			} else {
@@ -504,7 +521,7 @@ function deriveSideEffects(sources: SourcePackage[]): string[] {
 	}
 
 	return sideEffects;
-}
+};
 
 /**
  * Derives the umbrella exports map, shim files, CSS copy list, and
@@ -512,7 +529,7 @@ function deriveSideEffects(sources: SourcePackage[]): string[] {
  * the file system — all file access goes through the injected
  * {@link SourcePackage} callbacks.
  */
-export function deriveUmbrellaArtifacts(
+export const deriveUmbrellaArtifacts = function deriveUmbrellaArtifacts(
 	sources: SourcePackage[]
 ): UmbrellaArtifacts {
 	const exports: ExportsMap = {};
@@ -570,13 +587,13 @@ export function deriveUmbrellaArtifacts(
 		shimFiles,
 		sideEffects: deriveSideEffects(sources),
 	};
-}
+};
 
-function stripComments(source: string): string {
+const stripComments = function stripComments(source: string): string {
 	return source
-		.replace(/\/\*[\s\S]*?\*\//g, '')
-		.replace(/^[ \t]*\/\/.*$/gm, '');
-}
+		.replace(/\/\*[\s\S]*?\*\//gu, '')
+		.replace(/^[ \t]*\/\/.*$/gmu, '');
+};
 
 /**
  * Detects whether a module declares a runtime default export —
@@ -585,20 +602,23 @@ function stripComments(source: string): string {
  * `export { default as Name } from …` do not create a default export and are
  * not matched. Type-only export groups are ignored.
  */
-export function detectDefaultExport(source: string): boolean {
+export const detectDefaultExport = function detectDefaultExport(
+	source: string
+): boolean {
 	const stripped = stripComments(source);
-	if (/^\s*export\s+default\b/m.test(stripped)) {
+	if (/^\s*export\s+default\b/mu.test(stripped)) {
 		return true;
 	}
 
-	const groupPattern = /export\s*(type\s+)?\{([^}]*)\}/g;
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const groupPattern = /export\s*(type\s+)?\{([^}]*)\}/gu;
 	let match = groupPattern.exec(stripped);
 	while (match !== null) {
 		const [, typeOnly, group] = match;
 		if (!typeOnly) {
 			const items = group.split(',').map((item) => item.trim());
 			for (const item of items) {
-				if (item === 'default' || /\bas\s+default$/.test(item)) {
+				if (item === 'default' || /\bas\s+default$/u.test(item)) {
 					return true;
 				}
 			}
@@ -607,15 +627,17 @@ export function detectDefaultExport(source: string): boolean {
 	}
 
 	return false;
-}
+};
 
 /**
  * Detects whether a module opens with a `'use client'` directive (leading
  * comments allowed, matching how bundlers treat directive prologues).
  */
-export function detectUseClient(source: string): boolean {
-	return /^\s*(?:'use client'|"use client")/.test(stripComments(source));
-}
+export const detectUseClient = function detectUseClient(
+	source: string
+): boolean {
+	return /^\s*(?:'use client'|"use client")/u.test(stripComments(source));
+};
 
 /**
  * The export conditions that point at a runnable entry module, in the order
@@ -628,12 +650,12 @@ const JS_ENTRY_CONDITIONS = ['import', 'svelte', 'default'] as const;
  * source's {@link SourceRootMapping} (`dist/module.mjs` → `src/module.ts`,
  * `dist/headless.js` → `src/lib/headless.ts`, `dist/x.vue` → `src/x.vue`).
  */
-function resolveViaSourceRoot(
+const resolveViaSourceRoot = function resolveViaSourceRoot(
 	packageDir: string,
 	config: UmbrellaSource,
 	entry: ConditionalExport
 ): string | null {
-	const sourceRoot = config.sourceRoot;
+	const { sourceRoot } = config;
 	if (!sourceRoot) {
 		return null;
 	}
@@ -649,8 +671,9 @@ function resolveViaSourceRoot(
 		const candidates = relative.endsWith('.vue')
 			? [relative]
 			: [
-					relative.replace(/\.(mjs|cjs|js)$/, '.ts'),
-					relative.replace(/\.(mjs|cjs|js)$/, '.tsx'),
+					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+					relative.replace(/\.(mjs|cjs|js)$/u, '.ts'),
+					relative.replace(/\.(?<capture1>mjs|cjs|js)$/u, '.tsx'),
 				];
 		for (const candidate of candidates) {
 			const candidatePath = join(packageDir, sourceRoot.srcPrefix, candidate);
@@ -661,15 +684,15 @@ function resolveViaSourceRoot(
 	}
 
 	return null;
-}
+};
 
-function resolveEntryModulePath(
+const resolveEntryModulePath = function resolveEntryModulePath(
 	packageDir: string,
 	config: UmbrellaSource,
 	subpath: string,
 	entry: ConditionalExport
 ): string {
-	const packageName = config.packageName;
+	const { packageName } = config;
 	const importTarget = entry.import ? normalizePackagePath(entry.import) : null;
 	if (importTarget?.startsWith('client/')) {
 		const clientPath = join(packageDir, importTarget);
@@ -695,7 +718,7 @@ function resolveEntryModulePath(
 
 	const relative = typesTarget
 		.slice('dist-types/'.length)
-		.replace(/\.d\.ts$/, '');
+		.replace(/\.d\.ts$/u, '');
 	for (const extension of ['.ts', '.tsx']) {
 		const candidate = join(packageDir, 'src', `${relative}${extension}`);
 		if (existsSync(candidate)) {
@@ -706,9 +729,9 @@ function resolveEntryModulePath(
 	throw new Error(
 		`${packageName} ${subpath}: no src module found for ${typesTarget} (tried src/${relative}.ts and .tsx).`
 	);
-}
+};
 
-function listWildcardModules(
+const listWildcardModules = function listWildcardModules(
 	packageDir: string,
 	packageName: string,
 	subpath: string,
@@ -723,7 +746,7 @@ function listWildcardModules(
 
 	const pattern = typesTarget
 		.slice('dist-types/'.length)
-		.replace(/\.d\.ts$/, '');
+		.replace(/\.d\.ts$/u, '');
 	if (!pattern.endsWith('/*')) {
 		throw new Error(
 			`${packageName} ${subpath}: only trailing /* wildcards are supported, got ${typesTarget}.`
@@ -752,7 +775,8 @@ function listWildcardModules(
 				walk(join(directory, dirent.name), relativePath);
 				continue;
 			}
-			const moduleMatch = dirent.name.match(/^(.+?)\.tsx?$/);
+			// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+			const moduleMatch = dirent.name.match(/^(.+?)\.tsx?$/u);
 			if (
 				!moduleMatch ||
 				dirent.name.endsWith('.d.ts') ||
@@ -766,7 +790,7 @@ function listWildcardModules(
 	};
 	walk(sourceDir, '');
 	return [...names].sort();
-}
+};
 
 /**
  * Enumerates the built file names behind a raw string wildcard target by
@@ -776,7 +800,7 @@ function listWildcardModules(
  * verbatim. Declaration sources and tests are skipped; anything else fails
  * loudly.
  */
-function listStringWildcardModules(
+const listStringWildcardModules = function listStringWildcardModules(
 	packageDir: string,
 	config: UmbrellaSource,
 	subpath: string,
@@ -789,7 +813,7 @@ function listStringWildcardModules(
 		);
 	}
 
-	const sourceRoot = config.sourceRoot;
+	const { sourceRoot } = config;
 	if (!sourceRoot || !normalized.startsWith(sourceRoot.distPrefix)) {
 		throw new Error(
 			`${config.packageName} ${subpath}: string wildcard target ${target} needs a sourceRoot mapping into committed sources.`
@@ -826,8 +850,8 @@ function listStringWildcardModules(
 				names.push(relativePath);
 				continue;
 			}
-			if (/\.tsx?$/.test(entry.name)) {
-				names.push(relativePath.replace(/\.tsx?$/, '.js'));
+			if (/\.tsx?$/u.test(entry.name)) {
+				names.push(relativePath.replace(/\.tsx?$/u, '.js'));
 				continue;
 			}
 			throw new Error(
@@ -838,13 +862,13 @@ function listStringWildcardModules(
 	walk(sourceDir, '');
 
 	return names.sort();
-}
+};
 
 /**
  * Prepares {@link SourcePackage} instances backed by the real workspace —
  * manifests, committed client shims, and `src/` trees under `packagesRoot`.
  */
-export function createSourcePackages(
+export const createSourcePackages = function createSourcePackages(
 	packagesRoot: string,
 	configs: UmbrellaSource[] = UMBRELLA_SOURCES
 ): SourcePackage[] {
@@ -893,9 +917,9 @@ export function createSourcePackages(
 			sideEffects: manifest.sideEffects,
 		};
 	});
-}
+};
 
-function writeUmbrellaPackage(
+const writeUmbrellaPackage = function writeUmbrellaPackage(
 	umbrellaDir: string,
 	artifacts: UmbrellaArtifacts
 ) {
@@ -924,7 +948,7 @@ function writeUmbrellaPackage(
 	}
 
 	writeFileSync(manifestPath, `${JSON.stringify(manifest, null, '\t')}\n`);
-}
+};
 
 if (import.meta.main) {
 	const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..');

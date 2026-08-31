@@ -4,6 +4,7 @@ import {
 } from '@c15t/conformance/play/collapsible';
 import { enTranslations } from '@c15t/translations';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
+
 import CollapsibleDemo from './CollapsibleDemo.svelte';
 
 const { consentTypes } = enTranslations;
@@ -22,18 +23,18 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
+		description: consentTypes.measurement.description,
 		open: true,
 		title: consentTypes.measurement.title,
-		description: consentTypes.measurement.description,
 	},
 	play: toggleOpenClose,
 };
 
 export const ClosedByDefault: Story = {
 	args: {
+		description: consentTypes.functionality.description,
 		open: false,
 		title: consentTypes.functionality.title,
-		description: consentTypes.functionality.description,
 	},
 	play: startsClosedByDefault,
 };

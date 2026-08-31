@@ -4,11 +4,11 @@ import path from 'node:path';
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
 const SPECIFIER_REGEXES = [
-	/(from\s+['"])([^'"]+)(['"])/g,
-	/(import\(\s*['"])([^'"]+)(['"]\s*\))/g,
+	/(?<capture1>from\s+['"])(?<capture2>[^'"]+)(?<capture3>['"])/gu,
+	/(?<capture1>import\(\s*['"])(?<capture2>[^'"]+)(?<capture3>['"]\s*\))/gu,
 ];
 
-async function discoverPackageTargets() {
+const discoverPackageTargets = async function discoverPackageTargets() {
 	try {
 		const entries = await fs.readdir(PACKAGES_ROOT, { withFileTypes: true });
 		const packageTargets = await Promise.all(
@@ -60,15 +60,15 @@ async function discoverPackageTargets() {
 
 		throw error;
 	}
-}
+};
 
 const PACKAGE_TARGETS = await discoverPackageTargets();
 
-function normalizePath(filePath) {
+const normalizePath = function normalizePath(filePath) {
 	return filePath.split(path.sep).join('/');
-}
+};
 
-function findPackageTarget(filePath) {
+const findPackageTarget = function findPackageTarget(filePath) {
 	const normalizedPath = path.resolve(filePath);
 
 	return PACKAGE_TARGETS.find(({ distDir }) => {
@@ -78,9 +78,9 @@ function findPackageTarget(filePath) {
 			normalizedPath.startsWith(`${normalizedDistDir}${path.sep}`)
 		);
 	});
-}
+};
 
-function toPackageSpecifier(targetFilePath, target) {
+const toPackageSpecifier = function toPackageSpecifier(targetFilePath, target) {
 	const relativePath = normalizePath(
 		path.relative(target.distDir, targetFilePath)
 	);
@@ -98,9 +98,12 @@ function toPackageSpecifier(targetFilePath, target) {
 	}
 
 	return target.specifier;
-}
+};
 
-function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
+const toExplicitRelativeSpecifier = function toExplicitRelativeSpecifier(
+	fromFilePath,
+	targetFilePath
+) {
 	let relativePath = normalizePath(
 		path.relative(path.dirname(fromFilePath), targetFilePath)
 	);
@@ -118,21 +121,23 @@ function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
 	}
 
 	return relativePath;
-}
+};
 
-async function fileExists(filePath) {
+const fileExists = async function fileExists(filePath) {
 	try {
 		const stats = await fs.stat(filePath);
 		return stats.isFile();
 	} catch {
 		return false;
 	}
-}
+};
 
-async function collectDeclarationFiles(directory) {
+const collectDeclarationFiles = async function collectDeclarationFiles(
+	directory
+) {
 	const entries = await fs.readdir(directory, { withFileTypes: true });
 	const files = await Promise.all(
-		entries.map(async (entry) => {
+		entries.map((entry) => {
 			const entryPath = path.join(directory, entry.name);
 
 			if (entry.isDirectory()) {
@@ -144,9 +149,12 @@ async function collectDeclarationFiles(directory) {
 	);
 
 	return files.flat();
-}
+};
 
-async function resolveDeclarationTarget(fromFilePath, specifier) {
+const resolveDeclarationTarget = async function resolveDeclarationTarget(
+	fromFilePath,
+	specifier
+) {
 	if (!specifier.startsWith('.')) {
 		return null;
 	}
@@ -159,15 +167,19 @@ async function resolveDeclarationTarget(fromFilePath, specifier) {
 	];
 
 	for (const candidatePath of candidatePaths) {
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		if (await fileExists(candidatePath)) {
 			return candidatePath;
 		}
 	}
 
 	return null;
-}
+};
 
-async function normalizeDeclarationFile(filePath, currentTarget) {
+const normalizeDeclarationFile = async function normalizeDeclarationFile(
+	filePath,
+	currentTarget
+) {
 	const original = await fs.readFile(filePath, 'utf8');
 	const matches = SPECIFIER_REGEXES.flatMap((regex) =>
 		Array.from(original.matchAll(regex))
@@ -184,6 +196,7 @@ async function normalizeDeclarationFile(filePath, currentTarget) {
 			continue;
 		}
 
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const targetFilePath = await resolveDeclarationTarget(filePath, specifier);
 		if (!targetFilePath) {
 			resolvedSpecifiers.set(specifier, specifier);
@@ -223,9 +236,9 @@ async function normalizeDeclarationFile(filePath, currentTarget) {
 	if (normalized !== original) {
 		await fs.writeFile(filePath, normalized);
 	}
-}
+};
 
-async function main() {
+const main = async function main() {
 	const packageRoot = process.cwd();
 	const distTypesDir = path.join(packageRoot, 'dist-types');
 	const currentTarget = findPackageTarget(distTypesDir);
@@ -236,9 +249,10 @@ async function main() {
 
 	try {
 		const files = await collectDeclarationFiles(distTypesDir);
-		for (const filePath of files) {
+		await Array.from(files).reduce(async (previousIteration, filePath) => {
+			await previousIteration;
 			await normalizeDeclarationFile(filePath, currentTarget);
-		}
+		}, Promise.resolve());
 	} catch (error) {
 		if (error && typeof error === 'object' && 'code' in error) {
 			if (error.code === 'ENOENT') {
@@ -248,6 +262,6 @@ async function main() {
 
 		throw error;
 	}
-}
+};
 
 await main();

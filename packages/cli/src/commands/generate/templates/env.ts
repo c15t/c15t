@@ -6,9 +6,11 @@ import type { AvailablePackages } from '~/context/framework-detection';
  * @param pkg - The package type being used
  * @returns The environment variable name to use
  */
-export function getEnvVarName(pkg: AvailablePackages): string {
+export const getEnvVarName = function getEnvVarName(
+	pkg: AvailablePackages
+): string {
 	return pkg === 'c15t/next' ? 'NEXT_PUBLIC_C15T_URL' : 'PUBLIC_C15T_URL';
-}
+};
 
 /**
  * Generates environment file content with the c15t backend URL
@@ -17,13 +19,13 @@ export function getEnvVarName(pkg: AvailablePackages): string {
  * @param pkg - The package type being used
  * @returns The generated environment file content
  */
-export function generateEnvFileContent(
+export const generateEnvFileContent = function generateEnvFileContent(
 	backendURL: string,
 	pkg: AvailablePackages
 ): string {
 	const envVarName = getEnvVarName(pkg);
 	return `\n${envVarName}=${backendURL}\n`;
-}
+};
 
 /**
  * Generates example environment file content
@@ -31,7 +33,9 @@ export function generateEnvFileContent(
  * @param pkg - The package type being used
  * @returns The generated example environment file content
  */
-export function generateEnvExampleContent(pkg: AvailablePackages): string {
+export const generateEnvExampleContent = function generateEnvExampleContent(
+	pkg: AvailablePackages
+): string {
 	const envVarName = getEnvVarName(pkg);
 	return `\n# c15t Configuration\n${envVarName}=https://your-project.inth.app\n`;
-}
+};

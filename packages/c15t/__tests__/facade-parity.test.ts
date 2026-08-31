@@ -23,6 +23,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 const PACKAGE_DIR = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -104,7 +105,6 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	// The @c15t/nextjs ESM dist resolves `next/*` subpaths that only exist
 	// inside a bundler.
 	'./next',
-	'./next/v3/server',
 	'./next/v3/middleware',
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
@@ -113,13 +113,25 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	'./vue/consent-widget',
 ]);
 
-function describeResult(result: LoadResult): string {
+const describeResult = function describeResult(result: LoadResult): string {
 	return result.ok
 		? `ok (${result.keys.length} keys)`
 		: `${result.name ?? 'Error'}${result.code ? ` [${result.code}]` : ''}: ${result.message}`;
-}
+};
 
-function assertParity(
+const normalizeFailureMessage = function normalizeFailureMessage(
+	result: LoadFailure
+): string {
+	if (result.code !== 'ERR_UNKNOWN_FILE_EXTENSION') {
+		return result.message;
+	}
+
+	// A barrel can reach any of its CSS imports first. The specific stylesheet
+	// is not part of facade parity; Node rejecting the same file type is.
+	return result.message.replace(/for .*\.css$/u, 'for <css module>');
+};
+
+const assertParity = function assertParity(
 	subpath: string,
 	pair: LoadPair,
 	expectedFailures: Set<string>
@@ -140,7 +152,9 @@ function assertParity(
 		// package and failed there, rather than failing to resolve at all.
 		expect(pair.umbrella.code, subpath).toBe(pair.scoped.code);
 		expect(pair.umbrella.name, subpath).toBe(pair.scoped.name);
-		expect(pair.umbrella.message, subpath).toBe(pair.scoped.message);
+		expect(normalizeFailureMessage(pair.umbrella), subpath).toBe(
+			normalizeFailureMessage(pair.scoped)
+		);
 		return;
 	}
 
@@ -165,9 +179,22 @@ function assertParity(
 			`${subpath}: a default export must be forwarded iff the scoped entry has one`
 		).toBe(pair.scoped.hasDefault);
 	}
-}
+};
 
 describe('umbrella facade parity', () => {
+	it('ignores nondeterministic CSS traversal order in expected failures', () => {
+		const failure = (file: string): LoadFailure => ({
+			code: 'ERR_UNKNOWN_FILE_EXTENSION',
+			message: `Unknown file extension ".css" for /styles/${file}.css`,
+			name: 'TypeError',
+			ok: false,
+		});
+
+		expect(normalizeFailureMessage(failure('accordion'))).toBe(
+			normalizeFailureMessage(failure('button'))
+		);
+	});
+
 	it('probes every conditional subpath of the committed exports map', () => {
 		const probed = new Set(rows.map((row) => row.subpath));
 		for (const [subpath, value] of Object.entries(manifest.exports)) {
@@ -206,29 +233,63 @@ describe('umbrella facade parity', () => {
 	});
 });
 
+/** Mirrors the prefix mapping in `parity-runner.mjs` for file subpaths. */
+const rowsScopedSpecifier = function rowsScopedSpecifier(
+	subpath: string
+): string {
+	const segment = subpath.slice(2);
+	const prefixes: [string, string][] = [
+		['react', '@c15t/react'],
+		['next', '@c15t/nextjs'],
+		['vue', '@c15t/vue'],
+	];
+	for (const [prefix, packageName] of prefixes) {
+		if (segment === prefix) {
+			return packageName;
+		}
+		if (segment.startsWith(`${prefix}/`)) {
+			return `${packageName}/${segment.slice(prefix.length + 1)}`;
+		}
+	}
+	return `@c15t/core/${segment}`;
+};
+
+const listFiles = function listFiles(directory: string, prefix = ''): string[] {
+	const files: string[] = [];
+	for (const entry of readdirSync(directory, { withFileTypes: true })) {
+		const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+		if (entry.isDirectory()) {
+			files.push(...listFiles(join(directory, entry.name), relative));
+		} else {
+			files.push(relative);
+		}
+	}
+	return files;
+};
+
 describe('umbrella file subpaths', () => {
 	const fileSubpaths = Object.entries(manifest.exports).filter(
 		(entry): entry is [string, string] =>
 			typeof entry[1] === 'string' && !entry[0].includes('*')
 	);
 
-	it.each(
-		fileSubpaths.map(([subpath]) => ({ subpath }))
-	)('$subpath resolves on both the umbrella and the scoped package', ({
-		subpath,
-	}) => {
-		const segment = subpath.slice(2);
-		const umbrellaPath = requireFromTest.resolve(`c15t/${segment}`);
-		expect(existsSync(umbrellaPath), `missing built file for ${subpath}`).toBe(
-			true
-		);
+	it.each(fileSubpaths.map(([subpath]) => ({ subpath })))(
+		'$subpath resolves on both the umbrella and the scoped package',
+		({ subpath }) => {
+			const segment = subpath.slice(2);
+			const umbrellaPath = requireFromTest.resolve(`c15t/${segment}`);
+			expect(
+				existsSync(umbrellaPath),
+				`missing built file for ${subpath}`
+			).toBe(true);
 
-		const scoped = rowsScopedSpecifier(subpath);
-		const scopedPath = requireFromTest.resolve(scoped);
-		expect(existsSync(scopedPath), `missing scoped file for ${subpath}`).toBe(
-			true
-		);
-	});
+			const scoped = rowsScopedSpecifier(subpath);
+			const scopedPath = requireFromTest.resolve(scoped);
+			expect(existsSync(scopedPath), `missing scoped file for ${subpath}`).toBe(
+				true
+			);
+		}
+	);
 
 	it('mirrors every vue wildcard shim onto a real scoped runtime file', () => {
 		for (const wildcard of ['./vue/runtime/*', './vue/composables/*']) {
@@ -263,7 +324,8 @@ describe('umbrella file subpaths', () => {
 					'utf8'
 				);
 				const emittedSpecifiers = [
-					...shimSource.matchAll(/from '([^']+)'/g),
+					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+					...shimSource.matchAll(/from '([^']+)'/gu),
 				].flatMap((match) => (match[1] ? [match[1]] : []));
 				expect(
 					emittedSpecifiers.length,
@@ -284,35 +346,3 @@ describe('umbrella file subpaths', () => {
 		}
 	});
 });
-
-/** Mirrors the prefix mapping in `parity-runner.mjs` for file subpaths. */
-function rowsScopedSpecifier(subpath: string): string {
-	const segment = subpath.slice(2);
-	const prefixes: [string, string][] = [
-		['react', '@c15t/react'],
-		['next', '@c15t/nextjs'],
-		['vue', '@c15t/vue'],
-	];
-	for (const [prefix, packageName] of prefixes) {
-		if (segment === prefix) {
-			return packageName;
-		}
-		if (segment.startsWith(`${prefix}/`)) {
-			return `${packageName}/${segment.slice(prefix.length + 1)}`;
-		}
-	}
-	return `@c15t/core/${segment}`;
-}
-
-function listFiles(directory: string, prefix = ''): string[] {
-	const files: string[] = [];
-	for (const entry of readdirSync(directory, { withFileTypes: true })) {
-		const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
-		if (entry.isDirectory()) {
-			files.push(...listFiles(join(directory, entry.name), relative));
-		} else {
-			files.push(relative);
-		}
-	}
-	return files;
-}

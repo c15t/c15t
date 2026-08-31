@@ -1,54 +1,56 @@
 import type { AllConsentNames, ConsentType } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import {
-	type ComponentPropsWithoutRef,
 	createContext,
-	forwardRef,
-	type ReactNode,
-	type Ref,
+	forwardRef as createForwardRef,
 	useCallback,
 	useContext,
+	useMemo,
 } from 'react';
-import { Box, type BoxProps } from '~/components/shared/primitives/box';
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
+
+import { Box } from '~/components/shared/primitives/box';
+import type { BoxProps } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
 
-type ConsentWidgetAccordionContextValue = {
+interface ConsentWidgetAccordionContextValue {
 	onToggleItem: (value: string, open: boolean) => void;
 	openValues: string[];
-};
+}
 
 const ConsentWidgetAccordionContext =
 	createContext<ConsentWidgetAccordionContextValue | null>(null);
 
-function useConsentWidgetAccordionContext() {
-	const context = useContext(ConsentWidgetAccordionContext);
+const useConsentWidgetAccordionContext =
+	function useConsentWidgetAccordionContext() {
+		const context = useContext(ConsentWidgetAccordionContext);
 
-	if (!context) {
-		throw new Error(
-			'ConsentWidgetAccordion components must be used within ConsentWidgetAccordion'
-		);
-	}
+		if (!context) {
+			throw new Error(
+				'ConsentWidgetAccordion components must be used within ConsentWidgetAccordion'
+			);
+		}
 
-	return context;
-}
+		return context;
+	};
 
-const ConsentWidgetAccordionTrigger = forwardRef<HTMLDivElement, BoxProps>(
-	({ children, ...props }, ref) => {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.accordionTrigger}
-				{...props}
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+const ConsentWidgetAccordionTrigger = createForwardRef<
+	HTMLDivElement,
+	BoxProps
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.accordionTrigger}
+		{...props}
+	>
+		{children}
+	</Box>
+));
+ConsentWidgetAccordionTrigger.displayName = 'ConsentWidgetAccordionTrigger';
 
 const ConsentWidgetAccordionTriggerInner = PreferenceItem.Trigger;
 const ConsentWidgetAccordionContent = PreferenceItem.Content;
@@ -63,6 +65,15 @@ type ConsentWidgetAccordionProps = Omit<BoxProps, 'themeKey'> & {
 	value?: string | string[];
 };
 
+const normalizeAccordionValue = (
+	value: string | string[] | undefined
+): string[] => {
+	if (Array.isArray(value)) {
+		return value;
+	}
+	return value ? [value] : [];
+};
+
 const ConsentWidgetAccordion = ({
 	'data-testid': dataTestId,
 	children,
@@ -74,7 +85,7 @@ const ConsentWidgetAccordion = ({
 	value,
 	...props
 }: ConsentWidgetAccordionProps) => {
-	const openValues = Array.isArray(value) ? value : value ? [value] : [];
+	const openValues = useMemo(() => normalizeAccordionValue(value), [value]);
 
 	const onToggleItem = useCallback(
 		(itemValue: string, open: boolean) => {
@@ -91,11 +102,13 @@ const ConsentWidgetAccordion = ({
 		},
 		[onValueChange, openValues, type]
 	);
+	const contextValue = useMemo(
+		() => ({ onToggleItem, openValues }),
+		[onToggleItem, openValues]
+	);
 
 	return (
-		<ConsentWidgetAccordionContext.Provider
-			value={{ onToggleItem, openValues }}
-		>
+		<ConsentWidgetAccordionContext.Provider value={contextValue}>
 			<Box
 				className={className}
 				data-testid={dataTestId ?? 'consent-widget-accordion'}
@@ -122,11 +135,11 @@ const ConsentWidgetAccordionItems = () => {
 		[setSelectedConsent]
 	);
 
-	function formatConsentName(name: AllConsentNames) {
+	const formatConsentName = function formatConsentName(name: AllConsentNames) {
 		return name
-			.replace(/_/g, ' ')
-			.replace(/\b\w/g, (c: string) => c.toUpperCase());
-	}
+			.replace(/_/gu, ' ')
+			.replace(/\b\w/gu, (c: string) => c.toUpperCase());
+	};
 
 	const { consentTypes } = useTranslations();
 
@@ -208,19 +221,18 @@ const ConsentWidgetAccordionItems = () => {
 	));
 };
 
-const ConsentWidgetAccordionItem = forwardRef<
+const ConsentWidgetAccordionItem = createForwardRef<
 	HTMLDivElement,
 	ComponentPropsWithoutRef<typeof PreferenceItem.Root>
->(({ className, ...rest }, forwardedRef) => {
-	return (
-		<PreferenceItem.Root
-			ref={forwardedRef}
-			className={[styles.accordionItem, className].filter(Boolean).join(' ')}
-			noStyle
-			{...rest}
-		/>
-	);
-});
+>(({ className, ...rest }, forwardedRef) => (
+	<PreferenceItem.Root
+		ref={forwardedRef}
+		className={[styles.accordionItem, className].filter(Boolean).join(' ')}
+		noStyle
+		{...rest}
+	/>
+));
+ConsentWidgetAccordionItem.displayName = 'ConsentWidgetAccordionItem';
 
 const AccordionTriggerInner = ConsentWidgetAccordionTriggerInner;
 const AccordionTrigger = ConsentWidgetAccordionTrigger;

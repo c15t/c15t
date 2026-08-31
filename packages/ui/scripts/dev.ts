@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, type FSWatcher, watch } from 'node:fs';
+import { existsSync, watch } from 'node:fs';
+import type { FSWatcher } from 'node:fs';
 import { join } from 'node:path';
 
 const packageRoot = join(import.meta.dirname, '..');
@@ -20,7 +21,7 @@ let attachTimer: NodeJS.Timeout | null = null;
 let suppressEventsUntil = 0;
 const watchers: FSWatcher[] = [];
 
-function cleanup(exitCode = 0) {
+const cleanup = function cleanup(exitCode = 0) {
 	if (closed) {
 		return;
 	}
@@ -44,9 +45,9 @@ function cleanup(exitCode = 0) {
 	}
 
 	process.exit(exitCode);
-}
+};
 
-function regenerateCssEntryPoints() {
+const regenerateCssEntryPoints = function regenerateCssEntryPoints() {
 	suppressEventsUntil = Date.now() + 750;
 
 	const result = spawnSync(
@@ -63,9 +64,9 @@ function regenerateCssEntryPoints() {
 			`generate-css-entrypoints exited with status ${result.status}.`
 		);
 	}
-}
+};
 
-function scheduleRegenerate() {
+const scheduleRegenerate = function scheduleRegenerate() {
 	if (closed) {
 		return;
 	}
@@ -77,15 +78,15 @@ function scheduleRegenerate() {
 	regenerateTimer = setTimeout(() => {
 		regenerateCssEntryPoints();
 	}, 150);
-}
+};
 
-function attachWatchers() {
+const attachWatchers = function attachWatchers() {
 	if (watchers.length > 0 || watchedDirs.some((dir) => !existsSync(dir))) {
 		return;
 	}
 
-	for (const dir of watchedDirs) {
-		const watcher = watch(dir, (_, fileName) => {
+	const createWatcher = (watchedDir: string) =>
+		watch(watchedDir, (_, fileName) => {
 			if (Date.now() < suppressEventsUntil || !fileName) {
 				return;
 			}
@@ -98,11 +99,15 @@ function attachWatchers() {
 			scheduleRegenerate();
 		});
 
+	for (const dir of watchedDirs) {
+		const watchedDir = dir;
+		const watcher = createWatcher(watchedDir);
+
 		watchers.push(watcher);
 	}
 
 	regenerateCssEntryPoints();
-}
+};
 
 attachTimer = setInterval(attachWatchers, 250);
 attachWatchers();

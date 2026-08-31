@@ -1,5 +1,5 @@
-/// <reference path="./c15t-aliases.d.ts" />
-/// <reference path="./schema.d.ts" />
+import './c15t-aliases';
+import './schema';
 
 declare module '*.vue' {
 	import type { DefineComponent } from 'vue';

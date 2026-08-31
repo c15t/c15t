@@ -4,9 +4,12 @@
  * client instances based on configuration options.
  */
 import { createDeterministicFingerprintSync } from '@c15t/schema/types';
+
+import type * as LibsCookieTypes from '../libs/cookie';
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
-import { CustomClient, type EndpointHandlers } from './custom';
+import { CustomClient } from './custom';
+import type { EndpointHandlers } from './custom';
 import { C15tClient } from './hosted';
 import { OfflineClient } from './offline';
 import type { RetryConfig } from './types';
@@ -45,7 +48,9 @@ type CanonicalClientMode = 'hosted' | 'offline' | 'custom';
  * - Unknown/omitted values also fall back to {@link DEFAULT_CLIENT_MODE}.
  * - This function does not throw.
  */
-function normalizeClientMode(mode?: ClientMode): CanonicalClientMode {
+const normalizeClientMode = function normalizeClientMode(
+	mode?: ClientMode
+): CanonicalClientMode {
 	if (mode === 'c15t') {
 		const nodeEnv =
 			typeof globalThis !== 'undefined' && 'process' in globalThis
@@ -67,22 +72,25 @@ function normalizeClientMode(mode?: ClientMode): CanonicalClientMode {
 	}
 
 	return DEFAULT_CLIENT_MODE;
-}
+};
 
-function assertUnreachableMode(mode: never): never {
+const assertUnreachableMode = function assertUnreachableMode(
+	mode: never
+): never {
 	throw new Error(`Unsupported client mode: ${String(mode)}`);
-}
+};
 
-function resolveOfflinePolicyOption(options: {
-	store?: StoreOptions;
-	offlinePolicy?: StoreOptions['offlinePolicy'];
-}): StoreOptions['offlinePolicy'] | undefined {
-	if (options.offlinePolicy !== undefined) {
-		return options.offlinePolicy;
-	}
+const resolveOfflinePolicyOption =
+	function resolveOfflinePolicyOption(options: {
+		store?: StoreOptions;
+		offlinePolicy?: StoreOptions['offlinePolicy'];
+	}): StoreOptions['offlinePolicy'] | undefined {
+		if (options.offlinePolicy !== undefined) {
+			return options.offlinePolicy;
+		}
 
-	return options.store?.offlinePolicy;
-}
+		return options.store?.offlinePolicy;
+	};
 
 // Add at the module level (before the configureConsentManager function)
 const clientRegistry = new Map<string, ConsentManagerInterface>();
@@ -95,8 +103,8 @@ const clientRegistry = new Map<string, ConsentManagerInterface>();
  *
  * @internal
  */
-function serializeStorageConfig(
-	storageConfig?: import('../libs/cookie').StorageConfig
+const serializeStorageConfig = function serializeStorageConfig(
+	storageConfig?: LibsCookieTypes.StorageConfig
 ): string {
 	if (!storageConfig) {
 		return '';
@@ -116,7 +124,7 @@ function serializeStorageConfig(
 		.join('|');
 
 	return sorted;
-}
+};
 
 /**
  * Create a stable cache key for client instances
@@ -131,7 +139,9 @@ function serializeStorageConfig(
  *
  * @internal
  */
-function getClientCacheKey(options: ConsentManagerOptions): string {
+const getClientCacheKey = function getClientCacheKey(
+	options: ConsentManagerOptions
+): string {
 	const normalizedMode = normalizeClientMode(options.mode);
 	const resolvedOfflinePolicy = resolveOfflinePolicyOption(options);
 
@@ -202,13 +212,13 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
 
 	// For hosted clients, use the backendURL as the key
 	return `hosted:${options.backendURL || ''}${headersPart}${storageKey}`;
-}
+};
 
 /**
  * Configuration for Custom mode
  * Allows for complete control over endpoint handling
  */
-export type CustomClientOptions = {
+export interface CustomClientOptions {
 	/**
 	 * Operating mode - custom endpoint implementation
 	 */
@@ -229,7 +239,7 @@ export type CustomClientOptions = {
 	 * Backend URL is not used in custom mode
 	 */
 	backendURL?: never;
-};
+}
 
 export interface HostedClientOptions {
 	/**
@@ -261,7 +271,7 @@ export interface HostedClientOptions {
 	retryConfig?: RetryConfig;
 }
 
-export type OfflineClientOptions = {
+export interface OfflineClientOptions {
 	/**
 	 * Offline mode - disables all API requests
 	 */
@@ -281,7 +291,7 @@ export type OfflineClientOptions = {
 	 * Custom fetch implementation (not used in offline mode)
 	 */
 	customFetch?: never;
-};
+}
 
 /**
  * Union type of all possible client options
@@ -315,7 +325,7 @@ export type ConsentManagerOptions = {
 	 * });
 	 * ```
 	 */
-	storageConfig?: import('../libs/cookie').StorageConfig;
+	storageConfig?: LibsCookieTypes.StorageConfig;
 } & (CustomClientOptions | HostedClientOptions | OfflineClientOptions);
 
 /**
@@ -389,7 +399,7 @@ export type C15TClientOptions = HostedClientOptions;
  * });
  * ```
  */
-export function configureConsentManager(
+export const configureConsentManager = function configureConsentManager(
 	options: ConsentManagerOptions
 ): ConsentManagerInterface {
 	const cacheKey = getClientCacheKey(options);
@@ -447,10 +457,10 @@ export function configureConsentManager(
 				options.store?.initialTranslationConfig,
 				iabConfig
 					? {
-							enabled: iabConfig.enabled,
-							vendorIds: iabConfig.vendors,
-							gvl: iabConfig.gvl,
 							_module: iabConfig._module,
+							enabled: iabConfig.enabled,
+							gvl: iabConfig.gvl,
+							vendorIds: iabConfig.vendors,
 						}
 					: undefined,
 				policyConfig
@@ -463,18 +473,18 @@ export function configureConsentManager(
 			const iabConfig = options.store?.iab;
 			client = new C15tClient({
 				backendURL: hostedOptions.backendURL || DEFAULT_BACKEND_URL,
-				headers: hostedOptions.headers,
 				customFetch: hostedOptions.customFetch,
-				retryConfig: hostedOptions.retryConfig,
-				storageConfig: options.storageConfig,
+				headers: hostedOptions.headers,
 				iabConfig: iabConfig
 					? {
-							enabled: iabConfig.enabled,
-							vendorIds: iabConfig.vendors,
-							gvl: iabConfig.gvl,
 							_module: iabConfig._module,
+							enabled: iabConfig.enabled,
+							gvl: iabConfig.gvl,
+							vendorIds: iabConfig.vendors,
 						}
 					: undefined,
+				retryConfig: hostedOptions.retryConfig,
+				storageConfig: options.storageConfig,
 			});
 			break;
 		}
@@ -488,7 +498,7 @@ export function configureConsentManager(
 	clientRegistry.set(cacheKey, client);
 
 	return client;
-}
+};
 
 /**
  * Clears the internal client registry cache.
@@ -496,6 +506,6 @@ export function configureConsentManager(
  * This is primarily useful for testing scenarios where different
  * configurations need fresh client instances between tests.
  */
-export function clearClientRegistry(): void {
+export const clearClientRegistry = function clearClientRegistry(): void {
 	clientRegistry.clear();
-}
+};

@@ -1,71 +1,72 @@
 <script lang="ts">
-import {
-	getDataDisabled,
-	getSwitchState,
-	toggleSwitchValue,
-} from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { setSwitchRootContext } from './context';
+	import {
+		getDataDisabled,
+		getSwitchState,
+		toggleSwitchValue,
+	} from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-let {
-	children,
-	class: className,
-	checked = $bindable(false),
-	disabled = false,
-	onclick,
-	onkeydown,
-	type = 'button',
-	...restProps
-}: HTMLAttributes<HTMLButtonElement> & {
-	children?: Snippet;
-	class?: string;
-	checked?: boolean;
-	disabled?: boolean;
-	type?: 'button' | 'submit' | 'reset';
-} = $props();
+	import { setSwitchRootContext } from './context';
 
-const dataState = $derived(getSwitchState(checked));
-const dataDisabled = $derived(getDataDisabled(disabled));
+	let {
+		children,
+		class: className,
+		checked = $bindable(false),
+		disabled = false,
+		onclick,
+		onkeydown,
+		type = 'button',
+		...restProps
+	}: HTMLAttributes<HTMLButtonElement> & {
+		children?: Snippet;
+		class?: string;
+		checked?: boolean;
+		disabled?: boolean;
+		type?: 'button' | 'submit' | 'reset';
+	} = $props();
 
-function setChecked(nextChecked: boolean) {
-	if (disabled) {
-		return;
-	}
+	const dataState = $derived(getSwitchState(checked));
+	const dataDisabled = $derived(getDataDisabled(disabled));
 
-	checked = nextChecked;
-}
+	const setChecked = function setChecked(nextChecked: boolean) {
+		if (disabled) {
+			return;
+		}
 
-function toggle() {
-	setChecked(toggleSwitchValue(checked));
-}
+		checked = nextChecked;
+	};
 
-function handleClick(
-	event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	toggle();
-	onclick?.(event);
-}
+	const toggle = function toggle() {
+		setChecked(toggleSwitchValue(checked));
+	};
 
-function handleKeyDown(
-	event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	if (event.key === 'Enter') {
-		event.preventDefault();
+	const handleClick = function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
 		toggle();
-	}
-	onkeydown?.(event);
-}
+		onclick?.(event);
+	};
 
-setSwitchRootContext({
-	get checked() {
-		return checked;
-	},
-	get disabled() {
-		return disabled;
-	},
-	toggle,
-});
+	const handleKeyDown = function handleKeyDown(
+		event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			toggle();
+		}
+		onkeydown?.(event);
+	};
+
+	setSwitchRootContext({
+		get checked() {
+			return checked;
+		},
+		get disabled() {
+			return disabled;
+		},
+		toggle,
+	});
 </script>
 
 <button

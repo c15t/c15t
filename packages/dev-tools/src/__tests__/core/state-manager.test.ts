@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-	createStateManager,
-	type StateManager,
-} from '../../core/state-manager';
+
+import { createStateManager } from '../../core/state-manager';
+import type { StateManager } from '../../core/state-manager';
 
 describe('createStateManager', () => {
 	let stateManager: StateManager;
@@ -15,20 +14,20 @@ describe('createStateManager', () => {
 		mockLocalStorage = {};
 		vi.stubGlobal('sessionStorage', {
 			getItem: vi.fn((key: string) => mockSessionStorage[key] ?? null),
+			removeItem: vi.fn((key: string) => {
+				Reflect.deleteProperty(mockSessionStorage, key);
+			}),
 			setItem: vi.fn((key: string, value: string) => {
 				mockSessionStorage[key] = value;
-			}),
-			removeItem: vi.fn((key: string) => {
-				delete mockSessionStorage[key];
 			}),
 		});
 		vi.stubGlobal('localStorage', {
 			getItem: vi.fn((key: string) => mockLocalStorage[key] ?? null),
+			removeItem: vi.fn((key: string) => {
+				Reflect.deleteProperty(mockLocalStorage, key);
+			}),
 			setItem: vi.fn((key: string, value: string) => {
 				mockLocalStorage[key] = value;
-			}),
-			removeItem: vi.fn((key: string) => {
-				delete mockLocalStorage[key];
 			}),
 		});
 
@@ -49,8 +48,8 @@ describe('createStateManager', () => {
 
 		it('should accept initial state overrides', () => {
 			const customManager = createStateManager({
-				isOpen: true,
 				activeTab: 'consents',
+				isOpen: true,
 				position: 'top-left',
 			});
 
@@ -70,9 +69,9 @@ describe('createStateManager', () => {
 			const persistedEvents = [
 				{
 					id: 'test-1',
-					type: 'info' as const,
 					message: 'Test event',
 					timestamp: Date.now(),
+					type: 'info' as const,
 				},
 			];
 			mockSessionStorage['c15t-devtools-events'] =
@@ -147,8 +146,8 @@ describe('createStateManager', () => {
 	describe('addEvent', () => {
 		it('should add events to the log', () => {
 			stateManager.addEvent({
-				type: 'info',
 				message: 'Test event',
+				type: 'info',
 			});
 
 			const events = stateManager.getState().eventLog;
@@ -158,8 +157,8 @@ describe('createStateManager', () => {
 		});
 
 		it('should generate unique IDs for events', () => {
-			stateManager.addEvent({ type: 'info', message: 'Event 1' });
-			stateManager.addEvent({ type: 'info', message: 'Event 2' });
+			stateManager.addEvent({ message: 'Event 1', type: 'info' });
+			stateManager.addEvent({ message: 'Event 2', type: 'info' });
 
 			const events = stateManager.getState().eventLog;
 			expect(events[0]?.id).not.toBe(events[1]?.id);
@@ -167,18 +166,19 @@ describe('createStateManager', () => {
 
 		it('should add timestamp to events', () => {
 			const beforeTime = Date.now();
-			stateManager.addEvent({ type: 'info', message: 'Test' });
+			stateManager.addEvent({ message: 'Test', type: 'info' });
 			const afterTime = Date.now();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const event = stateManager.getState().eventLog[0];
 			expect(event?.timestamp).toBeGreaterThanOrEqual(beforeTime);
 			expect(event?.timestamp).toBeLessThanOrEqual(afterTime);
 		});
 
 		it('should keep newest events at the beginning', () => {
-			stateManager.addEvent({ type: 'info', message: 'First' });
-			stateManager.addEvent({ type: 'info', message: 'Second' });
-			stateManager.addEvent({ type: 'info', message: 'Third' });
+			stateManager.addEvent({ message: 'First', type: 'info' });
+			stateManager.addEvent({ message: 'Second', type: 'info' });
+			stateManager.addEvent({ message: 'Third', type: 'info' });
 
 			const events = stateManager.getState().eventLog;
 			expect(events[0]?.message).toBe('Third');
@@ -189,10 +189,10 @@ describe('createStateManager', () => {
 		it('should respect maxEventLogSize limit', () => {
 			const manager = createStateManager({ maxEventLogSize: 3 });
 
-			manager.addEvent({ type: 'info', message: '1' });
-			manager.addEvent({ type: 'info', message: '2' });
-			manager.addEvent({ type: 'info', message: '3' });
-			manager.addEvent({ type: 'info', message: '4' });
+			manager.addEvent({ message: '1', type: 'info' });
+			manager.addEvent({ message: '2', type: 'info' });
+			manager.addEvent({ message: '3', type: 'info' });
+			manager.addEvent({ message: '4', type: 'info' });
 
 			const events = manager.getState().eventLog;
 			expect(events).toHaveLength(3);
@@ -200,7 +200,7 @@ describe('createStateManager', () => {
 		});
 
 		it('should persist events to sessionStorage', () => {
-			stateManager.addEvent({ type: 'info', message: 'Persisted event' });
+			stateManager.addEvent({ message: 'Persisted event', type: 'info' });
 
 			expect(sessionStorage.setItem).toHaveBeenCalled();
 		});
@@ -208,8 +208,8 @@ describe('createStateManager', () => {
 
 	describe('clearEventLog', () => {
 		it('should clear all events', () => {
-			stateManager.addEvent({ type: 'info', message: 'Event 1' });
-			stateManager.addEvent({ type: 'info', message: 'Event 2' });
+			stateManager.addEvent({ message: 'Event 1', type: 'info' });
+			stateManager.addEvent({ message: 'Event 2', type: 'info' });
 
 			expect(stateManager.getState().eventLog).toHaveLength(2);
 
@@ -219,7 +219,7 @@ describe('createStateManager', () => {
 		});
 
 		it('should persist empty array to sessionStorage', () => {
-			stateManager.addEvent({ type: 'info', message: 'Event' });
+			stateManager.addEvent({ message: 'Event', type: 'info' });
 			stateManager.clearEventLog();
 
 			// Last call should persist empty array

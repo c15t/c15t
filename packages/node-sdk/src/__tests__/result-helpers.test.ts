@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import { C15TError } from '../error';
 import { createResponseContext } from '../fetcher';
 
@@ -15,9 +16,9 @@ describe('Result Type Helpers', () => {
 
 		it('should throw C15TError when response is not successful', () => {
 			const context = createResponseContext(false, null, {
+				code: 'NOT_FOUND',
 				message: 'Not found',
 				status: 404,
-				code: 'NOT_FOUND',
 			});
 
 			try {
@@ -43,10 +44,10 @@ describe('Result Type Helpers', () => {
 
 		it('should preserve error details in thrown C15TError', () => {
 			const context = createResponseContext(false, null, {
-				message: 'Validation failed',
-				status: 400,
 				code: 'VALIDATION_ERROR',
 				details: { field: 'email' },
+				message: 'Validation failed',
+				status: 400,
 			});
 
 			try {
@@ -89,9 +90,9 @@ describe('Result Type Helpers', () => {
 
 		it('should throw C15TError with custom message when response is not successful', () => {
 			const context = createResponseContext(false, null, {
+				code: 'NOT_FOUND',
 				message: 'Original error',
 				status: 404,
-				code: 'NOT_FOUND',
 			});
 
 			try {
@@ -113,7 +114,7 @@ describe('Result Type Helpers', () => {
 
 	describe('map', () => {
 		it('should transform data when response is successful', () => {
-			const context = createResponseContext(true, { name: 'John', age: 30 });
+			const context = createResponseContext(true, { age: 30, name: 'John' });
 			const mapped = context.map((data) => data.name);
 
 			expect(mapped.ok).toBe(true);
@@ -122,9 +123,9 @@ describe('Result Type Helpers', () => {
 
 		it('should preserve error when response is not successful', () => {
 			const context = createResponseContext<{ name: string }>(false, null, {
+				code: 'NOT_FOUND',
 				message: 'Not found',
 				status: 404,
-				code: 'NOT_FOUND',
 			});
 			const mapped = context.map((data) => data.name);
 
@@ -141,11 +142,11 @@ describe('Result Type Helpers', () => {
 			}
 
 			const context = createResponseContext<Subject>(true, {
-				id: 'sub_123',
 				consents: [
-					{ type: 'analytics', granted: true },
-					{ type: 'marketing', granted: false },
+					{ granted: true, type: 'analytics' },
+					{ granted: false, type: 'marketing' },
 				],
+				id: 'sub_123',
 			});
 
 			const grantedTypes = context.map((data) =>

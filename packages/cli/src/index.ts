@@ -14,6 +14,7 @@ import * as p from '@clack/prompts';
 import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
+
 import { showHelpMenu } from './actions/show-help-menu';
 import { codemodsCommand } from './commands/codemods';
 import { generate } from './commands/generate';
@@ -21,10 +22,8 @@ import { projectsAction } from './commands/instances';
 import { selfHost } from './commands/self-host';
 import { installSkills } from './commands/skills';
 import { displayIntro } from './components/intro';
-
 // Import from new v2 modules
 import { URLS } from './constants';
-
 // Import context creator and types
 import { createCliContext } from './context/creator';
 import { globalFlags } from './context/parser';
@@ -35,55 +34,51 @@ import { TelemetryEventName } from './utils/telemetry';
 // Define commands (using types from context)
 const commands: CliCommand[] = [
 	{
-		name: 'setup',
-		label: 'Setup (Recommended)',
-		hint: 'Set up c15t in your project',
-		description: 'Set up c15t in your project.',
 		action: (context) => generate(context),
+		description: 'Set up c15t in your project.',
+		hint: 'Set up c15t in your project',
+		label: 'Setup (Recommended)',
+		name: 'setup',
 	},
 	codemodsCommand,
 	{
-		name: 'skills',
-		label: 'Skills',
-		hint: 'Install c15t agent skills for AI tooling',
+		action: (context) => installSkills(context),
 		description:
 			'Install c15t skills for AI-assisted development (Claude, Cursor, etc.)',
-		action: (context) => installSkills(context),
+		hint: 'Install c15t agent skills for AI tooling',
+		label: 'Skills',
+		name: 'skills',
 	},
 	{
-		name: 'docs',
-		label: 'Docs',
-		hint: 'Open c15t documentation',
-		description: 'Open the c15t documentation in your browser.',
 		action: async (context) => {
 			const { logger } = context;
 			await open(`${URLS.DOCS}?ref=cli`);
 			logger.success('Documentation opened in your browser.');
 		},
+		description: 'Open the c15t documentation in your browser.',
+		hint: 'Open c15t documentation',
+		label: 'Docs',
+		name: 'docs',
 	},
 	{
-		name: 'changelog',
-		label: 'Changelog',
-		hint: 'Open the latest releases and changes',
-		description: 'Open the c15t changelog in your browser.',
 		action: async (context) => {
 			const { logger } = context;
 			await open(URLS.CHANGELOG);
 			logger.success('Changelog opened in your browser.');
 		},
+		description: 'Open the c15t changelog in your browser.',
+		hint: 'Open the latest releases and changes',
+		label: 'Changelog',
+		name: 'changelog',
 	},
 	{
-		name: 'self-host',
-		label: 'Self-host',
-		hint: 'Self-hosted backend workflow tools',
-		description: 'Self-host workflow commands (migrations).',
 		action: (context) => selfHost(context),
+		description: 'Self-host workflow commands (migrations).',
+		hint: 'Self-hosted backend workflow tools',
+		label: 'Self-host',
+		name: 'self-host',
 	},
 	{
-		name: 'github',
-		label: 'GitHub',
-		hint: 'Star us on GitHub',
-		description: 'Open our GitHub repository to give us a star.',
 		action: async (context) => {
 			const { logger } = context;
 
@@ -96,25 +91,29 @@ const commands: CliCommand[] = [
 			await open(URLS.GITHUB);
 			logger.success('Thank you for your support!');
 		},
+		description: 'Open our GitHub repository to give us a star.',
+		hint: 'Star us on GitHub',
+		label: 'GitHub',
+		name: 'github',
 	},
 	{
-		name: 'projects',
-		label: 'Projects',
-		hint: 'Manage your c15t projects',
+		action: (context) => projectsAction(context),
 		description: 'List, select, and create c15t projects.',
-		action: (context) => projectsAction(context),
+		hint: 'Manage your c15t projects',
+		label: 'Projects',
+		name: 'projects',
 	},
 	{
-		name: 'instances',
-		label: 'Instances',
-		hint: 'Alias for `projects`',
-		description: 'Alias for `c15t projects`.',
 		action: (context) => projectsAction(context),
+		description: 'Alias for `c15t projects`.',
 		hidden: true,
+		hint: 'Alias for `projects`',
+		label: 'Instances',
+		name: 'instances',
 	},
 ];
 
-export async function main() {
+export const main = async function main() {
 	// --- Context Setup ---
 	const rawArgs = process.argv.slice(2);
 	const cwd = process.cwd();
@@ -124,7 +123,7 @@ export async function main() {
 
 	// --- Package Info & Early Exit Check ---
 	const packageInfo = context.fs.getPackageInfo();
-	const version = packageInfo.version;
+	const { version } = packageInfo;
 
 	// Inform users about telemetry if it's enabled
 	if (!telemetry.isDisabled()) {
@@ -140,14 +139,14 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 	// Track CLI invocation (without command yet)
 	try {
 		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			version,
 			nodeVersion: process.version,
 			platform: process.platform,
+			version,
 		});
 		// Explicitly flush to ensure the event is sent immediately
 		telemetry.flushSync();
-	} catch (error) {
-		logger.debug('Failed to track CLI invocation:', error);
+	} catch (errorLocal) {
+		logger.debug('Failed to track CLI invocation:', errorLocal);
 	}
 
 	if (flags.version) {
@@ -211,14 +210,14 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 			const promptOptions = commands
 				.filter((cmd) => !cmd.hidden)
 				.map((cmd) => ({
-					value: cmd.name,
-					label: cmd.label,
 					hint: cmd.hint,
+					label: cmd.label,
+					value: cmd.name,
 				}));
 			promptOptions.push({
-				value: 'exit',
-				label: 'Exit',
 				hint: 'Close the CLI',
+				label: 'Exit',
+				value: 'exit',
 			});
 
 			const selectedCommandName = await p.select({
@@ -296,6 +295,6 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 
 	// Ensure telemetry is properly shut down
 	await telemetry.shutdown();
-}
+};
 
 main();

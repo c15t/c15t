@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import { useConsentActiveUI } from '#c15t/composables';
 
 defineProps<{
@@ -15,9 +12,9 @@ defineProps<{
 
 const activeUI = useConsentActiveUI();
 
-function openPreferences() {
+const openPreferences = function openPreferences() {
 	activeUI.value = 'manager';
-}
+};
 </script>
 
 <template>

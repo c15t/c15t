@@ -41,11 +41,11 @@
 	z-index: var(--c15t-devtools-z-index, 99999);
 	transition:
 		transform var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		box-shadow var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 	transform-origin: center;
 	touch-action: none;
 	user-select: none;
@@ -209,9 +209,9 @@
 	cursor: pointer;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .closeButton:hover {
@@ -246,9 +246,9 @@
 	cursor: pointer;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .inlineActionButton:hover {
@@ -377,12 +377,12 @@
 	pointer-events: none;
 	transition:
 		opacity var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+			var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
 		transform var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+			var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
-.dropdownMenu[data-state="open"] {
+.dropdownMenu[data-state='open'] {
 	opacity: 1;
 	transform: scale(1) translateY(0);
 	pointer-events: auto;

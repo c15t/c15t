@@ -4,12 +4,11 @@
  * This module provides the main store creation and management functionality.
  */
 
-import {
-	isLegalDocumentType,
-	type PostSubjectOutput,
-} from '@c15t/schema/types';
+import { isLegalDocumentType } from '@c15t/schema/types';
+import type { PostSubjectInput, PostSubjectOutput } from '@c15t/schema/types';
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { StorageConfig } from '../libs/cookie';
 import {
@@ -19,11 +18,8 @@ import {
 } from '../libs/cookie';
 import { setDebugEnabled } from '../libs/debug';
 import { generateSubjectId } from '../libs/generate-subject-id';
-import {
-	extractConsentNamesFromCondition,
-	type HasCondition,
-	has,
-} from '../libs/has';
+import { extractConsentNamesFromCondition, has } from '../libs/has';
+import type { HasCondition } from '../libs/has';
 import type { IABConfig } from '../libs/iab-tcf/types';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
@@ -43,11 +39,8 @@ import type {
 } from '../types';
 import type { Callbacks } from '../types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from '../types/compliance';
-import {
-	type AllConsentNames,
-	type ConsentInfo,
-	consentTypes,
-} from '../types/consent-types';
+import { consentTypes } from '../types/consent-types';
+import type { AllConsentNames, ConsentInfo } from '../types/consent-types';
 import { coalesceInFlight } from './coalesce-in-flight';
 import { initialState } from './initial-state';
 import type {
@@ -56,6 +49,18 @@ import type {
 	UnstableLegalDocumentConsentInput,
 	UnstablePolicyConsentInput,
 } from './type';
+
+const assignInOrder = Object.assign;
+
+type StoreStatePart = Partial<ConsentStoreState> & { namespace?: string };
+
+const mergeStoreState = (...parts: StoreStatePart[]): ConsentStoreState =>
+	Object.assign({}, ...parts) as ConsentStoreState;
+
+const firstDefined = <Value>(
+	primary: Value | undefined,
+	fallback: Value
+): Value => primary ?? fallback;
 
 /**
  * Structure of consent data stored in localStorage.
@@ -76,11 +81,37 @@ interface StoredConsent {
 	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 }
 
-function isLegalDocumentConsentInput(
+const isLegalDocumentConsentInput = function isLegalDocumentConsentInput(
 	input: UnstablePolicyConsentInput
 ): input is UnstableLegalDocumentConsentInput {
 	return isLegalDocumentType(input.type);
-}
+};
+
+const getLegalDocumentFields = (
+	input: UnstablePolicyConsentInput
+): Record<string, string> => {
+	if (!isLegalDocumentConsentInput(input)) {
+		return {};
+	}
+	if (input.documentSnapshotToken) {
+		return { documentSnapshotToken: input.documentSnapshotToken };
+	}
+	if (input.policyHash) {
+		return { policyHash: input.policyHash };
+	}
+	if (input.policyId) {
+		return { policyId: input.policyId };
+	}
+	throw new Error(
+		'Legal document consent requires documentSnapshotToken, policyHash, or policyId.'
+	);
+};
+
+const getDefaultConsentDomain = (): string =>
+	typeof window === 'undefined' ? 'localhost' : window.location.hostname;
+
+const normalizeGivenAt = (givenAt: Date | string | number): Date =>
+	givenAt instanceof Date ? givenAt : new Date(givenAt);
 
 /**
  * Retrieves stored consent data from localStorage or cookie.
@@ -163,9 +194,12 @@ export const createConsentManagerStore = (
 	const internalOptions = options as StoreOptions & {
 		__internal?: {
 			backendURL?: string;
+			initConsentManager?: typeof initConsentManager;
 			requestCredentials?: RequestCredentials;
 		};
 	};
+	const initializeConsentManager =
+		internalOptions.__internal?.initConsentManager ?? initConsentManager;
 	const {
 		namespace = 'c15tStore',
 		// Extract options that shouldn't be spread directly into state
@@ -196,475 +230,518 @@ export const createConsentManagerStore = (
 	const inFlightConsentSaves = new Map<string, Promise<void>>();
 	const inFlightPolicyConsents = new Map<string, Promise<PostSubjectOutput>>();
 
-	const store = createStore<ConsentStoreState>((set, get) => ({
-		...initialState,
-		...storeConfigOptions,
-		namespace,
-		// IAB manager is created lazily during initConsentManager when iab config is provided
-		iab: null,
-		// Apply initial consent categories if provided
-		...(initialConsentCategories && {
-			consentCategories: initialConsentCategories,
-		}),
-		...(storedConsent
-			? {
-					consents: storedConsent.consents,
-					selectedConsents: storedConsent.consents,
-					consentInfo: storedConsent.consentInfo,
-					user: storedConsent.consentInfo?.externalId
-						? {
-								id: storedConsent.consentInfo.externalId,
-								identityProvider: storedConsent.consentInfo.identityProvider,
-							}
-						: undefined,
-					activeUI: 'none' as const,
-					isLoadingConsentInfo: false,
-				}
-			: {
-					activeUI: 'none' as const,
-					isLoadingConsentInfo: true,
+	const store = createStore<ConsentStoreState>((set, get) =>
+		mergeStoreState(
+			{ ...initialState },
+			{ ...storeConfigOptions },
+			{ namespace },
+			{ iab: null },
+			{
+				...(initialConsentCategories && {
+					consentCategories: initialConsentCategories,
 				}),
-		setActiveUI: (ui, options = {}) => {
-			if (ui === 'none' || ui === 'dialog') {
-				set({ activeUI: ui });
-				return;
-			}
-			// ui === 'banner' — validate before showing
-			if (options.force) {
-				set({ activeUI: 'banner' });
-				return;
-			}
-			const state = get();
-			const stored = getStoredConsent();
-			if (!stored && !state.consentInfo && !state.isLoadingConsentInfo) {
-				set({ activeUI: 'banner' });
-			}
-		},
-
-		setSelectedConsent: (name, value) => {
-			set((state) => {
-				const consentType = state.consentTypes.find(
-					(type) => type.name === name
-				);
-
-				if (consentType?.disabled) {
-					return state;
-				}
-
-				return {
-					selectedConsents: { ...state.selectedConsents, [name]: value },
-				};
-			});
-		},
-
-		saveConsents: (type, options) => {
-			const requestKey = JSON.stringify([
-				type,
-				options?.uiSource ?? null,
-				type === 'custom' ? get().selectedConsents : null,
-			]);
-
-			return coalesceInFlight(inFlightConsentSaves, requestKey, () =>
-				saveConsents({
-					manager,
-					type,
-					get,
-					set,
-					options,
-					emitConsentChanged: (payload) => {
-						get().callbacks.onConsentChanged?.(payload);
-
-						for (const listener of consentChangeListeners) {
-							listener(payload);
+			},
+			{
+				...(storedConsent
+					? {
+							activeUI: 'none' as const,
+							consentInfo: storedConsent.consentInfo,
+							consents: storedConsent.consents,
+							isLoadingConsentInfo: false,
+							selectedConsents: storedConsent.consents,
+							user: storedConsent.consentInfo?.externalId
+								? {
+										id: storedConsent.consentInfo.externalId,
+										identityProvider:
+											storedConsent.consentInfo.identityProvider,
+									}
+								: undefined,
 						}
-					},
-				})
-			);
-		},
-
-		setConsent: (name, value) => {
-			set((state) => {
-				const consentType = state.consentTypes.find(
-					(type) => type.name === name
-				);
-
-				// Don't allow changes to disabled consent types
-				if (consentType?.disabled) {
-					return state;
-				}
-
-				// Other selected consents have not been saved/agreed to only the current one.
-				const newConsents = { ...state.consents, [name]: value };
-
-				return { selectedConsents: newConsents };
-			});
-
-			get().saveConsents('custom');
-		},
-		resetConsents: () => {
-			set(() => {
-				const consents = consentTypes.reduce((acc, consent) => {
-					acc[consent.name] = consent.defaultValue;
-					return acc;
-				}, {} as ConsentState);
-
-				const resetState = {
-					consents,
-					selectedConsents: consents,
-					consentInfo: null,
-				};
-				deleteConsentFromStorage(undefined, options.storageConfig);
-				return resetState;
-			});
-		},
-		setConsentCategories: (types) =>
-			set(() => {
-				const { policyCategories, policyScopeMode } = get();
-				if (
-					shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)
-				) {
-					return {
-						consentCategories: filterConsentCategoriesByPolicy(
-							types,
-							policyCategories
-						),
-					};
-				}
-
-				return {
-					consentCategories: Array.from(new Set(types)),
-				};
-			}),
-		setCallback: (name, callback) => {
-			const currentState = get();
-
-			// Update the callback in state
-			set((state) => ({
-				callbacks: { ...state.callbacks, [name]: callback },
-			}));
-
-			// Call the onConsentSet callback with the initial consent state
-			if (
-				name === 'onConsentSet' &&
-				callback &&
-				typeof callback === 'function'
-			) {
-				(callback as Callbacks['onConsentSet'])?.({
-					preferences: currentState.consents,
-				});
-			}
-
-			// Replay missed onBannerFetched callback if banner was already fetched
-			if (
-				name === 'onBannerFetched' &&
-				currentState.hasFetchedBanner &&
-				currentState.lastBannerFetchData &&
-				callback &&
-				typeof callback === 'function'
-			) {
-				const { lastBannerFetchData } = currentState;
-
-				const jurisdictionCode = lastBannerFetchData.jurisdiction ?? 'NONE';
-
-				// Type assertion to ensure callback is the correct type
-				(callback as Callbacks['onBannerFetched'])?.({
-					// Derived visibility: show banner when jurisdiction is not NONE
-					jurisdiction: {
-						code: jurisdictionCode,
-						// Message is no longer returned from the backend; leave empty
-						message: '',
-					},
-					location: {
-						countryCode: lastBannerFetchData.location.countryCode ?? null,
-						regionCode: lastBannerFetchData.location.regionCode ?? null,
-					},
-					translations: {
-						language: lastBannerFetchData.translations.language,
-						translations: lastBannerFetchData.translations.translations,
-					},
-				});
-			}
-		},
-		subscribeToConsentChanges: (listener) => {
-			consentChangeListeners.add(listener);
-
-			return () => {
-				consentChangeListeners.delete(listener);
-			};
-		},
-		setLocationInfo: (location) => set({ locationInfo: location }),
-
-		initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
-			initConsentManager({
-				manager,
-				ssrData: options.ssrData,
-				backendURL: internalOptions.__internal?.backendURL,
-				requestCredentials: internalOptions.__internal?.requestCredentials,
-				initialTranslationConfig: normalizedInitialTranslationConfig,
-				iabConfig: iab as IABConfig | undefined,
-				get,
-				set,
-			}),
-
-		getDisplayedConsents: () => {
-			const { consentCategories, consentTypes } = get();
-			return consentTypes.filter((consent) =>
-				consentCategories.includes(consent.name)
-			);
-		},
-
-		hasConsented: () => {
-			const { consentInfo } = get();
-			return consentInfo != null;
-		},
-
-		has: <CategoryType extends AllConsentNames>(
-			condition: HasCondition<CategoryType>
-		) => {
-			const { consents, policyCategories, policyScopeMode } = get();
-			return has(condition, consents, {
-				policyCategories,
-				policyScopeMode,
-			});
-		},
-
-		setTranslationConfig: (config: TranslationConfig) => {
-			set({ translationConfig: config });
-		},
-
-		updateConsentCategories: (newCategories: AllConsentNames[]) => {
-			const {
-				consentCategories: currentConsentCategories,
-				policyCategories,
-				policyScopeMode,
-			} = get();
-			const allCategoriesSet = new Set<AllConsentNames>([
-				...currentConsentCategories,
-				...newCategories,
-			]);
-			let consentCategories: AllConsentNames[];
-
-			if (shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)) {
-				consentCategories = filterConsentCategoriesByPolicy(
-					Array.from(allCategoriesSet),
-					policyCategories
-				);
-			} else {
-				consentCategories = Array.from(allCategoriesSet);
-			}
-
-			set({ consentCategories });
-		},
-
-		identifyUser: async (user: User) => {
-			const currentInfo = get().consentInfo;
-			const subjectId = currentInfo?.subjectId;
-
-			// Always store the user in state (so it's available when consent is given)
-			set({ user });
-
-			// If no consent yet, just store in state and return early
-			// The user will be linked when they give consent via saveConsents
-			// Don't set consentInfo here - it should only exist after actual consent
-			if (!subjectId) {
-				return;
-			}
-
-			// Skip API call if the user is already linked with the same externalId
-			// This prevents unnecessary PATCH calls on page load
-			if (
-				String(currentInfo?.externalId) === String(user.id) &&
-				currentInfo?.identityProvider === user.identityProvider
-			) {
-				return;
-			}
-
-			// Make API call to link the user to the subject
-			await manager.identifyUser({
-				body: {
-					subjectId,
-					externalId: user.id,
-					identityProvider: user.identityProvider,
-				},
-			});
-
-			// Sync store state
-			set({
-				consentInfo: {
-					...currentInfo,
-					time: currentInfo?.time || Date.now(),
-					subjectId,
-					externalId: user.id,
-					identityProvider: user.identityProvider,
-				},
-			});
-		},
-		unstable_acceptPolicyConsent: (input) => {
-			const requestKey = JSON.stringify([
-				get().consentInfo?.subjectId ?? null,
-				input,
-			]);
-
-			return coalesceInFlight(inFlightPolicyConsents, requestKey, async () => {
-				const currentState = get();
-				const currentInfo = currentState.consentInfo;
-				const subjectId = currentInfo?.subjectId ?? generateSubjectId();
-				const storedIdentifiers = sanitizeSubjectIdentifiers({
-					externalId: currentInfo?.externalId,
-					identityProvider: currentInfo?.identityProvider,
-				});
-				const userIdentifiers = sanitizeSubjectIdentifiers({
-					externalId: currentState.user?.id,
-					identityProvider: currentState.user?.identityProvider,
-				});
-				const inputIdentifiers = sanitizeSubjectIdentifiers({
-					externalId: input.externalId,
-					identityProvider: input.identityProvider,
-				});
-				const externalId =
-					inputIdentifiers.externalId ??
-					storedIdentifiers.externalId ??
-					userIdentifiers.externalId;
-				const identityProvider =
-					inputIdentifiers.identityProvider ??
-					storedIdentifiers.identityProvider ??
-					userIdentifiers.identityProvider;
-				const domain =
-					input.domain ??
-					(typeof window !== 'undefined'
-						? window.location.hostname
-						: 'localhost');
-				const legalDocumentConsent = isLegalDocumentConsentInput(input);
-				let legalDocumentFields: Record<string, string> = {};
-
-				if (legalDocumentConsent) {
-					if (input.documentSnapshotToken) {
-						legalDocumentFields = {
-							documentSnapshotToken: input.documentSnapshotToken,
-						};
-					} else if (input.policyHash) {
-						legalDocumentFields = {
-							policyHash: input.policyHash,
-						};
-					} else if (input.policyId) {
-						legalDocumentFields = {
-							policyId: input.policyId,
-						};
-					} else {
-						throw new Error(
-							'Legal document consent requires documentSnapshotToken, policyHash, or policyId.'
-						);
+					: {
+							activeUI: 'none' as const,
+							isLoadingConsentInfo: true,
+						}),
+			},
+			{
+				setActiveUI: (ui, optionsLocal = {}) => {
+					if (ui === 'none' || ui === 'dialog') {
+						set({ activeUI: ui });
+						return;
 					}
-				}
+					// ui === 'banner' — validate before showing
+					if (optionsLocal.force) {
+						set({ activeUI: 'banner' });
+						return;
+					}
+					const state = get();
+					const stored = getStoredConsent();
+					if (!stored && !state.consentInfo && !state.isLoadingConsentInfo) {
+						set({ activeUI: 'banner' });
+					}
+				},
+			},
+			{
+				setSelectedConsent: (name, value) => {
+					set((state) => {
+						const consentType = state.consentTypes.find(
+							(type) => type.name === name
+						);
 
-				const givenAt = input.givenAt ?? Date.now();
+						if (consentType?.disabled) {
+							return state;
+						}
 
-				const response = await manager.setConsent({
-					body: {
-						type: input.type,
-						subjectId,
-						domain,
-						givenAt,
-						uiSource: input.uiSource ?? 'api',
-						...legalDocumentFields,
-						...(input.metadata ? { metadata: input.metadata } : {}),
-						...(input.preferences ? { preferences: input.preferences } : {}),
-						...(externalId ? { externalSubjectId: externalId } : {}),
-						...(identityProvider ? { identityProvider } : {}),
-					},
-				});
-
-				if (!response.ok || !response.data) {
-					const errorMsg =
-						response.error?.message ?? 'Failed to accept policy consent';
-					get().callbacks.onError?.({
-						error: errorMsg,
+						return {
+							selectedConsents: { ...state.selectedConsents, [name]: value },
+						};
 					});
-					const error = new Error(errorMsg) as Error & {
-						code?: string;
-						details?: Record<string, unknown> | null;
-						status?: number;
+				},
+			},
+			{
+				saveConsents: (type, optionsLocal) => {
+					const requestKey = JSON.stringify([
+						type,
+						optionsLocal?.uiSource ?? null,
+						type === 'custom' ? get().selectedConsents : null,
+					]);
+
+					return coalesceInFlight(inFlightConsentSaves, requestKey, () =>
+						saveConsents({
+							emitConsentChanged: (payload) => {
+								get().callbacks.onConsentChanged?.(payload);
+
+								for (const listener of consentChangeListeners) {
+									listener(payload);
+								}
+							},
+							get,
+							manager,
+							options: optionsLocal,
+							set,
+							type,
+						})
+					);
+				},
+			},
+			{
+				setConsent: (name, value) => {
+					set((state) => {
+						const consentType = state.consentTypes.find(
+							(type) => type.name === name
+						);
+
+						// Don't allow changes to disabled consent types
+						if (consentType?.disabled) {
+							return state;
+						}
+
+						// Other selected consents have not been saved/agreed to only the current one.
+						const newConsents = { ...state.consents, [name]: value };
+
+						return { selectedConsents: newConsents };
+					});
+
+					get().saveConsents('custom');
+				},
+			},
+			{
+				resetConsents: () => {
+					set(() => {
+						const consents = consentTypes.reduce((acc, consent) => {
+							acc[consent.name] = consent.defaultValue;
+							return acc;
+						}, {} as ConsentState);
+
+						const resetState = {
+							consentInfo: null,
+							consents,
+							selectedConsents: consents,
+						};
+						deleteConsentFromStorage(undefined, options.storageConfig);
+						return resetState;
+					});
+				},
+			},
+			{
+				setConsentCategories: (types) =>
+					set(() => {
+						const { policyCategories, policyScopeMode } = get();
+						if (
+							shouldEnforcePolicyCategoryScope(
+								policyCategories,
+								policyScopeMode
+							)
+						) {
+							return {
+								consentCategories: filterConsentCategoriesByPolicy(
+									types,
+									policyCategories
+								),
+							};
+						}
+
+						return {
+							consentCategories: Array.from(new Set(types)),
+						};
+					}),
+			},
+			{
+				setCallback: (name, handler) => {
+					const currentState = get();
+
+					// Update the callback in state
+					set((state) => ({
+						callbacks: { ...state.callbacks, [name]: handler },
+					}));
+
+					// Call the onConsentSet callback with the initial consent state
+					if (
+						name === 'onConsentSet' &&
+						handler &&
+						typeof handler === 'function'
+					) {
+						(handler as Callbacks['onConsentSet'])?.({
+							preferences: currentState.consents,
+						});
+					}
+
+					// Replay missed onBannerFetched callback if banner was already fetched
+					if (
+						name === 'onBannerFetched' &&
+						currentState.hasFetchedBanner &&
+						currentState.lastBannerFetchData &&
+						handler &&
+						typeof handler === 'function'
+					) {
+						const { lastBannerFetchData } = currentState;
+
+						const jurisdictionCode = lastBannerFetchData.jurisdiction ?? 'NONE';
+
+						// Type assertion to ensure callback is the correct type
+						(handler as Callbacks['onBannerFetched'])?.({
+							// Derived visibility: show banner when jurisdiction is not NONE
+							jurisdiction: {
+								code: jurisdictionCode,
+								// Message is no longer returned from the backend; leave empty
+								message: '',
+							},
+							location: {
+								countryCode: lastBannerFetchData.location.countryCode ?? null,
+								regionCode: lastBannerFetchData.location.regionCode ?? null,
+							},
+							translations: {
+								language: lastBannerFetchData.translations.language,
+								translations: lastBannerFetchData.translations.translations,
+							},
+						});
+					}
+				},
+			},
+			{
+				subscribeToConsentChanges: (listener) => {
+					consentChangeListeners.add(listener);
+
+					return () => {
+						consentChangeListeners.delete(listener);
 					};
-					error.code = response.error?.code;
-					error.details = response.error?.details ?? null;
-					error.status = response.error?.status;
-					throw error;
-				}
+				},
+			},
+			{ setLocationInfo: (location) => set({ locationInfo: location }) },
+			{
+				initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
+					initializeConsentManager(
+						assignInOrder(
+							{},
+							{ backendURL: internalOptions.__internal?.backendURL },
+							{ get },
+							{ iabConfig: iab as IABConfig | undefined },
+							{ initialTranslationConfig: normalizedInitialTranslationConfig },
+							{ manager },
+							{
+								requestCredentials:
+									internalOptions.__internal?.requestCredentials,
+							},
+							{ set },
+							{ ssrData: options.ssrData }
+						)
+					),
+			},
+			{
+				getDisplayedConsents: () => {
+					const { consentCategories, consentTypes: storedConsentTypes } = get();
+					return storedConsentTypes.filter((consent) =>
+						consentCategories.includes(consent.name)
+					);
+				},
+			},
+			{
+				hasConsented: () => {
+					const { consentInfo } = get();
+					return consentInfo !== null && consentInfo !== undefined;
+				},
+			},
+			{
+				has: <CategoryType extends AllConsentNames>(
+					condition: HasCondition<CategoryType>
+				) => {
+					const { consents, policyCategories, policyScopeMode } = get();
+					return has(condition, consents, {
+						policyCategories,
+						policyScopeMode,
+					});
+				},
+			},
+			{
+				setTranslationConfig: (config: TranslationConfig) => {
+					set({ translationConfig: config });
+				},
+			},
+			{
+				updateConsentCategories: (newCategories: AllConsentNames[]) => {
+					const {
+						consentCategories: currentConsentCategories,
+						policyCategories,
+						policyScopeMode,
+					} = get();
+					const allCategoriesSet = new Set<AllConsentNames>([
+						...currentConsentCategories,
+						...newCategories,
+					]);
+					let consentCategories: AllConsentNames[];
 
-				const consent = {
-					...response.data,
-					givenAt:
-						response.data.givenAt instanceof Date
-							? response.data.givenAt
-							: new Date(response.data.givenAt),
-				};
+					if (
+						shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)
+					) {
+						consentCategories = filterConsentCategoriesByPolicy(
+							Array.from(allCategoriesSet),
+							policyCategories
+						);
+					} else {
+						consentCategories = Array.from(allCategoriesSet);
+					}
 
-				const latestState = get();
-				const latestInfo = latestState.consentInfo;
-				const nextConsentInfo = {
-					...latestInfo,
-					time: consent.givenAt.getTime(),
-					subjectId,
-					...(externalId ? { externalId } : {}),
-					...(identityProvider ? { identityProvider } : {}),
-				};
+					set({ consentCategories });
+				},
+			},
+			{
+				identifyUser: async (user: User) => {
+					const currentInfo = get().consentInfo;
+					const subjectId = currentInfo?.subjectId;
 
-				set({
-					consentInfo: nextConsentInfo,
-					...(externalId
-						? {
-								user: {
+					// Always store the user in state (so it's available when consent is given)
+					set({ user });
+
+					// If no consent yet, just store in state and return early
+					// The user will be linked when they give consent via saveConsents
+					// Don't set consentInfo here - it should only exist after actual consent
+					if (!subjectId) {
+						return;
+					}
+
+					// Skip API call if the user is already linked with the same externalId
+					// This prevents unnecessary PATCH calls on page load
+					if (
+						String(currentInfo?.externalId) === String(user.id) &&
+						currentInfo?.identityProvider === user.identityProvider
+					) {
+						return;
+					}
+
+					// Make API call to link the user to the subject
+					await manager.identifyUser({
+						body: {
+							externalId: user.id,
+							identityProvider: user.identityProvider,
+							subjectId,
+						},
+					});
+
+					// Sync store state
+					set({
+						consentInfo: {
+							...currentInfo,
+							externalId: user.id,
+							identityProvider: user.identityProvider,
+							subjectId,
+							time: currentInfo?.time || Date.now(),
+						},
+					});
+				},
+			},
+			{
+				unstable_acceptPolicyConsent: (input) => {
+					const requestKey = JSON.stringify([
+						get().consentInfo?.subjectId ?? null,
+						input,
+					]);
+
+					return coalesceInFlight(
+						inFlightPolicyConsents,
+						requestKey,
+						async () => {
+							const currentState = get();
+							const currentInfo = currentState.consentInfo;
+							const subjectId = firstDefined(
+								currentInfo?.subjectId,
+								generateSubjectId()
+							);
+							const storedIdentifiers = sanitizeSubjectIdentifiers({
+								externalId: currentInfo?.externalId,
+								identityProvider: currentInfo?.identityProvider,
+							});
+							const userIdentifiers = sanitizeSubjectIdentifiers({
+								externalId: currentState.user?.id,
+								identityProvider: currentState.user?.identityProvider,
+							});
+							const inputIdentifiers = sanitizeSubjectIdentifiers({
+								externalId: input.externalId,
+								identityProvider: input.identityProvider,
+							});
+							const externalId = firstDefined(
+								inputIdentifiers.externalId,
+								firstDefined(
+									storedIdentifiers.externalId,
+									userIdentifiers.externalId
+								)
+							);
+							const identityProvider = firstDefined(
+								inputIdentifiers.identityProvider,
+								firstDefined(
+									storedIdentifiers.identityProvider,
+									userIdentifiers.identityProvider
+								)
+							);
+							const defaultDomain = getDefaultConsentDomain();
+							const domain = firstDefined(input.domain, defaultDomain);
+							const legalDocumentFields = getLegalDocumentFields(input);
+							const givenAt = firstDefined(input.givenAt, Date.now());
+
+							const consentBody: PostSubjectInput = {
+								domain,
+								givenAt,
+								subjectId,
+								type: input.type,
+								uiSource: firstDefined(input.uiSource, 'api'),
+								...legalDocumentFields,
+							};
+							if (input.metadata) {
+								consentBody.metadata = input.metadata;
+							}
+							if (input.preferences) {
+								consentBody.preferences = input.preferences;
+							}
+							if (externalId) {
+								consentBody.externalSubjectId = externalId;
+							}
+							if (identityProvider) {
+								consentBody.identityProvider = identityProvider;
+							}
+
+							const response = await manager.setConsent({
+								body: consentBody,
+							});
+
+							if (!response.ok || !response.data) {
+								const errorMsg = firstDefined(
+									response.error?.message,
+									'Failed to accept policy consent'
+								);
+								get().callbacks.onError?.({
+									error: errorMsg,
+								});
+								const error = new Error(errorMsg) as Error & {
+									code?: string;
+									details?: Record<string, unknown> | null;
+									status?: number;
+								};
+								error.code = response.error?.code;
+								error.details = firstDefined(response.error?.details, null);
+								error.status = response.error?.status;
+								throw error;
+							}
+
+							const consent = {
+								...response.data,
+								givenAt: normalizeGivenAt(response.data.givenAt),
+							};
+
+							const latestState = get();
+							const latestInfo = latestState.consentInfo;
+							const nextConsentInfo: ConsentInfo = {
+								...latestInfo,
+								subjectId,
+								time: consent.givenAt.getTime(),
+							};
+							if (externalId) {
+								nextConsentInfo.externalId = externalId;
+							}
+							if (identityProvider) {
+								nextConsentInfo.identityProvider = identityProvider;
+							}
+
+							const statePatch: Partial<ConsentStoreState> = {
+								consentInfo: nextConsentInfo,
+							};
+							if (externalId) {
+								statePatch.user = {
 									id: externalId,
 									identityProvider,
-								},
+								};
 							}
-						: {}),
-				});
 
-				saveConsentToStorage(
-					{
-						consents: latestState.consents,
-						consentInfo: nextConsentInfo,
-					},
-					undefined,
-					latestState.storageConfig
-				);
+							set(statePatch);
 
-				return consent;
-			});
-		},
+							saveConsentToStorage(
+								{
+									consentInfo: nextConsentInfo,
+									consents: latestState.consents,
+								},
+								undefined,
+								latestState.storageConfig
+							);
 
-		setOverrides: async (
-			overrides: ConsentStoreState['overrides']
-		): Promise<ConsentBannerResponse | undefined> => {
-			set({ overrides: { ...get().overrides, ...overrides } });
+							return consent;
+						}
+					);
+				},
+			},
+			{
+				setOverrides: async (
+					overrides: ConsentStoreState['overrides']
+				): Promise<ConsentBannerResponse | undefined> => {
+					set({ overrides: { ...get().overrides, ...overrides } });
 
-			return await initConsentManager({
-				manager,
-				backendURL: internalOptions.__internal?.backendURL,
-				requestCredentials: internalOptions.__internal?.requestCredentials,
-				initialTranslationConfig: normalizedInitialTranslationConfig,
-				// Without the IAB config, re-initialization skips IAB entirely
-				// and the store keeps a stale GVL (e.g. after a language change).
-				iabConfig: iab as IABConfig | undefined,
-				get,
-				set,
-			});
-		},
-
-		setLanguage: async (
-			language: string
-		): Promise<ConsentBannerResponse | undefined> => {
-			return await get().setOverrides({
-				...(get().overrides ?? {}),
-				language,
-			});
-		},
-
-		...createScriptManager(get, set),
-		...createIframeManager(get, set),
-		...createNetworkBlockerManager(get, set),
-	}));
+					return await initializeConsentManager(
+						assignInOrder(
+							{},
+							{ manager },
+							{ backendURL: internalOptions.__internal?.backendURL },
+							{
+								requestCredentials:
+									internalOptions.__internal?.requestCredentials,
+							},
+							{ initialTranslationConfig: normalizedInitialTranslationConfig },
+							{ iabConfig: iab as IABConfig | undefined },
+							{ get },
+							{ set }
+						)
+					);
+				},
+			},
+			{
+				setLanguage: async (
+					language: string
+				): Promise<ConsentBannerResponse | undefined> =>
+					await get().setOverrides({
+						...(get().overrides ?? {}),
+						language,
+					}),
+			},
+			{ ...createScriptManager(get, set) },
+			{ ...createIframeManager(get, set) },
+			{ ...createNetworkBlockerManager(get, set) }
+		)
+	);
 
 	// Initialize the iframe blocker after the store is created
 	store.getState().initializeIframeBlocker();
@@ -689,7 +766,7 @@ export const createConsentManagerStore = (
 	}
 
 	if (typeof window !== 'undefined') {
-		// biome-ignore lint/suspicious/noExplicitAny: its okay
+		// oxlint-disable-next-line typescript/no-explicit-any -- its okay
 		(window as any)[namespace] = store;
 
 		// When the store is initialized, call the onConsentSet callback with the initial consent state

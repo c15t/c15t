@@ -6,14 +6,18 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/consent-banner';
-import { forwardRef, type Ref, type RefObject, useRef } from 'react';
+import { forwardRef as createForwardRef, useRef } from 'react';
+import type { Ref, RefObject } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { Slot } from '~/v3/components/shared/libs/slot';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
-import { Box, type BoxProps } from '../shared/primitives/box';
+
+import { Box } from '../shared/primitives/box';
+import type { BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 import type { InlineLegalLinksProps } from '../shared/primitives/legal-links';
@@ -43,7 +47,7 @@ const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
  * </ConsentBannerTitle>
  * ```
  */
-const ConsentBannerTitle = forwardRef<
+const ConsentBannerTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
@@ -53,12 +57,11 @@ const ConsentBannerTitle = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
 			data-testid="consent-banner-title"
-			role="heading"
-			aria-level={2}
 			slotKey="banner.title"
 			{...props}
+			asChild
 		>
-			{children ?? consentBanner.title}
+			<h2>{children ?? consentBanner.title}</h2>
 		</Box>
 	);
 });
@@ -80,7 +83,7 @@ ConsentBannerTitle.displayName = CONSENT_BANNER_TITLE_NAME;
  * </ConsentBannerDescription>
  * ```
  */
-const ConsentBannerDescription = forwardRef<
+const ConsentBannerDescription = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
@@ -151,7 +154,7 @@ ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
  * </ConsentBannerFooter>
  * ```
  */
-const ConsentBannerFooter = forwardRef<
+const ConsentBannerFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
 >(({ children, className, style, ...props }, ref) => {
@@ -195,34 +198,35 @@ ConsentBannerFooter.displayName = CONSENT_BANNER_FOOTER_NAME;
  * </ConsentBannerCard>
  * ```
  */
-const ConsentBannerCard = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
-	({ children, ...props }, ref) => {
-		const { trapFocus } = useTheme();
-		const { cookieBanner } = useTranslations();
-		const localRef = useRef<HTMLDivElement>(null);
-		const cardRef = (ref || localRef) as RefObject<HTMLElement>;
+const ConsentBannerCard = createForwardRef<
+	HTMLDivElement,
+	Omit<BoxProps, 'slotKey'>
+>(({ children, ...props }, ref) => {
+	const { trapFocus } = useTheme();
+	const { cookieBanner } = useTranslations();
+	const localRef = useRef<HTMLDivElement>(null);
+	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
-		// Call the useFocusTrap hook with the appropriate parameters
-		const shouldTrapFocus = Boolean(trapFocus);
-		useFocusTrap(shouldTrapFocus, cardRef);
+	// Call the useFocusTrap hook with the appropriate parameters
+	const shouldTrapFocus = Boolean(trapFocus);
+	useFocusTrap(shouldTrapFocus, cardRef);
 
-		return (
-			<Box
-				ref={cardRef as Ref<HTMLDivElement>}
-				tabIndex={-1}
-				baseClassName={styles.card}
-				data-testid="consent-banner-card"
-				slotKey="banner.card"
-				aria-label={props['aria-label'] || cookieBanner.title}
-				aria-modal={shouldTrapFocus ? 'true' : undefined}
-				role={shouldTrapFocus ? 'dialog' : undefined}
-				{...props}
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+	return (
+		<Box
+			ref={cardRef as Ref<HTMLDivElement>}
+			tabIndex={-1}
+			baseClassName={styles.card}
+			data-testid="consent-banner-card"
+			slotKey="banner.card"
+			aria-label={props['aria-label'] || cookieBanner.title}
+			aria-modal={shouldTrapFocus ? 'true' : undefined}
+			role={shouldTrapFocus ? 'dialog' : undefined}
+			{...props}
+		>
+			{children}
+		</Box>
+	);
+});
 
 ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
 
@@ -233,22 +237,20 @@ ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
  * Contains the title and description sections.
  * Implements proper spacing and layout for header content.
  */
-const ConsentBannerHeader = forwardRef<
+const ConsentBannerHeader = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.header}
-			data-testid="consent-banner-header"
-			slotKey="banner.header"
-			{...props}
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.header}
+		data-testid="consent-banner-header"
+		slotKey="banner.header"
+		{...props}
+	>
+		{children}
+	</Box>
+));
 
 ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
 
@@ -259,22 +261,20 @@ ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
  * Groups related buttons or controls in the footer.
  * Implements proper spacing and alignment for button groups.
  */
-const ConsentBannerFooterSubGroup = forwardRef<
+const ConsentBannerFooterSubGroup = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, ...props }, ref) => {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={actionStyles.actionGroup}
-			data-testid="consent-banner-footer-sub-group"
-			slotKey="banner.actionGroup"
-			{...props}
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={actionStyles.actionGroup}
+		data-testid="consent-banner-footer-sub-group"
+		slotKey="banner.actionGroup"
+		{...props}
+	>
+		{children}
+	</Box>
+));
 
 ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
 
@@ -292,7 +292,7 @@ ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
  * </ConsentBannerRejectButton>
  * ```
  */
-const ConsentBannerRejectButton = forwardRef<
+const ConsentBannerRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
@@ -319,7 +319,7 @@ ConsentBannerRejectButton.displayName = CONSENT_BANNER_REJECT_BUTTON_NAME;
  * Opens the detailed consent management interface.
  * Implements proper focus management and keyboard interaction.
  */
-const ConsentBannerCustomizeButton = forwardRef<
+const ConsentBannerCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
@@ -353,7 +353,7 @@ ConsentBannerCustomizeButton.displayName = CONSENT_BANNER_CUSTOMIZE_BUTTON_NAME;
  * </ConsentBannerAcceptButton>
  * ```
  */
-const ConsentBannerAcceptButton = forwardRef<
+const ConsentBannerAcceptButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {

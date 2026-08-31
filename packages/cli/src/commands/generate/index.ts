@@ -18,20 +18,26 @@
 
 import type { CliCommand, CliContext } from '~/context/types';
 import { runGenerateMachine } from '~/machines/generate/runner';
-import { STORAGE_MODES, type StorageMode } from '../../constants';
 
-function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {
+import { STORAGE_MODES } from '../../constants';
+import type { StorageMode } from '../../constants';
+
+const normalizeModeArg = function normalizeModeArg(
+	mode?: StorageMode
+): StorageMode | undefined {
 	if (!mode || mode.startsWith('-')) {
 		return undefined;
 	}
 	const validModes = new Set(Object.values(STORAGE_MODES));
 	return validModes.has(mode) ? mode : undefined;
-}
+};
 
 /**
  * Generate command action using state machine
  */
-async function generateAction(context: CliContext): Promise<void> {
+const generateAction = async function generateAction(
+	context: CliContext
+): Promise<void> {
 	const { logger, commandArgs, flags } = context;
 
 	// Check if mode was passed as argument
@@ -50,10 +56,10 @@ async function generateAction(context: CliContext): Promise<void> {
 	try {
 		const result = await runGenerateMachine({
 			context,
-			modeArg,
-			resume,
 			debug,
+			modeArg,
 			persist: true,
+			resume,
 		});
 
 		if (!result.success) {
@@ -62,7 +68,6 @@ async function generateAction(context: CliContext): Promise<void> {
 			if (result.errors.length > 0) {
 				process.exitCode = 1;
 			}
-			return;
 		}
 	} catch (error) {
 		logger.error(
@@ -70,27 +75,27 @@ async function generateAction(context: CliContext): Promise<void> {
 		);
 		process.exitCode = 1;
 	}
-}
+};
 
 /**
  * Legacy generate function for backwards compatibility
  */
-export async function generate(context: CliContext, mode?: string) {
+export const generate = function generate(context: CliContext, mode?: string) {
 	// Set the mode in commandArgs if provided
 	if (mode) {
 		context.commandArgs = [mode];
 	}
 	return generateAction(context);
-}
+};
 
 /**
  * Generate command definition
  */
 export const generateCommand: CliCommand = {
-	name: 'generate',
-	label: 'Generate',
-	hint: 'Add c15t to your project (Recommended)',
+	action: generateAction,
 	description:
 		'Set up c15t consent management in your project with interactive configuration',
-	action: generateAction,
+	hint: 'Add c15t to your project (Recommended)',
+	label: 'Generate',
+	name: 'generate',
 };

@@ -4,25 +4,27 @@
  * Compares rsdoctor JSON outputs and generates a markdown report.
  */
 
-import {
-	existsSync,
-	readdirSync,
-	readFileSync,
-	statSync,
-	writeFileSync,
-} from 'node:fs';
+import * as nodeFs from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
 
-export function getSizeChangeEmoji(diffPercent: number): string {
-	if (diffPercent > 5) return '🔴';
-	if (diffPercent > 0) return '🟡';
-	if (diffPercent < -5) return '🟢';
+export const getSizeChangeEmoji = function getSizeChangeEmoji(
+	diffPercent: number
+): string {
+	if (diffPercent > 5) {
+		return '🔴';
+	}
+	if (diffPercent > 0) {
+		return '🟡';
+	}
+	if (diffPercent < -5) {
+		return '🟢';
+	}
 	return '⚪';
-}
+};
 
 export interface BundleStats {
 	name: string;
@@ -38,13 +40,13 @@ export interface PackageBundleData {
 	diffs: {
 		added: BundleStats[];
 		removed: BundleStats[];
-		changed: Array<{
+		changed: {
 			name: string;
 			baseSize: number;
 			currentSize: number;
 			diff: number;
 			diffPercent: number;
-		}>;
+		}[];
 	};
 	totalBaseSize: number;
 	totalCurrentSize: number;
@@ -52,112 +54,140 @@ export interface PackageBundleData {
 	totalDiffPercent: number;
 }
 
-export function findRsdoctorDataFiles(dir: string): string[] {
+interface BundleDiffFileSystem {
+	existsSync: typeof nodeFs.existsSync;
+	readdirSync: typeof nodeFs.readdirSync;
+	readFileSync: typeof nodeFs.readFileSync;
+	statSync: typeof nodeFs.statSync;
+	writeFileSync: typeof nodeFs.writeFileSync;
+}
+
+const defaultFileSystem: BundleDiffFileSystem = {
+	existsSync: nodeFs.existsSync,
+	readFileSync: nodeFs.readFileSync,
+	readdirSync: nodeFs.readdirSync,
+	statSync: nodeFs.statSync,
+	writeFileSync: nodeFs.writeFileSync,
+};
+
+let fileSystem: BundleDiffFileSystem = defaultFileSystem;
+
+export const setBundleDiffFileSystemForTests =
+	function setBundleDiffFileSystemForTests(
+		nextFileSystem: BundleDiffFileSystem
+	): () => void {
+		fileSystem = nextFileSystem;
+		return () => {
+			fileSystem = defaultFileSystem;
+		};
+	};
+
+export const findRsdoctorDataFiles = function findRsdoctorDataFiles(
+	dir: string
+): string[] {
 	const files: string[] = [];
-	if (!existsSync(dir)) {
+	if (!fileSystem.existsSync(dir)) {
 		return files;
 	}
 
-	function walk(currentDir: string) {
-		const entries = readdirSync(currentDir);
+	const walk = function walk(currentDir: string) {
+		const entries = fileSystem.readdirSync(currentDir);
 		for (const entry of entries) {
 			const fullPath = join(currentDir, entry);
-			const stat = statSync(fullPath);
+			const stat = fileSystem.statSync(fullPath);
 			if (stat.isDirectory()) {
 				walk(fullPath);
 			} else if (entry === 'rsdoctor-data.json') {
 				files.push(fullPath);
 			}
 		}
-	}
+	};
 
 	walk(dir);
 	return files;
-}
+};
 
-export function extractBundleSizes(jsonPath: string): BundleStats[] {
+type RsdoctorData = ReturnType<typeof JSON.parse>;
+
+const gzipSizeForChunk = function gzipSizeForChunk(
+	assets: RsdoctorData[],
+	assetIds: (string | number)[]
+): number | undefined {
+	for (const assetId of assetIds) {
+		const asset = assets.find(
+			(candidate) => String(candidate.id) === String(assetId)
+		);
+		if (asset?.gzipSize) {
+			return asset.gzipSize;
+		}
+	}
+	return undefined;
+};
+
+const bundlesFromChunks = function bundlesFromChunks(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const assets = data?.data?.chunkGraph?.assets ?? [];
+	const chunks = data?.data?.chunkGraph?.chunks ?? [];
+	return chunks.map((chunk: RsdoctorData) => ({
+		gzipSize: gzipSizeForChunk(assets, chunk.assets ?? []),
+		name: chunk.name || chunk.id || 'unknown',
+		path: jsonPath,
+		size: chunk.size || 0,
+	}));
+};
+
+const bundlesFromAssets = function bundlesFromAssets(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	return (data?.data?.chunkGraph?.assets ?? []).map((asset: RsdoctorData) => ({
+		gzipSize: asset.gzipSize,
+		name: asset.path || asset.id || 'unknown',
+		path: jsonPath,
+		size: asset.size || 0,
+	}));
+};
+
+const bundlesFromModules = function bundlesFromModules(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const chunkMap = new Map<string, BundleStats>();
+	for (const module of data?.data?.modules ?? []) {
+		const size = module.size?.transformedSize || module.size?.sourceSize || 0;
+		for (const chunkName of module.chunks ?? []) {
+			const bundle = chunkMap.get(chunkName) ?? {
+				name: chunkName,
+				path: jsonPath,
+				size: 0,
+			};
+			bundle.size += size;
+			chunkMap.set(chunkName, bundle);
+		}
+	}
+	return Array.from(chunkMap.values());
+};
+
+export const extractBundleSizes = function extractBundleSizes(
+	jsonPath: string
+): BundleStats[] {
 	try {
-		const content = readFileSync(jsonPath, 'utf-8');
-		const data = JSON.parse(content);
-		const bundles: BundleStats[] = [];
-
-		// Extract bundle information from rsdoctor data structure
-		// Chunks are in data.chunkGraph.chunks
-		if (data?.data?.chunkGraph?.chunks) {
-			for (const chunk of data.data.chunkGraph.chunks || []) {
-				const chunkName = chunk.name || chunk.id || 'unknown';
-				const chunkSize = chunk.size || 0;
-
-				// Try to find corresponding asset for gzip size
-				let gzipSize: number | undefined;
-				if (data?.data?.chunkGraph?.assets && chunk.assets) {
-					for (const assetId of chunk.assets) {
-						const asset = data.data.chunkGraph.assets.find(
-							(a: { id: string | number }) => String(a.id) === String(assetId)
-						);
-						if (asset?.gzipSize) {
-							gzipSize = asset.gzipSize;
-							break;
-						}
-					}
-				}
-
-				bundles.push({
-					name: chunkName,
-					path: jsonPath,
-					size: chunkSize,
-					gzipSize,
-				});
-			}
+		const data = JSON.parse(fileSystem.readFileSync(jsonPath, 'utf-8'));
+		const chunks = bundlesFromChunks(data, jsonPath);
+		if (chunks.length > 0) {
+			return chunks;
 		}
-
-		// Fallback: extract from assets if chunks not available
-		if (bundles.length === 0 && data?.data?.chunkGraph?.assets) {
-			for (const asset of data.data.chunkGraph.assets || []) {
-				bundles.push({
-					name: asset.path || asset.id || 'unknown',
-					path: jsonPath,
-					size: asset.size || 0,
-					gzipSize: asset.gzipSize,
-				});
-			}
-		}
-
-		// Last resort: try to get from modules
-		if (bundles.length === 0 && data?.data?.modules) {
-			const chunkMap = new Map<string, BundleStats>();
-
-			for (const module of data.data.modules || []) {
-				const chunkNames = module.chunks || [];
-				const size =
-					module.size?.transformedSize || module.size?.sourceSize || 0;
-
-				for (const chunkName of chunkNames) {
-					if (!chunkMap.has(chunkName)) {
-						chunkMap.set(chunkName, {
-							name: chunkName,
-							path: jsonPath,
-							size: 0,
-						});
-					}
-					const bundle = chunkMap.get(chunkName);
-					if (bundle) {
-						bundle.size += size;
-					}
-				}
-			}
-
-			bundles.push(...Array.from(chunkMap.values()));
-		}
-
-		return bundles;
+		const assets = bundlesFromAssets(data, jsonPath);
+		return assets.length > 0 ? assets : bundlesFromModules(data, jsonPath);
 	} catch (error) {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
 	}
-}
+};
 
-export function compareBundles(
+export const compareBundles = function compareBundles(
 	baseBundles: BundleStats[],
 	currentBundles: BundleStats[]
 ): PackageBundleData['diffs'] {
@@ -166,13 +196,13 @@ export function compareBundles(
 
 	const added: BundleStats[] = [];
 	const removed: BundleStats[] = [];
-	const changed: Array<{
+	const changed: {
 		name: string;
 		baseSize: number;
 		currentSize: number;
 		diff: number;
 		diffPercent: number;
-	}> = [];
+	}[] = [];
 
 	// Find added bundles
 	for (const [name, bundle] of currentMap) {
@@ -196,24 +226,24 @@ export function compareBundles(
 			const diffPercent =
 				baseBundle.size > 0 ? (diff / baseBundle.size) * 100 : null;
 			changed.push({
-				name,
 				baseSize: baseBundle.size,
 				currentSize: currentBundle.size,
 				diff,
 				diffPercent: diffPercent ?? 0,
+				name,
 			});
 		}
 	}
 
-	return { added, removed, changed };
-}
+	return { added, changed, removed };
+};
 
-export function analyzePackage(
+export const analyzePackage = function analyzePackage(
 	packageDir: string,
 	baseDir: string,
 	currentDir: string
 ): PackageBundleData | null {
-	const packageName = packageDir.replace(/.*\//, '');
+	const packageName = packageDir.replace(/.*\//u, '');
 	const baseDistPath = join(baseDir, packageDir, 'dist');
 	const currentDistPath = join(currentDir, packageDir, 'dist');
 
@@ -243,26 +273,30 @@ export function analyzePackage(
 		totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
 
 	return {
-		packageName,
 		baseBundles,
 		currentBundles,
 		diffs,
+		packageName,
 		totalBaseSize,
 		totalCurrentSize,
 		totalDiff,
 		totalDiffPercent,
 	};
-}
+};
 
-export function formatBytes(bytes: number): string {
-	if (bytes === 0) return '0 B';
+export const formatBytes = function formatBytes(bytes: number): string {
+	if (bytes === 0) {
+		return '0 B';
+	}
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
 	const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
 	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
-}
+};
 
-export function generateMarkdownReport(packages: PackageBundleData[]): string {
+export const generateMarkdownReport = function generateMarkdownReport(
+	packages: PackageBundleData[]
+): string {
 	let markdown = '# 📦 Bundle Size Analysis\n\n';
 
 	if (packages.length === 0) {
@@ -318,9 +352,9 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
 			markdown += '|--------|-----------|--------------|--------|----------|\n';
 			for (const change of pkg.diffs.changed) {
-				const sign = change.diff >= 0 ? '+' : '';
-				const emoji = getSizeChangeEmoji(change.diffPercent);
-				markdown += `| ${emoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${sign}${formatBytes(change.diff)} | ${sign}${change.diffPercent.toFixed(2)}% |\n`;
+				const signLocal = change.diff >= 0 ? '+' : '';
+				const emojiLocal = getSizeChangeEmoji(change.diffPercent);
+				markdown += `| ${emojiLocal} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${signLocal}${formatBytes(change.diff)} | ${signLocal}${change.diffPercent.toFixed(2)}% |\n`;
 			}
 			markdown += '\n';
 		}
@@ -329,9 +363,9 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 	}
 
 	return markdown;
-}
+};
 
-function main() {
+const main = function main() {
 	const baseDir = process.env.BASE_DIR || join(ROOT_DIR, '.bundle-base');
 	const currentDir = process.env.CURRENT_DIR || ROOT_DIR;
 	const outputFile =
@@ -341,11 +375,11 @@ function main() {
 	const packagesDir = join(ROOT_DIR, 'packages');
 	const packages: string[] = [];
 
-	if (existsSync(packagesDir)) {
-		const entries = readdirSync(packagesDir);
+	if (fileSystem.existsSync(packagesDir)) {
+		const entries = fileSystem.readdirSync(packagesDir);
 		for (const entry of entries) {
 			const fullPath = join(packagesDir, entry);
-			if (statSync(fullPath).isDirectory()) {
+			if (fileSystem.statSync(fullPath).isDirectory()) {
 				packages.push(join('packages', entry));
 			}
 		}
@@ -362,7 +396,7 @@ function main() {
 
 	// Generate report
 	const report = generateMarkdownReport(results);
-	writeFileSync(outputFile, report, 'utf-8');
+	fileSystem.writeFileSync(outputFile, report, 'utf-8');
 
 	console.log(`Bundle analysis complete. Report saved to ${outputFile}`);
 	console.log(`\n${report}`);
@@ -372,7 +406,7 @@ function main() {
 	if (hasSignificantIncrease) {
 		process.exit(1);
 	}
-}
+};
 
 try {
 	main();

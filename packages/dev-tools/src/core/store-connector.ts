@@ -97,7 +97,7 @@ export interface StoreConnector {
 /**
  * Creates a connector to the c15tStore
  */
-export function createStoreConnector(
+export const createStoreConnector = function createStoreConnector(
 	options: StoreConnectorOptions = {}
 ): StoreConnector {
 	const {
@@ -117,18 +117,18 @@ export function createStoreConnector(
 		(diagnostics: ConnectionDiagnostics) => void
 	>();
 	let diagnostics: ConnectionDiagnostics = {
-		namespace,
-		reconnectAttempts: 0,
-		nextRetryInMs: null,
-		lastError: null,
-		isPolling: false,
 		disconnectNotified: false,
+		isPolling: false,
+		lastError: null,
+		namespace,
+		nextRetryInMs: null,
+		reconnectAttempts: 0,
 	};
 	const INITIAL_RETRY_DELAY_MS = 100;
 	const MAX_RETRY_DELAY_MS = 2000;
 	const DISCONNECT_NOTIFY_ATTEMPTS = 5;
 
-	function updateDiagnostics(
+	const updateDiagnostics = function updateDiagnostics(
 		partial: Partial<ConnectionDiagnostics>,
 		notify = true
 	): void {
@@ -142,40 +142,40 @@ export function createStoreConnector(
 		for (const listener of diagnosticsListeners) {
 			listener(diagnostics);
 		}
-	}
+	};
 
-	function clearReconnectTimer(): void {
+	const clearReconnectTimer = function clearReconnectTimer(): void {
 		if (reconnectTimeout) {
 			clearTimeout(reconnectTimeout);
 			reconnectTimeout = null;
 			updateDiagnostics({ isPolling: false, nextRetryInMs: null });
 		}
-	}
+	};
 
-	function resetReconnectState(): void {
+	const resetReconnectState = function resetReconnectState(): void {
 		reconnectAttempts = 0;
 		hasNotifiedDisconnect = false;
 		updateDiagnostics({
-			reconnectAttempts: 0,
-			nextRetryInMs: null,
-			lastError: null,
 			disconnectNotified: false,
+			lastError: null,
+			nextRetryInMs: null,
+			reconnectAttempts: 0,
 		});
-	}
+	};
 
-	function notifyDisconnectedOnce(): void {
+	const notifyDisconnectedOnce = function notifyDisconnectedOnce(): void {
 		if (hasNotifiedDisconnect) {
 			return;
 		}
 		hasNotifiedDisconnect = true;
 		updateDiagnostics({ disconnectNotified: true });
 		onDisconnect?.();
-	}
+	};
 
 	/**
 	 * Try to connect to the store
 	 */
-	function tryConnect(): boolean {
+	const tryConnect = function tryConnect(): boolean {
 		if (typeof window === 'undefined') {
 			return false;
 		}
@@ -221,12 +221,14 @@ export function createStoreConnector(
 			lastError: `Store "${namespace}" not found on window`,
 		});
 		return false;
-	}
+	};
 
 	/**
 	 * Start polling for store availability
 	 */
-	function scheduleReconnect(immediate = false): void {
+	const scheduleReconnect = function scheduleReconnect(
+		immediate = false
+	): void {
 		if (store || reconnectTimeout) {
 			return;
 		}
@@ -245,10 +247,10 @@ export function createStoreConnector(
 
 		reconnectTimeout = setTimeout(() => {
 			reconnectTimeout = null;
-			reconnectAttempts++;
+			reconnectAttempts += 1;
 			updateDiagnostics({
-				reconnectAttempts,
 				nextRetryInMs: null,
+				reconnectAttempts,
 			});
 			if (tryConnect()) {
 				return;
@@ -259,24 +261,47 @@ export function createStoreConnector(
 			}
 			scheduleReconnect();
 		}, delay);
-	}
+	};
 
-	function startPolling(): void {
+	const startPolling = function startPolling(): void {
 		if (tryConnect()) {
 			return;
 		}
 		scheduleReconnect(true);
-	}
+	};
 
 	// Start connecting
 	startPolling();
 
 	return {
+		destroy: () => {
+			clearReconnectTimer();
+
+			if (unsubscribe) {
+				unsubscribe();
+				unsubscribe = null;
+			}
+
+			store = null;
+			listeners.clear();
+			diagnosticsListeners.clear();
+		},
+
+		getDiagnostics: () => diagnostics,
+
 		getState: () => store?.getState() ?? null,
 
 		getStore: () => store,
 
 		isConnected: () => store !== null,
+
+		retryConnection: () => {
+			if (store) {
+				return;
+			}
+			resetReconnectState();
+			scheduleReconnect(true);
+		},
 
 		subscribe: (listener) => {
 			listeners.add(listener);
@@ -291,8 +316,6 @@ export function createStoreConnector(
 			};
 		},
 
-		getDiagnostics: () => diagnostics,
-
 		subscribeDiagnostics: (listener) => {
 			diagnosticsListeners.add(listener);
 			listener(diagnostics);
@@ -300,34 +323,13 @@ export function createStoreConnector(
 				diagnosticsListeners.delete(listener);
 			};
 		},
-
-		retryConnection: () => {
-			if (store) {
-				return;
-			}
-			resetReconnectState();
-			scheduleReconnect(true);
-		},
-
-		destroy: () => {
-			clearReconnectTimer();
-
-			if (unsubscribe) {
-				unsubscribe();
-				unsubscribe = null;
-			}
-
-			store = null;
-			listeners.clear();
-			diagnosticsListeners.clear();
-		},
 	};
-}
+};
 
 /**
  * Get the store directly from the window object (one-time access)
  */
-export function getC15tStore(
+export const getC15tStore = function getC15tStore(
 	namespace = 'c15tStore'
 ): StoreApi<ConsentStoreState> | null {
 	if (typeof window === 'undefined') {
@@ -343,11 +345,13 @@ export function getC15tStore(
 	}
 
 	return null;
-}
+};
 
 /**
  * Check if the c15t store is available
  */
-export function isC15tStoreAvailable(namespace = 'c15tStore'): boolean {
+export const isC15tStoreAvailable = function isC15tStoreAvailable(
+	namespace = 'c15tStore'
+): boolean {
 	return getC15tStore(namespace) !== null;
-}
+};

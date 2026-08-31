@@ -129,7 +129,7 @@ export interface BenchmarkComparisonResult {
 	generatedAt: string;
 	baseSha?: string;
 	headSha?: string;
-	results: Array<{
+	results: {
 		key: string;
 		baseKey?: string;
 		suite: BenchmarkSuite;
@@ -139,5 +139,5 @@ export interface BenchmarkComparisonResult {
 		metrics: BenchmarkComparisonMetric[];
 		budgets: MetricBudgetResult[];
 		notes: string[];
-	}>;
+	}[];
 }

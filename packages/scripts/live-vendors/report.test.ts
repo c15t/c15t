@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	buildMonitorIssueBody,
 	buildMonitorIssueTitle,
@@ -10,30 +11,34 @@ import {
 } from './report';
 import type { LiveVendorReport, LiveVendorResult } from './types';
 
-function makeResult(overrides: Partial<LiveVendorResult>): LiveVendorResult {
+const makeResult = function makeResult(
+	overrides: Partial<LiveVendorResult>
+): LiveVendorResult {
 	return {
-		vendor: 'microsoft-clarity',
-		packageSubpath: 'microsoft-clarity',
-		label: 'Microsoft Clarity',
-		tier: 'full',
-		ok: true,
 		attempts: 1,
-		phases: {},
 		blockedRequests: 0,
 		consoleErrors: [],
+		label: 'Microsoft Clarity',
+		ok: true,
+		packageSubpath: 'microsoft-clarity',
 		pageErrors: [],
+		phases: {},
+		tier: 'full',
+		vendor: 'microsoft-clarity',
 		...overrides,
 	};
-}
+};
 
-function makeReport(results: LiveVendorResult[]): LiveVendorReport {
+const makeReport = function makeReport(
+	results: LiveVendorResult[]
+): LiveVendorReport {
 	return {
-		generatedAt: '2026-07-06T06:30:00.000Z',
 		commitSha: 'abc1234',
-		runUrl: 'https://github.com/c15t/c15t/actions/runs/1',
+		generatedAt: '2026-07-06T06:30:00.000Z',
 		results,
+		runUrl: 'https://github.com/c15t/c15t/actions/runs/1',
 	};
-}
+};
 
 describe('monitor issue titles', () => {
 	it('round-trips vendor ids through the issue title', () => {
@@ -58,10 +63,10 @@ describe('failedPhases', () => {
 		const result = makeResult({
 			ok: false,
 			phases: {
-				runtime: { ok: false, detail: 'stub never replaced' },
+				bootstrap: { detail: 'queue missing', ok: false },
 				consent: { ok: true },
-				bootstrap: { ok: false, detail: 'queue missing' },
 				load: { ok: true },
+				runtime: { detail: 'stub never replaced', ok: false },
 			},
 		});
 
@@ -90,17 +95,17 @@ describe('failure signatures', () => {
 describe('buildMonitorIssueBody', () => {
 	it('includes vendor, phases, loader, run metadata, and repro command', () => {
 		const result = makeResult({
+			consoleErrors: ['boom'],
+			loader: {
+				contentType: 'text/html',
+				status: 500,
+				url: 'https://www.clarity.ms/tag/c15tfake00',
+			},
 			ok: false,
 			phases: {
-				bootstrap: { ok: true, detail: 'queue seeded' },
-				load: { ok: false, detail: 'loader responded with HTTP 500' },
+				bootstrap: { detail: 'queue seeded', ok: true },
+				load: { detail: 'loader responded with HTTP 500', ok: false },
 			},
-			loader: {
-				url: 'https://www.clarity.ms/tag/c15tfake00',
-				status: 500,
-				contentType: 'text/html',
-			},
-			consoleErrors: ['boom'],
 		});
 		const body = buildMonitorIssueBody(result, makeReport([result]));
 
@@ -123,18 +128,18 @@ describe('buildMonitorIssueBody', () => {
 			(_, index) => `error ${index} with \`backticks\`\nand newlines`
 		);
 		const result = makeResult({
+			consoleErrors: errors,
+			loader: {
+				status: 500,
+				url: 'https://evil.example/`payload`',
+			},
 			ok: false,
 			phases: {
 				load: {
-					ok: false,
 					detail: 'loader said `<img src=x onerror=alert(1)>`',
+					ok: false,
 				},
 			},
-			loader: {
-				url: 'https://evil.example/`payload`',
-				status: 500,
-			},
-			consoleErrors: errors,
 		});
 		const body = buildMonitorIssueBody(result, makeReport([result]));
 
@@ -147,11 +152,11 @@ describe('buildMonitorIssueBody', () => {
 
 describe('planMonitorIssueActions', () => {
 	const failing = makeResult({
-		vendor: 'posthog',
-		packageSubpath: 'posthog',
 		label: 'PostHog',
 		ok: false,
-		phases: { load: { ok: false, detail: 'timeout' } },
+		packageSubpath: 'posthog',
+		phases: { load: { detail: 'timeout', ok: false } },
+		vendor: 'posthog',
 	});
 	const passing = makeResult({ vendor: 'microsoft-clarity' });
 
@@ -168,9 +173,9 @@ describe('planMonitorIssueActions', () => {
 		const existingBody = buildMonitorIssueBody(failing, makeReport([failing]));
 		const plan = planMonitorIssueActions(makeReport([failing]), [
 			{
+				body: existingBody,
 				number: 42,
 				title: buildMonitorIssueTitle('posthog'),
-				body: existingBody,
 			},
 		]);
 
@@ -181,9 +186,9 @@ describe('planMonitorIssueActions', () => {
 
 	it('updates the issue when the failure signature changes', () => {
 		const previous = makeResult({
-			vendor: 'posthog',
 			ok: false,
 			phases: { runtime: { ok: false } },
+			vendor: 'posthog',
 		});
 		const existingBody = buildMonitorIssueBody(
 			previous,
@@ -191,9 +196,9 @@ describe('planMonitorIssueActions', () => {
 		);
 		const plan = planMonitorIssueActions(makeReport([failing]), [
 			{
+				body: existingBody,
 				number: 42,
 				title: buildMonitorIssueTitle('posthog'),
-				body: existingBody,
 			},
 		]);
 
@@ -224,10 +229,10 @@ describe('planMonitorIssueActions', () => {
 
 	it('ignores skipped vendors and unrelated issues', () => {
 		const skipped = makeResult({
-			vendor: 'cloudflare-zaraz',
 			ok: true,
-			skipped: true,
 			skipReason: 'edge-injected',
+			skipped: true,
+			vendor: 'cloudflare-zaraz',
 		});
 		const plan = planMonitorIssueActions(makeReport([skipped]), [
 			{ number: 1, title: 'Unrelated issue' },

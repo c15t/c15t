@@ -4,6 +4,7 @@
 
 import * as p from '@clack/prompts';
 import open from 'open';
+
 import {
 	clearConfig,
 	formatUserCode,
@@ -23,7 +24,9 @@ import { createTaskSpinner } from '../../utils/spinner';
 /**
  * Login command
  */
-async function loginAction(context: CliContext): Promise<void> {
+const loginAction = async function loginAction(
+	context: CliContext
+): Promise<void> {
 	const { logger, telemetry } = context;
 	const baseUrl = getControlPlaneBaseUrl();
 
@@ -36,8 +39,8 @@ async function loginAction(context: CliContext): Promise<void> {
 		}
 
 		const shouldRelogin = await p.confirm({
-			message: 'Would you like to log in with a different account?',
 			initialValue: false,
+			message: 'Would you like to log in with a different account?',
 		});
 
 		if (p.isCancel(shouldRelogin) || !shouldRelogin) {
@@ -77,8 +80,8 @@ async function loginAction(context: CliContext): Promise<void> {
 
 		// Try to open the browser
 		const shouldOpen = await p.confirm({
-			message: 'Open the verification page in your browser?',
 			initialValue: true,
+			message: 'Open the verification page in your browser?',
 		});
 
 		if (shouldOpen && !p.isCancel(shouldOpen)) {
@@ -102,8 +105,8 @@ async function loginAction(context: CliContext): Promise<void> {
 
 		// Step 3: Store tokens
 		await storeTokens(token.access_token, {
-			refreshToken: token.refresh_token,
 			expiresIn: token.expires_in,
+			refreshToken: token.refresh_token,
 		});
 
 		telemetry.trackEvent(TelemetryEventName.AUTH_LOGIN_SUCCEEDED);
@@ -127,12 +130,14 @@ async function loginAction(context: CliContext): Promise<void> {
 
 		throw error;
 	}
-}
+};
 
 /**
  * Logout command
  */
-async function logoutAction(context: CliContext): Promise<void> {
+const logoutAction = async function logoutAction(
+	context: CliContext
+): Promise<void> {
 	const { logger, telemetry } = context;
 
 	const isAuthenticated = await isLoggedIn();
@@ -154,31 +159,33 @@ async function logoutAction(context: CliContext): Promise<void> {
 	telemetry.trackEvent(TelemetryEventName.AUTH_LOGOUT);
 
 	logger.success('Successfully logged out');
-}
+};
 
 /**
  * Auth status command
  */
-async function statusAction(context: CliContext): Promise<void> {
+const statusAction = async function statusAction(
+	context: CliContext
+): Promise<void> {
 	const { logger } = context;
 
 	const authState = await getAuthState();
 
 	if (!authState.isLoggedIn) {
-		logger.message('Status: ' + color.yellow('Not logged in'));
+		logger.message(`Status: ${color.yellow('Not logged in')}`);
 		logger.message('');
 		logger.message(`Run ${color.cyan('c15t login')} to authenticate`);
 		return;
 	}
 
 	if (authState.isExpired) {
-		logger.message('Status: ' + color.yellow('Session expired'));
+		logger.message(`Status: ${color.yellow('Session expired')}`);
 		logger.message('');
 		logger.message(`Run ${color.cyan('c15t login')} to refresh your session`);
 		return;
 	}
 
-	logger.message('Status: ' + color.green('Logged in'));
+	logger.message(`Status: ${color.green('Logged in')}`);
 
 	if (authState.config?.email) {
 		logger.message(`Account: ${authState.config.email}`);
@@ -192,41 +199,41 @@ async function statusAction(context: CliContext): Promise<void> {
 	if (authState.config?.selectedInstanceId) {
 		logger.message(`Selected project: ${authState.config.selectedInstanceId}`);
 	}
-}
+};
 
 /**
  * Login command definition
  */
 export const loginCommand: CliCommand = {
-	name: 'login',
-	label: 'Login',
-	hint: 'Authenticate with inth.com',
+	action: loginAction,
 	description:
 		'Log in to your inth.com account using device flow authentication',
-	action: loginAction,
+	hint: 'Authenticate with inth.com',
+	label: 'Login',
+	name: 'login',
 };
 
 /**
  * Logout command definition
  */
 export const logoutCommand: CliCommand = {
-	name: 'logout',
-	label: 'Logout',
-	hint: 'Sign out of inth.com',
-	description: 'Log out of your inth.com account',
 	action: logoutAction,
+	description: 'Log out of your inth.com account',
+	hint: 'Sign out of inth.com',
+	label: 'Logout',
+	name: 'logout',
 };
 
 /**
  * Auth status command definition (hidden, used as subcommand)
  */
 export const authStatusCommand: CliCommand = {
-	name: 'status',
-	label: 'Status',
-	hint: 'Check authentication status',
-	description: 'Check your current authentication status',
 	action: statusAction,
+	description: 'Check your current authentication status',
 	hidden: true,
+	hint: 'Check authentication status',
+	label: 'Status',
+	name: 'status',
 };
 
 /**

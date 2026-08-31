@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
+
 import { resolveWorkspaceProtocol } from './workspace-protocol';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -43,9 +45,12 @@ describe('c15t umbrella dependencies', () => {
 		'@c15t/nextjs',
 		'@c15t/vue',
 		'@c15t/ui',
-	])('depends on %s via workspace:* so publish pins the exact version', (dependency) => {
-		expect(manifest.dependencies?.[dependency]).toBe('workspace:*');
-	});
+	])(
+		'depends on %s via workspace:* so publish pins the exact version',
+		(dependency) => {
+			expect(manifest.dependencies?.[dependency]).toBe('workspace:*');
+		}
+	);
 
 	it('declares no peer dependencies of its own', () => {
 		expect(manifest.peerDependencies).toBeUndefined();

@@ -1,28 +1,29 @@
 <script lang="ts">
-import { getDialogState } from '@c15t/ui/primitives';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getDialogRootContext } from './context';
+	import { getDialogState } from '@c15t/ui/primitives';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const dialog = getDialogRootContext();
+	import { getDialogRootContext } from './context';
 
-const open = $derived(dialog.open);
-const shouldRender = $derived(dialog.shouldRender);
-const dataState = $derived(getDialogState(open));
+	const dialog = getDialogRootContext();
 
-let {
-	class: className,
-	onclick,
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	class?: string;
-} = $props();
+	const open = $derived(dialog.open);
+	const shouldRender = $derived(dialog.shouldRender);
+	const dataState = $derived(getDialogState(open));
 
-function handleClick(
-	event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
-) {
-	dialog.requestClose('backdrop');
-	onclick?.(event);
-}
+	let {
+		class: className,
+		onclick,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		class?: string;
+	} = $props();
+
+	const handleClick = function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
+	) {
+		dialog.requestClose('backdrop');
+		onclick?.(event);
+	};
 </script>
 
 {#if shouldRender}

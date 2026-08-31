@@ -33,7 +33,9 @@
 import type { Layer } from 'effect';
 import { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
-import { type DatabaseOption, toLayer } from './db/connect';
+
+import { toLayer } from './db/connect';
+import type { DatabaseOption } from './db/connect';
 import { createApp } from './http/app';
 import type { AppOptions } from './http/context';
 
@@ -98,7 +100,7 @@ const stripBasePath = (request: Request, basePath?: string): Request => {
 		return request;
 	}
 
-	const prefix = basePath.replace(/\/$/, '');
+	const prefix = basePath.replace(/\/$/u, '');
 	const url = new URL(request.url);
 	// On a segment boundary, not a string prefix: a mount at `/api/c15t` must
 	// not also swallow `/api/c15t2/status` and hand the router `2/status`.
@@ -122,8 +124,10 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	);
 	const hono = createApp(runtime, app);
 
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	return {
 		// `fetch` may answer synchronously; the contract is a promise.
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		handler: async (request) =>
 			hono.fetch(stripBasePath(request, app.basePath)),
 		dispose: () => runtime.dispose(),

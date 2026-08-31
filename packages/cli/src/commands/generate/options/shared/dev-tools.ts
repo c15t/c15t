@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 interface GetDevToolsOptionOptions {
@@ -7,7 +8,7 @@ interface GetDevToolsOptionOptions {
 	onCancel?: () => void;
 }
 
-export async function getDevToolsOption({
+export const getDevToolsOption = async function getDevToolsOption({
 	context,
 	handleCancel,
 	onCancel,
@@ -22,22 +23,24 @@ export async function getDevToolsOption({
 	context.logger.info('Learn more: https://c15t.com/docs/dev-tools/overview');
 
 	const enableDevTools = await p.select({
+		initialValue: true,
 		message: 'Install and enable c15t DevTools?',
 		options: [
 			{
-				value: true,
-				label: 'Yes (Recommended)',
 				hint: isReactProject
 					? 'Adds <DevTools /> to generated consent components'
 					: 'Adds createDevTools() setup to c15t.config.ts',
+
+				label: 'Yes (Recommended)',
+				value: true,
 			},
 			{
-				value: false,
-				label: 'No',
 				hint: 'Skip DevTools installation and setup',
+
+				label: 'No',
+				value: false,
 			},
 		],
-		initialValue: true,
 	});
 
 	const cancelled =
@@ -55,4 +58,4 @@ export async function getDevToolsOption({
 	}
 
 	return enableDevTools as boolean;
-}
+};

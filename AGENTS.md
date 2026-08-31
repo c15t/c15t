@@ -28,7 +28,7 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 
 ## Toolchain
 
-Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM only into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. Lint/format is **Biome**. Versioning/publishing is **Changesets**. Lefthook installs a pre-commit hook (Biome format on staged files) on `bun install`.
+Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM only into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. **Oxlint** handles linting and **Oxfmt** handles formatting through Ultracite presets. Versioning/publishing is **Changesets**. Lefthook installs a pre-commit hook (Oxfmt on staged files) on `bun install`.
 
 ## Commands
 
@@ -48,8 +48,8 @@ bun run --cwd packages/react test src/foo.test.tsx   # one file — runs the pac
                                                      # — the latter silently lists scripts instead of running
 
 bun run check-types                                  # tsc --noEmit per package (depends on build)
-bun run lint                                         # biome lint via turbo
-bun run fmt                                          # biome format via turbo
+bun run lint                                         # Oxlint via turbo + repo-wide backstop
+bun run fmt                                          # repo-wide Oxfmt
 bun run lint:docs && bun run fmt:docs                # remark for docs/**/*.mdx
 
 bun run dev                                          # examples/demo + watch-builds of its deps
@@ -70,16 +70,16 @@ Keep `cacheDir` unset — Turborepo detects a linked Git worktree and automatica
 
 ## Code style
 
-Enforced by `biome.jsonc` (root):
+Enforced by `oxlint.config.ts` and `oxfmt.config.ts` (root):
 
 - Tabs, line width 80, single quotes, semicolons, LF. JSX uses double quotes.
-- File names must be ASCII **kebab-case** (`useFilenamingConvention` is an error).
-- Errors include `noParameterAssign`, `useAsConstAssertion`, `noUselessElse`, `useSelfClosingElements`, `noInferrableTypes`, `useEnumInitializers`.
-- Class strings are sorted (`useSortedClasses`) in `className`, `clsx`, `cva`, `tw`, `cn`, `twMerge`, `twJoin`.
+- Oxlint extends Ultracite's core, React, and Vue presets. Rules with existing violations are listed as deferred in `oxlint.config.ts`; all other preset rules remain errors.
+- Oxfmt deliberately leaves import, package JSON, and Tailwind sorting disabled to avoid unrelated reorder-only diffs.
 
 Conventions not enforced by tooling (hold new code to these; older code has exceptions):
 
 - Avoid TypeScript `enum`s — use `as const` objects.
+- File names use ASCII **kebab-case**.
 - TypeScript is strict (`strict`, `noUncheckedIndexedAccess` via `@c15t/typescript-config`). Avoid `any`; prefer `unknown`.
 - Public APIs carry TSDoc (`@param`, `@returns`, `@throws`, `@example`, `@internal` where relevant); descriptive generic names (`ResponseType`, not `T`).
 - React UI uses compound components (`Component.Root`/`Component.Child`), context with throwing accessor hooks, and `asChild` composition.
@@ -117,7 +117,7 @@ When adding or changing user-facing package behavior:
 
 ## CI on pull requests
 
-- **CI** (`ci.yml`): `turbo run check-types`, Biome via reviewdog, root script tests, `turbo run build --filter="./packages/*"`, and `turbo run test --filter="./packages/*"`; a separate coverage workflow posts per-package coverage comments afterward. Build and package tests are `--affected` on pull requests and run in full on pushes to `canary`, `main`, and `2.0.0`; `check-types` and root script tests always run in full as cross-package backstops. Successful push CI then calls the release workflow, so publishing cannot start before every CI job passes. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
+- **CI** (`ci.yml`): `turbo run check-types`, repo-wide Oxlint, Oxfmt checks, root script tests, `turbo run build --filter="./packages/*"`, and `turbo run test --filter="./packages/*"`; a separate coverage workflow posts per-package coverage comments afterward. Build and package tests are `--affected` on pull requests and run in full on pushes to `canary`, `main`, and `2.0.0`; `check-types` and root script tests always run in full as cross-package backstops. Successful push CI then calls the release workflow, so publishing cannot start before every CI job passes. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
 - **autofix.ci**: runs `bun fmt` + `bun fmt:docs` and pushes fixes to your branch — pull before adding commits after CI runs.
 - **Bundle Analysis** (every PR) and **Benchmark Regression** (path-filtered: core/react/nextjs/translations/ui/benchmarks/lockfile/turbo.json) post bundle-size and perf comparisons. For perf work, include before/after benchmark numbers (`bun run bench`).
 - **PR Preview**: publishes preview packages to pkg.pr.new for package-path changes, but only for org members or PRs labeled `deploy:preview`.

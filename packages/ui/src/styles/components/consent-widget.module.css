@@ -63,8 +63,8 @@
 		hsl(228.07, 69.8%, 48.04%);
 
 	--consent-widget-font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
+		system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+		'Apple Color Emoji', 'Segoe UI Emoji';
 	--consent-widget-line-height: 1.15;
 }
 
@@ -99,11 +99,11 @@
 	}
 
 	/* Animation states */
-	.card[data-state="open"] {
+	.card[data-state='open'] {
 		animation: var(--consent-widget-entry-animation);
 	}
 
-	.card[data-state="closed"] {
+	.card[data-state='closed'] {
 		animation: var(--consent-widget-exit-animation);
 	}
 
@@ -363,7 +363,7 @@
 		cursor: pointer;
 	}
 
-	.accordionTriggerInner [data-slot="preference-item-leading"] {
+	.accordionTriggerInner [data-slot='preference-item-leading'] {
 		margin-inline-start: 0;
 		margin-inline-end: 0;
 	}
@@ -384,27 +384,26 @@
 		line-height: 1.5;
 	}
 
-	.accordionContent > [data-slot="preference-item-content-viewport"] {
+	.accordionContent > [data-slot='preference-item-content-viewport'] {
 		padding-top: 0;
 		padding-inline-end: var(--consent-widget-accordion-padding);
 		padding-inline-start: calc(
-			var(--consent-widget-accordion-icon-size) +
-			var(--consent-widget-gap)
+			var(--consent-widget-accordion-icon-size) + var(--consent-widget-gap)
 		);
 	}
 
-	.accordionContent[data-state="open"]
-		> [data-slot="preference-item-content-viewport"] {
+	.accordionContent[data-state='open']
+		> [data-slot='preference-item-content-viewport'] {
 		padding-top: 0;
 		padding-bottom: var(--consent-widget-accordion-padding);
 	}
 
-	.accordionContent[data-state="closed"]
-		> [data-slot="preference-item-content-viewport"] {
+	.accordionContent[data-state='closed']
+		> [data-slot='preference-item-content-viewport'] {
 		padding-bottom: 0;
 	}
 
-	.accordionContent > [data-slot="preference-item-content-viewport"] > div {
+	.accordionContent > [data-slot='preference-item-content-viewport'] > div {
 		padding-top: 0;
 	}
 
@@ -424,7 +423,7 @@
 		color: var(--consent-widget-accordion-arrow-color-dark);
 	}
 
-	.accordionItem[data-state="open"] .accordionArrow {
+	.accordionItem[data-state='open'] .accordionArrow {
 		transform: rotate(180deg);
 	}
 
@@ -439,8 +438,8 @@
 
 	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
-		.card[data-state="open"],
-		.card[data-state="closed"] {
+		.card[data-state='open'],
+		.card[data-state='closed'] {
 			animation: none;
 		}
 

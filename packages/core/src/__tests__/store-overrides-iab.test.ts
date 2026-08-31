@@ -1,32 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { IABConfig } from '../libs/iab-tcf/types';
-import { initConsentManager } from '../libs/init-consent-manager';
 import { createConsentManagerStore } from '../store';
-
-vi.mock('../libs/init-consent-manager', () => ({
-	initConsentManager: vi.fn().mockResolvedValue(undefined),
-}));
 
 // Mock DOM APIs needed by the store
 Object.defineProperty(global, 'document', {
 	value: {
-		querySelectorAll: vi.fn().mockReturnValue([]),
-		cookie: '',
-		readyState: 'complete',
+		addEventListener: vi.fn(),
 		body: {
 			appendChild: vi.fn(),
 			removeChild: vi.fn(),
 		},
-		addEventListener: vi.fn(),
+		cookie: '',
+		querySelectorAll: vi.fn().mockReturnValue([]),
+		readyState: 'complete',
 	},
 	writable: true,
 });
 
 if (typeof global.MutationObserver === 'undefined') {
 	global.MutationObserver = class MutationObserver {
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		observe(_target: Node, _options?: MutationObserverInit) {}
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		disconnect() {}
+		// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 		takeRecords(): MutationRecord[] {
 			return [];
 		}
@@ -34,16 +33,18 @@ if (typeof global.MutationObserver === 'undefined') {
 }
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
+	$fetch: vi.fn(),
+	identifyUser: vi.fn(),
 	init: vi.fn(),
 	setConsent: vi.fn(),
 	verifyConsent: vi.fn(),
-	identifyUser: vi.fn(),
-	$fetch: vi.fn(),
 });
 
 describe('Store setOverrides IAB re-initialization', () => {
+	const initConsentManager = vi.fn().mockResolvedValue(undefined);
+
 	beforeEach(() => {
-		vi.mocked(initConsentManager).mockClear();
+		initConsentManager.mockClear();
 	});
 
 	it('forwards the IAB config so re-init refreshes the GVL', async () => {
@@ -51,18 +52,21 @@ describe('Store setOverrides IAB re-initialization', () => {
 		// iabConfig, so initializeIABMode was skipped on re-init and the store
 		// kept a stale GVL (e.g. English purposes after switching to French).
 		const iabConfig = {
-			enabled: true,
-			cmpId: 28,
 			_module: {
 				createIABManager: vi.fn(),
-				initializeIABMode: vi.fn(),
 				fetchGVL: vi.fn(),
+				initializeIABMode: vi.fn(),
 			},
+			cmpId: 28,
+			enabled: true,
 		} as unknown as IABConfig;
 
 		const store = createConsentManagerStore(createMockConsentManager(), {
+			__internal: {
+				initConsentManager,
+			},
 			iab: iabConfig,
-		});
+		} as Parameters<typeof createConsentManagerStore>[1]);
 
 		await store.getState().setOverrides({ language: 'fr' });
 

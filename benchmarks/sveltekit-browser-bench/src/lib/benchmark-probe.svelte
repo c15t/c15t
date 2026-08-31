@@ -35,20 +35,20 @@
 
 	const kernel = getConsentKernel();
 
-	function publish(snapshot: ConsentSnapshot) {
+	const publish = function publish(snapshot: ConsentSnapshot) {
 		window.__c15tSvelteBench = {
-			scenario,
 			activeUI: snapshot.activeUI ?? 'none',
-			overrides: { ...snapshot.overrides },
+			hasConsented: snapshot.hasConsented,
 			location: snapshot.location
 				? {
 						countryCode: snapshot.location.countryCode,
 						regionCode: snapshot.location.regionCode,
 					}
 				: null,
-			hasConsented: snapshot.hasConsented,
+			overrides: { ...snapshot.overrides },
+			scenario,
 		};
-	}
+	};
 
 	onMount(() => {
 		publish(kernel.getSnapshot());

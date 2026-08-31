@@ -1,8 +1,32 @@
 import type { ReactNode } from 'react';
 import { expect } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentManagerProvider } from '~/v3/providers/consent-manager-provider';
-import type { ThemeValue } from '~/v3/types/theme';
+import type { Theme, ThemeValue } from '~/v3/types/theme';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 interface ComponentStyles {
 	component: ReactNode;
@@ -11,7 +35,7 @@ interface ComponentStyles {
 		styles: string | ThemeValue;
 	}[];
 	noStyle?: boolean;
-	theme?: any;
+	theme?: Theme;
 }
 
 /**
@@ -32,7 +56,7 @@ interface ComponentStyles {
  * });
  * ```
  */
-export async function testComponentStyles({
+export const testComponentStyles = async function testComponentStyles({
 	component,
 	testCases,
 	noStyle = false,
@@ -52,7 +76,7 @@ export async function testComponentStyles({
 	);
 
 	// Wait for rendering to complete
-	await new Promise((resolve) => setTimeout(resolve, 50));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 50));
 
 	for (const { testId, styles } of testCases) {
 		// Elements can be rendered either directly in the container or in portals (in document.body)
@@ -96,6 +120,6 @@ export async function testComponentStyles({
 		// We don't check actual computed styles as they can vary by browser
 		// For reliable tests, just checking the element renders correctly is sufficient
 	}
-}
+};
 
 export default testComponentStyles;

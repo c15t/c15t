@@ -44,10 +44,7 @@ export {
 } from '@c15t/translations';
 export * from './client';
 // Export basic types directly for convenience
-export type {
-	FetchOptions,
-	ResponseContext,
-} from './client/types';
+export type { FetchOptions, ResponseContext } from './client/types';
 export { API_ENDPOINTS } from './client/types';
 // Export cookie storage utilities
 export type { CookieOptions, StorageConfig } from './libs/cookie';

@@ -13,11 +13,13 @@ import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
 import { openAPIRouteHandler } from 'hono-openapi';
+
 import {
 	gradeLevel,
 	middleware as observability,
 } from '../observability/evlog';
-import { type AppOptions, makeRun, type RouteContext } from './context';
+import { makeRun } from './context';
+import type { AppOptions, RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
 import { register as registerInit } from './routes/init';
 import { register as registerLegalDocument } from './routes/legal-document';
@@ -27,7 +29,7 @@ import { register as registerSubject } from './routes/subject';
 
 export type { AppOptions } from './context';
 
-export function createApp(
+export const createApp = function createApp(
 	runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
 	options: AppOptions = {}
 ) {
@@ -43,7 +45,7 @@ export function createApp(
 		app.use('*', gradeLevel);
 	}
 
-	app.use('*', async (c, next) => {
+	app.use('*', async (c, runNext) => {
 		const origin = c.req.header('Origin');
 		const allowed =
 			origin !== undefined &&
@@ -73,7 +75,7 @@ export function createApp(
 			return c.body(null, 204);
 		}
 
-		await next();
+		await runNext();
 	});
 
 	/**
@@ -105,22 +107,22 @@ export function createApp(
 			options.openapi?.specPath ?? '/spec.json',
 			openAPIRouteHandler(app, {
 				documentation: {
-					openapi: '3.1.0',
-					info: {
-						title: options.openapi?.title ?? 'c15t API',
-						version: options.version ?? '0.0.0',
-						description: 'API for consent management',
-					},
-					servers: [{ url: options.openapi?.basePath ?? '/' }],
 					components: {
 						securitySchemes: {
-							bearerAuth: { type: 'http', scheme: 'bearer' },
+							bearerAuth: { scheme: 'bearer', type: 'http' },
 						},
 					},
+					info: {
+						description: 'API for consent management',
+						title: options.openapi?.title ?? 'c15t API',
+						version: options.version ?? '0.0.0',
+					},
+					openapi: '3.1.0',
+					servers: [{ url: options.openapi?.basePath ?? '/' }],
 				},
 			})
 		);
 	}
 
 	return app;
-}
+};

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { generateSubjectId, isValidSubjectId } from '../generate-subject-id';
 
 describe('generateSubjectId', () => {
@@ -9,7 +10,7 @@ describe('generateSubjectId', () => {
 
 	it('should generate unique IDs', () => {
 		const ids = new Set<string>();
-		for (let i = 0; i < 1000; i++) {
+		for (let i = 0; i < 1000; i += 1) {
 			ids.add(generateSubjectId());
 		}
 		expect(ids.size).toBe(1000);
@@ -19,9 +20,10 @@ describe('generateSubjectId', () => {
 		const BASE58_ALPHABET =
 			'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
-		for (let i = 0; i < 100; i++) {
+		for (let i = 0; i < 100; i += 1) {
 			const id = generateSubjectId();
-			const encoded = id.slice(4); // Remove 'sub_' prefix
+			// Remove 'sub_' prefix
+			const encoded = id.slice(4);
 
 			for (const char of encoded) {
 				expect(BASE58_ALPHABET.includes(char)).toBe(true);

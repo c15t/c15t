@@ -2,14 +2,12 @@
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import type { ReactNode } from 'react';
-import {
-	type HeadlessConsentBannerAction,
-	useHeadlessConsentUI,
-} from '~/hooks/use-headless-consent-ui';
-import {
-	type PolicyActionRenderProps,
-	PolicyActionsRenderer,
-} from '../shared/policy-actions';
+
+import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
+import type { HeadlessConsentBannerAction } from '~/hooks/use-headless-consent-ui';
+
+import { PolicyActionsRenderer } from '../shared/policy-actions';
+import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,
@@ -18,8 +16,8 @@ import {
 	ConsentBannerRejectButton,
 } from './components';
 
-export interface ConsentBannerPolicyActionRenderProps
-	extends PolicyActionRenderProps<HeadlessConsentBannerAction> {}
+export type ConsentBannerPolicyActionRenderProps =
+	PolicyActionRenderProps<HeadlessConsentBannerAction>;
 
 export interface ConsentBannerPolicyActionsProps {
 	renderAction?: (
@@ -28,7 +26,7 @@ export interface ConsentBannerPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentBannerAction,
 	props: ConsentBannerPolicyActionRenderProps
 ) {
@@ -67,11 +65,11 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
-export function ConsentBannerPolicyActions({
+export const ConsentBannerPolicyActions = ({
 	renderAction,
-}: ConsentBannerPolicyActionsProps) {
+}: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
 
 	return (
@@ -80,16 +78,16 @@ export function ConsentBannerPolicyActions({
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
 			classNames={{
-				footerFill: styles.footerFill,
 				footerColumn: styles.footerColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
+				footerFill: styles.footerFill,
 				footerSubGroupColumn: styles.footerSubGroupColumn,
+				footerSubGroupFill: styles.footerSubGroupFill,
 			}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}
 		/>
 	);
-}
+};
 
 const PolicyActions = ConsentBannerPolicyActions;
 

@@ -14,10 +14,8 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from '@c15t/react/v3/module-hooks';
-import {
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '@c15t/react/v3/provider';
+import { ConsentProvider } from '@c15t/react/v3/provider';
+import type { ConsentProviderOptions } from '@c15t/react/v3/provider';
 import type { ReactNode } from 'react';
 
 export interface ConsentBoundaryProps {
@@ -72,7 +70,7 @@ export interface ConsentBoundaryProps {
 	children: ReactNode;
 }
 
-export function ConsentBoundary({
+export const ConsentBoundary = ({
 	config,
 	backendURL,
 	scripts,
@@ -81,22 +79,20 @@ export function ConsentBoundary({
 	persistence,
 	options,
 	children,
-}: ConsentBoundaryProps) {
-	return (
-		<ConsentProvider
-			options={{
-				...options,
-				mode: backendURL ? 'hosted' : 'offline',
-				backendURL,
-				prefetch: config,
-				scripts,
-				scriptLoader,
-				networkBlocker,
-				persistence,
-				__debugPkg: '@c15t/nextjs',
-			}}
-		>
-			{children}
-		</ConsentProvider>
-	);
-}
+}: ConsentBoundaryProps) => (
+	<ConsentProvider
+		options={{
+			...options,
+			__debugPkg: '@c15t/nextjs',
+			backendURL,
+			mode: backendURL ? 'hosted' : 'offline',
+			networkBlocker,
+			persistence,
+			prefetch: config,
+			scriptLoader,
+			scripts,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);

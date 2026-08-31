@@ -9,6 +9,8 @@
  */
 
 // GVL types come through c15t core (which re-exports from @c15t/schema)
+import type { GlobalVendorList } from '@c15t/core';
+
 export type { GlobalVendorList } from '@c15t/core';
 // GVL sub-types imported from @c15t/schema for IAB-specific usage
 // These are not re-exported by c15t core, so we re-export from schema directly
@@ -22,8 +24,6 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from '@c15t/schema/types';
-
-import type { GlobalVendorList } from '@c15t/core';
 
 /**
  * TCF consent data structure for generating TC Strings.
@@ -229,7 +229,7 @@ export interface TCFApi {
 		vendorIds?: number[]
 	): void;
 	(
-		command: 'getInAppTCData',
+		command: 'getInAppTCData' | 'addEventListener',
 		version: number,
 		callback: TCFApiCallback<TCData>
 	): void;
@@ -240,18 +240,13 @@ export interface TCFApi {
 		vendorListVersion?: number
 	): void;
 	(
-		command: 'addEventListener',
-		version: number,
-		callback: TCFApiCallback<TCData>
-	): void;
-	(
 		command: 'removeEventListener',
 		version: number,
 		callback: TCFApiCallback<boolean>,
 		listenerId: number
 	): void;
 	/** Queue for stub to store calls before CMP loads */
-	queue?: Array<Parameters<TCFApi>>;
+	queue?: Parameters<TCFApi>[];
 }
 declare global {
 	interface Window {
@@ -265,28 +260,28 @@ declare global {
  * @public
  */
 export const IAB_PURPOSES = {
-	/** Store and/or access information on a device */
-	STORE_ACCESS_INFO: 1,
-	/** Use limited data to select advertising */
-	SELECT_BASIC_ADS: 2,
 	/** Create profiles for personalised advertising */
 	CREATE_AD_PROFILE: 3,
-	/** Use profiles to select personalised advertising */
-	SELECT_PERSONALISED_ADS: 4,
 	/** Create profiles to personalise content */
 	CREATE_CONTENT_PROFILE: 5,
-	/** Use profiles to select personalised content */
-	SELECT_PERSONALISED_CONTENT: 6,
+	/** Understand audiences through statistics or combinations of data */
+	MARKET_RESEARCH: 9,
 	/** Measure advertising performance */
 	MEASURE_AD_PERFORMANCE: 7,
 	/** Measure content performance */
 	MEASURE_CONTENT_PERFORMANCE: 8,
-	/** Understand audiences through statistics or combinations of data */
-	MARKET_RESEARCH: 9,
 	/** Develop and improve services */
 	PRODUCT_DEVELOPMENT: 10,
+	/** Use limited data to select advertising */
+	SELECT_BASIC_ADS: 2,
 	/** Use limited data to select content */
 	SELECT_BASIC_CONTENT: 11,
+	/** Use profiles to select personalised advertising */
+	SELECT_PERSONALISED_ADS: 4,
+	/** Use profiles to select personalised content */
+	SELECT_PERSONALISED_CONTENT: 6,
+	/** Store and/or access information on a device */
+	STORE_ACCESS_INFO: 1,
 } as const;
 
 /**
@@ -295,10 +290,10 @@ export const IAB_PURPOSES = {
  * @public
  */
 export const IAB_SPECIAL_FEATURES = {
-	/** Use precise geolocation data */
-	PRECISE_GEOLOCATION: 1,
 	/** Actively scan device characteristics for identification */
 	DEVICE_SCANNING: 2,
+	/** Use precise geolocation data */
+	PRECISE_GEOLOCATION: 1,
 } as const;
 
 /**
@@ -307,12 +302,12 @@ export const IAB_SPECIAL_FEATURES = {
  * @public
  */
 export const IAB_FEATURES = {
-	/** Match and combine data from other data sources */
-	MATCH_COMBINE_DATA: 1,
-	/** Link different devices */
-	LINK_DEVICES: 2,
 	/** Identify devices based on information transmitted automatically */
 	IDENTIFY_DEVICES: 3,
+	/** Link different devices */
+	LINK_DEVICES: 2,
+	/** Match and combine data from other data sources */
+	MATCH_COMBINE_DATA: 1,
 } as const;
 
 /**
@@ -321,26 +316,26 @@ export const IAB_FEATURES = {
  * @public
  */
 export const IAB_DATA_CATEGORIES = {
-	/** IP addresses */
-	IP_ADDRESSES: 1,
-	/** Device characteristics */
-	DEVICE_CHARACTERISTICS: 2,
-	/** Device identifiers */
-	DEVICE_IDENTIFIERS: 3,
-	/** Probabilistic identifiers */
-	PROBABILISTIC_IDENTIFIERS: 4,
 	/** Authentication-derived identifiers */
 	AUTH_IDENTIFIERS: 5,
 	/** Browsing and interaction data */
 	BROWSING_DATA: 6,
-	/** User-provided data */
-	USER_PROVIDED_DATA: 7,
+	/** Device characteristics */
+	DEVICE_CHARACTERISTICS: 2,
+	/** Device identifiers */
+	DEVICE_IDENTIFIERS: 3,
+	/** IP addresses */
+	IP_ADDRESSES: 1,
 	/** Non-precise location data */
 	NON_PRECISE_LOCATION: 8,
 	/** Precise location data */
 	PRECISE_LOCATION: 9,
-	/** Users' profiles */
-	USER_PROFILES: 10,
 	/** Privacy choices */
 	PRIVACY_CHOICES: 11,
+	/** Probabilistic identifiers */
+	PROBABILISTIC_IDENTIFIERS: 4,
+	/** Users' profiles */
+	USER_PROFILES: 10,
+	/** User-provided data */
+	USER_PROVIDED_DATA: 7,
 } as const;

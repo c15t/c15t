@@ -10,8 +10,10 @@ import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js'
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
+
 import { useStyles } from '~/hooks/use-styles';
 import type { ClassNameStyle } from '~/types/theme';
+
 import type {
 	ConsentDialogTriggerToolbarAction,
 	ConsentDialogTriggerToolbarPreferences,
@@ -23,16 +25,16 @@ import { TriggerIcon } from './icon';
 import { useTriggerContext } from './root';
 
 const cornerClassMap = {
-	'bottom-right': styles.bottomRight,
 	'bottom-left': styles.bottomLeft,
-	'top-right': styles.topRight,
+	'bottom-right': styles.bottomRight,
 	'top-left': styles.topLeft,
+	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
 const sizeClassMap = {
-	sm: styles.sm,
-	md: styles.md,
 	lg: styles.lg,
+	md: styles.md,
+	sm: styles.sm,
 } as const;
 
 interface ToolbarItemBase {
@@ -58,7 +60,7 @@ interface ToolbarCustomItem extends ToolbarItemBase {
 
 type ToolbarItem = ToolbarPreferencesItem | ToolbarCustomItem;
 
-function createToolbarItems(
+const createToolbarItems = function createToolbarItems(
 	actions: readonly ConsentDialogTriggerToolbarAction[],
 	preferences: ConsentDialogTriggerToolbarPreferences
 ): readonly ToolbarItem[] {
@@ -81,9 +83,9 @@ function createToolbarItems(
 			style: preferences.style,
 		},
 	];
-}
+};
 
-function orderItemsForCorner(
+const orderItemsForCorner = function orderItemsForCorner(
 	items: readonly ToolbarItem[],
 	orientation: TriggerOrientation,
 	corner: CornerPosition
@@ -102,10 +104,12 @@ function orderItemsForCorner(
 	return cornerFacesStart
 		? [preferencesItem, ...customItems]
 		: [...customItems, preferencesItem];
-}
+};
 
-export interface TriggerToolbarProps
-	extends Omit<ClassNameStyle, 'baseClassName'> {
+export interface TriggerToolbarProps extends Omit<
+	ClassNameStyle,
+	'baseClassName'
+> {
 	/** App-owned actions rendered alongside the preferences action. */
 	actions: readonly ConsentDialogTriggerToolbarAction[];
 
@@ -125,7 +129,7 @@ export interface TriggerToolbarProps
 /**
  * A draggable group of app-owned actions and one built-in preferences action.
  */
-export function TriggerToolbar({
+export const TriggerToolbar = ({
 	actions,
 	preferences,
 	size = 'md',
@@ -134,7 +138,7 @@ export function TriggerToolbar({
 	className,
 	style,
 	noStyle = false,
-}: TriggerToolbarProps): ReactNode {
+}: TriggerToolbarProps): ReactNode => {
 	const {
 		corner,
 		isDragging,
@@ -166,8 +170,8 @@ export function TriggerToolbar({
 			isSnapping && styles.snapping,
 		],
 		className,
-		style,
 		noStyle,
+		style,
 	});
 	const toolbarDOMStyle = sanitizeDOMStyleProps(toolbarStyle);
 	const itemStyle = useStyles('consentDialogTriggerToolbarItem', {
@@ -256,6 +260,7 @@ export function TriggerToolbar({
 			dir="ltr"
 			onKeyDown={handleToolbarKeyDown}
 			role="toolbar"
+			tabIndex={-1}
 			style={{ ...toolbarDOMStyle.style, ...dragStyle }}
 			{...handlers}
 		>
@@ -296,6 +301,6 @@ export function TriggerToolbar({
 			))}
 		</div>
 	);
-}
+};
 
 TriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

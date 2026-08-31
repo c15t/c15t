@@ -11,12 +11,25 @@ import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+
 import { createDemoScripts } from '../../lib/demo-scripts';
 import { useThemePreset } from './theme-switcher';
 
 const SEARCH_CHANGE_EVENT = 'c15t:search-change';
 const DEFAULT_BACKEND_URL = 'https://test-consent-io.inth.app/';
 const TERMS_BACKEND_URL = '/api/self-host';
+
+const internalAnalyticsVendor = Object.fromEntries([
+	['id', 'internal-analytics'],
+	['name', 'Example Analytics'],
+	['privacyPolicyUrl', 'https://www.google.com'],
+	['purposes', [1, 8]],
+	['dataCategories', [1, 2, 6, 8]],
+	['usesCookies', true],
+	['cookieMaxAgeSeconds', 31_536_000],
+	['usesNonCookieAccess', true],
+	['specialFeatures', [1, 2]],
+]);
 
 /**
  * Props for the ConsentManager component
@@ -25,7 +38,7 @@ interface ConsentManagerProps {
 	children: ReactNode;
 }
 
-function resolveGeoOverrides(
+const resolveGeoOverrides = function resolveGeoOverrides(
 	search: string
 ): { country?: string; region?: string } | undefined {
 	const searchParams = new URLSearchParams(search);
@@ -36,11 +49,16 @@ function resolveGeoOverrides(
 		return undefined;
 	}
 
-	return {
-		...(queryCountry ? { country: queryCountry.toUpperCase() } : {}),
-		...(queryRegion ? { region: queryRegion.toUpperCase() } : {}),
-	};
-}
+	const overrides: { country?: string; region?: string } = {};
+	if (queryCountry) {
+		overrides.country = queryCountry.toUpperCase();
+	}
+	if (queryRegion) {
+		overrides.region = queryRegion.toUpperCase();
+	}
+
+	return overrides;
+};
 
 /**
  * Server-side rendered consent management wrapper for Next.js App Router
@@ -80,7 +98,7 @@ function resolveGeoOverrides(
  * }
  * ```
  */
-export function ConsentManager({ children }: ConsentManagerProps) {
+export const ConsentManager = ({ children }: ConsentManagerProps) => {
 	const { theme, mounted } = useThemePreset();
 	const pathname = usePathname();
 	const [search, setSearch] = useState(() =>
@@ -117,12 +135,12 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 		};
 
 		window.history.pushState = function pushState(...args) {
-			originalPushState.apply(this, args);
+			originalPushState.apply(window.history, args);
 			notifySearchChange();
 		};
 
 		window.history.replaceState = function replaceState(...args) {
-			originalReplaceState.apply(this, args);
+			originalReplaceState.apply(window.history, args);
 			notifySearchChange();
 		};
 
@@ -140,15 +158,18 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 
 	useEffect(() => {
 		const nextOverrides = resolveGeoOverrides(search);
-		setGeoOverrides((currentOverrides) => {
-			if (
-				currentOverrides?.country === nextOverrides?.country &&
-				currentOverrides?.region === nextOverrides?.region
-			) {
-				return currentOverrides;
-			}
-			return nextOverrides;
+		const frame = requestAnimationFrame(() => {
+			setGeoOverrides((currentOverrides) => {
+				if (
+					currentOverrides?.country === nextOverrides?.country &&
+					currentOverrides?.region === nextOverrides?.region
+				) {
+					return currentOverrides;
+				}
+				return nextOverrides;
+			});
 		});
+		return () => cancelAnimationFrame(frame);
 	}, [search]);
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
@@ -161,8 +182,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					consentBannerTitle: 'text-red-500',
 					iabBanner: {
 						style: {
-							inset: 0,
 							alignItems: 'center',
+							inset: 0,
 							justifyContent: 'end',
 						},
 					},
@@ -182,13 +203,12 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 	}
 
 	if (isPolicyDemo || isPolicyActionsDemo) {
-		return <>{children}</>;
+		return children;
 	}
 
 	return (
 		<ConsentManagerProvider
 			options={{
-				mode: 'c15t',
 				backendURL,
 				consentCategories: [
 					'necessary',
@@ -198,26 +218,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					'measurement',
 				],
 				iab: iab({
-					customVendors: [
-						{
-							id: 'internal-analytics',
-							name: 'Example Analytics',
-							privacyPolicyUrl: 'https://www.google.com',
-							purposes: [1, 8],
-							dataCategories: [1, 2, 6, 8],
-							usesCookies: true,
-							cookieMaxAgeSeconds: 31536000,
-							usesNonCookieAccess: true,
-							specialFeatures: [1, 2],
-							// legIntPurposes: [1, 8],
-						},
-					],
+					customVendors: [internalAnalyticsVendor],
 				}),
-				scripts: createDemoScripts('internal-analytics'),
-				storageConfig: {
-					crossSubdomain: true,
-				},
-				theme: centeredIabTheme,
 				legalLinks: {
 					privacyPolicy: {
 						href: '/legal/privacy-policy',
@@ -226,11 +228,17 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						href: '/legal/terms-of-service',
 					},
 				},
+				mode: 'c15t',
+				overrides: geoOverrides,
+				scripts: createDemoScripts('internal-analytics'),
+				storageConfig: {
+					crossSubdomain: true,
+				},
+				theme: centeredIabTheme,
 				user: {
 					id: '123',
 					identityProvider: 'custom',
 				},
-				overrides: geoOverrides,
 			}}
 		>
 			{!isPolicyDemo && !isPolicyActionsDemo ? (
@@ -245,4 +253,4 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

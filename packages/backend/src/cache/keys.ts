@@ -29,7 +29,7 @@
  *
  * @public
  */
-export function createGVLCacheKey(
+export const createGVLCacheKey = function createGVLCacheKey(
 	appName: string,
 	language: string,
 	vendorIds?: number[]
@@ -38,7 +38,7 @@ export function createGVLCacheKey(
 		? [...vendorIds].sort((a, b) => a - b).join(',')
 		: 'all';
 	return `${appName}:gvl:${language}:${sortedIds}`;
-}
+};
 
 /**
  * Create a generic cache key with namespace and parts.
@@ -58,11 +58,11 @@ export function createGVLCacheKey(
  *
  * @public
  */
-export function createCacheKey(
+export const createCacheKey = function createCacheKey(
 	appName: string,
 	namespace: string,
 	...parts: (string | number)[]
 ): string {
 	const allParts = [appName, namespace, ...parts];
 	return allParts.join(':');
-}
+};

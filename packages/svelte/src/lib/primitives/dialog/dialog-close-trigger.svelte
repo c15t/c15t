@@ -1,36 +1,37 @@
 <script lang="ts">
-import { getDialogState } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getDialogRootContext } from './context';
+	import { getDialogState } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const dialog = getDialogRootContext();
+	import { getDialogRootContext } from './context';
 
-const open = $derived(dialog.open);
-const dataState = $derived(getDialogState(open));
+	const dialog = getDialogRootContext();
 
-let {
-	children,
-	class: className,
-	disabled = false,
-	onclick,
-	type = 'button',
-	...restProps
-}: HTMLAttributes<HTMLButtonElement> & {
-	children?: Snippet;
-	class?: string;
-	disabled?: boolean;
-	type?: 'button' | 'submit' | 'reset';
-} = $props();
+	const open = $derived(dialog.open);
+	const dataState = $derived(getDialogState(open));
 
-function handleClick(
-	event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	if (!disabled) {
-		dialog.requestClose('close-trigger');
-	}
-	onclick?.(event);
-}
+	let {
+		children,
+		class: className,
+		disabled = false,
+		onclick,
+		type = 'button',
+		...restProps
+	}: HTMLAttributes<HTMLButtonElement> & {
+		children?: Snippet;
+		class?: string;
+		disabled?: boolean;
+		type?: 'button' | 'submit' | 'reset';
+	} = $props();
+
+	const handleClick = function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		if (!disabled) {
+			dialog.requestClose('close-trigger');
+		}
+		onclick?.(event);
+	};
 </script>
 
 <button

@@ -1,142 +1,143 @@
 import type { CompleteTranslations } from '../types';
+
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Derbyn pob un',
-		rejectAll: 'Gwrthod pob un',
-		customize: 'Addasu',
-		save: 'Cadw gosodiadau',
 		close: 'Cau',
+		customize: 'Addasu',
+		rejectAll: 'Gwrthod pob un',
+		save: 'Cadw gosodiadau',
 		securedBy: "Wedi'i ddiogelu gan",
 	},
-	cookieBanner: {
-		title: 'Rydym yn gwerthfawrogi eich preifatrwydd',
-		description:
-			"Mae'r wefan hon yn defnyddio cwcis i wella eich profiad pori, dadansoddi traffig y wefan, a dangos cynnwys wedi'i bersonoli.",
-	},
 	consentManagerDialog: {
-		title: 'Gosodiadau preifatrwydd',
 		description:
 			'Addaswch eich gosodiadau preifatrwydd yma. Gallwch ddewis pa fathau o gwcis a thechnolegau tracio rydych yn eu caniatáu.',
+		title: 'Gosodiadau preifatrwydd',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Cwbl angenrheidiol',
-			description:
-				"Mae'r cwcis hyn yn hanfodol i'r wefan weithredu'n iawn ac ni ellir eu hanalluogi.",
-		},
-		functionality: {
-			title: 'Swyddogaeth',
-			description:
-				"Mae'r cwcis hyn yn galluogi swyddogaeth a phersonoli gwell o'r wefan.",
-		},
-		marketing: {
-			title: 'Marchnata',
-			description:
-				'Defnyddir y cwcis hyn i ddarparu hysbysebion perthnasol a thracio eu heffeithiolrwydd.',
-		},
-		measurement: {
-			title: 'Dadansoddeg',
-			description:
-				"Mae'r cwcis hyn yn ein helpu i ddeall sut mae ymwelwyr yn rhyngweithio â'r wefan a gwella ei pherfformiad.",
-		},
 		experience: {
-			title: 'Profiad',
 			description:
 				"Mae'r cwcis hyn yn ein helpu i ddarparu profiad defnyddiwr gwell a phrofi nodweddion newydd.",
+			title: 'Profiad',
+		},
+		functionality: {
+			description:
+				"Mae'r cwcis hyn yn galluogi swyddogaeth a phersonoli gwell o'r wefan.",
+			title: 'Swyddogaeth',
+		},
+		marketing: {
+			description:
+				'Defnyddir y cwcis hyn i ddarparu hysbysebion perthnasol a thracio eu heffeithiolrwydd.',
+			title: 'Marchnata',
+		},
+		measurement: {
+			description:
+				"Mae'r cwcis hyn yn ein helpu i ddeall sut mae ymwelwyr yn rhyngweithio â'r wefan a gwella ei pherfformiad.",
+			title: 'Dadansoddeg',
+		},
+		necessary: {
+			description:
+				"Mae'r cwcis hyn yn hanfodol i'r wefan weithredu'n iawn ac ni ellir eu hanalluogi.",
+			title: 'Cwbl angenrheidiol',
 		},
 	},
+	cookieBanner: {
+		description:
+			"Mae'r wefan hon yn defnyddio cwcis i wella eich profiad pori, dadansoddi traffig y wefan, a dangos cynnwys wedi'i bersonoli.",
+		title: 'Rydym yn gwerthfawrogi eich preifatrwydd',
+	},
 	frame: {
-		title: 'Derbyn caniatâd {category} i weld y cynnwys hwn.',
 		actionButton: 'Galluogi caniatâd {category}',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
-		loading: 'Loading content…',
-		error: 'This content could not be loaded.',
-	},
-	legalLinks: {
-		privacyPolicy: 'Polisi preifatrwydd',
-		cookiePolicy: 'Polisi cwcis',
-		termsOfService: 'Telerau gwasanaeth',
+		title: 'Derbyn caniatâd {category} i weld y cynnwys hwn.',
 	},
 	iab: {
 		banner: {
-			title: 'Gosodiadau preifatrwydd',
+			andMore: 'Ac {count} arall...',
 			description:
 				'Rydym ni a’n {partnerCount} partner yn storio a/neu’n cyrchu gwybodaeth ar eich dyfais ac yn prosesu data personol, megis dynodwyr unigryw a data pori, ar gyfer y wefan hon, er mwyn:',
-			partnersLink: '{count} partner',
-			andMore: 'Ac {count} arall...',
 			legitimateInterestNotice:
 				'Mae rhai partneriaid yn hawlio buddiant cyfreithlon i brosesu eich data. Mae gennych hawl i wrthwynebu’r prosesu hwn, addasu eich dewisiadau, a thynnu eich cydsyniad yn ôl unrhyw bryd.',
-			scopeServiceSpecific:
-				'Mae eich caniatâd yn berthnasol i’r wefan hon yn unig ac ni fydd yn effeithio ar wasanaethau eraill.',
+			partnersLink: '{count} partner',
 			scopeGroup:
 				'Mae eich dewis yn berthnasol ar draws ein gwefannau yn y grŵp hwn.',
+			scopeServiceSpecific:
+				'Mae eich caniatâd yn berthnasol i’r wefan hon yn unig ac ni fydd yn effeithio ar wasanaethau eraill.',
+			title: 'Gosodiadau preifatrwydd',
+		},
+		common: {
+			acceptAll: 'Derbyn pob un',
+			clearSelection: 'Clirio',
+			customPartner: 'Partner personol heb ei gofrestru gyda’r IAB',
+			customize: 'Addasu',
+			loading: 'Wrthi’n llwytho...',
+			rejectAll: 'Gwrthod pob un',
+			saveSettings: 'Cadw gosodiadau',
+			showingSelectedVendor: 'Yn dangos y gwerthwr a ddewiswyd',
 		},
 		preferenceCenter: {
-			title: 'Gosodiadau preifatrwydd',
 			description:
 				'Addaswch eich gosodiadau preifatrwydd yma. Gallwch ddewis pa fathau o gwcis a thechnolegau tracio rydych yn eu caniatáu.',
-			tabs: {
-				purposes: 'Dibenion',
-				vendors: 'Gwerthwyr',
+			footer: {
+				consentStorage:
+					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis. Gall y cyfnod storio gael ei adnewyddu pan fyddwch yn diweddaru eich dewisiadau.',
 			},
 			purposeItem: {
-				partners: '{count} partner',
-				vendorsUseLegitimateInterest:
-					'{count} gwerthwr yn hawlio buddiant cyfreithlon',
 				examples: 'Enghreifftiau',
-				partnersUsingPurpose: 'Partneriaid sy’n Defnyddio’r Diben Hwn',
-				withYourPermission: 'Gyda’ch Caniatâd',
 				legitimateInterest: 'Buddiant Cyfreithlon',
 				objectButton: 'Gwrthwynebu',
 				objected: 'Gwrthwynebwyd',
+				partners: '{count} partner',
+				partnersUsingPurpose: 'Partneriaid sy’n Defnyddio’r Diben Hwn',
 				rightToObject:
 					'Mae gennych hawl i wrthwynebu prosesu sy’n seiliedig ar fuddiant cyfreithlon.',
+				vendorsUseLegitimateInterest:
+					'{count} gwerthwr yn hawlio buddiant cyfreithlon',
+				withYourPermission: 'Gyda’ch Caniatâd',
 			},
 			specialPurposes: {
 				title: 'Swyddogaethau Hanfodol (Angenrheidiol)',
 				tooltip:
 					'Mae’r rhain yn angenrheidiol ar gyfer swyddogaethau a diogelwch y wefan. Yn unol ag IAB TCF, ni allwch wrthwynebu’r dibenion arbennig hyn.',
 			},
+			tabs: {
+				purposes: 'Dibenion',
+				vendors: 'Gwerthwyr',
+			},
+			title: 'Gosodiadau preifatrwydd',
 			vendorList: {
-				search: 'Chwilio gwerthwyr...',
-				showingCount: '{filtered} o {total} gwerthwr',
-				iabVendorsHeading: 'Gwerthwyr Cofrestredig IAB',
-				iabVendorsNotice:
-					'Mae’r partneriaid hyn wedi’u cofrestru gyda Fframwaith Tryloywder a Chydsyniad (TCF) yr IAB, safon diwydiant ar gyfer rheoli cydsyniad',
 				customVendorsHeading: 'Partneriaid Personol',
 				customVendorsNotice:
 					'Partneriaid personol yw’r rhain nad ydynt wedi’u cofrestru gyda Fframwaith Tryloywder a Chydsyniad (TCF) yr IAB. Maent yn prosesu data yn seiliedig ar eich cydsyniad ac fe allant fod ag arferion preifatrwydd gwahanol i werthwyr cofrestredig IAB.',
-				purposes: 'Dibenion',
-				specialPurposes: 'Dibenion Arbennig',
-				specialFeatures: 'Nodweddion Arbennig',
-				features: 'Nodweddion',
 				dataCategories: 'Categorïau Data',
-				usesCookies: 'Yn Defnyddio Cwcis',
-				nonCookieAccess: 'Mynediad Heb Gwcis',
-				maxAge: 'Oed Uchaf: {days}d',
-				retention: 'Cadw: {days}d',
+				features: 'Nodweddion',
+				iabVendorsHeading: 'Gwerthwyr Cofrestredig IAB',
+				iabVendorsNotice:
+					'Mae’r partneriaid hyn wedi’u cofrestru gyda Fframwaith Tryloywder a Chydsyniad (TCF) yr IAB, safon diwydiant ar gyfer rheoli cydsyniad',
 				legitimateInterest: 'Buddiant Cyf.',
+				maxAge: 'Oed Uchaf: {days}d',
+				nonCookieAccess: 'Mynediad Heb Gwcis',
 				privacyPolicy: 'Polisi Preifatrwydd',
-				storageDisclosure: 'Datgelu Storio',
+				purposes: 'Dibenion',
 				requiredNotice:
 					'Angenrheidiol ar gyfer swyddogaeth y wefan, ni ellir ei analluogi',
-			},
-			footer: {
-				consentStorage:
-					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis. Gall y cyfnod storio gael ei adnewyddu pan fyddwch yn diweddaru eich dewisiadau.',
+				retention: 'Cadw: {days}d',
+				search: 'Chwilio gwerthwyr...',
+				showingCount: '{filtered} o {total} gwerthwr',
+				specialFeatures: 'Nodweddion Arbennig',
+				specialPurposes: 'Dibenion Arbennig',
+				storageDisclosure: 'Datgelu Storio',
+				usesCookies: 'Yn Defnyddio Cwcis',
 			},
 		},
-		common: {
-			acceptAll: 'Derbyn pob un',
-			rejectAll: 'Gwrthod pob un',
-			customize: 'Addasu',
-			saveSettings: 'Cadw gosodiadau',
-			loading: 'Wrthi’n llwytho...',
-			showingSelectedVendor: 'Yn dangos y gwerthwr a ddewiswyd',
-			clearSelection: 'Clirio',
-			customPartner: 'Partner personol heb ei gofrestru gyda’r IAB',
-		},
+	},
+	legalLinks: {
+		cookiePolicy: 'Polisi cwcis',
+		privacyPolicy: 'Polisi preifatrwydd',
+		termsOfService: 'Telerau gwasanaeth',
 	},
 };
 export default translations;

@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 interface GetSSROptionOptions {
@@ -19,7 +20,7 @@ interface GetSSROptionOptions {
  *
  * @returns true if SSR should be enabled, false otherwise
  */
-export async function getSSROption({
+export const getSSROption = async function getSSROption({
 	context,
 	handleCancel,
 	onCancel,
@@ -38,21 +39,23 @@ export async function getSSROption({
 	);
 
 	const enableSSR = await p.select({
+		initialValue: true,
 		message:
 			'Enable SSR consent prefetch? (faster first banner visibility, dynamic route)',
 		options: [
 			{
-				value: true,
-				label: 'Yes (Recommended)',
 				hint: 'Fetch consent data on server and stream to client',
+
+				label: 'Yes (Recommended)',
+				value: true,
 			},
 			{
-				value: false,
-				label: 'No',
 				hint: 'Client-only fetch after hydration (better for fully static pages)',
+
+				label: 'No',
+				value: false,
 			},
 		],
-		initialValue: true,
 	});
 
 	const cancelled = handleCancel?.(enableSSR) ?? p.isCancel(enableSSR);
@@ -69,4 +72,4 @@ export async function getSSROption({
 	}
 
 	return enableSSR as boolean;
-}
+};

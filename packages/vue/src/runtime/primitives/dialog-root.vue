@@ -4,6 +4,7 @@
  * open/modal state and a close command to portal/overlay/content.
  */
 import { provide } from 'vue';
+
 import { dialogContextKey } from './keys';
 
 const props = withDefaults(
@@ -11,15 +12,15 @@ const props = withDefaults(
 		open?: boolean;
 		modal?: boolean;
 	}>(),
-	{ open: false, modal: true }
+	{ modal: true, open: false }
 );
 
 const emit = defineEmits<{ 'update:open': [open: boolean] }>();
 
 provide(dialogContextKey, {
-	open: () => props.open,
-	modal: () => props.modal,
 	close: () => emit('update:open', false),
+	modal: () => props.modal,
+	open: () => props.open,
 });
 </script>
 

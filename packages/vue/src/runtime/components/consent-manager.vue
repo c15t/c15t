@@ -1,16 +1,13 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
+import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
 import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
 import managerStyles from '@c15t/ui/styles/v3/consent-manager';
-import {
-	type CONSENT_CATEGORY,
-	getConsentAvailableCategories,
-} from '@c15t/core/v3/consent-record';
-import { computed, type HTMLAttributes, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import type { HTMLAttributes } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -53,7 +50,7 @@ const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
 const overlayFallbackStyle = ref<Record<string, string> | undefined>();
 
-async function refreshOverlayFallback() {
+const refreshOverlayFallback = async function refreshOverlayFallback() {
 	if (typeof window === 'undefined' || activeUI.value !== 'manager') {
 		overlayFallbackStyle.value = undefined;
 		return;
@@ -71,12 +68,12 @@ async function refreshOverlayFallback() {
 	}
 
 	overlayFallbackStyle.value = {
-		position: 'fixed',
-		inset: '0',
 		backgroundColor: 'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
+		inset: '0',
+		position: 'fixed',
 		zIndex: '999999998',
 	};
-}
+};
 
 watch(
 	activeUI,
@@ -94,19 +91,21 @@ useConsentScrollLock(
 	)
 );
 
-function consentTitle(category: CONSENT_CATEGORY) {
+const consentTitle = function consentTitle(category: CONSENT_CATEGORY) {
 	const types = init.value?.translations?.translations?.consentTypes as
 		| Record<string, { title?: string }>
 		| undefined;
 	const title = types?.[category]?.title;
-	if (title) return title;
+	if (title) {
+		return title;
+	}
 
 	return category
-		.replace(/_/g, ' ')
-		.replace(/\b\w/g, (character) => character.toUpperCase());
-}
+		.replace(/_/gu, ' ')
+		.replace(/\b\w/gu, (character) => character.toUpperCase());
+};
 
-function reset() {
+const reset = function reset() {
 	const categories = getConsentAvailableCategories(
 		init.value,
 		config.value.consentCategories
@@ -118,12 +117,14 @@ function reset() {
 		next[category] = category === 'necessary' || grantedSet.has(category);
 	}
 	draft.value = next;
-}
+};
 
 watch(
 	activeUI,
 	(ui) => {
-		if (ui === 'manager') reset();
+		if (ui === 'manager') {
+			reset();
+		}
 	},
 	{ immediate: true }
 );
@@ -132,25 +133,25 @@ const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
-		reject: common?.rejectAll ?? 'Reject all',
 		customize: common?.save ?? 'Save',
+		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
 
 const actionTestIds = {
 	accept: 'consent-widget-footer-accept-all-button',
-	reject: 'consent-widget-reject-button',
 	customize: 'consent-widget-footer-save-button',
+	reject: 'consent-widget-reject-button',
 } as const;
 
-function savePreferences() {
+const savePreferences = function savePreferences() {
 	const selected = Object.entries(draft.value)
 		.filter(([, enabled]) => enabled)
 		.map(([category]) => category as CONSENT_CATEGORY);
 	save(selected);
-}
+};
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		savePreferences();
 		activeUI.value = null;
@@ -165,14 +166,14 @@ function onAction(action: PolicyUiAction) {
 		save('none');
 		activeUI.value = null;
 	}
-}
+};
 </script>
 
 <template>
 	<DialogRoot
 		:open="activeUI === 'manager'"
 		:modal="config.trapFocus"
-		@update:open="(open) => activeUI = open ? 'manager' : null"
+		@update:open="(open) => (activeUI = open ? 'manager' : null)"
 	>
 		<DialogPortal>
 			<DialogOverlay
@@ -216,7 +217,9 @@ function onAction(action: PolicyUiAction) {
 								role="heading"
 								aria-level="2"
 							>
-								{{ init?.translations?.translations?.consentManagerDialog?.title }}
+								{{
+									init?.translations?.translations?.consentManagerDialog?.title
+								}}
 							</div>
 							<ConsentDescription context="dialog" />
 						</div>
@@ -262,7 +265,9 @@ function onAction(action: PolicyUiAction) {
 											>
 												<AccordionTrigger
 													as-child
-													v-bind="config.components?.['accordion-item']?.trigger"
+													v-bind="
+														config.components?.['accordion-item']?.trigger
+													"
 													:data-testid="`consent-widget-accordion-trigger-${category}`"
 												>
 													<div :class="accordionStyles.trigger">
@@ -325,13 +330,15 @@ function onAction(action: PolicyUiAction) {
 													v-bind="config.components?.accordion?.contentInner"
 													:class="accordionStyles.contentInner"
 												>
-													{{ (
+													{{
+														(
 															init?.translations?.translations
 																?.consentTypes as Record<
 																string,
 																{ description?: string }
 															>
-														)?.[category]?.description }}
+														)?.[category]?.description
+													}}
 												</div>
 											</div>
 										</AccordionContent>
@@ -343,17 +350,22 @@ function onAction(action: PolicyUiAction) {
 									:class="managerStyles.footer"
 								>
 									<ConsentActions
-										:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
+										:action-groups="
+											actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
+										"
 										:direction="direction"
 										:ui-profile="surface?.uiProfile"
 										:primary-actions="primaryActions"
 										:fill="shouldFillActions"
 										:labels="labels"
 										:test-ids="actionTestIds"
-										:root-attrs="config.components?.manager?.actions as
-											object | undefined"
-										:group-attrs="config.components?.manager?.actionGroup as
-											object | undefined"
+										:root-attrs="
+											config.components?.manager?.actions as object | undefined
+										"
+										:group-attrs="
+											config.components?.manager?.actionGroup as
+												object | undefined
+										"
 										@action="onAction"
 									/>
 								</div>

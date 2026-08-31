@@ -1,18 +1,15 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	type RefObject,
-} from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
+
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
-interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
 	children: ReactNode;
 	'data-testid'?: string;
 }
@@ -25,8 +22,8 @@ interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const IABConsentBannerCard = forwardRef<
-	HTMLDivElement,
+const IABConsentBannerCard = createForwardRef<
+	HTMLDialogElement,
 	IABConsentBannerCardProps
 >(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { noStyle, trapFocus } = useTheme();
@@ -37,21 +34,21 @@ const IABConsentBannerCard = forwardRef<
 	const themedStyle = mergeSlotProps(components?.['iab-banner']?.card, {
 		baseClassName: styles.card,
 		className,
-		noStyle,
 		'data-testid': dataTestId ?? 'iab-consent-banner-card',
+		noStyle,
 		...props,
 	});
 
 	return (
-		<div
+		<dialog
 			ref={ref}
 			{...themedStyle}
 			tabIndex={-1}
-			role="dialog"
+			open
 			aria-modal={trapFocus ? 'true' : undefined}
 		>
 			{children}
-		</div>
+		</dialog>
 	);
 });
 

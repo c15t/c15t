@@ -6,7 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';
+
 import { updateStore } from '../store-updater';
 import type { InitConsentManagerConfig } from '../types';
 import {
@@ -14,9 +14,14 @@ import {
 	createMockStoreState,
 } from './test-setup';
 
-vi.mock('../../global-privacy-control', () => ({
-	hasGlobalPrivacyControlSignal: vi.fn().mockReturnValue(false),
-}));
+const setGlobalPrivacyControlSignal = function setGlobalPrivacyControlSignal(
+	value: boolean | string | undefined
+) {
+	Object.defineProperty(window.navigator, 'globalPrivacyControl', {
+		configurable: true,
+		value,
+	});
+};
 
 describe('updateStore - cmpId merging', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
@@ -28,25 +33,25 @@ describe('updateStore - cmpId merging', () => {
 
 		mockState = createMockStoreState({
 			iab: {
+				cmpApi: null,
 				config: {
-					enabled: true,
 					cmpId: 50,
 					cmpVersion: 1,
-					publisherCountryCode: 'GB',
+					enabled: true,
 					isServiceSpecific: true,
+					publisherCountryCode: 'GB',
 				},
 				gvl: null,
 				isLoadingGVL: false,
 				nonIABVendors: [],
-				tcString: null,
-				vendorConsents: {},
-				vendorLegitimateInterests: {},
+				preferenceCenterTab: 'purposes',
 				purposeConsents: {},
 				purposeLegitimateInterests: {},
 				specialFeatureOptIns: {},
+				tcString: null,
+				vendorConsents: {},
+				vendorLegitimateInterests: {},
 				vendorsDisclosed: {},
-				cmpApi: null,
-				preferenceCenterTab: 'purposes',
 			},
 		});
 
@@ -58,28 +63,28 @@ describe('updateStore - cmpId merging', () => {
 
 	it('should override client cmpId with server-provided cmpId', async () => {
 		const data = createMockConsentBannerResponse({
-			jurisdiction: 'GDPR',
+			cmpId: 99,
 			gvl: {
+				dataCategories: {},
+				features: {},
 				gvlSpecificationVersion: 3,
-				vendorListVersion: 1,
-				tcfPolicyVersion: 5,
 				lastUpdated: '2024-01-01',
 				purposes: {},
-				specialPurposes: {},
-				features: {},
 				specialFeatures: {},
-				vendors: {},
+				specialPurposes: {},
 				stacks: {},
-				dataCategories: {},
+				tcfPolicyVersion: 5,
+				vendorListVersion: 1,
+				vendors: {},
 			},
-			cmpId: 99,
+			jurisdiction: 'GDPR',
 		});
 
 		const config = {
 			get: mockGet,
-			set: mockSet,
-			manager: {} as InitConsentManagerConfig['manager'],
 			initialTranslationConfig: undefined,
+			manager: {} as InitConsentManagerConfig['manager'],
+			set: mockSet,
 		};
 
 		await updateStore(data, config, true, data.gvl);
@@ -98,27 +103,27 @@ describe('updateStore - cmpId merging', () => {
 
 	it('should keep client cmpId when server does not provide one', async () => {
 		const data = createMockConsentBannerResponse({
-			jurisdiction: 'GDPR',
 			gvl: {
+				dataCategories: {},
+				features: {},
 				gvlSpecificationVersion: 3,
-				vendorListVersion: 1,
-				tcfPolicyVersion: 5,
 				lastUpdated: '2024-01-01',
 				purposes: {},
-				specialPurposes: {},
-				features: {},
 				specialFeatures: {},
-				vendors: {},
+				specialPurposes: {},
 				stacks: {},
-				dataCategories: {},
+				tcfPolicyVersion: 5,
+				vendorListVersion: 1,
+				vendors: {},
 			},
+			jurisdiction: 'GDPR',
 		});
 
 		const config = {
 			get: mockGet,
-			set: mockSet,
-			manager: {} as InitConsentManagerConfig['manager'],
 			initialTranslationConfig: undefined,
+			manager: {} as InitConsentManagerConfig['manager'],
+			set: mockSet,
 		};
 
 		await updateStore(data, config, true, data.gvl);
@@ -141,15 +146,15 @@ describe('updateStore - cmpId merging', () => {
 			.spyOn(console, 'warn')
 			.mockImplementation(() => {});
 		const data = createMockConsentBannerResponse({
-			jurisdiction: 'GDPR',
 			gvl: null,
+			jurisdiction: 'GDPR',
 		});
 
 		const config = {
 			get: mockGet,
-			set: mockSet,
-			manager: {} as InitConsentManagerConfig['manager'],
 			initialTranslationConfig: undefined,
+			manager: {} as InitConsentManagerConfig['manager'],
+			set: mockSet,
 		};
 
 		await updateStore(data, config, true, data.gvl);
@@ -176,10 +181,13 @@ describe('updateStore - GPC override', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(false);
+		setGlobalPrivacyControlSignal(undefined);
 	});
 
-	function setup(overrides?: { gpc?: boolean }, jurisdiction = 'CCPA') {
+	const setup = function setup(
+		overrides?: { gpc?: boolean },
+		jurisdiction = 'CCPA'
+	) {
 		mockState = createMockStoreState({
 			iab: null,
 			overrides: overrides ? { gpc: overrides.gpc } : undefined,
@@ -192,13 +200,13 @@ describe('updateStore - GPC override', () => {
 		const data = createMockConsentBannerResponse({ jurisdiction });
 		const config = {
 			get: mockGet,
-			set: mockSet,
-			manager: {} as InitConsentManagerConfig['manager'],
 			initialTranslationConfig: undefined,
+			manager: {} as InitConsentManagerConfig['manager'],
+			set: mockSet,
 		};
 
-		return { data, config };
-	}
+		return { config, data };
+	};
 
 	it('should deny marketing/measurement when GPC override is true in opt-out jurisdiction', async () => {
 		const { data, config } = setup({ gpc: true }, 'CCPA');
@@ -218,7 +226,7 @@ describe('updateStore - GPC override', () => {
 
 	it('should allow marketing/measurement when GPC override is false in opt-out jurisdiction', async () => {
 		// Even if browser has GPC active, the override should suppress it
-		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
+		setGlobalPrivacyControlSignal(true);
 		const { data, config } = setup({ gpc: false }, 'CCPA');
 
 		await updateStore(data, config, true);
@@ -234,12 +242,11 @@ describe('updateStore - GPC override', () => {
 	});
 
 	it('should fall back to browser GPC signal when override is undefined', async () => {
-		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
+		setGlobalPrivacyControlSignal(true);
 		const { data, config } = setup(undefined, 'CCPA');
 
 		await updateStore(data, config, true);
 
-		expect(hasGlobalPrivacyControlSignal).toHaveBeenCalled();
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
 				consents: expect.objectContaining({
@@ -279,26 +286,26 @@ describe('updateStore - translation precedence', () => {
 			translations: {
 				language: 'de',
 				translations: {
-					cookieBanner: {
-						title: 'Deutscher Titel',
-						description: 'Deutsche Beschreibung',
-					},
-					consentManagerDialog: {
-						title: 'Datenschutz',
-						description: 'Einstellungen',
-					},
 					common: {
 						acceptAll: 'Alle akzeptieren',
-						rejectAll: 'Alle ablehnen',
 						customize: 'Anpassen',
+						rejectAll: 'Alle ablehnen',
 						save: 'Speichern',
 					},
+					consentManagerDialog: {
+						description: 'Einstellungen',
+						title: 'Datenschutz',
+					},
 					consentTypes: {
-						necessary: { title: 'Notwendig', description: 'Notwendig' },
-						functionality: { title: 'Funktional', description: 'Funktional' },
-						experience: { title: 'Erlebnis', description: 'Erlebnis' },
-						marketing: { title: 'Marketing', description: 'Marketing' },
-						measurement: { title: 'Analyse', description: 'Analyse' },
+						experience: { description: 'Erlebnis', title: 'Erlebnis' },
+						functionality: { description: 'Funktional', title: 'Funktional' },
+						marketing: { description: 'Marketing', title: 'Marketing' },
+						measurement: { description: 'Analyse', title: 'Analyse' },
+						necessary: { description: 'Notwendig', title: 'Notwendig' },
+					},
+					cookieBanner: {
+						description: 'Deutsche Beschreibung',
+						title: 'Deutscher Titel',
 					},
 				},
 			},
@@ -311,8 +318,6 @@ describe('updateStore - translation precedence', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: {
 					defaultLanguage: 'en',
 					translations: {
@@ -323,6 +328,8 @@ describe('updateStore - translation precedence', () => {
 						},
 					},
 				},
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -353,16 +360,15 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
+				consent: {
+					categories: ['necessary', 'measurement'],
+					scopeMode: 'strict',
+				},
 				id: 'policy_jp_restricted',
 				model: 'opt-in',
-				consent: {
-					scopeMode: 'strict',
-					categories: ['necessary', 'measurement'],
-				},
 			},
 		});
 		const mockState = createMockStoreState({
-			iab: null,
 			consentCategories: [
 				'necessary',
 				'measurement',
@@ -371,18 +377,19 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				'functionality',
 			],
 			consents: {
-				necessary: true,
-				measurement: true,
 				experience: true,
-				marketing: true,
 				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
+			iab: null,
 			selectedConsents: {
-				necessary: true,
-				measurement: true,
 				experience: true,
-				marketing: true,
 				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		const mockGet = vi.fn().mockReturnValue(mockState);
@@ -392,9 +399,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -403,18 +410,18 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			expect.objectContaining({
 				consentCategories: ['necessary', 'measurement'],
 				consents: {
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
+					necessary: true,
 				},
 				selectedConsents: {
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
+					necessary: true,
 				},
 			})
 		);
@@ -424,30 +431,30 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
+				consent: {
+					categories: ['necessary'],
+					scopeMode: 'permissive',
+				},
 				id: 'policy_eu_permissive',
 				model: 'opt-in',
-				consent: {
-					scopeMode: 'permissive',
-					categories: ['necessary'],
-				},
 			},
 		});
 		const mockState = createMockStoreState({
-			iab: null,
 			consentCategories: ['necessary', 'measurement', 'marketing'],
 			consents: {
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			},
+			iab: null,
 			selectedConsents: {
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			},
 		});
 		const mockGet = vi.fn().mockReturnValue(mockState);
@@ -457,9 +464,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -475,16 +482,16 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
-				id: 'policy_iab',
-				model: 'iab',
 				consent: {
 					categories: ['*'],
 				},
+				id: 'policy_iab',
+				model: 'iab',
 			},
 		});
 		const mockState = createMockStoreState({
-			iab: null,
 			consentCategories: ['necessary', 'measurement', 'marketing'],
+			iab: null,
 		});
 		const mockGet = vi.fn().mockReturnValue(mockState);
 		const mockSet = vi.fn();
@@ -493,9 +500,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -511,31 +518,31 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'UK_GDPR',
 			policy: {
-				id: 'policy_uk',
-				model: 'opt-in',
 				consent: {
-					scopeMode: 'strict',
 					categories: ['necessary', 'functionality', 'measurement'],
 					preselectedCategories: ['functionality', 'marketing'],
+					scopeMode: 'strict',
 				},
+				id: 'policy_uk',
+				model: 'opt-in',
 			},
 		});
 		const mockState = createMockStoreState({
-			iab: null,
 			consentInfo: null,
 			consents: {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			},
+			iab: null,
 			selectedConsents: {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			},
 		});
 		const mockGet = vi.fn().mockReturnValue(mockState);
@@ -545,9 +552,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -555,18 +562,18 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
 				consents: {
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: false,
+					necessary: true,
 				},
 				selectedConsents: {
-					necessary: true,
-					functionality: true,
 					experience: false,
+					functionality: true,
 					marketing: false,
 					measurement: false,
+					necessary: true,
 				},
 			})
 		);
@@ -576,32 +583,32 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
-				id: 'policy_eu_permissive',
-				model: 'opt-in',
 				consent: {
-					scopeMode: 'permissive',
 					categories: ['necessary'],
 					preselectedCategories: ['marketing', 'measurement'],
+					scopeMode: 'permissive',
 				},
+				id: 'policy_eu_permissive',
+				model: 'opt-in',
 			},
 		});
 		const mockState = createMockStoreState({
-			iab: null,
-			consentInfo: null,
 			consentCategories: ['necessary', 'marketing'],
+			consentInfo: null,
 			consents: {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			},
+			iab: null,
 			selectedConsents: {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			},
 		});
 		const mockGet = vi.fn().mockReturnValue(mockState);
@@ -611,9 +618,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -621,9 +628,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
 				selectedConsents: expect.objectContaining({
-					necessary: true,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				}),
 			})
 		);
@@ -638,11 +645,11 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				ui: {
 					banner: {
 						allowedActions: ['accept', 'reject'],
-						primaryActions: ['accept'],
-						layout: [['reject', 'accept']],
 						direction: 'row',
-						uiProfile: 'balanced',
+						layout: [['reject', 'accept']],
+						primaryActions: ['accept'],
 						scrollLock: true,
+						uiProfile: 'balanced',
 					},
 				},
 			},
@@ -655,9 +662,9 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
@@ -666,11 +673,11 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			expect.objectContaining({
 				policyBanner: {
 					allowedActions: ['accept', 'reject'],
-					primaryActions: ['accept'],
-					layout: [['reject', 'accept']],
 					direction: 'row',
-					uiProfile: 'balanced',
+					layout: [['reject', 'accept']],
+					primaryActions: ['accept'],
 					scrollLock: true,
+					uiProfile: 'balanced',
 				},
 			})
 		);
@@ -683,15 +690,15 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				id: 'policy_us_country',
 				model: 'opt-out',
 				ui: {
-					mode: 'dialog',
 					dialog: {
 						allowedActions: ['customize'],
-						primaryActions: ['customize'],
-						layout: [['customize']],
 						direction: 'row',
-						uiProfile: 'balanced',
+						layout: [['customize']],
+						primaryActions: ['customize'],
 						scrollLock: false,
+						uiProfile: 'balanced',
 					},
+					mode: 'dialog',
 				},
 			},
 		});
@@ -703,30 +710,30 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			data,
 			{
 				get: mockGet,
-				set: mockSet,
-				manager: {} as InitConsentManagerConfig['manager'],
 				initialTranslationConfig: undefined,
+				manager: {} as InitConsentManagerConfig['manager'],
+				set: mockSet,
 			},
 			true
 		);
 
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
-				policyDialog: {
-					allowedActions: ['customize'],
-					primaryActions: ['customize'],
-					layout: [['customize']],
-					direction: 'row',
-					uiProfile: 'balanced',
-					scrollLock: false,
-				},
 				policyBanner: {
 					allowedActions: undefined,
-					primaryActions: undefined,
-					layout: undefined,
 					direction: undefined,
-					uiProfile: undefined,
+					layout: undefined,
+					primaryActions: undefined,
 					scrollLock: undefined,
+					uiProfile: undefined,
+				},
+				policyDialog: {
+					allowedActions: ['customize'],
+					direction: 'row',
+					layout: [['customize']],
+					primaryActions: ['customize'],
+					scrollLock: false,
+					uiProfile: 'balanced',
 				},
 			})
 		);

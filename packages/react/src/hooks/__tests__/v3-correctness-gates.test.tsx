@@ -28,11 +28,11 @@ import { createConsentManagerStore } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
-	showConsentBanner: vi.fn(),
-	setConsent: vi.fn(),
-	verifyConsent: vi.fn(),
-	identifyUser: vi.fn(),
 	$fetch: vi.fn(),
+	identifyUser: vi.fn(),
+	setConsent: vi.fn(),
+	showConsentBanner: vi.fn(),
+	verifyConsent: vi.fn(),
 });
 
 describe('v3 gate: React stale-closure mechanism (issue #604)', () => {

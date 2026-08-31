@@ -1,18 +1,14 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-	title: 'c15t Script Lifecycle Bench',
 	description: 'Deterministic script lifecycle benchmarks for c15t',
+	title: 'c15t Script Lifecycle Bench',
 };
 
-export default function RootLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
-	return (
-		<html lang="en">
-			<body>{children}</body>
-		</html>
-	);
-}
+const RootLayout = ({ children }: { children: React.ReactNode }) => (
+	<html lang="en">
+		<body>{children}</body>
+	</html>
+);
+
+export default RootLayout;

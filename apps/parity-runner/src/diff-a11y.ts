@@ -13,6 +13,8 @@
 
 import type { Page } from '@playwright/test';
 
-export async function captureA11yTree(page: Page): Promise<string> {
+export const captureA11yTree = function captureA11yTree(
+	page: Page
+): Promise<string> {
 	return page.locator('body').ariaSnapshot();
-}
+};

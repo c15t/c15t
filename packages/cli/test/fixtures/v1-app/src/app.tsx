@@ -3,28 +3,27 @@ import {
 	ConsentManagerProvider,
 	ConsentManagerWidget,
 	CookieBanner,
-	type CookieBannerProps,
-	type TrackingBlockerConfig,
 	useConsentManager,
 } from '@c15t/react';
+import type { CookieBannerProps, TrackingBlockerConfig } from '@c15t/react';
 
 const trackingBlockerConfig: TrackingBlockerConfig = {
 	disableAutomaticBlocking: true,
 	domainConsentMap: {
-		'google-analytics.com': 'measurement',
 		'facebook.com': 'marketing',
+		'google-analytics.com': 'measurement',
 	},
 };
 
 const options = {
-	mode: 'c15t',
+	gdprTypes: ['necessary', 'marketing'],
 	ignoreGeoLocation: true,
+	mode: 'c15t',
 	react: {
-		theme: theme,
 		colorScheme: 'dark',
 		disableAnimation: true,
+		theme,
 	},
-	gdprTypes: ['necessary', 'marketing'],
 	trackingBlockerConfig,
 	translations: {
 		defaultLanguage: 'en',
@@ -45,7 +44,7 @@ const consentStore = {
 
 const bannerProps: CookieBannerProps = {};
 
-export function App() {
+export const App = () => {
 	const {
 		showPopup,
 		setShowPopup,
@@ -72,4 +71,4 @@ export function App() {
 			<ConsentManagerWidget />
 		</ConsentManagerProvider>
 	);
-}
+};

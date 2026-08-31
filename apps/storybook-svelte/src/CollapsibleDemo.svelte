@@ -29,7 +29,10 @@
 		<span>{title}</span>
 		<span aria-hidden="true">+</span>
 	</Collapsible.Trigger>
-	<div class={classes.content()} data-state={getOpenState(open)}>
+	<div
+		class={classes.content()}
+		data-state={getOpenState(open)}
+	>
 		<div class={classes.contentViewport()}>
 			<div class={classes.contentInner()}>
 				<p style="margin:0;">{description}</p>

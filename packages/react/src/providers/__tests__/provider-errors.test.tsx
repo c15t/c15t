@@ -1,6 +1,7 @@
 // consent-manager-provider.errors.test.tsx - Test error handling
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import { ConsentManagerProvider } from '../consent-manager-provider';
 import { setupMocks } from './test-helpers';
@@ -15,8 +16,8 @@ describe('ConsentManagerProvider Error Handling', () => {
 		// Mock error response
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify({ error: 'API error' }), {
-				status: 500,
 				headers: { 'Content-Type': 'application/json' },
+				status: 500,
 			})
 		);
 	});
@@ -38,8 +39,8 @@ describe('ConsentManagerProvider Error Handling', () => {
 		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
+					mode: 'hosted',
 				}}
 			>
 				<ErrorDetectingComponent />
@@ -49,7 +50,9 @@ describe('ConsentManagerProvider Error Handling', () => {
 		// Verify component renders even with errors
 		await vi.waitFor(() => {
 			const requestState = getByTestId('request-state');
-			expect(requestState).toHaveTextContent(/Manager (Not )?Ready/);
+			expect(requestState).toHaveTextContent(
+				/Manager (?<capture1>Not )?Ready/u
+			);
 		});
 
 		// Verify the fetch was called

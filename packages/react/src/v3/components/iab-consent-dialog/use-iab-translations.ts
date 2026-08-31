@@ -77,14 +77,14 @@ interface IABTranslations {
 
 // Get the default IAB translations from the translations package
 // This is the single source of truth - no duplicated default strings
-// biome-ignore lint/style/noNonNullAssertion: enTranslations is guaranteed to exist in defaultTranslationConfig
+// oxlint-disable-next-line typescript/no-non-null-assertion -- enTranslations is guaranteed to exist in defaultTranslationConfig
 const DEFAULT_IAB_TRANSLATIONS = defaultTranslationConfig.translations.en!
 	.iab as IABTranslations;
 
 /**
  * Deep merge helper for IAB translations
  */
-function deepMerge<T extends Record<string, unknown>>(
+const deepMerge = function deepMerge<T extends Record<string, unknown>>(
 	defaults: T,
 	overrides?: Partial<T>
 ): T {
@@ -116,7 +116,7 @@ function deepMerge<T extends Record<string, unknown>>(
 	}
 
 	return result;
-}
+};
 
 /**
  * Hook to get IAB translations with fallback to defaults from the translations package.
@@ -126,28 +126,29 @@ function deepMerge<T extends Record<string, unknown>>(
  *
  * @returns Complete IAB translations object
  */
-export function useIABTranslations(): IABTranslations {
-	const translations = useTranslations();
+export const useIABTranslations =
+	function useIABTranslations(): IABTranslations {
+		const translations = useTranslations();
 
-	if (!translations.iab) {
-		return DEFAULT_IAB_TRANSLATIONS;
-	}
+		if (!translations.iab) {
+			return DEFAULT_IAB_TRANSLATIONS;
+		}
 
-	// Deep merge user translations with defaults
-	return {
-		banner: deepMerge(
-			DEFAULT_IAB_TRANSLATIONS.banner,
-			translations.iab.banner as Partial<IABTranslations['banner']>
-		),
-		common: deepMerge(
-			DEFAULT_IAB_TRANSLATIONS.common,
-			translations.iab.common as Partial<IABTranslations['common']>
-		),
-		preferenceCenter: deepMerge(
-			DEFAULT_IAB_TRANSLATIONS.preferenceCenter,
-			translations.iab.preferenceCenter as Partial<
-				IABTranslations['preferenceCenter']
-			>
-		),
+		// Deep merge user translations with defaults
+		return {
+			banner: deepMerge(
+				DEFAULT_IAB_TRANSLATIONS.banner,
+				translations.iab.banner as Partial<IABTranslations['banner']>
+			),
+			common: deepMerge(
+				DEFAULT_IAB_TRANSLATIONS.common,
+				translations.iab.common as Partial<IABTranslations['common']>
+			),
+			preferenceCenter: deepMerge(
+				DEFAULT_IAB_TRANSLATIONS.preferenceCenter,
+				translations.iab.preferenceCenter as Partial<
+					IABTranslations['preferenceCenter']
+				>
+			),
+		};
 	};
-}

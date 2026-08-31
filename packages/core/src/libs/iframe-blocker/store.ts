@@ -6,6 +6,18 @@ import {
 	setupIframeObserver,
 } from './core';
 
+interface IframeManagerDependencies {
+	getIframeConsentCategories: typeof getIframeConsentCategories;
+	processAllIframes: typeof processAllIframes;
+	setupIframeObserver: typeof setupIframeObserver;
+}
+
+const defaultIframeManagerDependencies: IframeManagerDependencies = {
+	getIframeConsentCategories,
+	processAllIframes,
+	setupIframeObserver,
+};
+
 /**
  * Creates an iframe manager that integrates with the main consent store.
  *
@@ -21,9 +33,10 @@ import {
  *
  * @internal
  */
-export function createIframeManager(
+export const createIframeManager = function createIframeManager(
 	get: () => ConsentStoreState,
-	_set: (partial: Partial<ConsentStoreState>) => void
+	_set: (partial: Partial<ConsentStoreState>) => void,
+	dependencies: IframeManagerDependencies = defaultIframeManagerDependencies
 ) {
 	// Store MutationObserver in closure (DOM API, not serializable)
 	// Similar to how script loader manages DOM elements
@@ -31,6 +44,42 @@ export function createIframeManager(
 	let isInitialized = false;
 
 	return {
+		/**
+		 * Destroys the iframe blocker and cleans up the observer.
+		 *
+		 * @remarks
+		 * Disconnects the underlying `MutationObserver` and marks the
+		 * iframe manager as uninitialized. Safe to call multiple times.
+		 * No-ops in non-browser environments or when automatic blocking is
+		 * disabled.
+		 */
+		destroyIframeBlocker: () => {
+			// Only destroy if initialized
+			if (!isInitialized) {
+				return;
+			}
+
+			// Skip destruction in non-browser environments
+			if (typeof document === 'undefined') {
+				return;
+			}
+
+			const state = get();
+			const { iframeBlockerConfig } = state;
+
+			if (iframeBlockerConfig?.disableAutomaticBlocking) {
+				return;
+			}
+
+			if (observer) {
+				observer.disconnect();
+				observer = null;
+			}
+
+			// Mark as not initialized
+			isInitialized = false;
+		},
+
 		/**
 		 * Initializes the iframe blocker and starts monitoring iframes.
 		 *
@@ -67,7 +116,7 @@ export function createIframeManager(
 
 			// Helper to extract and register iframe categories
 			const discoverAndRegisterCategories = () => {
-				const iframeCategories = getIframeConsentCategories();
+				const iframeCategories = dependencies.getIframeConsentCategories();
 				if (iframeCategories.length > 0) {
 					get().updateConsentCategories(iframeCategories);
 				}
@@ -88,11 +137,11 @@ export function createIframeManager(
 			setTimeout(discoverAndRegisterCategories, 100);
 
 			// Process all existing iframes (pure function call)
-			processAllIframes(runtimeConsents);
+			dependencies.processAllIframes(runtimeConsents);
 
 			// Set up observer for dynamically added iframes
 			// Pass callback to discover categories when new iframes are added
-			observer = setupIframeObserver(
+			observer = dependencies.setupIframeObserver(
 				() => {
 					const nextState = get();
 					return applyPolicyScopeForRuntimeGating(
@@ -136,7 +185,7 @@ export function createIframeManager(
 				return;
 			}
 
-			processAllIframes(
+			dependencies.processAllIframes(
 				applyPolicyScopeForRuntimeGating(
 					consents,
 					state.policyCategories,
@@ -144,41 +193,5 @@ export function createIframeManager(
 				)
 			);
 		},
-
-		/**
-		 * Destroys the iframe blocker and cleans up the observer.
-		 *
-		 * @remarks
-		 * Disconnects the underlying `MutationObserver` and marks the
-		 * iframe manager as uninitialized. Safe to call multiple times.
-		 * No-ops in non-browser environments or when automatic blocking is
-		 * disabled.
-		 */
-		destroyIframeBlocker: () => {
-			// Only destroy if initialized
-			if (!isInitialized) {
-				return;
-			}
-
-			// Skip destruction in non-browser environments
-			if (typeof document === 'undefined') {
-				return;
-			}
-
-			const state = get();
-			const { iframeBlockerConfig } = state;
-
-			if (iframeBlockerConfig?.disableAutomaticBlocking) {
-				return;
-			}
-
-			if (observer) {
-				observer.disconnect();
-				observer = null;
-			}
-
-			// Mark as not initialized
-			isInitialized = false;
-		},
 	};
-}
+};

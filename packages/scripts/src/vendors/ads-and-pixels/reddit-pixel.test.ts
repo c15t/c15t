@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
@@ -46,8 +47,8 @@ describe('redditPixel', () => {
 		const globalRef = getTestGlobal();
 		const script = redditPixel({
 			pixelId: 't2_abcdef',
-			trackPageVisit: false,
 			scriptUrl: 'https://cdn.example.com/reddit-pixel.js',
+			trackPageVisit: false,
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/reddit-pixel.js');
@@ -60,22 +61,22 @@ describe('redditPixel', () => {
 	it('passes privacy and matching options to pixel init', () => {
 		const globalRef = getTestGlobal();
 		const script = redditPixel({
-			pixelId: 't2_abcdef',
 			disableFirstPartyCookies: true,
 			initOptions: {
-				optOut: true,
-				email: 'person@example.com',
-				externalId: 'customer-123',
 				aam: {
 					email: false,
 					phone_number: false,
 				},
-				dpm: ['LDU'],
 				dpcc: 'US',
+				dpm: ['LDU'],
 				dprc: 'CA',
+				email: 'person@example.com',
+				externalId: 'customer-123',
+				optOut: true,
 				partner: 'c15t',
 				partner_version: '2.0.0',
 			},
+			pixelId: 't2_abcdef',
 		});
 
 		runOnBeforeLoad(script);
@@ -86,19 +87,19 @@ describe('redditPixel', () => {
 				'init',
 				't2_abcdef',
 				{
-					optOut: true,
-					email: 'person@example.com',
-					externalId: 'customer-123',
 					aam: {
 						email: false,
 						phone_number: false,
 					},
-					dpm: ['LDU'],
+					disableFirstPartyCookies: true,
 					dpcc: 'US',
+					dpm: ['LDU'],
 					dprc: 'CA',
+					email: 'person@example.com',
+					externalId: 'customer-123',
+					optOut: true,
 					partner: 'c15t',
 					partner_version: '2.0.0',
-					disableFirstPartyCookies: true,
 				},
 			],
 			['track', 'PageVisit'],
@@ -112,21 +113,21 @@ describe('redditPixel', () => {
 		runOnBeforeLoad(script);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: false,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: {
-					necessary: true,
-					functionality: false,
-					measurement: false,
-					marketing: true,
 					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: false,
+					necessary: true,
 				},
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -149,31 +150,33 @@ describe('redditPixelEvent', () => {
 		globalRef.rdt = rdt;
 
 		redditPixelEvent('Purchase', {
-			value: 99,
-			currency: 'USD',
 			conversionId: 'conversion-123',
+			currency: 'USD',
 			products: [
 				{
 					id: 'sku-123',
+					itemPrice: 99,
+
 					name: 'Example product',
 					quantity: 1,
-					itemPrice: 99,
 				},
 			],
+			value: 99,
 		});
 
 		expect(rdt).toHaveBeenCalledWith('track', 'Purchase', {
-			value: 99,
-			currency: 'USD',
 			conversionId: 'conversion-123',
+			currency: 'USD',
 			products: [
 				{
 					id: 'sku-123',
+					itemPrice: 99,
+
 					name: 'Example product',
 					quantity: 1,
-					itemPrice: 99,
 				},
 			],
+			value: 99,
 		});
 	});
 });

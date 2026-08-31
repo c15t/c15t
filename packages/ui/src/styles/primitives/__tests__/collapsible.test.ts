@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { collapsibleVariants } from '../collapsible';
 
 describe('collapsibleVariants', () => {

@@ -1,141 +1,142 @@
 import type { CompleteTranslations } from '../types';
+
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Hyväksy kaikki',
-		rejectAll: 'Hylkää kaikki',
-		customize: 'Mukauta',
-		save: 'Tallenna asetukset',
 		close: 'Sulje',
+		customize: 'Mukauta',
+		rejectAll: 'Hylkää kaikki',
+		save: 'Tallenna asetukset',
 		securedBy: 'Suojauksen tarjoaa',
 	},
-	cookieBanner: {
-		title: 'Arvostamme yksityisyyttäsi',
-		description:
-			'Tämä sivusto käyttää evästeitä parantaakseen selauskokemustasi, analysoidakseen sivuston liikennettä ja näyttääkseen yksilöllistä sisältöä.',
-	},
 	consentManagerDialog: {
-		title: 'Tietosuoja-asetukset',
 		description:
 			'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppiset evästeet ja seurantatekniikat sallit.',
+		title: 'Tietosuoja-asetukset',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Ehdottoman tarpeellinen',
-			description:
-				'Nämä evästeet ovat välttämättömiä, jotta verkkosivusto toimisi oikein, eikä niitä voi poistaa käytöstä.',
-		},
-		functionality: {
-			title: 'Toiminnallisuus',
-			description:
-				'Nämä evästeet mahdollistavat verkkosivuston tehostetun toiminnallisuuden ja personoinnin.',
-		},
-		marketing: {
-			title: 'Markkinointi',
-			description:
-				'Näitä evästeitä käytetään relevanttien mainosten lähettämiseen ja niiden tehokkuuden seurantaan.',
-		},
-		measurement: {
-			title: 'Analytiikka',
-			description:
-				'Nämä evästeet auttavat meitä ymmärtämään, miten kävijät ovat vuorovaikutuksessa verkkosivuston kanssa, ja parantamaan sen suorituskykyä.',
-		},
 		experience: {
-			title: 'Kokemus',
 			description:
 				'Nämä evästeet auttavat meitä tarjoamaan paremman käyttökokemuksen ja testaamaan uusia ominaisuuksia.',
+			title: 'Kokemus',
+		},
+		functionality: {
+			description:
+				'Nämä evästeet mahdollistavat verkkosivuston tehostetun toiminnallisuuden ja personoinnin.',
+			title: 'Toiminnallisuus',
+		},
+		marketing: {
+			description:
+				'Näitä evästeitä käytetään relevanttien mainosten lähettämiseen ja niiden tehokkuuden seurantaan.',
+			title: 'Markkinointi',
+		},
+		measurement: {
+			description:
+				'Nämä evästeet auttavat meitä ymmärtämään, miten kävijät ovat vuorovaikutuksessa verkkosivuston kanssa, ja parantamaan sen suorituskykyä.',
+			title: 'Analytiikka',
+		},
+		necessary: {
+			description:
+				'Nämä evästeet ovat välttämättömiä, jotta verkkosivusto toimisi oikein, eikä niitä voi poistaa käytöstä.',
+			title: 'Ehdottoman tarpeellinen',
 		},
 	},
+	cookieBanner: {
+		description:
+			'Tämä sivusto käyttää evästeitä parantaakseen selauskokemustasi, analysoidakseen sivuston liikennettä ja näyttääkseen yksilöllistä sisältöä.',
+		title: 'Arvostamme yksityisyyttäsi',
+	},
 	frame: {
-		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
 		actionButton: 'Ota {category} käyttöön',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
-		loading: 'Loading content…',
-		error: 'This content could not be loaded.',
-	},
-	legalLinks: {
-		privacyPolicy: 'Tietosuojakäytäntö',
-		cookiePolicy: 'Evästekäytäntö',
-		termsOfService: 'Käyttöehdot',
+		title: 'Hyväksy {category}, jotta voit tarkastella tätä sisältöä.',
 	},
 	iab: {
 		banner: {
-			title: 'Tietosuoja-asetukset',
+			andMore: 'Ja {count} muuta...',
 			description:
 				'Me ja {partnerCount} kumppaniamme tallennamme ja/tai käytämme tietoja laitteellasi ja käsittelemme henkilötietoja, kuten yksilöllisiä tunnisteita ja selaustietoja, tällä verkkosivustolla seuraaviin tarkoituksiin:',
-			partnersLink: '{count} kumppania',
-			andMore: 'Ja {count} muuta...',
 			legitimateInterestNotice:
 				'Jotkut kumppanit vetoavat oikeutettuun etuun tietojesi käsittelyssä. Sinulla on oikeus vastustaa tätä käsittelyä, mukauttaa valintojasi ja peruuttaa suostumuksesi milloin tahansa.',
+			partnersLink: '{count} kumppania',
+			scopeGroup: 'Valintasi koskee kaikkia verkkosivujamme tässä ryhmässä.',
 			scopeServiceSpecific:
 				'Suostumuksesi koskee vain tätä verkkosivustoa eikä vaikuta muihin palveluihin.',
-			scopeGroup: 'Valintasi koskee kaikkia verkkosivujamme tässä ryhmässä.',
+			title: 'Tietosuoja-asetukset',
+		},
+		common: {
+			acceptAll: 'Hyväksy kaikki',
+			clearSelection: 'Tyhjennä',
+			customPartner: 'Mukautettu kumppani, joka ei ole rekisteröitynyt IAB:hen',
+			customize: 'Mukauta',
+			loading: 'Ladataan...',
+			rejectAll: 'Hylkää kaikki',
+			saveSettings: 'Tallenna asetukset',
+			showingSelectedVendor: 'Näytetään valittu toimittaja',
 		},
 		preferenceCenter: {
-			title: 'Tietosuoja-asetukset',
 			description:
 				'Mukauta yksityisyysasetuksiasi täällä. Voit valita, minkä tyyppiset evästeet ja seurantatekniikat sallit.',
-			tabs: {
-				purposes: 'Käyttötarkoitukset',
-				vendors: 'Kumppanit',
+			footer: {
+				consentStorage:
+					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi. Säilytysaika voi alkaa alusta, kun päivität asetuksiasi.',
 			},
 			purposeItem: {
-				partners: '{count} kumppania',
-				vendorsUseLegitimateInterest:
-					'{count} kumppania vetoaa oikeutettuun etuun',
 				examples: 'Esimerkit',
-				partnersUsingPurpose: 'Tätä käyttötarkoitusta käyttävät kumppanit',
-				withYourPermission: 'Luvallasi',
 				legitimateInterest: 'Oikeutettu etu',
 				objectButton: 'Vastusta',
 				objected: 'Vastustettu',
+				partners: '{count} kumppania',
+				partnersUsingPurpose: 'Tätä käyttötarkoitusta käyttävät kumppanit',
 				rightToObject:
 					'Sinulla on oikeus vastustaa oikeutettuun etuun perustuvaa käsittelyä.',
+				vendorsUseLegitimateInterest:
+					'{count} kumppania vetoaa oikeutettuun etuun',
+				withYourPermission: 'Luvallasi',
 			},
 			specialPurposes: {
 				title: 'Välttämättömät toiminnot (pakollinen)',
 				tooltip:
 					'Nämä ovat välttämättömiä sivuston toimivuuden ja turvallisuuden kannalta. IAB TCF:n mukaan et voi vastustaa näitä erityisiä käyttötarkoituksia.',
 			},
+			tabs: {
+				purposes: 'Käyttötarkoitukset',
+				vendors: 'Kumppanit',
+			},
+			title: 'Tietosuoja-asetukset',
 			vendorList: {
-				search: 'Hae kumppaneita...',
-				showingCount: '{filtered}/{total} kumppania',
-				iabVendorsHeading: 'IAB-rekisteröidyt kumppanit',
-				iabVendorsNotice:
-					'Nämä kumppanit on rekisteröity IAB Transparency & Consent Framework (TCF) -järjestelmään, joka on alan standardi suostumusten hallintaan',
 				customVendorsHeading: 'Mukautetut kumppanit',
 				customVendorsNotice:
 					'Nämä ovat mukautettuja kumppaneita, jotka eivät ole rekisteröityneet IAB Transparency & Consent Framework (TCF) -järjestelmään. Ne käsittelevät tietoja suostumuksesi perusteella, ja niillä voi olla erilaiset tietosuojakäytännöt kuin IAB:hen rekisteröityneillä toimittajilla.',
-				purposes: 'Tarkoitukset',
-				specialPurposes: 'Erityistarkoitukset',
-				specialFeatures: 'Erikoisominaisuudet',
-				features: 'Ominaisuudet',
 				dataCategories: 'Tietoluokat',
-				usesCookies: 'Käyttää evästeitä',
-				nonCookieAccess: 'Muu kuin evästepohjainen käyttö',
-				maxAge: 'Enimmäisikä: {days} pv',
-				retention: 'Säilytys: {days} pv',
+				features: 'Ominaisuudet',
+				iabVendorsHeading: 'IAB-rekisteröidyt kumppanit',
+				iabVendorsNotice:
+					'Nämä kumppanit on rekisteröity IAB Transparency & Consent Framework (TCF) -järjestelmään, joka on alan standardi suostumusten hallintaan',
 				legitimateInterest: 'Oikeutettu etu',
+				maxAge: 'Enimmäisikä: {days} pv',
+				nonCookieAccess: 'Muu kuin evästepohjainen käyttö',
 				privacyPolicy: 'Tietosuojakäytäntö',
-				storageDisclosure: 'Tallennustietojen julkistaminen',
+				purposes: 'Tarkoitukset',
 				requiredNotice:
 					'Vaaditaan sivuston toiminnallisuuden vuoksi, ei voi poistaa käytöstä',
-			},
-			footer: {
-				consentStorage:
-					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi. Säilytysaika voi alkaa alusta, kun päivität asetuksiasi.',
+				retention: 'Säilytys: {days} pv',
+				search: 'Hae kumppaneita...',
+				showingCount: '{filtered}/{total} kumppania',
+				specialFeatures: 'Erikoisominaisuudet',
+				specialPurposes: 'Erityistarkoitukset',
+				storageDisclosure: 'Tallennustietojen julkistaminen',
+				usesCookies: 'Käyttää evästeitä',
 			},
 		},
-		common: {
-			acceptAll: 'Hyväksy kaikki',
-			rejectAll: 'Hylkää kaikki',
-			customize: 'Mukauta',
-			saveSettings: 'Tallenna asetukset',
-			loading: 'Ladataan...',
-			showingSelectedVendor: 'Näytetään valittu toimittaja',
-			clearSelection: 'Tyhjennä',
-			customPartner: 'Mukautettu kumppani, joka ei ole rekisteröitynyt IAB:hen',
-		},
+	},
+	legalLinks: {
+		cookiePolicy: 'Evästekäytäntö',
+		privacyPolicy: 'Tietosuojakäytäntö',
+		termsOfService: 'Käyttöehdot',
 	},
 };
 export default translations;

@@ -2,14 +2,13 @@ name: autofix.ci
 on:
   pull_request:
   push:
-    branches: ["main"]
+    branches: ['main']
 permissions: {}
 
 jobs:
   autofix:
     if: >-
-      github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -27,23 +26,10 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install
 
-      # Cache Biome for faster formatting
-      - name: ⚡ Cache Biome
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: |
-            ~/.cache/biome
-          key: ${{ runner.os }}-biome-${{ hashFiles('**/biome.json') }}
-          restore-keys: |
-            ${{ runner.os }}-biome-
-
       - name: ✨ Format code
         run: bun fmt
 
-      - name: 📦 Format package.json
-        run: bunx sort-package-json@3.4.0 "package.json" "packages/*/package.json"
-
-      - name: 📚 Format Docs 
+      - name: 📚 Format Docs
         run: bun fmt:docs
 
       - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c

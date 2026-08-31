@@ -1,12 +1,11 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import {
-	Node,
-	type ObjectLiteralExpression,
-	Project,
-	type PropertyAssignment,
-	SyntaxKind,
-} from 'ts-morph';
+
+import { Node, Project, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
+import type * as TsMorphTypes from 'ts-morph';
+
+import { forEachSequential } from '../../utils/for-each-sequential';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -26,11 +25,11 @@ const LEGACY_TYPE_NAME = 'TrackingBlockerConfig';
 const NEXT_TYPE_NAME = 'NetworkBlockerConfig';
 const C15T_PACKAGES = new Set(['c15t', '@c15t/react', '@c15t/nextjs']);
 
-type TrackingBlockerResult = {
+interface TrackingBlockerResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	/**
@@ -54,23 +53,25 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
-}
+	return rawName.replace(/^['"]|['"]$/gu, '');
+};
 
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -83,9 +84,11 @@ function getProperty(
 		}
 	}
 	return undefined;
-}
+};
 
-function invertExpression(expressionText: string): string {
+const invertExpression = function invertExpression(
+	expressionText: string
+): string {
 	const trimmed = expressionText.trim();
 	if (trimmed === 'true') {
 		return 'false';
@@ -97,10 +100,10 @@ function invertExpression(expressionText: string): string {
 		return trimmed.slice(1).trim();
 	}
 	return `!(${trimmed})`;
-}
+};
 
-function getObjectPropertyKeyText(
-	property: import('ts-morph').ObjectLiteralElementLike
+const getObjectPropertyKeyText = function getObjectPropertyKeyText(
+	property: TsMorphTypes.ObjectLiteralElementLike
 ): string | undefined {
 	if (!Node.isPropertyAssignment(property)) {
 		return undefined;
@@ -115,11 +118,11 @@ function getObjectPropertyKeyText(
 	}
 
 	const raw = nameNode.getText();
-	return raw.replace(/^['"]|['"]$/g, '');
-}
+	return raw.replace(/^['"]|['"]$/gu, '');
+};
 
-function buildRulesExpression(
-	domainConsentMapInitializer: import('ts-morph').Expression
+const buildRulesExpression = function buildRulesExpression(
+	domainConsentMapInitializer: TsMorphTypes.Expression
 ): string {
 	const domainMapObject = domainConsentMapInitializer.asKind(
 		SyntaxKind.ObjectLiteralExpression
@@ -149,9 +152,9 @@ function buildRulesExpression(
 	}
 
 	return `[${entries.join(', ')}]`;
-}
+};
 
-function migrateTrackingBlockerObject(
+const migrateTrackingBlockerObject = function migrateTrackingBlockerObject(
 	trackingObject: ObjectLiteralExpression
 ): string {
 	const disableAutomaticBlockingProperty = getProperty(
@@ -169,7 +172,7 @@ function migrateTrackingBlockerObject(
 
 	const rulesExpression = domainConsentMapProperty?.getInitializer()
 		? buildRulesExpression(
-				domainConsentMapProperty.getInitializer() as import('ts-morph').Expression
+				domainConsentMapProperty.getInitializer() as TsMorphTypes.Expression
 			)
 		: '[]';
 
@@ -181,10 +184,10 @@ function migrateTrackingBlockerObject(
 	return `{
 		${lines.join('\n\t\t')}
 	}`;
-}
+};
 
-function getBindingPropertyName(
-	element: import('ts-morph').BindingElement
+const getBindingPropertyName = function getBindingPropertyName(
+	element: TsMorphTypes.BindingElement
 ): string | undefined {
 	const propertyNameNode = element.getPropertyNameNode();
 	if (propertyNameNode) {
@@ -202,38 +205,38 @@ function getBindingPropertyName(
 		return undefined;
 	}
 	return nameNode.getText();
-}
+};
 
-function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+const transformSourceFile = function transformSourceFile(
+	sourceFile: TsMorphTypes.SourceFile
 ): TrackingBlockerResult {
 	let operations = 0;
 	const summaries: string[] = [];
 	let hasC15tTrackingTypeImport = false;
 
 	const imports = sourceFile.getImportDeclarations();
-	for (const importDeclaration of imports) {
+	imports.forEach((importDeclaration) => {
 		if (!C15T_PACKAGES.has(importDeclaration.getModuleSpecifierValue())) {
-			continue;
+			return;
 		}
 
-		for (const namedImport of importDeclaration.getNamedImports()) {
+		importDeclaration.getNamedImports().forEach((namedImport) => {
 			if (namedImport.getNameNode().getText() !== LEGACY_TYPE_NAME) {
-				continue;
+				return;
 			}
 
 			namedImport.getNameNode().replaceWithText(NEXT_TYPE_NAME);
 			hasC15tTrackingTypeImport = true;
 			operations += 1;
 			summaries.push(`${LEGACY_TYPE_NAME} -> ${NEXT_TYPE_NAME}`);
-		}
-	}
+		});
+	});
 
 	if (hasC15tTrackingTypeImport) {
 		const identifiers = sourceFile.getDescendantsOfKind(SyntaxKind.Identifier);
-		for (const identifier of identifiers) {
+		identifiers.forEach((identifier) => {
 			if (identifier.getText() !== LEGACY_TYPE_NAME) {
-				continue;
+				return;
 			}
 
 			const parent = identifier.getParent();
@@ -241,36 +244,36 @@ function transformSourceFile(
 				Node.isImportSpecifier(parent) &&
 				parent.getNameNode() === identifier
 			) {
-				continue;
+				return;
 			}
 
 			identifier.replaceWithText(NEXT_TYPE_NAME);
 			operations += 1;
 			summaries.push(`${LEGACY_TYPE_NAME} references -> ${NEXT_TYPE_NAME}`);
-		}
+		});
 	}
 
 	const propertyAssignments = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAssignment
 	);
-	for (const property of propertyAssignments) {
+	propertyAssignments.forEach((property) => {
 		if (property.wasForgotten()) {
-			continue;
+			return;
 		}
 
 		if (getPropertyName(property) !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const parentObject = property.getParentIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
 		if (!parentObject) {
-			continue;
+			return;
 		}
 
 		if (getProperty(parentObject, NEXT_CONFIG_KEY)) {
-			continue;
+			return;
 		}
 
 		const initializer = property.getInitializer();
@@ -284,42 +287,42 @@ function transformSourceFile(
 			summaries.push(
 				'trackingBlockerConfig object -> networkBlocker rules/enabled'
 			);
-			continue;
+			return;
 		}
 
 		property.getNameNode().replaceWithText(NEXT_CONFIG_KEY);
 		operations += 1;
 		summaries.push('trackingBlockerConfig -> networkBlocker');
-	}
+	});
 
 	const shorthandAssignments = sourceFile.getDescendantsOfKind(
 		SyntaxKind.ShorthandPropertyAssignment
 	);
-	for (const shorthand of shorthandAssignments) {
+	shorthandAssignments.forEach((shorthand) => {
 		const name = shorthand.getNameNode().getText();
 		if (name !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const parent = shorthand.getParentIfKind(
 			SyntaxKind.ObjectLiteralExpression
 		);
 		if (parent && getProperty(parent, NEXT_CONFIG_KEY)) {
-			continue;
+			return;
 		}
 
 		shorthand.replaceWithText(`${NEXT_CONFIG_KEY}: ${name}`);
 		operations += 1;
 		summaries.push('trackingBlockerConfig shorthand -> networkBlocker');
-	}
+	});
 
 	const bindingElements = sourceFile.getDescendantsOfKind(
 		SyntaxKind.BindingElement
 	);
-	for (const element of bindingElements) {
+	bindingElements.forEach((element) => {
 		const propertyName = getBindingPropertyName(element);
 		if (propertyName !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const propertyNameNode = element.getPropertyNameNode();
@@ -328,7 +331,7 @@ function transformSourceFile(
 		} else {
 			const nameNode = element.getNameNode();
 			if (!Node.isIdentifier(nameNode)) {
-				continue;
+				return;
 			}
 
 			const localName = nameNode.getText();
@@ -342,64 +345,68 @@ function transformSourceFile(
 
 		operations += 1;
 		summaries.push('trackingBlockerConfig destructuring -> networkBlocker');
-	}
+	});
 
 	const propertyAccesses = sourceFile.getDescendantsOfKind(
 		SyntaxKind.PropertyAccessExpression
 	);
-	for (const propertyAccess of propertyAccesses) {
+	propertyAccesses.forEach((propertyAccess) => {
 		if (propertyAccess.getName() !== LEGACY_CONFIG_KEY) {
-			continue;
+			return;
 		}
 
 		const expressionText = propertyAccess.getExpression().getText();
 		propertyAccess.replaceWithText(`${expressionText}.${NEXT_CONFIG_KEY}`);
 		operations += 1;
 		summaries.push('trackingBlockerConfig access -> networkBlocker');
-	}
+	});
 
 	return {
 		changed: operations > 0,
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
-		for (const entry of entries) {
-			if (entry.isSymbolicLink()) {
-				continue;
-			}
-
-			if (entry.isDirectory()) {
-				if (IGNORED_DIRS.has(entry.name)) {
-					continue;
+		await forEachSequential(entries, {
+			run: async (entry) => {
+				if (entry.isSymbolicLink()) {
+					return;
 				}
-				await walk(join(currentDir, entry.name));
-				continue;
-			}
 
-			if (!entry.isFile()) {
-				continue;
-			}
+				if (entry.isDirectory()) {
+					if (IGNORED_DIRS.has(entry.name)) {
+						return;
+					}
+					await walk(join(currentDir, entry.name));
+					return;
+				}
 
-			const extension = extname(entry.name).toLowerCase();
-			if (!SUPPORTED_EXTENSIONS.has(extension)) {
-				continue;
-			}
+				if (!entry.isFile()) {
+					return;
+				}
 
-			files.push(join(currentDir, entry.name));
-		}
-	}
+				const extension = extname(entry.name).toLowerCase();
+				if (!SUPPORTED_EXTENSIONS.has(extension)) {
+					return;
+				}
+
+				files.push(join(currentDir, entry.name));
+			},
+		});
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates trackingBlockerConfig to networkBlocker config.
@@ -407,56 +414,59 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runTrackingBlockerToNetworkBlockerCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runTrackingBlockerToNetworkBlockerCodemod =
+	async function runTrackingBlockerToNetworkBlockerCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
-			}
+		await forEachSequential(filePaths, {
+			run: async (filePath) => {
+				try {
+					const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+					if (!sourceFile) {
+						return;
+					}
 
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
+					const result = transformSourceFile(sourceFile);
+					if (!result.changed) {
+						return;
+					}
 
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
+					changedFiles.push({
+						filePath,
+						operations: result.operations,
+						summaries: result.summaries,
+					});
 
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
-		}
-	}
+					if (!options.dryRun) {
+						await sourceFile.save();
+					}
+				} catch (error) {
+					errors.push({
+						error: error instanceof Error ? error.message : String(error),
+						filePath,
+					});
+				}
+			},
+		});
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

@@ -1,18 +1,22 @@
 'use client';
 
-import {
-	type Script,
-	type ScriptLoaderDebugEvent,
-	type ScriptLoaderHandle,
+import type {
+	Script,
+	ScriptLoaderDebugEvent,
+	ScriptLoaderHandle,
 } from '@c15t/core/v3/modules/script-loader';
 import { useEffect, useRef, useState } from 'react';
+
 import { useRequiredKernel } from './shared';
+
+const loadScriptLoaderModule = () =>
+	import('@c15t/core/v3/modules/script-loader');
 
 export interface UseScriptLoaderOptions {
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
 }
 
-export function useScriptLoader(
+export const useScriptLoader = function useScriptLoader(
 	scripts: Script[],
 	options: UseScriptLoaderOptions = {}
 ): ScriptLoaderHandle {
@@ -21,22 +25,25 @@ export function useScriptLoader(
 	const latestScriptsRef = useRef(scripts);
 	const latestOptionsRef = useRef(options);
 
-	latestScriptsRef.current = scripts;
-	latestOptionsRef.current = options;
-
-	const [handle] = useState<ScriptLoaderHandle>(() => ({
+	const [handle, setHandle] = useState<ScriptLoaderHandle>(() => ({
 		dispose() {
 			handleRef.current?.dispose();
 			handleRef.current = null;
+		},
+		getLoadedScriptIds() {
+			return handleRef.current?.getLoadedScriptIds() ?? [];
 		},
 		updateScripts(next) {
 			latestScriptsRef.current = next;
 			handleRef.current?.updateScripts(next);
 		},
-		getLoadedScriptIds() {
-			return handleRef.current?.getLoadedScriptIds() ?? [];
-		},
 	}));
+	void setHandle;
+
+	useEffect(() => {
+		latestScriptsRef.current = scripts;
+		latestOptionsRef.current = options;
+	}, [options, scripts]);
 
 	const firstRun = useRef(true);
 	useEffect(() => {
@@ -49,17 +56,18 @@ export function useScriptLoader(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('@c15t/core/v3/modules/script-loader').then(
-			({ createScriptLoader }) => {
-				if (disposed) return;
-				const created = createScriptLoader({
-					kernel,
-					scripts: latestScriptsRef.current,
-					onDebug: latestOptionsRef.current.onDebug,
-				});
-				handleRef.current = created;
+		void (async () => {
+			const { createScriptLoader } = await loadScriptLoaderModule();
+			if (disposed) {
+				return;
 			}
-		);
+			const created = createScriptLoader({
+				kernel,
+				onDebug: latestOptionsRef.current.onDebug,
+				scripts: latestScriptsRef.current,
+			});
+			handleRef.current = created;
+		})();
 
 		return () => {
 			disposed = true;
@@ -69,6 +77,6 @@ export function useScriptLoader(
 	}, [kernel]);
 
 	return handle;
-}
+};
 
 export type { Script, ScriptLoaderDebugEvent, ScriptLoaderHandle };

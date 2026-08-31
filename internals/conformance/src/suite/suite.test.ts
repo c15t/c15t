@@ -7,21 +7,19 @@
  */
 
 import { describe, expect, test } from 'bun:test';
-import {
-	DriverNotImplementedError,
-	type MountOptions,
-	type MountResult,
-	type TestDriver,
-} from '../driver';
-import { runConformanceSuite, type SuiteApi } from './index';
+
+import { DriverNotImplementedError } from '../driver';
+import type { MountOptions, MountResult, TestDriver } from '../driver';
+import { runConformanceSuite } from './index';
+import type { SuiteApi } from './index';
 
 const driver: TestDriver = {
 	framework: 'vue',
-	mount(_opts: MountOptions): Promise<MountResult> {
-		throw new DriverNotImplementedError('vue', 'mount');
-	},
 	getStore() {
 		return { getState: () => ({}), subscribe: () => () => {} };
+	},
+	mount(_opts: MountOptions): Promise<MountResult> {
+		throw new DriverNotImplementedError('vue', 'mount');
 	},
 	serverRender(_opts: MountOptions): Promise<string> {
 		throw new DriverNotImplementedError('vue', 'serverRender');
@@ -30,8 +28,8 @@ const driver: TestDriver = {
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

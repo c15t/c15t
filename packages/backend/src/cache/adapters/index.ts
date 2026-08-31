@@ -6,10 +6,7 @@
  * @packageDocumentation
  */
 
-export {
-	createCloudflareKVAdapter,
-	type KVNamespace,
-} from './cloudflare-kv';
+export { createCloudflareKVAdapter, type KVNamespace } from './cloudflare-kv';
 export {
 	clearMemoryCache,
 	createMemoryCacheAdapter,

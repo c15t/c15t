@@ -1,12 +1,20 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { checkInstalledDependencies } from './dependencies';
 
 const tempDirs: string[] = [];
 
-async function createProject(manifest: object): Promise<string> {
+interface ProjectManifest {
+	dependencies?: Record<string, string>;
+}
+
+const createProject = async function createProject(
+	manifest: ProjectManifest
+): Promise<string> {
 	const root = await mkdtemp(join(tmpdir(), 'c15t-check-deps-'));
 	tempDirs.push(root);
 	await writeFile(
@@ -15,11 +23,11 @@ async function createProject(manifest: object): Promise<string> {
 		'utf-8'
 	);
 	return root;
-}
+};
 
 afterEach(async () => {
 	await Promise.all(
-		tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
+		tempDirs.splice(0).map((dir) => rm(dir, { force: true, recursive: true }))
 	);
 });
 
@@ -30,8 +38,8 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		const result = await checkInstalledDependencies({
-			projectRoot: root,
 			dependencies: ['c15t'],
+			projectRoot: root,
 		});
 
 		expect(result.missing).toEqual(['c15t']);
@@ -44,8 +52,8 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		const result = await checkInstalledDependencies({
-			projectRoot: root,
 			dependencies: ['c15t'],
+			projectRoot: root,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
@@ -58,8 +66,8 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		const result = await checkInstalledDependencies({
-			projectRoot: root,
 			dependencies: ['c15t', '@c15t/scripts'],
+			projectRoot: root,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
@@ -72,8 +80,8 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		const result = await checkInstalledDependencies({
-			projectRoot: root,
 			dependencies: ['c15t'],
+			projectRoot: root,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
@@ -86,8 +94,8 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		const result = await checkInstalledDependencies({
-			projectRoot: root,
 			dependencies: ['@c15t/dev-tools'],
+			projectRoot: root,
 		});
 
 		expect(result.missing).toEqual(['@c15t/dev-tools']);

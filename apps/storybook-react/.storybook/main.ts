@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
 
@@ -12,8 +13,9 @@ const config: StorybookConfig = {
 	addons: ['@storybook/addon-a11y'],
 	framework: '@storybook/react-vite',
 	stories: ['../src/**/*.stories.@(ts|tsx)'],
-	viteFinal: async (config) =>
-		mergeConfig(config, {
+	// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
+	viteFinal: async (configLocal) =>
+		mergeConfig(configLocal, {
 			esbuild: {
 				jsx: 'automatic',
 				jsxImportSource: 'react',
@@ -30,7 +32,7 @@ const config: StorybookConfig = {
 			resolve: {
 				alias: [
 					{
-						find: /^@c15t\/conformance\/(.*)$/,
+						find: /^@c15t\/conformance\/(?<capture1>.*)$/u,
 						replacement: path.resolve(
 							storybookDir,
 							'../../../internals/conformance/src/$1'
@@ -41,78 +43,84 @@ const config: StorybookConfig = {
 						replacement: workspace('packages/react/src/primitives.ts'),
 					},
 					{
-						find: /^@c15t\/react$/,
+						find: /^@c15t\/react$/u,
 						replacement: workspace('packages/react/src/index.ts'),
 					},
 					{
-						find: /^@c15t\/iab$/,
+						find: /^@c15t\/iab$/u,
 						replacement: workspace('packages/iab/src/index.ts'),
 					},
 					{
-						find: /^@c15t\/schema\/types$/,
+						find: /^@c15t\/schema\/types$/u,
 						replacement: workspace('packages/schema/src/types.ts'),
 					},
 					{
-						find: /^@c15t\/schema$/,
+						find: /^@c15t\/schema$/u,
 						replacement: workspace('packages/schema/src/index.ts'),
 					},
 					{
-						find: /^c15t$/,
+						find: /^c15t$/u,
 						replacement: workspace('packages/core/src/index.ts'),
 					},
 					{
-						find: /^@iabtechlabtcf\/core$/,
+						find: /^@iabtechlabtcf\/core$/u,
 						replacement: workspace(
 							'packages/iab/node_modules/@iabtechlabtcf/core'
 						),
 					},
 					{
-						find: /^~\/(.*)$/,
+						find: /^~\/(?<capture1>.*)$/u,
 						replacement: workspace('packages/react/src/$1'),
 					},
 					// @c15t/ui — resolve all subpath imports to source
 					{
-						find: /^@c15t\/ui\/primitives\/data-state$/,
+						find: /^@c15t\/ui\/primitives\/data-state$/u,
 						replacement: ui('primitives', 'data-state.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/primitives\/(.+)$/,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						find: /^@c15t\/ui\/primitives\/(.+)$/u,
 						replacement: ui('primitives', '$1', 'index.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/primitives$/,
+						find: /^@c15t\/ui\/primitives$/u,
 						replacement: ui('primitives', 'index.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/styles\/primitives\/(.+)\.module\.js$/,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						find: /^@c15t\/ui\/styles\/primitives\/(.+)\.module\.js$/u,
 						replacement: ui('styles', 'primitives', '$1.module.css'),
 					},
 					{
-						find: /^@c15t\/ui\/styles\/primitives\/(.+)$/,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						find: /^@c15t\/ui\/styles\/primitives\/(.+)$/u,
 						replacement: ui('styles', 'primitives', '$1.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/styles\/primitives$/,
+						find: /^@c15t\/ui\/styles\/primitives$/u,
 						replacement: ui('styles', 'primitives', 'index.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/styles\/v3\/(.+)\.module\.css$/,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						find: /^@c15t\/ui\/styles\/v3\/(.+)\.module\.css$/u,
 						replacement: ui('styles', 'v3', '$1.module.css'),
 					},
 					{
-						find: /^@c15t\/ui\/styles\/v3\/(.+)$/,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						find: /^@c15t\/ui\/styles\/v3\/(.+)$/u,
 						replacement: ui('styles', 'v3', '$1.module.css'),
 					},
 					{
-						find: /^@c15t\/ui\/theme$/,
+						find: /^@c15t\/ui\/theme$/u,
 						replacement: ui('theme', 'index.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/utils$/,
+						find: /^@c15t\/ui\/utils$/u,
 						replacement: ui('utils', 'index.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/utils\/(.+)$/,
+						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+						find: /^@c15t\/ui\/utils\/(.+)$/u,
 						replacement: ui('utils', '$1.ts'),
 					},
 					{
@@ -120,7 +128,7 @@ const config: StorybookConfig = {
 						replacement: workspace('packages/translations/src/all.ts'),
 					},
 					{
-						find: /^@c15t\/translations$/,
+						find: /^@c15t\/translations$/u,
 						replacement: workspace('packages/translations/src/index.ts'),
 					},
 				],

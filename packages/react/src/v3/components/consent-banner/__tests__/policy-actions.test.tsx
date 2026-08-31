@@ -3,31 +3,15 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentProvider } from '~/v3/provider';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'banner',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -35,29 +19,88 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			layout: ['customize', ['reject', 'accept']],
-			direction: 'row',
-			uiProfile: 'balanced',
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
 		},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {
+			allowedActions: ['reject', 'accept', 'customize'],
+			direction: 'row',
+			layout: ['customize', ['reject', 'accept']],
+			primaryActions: ['accept'],
+			uiProfile: 'balanced',
+		},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-async function renderPolicyActions(
+const PolicyTestProvider = ({
+	children,
+	state,
+	providerOverrides,
+}: {
+	children: ReactNode;
+	state: ConsentStoreState;
+	providerOverrides?: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	>;
+}) => (
+	<ConsentProvider
+		options={{
+			components: providerOverrides?.components,
+			mode: 'offline',
+			persistence: false,
+			prefetch: {
+				initialConsents: state.consents,
+				initialPolicy: {
+					consent: {
+						categories: state.consentCategories,
+						scopeMode: 'permissive',
+					},
+					id: 'policy-actions-test',
+					model: state.model,
+					ui: {
+						banner: state.policyBanner,
+						dialog: state.policyDialog,
+						mode: 'banner',
+					},
+				},
+				initialTranslations: {
+					language: 'en',
+					translations: defaultTranslationConfig.translations.en as never,
+				},
+			},
+			theme: providerOverrides?.theme,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
+const renderPolicyActions = async function renderPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {},
 	renderAction?: ComponentProps<
 		typeof ConsentBanner.PolicyActions
@@ -90,9 +133,9 @@ async function renderPolicyActions(
 			/>
 		</PolicyTestProvider>
 	);
-}
+};
 
-async function renderDefaultPolicyActions(
+const renderDefaultPolicyActions = async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
@@ -102,52 +145,7 @@ async function renderDefaultPolicyActions(
 			<ConsentBanner.PolicyActions />
 		</PolicyTestProvider>
 	);
-}
-
-function PolicyTestProvider({
-	children,
-	state,
-	providerOverrides,
-}: {
-	children: ReactNode;
-	state: ConsentStoreState;
-	providerOverrides?: Partial<
-		ComponentProps<typeof ConsentProvider>['options']
-	>;
-}) {
-	return (
-		<ConsentProvider
-			options={{
-				mode: 'offline',
-				persistence: false,
-				components: providerOverrides?.components,
-				theme: providerOverrides?.theme,
-				prefetch: {
-					initialConsents: state.consents,
-					initialTranslations: {
-						language: 'en',
-						translations: defaultTranslationConfig.translations.en as never,
-					},
-					initialPolicy: {
-						id: 'policy-actions-test',
-						model: state.model,
-						consent: {
-							categories: state.consentCategories,
-							scopeMode: 'permissive',
-						},
-						ui: {
-							mode: 'banner',
-							banner: state.policyBanner,
-							dialog: state.policyDialog,
-						},
-					},
-				},
-			}}
-		>
-			{children}
-		</ConsentProvider>
-	);
-}
+};
 
 describe('ConsentBanner.PolicyActions', () => {
 	test('renders policy group ordering', async () => {
@@ -190,9 +188,9 @@ describe('ConsentBanner.PolicyActions', () => {
 		await renderPolicyActions({
 			policyBanner: {
 				allowedActions: ['accept'],
-				primaryActions: ['accept'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'row',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['accept'],
 			},
 		});
 
@@ -211,9 +209,9 @@ describe('ConsentBanner.PolicyActions', () => {
 		await renderPolicyActions({
 			policyBanner: {
 				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['accept'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'column',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['accept'],
 				uiProfile: 'strict',
 			},
 		});
@@ -226,10 +224,10 @@ describe('ConsentBanner.PolicyActions', () => {
 		);
 
 		expect(
-			footer?.className.split(/\s+/).filter(Boolean).length
+			footer?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
-			firstGroup?.className.split(/\s+/).filter(Boolean).length
+			firstGroup?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
 			document.querySelector('[data-testid="banner-action-accept"]')
@@ -261,9 +259,9 @@ describe('ConsentBanner.PolicyActions', () => {
 			{
 				policyBanner: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					primaryActions: ['customize'],
-					layout: ['customize', ['reject', 'accept']],
 					direction: 'row',
+					layout: ['customize', ['reject', 'accept']],
+					primaryActions: ['customize'],
 				},
 			},
 			(action, props) => {
@@ -298,16 +296,16 @@ describe('ConsentBanner.PolicyActions', () => {
 				}
 			},
 			{
-				theme: {
-					consentActions: {
-						default: { variant: 'neutral' },
-						accept: { variant: 'primary' },
-					},
-				},
 				components: {
 					button: {
 						primary: { className: 'button-primary-marker' },
 						secondary: { className: 'button-secondary-marker' },
+					},
+				},
+				theme: {
+					consentActions: {
+						accept: { variant: 'primary' },
+						default: { variant: 'neutral' },
 					},
 				},
 			}

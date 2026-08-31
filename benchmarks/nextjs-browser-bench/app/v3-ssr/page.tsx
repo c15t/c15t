@@ -1,5 +1,5 @@
 import { V3BenchmarkPageShell } from '../_bench/v3-page-shell';
 
-export default function V3SSRPage() {
-	return <V3BenchmarkPageShell scenario="nextjs-v3-ssr" />;
-}
+const V3SSRPage = () => <V3BenchmarkPageShell scenario="nextjs-v3-ssr" />;
+
+export default V3SSRPage;

@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Frame } from '../../../packages/react/src/v3/index';
 import { StorybookV3ConsentProvider } from './storybook-v3-fixtures';
 
@@ -18,8 +19,8 @@ export const Placeholder: Story = {
 	render: () => (
 		<StorybookV3ConsentProvider
 			storedConsent={{
-				necessary: true,
 				marketing: false,
+				necessary: true,
 			}}
 		>
 			<div style={{ width: '32rem' }}>
@@ -35,18 +36,18 @@ export const GrantedContent: Story = {
 	render: () => (
 		<StorybookV3ConsentProvider
 			storedConsent={{
-				necessary: true,
 				marketing: true,
+				necessary: true,
 			}}
 		>
 			<div style={{ width: '32rem' }}>
 				<Frame category="marketing">
 					<div
 						style={{
-							borderRadius: '1rem',
-							padding: '1.25rem',
 							background: 'var(--c15t-surface)',
 							border: '1px solid var(--c15t-border)',
+							borderRadius: '1rem',
+							padding: '1.25rem',
 						}}
 					>
 						Embedded marketing content is now visible.

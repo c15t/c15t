@@ -1,5 +1,6 @@
 import type { BaseConsentManagerOptions, UIOptions } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
+
 import type { ReactComponentSlots } from './slots';
 
 /**

@@ -7,17 +7,17 @@
  */
 
 import styles from '@c15t/ui/styles/v3/consent-manager';
+import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
+
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { Box } from '~/v3/components/shared/primitives/box';
 import {
 	ConsentTrackingContext,
 	useConsentTracking,
 } from '~/v3/context/consent-tracking-context';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/v3/context/theme-context';
+import { LocalThemeContext } from '~/v3/context/theme-context';
+import type { ThemeContextValue } from '~/v3/context/theme-context';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 
 /**
@@ -114,15 +114,22 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	 * Combine consent manager state with styling configuration
 	 * to create the context value for child components
 	 */
-	const contextValue = {
-		disableAnimation,
-		noStyle,
-	};
+	const contextValue = useMemo<ThemeContextValue>(
+		() => ({
+			disableAnimation,
+			noStyle,
+		}),
+		[disableAnimation, noStyle]
+	);
 
 	// If an explicit uiSource prop is given, always use it.
 	// Otherwise, inherit from a parent context (e.g. dialog wrapping this widget).
 	// Only fall back to 'widget' when used standalone with no parent context.
 	const resolvedUiSource = uiSource ?? parentTracking.uiSource ?? 'widget';
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: resolvedUiSource }),
+		[resolvedUiSource]
+	);
 
 	const content = (
 		<Box
@@ -137,7 +144,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 
 	if (useProvider) {
 		return (
-			<ConsentTrackingContext.Provider value={{ uiSource: resolvedUiSource }}>
+			<ConsentTrackingContext.Provider value={trackingContextValue}>
 				<LocalThemeContext.Provider value={contextValue}>
 					{content}
 				</LocalThemeContext.Provider>
@@ -146,7 +153,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	}
 
 	return (
-		<ConsentTrackingContext.Provider value={{ uiSource: resolvedUiSource }}>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			{content}
 		</ConsentTrackingContext.Provider>
 	);

@@ -1,6 +1,7 @@
 import type { Branding } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/branding';
 import type { SVGProps } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useBranding } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -8,6 +9,7 @@ import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';
@@ -19,25 +21,27 @@ export type BrandingSlotContext =
 	| 'iab-banner'
 	| 'iab-dialog';
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
 	slotContext?: BrandingSlotContext;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
-};
+}
 
-type BrandingFullLogoProps = {
+interface BrandingFullLogoProps {
 	branding: Branding | string;
 	className?: string;
-};
+}
 
 type BrandingCompactLogoProps = SVGProps<SVGSVGElement> & {
 	branding: Branding | string;
 };
 
-export function resolveBranding(branding: Branding | string): ResolvedBranding {
+export const resolveBranding = function resolveBranding(
+	branding: Branding | string
+): ResolvedBranding {
 	if (branding === 'none') {
 		return 'none';
 	}
@@ -47,21 +51,21 @@ export function resolveBranding(branding: Branding | string): ResolvedBranding {
 	}
 
 	return 'c15t';
-}
+};
 
-export function getBrandingHref(
+export const getBrandingHref = function getBrandingHref(
 	branding: Branding | string,
 	refParam = ''
 ): string {
 	return resolveBranding(branding) === 'inth'
 		? `https://inth.com${refParam}`
 		: `https://c15t.com${refParam}`;
-}
+};
 
-export function BrandingFullLogo({
+export const BrandingFullLogo = ({
 	branding,
 	className,
-}: BrandingFullLogoProps) {
+}: BrandingFullLogoProps) => {
 	if (resolveBranding(branding) === 'inth') {
 		return (
 			<span
@@ -84,32 +88,32 @@ export function BrandingFullLogo({
 			<span className={styles.brandingWordmarkLabel}>c15t</span>
 		</span>
 	);
-}
+};
 
-export function BrandingCompactLogo({
+export const BrandingCompactLogo = ({
 	branding,
 	...props
-}: BrandingCompactLogoProps) {
+}: BrandingCompactLogoProps) => {
 	const Logo =
 		resolveBranding(branding) === 'inth' ? InthIconOnly : C15TIconOnly;
 	return <Logo {...props} />;
-}
+};
 
-export function BrandingLink({
+export const BrandingLink = ({
 	hideBranding,
 	variant = 'footer',
 	slotContext,
 	className,
 	style,
 	'data-testid': testId,
-}: BrandingProps) {
+}: BrandingProps) => {
 	const branding = useBranding() ?? 'c15t';
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
 	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
 	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+		typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
 	const context = slotContext;
 	const brandingStyle = mergeSlotProps(
 		context ? components?.tag?.[context] : undefined,
@@ -121,9 +125,9 @@ export function BrandingLink({
 				variant === 'banner-tag' && styles.brandingTagBanner
 			),
 			className,
+			'data-testid': testId,
 			noStyle,
 			style,
-			'data-testid': testId,
 		}
 	);
 	const contentStyle = mergeSlotProps(
@@ -163,4 +167,4 @@ export function BrandingLink({
 			</span>
 		</a>
 	);
-}
+};

@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setDebugEnabled } from '../../../libs/debug';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store/initial-state';
-import type { ConsentState } from '../../../types';
-import type { ConsentInfo } from '../../../types/consent-types';
+
 import {
 	deleteConsentFromStorage,
 	deleteCookie,
@@ -12,6 +9,10 @@ import {
 	saveConsentToStorage,
 	setCookie,
 } from '..';
+import { setDebugEnabled } from '../../../libs/debug';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store/initial-state';
+import type { ConsentState } from '../../../types';
+import type { ConsentInfo } from '../../../types/consent-types';
 
 describe('Cookie Storage', () => {
 	beforeEach(() => {
@@ -27,7 +28,7 @@ describe('Cookie Storage', () => {
 	});
 
 	// Helper to compare consent data, accounting for normalization
-	function expectConsentsToMatch(
+	const expectConsentsToMatch = function expectConsentsToMatch(
 		actual: Partial<ConsentState> | undefined,
 		expected: Partial<ConsentState>
 	) {
@@ -39,7 +40,7 @@ describe('Cookie Storage', () => {
 		for (const [key, value] of Object.entries(expected)) {
 			expect(actual[key as keyof ConsentState]).toBe(value);
 		}
-	}
+	};
 
 	describe('setCookie', () => {
 		it('should set a cookie with a string value', () => {
@@ -55,8 +56,8 @@ describe('Cookie Storage', () => {
 
 		it('should set cookie with custom options', () => {
 			setCookie('test-cookie', 'value', {
-				path: '/custom',
 				expiryDays: 7,
+				path: '/custom',
 			});
 			expect(document.cookie).toContain('test-cookie=');
 		});
@@ -127,8 +128,8 @@ describe('Cookie Storage', () => {
 	describe('saveConsentToStorage', () => {
 		it('should save consent to both localStorage and cookie using new storage key', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now() },
+				consents: { measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -154,8 +155,8 @@ describe('Cookie Storage', () => {
 			});
 
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now() },
+				consents: { necessary: true },
 			};
 
 			// Should still succeed with cookie
@@ -170,21 +171,21 @@ describe('Cookie Storage', () => {
 
 		it('should preserve the stored material policy fingerprint when later writes omit it', () => {
 			const originalData = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: {
-					time: 1_700_000_000_000,
-					subjectId: 'sub_existing',
 					materialPolicyFingerprint: 'a'.repeat(64),
+					subjectId: 'sub_existing',
+					time: 1_700_000_000_000,
 				},
+				consents: { measurement: true, necessary: true },
 			};
 
 			saveConsentToStorage(originalData);
 			saveConsentToStorage({
-				consents: { necessary: true, measurement: false },
 				consentInfo: {
-					time: 1_700_000_000_100,
 					subjectId: 'sub_existing',
+					time: 1_700_000_000_100,
 				},
+				consents: { measurement: false, necessary: true },
 			});
 
 			const retrieved = getConsentFromStorage<typeof originalData>();
@@ -195,13 +196,13 @@ describe('Cookie Storage', () => {
 
 		it('should not persist nullish optional subject identifiers', () => {
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: {
-					time: Date.now(),
-					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
 					externalId: 'undefined',
 					identityProvider: null,
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					time: Date.now(),
 				},
+				consents: { necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -209,11 +210,11 @@ describe('Cookie Storage', () => {
 			const storedInLS = window.localStorage.getItem(STORAGE_KEY_V2);
 			expect(storedInLS).toBeTruthy();
 			expect(JSON.parse(storedInLS || '{}')).toEqual({
-				consents: { necessary: true },
 				consentInfo: {
-					time: consentData.consentInfo.time,
 					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					time: consentData.consentInfo.time,
 				},
+				consents: { necessary: true },
 			});
 
 			const cookieValue =
@@ -226,8 +227,8 @@ describe('Cookie Storage', () => {
 				consentInfo: ConsentInfo;
 			}>();
 			expect(retrieved?.consentInfo).toEqual({
-				time: consentData.consentInfo.time,
 				subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+				time: consentData.consentInfo.time,
 			});
 		});
 	});
@@ -235,8 +236,8 @@ describe('Cookie Storage', () => {
 	describe('getConsentFromStorage', () => {
 		it('should retrieve consent from localStorage when available', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: Date.now(), type: 'all' as const },
+				consents: { measurement: true, necessary: true },
 			};
 
 			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(consentData));
@@ -249,8 +250,8 @@ describe('Cookie Storage', () => {
 
 		it('should fallback to cookie when localStorage is empty', () => {
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now(), type: 'necessary' as const },
+				consents: { necessary: true },
 			};
 
 			setCookie(STORAGE_KEY_V2, consentData);
@@ -267,8 +268,8 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const consentData = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now(), type: 'custom' as const },
+				consents: { measurement: false, necessary: true },
 			};
 
 			// Set only in localStorage
@@ -299,8 +300,8 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const consentData = {
-				consents: { necessary: true, marketing: false },
 				consentInfo: { time: Date.now(), type: 'custom' as const },
+				consents: { marketing: false, necessary: true },
 			};
 			setCookie(STORAGE_KEY_V2, consentData);
 
@@ -329,8 +330,8 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const legacyConsentData = {
-				consents: { necessary: true, marketing: false },
 				consentInfo: { time: Date.now(), type: 'custom' as const },
+				consents: { marketing: false, necessary: true },
 			};
 
 			// Put data in legacy localStorage key
@@ -367,13 +368,13 @@ describe('Cookie Storage', () => {
 
 		it('should not migrate if new key already has data', () => {
 			const newConsentData = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: Date.now(), type: 'all' as const },
+				consents: { measurement: true, necessary: true },
 			};
 
 			const legacyConsentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now(), type: 'necessary' as const },
+				consents: { necessary: true },
 			};
 
 			// Set both keys
@@ -402,8 +403,8 @@ describe('Cookie Storage', () => {
 	describe('deleteConsentFromStorage', () => {
 		it('should delete consent from both localStorage and cookie', () => {
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now() },
+				consents: { necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -424,8 +425,8 @@ describe('Cookie Storage', () => {
 
 		it('should delete both legacy and new storage keys', () => {
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now() },
+				consents: { necessary: true },
 			};
 
 			// Set both legacy and new keys
@@ -469,8 +470,8 @@ describe('Cookie Storage', () => {
 	describe('Key shortening optimization', () => {
 		it('should shorten metadata keys in cookies while preserving consent keys', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false, marketing: true },
 				consentInfo: { time: 1234567890 },
+				consents: { marketing: true, measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -480,9 +481,12 @@ describe('Cookie Storage', () => {
 				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
 
 			// Check that cookie contains shortened keys in flat format
-			expect(cookieValue).toContain('c.'); // consents -> c
-			expect(cookieValue).toContain('i.'); // consentInfo -> i
-			expect(cookieValue).toContain('.t:'); // time -> t
+			// consents -> c
+			expect(cookieValue).toContain('c.');
+			// consentInfo -> i
+			expect(cookieValue).toContain('i.');
+			// time -> t
+			expect(cookieValue).toContain('.t:');
 
 			// Consent keys that are true should be preserved
 			expect(cookieValue).toContain('necessary');
@@ -499,8 +503,8 @@ describe('Cookie Storage', () => {
 
 		it('should correctly expand shortened keys when reading from cookie', () => {
 			const originalData = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now() },
+				consents: { measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(originalData);
@@ -523,14 +527,14 @@ describe('Cookie Storage', () => {
 
 		it('should preserve consent key names in both storage and retrieval', () => {
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					measurement: false,
-					experience: true,
-					marketing: false,
-				},
 				consentInfo: { time: Date.now() },
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: false,
+					measurement: false,
+					necessary: true,
+				},
 			};
 
 			saveConsentToStorage(consentData);
@@ -554,8 +558,8 @@ describe('Cookie Storage', () => {
 
 		it('should handle timestamp field shortening', () => {
 			const dataWithTimestamp = {
-				timestamp: new Date().toISOString(),
 				preferences: { necessary: true },
+				timestamp: new Date().toISOString(),
 			};
 
 			setCookie('test-timestamp', dataWithTimestamp);
@@ -580,8 +584,8 @@ describe('Cookie Storage', () => {
 
 		it('should convert true booleans to 1 and omit false for compression', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false, marketing: true },
 				consentInfo: { time: 1234567890 },
+				consents: { marketing: true, measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -591,9 +595,11 @@ describe('Cookie Storage', () => {
 				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
 
 			// True booleans should be stored as 1 in flat format
-			expect(cookieValue).toContain(':1'); // true -> 1
+			// true -> 1
+			expect(cookieValue).toContain(':1');
 			// False booleans should be omitted entirely for better compression
-			expect(cookieValue).not.toContain(':0'); // false -> omitted
+			// false -> omitted
+			expect(cookieValue).not.toContain(':0');
 			expect(cookieValue).not.toContain('true');
 			expect(cookieValue).not.toContain('false');
 
@@ -603,7 +609,8 @@ describe('Cookie Storage', () => {
 			// Reading back from cookie should restore true to boolean and normalize false values
 			const retrieved = getConsentFromStorage<typeof consentData>();
 			expect(retrieved?.consents?.necessary).toBe(true);
-			expect(retrieved?.consents?.measurement).toBe(false); // explicitly false, not undefined
+			// explicitly false, not undefined
+			expect(retrieved?.consents?.measurement).toBe(false);
 			expect(retrieved?.consents?.marketing).toBe(true);
 			expect(typeof retrieved?.consents?.necessary).toBe('boolean');
 			expect(typeof retrieved?.consents?.measurement).toBe('boolean');
@@ -611,8 +618,8 @@ describe('Cookie Storage', () => {
 
 		it('should reduce cookie size with flat format and key shortening', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now() },
+				consents: { measurement: false, necessary: true },
 			};
 
 			// Calculate size with JSON + URL encoding (old approach)
@@ -644,19 +651,22 @@ describe('Cookie Storage', () => {
 			// Verify it still works correctly (false values are explicitly returned as false)
 			const retrieved = getConsentFromStorage<typeof consentData>();
 			expect(retrieved?.consents?.necessary).toBe(true);
-			expect(retrieved?.consents?.measurement).toBe(false); // explicitly false
+			// explicitly false
+			expect(retrieved?.consents?.measurement).toBe(false);
 			expect(retrieved?.consentInfo?.time).toBe(consentData.consentInfo.time);
 		});
 	});
 
 	describe('Explicit false values', () => {
+		// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 		it('should return explicit false for all standard consent types', () => {
 			const consentData: {
 				consents: Partial<ConsentState>;
 				consentInfo: ConsentInfo;
 			} = {
-				consents: { necessary: true }, // Only one consent is true
 				consentInfo: { time: Date.now(), type: 'custom' },
+				// Only one consent is true,
+				consents: { necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -686,11 +696,12 @@ describe('Cookie Storage', () => {
 				consents: Partial<ConsentState> & { customConsent?: boolean };
 				consentInfo: ConsentInfo;
 			} = {
-				consents: {
-					necessary: true,
-					customConsent: true, // Non-standard consent type
-				},
 				consentInfo: { time: Date.now(), type: 'custom' },
+				consents: {
+					// Non-standard consent type
+					customConsent: true,
+					necessary: true,
+				},
 			};
 
 			saveConsentToStorage(consentData);
@@ -735,8 +746,8 @@ describe('Cookie Storage', () => {
 
 		it('should save new cookies without false values (optimized)', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false, marketing: false },
 				consentInfo: { time: 1234567890 },
+				consents: { marketing: false, measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -768,8 +779,8 @@ describe('Cookie Storage', () => {
 
 			// Now save new data (should use optimized format)
 			const newData = {
-				consents: { necessary: true, measurement: false, marketing: true },
 				consentInfo: { time: 2222222222 },
+				consents: { marketing: true, measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(newData);
@@ -789,9 +800,9 @@ describe('Cookie Storage', () => {
 		it('should provide getRootDomain helper for cross-subdomain cookies', () => {
 			// Mock window.location.hostname
 			Object.defineProperty(window, 'location', {
+				configurable: true,
 				value: { hostname: 'app.example.com' },
 				writable: true,
-				configurable: true,
 			});
 
 			const rootDomain = getRootDomain();
@@ -800,9 +811,9 @@ describe('Cookie Storage', () => {
 
 		it('should handle localhost correctly', () => {
 			Object.defineProperty(window, 'location', {
+				configurable: true,
 				value: { hostname: 'localhost' },
 				writable: true,
-				configurable: true,
 			});
 
 			const rootDomain = getRootDomain();
@@ -811,9 +822,9 @@ describe('Cookie Storage', () => {
 
 		it('should handle IP addresses correctly', () => {
 			Object.defineProperty(window, 'location', {
+				configurable: true,
 				value: { hostname: '192.168.1.1' },
 				writable: true,
-				configurable: true,
 			});
 
 			const rootDomain = getRootDomain();
@@ -822,9 +833,9 @@ describe('Cookie Storage', () => {
 
 		it('should work with deeply nested subdomains', () => {
 			Object.defineProperty(window, 'location', {
+				configurable: true,
 				value: { hostname: 'api.v2.app.example.com' },
 				writable: true,
-				configurable: true,
 			});
 
 			const rootDomain = getRootDomain();
@@ -833,8 +844,8 @@ describe('Cookie Storage', () => {
 
 		it('should save cookies with custom domain for cross-subdomain', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: Date.now(), type: 'custom' as const },
+				consents: { measurement: false, necessary: true },
 			};
 
 			// Save with explicit cross-domain
@@ -884,8 +895,8 @@ describe('Cookie Storage', () => {
 	describe('Storage configuration', () => {
 		it('should work with flat format for basic consent data', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: 1234567890, type: 'custom' as const },
+				consents: { measurement: false, necessary: true },
 			};
 
 			saveConsentToStorage(consentData);
@@ -902,8 +913,8 @@ describe('Cookie Storage', () => {
 
 		it('should allow custom storage key via config parameter', () => {
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now(), type: 'custom' as const },
+				consents: { necessary: true },
 			};
 
 			const customConfig = { storageKey: 'my-custom-consent' };
@@ -922,27 +933,27 @@ describe('Cookie Storage', () => {
 
 		it('should use crossSubdomain flag as simple alternative to explicit domain', () => {
 			Object.defineProperty(window, 'location', {
+				configurable: true,
 				value: { hostname: 'app.example.com' },
 				writable: true,
-				configurable: true,
 			});
 
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now() },
+				consents: { necessary: true },
 			};
 
 			saveConsentToStorage(consentData, { crossSubdomain: true });
 
-			const cookie = document.cookie;
+			const { cookie } = document;
 			expect(cookie).toContain(`${STORAGE_KEY_V2}=`);
 			// crossSubdomain should internally call getRootDomain()
 		});
 
 		it('should delete consent using custom storage key config', () => {
 			const consentData = {
-				consents: { necessary: true },
 				consentInfo: { time: Date.now(), type: 'custom' as const },
+				consents: { necessary: true },
 			};
 
 			const customConfig = { storageKey: 'my-custom-consent' };
@@ -967,13 +978,13 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const olderConsent = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: 1000000000 },
+				consents: { measurement: false, necessary: true },
 			};
 
 			const newerConsent = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 2000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 
 			// Set older data in localStorage
@@ -1011,13 +1022,13 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const olderConsent = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: 1000000000 },
+				consents: { measurement: false, necessary: true },
 			};
 
 			const newerConsent = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 2000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 
 			// Set newer data in localStorage
@@ -1055,13 +1066,13 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const newerConsent = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 2000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 
 			const olderConsent = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: 1000000000 },
+				consents: { measurement: false, necessary: true },
 			};
 
 			// Set newer data in localStorage
@@ -1101,13 +1112,13 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const newerConsent = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 2000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 
 			const olderConsent = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: 1000000000 },
+				consents: { measurement: false, necessary: true },
 			};
 
 			// Set newer data in localStorage
@@ -1146,8 +1157,8 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const consentData = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: Date.now() },
+				consents: { measurement: true, necessary: true },
 			};
 
 			// Set only in cookie
@@ -1182,8 +1193,8 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			const consentData = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: Date.now() },
+				consents: { measurement: true, necessary: true },
 			};
 
 			// Set only in localStorage
@@ -1211,8 +1222,8 @@ describe('Cookie Storage', () => {
 
 		it('should prioritize cookie when both have equal timestamps (cookie is source of truth)', () => {
 			const consentData = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 1000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 
 			// Set same timestamp in both
@@ -1233,8 +1244,8 @@ describe('Cookie Storage', () => {
 			};
 
 			const consentWithTime = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 2000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 
 			// Set data with time in localStorage
@@ -1261,15 +1272,15 @@ describe('Cookie Storage', () => {
 
 			// Simulate: consent was set on example.com (older localStorage)
 			const olderConsent = {
-				consents: { necessary: true, measurement: false },
 				consentInfo: { time: 1000000000 },
+				consents: { measurement: false, necessary: true },
 			};
 			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(olderConsent));
 
 			// Simulate: consent was updated on app.example.com (newer cookie shared across subdomains)
 			const newerConsent = {
-				consents: { necessary: true, measurement: true },
 				consentInfo: { time: 2000000000 },
+				consents: { measurement: true, necessary: true },
 			};
 			setCookie(STORAGE_KEY_V2, newerConsent);
 

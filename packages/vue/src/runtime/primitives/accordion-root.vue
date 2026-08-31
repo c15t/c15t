@@ -5,6 +5,7 @@
  * mounted (`unmount-on-hide=false` semantics) so CSS state animations work.
  */
 import { provide, ref } from 'vue';
+
 import { accordionContextKey } from './keys';
 
 withDefaults(
@@ -13,7 +14,7 @@ withDefaults(
 		collapsible?: boolean;
 		unmountOnHide?: boolean;
 	}>(),
-	{ type: 'single', collapsible: true, unmountOnHide: false }
+	{ collapsible: true, type: 'single', unmountOnHide: false }
 );
 
 const active = ref<string | null>(null);

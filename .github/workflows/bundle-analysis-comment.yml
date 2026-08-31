@@ -5,7 +5,7 @@ name: Bundle Analysis Comment
 # It never checks out or executes untrusted PR code.
 on:
   workflow_run:
-    workflows: ["Bundle Analysis"]
+    workflows: ['Bundle Analysis']
     types: [completed]
 
 jobs:
@@ -13,8 +13,7 @@ jobs:
     name: 💬 Post Bundle Report
     runs-on: ubuntu-latest
     if: >
-      github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     permissions:
       pull-requests: write
     steps:

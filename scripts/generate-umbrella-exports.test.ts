@@ -9,7 +9,9 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
+
 import type {
 	EntryModuleInfo,
 	ExportsMap,
@@ -32,7 +34,7 @@ const PLAIN_ENTRY: EntryModuleInfo = {
 	isClientModule: false,
 };
 
-function fixtureSource(options: {
+const fixtureSource = function fixtureSource(options: {
 	config?: Partial<UmbrellaSource>;
 	exports: ExportsMap;
 	entryInfo?: Record<string, EntryModuleInfo>;
@@ -55,14 +57,14 @@ function fixtureSource(options: {
 		exports: options.exports,
 		sideEffects: options.sideEffects,
 	};
-}
+};
 
 describe('deriveUmbrellaArtifacts', () => {
 	it('mounts a root package verbatim and a prefixed package under its prefix', () => {
 		const artifacts = deriveUmbrellaArtifacts([
 			fixtureSource({
 				exports: {
-					'.': { types: './dist-types/index.d.ts', import: './dist/index.js' },
+					'.': { import: './dist/index.js', types: './dist-types/index.d.ts' },
 					'./v3': { import: './dist/v3.js' },
 				},
 			}),
@@ -86,8 +88,8 @@ describe('deriveUmbrellaArtifacts', () => {
 			'./other/hooks',
 		]);
 		expect(artifacts.exports['.']).toEqual({
-			types: './shims/index.d.ts',
 			import: './shims/index.js',
+			types: './shims/index.d.ts',
 		});
 		expect(artifacts.exports['./other/hooks']).toEqual({
 			import: './shims/other/hooks.js',
@@ -117,9 +119,9 @@ describe('deriveUmbrellaArtifacts', () => {
 		);
 		expect(artifacts.cssCopies).toEqual([
 			{
-				target: 'dist/react/styles.css',
 				sourceDirectory: 'react',
 				sourcePath: 'dist/styles.css',
+				target: 'dist/react/styles.css',
 			},
 		]);
 		expect(artifacts.shimFiles).toEqual({});
@@ -130,18 +132,18 @@ describe('deriveUmbrellaArtifacts', () => {
 			fixtureSource({
 				exports: {
 					'./server': {
-						types: './dist-types/server/index.d.ts',
-						import: './dist/server/index.js',
 						default: './dist/server/index.js',
+						import: './dist/server/index.js',
+						types: './dist-types/server/index.d.ts',
 					},
 				},
 			}),
 		]);
 
 		expect(artifacts.exports['./server']).toEqual({
-			types: './shims/server.d.ts',
-			import: './shims/server.js',
 			default: './shims/server.js',
+			import: './shims/server.js',
+			types: './shims/server.d.ts',
 		});
 		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
 			'shims/server.d.ts',
@@ -166,7 +168,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					},
 				}),
 			])
-		).toThrow(/Unsupported export condition "require"/);
+		).toThrow(/Unsupported export condition "require"/u);
 	});
 
 	it('forwards default exports only where the entry module has one', () => {
@@ -200,14 +202,14 @@ describe('deriveUmbrellaArtifacts', () => {
 				},
 				exports: {
 					'./widget': {
-						types: './x.d.ts',
 						import: './dist/widget.js',
+						types: './x.d.ts',
 					},
 				},
 			}),
 		]);
 
-		expect(artifacts.shimFiles['shims/widget.js']).toMatch(/^'use client';\n/);
+		expect(artifacts.shimFiles['shims/widget.js']).toMatch(/^'use client';\n/u);
 		expect(artifacts.shimFiles['shims/widget.d.ts']).not.toContain(
 			'use client'
 		);
@@ -223,9 +225,9 @@ describe('deriveUmbrellaArtifacts', () => {
 				},
 				exports: {
 					'./primitives/*': {
-						types: './dist-types/primitives/*.d.ts',
-						import: './dist/primitives/*.js',
 						default: './dist/primitives/*.js',
+						import: './dist/primitives/*.js',
+						types: './dist-types/primitives/*.d.ts',
 					},
 				},
 				wildcards: { './primitives/*': ['accordion', 'button'] },
@@ -233,9 +235,9 @@ describe('deriveUmbrellaArtifacts', () => {
 		]);
 
 		expect(artifacts.exports['./react/primitives/*']).toEqual({
-			types: './shims/react/primitives/*.d.ts',
-			import: './shims/react/primitives/*.js',
 			default: './shims/react/primitives/*.js',
+			import: './shims/react/primitives/*.js',
+			types: './shims/react/primitives/*.d.ts',
 		});
 		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
 			'shims/react/primitives/accordion.d.ts',
@@ -258,8 +260,8 @@ describe('deriveUmbrellaArtifacts', () => {
 				},
 				exports: {
 					'./primitives/*': {
-						types: './dist-types/primitives/*.d.ts',
 						import: './dist/primitives/*.js',
+						types: './dist-types/primitives/*.d.ts',
 					},
 				},
 				wildcards: { './primitives/*': ['accordion', 'nested/button'] },
@@ -287,18 +289,18 @@ describe('deriveUmbrellaArtifacts', () => {
 				},
 				exports: {
 					'.': {
-						types: './dist/index.d.ts',
-						svelte: './dist/index.js',
 						default: './dist/index.js',
+						svelte: './dist/index.js',
+						types: './dist/index.d.ts',
 					},
 				},
 			}),
 		]);
 
 		expect(artifacts.exports['./svelte']).toEqual({
-			types: './shims/svelte.d.ts',
-			svelte: './shims/svelte.js',
 			default: './shims/svelte.js',
+			svelte: './shims/svelte.js',
+			types: './shims/svelte.d.ts',
 		});
 		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
 			'shims/svelte.d.ts',
@@ -340,7 +342,7 @@ describe('deriveUmbrellaArtifacts', () => {
 
 		const wrapper =
 			artifacts.shimFiles['shims/vue/runtime/components/consent-banner.vue'];
-		expect(wrapper).toMatch(/^<script>\n/);
+		expect(wrapper).toMatch(/^<script>\n/u);
 		expect(wrapper).toContain(
 			"import Component from '@c15t/vue/runtime/components/consent-banner.vue';"
 		);
@@ -374,7 +376,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					stringWildcards: { './runtime/*': ['styles/base.css'] },
 				}),
 			])
-		).toThrow(/Unsupported string wildcard module/);
+		).toThrow(/Unsupported string wildcard module/u);
 	});
 
 	it('rejects string wildcard exports that match no modules', () => {
@@ -384,7 +386,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					exports: { './runtime/*': './dist/runtime/*' },
 				}),
 			])
-		).toThrow(/matched no modules/);
+		).toThrow(/matched no modules/u);
 	});
 
 	it('rejects wildcard exports that match no modules', () => {
@@ -394,7 +396,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					exports: { './primitives/*': { import: './dist/primitives/*.js' } },
 				}),
 			])
-		).toThrow(/matched no modules/);
+		).toThrow(/matched no modules/u);
 	});
 
 	it('rejects colliding umbrella subpaths', () => {
@@ -406,7 +408,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					exports: { './v3': { import: './dist/v3.js' } },
 				}),
 			])
-		).toThrow(/claimed twice/);
+		).toThrow(/claimed twice/u);
 	});
 
 	it('rejects non-CSS string exports', () => {
@@ -414,7 +416,7 @@ describe('deriveUmbrellaArtifacts', () => {
 			deriveUmbrellaArtifacts([
 				fixtureSource({ exports: { './data.json': './dist/data.json' } }),
 			])
-		).toThrow(/Only CSS subpaths/);
+		).toThrow(/Only CSS subpaths/u);
 	});
 
 	it('rejects export conditions it cannot mirror', () => {
@@ -424,7 +426,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					exports: { '.': { browser: './dist/browser.js' } },
 				}),
 			])
-		).toThrow(/Unsupported export condition "browser"/);
+		).toThrow(/Unsupported export condition "browser"/u);
 	});
 
 	it('keeps a CSS-only sideEffects claim for CSS-only and effect-free sources', () => {
@@ -478,7 +480,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					sideEffects: ['./src/register.js'],
 				}),
 			])
-		).toThrow(/Unsupported sideEffects declaration/);
+		).toThrow(/Unsupported sideEffects declaration/u);
 	});
 });
 
@@ -492,8 +494,8 @@ describe('createSourcePackages', () => {
 			writeFileSync(
 				join(root, 'fixture', 'package.json'),
 				JSON.stringify({
-					name: '@c15t/fixture',
 					exports: {},
+					name: '@c15t/fixture',
 				})
 			);
 			writeFileSync(join(sourceDir, 'button.ts'), 'export const b = 1;\n');
@@ -510,8 +512,8 @@ describe('createSourcePackages', () => {
 			]);
 			expect(
 				sources[0]?.expandWildcard('./primitives/*', {
-					types: './dist-types/primitives/*.d.ts',
 					import: './dist/primitives/*.js',
+					types: './dist-types/primitives/*.d.ts',
 				})
 			).toEqual(['button', 'nested/switch']);
 		} finally {
@@ -554,6 +556,22 @@ describe('detectUseClient', () => {
 		expect(detectUseClient("// 'use client';\nexport {};")).toBe(false);
 	});
 });
+
+const listFiles = function listFiles(
+	directory: string,
+	prefix: string
+): string[] {
+	const files: string[] = [];
+	for (const entry of readdirSync(directory, { withFileTypes: true })) {
+		const relativePath = `${prefix}/${entry.name}`;
+		if (entry.isDirectory()) {
+			files.push(...listFiles(join(directory, entry.name), relativePath));
+		} else {
+			files.push(relativePath);
+		}
+	}
+	return files;
+};
 
 /**
  * Drift guard: the committed umbrella package must exactly match what the
@@ -619,16 +637,3 @@ describe('committed umbrella package', () => {
 		}
 	});
 });
-
-function listFiles(directory: string, prefix: string): string[] {
-	const files: string[] = [];
-	for (const entry of readdirSync(directory, { withFileTypes: true })) {
-		const relativePath = `${prefix}/${entry.name}`;
-		if (entry.isDirectory()) {
-			files.push(...listFiles(join(directory, entry.name), relativePath));
-		} else {
-			files.push(relativePath);
-		}
-	}
-	return files;
-}

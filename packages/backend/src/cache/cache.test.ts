@@ -14,6 +14,7 @@
  */
 
 import { afterEach, assert, describe, it } from '@effect/vitest';
+
 import {
 	clearMemoryCache,
 	createCacheKey,
@@ -22,8 +23,31 @@ import {
 	createMemoryCacheAdapter,
 	createUpstashRedisAdapterFromClient,
 	getMemoryCacheSize,
-	type KVNamespace,
 } from './index';
+import type { KVNamespace } from './index';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 afterEach(() => {
 	// Shared module state; without this each test inherits the last one's keys.
@@ -52,7 +76,7 @@ describe('memory adapter', () => {
 		const cache = createMemoryCacheAdapter();
 		await cache.set('k', 'v', 1);
 
-		await new Promise((resolve) => setTimeout(resolve, 5));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 5));
 
 		// Lazy expiry: the entry is still in the Map, and `get` has to notice.
 		assert.isNull(await cache.get('k'));
@@ -122,9 +146,11 @@ describe('cloudflare KV adapter', () => {
 	const fakeKv = () => {
 		const store = new Map<string, string>();
 		const puts: { key: string; ttl?: number }[] = [];
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		const kv: KVNamespace = {
 			// Real KV parses when asked for `type: 'json'` and returns the raw
 			// string otherwise; the adapter relies on both halves of that.
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			get: async (key, options) => {
 				const raw = store.get(key);
 				if (raw === undefined) {
@@ -132,15 +158,17 @@ describe('cloudflare KV adapter', () => {
 				}
 				return options?.type === 'json' ? JSON.parse(raw) : raw;
 			},
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			put: async (key, value, options) => {
 				store.set(key, value);
 				puts.push({ key, ttl: options?.expirationTtl });
 			},
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			delete: async (key) => {
 				store.delete(key);
 			},
 		};
-		return { kv, store, puts };
+		return { kv, puts, store };
 	};
 
 	it('round-trips a value as JSON', async () => {
@@ -182,15 +210,19 @@ describe('upstash redis adapter', () => {
 		const store = new Map<string, unknown>();
 		const sets: { key: string; ex?: number }[] = [];
 		const client = {
-			get: async <T>(key: string) => (store.get(key) ?? null) as T | null,
-			set: async <T>(key: string, value: T, options?: { ex?: number }) => {
-				store.set(key, value);
-				sets.push({ key, ex: options?.ex });
-			},
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			del: async (key: string) => {
 				store.delete(key);
 			},
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			exists: async (key: string) => (store.has(key) ? 1 : 0),
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
+			get: async <T>(key: string) => (store.get(key) ?? null) as T | null,
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
+			set: async <T>(key: string, value: T, options?: { ex?: number }) => {
+				store.set(key, value);
+				sets.push({ ex: options?.ex, key });
+			},
 		};
 		return { client, sets };
 	};

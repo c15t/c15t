@@ -1,4 +1,5 @@
 import type { NextRequest } from 'next/server';
+
 import {
 	createDemoInstance,
 	postgresDb,
@@ -9,7 +10,7 @@ import {
 	DEMO_SCENARIO_HEADER,
 } from '../../../../lib/scenarios';
 
-const handleRequest = async (request: NextRequest) => {
+const handleRequest = (request: NextRequest) => {
 	const scenario =
 		request.headers.get(DEMO_SCENARIO_HEADER) ??
 		request.nextUrl.searchParams.get('scenario') ??

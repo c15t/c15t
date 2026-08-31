@@ -31,27 +31,29 @@ interface BenchOutput {
 const V3_TO_V2: Record<string, string> = {
 	createConsentKernel: 'createConsentManagerStore',
 	getSnapshot: 'store.getDisplayedConsents',
-	setConsent: 'has()',
-	saveAll: 'repeatVisitorInit',
-	repeatVisitorInit: 'repeatVisitorInit',
 	initConsentManager: 'initConsentManager',
+	repeatVisitorInit: 'repeatVisitorInit',
+	saveAll: 'repeatVisitorInit',
+	setConsent: 'has()',
 };
 
-function loadDir(dir: string): Map<string, BenchOutput> {
+const loadDir = function loadDir(dir: string): Map<string, BenchOutput> {
 	const map = new Map<string, BenchOutput>();
 	for (const file of readdirSync(dir)) {
-		if (!file.endsWith('.json')) continue;
+		if (!file.endsWith('.json')) {
+			continue;
+		}
 		const data = JSON.parse(readFileSync(join(dir, file), 'utf-8'));
 		map.set(data.scenario, data);
 	}
 	return map;
-}
+};
 
-function pct(v2: number, v3: number): string {
+const pct = function pct(v2: number, v3: number): string {
 	const d = ((v3 - v2) / v2) * 100;
 	const sign = d >= 0 ? '+' : '';
 	return `${sign}${d.toFixed(1)}%`;
-}
+};
 
 const v2Dir =
 	process.env.V2_BENCH_DIR ?? '../../.benchmarks/current/core-runtime';
@@ -66,7 +68,9 @@ console.log('# c15t v3 Kernel vs v2 Baseline (p95, µs)\n');
 for (const scenario of ['tiny', 'small', 'medium', 'large', 'xlarge']) {
 	const v2Run = v2.get(scenario);
 	const v3Run = v3.get(scenario);
-	if (!v2Run || !v3Run) continue;
+	if (!v2Run || !v3Run) {
+		continue;
+	}
 
 	console.log(`## ${scenario}\n`);
 	console.log('| v3 metric | v2 peer | v2 p95 | v3 p95 | delta |');

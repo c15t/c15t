@@ -4,9 +4,11 @@
  * @packageDocumentation
  */
 
+import type * as ClientClientInterfaceTypes from '../../client/client-interface';
+import type * as StoreTypeTypes from '../../store/type';
 import type { GlobalVendorList, TCFConsentData } from '../../types/iab-tcf';
+import type * as TypesIabTcfTypes from '../../types/iab-tcf';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
-
 /**
  * IAB TCF 2.3 runtime state.
  *
@@ -238,30 +240,26 @@ export interface IABModule {
 	/** Creates the IAB manager instance for the store. */
 	createIABManager: (
 		config: IABConfig,
-		get: () => import('../../store/type').ConsentStoreState,
-		set: (
-			partial: Partial<import('../../store/type').ConsentStoreState>
-		) => void,
-		manager: import('../../client/client-interface').ConsentManagerInterface
+		get: () => StoreTypeTypes.ConsentStoreState,
+		set: (partial: Partial<StoreTypeTypes.ConsentStoreState>) => void,
+		manager: ClientClientInterfaceTypes.ConsentManagerInterface
 	) => IABManager;
 
 	/** Initializes IAB mode (stub, GVL, CMP API). */
 	initializeIABMode: (
 		config: IABConfig,
 		storeAccess: {
-			get: () => import('../../store/type').ConsentStoreState;
-			set: (
-				partial: Partial<import('../../store/type').ConsentStoreState>
-			) => void;
+			get: () => StoreTypeTypes.ConsentStoreState;
+			set: (partial: Partial<StoreTypeTypes.ConsentStoreState>) => void;
 		},
-		prefetchedGVL?: import('../../types/iab-tcf').GlobalVendorList | null
+		prefetchedGVL?: TypesIabTcfTypes.GlobalVendorList | null
 	) => Promise<void>;
 
 	/** Fetches the Global Vendor List. Used by client fallback paths. */
 	fetchGVL?: (
 		vendorIds?: number[],
 		options?: { headers?: Record<string, string> }
-	) => Promise<import('../../types/iab-tcf').GlobalVendorList | null>;
+	) => Promise<TypesIabTcfTypes.GlobalVendorList | null>;
 }
 
 /**

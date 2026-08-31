@@ -16,10 +16,10 @@
 		"./utils": "./src/utils.ts"
 	},
 	"scripts": {
-		"build": "echo 'shared benchmark package uses source exports'",
 		"bench": "echo 'no-op'",
 		"bench:ci": "echo 'no-op'",
-		"bench:nightly": "echo 'no-op'"
+		"bench:nightly": "echo 'no-op'",
+		"build": "echo 'shared benchmark package uses source exports'"
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",

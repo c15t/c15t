@@ -1,4 +1,5 @@
 import { beforeEach, expect, test } from 'bun:test';
+
 import {
 	canonicalizeStyleValue,
 	captureComputedStyle,
@@ -14,11 +15,11 @@ beforeEach(() => {
 	}
 });
 
-function applyStyle(css: string): void {
+const applyStyle = function applyStyle(css: string): void {
 	const style = document.createElement('style');
 	style.textContent = css;
 	document.head.append(style);
-}
+};
 
 test('captures configured properties', () => {
 	applyStyle('.box { display: flex; color: rgb(10, 20, 30); }');
@@ -49,52 +50,52 @@ test('skips custom properties when captureCustomProperties is false', () => {
 	document.body.append(el);
 
 	const snap = captureComputedStyle(el, {
-		properties: [],
 		captureCustomProperties: false,
+		properties: [],
 	});
 	expect(snap.customProperties).toEqual({});
 });
 
 test('diffComputedStyle returns empty for identical snapshots', () => {
 	const a = {
-		properties: { color: 'red', display: 'flex' },
 		customProperties: { '--x': '1' },
+		properties: { color: 'red', display: 'flex' },
 	};
 	const b = {
-		properties: { color: 'red', display: 'flex' },
 		customProperties: { '--x': '1' },
+		properties: { color: 'red', display: 'flex' },
 	};
 	expect(diffComputedStyle(a, b)).toEqual([]);
 });
 
 test('diffComputedStyle reports property divergences', () => {
 	const a = {
-		properties: { color: 'red' },
 		customProperties: {},
+		properties: { color: 'red' },
 	};
 	const b = {
-		properties: { color: 'blue' },
 		customProperties: {},
+		properties: { color: 'blue' },
 	};
 	const diffs = diffComputedStyle(a, b, 'my-id');
 	expect(diffs).toHaveLength(1);
 	expect(diffs[0]).toMatchObject({
-		path: 'my-id',
-		kind: 'property',
-		name: 'color',
 		a: 'red',
 		b: 'blue',
+		kind: 'property',
+		name: 'color',
+		path: 'my-id',
 	});
 });
 
 test('diffComputedStyle reports custom property divergences', () => {
 	const a = {
-		properties: {},
 		customProperties: { '--theme': 'dark' },
+		properties: {},
 	};
 	const b = {
-		properties: {},
 		customProperties: { '--theme': 'light' },
+		properties: {},
 	};
 	const diffs = diffComputedStyle(a, b);
 	expect(diffs).toHaveLength(1);
@@ -104,12 +105,12 @@ test('diffComputedStyle reports custom property divergences', () => {
 
 test('diffComputedStyle reports missing property on one side', () => {
 	const a = {
-		properties: { color: 'red', display: 'flex' },
 		customProperties: {},
+		properties: { color: 'red', display: 'flex' },
 	};
 	const b = {
-		properties: { color: 'red' },
 		customProperties: {},
+		properties: { color: 'red' },
 	};
 	const diffs = diffComputedStyle(a, b);
 	expect(diffs).toHaveLength(1);
@@ -121,8 +122,8 @@ test('captureComputedStyleFor picks elements by test-id', () => {
 	document.body.innerHTML =
 		'<div data-testid="a"></div><div data-testid="b"></div>';
 	const snap = captureComputedStyleFor(document.body, ['a', 'b'], {
-		properties: ['display'],
 		captureCustomProperties: false,
+		properties: ['display'],
 	});
 	expect(Object.keys(snap).sort()).toEqual(['a', 'b']);
 });
@@ -130,8 +131,8 @@ test('captureComputedStyleFor picks elements by test-id', () => {
 test('captureComputedStyleFor skips missing test-ids', () => {
 	document.body.innerHTML = '<div data-testid="a"></div>';
 	const snap = captureComputedStyleFor(document.body, ['a', 'missing'], {
-		properties: ['display'],
 		captureCustomProperties: false,
+		properties: ['display'],
 	});
 	expect(Object.keys(snap)).toEqual(['a']);
 });
@@ -139,8 +140,8 @@ test('captureComputedStyleFor skips missing test-ids', () => {
 test('diffComputedStyleMap reports missing keys as presence diffs', () => {
 	const a = {
 		'testid-a': {
-			properties: { color: 'red' },
 			customProperties: {},
+			properties: { color: 'red' },
 		},
 	};
 	const b = {};
@@ -155,14 +156,14 @@ test('diffComputedStyleMap reports missing keys as presence diffs', () => {
 test('diffComputedStyleMap carries test-id into path of nested diffs', () => {
 	const a = {
 		'testid-a': {
-			properties: { color: 'red' },
 			customProperties: {},
+			properties: { color: 'red' },
 		},
 	};
 	const b = {
 		'testid-a': {
-			properties: { color: 'blue' },
 			customProperties: {},
+			properties: { color: 'blue' },
 		},
 	};
 	const diffs = diffComputedStyleMap(a, b);
@@ -269,30 +270,30 @@ test('canonicalizeStyleValue preserves animation keyword values', () => {
 
 test('diffComputedStyle ignores hex vs hsl when equivalent', () => {
 	const a = {
-		properties: { color: '#5c5c5c' },
 		customProperties: {},
+		properties: { color: '#5c5c5c' },
 	};
 	const b = {
-		properties: { color: 'hsl(0, 0%, 36.08%)' },
 		customProperties: {},
+		properties: { color: 'hsl(0, 0%, 36.08%)' },
 	};
 	expect(diffComputedStyle(a, b)).toEqual([]);
 });
 
 test('diffComputedStyle ignores animation-name hash drift across bundlers', () => {
 	const a = {
-		properties: {},
 		customProperties: {
 			'--consent-widget-entry-animation':
 				'_enter_7n8gw_1 80ms cubic-bezier(0.4, 0, 0.2, 1)',
 		},
+		properties: {},
 	};
 	const b = {
-		properties: {},
 		customProperties: {
 			'--consent-widget-entry-animation':
 				'c15t-ui-enter-oqaf_ 80ms cubic-bezier(0.4, 0, 0.2, 1)',
 		},
+		properties: {},
 	};
 	expect(diffComputedStyle(a, b)).toEqual([]);
 });

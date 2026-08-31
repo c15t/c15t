@@ -1,5 +1,6 @@
 import { linkOpensDialog } from '@c15t/conformance/play/consent-dialog-link';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import {
 	ConsentDialog,
 	ConsentDialogLink,
@@ -23,6 +24,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: linkOpensDialog,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
@@ -36,5 +38,4 @@ export const Default: Story = {
 			</div>
 		</StorybookConsentProvider>
 	),
-	play: linkOpensDialog,
 };

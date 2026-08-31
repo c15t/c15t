@@ -1,13 +1,13 @@
 name: Bug report
 description: Report a bug in c15t
-labels: ["bug", "needs-triage"]
+labels: ['bug', 'needs-triage']
 body:
   - type: input
     id: version
     attributes:
       label: Version
       description: Which c15t version are you on?
-      placeholder: "1.0.0"
+      placeholder: '1.0.0'
     validations:
       required: true
 

@@ -1,8 +1,9 @@
 {
-	"editor.defaultFormatter": "biomejs.biome",
+	"editor.defaultFormatter": "oxc.oxc-vscode",
 	"editor.formatOnSave": true,
+	"editor.formatOnSaveMode": "file",
 	"editor.codeActionsOnSave": {
-		"source.fixAll.biome": "explicit"
+		"source.fixAll.oxc": "explicit"
 	},
 
 	"editor.tabSize": 2,
@@ -39,10 +40,10 @@
 	],
 
 	"[vue]": {
-		"editor.defaultFormatter": "biomejs.biome"
+		"editor.defaultFormatter": "oxc.oxc-vscode"
 	},
 	"[css]": {
-		"editor.defaultFormatter": "biomejs.biome"
+		"editor.defaultFormatter": "oxc.oxc-vscode"
 	},
 
 	"files.associations": {

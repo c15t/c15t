@@ -1,16 +1,14 @@
 'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the IAB TCF 2.3 compliant consent dialog component.
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
-
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import {
-	type FC,
-	type RefObject,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -18,12 +16,12 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import type { FC, RefObject } from 'react';
 import { createPortal } from 'react-dom';
+
+import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import type { ConsentDialogTriggerProps } from '~/components/consent-dialog-trigger';
 import { Branding } from '~/components/consent-dialog/atoms/card';
-import {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerProps,
-} from '~/components/consent-dialog-trigger';
 import * as Button from '~/components/shared/ui/button';
 import * as Tabs from '~/components/shared/ui/tabs';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
@@ -34,6 +32,7 @@ import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { useTranslations } from '~/hooks/use-translations';
+
 import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
@@ -47,6 +46,8 @@ import type {
 	VendorId,
 } from './types';
 import { useIABTranslations } from './use-iab-translations';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
 
 const dialogFocusTargetProps = { tabIndex: -1 } as const;
 
@@ -106,7 +107,7 @@ export interface IABConsentDialogProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -128,6 +129,7 @@ export interface IABConsentDialogProps {
  *
  * @public
  */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
@@ -136,7 +138,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	showTrigger = false,
-	models = ['iab'],
+	models = DEFAULT_MODELS,
 	uiSource: _uiSource,
 }) => {
 	const iabTranslations = useIABTranslations();
@@ -153,7 +155,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
-	const cardRef = useRef<HTMLDivElement>(null);
+	const cardRef = useRef<HTMLDialogElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 	const previousHeightRef = useRef<number | null>(null);
 
@@ -166,13 +168,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const [specialPurposesExpanded, setSpecialPurposesExpanded] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const [isVisible, setIsVisible] = useState(false);
+	const gvlData = iabState?.gvl;
+	const nonIABVendors = iabState?.nonIABVendors;
 
 	const isOpen = open ?? (activeUI === 'dialog' && models.includes(model));
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -186,19 +190,19 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		stacks,
 		standalonePurposes,
 	} = useMemo(() => {
-		if (!iabState?.gvl) {
+		if (!gvlData) {
 			return {
-				purposes: [],
-				specialPurposes: [],
-				specialFeatures: [],
 				features: [],
+				purposes: [],
+				specialFeatures: [],
+				specialPurposes: [],
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
 		}
 
-		const gvl = iabState.gvl;
-		const customVendors = iabState.nonIABVendors || [];
+		const gvl = gvlData;
+		const customVendors = nonIABVendors || [];
 
 		// Helper to map GVL vendor to ProcessedVendor
 		const mapVendor = (
@@ -206,26 +210,26 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			vendor: (typeof gvl.vendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
-			id: Number(vendorId),
-			name: vendor.name,
-			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-			usesNonCookieAccess: vendor.usesNonCookieAccess,
-			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-			usesCookies: vendor.usesCookies,
 			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 			cookieRefresh: vendor.cookieRefresh,
+			dataRetention: vendor.dataRetention,
+			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+			features: vendor.features || [],
+			id: Number(vendorId),
+			isCustom: false,
+			legIntPurposes: vendor.legIntPurposes || [],
 			legitimateInterestUrl:
 				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-			specialPurposes: vendor.specialPurposes || [],
-			specialFeatures: vendor.specialFeatures || [],
-			features: vendor.features || [],
+			name: vendor.name,
+			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 			purposes: vendor.purposes || [],
-			legIntPurposes: vendor.legIntPurposes || [],
+			specialFeatures: vendor.specialFeatures || [],
+			specialPurposes: vendor.specialPurposes || [],
+			usesCookies: vendor.usesCookies,
 			usesLegitimateInterest: purposeId
 				? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
-			dataRetention: vendor.dataRetention,
-			isCustom: false,
+			usesNonCookieAccess: vendor.usesNonCookieAccess,
 		});
 
 		// Helper to map custom vendor to ProcessedVendor
@@ -233,25 +237,25 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			cv: (typeof customVendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
-			id: cv.id,
-			name: cv.name,
-			policyUrl: cv.privacyPolicyUrl,
-			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-			deviceStorageDisclosureUrl: null,
-			usesCookies: cv.usesCookies ?? false,
 			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 			cookieRefresh: undefined,
-			legitimateInterestUrl: null,
-			specialPurposes: [],
-			specialFeatures: cv.specialFeatures || [],
+			dataRetention: undefined,
+			deviceStorageDisclosureUrl: null,
 			features: cv.features || [],
-			purposes: cv.purposes || [],
+			id: cv.id,
+			isCustom: true,
 			legIntPurposes: cv.legIntPurposes || [],
+			legitimateInterestUrl: null,
+			name: cv.name,
+			policyUrl: cv.privacyPolicyUrl,
+			purposes: cv.purposes || [],
+			specialFeatures: cv.specialFeatures || [],
+			specialPurposes: [],
+			usesCookies: cv.usesCookies ?? false,
 			usesLegitimateInterest: purposeId
 				? (cv.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
-			dataRetention: undefined,
-			isCustom: true,
+			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 		});
 
 		// Process purposes
@@ -261,30 +265,28 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				const iabVendorsForPurpose: ProcessedVendor[] = Object.entries(
 					gvl.vendors
 				)
-					.filter(([, vendor]) => {
-						return (
+					.filter(
+						([, vendor]) =>
 							vendor.purposes?.includes(Number(id)) ||
 							vendor.legIntPurposes?.includes(Number(id))
-						);
-					})
+					)
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor, Number(id)));
 
 				// Get custom vendors for this purpose
 				const customVendorsForPurpose: ProcessedVendor[] = customVendors
-					.filter((cv) => {
-						return (
+					.filter(
+						(cv) =>
 							cv.purposes?.includes(Number(id)) ||
 							cv.legIntPurposes?.includes(Number(id))
-						);
-					})
+					)
 					.map((cv) => mapCustomVendor(cv, Number(id)));
 
 				return {
-					id: Number(id),
-					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
+					id: Number(id),
 					illustrations: purpose.illustrations || [],
+					name: purpose.name,
 					vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
 				};
 			})
@@ -296,19 +298,17 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		)
 			.map(([id, purpose]) => {
 				const vendorsForPurpose: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialPurposes?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
+					id: Number(id),
 					illustrations: purpose.illustrations || [],
-					vendors: vendorsForPurpose,
 					isSpecialPurpose: true,
+					name: purpose.name,
+					vendors: vendorsForPurpose,
 				};
 			})
 			.filter((sp) => sp.vendors.length > 0);
@@ -319,17 +319,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialFeatures?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
+					id: Number(id),
 					illustrations: feature.illustrations || [],
+					name: feature.name,
 					vendors: vendorsForFeature,
 				};
 			})
@@ -341,17 +339,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.features?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.features?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
+					id: Number(id),
 					illustrations: feature.illustrations || [],
+					name: feature.name,
 					vendors: vendorsForFeature,
 				};
 			})
@@ -371,12 +367,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		const gvlStacks = gvl.stacks || {};
 
 		// Score each stack by how many of our purposes it covers
-		const stackScores: Array<{
+		const stackScores: {
 			stackId: number;
 			stack: (typeof gvlStacks)[number];
 			coveredPurposeIds: number[];
 			score: number;
-		}> = [];
+		}[] = [];
 
 		for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
 			const stackId = Number(stackIdStr);
@@ -386,10 +382,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			if (coveredIds.length >= 2) {
 				// Only consider stacks that cover 2+ purposes
 				stackScores.push({
-					stackId,
-					stack,
 					coveredPurposeIds: coveredIds,
 					score: coveredIds.length,
+					stack,
+					stackId,
 				});
 			}
 		}
@@ -412,9 +408,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					unassignedInStack.includes(p.id)
 				);
 				processedStacks.push({
+					description: stack.description,
 					id: stackId,
 					name: stack.name,
-					description: stack.description,
 					purposes: stackPurposes,
 				});
 				for (const pid of unassignedInStack) {
@@ -433,24 +429,24 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			: uncoveredPurposes;
 
 		return {
-			purposes: processedPurposes,
-			specialPurposes: processedSpecialPurposes,
-			specialFeatures: processedSpecialFeatures,
 			features: processedFeatures,
+			purposes: processedPurposes,
+			specialFeatures: processedSpecialFeatures,
+			specialPurposes: processedSpecialPurposes,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
-	}, [iabState?.gvl, iabState?.nonIABVendors]);
+	}, [gvlData, nonIABVendors]);
 
 	// Get total vendor count (all GVL vendors + custom vendors)
 	const totalVendors = useMemo(() => {
-		if (!iabState?.gvl) {
+		if (!gvlData) {
 			return 0;
 		}
-		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
+		const gvlVendorCount = Object.keys(gvlData.vendors).length;
+		const customVendorCount = nonIABVendors?.length ?? 0;
 		return gvlVendorCount + customVendorCount;
-	}, [iabState?.gvl, iabState?.nonIABVendors]);
+	}, [gvlData, nonIABVendors]);
 
 	// Handlers
 	const handlePurposeToggle = useCallback(
@@ -537,32 +533,43 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Mount state for portal
 	useEffect(() => {
-		setIsMounted(true);
+		const frame = requestAnimationFrame(() => setIsMounted(true));
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	// Visibility animation
 	useEffect(() => {
 		if (isOpen) {
-			setIsVisible(true);
-		} else if (config.disableAnimation) {
-			setIsVisible(false);
-		} else {
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, 150);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+
+		if (config.disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+		}, 150);
+		return () => clearTimeout(timer);
 	}, [isOpen, config.disableAnimation]);
 
 	useEffect(() => {
-		if (isOpen && iabState?.preferenceCenterTab) {
-			setActiveTab(iabState.preferenceCenterTab);
+		const preferenceCenterTab = iabState?.preferenceCenterTab;
+		if (isOpen && preferenceCenterTab) {
+			const frame = requestAnimationFrame(() => {
+				setActiveTab(preferenceCenterTab);
+			});
+			return () => cancelAnimationFrame(frame);
 		}
 	}, [isOpen, iabState?.preferenceCenterTab]);
 
 	// Smooth height animation when switching tabs
-	// biome-ignore lint/correctness/useExhaustiveDependencies: activeTab is intentionally used as a trigger
 	useLayoutEffect(() => {
+		if (activeTab !== 'purposes' && activeTab !== 'vendors') {
+			return;
+		}
 		const content = contentRef.current;
 		if (!content || previousHeightRef.current === null) {
 			return;
@@ -586,10 +593,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		content.style.transition = 'none';
 
 		// Use double-RAF to ensure browser has laid out new content
-		let rafId1: number;
 		let rafId2: number;
 
-		rafId1 = requestAnimationFrame(() => {
+		const rafId1 = requestAnimationFrame(() => {
 			rafId2 = requestAnimationFrame(() => {
 				if (!content) {
 					return;
@@ -609,7 +615,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				}
 
 				// Force reflow before enabling transition
-				content.offsetHeight;
+				content.getBoundingClientRect();
 
 				// Animate to new height
 				content.style.transition =
@@ -648,6 +654,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		},
 		[openDialog]
 	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: _uiSource ?? 'iab_dialog' }),
+		[_uiSource]
+	);
 
 	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)
 	if (!isMounted || !iabState?.config.enabled) {
@@ -657,19 +667,17 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const isLoading = iabState.isLoadingGVL || !iabState.gvl;
 
 	const dialogContent = (
-		<ConsentTrackingContext.Provider
-			value={{ uiSource: _uiSource ?? 'iab_dialog' }}
-		>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<IABConsentDialogOverlay isOpen={isOpen} />
 			<div
 				className={`${styles.root} ${isVisible ? styles.dialogVisible : styles.dialogHidden}`}
 				data-testid="iab-consent-dialog-root"
 				dir={textDirection}
 			>
-				<div
+				<dialog
 					ref={cardRef}
 					className={`${styles.card} ${isVisible ? styles.contentVisible : styles.contentHidden}`}
-					role="dialog"
+					open
 					aria-modal={config.trapFocus ? 'true' : undefined}
 					aria-label={iabTranslations.preferenceCenter.title}
 					{...dialogFocusTargetProps}
@@ -693,7 +701,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						>
 							<svg
 								aria-hidden="true"
-								style={{ width: '1rem', height: '1rem' }}
+								style={{ height: '1rem', width: '1rem' }}
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -832,10 +840,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											<PurposeItem
 												key={`feature-${feature.id}`}
 												purpose={{
-													id: feature.id,
-													name: feature.name,
 													description: feature.description,
+													id: feature.id,
 													illustrations: feature.illustrations,
+													name: feature.name,
 													vendors: feature.vendors,
 												}}
 												isEnabled={
@@ -964,7 +972,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																key={`special-${purpose.id}`}
 																purpose={purpose}
 																isEnabled={true}
-																onToggle={() => {}}
+																onToggle={() => {
+																	/* empty */
+																}}
 																vendorConsents={iabState.vendorConsents}
 																onVendorToggle={handleVendorToggle}
 																onVendorClick={handleVendorClick}
@@ -977,14 +987,16 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 															<PurposeItem
 																key={`feature-${feature.id}`}
 																purpose={{
-																	id: feature.id,
-																	name: feature.name,
 																	description: feature.description,
+																	id: feature.id,
 																	illustrations: feature.illustrations,
+																	name: feature.name,
 																	vendors: feature.vendors,
 																}}
 																isEnabled={true}
-																onToggle={() => {}}
+																onToggle={() => {
+																	/* empty */
+																}}
 																vendorConsents={iabState.vendorConsents}
 																onVendorToggle={handleVendorToggle}
 																onVendorClick={handleVendorClick}
@@ -1070,18 +1082,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						themeKey="iabConsentDialogTag"
 						data-testid="iab-consent-dialog-branding"
 					/>
-				</div>
+				</dialog>
 			</div>
 		</ConsentTrackingContext.Provider>
 	);
 
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
-		showTrigger === true
-			? {} // Use defaults
-			: showTrigger === false
-				? null
-				: showTrigger;
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+		showTrigger === true ? {} : showTrigger === false ? null : showTrigger;
 
 	// Render trigger even when dialog is closed
 	const triggerElement = triggerProps ? (

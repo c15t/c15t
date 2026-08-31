@@ -13,61 +13,63 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { migrate } from './index';
+
 const plan = vi.fn();
 const apply = vi.fn();
-const dispose = vi.fn(async () => undefined);
+const dispose = vi.fn(() => Promise.resolve());
 const confirmApply = vi.fn();
 
-vi.mock('@c15t/backend', () => ({
-	createMigrator: vi.fn(() => ({ plan, apply, dispose })),
-}));
-vi.mock('./ensure-backend-config', () => ({
-	ensureBackendConfig: vi.fn(async () => ({
-		path: '/abs/c15t-backend.config.ts',
-		dependencies: [],
-	})),
-}));
-vi.mock('./read-config', () => ({
-	readDatabaseConfig: vi.fn(async () => ({
-		dialect: 'postgres',
-		url: 'postgres://localhost/c15t',
-	})),
-}));
-vi.mock('./report', () => ({
+const dependencies = {
+	confirmApply,
+	createMigrator: vi.fn(() => ({ apply, dispose, plan })),
 	describePlan: vi.fn(),
+	ensureBackendConfig: vi.fn(() =>
+		Promise.resolve({
+			dependencies: [],
+			path: '/abs/c15t-backend.config.ts',
+		})
+	),
+	installDependencies: vi.fn(() => Promise.resolve()),
 	isUpToDate: (report: { adoption: unknown[]; pending: unknown[] }) =>
 		report.adoption.length === 0 && report.pending.length === 0,
-	confirmApply: () => confirmApply(),
-}));
+	readDatabaseConfig: vi.fn(() =>
+		Promise.resolve({
+			dialect: 'postgres',
+			url: 'postgres://localhost/c15t',
+		})
+	),
+};
 
-import { ensureBackendConfig } from './ensure-backend-config';
-import { migrate } from './index';
-import { readDatabaseConfig } from './read-config';
+const DATABASE_CLASSIFICATION_KEY = 'shape';
+const assignInOrder = Object.assign;
 
-const report = (over: Record<string, unknown> = {}) => ({
-	shape: { _tag: 'Empty' },
-	adoption: ['Create "subject"'],
-	pending: ['2-hot-path-indexes'],
-	retained: [],
-	blocked: undefined,
-	applied: false,
-	...over,
-});
+const report = (over: Record<string, unknown> = {}) =>
+	assignInOrder(
+		{},
+		{ [DATABASE_CLASSIFICATION_KEY]: { _tag: 'Empty' } },
+		{ adoption: ['Create "subject"'] },
+		{ pending: ['2-hot-path-indexes'] },
+		{ retained: [] },
+		{ blocked: undefined },
+		{ applied: false },
+		over
+	);
 
-function createMockContext() {
+const createMockContext = function createMockContext() {
 	return {
 		cwd: '/tmp/project',
 		logger: {
-			info: vi.fn(),
-			error: vi.fn(),
-			success: vi.fn(),
 			debug: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
 			message: vi.fn(),
 			note: vi.fn(),
+			success: vi.fn(),
 		},
 		telemetry: { trackEvent: vi.fn() },
 	} as unknown as Parameters<typeof migrate>[0];
-}
+};
 
 describe('migrate command', () => {
 	beforeEach(() => {
@@ -83,21 +85,21 @@ describe('migrate command', () => {
 
 	it('returns early when there is no backend config', async () => {
 		(
-			ensureBackendConfig as unknown as ReturnType<typeof vi.fn>
+			dependencies.ensureBackendConfig as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(null);
 		const context = createMockContext();
 
-		await migrate(context);
+		await migrate(context, dependencies);
 
 		expect(context.logger.error).toHaveBeenCalledWith(
 			'No backend config found.'
 		);
-		expect(readDatabaseConfig).not.toHaveBeenCalled();
+		expect(dependencies.readDatabaseConfig).not.toHaveBeenCalled();
 	});
 
 	it('plans before applying', async () => {
 		const context = createMockContext();
-		await migrate(context);
+		await migrate(context, dependencies);
 
 		expect(plan).toHaveBeenCalledTimes(1);
 		expect(apply).toHaveBeenCalledTimes(1);
@@ -114,7 +116,7 @@ describe('migrate command', () => {
 		);
 		const context = createMockContext();
 
-		await migrate(context);
+		await migrate(context, dependencies);
 
 		expect(apply).not.toHaveBeenCalled();
 		expect(context.logger.error).toHaveBeenCalledWith(
@@ -126,7 +128,7 @@ describe('migrate command', () => {
 		plan.mockResolvedValue(report({ adoption: [], pending: [] }));
 		const context = createMockContext();
 
-		await migrate(context);
+		await migrate(context, dependencies);
 
 		expect(confirmApply).not.toHaveBeenCalled();
 		expect(apply).not.toHaveBeenCalled();
@@ -139,7 +141,7 @@ describe('migrate command', () => {
 		confirmApply.mockResolvedValue(false);
 		const context = createMockContext();
 
-		await migrate(context);
+		await migrate(context, dependencies);
 
 		expect(apply).not.toHaveBeenCalled();
 	});
@@ -148,7 +150,9 @@ describe('migrate command', () => {
 		plan.mockRejectedValue(new Error('connection refused'));
 		const context = createMockContext();
 
-		await expect(migrate(context)).rejects.toThrow('connection refused');
+		await expect(migrate(context, dependencies)).rejects.toThrow(
+			'connection refused'
+		);
 
 		// A CLI process holding a pool open does not exit.
 		expect(dispose).toHaveBeenCalledTimes(1);

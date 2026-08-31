@@ -7,7 +7,9 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { forwardRef, type MouseEvent, type ReactNode } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
+
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
@@ -15,19 +17,19 @@ import { useTriggerContext } from './root';
  * Maps corner position to CSS class name.
  */
 const cornerClassMap = {
-	'bottom-right': styles.bottomRight,
 	'bottom-left': styles.bottomLeft,
-	'top-right': styles.topRight,
+	'bottom-right': styles.bottomRight,
 	'top-left': styles.topLeft,
+	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
 /**
  * Maps size to CSS class name.
  */
 const sizeClassMap = {
-	sm: styles.sm,
-	md: styles.md,
 	lg: styles.lg,
+	md: styles.md,
+	sm: styles.sm,
 } as const;
 
 /**
@@ -71,7 +73,10 @@ export interface TriggerButtonProps {
  * </ConsentDialogTrigger.Button>
  * ```
  */
-export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
+export const TriggerButton = createForwardRef<
+	HTMLButtonElement,
+	TriggerButtonProps
+>(
 	(
 		{
 			children,

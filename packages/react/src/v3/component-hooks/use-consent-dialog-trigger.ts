@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+
 import { useConsentManager } from './use-consent-manager';
 
 export type ConsentDialogTriggerVisibility =
@@ -18,15 +19,19 @@ export interface UseConsentDialogTriggerResult {
 	openDialog: () => void;
 }
 
-export function useConsentDialogTrigger(
+export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	options: UseConsentDialogTriggerOptions = {}
 ): UseConsentDialogTriggerResult {
 	const { showWhen = 'after-consent', onClick } = options;
 	const { activeUI, hasConsented, setActiveUI } = useConsentManager();
 
 	const shouldShow = useMemo(() => {
-		if (showWhen === 'never') return false;
-		if (showWhen === 'after-consent') return hasConsented();
+		if (showWhen === 'never') {
+			return false;
+		}
+		if (showWhen === 'after-consent') {
+			return hasConsented();
+		}
 		return true;
 	}, [hasConsented, showWhen]);
 
@@ -39,4 +44,4 @@ export function useConsentDialogTrigger(
 		isVisible: shouldShow && activeUI === 'none',
 		openDialog,
 	};
-}
+};

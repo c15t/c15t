@@ -4,14 +4,21 @@
  * Browser-based tests for IAB stub and queue behavior.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
+import {
+	createDeferredPromise,
+	createVoidDeferredPromise,
+} from '~/__tests__/deferred-promise';
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/v3/providers/consent-manager-provider';
+
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	clearConsentState,
 	defaultIABOptions,
@@ -55,11 +62,11 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			expect(tcfapi).toBeDefined();
 
 			// Should accept command, version, callback
-			await new Promise<void>((resolve) => {
+			await createVoidDeferredPromise((resolve) => {
 				tcfapi?.('ping', 2, () => {
 					resolve();
 				});
@@ -77,10 +84,10 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 
 			// Should accept command, version, callback, parameter
-			const result = await new Promise<boolean>((resolve) => {
+			const result = await createDeferredPromise<boolean>((resolve) => {
 				tcfapi?.(
 					'removeEventListener',
 					2,
@@ -108,15 +115,17 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const pingData = await new Promise<{ cmpLoaded: boolean }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
-					'ping',
-					2,
-					(data: { cmpLoaded: boolean }) => {
-						resolve(data);
-					}
-				);
-			});
+			const pingData = await createDeferredPromise<{ cmpLoaded: boolean }>(
+				(resolve) => {
+					(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
+						'ping',
+						2,
+						(data: { cmpLoaded: boolean }) => {
+							resolve(data);
+						}
+					);
+				}
+			);
 
 			expect(pingData.cmpLoaded).toBe(true);
 		});
@@ -132,15 +141,17 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const pingData = await new Promise<{ cmpStatus: string }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
-					'ping',
-					2,
-					(data: { cmpStatus: string }) => {
-						resolve(data);
-					}
-				);
-			});
+			const pingData = await createDeferredPromise<{ cmpStatus: string }>(
+				(resolve) => {
+					(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
+						'ping',
+						2,
+						(data: { cmpStatus: string }) => {
+							resolve(data);
+						}
+					);
+				}
+			);
 
 			expect(pingData.cmpStatus).toBe('loaded');
 		});
@@ -159,15 +170,17 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForCMP();
 
 			// Make a call that requires CMP to be loaded
-			const result = await new Promise<{ tcString: string }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
-					'getTCData',
-					2,
-					(data: { tcString: string }) => {
-						resolve(data);
-					}
-				);
-			});
+			const result = await createDeferredPromise<{ tcString: string }>(
+				(resolve) => {
+					(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
+						'getTCData',
+						2,
+						(data: { tcString: string }) => {
+							resolve(data);
+						}
+					);
+				}
+			);
 
 			expect(result).toBeDefined();
 			expect(result).toHaveProperty('tcString');
@@ -186,15 +199,17 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const result = await new Promise<{ apiVersion: string }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
-					'ping',
-					2,
-					(data: { apiVersion: string }) => {
-						resolve(data);
-					}
-				);
-			});
+			const result = await createDeferredPromise<{ apiVersion: string }>(
+				(resolve) => {
+					(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
+						'ping',
+						2,
+						(data: { apiVersion: string }) => {
+							resolve(data);
+						}
+					);
+				}
+			);
 
 			expect(result.apiVersion).toBe('2.3');
 		});
@@ -210,11 +225,11 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const result = await new Promise<{
+			const result = await createDeferredPromise<{
 				gdprApplies: boolean;
 				cmpStatus: string;
 			}>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'getTCData',
 					2,
 					(data: { gdprApplies: boolean; cmpStatus: string }) => {
@@ -238,15 +253,17 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const result = await new Promise<{ listenerId: number }>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
-					'addEventListener',
-					2,
-					(data: { listenerId: number }) => {
-						resolve(data);
-					}
-				);
-			});
+			const result = await createDeferredPromise<{ listenerId: number }>(
+				(resolve) => {
+					(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
+						'addEventListener',
+						2,
+						(data: { listenerId: number }) => {
+							resolve(data);
+						}
+					);
+				}
+			);
 
 			expect(result.listenerId).toBeDefined();
 			expect(typeof result.listenerId).toBe('number');
@@ -263,10 +280,10 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const result = await new Promise<{
+			const result = await createDeferredPromise<{
 				purposes: Record<number, unknown>;
 			}>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'getVendorList',
 					2,
 					(data: { purposes: Record<number, unknown> }) => {
@@ -289,11 +306,11 @@ describe('IAB Stub E2E Tests', () => {
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const result = await new Promise<{
+			const result = await createDeferredPromise<{
 				data: unknown;
 				success: boolean;
 			}>((resolve) => {
-				(window as { __tcfapi?: Function }).__tcfapi?.(
+				(window as { __tcfapi?: TcfApiTestFunction }).__tcfapi?.(
 					'unknownCommand',
 					2,
 					(data: unknown, success: boolean) => {

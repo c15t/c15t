@@ -12,6 +12,7 @@ import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { up as baseline } from '../db/migrations/1-baseline';
 import { singleTenant } from '../db/tenant';
 import { submit } from './record-consent';
@@ -21,7 +22,7 @@ import { submit } from './record-consent';
 const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 const GIVEN_AT = new Date(1_800_000_000_000);
 
-const setup = Effect.gen(function* () {
+const setup = Effect.gen(function* setup() {
 	yield* baseline;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
@@ -32,34 +33,34 @@ const setup = Effect.gen(function* () {
 });
 
 const request = {
-	subjectId: 'sub_client_generated',
+	decision: {
+		dedupeKey: 'default|fp_1|country|DE|none|gdpr',
+		fingerprint: 'fp_1',
+		jurisdiction: 'gdpr',
+		matchedBy: 'country',
+		model: 'opt_in',
+		policyId: 'pol_1',
+	},
 	domainId: 'dom_1',
-	policyId: 'pol_1',
-	purposeIds: ['analytics'],
 	givenAt: GIVEN_AT,
 	ipAddress: '203.0.113.0',
+	policyId: 'pol_1',
+	purposeIds: ['analytics'],
+	subjectId: 'sub_client_generated',
 	userAgent: 'test-agent',
-	decision: {
-		policyId: 'pol_1',
-		fingerprint: 'fp_1',
-		matchedBy: 'country',
-		jurisdiction: 'gdpr',
-		model: 'opt_in',
-		dedupeKey: 'default|fp_1|country|DE|none|gdpr',
-	},
 };
 
-const counts = Effect.fn('counts')(function* () {
+const counts = Effect.fn('counts')(function* counts() {
 	const sql = yield* SqlClient.SqlClient;
 	const of = (table: string) =>
 		sql<{
 			total: string;
 		}>`${sql.unsafe(`select count(*) as total from "${table}"`)}`;
 	return {
-		subjects: Number((yield* of('subject'))[0]?.total),
-		decisions: Number((yield* of('runtimePolicyDecision'))[0]?.total),
-		consents: Number((yield* of('consent'))[0]?.total),
 		audit: Number((yield* of('auditLog'))[0]?.total),
+		consents: Number((yield* of('consent'))[0]?.total),
+		decisions: Number((yield* of('runtimePolicyDecision'))[0]?.total),
+		subjects: Number((yield* of('subject'))[0]?.total),
 	};
 });
 
@@ -67,7 +68,7 @@ describe('consent submission', () => {
 	it.effect(
 		'tells the loser of a purpose race that its purposes were not stored',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 
 				// Two submissions with the same identity and different purposes.
@@ -108,16 +109,16 @@ describe('consent submission', () => {
 	it.effect(
 		'writes one of each on a first submission',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const result = yield* submit(request);
 
 				assert.isTrue(result.created);
 				assert.deepStrictEqual(yield* counts(), {
-					subjects: 1,
-					decisions: 1,
-					consents: 1,
 					audit: 1,
+					consents: 1,
+					decisions: 1,
+					subjects: 1,
 				});
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
@@ -126,7 +127,7 @@ describe('consent submission', () => {
 	it.effect(
 		'writes nothing extra on a replay',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				yield* submit(request);
 				const second = yield* submit(request);
@@ -136,10 +137,10 @@ describe('consent submission', () => {
 				// is the one with no natural key — a second one here would have
 				// the trail assert the subject consented twice.
 				assert.deepStrictEqual(yield* counts(), {
-					subjects: 1,
-					decisions: 1,
-					consents: 1,
 					audit: 1,
+					consents: 1,
+					decisions: 1,
+					subjects: 1,
 				});
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
@@ -148,7 +149,7 @@ describe('consent submission', () => {
 	it.effect(
 		'writes one of each under concurrency',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const results = yield* Effect.all(
 					[submit(request), submit(request), submit(request)],
@@ -160,10 +161,10 @@ describe('consent submission', () => {
 					1
 				);
 				assert.deepStrictEqual(yield* counts(), {
-					subjects: 1,
-					decisions: 1,
-					consents: 1,
 					audit: 1,
+					consents: 1,
+					decisions: 1,
+					subjects: 1,
 				});
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
@@ -172,7 +173,7 @@ describe('consent submission', () => {
 	it.effect(
 		'links the consent to the decision that justified it',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const result = yield* submit(request);
 				const sql = yield* SqlClient.SqlClient;
@@ -188,7 +189,7 @@ describe('consent submission', () => {
 	it.effect(
 		'does not re-identify an existing subject as a side effect',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql.unsafe(`insert into "subject"
@@ -210,7 +211,7 @@ describe('consent submission', () => {
 	it.effect(
 		'records consent with no policy decision',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const { decision: _omitted, ...bare } = request;
 				const result = yield* submit(bare);

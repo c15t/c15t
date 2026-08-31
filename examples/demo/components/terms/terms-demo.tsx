@@ -9,6 +9,7 @@ import {
 	UserRound,
 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
+
 import { createUnsafeDemoLegalDocumentSnapshotToken } from '../../lib/unsafe-demo-legal-document-snapshot';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -22,18 +23,18 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
-type TermsPolicySummary = {
+interface TermsPolicySummary {
 	title: string;
 	version: string;
 	hash: string;
 	effectiveDate: string;
 	documentSnapshotToken?: string | null;
-};
+}
 
-type IdentityState = {
+interface IdentityState {
 	externalId: string;
 	identityProvider: string;
-};
+}
 
 type AcceptanceState = IdentityState & {
 	subjectId: string;
@@ -49,14 +50,15 @@ const termsHighlights = [
 	'The preferred client contract is a signed document snapshot token; the hash path is a fallback for lighter integrations.',
 ];
 
-function formatDate(value: string) {
+const formatDate = function formatDate(value: string) {
 	return new Intl.DateTimeFormat('en', {
 		dateStyle: 'medium',
 		timeStyle: 'short',
 	}).format(new Date(value));
-}
+};
 
-export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 	const { consentInfo, identifyUser, unstable_acceptPolicyConsent, user } =
 		useConsentManager();
 	const [form, setForm] = useState({
@@ -73,6 +75,7 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 	const defaultIdentityProvider = form.identityProvider.trim() || 'demo-auth';
 	const identifiedUser =
 		identified ??
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		(user?.id
 			? {
 					externalId: user.id,
@@ -122,6 +125,7 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 	);
 
 	const feedbackClassName =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		feedback?.tone === 'error'
 			? 'border-destructive/30 bg-destructive/10 text-destructive'
 			: feedback?.tone === 'success'
@@ -130,36 +134,36 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 
 	const createDemoSnapshotToken = async () => {
 		const tokenResult = await createUnsafeDemoLegalDocumentSnapshotToken({
+			effectiveDate: policy.effectiveDate,
+			hash: policy.hash,
 			type: 'terms_and_conditions',
 			version: policy.version,
-			hash: policy.hash,
-			effectiveDate: policy.effectiveDate,
 		});
 
 		return tokenResult.token;
 	};
 
 	return (
-		<div className="relative overflow-hidden bg-background text-foreground">
+		<div className="bg-background text-foreground relative overflow-hidden">
 			<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_28%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_24%),linear-gradient(180deg,rgba(15,23,42,0.04),transparent_48%)]" />
-			<div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+			<div className="via-border absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent" />
 
 			<div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-10 px-4 pt-28 pb-16 sm:px-6 lg:px-8">
 				<section className="grid gap-6 lg:grid-cols-[1.25fr_0.95fr]">
 					<div className="space-y-6">
-						<div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-xs uppercase tracking-[0.18em] backdrop-blur">
+						<div className="border-border/70 bg-background/80 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs tracking-[0.18em] uppercase backdrop-blur">
 							<FileText className="size-3.5" />
 							c15t legal-document example
 						</div>
 
 						<div className="max-w-3xl space-y-4">
-							<h1 className="max-w-2xl text-balance font-semibold text-4xl tracking-tight sm:text-5xl">
+							<h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
 								Identify a user first, then capture a terms acceptance with the
 								active c15t release.
 							</h1>
-							<p className="max-w-2xl text-base text-muted-foreground sm:text-lg">
+							<p className="text-muted-foreground max-w-2xl text-base sm:text-lg">
 								This demo creates or links a subject, then records a
-								<code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-sm">
+								<code className="bg-muted mx-1 rounded px-1.5 py-0.5 text-sm">
 									terms_and_conditions
 								</code>
 								consent against a signed legal-document snapshot when available,
@@ -168,32 +172,32 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 						</div>
 
 						<div className="grid gap-4 sm:grid-cols-3">
-							<div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-								<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+							<div className="border-border/70 bg-background/75 rounded-2xl border p-4 backdrop-blur">
+								<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 									Step 1
 								</p>
 								<p className="mt-2 font-medium">Identify the subject</p>
-								<p className="mt-1 text-muted-foreground text-sm">
+								<p className="text-muted-foreground mt-1 text-sm">
 									Link the c15t subject to an authenticated external user ID.
 								</p>
 							</div>
-							<div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-								<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+							<div className="border-border/70 bg-background/75 rounded-2xl border p-4 backdrop-blur">
+								<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 									Step 2
 								</p>
 								<p className="mt-2 font-medium">Resolve the current release</p>
-								<p className="mt-1 text-muted-foreground text-sm">
+								<p className="text-muted-foreground mt-1 text-sm">
 									The preferred input is a signed snapshot token. The release
 									hash stays available as a lighter fallback when the client
 									only knows the rendered document version.
 								</p>
 							</div>
-							<div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-								<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+							<div className="border-border/70 bg-background/75 rounded-2xl border p-4 backdrop-blur">
+								<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 									Step 3
 								</p>
 								<p className="mt-2 font-medium">Append acceptance evidence</p>
-								<p className="mt-1 text-muted-foreground text-sm">
+								<p className="text-muted-foreground mt-1 text-sm">
 									Consent is written as an append-only record with subject and
 									release evidence.
 								</p>
@@ -201,13 +205,13 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 						</div>
 					</div>
 
-					<div className="rounded-[28px] border border-border/70 bg-background/85 p-6 shadow-sm backdrop-blur">
+					<div className="border-border/70 bg-background/85 rounded-[28px] border p-6 shadow-sm backdrop-blur">
 						<div className="flex items-start justify-between gap-4">
 							<div>
-								<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+								<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 									Current release
 								</p>
-								<h2 className="mt-2 font-semibold text-2xl">{policy.title}</h2>
+								<h2 className="mt-2 text-2xl font-semibold">{policy.title}</h2>
 							</div>
 							<Badge variant="outline">Active</Badge>
 						</div>
@@ -216,20 +220,20 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 							{statusRows.map((row) => (
 								<div
 									key={row.label}
-									className="rounded-2xl border border-border/70 bg-muted/45 p-4"
+									className="border-border/70 bg-muted/45 rounded-2xl border p-4"
 								>
-									<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+									<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 										{row.label}
 									</p>
-									<p className="mt-2 break-all font-medium text-sm">
+									<p className="mt-2 text-sm font-medium break-all">
 										{row.value}
 									</p>
 								</div>
 							))}
 						</div>
 
-						<div className="mt-6 rounded-2xl border border-border border-dashed bg-muted/30 p-4">
-							<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+						<div className="border-border bg-muted/30 mt-6 rounded-2xl border border-dashed p-4">
+							<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 								Release hash
 							</p>
 							<p className="mt-2 font-mono text-sm">{policy.hash}</p>
@@ -241,14 +245,14 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 					<Card className="border-border/70 bg-background/90 shadow-sm">
 						<CardHeader>
 							<div className="flex items-center gap-3">
-								<div className="rounded-2xl bg-primary/10 p-3 text-primary">
+								<div className="bg-primary/10 text-primary rounded-2xl p-3">
 									<UserRound className="size-5" />
 								</div>
 								<div>
 									<CardTitle>Identify the user</CardTitle>
 									<CardDescription>
-										Use c15t's identify flow to store the external account and
-										link immediately if a subject already exists.
+										Use c15t&apos;s identify flow to store the external account
+										and link immediately if a subject already exists.
 									</CardDescription>
 								</div>
 							</div>
@@ -296,9 +300,9 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 
 										if (!externalId) {
 											setFeedback({
-												tone: 'error',
 												message:
 													'External user ID is required before you can identify the subject.',
+												tone: 'error',
 											});
 											return;
 										}
@@ -317,18 +321,18 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 											});
 											setAcceptance(null);
 											setFeedback({
-												tone: 'success',
 												message: hasExistingSubject
 													? `c15t linked subject ${consentInfo.subjectId} to ${externalId}.`
 													: `c15t stored ${externalId} in client state. The first consent write will create or reuse the subject and attach the user identity.`,
+												tone: 'success',
 											});
 										} catch (error) {
 											setFeedback({
-												tone: 'error',
 												message:
 													error instanceof Error
 														? error.message
 														: 'Unable to identify the user with c15t.',
+												tone: 'error',
 											});
 										}
 									});
@@ -337,11 +341,11 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 								{isPending ? 'Linking subject...' : 'Identify user'}
 							</Button>
 
-							<div className="rounded-2xl border border-border/70 bg-muted/35 p-4 text-sm">
+							<div className="border-border/70 bg-muted/35 rounded-2xl border p-4 text-sm">
 								<p className="font-medium">What this step does</p>
-								<p className="mt-2 text-muted-foreground">
-									This button now uses the consent manager's
-									<code className="mx-1 rounded bg-background px-1.5 py-0.5 text-xs">
+								<p className="text-muted-foreground mt-2">
+									This button now uses the consent manager&apos;s
+									<code className="bg-background mx-1 rounded px-1.5 py-0.5 text-xs">
 										identifyUser()
 									</code>
 									flow. If a subject already exists, c15t patches it
@@ -353,7 +357,7 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 					</Card>
 
 					<div className="space-y-6">
-						<section className="rounded-[28px] border border-border/70 bg-background/90 p-6 shadow-sm">
+						<section className="border-border/70 bg-background/90 rounded-[28px] border p-6 shadow-sm">
 							<div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
 								<div className="max-w-2xl">
 									<div className="flex items-center gap-3">
@@ -361,16 +365,16 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 											<ShieldCheck className="size-5" />
 										</div>
 										<div>
-											<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+											<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 												Terms excerpt
 											</p>
-											<h2 className="mt-1 font-semibold text-2xl">
+											<h2 className="mt-1 text-2xl font-semibold">
 												c15t example terms
 											</h2>
 										</div>
 									</div>
 
-									<div className="mt-6 max-w-2xl space-y-4 text-muted-foreground text-sm leading-7 sm:text-base">
+									<div className="text-muted-foreground mt-6 max-w-2xl space-y-4 text-sm leading-7 sm:text-base">
 										<p>
 											By accepting these terms you authorize c15t to store a
 											versioned legal-document consent for your authenticated
@@ -381,7 +385,7 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 										<p>
 											The acceptance is append-only. A future release can
 											supersede this one without erasing the fact that version
-											<code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-sm">
+											<code className="bg-muted mx-1 rounded px-1.5 py-0.5 text-sm">
 												{policy.version}
 											</code>
 											was accepted today.
@@ -389,8 +393,8 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 									</div>
 								</div>
 
-								<div className="min-w-0 flex-1 rounded-3xl border border-border/70 bg-muted/35 p-5">
-									<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+								<div className="border-border/70 bg-muted/35 min-w-0 flex-1 rounded-3xl border p-5">
+									<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 										Implementation notes
 									</p>
 									<div className="mt-4 space-y-3">
@@ -407,17 +411,17 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 								</div>
 							</div>
 
-							<div className="mt-8 flex flex-col gap-4 rounded-3xl border border-border/70 bg-muted/20 p-5 sm:flex-row sm:items-center sm:justify-between">
+							<div className="border-border/70 bg-muted/20 mt-8 flex flex-col gap-4 rounded-3xl border p-5 sm:flex-row sm:items-center sm:justify-between">
 								<div>
-									<p className="font-medium text-sm">
+									<p className="text-sm font-medium">
 										{identifiedUser
 											? `Ready to record acceptance for ${identifiedUser.externalId}`
 											: 'Identify the user before recording acceptance'}
 									</p>
-									<p className="mt-1 text-muted-foreground text-sm">
+									<p className="text-muted-foreground mt-1 text-sm">
 										c15t will store the acceptance with subject, consent, and
 										policy evidence through the unstable
-										<code className="mx-1 rounded bg-background px-1.5 py-0.5 text-xs">
+										<code className="bg-background mx-1 rounded px-1.5 py-0.5 text-xs">
 											unstable_acceptPolicyConsent()
 										</code>
 										store primitive.
@@ -429,9 +433,9 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 									onClick={() => {
 										if (!identifiedUser) {
 											setFeedback({
-												tone: 'error',
 												message:
 													'Identify the user first so c15t has a subject to attach the terms consent to.',
+												tone: 'error',
 											});
 											return;
 										}
@@ -453,51 +457,54 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 												const result = await unstable_acceptPolicyConsent(
 													documentSnapshotToken
 														? {
-																type: 'terms_and_conditions',
 																documentSnapshotToken,
-																uiSource: 'terms-demo',
 																metadata: {
-																	source: 'examples/demo/terms',
 																	release: policy.version,
+																	source: 'examples/demo/terms',
 																},
+																type: 'terms_and_conditions',
+																uiSource: 'terms-demo',
 															}
 														: {
-																type: 'terms_and_conditions',
-																policyHash: policy.hash,
-																uiSource: 'terms-demo',
 																metadata: {
-																	source: 'examples/demo/terms',
 																	release: policy.version,
+																	source: 'examples/demo/terms',
 																},
+																policyHash: policy.hash,
+																type: 'terms_and_conditions',
+																uiSource: 'terms-demo',
 															}
 												);
 
 												if (!result) {
-													throw new Error(
-														'Unable to record the terms acceptance with c15t.'
-													);
+													setFeedback({
+														message:
+															'Unable to record the terms acceptance with c15t.',
+														tone: 'error',
+													});
+													return;
 												}
 
 												setAcceptance({
-													subjectId: result.subjectId,
+													acceptedAt: new Date(result.givenAt).toISOString(),
+													consentId: result.consentId,
 													externalId: identifiedUser.externalId,
 													identityProvider: identifiedUser.identityProvider,
-													consentId: result.consentId,
-													policyVersion: policy.version,
 													policyHash: policy.hash,
-													acceptedAt: new Date(result.givenAt).toISOString(),
+													policyVersion: policy.version,
+													subjectId: result.subjectId,
 												});
 												setFeedback({
-													tone: 'success',
 													message: `Terms accepted and stored as consent ${result.consentId}.`,
+													tone: 'success',
 												});
 											} catch (error) {
 												setFeedback({
-													tone: 'error',
 													message:
 														error instanceof Error
 															? error.message
 															: 'Unable to record the terms acceptance with c15t.',
+													tone: 'error',
 												});
 											}
 										});
@@ -511,39 +518,38 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 						</section>
 
 						<section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-							<div
+							<output
 								aria-atomic="true"
 								aria-live="polite"
 								className={`rounded-[24px] border p-5 text-sm shadow-sm ${feedbackClassName}`}
-								role="status"
 							>
-								<p className="text-xs uppercase tracking-[0.18em]">
+								<p className="text-xs tracking-[0.18em] uppercase">
 									Request status
 								</p>
 								<p className="mt-2 leading-7">
 									{feedback?.message ||
 										'No write has been sent yet. Identify a user to begin the flow.'}
 								</p>
-							</div>
+							</output>
 
-							<div className="rounded-[24px] border border-border/70 bg-background/90 p-5 shadow-sm">
-								<p className="text-muted-foreground text-xs uppercase tracking-[0.18em]">
+							<div className="border-border/70 bg-background/90 rounded-[24px] border p-5 shadow-sm">
+								<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">
 									Latest acceptance
 								</p>
 								<div className="mt-4 space-y-4">
 									<div className="flex items-start gap-3">
-										<Fingerprint className="mt-0.5 size-4 text-muted-foreground" />
+										<Fingerprint className="text-muted-foreground mt-0.5 size-4" />
 										<div className="min-w-0">
-											<p className="font-medium text-sm">Consent ID</p>
-											<p className="break-all text-muted-foreground text-sm">
+											<p className="text-sm font-medium">Consent ID</p>
+											<p className="text-muted-foreground text-sm break-all">
 												{acceptance?.consentId || 'Pending'}
 											</p>
 										</div>
 									</div>
 									<div className="flex items-start gap-3">
-										<FileText className="mt-0.5 size-4 text-muted-foreground" />
+										<FileText className="text-muted-foreground mt-0.5 size-4" />
 										<div className="min-w-0">
-											<p className="font-medium text-sm">
+											<p className="text-sm font-medium">
 												Stored against release
 											</p>
 											<p className="text-muted-foreground text-sm">
@@ -561,4 +567,4 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 			</div>
 		</div>
 	);
-}
+};

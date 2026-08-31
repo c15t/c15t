@@ -1,27 +1,28 @@
 <script lang="ts">
-import { getDataDisabled } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getTabsRootContext } from './context';
+	import { getDataDisabled } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-const root = getTabsRootContext();
+	import { getTabsRootContext } from './context';
 
-const disabled = $derived(root.disabled);
-const rootOrientation = $derived(root.orientation);
-const dataDisabled = $derived(getDataDisabled(disabled));
+	const root = getTabsRootContext();
 
-let {
-	children,
-	class: className,
-	orientation: orientationProp,
-	...restProps
-}: HTMLAttributes<HTMLDivElement> & {
-	children?: Snippet;
-	class?: string;
-	orientation?: 'horizontal' | 'vertical';
-} = $props();
+	const disabled = $derived(root.disabled);
+	const rootOrientation = $derived(root.orientation);
+	const dataDisabled = $derived(getDataDisabled(disabled));
 
-const orientation = $derived(orientationProp ?? rootOrientation);
+	let {
+		children,
+		class: className,
+		orientation: orientationProp,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		orientation?: 'horizontal' | 'vertical';
+	} = $props();
+
+	const orientation = $derived(orientationProp ?? rootOrientation);
 </script>
 
 <div

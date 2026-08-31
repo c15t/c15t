@@ -7,32 +7,32 @@ const response = {
 		countryCode: 'DE',
 		regionCode: 'BE',
 	},
+	policySnapshotToken: 'bundle-bench-snapshot',
 	translations: {
 		language: 'en',
 		translations: {
 			common: {
 				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
 				customize: 'Customize',
+				rejectAll: 'Reject All',
 				save: 'Save',
 			},
-			cookieBanner: {
-				title: 'Benchmark Consent Banner',
-				description: 'Benchmark fixture description.',
-			},
 			consentManagerDialog: {
-				title: 'Benchmark Preferences',
 				description: 'Benchmark fixture dialog description.',
+				title: 'Benchmark Preferences',
+			},
+			cookieBanner: {
+				description: 'Benchmark fixture description.',
+				title: 'Benchmark Consent Banner',
 			},
 		},
 	},
-	policySnapshotToken: 'bundle-bench-snapshot',
 };
 
-export async function GET() {
+export const GET = function GET() {
 	return NextResponse.json(response, {
 		headers: {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

@@ -11,6 +11,7 @@
  */
 
 import type { FC } from 'react';
+
 import {
 	Accordion,
 	AccordionArrow,
@@ -116,26 +117,27 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
  *
  */
 const ConsentWidget = Object.assign(ConsentWidgetComponent, {
+	// Button components
+	AcceptAllButton,
+	Accordion,
+	AccordionArrow,
+	AccordionContent,
+	AccordionItem,
+	AccordionItems,
 	// Accordion components
 	AccordionTrigger,
 	AccordionTriggerInner,
-	AccordionContent,
-	AccordionArrow,
-	Accordion,
-	Switch,
-	AccordionItems,
-	AccordionItem,
-	// Root component
-	Root,
-	// Button components
-	AcceptAllButton,
 	CustomizeButton,
-	SaveButton,
-	RejectButton,
-	// Footer components
-	PolicyActions,
 	Footer,
 	FooterSubGroup,
+
+	// Footer components
+	PolicyActions,
+	RejectButton,
+	// Root component
+	Root,
+	SaveButton,
+	Switch,
 }) as ConsentWidgetCompoundComponent;
 
 // Export the main component as both default and named export
@@ -176,10 +178,7 @@ export {
 	Footer,
 	FooterSubGroup,
 } from './atoms/footer';
-export {
-	ConsentWidgetRoot,
-	Root,
-} from './atoms/root';
+export { ConsentWidgetRoot, Root } from './atoms/root';
 export {
 	type ConsentWidgetPolicyActionRenderProps,
 	ConsentWidgetPolicyActions,

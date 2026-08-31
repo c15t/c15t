@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+
 import { C15T_VERSION_HEADERS } from '../../client/headers';
 import type { SSRInitialData } from '../../store/type';
 import {
@@ -12,18 +13,18 @@ import type { PrefetchOptions } from './types';
 const WINDOW_PROMISES_KEY = '__c15tInitialDataPromises';
 
 type PrefetchPromise = Promise<SSRInitialData | undefined>;
-type PrefetchEntry = {
+interface PrefetchEntry {
 	promise: PrefetchPromise;
 	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'];
-};
+}
 
 type BrowserWindow = Window & {
 	[WINDOW_PROMISES_KEY]?: Record<string, PrefetchEntry>;
 };
 
-function buildInitURL(backendURL: string): string {
+const buildInitURL = function buildInitURL(backendURL: string): string {
 	return `${backendURL}/init`;
-}
+};
 
 interface PrefetchConfig {
 	url: string;
@@ -33,7 +34,7 @@ interface PrefetchConfig {
 	cacheKey: string;
 }
 
-function buildPrefetchCacheKey(options: {
+const buildPrefetchCacheKey = function buildPrefetchCacheKey(options: {
 	url: string;
 	credentials: RequestCredentials;
 	headers: Record<string, string>;
@@ -45,9 +46,11 @@ function buildPrefetchCacheKey(options: {
 		.join('|');
 
 	return `${options.url}|${options.credentials}|gpc:${options.gpc}|${sortedHeaders}`;
-}
+};
 
-function buildPrefetchConfig(options: PrefetchOptions): PrefetchConfig {
+const buildPrefetchConfig = function buildPrefetchConfig(
+	options: PrefetchOptions
+): PrefetchConfig {
 	const requestContext = createBrowserRequestContext(options);
 	if (!requestContext) {
 		throw new Error(`Invalid backend URL: ${options.backendURL}`);
@@ -61,20 +64,20 @@ function buildPrefetchConfig(options: PrefetchOptions): PrefetchConfig {
 	};
 
 	return {
-		url,
+		cacheKey: buildPrefetchCacheKey({
+			credentials,
+			gpc: requestContext.gpc,
+			headers,
+			url,
+		}),
 		credentials,
 		headers,
 		requestContext,
-		cacheKey: buildPrefetchCacheKey({
-			url,
-			credentials,
-			headers,
-			gpc: requestContext.gpc,
-		}),
+		url,
 	};
-}
+};
 
-function toInitialData(
+const toInitialData = function toInitialData(
 	config: Pick<PrefetchConfig, 'requestContext'>,
 	init: InitOutput | undefined
 ): SSRInitialData | undefined {
@@ -83,23 +86,25 @@ function toInitialData(
 	}
 
 	return {
-		init,
 		gvl: init.gvl,
+		init,
 		metadata: {
 			requestContext: config.requestContext,
 		},
 	};
-}
+};
 
-function getBrowserWindow(): BrowserWindow | undefined {
+const getBrowserWindow = function getBrowserWindow():
+	| BrowserWindow
+	| undefined {
 	if (typeof window === 'undefined') {
 		return undefined;
 	}
 
 	return window as BrowserWindow;
-}
+};
 
-function getPromiseMap(
+const getPromiseMap = function getPromiseMap(
 	browserWindow: BrowserWindow
 ): Record<string, PrefetchEntry> {
 	if (!browserWindow[WINDOW_PROMISES_KEY]) {
@@ -107,27 +112,34 @@ function getPromiseMap(
 	}
 
 	return browserWindow[WINDOW_PROMISES_KEY];
-}
+};
 
-function createPrefetchEntry(config: PrefetchConfig): PrefetchEntry {
-	const promise = fetch(config.url, {
-		method: 'GET',
-		credentials: config.credentials,
-		headers: config.headers,
-	})
-		.then((response) =>
-			response.ok ? (response.json() as Promise<InitOutput>) : undefined
-		)
-		.then((init) => toInitialData(config, init))
-		.catch(() => undefined);
+const createPrefetchEntry = function createPrefetchEntry(
+	config: PrefetchConfig
+): PrefetchEntry {
+	const promise = (async () => {
+		try {
+			const response = await fetch(config.url, {
+				credentials: config.credentials,
+				headers: config.headers,
+				method: 'GET',
+			});
+			const init = response.ok
+				? ((await response.json()) as InitOutput)
+				: undefined;
+			return toInitialData(config, init);
+		} catch {
+			return undefined;
+		}
+	})();
 
 	return {
 		promise,
 		requestContext: config.requestContext,
 	};
-}
+};
 
-function getMatchingPrefetchEntry(options: {
+const getMatchingPrefetchEntry = function getMatchingPrefetchEntry(options: {
 	backendURL: string;
 	overrides?: PrefetchOptions['overrides'];
 	credentials?: RequestCredentials;
@@ -139,8 +151,8 @@ function getMatchingPrefetchEntry(options: {
 
 	const matcher = createRuntimeRequestContextMatcher({
 		backendURL: options.backendURL,
-		overrides: options.overrides,
 		credentials: options.credentials,
+		overrides: options.overrides,
 	});
 	if (!matcher) {
 		return undefined;
@@ -148,22 +160,23 @@ function getMatchingPrefetchEntry(options: {
 
 	const entries = Object.values(browserWindow[WINDOW_PROMISES_KEY] ?? {});
 	const matches = entries.filter((entry) => {
-		const requestContext = entry.requestContext;
+		const { requestContext } = entry;
 		return requestContext
 			? matchesStoredRequestContext(requestContext, matcher)
 			: false;
 	});
 
 	return matches.length === 1 ? matches[0] : undefined;
-}
+};
 
-export function getMatchingPrefetchedInitialData(options: {
-	backendURL: string;
-	overrides?: PrefetchOptions['overrides'];
-	credentials?: RequestCredentials;
-}): PrefetchPromise | undefined {
-	return getMatchingPrefetchEntry(options)?.promise;
-}
+export const getMatchingPrefetchedInitialData =
+	function getMatchingPrefetchedInitialData(options: {
+		backendURL: string;
+		overrides?: PrefetchOptions['overrides'];
+		credentials?: RequestCredentials;
+	}): PrefetchPromise | undefined {
+		return getMatchingPrefetchEntry(options)?.promise;
+	};
 
 /**
  * Generates a self-contained inline script that starts the `/init`
@@ -178,7 +191,9 @@ export function getMatchingPrefetchedInitialData(options: {
  * (e.g. `beforeInteractive` in Next.js, `<script>` in `<head>` for
  * vanilla HTML).
  */
-export function buildPrefetchScript(options: PrefetchOptions): string {
+export const buildPrefetchScript = function buildPrefetchScript(
+	options: PrefetchOptions
+): string {
 	const payload = {
 		backendURL: options.backendURL,
 		credentials: options.credentials ?? 'include',
@@ -188,12 +203,12 @@ export function buildPrefetchScript(options: PrefetchOptions): string {
 		},
 		requestContext: {
 			country: options.overrides?.country ?? null,
-			region: options.overrides?.region ?? null,
 			language: options.overrides?.language ?? null,
+			region: options.overrides?.region ?? null,
 		},
 	};
 
-	const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+	const json = JSON.stringify(payload).replace(/</gu, '\\u003c');
 
 	return `(() => {
   const mapKey = '${WINDOW_PROMISES_KEY}';
@@ -278,9 +293,9 @@ export function buildPrefetchScript(options: PrefetchOptions): string {
     requestContext
   };
 })();`;
-}
+};
 
-export function primePrefetchedInitialData(
+export const primePrefetchedInitialData = function primePrefetchedInitialData(
 	options: PrefetchOptions
 ): PrefetchPromise | undefined {
 	const browserWindow = getBrowserWindow();
@@ -296,4 +311,4 @@ export function primePrefetchedInitialData(
 	}
 
 	return promises[config.cacheKey]?.promise;
-}
+};

@@ -1,10 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import {
-	GlobalThemeContext,
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
+	StableGlobalThemeProvider,
+	StableLocalThemeProvider,
+} from '~/__tests__/stable-context-providers';
+import type { ThemeContextValue } from '~/context/theme-context';
+
 import { useTheme } from '../use-theme';
 
 describe('useTheme', () => {
@@ -20,9 +22,9 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
 					{children}
-				</GlobalThemeContext.Provider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -51,11 +53,11 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -64,8 +66,8 @@ describe('useTheme', () => {
 			theme: {
 				slots: {
 					dialog: 'local-style',
-					dialogTitle: 'global-title',
 					dialogContent: 'local-content',
+					dialogTitle: 'global-title',
 				},
 			},
 		});
@@ -92,11 +94,11 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 

@@ -1,4 +1,5 @@
 import type { C15TOptions } from '@c15t/backend';
+
 import type { CliLogger } from '../utils/logger';
 import type { Telemetry } from '../utils/telemetry';
 import type { FrameworkDetectionResult } from './framework-detection';
@@ -7,9 +8,12 @@ import type { PackageManagerResult } from './package-manager-detection';
 // --- Command Definition ---
 export interface CliCommand {
 	name: string;
-	label: string; // For prompts
-	hint: string; // For prompts
-	description: string; // For help text (optional)
+	// For prompts
+	label: string;
+	// For prompts
+	hint: string;
+	// For help text (optional)
+	description: string;
 	// Action now takes CliContext
 	action: (context: CliContext) => Promise<void>;
 	subcommands?: CliCommand[];
@@ -17,10 +21,12 @@ export interface CliCommand {
 }
 
 // --- Flag Definition ---
-export type FlagType = 'boolean' | 'string' | 'special'; // 'special' for help/version
+// 'special' for help/version
+export type FlagType = 'boolean' | 'string' | 'special';
 
 export interface CliFlag {
-	names: string[]; // e.g., ['--help', '-h']
+	// e.g., ['--help', '-h']
+	names: string[];
 	description: string;
 	type: FlagType;
 	expectsValue: boolean;

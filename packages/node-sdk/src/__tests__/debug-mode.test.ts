@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { c15tClient } from '../index';
 
 describe('Debug Mode', () => {
@@ -20,15 +21,15 @@ describe('Debug Mode', () => {
 	});
 
 	afterEach(() => {
-		if (originalApiUrl !== undefined) {
-			process.env.C15T_API_URL = originalApiUrl;
-		} else {
+		if (originalApiUrl === undefined) {
 			delete process.env.C15T_API_URL;
-		}
-		if (originalDebug !== undefined) {
-			process.env.C15T_DEBUG = originalDebug;
 		} else {
+			process.env.C15T_API_URL = originalApiUrl;
+		}
+		if (originalDebug === undefined) {
 			delete process.env.C15T_DEBUG;
+		} else {
+			process.env.C15T_DEBUG = originalDebug;
 		}
 		vi.restoreAllMocks();
 	});
@@ -37,8 +38,8 @@ describe('Debug Mode', () => {
 		it('should not log when debug is disabled', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -56,8 +57,8 @@ describe('Debug Mode', () => {
 		it('should log when debug is enabled via options', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -70,6 +71,7 @@ describe('Debug Mode', () => {
 			await client.status();
 
 			expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const logCall = consoleLogSpy.mock.calls[0][0];
 			expect(logCall).toContain('[c15t]');
 			expect(logCall).toContain('GET');
@@ -82,8 +84,8 @@ describe('Debug Mode', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -102,8 +104,8 @@ describe('Debug Mode', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -124,8 +126,8 @@ describe('Debug Mode', () => {
 		it('should include timestamp, method, path, duration, and status', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -137,19 +139,20 @@ describe('Debug Mode', () => {
 
 			await client.status();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const logCall = consoleLogSpy.mock.calls[0][0];
 
 			// Check format: [c15t] TIMESTAMP METHOD PATH (DURATIONms) -> STATUS
 			expect(logCall).toMatch(
-				/\[c15t\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z GET \/status \(\d+ms\) -> 200/
+				/\[c15t\] \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z GET \/status \(\d+ms\) -> 200/u
 			);
 		});
 
 		it('should log error responses', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Not found' }), {
-					status: 404,
 					headers: { 'content-type': 'application/json' },
+					status: 404,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -161,6 +164,7 @@ describe('Debug Mode', () => {
 
 			await client.getSubject('sub_123');
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const logCall = consoleLogSpy.mock.calls[0][0];
 			expect(logCall).toContain('404');
 		});
@@ -179,6 +183,7 @@ describe('Debug Mode', () => {
 
 			await client.status();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const logCall = consoleLogSpy.mock.calls[0][0];
 			expect(logCall).toContain('ERROR');
 		});
@@ -186,10 +191,10 @@ describe('Debug Mode', () => {
 		it('should log POST requests correctly', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
-					JSON.stringify({ subjectId: 'sub_123', consentId: 'con_456' }),
+					JSON.stringify({ consentId: 'con_456', subjectId: 'sub_123' }),
 					{
-						status: 201,
 						headers: { 'content-type': 'application/json' },
+						status: 201,
 					}
 				)
 			);
@@ -201,13 +206,14 @@ describe('Debug Mode', () => {
 			});
 
 			await client.createSubject({
-				type: 'cookie_banner',
-				subjectId: 'sub_123',
 				domain: 'example.com',
-				preferences: {},
 				givenAt: Date.now(),
+				preferences: {},
+				subjectId: 'sub_123',
+				type: 'cookie_banner',
 			});
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const logCall = consoleLogSpy.mock.calls[0][0];
 			expect(logCall).toContain('POST');
 			expect(logCall).toContain('/subjects');

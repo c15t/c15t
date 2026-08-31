@@ -3,32 +3,19 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
 
-function createMockState(
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
+import { ConsentBanner } from '~/components/consent-banner';
+import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
+
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'banner',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -36,28 +23,45 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			layout: [['accept', 'reject'], 'customize'],
-			direction: 'row',
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
 		},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {
+			allowedActions: ['reject', 'accept', 'customize'],
+			direction: 'row',
+			layout: [['accept', 'reject'], 'customize'],
+			primaryActions: ['accept'],
+		},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-function renderBanner(
+const renderBanner = function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
 	stateOverrides: Partial<ConsentStoreState> = {},
 	themeSlotOverrides: Record<string, string> = {}
@@ -65,7 +69,7 @@ function renderBanner(
 	const state = createMockState(stateOverrides);
 
 	render(
-		<GlobalThemeContext.Provider
+		<StableGlobalThemeProvider
 			value={{
 				theme: {
 					slots: {
@@ -76,24 +80,24 @@ function renderBanner(
 				},
 			}}
 		>
-			<ConsentStateContext.Provider
+			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				<ConsentBanner {...props} />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
-}
+};
 
-async function waitForBanner() {
+const waitForBanner = async function waitForBanner() {
 	await vi.waitFor(
 		() => {
 			expect(
@@ -102,7 +106,7 @@ async function waitForBanner() {
 		},
 		{ timeout: 3000 }
 	);
-}
+};
 
 describe('ConsentBanner policy ordering', () => {
 	test('prefers local layout over policy layout', async () => {
@@ -151,9 +155,9 @@ describe('ConsentBanner policy ordering', () => {
 			{
 				policyBanner: {
 					allowedActions: ['accept'],
-					primaryActions: ['accept'],
-					layout: [['accept']],
 					direction: 'row',
+					layout: [['accept']],
+					primaryActions: ['accept'],
 				},
 			}
 		);
@@ -177,8 +181,8 @@ describe('ConsentBanner policy ordering', () => {
 			{
 				policyBanner: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					primaryActions: ['accept'],
 					direction: 'row',
+					primaryActions: ['accept'],
 					scrollLock: true,
 				},
 			}

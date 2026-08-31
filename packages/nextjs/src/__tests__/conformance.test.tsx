@@ -22,12 +22,14 @@
 
 import {
 	DriverNotImplementedError,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import type { AllConsentNames } from '@c15t/core';
 import type {
@@ -39,15 +41,55 @@ import type {
 import {
 	ConsentBanner,
 	ConsentDialog,
-	type ConsentSnapshot,
 	ConsentWidget,
 	useSnapshot,
 } from '@c15t/react/v3';
-import { type ReactElement, useEffect } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import type { ConsentSnapshot } from '@c15t/react/v3';
+import { useEffect } from 'react';
+import type { ReactElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
-import { ConsentBoundary, type ConsentBoundaryProps } from '~/v3/boundary';
+
+import { ConsentBoundary } from '~/v3/boundary';
+import type { ConsentBoundaryProps } from '~/v3/boundary';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
 
 type BoundaryOptions = NonNullable<ConsentBoundaryProps['options']>;
 
@@ -82,61 +124,62 @@ const DEFAULT_CONSENT_CATEGORIES = [
 const DEFAULT_TRANSLATIONS: TranslationsResponse = {
 	common: {
 		acceptAll: 'Accept all',
-		rejectAll: 'Reject all',
 		customize: 'Customize',
+		rejectAll: 'Reject all',
 		save: 'Save',
 	},
-	cookieBanner: {
-		title: 'We value your privacy',
-		description: 'We use cookies to enhance your experience.',
-	},
 	consentManagerDialog: {
-		title: 'Privacy preferences',
 		description: 'Manage your choices.',
+		title: 'Privacy preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required for the site to function.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics and performance measurement.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
 		},
 	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
 	frame: {
-		title: 'Privacy',
 		actionButton: 'Manage',
+		title: 'Privacy',
 	},
 	legalLinks: {
+		cookiePolicy: 'Cookie policy',
 		privacyPolicy: 'Privacy policy',
 		termsOfService: 'Terms of service',
-		cookiePolicy: 'Cookie policy',
 	},
 };
 
-function mergeTranslations(
+const mergeTranslations = function mergeTranslations(
 	base: TranslationsResponse,
 	override: Partial<TranslationsResponse> | undefined
 ): TranslationsResponse {
-	if (!override || typeof override !== 'object') return base;
+	if (!override || typeof override !== 'object') {
+		return base;
+	}
 	return {
 		...base,
 		...override,
 		common: { ...base.common, ...override.common },
-		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		consentManagerDialog: {
 			...base.consentManagerDialog,
 			...override.consentManagerDialog,
@@ -145,12 +188,16 @@ function mergeTranslations(
 			...base.consentTypes,
 			...override.consentTypes,
 		},
+		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		frame: { ...base.frame, ...override.frame },
 		legalLinks: { ...base.legalLinks, ...override.legalLinks },
 	};
-}
+};
 
-function resolveTranslations(options: ProviderOptions, locale?: string) {
+const resolveTranslations = function resolveTranslations(
+	options: ProviderOptions,
+	locale?: string
+) {
 	const language =
 		locale ??
 		options.i18n?.locale ??
@@ -169,15 +216,17 @@ function resolveTranslations(options: ProviderOptions, locale?: string) {
 		language,
 		translations: mergeTranslations(DEFAULT_TRANSLATIONS, override),
 	};
-}
+};
 
-function consentCategoriesFor(options: ProviderOptions): AllConsentNames[] {
+const consentCategoriesFor = function consentCategoriesFor(
+	options: ProviderOptions
+): AllConsentNames[] {
 	return options.consentCategories?.length === 0
 		? [...DEFAULT_CONSENT_CATEGORIES]
 		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
-}
+};
 
-function activeUIForComponent(
+const activeUIForComponent = function activeUIForComponent(
 	component: MountableComponent
 ): 'banner' | 'dialog' {
 	switch (component) {
@@ -190,10 +239,12 @@ function activeUIForComponent(
 		case 'iab-consent-dialog':
 			// @c15t/nextjs does not re-export the IAB components.
 			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
+		default:
+			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
 	}
-}
+};
 
-function buildPolicy(
+const buildPolicy = function buildPolicy(
 	opts: MountOptions,
 	options: ProviderOptions
 ): ResolvedPolicy {
@@ -201,18 +252,19 @@ function buildPolicy(
 		| { activeUI?: 'none' | 'banner' | 'dialog' }
 		| undefined;
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
+	const consent: ResolvedPolicy['consent'] = {
+		categories: consentCategoriesFor(options),
+		scopeMode: 'permissive',
+	};
+	if (opts.policy?.respectGpc !== undefined) {
+		consent.gpc = opts.policy.respectGpc;
+	}
+
 	return {
+		consent,
 		id: 'nextjs_conformance_policy',
 		model: opts.policy?.model ?? 'opt-in',
-		consent: {
-			categories: consentCategoriesFor(options),
-			scopeMode: 'permissive',
-			...(opts.policy?.respectGpc === undefined
-				? {}
-				: { gpc: opts.policy.respectGpc }),
-		},
 		ui: {
-			mode,
 			banner: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				scrollLock: false,
@@ -221,16 +273,17 @@ function buildPolicy(
 				allowedActions: ['reject', 'accept', 'customize'],
 				scrollLock: false,
 			},
+			mode,
 		},
 	};
-}
+};
 
 /**
  * Split the suite-provided provider options into the two channels the
  * nextjs surface exposes: the serializable `config` prop (what a Server
  * Component would produce) and the remaining client provider options.
  */
-function buildBoundaryProps(opts: MountOptions): {
+const buildBoundaryProps = function buildBoundaryProps(opts: MountOptions): {
 	config: KernelConfig;
 	options: BoundaryOptions;
 } {
@@ -251,34 +304,32 @@ function buildBoundaryProps(opts: MountOptions): {
 		initialHasConsented:
 			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialTranslations: resolveTranslations(provided, opts.locale),
-		// GPC arrives in the serializable server config — exactly the field
-		// the nextjs server plumbing derives from the `sec-gpc` header.
-		...(opts.gpc === undefined
-			? {}
-			: {
-					initialOverrides: {
-						...(provided.prefetch?.initialOverrides ?? {}),
-						gpc: opts.gpc,
-					},
-				}),
 	};
+	// GPC arrives in the serializable server config — exactly the field
+	// the nextjs server plumbing derives from the `sec-gpc` header.
+	if (opts.gpc !== undefined) {
+		basePrefetch.initialOverrides = {
+			...(provided.prefetch?.initialOverrides ?? {}),
+			gpc: opts.gpc,
+		};
+	}
 	const config: KernelConfig =
 		initMode === 'authoritative'
 			? {
 					...basePrefetch,
+					initialBranding: 'c15t',
 					initialLocation: {
 						countryCode: 'DE',
 						regionCode: null,
 					},
-					initialBranding: 'c15t',
 					initialPolicy: buildPolicy(opts, provided),
 					initialPolicyDecision: {
-						policyId: 'nextjs_conformance_policy',
-						fingerprint: 'nextjs_conformance_fingerprint',
-						matchedBy: 'default',
 						country: 'DE',
-						region: null,
+						fingerprint: 'nextjs_conformance_fingerprint',
 						jurisdiction: 'GDPR',
+						matchedBy: 'default',
+						policyId: 'nextjs_conformance_policy',
+						region: null,
 					},
 					initialPolicySnapshotToken: 'nextjs_conformance_token',
 				}
@@ -289,48 +340,50 @@ function buildBoundaryProps(opts: MountOptions): {
 		config,
 		options: {
 			...rest,
+			consentCategories: consentCategoriesFor(provided),
 			disableAnimation: true,
 			trapFocus: false,
-			consentCategories: consentCategoriesFor(provided),
 		},
 	};
-}
+};
 
-function createPendingInit() {
+const createPendingInit = function createPendingInit() {
 	let resolve!: () => void;
-	const promise = new Promise<Record<string, never>>((settle) => {
+	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
-}
+};
 
-function lifecycleTransportFor(opts: MountOptions) {
+const lifecycleTransportFor = function lifecycleTransportFor(
+	opts: MountOptions
+) {
 	if ((opts.initMode ?? 'authoritative') === 'pending') {
 		const deferred = createPendingInit();
 		return {
+			resolve: deferred.resolve,
 			transport: {
 				init: () => deferred.promise,
 			},
-			resolve: deferred.resolve,
 		};
 	}
 	if (opts.initMode === 'failing') {
 		return {
+			resolve: undefined,
 			transport: {
-				async init() {
-					throw new Error('conformance: init failed');
+				init() {
+					return Promise.reject(new Error('conformance: init failed'));
 				},
 			},
-			resolve: undefined,
 		};
 	}
-	return { transport: undefined, resolve: undefined };
-}
+	return { resolve: undefined, transport: undefined };
+};
 
-async function flushScheduler() {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-	await new Promise((resolve) => setTimeout(resolve, 0));
-}
+const flushScheduler = async function flushScheduler() {
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
 
 /**
  * `ConsentDialog` and `ConsentWidget` on the public surface are lazy
@@ -344,17 +397,23 @@ const LAZY_COMPONENT_ROOTS: Partial<Record<MountableComponent, string>> = {
 	'consent-widget': '[data-testid="consent-widget-root"]',
 };
 
-async function waitForLazyComponent(
+const waitForLazyComponent = async function waitForLazyComponent(
 	component: MountableComponent
 ): Promise<void> {
 	const selector = LAZY_COMPONENT_ROOTS[component];
-	if (!selector) return;
-	const deadline = Date.now() + 5000;
-	while (Date.now() < deadline) {
-		if (document.querySelector(selector)) return;
-		await new Promise((resolve) => setTimeout(resolve, 10));
+	if (!selector) {
+		return;
 	}
-}
+	const deadline = Date.now() + 5000;
+	const poll = async (): Promise<void> => {
+		if (Date.now() >= deadline || document.querySelector(selector)) {
+			return;
+		}
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
+		await poll();
+	};
+	await poll();
+};
 
 /**
  * The nextjs surface does not expose the kernel (no `KernelContext`
@@ -363,44 +422,76 @@ async function waitForLazyComponent(
  * records the latest snapshot on every render and notifies suite
  * subscribers after each commit.
  */
-type SnapshotBridge = {
-	snapshot: ConsentSnapshot | null;
-	listeners: Set<() => void>;
-};
-
-function createBridge(): SnapshotBridge {
-	return { snapshot: null, listeners: new Set() };
+interface SnapshotBridge {
+	capture: (snapshot: ConsentSnapshot) => void;
+	commit: (snapshot: ConsentSnapshot) => void;
+	getSnapshot: () => ConsentSnapshot | null;
+	subscribe: (listener: () => void) => () => void;
 }
 
-function StoreBridge({ bridge }: { bridge: SnapshotBridge }) {
+const createBridge = function createBridge(): SnapshotBridge {
+	let currentSnapshot: ConsentSnapshot | null = null;
+	const listeners = new Set<() => void>();
+
+	return {
+		capture(snapshot) {
+			currentSnapshot = snapshot;
+		},
+		commit(snapshot) {
+			currentSnapshot = snapshot;
+			for (const listener of listeners) {
+				listener();
+			}
+		},
+		getSnapshot: () => currentSnapshot,
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+	};
+};
+
+const StoreBridge = ({ bridge }: { bridge: SnapshotBridge }) => {
 	const snapshot = useSnapshot();
 	// Assign during render (like the React driver's KernelCapture) so
 	// getState() is correct immediately after mount settles.
-	bridge.snapshot = snapshot;
+	bridge.capture(snapshot);
 	useEffect(() => {
-		bridge.snapshot = snapshot;
-		for (const listener of bridge.listeners) {
-			listener();
-		}
+		bridge.commit(snapshot);
 	}, [bridge, snapshot]);
 	return null;
-}
+};
 
-function componentFor(component: MountableComponent): ReactElement {
-	switch (component) {
+const componentFor = function componentFor(opts: MountOptions): ReactElement {
+	const { providerOptions } = opts;
+	const trapFocus =
+		typeof providerOptions === 'object' &&
+		providerOptions !== null &&
+		'trapFocus' in providerOptions
+			? providerOptions.trapFocus === true
+			: false;
+
+	switch (opts.component) {
 		case 'consent-banner':
 			return (
-				<ConsentBanner
-					disableAnimation
-					trapFocus={false}
-					hideBranding
-				/>
+				<>
+					<ConsentBanner
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+					<ConsentDialog
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+				</>
 			);
 		case 'consent-dialog':
 			return (
 				<ConsentDialog
 					disableAnimation
-					trapFocus={false}
+					trapFocus={trapFocus}
 					hideBranding
 				/>
 			);
@@ -408,29 +499,29 @@ function componentFor(component: MountableComponent): ReactElement {
 			return <ConsentWidget hideBranding />;
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
+			throw new DriverNotImplementedError('nextjs', `mount(${opts.component})`);
+		default:
+			throw new DriverNotImplementedError('nextjs', `mount(${opts.component})`);
 	}
-}
+};
 
-function Harness({ opts }: { opts: MountOptions }) {
-	return (
-		<div
-			data-testid="nextjs-conformance-root"
-			dir={opts.locale === 'ar' ? 'rtl' : undefined}
-		>
-			{componentFor(opts.component)}
-		</div>
-	);
-}
+const Harness = ({ opts }: { opts: MountOptions }) => (
+	<div
+		data-testid="nextjs-conformance-root"
+		dir={opts.locale === 'ar' ? 'rtl' : undefined}
+	>
+		{componentFor(opts)}
+	</div>
+);
 
-function ClientSettled({ onSettled }: { onSettled: () => void }) {
+const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
 	useEffect(() => {
 		onSettled();
 	}, [onSettled]);
 	return null;
-}
+};
 
-function renderTree(
+const renderTree = function renderTree(
 	opts: MountOptions,
 	config: KernelConfig,
 	options: BoundaryOptions,
@@ -448,28 +539,50 @@ function renderTree(
 			<Harness opts={opts} />
 		</ConsentBoundary>
 	);
-}
+};
 
-function activeUIForStore(activeUI: KernelActiveUI): StoreState['activeUI'] {
-	if (activeUI === 'banner' || activeUI === 'dialog') return activeUI;
+const activeUIForStore = function activeUIForStore(
+	activeUI: KernelActiveUI
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
 	return 'none';
-}
+};
 
-function projectStoreState(snapshot: ConsentSnapshot): StoreState {
+const projectStoreState = function projectStoreState(
+	snapshot: ConsentSnapshot
+): StoreState {
 	const consents = { ...snapshot.consents } as Record<string, boolean>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
-		consents,
-		selectedConsents: { ...consents },
 		activeUI: activeUIForStore(snapshot.activeUI),
 		consentCategories: [...snapshot.policyCategories],
+		consents,
+		selectedConsents: { ...consents },
 	};
-}
+};
 
 let lastBridge: SnapshotBridge | null = null;
 
 const driver: TestDriver = {
 	framework: 'nextjs',
+	getStore() {
+		const bridge = lastBridge;
+		if (!bridge) {
+			throw new Error('Next.js driver: getStore called before mount');
+		}
+		return {
+			getState: () => {
+				const snapshot = bridge.getSnapshot();
+				if (!snapshot) {
+					throw new Error('Next.js driver: no snapshot available');
+				}
+				return projectStoreState(snapshot);
+			},
+			subscribe: bridge.subscribe,
+		};
+	},
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const lifecycle = lifecycleTransportFor(opts);
 		const { config, options: baseOptions } = buildBoundaryProps(opts);
@@ -478,7 +591,7 @@ const driver: TestDriver = {
 			: baseOptions;
 		const bridge = createBridge();
 		let resolveSettled: () => void = () => {};
-		const settled = new Promise<void>((resolve) => {
+		const settled = createVoidDeferredPromise((resolve) => {
 			resolveSettled = resolve;
 		});
 
@@ -491,7 +604,7 @@ const driver: TestDriver = {
 		await flushScheduler();
 		await waitForLazyComponent(opts.component);
 
-		if (!bridge.snapshot) {
+		if (!bridge.getSnapshot()) {
 			throw new Error(
 				'Next.js driver: mount completed without a kernel snapshot'
 			);
@@ -499,53 +612,37 @@ const driver: TestDriver = {
 		lastBridge = bridge;
 
 		return {
-			root: container,
 			resolveInit: lifecycle.resolve
 				? async () => {
 						lifecycle.resolve?.();
 						await flushScheduler();
 					}
 				: undefined,
+			root: container,
 			unmount: async () => {
 				root.unmount();
 				await flushScheduler();
 				container.replaceChildren();
 				container.remove();
-				if (lastBridge === bridge) lastBridge = null;
-			},
-		};
-	},
-	getStore() {
-		const bridge = lastBridge;
-		if (!bridge) {
-			throw new Error('Next.js driver: getStore called before mount');
-		}
-		return {
-			getState: () => {
-				if (!bridge.snapshot) {
-					throw new Error('Next.js driver: no snapshot available');
+				if (lastBridge === bridge) {
+					lastBridge = null;
 				}
-				return projectStoreState(bridge.snapshot);
-			},
-			subscribe: (listener) => {
-				bridge.listeners.add(listener);
-				return () => {
-					bridge.listeners.delete(listener);
-				};
 			},
 		};
 	},
-	async serverRender(opts: MountOptions): Promise<string> {
+	serverRender(opts: MountOptions): Promise<string> {
 		const { config, options } = buildBoundaryProps(opts);
 		// Throwaway bridge: server render does not expose a live store.
-		return renderToString(renderTree(opts, config, options, createBridge()));
+		return Promise.resolve(
+			renderToString(renderTree(opts, config, options, createBridge()))
+		);
 	},
 };
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

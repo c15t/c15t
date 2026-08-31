@@ -38,43 +38,43 @@ interface Submission {
  * The shipped shape: look up by primary key, fall back to the identity tuple,
  * then insert and hope nobody raced you.
  */
-export const readThenWrite = Effect.fn('write.readThenWrite')(function* (
-	submission: Submission
-) {
-	const sql = yield* SqlClient.SqlClient;
-	const id = yield* Effect.promise(() => buildConsentId(submission));
-	let queries = 0;
+export const readThenWrite = Effect.fn('write.readThenWrite')(
+	function* readThenWrite(submission: Submission) {
+		const sql = yield* SqlClient.SqlClient;
+		const id = yield* Effect.promise(() => buildConsentId(submission));
+		let queries = 0;
 
-	const byId = yield* sql<{ id: string }>`
+		const byId = yield* sql<{ id: string }>`
 		select "id" from "consent" where "id" = ${id}
 	`;
-	queries += 1;
-	if (byId.length > 0) {
-		return { created: false, queries } satisfies WriteResult;
-	}
+		queries += 1;
+		if (byId.length > 0) {
+			return { created: false, queries } satisfies WriteResult;
+		}
 
-	const byIdentity = yield* sql<{ id: string }>`
+		const byIdentity = yield* sql<{ id: string }>`
 		select "id" from "consent"
 		where "subjectId" = ${submission.subjectId}
 			and "domainId" = ${submission.domainId}
 			and "givenAt" = ${submission.givenAt}
 		limit 1
 	`;
-	queries += 1;
-	if (byIdentity.length > 0) {
-		return { created: false, queries } satisfies WriteResult;
-	}
+		queries += 1;
+		if (byIdentity.length > 0) {
+			return { created: false, queries } satisfies WriteResult;
+		}
 
-	yield* sql`
+		yield* sql`
 		insert into "consent"
 			("id","subjectId","domainId","policyId","purposeIds","givenAt")
 		values (${id}, ${submission.subjectId}, ${submission.domainId},
 			${submission.policyId}, ${'[]'}, ${submission.givenAt})
 	`;
-	queries += 1;
+		queries += 1;
 
-	return { created: true, queries } satisfies WriteResult;
-});
+		return { created: true, queries } satisfies WriteResult;
+	}
+);
 
 /**
  * The rewrite: primary-key short-circuit, legacy lookup, then atomic insert.
@@ -83,7 +83,7 @@ export const readThenWrite = Effect.fn('write.readThenWrite')(function* (
  * measured about twice the retry cost of the shipped path, because it paid for
  * the legacy lookup on every duplicate.
  */
-export const onConflict = Effect.fn('write.onConflict')(function* (
+export const onConflict = Effect.fn('write.onConflict')(function* onConflict(
 	submission: Submission
 ) {
 	const sql = yield* SqlClient.SqlClient;

@@ -6,9 +6,23 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+
 import type { BenchmarkEnvironment, MetricSampleSet } from './schema';
 
-export function percentile(values: number[], p: number): number {
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
+export const percentile = function percentile(
+	values: number[],
+	p: number
+): number {
 	if (values.length === 0) {
 		return 0;
 	}
@@ -16,17 +30,17 @@ export function percentile(values: number[], p: number): number {
 	const sorted = [...values].sort((a, b) => a - b);
 	const rank = Math.ceil((p / 100) * sorted.length) - 1;
 	return sorted[Math.max(0, Math.min(rank, sorted.length - 1))] ?? 0;
-}
+};
 
-export function average(values: number[]): number {
+export const average = function average(values: number[]): number {
 	if (values.length === 0) {
 		return 0;
 	}
 
 	return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
+};
 
-export function median(values: number[]): number {
+export const median = function median(values: number[]): number {
 	if (values.length === 0) {
 		return 0;
 	}
@@ -34,69 +48,74 @@ export function median(values: number[]): number {
 	const sorted = [...values].sort((a, b) => a - b);
 	const middle = Math.floor(sorted.length / 2);
 	return sorted.length % 2 === 0
-		? (sorted[middle - 1]! + sorted[middle]!) / 2
-		: sorted[middle]!;
-}
+		? (getDefined(sorted[middle - 1]) + getDefined(sorted[middle])) / 2
+		: getDefined(sorted[middle]);
+};
 
-export function summarizeMetric(
+export const summarizeMetric = function summarizeMetric(
 	name: string,
 	unit: MetricSampleSet['unit'],
 	samples: number[]
 ): MetricSampleSet {
 	return {
-		name,
-		unit,
-		samples,
 		avg: Number(average(samples).toFixed(3)),
 		median: Number(median(samples).toFixed(3)),
+		name,
 		p95: Number(percentile(samples, 95).toFixed(3)),
+		samples,
+		unit,
 	};
-}
+};
 
-export function summarizeNullableMetric(
+export const summarizeNullableMetric = function summarizeNullableMetric(
 	name: string,
 	unit: MetricSampleSet['unit'],
-	samples: Array<number | null | undefined>
+	samples: (number | null | undefined)[]
 ): MetricSampleSet {
 	const values = samples.map((sample) =>
 		typeof sample === 'number' && Number.isFinite(sample) ? sample : null
 	);
 	const numbers = values.filter((sample): sample is number => sample !== null);
 	return {
-		name,
-		unit,
-		samples: values,
 		avg: numbers.length > 0 ? Number(average(numbers).toFixed(3)) : null,
 		median: numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null,
+		name,
 		p95: numbers.length > 0 ? Number(percentile(numbers, 95).toFixed(3)) : null,
+		samples: values,
+		unit,
 	} as unknown as MetricSampleSet;
-}
+};
 
-export function getEnvironment(browserVersion?: string): BenchmarkEnvironment {
+export const getEnvironment = function getEnvironment(
+	browserVersion?: string
+): BenchmarkEnvironment {
 	return {
-		os: process.platform,
 		arch: process.arch,
-		bunVersion: process.versions.bun,
-		nodeVersion: process.version,
 		browserVersion,
+		bunVersion: process.versions.bun,
 		ci: process.env.CI === 'true',
+		nodeVersion: process.version,
+		os: process.platform,
 	};
-}
+};
 
-export function ensureDir(path: string): void {
+export const ensureDir = function ensureDir(path: string): void {
 	mkdirSync(path, { recursive: true });
-}
+};
 
-export function writeJson(path: string, value: unknown): void {
+export const writeJson = function writeJson(
+	path: string,
+	value: unknown
+): void {
 	ensureDir(dirname(path));
 	writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
-}
+};
 
-export function readJson<T>(path: string): T {
+export const readJson = function readJson<T>(path: string): T {
 	return JSON.parse(readFileSync(path, 'utf8')) as T;
-}
+};
 
-export function listJsonFiles(path: string): string[] {
+export const listJsonFiles = function listJsonFiles(path: string): string[] {
 	try {
 		statSync(path);
 	} catch {
@@ -119,22 +138,22 @@ export function listJsonFiles(path: string): string[] {
 	}
 
 	return files;
-}
+};
 
-export function safeCommitSha(): string {
+export const safeCommitSha = function safeCommitSha(): string {
 	return (
 		process.env.GITHUB_SHA ??
 		process.env.VERCEL_GIT_COMMIT_SHA ??
 		process.env.BENCHMARK_COMMIT_SHA ??
 		'unknown'
 	);
-}
+};
 
-export function safeBaseSha(): string | undefined {
+export const safeBaseSha = function safeBaseSha(): string | undefined {
 	return process.env.BENCHMARK_BASE_SHA ?? process.env.GITHUB_BASE_SHA;
-}
+};
 
-export function formatMetric(
+export const formatMetric = function formatMetric(
 	value: number | null,
 	unit: MetricSampleSet['unit']
 ): string {
@@ -151,9 +170,12 @@ export function formatMetric(
 	}
 
 	return `${value.toFixed(2)} ${unit}`;
-}
+};
 
-export function measureLoop(iterations: number, fn: () => void): number[] {
+export const measureLoop = function measureLoop(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 
 	for (let index = 0; index < iterations; index += 1) {
@@ -164,26 +186,31 @@ export function measureLoop(iterations: number, fn: () => void): number[] {
 	}
 
 	return samples;
-}
+};
 
-export function measureAsyncLoop(
+export const measureAsyncLoop = function measureAsyncLoop(
 	iterations: number,
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	const samples: number[] = [];
+	const iterationIndexes = Array.from(
+		{ length: iterations },
+		(_, index) => index
+	);
 
-	return (async () => {
-		for (let index = 0; index < iterations; index += 1) {
+	return iterationIndexes.reduce<Promise<number[]>>(
+		async (previous, _index) => {
+			await previous;
 			const startedAt = performance.now();
 			await fn();
 			const finishedAt = performance.now();
 			samples.push((finishedAt - startedAt) * 1000);
-		}
+			return samples;
+		},
+		Promise.resolve(samples)
+	);
+};
 
-		return samples;
-	})();
-}
-
-export function latestMtimeMs(path: string): number {
+export const latestMtimeMs = function latestMtimeMs(path: string): number {
 	return statSync(path).mtimeMs;
-}
+};

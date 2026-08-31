@@ -7,6 +7,7 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
+
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 
@@ -18,8 +19,8 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 	test('should render children immediately without blocking', () => {
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
 				consentCategories: ['necessary', 'marketing'],
+				mode: 'offline',
 			},
 		});
 
@@ -29,10 +30,10 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 
 	test('should render children with custom label', () => {
 		render(ProviderOnlyFixture, {
+			label: 'custom-content',
 			options: {
 				mode: 'offline',
 			},
-			label: 'custom-content',
 		});
 
 		expect(screen.getByTestId('render-custom-content')).toBeInTheDocument();
@@ -44,8 +45,8 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 	test('should render children with different consent categories', () => {
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
 				consentCategories: ['necessary'],
+				mode: 'offline',
 			},
 		});
 

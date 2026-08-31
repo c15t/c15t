@@ -15,21 +15,27 @@ import { hostnameMatchesRule, methodMatchesRule, pathMatchesRule } from './url';
  * Evaluate a request against the rules list. Returns the first matching
  * rule whose consent condition is denied; otherwise `{ shouldBlock: false }`.
  */
-export function evaluateBlock(
+export const evaluateBlock = function evaluateBlock(
 	url: URL,
 	method: string,
 	rules: NetworkBlockerRule[],
 	snapshot: ConsentSnapshot
 ): BlockDecision {
 	for (const rule of rules) {
-		if (!hostnameMatchesRule(url.hostname, rule)) continue;
-		if (!pathMatchesRule(url.pathname, rule)) continue;
-		if (!methodMatchesRule(method, rule)) continue;
+		if (!hostnameMatchesRule(url.hostname, rule)) {
+			continue;
+		}
+		if (!pathMatchesRule(url.pathname, rule)) {
+			continue;
+		}
+		if (!methodMatchesRule(method, rule)) {
+			continue;
+		}
 
 		const allowed = evaluateConsent({ category: rule.category }, snapshot);
 		if (!allowed) {
-			return { shouldBlock: true, rule };
+			return { rule, shouldBlock: true };
 		}
 	}
 	return { shouldBlock: false };
-}
+};

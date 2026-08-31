@@ -1,10 +1,8 @@
 import type { AllConsentNames, Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import {
-	runtimeDateValue,
-	type VendorManifest,
-	vendorManifestContract,
-} from '../../types';
+import { runtimeDateValue, vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,
@@ -26,43 +24,48 @@ declare global {
  */
 export const gtagManifest = {
 	...vendorManifestContract,
-	vendor: 'gtag',
-	category: '{{category}}',
 	alwaysLoad: true,
-	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
-			type: 'setGlobal',
-			name: 'dataLayer',
-			value: [],
 			ifUndefined: true,
+
+			name: 'dataLayer',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'defineQueueFunction',
+			ifUndefined: true,
+
 			name: 'gtag',
 			queue: 'dataLayer',
-			ifUndefined: true,
+			type: 'defineQueueFunction',
 		},
 	],
-	install: [
-		{
-			type: 'callGlobal',
-			global: 'gtag',
-			args: ['js', runtimeDateValue],
-		},
-		{
-			type: 'callGlobal',
-			global: 'gtag',
-			args: ['config', '{{id}}'],
-		},
-		{
-			type: 'loadScript',
-			src: 'https://www.googletagmanager.com/gtag/js?id={{id}}',
-			async: true,
-		},
-	],
+	category: '{{category}}',
 	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	consentSignal: 'gtag',
+	install: [
+		{
+			args: ['js', runtimeDateValue],
+
+			global: 'gtag',
+			type: 'callGlobal',
+		},
+		{
+			args: ['config', '{{id}}'],
+
+			global: 'gtag',
+			type: 'callGlobal',
+		},
+		{
+			async: true,
+
+			src: 'https://www.googletagmanager.com/gtag/js?id={{id}}',
+			type: 'loadScript',
+		},
+	],
+	persistAfterConsentRevoked: true,
+	vendor: 'gtag',
 } as const satisfies VendorManifest;
 
 export interface GtagOptions {
@@ -111,7 +114,7 @@ export interface GtagOptions {
  * @param options - The options for the gtag script.
  * @returns The Google Tag Manager script.
  */
-export function gtag({
+export const gtag = function gtag({
 	id,
 	category,
 	consentMapping,
@@ -120,8 +123,8 @@ export function gtag({
 	const manifest = withOptionalConsentMapping(gtagManifest, consentMapping);
 
 	const resolved = resolveManifest(manifest, {
-		id,
 		category,
+		id,
 	});
 
 	if (!script) {
@@ -136,4 +139,4 @@ export function gtag({
 			...(script.attributes ?? {}),
 		},
 	};
-}
+};

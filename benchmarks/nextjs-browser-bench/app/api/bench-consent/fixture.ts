@@ -11,79 +11,80 @@ const globalWithBenchCounts = globalThis as typeof globalThis & {
 	__c15tNextBenchFixtureCounts?: BenchConsentFixtureCounts;
 };
 
-function getMutableBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
-	globalWithBenchCounts.__c15tNextBenchFixtureCounts ??= {
-		init: 0,
-		manifest: 0,
-		subjects: 0,
+const getMutableBenchConsentFixtureCounts =
+	function getMutableBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
+		globalWithBenchCounts.__c15tNextBenchFixtureCounts ??= {
+			init: 0,
+			manifest: 0,
+			subjects: 0,
+		};
+		return globalWithBenchCounts.__c15tNextBenchFixtureCounts;
 	};
-	return globalWithBenchCounts.__c15tNextBenchFixtureCounts;
-}
 
-export function recordBenchConsentFixtureExecution(
-	endpoint: BenchConsentFixtureEndpoint
-): void {
-	const counts = getMutableBenchConsentFixtureCounts();
-	counts[endpoint] += 1;
-	console.log(`[c15t-bench-fixture] ${endpoint} count=${counts[endpoint]}`);
-}
+export const recordBenchConsentFixtureExecution =
+	function recordBenchConsentFixtureExecution(
+		endpoint: BenchConsentFixtureEndpoint
+	): void {
+		const counts = getMutableBenchConsentFixtureCounts();
+		counts[endpoint] += 1;
+		console.log(`[c15t-bench-fixture] ${endpoint} count=${counts[endpoint]}`);
+	};
 
-export function getBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
-	return { ...getMutableBenchConsentFixtureCounts() };
-}
+export const getBenchConsentFixtureCounts =
+	function getBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
+		return { ...getMutableBenchConsentFixtureCounts() };
+	};
 
-export function resetBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
-	const counts = getMutableBenchConsentFixtureCounts();
-	counts.init = 0;
-	counts.manifest = 0;
-	counts.subjects = 0;
-	return getBenchConsentFixtureCounts();
-}
+export const resetBenchConsentFixtureCounts =
+	function resetBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
+		const counts = getMutableBenchConsentFixtureCounts();
+		counts.init = 0;
+		counts.manifest = 0;
+		counts.subjects = 0;
+		return getBenchConsentFixtureCounts();
+	};
 
 export const benchConsentTranslations = {
 	common: {
 		acceptAll: 'Accept All',
-		rejectAll: 'Reject All',
 		customize: 'Customize',
+		rejectAll: 'Reject All',
 		save: 'Save',
 	},
-	cookieBanner: {
-		title: 'Benchmark Consent Banner',
-		description: 'Benchmark fixture description.',
-	},
 	consentManagerDialog: {
-		title: 'Benchmark Preferences',
 		description: 'Benchmark preferences description.',
+		title: 'Benchmark Preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required cookies.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics cookies.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Advertising cookies.',
+			title: 'Marketing',
 		},
+		measurement: {
+			description: 'Analytics cookies.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required cookies.',
+			title: 'Necessary',
+		},
+	},
+	cookieBanner: {
+		description: 'Benchmark fixture description.',
+		title: 'Benchmark Consent Banner',
 	},
 };
 
 const policy = {
-	id: 'nextjs-browser-bench',
-	model: 'opt-in',
 	consent: {
-		model: 'opt-in',
 		categories: [
 			'necessary',
 			'functionality',
@@ -91,10 +92,12 @@ const policy = {
 			'measurement',
 			'marketing',
 		],
+		model: 'opt-in',
 		scopeMode: 'strict',
 	},
+	id: 'nextjs-browser-bench',
+	model: 'opt-in',
 	ui: {
-		mode: 'banner',
 		banner: {
 			allowedActions: ['reject', 'accept', 'customize'],
 			primaryActions: ['accept'],
@@ -105,15 +108,16 @@ const policy = {
 			primaryActions: ['accept'],
 			scrollLock: false,
 		},
+		mode: 'banner',
 	},
 };
 
 const resolvedPolicy = {
+	consent: policy.consent,
 	id: policy.id,
 	model: policy.model,
-	consent: policy.consent,
-	ui: policy.ui,
 	proof: {},
+	ui: policy.ui,
 };
 
 export const benchConsentInitResponse = {
@@ -123,35 +127,36 @@ export const benchConsentInitResponse = {
 		countryCode: null,
 		regionCode: null,
 	},
+	policy: resolvedPolicy,
+	policyDecision: {
+		country: null,
+		fingerprint: 'fingerprint_nextjs_browser_bench',
+		jurisdiction: 'NONE',
+		matchedBy: 'default',
+		policyId: policy.id,
+		region: null,
+	},
 	translations: {
 		language: 'en',
 		translations: benchConsentTranslations,
 	},
-	policy: resolvedPolicy,
-	policyDecision: {
-		policyId: policy.id,
-		fingerprint: 'fingerprint_nextjs_browser_bench',
-		matchedBy: 'default',
-		country: null,
-		region: null,
-		jurisdiction: 'NONE',
-	},
 };
 
 export const benchConsentManifestResponse = {
-	schemaVersion: 1,
-	revision: 'nextjs-browser-bench-manifest',
 	branding: 'c15t',
 	policyPacks: [
 		{
+			fingerprint: 'fingerprint_nextjs_browser_bench',
+
 			policy: {
 				...policy,
 				match: { isDefault: true },
 			},
 			resolvedPolicy,
-			fingerprint: 'fingerprint_nextjs_browser_bench',
 		},
 	],
+	revision: 'nextjs-browser-bench-manifest',
+	schemaVersion: 1,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',
@@ -159,8 +164,8 @@ export const benchConsentManifestResponse = {
 				default: {
 					fallbackLanguage: 'en',
 					translations: {
-						en: benchConsentTranslations,
 						de: benchConsentTranslations,
+						en: benchConsentTranslations,
 					},
 				},
 			},
@@ -168,9 +173,10 @@ export const benchConsentManifestResponse = {
 	},
 };
 
-export async function applyBenchConsentLatency() {
-	const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
-	if (Number.isFinite(latencyMs) && latencyMs > 0) {
-		await sleep(latencyMs);
-	}
-}
+export const applyBenchConsentLatency =
+	async function applyBenchConsentLatency() {
+		const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
+		if (Number.isFinite(latencyMs) && latencyMs > 0) {
+			await sleep(latencyMs);
+		}
+	};

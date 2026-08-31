@@ -50,7 +50,7 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 We leverage several automated workflows to ensure code quality:
 
 1. **Code Quality**
-   - Formatting: Biome automatically formats code
+   - Formatting: Oxfmt automatically formats code
    - Types: TypeScript checks run on every PR
    - Tests: Vitest runs the test suite
    - Build: Turbo ensures everything builds correctly
@@ -97,7 +97,7 @@ We leverage several automated workflows to ensure code quality:
    - For bugs/docs: Can start work immediately
 
 2. **Make Your Changes**
-   - Follow our coding standards (enforced by Biome)
+   - Follow our coding standards (enforced by Oxlint and Oxfmt)
    - Add tests for new functionality
    - Update documentation as needed
 
@@ -109,7 +109,7 @@ We leverage several automated workflows to ensure code quality:
 
 4. **Automated Checks**
    The following will run automatically:
-   - Code formatting (Biome)
+   - Code formatting (Oxfmt)
    - Type checking (TypeScript)
    - Tests (Vitest)
    - Build verification (Turbo)
@@ -136,7 +136,7 @@ Releases are automated through our CI/CD pipeline:
 
 ### Code Style
 
-We use Biome for formatting and linting. Configuration is in `biome.jsonc`.
+We use Oxlint for linting and Oxfmt for formatting. Configuration is in `oxlint.config.ts` and `oxfmt.config.ts`.
 
 ### Commits
 

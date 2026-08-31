@@ -9,11 +9,12 @@
 
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
+
 import { listByExternalId } from '../../repository/subject';
 import type { RouteContext } from '../context';
 import { BadRequestError } from '../errors';
 
-export function register({ app, options, run }: RouteContext): void {
+export const register = function register({ app, run }: RouteContext): void {
 	app.get(
 		'/consents/check',
 		describeRoute({
@@ -26,17 +27,17 @@ export function register({ app, options, run }: RouteContext): void {
 
 			const result = await run(
 				c,
-				Effect.gen(function* () {
+				Effect.gen(function* result() {
 					if (!externalId) {
 						return yield* new BadRequestError({
-							message: 'externalId query parameter is required',
 							code: 'EXTERNAL_ID_REQUIRED',
+							message: 'externalId query parameter is required',
 						});
 					}
 					if (!type) {
 						return yield* new BadRequestError({
-							message: 'type query parameter is required',
 							code: 'TYPE_REQUIRED',
+							message: 'type query parameter is required',
 						});
 					}
 
@@ -64,7 +65,9 @@ export function register({ app, options, run }: RouteContext): void {
 					for (const subject of subjects) {
 						for (const consent of subject.consents) {
 							const entry = results[consent.type];
-							if (!entry) continue;
+							if (!entry) {
+								continue;
+							}
 							entry.hasConsent = true;
 							if (consent.isLatestPolicy) {
 								entry.isLatestPolicy = true;
@@ -83,4 +86,4 @@ export function register({ app, options, run }: RouteContext): void {
 			return c.json(result.value);
 		}
 	);
-}
+};

@@ -2,6 +2,7 @@
 
 import type { ActiveUI, Model, TranslationConfig } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
+
 import {
 	useActiveUI,
 	useModel,
@@ -13,10 +14,12 @@ import {
 import { useIAB } from '../iab-context';
 import { defaultTranslationConfig } from '../utils/default-translation-config';
 
-function toTranslationConfig(
+const toTranslationConfig = function toTranslationConfig(
 	resolved: ReturnType<typeof useTranslations>
 ): TranslationConfig {
-	if (!resolved) return defaultTranslationConfig;
+	if (!resolved) {
+		return defaultTranslationConfig;
+	}
 
 	return {
 		...defaultTranslationConfig,
@@ -26,9 +29,9 @@ function toTranslationConfig(
 			[resolved.language]: resolved.translations,
 		},
 	};
-}
+};
 
-export function useIABConsentManager() {
+export const useIABConsentManager = function useIABConsentManager() {
 	const activeUI = useActiveUI();
 	const model = useModel();
 	const policyBanner = usePolicyBanner();
@@ -56,4 +59,4 @@ export function useIABConsentManager() {
 		setActiveUI,
 		translationConfig,
 	};
-}
+};

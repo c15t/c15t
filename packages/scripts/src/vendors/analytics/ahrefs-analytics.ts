@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -26,18 +28,19 @@ declare global {
  */
 export const ahrefsAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'ahrefs-analytics',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
 			attributes: {
 				'data-key': '{{key}}',
 			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'ahrefs-analytics',
 } as const satisfies VendorManifest;
 
 export interface AhrefsAnalyticsOptions {
@@ -71,7 +74,9 @@ export interface AhrefsAnalyticsOptions {
  * ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' });
  * ```
  */
-export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
+export const ahrefsAnalytics = function ahrefsAnalytics(
+	options: AhrefsAnalyticsOptions
+): Script {
 	const key = typeof options.key === 'string' ? options.key.trim() : '';
 	if (key.length === 0) {
 		throw new Error('ahrefsAnalytics: missing or invalid key');
@@ -84,4 +89,4 @@ export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
 			'https://analytics.ahrefs.com/analytics.js'
 		),
 	});
-}
+};

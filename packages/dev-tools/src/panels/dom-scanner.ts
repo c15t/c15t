@@ -4,6 +4,7 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import { createButton, createSection } from '../components/ui';
 import { div, span } from '../core/renderer';
 
@@ -30,12 +31,84 @@ interface ManagedResourceMatcher {
 // Track dismissed resources (persists across scans within session)
 const dismissedResources = new Set<string>();
 
+const normalizePathname = function normalizePathname(pathname: string): string {
+	const trimmed = pathname.trim();
+	return trimmed.length > 0 ? trimmed : '/';
+};
+
+const findManagedScriptId = function findManagedScriptId(
+	url: URL,
+	managedResources: ManagedResourceMatcher[]
+): string | undefined {
+	const domain = url.hostname;
+	const path = normalizePathname(url.pathname);
+	let bestMatch: ManagedResourceMatcher | null = null;
+
+	for (const matcher of managedResources) {
+		if (matcher.domain !== domain) {
+			continue;
+		}
+
+		// "/" means "any path on this domain"
+		if (matcher.pathPrefix !== '/' && !path.startsWith(matcher.pathPrefix)) {
+			continue;
+		}
+
+		if (!bestMatch || matcher.pathPrefix.length > bestMatch.pathPrefix.length) {
+			bestMatch = matcher;
+		}
+	}
+
+	return bestMatch?.scriptId;
+};
+
+/**
+ * Checks a resource URL and returns ScannedResource if it's external
+ */
+const checkResource = function checkResource(
+	src: string,
+	type: 'script' | 'iframe',
+	managedResources: ManagedResourceMatcher[]
+): ScannedResource | null {
+	try {
+		const url = new URL(src, window.location.origin);
+		const domain = url.hostname;
+
+		// Skip first-party (same origin)
+		if (domain === window.location.hostname) {
+			return null;
+		}
+
+		// Skip data: and blob: URLs
+		if (url.protocol === 'data:' || url.protocol === 'blob:') {
+			return null;
+		}
+
+		const managedBy = findManagedScriptId(url, managedResources);
+		const isManaged = Boolean(managedBy);
+
+		return {
+			domain,
+			managedBy,
+			src,
+			status: isManaged ? 'managed' : 'unmanaged',
+			type,
+		};
+	} catch {
+		/* invalid URL */
+	}
+
+	return null;
+};
+
 // === Core Scanning Functions ===
 
 /**
  * Scans the DOM for external scripts and iframes, cross-referencing with c15t config
  */
-export function scanDOM(state: ConsentStoreState): ScannedResource[] {
+export const scanDOM = function scanDOM(
+	state: ConsentStoreState
+): ScannedResource[] {
 	const results: ScannedResource[] = [];
 
 	// Get all configured script sources from c15t
@@ -49,9 +122,9 @@ export function scanDOM(state: ConsentStoreState): ScannedResource[] {
 				const url = new URL(script.src, window.location.origin);
 				if (url.hostname !== window.location.hostname) {
 					managedResources.push({
-						scriptId: script.id,
 						domain: url.hostname,
 						pathPrefix: normalizePathname(url.pathname),
+						scriptId: script.id,
 					});
 				}
 			} catch {
@@ -89,236 +162,12 @@ export function scanDOM(state: ConsentStoreState): ScannedResource[] {
 	}
 
 	return results;
-}
-
-/**
- * Checks a resource URL and returns ScannedResource if it's external
- */
-function checkResource(
-	src: string,
-	type: 'script' | 'iframe',
-	managedResources: ManagedResourceMatcher[]
-): ScannedResource | null {
-	try {
-		const url = new URL(src, window.location.origin);
-		const domain = url.hostname;
-
-		// Skip first-party (same origin)
-		if (domain === window.location.hostname) {
-			return null;
-		}
-
-		// Skip data: and blob: URLs
-		if (url.protocol === 'data:' || url.protocol === 'blob:') {
-			return null;
-		}
-
-		const managedBy = findManagedScriptId(url, managedResources);
-		const isManaged = Boolean(managedBy);
-
-		return {
-			type,
-			src,
-			domain,
-			status: isManaged ? 'managed' : 'unmanaged',
-			managedBy,
-		};
-	} catch {
-		/* invalid URL */
-	}
-
-	return null;
-}
-
-function findManagedScriptId(
-	url: URL,
-	managedResources: ManagedResourceMatcher[]
-): string | undefined {
-	const domain = url.hostname;
-	const path = normalizePathname(url.pathname);
-	let bestMatch: ManagedResourceMatcher | null = null;
-
-	for (const matcher of managedResources) {
-		if (matcher.domain !== domain) {
-			continue;
-		}
-
-		// "/" means "any path on this domain"
-		if (matcher.pathPrefix !== '/' && !path.startsWith(matcher.pathPrefix)) {
-			continue;
-		}
-
-		if (!bestMatch || matcher.pathPrefix.length > bestMatch.pathPrefix.length) {
-			bestMatch = matcher;
-		}
-	}
-
-	return bestMatch?.scriptId;
-}
-
-function normalizePathname(pathname: string): string {
-	const trimmed = pathname.trim();
-	return trimmed.length > 0 ? trimmed : '/';
-}
-
-// === UI Functions ===
-
-/**
- * Creates the DOM scanner section UI
- */
-export function createDomScannerSection(
-	state: ConsentStoreState | null
-): HTMLElement {
-	let resultsContainer: HTMLElement | null = null;
-	let lastScanResults: ScannedResource[] = [];
-
-	const doRender = (): void => {
-		if (!resultsContainer) return;
-		renderScanResults(resultsContainer, lastScanResults, (src) => {
-			dismissedResources.add(src);
-			doRender(); // Re-render after dismissing
-		});
-	};
-
-	const handleScan = (): void => {
-		if (!state || !resultsContainer) {
-			return;
-		}
-
-		// Fresh scan every time
-		lastScanResults = scanDOM(state);
-		doRender();
-	};
-
-	const section = createSection({
-		title: 'DOM Scanner',
-		actions: [
-			createButton({
-				text: 'Scan DOM',
-				small: true,
-				onClick: handleScan,
-			}),
-		],
-		children: [],
-	});
-
-	// Add placeholder content - no extra padding, section handles it
-	resultsContainer = div({});
-
-	const placeholder = div({
-		style: {
-			fontSize: 'var(--c15t-devtools-font-size-xs)',
-			color: 'var(--c15t-text-muted)',
-			textAlign: 'center',
-			padding: '8px 0',
-		},
-		text: 'Click "Scan DOM" to check for external scripts and iframes',
-	});
-
-	resultsContainer.appendChild(placeholder);
-	section.appendChild(resultsContainer);
-
-	return section;
-}
-
-/**
- * Renders the scan results in the container
- */
-function renderScanResults(
-	container: HTMLElement,
-	results: ScannedResource[],
-	onDismiss: (src: string) => void
-): void {
-	// Clear container
-	while (container.firstChild) {
-		container.removeChild(container.firstChild);
-	}
-
-	// Filter out dismissed resources
-	const activeResults = results.filter((r) => !dismissedResources.has(r.src));
-
-	if (activeResults.length === 0 && results.length === 0) {
-		container.appendChild(
-			div({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-text-muted)',
-					textAlign: 'center',
-					padding: '8px 0',
-				},
-				text: 'No external scripts or iframes found',
-			})
-		);
-		return;
-	}
-
-	if (activeResults.length === 0 && results.length > 0) {
-		container.appendChild(
-			div({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-text-muted)',
-					textAlign: 'center',
-					padding: '8px 0',
-				},
-				text: `All ${results.length} alerts dismissed`,
-			})
-		);
-		return;
-	}
-
-	// Separate managed and unmanaged
-	const unmanaged = activeResults.filter((r) => r.status === 'unmanaged');
-	const managed = activeResults.filter((r) => r.status === 'managed');
-	const dismissedCount = results.length - activeResults.length;
-
-	// Summary
-	const summaryText =
-		dismissedCount > 0
-			? `Found: ${managed.length} managed, ${unmanaged.length} unmanaged (${dismissedCount} dismissed)`
-			: `Found: ${managed.length} managed, ${unmanaged.length} unmanaged`;
-
-	const summary = div({
-		style: {
-			fontSize: 'var(--c15t-devtools-font-size-xs)',
-			color: 'var(--c15t-text-muted)',
-			marginBottom: '8px',
-		},
-		text: summaryText,
-	});
-	container.appendChild(summary);
-
-	// Unmanaged section (action needed)
-	if (unmanaged.length > 0) {
-		for (const resource of unmanaged) {
-			container.appendChild(createResourceRow(resource, 'warning', onDismiss));
-		}
-	}
-
-	// Managed section
-	if (managed.length > 0) {
-		const managedHeader = div({
-			style: {
-				fontSize: 'var(--c15t-devtools-font-size-xs)',
-				fontWeight: '600',
-				color: 'var(--c15t-devtools-badge-success)',
-				marginBottom: '4px',
-				marginTop: '8px',
-			},
-			text: 'MANAGED',
-		});
-		container.appendChild(managedHeader);
-
-		for (const resource of managed) {
-			container.appendChild(createResourceRow(resource, 'success', onDismiss));
-		}
-	}
-}
+};
 
 /**
  * Creates a single-row resource item for display
  */
-function createResourceRow(
+const createResourceRow = function createResourceRow(
 	resource: ScannedResource,
 	variant: 'warning' | 'success',
 	onDismiss: (src: string) => void
@@ -330,14 +179,6 @@ function createResourceRow(
 			: 'var(--c15t-devtools-badge-success)';
 
 	const row = div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			gap: '6px',
-			padding: '4px 0',
-			fontSize: 'var(--c15t-devtools-font-size-xs)',
-			borderBottom: '1px solid var(--c15t-border)',
-		},
 		children: [
 			// Icon
 			span({
@@ -358,12 +199,12 @@ function createResourceRow(
 			// Domain (main info)
 			span({
 				style: {
-					fontWeight: '500',
 					color: 'var(--c15t-text)',
+					flex: '1',
+					fontWeight: '500',
 					overflow: 'hidden',
 					textOverflow: 'ellipsis',
 					whiteSpace: 'nowrap',
-					flex: '1',
 				},
 				text: resource.domain,
 				title: resource.src,
@@ -398,14 +239,181 @@ function createResourceRow(
 					})()
 				: null,
 		].filter(Boolean) as HTMLElement[],
+		style: {
+			alignItems: 'center',
+			borderBottom: '1px solid var(--c15t-border)',
+			display: 'flex',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			gap: '6px',
+			padding: '4px 0',
+		},
 	});
 
 	return row;
-}
+};
+
+/**
+ * Renders the scan results in the container
+ */
+const renderScanResults = function renderScanResults(
+	container: HTMLElement,
+	results: ScannedResource[],
+	onDismiss: (src: string) => void
+): void {
+	// Clear container
+	while (container.firstChild) {
+		container.removeChild(container.firstChild);
+	}
+
+	// Filter out dismissed resources
+	const activeResults = results.filter((r) => !dismissedResources.has(r.src));
+
+	if (activeResults.length === 0 && results.length === 0) {
+		container.appendChild(
+			div({
+				style: {
+					color: 'var(--c15t-text-muted)',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					padding: '8px 0',
+					textAlign: 'center',
+				},
+				text: 'No external scripts or iframes found',
+			})
+		);
+		return;
+	}
+
+	if (activeResults.length === 0 && results.length > 0) {
+		container.appendChild(
+			div({
+				style: {
+					color: 'var(--c15t-text-muted)',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					padding: '8px 0',
+					textAlign: 'center',
+				},
+				text: `All ${results.length} alerts dismissed`,
+			})
+		);
+		return;
+	}
+
+	// Separate managed and unmanaged
+	const unmanaged = activeResults.filter((r) => r.status === 'unmanaged');
+	const managed = activeResults.filter((r) => r.status === 'managed');
+	const dismissedCount = results.length - activeResults.length;
+
+	// Summary
+	const summaryText =
+		dismissedCount > 0
+			? `Found: ${managed.length} managed, ${unmanaged.length} unmanaged (${dismissedCount} dismissed)`
+			: `Found: ${managed.length} managed, ${unmanaged.length} unmanaged`;
+
+	const summary = div({
+		style: {
+			color: 'var(--c15t-text-muted)',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			marginBottom: '8px',
+		},
+		text: summaryText,
+	});
+	container.appendChild(summary);
+
+	// Unmanaged section (action needed)
+	if (unmanaged.length > 0) {
+		for (const resource of unmanaged) {
+			container.appendChild(createResourceRow(resource, 'warning', onDismiss));
+		}
+	}
+
+	// Managed section
+	if (managed.length > 0) {
+		const managedHeader = div({
+			style: {
+				color: 'var(--c15t-devtools-badge-success)',
+				fontSize: 'var(--c15t-devtools-font-size-xs)',
+				fontWeight: '600',
+				marginBottom: '4px',
+				marginTop: '8px',
+			},
+			text: 'MANAGED',
+		});
+		container.appendChild(managedHeader);
+
+		for (const resource of managed) {
+			container.appendChild(createResourceRow(resource, 'success', onDismiss));
+		}
+	}
+};
+
+// === UI Functions ===
+
+/**
+ * Creates the DOM scanner section UI
+ */
+export const createDomScannerSection = function createDomScannerSection(
+	state: ConsentStoreState | null
+): HTMLElement {
+	let resultsContainer: HTMLElement | null = null;
+	let lastScanResults: ScannedResource[] = [];
+
+	const doRender = (): void => {
+		if (!resultsContainer) {
+			return;
+		}
+		renderScanResults(resultsContainer, lastScanResults, (src) => {
+			dismissedResources.add(src);
+			// Re-render after dismissing
+			doRender();
+		});
+	};
+
+	const handleScan = (): void => {
+		if (!state || !resultsContainer) {
+			return;
+		}
+
+		// Fresh scan every time
+		lastScanResults = scanDOM(state);
+		doRender();
+	};
+
+	const section = createSection({
+		actions: [
+			createButton({
+				onClick: handleScan,
+
+				small: true,
+				text: 'Scan DOM',
+			}),
+		],
+		children: [],
+		title: 'DOM Scanner',
+	});
+
+	// Add placeholder content - no extra padding, section handles it
+	resultsContainer = div({});
+
+	const placeholder = div({
+		style: {
+			color: 'var(--c15t-text-muted)',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			padding: '8px 0',
+			textAlign: 'center',
+		},
+		text: 'Click "Scan DOM" to check for external scripts and iframes',
+	});
+
+	resultsContainer.appendChild(placeholder);
+	section.appendChild(resultsContainer);
+
+	return section;
+};
 
 /**
  * Clears dismissed resources (for testing or reset)
  */
-export function clearDismissedResources(): void {
-	dismissedResources.clear();
-}
+export const clearDismissedResources =
+	function clearDismissedResources(): void {
+		dismissedResources.clear();
+	};

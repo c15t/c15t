@@ -7,76 +7,86 @@ import { REGEX } from '../constants';
 /**
  * Validate a URL string
  */
-export function isValidUrl(value: string): boolean {
+export const isValidUrl = function isValidUrl(value: string): boolean {
 	return REGEX.URL.test(value);
-}
+};
 
 /**
  * Validate a c15t platform URL
  */
-export function isValidC15tUrl(value: string): boolean {
+export const isValidC15tUrl = function isValidC15tUrl(value: string): boolean {
 	return REGEX.C15T_URL.test(value);
-}
+};
 
 /**
  * Validate a package name
  */
-export function isValidPackageName(value: string): boolean {
+export const isValidPackageName = function isValidPackageName(
+	value: string
+): boolean {
 	return REGEX.PACKAGE_NAME.test(value);
-}
+};
 
 /**
  * Validate a semantic version
  */
-export function isValidSemver(value: string): boolean {
+export const isValidSemver = function isValidSemver(value: string): boolean {
 	return REGEX.SEMVER.test(value);
-}
+};
 
 /**
  * Check if a string contains a dynamic segment (e.g., [locale])
  */
-export function hasDynamicSegment(value: string): boolean {
+export const hasDynamicSegment = function hasDynamicSegment(
+	value: string
+): boolean {
 	return REGEX.DYNAMIC_SEGMENT.test(value);
-}
+};
 
 /**
  * Extract dynamic segment from a path
  */
-export function extractDynamicSegment(value: string): string | null {
+export const extractDynamicSegment = function extractDynamicSegment(
+	value: string
+): string | null {
 	const match = value.match(REGEX.DYNAMIC_SEGMENT);
 	return match ? match[0] : null;
-}
+};
 
 /**
  * Validate a hosted project slug
  */
-export function isValidInstanceName(value: string): boolean {
+export const isValidInstanceName = function isValidInstanceName(
+	value: string
+): boolean {
 	// Project slugs: lowercase alphanumeric with hyphens, 3-63 chars
-	return /^[a-z][a-z0-9-]{2,62}$/.test(value) && !value.includes('--');
-}
+	return /^[a-z][a-z0-9-]{2,62}$/u.test(value) && !value.includes('--');
+};
 
 /**
  * Validate an email address
  */
-export function isValidEmail(value: string): boolean {
-	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
+export const isValidEmail = function isValidEmail(value: string): boolean {
+	return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
+};
 
 /**
  * Sanitize a string for use as an identifier
  */
-export function sanitizeIdentifier(value: string): string {
+export const sanitizeIdentifier = function sanitizeIdentifier(
+	value: string
+): string {
 	return value
 		.toLowerCase()
-		.replace(/[^a-z0-9-]/g, '-')
-		.replace(/-+/g, '-')
-		.replace(/^-|-$/g, '');
-}
+		.replace(/[^a-z0-9-]/gu, '-')
+		.replace(/-+/gu, '-')
+		.replace(/^-|-$/gu, '');
+};
 
 /**
  * Validate that a value is not empty
  */
-export function isNotEmpty(value: unknown): boolean {
+export const isNotEmpty = function isNotEmpty(value: unknown): boolean {
 	if (value === null || value === undefined) {
 		return false;
 	}
@@ -90,12 +100,12 @@ export function isNotEmpty(value: unknown): boolean {
 		return Object.keys(value).length > 0;
 	}
 	return true;
-}
+};
 
 /**
  * Create a validator function for prompts
  */
-export function createValidator(
+export const createValidator = function createValidator(
 	validate: (value: string) => boolean,
 	errorMessage: string
 ): (value: string) => string | undefined {
@@ -105,7 +115,7 @@ export function createValidator(
 		}
 		return undefined;
 	};
-}
+};
 
 /**
  * URL validator for prompts
@@ -142,7 +152,7 @@ export const validateRequired = createValidator(
 /**
  * Normalize a URL (ensure https, remove trailing slash)
  */
-export function normalizeUrl(url: string): string {
+export const normalizeUrl = function normalizeUrl(url: string): string {
 	let normalized = url.trim();
 
 	// Add https if no protocol
@@ -156,7 +166,7 @@ export function normalizeUrl(url: string): string {
 	}
 
 	// Remove trailing slash
-	normalized = normalized.replace(/\/+$/, '');
+	normalized = normalized.replace(/\/+$/u, '');
 
 	return normalized;
-}
+};

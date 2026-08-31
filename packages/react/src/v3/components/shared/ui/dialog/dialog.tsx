@@ -3,37 +3,41 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import {
-	type ButtonHTMLAttributes,
 	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type MouseEvent,
-	type ReactNode,
-	type RefObject,
+	forwardRef as createForwardRef,
 	useContext,
 	useEffect,
 	useId,
 	useMemo,
 	useRef,
 } from 'react';
+import type {
+	ButtonHTMLAttributes,
+	HTMLAttributes,
+	KeyboardEvent,
+	MouseEvent,
+	ReactNode,
+	RefObject,
+} from 'react';
 import { createPortal } from 'react-dom';
+
 import { Slot } from '~/v3/components/shared/libs/slot';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 
-type DialogContextValue = {
+interface DialogContextValue {
 	contentId: string;
 	descriptionId: string;
 	open: boolean;
 	restoreFocusRef: RefObject<HTMLElement | null>;
 	setOpen: (open: boolean) => void;
 	titleId: string;
-};
+}
 
 const DialogContext = createContext<DialogContextValue | null>(null);
 
-function useDialogContext() {
+const useDialogContext = function useDialogContext() {
 	const context = useContext(DialogContext);
 
 	if (!context) {
@@ -41,7 +45,7 @@ function useDialogContext() {
 	}
 
 	return context;
-}
+};
 
 export interface DialogRootProps {
 	children: ReactNode;
@@ -50,13 +54,13 @@ export interface DialogRootProps {
 	open?: boolean;
 }
 
-function DialogRoot({
+const DialogRoot = ({
 	children,
 	defaultOpen = false,
 	onOpenChange,
 	open,
-}: DialogRootProps) {
-	const reactId = useId().replace(/:/g, '');
+}: DialogRootProps) => {
+	const reactId = useId().replace(/:/gu, '');
 	const restoreFocusRef = useRef<HTMLElement | null>(null);
 	const [isOpen, setIsOpen] = useControllableState({
 		defaultValue: defaultOpen,
@@ -92,14 +96,16 @@ function DialogRoot({
 	return (
 		<DialogContext.Provider value={value}>{children}</DialogContext.Provider>
 	);
-}
+};
 
-export interface DialogTriggerProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface DialogTriggerProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	asChild?: boolean;
 }
 
-const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
+const DialogTrigger = createForwardRef<HTMLButtonElement, DialogTriggerProps>(
 	({ asChild, children, onClick, ...rest }, forwardedRef) => {
 		const { open, setOpen } = useDialogContext();
 		const Component = asChild ? Slot : 'button';
@@ -124,15 +130,15 @@ const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
 
 DialogTrigger.displayName = 'DialogTrigger';
 
-function DialogPortal({ children }: { children: ReactNode }) {
+const DialogPortal = ({ children }: { children: ReactNode }) => {
 	if (typeof document === 'undefined') {
 		return null;
 	}
 
 	return createPortal(children, document.body);
-}
+};
 
-const DialogOverlay = forwardRef<
+const DialogOverlay = createForwardRef<
 	HTMLButtonElement,
 	HTMLAttributes<HTMLButtonElement>
 >(({ children, onClick, ...rest }, forwardedRef) => {
@@ -162,12 +168,12 @@ const DialogOverlay = forwardRef<
 
 DialogOverlay.displayName = 'DialogOverlay';
 
-export interface DialogContentProps extends HTMLAttributes<HTMLDivElement> {
+export interface DialogContentProps extends HTMLAttributes<HTMLDialogElement> {
 	closeOnOutsideClick?: boolean;
 	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
+const DialogContent = createForwardRef<HTMLDialogElement, DialogContentProps>(
 	(
 		{
 			children,
@@ -181,7 +187,7 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 	) => {
 		const { contentId, descriptionId, open, setOpen, titleId } =
 			useDialogContext();
-		const contentRef = useRef<HTMLDivElement | null>(null);
+		const contentRef = useRef<HTMLDialogElement | null>(null);
 
 		useFocusTrap(open, contentRef);
 		useScrollLock(open);
@@ -199,29 +205,33 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 			return null;
 		}
 
+		const contentEventHandlers = {
+			onKeyDown: (event: KeyboardEvent<HTMLDialogElement>) => {
+				if (isDialogDismissKey(event.key)) {
+					event.preventDefault();
+					setOpen(false);
+				}
+
+				onKeyDown?.(event);
+			},
+			onMouseDown: (event: MouseEvent<HTMLDialogElement>) => {
+				if (closeOnOutsideClick && event.target === event.currentTarget) {
+					setOpen(false);
+				}
+
+				onMouseDown?.(event);
+			},
+		};
+
 		return (
-			<div
+			<dialog
 				aria-describedby={descriptionId}
 				aria-labelledby={titleId}
 				aria-modal="true"
 				data-slot="dialog-content"
 				data-state={getDialogState(open)}
 				id={contentId}
-				onKeyDown={(event) => {
-					if (isDialogDismissKey(event.key)) {
-						event.preventDefault();
-						setOpen(false);
-					}
-
-					onKeyDown?.(event);
-				}}
-				onMouseDown={(event) => {
-					if (closeOnOutsideClick && event.target === event.currentTarget) {
-						setOpen(false);
-					}
-
-					onMouseDown?.(event);
-				}}
+				{...contentEventHandlers}
 				ref={(node) => {
 					contentRef.current = node;
 					if (typeof forwardedRef === 'function') {
@@ -230,22 +240,22 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 						forwardedRef.current = node;
 					}
 				}}
-				role="dialog"
+				open={open}
 				tabIndex={-1}
 				{...rest}
 			>
 				{children}
-			</div>
+			</dialog>
 		);
 	}
 );
 
 DialogContent.displayName = 'DialogContent';
 
-const DialogTitle = forwardRef<
+const DialogTitle = createForwardRef<
 	HTMLHeadingElement,
 	HTMLAttributes<HTMLHeadingElement>
->((props, forwardedRef) => {
+>(({ children, ...props }, forwardedRef) => {
 	const { titleId } = useDialogContext();
 	return (
 		<h2
@@ -253,13 +263,15 @@ const DialogTitle = forwardRef<
 			id={titleId}
 			data-slot="dialog-title"
 			{...props}
-		/>
+		>
+			{children}
+		</h2>
 	);
 });
 
 DialogTitle.displayName = 'DialogTitle';
 
-const DialogDescription = forwardRef<
+const DialogDescription = createForwardRef<
 	HTMLParagraphElement,
 	HTMLAttributes<HTMLParagraphElement>
 >((props, forwardedRef) => {
@@ -276,13 +288,15 @@ const DialogDescription = forwardRef<
 
 DialogDescription.displayName = 'DialogDescription';
 
-export interface DialogCloseProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface DialogCloseProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	asChild?: boolean;
 	disabled?: boolean;
 }
 
-const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(
+const DialogClose = createForwardRef<HTMLButtonElement, DialogCloseProps>(
 	({ asChild, children, disabled, onClick, ...rest }, forwardedRef) => {
 		const { open, setOpen } = useDialogContext();
 		const Component = asChild ? Slot : 'button';

@@ -11,8 +11,10 @@
  * deployments never need it.
  */
 
-import { type GlobalVendorList, globalVendorListSchema } from '@c15t/schema';
+import { globalVendorListSchema } from '@c15t/schema';
+import type { GlobalVendorList } from '@c15t/schema';
 import * as v from 'valibot';
+
 import type { CacheAdapter } from '../cache/types';
 
 export type { CacheAdapter };
@@ -37,7 +39,7 @@ const DEFAULT_TTL_MS = 86_400_000;
  * a different order is the same list, and treating it as a different one would
  * multiply cache entries and miss rates for no reason.
  */
-export function gvlCacheKey(
+export const gvlCacheKey = function gvlCacheKey(
 	endpoint: string,
 	language: string,
 	vendorIds: readonly number[] | undefined
@@ -46,7 +48,7 @@ export function gvlCacheKey(
 		? [...vendorIds].sort((a, b) => a - b).join(',')
 		: '';
 	return `gvl:${endpoint}|${language}|${vendors}`;
-}
+};
 
 /**
  * In-flight requests, keyed the same way as the cache.
@@ -65,7 +67,7 @@ const inflight = new Map<string, Promise<GlobalVendorList | null>>();
  * entirely and leave the visitor with no consent UI at all — strictly worse,
  * and on the critical rendering path.
  */
-export async function resolveGvl(
+export const resolveGvl = async function resolveGvl(
 	language: string,
 	options: GvlOptions
 ): Promise<GlobalVendorList | null> {
@@ -114,4 +116,4 @@ export async function resolveGvl(
 
 	inflight.set(key, request);
 	return request;
-}
+};

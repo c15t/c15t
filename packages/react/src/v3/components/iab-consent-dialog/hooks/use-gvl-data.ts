@@ -1,10 +1,9 @@
 'use client';
 
-import {
-	type HeadlessIABDialogData,
-	processGVLForDialog,
-} from '@c15t/iab/v3/headless';
+import { processGVLForDialog } from '@c15t/iab/v3/headless';
+import type { HeadlessIABDialogData } from '@c15t/iab/v3/headless';
 import { useMemo } from 'react';
+
 import { useIAB } from '~/v3/iab-context';
 
 /**
@@ -23,11 +22,8 @@ export type GVLData = HeadlessIABDialogData;
  * @returns Processed GVL data ready for UI rendering
  * @public
  */
-export function useGVLData(): GVLData {
+export const useGVLData = function useGVLData(): GVLData {
 	const iabState = useIAB();
 
-	return useMemo(
-		() => processGVLForDialog(iabState),
-		[iabState?.gvl, iabState?.nonIABVendors, iabState?.isLoadingGVL]
-	);
-}
+	return useMemo(() => processGVLForDialog(iabState), [iabState]);
+};

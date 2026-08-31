@@ -1,18 +1,19 @@
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import { evaluateBlock } from '../decide';
 import type { NetworkBlockerRule } from '../types';
 
-function makeRule(
+const makeRule = function makeRule(
 	overrides: Partial<NetworkBlockerRule> = {}
 ): NetworkBlockerRule {
 	return {
-		id: 'r',
-		domain: 'tracker.example',
 		category: 'marketing',
+		domain: 'tracker.example',
+		id: 'r',
 		...overrides,
 	};
-}
+};
 
 describe('evaluateBlock', () => {
 	test('passes a request through when no rule matches', () => {

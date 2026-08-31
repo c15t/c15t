@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
 import { resolveScriptUrl } from '../_shared/script-url';
 
@@ -86,15 +88,15 @@ export interface SnapchatPixelEventProperties {
 	[key: string]: unknown;
 }
 
-type SnapchatPixelFunction = {
+interface SnapchatPixelFunction {
 	(
 		command: 'track',
-		eventName: SnapchatPixelEventName | (string & {}),
+		eventName: SnapchatPixelEventName | (string & Record<never, never>),
 		properties?: SnapchatPixelEventProperties
 	): void;
 	(command: 'init', pixelId: string, config?: Record<string, unknown>): void;
 	(command: string, ...args: unknown[]): void;
-};
+}
 
 declare global {
 	interface Window {
@@ -117,43 +119,47 @@ declare global {
  */
 export const snapchatPixelManifest = {
 	...vendorManifestContract,
-	vendor: 'snapchat-pixel',
-	category: 'marketing',
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
-			name: 'snaptr',
-			queue: {
-				property: 'queue',
-			},
-			dispatchProperty: 'handleRequest',
-			queueFormat: 'array',
 			aliases: ['_snaptr'],
-			selfReferences: ['push'],
+			dispatchProperty: 'handleRequest',
+			ifUndefined: true,
+
+			name: 'snaptr',
 			properties: {
 				loaded: true,
 				version: '1.0',
 			},
-			ifUndefined: true,
+			queue: {
+				property: 'queue',
+			},
+			queueFormat: 'array',
+			selfReferences: ['push'],
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'marketing',
 	install: [
 		{
-			type: 'callGlobal',
-			global: 'snaptr',
 			args: ['init', '{{pixelId}}'],
-		},
-		{
-			type: 'callGlobal',
+
 			global: 'snaptr',
-			args: ['track', 'PAGE_VIEW'],
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
+			args: ['track', 'PAGE_VIEW'],
+
+			global: 'snaptr',
+			type: 'callGlobal',
+		},
+		{
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'snapchat-pixel',
 } as const satisfies VendorManifest;
 
 export interface SnapchatPixelOptions {
@@ -192,7 +198,7 @@ export interface SnapchatPixelOptions {
  * @returns A resolved c15t `Script` configuration that defines the Snapchat
  *   queue stub, runs `init` (and optionally `PAGE_VIEW`), and then loads the
  *   Snapchat SDK script URL.
- * @throws `resolveManifest` may throw when required placeholders cannot be
+ * @throws {Error} `resolveManifest` may throw when required placeholders cannot be
  *   resolved (for example, when `pixelId` is missing/empty) or when provided
  *   manifest values are invalid for interpolation.
  *
@@ -213,7 +219,7 @@ export interface SnapchatPixelOptions {
  * });
  * ```
  */
-export function snapchatPixel({
+export const snapchatPixel = function snapchatPixel({
 	pixelId,
 	initOptions,
 	trackPageView = true,
@@ -244,14 +250,14 @@ export function snapchatPixel({
 	} as const satisfies VendorManifest;
 
 	return resolveManifest(manifest, {
-		pixelId,
 		initOptions,
+		pixelId,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://sc-static.net/scevent.min.js'
 		),
 	});
-}
+};
 
 /**
  * Tracks a Snapchat Pixel event.
@@ -271,7 +277,7 @@ export function snapchatPixel({
  * ```
  */
 export const snapchatPixelEvent = (
-	eventName: SnapchatPixelEventName | (string & {}),
+	eventName: SnapchatPixelEventName | (string & Record<never, never>),
 	properties?: SnapchatPixelEventProperties
 ) => {
 	if (typeof window === 'undefined' || typeof window.snaptr !== 'function') {

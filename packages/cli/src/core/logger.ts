@@ -7,6 +7,7 @@
 
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+
 import type { CliLogger } from '../types';
 
 // --- Log Levels ---
@@ -15,10 +16,10 @@ export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 export const LOG_LEVELS: LogLevel[] = ['error', 'warn', 'info', 'debug'];
 
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
-	error: 0,
-	warn: 1,
-	info: 2,
 	debug: 3,
+	error: 0,
+	info: 2,
+	warn: 1,
 };
 
 // --- Message Formatting ---
@@ -26,17 +27,17 @@ const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
 /**
  * Format additional arguments for logging
  */
-function formatArgs(args: unknown[]): string {
+const formatArgs = function formatArgs(args: unknown[]): string {
 	if (args.length === 0) {
 		return '';
 	}
 	return `\n${args.map((arg) => `  - ${JSON.stringify(arg, null, 2)}`).join('\n')}`;
-}
+};
 
 /**
  * Format a log message with appropriate styling based on log level
  */
-export function formatLogMessage(
+export const formatLogMessage = function formatLogMessage(
 	logLevel: LogLevel | 'success' | 'failed',
 	message: unknown,
 	args: unknown[] = []
@@ -60,12 +61,12 @@ export function formatLogMessage(
 		default:
 			return `[${String(logLevel).toUpperCase()}] ${messageStr}${formattedArgs}`;
 	}
-}
+};
 
 /**
  * Log a message with the appropriate clack prompt styling
  */
-function logMessage(
+const logMessage = function logMessage(
 	logLevel: LogLevel | 'success' | 'failed',
 	message: unknown,
 	...args: unknown[]
@@ -90,14 +91,14 @@ function logMessage(
 		default:
 			p.log.message(formattedMessage);
 	}
-}
+};
 
 // --- Step Indicator ---
 
 /**
  * Format a step progress indicator
  */
-export function formatStep(
+export const formatStep = function formatStep(
 	current: number,
 	total: number,
 	label: string
@@ -105,20 +106,22 @@ export function formatStep(
 	const filled = color.green('█'.repeat(current));
 	const empty = color.dim('░'.repeat(total - current));
 	return `[${filled}${empty}] Step ${current}/${total}: ${label}`;
-}
+};
 
 // --- Logger Factory ---
 
 /**
  * Create a CLI logger instance
  */
-export function createCliLogger(level: LogLevel = 'info'): CliLogger {
+export const createCliLogger = function createCliLogger(
+	level: LogLevel = 'info'
+): CliLogger {
 	const currentLevelPriority = LOG_LEVEL_PRIORITY[level];
 
-	const shouldLog = (targetLevel: LogLevel): boolean => {
-		return LOG_LEVEL_PRIORITY[targetLevel] <= currentLevelPriority;
-	};
+	const shouldLog = (targetLevel: LogLevel): boolean =>
+		LOG_LEVEL_PRIORITY[targetLevel] <= currentLevelPriority;
 
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	return {
 		// Standard log levels
 		debug(message: string, ...args: unknown[]): void {
@@ -173,23 +176,29 @@ export function createCliLogger(level: LogLevel = 'info'): CliLogger {
 			p.log.step(formatStep(current, total, label));
 		},
 	};
-}
+};
 
 // --- Spinner Utilities ---
 
 export interface Spinner {
-	start(message?: string): void;
-	stop(message?: string): void;
-	message(message: string): void;
+	start: (message?: string) => void;
+	stop: (message?: string) => void;
+	message: (message: string) => void;
 }
 
 /**
  * Create a spinner for long-running operations
  */
-export function createSpinner(initialMessage?: string): Spinner {
+export const createSpinner = function createSpinner(
+	initialMessage?: string
+): Spinner {
 	const spinner = p.spinner();
 
 	return {
+		message(message: string): void {
+			spinner.message(message);
+		},
+
 		start(message?: string): void {
 			spinner.start(message || initialMessage || 'Processing...');
 		},
@@ -197,17 +206,13 @@ export function createSpinner(initialMessage?: string): Spinner {
 		stop(message?: string): void {
 			spinner.stop(message || 'Done');
 		},
-
-		message(message: string): void {
-			spinner.message(message);
-		},
 	};
-}
+};
 
 /**
  * Run an async task with a spinner
  */
-export async function withSpinner<T>(
+export const withSpinner = async function withSpinner<T>(
 	message: string,
 	task: () => Promise<T>,
 	options?: {
@@ -226,19 +231,19 @@ export async function withSpinner<T>(
 		spinner.stop(options?.errorMessage || 'Failed');
 		throw error;
 	}
-}
+};
 
 // --- Color Utilities ---
 
 export { color };
 
 export const colors = {
-	success: color.green,
+	bold: color.bold,
 	error: color.red,
-	warning: color.yellow,
+	highlight: color.cyan,
 	info: color.blue,
 	muted: color.dim,
-	highlight: color.cyan,
-	bold: color.bold,
+	success: color.green,
 	underline: color.underline,
+	warning: color.yellow,
 } as const;

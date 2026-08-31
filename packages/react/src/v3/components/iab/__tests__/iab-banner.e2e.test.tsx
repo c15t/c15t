@@ -10,10 +10,12 @@
 import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
+
 import {
 	clearConsentState,
 	defaultIABOptions,
@@ -68,7 +70,7 @@ describe('IAB Banner E2E Tests', () => {
 					?.textContent || '';
 
 			// Should contain a number (partner count)
-			expect(bannerText).toMatch(/\d+/);
+			expect(bannerText).toMatch(/\d+/u);
 		});
 
 		test('should display purpose summary with stack grouping', async () => {
@@ -226,8 +228,8 @@ describe('IAB Banner E2E Tests', () => {
 				'[data-testid="iab-consent-banner-card"]'
 			);
 
-			// Should have role dialog
-			expect(banner.getAttribute('role')).toBe('dialog');
+			// Native dialog elements expose the implicit dialog role.
+			expect(banner.tagName).toBe('DIALOG');
 
 			// Should have aria-label
 			expect(banner.getAttribute('aria-label')).toBeTruthy();

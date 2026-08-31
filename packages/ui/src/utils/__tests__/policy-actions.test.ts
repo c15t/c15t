@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	flattenPolicyActionGroups,
 	hasPolicyHints,
@@ -171,9 +172,9 @@ describe('shouldFillPolicyActions', () => {
 	it('fills for strict profile', () => {
 		expect(
 			shouldFillPolicyActions({
-				uiProfile: 'strict',
 				actionGroups: [['customize']],
 				direction: 'row',
+				uiProfile: 'strict',
 			})
 		).toBe(true);
 	});
@@ -181,9 +182,9 @@ describe('shouldFillPolicyActions', () => {
 	it('fills for balanced with single action group <= 2 actions', () => {
 		expect(
 			shouldFillPolicyActions({
-				uiProfile: 'balanced',
 				actionGroups: [['accept', 'reject']],
 				direction: 'row',
+				uiProfile: 'balanced',
 			})
 		).toBe(true);
 	});
@@ -191,9 +192,9 @@ describe('shouldFillPolicyActions', () => {
 	it('fills for balanced with 3 actions in split groups', () => {
 		expect(
 			shouldFillPolicyActions({
-				uiProfile: 'balanced',
 				actionGroups: [['customize'], ['accept', 'reject']],
 				direction: 'row',
+				uiProfile: 'balanced',
 			})
 		).toBe(true);
 	});
@@ -201,9 +202,9 @@ describe('shouldFillPolicyActions', () => {
 	it('fills for balanced with 3 actions in a column layout', () => {
 		expect(
 			shouldFillPolicyActions({
-				uiProfile: 'balanced',
 				actionGroups: [['customize', 'accept', 'reject']],
 				direction: 'column',
+				uiProfile: 'balanced',
 			})
 		).toBe(true);
 	});
@@ -211,9 +212,9 @@ describe('shouldFillPolicyActions', () => {
 	it('does not fill for balanced with 3 actions in one row group', () => {
 		expect(
 			shouldFillPolicyActions({
-				uiProfile: 'balanced',
 				actionGroups: [['customize', 'accept', 'reject']],
 				direction: 'row',
+				uiProfile: 'balanced',
 			})
 		).toBe(false);
 	});
@@ -221,9 +222,9 @@ describe('shouldFillPolicyActions', () => {
 	it('does not fill for compact profile', () => {
 		expect(
 			shouldFillPolicyActions({
-				uiProfile: 'compact',
 				actionGroups: [['customize']],
 				direction: 'row',
+				uiProfile: 'compact',
 			})
 		).toBe(false);
 	});

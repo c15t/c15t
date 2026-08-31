@@ -28,7 +28,7 @@ const DEFAULT_IP_HEADERS = [
  * Expands a compressed IPv6 address to its full form.
  * For example: "2001:db8::1" -> "2001:0db8:0000:0000:0000:0000:0000:0001"
  */
-function expandIPv6(ip: string): string {
+const expandIPv6 = function expandIPv6(ip: string): string {
 	// Handle IPv4-mapped IPv6 addresses (e.g., ::ffff:192.168.1.1)
 	if (ip.includes('.')) {
 		return ip;
@@ -67,14 +67,14 @@ function expandIPv6(ip: string): string {
 
 	// Pad each group to 4 characters
 	return parts.map((p) => p.padStart(4, '0')).join(':');
-}
+};
 
 /**
  * Compresses an IPv6 address by removing leading zeros and using :: for consecutive zero groups.
  */
-function compressIPv6(ip: string): string {
+const compressIPv6 = function compressIPv6(ip: string): string {
 	// Remove leading zeros from each group
-	const groups = ip.split(':').map((g) => g.replace(/^0+/, '') || '0');
+	const groups = ip.split(':').map((g) => g.replace(/^0+/u, '') || '0');
 
 	// Find the longest run of consecutive zeros
 	let longestStart = -1;
@@ -82,13 +82,13 @@ function compressIPv6(ip: string): string {
 	let currentStart = -1;
 	let currentLength = 0;
 
-	for (let i = 0; i < groups.length; i++) {
+	for (let i = 0; i < groups.length; i += 1) {
 		if (groups[i] === '0') {
 			if (currentStart === -1) {
 				currentStart = i;
 				currentLength = 1;
 			} else {
-				currentLength++;
+				currentLength += 1;
 			}
 		} else {
 			if (currentLength > longestLength) {
@@ -124,7 +124,7 @@ function compressIPv6(ip: string): string {
 	}
 
 	return groups.join(':');
-}
+};
 
 /**
  * Masks an IP address to reduce PII.
@@ -134,7 +134,9 @@ function compressIPv6(ip: string): string {
  * @param ip - The IP address to mask
  * @returns The masked IP address
  */
-export function maskIpAddress(ip: string | null): string | null {
+export const maskIpAddress = function maskIpAddress(
+	ip: string | null
+): string | null {
 	if (!ip) {
 		return null;
 	}
@@ -170,7 +172,7 @@ export function maskIpAddress(ip: string | null): string | null {
 		const groups = expanded.split(':');
 
 		// Zero out groups 4-8 (indices 3-7)
-		for (let i = 3; i < 8; i++) {
+		for (let i = 3; i < 8; i += 1) {
 			groups[i] = '0000';
 		}
 
@@ -178,7 +180,7 @@ export function maskIpAddress(ip: string | null): string | null {
 	}
 
 	return ip;
-}
+};
 
 /** Header names checked in order, first match wins. */
 export const DEFAULT_IP_HEADERS_LIST: readonly string[] = DEFAULT_IP_HEADERS;
@@ -195,7 +197,7 @@ export interface IpAddressConfig {
  * Returns null when tracking is off, so a deployment that opts out records no
  * IP at all rather than a placeholder.
  */
-export function getIpAddress(
+export const getIpAddress = function getIpAddress(
 	source: Request | Headers,
 	config?: IpAddressConfig
 ): string | null {
@@ -208,12 +210,16 @@ export function getIpAddress(
 
 	for (const key of ipHeaders) {
 		const value = headers.get(key);
-		if (!value) continue;
+		if (!value) {
+			continue;
+		}
 		// A forwarding chain lists the original client first.
 		const ip = value.split(',')[0]?.trim();
-		if (!ip) continue;
+		if (!ip) {
+			continue;
+		}
 		return config?.masking === false ? ip : maskIpAddress(ip);
 	}
 
 	return null;
-}
+};

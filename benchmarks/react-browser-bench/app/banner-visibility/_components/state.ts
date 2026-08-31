@@ -17,44 +17,54 @@ declare global {
 	}
 }
 
-export function normalizeVersion(
+export const normalizeVersion = function normalizeVersion(
 	value: string | string[] | undefined
 ): BannerVisibilityVersion {
 	return value === 'v3' ? 'v3' : 'v2';
-}
+};
 
-export function getBenchState(
+export const getBenchState = function getBenchState(
 	version: BannerVisibilityVersion
 ): BannerVisibilityBenchState | undefined {
-	if (typeof window === 'undefined') return undefined;
+	if (typeof window === 'undefined') {
+		return undefined;
+	}
 	if (
 		!window.__c15tBannerVisibilityBench ||
 		window.__c15tBannerVisibilityBench.version !== version
 	) {
 		window.__c15tBannerVisibilityBench = {
-			version,
 			activeUI: 'unknown',
-			renderCount: 0,
 			errorCount: 0,
 			errors: [],
+			renderCount: 0,
+			version,
 		};
 	}
 	return window.__c15tBannerVisibilityBench;
-}
+};
 
-export function isElementVisible(element: Element): boolean {
-	if (!(element instanceof HTMLElement)) return false;
+export const isElementVisible = function isElementVisible(
+	element: Element
+): boolean {
+	if (!(element instanceof HTMLElement)) {
+		return false;
+	}
 	const rect = element.getBoundingClientRect();
-	if (rect.width <= 0 || rect.height <= 0) return false;
+	if (rect.width <= 0 || rect.height <= 0) {
+		return false;
+	}
 	const style = window.getComputedStyle(element);
 	return (
 		style.display !== 'none' &&
 		style.visibility !== 'hidden' &&
 		Number(style.opacity) >= 0.99
 	);
-}
+};
 
-export function hasRunningAnimations(element: Element): boolean {
+export const hasRunningAnimations = function hasRunningAnimations(
+	element: Element
+): boolean {
 	if (
 		!(element instanceof HTMLElement) ||
 		typeof element.getAnimations !== 'function'
@@ -64,23 +74,31 @@ export function hasRunningAnimations(element: Element): boolean {
 	return element
 		.getAnimations()
 		.some((animation) => animation.playState === 'running');
-}
+};
 
-export function observeBannerVisibility(
+export const observeBannerVisibility = function observeBannerVisibility(
 	version: BannerVisibilityVersion,
 	activeUI: string
 ): () => void {
 	const state = getBenchState(version);
-	if (!state) return () => {};
+	if (!state) {
+		return () => {
+			/* empty */
+		};
+	}
 	state.activeUI = activeUI;
 	if (state.bannerVisibleMs !== undefined || activeUI !== 'banner') {
-		return () => {};
+		return () => {
+			/* empty */
+		};
 	}
 
 	let frameId = 0;
 	const check = () => {
 		const latest = getBenchState(version);
-		if (!latest || latest.bannerVisibleMs !== undefined) return;
+		if (!latest || latest.bannerVisibleMs !== undefined) {
+			return;
+		}
 
 		const bannerRoot = document.querySelector(
 			'[data-testid="consent-banner-root"]'
@@ -113,4 +131,4 @@ export function observeBannerVisibility(
 
 	frameId = window.requestAnimationFrame(check);
 	return () => window.cancelAnimationFrame(frameId);
-}
+};

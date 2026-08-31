@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
@@ -7,7 +8,8 @@ import {
 	setupScriptHelperTest,
 	toArgumentsArray,
 } from '../../__tests__/helpers';
-import { type ClarityConsentV2Payload, clarity } from './microsoft-clarity';
+import { clarity } from './microsoft-clarity';
+import type { ClarityConsentV2Payload } from './microsoft-clarity';
 
 const consentv2Call = (payload: ClarityConsentV2Payload) =>
 	toArgumentsArray(['consentv2', payload]);
@@ -28,8 +30,8 @@ describe('microsoft-clarity', () => {
 	it('queues default consent on boot when provided', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({
-			id: 'abcdef1234',
 			defaultConsent: { ad_Storage: 'granted' },
+			id: 'abcdef1234',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -58,16 +60,16 @@ describe('microsoft-clarity', () => {
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementAndMarketingConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(

@@ -8,18 +8,20 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { DEFAULT_MAX_CACHE_BYTES, pruneTurboCache } from './prune-turbo-cache';
 
 const temporaryDirectories: string[] = [];
 
-async function createCacheDirectory() {
+const createCacheDirectory = async function createCacheDirectory() {
 	const directory = await mkdtemp(join(tmpdir(), 'c15t-turbo-cache-'));
 	temporaryDirectories.push(directory);
 	return directory;
-}
+};
 
-async function createFile(
+const createFile = async function createFile(
 	directory: string,
 	name: string,
 	size: number,
@@ -30,16 +32,16 @@ async function createFile(
 	const mtime = new Date(mtimeMs);
 	await utimes(path, mtime, mtime);
 	return path;
-}
+};
 
-async function fileExists(path: string) {
+const fileExists = async function fileExists(path: string) {
 	try {
 		await access(path);
 		return true;
 	} catch {
 		return false;
 	}
-}
+};
 
 afterEach(async () => {
 	await Promise.all(

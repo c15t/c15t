@@ -4,7 +4,45 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { chromium, type Page } from 'playwright';
+
+import { chromium } from 'playwright';
+import type { Page } from 'playwright';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const _createDeferredPromise = function _createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+const createVoidDeferredPromise = function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+};
 
 const HOST = '127.0.0.1';
 const PORT = 4315;
@@ -36,19 +74,19 @@ interface Stats {
 	max: number;
 }
 
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((left, right) => left - right);
 	return {
 		avg: samples.reduce((acc, value) => acc + value, 0) / samples.length,
-		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
-		min: sorted[0] ?? 0,
 		max: sorted[sorted.length - 1] ?? 0,
+		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
+		min: sorted[0] ?? 0,
+		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
-async function runCommand(args: string[], label: string) {
-	await new Promise<void>((resolvePromise, rejectPromise) => {
+const runCommand = async function runCommand(args: string[], label: string) {
+	await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -71,25 +109,31 @@ async function runCommand(args: string[], label: string) {
 		});
 		command.on('error', rejectPromise);
 	});
-}
+};
 
-async function ensureBuild() {
-	rmSync(join(appDir, '.next'), { recursive: true, force: true });
+const ensureBuild = async function ensureBuild() {
+	rmSync(join(appDir, '.next'), { force: true, recursive: true });
 	await runCommand(['run', 'build'], 'banner visibility benchmark build');
-}
+};
 
-async function waitForServer() {
+const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(`${BASE_URL}/banner-visibility`);
-			if (response.ok) return;
-		} catch {}
+			if (response.ok) {
+				return;
+			}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await sleep(500);
 	}
 	throw new Error('Timed out waiting for banner visibility benchmark server');
-}
+};
 
-async function collectSample(
+const collectSample = async function collectSample(
 	page: Page,
 	version: Version
 ): Promise<BenchState> {
@@ -110,15 +154,17 @@ async function collectSample(
 	const state = await page.evaluate(() =>
 		JSON.parse(JSON.stringify(window.__c15tBannerVisibilityBench ?? null))
 	);
-	if (!state) throw new Error(`${version}: missing benchmark state`);
+	if (!state) {
+		throw new Error(`${version}: missing benchmark state`);
+	}
 	const typed = state as BenchState;
 	if (typed.errorCount > 0) {
 		throw new Error(`${version}: ${typed.errors.join('; ')}`);
 	}
 	return typed;
-}
+};
 
-async function run() {
+const run = async function run() {
 	await ensureBuild();
 	const server = spawn(
 		'bun',
@@ -137,44 +183,57 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let cleanupError: Error | undefined;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
-		const results: Array<{
+		const results: {
 			version: Version;
 			bannerReadyMs: Stats;
 			bannerVisibleMs: Stats;
 			mountMs: Stats;
 			renderCount: Stats;
-		}> = [];
+		}[] = [];
 
-		for (const version of ['v2', 'v3'] as const) {
-			const readySamples: number[] = [];
-			const visibleSamples: number[] = [];
-			const mountSamples: number[] = [];
-			const renderSamples: number[] = [];
+		await (['v2', 'v3'] as const).reduce<Promise<void>>(
+			async (previousVersion, version) => {
+				await previousVersion;
+				const readySamples: number[] = [];
+				const visibleSamples: number[] = [];
+				const mountSamples: number[] = [];
+				const renderSamples: number[] = [];
 
-			for (let index = 0; index < warmupIterations + iterations; index += 1) {
-				const context = await browser.newContext({ baseURL: BASE_URL });
-				const page = await context.newPage();
-				const sample = await collectSample(page, version);
-				if (index >= warmupIterations) {
-					readySamples.push(sample.bannerReadyMs ?? 0);
-					visibleSamples.push(sample.bannerVisibleMs ?? 0);
-					mountSamples.push(sample.mountMs ?? 0);
-					renderSamples.push(sample.renderCount);
-				}
-				await context.close();
-			}
+				const iterationIndexes = Array.from(
+					{ length: warmupIterations + iterations },
+					(_, index) => index
+				);
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
+						const sample = await collectSample(page, version);
+						if (index >= warmupIterations) {
+							readySamples.push(sample.bannerReadyMs ?? 0);
+							visibleSamples.push(sample.bannerVisibleMs ?? 0);
+							mountSamples.push(sample.mountMs ?? 0);
+							renderSamples.push(sample.renderCount);
+						}
+						await context.close();
+					},
+					Promise.resolve()
+				);
 
-			results.push({
-				version,
-				bannerReadyMs: summarize(readySamples),
-				bannerVisibleMs: summarize(visibleSamples),
-				mountMs: summarize(mountSamples),
-				renderCount: summarize(renderSamples),
-			});
-		}
+				results.push({
+					bannerReadyMs: summarize(readySamples),
+					bannerVisibleMs: summarize(visibleSamples),
+					mountMs: summarize(mountSamples),
+					renderCount: summarize(renderSamples),
+					version,
+				});
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 
@@ -183,11 +242,11 @@ async function run() {
 			join(outputDir, 'react-v2-v3-banner-visibility.json'),
 			`${JSON.stringify(
 				{
-					suite: 'react-banner-visibility',
 					generatedAt: new Date().toISOString(),
 					iterations,
-					warmupIterations,
 					results,
+					suite: 'react-banner-visibility',
+					warmupIterations,
 				},
 				null,
 				2
@@ -224,12 +283,17 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Banner visibility bench server failed');
+			cleanupError = new Error(logs || 'Banner visibility bench server failed');
 		}
 	}
-}
+	if (cleanupError) {
+		throw cleanupError;
+	}
+};
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

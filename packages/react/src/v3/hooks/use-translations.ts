@@ -3,6 +3,7 @@
 import type { Translations } from '@c15t/core';
 import { resolveTranslations } from '@c15t/ui/utils';
 import { useMemo } from 'react';
+
 import { defaultTranslationConfig } from '../utils/default-translation-config';
 import { useConsentManager } from './use-consent-manager';
 
@@ -32,10 +33,11 @@ import { useConsentManager } from './use-consent-manager';
  *
  * @public
  */
-export function useTranslations(): Translations {
+export const useTranslations = function useTranslations(): Translations {
 	const { translationConfig } = useConsentManager();
 
-	return useMemo(() => {
-		return resolveTranslations(translationConfig, defaultTranslationConfig);
-	}, [translationConfig]);
-}
+	return useMemo(
+		() => resolveTranslations(translationConfig, defaultTranslationConfig),
+		[translationConfig]
+	);
+};

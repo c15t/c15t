@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	C15T_TO_IAB_PURPOSE_MAP,
 	c15tConsentsToIabPurposes,
@@ -103,11 +104,11 @@ describe('IAB Purpose to c15t Mapping', () => {
 	describe('c15tConsentsToIabPurposes', () => {
 		it('should convert c15t consent state to IAB purposes', () => {
 			const c15tConsents = {
-				necessary: true,
-				marketing: false,
 				experience: true,
-				measurement: true,
 				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			};
 
 			const result = c15tConsentsToIabPurposes(c15tConsents);
@@ -136,32 +137,32 @@ describe('IAB Purpose to c15t Mapping', () => {
 
 		it('should handle all true consents', () => {
 			const c15tConsents = {
-				necessary: true,
-				marketing: true,
 				experience: true,
-				measurement: true,
 				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			};
 
 			const result = c15tConsentsToIabPurposes(c15tConsents);
 
-			for (let i = 1; i <= 11; i++) {
+			for (let i = 1; i <= 11; i += 1) {
 				expect(result[i]).toBe(true);
 			}
 		});
 
 		it('should handle all false consents', () => {
 			const c15tConsents = {
-				necessary: false,
-				marketing: false,
 				experience: false,
-				measurement: false,
 				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: false,
 			};
 
 			const result = c15tConsentsToIabPurposes(c15tConsents);
 
-			for (let i = 1; i <= 11; i++) {
+			for (let i = 1; i <= 11; i += 1) {
 				expect(result[i]).toBe(false);
 			}
 		});
@@ -171,6 +172,8 @@ describe('IAB Purpose to c15t Mapping', () => {
 		it('should convert IAB purposes to c15t consents', () => {
 			const purposeConsents = {
 				1: true,
+				10: true,
+				11: true,
 				2: true,
 				3: true,
 				4: true,
@@ -179,15 +182,14 @@ describe('IAB Purpose to c15t Mapping', () => {
 				7: true,
 				8: true,
 				9: true,
-				10: true,
-				11: true,
 			};
 
 			const result = iabPurposesToC15tConsents(purposeConsents);
 
 			expect(result.necessary).toBe(true);
 			expect(result.marketing).toBe(true);
-			expect(result.experience).toBe(false); // 5 and 6 are false
+			// 5 and 6 are false
+			expect(result.experience).toBe(false);
 			expect(result.measurement).toBe(true);
 			expect(result.functionality).toBe(true);
 		});
@@ -195,21 +197,23 @@ describe('IAB Purpose to c15t Mapping', () => {
 		it('should require ALL purposes in a category to be consented', () => {
 			const purposeConsents = {
 				1: true,
+				10: true,
+				11: true,
 				2: true,
 				3: true,
-				4: false, // One marketing purpose not consented
+				// One marketing purpose not consented
+				4: false,
 				5: true,
 				6: true,
 				7: true,
 				8: true,
 				9: true,
-				10: true,
-				11: true,
 			};
 
 			const result = iabPurposesToC15tConsents(purposeConsents);
 
-			expect(result.marketing).toBe(false); // Not all marketing purposes consented
+			// Not all marketing purposes consented
+			expect(result.marketing).toBe(false);
 		});
 
 		it('should handle missing purposes as false', () => {
@@ -253,14 +257,16 @@ describe('IAB Purpose to c15t Mapping', () => {
 
 		it('should deduplicate overlapping purposes', () => {
 			const vendorPurposes = [1, 2, 7];
-			const vendorLegIntPurposes = [7, 9]; // 7 appears in both
+			// 7 appears in both
+			const vendorLegIntPurposes = [7, 9];
 
 			const result = categorizeVendorPurposes(
 				vendorPurposes,
 				vendorLegIntPurposes
 			);
 
-			expect(result.all).toEqual([1, 2, 7, 9]); // 7 appears only once
+			// 7 appears only once
+			expect(result.all).toEqual([1, 2, 7, 9]);
 		});
 	});
 
@@ -269,7 +275,7 @@ describe('IAB Purpose to c15t Mapping', () => {
 			const vendorPurposes = [1, 2, 7];
 			const vendorLegIntPurposes = [9, 10];
 			const purposeConsents = { 1: true, 2: true, 7: true };
-			const purposeLegitInterests = { 9: true, 10: true };
+			const purposeLegitInterests = { 10: true, 9: true };
 
 			const result = vendorHasRequiredConsents(
 				vendorPurposes,
@@ -284,8 +290,9 @@ describe('IAB Purpose to c15t Mapping', () => {
 		it('should return false when a consent purpose is missing', () => {
 			const vendorPurposes = [1, 2, 7];
 			const vendorLegIntPurposes = [9, 10];
-			const purposeConsents = { 1: true, 2: true, 7: false }; // 7 not consented
-			const purposeLegitInterests = { 9: true, 10: true };
+			// 7 not consented
+			const purposeConsents = { 1: true, 2: true, 7: false };
+			const purposeLegitInterests = { 10: true, 9: true };
 
 			const result = vendorHasRequiredConsents(
 				vendorPurposes,
@@ -301,7 +308,8 @@ describe('IAB Purpose to c15t Mapping', () => {
 			const vendorPurposes = [1, 2, 7];
 			const vendorLegIntPurposes = [9, 10];
 			const purposeConsents = { 1: true, 2: true, 7: true };
-			const purposeLegitInterests = { 9: true, 10: false }; // 10 not established
+			// 10 not established
+			const purposeLegitInterests = { 10: false, 9: true };
 
 			const result = vendorHasRequiredConsents(
 				vendorPurposes,

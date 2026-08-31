@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 declare global {
 	interface Window {
@@ -38,77 +40,83 @@ declare global {
  */
 export const databuddyManifest = {
 	...vendorManifestContract,
-	vendor: 'databuddy',
-	category: 'measurement',
 	alwaysLoad: true,
+	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
 			attributes: {
 				crossorigin: 'anonymous',
-				'data-client-id': '{{clientId}}',
 				'data-api-url': '{{apiUrl}}',
+
+				'data-client-id': '{{clientId}}',
 			},
-		},
-	],
-	onBeforeLoadGranted: [
-		{
-			type: 'setGlobal',
-			name: 'databuddyConfig',
-			value: '{{configWhenGranted}}',
-			ifUndefined: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
 	onBeforeLoadDenied: [
 		{
-			type: 'setGlobal',
-			name: 'databuddyConfig',
-			value: '{{configWhenDenied}}',
 			ifUndefined: true,
+
+			name: 'databuddyConfig',
+			type: 'setGlobal',
+			value: '{{configWhenDenied}}',
 		},
 	],
-	onLoadGranted: [
+	onBeforeLoadGranted: [
 		{
-			type: 'setGlobalPath',
-			path: ['databuddy', 'options', 'disabled'],
-			value: false,
+			ifUndefined: true,
+
+			name: 'databuddyConfig',
+			type: 'setGlobal',
+			value: '{{configWhenGranted}}',
 		},
 	],
-	onLoadDenied: [
+	onConsentDenied: [
 		{
-			type: 'setGlobalPath',
+			ifUndefined: false,
+
+			name: 'databuddyConfig',
+			type: 'setGlobal',
+			value: '{{configWhenDenied}}',
+		},
+		{
 			path: ['databuddy', 'options', 'disabled'],
+			type: 'setGlobalPath',
 			value: true,
 		},
 	],
 	onConsentGranted: [
 		{
-			type: 'setGlobal',
-			name: 'databuddyConfig',
-			value: '{{configWhenGranted}}',
 			ifUndefined: false,
+
+			name: 'databuddyConfig',
+			type: 'setGlobal',
+			value: '{{configWhenGranted}}',
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['databuddy', 'options', 'disabled'],
+			type: 'setGlobalPath',
 			value: false,
 		},
 	],
-	onConsentDenied: [
+	onLoadDenied: [
 		{
-			type: 'setGlobal',
-			name: 'databuddyConfig',
-			value: '{{configWhenDenied}}',
-			ifUndefined: false,
-		},
-		{
-			type: 'setGlobalPath',
 			path: ['databuddy', 'options', 'disabled'],
+			type: 'setGlobalPath',
 			value: true,
 		},
 	],
+	onLoadGranted: [
+		{
+			path: ['databuddy', 'options', 'disabled'],
+			type: 'setGlobalPath',
+			value: false,
+		},
+	],
+	vendor: 'databuddy',
 } as const satisfies VendorManifest;
 
 export interface DatabuddyConsentOptions {
@@ -172,14 +180,16 @@ export interface DatabuddyConsentOptions {
  * });
  * ```
  */
-export function databuddy(options: DatabuddyConsentOptions): Script {
+export const databuddy = function databuddy(
+	options: DatabuddyConsentOptions
+): Script {
 	const resolved = resolveManifest(databuddyManifest, {
-		clientId: options.clientId,
 		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
-		configWhenGranted: options.configWhenGranted,
+		clientId: options.clientId,
 		configWhenDenied: options.configWhenDenied,
+		configWhenGranted: options.configWhenGranted,
 		scriptUrl: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',
 	});
 
 	return resolved;
-}
+};

@@ -1,14 +1,20 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
+import type { FC } from 'react';
+
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as Switch from '~/v3/components/shared/ui/switch';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
+
+const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
+const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface StackItemProps {
 	stack: ProcessedStack;
@@ -40,9 +46,9 @@ export const StackItem: FC<StackItemProps> = ({
 	vendorConsents,
 	onVendorToggle,
 	onVendorClick,
-	vendorLegitimateInterests = {},
+	vendorLegitimateInterests = EMPTY_VENDOR_INTERESTS,
 	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
+	purposeLegitimateInterests = EMPTY_PURPOSE_INTERESTS,
 	onPurposeLegitimateInterestToggle,
 }) => {
 	const { components } = useUIConfig();

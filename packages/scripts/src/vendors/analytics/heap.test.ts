@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
@@ -6,12 +7,8 @@ import {
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
-import {
-	DEFAULT_HEAP_CONFIG_BASE_URL,
-	HEAP_QUEUE_METHODS,
-	type HeapReadyCallback,
-	heap,
-} from './heap';
+import { DEFAULT_HEAP_CONFIG_BASE_URL, HEAP_QUEUE_METHODS, heap } from './heap';
+import type { HeapReadyCallback } from './heap';
 
 type HeapStub = unknown[] &
 	Record<string, unknown> & {
@@ -22,19 +19,19 @@ type HeapStub = unknown[] &
 		identify?: (identity: string) => void;
 	};
 
-function snapshotHeapReadyQueue(): Array<{
+const snapshotHeapReadyQueue = function snapshotHeapReadyQueue(): {
 	name: string;
 	fnType: string;
-}> {
+}[] {
 	const globalRef = getTestGlobal() as typeof globalThis & {
 		heapReadyCb?: HeapReadyCallback[];
 	};
 
 	return (globalRef.heapReadyCb ?? []).map((entry) => ({
-		name: entry.name,
 		fnType: typeof entry.fn,
+		name: entry.name,
 	}));
-}
+};
 
 describe('heap', () => {
 	setupScriptHelperTest();
@@ -57,18 +54,18 @@ describe('heap', () => {
 			heapReadyCb?: HeapReadyCallback[];
 		};
 		const script = heap({
-			envId: ' 123456789 ',
 			clientConfig: {
 				disableTextCapture: true,
 				metadataStorage: 'localstorage',
 			},
+			envId: ' 123456789 ',
 		});
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -108,9 +105,9 @@ describe('heap', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -121,21 +118,21 @@ describe('heap', () => {
 
 		expect(snapshotHeapReadyQueue()).toEqual([
 			{
-				name: 'track',
 				fnType: 'function',
+				name: 'track',
 			},
 			{
-				name: 'identify',
 				fnType: 'function',
+				name: 'identify',
 			},
 		]);
 
 		globalRef.heap = {
-			track: (...args: unknown[]) => {
-				calls.push(['track', ...args]);
-			},
 			identify: (...args: unknown[]) => {
 				calls.push(['identify', ...args]);
+			},
+			track: (...args: unknown[]) => {
+				calls.push(['track', ...args]);
 			},
 		};
 
@@ -174,19 +171,19 @@ describe('heap', () => {
 	it('throws for non-JSON client config values', () => {
 		expect(() =>
 			heap({
-				envId: '123456789',
 				clientConfig: {
 					createdAt: new Date(),
 				},
+				envId: '123456789',
 			})
 		).toThrowError('heap: clientConfig.createdAt must be JSON-serializable');
 
 		expect(() =>
 			heap({
-				envId: '123456789',
 				clientConfig: {
 					sampleRate: Number.NaN,
 				},
+				envId: '123456789',
 			})
 		).toThrowError('heap: clientConfig.sampleRate must be a finite number');
 	});

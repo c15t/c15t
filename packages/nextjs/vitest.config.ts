@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+
 import { baseConfig } from '@c15t/vitest-config/base';
 import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
@@ -9,6 +10,7 @@ export default mergeConfig(
 	defineConfig({
 		plugins: [react()],
 		resolve: {
+			// oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
 			alias: {
 				'~': resolve(__dirname, './src'),
 				'@c15t/core/v3/modules/script-loader': resolve(
@@ -69,6 +71,21 @@ export default mergeConfig(
 			},
 		},
 		test: {
+			browser: {
+				enabled: true,
+				instances: [{ browser: 'chromium' }],
+				provider: playwright(),
+			},
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					branches: 40,
+					functions: 50,
+					lines: 45,
+					statements: 45,
+				},
+			},
 			include: [
 				'src/**/*.test.tsx',
 				'src/**/*.test.ts',
@@ -76,21 +93,6 @@ export default mergeConfig(
 				'src/**/*.spec.ts',
 				'src/**/*.e2e.test.tsx',
 			],
-			browser: {
-				enabled: true,
-				provider: playwright(),
-				instances: [{ browser: 'chromium' }],
-			},
-			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
-				thresholds: {
-					lines: 45,
-					statements: 45,
-					functions: 50,
-					branches: 40,
-				},
-			},
 		},
 	})
 );

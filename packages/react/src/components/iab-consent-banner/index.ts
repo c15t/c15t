@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+
 import {
 	IABConsentBannerButtonGroup,
 	IABConsentBannerFooterSpacer,
@@ -21,17 +22,14 @@ import { IABConsentBannerHeader } from './atoms/header';
 import { IABConsentBannerOverlay } from './atoms/overlay';
 import { IABConsentBannerRoot } from './atoms/root';
 import { IABConsentBannerTitle } from './atoms/title';
-import {
-	IABConsentBanner as IABConsentBannerComponent,
-	type IABConsentBannerProps,
-} from './iab-consent-banner';
+import { IABConsentBanner as IABConsentBannerComponent } from './iab-consent-banner';
+import type { IABConsentBannerProps } from './iab-consent-banner';
 
 /**
  * This interface extends the base IABConsentBanner component with additional sub-components
  * that can be used to compose the banner's structure.
  */
-export interface IABConsentBannerCompoundComponent
-	extends FC<IABConsentBannerProps> {
+export interface IABConsentBannerCompoundComponent extends FC<IABConsentBannerProps> {
 	Root: typeof IABConsentBannerRoot;
 	Card: typeof IABConsentBannerCard;
 	Header: typeof IABConsentBannerHeader;
@@ -87,15 +85,15 @@ export interface IABConsentBannerCompoundComponent
  * @public
  */
 const IABConsentBanner = Object.assign(IABConsentBannerComponent, {
-	Root: IABConsentBannerRoot,
+	ButtonGroup: IABConsentBannerButtonGroup,
 	Card: IABConsentBannerCard,
-	Header: IABConsentBannerHeader,
-	Title: IABConsentBannerTitle,
 	Description: IABConsentBannerDescription,
 	Footer: IABConsentBannerFooter,
-	ButtonGroup: IABConsentBannerButtonGroup,
 	FooterSpacer: IABConsentBannerFooterSpacer,
+	Header: IABConsentBannerHeader,
 	Overlay: IABConsentBannerOverlay,
+	Root: IABConsentBannerRoot,
+	Title: IABConsentBannerTitle,
 }) as IABConsentBannerCompoundComponent;
 
 // Export the main component as both default and named export

@@ -1,165 +1,188 @@
 <script lang="ts">
-import { defaultTranslationConfig, type Model } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
-import { getConsentContext, getThemeContext } from '../context.svelte';
-import { getIABTranslations } from '../iab-translations';
-import { processGVLData, type VendorId } from '../iab-types';
-import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
-import Branding from './branding.svelte';
-import IABPurposeItem from './iab-purpose-item.svelte';
-import IABStackItem from './iab-stack-item.svelte';
-import IABVendorList from './iab-vendor-list.svelte';
-import ChevronRightIcon from './icons/chevron-right-icon.svelte';
-import CloseIcon from './icons/close-icon.svelte';
-import InfoIcon from './icons/info-icon.svelte';
-import LockIcon from './icons/lock-icon.svelte';
+	import { defaultTranslationConfig } from '@c15t/core';
+	import type { Model } from '@c15t/core';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
-let {
-	open: openProp,
-	noStyle: localNoStyle,
-	hideBranding,
-	models = ['iab'] as Model[],
-	class: className,
-}: {
-	open?: boolean;
-	noStyle?: boolean;
-	hideBranding?: boolean;
-	models?: Model[];
-	class?: string;
-} = $props();
+	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { getIABTranslations } from '../iab-translations';
+	import { processGVLData } from '../iab-types';
+	import type { VendorId } from '../iab-types';
+	import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
+	import Branding from './branding.svelte';
+	import IABPurposeItem from './iab-purpose-item.svelte';
+	import IABStackItem from './iab-stack-item.svelte';
+	import IABVendorList from './iab-vendor-list.svelte';
+	import ChevronRightIcon from './icons/chevron-right-icon.svelte';
+	import CloseIcon from './icons/close-icon.svelte';
+	import InfoIcon from './icons/info-icon.svelte';
+	import LockIcon from './icons/lock-icon.svelte';
 
-const consent = getConsentContext();
-const theme = getThemeContext();
+	let {
+		open: openProp,
+		noStyle: localNoStyle,
+		hideBranding,
+		models = ['iab'] as Model[],
+		class: className,
+	}: {
+		open?: boolean;
+		noStyle?: boolean;
+		hideBranding?: boolean;
+		models?: Model[];
+		class?: string;
+	} = $props();
 
-const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+	const consent = getConsentContext();
+	const theme = getThemeContext();
 
-// IAB state
-const iabState = $derived(consent.state.iab);
+	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
-// Translations
-const iabT = $derived(getIABTranslations(consent.state.translationConfig));
-const coreTranslations = $derived(
-	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
-);
-const textDirection = $derived(
-	getTextDirection(consent.state.translationConfig?.defaultLanguage)
-);
+	// IAB state
+	const iabState = $derived(consent.state.iab);
 
-// Open state
-const isOpen = $derived(
-	models.includes(consent.state.model) &&
-		(openProp ?? consent.state.activeUI === 'dialog') &&
-		iabState?.config.enabled === true
-);
-let dialogOpen = $state(false);
-let lastResolvedOpen = $state(false);
+	// Translations
+	const iabT = $derived(getIABTranslations(consent.state.translationConfig));
+	const coreTranslations = $derived(
+		resolveTranslations(
+			consent.state.translationConfig,
+			defaultTranslationConfig
+		)
+	);
+	const textDirection = $derived(
+		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+	);
 
-// Tab state
-let activeTab = $state<string | null>('purposes');
-let selectedVendorId = $state<VendorId | null>(null);
-let specialPurposesExpanded = $state(false);
+	// Open state
+	const isOpen = $derived(
+		models.includes(consent.state.model) &&
+			(openProp ?? consent.state.activeUI === 'dialog') &&
+			iabState?.config.enabled === true
+	);
+	let dialogOpen = $state(false);
+	let lastResolvedOpen = $state(false);
 
-// Sync tab from iabState when dialog opens
-$effect(() => {
-	if (isOpen && iabState?.preferenceCenterTab) {
-		activeTab = iabState.preferenceCenterTab;
-	}
-});
+	// Tab state
+	let activeTab = $state<string | null>('purposes');
+	let selectedVendorId = $state<VendorId | null>(null);
+	let specialPurposesExpanded = $state(false);
 
-$effect(() => {
-	if (isOpen !== lastResolvedOpen) {
-		dialogOpen = isOpen;
-		lastResolvedOpen = isOpen;
-	}
-});
+	// Sync tab from iabState when dialog opens
+	$effect(() => {
+		if (isOpen && iabState?.preferenceCenterTab) {
+			activeTab = iabState.preferenceCenterTab;
+		}
+	});
 
-$effect(() => {
-	if (lastResolvedOpen && !dialogOpen) {
+	$effect(() => {
+		if (isOpen !== lastResolvedOpen) {
+			dialogOpen = isOpen;
+			lastResolvedOpen = isOpen;
+		}
+	});
+
+	$effect(() => {
+		if (lastResolvedOpen && !dialogOpen) {
+			consent.state.setActiveUI('none');
+			lastResolvedOpen = false;
+		}
+	});
+
+	$effect(() => {
+		if (activeTab === 'purposes' || activeTab === 'vendors') {
+			iabState?.setPreferenceCenterTab(activeTab);
+		}
+	});
+
+	// Process GVL data
+	const gvlData = $derived.by(() => {
+		if (!iabState?.gvl) {
+			return null;
+		}
+		return processGVLData(iabState.gvl, iabState.nonIABVendors || []);
+	});
+
+	// Total vendor count
+	const totalVendors = $derived.by(() => {
+		if (!iabState?.gvl) {
+			return 0;
+		}
+		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
+		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
+		return gvlVendorCount + customVendorCount;
+	});
+
+	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
+
+	// Partner count for special purposes + features section
+	const specialSectionPartnerCount = $derived.by(() => {
+		if (!gvlData) {
+			return 0;
+		}
+		return new Set([
+			...gvlData.specialPurposes.flatMap((sp) => sp.vendors.map((v) => v.id)),
+			...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
+		]).size;
+	});
+
+	const handlePurposeToggle = function handlePurposeToggle(
+		purposeId: number,
+		value: boolean
+	) {
+		iabState?.setPurposeConsent(purposeId, value);
+	};
+
+	const handleSpecialFeatureToggle = function handleSpecialFeatureToggle(
+		featureId: number,
+		value: boolean
+	) {
+		iabState?.setSpecialFeatureOptIn(featureId, value);
+	};
+
+	const handleVendorToggle = function handleVendorToggle(
+		vendorId: VendorId,
+		value: boolean
+	) {
+		iabState?.setVendorConsent(vendorId, value);
+	};
+
+	const handleVendorLegitimateInterestToggle =
+		function handleVendorLegitimateInterestToggle(
+			vendorId: VendorId,
+			value: boolean
+		) {
+			iabState?.setVendorLegitimateInterest(vendorId, value);
+		};
+
+	const handlePurposeLegitimateInterestToggle =
+		function handlePurposeLegitimateInterestToggle(
+			purposeId: number,
+			value: boolean
+		) {
+			iabState?.setPurposeLegitimateInterest(purposeId, value);
+		};
+
+	const handleAcceptAll = function handleAcceptAll() {
+		iabState?.acceptAll();
+		iabState?.save();
 		consent.state.setActiveUI('none');
-		lastResolvedOpen = false;
-	}
-});
+	};
 
-$effect(() => {
-	if (activeTab === 'purposes' || activeTab === 'vendors') {
-		iabState?.setPreferenceCenterTab(activeTab);
-	}
-});
+	const handleRejectAll = function handleRejectAll() {
+		iabState?.rejectAll();
+		iabState?.save();
+		consent.state.setActiveUI('none');
+	};
 
-// Process GVL data
-const gvlData = $derived.by(() => {
-	if (!iabState?.gvl) return null;
-	return processGVLData(iabState.gvl, iabState.nonIABVendors || []);
-});
+	const handleSave = function handleSave() {
+		iabState?.save();
+		consent.state.setActiveUI('none');
+	};
 
-// Total vendor count
-const totalVendors = $derived.by(() => {
-	if (!iabState?.gvl) return 0;
-	const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-	const customVendorCount = iabState.nonIABVendors?.length ?? 0;
-	return gvlVendorCount + customVendorCount;
-});
-
-const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
-
-// Partner count for special purposes + features section
-const specialSectionPartnerCount = $derived.by(() => {
-	if (!gvlData) return 0;
-	return new Set([
-		...gvlData.specialPurposes.flatMap((sp) => sp.vendors.map((v) => v.id)),
-		...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
-	]).size;
-});
-
-function handlePurposeToggle(purposeId: number, value: boolean) {
-	iabState?.setPurposeConsent(purposeId, value);
-}
-
-function handleSpecialFeatureToggle(featureId: number, value: boolean) {
-	iabState?.setSpecialFeatureOptIn(featureId, value);
-}
-
-function handleVendorToggle(vendorId: VendorId, value: boolean) {
-	iabState?.setVendorConsent(vendorId, value);
-}
-
-function handleVendorLegitimateInterestToggle(
-	vendorId: VendorId,
-	value: boolean
-) {
-	iabState?.setVendorLegitimateInterest(vendorId, value);
-}
-
-function handlePurposeLegitimateInterestToggle(
-	purposeId: number,
-	value: boolean
-) {
-	iabState?.setPurposeLegitimateInterest(purposeId, value);
-}
-
-function handleAcceptAll() {
-	iabState?.acceptAll();
-	iabState?.save();
-	consent.state.setActiveUI('none');
-}
-
-function handleRejectAll() {
-	iabState?.rejectAll();
-	iabState?.save();
-	consent.state.setActiveUI('none');
-}
-
-function handleSave() {
-	iabState?.save();
-	consent.state.setActiveUI('none');
-}
-
-function handleVendorClick(vendorId: VendorId) {
-	selectedVendorId = vendorId;
-	activeTab = 'vendors';
-	iabState?.setPreferenceCenterTab('vendors');
-}
+	const handleVendorClick = function handleVendorClick(vendorId: VendorId) {
+		selectedVendorId = vendorId;
+		activeTab = 'vendors';
+		iabState?.setPreferenceCenterTab('vendors');
+	};
 </script>
 
 <Dialog.Root
@@ -203,14 +226,10 @@ function handleVendorClick(vendorId: VendorId) {
 						class={noStyle ? '' : styles.closeButton || ''}
 						aria-label={coreTranslations.common.close}
 					>
-						<!--
-							Intentionally not aria-hidden: the React implementation exposes
-							this decorative close glyph as an `img` node in the a11y tree,
-							and cross-framework parity keys on identical ARIA snapshots.
-						-->
 						<CloseIcon
 							width="16"
 							height="16"
+							aria-hidden={true}
 						/>
 					</Dialog.CloseTrigger>
 				</div>
@@ -304,14 +323,16 @@ function handleVendorClick(vendorId: VendorId) {
 								{#each gvlData.specialFeatures as feature (feature.id)}
 									<IABPurposeItem
 										purpose={{
-										id: feature.id,
-										name: feature.name,
-										description: feature.description,
-										illustrations: feature.illustrations,
-										vendors: feature.vendors,
-									}}
-										isEnabled={iabState.specialFeatureOptIns[feature.id] ?? false}
-										onToggle={(value) => handleSpecialFeatureToggle(feature.id, value)}
+											id: feature.id,
+											name: feature.name,
+											description: feature.description,
+											illustrations: feature.illustrations,
+											vendors: feature.vendors,
+										}}
+										isEnabled={iabState.specialFeatureOptIns[feature.id] ??
+											false}
+										onToggle={(value) =>
+											handleSpecialFeatureToggle(feature.id, value)}
 										vendorConsents={iabState.vendorConsents}
 										onVendorToggle={handleVendorToggle}
 										onVendorClick={handleVendorClick}
@@ -337,28 +358,32 @@ function handleVendorClick(vendorId: VendorId) {
 												<Collapsible.Indicator
 													class={noStyle ? '' : styles.purposeArrow || ''}
 												>
-													<ChevronRightIcon />
+													<ChevronRightIcon aria-hidden={true} />
 												</Collapsible.Indicator>
 												<div class={noStyle ? '' : styles.purposeInfo || ''}>
 													<h3
-														class={noStyle ? '' : styles.specialPurposesTitle || ''}
+														class={noStyle
+															? ''
+															: styles.specialPurposesTitle || ''}
 													>
 														{iabT.preferenceCenter.specialPurposes.title}
 														<LockIcon
 															class={noStyle ? '' : styles.lockIcon || ''}
+															aria-hidden={true}
 														/>
 													</h3>
 													<p class={noStyle ? '' : styles.purposeMeta || ''}>
 														{specialSectionPartnerCount}
 														{specialSectionPartnerCount === 1
-														? iabT.preferenceCenter.vendorList.partnerSingular
-														: iabT.preferenceCenter.vendorList.partnerPlural}
+															? iabT.preferenceCenter.vendorList.partnerSingular
+															: iabT.preferenceCenter.vendorList.partnerPlural}
 													</p>
 												</div>
 											</Collapsible.Trigger>
 											<InfoIcon
 												class={noStyle ? '' : styles.infoIcon || ''}
-												aria-label={iabT.preferenceCenter.specialPurposes.tooltip}
+												aria-label={iabT.preferenceCenter.specialPurposes
+													.tooltip}
 											/>
 										</div>
 
@@ -383,12 +408,12 @@ function handleVendorClick(vendorId: VendorId) {
 												{#each gvlData.features as feature (feature.id)}
 													<IABPurposeItem
 														purpose={{
-														id: feature.id,
-														name: feature.name,
-														description: feature.description,
-														illustrations: feature.illustrations,
-														vendors: feature.vendors,
-													}}
+															id: feature.id,
+															name: feature.name,
+															description: feature.description,
+															illustrations: feature.illustrations,
+															vendors: feature.vendors,
+														}}
 														isEnabled={true}
 														onToggle={() => {}}
 														vendorConsents={iabState.vendorConsents}

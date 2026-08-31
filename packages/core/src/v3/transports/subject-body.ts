@@ -22,25 +22,25 @@ export interface SubjectPostBody {
 	};
 }
 
-export function buildSubjectPostBody(
+export const buildSubjectPostBody = function buildSubjectPostBody(
 	payload: SavePayload,
 	opts: BuildSubjectPostBodyOptions
 ): SubjectPostBody {
 	return {
-		subjectId: payload.subjectId,
-		externalSubjectId: payload.user?.externalId,
-		identityProvider: payload.user?.identityProvider,
-		domain: opts.domain,
-		type: 'cookie_banner',
-		preferences: { ...payload.consents },
-		givenAt: Date.now(),
-		jurisdictionModel: payload.model ?? undefined,
-		uiSource: payload.uiSource ?? undefined,
 		consentAction: payload.consentAction,
-		policySnapshotToken: payload.policySnapshotToken ?? undefined,
-		tcString: payload.tcString ?? undefined,
+		domain: opts.domain,
+		externalSubjectId: payload.user?.externalId,
+		givenAt: Date.now(),
+		identityProvider: payload.user?.identityProvider,
+		jurisdictionModel: payload.model ?? undefined,
 		metadata: payload.user?.properties
 			? { userProperties: payload.user.properties }
 			: undefined,
+		policySnapshotToken: payload.policySnapshotToken ?? undefined,
+		preferences: { ...payload.consents },
+		subjectId: payload.subjectId,
+		tcString: payload.tcString ?? undefined,
+		type: 'cookie_banner',
+		uiSource: payload.uiSource ?? undefined,
 	};
-}
+};

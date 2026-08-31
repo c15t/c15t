@@ -12,22 +12,23 @@
  *
  * @internal
  */
-export function hasGlobalPrivacyControlSignal(): boolean {
-	if (typeof window === 'undefined') {
-		return false;
-	}
+export const hasGlobalPrivacyControlSignal =
+	function hasGlobalPrivacyControlSignal(): boolean {
+		if (typeof window === 'undefined') {
+			return false;
+		}
 
-	try {
-		const navigatorWithGPC = window.navigator as Navigator & {
-			globalPrivacyControl?: boolean | string;
-		};
+		try {
+			const navigatorWithGPC = window.navigator as Navigator & {
+				globalPrivacyControl?: boolean | string;
+			};
 
-		const value = navigatorWithGPC.globalPrivacyControl;
+			const value = navigatorWithGPC.globalPrivacyControl;
 
-		// Some implementations expose GPC as boolean, others as string "1"
-		return value === true || value === '1';
-	} catch {
-		// If anything goes wrong while reading the signal, fail closed
-		return false;
-	}
-}
+			// Some implementations expose GPC as boolean, others as string "1"
+			return value === true || value === '1';
+		} catch {
+			// If anything goes wrong while reading the signal, fail closed
+			return false;
+		}
+	};

@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import { createEventBus } from '../events';
 
 describe('createEventBus', () => {
@@ -7,9 +8,10 @@ describe('createEventBus', () => {
 		const listener = vi.fn();
 		bus.on('consent:set', listener);
 		bus.emit({
-			type: 'consent:set',
-			// biome-ignore lint/suspicious/noExplicitAny: stub snapshot
+			// oxlint-disable-next-line typescript/no-explicit-any -- stub snapshot
 			snapshot: {} as any,
+
+			type: 'consent:set',
 		});
 		expect(listener).toHaveBeenCalledOnce();
 	});

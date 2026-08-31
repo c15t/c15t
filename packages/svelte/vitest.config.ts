@@ -2,6 +2,7 @@
 // requires the @sveltejs/vite-plugin-svelte transform pipeline for component
 // compilation. This is an intentional exception to the CLAUDE.md guideline.
 import { resolve } from 'node:path';
+
 import { baseConfig } from '@c15t/vitest-config/base';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig, mergeConfig } from 'vitest/config';
@@ -75,24 +76,25 @@ export default mergeConfig(
 			conditions: ['browser'],
 		},
 		test: {
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					branches: 30,
+
+					functions: 45,
+					lines: 50,
+					statements: 50,
+				},
+			},
+			environment: 'jsdom',
 			include: [
 				'src/**/*.test.ts',
 				'src/**/*.test.svelte.ts',
 				'src/**/*.spec.ts',
 				'src/**/*.spec.svelte.ts',
 			],
-			environment: 'jsdom',
 			setupFiles: ['./src/__tests__/setup.ts'],
-			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
-				thresholds: {
-					lines: 50,
-					statements: 50,
-					functions: 45,
-					branches: 30,
-				},
-			},
 		},
 	})
 );

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import {
 	CLI_INFO,
 	LAYOUT_PATTERNS,
@@ -12,9 +13,9 @@ import {
 describe('constants', () => {
 	describe('URLS', () => {
 		test('should have valid URL formats', () => {
-			expect(URLS.CONSENT_IO).toMatch(/^https:\/\//);
-			expect(URLS.DOCS).toMatch(/^https:\/\//);
-			expect(URLS.GITHUB).toMatch(/^https:\/\/github\.com/);
+			expect(URLS.CONSENT_IO).toMatch(/^https:\/\//u);
+			expect(URLS.DOCS).toMatch(/^https:\/\//u);
+			expect(URLS.GITHUB).toMatch(/^https:\/\/github\.com/u);
 		});
 	});
 
@@ -49,7 +50,7 @@ describe('constants', () => {
 	describe('CLI_INFO', () => {
 		test('should have CLI metadata', () => {
 			expect(CLI_INFO.NAME).toBe('c15t');
-			expect(CLI_INFO.VERSION).toMatch(/^\d+\.\d+\.\d+/);
+			expect(CLI_INFO.VERSION).toMatch(/^\d+\.\d+\.\d+/u);
 		});
 	});
 

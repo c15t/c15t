@@ -2,32 +2,29 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
-import {
-	flushPendingMounts,
-	type MountDeps,
-	mountScript,
-	unmountScript,
-} from '../mount';
+import { flushPendingMounts, mountScript, unmountScript } from '../mount';
+import type { MountDeps } from '../mount';
 import { createElementIdResolver } from '../normalize';
 import type { PendingMount, Script } from '../types';
 
-function makeDeps(): {
+const makeDeps = function makeDeps(): {
 	deps: MountDeps;
 	emitted: { action: string; scriptId: string }[];
 } {
 	const emitted: { action: string; scriptId: string }[] = [];
 	const deps: MountDeps = {
-		loadedElements: new Map(),
-		ownedScriptIds: new Set(),
 		elementIds: createElementIdResolver(),
 		emit: (event) => {
 			emitted.push({ action: event.action, scriptId: event.scriptId });
 		},
 		hasDebugListener: true,
+		loadedElements: new Map(),
+		ownedScriptIds: new Set(),
 	};
 	return { deps, emitted };
-}
+};
 
 beforeEach(() => {
 	document.head.innerHTML = '';
@@ -44,22 +41,22 @@ describe('mountScript', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
 		const script: Script = {
+			category: 'marketing',
 			id: 's',
 			src: 'https://x/s.js',
 			textContent: 'console.log(1);',
-			category: 'marketing',
 		};
 		expect(() => mountScript(deps, script, snap, true, null)).toThrow(
-			/cannot have both/
+			/cannot have both/u
 		);
 	});
 
 	test('throws when neither src, textContent, nor callbackOnly is set', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
-		const script: Script = { id: 's', category: 'marketing' };
+		const script: Script = { category: 'marketing', id: 's' };
 		expect(() => mountScript(deps, script, snap, true, null)).toThrow(
-			/either 'src'/
+			/either 'src'/u
 		);
 	});
 
@@ -68,9 +65,9 @@ describe('mountScript', () => {
 		const snap = createConsentKernel().getSnapshot();
 		const onLoad = vi.fn();
 		const script: Script = {
-			id: 's',
-			category: 'marketing',
 			callbackOnly: true,
+			category: 'marketing',
+			id: 's',
 			onLoad,
 		};
 		mountScript(deps, script, snap, true, null);
@@ -83,9 +80,9 @@ describe('mountScript', () => {
 		const snap = createConsentKernel().getSnapshot();
 		const batch: PendingMount[] = [];
 		const script: Script = {
+			category: 'marketing',
 			id: 's',
 			src: 'https://x/s.js',
-			category: 'marketing',
 		};
 		mountScript(deps, script, snap, true, batch);
 		expect(batch).toHaveLength(1);
@@ -99,9 +96,9 @@ describe('mountScript', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
 		const script: Script = {
+			category: 'marketing',
 			id: 's',
 			src: 'https://x/s.js',
-			category: 'marketing',
 		};
 		mountScript(deps, script, snap, true, null);
 		expect(document.head.querySelector('script')).not.toBeNull();
@@ -115,12 +112,12 @@ describe('mountScript', () => {
 		const onBeforeLoad = vi.fn();
 		const onConsentChange = vi.fn();
 		const script: Script = {
-			id: 's',
-			src: 'https://x/s.js',
-			category: 'marketing',
 			anonymizeId: false,
+			category: 'marketing',
+			id: 's',
 			onBeforeLoad,
 			onConsentChange,
+			src: 'https://x/s.js',
 		};
 		const existing = document.createElement('script');
 		existing.id = 'c15t-script-s';
@@ -145,10 +142,10 @@ describe('unmountScript', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
 		const script: Script = {
-			id: 's',
-			src: 'https://x/s.js',
 			category: 'marketing',
+			id: 's',
 			persistAfterConsentRevoked: true,
+			src: 'https://x/s.js',
 		};
 		mountScript(deps, script, snap, true, null);
 		expect(document.head.querySelector('script')).not.toBeNull();
@@ -163,9 +160,9 @@ describe('unmountScript', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
 		const script: Script = {
+			category: 'marketing',
 			id: 's',
 			src: 'https://x/s.js',
-			category: 'marketing',
 		};
 		mountScript(deps, script, snap, true, null);
 		unmountScript(deps, script, snap, false);
@@ -178,10 +175,10 @@ describe('unmountScript', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
 		const script: Script = {
+			anonymizeId: false,
+			category: 'marketing',
 			id: 's',
 			src: 'https://x/s.js',
-			category: 'marketing',
-			anonymizeId: false,
 		};
 		const existing = document.createElement('script');
 		existing.id = 'c15t-script-s';
@@ -199,9 +196,9 @@ describe('unmountScript', () => {
 		const { deps, emitted } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();
 		const script: Script = {
+			category: 'marketing',
 			id: 'never',
 			src: 'https://x/s.js',
-			category: 'marketing',
 		};
 		unmountScript(deps, script, snap, false);
 		expect(emitted).toEqual([]);
@@ -215,7 +212,7 @@ describe('flushPendingMounts', () => {
 		const batch: PendingMount[] = [];
 		mountScript(
 			deps,
-			{ id: 's1', src: 'https://x/s1.js', category: 'marketing' },
+			{ category: 'marketing', id: 's1', src: 'https://x/s1.js' },
 			snap,
 			true,
 			batch
@@ -231,14 +228,14 @@ describe('flushPendingMounts', () => {
 		const batch: PendingMount[] = [];
 		mountScript(
 			deps,
-			{ id: 'h1', src: 'https://x/h1.js', category: 'marketing' },
+			{ category: 'marketing', id: 'h1', src: 'https://x/h1.js' },
 			snap,
 			true,
 			batch
 		);
 		mountScript(
 			deps,
-			{ id: 'h2', src: 'https://x/h2.js', category: 'marketing' },
+			{ category: 'marketing', id: 'h2', src: 'https://x/h2.js' },
 			snap,
 			true,
 			batch
@@ -246,9 +243,9 @@ describe('flushPendingMounts', () => {
 		mountScript(
 			deps,
 			{
+				category: 'marketing',
 				id: 'b1',
 				src: 'https://x/b1.js',
-				category: 'marketing',
 				target: 'body',
 			},
 			snap,

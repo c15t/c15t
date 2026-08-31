@@ -12,7 +12,11 @@ export const PREFERENCE_ITEM_SLOTS = {
 	trigger: 'preference-item-trigger',
 } as const;
 
-/** @internal Animation implementation detail — not part of the public slot API. */
+/**
+ * Animation implementation detail — not part of the public slot API.
+ *
+ * @internal
+ */
 export const PREFERENCE_ITEM_INTERNAL_SLOTS = {
 	contentInner: 'preference-item-content-inner',
 	contentViewport: 'preference-item-content-viewport',
@@ -21,10 +25,14 @@ export const PREFERENCE_ITEM_INTERNAL_SLOTS = {
 export type PreferenceItemSlot =
 	(typeof PREFERENCE_ITEM_SLOTS)[keyof typeof PREFERENCE_ITEM_SLOTS];
 
-export function getPreferenceItemState(open: boolean) {
+export const getPreferenceItemState = function getPreferenceItemState(
+	open: boolean
+) {
 	return getOpenState(open);
-}
+};
 
-export function togglePreferenceItemValue(current: boolean) {
+export const togglePreferenceItemValue = function togglePreferenceItemValue(
+	current: boolean
+) {
 	return !current;
-}
+};

@@ -12,10 +12,7 @@
 		--switch-thumb-size: 0.75rem;
 		--switch-thumb-size-disabled: 0.625rem;
 		--switch-thumb-translate: calc(
-			var(--switch-width) -
-			var(--switch-thumb-size) -
-			2 *
-			var(--switch-padding)
+			var(--switch-width) - var(--switch-thumb-size) - 2 * var(--switch-padding)
 		);
 
 		/* Colors */
@@ -103,22 +100,22 @@
 		background-color: var(--switch-background-color-dark);
 	}
 
-	.root:not(:global(.headless))[data-state="checked"] .track {
+	.root:not(:global(.headless))[data-state='checked'] .track {
 		background-color: var(--switch-background-color-checked);
 	}
 
 	:global(.c15t-dark)
-		.root:not(:global(.headless))[data-state="checked"]
+		.root:not(:global(.headless))[data-state='checked']
 		.track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
 
-	.root:not(:global(.headless))[data-state="checked"]:hover .track {
+	.root:not(:global(.headless))[data-state='checked']:hover .track {
 		background-color: var(--switch-background-color-checked);
 	}
 
 	:global(.c15t-dark)
-		.root:not(:global(.headless))[data-state="checked"]:hover
+		.root:not(:global(.headless))[data-state='checked']:hover
 		.track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
@@ -146,14 +143,14 @@
 		background-color: var(--switch-background-color-disabled-dark);
 	}
 
-	.root:not(:global(.headless))[data-state="checked"][data-disabled] .track {
+	.root:not(:global(.headless))[data-state='checked'][data-disabled] .track {
 		background-color: var(--switch-background-color-checked);
 		opacity: 0.4;
 		box-shadow: none;
 	}
 
 	:global(.c15t-dark)
-		.root:not(:global(.headless))[data-state="checked"][data-disabled]
+		.root:not(:global(.headless))[data-state='checked'][data-disabled]
 		.track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
@@ -172,7 +169,7 @@
 
 	/* Thumb states */
 	.root:not(:global(.headless)) .thumb::before {
-		content: "";
+		content: '';
 		position: absolute;
 		box-sizing: border-box;
 		inset-block: 0;
@@ -180,8 +177,7 @@
 		width: 100%;
 		border-radius: 9999px;
 		background-color: var(--switch-thumb-background-color);
-		mask:
-			radial-gradient(
+		mask: radial-gradient(
 				circle farthest-side at 50% 50%,
 				#0000 1.95px,
 				#000 2.05px 100%
@@ -194,7 +190,7 @@
 	}
 
 	.root:not(:global(.headless)) .thumb::after {
-		content: "";
+		content: '';
 		position: absolute;
 		box-sizing: border-box;
 		inset-block: 0;
@@ -208,11 +204,11 @@
 		box-shadow: var(--switch-shadow-thumb-dark);
 	}
 
-	.root:not(:global(.headless))[data-state="checked"] .thumb {
+	.root:not(:global(.headless))[data-state='checked'] .thumb {
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
-	.root:not(:global(.headless))[dir="rtl"][data-state="checked"] .thumb {
+	.root:not(:global(.headless))[dir='rtl'][data-state='checked'] .thumb {
 		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
 
@@ -224,7 +220,7 @@
 		box-shadow: none;
 	}
 
-	.root:not(:global(.headless))[data-state="checked"][data-disabled] .thumb {
+	.root:not(:global(.headless))[data-state='checked'][data-disabled] .thumb {
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
@@ -241,7 +237,7 @@
 		outline-color: var(--switch-focus-ring-dark);
 	}
 
-	.root:not(:global(.headless))[data-size="small"],
+	.root:not(:global(.headless))[data-size='small'],
 	.rootSmall:not(:global(.headless)) {
 		--switch-height: 1rem;
 		--switch-width: 1.75rem;
@@ -249,20 +245,17 @@
 		--switch-thumb-size: 0.625rem;
 		--switch-thumb-size-disabled: 0.5rem;
 		--switch-thumb-translate: calc(
-			var(--switch-width) -
-			var(--switch-thumb-size) -
-			2 *
-			var(--switch-padding)
+			var(--switch-width) - var(--switch-thumb-size) - 2 * var(--switch-padding)
 		);
 	}
 
-	.root:not(:global(.headless))[data-size="small"] .track,
+	.root:not(:global(.headless))[data-size='small'] .track,
 	.trackSmall:not(:global(.headless)) {
 		width: 100%;
 		height: 100%;
 	}
 
-	.root:not(:global(.headless))[data-size="small"] .thumb,
+	.root:not(:global(.headless))[data-size='small'] .thumb,
 	.thumbSmall:not(:global(.headless)) {
 		width: var(--switch-thumb-size);
 		height: var(--switch-thumb-size);
@@ -282,7 +275,7 @@
 			background-color: var(--switch-background-color);
 		}
 
-		.root:not(:global(.headless))[data-state="checked"] .track:hover {
+		.root:not(:global(.headless))[data-state='checked'] .track:hover {
 			background-color: var(--switch-background-color-checked);
 		}
 	}

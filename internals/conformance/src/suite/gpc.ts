@@ -27,21 +27,47 @@
  */
 
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi, waitForCondition } from './helpers';
+import { conformanceTest, waitForCondition } from './helpers';
+import type { SuiteApi } from './helpers';
 
-type ConsentShape = Record<string, boolean>;
-
-function readConsents(driver: TestDriver): ConsentShape {
-	const state = driver.getStore().getState() as {
-		consents?: ConsentShape;
-	};
-	return state.consents ?? {};
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
 }
 
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
+type ConsentSnapshot = Record<string, boolean>;
+
+const readConsents = function readConsents(
+	driver: TestDriver
+): ConsentSnapshot {
+	const state = driver.getStore().getState() as {
+		consents?: ConsentSnapshot;
+	};
+	return state.consents ?? {};
+};
+
 /** Wait until the driver's store reports the expected category values. */
-async function settleConsents(
+const settleConsents = async function settleConsents(
 	driver: TestDriver,
-	expected: ConsentShape
+	expected: ConsentSnapshot
 ): Promise<void> {
 	await waitForCondition(() => {
 		const consents = readConsents(driver);
@@ -49,11 +75,14 @@ async function settleConsents(
 			([category, value]) => consents[category] === value
 		);
 	});
-}
+};
 
 const OPT_OUT_GPC_POLICY = { model: 'opt-out', respectGpc: true } as const;
 
-export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
+export const runGpcConformance = function runGpcConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] gpc`, () => {
 		conformanceTest(
 			api,
@@ -65,11 +94,11 @@ export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
 				});
 				try {
 					const expected = {
-						necessary: true,
-						functionality: true,
 						experience: true,
-						measurement: true,
+						functionality: true,
 						marketing: true,
+						measurement: true,
+						necessary: true,
 					};
 					await settleConsents(driver, expected);
 					const consents = readConsents(driver);
@@ -88,16 +117,16 @@ export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
 			async () => {
 				const mounted = await driver.mount({
 					component: 'consent-banner',
-					policy: OPT_OUT_GPC_POLICY,
 					gpc: true,
+					policy: OPT_OUT_GPC_POLICY,
 				});
 				try {
 					const expected = {
-						necessary: true,
-						functionality: true,
 						experience: true,
-						measurement: false,
+						functionality: true,
 						marketing: false,
+						measurement: false,
+						necessary: true,
 					};
 					await settleConsents(driver, expected);
 					const consents = readConsents(driver);
@@ -116,16 +145,16 @@ export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
 			async () => {
 				const mounted = await driver.mount({
 					component: 'consent-banner',
-					policy: { model: 'opt-in', respectGpc: true },
 					gpc: true,
+					policy: { model: 'opt-in', respectGpc: true },
 				});
 				try {
 					const expected = {
-						necessary: true,
-						functionality: false,
 						experience: false,
-						measurement: false,
+						functionality: false,
 						marketing: false,
+						measurement: false,
+						necessary: true,
 					};
 					await settleConsents(driver, expected);
 					const consents = readConsents(driver);
@@ -144,25 +173,25 @@ export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
 			async () => {
 				const mounted = await driver.mount({
 					component: 'consent-banner',
-					policy: OPT_OUT_GPC_POLICY,
 					gpc: true,
 					initialState: {
+						activeUI: 'none',
 						consents: {
-							necessary: true,
-							functionality: true,
 							experience: true,
-							measurement: true,
+							functionality: true,
 							marketing: true,
+							measurement: true,
+							necessary: true,
 						},
 						hasConsented: true,
-						activeUI: 'none',
 					},
+					policy: OPT_OUT_GPC_POLICY,
 				});
 				try {
 					// The stored decision is correct at mount time — the risk is a
 					// late init/policy fold flipping it. Give the runtime a moment
 					// to finish settling before asserting the decision survived.
-					await new Promise((resolve) => setTimeout(resolve, 50));
+					await createDeferredPromise((resolve) => setTimeout(resolve, 50));
 					const consents = readConsents(driver);
 					api.expect(consents.marketing).toBe(true);
 					api.expect(consents.measurement).toBe(true);
@@ -172,4 +201,4 @@ export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
 			}
 		);
 	});
-}
+};

@@ -5,9 +5,7 @@
 		label?: string;
 	}
 
-	const {
-		label = 'Functionality',
-	}: Props = $props();
+	const { label = 'Functionality' }: Props = $props();
 
 	let checked = $state(true);
 	const classes = switchVariants();

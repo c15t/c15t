@@ -5,7 +5,9 @@
  */
 
 import styles from '@c15t/ui/styles/v3/consent-dialog';
-import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { FC, PropsWithChildren } from 'react';
+
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { ThemeValue } from '~/v3/types/theme';
@@ -61,7 +63,7 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	const {
 		disableAnimation,
 		noStyle: isThemeNoStyle,
-		scrollLock = true,
+		scrollLock: _scrollLock = true,
 	} = useTheme();
 
 	const showDialog = activeUI === 'dialog';
@@ -70,21 +72,26 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	// Handle animation visibility state
 	useEffect(() => {
 		if (showDialog) {
-			setIsVisible(true);
-		} else if (disableAnimation) {
-			setIsVisible(false);
-		} else {
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--consent-dialog-animation-duration'
-				) || '200',
-				10
-			);
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, animationDurationMs); // Match CSS animation duration
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+
+		if (disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+
+		const animationDurationMs = Number.parseInt(
+			getComputedStyle(document.documentElement).getPropertyValue(
+				'--consent-dialog-animation-duration'
+			) || '200',
+			10
+		);
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+			// Match CSS animation duration
+		}, animationDurationMs);
+		return () => clearTimeout(timer);
 	}, [showDialog, disableAnimation]);
 
 	// Get custom className from style prop

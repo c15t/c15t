@@ -1,6 +1,8 @@
 import type { Script } from '@c15t/core';
+
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 /**
@@ -10,18 +12,19 @@ import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
  */
 export const promptwatchManifest = {
 	...vendorManifestContract,
-	vendor: 'promptwatch',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
 			attributes: {
 				'data-project-id': '{{projectId}}',
 			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'promptwatch',
 } as const satisfies VendorManifest;
 
 export interface PromptwatchOptions {
@@ -40,7 +43,7 @@ export interface PromptwatchOptions {
  * @throws {Error} When `projectId` is empty or only whitespace.
  * @returns The Promptwatch script configuration.
  */
-export function promptwatch({
+export const promptwatch = function promptwatch({
 	projectId,
 	scriptUrl,
 }: PromptwatchOptions): Script {
@@ -61,4 +64,4 @@ export function promptwatch({
 		projectId: normalizedProjectId,
 		scriptUrl: normalizedScriptUrl,
 	});
-}
+};

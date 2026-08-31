@@ -13,7 +13,7 @@
 		width: 100%;
 	}
 
-	.root[data-state="closed"] {
+	.root[data-state='closed'] {
 		row-gap: 0;
 	}
 
@@ -42,11 +42,11 @@
 			var(--collapsible-ease);
 	}
 
-	.content[data-state="open"] {
+	.content[data-state='open'] {
 		grid-template-rows: 1fr;
 	}
 
-	.content[data-state="closed"] {
+	.content[data-state='closed'] {
 		pointer-events: none;
 	}
 
@@ -65,7 +65,7 @@
 		will-change: opacity, transform;
 	}
 
-	.content[data-state="closed"] .contentInner {
+	.content[data-state='closed'] .contentInner {
 		opacity: 0;
 		transform: translateY(-0.125rem);
 	}

@@ -1,8 +1,5 @@
-import {
-	createCliLogger,
-	type LogLevel,
-	validLogLevels,
-} from '../utils/logger';
+import { createCliLogger, validLogLevels } from '../utils/logger';
+import type { LogLevel } from '../utils/logger';
 import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
@@ -20,7 +17,7 @@ import { createUserInteraction } from './user-interaction';
  * @param commands - The list of available CLI commands.
  * @returns The CLI context object.
  */
-export async function createCliContext(
+export const createCliContext = async function createCliContext(
 	rawArgs: string[],
 	cwd: string,
 	commands: CliCommand[]
@@ -52,11 +49,11 @@ export async function createCliContext(
 
 	// Create the base context
 	const baseContext: Partial<CliContext> = {
-		logger,
-		flags: parsedFlags,
-		commandName,
 		commandArgs,
+		commandName,
 		cwd,
+		flags: parsedFlags,
+		logger,
 	};
 
 	// Create a self-referential context object
@@ -86,24 +83,24 @@ export async function createCliContext(
 
 	try {
 		context.telemetry = createTelemetry({
-			disabled: telemetryDisabled,
 			debug: telemetryDebug,
 			defaultProperties: {
-				entryCommand: commandName ?? 'interactive',
+				cliVersion: context.fs.getPackageInfo().version,
 				commandArgsCount: commandArgs.length,
 				enabledFlags: Object.entries(parsedFlags)
 					.filter(([, value]) => value !== false && value !== undefined)
 					.map(([key]) => key)
 					.sort(),
-				cliVersion: context.fs.getPackageInfo().version,
+				entryCommand: commandName ?? 'interactive',
 				framework: context.framework.framework ?? 'unknown',
 				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
+				hasReact: context.framework.hasReact,
+				package: context.framework.pkg ?? 'unknown',
 				packageManager: context.packageManager.name,
 				packageManagerVersion: context.packageManager.version ?? 'unknown',
-				hasReact: context.framework.hasReact,
 				reactVersion: context.framework.reactVersion ?? 'unknown',
-				package: context.framework.pkg ?? 'unknown',
 			},
+			disabled: telemetryDisabled,
 			logger: context.logger,
 		});
 
@@ -117,12 +114,12 @@ export async function createCliContext(
 
 		context.telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
 			command: commandName ?? 'interactive',
-			projectRootChanged: context.projectRoot !== cwd,
 			framework: context.framework.framework ?? 'unknown',
 			frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
+			hasReact: context.framework.hasReact,
 			packageManager: context.packageManager.name,
 			packageManagerVersion: context.packageManager.version ?? 'unknown',
-			hasReact: context.framework.hasReact,
+			projectRootChanged: context.projectRoot !== cwd,
 			reactVersion: context.framework.reactVersion ?? 'unknown',
 			tailwindVersion: context.framework.tailwindVersion ?? 'unknown',
 		});
@@ -140,4 +137,4 @@ export async function createCliContext(
 	logger.debug('CLI context fully initialized with all utilities');
 
 	return context;
-}
+};

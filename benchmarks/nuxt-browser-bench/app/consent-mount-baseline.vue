@@ -3,4 +3,4 @@
 	`#bench-consent-mount` here so the baseline build never references
 	@c15t/vue. Renders nothing.
 -->
-<template> <!-- no consent UI in baseline builds --></template>
+<template><!-- no consent UI in baseline builds --></template>

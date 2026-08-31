@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -20,8 +21,8 @@ describe('rudderstack', () => {
 
 	it('matches registry metadata with default page tracking', () => {
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
 			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			writeKey: 'WRITE_KEY',
 		});
 
 		expectScriptMatchesIntegration('rudderstack', script, {
@@ -34,12 +35,12 @@ describe('rudderstack', () => {
 	it('queues load and page by default with load options', () => {
 		const globalRef = getTestGlobal();
 		const script = rudderstack({
-			writeKey: ' WRITE_KEY ',
 			dataPlaneUrl: ' https://c15t-live-probe.invalid ',
 			loadOptions: {
-				useBeacon: true,
 				plugins: ['BeaconQueue'],
+				useBeacon: true,
 			},
+			writeKey: ' WRITE_KEY ',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -57,8 +58,8 @@ describe('rudderstack', () => {
 				'WRITE_KEY',
 				'https://c15t-live-probe.invalid',
 				{
-					useBeacon: true,
 					plugins: ['BeaconQueue'],
+					useBeacon: true,
 				},
 			])
 		);
@@ -68,8 +69,8 @@ describe('rudderstack', () => {
 	it('defines the official v3 snippet queue methods before load', () => {
 		const globalRef = getTestGlobal();
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
 			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			writeKey: 'WRITE_KEY',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -93,10 +94,10 @@ describe('rudderstack', () => {
 	it('can disable default page queue and use a custom script URL', () => {
 		const globalRef = getTestGlobal();
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
 			dataPlaneUrl: 'https://c15t-live-probe.invalid',
-			trackPageView: false,
 			scriptUrl: 'https://cdn.example.com/rsa.min.js',
+			trackPageView: false,
+			writeKey: 'WRITE_KEY',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/rsa.min.js');
@@ -120,9 +121,9 @@ describe('rudderstack', () => {
 
 	it('falls back to the default URL when scriptUrl is blank', () => {
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
 			dataPlaneUrl: 'https://c15t-live-probe.invalid',
 			scriptUrl: '   ',
+			writeKey: 'WRITE_KEY',
 		});
 
 		expect(script.src).toBe('https://cdn.rudderlabs.com/v3/modern/rsa.min.js');
@@ -131,8 +132,8 @@ describe('rudderstack', () => {
 	it('throws for an empty write key', () => {
 		expect(() =>
 			rudderstack({
-				writeKey: '   ',
 				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				writeKey: '   ',
 			})
 		).toThrowError('rudderstack: missing or invalid writeKey');
 	});
@@ -140,8 +141,8 @@ describe('rudderstack', () => {
 	it('throws for an empty data plane URL', () => {
 		expect(() =>
 			rudderstack({
-				writeKey: 'WRITE_KEY',
 				dataPlaneUrl: '   ',
+				writeKey: 'WRITE_KEY',
 			})
 		).toThrowError('rudderstack: missing or invalid dataPlaneUrl');
 	});
@@ -149,9 +150,9 @@ describe('rudderstack', () => {
 	it('throws for a non-HTTPS scriptUrl override', () => {
 		expect(() =>
 			rudderstack({
-				writeKey: 'WRITE_KEY',
 				dataPlaneUrl: 'https://c15t-live-probe.invalid',
 				scriptUrl: 'http://cdn.example.com/rsa.min.js',
+				writeKey: 'WRITE_KEY',
 			})
 		).toThrowError('rudderstack: scriptUrl must be a valid https URL');
 	});
@@ -159,8 +160,8 @@ describe('rudderstack', () => {
 	it('throws for a non-HTTPS data plane URL', () => {
 		expect(() =>
 			rudderstack({
-				writeKey: 'WRITE_KEY',
 				dataPlaneUrl: 'http://c15t-live-probe.invalid',
+				writeKey: 'WRITE_KEY',
 			})
 		).toThrowError('rudderstack: dataPlaneUrl must be a valid https URL');
 	});
@@ -168,21 +169,22 @@ describe('rudderstack', () => {
 	it('loads inert with buffered events and signals denied IDs in pre-consent mode', () => {
 		const globalRef = getTestGlobal();
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
-			dataPlaneUrl: 'https://c15t-live-probe.invalid',
 			consentManagement: {
+				// oxlint-disable-next-line sort-keys -- Mapping order defines emitted consent ID order.
 				mapping: {
 					measurement: ['product-analytics'],
 					marketing: [' ad-destinations '],
 				},
 			},
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			writeKey: 'WRITE_KEY',
 		});
 
 		expect(script.alwaysLoad).toBe(true);
 		expect(script.persistAfterConsentRevoked).toBe(true);
 
 		script.onBeforeLoad?.(
-			createCallbackInfo({ id: script.id, consents: deniedConsentState })
+			createCallbackInfo({ consents: deniedConsentState, id: script.id })
 		);
 		const rudderanalytics = globalRef.rudderanalytics as
 			| RudderStackQueue
@@ -195,10 +197,10 @@ describe('rudderstack', () => {
 				'consent',
 				{
 					consentManagement: {
-						enabled: true,
-						provider: 'custom',
 						allowedConsentIds: [],
 						deniedConsentIds: ['product-analytics', 'ad-destinations'],
+						enabled: true,
+						provider: 'custom',
 					},
 				},
 			])
@@ -209,14 +211,14 @@ describe('rudderstack', () => {
 				'WRITE_KEY',
 				'https://c15t-live-probe.invalid',
 				{
-					preConsent: {
-						enabled: true,
-						storage: { strategy: 'none' },
-						events: { delivery: 'buffer' },
-					},
 					consentManagement: {
 						enabled: true,
 						provider: 'custom',
+					},
+					preConsent: {
+						enabled: true,
+						events: { delivery: 'buffer' },
+						storage: { strategy: 'none' },
 					},
 				},
 			])
@@ -233,21 +235,21 @@ describe('rudderstack', () => {
 		};
 
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
-			dataPlaneUrl: 'https://c15t-live-probe.invalid',
 			consentManagement: {
 				mapping: {
-					measurement: ['product-analytics'],
 					marketing: ['ad-destinations'],
+					measurement: ['product-analytics'],
 				},
 			},
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			writeKey: 'WRITE_KEY',
 		});
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -255,10 +257,10 @@ describe('rudderstack', () => {
 			[
 				{
 					consentManagement: {
-						enabled: true,
-						provider: 'custom',
 						allowedConsentIds: ['product-analytics'],
 						deniedConsentIds: ['ad-destinations'],
+						enabled: true,
+						provider: 'custom',
 					},
 				},
 			],
@@ -268,24 +270,24 @@ describe('rudderstack', () => {
 	it('lets user preConsent load options win while forcing the custom provider', () => {
 		const globalRef = getTestGlobal();
 		const script = rudderstack({
-			writeKey: 'WRITE_KEY',
-			dataPlaneUrl: 'https://c15t-live-probe.invalid',
-			trackPageView: false,
-			loadOptions: {
-				preConsent: {
-					enabled: true,
-					storage: { strategy: 'session' },
-					events: { delivery: 'buffer' },
-				},
-				consentManagement: { provider: 'oneTrust' },
-			},
 			consentManagement: {
 				mapping: { measurement: ['product-analytics'] },
 			},
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			loadOptions: {
+				consentManagement: { provider: 'oneTrust' },
+				preConsent: {
+					enabled: true,
+					events: { delivery: 'buffer' },
+					storage: { strategy: 'session' },
+				},
+			},
+			trackPageView: false,
+			writeKey: 'WRITE_KEY',
 		});
 
 		script.onBeforeLoad?.(
-			createCallbackInfo({ id: script.id, consents: deniedConsentState })
+			createCallbackInfo({ consents: deniedConsentState, id: script.id })
 		);
 		const rudderanalytics = globalRef.rudderanalytics as
 			| RudderStackQueue
@@ -297,14 +299,14 @@ describe('rudderstack', () => {
 				'WRITE_KEY',
 				'https://c15t-live-probe.invalid',
 				{
-					preConsent: {
-						enabled: true,
-						storage: { strategy: 'session' },
-						events: { delivery: 'buffer' },
-					},
 					consentManagement: {
 						enabled: true,
 						provider: 'custom',
+					},
+					preConsent: {
+						enabled: true,
+						events: { delivery: 'buffer' },
+						storage: { strategy: 'session' },
 					},
 				},
 			])
@@ -314,9 +316,9 @@ describe('rudderstack', () => {
 	it('throws when a declared category has no valid consent IDs', () => {
 		expect(() =>
 			rudderstack({
-				writeKey: 'WRITE_KEY',
-				dataPlaneUrl: 'https://c15t-live-probe.invalid',
 				consentManagement: { mapping: { measurement: ['   '] } },
+				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				writeKey: 'WRITE_KEY',
 			})
 		).toThrowError(
 			'rudderstack: consentManagement.mapping.measurement is declared but contains no valid consent IDs'
@@ -326,9 +328,9 @@ describe('rudderstack', () => {
 	it('throws for an empty consent mapping', () => {
 		expect(() =>
 			rudderstack({
-				writeKey: 'WRITE_KEY',
-				dataPlaneUrl: 'https://c15t-live-probe.invalid',
 				consentManagement: { mapping: {} },
+				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				writeKey: 'WRITE_KEY',
 			})
 		).toThrowError(
 			'rudderstack: consentManagement.mapping must map at least one c15t category to a non-empty list of RudderStack consent IDs'

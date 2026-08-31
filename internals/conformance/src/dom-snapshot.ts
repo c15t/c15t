@@ -12,9 +12,9 @@
  * frameworks.
  */
 
-const SVELTE_SCOPED_CLASS = /\bsvelte-[a-z0-9]+\b/g;
-const S_SCOPED_CLASS = /\bs-[a-z0-9]{6,}\b/g;
-const AUTO_ID_VALUE = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/;
+const SVELTE_SCOPED_CLASS = /\bsvelte-[a-z0-9]+\b/gu;
+const S_SCOPED_CLASS = /\bs-[a-z0-9]{6,}\b/gu;
+const AUTO_ID_VALUE = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
 
 const STRIP_ATTRS = new Set([
 	'data-reactroot',
@@ -22,17 +22,20 @@ const STRIP_ATTRS = new Set([
 	'data-svelte-h',
 ]);
 
-function stripClasses(classValue: string): string {
+const stripClasses = function stripClasses(classValue: string): string {
 	return classValue
 		.replace(SVELTE_SCOPED_CLASS, '')
 		.replace(S_SCOPED_CLASS, '')
-		.split(/\s+/)
+		.split(/\s+/u)
 		.filter(Boolean)
 		.sort()
 		.join(' ');
-}
+};
 
-function normalizeAttrValue(name: string, value: string): string {
+const normalizeAttrValue = function normalizeAttrValue(
+	name: string,
+	value: string
+): string {
 	if (
 		(name === 'id' ||
 			name === 'aria-labelledby' ||
@@ -43,22 +46,28 @@ function normalizeAttrValue(name: string, value: string): string {
 	) {
 		return '__AUTO__';
 	}
-	if (name === 'class') return stripClasses(value);
+	if (name === 'class') {
+		return stripClasses(value);
+	}
 	return value;
-}
+};
 
 /**
  * Recursively serialize an element to a canonical HTML-like string.
  * Sorts attributes alphabetically, normalizes class and auto-ids.
  */
-function canonicalize(el: Element): string {
+const canonicalize = function canonicalize(el: Element): string {
 	const tag = el.tagName.toLowerCase();
 	const attrs: string[] = [];
 
 	for (const a of Array.from(el.attributes)) {
-		if (STRIP_ATTRS.has(a.name)) continue;
+		if (STRIP_ATTRS.has(a.name)) {
+			continue;
+		}
 		const normalized = normalizeAttrValue(a.name, a.value);
-		if (a.name === 'class' && normalized === '') continue;
+		if (a.name === 'class' && normalized === '') {
+			continue;
+		}
 		attrs.push(`${a.name}="${normalized}"`);
 	}
 	attrs.sort();
@@ -73,8 +82,10 @@ function canonicalize(el: Element): string {
 		}
 		if (node.nodeType === 3) {
 			const text = node.textContent ?? '';
-			const trimmed = text.replace(/\s+/g, ' ').trim();
-			if (trimmed) children.push(trimmed);
+			const trimmed = text.replace(/\s+/gu, ' ').trim();
+			if (trimmed) {
+				children.push(trimmed);
+			}
 			continue;
 		}
 		// other node types (comments, etc.) are ignored
@@ -82,25 +93,27 @@ function canonicalize(el: Element): string {
 
 	const close = `</${tag}>`;
 	return `${open}${children.join('')}${close}`;
-}
+};
 
-export function domSnapshot(el: Element): string {
+export const domSnapshot = function domSnapshot(el: Element): string {
 	return canonicalize(el);
-}
+};
 
 /**
  * Snapshot only the elements matching any of `testIds`, preserving nesting.
  * Used when we want to compare just the "stable" parts of a component
  * ignoring portal positioning or unrelated sibling noise.
  */
-export function domSnapshotFor(
+export const domSnapshotFor = function domSnapshotFor(
 	root: ParentNode,
 	testIds: readonly string[]
 ): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const id of testIds) {
 		const el = root.querySelector(`[data-testid="${id}"]`);
-		if (el) out[id] = domSnapshot(el);
+		if (el) {
+			out[id] = domSnapshot(el);
+		}
 	}
 	return out;
-}
+};

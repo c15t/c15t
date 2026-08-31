@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
 
 describe('hasGlobalPrivacyControlSignal', () => {
@@ -8,21 +9,21 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		// Preserve the original window so we can safely override it per test
 		// without leaking global state across tests.
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-		if (typeof window !== 'undefined') {
-			originalWindow = window;
-		} else {
+		if (typeof window === 'undefined') {
 			originalWindow = undefined;
+		} else {
+			originalWindow = window;
 		}
 	});
 
 	afterEach(() => {
 		// Restore the original window reference after each test
-		if (originalWindow !== undefined) {
-			globalThis.window = originalWindow;
-		} else {
+		if (originalWindow === undefined) {
 			// @ts-expect-error - In some environments window might not exist
 			// and we want to clean up any window we created.
 			delete (globalThis as typeof globalThis & { window?: unknown }).window;
+		} else {
+			globalThis.window = originalWindow;
 		}
 	});
 

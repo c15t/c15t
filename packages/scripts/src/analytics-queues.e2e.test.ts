@@ -3,13 +3,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	grantedMeasurementConsents,
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import { hotjar } from './vendors/analytics/hotjar';
 import { matomoAnalytics } from './vendors/analytics/matomo-analytics';
 import { mixpanelAnalytics } from './vendors/analytics/mixpanel-analytics';

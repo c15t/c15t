@@ -3,6 +3,7 @@ import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import { resolveTranslations } from '@c15t/ui/utils';
 import { useContext, useMemo } from 'react';
+
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useStyles } from '~/hooks/use-styles';
 import type { AllThemeKeys } from '~/types/theme/style-keys';
@@ -15,7 +16,7 @@ import { V3UIConfigContext } from '~/v3/ui-config-context';
  * @param links - Controls which legal links to display
  * @returns Filtered legal links object or null
  */
-export function useFilteredLegalLinks(
+export const useFilteredLegalLinks = function useFilteredLegalLinks(
 	links?: (keyof LegalLinksType)[] | null
 ): LegalLinksType | null {
 	const consentState = useContext(ConsentStateContext);
@@ -33,7 +34,7 @@ export function useFilteredLegalLinks(
 		links.includes(key as keyof LegalLinksType)
 	);
 	return Object.fromEntries(filtered) as LegalLinksType;
-}
+};
 
 /**
  * Props for the InlineLegalLinks component.
@@ -73,11 +74,11 @@ export interface InlineLegalLinksProps {
  * />
  * ```
  */
-export function InlineLegalLinks({
+export const InlineLegalLinks = ({
 	links,
 	themeKey,
 	testIdPrefix,
-}: InlineLegalLinksProps) {
+}: InlineLegalLinksProps) => {
 	const filteredLinks = useFilteredLegalLinks(links);
 	const consentState = useContext(ConsentStateContext);
 	const kernel = useContext(KernelContext);
@@ -99,7 +100,7 @@ export function InlineLegalLinks({
 			>)
 		);
 	}, [consentState, kernel]);
-	const linkStyles = useStyles(themeKey as any, {
+	const linkStyles = useStyles(themeKey, {
 		baseClassName: styles.legalLink,
 	});
 
@@ -116,7 +117,9 @@ export function InlineLegalLinks({
 					LegalLinksType[keyof LegalLinksType],
 				][]
 			).map(([type, link], index, array) => {
-				if (!link) return null;
+				if (!link) {
+					return null;
+				}
 				return (
 					<span key={String(type)}>
 						<a
@@ -141,7 +144,7 @@ export function InlineLegalLinks({
 			})}
 		</span>
 	);
-}
+};
 
 /**
  * Valid theme key prefixes for the LegalLinks component.

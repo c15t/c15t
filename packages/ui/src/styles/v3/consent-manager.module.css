@@ -1,4 +1,4 @@
-@import url("./animations/enter-exit.css");
+@import url('./animations/enter-exit.css');
 
 :root {
 	/* Manager Colors */
@@ -36,8 +36,8 @@
 	--consent-manager-exit-animation: var(--c15t-exit-animation);
 
 	--consent-manager-font-family:
-		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
-		"Apple Color Emoji", "Segoe UI Emoji";
+		system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+		'Apple Color Emoji', 'Segoe UI Emoji';
 	--consent-manager-line-height: 1.15;
 }
 

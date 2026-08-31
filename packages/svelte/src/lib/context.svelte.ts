@@ -1,14 +1,16 @@
 import {
-	type ActiveUI,
-	type AllConsentNames,
 	allConsentNames,
-	type ConsentType,
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
 	has as evaluateHas,
-	type HasCondition,
-	type Model,
-	type TranslationConfig,
+} from '@c15t/core';
+import type {
+	ActiveUI,
+	AllConsentNames,
+	ConsentType,
+	HasCondition,
+	Model,
+	TranslationConfig,
 } from '@c15t/core';
 import type {
 	ConsentKernel,
@@ -20,6 +22,7 @@ import type {
 } from '@c15t/core/v3';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
+
 import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
@@ -37,34 +40,36 @@ export interface SvelteIABState extends KernelIABState {
 	isLoadingGVL: boolean;
 	nonIABVendors: KernelIABState['customVendors'];
 	preferenceCenterTab: 'purposes' | 'vendors';
-	setPreferenceCenterTab(tab: 'purposes' | 'vendors'): void;
-	setVendorConsent(vendorId: string | number, value: boolean): void;
-	setVendorLegitimateInterest(vendorId: string | number, value: boolean): void;
-	setPurposeConsent(purposeId: number, value: boolean): void;
-	setPurposeLegitimateInterest(purposeId: number, value: boolean): void;
-	setSpecialFeatureOptIn(featureId: number, value: boolean): void;
-	acceptAll(): void;
-	rejectAll(): void;
-	save(): Promise<void>;
+	setPreferenceCenterTab: (tab: 'purposes' | 'vendors') => void;
+	setVendorConsent: (vendorId: string | number, value: boolean) => void;
+	setVendorLegitimateInterest: (
+		vendorId: string | number,
+		value: boolean
+	) => void;
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	acceptAll: () => void;
+	rejectAll: () => void;
+	save: () => Promise<void>;
 }
 
 export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
-	set(name: AllConsentNames, value: boolean): void;
-	reset(): void;
-	save(): Promise<void>;
+	set: (name: AllConsentNames, value: boolean) => void;
+	reset: () => void;
+	save: () => Promise<void>;
 }
 
-export interface ConsentCompatState
-	extends Omit<
-		ConsentSnapshot,
-		| 'activeUI'
-		| 'branding'
-		| 'hasConsented'
-		| 'model'
-		| 'policyBanner'
-		| 'policyDialog'
-	> {
+export interface ConsentCompatState extends Omit<
+	ConsentSnapshot,
+	| 'activeUI'
+	| 'branding'
+	| 'hasConsented'
+	| 'model'
+	| 'policyBanner'
+	| 'policyDialog'
+> {
 	activeUI: ActiveUI;
 	branding: NonNullable<ConsentSnapshot['branding']>;
 	consents: Readonly<ConsentState>;
@@ -80,17 +85,17 @@ export interface ConsentCompatState
 	policyDialog: PolicyUiSurfaceConfig;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
-	getDisplayedConsents(): ConsentType[];
-	has(condition: HasCondition<AllConsentNames>): boolean;
-	hasConsented(): boolean;
-	saveConsents(type: SaveType): Promise<void>;
-	setActiveUI(ui: ActiveUI, options?: { force?: boolean }): void;
-	setConsent(name: AllConsentNames, value: boolean): void;
-	setLanguage(code: string): void;
-	setSelectedConsent(name: AllConsentNames, value: boolean): void;
-	subscribeToConsentChanges(
+	getDisplayedConsents: () => ConsentType[];
+	has: (condition: HasCondition<AllConsentNames>) => boolean;
+	hasConsented: () => boolean;
+	saveConsents: (type: SaveType) => Promise<void>;
+	setActiveUI: (ui: ActiveUI, options?: { force?: boolean }) => void;
+	setConsent: (name: AllConsentNames, value: boolean) => void;
+	setLanguage: (code: string) => void;
+	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+	subscribeToConsentChanges: (
 		listener: (state: ConsentState) => void
-	): () => void;
+	) => () => void;
 }
 
 export interface ConsentContextValue {
@@ -111,16 +116,20 @@ export interface ThemeContextValue {
 }
 
 export interface ConsentControllerOptions {
-	getSnapshot(): ConsentSnapshot;
-	getDraft(): ConsentDraftState;
-	getIAB(): SvelteIABState | null;
-	getConsentCategories(): AllConsentNames[];
-	getLegalLinks(): ConsentManagerOptions['legalLinks'];
+	getSnapshot: () => ConsentSnapshot;
+	getDraft: () => ConsentDraftState;
+	getIAB: () => SvelteIABState | null;
+	getConsentCategories: () => AllConsentNames[];
+	getLegalLinks: () => ConsentManagerOptions['legalLinks'];
 }
 
-function toTranslationConfig(snapshot: ConsentSnapshot): TranslationConfig {
+const toTranslationConfig = function toTranslationConfig(
+	snapshot: ConsentSnapshot
+): TranslationConfig {
 	const resolved = snapshot.translations;
-	if (!resolved) return defaultTranslationConfig;
+	if (!resolved) {
+		return defaultTranslationConfig;
+	}
 
 	return {
 		...defaultTranslationConfig,
@@ -130,17 +139,19 @@ function toTranslationConfig(snapshot: ConsentSnapshot): TranslationConfig {
 			[resolved.language]: resolved.translations,
 		},
 	};
-}
+};
 
-function toActiveUI(ui: KernelActiveUI): ActiveUI {
+const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
-}
+};
 
-function toModel(model: ConsentSnapshot['model']): Model {
+const toModel = function toModel(model: ConsentSnapshot['model']): Model {
 	return (model ?? 'opt-in') as Model;
-}
+};
 
-function displayedConsentTypes(categories: readonly AllConsentNames[]) {
+const displayedConsentTypes = function displayedConsentTypes(
+	categories: readonly AllConsentNames[]
+) {
 	const allowed =
 		categories.length > 0
 			? new Set(categories)
@@ -148,105 +159,41 @@ function displayedConsentTypes(categories: readonly AllConsentNames[]) {
 	return defaultConsentTypes
 		.filter((type) => allowed.has(type.name))
 		.map((type) => ({ ...type, display: true }));
-}
+};
 
-function createCompatState(
+const createCompatState = function createCompatState(
 	kernel: ConsentKernel,
 	options: ConsentControllerOptions
 ): ConsentCompatState {
-	const getSnapshot = options.getSnapshot;
+	const getSnapshotLocal = options.getSnapshot;
 
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const controller: ConsentCompatState = {
-		// -- Controller-owned state (computed from snapshot + provider options) --
-		get consents() {
-			return getSnapshot().consents;
+		get activeUI() {
+			return toActiveUI(getSnapshotLocal().activeUI);
 		},
-		get selectedConsents() {
-			return options.getDraft().values;
-		},
-		get selectedConsentTypes() {
-			return options.getDraft().values;
-		},
-		get consentInfo() {
-			return getSnapshot().hasConsented ? { type: 'v3' as const } : null;
+		get branding() {
+			return getSnapshotLocal().branding ?? 'c15t';
 		},
 		get consentCategories() {
 			const configured = options.getConsentCategories();
 			return configured.length > 0
 				? configured
 				: Array.from(
-						getSnapshot().policyCategories.length > 0
-							? getSnapshot().policyCategories
+						getSnapshotLocal().policyCategories.length > 0
+							? getSnapshotLocal().policyCategories
 							: allConsentNames
 					);
 		},
+		get consentInfo() {
+			return getSnapshotLocal().hasConsented ? { type: 'v3' as const } : null;
+		},
+		// -- Controller-owned state (computed from snapshot + provider options) --
+		get consents() {
+			return getSnapshotLocal().consents;
+		},
 		get consentTypes() {
 			return displayedConsentTypes(controller.consentCategories);
-		},
-		get iab() {
-			return options.getIAB();
-		},
-		get manager() {
-			return null;
-		},
-		get activeUI() {
-			return toActiveUI(getSnapshot().activeUI);
-		},
-		get policyProvisional() {
-			return getSnapshot().policyProvisional;
-		},
-		get branding() {
-			return getSnapshot().branding ?? 'c15t';
-		},
-		get model() {
-			return toModel(getSnapshot().model);
-		},
-		get policyBanner() {
-			return getSnapshot().policyBanner ?? EMPTY_POLICY_SURFACE;
-		},
-		get policyDialog() {
-			return getSnapshot().policyDialog ?? EMPTY_POLICY_SURFACE;
-		},
-		get legalLinks() {
-			return options.getLegalLinks();
-		},
-		get translationConfig() {
-			return toTranslationConfig(getSnapshot());
-		},
-
-		// -- Snapshot passthrough (was previously served by a Proxy) -------------
-		get overrides() {
-			return getSnapshot().overrides;
-		},
-		get user() {
-			return getSnapshot().user;
-		},
-		get revision() {
-			return getSnapshot().revision;
-		},
-		get subjectId() {
-			return getSnapshot().subjectId;
-		},
-		get location() {
-			return getSnapshot().location;
-		},
-		get translations() {
-			return getSnapshot().translations;
-		},
-		get policy() {
-			return getSnapshot().policy;
-		},
-		get policyDecision() {
-			return getSnapshot().policyDecision;
-		},
-		get policySnapshotToken() {
-			return getSnapshot().policySnapshotToken;
-		},
-		get policyCategories() {
-			return getSnapshot().policyCategories;
-		},
-		get policyScopeMode() {
-			return getSnapshot().policyScopeMode;
 		},
 
 		// -- Methods --------------------------------------------------------------
@@ -254,7 +201,7 @@ function createCompatState(
 			return displayedConsentTypes(controller.consentCategories);
 		},
 		has(condition: HasCondition<AllConsentNames>) {
-			const snapshot = getSnapshot();
+			const snapshot = getSnapshotLocal();
 			const categories = Array.from(
 				snapshot.policyCategories
 			) as AllConsentNames[];
@@ -264,7 +211,54 @@ function createCompatState(
 			});
 		},
 		hasConsented() {
-			return getSnapshot().hasConsented;
+			return getSnapshotLocal().hasConsented;
+		},
+		get iab() {
+			return options.getIAB();
+		},
+		get legalLinks() {
+			return options.getLegalLinks();
+		},
+		get location() {
+			return getSnapshotLocal().location;
+		},
+		get manager() {
+			return null;
+		},
+		get model() {
+			return toModel(getSnapshotLocal().model);
+		},
+
+		// -- Snapshot passthrough (was previously served by a Proxy) -------------
+		get overrides() {
+			return getSnapshotLocal().overrides;
+		},
+		get policy() {
+			return getSnapshotLocal().policy;
+		},
+		get policyBanner() {
+			return getSnapshotLocal().policyBanner ?? EMPTY_POLICY_SURFACE;
+		},
+		get policyCategories() {
+			return getSnapshotLocal().policyCategories;
+		},
+		get policyDecision() {
+			return getSnapshotLocal().policyDecision;
+		},
+		get policyDialog() {
+			return getSnapshotLocal().policyDialog ?? EMPTY_POLICY_SURFACE;
+		},
+		get policyProvisional() {
+			return getSnapshotLocal().policyProvisional;
+		},
+		get policyScopeMode() {
+			return getSnapshotLocal().policyScopeMode;
+		},
+		get policySnapshotToken() {
+			return getSnapshotLocal().policySnapshotToken;
+		},
+		get revision() {
+			return getSnapshotLocal().revision;
 		},
 		async saveConsents(type: SaveType) {
 			if (type === 'all') {
@@ -279,10 +273,16 @@ function createCompatState(
 			}
 			await options.getDraft().save();
 		},
+		get selectedConsents() {
+			return options.getDraft().values;
+		},
+		get selectedConsentTypes() {
+			return options.getDraft().values;
+		},
 		setActiveUI(ui: ActiveUI) {
 			(
 				kernel.set as typeof kernel.set & {
-					activeUI(ui: KernelActiveUI): void;
+					activeUI: (ui: KernelActiveUI) => void;
 				}
 			).activeUI(ui as KernelActiveUI);
 		},
@@ -296,54 +296,68 @@ function createCompatState(
 		setSelectedConsent(name: AllConsentNames, value: boolean) {
 			options.getDraft().set(name, value);
 		},
+		get subjectId() {
+			return getSnapshotLocal().subjectId;
+		},
 		subscribeToConsentChanges(listener: (state: ConsentState) => void) {
 			return kernel.subscribe((snapshot: ConsentSnapshot) =>
 				listener(snapshot.consents as ConsentState)
 			);
 		},
+
+		get translationConfig() {
+			return toTranslationConfig(getSnapshotLocal());
+		},
+		get translations() {
+			return getSnapshotLocal().translations;
+		},
+		get user() {
+			return getSnapshotLocal().user;
+		},
 	};
 
 	return controller;
-}
+};
 
-export function setConsentContext(
+export const setConsentContext = function setConsentContext(
 	kernel: ConsentKernel,
 	options: ConsentControllerOptions
 ): void {
 	const compatState = createCompatState(kernel, options);
 	setContext(CONSENT_CONTEXT_KEY, {
 		kernel,
+		get manager() {
+			return kernel;
+		},
 		get snapshot() {
 			return options.getSnapshot();
 		},
 		get state() {
 			return compatState;
 		},
-		get manager() {
-			return kernel;
-		},
 	} satisfies ConsentContextValue);
-}
+};
 
-export function getConsentContext(): ConsentContextValue {
-	const context = getContext<ConsentContextValue | undefined>(
-		CONSENT_CONTEXT_KEY
-	);
-	if (!context) {
-		throw new Error(
-			'c15t: no v3 consent context. Wrap your app with <ConsentManagerProvider options={...}> from @c15t/svelte.'
+export const getConsentContext =
+	function getConsentContext(): ConsentContextValue {
+		const context = getContext<ConsentContextValue | undefined>(
+			CONSENT_CONTEXT_KEY
 		);
-	}
-	return context;
-}
+		if (!context) {
+			throw new Error(
+				'c15t: no v3 consent context. Wrap your app with <ConsentManagerProvider options={...}> from @c15t/svelte.'
+			);
+		}
+		return context;
+	};
 
-export function getConsentKernel(): ConsentKernel {
+export const getConsentKernel = function getConsentKernel(): ConsentKernel {
 	return getConsentContext().kernel;
-}
+};
 
-export function getSnapshot(): ConsentSnapshot {
+export const getSnapshot = function getSnapshot(): ConsentSnapshot {
 	return getConsentContext().snapshot;
-}
+};
 
 /**
  * Returns the reactive consent manager controller for the current component.
@@ -355,9 +369,10 @@ export function getSnapshot(): ConsentSnapshot {
  *
  * Must be called inside a component tree wrapped in `<ConsentManagerProvider>`.
  */
-export function getConsentManager(): ConsentCompatState {
-	return getConsentContext().state;
-}
+export const getConsentManager =
+	function getConsentManager(): ConsentCompatState {
+		return getConsentContext().state;
+	};
 
 export interface HeadlessConsentSurfaceState {
 	allowedActions: string[];
@@ -373,45 +388,7 @@ export interface HeadlessConsentSurfaceState {
 	isVisible: boolean;
 }
 
-export function getHeadlessConsent() {
-	const consent = getConsentManager();
-	return {
-		get activeUI() {
-			return consent.activeUI;
-		},
-		get banner() {
-			return resolveHeadlessSurface(consent, 'banner', consent.policyBanner);
-		},
-		get dialog() {
-			return resolveHeadlessSurface(consent, 'dialog', consent.policyDialog);
-		},
-		openBanner() {
-			consent.setActiveUI('banner');
-		},
-		openDialog() {
-			consent.setActiveUI('dialog');
-		},
-		closeUI() {
-			consent.setActiveUI('none');
-		},
-		async performAction(action: 'accept' | 'reject' | 'customize') {
-			if (action === 'accept') {
-				await consent.saveConsents('all');
-				return;
-			}
-			if (action === 'reject') {
-				await consent.saveConsents('necessary');
-				return;
-			}
-			consent.setActiveUI('dialog');
-		},
-		async saveCustomPreferences() {
-			await consent.saveConsents('custom');
-		},
-	};
-}
-
-function resolveHeadlessSurface(
+const resolveHeadlessSurface = function resolveHeadlessSurface(
 	consent: ConsentCompatState,
 	surface: 'banner' | 'dialog',
 	policy: PolicyUiSurfaceConfig
@@ -433,36 +410,76 @@ function resolveHeadlessSurface(
 		'customize',
 	];
 	return {
-		allowedActions,
-		orderedActions: orderedActions as string[],
 		actionGroups: actionGroups as string[][],
-		primaryActions,
-		layout,
+		allowedActions,
 		direction,
-		uiProfile: policy.uiProfile as string | undefined,
-		scrollLock: policy.scrollLock,
 		hasPolicyHints: Object.keys(policy).length > 0,
-		shouldFillActions: direction === 'column' && actionGroups.length > 1,
 		isVisible: consent.activeUI === surface,
+		layout,
+		orderedActions: orderedActions as string[],
+		primaryActions,
+		scrollLock: policy.scrollLock,
+		shouldFillActions: direction === 'column' && actionGroups.length > 1,
+		uiProfile: policy.uiProfile as string | undefined,
 	};
-}
+};
 
-export function getIAB(): SvelteIABState | null {
+export const getHeadlessConsent = function getHeadlessConsent() {
+	const consent = getConsentManager();
+	return {
+		get activeUI() {
+			return consent.activeUI;
+		},
+		get banner() {
+			return resolveHeadlessSurface(consent, 'banner', consent.policyBanner);
+		},
+		closeUI() {
+			consent.setActiveUI('none');
+		},
+		get dialog() {
+			return resolveHeadlessSurface(consent, 'dialog', consent.policyDialog);
+		},
+		openBanner() {
+			consent.setActiveUI('banner');
+		},
+		openDialog() {
+			consent.setActiveUI('dialog');
+		},
+		async performAction(action: 'accept' | 'reject' | 'customize') {
+			if (action === 'accept') {
+				await consent.saveConsents('all');
+				return;
+			}
+			if (action === 'reject') {
+				await consent.saveConsents('necessary');
+				return;
+			}
+			consent.setActiveUI('dialog');
+		},
+		async saveCustomPreferences() {
+			await consent.saveConsents('custom');
+		},
+	};
+};
+
+export const getIAB = function getIAB(): SvelteIABState | null {
 	return getConsentContext().state.iab;
-}
+};
 
-export function setThemeContext(value: ThemeContextValue): void {
+export const setThemeContext = function setThemeContext(
+	value: ThemeContextValue
+): void {
 	setContext(THEME_CONTEXT_KEY, value);
-}
+};
 
-export function getThemeContext(): ThemeContextValue {
+export const getThemeContext = function getThemeContext(): ThemeContextValue {
 	return (
 		getContext<ThemeContextValue | undefined>(THEME_CONTEXT_KEY) ?? {
-			noStyle: false,
+			colorScheme: 'system',
 			disableAnimation: false,
+			noStyle: false,
 			scrollLock: false,
 			trapFocus: true,
-			colorScheme: 'system',
 		}
 	);
-}
+};

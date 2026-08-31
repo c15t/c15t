@@ -1,8 +1,8 @@
 @layer theme, base, components, c15t, utilities;
-@import "tailwindcss";
-@import "c15t/next/styles.css";
-@import "c15t/next/iab/styles.css";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'c15t/next/styles.css';
+@import 'c15t/next/iab/styles.css';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -127,8 +127,8 @@
 		min-height: 100vh;
 		text-rendering: optimizeLegibility;
 		font-feature-settings:
-			"rlig" 1,
-			"calt" 1;
+			'rlig' 1,
+			'calt' 1;
 		font-kerning: normal;
 	}
 
@@ -148,7 +148,7 @@
 	/* ...true edge refraction where SVG-referenced backdrop filters work
 	   (the .lg-refract class is set by LiquidGlassFilter on Chromium). */
 	.lg-refract .liquid-glass-card {
-		backdrop-filter: url("#c15t-liquid-glass") blur(4px) saturate(175%)
+		backdrop-filter: url('#c15t-liquid-glass') blur(4px) saturate(175%)
 			brightness(1.05);
 	}
 

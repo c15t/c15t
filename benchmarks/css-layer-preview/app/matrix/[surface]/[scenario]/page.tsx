@@ -1,6 +1,7 @@
 import { getCssLayerScenario, listCssLayerScenarios } from '@c15t/benchmarking';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+
 import { MatrixFrame } from '@/components/matrix-frame';
 import {
 	cssLayerEnvironments,
@@ -12,11 +13,11 @@ const SURFACE_HEIGHTS = {
 	dialog: 620,
 } as const;
 
-export default async function MatrixPreviewPage({
+const MatrixPreviewPage = async ({
 	params,
 }: {
 	params: Promise<{ scenario: string; surface: 'banner' | 'dialog' }>;
-}) {
+}) => {
 	const resolvedParams = await params;
 	const scenario = getCssLayerScenario(
 		resolvedParams.surface,
@@ -107,4 +108,6 @@ export default async function MatrixPreviewPage({
 			</section>
 		</main>
 	);
-}
+};
+
+export default MatrixPreviewPage;

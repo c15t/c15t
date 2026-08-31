@@ -1,14 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import {
-	type HeadlessConsentDialogAction,
-	useHeadlessConsentUI,
-} from '~/v3/component-hooks/use-headless-consent-ui';
-import {
-	type PolicyActionRenderProps,
-	PolicyActionsRenderer,
-} from '../shared/policy-actions';
+
+import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
+import type { HeadlessConsentDialogAction } from '~/v3/component-hooks/use-headless-consent-ui';
+
+import { PolicyActionsRenderer } from '../shared/policy-actions';
+import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
 	ConsentWidgetAcceptAllButton,
 	ConsentWidgetRejectButton,
@@ -19,8 +17,8 @@ import {
 	ConsentWidgetFooterSubGroup,
 } from './atoms/footer';
 
-export interface ConsentWidgetPolicyActionRenderProps
-	extends PolicyActionRenderProps<HeadlessConsentDialogAction> {}
+export type ConsentWidgetPolicyActionRenderProps =
+	PolicyActionRenderProps<HeadlessConsentDialogAction>;
 
 export interface ConsentWidgetPolicyActionsProps {
 	renderAction?: (
@@ -29,7 +27,7 @@ export interface ConsentWidgetPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentDialogAction,
 	props: ConsentWidgetPolicyActionRenderProps
 ) {
@@ -68,11 +66,11 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent widget action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
-export function ConsentWidgetPolicyActions({
+export const ConsentWidgetPolicyActions = ({
 	renderAction,
-}: ConsentWidgetPolicyActionsProps) {
+}: ConsentWidgetPolicyActionsProps) => {
 	const { dialog } = useHeadlessConsentUI();
 
 	return (
@@ -85,7 +83,7 @@ export function ConsentWidgetPolicyActions({
 			renderDefaultAction={renderDefaultAction}
 		/>
 	);
-}
+};
 
 const PolicyActions = ConsentWidgetPolicyActions;
 

@@ -5,6 +5,7 @@
  */
 
 import * as v from 'valibot';
+
 import { subjectIdSchema } from './post';
 
 /**
@@ -65,28 +66,29 @@ export const getSubjectParamsSchema = v.object({
  * Consent item in GET /subject/:id response
  */
 export const consentItemSchema = v.object({
+	givenAt: v.date(),
 	id: v.string(),
-	type: v.string(),
+	isLatestPolicy: v.boolean(),
+	policyEffectiveDate: v.optional(v.date()),
+	policyHash: v.optional(v.string()),
 	policyId: v.optional(v.string()),
 	policyVersion: v.optional(v.string()),
-	policyHash: v.optional(v.string()),
-	policyEffectiveDate: v.optional(v.date()),
-	isLatestPolicy: v.boolean(),
 	preferences: v.optional(v.record(v.string(), v.boolean())),
-	givenAt: v.date(),
+	type: v.string(),
 });
 
 /**
  * GET /subject/:id output schema
  */
 export const getSubjectOutputSchema = v.object({
-	subject: v.object({
-		id: v.string(),
-		externalId: v.optional(v.string()),
-		createdAt: v.optional(v.date()),
-	}),
 	consents: v.array(consentItemSchema),
 	isValid: v.boolean(),
+	subject: v.object({
+		createdAt: v.optional(v.date()),
+
+		externalId: v.optional(v.string()),
+		id: v.string(),
+	}),
 });
 
 /**
@@ -94,8 +96,8 @@ export const getSubjectOutputSchema = v.object({
  */
 export const getSubjectErrorSchemas = {
 	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
 		fieldErrors: v.record(v.string(), v.array(v.string())),
+		formErrors: v.array(v.string()),
 	}),
 	subjectNotFound: v.object({
 		subjectId: v.string(),

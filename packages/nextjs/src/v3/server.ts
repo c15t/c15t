@@ -1,5 +1,5 @@
 /**
- * @c15t/nextjs/v3/server — server-only helpers.
+ * `@c15t/nextjs/v3/server` — server-only helpers.
  *
  * Reads the incoming Next.js request (cookies + headers via next/headers)
  * and produces a JSON-serializable `KernelConfig`. The Server Component
@@ -23,18 +23,36 @@
 
 import {
 	createManifestTransport,
-	type KernelConfig,
-	type KernelOverrides,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core/v3';
+import type { KernelConfig, KernelOverrides } from '@c15t/core/v3';
 import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
-import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
-import { cookies, headers } from 'next/headers';
+import { resolveBackendURL } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
+
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from './headers';
+
+type Awaitable<Value> = Promise<Value> | Value;
+
+interface NextRequestContext {
+	cookies: () => Awaitable<{ toString: () => string }>;
+	headers: () => Awaitable<Headers>;
+}
+
+const defaultNextRequestContext: NextRequestContext = {
+	async cookies() {
+		const nextHeaders = await import('next/headers');
+		return nextHeaders.cookies();
+	},
+	async headers() {
+		const nextHeaders = await import('next/headers');
+		return (await nextHeaders.headers()) as Headers;
+	},
+};
 
 export interface ReadInitialConsentConfigOptions {
 	/**
@@ -54,6 +72,13 @@ export interface ReadInitialConsentConfigOptions {
 	 * If provided, override the auto-detected language.
 	 */
 	language?: string;
+
+	/**
+	 * Request context adapter. Intended for tests and advanced framework
+	 * wrappers that provide Next-compatible request helpers.
+	 * @internal
+	 */
+	request?: NextRequestContext;
 }
 
 /**
@@ -74,10 +99,11 @@ export interface ReadInitialConsentConfigOptions {
  * - Does not cache across requests. Each call reads fresh headers, so
  *   Fluid Compute concurrent requests stay isolated.
  */
-export async function readInitialConsentConfig(
+export const readInitialConsentConfig = async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions = {}
 ): Promise<KernelConfig> {
-	const headerStore = await headers();
+	const request = options.request ?? defaultNextRequestContext;
+	const headerStore = await request.headers();
 
 	// The persistence module writes the `c15t` cookie in the v2-compatible
 	// compact format — read it with the same shared parser the client uses,
@@ -107,10 +133,18 @@ export async function readInitialConsentConfig(
 	});
 
 	const overrides: KernelOverrides = {};
-	if (inputs.country) overrides.country = inputs.country;
-	if (inputs.region) overrides.region = inputs.region;
-	if (inputs.language) overrides.language = inputs.language;
-	if (inputs.gpc !== undefined) overrides.gpc = inputs.gpc;
+	if (inputs.country) {
+		overrides.country = inputs.country;
+	}
+	if (inputs.region) {
+		overrides.region = inputs.region;
+	}
+	if (inputs.language) {
+		overrides.language = inputs.language;
+	}
+	if (inputs.gpc !== undefined) {
+		overrides.gpc = inputs.gpc;
+	}
 
 	const config: KernelConfig = {};
 	if (storedConsent) {
@@ -125,7 +159,7 @@ export async function readInitialConsentConfig(
 	}
 
 	return config;
-}
+};
 
 /**
  * Type alias re-exported for convenience — consumers never need to import
@@ -135,8 +169,7 @@ export type { KernelConfig } from '@c15t/core/v3';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
-export interface PrefetchInitialConsentOptions
-	extends ReadInitialConsentConfigOptions {
+export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigOptions {
 	/**
 	 * Backend base URL. When provided, the helper will also call
 	 * `${backendURL}/init` server-side and fold the response into the
@@ -175,6 +208,51 @@ export interface PrefetchInitialConsentOptions
 	forwardHeaders?: string[];
 }
 
+const createInitHeadersFromOverrides = function createInitHeadersFromOverrides(
+	overrides: Readonly<KernelOverrides>
+): Record<string, string> {
+	const headersLocal: Record<string, string> = {};
+	if (overrides.country) {
+		headersLocal['x-c15t-country'] = overrides.country;
+	}
+	if (overrides.region) {
+		headersLocal['x-c15t-region'] = overrides.region;
+	}
+	if (overrides.language) {
+		headersLocal['accept-language'] = overrides.language;
+	}
+	if (overrides.gpc !== undefined) {
+		headersLocal['sec-gpc'] = overrides.gpc ? '1' : '0';
+	}
+	return headersLocal;
+};
+
+const fetchHostedInit = async function fetchHostedInit(input: {
+	backendURL: string;
+	fetch?: typeof globalThis.fetch;
+	headers: Record<string, string>;
+}): Promise<InitOutput> {
+	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		throw new Error('prefetchInitialConsent: no fetch available.');
+	}
+	const response = await fetchImpl(`${input.backendURL}/init`, {
+		cache: 'no-store',
+		credentials: 'include',
+		headers: {
+			accept: 'application/json',
+			...input.headers,
+		},
+		method: 'GET',
+	});
+	if (!response.ok) {
+		throw new Error(
+			`prefetchInitialConsent: /init responded ${response.status} ${response.statusText}`
+		);
+	}
+	return (await response.json()) as InitOutput;
+};
+
 /**
  * Server-side consent prefetch.
  *
@@ -186,27 +264,36 @@ export interface PrefetchInitialConsentOptions
  * If the backend call fails, returns the baseline config (silent
  * degradation — the client boundary will retry on mount).
  */
-export async function prefetchInitialConsent(
+export const prefetchInitialConsent = async function prefetchInitialConsent(
 	options: PrefetchInitialConsentOptions
 ): Promise<KernelConfig> {
 	const base = await readInitialConsentConfig(options);
-	const requestHeaders = await headers();
-	const requestCookies = await cookies();
+	const request = options.request ?? defaultNextRequestContext;
+	const requestHeaders = await request.headers();
+	const requestCookies = await request.cookies();
 
 	const absoluteBackend = resolveBackendURL(options.backendURL, requestHeaders);
-	if (!absoluteBackend) return base;
+	if (!absoluteBackend) {
+		return base;
+	}
 	const absoluteManifest = options.manifestURL
 		? resolveBackendURL(options.manifestURL, requestHeaders)
 		: undefined;
-	if (options.manifestURL && !absoluteManifest) return base;
+	if (options.manifestURL && !absoluteManifest) {
+		return base;
+	}
 
 	// Build forwarding headers: cookies + any explicitly-forwarded keys.
 	const forward: Record<string, string> = {};
 	const cookieHeader = requestCookies.toString();
-	if (cookieHeader) forward.cookie = cookieHeader;
+	if (cookieHeader) {
+		forward.cookie = cookieHeader;
+	}
 	for (const key of options.forwardHeaders ?? []) {
 		const value = requestHeaders.get(key);
-		if (value) forward[key.toLowerCase()] = value;
+		if (value) {
+			forward[key.toLowerCase()] = value;
+		}
 	}
 
 	if (options.manifest || absoluteManifest) {
@@ -219,11 +306,11 @@ export async function prefetchInitialConsent(
 		);
 		const transport = createManifestTransport({
 			backendURL: absoluteBackend,
-			manifestURL: absoluteManifest ?? undefined,
-			manifest: options.manifest,
 			fetch: options.fetch,
 			headers: forward,
 			inputs: manifestInputs,
+			manifest: options.manifest,
+			manifestURL: absoluteManifest ?? undefined,
 		});
 
 		try {
@@ -234,7 +321,9 @@ export async function prefetchInitialConsent(
 				},
 				user: base.initialUser ?? null,
 			});
-			if (!response) return base;
+			if (!response) {
+				return base;
+			}
 			return mergeInitResponseIntoKernelConfig(base, response);
 		} catch {
 			return base;
@@ -255,42 +344,4 @@ export async function prefetchInitialConsent(
 		// Silent degradation. Client-side init will retry.
 		return base;
 	}
-}
-
-function createInitHeadersFromOverrides(
-	overrides: Readonly<KernelOverrides>
-): Record<string, string> {
-	const headers: Record<string, string> = {};
-	if (overrides.country) headers['x-c15t-country'] = overrides.country;
-	if (overrides.region) headers['x-c15t-region'] = overrides.region;
-	if (overrides.language) headers['accept-language'] = overrides.language;
-	if (overrides.gpc !== undefined)
-		headers['sec-gpc'] = overrides.gpc ? '1' : '0';
-	return headers;
-}
-
-async function fetchHostedInit(input: {
-	backendURL: string;
-	fetch?: typeof globalThis.fetch;
-	headers: Record<string, string>;
-}): Promise<InitOutput> {
-	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('prefetchInitialConsent: no fetch available.');
-	}
-	const response = await fetchImpl(`${input.backendURL}/init`, {
-		method: 'GET',
-		cache: 'no-store',
-		credentials: 'include',
-		headers: {
-			accept: 'application/json',
-			...input.headers,
-		},
-	});
-	if (!response.ok) {
-		throw new Error(
-			`prefetchInitialConsent: /init responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as InitOutput;
-}
+};

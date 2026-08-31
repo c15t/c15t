@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
@@ -36,16 +37,16 @@ describe('vercelAnalytics', () => {
 			vaq?: unknown[];
 		};
 		const script = vercelAnalytics({
+			disableAutoTrack: true,
 			dsn: 'dsn_123',
 			endpoint: 'https://analytics.example.com/v1/events',
-			disableAutoTrack: true,
 		});
 
 		expect(script.attributes).toEqual({
-			'data-sdkn': 'c15t',
-			'data-dsn': 'dsn_123',
 			'data-disable-auto-track': '1',
+			'data-dsn': 'dsn_123',
 			'data-endpoint': 'https://analytics.example.com/v1/events',
+			'data-sdkn': 'c15t',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));

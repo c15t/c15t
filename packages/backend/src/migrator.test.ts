@@ -20,9 +20,12 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { assert, describe, expect, it } from '@effect/vitest';
-import { Effect, type Layer, ManagedRuntime } from 'effect';
+import { Effect, ManagedRuntime } from 'effect';
+import type { Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { resetDatabase } from './__tests__/engines';
 import type { DatabaseConfig } from './db/connect';
 import { loadDriver, MissingDatabaseError, toLayer } from './db/connect';
@@ -38,7 +41,7 @@ const sqliteConfig = (): DatabaseConfig => ({
 	filename: join(mkdtempSync(join(tmpdir(), 'c15t-migrator-')), 'c15t.db'),
 });
 
-const CONFIGS: ReadonlyArray<readonly [string, () => DatabaseConfig]> = [
+const CONFIGS: readonly (readonly [string, () => DatabaseConfig])[] = [
 	['sqlite', sqliteConfig],
 	...(PG_URL
 		? ([
@@ -49,8 +52,8 @@ const CONFIGS: ReadonlyArray<readonly [string, () => DatabaseConfig]> = [
 					() =>
 						({
 							dialect: 'postgres',
-							url: PG_URL,
 							schema: 'c15t_migrator_e2e',
+							url: PG_URL,
 						}) as DatabaseConfig,
 				],
 			] as const)
@@ -87,14 +90,14 @@ const reset = async (config: DatabaseConfig): Promise<void> => {
 	}
 };
 
-/** Runs `use` with a migrator and always releases the pool. */
+/** Runs `runWith` with a migrator and always releases the pool. */
 const withMigrator = async <A>(
 	config: DatabaseConfig,
-	use: (migrator: ReturnType<typeof createMigrator>) => Promise<A>
+	runWith: (migrator: ReturnType<typeof createMigrator>) => Promise<A>
 ): Promise<A> => {
 	const migrator = createMigrator(config);
 	try {
-		return await use(migrator);
+		return await runWith(migrator);
 	} finally {
 		await migrator.dispose();
 	}
@@ -111,7 +114,7 @@ describe('createMigrator: configuration', () => {
 		);
 		assert.throws(
 			() => toLayer(undefined as unknown as DatabaseConfig),
-			/replaced 2\.x/
+			/replaced 2\.x/u
 		);
 	});
 
@@ -141,7 +144,7 @@ for (const [name, makeConfig] of CONFIGS) {
 
 				// The database is up to date, so a fresh plan has nothing left.
 				const after = await migrator.plan();
-				assert.strictEqual(after.shape._tag, 'Baseline');
+				assert.strictEqual(after['shape']._tag, 'Baseline');
 				assert.deepStrictEqual(after.adoption, []);
 				assert.deepStrictEqual(after.pending, []);
 			});
@@ -207,7 +210,7 @@ for (const [name, makeConfig] of CONFIGS) {
 			);
 			try {
 				await runtime.runPromise(
-					Effect.gen(function* () {
+					Effect.gen(function* gen() {
 						const sql = yield* SqlClient.SqlClient;
 						const q = Dialect.escaperFor(yield* Dialect.current);
 						yield* sql.unsafe(
@@ -265,22 +268,23 @@ describe('createMigrator: driver resolution', () => {
 		// configuration mistake the operator must fix, not something the backend
 		// can recover from, so every caller is spared threading it through.
 		await expect(Effect.runPromise(missing)).rejects.toThrow(
-			/@effect\/sql-mysql2 is not installed/
+			/@effect\/sql-mysql2 is not installed/u
 		);
 	});
 
 	it('names the right package per dialect', async () => {
-		for (const [dialect, pkg] of [
+		await Array.from([
 			['postgres', '@effect/sql-pg'],
 			['mysql', '@effect/sql-mysql2'],
 			['sqlite', '@effect/sql-sqlite-node'],
-		] as const) {
+		] as const).reduce(async (previousIteration, [dialect, pkg]) => {
+			await previousIteration;
 			await expect(
 				Effect.runPromise(
 					loadDriver(dialect, () => Promise.reject(new Error('nope')))
 				)
 			).rejects.toThrow(pkg);
-		}
+		}, Promise.resolve());
 	});
 
 	it('passes a working import straight through', async () => {

@@ -3,25 +3,80 @@
  * Utilities for posting bundle analysis comments on pull requests.
  */
 import * as core from '@actions/core';
-import type { GitHub } from '@actions/github/lib/utils';
 
-function autoStart(header: string): string {
+interface RepoRef {
+	owner: string;
+	repo: string;
+}
+
+interface IssueComment {
+	id: number;
+	body?: string | null;
+}
+
+type RequestParams = Record<string, unknown>;
+
+export interface CommentOctokit {
+	rest: {
+		issues: {
+			listComments: (
+				params: RepoRef &
+					RequestParams & {
+						issue_number: number;
+						page?: number;
+						per_page?: number;
+					}
+			) => Promise<{ data: IssueComment[] }>;
+			createComment: (
+				params: RepoRef & RequestParams & { issue_number: number; body: string }
+			) => Promise<{ data: { id: number } }>;
+			updateComment: (
+				params: RepoRef & RequestParams & { comment_id: number; body: string }
+			) => Promise<unknown>;
+		};
+	};
+}
+
+interface ActionCore {
+	setFailed: typeof core.setFailed;
+	setOutput: typeof core.setOutput;
+}
+
+const defaultActionCore: ActionCore = {
+	setFailed: core.setFailed,
+	setOutput: core.setOutput,
+};
+
+let actionCore: ActionCore = defaultActionCore;
+
+export const setPrCommentActionCoreForTests =
+	function setPrCommentActionCoreForTests(nextCore: ActionCore): () => void {
+		actionCore = nextCore;
+		return () => {
+			actionCore = defaultActionCore;
+		};
+	};
+
+const autoStart = function autoStart(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
 	return `<!-- c15t:${key}:START -->`;
-}
+};
 
-function autoEnd(header: string): string {
+const autoEnd = function autoEnd(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
 	return `<!-- c15t:${key}:END -->`;
-}
+};
 
-function bodyWithHeader(body: string, header: string): string {
+const bodyWithHeader = function bodyWithHeader(
+	body: string,
+	header: string
+): string {
 	return [autoStart(header), body, autoEnd(header)].join('\n');
-}
+};
 
-export async function findPreviousComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+export const findPreviousComment = async function findPreviousComment(
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	number: number,
 	header: string
 ): Promise<{ id: number; body: string } | undefined> {
@@ -30,18 +85,19 @@ export async function findPreviousComment(
 	const perPage = 100;
 
 	while (true) {
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const { data } = await octokit.rest.issues.listComments({
 			...repo,
 			issue_number: number,
-			per_page: perPage,
 			page,
+			per_page: perPage,
 		});
 
 		for (const comment of data) {
 			if (comment.body?.includes(start)) {
 				return {
-					id: comment.id,
 					body: comment.body || '',
+					id: comment.id,
 				};
 			}
 		}
@@ -50,15 +106,15 @@ export async function findPreviousComment(
 			break;
 		}
 
-		page++;
+		page += 1;
 	}
 
 	return undefined;
-}
+};
 
-export async function createComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+export const createComment = async function createComment(
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	number: number,
 	body: string,
 	header: string
@@ -67,21 +123,21 @@ export async function createComment(
 	try {
 		const { data } = await octokit.rest.issues.createComment({
 			...repo,
-			issue_number: number,
 			body: bodyWithHeaderText,
+			issue_number: number,
 		});
 		return { id: data.id };
 	} catch (error) {
 		if (error instanceof Error) {
-			core.setFailed(`Failed to create comment: ${error.message}`);
+			actionCore.setFailed(`Failed to create comment: ${error.message}`);
 		}
 		return undefined;
 	}
-}
+};
 
-export async function updateComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+export const updateComment = async function updateComment(
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	commentId: number,
 	body: string,
 	header: string
@@ -90,19 +146,19 @@ export async function updateComment(
 	try {
 		await octokit.rest.issues.updateComment({
 			...repo,
-			comment_id: commentId,
 			body: bodyWithHeaderText,
+			comment_id: commentId,
 		});
 	} catch (error) {
 		if (error instanceof Error) {
-			core.setFailed(`Failed to update comment: ${error.message}`);
+			actionCore.setFailed(`Failed to update comment: ${error.message}`);
 		}
 	}
-}
+};
 
-export async function ensureComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+export const ensureComment = async function ensureComment(
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	number: number,
 	body: string,
 	header: string
@@ -111,11 +167,11 @@ export async function ensureComment(
 
 	if (previous) {
 		await updateComment(octokit, repo, previous.id, body, header);
-		core.setOutput('updated_comment_id', previous.id);
+		actionCore.setOutput('updated_comment_id', previous.id);
 	} else {
 		const created = await createComment(octokit, repo, number, body, header);
 		if (created) {
-			core.setOutput('created_comment_id', created.id);
+			actionCore.setOutput('created_comment_id', created.id);
 		}
 	}
-}
+};

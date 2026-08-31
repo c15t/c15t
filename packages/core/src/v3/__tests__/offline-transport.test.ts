@@ -6,6 +6,7 @@
  * transports without changes to the kernel or adapter.
  */
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {
@@ -41,8 +42,8 @@ describe('createOfflineTransport: basic behavior', () => {
 
 	test('custom defaultLanguage + branding honored', async () => {
 		const transport = createOfflineTransport({
-			defaultLanguage: 'de',
 			branding: 'consent',
+			defaultLanguage: 'de',
 		});
 		const response = await transport.init?.({
 			overrides: {},
@@ -79,9 +80,9 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 		const transport = createOfflineTransport({
 			policyPacks: [
 				{
+					consent: { model: 'opt-in' },
 					id: 'gdpr',
 					match: { countries: ['DE'] },
-					consent: { model: 'opt-in' },
 					ui: { mode: 'banner' },
 				},
 			],
@@ -99,9 +100,9 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 		const transport = createOfflineTransport({
 			policyPacks: [
 				{
+					consent: { model: 'opt-in' },
 					id: 'gdpr',
 					match: { countries: ['DE'] },
-					consent: { model: 'opt-in' },
 					ui: { mode: 'banner' },
 				},
 			],
@@ -122,9 +123,9 @@ describe('createOfflineTransport: kernel integration', () => {
 			transport: createOfflineTransport({
 				policyPacks: [
 					{
+						consent: { model: 'opt-in' },
 						id: 'gdpr',
 						match: { countries: ['DE'] },
-						consent: { model: 'opt-in' },
 						ui: { mode: 'banner' },
 					},
 				],

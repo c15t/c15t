@@ -6,6 +6,7 @@ import { PreferenceItem, Switch } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const meta = {
@@ -40,16 +41,16 @@ const contentStyle = (open: boolean): React.CSSProperties => ({
 	marginTop: open ? '0.75rem' : 0,
 });
 
-function LeadingIcon({ open }: { open: boolean }) {
-	return <span aria-hidden="true">{open ? '-' : '+'}</span>;
-}
+const LeadingIcon = ({ open }: { open: boolean }) => (
+	<span aria-hidden="true">{open ? '-' : '+'}</span>
+);
 
-function PreferenceItemCard({
+const PreferenceItemCard = ({
 	defaultChecked = false,
 	defaultOpen = false,
 	description,
 	disabled = false,
-	meta,
+	meta: itemMeta,
 	title,
 	withSwitch = false,
 }: {
@@ -60,7 +61,7 @@ function PreferenceItemCard({
 	meta?: React.ReactNode;
 	title: React.ReactNode;
 	withSwitch?: boolean;
-}) {
+}) => {
 	const [open, setOpen] = useState(defaultOpen);
 	const [checked, setChecked] = useState(defaultChecked);
 
@@ -78,7 +79,9 @@ function PreferenceItemCard({
 						</PreferenceItem.Leading>
 						<PreferenceItem.Header>
 							<PreferenceItem.Title>{title}</PreferenceItem.Title>
-							{meta ? <PreferenceItem.Meta>{meta}</PreferenceItem.Meta> : null}
+							{itemMeta ? (
+								<PreferenceItem.Meta>{itemMeta}</PreferenceItem.Meta>
+							) : null}
 						</PreferenceItem.Header>
 					</PreferenceItem.Trigger>
 					{withSwitch ? (
@@ -100,7 +103,7 @@ function PreferenceItemCard({
 			</div>
 		</PreferenceItem.Root>
 	);
-}
+};
 
 export const TriggerOnly: Story = {
 	play: triggerExpandsContent,

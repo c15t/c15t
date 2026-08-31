@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
@@ -56,11 +57,11 @@ describe('rudderstack contract', () => {
 			[
 				{
 					...rudderstack({
-						writeKey: 'RUDDERSTACK-CONTRACT',
 						dataPlaneUrl: 'https://c15t-live-probe.invalid',
 						loadOptions: {
 							useBeacon: true,
 						},
+						writeKey: 'RUDDERSTACK-CONTRACT',
 					}),
 					id: 'rudderstack-contract',
 				},
@@ -105,9 +106,9 @@ describe('rudderstack contract', () => {
 			[
 				{
 					...rudderstack({
-						writeKey: 'RUDDERSTACK-CONTRACT',
 						dataPlaneUrl: 'https://c15t-live-probe.invalid',
 						trackPageView: false,
+						writeKey: 'RUDDERSTACK-CONTRACT',
 					}),
 					id: 'rudderstack-contract',
 				},
@@ -133,8 +134,8 @@ describe('rudderstack contract', () => {
 			[
 				{
 					...rudderstack({
-						writeKey: 'RUDDERSTACK-CONTRACT',
 						dataPlaneUrl: 'https://c15t-live-probe.invalid',
+						writeKey: 'RUDDERSTACK-CONTRACT',
 					}),
 					id: 'rudderstack-contract',
 				},

@@ -18,7 +18,7 @@ export type MigratorEra =
 	/** `migrator({ db, schema })` from `@c15t/backend/db/migrator`. */
 	| 'fumadb-root';
 
-export interface Shape {
+export interface DatabaseFixture {
 	/** Directory name under `fixtures/`. */
 	readonly name: string;
 	/**
@@ -54,50 +54,56 @@ export interface Shape {
 const FUMADB_MYSQL_FAILURE =
 	'fumadb migration fails on MySQL: "BLOB/TEXT column used in key specification without a key length". fumadb maps string columns to TEXT and indexes them; MySQL needs a prefix length. Trips on domain.name at schema 1.0.0 and runtimePolicyDecision.dedupeKey at 2.0.0. Reproduced on fumadb 0.2.2 and 0.3.0.';
 
-export const SHAPES: readonly Shape[] = [
+export const DATABASE_FIXTURES: readonly DatabaseFixture[] = [
 	{
-		name: 'legacy-fresh-1.0',
-		versions: ['1.0.0'],
 		era: 'legacy',
+		name: 'legacy-fresh-1.0',
 		rationale:
 			'Earliest published release. The floor of what a legacy database can look like.',
+		versions: ['1.0.0'],
 	},
 	{
-		name: 'legacy-fresh-1.8',
-		versions: ['1.8.6'],
 		era: 'legacy',
+		name: 'legacy-fresh-1.8',
 		rationale:
 			'Last legacy release, installed fresh. Contrast with legacy-upgraded to expose drift.',
+		versions: ['1.8.6'],
 	},
 	{
-		name: 'legacy-upgraded',
-		versions: ['1.0.0', '1.4.2', '1.8.6'],
 		era: 'legacy',
+		name: 'legacy-upgraded',
 		rationale:
 			'A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns (RFC §3.2), so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.',
+		versions: ['1.0.0', '1.4.2', '1.8.6'],
 	},
 	{
-		name: 'fumadb-1.0.0',
-		versions: ['1.8.6'],
 		era: 'fumadb-v2-subpath',
+		name: 'fumadb-1.0.0',
 		rationale:
 			'The opt-in /v2 path shipped inside 1.8.x. Writes c15t_settings = 1.0.0.',
 		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
+		versions: ['1.8.6'],
 	},
 	{
-		name: 'fumadb-2.0.0',
-		versions: ['2.1.0'],
 		era: 'fumadb-root',
+		name: 'fumadb-2.0.0',
 		rationale: 'Current shipping shape. Writes c15t_settings = 2.0.0.',
 		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
+		versions: ['2.1.0'],
 	},
 ] as const;
 
-export function shapeByName(name: string): Shape {
-	const shape = SHAPES.find((candidate) => candidate.name === name);
-	if (!shape) {
-		const known = SHAPES.map((candidate) => candidate.name).join(', ');
-		throw new Error(`Unknown shape "${name}". Known shapes: ${known}`);
+export const fixtureByName = function fixtureByName(
+	name: string
+): DatabaseFixture {
+	const fixture = DATABASE_FIXTURES.find(
+		(candidate) => candidate.name === name
+	);
+	if (!fixture) {
+		const known = DATABASE_FIXTURES.map((candidate) => candidate.name).join(
+			', '
+		);
+		throw new Error(`Unknown fixture "${name}". Known fixtures: ${known}`);
 	}
-	return shape;
-}
+	return fixture;
+};

@@ -1,6 +1,16 @@
 import { expect, userEvent, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Verifies dialog open/close flow: trigger opens dialog, close button closes it.
  */
@@ -18,7 +28,7 @@ export const openAndClose: PlayFunction = async ({ canvasElement }) => {
 
 	// Close via the close button (first button inside the dialog footer)
 	const closeButtons = within(dialog).getAllByRole('button');
-	const closeButton = closeButtons[closeButtons.length - 1]!;
+	const closeButton = getDefined(closeButtons[closeButtons.length - 1]);
 	await userEvent.click(closeButton);
 
 	// Dialog should be removed

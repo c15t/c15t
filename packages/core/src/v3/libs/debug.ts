@@ -13,7 +13,9 @@ export interface DebugLogger {
 	debug: (...args: unknown[]) => void;
 }
 
-const noop = () => {};
+const noop = () => {
+	/* empty */
+};
 
 /**
  * Creates a debug logger that gates `console.log` and `console.debug`
@@ -22,16 +24,18 @@ const noop = () => {};
  * @param enabled - Whether debug logging is enabled
  * @returns A logger with `log` and `debug` methods
  */
-export function createDebugLogger(enabled: boolean): DebugLogger {
+export const createDebugLogger = function createDebugLogger(
+	enabled: boolean
+): DebugLogger {
 	if (!enabled) {
-		return { log: noop, debug: noop };
+		return { debug: noop, log: noop };
 	}
 
 	return {
-		log: (...args: unknown[]) => console.log('[c15t]', ...args),
 		debug: (...args: unknown[]) => console.debug('[c15t]', ...args),
+		log: (...args: unknown[]) => console.log('[c15t]', ...args),
 	};
-}
+};
 
 /**
  * Global debug logger instance.
@@ -45,15 +49,17 @@ let _debugLogger: DebugLogger = createDebugLogger(false);
 /**
  * Returns the current global debug logger.
  */
-export function getDebugLogger(): DebugLogger {
+export const getDebugLogger = function getDebugLogger(): DebugLogger {
 	return _debugLogger;
-}
+};
 
 /**
  * Enables or disables the global debug logger.
  *
  * @param enabled - Whether to enable debug logging
  */
-export function setDebugEnabled(enabled: boolean): void {
+export const setDebugEnabled = function setDebugEnabled(
+	enabled: boolean
+): void {
 	_debugLogger = createDebugLogger(enabled);
-}
+};

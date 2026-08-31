@@ -1,85 +1,14 @@
 import type { ConsentStoreState } from '@c15t/core';
-import { defaultTranslationConfig } from '@c15t/core';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
-import { ConsentStateContext } from '~/context/consent-manager-context';
+
+import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
+
 import { useConsentManager } from '../use-consent-manager';
-
-// Mock the c15t package
-vi.mock('@c15t/core', async () => {
-	const originalModule = await vi.importActual('@c15t/core');
-	const { createConsentManagerStore } =
-		originalModule as typeof import('@c15t/core');
-
-	const createMockConsentManager = () => ({
-		getCallbacks: () => ({}),
-		setCallbacks: () => ({}),
-		showConsentBanner: async () => ({
-			ok: true,
-			data: {
-				showConsentBanner: true,
-				jurisdiction: {
-					code: 'GDPR',
-				},
-				translations: {
-					language: 'en',
-					translations: defaultTranslationConfig.translations.en,
-				},
-			},
-			error: null,
-			response: null,
-		}),
-		setConsent: async () => ({
-			ok: true,
-			data: { success: true },
-			error: null,
-			response: null,
-		}),
-		verifyConsent: async () => ({
-			ok: true,
-			data: { valid: true },
-			error: null,
-			response: null,
-		}),
-	});
-
-	return {
-		...(originalModule as object),
-		configureConsentManager: createMockConsentManager,
-		getOrCreateConsentRuntime: (
-			options: {
-				mode?: string;
-				store?: Record<string, unknown>;
-				translations?: unknown;
-				consentCategories?: string[];
-			},
-			pkgInfo: { pkg: string; version: string }
-		) => {
-			const consentManager = createMockConsentManager();
-			const consentStore = createConsentManagerStore(consentManager, {
-				config: {
-					pkg: pkgInfo.pkg,
-					version: pkgInfo.version,
-					mode: options.mode || 'hosted',
-				},
-				...options,
-				...options.store,
-				initialConsentCategories: options.consentCategories,
-				initialTranslationConfig: options.translations,
-			});
-
-			return {
-				consentManager,
-				consentStore,
-				cacheKey: `test:${options.mode || 'hosted'}:${Date.now()}`,
-			};
-		},
-	};
-});
 
 describe('useConsentManager', () => {
 	beforeEach(() => {
@@ -154,37 +83,37 @@ describe('useConsentManager', () => {
 
 	test('applies policy scope mode in has()', async () => {
 		const state = {
+			consentCategories: ['necessary', 'measurement'],
+			consentInfo: null,
+			consentTypes: [],
 			consents: {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			},
-			consentInfo: null,
-			consentCategories: ['necessary', 'measurement'],
-			consentTypes: [],
-			policyCategories: ['necessary', 'measurement'],
-			policyScopeMode: 'permissive',
 			policyBanner: {},
+			policyCategories: ['necessary', 'measurement'],
 			policyDialog: {},
+			policyScopeMode: 'permissive',
 		} as unknown as ConsentStoreState;
 
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
-				<ConsentStateContext.Provider
+				<StableConsentStateProvider
 					value={{
+						manager: null,
 						state,
 						store: {
 							getState: () => state,
-							subscribe: () => () => undefined,
 							setState: () => undefined,
+							subscribe: () => () => undefined,
 						},
-						manager: null,
 					}}
 				>
 					{children}
-				</ConsentStateContext.Provider>
+				</StableConsentStateProvider>
 			),
 		});
 

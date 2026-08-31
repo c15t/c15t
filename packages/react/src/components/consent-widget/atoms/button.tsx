@@ -1,4 +1,6 @@
-import { forwardRef, type Ref } from 'react';
+import { forwardRef as createForwardRef } from 'react';
+import type { Ref } from 'react';
+
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
 import { useTranslations } from '~/hooks/use-translations';
@@ -11,7 +13,7 @@ import { useTranslations } from '~/hooks/use-translations';
  * - Closes dialog after action
  * - Triggers necessary callbacks
  */
-const ConsentWidgetAcceptAllButton = forwardRef<
+const ConsentWidgetAcceptAllButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
@@ -33,7 +35,9 @@ const ConsentWidgetAcceptAllButton = forwardRef<
 	);
 });
 
-const ConsentWidgetCustomizeButton = forwardRef<
+ConsentWidgetAcceptAllButton.displayName = 'ConsentWidgetAcceptAllButton';
+
+const ConsentWidgetCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
@@ -52,7 +56,9 @@ const ConsentWidgetCustomizeButton = forwardRef<
 	);
 });
 
-const ConsentWidgetSaveButton = forwardRef<
+ConsentWidgetCustomizeButton.displayName = 'ConsentWidgetCustomizeButton';
+
+const ConsentWidgetSaveButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
@@ -72,6 +78,8 @@ const ConsentWidgetSaveButton = forwardRef<
 	);
 });
 
+ConsentWidgetSaveButton.displayName = 'ConsentWidgetSaveButton';
+
 /**
  * Button to reject all non-essential cookies.
  *
@@ -80,7 +88,7 @@ const ConsentWidgetSaveButton = forwardRef<
  * - Maintains required consents
  * - Closes dialog after action
  */
-const ConsentWidgetRejectButton = forwardRef<
+const ConsentWidgetRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
@@ -101,6 +109,8 @@ const ConsentWidgetRejectButton = forwardRef<
 		</ConsentButton>
 	);
 });
+
+ConsentWidgetRejectButton.displayName = 'ConsentWidgetRejectButton';
 
 const AcceptAllButton = ConsentWidgetAcceptAllButton;
 const CustomizeButton = ConsentWidgetCustomizeButton;

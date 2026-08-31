@@ -15,53 +15,84 @@
  *     would show as a broken TCF string, which the browser environment
  *     can't easily assert in node)
  */
+
+// v2 store construction probes the DOM via document.querySelectorAll
+// and installs a MutationObserver; the default core vitest.setup.ts
+// doesn't stub either. Extend once per file so all tests in this suite
+// can spin up both paths.
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import {
 	configureConsentManager,
 	createConsentManagerStore,
 	deleteConsentFromStorage,
 	getConsentFromStorage,
 } from '../../../index';
+import type { ConsentState } from '../../consent/compliance';
+import { createConsentKernel, createOfflineTransport } from '../../index';
+import { createPersistence } from '../../modules/persistence';
+import { createScriptLoader } from '../../modules/script-loader';
 
-// v2 store construction probes the DOM via document.querySelectorAll
-// and installs a MutationObserver; the default core vitest.setup.ts
-// doesn't stub either. Extend once per file so all tests in this suite
-// can spin up both paths.
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
 beforeEach(() => {
-	// biome-ignore lint/suspicious/noExplicitAny: minimal stub
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			observe() {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			disconnect() {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords() {
 				return [];
 			}
-		} as any
+		} as typeof MutationObserver
 	);
 	vi.stubGlobal('document', {
-		createElement: vi.fn(() => ({
-			setAttribute: vi.fn(),
-			getAttribute: vi.fn(),
-			removeAttribute: vi.fn(),
-			addEventListener: vi.fn(),
-			removeEventListener: vi.fn(),
-			appendChild: vi.fn(),
-			removeChild: vi.fn(),
-			parentNode: null,
-		})),
+		addEventListener: vi.fn(),
+		body: { appendChild: vi.fn(), removeChild: vi.fn() },
+		cookie: '',
 		createDocumentFragment: vi.fn(() => ({
 			appendChild: vi.fn(),
 		})),
+		createElement: vi.fn(() => ({
+			addEventListener: vi.fn(),
+			appendChild: vi.fn(),
+			getAttribute: vi.fn(),
+			parentNode: null,
+			removeAttribute: vi.fn(),
+			removeChild: vi.fn(),
+			removeEventListener: vi.fn(),
+			setAttribute: vi.fn(),
+		})),
 		dispatchEvent: vi.fn(),
-		addEventListener: vi.fn(),
-		removeEventListener: vi.fn(),
+		getElementById: vi.fn(() => null),
+		head: { appendChild: vi.fn(), removeChild: vi.fn() },
 		querySelector: vi.fn(() => null),
 		querySelectorAll: vi.fn(() => []),
-		getElementById: vi.fn(() => null),
-		body: { appendChild: vi.fn(), removeChild: vi.fn() },
-		head: { appendChild: vi.fn(), removeChild: vi.fn() },
-		cookie: '',
+		removeEventListener: vi.fn(),
 	});
 });
 
@@ -69,11 +100,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-import type { ConsentState } from '../../consent/compliance';
-import { createConsentKernel, createOfflineTransport } from '../../index';
-import { createPersistence } from '../../modules/persistence';
-import { createScriptLoader } from '../../modules/script-loader';
-
 beforeEach(() => {
 	localStorage.clear();
 	deleteConsentFromStorage();
@@ -84,9 +110,9 @@ afterEach(() => {
 	deleteConsentFromStorage();
 });
 
-async function flushDebounce(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-}
+const flushDebounce = async function flushDebounce(): Promise<void> {
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+};
 
 describe('parity: consent save & persist', () => {
 	test('v2 and v3 both write the same consent state to storage', async () => {
@@ -136,19 +162,19 @@ describe('parity: script-loader reconcile', () => {
 		// differ per run — only that the same logical IDs loaded.
 		const scripts = [
 			{
+				category: 'measurement' as const,
 				id: 'gtm',
 				src: 'https://example.com/gtm.js',
-				category: 'measurement' as const,
 			},
 			{
+				category: 'marketing' as const,
 				id: 'fb',
 				src: 'https://example.com/fb.js',
-				category: 'marketing' as const,
 			},
 			{
+				category: 'measurement' as const,
 				id: 'hotjar',
 				src: 'https://example.com/hj.js',
-				category: 'measurement' as const,
 			},
 		];
 
@@ -170,17 +196,17 @@ describe('parity: script-loader reconcile', () => {
 		// --- v3 path: build a kernel with measurement=true, mount loader
 		const kernel = createConsentKernel({
 			initialConsents: {
-				necessary: true,
-				measurement: true,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		const loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts,
-			emitToV2DebugListeners: false,
 		});
 		const v3Loaded = new Set(loader.getLoadedScriptIds());
 
@@ -198,11 +224,11 @@ describe('parity: consent category filtering', () => {
 	test('AND/OR/NOT conditions evaluate the same', () => {
 		const scripts = [
 			{
-				id: 'combo',
-				src: 'https://example.com/c.js',
 				category: {
 					and: ['measurement', { or: ['marketing', 'functionality'] }],
 				} as never,
+				id: 'combo',
+				src: 'https://example.com/c.js',
 			},
 		];
 
@@ -219,17 +245,17 @@ describe('parity: consent category filtering', () => {
 		// v3
 		const kernel = createConsentKernel({
 			initialConsents: {
-				necessary: true,
-				measurement: true,
-				marketing: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		const loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts,
-			emitToV2DebugListeners: false,
 		});
 
 		// Both should load the combo script.

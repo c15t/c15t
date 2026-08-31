@@ -2,11 +2,11 @@ import type { InitOutput } from '@c15t/core';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { InlineLegalLinks } from '../components/shared/primitives/legal-links';
 import { useTheme } from '../hooks/use-theme';
 import {
 	ConsentProvider,
-	type ConsentProviderOptions,
 	useConsent,
 	useOverrides,
 	usePolicy,
@@ -16,7 +16,31 @@ import {
 	useTranslations,
 	useUser,
 } from '../index';
+import type { ConsentProviderOptions } from '../index';
 import { useUIConfig } from '../ui-config-context';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 const STORAGE_KEY = 'c15t-provider-test';
 
@@ -28,7 +52,7 @@ type WindowWithC15t = Window & {
 	};
 };
 
-function hostedInitOutput(
+const hostedInitOutput = function hostedInitOutput(
 	policy: InitOutput['policy'] = {
 		id: 'gdpr',
 		model: 'opt-in',
@@ -36,31 +60,31 @@ function hostedInitOutput(
 	}
 ): InitOutput {
 	return {
-		jurisdiction: 'GDPR',
-		location: { countryCode: 'DE', regionCode: null },
-		translations: { language: 'en', translations: {} },
 		branding: 'c15t',
 		gvl: null,
+		jurisdiction: 'GDPR',
+		location: { countryCode: 'DE', regionCode: null },
 		policy,
+		translations: { language: 'en', translations: {} },
 	} as InitOutput;
-}
+};
 
-function clearCookies() {
+const clearCookies = function clearCookies() {
 	for (const cookie of document.cookie.split(';')) {
 		const key = cookie.split('=')[0]?.trim();
 		if (key) {
-			// biome-ignore lint/suspicious/noDocumentCookie: Test cleanup needs legacy cookie API.
+			// oxlint-disable-next-line unicorn/no-document-cookie -- Test cleanup needs legacy cookie API.
 			document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 		}
 	}
-}
+};
 
-function withProvider(options = {}) {
+const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider options={{ ...options }}>{children}</ConsentProvider>
 	);
 	return { Wrapper };
-}
+};
 
 beforeEach(() => {
 	delete (window as WindowWithC15t).c15t;
@@ -74,8 +98,8 @@ describe('v3 ConsentProvider options API', () => {
 		const { unmount } = await render(
 			<ConsentProvider
 				options={{
-					mode: 'c15t',
 					backendURL: '/api/c15t',
+					mode: 'c15t',
 					persistence: false,
 				}}
 			>
@@ -85,8 +109,8 @@ describe('v3 ConsentProvider options API', () => {
 
 		await vi.waitFor(() => {
 			expect((window as WindowWithC15t).c15t).toMatchObject({
-				pkg: '@c15t/react',
 				mode: 'hosted',
+				pkg: '@c15t/react',
 			});
 		});
 		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
@@ -106,8 +130,8 @@ describe('v3 ConsentProvider options API', () => {
 
 		await vi.waitFor(() => {
 			expect((window as WindowWithC15t).c15t).toMatchObject({
-				pkg: '@c15t/react',
 				mode: 'offline',
+				pkg: '@c15t/react',
 			});
 		});
 
@@ -118,11 +142,11 @@ describe('v3 ConsentProvider options API', () => {
 		const { unmount } = await render(
 			<ConsentProvider
 				options={{
-					mode: 'custom',
 					endpointHandlers: {
-						init: async () => ({ ok: true, data: hostedInitOutput() }),
-						setConsent: async () => ({ ok: true, data: {} }),
+						init: () => Promise.resolve({ data: hostedInitOutput(), ok: true }),
+						setConsent: () => Promise.resolve({ data: {}, ok: true }),
 					},
+					mode: 'custom',
 					persistence: false,
 				}}
 			>
@@ -132,8 +156,8 @@ describe('v3 ConsentProvider options API', () => {
 
 		await vi.waitFor(() => {
 			expect((window as WindowWithC15t).c15t).toMatchObject({
-				pkg: '@c15t/react',
 				mode: 'custom',
+				pkg: '@c15t/react',
 			});
 		});
 
@@ -141,7 +165,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('keeps one kernel instance across provider rerenders', async () => {
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			const setConsent = useSetConsent();
 			return (
@@ -156,7 +180,7 @@ describe('v3 ConsentProvider options API', () => {
 					</button>
 				</>
 			);
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
@@ -176,9 +200,9 @@ describe('v3 ConsentProvider options API', () => {
 		rerender(
 			<ConsentProvider
 				options={{
+					components: { banner: { card: { className: 'updated' } } },
 					persistence: false,
 					prefetch: { initialConsents: { marketing: false } },
-					components: { banner: { card: { className: 'updated' } } },
 				}}
 			>
 				<Probe />
@@ -189,10 +213,10 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('syncs dynamic user option after mount', async () => {
-		function Probe() {
+		const Probe = () => {
 			const user = useUser();
 			return <div data-testid="user">{user?.externalId ?? 'none'}</div>;
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
@@ -224,24 +248,24 @@ describe('v3 ConsentProvider options API', () => {
 	test('syncs dynamic overrides option and re-inits when enabled', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(hostedInitOutput()), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 
-		function Probe() {
+		const Probe = () => {
 			const overrides = useOverrides();
 			return <div data-testid="country">{overrides.country ?? 'none'}</div>;
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
 					customFetch: fetchSpy,
-					persistence: false,
+					mode: 'hosted',
 					overrides: { country: 'US' },
+					persistence: false,
 				}}
 			>
 				<Probe />
@@ -254,11 +278,11 @@ describe('v3 ConsentProvider options API', () => {
 		rerender(
 			<ConsentProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
 					customFetch: fetchSpy,
-					persistence: false,
+					mode: 'hosted',
 					overrides: { country: 'DE' },
+					persistence: false,
 				}}
 			>
 				<Probe />
@@ -276,23 +300,23 @@ describe('v3 ConsentProvider options API', () => {
 	test('syncs enabled option after mount', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(hostedInitOutput()), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return <div data-testid="active-ui">{snapshot.activeUI}</div>;
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
 				options={{
-					enabled: false,
-					mode: 'hosted',
 					backendURL: '/api/c15t',
 					customFetch: fetchSpy,
+					enabled: false,
+					mode: 'hosted',
 					persistence: false,
 				}}
 			>
@@ -306,10 +330,10 @@ describe('v3 ConsentProvider options API', () => {
 		rerender(
 			<ConsentProvider
 				options={{
-					enabled: true,
-					mode: 'hosted',
 					backendURL: '/api/c15t',
 					customFetch: fetchSpy,
+					enabled: true,
+					mode: 'hosted',
 					persistence: false,
 				}}
 			>
@@ -325,8 +349,8 @@ describe('v3 ConsentProvider options API', () => {
 		localStorage.setItem(
 			STORAGE_KEY,
 			JSON.stringify({
-				consents: { marketing: true },
 				consentInfo: { subjectId: 'sub_111', time: Date.now() },
+				consents: { marketing: true },
 			})
 		);
 
@@ -334,10 +358,10 @@ describe('v3 ConsentProvider options API', () => {
 			storageConfig: { storageKey: STORAGE_KEY },
 		});
 
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			return <div data-testid="marketing">{String(marketing)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -352,8 +376,8 @@ describe('v3 ConsentProvider options API', () => {
 		localStorage.setItem(
 			STORAGE_KEY,
 			JSON.stringify({
-				consents: { marketing: true },
 				consentInfo: { subjectId: 'sub_111', time: Date.now() },
+				consents: { marketing: true },
 			})
 		);
 
@@ -362,10 +386,10 @@ describe('v3 ConsentProvider options API', () => {
 			storageConfig: { storageKey: STORAGE_KEY },
 		});
 
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			return <div data-testid="marketing">{String(marketing)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -381,7 +405,7 @@ describe('v3 ConsentProvider options API', () => {
 			.spyOn(globalThis, 'fetch')
 			.mockResolvedValue(new Response('{}'));
 
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			const snapshot = useSnapshot();
 			return (
@@ -389,19 +413,19 @@ describe('v3 ConsentProvider options API', () => {
 					{String(marketing)}|{snapshot.activeUI}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
+					backendURL: '/api/c15t',
 					enabled: false,
 					mode: 'hosted',
-					backendURL: '/api/c15t',
 					scripts: [
 						{
+							category: 'marketing',
 							id: 'disabled-script',
 							src: 'https://example.com/disabled.js',
-							category: 'marketing',
 						},
 					],
 				}}
@@ -411,7 +435,7 @@ describe('v3 ConsentProvider options API', () => {
 		);
 
 		await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(
 			document.head.querySelector(
@@ -421,7 +445,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('provides theme and v3 UI config without changing kernel context', async () => {
-		function ThemeProbe() {
+		const ThemeProbe = () => {
 			const theme = useTheme();
 			const uiConfig = useUIConfig();
 			const className = uiConfig.components?.banner?.card?.className ?? '';
@@ -431,22 +455,16 @@ describe('v3 ConsentProvider options API', () => {
 					{String(theme.noStyle)}|{className}
 				</div>
 			);
-		}
+		};
 
-		function KernelProbe() {
+		const KernelProbe = () => {
 			const marketing = useConsent('marketing');
 			return <div data-testid="kernel">{String(marketing)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					persistence: false,
-					prefetch: {
-						initialConsents: { marketing: true },
-						initialHasConsented: true,
-					},
-					noStyle: true,
 					components: {
 						banner: {
 							card: {
@@ -459,6 +477,12 @@ describe('v3 ConsentProvider options API', () => {
 							href: '/privacy',
 							label: 'Privacy',
 						},
+					},
+					noStyle: true,
+					persistence: false,
+					prefetch: {
+						initialConsents: { marketing: true },
+						initialHasConsented: true,
 					},
 				}}
 			>
@@ -487,7 +511,31 @@ describe('v3 ConsentProvider options API', () => {
 	test('accepts deprecated v2-shaped options as migration fallbacks', async () => {
 		const options = {
 			mode: 'offline',
+			offlinePolicy: {
+				policy: {
+					consent: {
+						categories: ['marketing'],
+						scopeMode: 'strict',
+					},
+					id: 'legacy-offline-policy',
+					model: 'opt-in',
+					ui: {
+						mode: 'banner',
+					},
+				},
+				policySnapshotToken: 'legacy-token',
+			},
 			persistence: false,
+			store: {
+				initialConsentCategories: ['marketing'],
+				legalLinks: {
+					privacyPolicy: {
+						href: '/store-privacy',
+						label: 'Store Privacy',
+					},
+				},
+				storageConfig: { storageKey: STORAGE_KEY },
+			},
 			translations: {
 				defaultLanguage: 'de',
 				translations: {
@@ -498,33 +546,9 @@ describe('v3 ConsentProvider options API', () => {
 					},
 				},
 			},
-			offlinePolicy: {
-				policy: {
-					id: 'legacy-offline-policy',
-					model: 'opt-in',
-					consent: {
-						categories: ['marketing'],
-						scopeMode: 'strict',
-					},
-					ui: {
-						mode: 'banner',
-					},
-				},
-				policySnapshotToken: 'legacy-token',
-			},
-			store: {
-				storageConfig: { storageKey: STORAGE_KEY },
-				initialConsentCategories: ['marketing'],
-				legalLinks: {
-					privacyPolicy: {
-						href: '/store-privacy',
-						label: 'Store Privacy',
-					},
-				},
-			},
 		} satisfies ConsentProviderOptions;
 
-		function Probe() {
+		const Probe = () => {
 			const translations = useTranslations();
 			const policy = usePolicy();
 			return (
@@ -532,7 +556,7 @@ describe('v3 ConsentProvider options API', () => {
 					{translations?.language}|{policy?.id}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider options={options}>
@@ -554,7 +578,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('deep-merges selected i18n messages over the default language base', async () => {
-		function Probe() {
+		const Probe = () => {
 			const translations = useTranslations();
 			const marketing =
 				translations?.translations.consentTypes?.marketing ?? {};
@@ -563,12 +587,11 @@ describe('v3 ConsentProvider options API', () => {
 					{marketing.title}|{marketing.description}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					persistence: false,
 					i18n: {
 						locale: 'en',
 						messages: {
@@ -581,6 +604,7 @@ describe('v3 ConsentProvider options API', () => {
 							},
 						},
 					},
+					persistence: false,
 				}}
 			>
 				<Probe />
@@ -599,34 +623,34 @@ describe('v3 ConsentProvider options API', () => {
 			.fn()
 			.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
 
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return <div data-testid="active-ui">{snapshot.activeUI}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
 					customFetch: fetchSpy,
+					mode: 'hosted',
 					persistence: false,
 					ssrData: Promise.resolve({
 						init: {
+							branding: 'c15t',
+							location: {
+								countryCode: 'DE',
+								regionCode: null,
+							},
 							policy: {
 								id: 'gdpr',
 								model: 'opt-in',
 								ui: { mode: 'banner' },
 							},
-							location: {
-								countryCode: 'DE',
-								regionCode: null,
-							},
 							translations: {
 								language: 'en',
 								translations: {},
 							},
-							branding: 'c15t',
 						},
 					} as never),
 				}}
@@ -640,7 +664,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('ssrData bridge preserves rich init fields through the shared mapper', async () => {
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return (
 				<div data-testid="ssr-rich">
@@ -649,34 +673,34 @@ describe('v3 ConsentProvider options API', () => {
 					{snapshot.overrides.language}|{snapshot.activeUI}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
 					customFetch: vi.fn(),
+					mode: 'hosted',
 					persistence: false,
 					ssrData: Promise.resolve({
 						init: {
+							branding: 'none',
+							consents: { marketing: true },
+							hasConsented: true,
+							location: {
+								countryCode: 'DE',
+								regionCode: null,
+							},
 							policy: {
 								id: 'gdpr',
 								model: 'opt-in',
 								ui: { mode: 'banner' },
 							},
-							location: {
-								countryCode: 'DE',
-								regionCode: null,
-							},
+							subjectId: 'sub_ssr',
 							translations: {
 								language: 'de',
 								translations: {},
 							},
-							branding: 'none',
-							consents: { marketing: true },
-							hasConsented: true,
-							subjectId: 'sub_ssr',
 						},
 					} as never),
 				}}
@@ -697,20 +721,20 @@ describe('v3 ConsentProvider options API', () => {
 				new Response(JSON.stringify(hostedInitOutput()), { status: 200 })
 			);
 
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return <div data-testid="active-ui">{snapshot.activeUI}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					mode: 'c15t',
 					backendURL: '/custom-c15t',
-					headers: { 'accept-language': 'de', 'x-test': 'yes' },
 					customFetch: fetchSpy,
-					retryConfig: { maxRetries: 2 },
+					headers: { 'accept-language': 'de', 'x-test': 'yes' },
+					mode: 'c15t',
 					persistence: false,
+					retryConfig: { maxRetries: 2 },
 				}}
 			>
 				<Probe />
@@ -734,39 +758,41 @@ describe('v3 ConsentProvider options API', () => {
 
 	test('custom transport save uses the shared subject POST body', async () => {
 		const setConsent = vi.fn().mockResolvedValue({
-			ok: true,
 			data: { subjectId: 'sub_custom' },
+			ok: true,
 		});
 
-		function SaveAll() {
+		const SaveAll = () => {
 			const save = useSaveConsents();
 			return (
 				<button
 					data-testid="save"
-					onClick={() => void save('all')}
+					onClick={async () => {
+						await save('all');
+					}}
 					type="button"
 				>
 					save
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
+					endpointHandlers: {
+						init: vi.fn().mockResolvedValue({
+							data: hostedInitOutput(),
+							ok: true,
+						}),
+						setConsent,
+					},
 					mode: 'custom',
 					persistence: false,
 					user: {
 						externalId: 'user-1',
 						identityProvider: 'app',
 						properties: { plan: 'pro' },
-					},
-					endpointHandlers: {
-						init: vi.fn().mockResolvedValue({
-							ok: true,
-							data: hostedInitOutput(),
-						}),
-						setConsent,
 					},
 				}}
 			>
@@ -777,44 +803,46 @@ describe('v3 ConsentProvider options API', () => {
 		await getByTestId('save').click();
 		await vi.waitFor(() => expect(setConsent).toHaveBeenCalled());
 		expect(setConsent.mock.calls[0]?.[0].body).toMatchObject({
-			subjectId: expect.any(String),
+			consentAction: 'all',
+			domain: 'localhost',
 			externalSubjectId: 'user-1',
 			identityProvider: 'app',
-			domain: 'localhost',
-			type: 'cookie_banner',
-			consentAction: 'all',
 			metadata: {
 				userProperties: { plan: 'pro' },
 			},
+			subjectId: expect.any(String),
+			type: 'cookie_banner',
 		});
 	});
 
 	test('bridges init, save, change, and error callbacks', async () => {
 		const callbacks = {
 			onBannerFetched: vi.fn(),
-			onConsentSet: vi.fn(),
 			onConsentChanged: vi.fn(),
+			onConsentSet: vi.fn(),
 			onError: vi.fn(),
 		};
 
-		function SaveAll() {
+		const SaveAll = () => {
 			const save = useSaveConsents();
 			return (
 				<button
 					data-testid="save"
-					onClick={() => void save('all')}
+					onClick={async () => {
+						await save('all');
+					}}
 					type="button"
 				>
 					save
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId, unmount } = await render(
 			<ConsentProvider
 				options={{
-					persistence: false,
 					callbacks,
+					persistence: false,
 					reloadOnConsentRevoked: false,
 				}}
 			>
@@ -836,10 +864,10 @@ describe('v3 ConsentProvider options API', () => {
 		await render(
 			<ConsentProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
-					persistence: false,
 					callbacks,
+					mode: 'hosted',
+					persistence: false,
 				}}
 			>
 				<div>hosted</div>
