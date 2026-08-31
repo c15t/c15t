@@ -428,21 +428,31 @@ function StoreBridge({ bridge }: { bridge: SnapshotBridge }) {
 	return null;
 }
 
-function componentFor(component: MountableComponent): ReactElement {
-	switch (component) {
+function componentFor(opts: MountOptions): ReactElement {
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	const trapFocus = provided.trapFocus ?? false;
+
+	switch (opts.component) {
 		case 'consent-banner':
 			return (
-				<ConsentBanner
-					disableAnimation
-					trapFocus={false}
-					hideBranding
-				/>
+				<>
+					<ConsentBanner
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+					<ConsentDialog
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+				</>
 			);
 		case 'consent-dialog':
 			return (
 				<ConsentDialog
 					disableAnimation
-					trapFocus={false}
+					trapFocus={trapFocus}
 					hideBranding
 				/>
 			);
@@ -450,7 +460,7 @@ function componentFor(component: MountableComponent): ReactElement {
 			return <ConsentWidget hideBranding />;
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
+			throw new DriverNotImplementedError('nextjs', `mount(${opts.component})`);
 	}
 }
 
@@ -460,7 +470,7 @@ function Harness({ opts }: { opts: MountOptions }) {
 			data-testid="nextjs-conformance-root"
 			dir={opts.locale === 'ar' ? 'rtl' : undefined}
 		>
-			{componentFor(opts.component)}
+			{componentFor(opts)}
 		</div>
 	);
 }
