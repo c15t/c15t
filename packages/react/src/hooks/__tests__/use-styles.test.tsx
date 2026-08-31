@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
-import { GlobalThemeContext } from '~/context/theme-context';
+import { StableGlobalThemeProvider } from '~/__tests__/stable-context-providers';
 import type { ThemeContextValue } from '~/context/theme-context';
 
 import { useStyles } from '../use-styles';
@@ -29,11 +29,11 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider
+					<StableGlobalThemeProvider
 						value={{ noStyle: false, theme: { slots: {} } }}
 					>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);
@@ -52,9 +52,9 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockTheme}>
+					<StableGlobalThemeProvider value={mockTheme}>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);
@@ -74,9 +74,9 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockTheme}>
+					<StableGlobalThemeProvider value={mockTheme}>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);
@@ -96,7 +96,7 @@ describe('useStyles', () => {
 					},
 				},
 			},
-		};
+		} satisfies ThemeContextValue;
 
 		// When noStyle is true, base/default styles are removed but
 		// explicitly-set classNames are preserved
@@ -111,9 +111,9 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockNoStyleTheme}>
+					<StableGlobalThemeProvider value={mockNoStyleTheme}>
 						{children}
-					</GlobalThemeContext.Provider>
+					</StableGlobalThemeProvider>
 				),
 			}
 		);

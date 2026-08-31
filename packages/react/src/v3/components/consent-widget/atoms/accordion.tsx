@@ -1,6 +1,12 @@
 import type { AllConsentNames, ConsentType } from '@c15t/core';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
-import { createContext, forwardRef, useCallback, useContext } from 'react';
+import {
+	createContext,
+	forwardRef,
+	useCallback,
+	useContext,
+	useMemo,
+} from 'react';
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
@@ -34,7 +40,7 @@ function useConsentWidgetAccordionContext() {
 }
 
 const ConsentWidgetAccordionTrigger = forwardRef<HTMLDivElement, BoxProps>(
-	({ children, ...props }, ref) => {
+	function ({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -46,6 +52,7 @@ const ConsentWidgetAccordionTrigger = forwardRef<HTMLDivElement, BoxProps>(
 		);
 	}
 );
+ConsentWidgetAccordionTrigger.displayName = 'ConsentWidgetAccordionTrigger';
 
 const ConsentWidgetAccordionTriggerInner = PreferenceItem.Trigger;
 const ConsentWidgetAccordionContent = PreferenceItem.Content;
@@ -73,7 +80,10 @@ const ConsentWidgetAccordion = ({
 }: ConsentWidgetAccordionProps) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const finalNoStyle = noStyle ?? contextNoStyle;
-	const openValues = Array.isArray(value) ? value : value ? [value] : [];
+	const openValues = useMemo(
+		() => (Array.isArray(value) ? value : value ? [value] : []),
+		[value]
+	);
 
 	const onToggleItem = useCallback(
 		(itemValue: string, open: boolean) => {
@@ -91,10 +101,13 @@ const ConsentWidgetAccordion = ({
 		[onValueChange, openValues, type]
 	);
 
+	const contextValue = useMemo(
+		() => ({ noStyle: finalNoStyle, onToggleItem, openValues }),
+		[finalNoStyle, onToggleItem, openValues]
+	);
+
 	return (
-		<ConsentWidgetAccordionContext.Provider
-			value={{ noStyle: finalNoStyle, onToggleItem, openValues }}
-		>
+		<ConsentWidgetAccordionContext.Provider value={contextValue}>
 			<Box
 				className={className}
 				data-testid={dataTestId ?? 'consent-widget-accordion'}
@@ -226,7 +239,7 @@ const ConsentWidgetAccordionItems = () => {
 const ConsentWidgetAccordionItem = forwardRef<
 	HTMLDivElement,
 	ComponentPropsWithoutRef<typeof PreferenceItem.Root>
->(({ className, ...rest }, forwardedRef) => {
+>(function ({ className, ...rest }, forwardedRef) {
 	return (
 		<PreferenceItem.Root
 			ref={forwardedRef}
@@ -236,6 +249,7 @@ const ConsentWidgetAccordionItem = forwardRef<
 		/>
 	);
 });
+ConsentWidgetAccordionItem.displayName = 'ConsentWidgetAccordionItem';
 
 const AccordionTriggerInner = ConsentWidgetAccordionTriggerInner;
 const AccordionTrigger = ConsentWidgetAccordionTrigger;

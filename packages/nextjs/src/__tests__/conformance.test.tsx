@@ -406,24 +406,41 @@ async function waitForLazyComponent(
  * subscribers after each commit.
  */
 interface SnapshotBridge {
-	snapshot: ConsentSnapshot | null;
-	listeners: Set<() => void>;
+	capture: (snapshot: ConsentSnapshot) => void;
+	commit: (snapshot: ConsentSnapshot) => void;
+	getSnapshot: () => ConsentSnapshot | null;
+	subscribe: (listener: () => void) => () => void;
 }
 
 function createBridge(): SnapshotBridge {
-	return { snapshot: null, listeners: new Set() };
+	let currentSnapshot: ConsentSnapshot | null = null;
+	const listeners = new Set<() => void>();
+
+	return {
+		capture(snapshot) {
+			currentSnapshot = snapshot;
+		},
+		commit(snapshot) {
+			currentSnapshot = snapshot;
+			for (const listener of listeners) {
+				listener();
+			}
+		},
+		getSnapshot: () => currentSnapshot,
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+	};
 }
 
 function StoreBridge({ bridge }: { bridge: SnapshotBridge }) {
 	const snapshot = useSnapshot();
 	// Assign during render (like the React driver's KernelCapture) so
 	// getState() is correct immediately after mount settles.
-	bridge.snapshot = snapshot;
+	bridge.capture(snapshot);
 	useEffect(() => {
-		bridge.snapshot = snapshot;
-		for (const listener of bridge.listeners) {
-			listener();
-		}
+		bridge.commit(snapshot);
 	}, [bridge, snapshot]);
 	return null;
 }
@@ -543,7 +560,7 @@ const driver: TestDriver = {
 		await flushScheduler();
 		await waitForLazyComponent(opts.component);
 
-		if (!bridge.snapshot) {
+		if (!bridge.getSnapshot()) {
 			throw new Error(
 				'Next.js driver: mount completed without a kernel snapshot'
 			);
@@ -574,17 +591,13 @@ const driver: TestDriver = {
 		}
 		return {
 			getState: () => {
-				if (!bridge.snapshot) {
+				const snapshot = bridge.getSnapshot();
+				if (!snapshot) {
 					throw new Error('Next.js driver: no snapshot available');
 				}
-				return projectStoreState(bridge.snapshot);
+				return projectStoreState(snapshot);
 			},
-			subscribe: (listener) => {
-				bridge.listeners.add(listener);
-				return () => {
-					bridge.listeners.delete(listener);
-				};
-			},
+			subscribe: bridge.subscribe,
 		};
 	},
 	async serverRender(opts: MountOptions): Promise<string> {

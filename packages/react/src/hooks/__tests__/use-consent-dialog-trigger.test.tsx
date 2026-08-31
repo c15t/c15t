@@ -2,6 +2,7 @@ import type { ConsentStoreState } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
+import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 
 import { useConsentDialogTrigger } from '../use-consent-dialog-trigger';
@@ -29,21 +30,23 @@ function createMockState(
 }
 
 function createWrapper(state: ConsentStoreState) {
-	return ({ children }: { children: React.ReactNode }) => (
-		<ConsentStateContext.Provider
-			value={{
-				state,
-				store: {
-					getState: () => state,
-					subscribe: () => () => undefined,
-					setState: () => undefined,
-				},
-				manager: null,
-			}}
-		>
-			{children}
-		</ConsentStateContext.Provider>
-	);
+	return function ({ children }: { children: React.ReactNode }) {
+		return (
+			<StableConsentStateProvider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				{children}
+			</StableConsentStateProvider>
+		);
+	};
 }
 
 describe('useConsentDialogTrigger', () => {

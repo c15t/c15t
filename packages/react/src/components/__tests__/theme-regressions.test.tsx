@@ -4,6 +4,10 @@ import { createRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
 import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
@@ -66,7 +70,7 @@ describe('Theme regressions', () => {
 		});
 
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -81,7 +85,7 @@ describe('Theme regressions', () => {
 					},
 				}}
 			>
-				<ConsentStateContext.Provider
+				<StableConsentStateProvider
 					value={{
 						state,
 						store: {
@@ -109,8 +113,8 @@ describe('Theme regressions', () => {
 						showWhen="always"
 						style={{ borderRadius: '12px' }}
 					/>
-				</ConsentStateContext.Provider>
-			</GlobalThemeContext.Provider>
+				</StableConsentStateProvider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -138,7 +142,7 @@ describe('Theme regressions', () => {
 
 	test('does not forward slot noStyle to the DOM', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -154,7 +158,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerHeader data-testid="regression-header">
 					<div>Header content</div>
 				</IABConsentBannerHeader>
-			</GlobalThemeContext.Provider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -169,7 +173,7 @@ describe('Theme regressions', () => {
 
 	test('applies inline style from slot objects', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -188,7 +192,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerFooter data-testid="regression-footer">
 					<div>Footer content</div>
 				</IABConsentBannerFooter>
-			</GlobalThemeContext.Provider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -206,7 +210,7 @@ describe('Theme regressions', () => {
 
 	test('wires consentWidgetAccordion slot className and style', async () => {
 		await render(
-			<GlobalThemeContext.Provider
+			<StableGlobalThemeProvider
 				value={{
 					noStyle: false,
 					theme: {
@@ -225,7 +229,7 @@ describe('Theme regressions', () => {
 				<ConsentWidgetAccordion data-testid="regression-accordion">
 					<div>Accordion content</div>
 				</ConsentWidgetAccordion>
-			</GlobalThemeContext.Provider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -246,8 +250,8 @@ describe('Theme regressions', () => {
 		const overlayRef = createRef<HTMLDivElement>();
 
 		await render(
-			<GlobalThemeContext.Provider value={{ noStyle: false }}>
-				<ConsentStateContext.Provider
+			<StableGlobalThemeProvider value={{ noStyle: false }}>
+				<StableConsentStateProvider
 					value={{
 						state,
 						store: {
@@ -266,8 +270,8 @@ describe('Theme regressions', () => {
 						noStyle
 						style={{ backgroundColor: 'rgb(7, 8, 9)' }}
 					/>
-				</ConsentStateContext.Provider>
-			</GlobalThemeContext.Provider>
+				</StableConsentStateProvider>
+			</StableGlobalThemeProvider>
 		);
 
 		await vi.waitFor(() => {

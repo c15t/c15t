@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 /**
  * True lens refraction for the Liquid Glass preset, after
@@ -92,21 +92,23 @@ function supportsBackdropRefraction(): boolean {
 	return 'chrome' in window;
 }
 
-export function LiquidGlassFilter() {
-	const [mapUri, setMapUri] = useState<string | null>(null);
+export const LiquidGlassFilter = () => {
+	const mapUri = useMemo<string | null>(
+		() => (supportsBackdropRefraction() ? generateDisplacementMap() : null),
+		[]
+	);
 
 	useEffect(() => {
-		if (!supportsBackdropRefraction()) {
+		if (!mapUri) {
 			return;
 		}
 
-		setMapUri(generateDisplacementMap());
 		document.documentElement.classList.add('lg-refract');
 
 		return () => {
 			document.documentElement.classList.remove('lg-refract');
 		};
-	}, []);
+	}, [mapUri]);
 
 	if (!mapUri) {
 		return null;
@@ -147,4 +149,4 @@ export function LiquidGlassFilter() {
 			</filter>
 		</svg>
 	);
-}
+};

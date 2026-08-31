@@ -4,7 +4,7 @@ import { ConsentDraftProvider } from '@c15t/react/v3/draft';
 import { useSaveConsents } from '@c15t/react/v3/hooks';
 import { useScriptLoader } from '@c15t/react/v3/module-hooks/script-loader';
 import { ConsentProvider } from '@c15t/react/v3/provider';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { createInitialBenchState, listDomIds, makeV3Scripts } from './fixtures';
 import type { ScriptCountBenchState } from './fixtures';
@@ -20,19 +20,16 @@ function publish(
 	).__c15tScriptBench = state;
 }
 
-function V3Probe({ count }: { count: number }) {
+const V3Probe = ({ count }: { count: number }) => {
 	const scripts = useMemo(() => makeV3Scripts(count), [count]);
 	const loader = useScriptLoader(scripts);
 	const saveConsents = useSaveConsents();
-	const benchRef = useRef<ScriptCountBenchState | null>(null);
-
-	if (!benchRef.current) {
-		benchRef.current = createInitialBenchState('v3', count);
-	}
+	const [bench, setBench] = useState(() =>
+		createInitialBenchState('v3', count)
+	);
+	void setBench;
 
 	useEffect(() => {
-		const bench = benchRef.current;
-		if (!bench) return;
 		window.__c15tScriptCountBench = bench;
 		publish(bench, {
 			activeUI: 'ready',
@@ -40,8 +37,6 @@ function V3Probe({ count }: { count: number }) {
 		});
 
 		window.__c15tGetScriptCountBenchState = () => {
-			const bench = benchRef.current;
-			if (!bench) return null;
 			publish(bench, {
 				loadedIds: loader
 					.getLoadedScriptIds()
@@ -56,21 +51,18 @@ function V3Probe({ count }: { count: number }) {
 				delete window.__c15tGetScriptCountBenchState;
 			}
 		};
-	}, [loader, count]);
+	}, [bench, loader, count]);
 
 	return (
 		<>
 			<button
 				id="run-script-count"
 				onClick={() => {
-					const bench = benchRef.current;
-					if (bench) {
-						publish(bench, {
-							actionStartedAtMs: performance.now(),
-							completedAtMs: null,
-							complete: false,
-						});
-					}
+					publish(bench, {
+						actionStartedAtMs: performance.now(),
+						completedAtMs: null,
+						complete: false,
+					});
 					void saveConsents('all');
 				}}
 				type="button"
@@ -80,9 +72,9 @@ function V3Probe({ count }: { count: number }) {
 			<pre id="script-count-state">ready</pre>
 		</>
 	);
-}
+};
 
-export function V3ScriptCountPage({ count }: { count: number }) {
+export const V3ScriptCountPage = ({ count }: { count: number }) => {
 	return (
 		<ConsentProvider
 			options={{
@@ -99,4 +91,4 @@ export function V3ScriptCountPage({ count }: { count: number }) {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
+};

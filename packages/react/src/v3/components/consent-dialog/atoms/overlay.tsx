@@ -72,21 +72,25 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	// Handle animation visibility state
 	useEffect(() => {
 		if (showDialog) {
-			setIsVisible(true);
-		} else if (disableAnimation) {
-			setIsVisible(false);
-		} else {
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--consent-dialog-animation-duration'
-				) || '200',
-				10
-			);
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, animationDurationMs); // Match CSS animation duration
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+
+		if (disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+
+		const animationDurationMs = Number.parseInt(
+			getComputedStyle(document.documentElement).getPropertyValue(
+				'--consent-dialog-animation-duration'
+			) || '200',
+			10
+		);
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+		}, animationDurationMs); // Match CSS animation duration
+		return () => clearTimeout(timer);
 	}, [showDialog, disableAnimation]);
 
 	// Get custom className from style prop

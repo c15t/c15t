@@ -1,9 +1,12 @@
 'use client';
 
 import type { IframeBlockerHandle } from '@c15t/core/v3/modules/iframe-blocker';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useRequiredKernel } from './shared';
+
+const loadIframeBlockerModule = () =>
+	import('@c15t/core/v3/modules/iframe-blocker');
 
 export interface UseIframeBlockerOptions {
 	disableAutomaticBlocking?: boolean;
@@ -14,33 +17,26 @@ export function useIframeBlocker(
 ): IframeBlockerHandle {
 	const kernel = useRequiredKernel();
 	const handleRef = useRef<IframeBlockerHandle | null>(null);
-	const latestOptionsRef = useRef(options);
-	latestOptionsRef.current = options;
 
-	const facadeRef = useRef<IframeBlockerHandle | null>(null);
-	if (!facadeRef.current) {
-		facadeRef.current = {
-			dispose() {
-				handleRef.current?.dispose();
-				handleRef.current = null;
-			},
-			processAllIframes() {
-				handleRef.current?.processAllIframes();
-			},
-		};
-	}
-	const handle = facadeRef.current;
+	const [handle, setHandle] = useState<IframeBlockerHandle>(() => ({
+		dispose() {
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		},
+		processAllIframes() {
+			handleRef.current?.processAllIframes();
+		},
+	}));
+	void setHandle;
 
 	useEffect(() => {
 		let disposed = false;
 		void (async () => {
-			const { createIframeBlocker } =
-				await import('@c15t/core/v3/modules/iframe-blocker');
+			const { createIframeBlocker } = await loadIframeBlockerModule();
 			if (disposed) return;
 			const created = createIframeBlocker({
 				kernel,
-				disableAutomaticBlocking:
-					latestOptionsRef.current.disableAutomaticBlocking,
+				disableAutomaticBlocking: options.disableAutomaticBlocking,
 			});
 			handleRef.current = created;
 		})();
@@ -50,7 +46,7 @@ export function useIframeBlocker(
 			handleRef.current?.dispose();
 			handleRef.current = null;
 		};
-	}, [kernel]);
+	}, [kernel, options.disableAutomaticBlocking]);
 
 	return handle;
 }

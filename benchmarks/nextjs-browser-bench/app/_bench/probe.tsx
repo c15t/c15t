@@ -32,19 +32,21 @@ function readBannerPaintMs(): number | null {
 	return null;
 }
 
-export function NextjsBenchmarkProbe({
+export const NextjsBenchmarkProbe = ({
 	scenario,
 }: {
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	const { activeUI } = useConsentManager();
 	const renderRef = useRef(0);
-	renderRef.current += 1;
 
-	const state = getState(scenario);
-	if (state) {
-		state.renderCount = renderRef.current;
-	}
+	useEffect(() => {
+		renderRef.current += 1;
+		const state = getState(scenario);
+		if (state) {
+			state.renderCount = renderRef.current;
+		}
+	});
 
 	useEffect(() => {
 		const current = getState(scenario);
@@ -137,4 +139,4 @@ export function NextjsBenchmarkProbe({
 	}, [activeUI, scenario]);
 
 	return null;
-}
+};

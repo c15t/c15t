@@ -16,7 +16,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const IABConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	({ className, style, noStyle, isOpen, ...props }, ref) => {
+	function ({ className, style, noStyle, isOpen, ...props }, ref) {
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,
@@ -28,21 +28,25 @@ const IABConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		useEffect(() => {
 			if (isOpen) {
-				setIsVisible(true);
-			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--iab-cd-animation-duration'
-					) || '150',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs);
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			}
+
+			if (disableAnimation) {
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
+			}
+
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-cd-animation-duration'
+				) || '150',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [isOpen, disableAnimation]);
 
 		const theme = mergeSlotProps(components?.['iab-dialog']?.overlay, {

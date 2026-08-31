@@ -4,6 +4,10 @@ import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
@@ -69,13 +73,13 @@ async function renderPolicyActions(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider
+		<StableGlobalThemeProvider
 			value={{
 				noStyle: false,
 				theme: themeOverrides as never,
 			}}
 		>
-			<ConsentStateContext.Provider
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -103,8 +107,8 @@ async function renderPolicyActions(
 						))
 					}
 				/>
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 
@@ -114,8 +118,8 @@ async function renderDefaultPolicyActions(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider value={{ noStyle: false }}>
-			<ConsentStateContext.Provider
+		<StableGlobalThemeProvider value={{ noStyle: false }}>
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -127,8 +131,8 @@ async function renderDefaultPolicyActions(
 				}}
 			>
 				<ConsentBanner.PolicyActions />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 

@@ -2,7 +2,7 @@ import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { computed } from 'vue';
 import type { Ref } from 'vue';
 
-import { useState } from '#imports';
+import { useState as createVueState } from '#imports';
 
 // Imported from the sibling module (not `#imports`) to avoid a circular
 // evaluation through the plain-Vue `#imports` shim, which re-exports this
@@ -23,6 +23,10 @@ export interface ConsentIabSelection {
 
 export type IabConsentSaveInput = 'all' | 'none' | ConsentIabSelection;
 
+function setVueRefValue<T>(target: Ref<T>, value: T) {
+	target.value = value;
+}
+
 export function createDefaultIabSelection(): ConsentIabSelection {
 	return {
 		purposeConsents: {},
@@ -36,7 +40,7 @@ export function createDefaultIabSelection(): ConsentIabSelection {
 
 export function useConsentIabStore() {
 	const context = useConsentKernelContext();
-	const tab = useState<IabPreferenceTab>(
+	const tab = createVueState<IabPreferenceTab>(
 		'c15t:iab-preference-tab',
 		() => 'purposes'
 	);
@@ -58,7 +62,7 @@ export function useConsentIabStore() {
 			};
 		},
 		set: (value) => {
-			tab.value = value.preferenceCenterTab;
+			setVueRefValue(tab, value.preferenceCenterTab);
 			context.kernel.set.iab({
 				enabled: true,
 				purposeConsents: value.purposeConsents,
@@ -77,7 +81,7 @@ export function useConsentIabSelection(): Ref<ConsentIabSelection> {
 	return computed({
 		get: () => stored.value ?? createDefaultIabSelection(),
 		set: (value) => {
-			stored.value = value;
+			setVueRefValue(stored, value);
 		},
 	});
 }
@@ -195,14 +199,20 @@ export function useConsentIabSave() {
 		const resolvedTab = tab ?? selection.value.preferenceCenterTab;
 
 		if (input === 'all') {
-			selection.value = buildAcceptAllIab(gvlData, customVendors, resolvedTab);
+			setVueRefValue(
+				selection,
+				buildAcceptAllIab(gvlData, customVendors, resolvedTab)
+			);
 		} else if (input === 'none') {
-			selection.value = buildRejectAllIab(gvlData, customVendors, resolvedTab);
+			setVueRefValue(
+				selection,
+				buildRejectAllIab(gvlData, customVendors, resolvedTab)
+			);
 		} else {
-			selection.value = {
+			setVueRefValue(selection, {
 				...input,
 				preferenceCenterTab: tab ?? input.preferenceCenterTab,
-			};
+			});
 		}
 		void kernel.commands.save();
 	};

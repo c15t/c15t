@@ -3,22 +3,27 @@
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import { useEffect, useState } from 'react';
 
-export default function CoreOnlyPage() {
+const CoreOnlyPage = () => {
 	const [consents, setConsents] = useState<Record<string, boolean>>({});
 	const [isLoading, setIsLoading] = useState(true);
 
 	useEffect(() => {
 		const manager = configureConsentManager({ mode: 'offline' });
 		const store = createConsentManagerStore(manager);
-		setConsents(store.getState().consents);
-		setIsLoading(false);
+		const frame = requestAnimationFrame(() => {
+			setConsents(store.getState().consents);
+			setIsLoading(false);
+		});
 
 		// Subscribe to changes
 		const unsubscribe = store.subscribe((state) => {
 			setConsents(state.consents);
 		});
 
-		return unsubscribe;
+		return () => {
+			cancelAnimationFrame(frame);
+			unsubscribe();
+		};
 	}, []);
 
 	if (isLoading) {
@@ -37,4 +42,6 @@ export default function CoreOnlyPage() {
 			<pre>{JSON.stringify(consents, null, 2)}</pre>
 		</main>
 	);
-}
+};
+
+export default CoreOnlyPage;

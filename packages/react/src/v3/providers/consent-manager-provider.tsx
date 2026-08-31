@@ -203,6 +203,9 @@ export function ConsentManagerProvider({
 		return unsubscribe;
 	}, [consentStore]);
 
+	const overrides = options.overrides;
+	const callbacks = options.callbacks;
+
 	// Keep runtime geo/language overrides in sync even when a cached runtime/store is reused.
 	useEffect(() => {
 		if (!consentStore) {
@@ -210,7 +213,7 @@ export function ConsentManagerProvider({
 		}
 
 		const currentOverrides = consentStore.getState().overrides ?? {};
-		const nextOverrides = options.overrides ?? {};
+		const nextOverrides = overrides ?? {};
 		const hasDiff =
 			currentOverrides.country !== nextOverrides.country ||
 			currentOverrides.region !== nextOverrides.region ||
@@ -227,20 +230,14 @@ export function ConsentManagerProvider({
 			language: nextOverrides.language,
 			gpc: nextOverrides.gpc,
 		});
-	}, [
-		consentStore,
-		options.overrides?.country,
-		options.overrides?.region,
-		options.overrides?.language,
-		options.overrides?.gpc,
-	]);
+	}, [consentStore, overrides]);
 
 	useEffect(() => {
 		if (!consentStore) {
 			return;
 		}
 
-		const nextCallbacks = pickCallbackProps(options.callbacks);
+		const nextCallbacks = pickCallbackProps(callbacks);
 		const previousCallbacks = appliedCallbacksRef.current;
 		const hasDiff = CALLBACK_KEYS.some(
 			(key) => previousCallbacks[key] !== nextCallbacks[key]
@@ -257,14 +254,7 @@ export function ConsentManagerProvider({
 			},
 		}));
 		appliedCallbacksRef.current = nextCallbacks;
-	}, [
-		consentStore,
-		options.callbacks?.onBannerFetched,
-		options.callbacks?.onConsentSet,
-		options.callbacks?.onConsentChanged,
-		options.callbacks?.onError,
-		options.callbacks?.onBeforeConsentRevocationReload,
-	]);
+	}, [callbacks, consentStore]);
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {

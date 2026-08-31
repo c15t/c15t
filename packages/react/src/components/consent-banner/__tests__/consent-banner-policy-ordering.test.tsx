@@ -4,6 +4,10 @@ import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
@@ -66,7 +70,7 @@ function renderBanner(
 	const state = createMockState(stateOverrides);
 
 	render(
-		<GlobalThemeContext.Provider
+		<StableGlobalThemeProvider
 			value={{
 				theme: {
 					slots: {
@@ -77,7 +81,7 @@ function renderBanner(
 				},
 			}}
 		>
-			<ConsentStateContext.Provider
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -89,8 +93,8 @@ function renderBanner(
 				}}
 			>
 				<ConsentBanner {...props} />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 

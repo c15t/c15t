@@ -545,10 +545,11 @@ export function useConsentScript<TReady = unknown>(
 	const {
 		script,
 		enabled = true,
-		readinessKey = script.id,
+		readinessKey: providedReadinessKey,
 		retryKey = 0,
 		unmountBehavior = 'remove',
 	} = options;
+	const readinessKey = providedReadinessKey ?? script.id;
 	const context = useContext(ConsentStateContext);
 	if (context === undefined) {
 		throw new Error(
@@ -577,14 +578,32 @@ export function useConsentScript<TReady = unknown>(
 	useEffect(() => {
 		const retryFailed = previousRetryKeyRef.current !== retryKey;
 		previousRetryKeyRef.current = retryKey;
+		let stateFrame: number | null = null;
+		const scheduleStateUpdate = (update: () => void) => {
+			if (stateFrame !== null) {
+				cancelAnimationFrame(stateFrame);
+			}
+			stateFrame = requestAnimationFrame(() => {
+				stateFrame = null;
+				update();
+			});
+		};
+		const cancelStateUpdate = () => {
+			if (stateFrame !== null) {
+				cancelAnimationFrame(stateFrame);
+				stateFrame = null;
+			}
+		};
 
 		if (!enabled || !hasConsent) {
 			activeEntryRef.current = null;
-			setReadyValue(null);
-			setIsReady(false);
-			setError(null);
-			setReady(null);
-			return;
+			scheduleStateUpdate(() => {
+				setReadyValue(null);
+				setIsReady(false);
+				setError(null);
+				setReady(null);
+			});
+			return cancelStateUpdate;
 		}
 
 		const consumer = latestOptionsRef as unknown as ScriptConsumer<TReady>;
@@ -603,21 +622,25 @@ export function useConsentScript<TReady = unknown>(
 			});
 		} catch (nextError) {
 			activeEntryRef.current = null;
-			setReadyValue(null);
-			setIsReady(false);
-			setError(toError(nextError));
-			setReady(null);
-			return;
+			scheduleStateUpdate(() => {
+				setReadyValue(null);
+				setIsReady(false);
+				setError(toError(nextError));
+				setReady(null);
+			});
+			return cancelStateUpdate;
 		}
 
 		entry.refCount += 1;
 		entry.consumers.add(consumer as unknown as ScriptConsumer<unknown>);
 		activeEntryRef.current = entry;
 
-		setReadyValue(entry.readyValue);
-		setIsReady(entry.settled && !entry.error);
-		setError(entry.error);
-		setReady(entry.promise);
+		scheduleStateUpdate(() => {
+			setReadyValue(entry.readyValue);
+			setIsReady(entry.settled && !entry.error);
+			setError(entry.error);
+			setReady(entry.promise);
+		});
 
 		startReadiness(entry);
 
@@ -635,11 +658,15 @@ export function useConsentScript<TReady = unknown>(
 		}
 
 		if (entry.settled && !entry.error) {
-			setReadyValue(entry.readyValue);
-			setIsReady(true);
+			scheduleStateUpdate(() => {
+				setReadyValue(entry.readyValue);
+				setIsReady(true);
+			});
 		} else if (entry.error) {
-			setError(entry.error);
-			setIsReady(false);
+			scheduleStateUpdate(() => {
+				setError(entry.error);
+				setIsReady(false);
+			});
 		}
 
 		let active = true;
@@ -662,6 +689,7 @@ export function useConsentScript<TReady = unknown>(
 
 		return () => {
 			active = false;
+			cancelStateUpdate();
 			if (activeEntryRef.current === entry) {
 				activeEntryRef.current = null;
 			}

@@ -58,7 +58,7 @@ export interface IABProviderProps extends Omit<
 	gvl?: GlobalVendorList | null;
 }
 
-export function IABProvider({ children, ...options }: IABProviderProps) {
+export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
@@ -69,7 +69,10 @@ export function IABProvider({ children, ...options }: IABProviderProps) {
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
 	const [handle, setHandle] = useState<IABHandle | null>(null);
 	const optionsRef = useRef(options);
-	optionsRef.current = options;
+
+	useEffect(() => {
+		optionsRef.current = options;
+	}, [options]);
 
 	useEffect(() => {
 		const next = createIAB({ ...optionsRef.current, kernel });
@@ -85,7 +88,7 @@ export function IABProvider({ children, ...options }: IABProviderProps) {
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;
-}
+};
 
 export function useIAB(): ReactIABState | null {
 	const kernel = useContext(KernelContext);

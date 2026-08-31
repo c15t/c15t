@@ -15,7 +15,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	({ className, style, noStyle, ...props }, ref) => {
+	function ({ className, style, noStyle, ...props }, ref) {
 		const { activeUI } = useConsentManager();
 		const {
 			disableAnimation,
@@ -30,21 +30,22 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 		useEffect(() => {
 			if (shouldShow) {
-				setIsVisible(true);
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
 			} else if (disableAnimation) {
-				setIsVisible(false);
-			} else {
-				const animationDurationMs = Number.parseInt(
-					getComputedStyle(document.documentElement).getPropertyValue(
-						'--iab-consent-banner-animation-duration'
-					) || '200',
-					10
-				);
-				const timer = setTimeout(() => {
-					setIsVisible(false);
-				}, animationDurationMs);
-				return () => clearTimeout(timer);
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
 			}
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
 		}, [shouldShow, disableAnimation]);
 
 		const theme = useStyles('iabConsentBannerOverlay', {

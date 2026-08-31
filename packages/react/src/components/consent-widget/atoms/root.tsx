@@ -7,6 +7,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
 
 import { Box } from '~/components/shared/primitives/box';
@@ -113,15 +114,22 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	 * Combine consent manager state with styling configuration
 	 * to create the context value for child components
 	 */
-	const contextValue = {
-		disableAnimation,
-		noStyle,
-	};
+	const contextValue = useMemo(
+		() => ({
+			disableAnimation,
+			noStyle,
+		}),
+		[disableAnimation, noStyle]
+	);
 
 	// If an explicit uiSource prop is given, always use it.
 	// Otherwise, inherit from a parent context (e.g. dialog wrapping this widget).
 	// Only fall back to 'widget' when used standalone with no parent context.
 	const resolvedUiSource = uiSource ?? parentTracking.uiSource ?? 'widget';
+	const trackingValue = useMemo(
+		() => ({ uiSource: resolvedUiSource }),
+		[resolvedUiSource]
+	);
 
 	const content = (
 		<Box
@@ -136,7 +144,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 
 	if (useProvider) {
 		return (
-			<ConsentTrackingContext.Provider value={{ uiSource: resolvedUiSource }}>
+			<ConsentTrackingContext.Provider value={trackingValue}>
 				<LocalThemeContext.Provider value={contextValue}>
 					{content}
 				</LocalThemeContext.Provider>
@@ -145,7 +153,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	}
 
 	return (
-		<ConsentTrackingContext.Provider value={{ uiSource: resolvedUiSource }}>
+		<ConsentTrackingContext.Provider value={trackingValue}>
 			{content}
 		</ConsentTrackingContext.Provider>
 	);

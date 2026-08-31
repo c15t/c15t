@@ -32,28 +32,29 @@ function readBannerPaintMs(): number | null {
 	return null;
 }
 
-export function NextjsV3BenchmarkProbe({
+export const NextjsV3BenchmarkProbe = ({
 	scenario,
 }: {
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	const activeUI = useActiveUI();
 	const snapshot = useSnapshot();
 	const renderRef = useRef(0);
-	renderRef.current += 1;
-
-	const state = getState(scenario);
-	if (state) {
-		state.renderCount = renderRef.current;
-		state.overrides = { ...snapshot.overrides };
-		state.location = snapshot.location
-			? {
-					countryCode: snapshot.location.countryCode,
-					regionCode: snapshot.location.regionCode,
-				}
-			: null;
-		state.hasConsented = snapshot.hasConsented;
-	}
+	useEffect(() => {
+		renderRef.current += 1;
+		const state = getState(scenario);
+		if (state) {
+			state.renderCount = renderRef.current;
+			state.overrides = { ...snapshot.overrides };
+			state.location = snapshot.location
+				? {
+						countryCode: snapshot.location.countryCode,
+						regionCode: snapshot.location.regionCode,
+					}
+				: null;
+			state.hasConsented = snapshot.hasConsented;
+		}
+	});
 
 	useEffect(() => {
 		const current = getState(scenario);
@@ -154,4 +155,4 @@ export function NextjsV3BenchmarkProbe({
 	}, [activeUI, scenario, snapshot]);
 
 	return null;
-}
+};

@@ -21,6 +21,17 @@ const nextAppFiles = nextAppDirectories.map(
 	(directory) => `${directory}/**/*.{js,jsx,ts,tsx}`
 );
 
+const nonReactFrameworkFiles = [
+	'apps/storybook-solid/**/*.{js,jsx,ts,tsx}',
+	'apps/storybook-svelte/**/*.{js,jsx,ts,tsx}',
+	'apps/storybook-vue/**/*.{js,jsx,ts,tsx}',
+	'benchmarks/nuxt-browser-bench/**/*.{js,jsx,ts,tsx}',
+	'examples/nuxt/**/*.{js,jsx,ts,tsx}',
+	'packages/solid/**/*.{js,jsx,ts,tsx}',
+	'packages/svelte/**/*.{js,jsx,ts,tsx}',
+	'packages/vue/**/*.{js,jsx,ts,tsx}',
+] as const;
+
 // These rules reported existing violations during the migration. Every
 // Ultracite rule not listed here was clean and remains enabled as an error.
 // Re-enable deferred rules in focused changes that also fix their violations.
@@ -82,26 +93,14 @@ const deferredRules = [
 	'preserve-caught-error',
 	'react/capitalized-calls',
 	'react/display-name',
-	'react/exhaustive-deps',
-	'react/exhaustive-effect-dependencies',
 	'react/function-component-definition',
 	'react/globals',
-	'react/hook-use-state',
-	'react/immutability',
 	'react/jsx-curly-brace-presence',
-	'react/jsx-no-constructed-context-values',
 	'react/jsx-no-useless-fragment',
-	'react/memo-dependencies',
 	'react/no-clone-element',
 	'react/no-danger',
 	'react/no-object-type-as-default-prop',
 	'react/no-react-children',
-	'react/no-set-state',
-	'react/preserve-manual-memoization',
-	'react/refs',
-	'react/rule-suppression',
-	'react/rules-of-hooks',
-	'react/set-state-in-effect',
 	'react/todo',
 	'require-await',
 	'require-unicode-regexp',
@@ -201,6 +200,14 @@ export default defineConfig({
 			files: nextAppFiles,
 			plugins: next.plugins,
 			rules: next.rules,
+		},
+		{
+			files: [...nonReactFrameworkFiles],
+			rules: {
+				// Vue composables also use the `use*` convention, but do not follow
+				// React's component and hook call-order rules.
+				'react/rules-of-hooks': 'off',
+			},
 		},
 	],
 	rules: {

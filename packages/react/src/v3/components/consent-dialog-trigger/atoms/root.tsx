@@ -7,12 +7,13 @@
  * @packageDocumentation
  */
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useConsentDialogTrigger } from '~/v3/component-hooks/use-consent-dialog-trigger';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useIsHydrated } from '~/v3/hooks/use-is-hydrated';
 
 import type { CornerPosition, TriggerVisibility } from '../types';
 import { useDraggable } from '../use-draggable';
@@ -105,14 +106,14 @@ export interface TriggerRootProps {
  * </ConsentDialogTrigger.Root>
  * ```
  */
-export function TriggerRoot({
+export const TriggerRoot = ({
 	children,
 	defaultPosition = 'bottom-right',
 	persistPosition: shouldPersist = true,
 	showWhen = 'after-consent',
 	onPositionChange,
 	onClick,
-}: TriggerRootProps): ReactNode {
+}: TriggerRootProps): ReactNode => {
 	const { branding } = useConsentManager();
 	const { isVisible, openDialog } = useConsentDialogTrigger({
 		showWhen,
@@ -126,29 +127,37 @@ export function TriggerRoot({
 			onPositionChange,
 		});
 
-	const [mounted, setMounted] = useState(false);
+	const mounted = useIsHydrated();
 
-	useEffect(() => {
-		setMounted(true);
-		return () => setMounted(false);
-	}, []);
+	const contextValue = useMemo<TriggerContextValue>(
+		() => ({
+			corner,
+			isDragging,
+			isSnapping,
+			wasDragged,
+			handlers,
+			dragStyle,
+			branding,
+			openDialog,
+			isVisible,
+		}),
+		[
+			branding,
+			corner,
+			dragStyle,
+			handlers,
+			isDragging,
+			isSnapping,
+			isVisible,
+			openDialog,
+			wasDragged,
+		]
+	);
 
 	// Don't render on server or when not visible
 	if (!mounted || !isVisible) {
 		return null;
 	}
-
-	const contextValue: TriggerContextValue = {
-		corner,
-		isDragging,
-		isSnapping,
-		wasDragged,
-		handlers,
-		dragStyle,
-		branding,
-		openDialog,
-		isVisible,
-	};
 
 	return createPortal(
 		<TriggerContext.Provider value={contextValue}>
@@ -156,7 +165,7 @@ export function TriggerRoot({
 		</TriggerContext.Provider>,
 		document.body
 	);
-}
+};
 
 TriggerRoot.displayName = 'ConsentDialogTrigger.Root';
 

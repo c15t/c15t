@@ -8,7 +8,14 @@ import {
 	saveConsentToStorage,
 } from '@c15t/core';
 import type { Script } from '@c15t/core';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import type { ReactNode } from 'react';
 
 import { getScenarioScripts } from './fixtures';
@@ -181,16 +188,18 @@ function augmentScripts(
 	}));
 }
 
-export function ScriptLifecycleProvider({
+export const ScriptLifecycleProvider = ({
 	children,
 	config,
 }: {
 	children: ReactNode;
 	config: ScriptLifecycleScenarioConfig;
-}) {
+}) => {
 	const storeRef = useRef<Store | null>(null);
 	const [ready, setReady] = useState(false);
-	const [, setStateVersion] = useState(0);
+	const [currentState, setCurrentState] = useState<ScriptBenchState | null>(
+		() => getBenchState(config.name) ?? null
+	);
 
 	useEffect(() => {
 		let disposed = false;
@@ -208,7 +217,7 @@ export function ScriptLifecycleProvider({
 			state.loadedIds = normalizeIds(current.getLoadedScriptIds());
 			updateDomPresence(state, config.scriptIds);
 			evaluateCompletion(state, config);
-			setStateVersion((version) => version + 1);
+			setCurrentState({ ...state });
 		};
 
 		const initialize = async () => {
@@ -227,7 +236,7 @@ export function ScriptLifecycleProvider({
 				state.scriptEvents[id] = nowMs();
 				updateDomPresence(state, config.scriptIds);
 				evaluateCompletion(state, config);
-				setStateVersion((version) => version + 1);
+				setCurrentState({ ...state });
 			};
 
 			if (config.initialConsent === 'all') {
@@ -270,7 +279,7 @@ export function ScriptLifecycleProvider({
 								? info.error
 								: 'Script lifecycle benchmark error'
 						);
-						setStateVersion((version) => version + 1);
+						setCurrentState({ ...latest });
 					},
 				},
 			});
@@ -295,11 +304,8 @@ export function ScriptLifecycleProvider({
 		};
 	}, [config]);
 
-	const value: ScriptLifecycleContextValue = {
-		config,
-		ready,
-		state: getBenchState(config.name) ?? null,
-		runScenarioAction: async () => {
+	const value = useMemo<ScriptLifecycleContextValue>(() => {
+		const runScenarioAction = async () => {
 			const store = storeRef.current;
 			const state = getBenchState(config.name);
 			if (!store || !state) {
@@ -331,16 +337,23 @@ export function ScriptLifecycleProvider({
 			state.loadedIds = normalizeIds(current.getLoadedScriptIds());
 			updateDomPresence(state, config.scriptIds);
 			evaluateCompletion(state, config);
-			setStateVersion((version) => version + 1);
-		},
-	};
+			setCurrentState({ ...state });
+		};
+
+		return {
+			config,
+			ready,
+			state: currentState,
+			runScenarioAction,
+		};
+	}, [config, currentState, ready]);
 
 	return (
 		<ScriptLifecycleContext.Provider value={value}>
 			{children}
 		</ScriptLifecycleContext.Provider>
 	);
-}
+};
 
 export function useScriptLifecycleBench(): ScriptLifecycleContextValue {
 	const value = useContext(ScriptLifecycleContext);

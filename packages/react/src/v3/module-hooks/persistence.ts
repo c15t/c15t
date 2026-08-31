@@ -18,7 +18,7 @@ export function usePersistence(
 	// Hydrate inside the lazy initializer so stored consent lands in the
 	// kernel before the first render reads from it. Deferring to useEffect
 	// causes a brief flash of "default consent" for returning visitors.
-	const [handle] = useState(() => {
+	const [handle, setHandle] = useState(() => {
 		const created = createPersistence({
 			kernel,
 			storageConfig: options.storageConfig,
@@ -29,6 +29,7 @@ export function usePersistence(
 		}
 		return created;
 	});
+	void setHandle;
 
 	useEffect(() => {
 		return () => handle.dispose();

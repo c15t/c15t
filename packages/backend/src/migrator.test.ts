@@ -90,14 +90,14 @@ const reset = async (config: DatabaseConfig): Promise<void> => {
 	}
 };
 
-/** Runs `use` with a migrator and always releases the pool. */
+/** Runs `run` with a migrator and always releases the pool. */
 const withMigrator = async <A>(
 	config: DatabaseConfig,
-	use: (migrator: ReturnType<typeof createMigrator>) => Promise<A>
+	run: (migrator: ReturnType<typeof createMigrator>) => Promise<A>
 ): Promise<A> => {
 	const migrator = createMigrator(config);
 	try {
-		return await use(migrator);
+		return await run(migrator);
 	} finally {
 		await migrator.dispose();
 	}

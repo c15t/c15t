@@ -9,7 +9,7 @@ import {
 } from '@c15t/ui/primitives/preference-item';
 import { preferenceItemVariants } from '@c15t/ui/styles/primitives/preference-item';
 import type { PreferenceItemVariantsProps } from '@c15t/ui/styles/primitives/preference-item';
-import { createContext, forwardRef, useContext, useId } from 'react';
+import { createContext, forwardRef, useContext, useId, useMemo } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
@@ -51,7 +51,7 @@ export interface PreferenceItemRootProps
 }
 
 const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
-	(
+	function (
 		{
 			children,
 			className,
@@ -63,7 +63,7 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			...rest
 		},
 		forwardedRef
-	) => {
+	) {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = preferenceItemVariants();
 		const [isOpen, setIsOpen] = useControllableState({
@@ -73,18 +73,20 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 		});
 		const reactId = useId().replace(/:/g, '');
 		const finalNoStyle = contextNoStyle || noStyle;
+		const contextValue = useMemo(
+			() => ({
+				contentId: `c15t-preference-item-content-${reactId}`,
+				disabled,
+				noStyle: finalNoStyle,
+				open: isOpen,
+				setOpen: setIsOpen,
+				triggerId: `c15t-preference-item-trigger-${reactId}`,
+			}),
+			[disabled, finalNoStyle, isOpen, reactId, setIsOpen]
+		);
 
 		return (
-			<PreferenceItemContext.Provider
-				value={{
-					contentId: `c15t-preference-item-content-${reactId}`,
-					disabled,
-					noStyle: finalNoStyle,
-					open: isOpen,
-					setOpen: setIsOpen,
-					triggerId: `c15t-preference-item-trigger-${reactId}`,
-				}}
-			>
+			<PreferenceItemContext.Provider value={contextValue}>
 				<div
 					ref={forwardedRef}
 					className={
@@ -114,7 +116,7 @@ export interface PreferenceItemTriggerProps extends Omit<
 const PreferenceItemTrigger = forwardRef<
 	HTMLButtonElement,
 	PreferenceItemTriggerProps
->(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
+>(function ({ children, className, noStyle, onClick, ...rest }, forwardedRef) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = preferenceItemVariants();
 	const {
@@ -167,7 +169,7 @@ function createSlotComponent(
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
 ) {
 	const Component = forwardRef<HTMLDivElement, PreferenceItemSlotProps>(
-		({ className, noStyle, ...rest }, forwardedRef) => {
+		function ({ className, noStyle, ...rest }, forwardedRef) {
 			const { noStyle: contextNoStyle } = useTheme();
 			const { noStyle: rootNoStyle } = usePreferenceItemContext();
 			const variants = preferenceItemVariants();
@@ -229,7 +231,7 @@ export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElem
 const PreferenceItemTitle = forwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
->(({ children, className, noStyle, ...rest }, forwardedRef) => {
+>(function ({ children, className, noStyle, ...rest }, forwardedRef) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
 	const variants = preferenceItemVariants();
@@ -259,7 +261,10 @@ export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElemen
 const PreferenceItemContent = forwardRef<
 	HTMLDivElement,
 	PreferenceItemContentProps
->(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
+>(function (
+	{ children, className, innerClassName, noStyle, ...rest },
+	forwardedRef
+) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = preferenceItemVariants();
 	const {

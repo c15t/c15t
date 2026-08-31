@@ -5,7 +5,7 @@
 
 import type { ConsentManagerInterface, ConsentStoreState } from '@c15t/core';
 import { has as evaluateHas } from '@c15t/core';
-import { useCallback, useContext, useRef } from 'react';
+import { useCallback, useContext } from 'react';
 
 import { ConsentStateContext } from '../context/consent-manager-context';
 
@@ -47,8 +47,7 @@ export function useConsentManager(): ConsentStoreState & {
 		policyCategories,
 		policyScopeMode,
 	} = context.state;
-	const storeRef = useRef(context.store);
-	storeRef.current = context.store;
+	const { store } = context;
 
 	// Override store methods that close over Zustand's `get()` with versions
 	// that capture reactive state values from context. Without this, React
@@ -79,9 +78,8 @@ export function useConsentManager(): ConsentStoreState & {
 		);
 	const subscribeToConsentChanges: ConsentStoreState['subscribeToConsentChanges'] =
 		useCallback(
-			(listener) =>
-				storeRef.current.getState().subscribeToConsentChanges(listener),
-			[]
+			(listener) => store.getState().subscribeToConsentChanges(listener),
+			[store]
 		);
 
 	return {

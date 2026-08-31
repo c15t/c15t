@@ -7,21 +7,23 @@ import switchStyles from '@c15t/ui/styles/v3/switch';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import {
+	StableTriggerProvider,
+	StableV3UIConfigProvider,
+} from '~/v3/__tests__/stable-context-providers';
 import { ConsentBannerTitle } from '~/v3/components/consent-banner/components';
 import { TriggerButton } from '~/v3/components/consent-dialog-trigger/atoms/button';
-import { TriggerContext } from '~/v3/components/consent-dialog-trigger/atoms/root';
 import { ConsentDialogHeaderTitle } from '~/v3/components/consent-dialog/atoms/card';
 import { ConsentWidgetAccordion } from '~/v3/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/v3/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/v3/components/iab-consent-banner/atoms/header';
 import * as Switch from '~/v3/components/shared/ui/switch';
 import { ConsentManagerProvider } from '~/v3/providers/consent-manager-provider';
-import { V3UIConfigContext } from '~/v3/ui-config-context';
 
 describe('Theme regressions', () => {
 	test('does not forward slot noStyle to the DOM', async () => {
 		await render(
-			<V3UIConfigContext.Provider
+			<StableV3UIConfigProvider
 				value={{
 					components: {
 						'iab-banner': {
@@ -35,7 +37,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerHeader data-testid="regression-header">
 					<div>Header content</div>
 				</IABConsentBannerHeader>
-			</V3UIConfigContext.Provider>
+			</StableV3UIConfigProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -50,7 +52,7 @@ describe('Theme regressions', () => {
 
 	test('applies inline style from slot objects', async () => {
 		await render(
-			<V3UIConfigContext.Provider
+			<StableV3UIConfigProvider
 				value={{
 					components: {
 						'iab-banner': {
@@ -68,7 +70,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerFooter data-testid="regression-footer">
 					<div>Footer content</div>
 				</IABConsentBannerFooter>
-			</V3UIConfigContext.Provider>
+			</StableV3UIConfigProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -86,7 +88,7 @@ describe('Theme regressions', () => {
 
 	test('wires accordion.root slot className and style', async () => {
 		await render(
-			<V3UIConfigContext.Provider
+			<StableV3UIConfigProvider
 				value={{
 					components: {
 						accordion: {
@@ -104,7 +106,7 @@ describe('Theme regressions', () => {
 				<ConsentWidgetAccordion data-testid="regression-accordion">
 					<div>Accordion content</div>
 				</ConsentWidgetAccordion>
-			</V3UIConfigContext.Provider>
+			</StableV3UIConfigProvider>
 		);
 
 		await vi.waitFor(() => {
@@ -134,7 +136,7 @@ describe('Theme regressions', () => {
 				<IABConsentBannerFooter data-testid="nostyle-iab-banner-footer">
 					Footer
 				</IABConsentBannerFooter>
-				<TriggerContext.Provider
+				<StableTriggerProvider
 					value={{
 						branding: 'c15t',
 						corner: 'bottom-right',
@@ -148,7 +150,7 @@ describe('Theme regressions', () => {
 					}}
 				>
 					<TriggerButton data-testid="nostyle-trigger">Trigger</TriggerButton>
-				</TriggerContext.Provider>
+				</StableTriggerProvider>
 				<Switch.Root data-testid="nostyle-switch" />
 			</ConsentManagerProvider>
 		);

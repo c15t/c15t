@@ -297,7 +297,7 @@ export function useGVLData(): GVLData {
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
-	}, [iabState?.gvl, iabState?.nonIABVendors]);
+	}, [iabState]);
 
 	// Get total vendor count (all GVL vendors + custom vendors)
 	const totalVendors = useMemo(() => {
@@ -307,7 +307,7 @@ export function useGVLData(): GVLData {
 		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
 		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
 		return gvlVendorCount + customVendorCount;
-	}, [iabState?.gvl, iabState?.nonIABVendors]);
+	}, [iabState]);
 
 	const isLoading = iabState?.isLoadingGVL || !iabState?.gvl;
 

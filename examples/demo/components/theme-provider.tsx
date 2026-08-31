@@ -102,12 +102,12 @@ interface ThemeProviderProps {
 	enableSystem?: boolean;
 }
 
-export function ThemeProvider({
+export const ThemeProvider = ({
 	children,
 	defaultTheme = 'light',
 	enableSystem = true,
-}: ThemeProviderProps) {
-	const [theme, setThemeState] = useState<ThemeMode>(() =>
+}: ThemeProviderProps) => {
+	const [theme, setTheme] = useState<ThemeMode>(() =>
 		resolveInitialTheme(defaultTheme, enableSystem)
 	);
 	const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
@@ -119,8 +119,11 @@ export function ThemeProvider({
 
 	useEffect(() => {
 		const nextTheme = resolveInitialTheme(defaultTheme, enableSystem);
-		setThemeState(nextTheme);
-		setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
+		const frame = requestAnimationFrame(() => {
+			setTheme(nextTheme);
+			setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
+		});
+		return () => cancelAnimationFrame(frame);
 	}, [defaultTheme, enableSystem]);
 
 	useLayoutEffect(() => {
@@ -131,7 +134,9 @@ export function ThemeProvider({
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 		const syncTheme = () => {
-			setResolvedTheme(resolveThemeMode(theme, enableSystem));
+			requestAnimationFrame(() => {
+				setResolvedTheme(resolveThemeMode(theme, enableSystem));
+			});
 		};
 
 		syncTheme();
@@ -148,7 +153,7 @@ export function ThemeProvider({
 			resolvedTheme,
 			setTheme: (nextTheme) => {
 				disableTransitionsTemporarily();
-				setThemeState(nextTheme);
+				setTheme(nextTheme);
 				setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
 				window.localStorage.setItem(STORAGE_KEY, nextTheme);
 			},
@@ -159,7 +164,7 @@ export function ThemeProvider({
 	return (
 		<ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 	);
-}
+};
 
 export function useTheme() {
 	const context = useContext(ThemeContext);

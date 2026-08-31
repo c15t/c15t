@@ -1,4 +1,5 @@
 import { defaultTranslationConfig } from '@c15t/core';
+import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -254,10 +255,13 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	it('should update callback props on cached runtimes without replaying stale handlers', async () => {
 		const firstOnConsentChanged = vi.fn();
 		const secondOnConsentChanged = vi.fn();
-		let consentManager: ReturnType<typeof useConsentManager> | null = null;
+		const consentManagers: ReturnType<typeof useConsentManager>[] = [];
 
 		const Probe = () => {
-			consentManager = useConsentManager();
+			const consentManager = useConsentManager();
+			useEffect(() => {
+				consentManagers.push(consentManager);
+			}, [consentManager]);
 			return <div>Probe</div>;
 		};
 
@@ -317,11 +321,11 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		await vi.runAllTimersAsync();
 
-		consentManager?.setConsent('measurement', false);
+		consentManagers.at(-1)?.setConsent('measurement', false);
 		await vi.runAllTimersAsync();
 		secondOnConsentChanged.mockClear();
 
-		consentManager?.setConsent('measurement', true);
+		consentManagers.at(-1)?.setConsent('measurement', true);
 		await vi.runAllTimersAsync();
 
 		expect(firstOnConsentChanged).not.toHaveBeenCalled();

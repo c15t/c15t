@@ -161,7 +161,7 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 	const consents = useConsents();
 
 	useEffect(() => {
-		const handle = setTimeout(() => {
+		const updateLoaded = () => {
 			const scriptNodes = Array.from(
 				document.head.querySelectorAll('script[id^="c15t"]')
 			);
@@ -171,9 +171,22 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 					return `${script.id} -> ${src}`;
 				})
 			);
-		}, 20);
-		return () => clearTimeout(handle);
-	}, [consents]);
+		};
+
+		const handle = setTimeout(updateLoaded, 20);
+		const observer = new MutationObserver(updateLoaded);
+		observer.observe(document.head, {
+			attributeFilter: ['id', 'src'],
+			attributes: true,
+			childList: true,
+			subtree: true,
+		});
+
+		return () => {
+			clearTimeout(handle);
+			observer.disconnect();
+		};
+	}, []);
 
 	const expected = scripts.map((script) => {
 		const active = consents[script.category as AllConsentNames] ?? false;

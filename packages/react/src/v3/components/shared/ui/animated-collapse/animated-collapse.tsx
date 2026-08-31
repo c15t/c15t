@@ -89,6 +89,9 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 	useLayoutEffect(() => {
 		const wrapper = wrapperRef.current;
 		const content = contentRef.current;
+		let setupFrame: number | null = null;
+		let transitionFrame: number | null = null;
+		let removeTransitionEnd: (() => void) | null = null;
 
 		// Check for reduced motion preference
 		const prefersReducedMotion = window.matchMedia(
@@ -96,14 +99,20 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 		).matches;
 
 		if (prefersReducedMotion) {
-			setShouldRender(isOpen);
-			setIsAnimating(false);
-			setState({
-				height: isOpen ? 'auto' : 0,
-				overflow: isOpen ? 'visible' : 'hidden',
-				transition: 'none',
+			setupFrame = requestAnimationFrame(() => {
+				setShouldRender(isOpen);
+				setIsAnimating(false);
+				setState({
+					height: isOpen ? 'auto' : 0,
+					overflow: isOpen ? 'visible' : 'hidden',
+					transition: 'none',
+				});
 			});
-			return;
+			return () => {
+				if (setupFrame !== null) {
+					cancelAnimationFrame(setupFrame);
+				}
+			};
 		}
 
 		// Cancel any pending animation frame
@@ -113,102 +122,129 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 
 		if (isOpen) {
 			// Opening: render content first, then animate
-			setShouldRender(true);
-			setIsAnimating(true);
+			setupFrame = requestAnimationFrame(() => {
+				setShouldRender(true);
+				setIsAnimating(true);
 
-			// Wait for content to render before measuring
-			animationRef.current = requestAnimationFrame(() => {
-				const measuredContent = contentRef.current;
-				if (!measuredContent) {
-					setIsAnimating(false);
-					return;
-				}
+				// Wait for content to render before measuring
+				animationRef.current = requestAnimationFrame(() => {
+					const measuredContent = contentRef.current;
+					if (!measuredContent) {
+						setIsAnimating(false);
+						return;
+					}
 
-				const naturalHeight = measuredContent.scrollHeight;
+					const naturalHeight = measuredContent.scrollHeight;
 
-				// Start from 0
-				setState({
-					height: 0,
-					overflow: 'hidden',
-					transition: 'none',
-				});
-
-				// Animate to natural height
-				requestAnimationFrame(() => {
+					// Start from 0
 					setState({
-						height: naturalHeight,
+						height: 0,
 						overflow: 'hidden',
-						transition: `height ${duration}ms ${easing}`,
+						transition: 'none',
 					});
 
-					// After animation, set to auto
-					const handleTransitionEnd = (e: TransitionEvent) => {
-						if (e.propertyName !== 'height') {
+					// Animate to natural height
+					transitionFrame = requestAnimationFrame(() => {
+						setState({
+							height: naturalHeight,
+							overflow: 'hidden',
+							transition: `height ${duration}ms ${easing}`,
+						});
+
+						// After animation, set to auto
+						const handleTransitionEnd = (e: TransitionEvent) => {
+							if (e.propertyName !== 'height') {
+								return;
+							}
+							setState({
+								height: 'auto',
+								overflow: 'visible',
+								transition: 'none',
+							});
+							setIsAnimating(false);
+							wrapper?.removeEventListener(
+								'transitionend',
+								handleTransitionEnd
+							);
+							removeTransitionEnd = null;
+						};
+
+						if (!wrapper) {
 							return;
 						}
-						setState({
-							height: 'auto',
-							overflow: 'visible',
-							transition: 'none',
-						});
-						setIsAnimating(false);
-						wrapper?.removeEventListener('transitionend', handleTransitionEnd);
-					};
-
-					wrapper?.addEventListener('transitionend', handleTransitionEnd);
+						wrapper.addEventListener('transitionend', handleTransitionEnd);
+						removeTransitionEnd = () =>
+							wrapper.removeEventListener('transitionend', handleTransitionEnd);
+					});
 				});
 			});
 		} else {
 			// Closing: animate first, then unmount content
 			if (!wrapper || !content) {
-				setShouldRender(false);
-				setIsAnimating(false);
+				setupFrame = requestAnimationFrame(() => {
+					setShouldRender(false);
+					setIsAnimating(false);
+					setState({
+						height: 0,
+						overflow: 'hidden',
+						transition: 'none',
+					});
+				});
+				return () => {
+					if (setupFrame !== null) {
+						cancelAnimationFrame(setupFrame);
+					}
+				};
+			}
+
+			const currentHeight = content.scrollHeight;
+			setupFrame = requestAnimationFrame(() => {
+				setIsAnimating(true);
 				setState({
-					height: 0,
+					height: currentHeight,
 					overflow: 'hidden',
 					transition: 'none',
 				});
-				return;
-			}
 
-			setIsAnimating(true);
-			const currentHeight = content.scrollHeight;
+				// Animate to 0
+				animationRef.current = requestAnimationFrame(() => {
+					wrapper.offsetHeight; // Force reflow
 
-			// Set explicit height
-			setState({
-				height: currentHeight,
-				overflow: 'hidden',
-				transition: 'none',
-			});
+					setState({
+						height: 0,
+						overflow: 'hidden',
+						transition: `height ${duration}ms ${easing}`,
+					});
 
-			// Animate to 0
-			animationRef.current = requestAnimationFrame(() => {
-				wrapper.offsetHeight; // Force reflow
+					// After animation completes, unmount content
+					const handleTransitionEnd = (e: TransitionEvent) => {
+						if (e.propertyName !== 'height') {
+							return;
+						}
+						setShouldRender(false);
+						setIsAnimating(false);
+						wrapper.removeEventListener('transitionend', handleTransitionEnd);
+						removeTransitionEnd = null;
+					};
 
-				setState({
-					height: 0,
-					overflow: 'hidden',
-					transition: `height ${duration}ms ${easing}`,
+					wrapper.addEventListener('transitionend', handleTransitionEnd);
+					removeTransitionEnd = () =>
+						wrapper.removeEventListener('transitionend', handleTransitionEnd);
 				});
-
-				// After animation completes, unmount content
-				const handleTransitionEnd = (e: TransitionEvent) => {
-					if (e.propertyName !== 'height') {
-						return;
-					}
-					setShouldRender(false);
-					setIsAnimating(false);
-					wrapper.removeEventListener('transitionend', handleTransitionEnd);
-				};
-
-				wrapper.addEventListener('transitionend', handleTransitionEnd);
 			});
 		}
 
 		return () => {
+			if (setupFrame !== null) {
+				cancelAnimationFrame(setupFrame);
+			}
+			if (transitionFrame !== null) {
+				cancelAnimationFrame(transitionFrame);
+			}
 			if (animationRef.current !== null) {
 				cancelAnimationFrame(animationRef.current);
 			}
+			removeTransitionEnd?.();
 		};
 	}, [isOpen, duration, easing]);
 

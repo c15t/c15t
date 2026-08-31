@@ -22,21 +22,21 @@ const MODEL_LABELS: Record<string, string> = {
 	none: 'No banner',
 };
 
-function StatusRow({ label, value }: { label: string; value: string }) {
+const StatusRow = ({ label, value }: { label: string; value: string }) => {
 	return (
 		<div className="border-border/70 border-b pb-2">
 			<p className="label-pixel text-muted-foreground">{label}</p>
 			<p className="mt-1 font-mono text-xs">{value}</p>
 		</div>
 	);
-}
+};
 
 /**
  * Live view of what the consent manager resolved: active policy, model,
  * location, language, plus the current consent decisions. Must be rendered
  * inside a `ConsentManagerProvider`.
  */
-export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
+export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const [mounted, setMounted] = useState(false);
 	const {
 		activeUI,
@@ -57,7 +57,8 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 	} = useConsentManager();
 
 	useEffect(() => {
-		setMounted(true);
+		const frame = requestAnimationFrame(() => setMounted(true));
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	const policy = lastBannerFetchData?.policy;
@@ -245,4 +246,4 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 			</details>
 		</div>
 	);
-}
+};

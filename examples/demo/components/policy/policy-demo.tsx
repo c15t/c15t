@@ -52,6 +52,41 @@ interface DemoLanguageOption {
 	value?: string;
 }
 
+interface PolicyOverrides {
+	country?: string;
+	region?: string;
+}
+
+const policyOverridesCache = new Map<string, PolicyOverrides>();
+
+function createPolicyOverrides(
+	normalizedCountry: string,
+	normalizedRegion: string
+): PolicyOverrides {
+	const cacheKey = `${normalizedCountry}:${normalizedRegion}`;
+	const cachedOverrides = policyOverridesCache.get(cacheKey);
+	if (cachedOverrides) {
+		return cachedOverrides;
+	}
+
+	let overrides: PolicyOverrides;
+	if (normalizedCountry && normalizedRegion) {
+		overrides = {
+			country: normalizedCountry,
+			region: normalizedRegion,
+		};
+	} else if (normalizedCountry) {
+		overrides = { country: normalizedCountry };
+	} else if (normalizedRegion) {
+		overrides = { region: normalizedRegion };
+	} else {
+		overrides = {};
+	}
+
+	policyOverridesCache.set(cacheKey, overrides);
+	return overrides;
+}
+
 // ---------------------------------------------------------------------------
 // Location presets
 // ---------------------------------------------------------------------------
@@ -397,7 +432,7 @@ function buildSearchString(
 	return str ? `?${str}` : '';
 }
 
-function JsonBlock({ label, value }: { label: string; value: unknown }) {
+const JsonBlock = ({ label, value }: { label: string; value: unknown }) => {
 	return (
 		<div className="space-y-2">
 			<p className="label-pixel text-muted-foreground">{label}</p>
@@ -406,13 +441,13 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
 			</pre>
 		</div>
 	);
-}
+};
 
 // ---------------------------------------------------------------------------
 // Runtime state panel
 // ---------------------------------------------------------------------------
 
-function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
+const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	const [mounted, setMounted] = useState(false);
 	const {
 		activeUI,
@@ -435,7 +470,8 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 	} = useConsentManager();
 
 	useEffect(() => {
-		setMounted(true);
+		const frame = requestAnimationFrame(() => setMounted(true));
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	const policy = lastBannerFetchData?.policy;
@@ -658,13 +694,13 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 			/>
 		</div>
 	);
-}
+};
 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-export function PolicyDemo() {
+export const PolicyDemo = () => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -699,17 +735,12 @@ export function PolicyDemo() {
 		[router, pathname]
 	);
 
-	const matchingPreset = useMemo(
-		() =>
-			locationPresets.find(
-				(p) =>
-					p.country === normalizedCountry &&
-					(p.region ?? '') === normalizedRegion
-			),
-		[normalizedCountry, normalizedRegion]
+	const matchingPreset = locationPresets.find(
+		(p) =>
+			p.country === normalizedCountry && (p.region ?? '') === normalizedRegion
 	);
 
-	const resolvedExample = useMemo(() => {
+	const resolvedExample = (() => {
 		if (Object.hasOwn(offlinePoliciesByExample, example)) {
 			return example;
 		}
@@ -722,29 +753,17 @@ export function PolicyDemo() {
 		}
 
 		return DEFAULT_DEMO_POLICY_EXAMPLE;
-	}, [example, matchingPreset]);
+	})();
 
-	const activePreset = useMemo(
-		() =>
-			locationPresets.find((preset) => preset.id === resolvedExample) ??
-			matchingPreset,
-		[resolvedExample, matchingPreset]
-	);
+	const activePreset =
+		locationPresets.find((preset) => preset.id === resolvedExample) ??
+		matchingPreset;
 
 	const selectLocation = (preset: LocationPreset) => {
 		navigate(preset.id, demoMode, preset.country, preset.region ?? '');
 	};
 
-	const overrides = useMemo(() => {
-		const nextOverrides: { country?: string; region?: string } = {};
-		if (normalizedCountry) {
-			nextOverrides.country = normalizedCountry;
-		}
-		if (normalizedRegion) {
-			nextOverrides.region = normalizedRegion;
-		}
-		return nextOverrides;
-	}, [normalizedCountry, normalizedRegion]);
+	const overrides = createPolicyOverrides(normalizedCountry, normalizedRegion);
 
 	const categories: (
 		| 'necessary'
@@ -990,4 +1009,4 @@ export function PolicyDemo() {
 			</div>
 		</main>
 	);
-}
+};

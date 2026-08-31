@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -144,10 +145,12 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 
 	it('should use startTransition for non-blocking state updates during hydration', async () => {
 		// Track if children render before state updates complete
-		let childrenRendered = false;
+		const childrenRendered = vi.fn();
 
 		const TestComponent = () => {
-			childrenRendered = true;
+			useEffect(() => {
+				childrenRendered();
+			}, []);
 			return <div data-testid="hydration-test">Content</div>;
 		};
 
@@ -163,7 +166,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		);
 
 		// Children should render immediately (before timers advance)
-		expect(childrenRendered).toBe(true);
+		expect(childrenRendered).toHaveBeenCalled();
 		expect(getByTestId('hydration-test')).toBeInTheDocument();
 
 		// Advance timers to allow state updates

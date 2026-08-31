@@ -38,7 +38,7 @@ const colorModes = [
 	{ value: 'system', label: 'System', icon: Monitor },
 ] as const;
 
-export function ThemeSwitcherButton() {
+export const ThemeSwitcherButton = () => {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 
@@ -77,9 +77,9 @@ export function ThemeSwitcherButton() {
 			{open && <ThemeSwitcherPanel />}
 		</div>
 	);
-}
+};
 
-function ThemeSwitcherPanel() {
+const ThemeSwitcherPanel = () => {
 	const { preset, setThemePreset } = useThemePreset();
 	const { theme: colorMode, setTheme: setColorMode } = useTheme();
 
@@ -164,7 +164,7 @@ function ThemeSwitcherPanel() {
 			</div>
 		</div>
 	);
-}
+};
 
 export function useThemePreset() {
 	const [mounted, setMounted] = useState(false);
@@ -185,7 +185,8 @@ export function useThemePreset() {
 				for (const l of _listeners) l();
 			}
 		}
-		setMounted(true);
+		const frame = requestAnimationFrame(() => setMounted(true));
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	return {

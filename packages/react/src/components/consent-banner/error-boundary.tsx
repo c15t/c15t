@@ -57,6 +57,8 @@ export class ErrorBoundary extends Component<
 	ErrorBoundaryProps,
 	ErrorBoundaryState
 > {
+	private errorInfo: ErrorInfo | null = null;
+
 	constructor(props: ErrorBoundaryProps) {
 		super(props);
 		this.state = { hasError: false, error: null, errorInfo: null };
@@ -67,7 +69,8 @@ export class ErrorBoundary extends Component<
 	}
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-		this.setState({ error, errorInfo });
+		this.errorInfo = errorInfo;
+		this.forceUpdate();
 		// console.error('Uncaught error:', error, errorInfo);
 		// Optionally log error to an external service
 		// logErrorToService(error, errorInfo)
@@ -77,7 +80,7 @@ export class ErrorBoundary extends Component<
 		if (this.state.hasError) {
 			if (typeof this.props.fallback === 'function') {
 				// oxlint-disable-next-line typescript/no-non-null-assertion -- it's fine
-				return this.props.fallback(this.state.error!, this.state.errorInfo!);
+				return this.props.fallback(this.state.error!, this.errorInfo!);
 			}
 			return this.props.fallback;
 		}

@@ -9,7 +9,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
-import { GlobalThemeContext } from '~/v3/context/theme-context';
+import { StableGlobalThemeProvider } from '~/v3/__tests__/stable-context-providers';
 
 import {
 	Content as AccordionContent,
@@ -53,9 +53,9 @@ import {
 
 // Wrapper to provide theme context for accordion tests
 const ThemeWrapper = ({ children }: { children: ReactNode }) => (
-	<GlobalThemeContext.Provider value={{ noStyle: false }}>
+	<StableGlobalThemeProvider value={{ noStyle: false }}>
 		{children}
-	</GlobalThemeContext.Provider>
+	</StableGlobalThemeProvider>
 );
 
 describe('Button', () => {

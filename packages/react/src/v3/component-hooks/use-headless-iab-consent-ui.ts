@@ -11,10 +11,7 @@ export function useHeadlessIABConsentUI() {
 	const { activeUI, policyBanner, policyDialog, setActiveUI } =
 		useConsentManager();
 
-	const banner = useMemo(
-		() => resolveIABBannerSummary(iab),
-		[iab?.gvl, iab?.nonIABVendors]
-	);
+	const banner = useMemo(() => resolveIABBannerSummary(iab), [iab]);
 
 	const openVendorsDialog = useCallback(() => {
 		iab?.setPreferenceCenterTab('vendors');

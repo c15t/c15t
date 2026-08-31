@@ -37,19 +37,21 @@ function readBannerPaintMs(): number | null {
 	return null;
 }
 
-export function ReactV3BenchmarkProbe({
+export const ReactV3BenchmarkProbe = ({
 	scenario,
 }: {
 	scenario: ReactBenchScenario;
-}) {
+}) => {
 	const activeUI = useActiveUI();
 	const renderRef = useRef(0);
-	renderRef.current += 1;
 
-	const state = getBenchState(scenario);
-	if (state) {
-		state.renderCount = renderRef.current;
-	}
+	useEffect(() => {
+		renderRef.current += 1;
+		const state = getBenchState(scenario);
+		if (state) {
+			state.renderCount = renderRef.current;
+		}
+	});
 
 	useEffect(() => {
 		const current = getBenchState(scenario);
@@ -146,4 +148,4 @@ export function ReactV3BenchmarkProbe({
 	}, [activeUI, scenario]);
 
 	return null;
-}
+};

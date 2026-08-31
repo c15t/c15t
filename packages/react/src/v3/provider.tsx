@@ -73,6 +73,12 @@ import type { Theme } from './types/theme';
 import type { V3UIConfigValue } from './ui-config-context';
 import { defaultTranslationConfig } from './utils/default-translation-config';
 
+const loadNetworkBlockerModule = () =>
+	import('@c15t/core/v3/modules/network-blocker');
+const loadScriptLoaderModule = () =>
+	import('@c15t/core/v3/modules/script-loader');
+const loadThemeModule = () => import('@c15t/ui/theme');
+
 type ProviderMode = 'hosted' | 'offline' | 'custom' | 'c15t';
 
 type ProviderIABOptions =
@@ -144,7 +150,6 @@ export interface ConsentProviderOptions extends Pick<
 	endpointHandlers?: CustomClientOptions['endpointHandlers'];
 	/**
 	 * Adapter package name reported by `window.c15t`.
-	 *
 	 * @internal
 	 */
 	__debugPkg?: string;
@@ -543,7 +548,10 @@ function useProviderCallbacks(
 	const callbacksRef = useRef(callbacks);
 	const saveStartedSnapshotRef = useRef<ConsentSnapshot | null>(null);
 	const saveNotifiedRef = useRef(false);
-	callbacksRef.current = callbacks;
+
+	useEffect(() => {
+		callbacksRef.current = callbacks;
+	}, [callbacks]);
 
 	useEffect(() => {
 		const notifyConsentSaved = (
@@ -721,7 +729,7 @@ function useProviderOptionSync(
 	}, [options]);
 }
 
-function InitMount({
+const InitMount = ({
 	enabled,
 	kernel,
 	eagerInit = false,
@@ -729,7 +737,7 @@ function InitMount({
 	enabled: boolean;
 	kernel: ConsentKernel;
 	eagerInit?: boolean;
-}) {
+}) => {
 	const skippedEagerRef = useRef(false);
 	useEffect(() => {
 		if (!enabled) return;
@@ -743,15 +751,15 @@ function InitMount({
 		void kernel.commands.init();
 	}, [enabled, kernel, eagerInit]);
 	return null;
-}
+};
 
-function ScriptsMount({
+const ScriptsMount = ({
 	options,
 	scripts,
 }: {
 	options?: UseScriptLoaderOptions;
 	scripts: Script[];
-}) {
+}) => {
 	const kernel = useContext(KernelContext);
 	const handleRef = useRef<{
 		dispose: () => void;
@@ -760,15 +768,16 @@ function ScriptsMount({
 	const latestScriptsRef = useRef(scripts);
 	const latestOptionsRef = useRef(options);
 
-	latestScriptsRef.current = scripts;
-	latestOptionsRef.current = options;
+	useEffect(() => {
+		latestScriptsRef.current = scripts;
+		latestOptionsRef.current = options;
+	}, [options, scripts]);
 
 	useEffect(() => {
 		if (!kernel) return;
 		let disposed = false;
 		void (async () => {
-			const { createScriptLoader } =
-				await import('@c15t/core/v3/modules/script-loader');
+			const { createScriptLoader } = await loadScriptLoaderModule();
 			if (disposed) return;
 			const created = createScriptLoader({
 				kernel,
@@ -789,13 +798,13 @@ function ScriptsMount({
 	}, [scripts]);
 
 	return null;
-}
+};
 
-function NetworkBlockerMount({
+const NetworkBlockerMount = ({
 	options,
 }: {
 	options: UseNetworkBlockerOptions;
-}) {
+}) => {
 	const kernel = useContext(KernelContext);
 	const handleRef = useRef<{
 		dispose: () => void;
@@ -803,14 +812,16 @@ function NetworkBlockerMount({
 		setEnabled: (enabled: boolean) => void;
 	} | null>(null);
 	const latestOptionsRef = useRef(options);
-	latestOptionsRef.current = options;
+
+	useEffect(() => {
+		latestOptionsRef.current = options;
+	}, [options]);
 
 	useEffect(() => {
 		if (!kernel) return;
 		let disposed = false;
 		void (async () => {
-			const { createNetworkBlocker } =
-				await import('@c15t/core/v3/modules/network-blocker');
+			const { createNetworkBlocker } = await loadNetworkBlockerModule();
 			if (disposed) return;
 			const latest = latestOptionsRef.current;
 			const created = createNetworkBlocker({
@@ -840,20 +851,20 @@ function NetworkBlockerMount({
 	}, [options.enabled]);
 
 	return null;
-}
+};
 
-function PersistenceMount({ options }: { options?: UsePersistenceOptions }) {
+const PersistenceMount = ({ options }: { options?: UsePersistenceOptions }) => {
 	usePersistence(options);
 	return null;
-}
+};
 
-function WindowDebugMount({
+const WindowDebugMount = ({
 	pkg,
 	mode,
 }: {
 	pkg: string;
 	mode: WindowDebugMode;
-}) {
+}) => {
 	useEffect(() => {
 		// The module is tiny and dependency-free; `createWindowDebug` itself
 		// guards against pages that made `window.c15t` non-writable.
@@ -862,20 +873,20 @@ function WindowDebugMount({
 	}, [mode, pkg]);
 
 	return null;
-}
+};
 
-function ThemeStyleMount({ theme }: { theme?: Theme }) {
+const ThemeStyleMount = ({ theme }: { theme?: Theme }) => {
 	const [themeCSS, setThemeCSS] = useState('');
 
 	useEffect(() => {
 		if (!theme) {
-			setThemeCSS('');
-			return;
+			const frame = requestAnimationFrame(() => setThemeCSS(''));
+			return () => cancelAnimationFrame(frame);
 		}
 
 		let disposed = false;
 		void (async () => {
-			const { generateThemeCSS } = await import('@c15t/ui/theme');
+			const { generateThemeCSS } = await loadThemeModule();
 			if (!disposed) {
 				setThemeCSS(generateThemeCSS(theme as never));
 			}
@@ -895,9 +906,9 @@ function ThemeStyleMount({ theme }: { theme?: Theme }) {
 			dangerouslySetInnerHTML={{ __html: themeCSS }}
 		/>
 	);
-}
+};
 
-function IABGate({
+const IABGate = ({
 	enabled,
 	initialModel,
 	kernel,
@@ -909,7 +920,7 @@ function IABGate({
 	kernel: ConsentKernel;
 	options: Omit<IABProviderProps, 'children'> | null;
 	children: ReactNode;
-}) {
+}) => {
 	const model = useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot().model,
@@ -919,15 +930,15 @@ function IABGate({
 		model === 'iab' || (model == null && initialModel === 'iab');
 
 	if (!enabled || !options || !shouldLoadIAB) {
-		return <>{children}</>;
+		return children;
 	}
 
 	return (
-		<Suspense fallback={<>{children}</>}>
+		<Suspense fallback={children}>
 			<LazyIABProvider {...options}>{children}</LazyIABProvider>
 		</Suspense>
 	);
-}
+};
 
 function normalizePersistenceOptions(
 	options: ConsentProviderOptions
@@ -967,8 +978,11 @@ function normalizeIabOptions(
  * snapshot into React state; selector hooks still subscribe directly to
  * the kernel through `useSyncExternalStore`.
  */
-export function ConsentProvider({ options, children }: ConsentProviderProps) {
-	const [{ kernel, eagerInit }] = useState(() => {
+export const ConsentProvider = ({
+	options,
+	children,
+}: ConsentProviderProps) => {
+	const [providerKernelState, setProviderKernelState] = useState(() => {
 		const created = createProviderKernel(options);
 		// Kick the init roundtrip off during first client render so its
 		// network latency overlaps hydration instead of following it — with
@@ -982,6 +996,8 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 		}
 		return { kernel: created, eagerInit: shouldEagerInit };
 	});
+	void setProviderKernelState;
+	const { kernel, eagerInit } = providerKernelState;
 	const enabled = getEnabled(options);
 	const reloadOnConsentRevoked =
 		(options.reloadOnConsentRevoked ??
@@ -1079,4 +1095,4 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 			</V3ThemeProvider>
 		</KernelContext.Provider>
 	);
-}
+};

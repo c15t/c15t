@@ -3,6 +3,10 @@ import { defaultTranslationConfig } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentWidget } from '~/components/consent-widget';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
@@ -64,8 +68,8 @@ async function renderPolicyActions(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider value={{ noStyle: false }}>
-			<ConsentStateContext.Provider
+		<StableGlobalThemeProvider value={{ noStyle: false }}>
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -90,8 +94,8 @@ async function renderPolicyActions(
 						</button>
 					)}
 				/>
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 
@@ -101,8 +105,8 @@ async function renderDefaultPolicyActions(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider value={{ noStyle: false }}>
-			<ConsentStateContext.Provider
+		<StableGlobalThemeProvider value={{ noStyle: false }}>
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -114,8 +118,8 @@ async function renderDefaultPolicyActions(
 				}}
 			>
 				<ConsentWidget.PolicyActions />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 
@@ -126,7 +130,7 @@ async function renderWidget(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider
+		<StableGlobalThemeProvider
 			value={{
 				noStyle: false,
 				theme: {
@@ -134,7 +138,7 @@ async function renderWidget(
 				},
 			}}
 		>
-			<ConsentStateContext.Provider
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -146,8 +150,8 @@ async function renderWidget(
 				}}
 			>
 				<ConsentWidget hideBranding={false} />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 

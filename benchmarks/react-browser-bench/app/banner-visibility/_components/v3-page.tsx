@@ -19,15 +19,17 @@ const BENCHMARK_POLICY = {
 	},
 };
 
-function V3Probe() {
+const V3Probe = () => {
 	const activeUI = useActiveUI();
 	const renderRef = useRef(0);
-	renderRef.current += 1;
 
-	const state = getBenchState('v3');
-	if (state) {
-		state.renderCount = renderRef.current;
-	}
+	useEffect(() => {
+		renderRef.current += 1;
+		const state = getBenchState('v3');
+		if (state) {
+			state.renderCount = renderRef.current;
+		}
+	});
 
 	useEffect(() => {
 		const current = getBenchState('v3');
@@ -41,9 +43,9 @@ function V3Probe() {
 	}, [activeUI]);
 
 	return null;
-}
+};
 
-export function V3BannerVisibilityPage() {
+export const V3BannerVisibilityPage = () => {
 	return (
 		<ConsentProvider
 			options={{
@@ -70,4 +72,4 @@ export function V3BannerVisibilityPage() {
 			<ConsentBanner disableAnimation />
 		</ConsentProvider>
 	);
-}
+};

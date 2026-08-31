@@ -28,9 +28,12 @@ type LucideIconProps = SVGProps<SVGSVGElement> & {
 	iconPath: JSX.Element;
 };
 
-export const LucideIcon = ({ title, iconPath }: LucideIconProps) => {
+export const createLucideIcon = ({ title, iconPath }: LucideIconProps) => {
 	const IconComponent = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement>>(
 		(svgProps, ref) => Icon(svgProps, ref, title, iconPath)
 	);
+	IconComponent.displayName = `${title}Icon`;
 	return IconComponent as ElementType;
 };
+
+export const LucideIcon = createLucideIcon;

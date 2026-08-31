@@ -115,10 +115,10 @@ export interface ConsentDraftProviderProps {
 	initial?: Partial<ConsentState>;
 }
 
-export function ConsentDraftProvider({
+export const ConsentDraftProvider = ({
 	children,
 	initial,
-}: ConsentDraftProviderProps) {
+}: ConsentDraftProviderProps) => {
 	const kernel = useContext(KernelContext);
 	const parentStore = useContext(DraftContext);
 	if (!kernel) {
@@ -130,11 +130,12 @@ export function ConsentDraftProvider({
 	const shouldUseParentStore = Boolean(parentStore && !initial);
 
 	// Seed the store exactly once. `initial` wins, then kernel's current consents.
-	const [store] = useState(() => {
+	const [store, setStore] = useState(() => {
 		const base = kernel.getSnapshot().consents as ConsentState;
 		const seed: ConsentState = initial ? { ...base, ...initial } : base;
 		return createDraftStore(seed);
 	});
+	void setStore;
 
 	// Re-seed whenever the kernel's consents change externally (e.g.
 	// another tab wrote to storage and persistence hydrated). Only fires
@@ -166,13 +167,13 @@ export function ConsentDraftProvider({
 	}, [kernel, shouldUseParentStore, store]);
 
 	if (shouldUseParentStore) {
-		return <>{children}</>;
+		return children;
 	}
 
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
 	);
-}
+};
 
 function useKernelOrThrow() {
 	const kernel = useContext(KernelContext);
@@ -195,9 +196,10 @@ export function useConsentDraft(): ConsentDraftHandle {
 
 	// If no provider is in scope, create a component-local draft store.
 	// This is fine for single-dialog usage.
-	const [local] = useState(() =>
+	const [local, setLocal] = useState(() =>
 		createDraftStore(kernel.getSnapshot().consents as ConsentState)
 	);
+	void setLocal;
 	const store = shared ?? local;
 
 	const values = useSyncExternalStore(

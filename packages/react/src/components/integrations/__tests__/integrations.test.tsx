@@ -1,10 +1,11 @@
 import { defaultTranslationConfig } from '@c15t/core';
 import type { ConsentStoreState } from '@c15t/core';
-import { createRef, useRef, useState } from 'react';
+import { createRef, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useConsentScript } from '~/hooks/use-consent-script';
 import {
@@ -61,7 +62,7 @@ async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 	throw new Error('Timed out waiting for assertion');
 }
 
-function Provider({ children }: { children: ReactNode }) {
+const Provider = ({ children }: { children: ReactNode }) => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -72,7 +73,7 @@ function Provider({ children }: { children: ReactNode }) {
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};
 
 function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
 	const state = {
@@ -101,41 +102,42 @@ function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
 	return state;
 }
 
-function MockConsentProvider({
+const MockConsentProvider = ({
 	children,
 	state,
 }: {
 	children: ReactNode;
 	state: ConsentStoreState;
-}) {
-	const stateRef = useRef(state);
-	stateRef.current = state;
-	const storeRef = useRef({
-		getState: () => stateRef.current,
-		setState: () => undefined,
-		subscribe: () => () => undefined,
-	});
+}) => {
+	const store = useMemo(
+		() => ({
+			getState: () => state,
+			setState: () => undefined,
+			subscribe: () => () => undefined,
+		}),
+		[state]
+	);
 
 	return (
-		<ConsentStateContext.Provider
+		<StableConsentStateProvider
 			value={{
 				state,
-				store: storeRef.current,
+				store,
 				manager: null,
 			}}
 		>
 			{children}
-		</ConsentStateContext.Provider>
+		</StableConsentStateProvider>
 	);
-}
+};
 
-function ConsentScriptProbe({
+const ConsentScriptProbe = ({
 	retryKey,
 	script,
 }: {
 	retryKey?: string | number;
 	script: Parameters<typeof useConsentScript>[0]['script'];
-}) {
+}) => {
 	const result = useConsentScript({ retryKey, script });
 	let readyText = 'missing-ready-promise';
 	if (result.ready) {
@@ -149,9 +151,9 @@ function ConsentScriptProbe({
 			<span>{result.error?.message}</span>
 		</div>
 	);
-}
+};
 
-function InlineConsentScriptProbe({ onLoad }: { onLoad: () => void }) {
+const InlineConsentScriptProbe = ({ onLoad }: { onLoad: () => void }) => {
 	const result = useConsentScript({
 		script: {
 			id: 'inline-script',
@@ -162,9 +164,9 @@ function InlineConsentScriptProbe({ onLoad }: { onLoad: () => void }) {
 	});
 
 	return <span>{result.status}</span>;
-}
+};
 
-function ToggleGoogleMap({ onReady }: { onReady: () => void }) {
+const ToggleGoogleMap = ({ onReady }: { onReady: () => void }) => {
 	const [visible, setVisible] = useState(true);
 
 	return (
@@ -186,9 +188,9 @@ function ToggleGoogleMap({ onReady }: { onReady: () => void }) {
 			)}
 		</>
 	);
-}
+};
 
-function UpdatingGoogleMap() {
+const UpdatingGoogleMap = () => {
 	const [renderCount, setRenderCount] = useState(0);
 	const [useAlternateView, setUseAlternateView] = useState(false);
 
@@ -231,7 +233,7 @@ function UpdatingGoogleMap() {
 			/>
 		</>
 	);
-}
+};
 
 describe('renderable integrations', () => {
 	beforeEach(() => {

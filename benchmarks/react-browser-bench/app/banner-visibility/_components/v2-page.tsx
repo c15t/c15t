@@ -21,15 +21,17 @@ const BENCHMARK_POLICY = {
 	},
 };
 
-function V2Probe() {
+const V2Probe = () => {
 	const { activeUI } = useConsentManager();
 	const renderRef = useRef(0);
-	renderRef.current += 1;
 
-	const state = getBenchState('v2');
-	if (state) {
-		state.renderCount = renderRef.current;
-	}
+	useEffect(() => {
+		renderRef.current += 1;
+		const state = getBenchState('v2');
+		if (state) {
+			state.renderCount = renderRef.current;
+		}
+	});
 
 	useEffect(() => {
 		const current = getBenchState('v2');
@@ -43,9 +45,9 @@ function V2Probe() {
 	}, [activeUI]);
 
 	return null;
-}
+};
 
-export function V2BannerVisibilityPage() {
+export const V2BannerVisibilityPage = () => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -79,4 +81,4 @@ export function V2BannerVisibilityPage() {
 			<ConsentBanner disableAnimation />
 		</ConsentManagerProvider>
 	);
-}
+};

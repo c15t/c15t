@@ -10,7 +10,7 @@ import type * as C15tCoreTypes from '@c15t/core';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
@@ -19,6 +19,7 @@ import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import type { ThemeContextValue } from '~/v3/context/theme-context';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
+import { useIsHydrated } from '~/v3/hooks/use-is-hydrated';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -28,6 +29,8 @@ import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 import { Overlay } from './overlay';
+
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
 
 /**
  * Props for the root component of the ConsentDialog.
@@ -104,7 +107,7 @@ export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement
 const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	children,
 	open: openProp,
-	models = ['opt-in', 'opt-out'],
+	models = DEFAULT_MODELS,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
@@ -142,10 +145,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const contentRef = useRef<HTMLDivElement>(null);
 
 	// Handle mounting (avoid SSR mismatch when using portal)
-	const [isMounted, setIsMounted] = useState(false);
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
+	const isMounted = useIsHydrated();
 
 	// Get animation duration from theme
 	const animationDuration = globalTheme.theme?.motion?.duration?.normal;
@@ -153,17 +153,19 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Manage visibility with respect to animation
 	useEffect(() => {
 		if (isOpen) {
-			setIsVisible(true);
-		} else if (disableAnimation) {
-			setIsVisible(false);
-		} else {
-			// Get duration from theme tokens, falling back to 200ms
-			const durationStr = animationDuration || '200ms';
-			const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
-
-			const timer = setTimeout(() => setIsVisible(false), duration);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+		if (disableAnimation) {
+			const frame = requestAnimationFrame(() => setIsVisible(false));
+			return () => cancelAnimationFrame(frame);
+		}
+		// Get duration from theme tokens, falling back to 200ms
+		const durationStr = animationDuration || '200ms';
+		const duration = Number.parseInt(durationStr.replace('ms', ''), 10);
+
+		const timer = setTimeout(() => setIsVisible(false), duration);
+		return () => clearTimeout(timer);
 	}, [isOpen, disableAnimation, animationDuration]);
 
 	// Trap focus when dialog open
@@ -209,16 +211,23 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 		),
 		noStyle,
 	});
-	const contextValue: ThemeContextValue = {
-		disableAnimation,
-		noStyle,
-		scrollLock,
-		trapFocus,
-		theme: globalTheme.theme,
-	};
+	const contextValue = useMemo<ThemeContextValue>(
+		() => ({
+			disableAnimation,
+			noStyle,
+			scrollLock,
+			trapFocus,
+			theme: globalTheme.theme,
+		}),
+		[disableAnimation, globalTheme.theme, noStyle, scrollLock, trapFocus]
+	);
+	const trackingContextValue = useMemo(
+		() => ({ uiSource: uiSource ?? 'dialog' }),
+		[uiSource]
+	);
 
 	const dialogNode = (
-		<ConsentTrackingContext.Provider value={{ uiSource: uiSource ?? 'dialog' }}>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
 				{isOpen && (
 					<>

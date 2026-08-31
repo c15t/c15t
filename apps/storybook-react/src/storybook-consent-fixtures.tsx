@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { iab } from '../../../packages/iab/src/index';
@@ -96,15 +96,13 @@ export const defaultIABOptions: ConsentManagerOptions = {
 	},
 };
 
-export function StorybookConsentProvider({
+export const StorybookConsentProvider = ({
 	children,
 	options,
 	storedConsent,
 	tcString = null,
-}: StorybookProviderProps) {
-	const initializedRef = useRef(false);
-
-	if (!initializedRef.current) {
+}: StorybookProviderProps) => {
+	const [initialized, setInitialized] = useState(() => {
 		resetStorybookConsentState();
 
 		if (storedConsent) {
@@ -112,8 +110,10 @@ export function StorybookConsentProvider({
 		}
 
 		seedTCString(tcString);
-		initializedRef.current = true;
-	}
+		return true;
+	});
+	void initialized;
+	void setInitialized;
 
 	return (
 		<ConsentManagerProvider
@@ -125,17 +125,15 @@ export function StorybookConsentProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};
 
-export function StorybookIABProvider({
+export const StorybookIABProvider = ({
 	children,
 	options,
 	storedConsent,
 	tcString = 'COtybn4Otybn4AcABBENAPCgAAAAAAAAAAwAA4AuAAA',
-}: StorybookProviderProps) {
-	const initializedRef = useRef(false);
-
-	if (!initializedRef.current) {
+}: StorybookProviderProps) => {
+	const [initialized, setInitialized] = useState(() => {
 		resetStorybookConsentState();
 
 		if (storedConsent) {
@@ -143,8 +141,10 @@ export function StorybookIABProvider({
 		}
 
 		seedTCString(tcString);
-		initializedRef.current = true;
-	}
+		return true;
+	});
+	void initialized;
+	void setInitialized;
 
 	return (
 		<ConsentManagerProvider
@@ -156,4 +156,4 @@ export function StorybookIABProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

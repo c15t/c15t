@@ -9,6 +9,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useRequiredKernel } from './shared';
 
+const loadScriptLoaderModule = () =>
+	import('@c15t/core/v3/modules/script-loader');
+
 export interface UseScriptLoaderOptions {
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
 }
@@ -22,10 +25,7 @@ export function useScriptLoader(
 	const latestScriptsRef = useRef(scripts);
 	const latestOptionsRef = useRef(options);
 
-	latestScriptsRef.current = scripts;
-	latestOptionsRef.current = options;
-
-	const [handle] = useState<ScriptLoaderHandle>(() => ({
+	const [handle, setHandle] = useState<ScriptLoaderHandle>(() => ({
 		dispose() {
 			handleRef.current?.dispose();
 			handleRef.current = null;
@@ -38,6 +38,12 @@ export function useScriptLoader(
 			return handleRef.current?.getLoadedScriptIds() ?? [];
 		},
 	}));
+	void setHandle;
+
+	useEffect(() => {
+		latestScriptsRef.current = scripts;
+		latestOptionsRef.current = options;
+	}, [options, scripts]);
 
 	const firstRun = useRef(true);
 	useEffect(() => {
@@ -51,8 +57,7 @@ export function useScriptLoader(
 	useEffect(() => {
 		let disposed = false;
 		void (async () => {
-			const { createScriptLoader } =
-				await import('@c15t/core/v3/modules/script-loader');
+			const { createScriptLoader } = await loadScriptLoaderModule();
 			if (disposed) return;
 			const created = createScriptLoader({
 				kernel,

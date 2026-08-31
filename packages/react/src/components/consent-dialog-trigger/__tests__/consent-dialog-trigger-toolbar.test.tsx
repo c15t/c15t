@@ -6,6 +6,10 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
 
@@ -65,8 +69,8 @@ function renderWithConsentState(
 	}: { noStyle?: boolean; state?: ConsentStoreState } = {}
 ): ConsentStoreState {
 	render(
-		<GlobalThemeContext.Provider value={{ noStyle }}>
-			<ConsentStateContext.Provider
+		<StableGlobalThemeProvider value={{ noStyle }}>
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -78,8 +82,8 @@ function renderWithConsentState(
 				}}
 			>
 				{children}
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 
 	return state;

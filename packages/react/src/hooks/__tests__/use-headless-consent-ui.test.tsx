@@ -2,6 +2,7 @@ import type { ConsentStoreState } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
+import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 
 import { useHeadlessConsentUI } from '../use-headless-consent-ui';
@@ -38,21 +39,23 @@ function createMockState(
 }
 
 function createWrapper(state: ConsentStoreState) {
-	return ({ children }: { children: React.ReactNode }) => (
-		<ConsentStateContext.Provider
-			value={{
-				state,
-				store: {
-					getState: () => state,
-					subscribe: () => () => undefined,
-					setState: () => undefined,
-				},
-				manager: null,
-			}}
-		>
-			{children}
-		</ConsentStateContext.Provider>
-	);
+	return function ({ children }: { children: React.ReactNode }) {
+		return (
+			<StableConsentStateProvider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				{children}
+			</StableConsentStateProvider>
+		);
+	};
 }
 
 describe('useHeadlessConsentUI', () => {

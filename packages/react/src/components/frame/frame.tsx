@@ -4,86 +4,85 @@ import type { AllConsentNames } from '@c15t/core';
 import { forwardRef, useEffect, useState } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useTranslations } from '~/hooks/use-translations';
 
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
-const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
-	(
-		{ children, category, placeholder, noStyle, className, theme, ...props },
-		ref
-	) => {
-		const {
-			has,
-			updateConsentCategories,
-			consentCategories,
-			policyCategories,
-			policyScopeMode,
-		} = useConsentManager();
-		const { frame } = useTranslations();
-		const [isMounted, setIsMounted] = useState(false);
-		const [isReady, setIsReady] = useState(false);
+const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(function (
+	{ children, category, placeholder, noStyle, className, theme, ...props },
+	ref
+) {
+	const {
+		has,
+		updateConsentCategories,
+		consentCategories,
+		policyCategories,
+		policyScopeMode,
+	} = useConsentManager();
+	const { frame } = useTranslations();
+	const isMounted = useIsHydrated();
+	const [isReady, setIsReady] = useState(false);
 
-		const hasConsent = has(category);
-		const hasPolicyScope =
-			Array.isArray(policyCategories) &&
-			policyCategories.length > 0 &&
-			!policyCategories.includes('*');
-		const isOutOfPolicyCategory =
-			hasPolicyScope && !policyCategories.includes(category);
-		const isStrictPolicyBlocked =
-			policyScopeMode === 'strict' && isOutOfPolicyCategory;
+	const hasConsent = has(category);
+	const hasPolicyScope =
+		Array.isArray(policyCategories) &&
+		policyCategories.length > 0 &&
+		!policyCategories.includes('*');
+	const isOutOfPolicyCategory =
+		hasPolicyScope && !policyCategories.includes(category);
+	const isStrictPolicyBlocked =
+		policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
-		// oxlint-disable-next-line react/exhaustive-deps -- we only want to update the consent categories when the component is mounted
-		useEffect(() => {
-			setIsMounted(true);
+	useEffect(() => {
+		if (!consentCategories.includes(category)) {
 			updateConsentCategories([...consentCategories, category]);
-		}, [category]);
+		}
+	}, [category, consentCategories, updateConsentCategories]);
 
-		// Wait for next frame to ensure styles are loaded
-		useEffect(() => {
-			if (isMounted) {
-				requestAnimationFrame(() => {
-					setIsReady(true);
-				});
-			}
-		}, [isMounted]);
+	// Wait for next frame to ensure styles are loaded
+	useEffect(() => {
+		if (isMounted) {
+			requestAnimationFrame(() => {
+				setIsReady(true);
+			});
+		}
+	}, [isMounted]);
 
-		const renderContent = () => {
-			// Before ready, show nothing to prevent FOUC
-			if (!isMounted || !isReady) {
-				return null;
-			}
+	const renderContent = () => {
+		// Before ready, show nothing to prevent FOUC
+		if (!isMounted || !isReady) {
+			return null;
+		}
 
-			// After ready, show children if consent is granted
-			if (hasConsent) {
-				return children;
-			}
+		// After ready, show children if consent is granted
+		if (hasConsent) {
+			return children;
+		}
 
-			// Otherwise show placeholder
-			return (
-				placeholder || (
-					<DefaultPlaceholder
-						category={category}
-						policyBlocked={isStrictPolicyBlocked}
-						policyBlockedMessage={frame?.policyBlocked}
-					/>
-				)
-			);
-		};
-
+		// Otherwise show placeholder
 		return (
-			<div
-				ref={ref}
-				className={className}
-				{...props}
-			>
-				{renderContent()}
-			</div>
+			placeholder || (
+				<DefaultPlaceholder
+					category={category}
+					policyBlocked={isStrictPolicyBlocked}
+					policyBlockedMessage={frame?.policyBlocked}
+				/>
+			)
 		);
-	}
-);
+	};
+
+	return (
+		<div
+			ref={ref}
+			className={className}
+			{...props}
+		>
+			{renderContent()}
+		</div>
+	);
+});
 
 FrameComponent.displayName = 'Frame';
 

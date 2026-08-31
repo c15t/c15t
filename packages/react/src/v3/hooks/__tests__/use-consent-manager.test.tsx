@@ -2,6 +2,7 @@ import type { ConsentStoreState } from '@c15t/core';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
+import { StableConsentStateProvider } from '~/v3/__tests__/stable-context-providers';
 import { ConsentStateContext } from '~/v3/context/consent-manager-context';
 import {
 	ConsentManagerProvider,
@@ -101,7 +102,7 @@ describe('useConsentManager', () => {
 
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
-				<ConsentStateContext.Provider
+				<StableConsentStateProvider
 					value={{
 						state,
 						store: {
@@ -113,7 +114,7 @@ describe('useConsentManager', () => {
 					}}
 				>
 					{children}
-				</ConsentStateContext.Provider>
+				</StableConsentStateProvider>
 			),
 		});
 

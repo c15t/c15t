@@ -4,6 +4,10 @@ import type { ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import {
+	StableConsentStateProvider,
+	StableGlobalThemeProvider,
+} from '~/__tests__/stable-context-providers';
 import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
@@ -68,8 +72,8 @@ async function renderWithConsentState(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider value={themeOverrides}>
-			<ConsentStateContext.Provider
+		<StableGlobalThemeProvider value={themeOverrides}>
+			<StableConsentStateProvider
 				value={{
 					state,
 					store: {
@@ -81,8 +85,8 @@ async function renderWithConsentState(
 				}}
 			>
 				{ui}
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			</StableConsentStateProvider>
+		</StableGlobalThemeProvider>
 	);
 }
 

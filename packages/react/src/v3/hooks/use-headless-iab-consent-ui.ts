@@ -66,10 +66,7 @@ export function useHeadlessIABConsentUI(): UseHeadlessIABConsentUIResult {
 	} = useIABConsentManager();
 	const isIABEnabled = Boolean(iab?.config.enabled);
 
-	const bannerSummary = useMemo(
-		() => resolveIABBannerSummary(iab),
-		[iab?.gvl, iab?.nonIABVendors]
-	);
+	const bannerSummary = useMemo(() => resolveIABBannerSummary(iab), [iab]);
 
 	const openBanner = useCallback<UseHeadlessIABConsentUIResult['openBanner']>(
 		(options) => {

@@ -86,7 +86,7 @@ function resolveGeoOverrides(
  * }
  * ```
  */
-export function ConsentManager({ children }: ConsentManagerProps) {
+export const ConsentManager = ({ children }: ConsentManagerProps) => {
 	const { theme, mounted } = useThemePreset();
 	const pathname = usePathname();
 	const [search, setSearch] = useState(() =>
@@ -123,12 +123,12 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 		};
 
 		window.history.pushState = function pushState(...args) {
-			originalPushState.apply(this, args);
+			originalPushState.apply(window.history, args);
 			notifySearchChange();
 		};
 
 		window.history.replaceState = function replaceState(...args) {
-			originalReplaceState.apply(this, args);
+			originalReplaceState.apply(window.history, args);
 			notifySearchChange();
 		};
 
@@ -146,15 +146,18 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 
 	useEffect(() => {
 		const nextOverrides = resolveGeoOverrides(search);
-		setGeoOverrides((currentOverrides) => {
-			if (
-				currentOverrides?.country === nextOverrides?.country &&
-				currentOverrides?.region === nextOverrides?.region
-			) {
-				return currentOverrides;
-			}
-			return nextOverrides;
+		const frame = requestAnimationFrame(() => {
+			setGeoOverrides((currentOverrides) => {
+				if (
+					currentOverrides?.country === nextOverrides?.country &&
+					currentOverrides?.region === nextOverrides?.region
+				) {
+					return currentOverrides;
+				}
+				return nextOverrides;
+			});
 		});
+		return () => cancelAnimationFrame(frame);
 	}, [search]);
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
@@ -188,7 +191,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 	}
 
 	if (isPolicyDemo || isPolicyActionsDemo) {
-		return <>{children}</>;
+		return children;
 	}
 
 	return (
@@ -251,4 +254,4 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

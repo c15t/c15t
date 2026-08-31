@@ -5,9 +5,12 @@ import type {
 	NetworkBlockerHandle,
 	NetworkBlockerRule,
 } from '@c15t/core/v3/modules/network-blocker';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useRequiredKernel } from './shared';
+
+const loadNetworkBlockerModule = () =>
+	import('@c15t/core/v3/modules/network-blocker');
 
 export interface UseNetworkBlockerOptions {
 	rules: NetworkBlockerRule[];
@@ -24,27 +27,26 @@ export function useNetworkBlocker(
 	const latestRulesRef = useRef(options.rules);
 	const latestEnabledRef = useRef(options.enabled);
 
-	latestRulesRef.current = options.rules;
-	latestEnabledRef.current = options.enabled;
+	const [handle, setHandle] = useState<NetworkBlockerHandle>(() => ({
+		dispose() {
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		},
+		updateRules(next) {
+			latestRulesRef.current = next;
+			handleRef.current?.updateRules(next);
+		},
+		setEnabled(enabled) {
+			latestEnabledRef.current = enabled;
+			handleRef.current?.setEnabled(enabled);
+		},
+	}));
+	void setHandle;
 
-	const facadeRef = useRef<NetworkBlockerHandle | null>(null);
-	if (!facadeRef.current) {
-		facadeRef.current = {
-			dispose() {
-				handleRef.current?.dispose();
-				handleRef.current = null;
-			},
-			updateRules(next) {
-				latestRulesRef.current = next;
-				handleRef.current?.updateRules(next);
-			},
-			setEnabled(enabled) {
-				latestEnabledRef.current = enabled;
-				handleRef.current?.setEnabled(enabled);
-			},
-		};
-	}
-	const handle = facadeRef.current;
+	useEffect(() => {
+		latestRulesRef.current = options.rules;
+		latestEnabledRef.current = options.enabled;
+	}, [options.enabled, options.rules]);
 
 	const firstRules = useRef(true);
 	useEffect(() => {
@@ -64,8 +66,7 @@ export function useNetworkBlocker(
 	useEffect(() => {
 		let disposed = false;
 		void (async () => {
-			const { createNetworkBlocker } =
-				await import('@c15t/core/v3/modules/network-blocker');
+			const { createNetworkBlocker } = await loadNetworkBlockerModule();
 			if (disposed) return;
 			const created = createNetworkBlocker({
 				kernel,

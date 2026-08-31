@@ -2,6 +2,10 @@ import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import {
+	StableGlobalThemeProvider,
+	StableLocalThemeProvider,
+} from '~/v3/__tests__/stable-context-providers';
+import {
 	GlobalThemeContext,
 	LocalThemeContext,
 } from '~/v3/context/theme-context';
@@ -22,9 +26,9 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
 					{children}
-				</GlobalThemeContext.Provider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -53,11 +57,11 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 
@@ -94,11 +98,11 @@ describe('useTheme', () => {
 
 		const { result } = await renderHook(() => useTheme(), {
 			wrapper: ({ children }) => (
-				<GlobalThemeContext.Provider value={globalTheme}>
-					<LocalThemeContext.Provider value={localTheme}>
+				<StableGlobalThemeProvider value={globalTheme}>
+					<StableLocalThemeProvider value={localTheme}>
 						{children}
-					</LocalThemeContext.Provider>
-				</GlobalThemeContext.Provider>
+					</StableLocalThemeProvider>
+				</StableGlobalThemeProvider>
 			),
 		});
 

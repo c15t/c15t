@@ -6,7 +6,7 @@ import {
 } from '@c15t/ui/primitives/collapsible';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { collapsibleVariants } from '@c15t/ui/styles/primitives/collapsible';
-import { createContext, forwardRef, useContext, useId } from 'react';
+import { createContext, forwardRef, useContext, useId, useMemo } from 'react';
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
@@ -45,7 +45,7 @@ export interface CollapsibleRootProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
-	(
+	function (
 		{
 			children,
 			className,
@@ -57,7 +57,7 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 			...rest
 		},
 		forwardedRef
-	) => {
+	) {
 		const reactId = useId().replace(/:/g, '');
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = collapsibleVariants();
@@ -67,18 +67,20 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 			value: open,
 		});
 		const finalNoStyle = contextNoStyle || noStyle;
+		const contextValue = useMemo(
+			() => ({
+				contentId: `c15t-collapsible-content-${reactId}`,
+				disabled,
+				noStyle: finalNoStyle,
+				open: isOpen,
+				setOpen: setIsOpen,
+				triggerId: `c15t-collapsible-trigger-${reactId}`,
+			}),
+			[disabled, finalNoStyle, isOpen, reactId, setIsOpen]
+		);
 
 		return (
-			<CollapsibleContext.Provider
-				value={{
-					contentId: `c15t-collapsible-content-${reactId}`,
-					disabled,
-					noStyle: finalNoStyle,
-					open: isOpen,
-					setOpen: setIsOpen,
-					triggerId: `c15t-collapsible-trigger-${reactId}`,
-				}}
-			>
+			<CollapsibleContext.Provider value={contextValue}>
 				<div
 					ref={forwardedRef}
 					className={
@@ -108,7 +110,7 @@ export interface CollapsibleTriggerProps extends Omit<
 const CollapsibleTrigger = forwardRef<
 	HTMLButtonElement,
 	CollapsibleTriggerProps
->(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
+>(function ({ children, className, noStyle, onClick, ...rest }, forwardedRef) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = collapsibleVariants();
 	const {
@@ -157,7 +159,10 @@ export interface CollapsibleContentProps extends HTMLAttributes<HTMLDivElement> 
 }
 
 const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
-	({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
+	function (
+		{ children, className, innerClassName, noStyle, ...rest },
+		forwardedRef
+	) {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = collapsibleVariants();
 		const {

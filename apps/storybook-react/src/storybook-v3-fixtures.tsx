@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { iab } from '../../../packages/iab/src/index';
@@ -60,15 +60,13 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
  * mode. v3 hydrates from the same storage format as v2, so the v2 seed
  * helpers are reused as-is.
  */
-export function StorybookV3ConsentProvider({
+export const StorybookV3ConsentProvider = ({
 	children,
 	options,
 	storedConsent,
 	tcString = null,
-}: StorybookV3ProviderProps) {
-	const initializedRef = useRef(false);
-
-	if (!initializedRef.current) {
+}: StorybookV3ProviderProps) => {
+	const [initialized, setInitialized] = useState(() => {
 		clearV3ConsentRuntimeCache();
 		resetStorybookConsentState();
 
@@ -77,8 +75,10 @@ export function StorybookV3ConsentProvider({
 		}
 
 		seedTCString(tcString);
-		initializedRef.current = true;
-	}
+		return true;
+	});
+	void initialized;
+	void setInitialized;
 
 	return (
 		<ConsentProvider
@@ -90,7 +90,7 @@ export function StorybookV3ConsentProvider({
 			{children}
 		</ConsentProvider>
 	);
-}
+};
 
 interface StorybookV3IABProviderProps {
 	children: ReactNode;
@@ -116,15 +116,13 @@ export const defaultV3IABOptions: ConsentManagerOptions = {
  * `ConsentManagerProvider` compat wrapper with an offline IAB policy and an
  * injected GVL (no network).
  */
-export function StorybookV3IABProvider({
+export const StorybookV3IABProvider = ({
 	children,
 	options,
 	storedConsent,
 	tcString = null,
-}: StorybookV3IABProviderProps) {
-	const initializedRef = useRef(false);
-
-	if (!initializedRef.current) {
+}: StorybookV3IABProviderProps) => {
+	const [initialized, setInitialized] = useState(() => {
 		clearV3ConsentRuntimeCache();
 		resetStorybookConsentState();
 
@@ -133,8 +131,10 @@ export function StorybookV3IABProvider({
 		}
 
 		seedTCString(tcString);
-		initializedRef.current = true;
-	}
+		return true;
+	});
+	void initialized;
+	void setInitialized;
 
 	return (
 		<ConsentManagerProvider
@@ -146,4 +146,4 @@ export function StorybookV3IABProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};
