@@ -42,6 +42,7 @@ describe('useScrollLock', () => {
 			<div>
 				<button
 					data-testid="toggle"
+					type="button"
 					onClick={() => setLocked((prev) => !prev)}
 				>
 					Toggle Lock ({locked ? 'locked' : 'unlocked'})
@@ -173,6 +174,7 @@ describe('useScrollLock', () => {
 					<div>
 						<button
 							data-testid="toggle"
+							type="button"
 							onClick={() => setShow((p) => !p)}
 						>
 							Toggle

@@ -12,6 +12,9 @@ import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
 /** Custom vendor not registered with IAB */
+const EMPTY_CUSTOM_VENDORS: CustomVendor[] = [];
+const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
+
 interface CustomVendor {
 	id: string | number;
 	name: string;
@@ -50,8 +53,8 @@ export const VendorList: FC<VendorListProps> = ({
 	onVendorToggle,
 	selectedVendorId,
 	onClearSelection,
-	customVendors = [],
-	vendorLegitimateInterests = {},
+	customVendors = EMPTY_CUSTOM_VENDORS,
+	vendorLegitimateInterests = EMPTY_VENDOR_INTERESTS,
 	onVendorLegitimateInterestToggle,
 }) => {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -116,8 +119,10 @@ export const VendorList: FC<VendorListProps> = ({
 
 	useEffect(() => {
 		if (selectedVendorId !== null) {
-			setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
-			setTimeout(() => {
+			const frame = requestAnimationFrame(() => {
+				setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
+			});
+			const scrollTimer = setTimeout(() => {
 				const element = document.getElementById(
 					`vendor-${String(selectedVendorId)}`
 				);
@@ -125,6 +130,10 @@ export const VendorList: FC<VendorListProps> = ({
 					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
 				}
 			}, 100);
+			return () => {
+				cancelAnimationFrame(frame);
+				clearTimeout(scrollTimer);
+			};
 		}
 	}, [selectedVendorId]);
 
@@ -215,7 +224,7 @@ export const VendorList: FC<VendorListProps> = ({
 			}));
 	};
 
-	return (
+	const vendorListContent = (
 		<div>
 			{selectedVendorId !== null ? (
 				<div className={styles.selectedVendorBanner}>
@@ -358,7 +367,7 @@ export const VendorList: FC<VendorListProps> = ({
 			{filteredVendors.length === 0 && (
 				<div className={styles.emptyState}>
 					<p className={styles.emptyStateText}>
-						No vendors found matching "{searchTerm}"
+						No vendors found matching &quot;{searchTerm}&quot;
 					</p>
 				</div>
 			)}
@@ -713,8 +722,8 @@ export const VendorList: FC<VendorListProps> = ({
 						<div className={styles.vendorPurposesList}>
 							<h4 className={styles.vendorPurposesTitle}>
 								<svg
-									aria-label={iab.preferenceCenter.vendorList.specialPurposes}
-									role="img"
+									aria-hidden="true"
+									focusable="false"
 									style={{
 										width: '0.75rem',
 										height: '0.75rem',
@@ -817,4 +826,6 @@ export const VendorList: FC<VendorListProps> = ({
 			</PreferenceItem.Root>
 		);
 	}
+
+	return vendorListContent;
 };

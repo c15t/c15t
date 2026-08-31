@@ -33,7 +33,7 @@ type ConsentDialogCardProps = {
 } & ClassNameStyle;
 
 const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
-	({ children, ...props }, ref) => {
+	function ({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -48,6 +48,8 @@ const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
 	}
 );
 
+ConsentDialogCard.displayName = 'ConsentDialogCard';
+
 /**
  * The header section of the consent dialog.
  * Should contain the ConsentDialogHeaderTitle and optionally ConsentDialogHeaderDescription.
@@ -60,7 +62,7 @@ const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
 const ConsentDialogHeader = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -74,6 +76,8 @@ const ConsentDialogHeader = forwardRef<
 	);
 });
 
+ConsentDialogHeader.displayName = 'ConsentDialogHeader';
+
 /**
  * The title component for the consent dialog header.
  * Displays the main heading of the consent management interface.
@@ -86,7 +90,7 @@ const ConsentDialogHeader = forwardRef<
 const ConsentDialogHeaderTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { consentManagerDialog: consentDialog } = useTranslations();
 	return (
 		<Box
@@ -96,13 +100,14 @@ const ConsentDialogHeaderTitle = forwardRef<
 			{...props}
 			id="consent-dialog-title"
 			data-testid="consent-dialog-title"
-			role="heading"
-			aria-level={2}
+			asChild
 		>
-			{children ?? consentDialog.title}
+			<h2>{children ?? consentDialog.title}</h2>
 		</Box>
 	);
 });
+
+ConsentDialogHeaderTitle.displayName = 'ConsentDialogHeaderTitle';
 
 /**
  * The description component for the consent dialog header.
@@ -119,7 +124,7 @@ const ConsentDialogHeaderDescription = forwardRef<
 	Omit<BoxProps, 'themeKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
->(({ children, legalLinks, asChild, ...props }, ref) => {
+>(function ({ children, legalLinks, asChild, ...props }, ref) {
 	const { consentManagerDialog: consentDialog } = useTranslations();
 	if (asChild) {
 		return (
@@ -153,6 +158,8 @@ const ConsentDialogHeaderDescription = forwardRef<
 	);
 });
 
+ConsentDialogHeaderDescription.displayName = 'ConsentDialogHeaderDescription';
+
 /**
  * The main content area of the consent dialog.
  * Contains the consent management interface and privacy controls.
@@ -165,7 +172,7 @@ const ConsentDialogHeaderDescription = forwardRef<
 const ConsentDialogContent = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -179,6 +186,8 @@ const ConsentDialogContent = forwardRef<
 	);
 });
 
+ConsentDialogContent.displayName = 'ConsentDialogContent';
+
 /**
  * The footer section of the consent dialog.
  * This contains the branding but can be overidden with a custom footer.
@@ -186,34 +195,34 @@ const ConsentDialogContent = forwardRef<
 const ConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	BoxProps & { hideBranding?: boolean; 'data-testid'?: string }
->(
-	(
-		{ children, themeKey, hideBranding, 'data-testid': testId, ...props },
-		ref
-	) => {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={cn(
-					styles.footer,
-					children == null && !hideBranding && styles.brandingFooter
-				)}
-				data-testid={testId ?? 'consent-dialog-footer'}
-				{...props}
-				themeKey={themeKey ?? 'consentDialogFooter'}
-			>
-				{children ?? (
-					<Branding
-						hideBranding={hideBranding ?? false}
-						variant="dialog-tag"
-						themeKey="consentDialogTag"
-						data-testid="consent-dialog-branding"
-					/>
-				)}
-			</Box>
-		);
-	}
-);
+>(function (
+	{ children, themeKey, hideBranding, 'data-testid': testId, ...props },
+	ref
+) {
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={cn(
+				styles.footer,
+				children == null && !hideBranding && styles.brandingFooter
+			)}
+			data-testid={testId ?? 'consent-dialog-footer'}
+			{...props}
+			themeKey={themeKey ?? 'consentDialogFooter'}
+		>
+			{children ?? (
+				<Branding
+					hideBranding={hideBranding ?? false}
+					variant="dialog-tag"
+					themeKey="consentDialogTag"
+					data-testid="consent-dialog-branding"
+				/>
+			)}
+		</Box>
+	);
+});
+
+ConsentDialogFooter.displayName = 'ConsentDialogFooter';
 
 interface BrandingProps {
 	hideBranding: boolean;
@@ -223,9 +232,9 @@ interface BrandingProps {
 	'data-testid'?: string;
 }
 
-export function Branding(props: BrandingProps) {
+export const Branding = (props: BrandingProps) => {
 	return <BrandingLink {...props} />;
-}
+};
 
 /**
  * A pre-configured privacy settings card.

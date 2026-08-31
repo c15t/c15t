@@ -55,7 +55,9 @@ export function VideoDemo({
 				<div className="space-y-3">
 					<div>
 						<h3 className="text-base font-medium">
-							<code className="font-mono text-sm">category="measurement"</code>
+							<code className="font-mono text-sm">
+								category=&quot;measurement&quot;
+							</code>
 						</h3>
 						<p className="text-muted-foreground text-sm">
 							Unlocks when measurement consent is given.
@@ -73,7 +75,9 @@ export function VideoDemo({
 				<div className="space-y-3">
 					<div>
 						<h3 className="text-base font-medium">
-							<code className="font-mono text-sm">category="marketing"</code>
+							<code className="font-mono text-sm">
+								category=&quot;marketing&quot;
+							</code>
 						</h3>
 						<p className="text-muted-foreground text-sm">
 							Unlocks when marketing consent is given.

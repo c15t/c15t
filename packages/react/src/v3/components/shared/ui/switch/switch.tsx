@@ -40,100 +40,98 @@ export interface SwitchProps
 	size?: SwitchSize;
 }
 
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
-	(
-		{
-			checked,
-			className,
-			defaultChecked = false,
-			disabled,
-			noStyle,
-			onCheckedChange,
-			onClick,
-			onKeyDown,
-			size = 'medium',
-			type = 'button',
-			...rest
-		},
-		forwardedRef
-	) => {
-		const { components } = useUIConfig();
-		const { noStyle: contextNoStyle } = useTheme();
-		const variants = switchVariants();
-		const [isChecked, setIsChecked] = useControllableState({
-			defaultValue: defaultChecked,
-			onChange: onCheckedChange,
-			value: checked,
-		});
-		const finalNoStyle = noStyle ?? contextNoStyle;
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function (
+	{
+		checked,
+		className,
+		defaultChecked = false,
+		disabled,
+		noStyle,
+		onCheckedChange,
+		onClick,
+		onKeyDown,
+		size = 'medium',
+		type = 'button',
+		...rest
+	},
+	forwardedRef
+) {
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
+	const variants = switchVariants();
+	const [isChecked, setIsChecked] = useControllableState({
+		defaultValue: defaultChecked,
+		onChange: onCheckedChange,
+		value: checked,
+	});
+	const finalNoStyle = noStyle ?? contextNoStyle;
 
-		const rootProps = mergeSlotProps(components?.switch?.root, {
-			baseClassName: variants.root(),
-			className,
-			noStyle: finalNoStyle,
-			...rest,
-		});
-		const trackProps = mergeSlotProps(components?.switch?.track, {
-			baseClassName: variants.track(),
-			noStyle: finalNoStyle,
-		});
-		const thumbProps = mergeSlotProps(components?.switch?.thumb, {
-			baseClassName: variants.thumb(),
-			noStyle: finalNoStyle,
-		});
-		const dataState = getSwitchState(isChecked);
-		const dataDisabled = getDataDisabled(disabled);
+	const rootProps = mergeSlotProps(components?.switch?.root, {
+		baseClassName: variants.root(),
+		className,
+		noStyle: finalNoStyle,
+		...rest,
+	});
+	const trackProps = mergeSlotProps(components?.switch?.track, {
+		baseClassName: variants.track(),
+		noStyle: finalNoStyle,
+	});
+	const thumbProps = mergeSlotProps(components?.switch?.thumb, {
+		baseClassName: variants.thumb(),
+		noStyle: finalNoStyle,
+	});
+	const dataState = getSwitchState(isChecked);
+	const dataDisabled = getDataDisabled(disabled);
 
-		const toggle = () => {
-			if (disabled) {
-				return;
-			}
+	const toggle = () => {
+		if (disabled) {
+			return;
+		}
 
-			setIsChecked(toggleSwitchValue(isChecked));
-		};
+		setIsChecked(toggleSwitchValue(isChecked));
+	};
 
-		const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+	const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+		toggle();
+		onClick?.(event);
+	};
+
+	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (event.key === 'Enter') {
+			event.preventDefault();
 			toggle();
-			onClick?.(event);
-		};
+		}
 
-		const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-			if (event.key === 'Enter') {
-				event.preventDefault();
-				toggle();
-			}
+		onKeyDown?.(event);
+	};
 
-			onKeyDown?.(event);
-		};
-
-		return (
-			<button
-				{...rootProps}
-				ref={forwardedRef}
-				aria-checked={isChecked}
-				data-disabled={dataDisabled}
-				data-size={finalNoStyle ? undefined : size}
-				data-slot="switch"
-				data-state={dataState}
-				disabled={disabled}
-				onClick={handleClick}
-				onKeyDown={handleKeyDown}
-				role="switch"
-				type={type}
+	return (
+		<button
+			{...rootProps}
+			ref={forwardedRef}
+			aria-checked={isChecked}
+			data-disabled={dataDisabled}
+			data-size={finalNoStyle ? undefined : size}
+			data-slot="switch"
+			data-state={dataState}
+			disabled={disabled}
+			onClick={handleClick}
+			onKeyDown={handleKeyDown}
+			role="switch"
+			type="button"
+		>
+			<span
+				{...trackProps}
+				data-slot="switch-track"
 			>
 				<span
-					{...trackProps}
-					data-slot="switch-track"
-				>
-					<span
-						{...thumbProps}
-						data-slot="switch-thumb"
-					/>
-				</span>
-			</button>
-		);
-	}
-);
+					{...thumbProps}
+					data-slot="switch-thumb"
+				/>
+			</span>
+		</button>
+	);
+});
 
 Switch.displayName = 'SwitchRoot';
 

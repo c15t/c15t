@@ -123,9 +123,12 @@
 		width: min(100%, var(--iab-cd-max-width));
 		max-height: var(--iab-cd-max-height);
 		min-height: 0;
+		margin: 0;
+		padding: 0;
 		border-radius: var(--iab-cd-border-radius);
 		border: 1px solid var(--iab-cd-border-color);
 		background-color: var(--iab-cd-background-color);
+		color: inherit;
 		box-shadow: var(--iab-cd-shadow);
 		display: flex;
 		flex-direction: column;

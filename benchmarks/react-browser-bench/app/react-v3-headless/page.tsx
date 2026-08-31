@@ -22,7 +22,7 @@ const consentCategories = [
 	'marketing',
 ] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
-function HeadlessBenchmarkUI() {
+const HeadlessBenchmarkUI = () => {
 	const activeUI = useActiveUI();
 	const hasMeasurement = useConsent('measurement');
 	const saveConsents = useSaveConsents();
@@ -50,6 +50,7 @@ function HeadlessBenchmarkUI() {
 			<div style={{ display: 'flex', gap: '1rem' }}>
 				<button
 					id="react-v3-headless-accept"
+					type="button"
 					onClick={async () => {
 						markInteraction(scenario, 'acceptAllMs');
 						await saveConsents('all');
@@ -59,6 +60,7 @@ function HeadlessBenchmarkUI() {
 				</button>
 				<button
 					id="react-v3-headless-reject"
+					type="button"
 					onClick={async () => {
 						markInteraction(scenario, 'rejectAllMs');
 						await saveConsents('none');
@@ -68,6 +70,7 @@ function HeadlessBenchmarkUI() {
 				</button>
 				<button
 					id="react-v3-headless-open"
+					type="button"
 					onClick={() => {
 						markInteraction(scenario, 'openPreferencesMs');
 						setActiveUI('dialog');
@@ -78,9 +81,9 @@ function HeadlessBenchmarkUI() {
 			</div>
 		</main>
 	);
-}
+};
 
-export default function ReactV3HeadlessPage() {
+const ReactV3HeadlessPage = () => {
 	return (
 		<ConsentProvider
 			options={{
@@ -116,4 +119,6 @@ export default function ReactV3HeadlessPage() {
 			<HeadlessBenchmarkUI />
 		</ConsentProvider>
 	);
-}
+};
+
+export default ReactV3HeadlessPage;

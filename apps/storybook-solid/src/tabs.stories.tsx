@@ -39,7 +39,7 @@ const defaultTabs: Tab[] = [
 	},
 ];
 
-function TabsDemo(props: { tabs?: Tab[] }) {
+const TabsDemo = (props: { tabs?: Tab[] }) => {
 	const tabs = () => props.tabs ?? defaultTabs;
 	const [active, setActive] = createSignal('overview');
 	const classes = tabsVariants();
@@ -82,6 +82,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 				class={classes.list()}
 				role="tablist"
 				onKeyDown={handleKeyDown}
+				tabIndex={-1}
 			>
 				<For each={tabs()}>
 					{(tab) => (
@@ -123,7 +124,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 			</For>
 		</div>
 	);
-}
+};
 
 const meta = {
 	component: TabsDemo,
@@ -187,6 +188,7 @@ export const Controlled: Story = {
 		return (
 			<div class={classes.root()}>
 				<div
+					tabIndex={0}
 					class={classes.list()}
 					role="tablist"
 					onKeyDown={handleKeyDown}

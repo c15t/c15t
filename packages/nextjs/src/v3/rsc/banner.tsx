@@ -92,11 +92,11 @@ export interface RscConsentBannerProps {
 	children?: ReactNode;
 }
 
-export function RscConsentBanner({
+export const RscConsentBanner = ({
 	config,
 	classNames,
 	children,
-}: RscConsentBannerProps) {
+}: RscConsentBannerProps) => {
 	if (!shouldRenderBanner(config)) {
 		return null;
 	}
@@ -104,12 +104,12 @@ export function RscConsentBanner({
 
 	return (
 		<RscBannerGate>
-			<div
+			<dialog
 				aria-label={copy.title}
 				aria-modal="false"
 				className={classNames?.root}
 				data-testid="consent-banner-root"
-				role="dialog"
+				open
 				style={
 					classNames?.root
 						? undefined
@@ -145,7 +145,7 @@ export function RscConsentBanner({
 						rejectLabel={copy.rejectLabel}
 					/>
 				</div>
-			</div>
+			</dialog>
 		</RscBannerGate>
 	);
-}
+};

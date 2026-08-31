@@ -779,7 +779,7 @@ describe('Dialog', () => {
 		await userEvent.click(trigger);
 
 		await vi.waitFor(() => {
-			const dialog = document.querySelector('[role="dialog"]');
+			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
 			expect(dialog?.getAttribute('aria-labelledby')).toBeTruthy();
 			expect(dialog?.getAttribute('aria-describedby')).toBeTruthy();
@@ -794,7 +794,7 @@ describe('Dialog', () => {
 		await userEvent.click(closeButton);
 
 		await vi.waitFor(() => {
-			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.querySelector('dialog[open]')).not.toBeInTheDocument();
 		});
 	});
 
@@ -813,7 +813,7 @@ describe('Dialog', () => {
 		trigger.focus();
 		await userEvent.click(trigger);
 
-		const dialog = document.querySelector('[role="dialog"]');
+		const dialog = document.querySelector('dialog[open]');
 		expect(dialog).toBeInstanceOf(HTMLElement);
 		if (!dialog) {
 			throw new Error('Expected dialog to exist');
@@ -822,7 +822,7 @@ describe('Dialog', () => {
 		await userEvent.keyboard('{Escape}');
 
 		await vi.waitFor(() => {
-			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.querySelector('dialog[open]')).not.toBeInTheDocument();
 			expect(document.activeElement).toBe(trigger);
 		});
 	});
@@ -843,7 +843,7 @@ describe('Dialog', () => {
 		await userEvent.click(trigger);
 
 		await vi.waitFor(() => {
-			const dialog = document.querySelector('[role="dialog"]');
+			const dialog = document.querySelector('dialog[open]');
 			expect(dialog).toBeInTheDocument();
 			// Focus trap moves focus into the dialog — either to the
 			// initialFocusRef element or to the dialog container itself.

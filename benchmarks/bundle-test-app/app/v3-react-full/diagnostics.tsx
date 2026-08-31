@@ -234,8 +234,8 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 			</table>
 			{loaded.length === 0 ? (
 				<p style={{ color: '#94a3b8', fontSize: 13, marginTop: 12 }}>
-					No c15t-managed scripts in the DOM yet. Click "Accept All" or toggle a
-					category.
+					No c15t-managed scripts in the DOM yet. Click &quot;Accept All&quot;
+					or toggle a category.
 				</p>
 			) : null}
 		</section>
@@ -259,13 +259,15 @@ function SnapshotDebug() {
 			</p>
 			<ul style={{ margin: 0, paddingLeft: 20 }}>
 				<li>
-					<code>useConsent('marketing')</code>: {String(marketing)}
+					<code>useConsent(&apos;marketing&apos;)</code>: {String(marketing)}
 				</li>
 				<li>
-					<code>useConsent('measurement')</code>: {String(measurement)}
+					<code>useConsent(&apos;measurement&apos;)</code>:{' '}
+					{String(measurement)}
 				</li>
 				<li>
-					<code>useConsent('functionality')</code>: {String(functionality)}
+					<code>useConsent(&apos;functionality&apos;)</code>:{' '}
+					{String(functionality)}
 				</li>
 			</ul>
 		</section>

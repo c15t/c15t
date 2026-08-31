@@ -229,7 +229,7 @@ export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElem
 const PreferenceItemTitle = forwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
->(({ className, noStyle, ...rest }, forwardedRef) => {
+>(({ children, className, noStyle, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
 	const variants = preferenceItemVariants();
@@ -243,7 +243,9 @@ const PreferenceItemTitle = forwardRef<
 			}
 			data-slot={PREFERENCE_ITEM_SLOTS.title}
 			{...rest}
-		/>
+		>
+			{children}
+		</h3>
 	);
 });
 

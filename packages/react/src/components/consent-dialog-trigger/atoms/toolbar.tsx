@@ -129,7 +129,7 @@ export interface TriggerToolbarProps extends Omit<
 /**
  * A draggable group of app-owned actions and one built-in preferences action.
  */
-export function TriggerToolbar({
+export const TriggerToolbar = ({
 	actions,
 	preferences,
 	size = 'md',
@@ -138,7 +138,7 @@ export function TriggerToolbar({
 	className,
 	style,
 	noStyle = false,
-}: TriggerToolbarProps): ReactNode {
+}: TriggerToolbarProps): ReactNode => {
 	const {
 		corner,
 		isDragging,
@@ -260,6 +260,7 @@ export function TriggerToolbar({
 			dir="ltr"
 			onKeyDown={handleToolbarKeyDown}
 			role="toolbar"
+			tabIndex={-1}
 			style={{ ...toolbarDOMStyle.style, ...dragStyle }}
 			{...handlers}
 		>
@@ -300,6 +301,6 @@ export function TriggerToolbar({
 			))}
 		</div>
 	);
-}
+};
 
 TriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

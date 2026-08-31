@@ -3,13 +3,13 @@
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef } from 'react';
-import type { HTMLAttributes, ReactNode, RefObject } from 'react';
+import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 
-interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
 	children: ReactNode;
 }
 
@@ -22,9 +22,9 @@ interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
  * @public
  */
 const IABConsentBannerCard = forwardRef<
-	HTMLDivElement,
+	HTMLDialogElement,
 	IABConsentBannerCardProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	const { trapFocus } = useTheme();
 
 	useFocusTrap(Boolean(trapFocus), ref as RefObject<HTMLElement>);
@@ -36,17 +36,17 @@ const IABConsentBannerCard = forwardRef<
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
-		<div
+		<dialog
 			ref={ref}
 			{...domStyleProps}
 			tabIndex={-1}
-			role="dialog"
+			open
 			aria-modal={trapFocus ? 'true' : undefined}
 			data-testid="iab-consent-banner-card"
 			{...props}
 		>
 			{children}
-		</div>
+		</dialog>
 	);
 });
 

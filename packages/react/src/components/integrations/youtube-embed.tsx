@@ -181,7 +181,7 @@ const defaultIframeStyle: CSSProperties = {
  * ```
  */
 export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
-	(
+	function (
 		{
 			videoId,
 			src,
@@ -205,7 +205,7 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 			...iframeProps
 		},
 		forwardedRef
-	) => {
+	) {
 		const embedSrc =
 			src ??
 			(videoId
@@ -291,6 +291,7 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 							onLoad?.(event);
 						}}
 						ref={forwardedRef}
+						sandbox="allow-scripts allow-presentation"
 						src={embedSrc}
 						style={{
 							...defaultIframeStyle,

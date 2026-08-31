@@ -3,7 +3,7 @@
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, useEffect, useState } from 'react';
-import type { HTMLAttributes, ReactNode, RefObject } from 'react';
+import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
@@ -13,7 +13,7 @@ import { cnExt as cn } from '~/utils/cn';
 
 import { useIABTranslations } from '../use-iab-translations';
 
-interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
 	children: ReactNode;
 }
 
@@ -26,9 +26,9 @@ interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
  * @public
  */
 const IABConsentDialogCard = forwardRef<
-	HTMLDivElement,
+	HTMLDialogElement,
 	IABConsentDialogCardProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	const { trapFocus } = useTheme();
 	const { activeUI } = useConsentManager();
 	const iabTranslations = useIABTranslations();
@@ -39,13 +39,13 @@ const IABConsentDialogCard = forwardRef<
 
 	useEffect(() => {
 		if (showDialog) {
-			setIsVisible(true);
-		} else {
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, 150);
-			return () => clearTimeout(timer);
+			const frame = requestAnimationFrame(() => setIsVisible(true));
+			return () => cancelAnimationFrame(frame);
 		}
+		const timer = setTimeout(() => {
+			setIsVisible(false);
+		}, 150);
+		return () => clearTimeout(timer);
 	}, [showDialog]);
 
 	const themedStyle = useStyles('iabConsentDialogCard', {
@@ -58,10 +58,10 @@ const IABConsentDialogCard = forwardRef<
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
-		<div
+		<dialog
 			ref={ref}
 			{...domStyleProps}
-			role="dialog"
+			open
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}
 			tabIndex={-1}
@@ -69,7 +69,7 @@ const IABConsentDialogCard = forwardRef<
 			{...props}
 		>
 			{children}
-		</div>
+		</dialog>
 	);
 });
 

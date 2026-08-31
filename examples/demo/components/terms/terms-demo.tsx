@@ -248,8 +248,8 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 								<div>
 									<CardTitle>Identify the user</CardTitle>
 									<CardDescription>
-										Use c15t's identify flow to store the external account and
-										link immediately if a subject already exists.
+										Use c15t&apos;s identify flow to store the external account
+										and link immediately if a subject already exists.
 									</CardDescription>
 								</div>
 							</div>
@@ -341,7 +341,7 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 							<div className="border-border/70 bg-muted/35 rounded-2xl border p-4 text-sm">
 								<p className="font-medium">What this step does</p>
 								<p className="text-muted-foreground mt-2">
-									This button now uses the consent manager's
+									This button now uses the consent manager&apos;s
 									<code className="bg-background mx-1 rounded px-1.5 py-0.5 text-xs">
 										identifyUser()
 									</code>
@@ -512,11 +512,10 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 						</section>
 
 						<section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-							<div
+							<output
 								aria-atomic="true"
 								aria-live="polite"
 								className={`rounded-[24px] border p-5 text-sm shadow-sm ${feedbackClassName}`}
-								role="status"
 							>
 								<p className="text-xs tracking-[0.18em] uppercase">
 									Request status
@@ -525,7 +524,7 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 									{feedback?.message ||
 										'No write has been sent yet. Identify a user to begin the flow.'}
 								</p>
-							</div>
+							</output>
 
 							<div className="border-border/70 bg-background/90 rounded-[24px] border p-5 shadow-sm">
 								<p className="text-muted-foreground text-xs tracking-[0.18em] uppercase">

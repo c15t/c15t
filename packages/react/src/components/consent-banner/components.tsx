@@ -46,19 +46,18 @@ const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
 const ConsentBannerTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { cookieBanner: consentBanner } = useTranslations();
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
 			data-testid="consent-banner-title"
-			role="heading"
-			aria-level={2}
 			themeKey="consentBannerTitle"
 			{...props}
+			asChild
 		>
-			{children ?? consentBanner.title}
+			<h2>{children ?? consentBanner.title}</h2>
 		</Box>
 	);
 });
@@ -85,7 +84,7 @@ const ConsentBannerDescription = forwardRef<
 	Omit<BoxProps, 'themeKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
->(({ children, legalLinks, asChild, ...props }, ref) => {
+>(function ({ children, legalLinks, asChild, ...props }, ref) {
 	const { cookieBanner: consentBanner } = useTranslations();
 
 	if (asChild) {
@@ -142,7 +141,7 @@ ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
 const ConsentBannerFooter = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -177,7 +176,7 @@ ConsentBannerFooter.displayName = CONSENT_BANNER_FOOTER_NAME;
 const ConsentBannerCard = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { trapFocus } = useTheme();
 	const { cookieBanner } = useTranslations();
 	const localRef = useRef<HTMLDivElement>(null);
@@ -216,7 +215,7 @@ ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
 const ConsentBannerHeader = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -242,7 +241,7 @@ ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
 const ConsentBannerFooterSubGroup = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -275,7 +274,7 @@ ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
 const ConsentBannerRejectButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -302,7 +301,7 @@ ConsentBannerRejectButton.displayName = CONSENT_BANNER_REJECT_BUTTON_NAME;
 const ConsentBannerCustomizeButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -336,7 +335,7 @@ ConsentBannerCustomizeButton.displayName = CONSENT_BANNER_CUSTOMIZE_BUTTON_NAME;
 const ConsentBannerAcceptButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	const { noStyle } = useTheme();
 	return (

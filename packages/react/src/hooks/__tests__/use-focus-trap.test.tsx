@@ -30,22 +30,33 @@ describe('useFocusTrap', () => {
 		shouldTrap?: boolean;
 		onKeyDown?: (e: React.KeyboardEvent) => void;
 	}) => {
-		const containerRef = useRef<HTMLDivElement>(null);
+		const containerRef = useRef<HTMLDialogElement>(null);
 		useFocusTrap(shouldTrap, containerRef);
 
 		return (
-			<div
+			<dialog
 				ref={containerRef}
 				data-testid="trap-container"
 				onKeyDown={onKeyDown}
+				open
 			>
-				<button data-testid="button-1">First</button>
+				<button
+					data-testid="button-1"
+					type="button"
+				>
+					First
+				</button>
 				<input
 					data-testid="input-1"
 					type="text"
 				/>
-				<button data-testid="button-2">Second</button>
-			</div>
+				<button
+					data-testid="button-2"
+					type="button"
+				>
+					Second
+				</button>
+			</dialog>
 		);
 	};
 
@@ -59,6 +70,7 @@ describe('useFocusTrap', () => {
 			<div>
 				<button
 					data-testid="toggle"
+					type="button"
 					onClick={() => setTrapEnabled((prev) => !prev)}
 				>
 					Toggle Trap ({trapEnabled ? 'enabled' : 'disabled'})
@@ -67,8 +79,18 @@ describe('useFocusTrap', () => {
 					ref={containerRef}
 					data-testid="trap-container"
 				>
-					<button data-testid="button-1">First</button>
-					<button data-testid="button-2">Second</button>
+					<button
+						data-testid="button-1"
+						type="button"
+					>
+						First
+					</button>
+					<button
+						data-testid="button-2"
+						type="button"
+					>
+						Second
+					</button>
 				</div>
 			</div>
 		);

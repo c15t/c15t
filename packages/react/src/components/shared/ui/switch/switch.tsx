@@ -32,88 +32,85 @@ export interface SwitchProps
 	themeKey?: AllThemeKeys;
 }
 
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
-	(
-		{
-			checked,
-			className,
-			defaultChecked = false,
-			disabled,
-			noStyle,
-			onCheckedChange,
-			onClick,
-			onKeyDown,
-			size = 'medium',
-			type = 'button',
-			...rest
-		},
-		forwardedRef
-	) => {
-		const variants = switchVariants({ size });
-		const [isChecked, setIsChecked] = useControllableState({
-			defaultValue: defaultChecked,
-			onChange: onCheckedChange,
-			value: checked,
-		});
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function (
+	{
+		checked,
+		className,
+		defaultChecked = false,
+		disabled,
+		noStyle,
+		onCheckedChange,
+		onClick,
+		onKeyDown,
+		size = 'medium',
+		...rest
+	},
+	forwardedRef
+) {
+	const variants = switchVariants({ size });
+	const [isChecked, setIsChecked] = useControllableState({
+		defaultValue: defaultChecked,
+		onChange: onCheckedChange,
+		value: checked,
+	});
 
-		const rootClassName = noStyle
-			? className
-			: variants.root({ class: className, disabled });
-		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
-		const trackClassName = noStyle ? undefined : variants.track({ disabled });
-		const dataState = getSwitchState(isChecked);
-		const dataDisabled = getDataDisabled(disabled);
+	const rootClassName = noStyle
+		? className
+		: variants.root({ class: className, disabled });
+	const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
+	const trackClassName = noStyle ? undefined : variants.track({ disabled });
+	const dataState = getSwitchState(isChecked);
+	const dataDisabled = getDataDisabled(disabled);
 
-		const toggle = () => {
-			if (disabled) {
-				return;
-			}
+	const toggle = () => {
+		if (disabled) {
+			return;
+		}
 
-			setIsChecked(toggleSwitchValue(isChecked));
-		};
+		setIsChecked(toggleSwitchValue(isChecked));
+	};
 
-		const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+	const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+		toggle();
+		onClick?.(event);
+	};
+
+	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+		if (event.key === 'Enter') {
+			event.preventDefault();
 			toggle();
-			onClick?.(event);
-		};
+		}
 
-		const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-			if (event.key === 'Enter') {
-				event.preventDefault();
-				toggle();
-			}
+		onKeyDown?.(event);
+	};
 
-			onKeyDown?.(event);
-		};
-
-		return (
-			<button
-				ref={forwardedRef}
-				aria-checked={isChecked}
-				className={rootClassName}
-				data-disabled={dataDisabled}
-				data-slot="switch"
-				data-state={dataState}
-				disabled={disabled}
-				onClick={handleClick}
-				onKeyDown={handleKeyDown}
-				role="switch"
-				type={type}
-				{...rest}
+	return (
+		<button
+			ref={forwardedRef}
+			aria-checked={isChecked}
+			className={rootClassName}
+			data-disabled={dataDisabled}
+			data-slot="switch"
+			data-state={dataState}
+			disabled={disabled}
+			onClick={handleClick}
+			onKeyDown={handleKeyDown}
+			role="switch"
+			type="button"
+			{...rest}
+		>
+			<span
+				className={trackClassName}
+				data-slot="switch-track"
 			>
 				<span
-					className={trackClassName}
-					data-slot="switch-track"
-				>
-					<span
-						className={thumbClassName}
-						data-slot="switch-thumb"
-					/>
-				</span>
-			</button>
-		);
-	}
-);
+					className={thumbClassName}
+					data-slot="switch-thumb"
+				/>
+			</span>
+		</button>
+	);
+});
 
 Switch.displayName = 'SwitchRoot';
 

@@ -14,6 +14,7 @@ import {
 import type {
 	ButtonHTMLAttributes,
 	HTMLAttributes,
+	KeyboardEvent,
 	MouseEvent,
 	ReactNode,
 	RefObject,
@@ -53,12 +54,12 @@ export interface DialogRootProps {
 	open?: boolean;
 }
 
-function DialogRoot({
+const DialogRoot = ({
 	children,
 	defaultOpen = false,
 	onOpenChange,
 	open,
-}: DialogRootProps) {
+}: DialogRootProps) => {
 	const reactId = useId().replace(/:/g, '');
 	const restoreFocusRef = useRef<HTMLElement | null>(null);
 	const [isOpen, setIsOpen] = useControllableState({
@@ -95,7 +96,7 @@ function DialogRoot({
 	return (
 		<DialogContext.Provider value={value}>{children}</DialogContext.Provider>
 	);
-}
+};
 
 export interface DialogTriggerProps extends Omit<
 	ButtonHTMLAttributes<HTMLButtonElement>,
@@ -105,7 +106,7 @@ export interface DialogTriggerProps extends Omit<
 }
 
 const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
-	({ asChild, children, onClick, ...rest }, forwardedRef) => {
+	function ({ asChild, children, onClick, ...rest }, forwardedRef) {
 		const { open, setOpen } = useDialogContext();
 		const Component = asChild ? Slot : 'button';
 
@@ -129,18 +130,18 @@ const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
 
 DialogTrigger.displayName = 'DialogTrigger';
 
-function DialogPortal({ children }: { children: ReactNode }) {
+const DialogPortal = ({ children }: { children: ReactNode }) => {
 	if (typeof document === 'undefined') {
 		return null;
 	}
 
 	return createPortal(children, document.body);
-}
+};
 
 const DialogOverlay = forwardRef<
 	HTMLButtonElement,
 	HTMLAttributes<HTMLButtonElement>
->(({ children, onClick, ...rest }, forwardedRef) => {
+>(function ({ children, onClick, ...rest }, forwardedRef) {
 	const { open, setOpen } = useDialogContext();
 	if (!open) {
 		return null;
@@ -167,13 +168,13 @@ const DialogOverlay = forwardRef<
 
 DialogOverlay.displayName = 'DialogOverlay';
 
-export interface DialogContentProps extends HTMLAttributes<HTMLDivElement> {
+export interface DialogContentProps extends HTMLAttributes<HTMLDialogElement> {
 	closeOnOutsideClick?: boolean;
 	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
-	(
+const DialogContent = forwardRef<HTMLDialogElement, DialogContentProps>(
+	function (
 		{
 			children,
 			closeOnOutsideClick = true,
@@ -183,10 +184,10 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 			...rest
 		},
 		forwardedRef
-	) => {
+	) {
 		const { contentId, descriptionId, open, setOpen, titleId } =
 			useDialogContext();
-		const contentRef = useRef<HTMLDivElement | null>(null);
+		const contentRef = useRef<HTMLDialogElement | null>(null);
 
 		useFocusTrap(open, contentRef);
 		useScrollLock(open);
@@ -204,29 +205,33 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 			return null;
 		}
 
+		const contentEventHandlers = {
+			onKeyDown: (event: KeyboardEvent<HTMLDialogElement>) => {
+				if (isDialogDismissKey(event.key)) {
+					event.preventDefault();
+					setOpen(false);
+				}
+
+				onKeyDown?.(event);
+			},
+			onMouseDown: (event: MouseEvent<HTMLDialogElement>) => {
+				if (closeOnOutsideClick && event.target === event.currentTarget) {
+					setOpen(false);
+				}
+
+				onMouseDown?.(event);
+			},
+		};
+
 		return (
-			<div
+			<dialog
 				aria-describedby={descriptionId}
 				aria-labelledby={titleId}
 				aria-modal="true"
 				data-slot="dialog-content"
 				data-state={getDialogState(open)}
 				id={contentId}
-				onKeyDown={(event) => {
-					if (isDialogDismissKey(event.key)) {
-						event.preventDefault();
-						setOpen(false);
-					}
-
-					onKeyDown?.(event);
-				}}
-				onMouseDown={(event) => {
-					if (closeOnOutsideClick && event.target === event.currentTarget) {
-						setOpen(false);
-					}
-
-					onMouseDown?.(event);
-				}}
+				{...contentEventHandlers}
 				ref={(node) => {
 					contentRef.current = node;
 					if (typeof forwardedRef === 'function') {
@@ -235,12 +240,12 @@ const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
 						forwardedRef.current = node;
 					}
 				}}
-				role="dialog"
+				open={open}
 				tabIndex={-1}
 				{...rest}
 			>
 				{children}
-			</div>
+			</dialog>
 		);
 	}
 );
@@ -250,7 +255,7 @@ DialogContent.displayName = 'DialogContent';
 const DialogTitle = forwardRef<
 	HTMLHeadingElement,
 	HTMLAttributes<HTMLHeadingElement>
->((props, forwardedRef) => {
+>(function ({ children, ...props }, forwardedRef) {
 	const { titleId } = useDialogContext();
 	return (
 		<h2
@@ -258,7 +263,9 @@ const DialogTitle = forwardRef<
 			id={titleId}
 			data-slot="dialog-title"
 			{...props}
-		/>
+		>
+			{children}
+		</h2>
 	);
 });
 
@@ -267,7 +274,7 @@ DialogTitle.displayName = 'DialogTitle';
 const DialogDescription = forwardRef<
 	HTMLParagraphElement,
 	HTMLAttributes<HTMLParagraphElement>
->((props, forwardedRef) => {
+>(function (props, forwardedRef) {
 	const { descriptionId } = useDialogContext();
 	return (
 		<p
@@ -289,32 +296,33 @@ export interface DialogCloseProps extends Omit<
 	disabled?: boolean;
 }
 
-const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(
-	({ asChild, children, disabled, onClick, ...rest }, forwardedRef) => {
-		const { open, setOpen } = useDialogContext();
-		const Component = asChild ? Slot : 'button';
+const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(function (
+	{ asChild, children, disabled, onClick, ...rest },
+	forwardedRef
+) {
+	const { open, setOpen } = useDialogContext();
+	const Component = asChild ? Slot : 'button';
 
-		return (
-			<Component
-				data-disabled={getDataDisabled(disabled)}
-				data-slot="dialog-close"
-				data-state={getDialogState(open)}
-				disabled={disabled}
-				onClick={(event: MouseEvent<HTMLButtonElement>) => {
-					if (!disabled) {
-						setOpen(false);
-					}
+	return (
+		<Component
+			data-disabled={getDataDisabled(disabled)}
+			data-slot="dialog-close"
+			data-state={getDialogState(open)}
+			disabled={disabled}
+			onClick={(event: MouseEvent<HTMLButtonElement>) => {
+				if (!disabled) {
+					setOpen(false);
+				}
 
-					onClick?.(event as never);
-				}}
-				ref={forwardedRef}
-				{...(asChild ? rest : { type: 'button', ...rest })}
-			>
-				{children}
-			</Component>
-		);
-	}
-);
+				onClick?.(event as never);
+			}}
+			ref={forwardedRef}
+			{...(asChild ? rest : { type: 'button', ...rest })}
+		>
+			{children}
+		</Component>
+	);
+});
 
 DialogClose.displayName = 'DialogClose';
 

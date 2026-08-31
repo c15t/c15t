@@ -43,77 +43,75 @@ interface IABConsentDialogHeaderProps {
 const IABConsentDialogHeader = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogHeaderProps
->(
-	(
-		{ children, headerTitle, description, showCloseButton = true, className },
-		ref
-	) => {
-		const setActiveUI = useSetActiveUI();
-		const { components } = useUIConfig();
-		const iabTranslations = useIABTranslations();
-		const { common } = useTranslations();
+>(function (
+	{ children, headerTitle, description, showCloseButton = true, className },
+	ref
+) {
+	const setActiveUI = useSetActiveUI();
+	const { components } = useUIConfig();
+	const iabTranslations = useIABTranslations();
+	const { common } = useTranslations();
 
-		const handleClose = () => {
-			setActiveUI('none');
-		};
+	const handleClose = () => {
+		setActiveUI('none');
+	};
 
-		const themedStyle = mergeSlotProps(components?.['iab-dialog']?.header, {
-			baseClassName: styles.header,
-			className,
-		});
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.header, {
+		baseClassName: styles.header,
+		className,
+	});
 
-		return (
-			<div
-				ref={ref}
-				{...themedStyle}
-			>
-				{children ? (
-					children
-				) : (
-					<>
-						<div className={styles.headerContent}>
-							<h2 className={styles.title}>
-								{headerTitle ?? iabTranslations.preferenceCenter.title}
-							</h2>
-							<p className={styles.description}>
-								{description ?? iabTranslations.preferenceCenter.description}
-							</p>
-						</div>
-						{showCloseButton && (
-							<button
-								type="button"
-								onClick={handleClose}
-								className={styles.closeButton}
-								aria-label={common.close}
+	return (
+		<div
+			ref={ref}
+			{...themedStyle}
+		>
+			{children ? (
+				children
+			) : (
+				<>
+					<div className={styles.headerContent}>
+						<h2 className={styles.title}>
+							{headerTitle ?? iabTranslations.preferenceCenter.title}
+						</h2>
+						<p className={styles.description}>
+							{description ?? iabTranslations.preferenceCenter.description}
+						</p>
+					</div>
+					{showCloseButton && (
+						<button
+							type="button"
+							onClick={handleClose}
+							className={styles.closeButton}
+							aria-label={common.close}
+						>
+							<svg
+								style={{ width: '1rem', height: '1rem' }}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
 							>
-								<svg
-									style={{ width: '1rem', height: '1rem' }}
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-								>
-									<line
-										x1="18"
-										y1="6"
-										x2="6"
-										y2="18"
-									/>
-									<line
-										x1="6"
-										y1="6"
-										x2="18"
-										y2="18"
-									/>
-								</svg>
-							</button>
-						)}
-					</>
-				)}
-			</div>
-		);
-	}
-);
+								<line
+									x1="18"
+									y1="6"
+									x2="6"
+									y2="18"
+								/>
+								<line
+									x1="6"
+									y1="6"
+									x2="18"
+									y2="18"
+								/>
+							</svg>
+						</button>
+					)}
+				</>
+			)}
+		</div>
+	);
+});
 
 IABConsentDialogHeader.displayName = 'IABConsentDialogHeader';
 

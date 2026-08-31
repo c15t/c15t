@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 
 import { getBenchState, markInteraction } from '../_bench/state';
 
-function HeadlessBenchmarkUI() {
+const HeadlessBenchmarkUI = () => {
 	const { activeUI, has, saveConsents, setActiveUI } = useConsentManager();
 
 	useEffect(() => {
@@ -31,6 +31,7 @@ function HeadlessBenchmarkUI() {
 			</p>
 			<div style={{ display: 'flex', gap: '1rem' }}>
 				<button
+					type="button"
 					id="headless-accept"
 					onClick={async () => {
 						markInteraction('headless', 'acceptAllMs');
@@ -40,6 +41,7 @@ function HeadlessBenchmarkUI() {
 					Accept All
 				</button>
 				<button
+					type="button"
 					id="headless-reject"
 					onClick={async () => {
 						markInteraction('headless', 'rejectAllMs');
@@ -49,6 +51,7 @@ function HeadlessBenchmarkUI() {
 					Reject All
 				</button>
 				<button
+					type="button"
 					id="headless-open"
 					onClick={() => {
 						markInteraction('headless', 'openPreferencesMs');
@@ -60,9 +63,9 @@ function HeadlessBenchmarkUI() {
 			</div>
 		</main>
 	);
-}
+};
 
-export default function HeadlessPage() {
+const HeadlessPage = () => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -97,4 +100,6 @@ export default function HeadlessPage() {
 			<HeadlessBenchmarkUI />
 		</ConsentManagerProvider>
 	);
-}
+};
+
+export default HeadlessPage;

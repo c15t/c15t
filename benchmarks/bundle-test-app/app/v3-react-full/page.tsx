@@ -107,8 +107,8 @@ export default function V3ReactFullPage() {
 						Check/uncheck a category to stage your choice. Click{' '}
 						<strong>Save</strong> to commit to the kernel — only then do scripts
 						actually load/unload. <strong>Reset</strong> discards the draft.
-						This is the "preference center" UX pattern; the banner buttons
-						(Accept All / Reject All) commit immediately.
+						This is the &quot;preference center&quot; UX pattern; the banner
+						buttons (Accept All / Reject All) commit immediately.
 					</p>
 
 					<Suspense fallback={null}>

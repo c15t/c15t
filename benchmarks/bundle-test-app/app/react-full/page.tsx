@@ -8,7 +8,7 @@ import {
 	useConsentManager,
 } from '@c15t/react';
 
-export default function ReactFullPage() {
+const ReactFullPage = () => {
 	return (
 		<ConsentManagerProvider options={{ mode: 'offline' }}>
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -21,14 +21,21 @@ export default function ReactFullPage() {
 			<ConsentWidget />
 		</ConsentManagerProvider>
 	);
-}
+};
 
-function TestComponent() {
+const TestComponent = () => {
 	const { consents, saveConsents } = useConsentManager();
 	return (
 		<div>
 			<pre>{JSON.stringify(consents, null, 2)}</pre>
-			<button onClick={() => saveConsents('all')}>Accept All</button>
+			<button
+				type="button"
+				onClick={() => saveConsents('all')}
+			>
+				Accept All
+			</button>
 		</div>
 	);
-}
+};
+
+export default ReactFullPage;

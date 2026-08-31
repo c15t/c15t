@@ -39,7 +39,7 @@ declare global {
 	}
 }
 
-export function IntegrationStatesDemo() {
+export const IntegrationStatesDemo = () => {
 	return (
 		<ConsentManagerProvider options={providerOptions}>
 			<Tabs
@@ -67,9 +67,9 @@ export function IntegrationStatesDemo() {
 			</Tabs>
 		</ConsentManagerProvider>
 	);
-}
+};
 
-function LoadingState() {
+const LoadingState = () => {
 	const [attempt, setAttempt] = useState(0);
 
 	return (
@@ -105,9 +105,9 @@ function LoadingState() {
 			/>
 		</section>
 	);
-}
+};
 
-function ErrorState() {
+const ErrorState = () => {
 	return (
 		<section className="space-y-6">
 			<StateIntroduction
@@ -152,14 +152,17 @@ function ErrorState() {
 			/>
 		</section>
 	);
-}
+};
 
-function RetryState() {
+const RetryState = () => {
 	const [session, setSession] = useState('');
 	const [retryKey, setRetryKey] = useState(0);
 
 	useEffect(() => {
-		setSession(crypto.randomUUID());
+		const frame = requestAnimationFrame(() => {
+			setSession(crypto.randomUUID());
+		});
+		return () => cancelAnimationFrame(frame);
 	}, []);
 
 	const result = useConsentScript<{ attempt: number; session: string }>({
@@ -197,13 +200,12 @@ function RetryState() {
 					{getRetryAnnouncement(result.status, retryKey)}
 				</p>
 			) : (
-				<p
+				<output
 					aria-atomic="true"
 					className="sr-only"
-					role="status"
 				>
 					{getRetryAnnouncement(result.status, retryKey)}
-				</p>
+				</output>
 			)}
 
 			<div
@@ -255,9 +257,9 @@ function RetryState() {
 			)}
 		</section>
 	);
-}
+};
 
-function StateIntroduction({
+const StateIntroduction = ({
 	children,
 	description,
 	status,
@@ -267,7 +269,7 @@ function StateIntroduction({
 	description: string;
 	status: string;
 	title: string;
-}) {
+}) => {
 	return (
 		<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 			<div className="max-w-2xl">
@@ -284,9 +286,9 @@ function StateIntroduction({
 			{children}
 		</div>
 	);
-}
+};
 
-function CheckList({ items }: { items: string[] }) {
+const CheckList = ({ items }: { items: string[] }) => {
 	return (
 		<div className="border-border/80 border-t pt-4">
 			<p className="text-sm font-medium">What to verify</p>
@@ -308,7 +310,7 @@ function CheckList({ items }: { items: string[] }) {
 			</ul>
 		</div>
 	);
-}
+};
 
 function getRetryFrameTitle(
 	status: string,
