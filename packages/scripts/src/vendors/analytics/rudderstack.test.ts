@@ -170,9 +170,10 @@ describe('rudderstack', () => {
 		const globalRef = getTestGlobal();
 		const script = rudderstack({
 			consentManagement: {
+				// oxlint-disable-next-line sort-keys -- Mapping order defines emitted consent ID order.
 				mapping: {
-					marketing: [' ad-destinations '],
 					measurement: ['product-analytics'],
+					marketing: [' ad-destinations '],
 				},
 			},
 			dataPlaneUrl: 'https://c15t-live-probe.invalid',
