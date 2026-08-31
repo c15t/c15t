@@ -26,6 +26,58 @@ function buildRequestContext(options: {
 	};
 }
 
+function getNowMs(): number {
+	if (
+		typeof performance !== 'undefined' &&
+		typeof performance.now === 'function'
+	) {
+		return performance.now();
+	}
+	return Date.now();
+}
+
+function inspectCacheHeaders(headers: Headers): {
+	isHit: boolean;
+	detail: string | null;
+} {
+	const cacheHeaders = [
+		'x-vercel-cache',
+		'cf-cache-status',
+		'x-cache',
+		'cache-status',
+	] as const;
+
+	let headerDetail: string | null = null;
+	let headerIndicatesHit = false;
+
+	for (const headerName of cacheHeaders) {
+		const headerValue = headers.get(headerName);
+		if (!headerValue) {
+			continue;
+		}
+
+		headerDetail = `${headerName}=${headerValue}`;
+		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/iu.test(
+			headerValue
+		);
+		break;
+	}
+
+	const ageHeader = headers.get('age');
+	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
+	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
+	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
+	const detail =
+		headerDetail && ageDetail
+			? `${headerDetail}, ${ageDetail}`
+			: (headerDetail ?? ageDetail);
+
+	return {
+		isHit: headerIndicatesHit || ageIndicatesCache,
+		detail,
+	};
+}
+
 /**
  * Performs the init fetch request.
  * All async work (header resolution) should be done before calling this.
@@ -87,58 +139,6 @@ async function performInitFetch(
 		}
 		return {};
 	}
-}
-
-function getNowMs(): number {
-	if (
-		typeof performance !== 'undefined' &&
-		typeof performance.now === 'function'
-	) {
-		return performance.now();
-	}
-	return Date.now();
-}
-
-function inspectCacheHeaders(headers: Headers): {
-	isHit: boolean;
-	detail: string | null;
-} {
-	const cacheHeaders = [
-		'x-vercel-cache',
-		'cf-cache-status',
-		'x-cache',
-		'cache-status',
-	] as const;
-
-	let headerDetail: string | null = null;
-	let headerIndicatesHit = false;
-
-	for (const headerName of cacheHeaders) {
-		const headerValue = headers.get(headerName);
-		if (!headerValue) {
-			continue;
-		}
-
-		headerDetail = `${headerName}=${headerValue}`;
-		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/i.test(
-			headerValue
-		);
-		break;
-	}
-
-	const ageHeader = headers.get('age');
-	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
-	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
-	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
-	const detail =
-		headerDetail && ageDetail
-			? `${headerDetail}, ${ageDetail}`
-			: (headerDetail ?? ageDetail);
-
-	return {
-		isHit: headerIndicatesHit || ageIndicatesCache,
-		detail,
-	};
 }
 
 /**

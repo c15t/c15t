@@ -83,6 +83,7 @@ export async function findPreviousComment(
 	const perPage = 100;
 
 	while (true) {
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const { data } = await octokit.rest.issues.listComments({
 			...repo,
 			issue_number: number,

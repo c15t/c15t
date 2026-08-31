@@ -52,8 +52,8 @@ const CONFIGS: readonly (readonly [string, () => DatabaseConfig])[] = [
 					() =>
 						({
 							dialect: 'postgres',
-							url: PG_URL,
 							schema: 'c15t_migrator_e2e',
+							url: PG_URL,
 						}) as DatabaseConfig,
 				],
 			] as const)
@@ -114,7 +114,7 @@ describe('createMigrator: configuration', () => {
 		);
 		assert.throws(
 			() => toLayer(undefined as unknown as DatabaseConfig),
-			/replaced 2\.x/
+			/replaced 2\.x/u
 		);
 	});
 
@@ -210,7 +210,7 @@ for (const [name, makeConfig] of CONFIGS) {
 			);
 			try {
 				await runtime.runPromise(
-					Effect.gen(function* () {
+					Effect.gen(function* gen() {
 						const sql = yield* SqlClient.SqlClient;
 						const q = Dialect.escaperFor(yield* Dialect.current);
 						yield* sql.unsafe(
@@ -268,22 +268,23 @@ describe('createMigrator: driver resolution', () => {
 		// configuration mistake the operator must fix, not something the backend
 		// can recover from, so every caller is spared threading it through.
 		await expect(Effect.runPromise(missing)).rejects.toThrow(
-			/@effect\/sql-mysql2 is not installed/
+			/@effect\/sql-mysql2 is not installed/u
 		);
 	});
 
 	it('names the right package per dialect', async () => {
-		for (const [dialect, pkg] of [
+		await Array.from([
 			['postgres', '@effect/sql-pg'],
 			['mysql', '@effect/sql-mysql2'],
 			['sqlite', '@effect/sql-sqlite-node'],
-		] as const) {
+		] as const).reduce(async (previousIteration, [dialect, pkg]) => {
+			await previousIteration;
 			await expect(
 				Effect.runPromise(
 					loadDriver(dialect, () => Promise.reject(new Error('nope')))
 				)
 			).rejects.toThrow(pkg);
-		}
+		}, Promise.resolve());
 	});
 
 	it('passes a working import straight through', async () => {

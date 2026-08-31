@@ -530,8 +530,8 @@ export interface Theme {
  * Helper function to define a theme with full TypeScript autocompletion and validation.
  * @public
  */
-export function defineTheme<ThemeType extends Theme>(
+export const defineTheme = function defineTheme<ThemeType extends Theme>(
 	theme: ThemeType
 ): ThemeType {
 	return theme;
-}
+};

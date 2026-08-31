@@ -14,7 +14,7 @@ import {
 	purposesToArray,
 	STANDALONE_PURPOSE_ID,
 } from '../../tcf/stacks';
-import { createMockPurposes, createMockStacks } from './test-setup';
+import { createMockPurposes } from './test-setup';
 
 describe('Purpose Stacking', () => {
 	describe('STANDALONE_PURPOSE_ID', () => {
@@ -87,9 +87,9 @@ describe('Purpose Stacking', () => {
 			const purposes = createMockPurposes();
 			const customStacks = {
 				99: {
+					description: 'A custom stack',
 					id: 99,
 					name: 'Custom Stack',
-					description: 'A custom stack',
 					purposes: [2, 3],
 					specialFeatures: [],
 				},
@@ -113,8 +113,9 @@ describe('Purpose Stacking', () => {
 
 		it('should identify ungrouped purposes', () => {
 			const purposes = [
-				{ id: 1, name: 'Purpose 1', description: '', illustrations: [] },
-				{ id: 99, name: 'Purpose 99', description: '', illustrations: [] }, // Not in any stack
+				{ description: '', id: 1, illustrations: [], name: 'Purpose 1' },
+				// Not in any stack
+				{ description: '', id: 99, illustrations: [], name: 'Purpose 99' },
 			];
 
 			const { ungroupedPurposes } = groupPurposesIntoStacks(purposes);
@@ -130,7 +131,8 @@ describe('Purpose Stacking', () => {
 		});
 
 		it('should return the correct stack for a purpose', () => {
-			const stack = getStackForPurpose(2); // Should be Advertising
+			// Should be Advertising
+			const stack = getStackForPurpose(2);
 			expect(stack).not.toBeNull();
 			expect(stack?.name).toBe('Advertising');
 		});
@@ -142,9 +144,9 @@ describe('Purpose Stacking', () => {
 		it('should use custom stacks when provided', () => {
 			const customStacks = {
 				99: {
+					description: '',
 					id: 99,
 					name: 'Custom',
-					description: '',
 					purposes: [2],
 					specialFeatures: [],
 				},
@@ -170,7 +172,8 @@ describe('Purpose Stacking', () => {
 	describe('getPurposesInStack', () => {
 		it('should return purposes for a valid stack', () => {
 			const purposes = createMockPurposes();
-			const result = getPurposesInStack(1, purposes); // Advertising stack
+			// Advertising stack
+			const result = getPurposesInStack(1, purposes);
 
 			expect(result.length).toBeGreaterThan(0);
 			expect(result.some((p) => p.id === 2)).toBe(true);
@@ -182,10 +185,11 @@ describe('Purpose Stacking', () => {
 			const purposes = createMockPurposes();
 			const customStacks = {
 				1: {
+					description: '',
 					id: 1,
 					name: 'Test',
-					description: '',
-					purposes: [1, 2, 3], // Includes Purpose 1
+					// Includes Purpose 1
+					purposes: [1, 2, 3],
 					specialFeatures: [],
 				},
 			};
@@ -242,9 +246,9 @@ describe('Purpose Stacking', () => {
 
 		it('should sort by ID', () => {
 			const purposes = {
-				5: createMockPurposes()[5],
 				1: createMockPurposes()[1],
 				11: createMockPurposes()[11],
+				5: createMockPurposes()[5],
 			} as Record<number, ReturnType<typeof createMockPurposes>[1]>;
 
 			const result = purposesToArray(purposes);

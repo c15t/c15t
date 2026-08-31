@@ -17,7 +17,7 @@ export interface UseWindowSizeReturn {
  *
  * @returns Reactive `width` and `height` of the window
  */
-export function useWindowSize(): UseWindowSizeReturn {
+export const useWindowSize = function useWindowSize(): UseWindowSizeReturn {
 	const width = ref(0);
 	const height = ref(0);
 
@@ -37,5 +37,5 @@ export function useWindowSize(): UseWindowSizeReturn {
 		}
 	}
 
-	return { width, height };
-}
+	return { height, width };
+};

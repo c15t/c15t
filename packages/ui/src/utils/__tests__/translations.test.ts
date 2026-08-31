@@ -23,14 +23,14 @@ describe('isTranslations', () => {
 
 	test('returns false for object missing required keys', () => {
 		expect(isTranslations({ cookieBanner: {} })).toBe(false);
-		expect(isTranslations({ cookieBanner: {}, consentManagerDialog: {} })).toBe(
+		expect(isTranslations({ consentManagerDialog: {}, cookieBanner: {} })).toBe(
 			false
 		);
 		expect(
 			isTranslations({
-				cookieBanner: {},
 				consentManagerDialog: {},
 				consentTypes: {},
+				cookieBanner: {},
 			})
 		).toBe(false);
 	});
@@ -38,10 +38,10 @@ describe('isTranslations', () => {
 	test('returns true for object with all required keys', () => {
 		expect(
 			isTranslations({
-				cookieBanner: {},
+				common: {},
 				consentManagerDialog: {},
 				consentTypes: {},
-				common: {},
+				cookieBanner: {},
 			})
 		).toBe(true);
 	});
@@ -49,10 +49,10 @@ describe('isTranslations', () => {
 	test('returns true for object with additional keys', () => {
 		expect(
 			isTranslations({
-				cookieBanner: {},
+				common: {},
 				consentManagerDialog: {},
 				consentTypes: {},
-				common: {},
+				cookieBanner: {},
 				extra: {},
 			})
 		).toBe(true);
@@ -64,10 +64,10 @@ describe('resolveTranslations', () => {
 		defaultLanguage: 'en',
 		translations: {
 			en: {
-				cookieBanner: { title: 'Default Title' },
+				common: {},
 				consentManagerDialog: { title: 'Dialog' },
 				consentTypes: {},
-				common: {},
+				cookieBanner: { title: 'Default Title' },
 			},
 		},
 	};
@@ -77,10 +77,10 @@ describe('resolveTranslations', () => {
 			defaultLanguage: 'de',
 			translations: {
 				de: {
-					cookieBanner: { title: 'German Title' },
+					common: {},
 					consentManagerDialog: { title: 'Dialog' },
 					consentTypes: {},
-					common: {},
+					cookieBanner: { title: 'German Title' },
 				},
 			},
 		};
@@ -96,10 +96,10 @@ describe('resolveTranslations', () => {
 			defaultLanguage: 'fr',
 			translations: {
 				en: {
-					cookieBanner: { title: 'English Title' },
+					common: {},
 					consentManagerDialog: { title: 'Dialog' },
 					consentTypes: {},
-					common: {},
+					cookieBanner: { title: 'English Title' },
 				},
 			},
 		};
@@ -126,10 +126,10 @@ describe('resolveTranslations', () => {
 		const config = {
 			translations: {
 				en: {
-					cookieBanner: { title: 'English Title' },
+					common: {},
 					consentManagerDialog: { title: 'Dialog' },
 					consentTypes: {},
-					common: {},
+					cookieBanner: { title: 'English Title' },
 				},
 			},
 		};
@@ -152,12 +152,13 @@ describe('resolveTranslations', () => {
 		const config = {
 			defaultLanguage: 'de',
 			translations: {
-				de: { incomplete: 'translation' }, // Missing required keys
+				// Missing required keys
+				de: { incomplete: 'translation' },
 				en: {
-					cookieBanner: { title: 'English Title' },
+					common: {},
 					consentManagerDialog: { title: 'Dialog' },
 					consentTypes: {},
-					common: {},
+					cookieBanner: { title: 'English Title' },
 				},
 			},
 		};

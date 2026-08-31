@@ -115,8 +115,10 @@ export function createNetworkBlockerManager(
 			let method = 'GET';
 
 			if (init?.method) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				method = init.method;
 			} else if (input instanceof Request) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				method = input.method;
 			}
 
@@ -125,6 +127,7 @@ export function createNetworkBlockerManager(
 			if (typeof input === 'string' || input instanceof URL) {
 				url = input.toString();
 			} else {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				url = input.url;
 			}
 

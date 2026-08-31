@@ -5,7 +5,7 @@ import { expect, userEvent, waitFor } from 'storybook/test';
  * opening a dialog / banner where focus moves asynchronously (microtask /
  * animation frame).
  */
-export async function assertInitialFocus(
+export const assertInitialFocus = async function assertInitialFocus(
 	root: ParentNode,
 	testId: string
 ): Promise<void> {
@@ -17,13 +17,13 @@ export async function assertInitialFocus(
 		).not.toBeNull();
 		expect(document.activeElement).toBe(target);
 	});
-}
+};
 
 /**
  * Assert that after `closeAction` runs, focus returns to the element with
  * `triggerTestId`. Use for testing dialog-close / banner-dismiss flows.
  */
-export async function assertFocusReturnsTo(
+export const assertFocusReturnsTo = async function assertFocusReturnsTo(
 	root: ParentNode,
 	triggerTestId: string,
 	closeAction: () => Promise<void>
@@ -37,58 +37,88 @@ export async function assertFocusReturnsTo(
 		).not.toBeNull();
 		expect(document.activeElement).toBe(trigger);
 	});
-}
+};
 
 /**
  * Walk `Tab` through the expected focus order and assert each stop matches.
  * `orderedTestIds[0]` should already have focus when this is called.
  */
-export async function assertTabOrder(
+export const assertTabOrder = async function assertTabOrder(
 	root: ParentNode,
 	orderedTestIds: readonly string[]
 ): Promise<void> {
-	if (orderedTestIds.length === 0) return;
+	if (orderedTestIds.length === 0) {
+		return;
+	}
 
 	const first = root.querySelector(`[data-testid="${orderedTestIds[0]}"]`);
 	expect(document.activeElement, 'tab-order initial focus').toBe(first);
 
-	for (let i = 1; i < orderedTestIds.length; i++) {
-		await userEvent.tab();
-		const expected = root.querySelector(`[data-testid="${orderedTestIds[i]}"]`);
-		expect(
-			document.activeElement,
-			`tab stop ${i} should be [data-testid="${orderedTestIds[i]}"]`
-		).toBe(expected);
+	{
+		let i = 1;
+		const runSequentialLoop1 =
+			async function runSequentialLoop1(): Promise<void> {
+				if (!(i < orderedTestIds.length)) {
+					return;
+				}
+				await userEvent.tab();
+				const expected = root.querySelector(
+					`[data-testid="${orderedTestIds[i]}"]`
+				);
+				expect(
+					document.activeElement,
+					`tab stop ${i} should be [data-testid="${orderedTestIds[i]}"]`
+				).toBe(expected);
+
+				i += 1;
+				await runSequentialLoop1();
+			};
+		await runSequentialLoop1();
 	}
-}
+};
 
 /**
  * Assert that `Shift+Tab` from the current focus moves back to the previous
  * element in the order.
  */
-export async function assertReverseTabOrder(
+export const assertReverseTabOrder = async function assertReverseTabOrder(
 	root: ParentNode,
 	orderedTestIds: readonly string[]
 ): Promise<void> {
-	for (let i = orderedTestIds.length - 2; i >= 0; i--) {
-		await userEvent.tab({ shift: true });
-		const expected = root.querySelector(`[data-testid="${orderedTestIds[i]}"]`);
-		expect(
-			document.activeElement,
-			`shift-tab stop ${i} should be [data-testid="${orderedTestIds[i]}"]`
-		).toBe(expected);
+	{
+		let i = orderedTestIds.length - 2;
+		const runSequentialLoop2 =
+			async function runSequentialLoop2(): Promise<void> {
+				if (!(i >= 0)) {
+					return;
+				}
+				await userEvent.tab({ shift: true });
+				const expected = root.querySelector(
+					`[data-testid="${orderedTestIds[i]}"]`
+				);
+				expect(
+					document.activeElement,
+					`shift-tab stop ${i} should be [data-testid="${orderedTestIds[i]}"]`
+				).toBe(expected);
+
+				i -= 1;
+				await runSequentialLoop2();
+			};
+		await runSequentialLoop2();
 	}
-}
+};
 
 /**
  * Focus trap: assert that Tab from the last element wraps to the first, and
  * Shift+Tab from the first wraps to the last.
  */
-export async function assertFocusTrap(
+export const assertFocusTrap = async function assertFocusTrap(
 	root: ParentNode,
 	orderedTestIds: readonly string[]
 ): Promise<void> {
-	if (orderedTestIds.length < 2) return;
+	if (orderedTestIds.length < 2) {
+		return;
+	}
 	const last = root.querySelector(
 		`[data-testid="${orderedTestIds[orderedTestIds.length - 1]}"]`
 	) as HTMLElement | null;
@@ -107,7 +137,7 @@ export async function assertFocusTrap(
 	expect(document.activeElement, 'shift+tab from first wraps to last').toBe(
 		last
 	);
-}
+};
 
 /**
  * Assert that an element renders a visible keyboard-focus indicator.
@@ -123,7 +153,7 @@ export async function assertFocusTrap(
  * switch rings its `.track` child and the accordion rings the enclosing
  * `.item` via `:has()` — and would false-fail this assertion.
  */
-export async function assertVisibleFocusIndicator(
+export const assertVisibleFocusIndicator = function assertVisibleFocusIndicator(
 	root: ParentNode,
 	testId: string
 ): Promise<void> {
@@ -131,7 +161,9 @@ export async function assertVisibleFocusIndicator(
 		`[data-testid="${testId}"]`
 	) as HTMLElement | null;
 	expect(element, `element [data-testid="${testId}"] not found`).not.toBeNull();
-	if (!element) return;
+	if (!element) {
+		return;
+	}
 
 	element.focus();
 	expect(document.activeElement, 'element should be focusable').toBe(element);
@@ -157,4 +189,4 @@ export async function assertVisibleFocusIndicator(
 		changed,
 		`[data-testid="${testId}"] must render a visible focus indicator (outline or box-shadow must differ from the unfocused state)`
 	).toBe(true);
-}
+};

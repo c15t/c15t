@@ -16,12 +16,12 @@ const root = ref<HTMLElement | null>(null);
 const isModal = () => dialog?.modal() ?? false;
 useFocusTrap(root, () => isModal() && (dialog?.open() ?? false));
 
-function onKeydown(event: KeyboardEvent) {
+const onKeydown = function onKeydown(event: KeyboardEvent) {
 	if (isDialogDismissKey(event.key)) {
 		event.preventDefault();
 		dialog?.close();
 	}
-}
+};
 
 onMounted(() => {
 	document.addEventListener('keydown', onKeydown);

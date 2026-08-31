@@ -34,9 +34,9 @@ describe('segment', () => {
 	it('can disable default page queue and use custom script URL', () => {
 		const globalRef = getTestGlobal();
 		const script = segment({
-			writeKey: 'abc123xyz456',
-			trackPageView: false,
 			scriptUrl: 'https://cdn.example.com/analytics.min.js',
+			trackPageView: false,
+			writeKey: 'abc123xyz456',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/analytics.min.js');
@@ -52,8 +52,8 @@ describe('segment', () => {
 	it('does not queue page when trackPageView is false and still queues track calls', () => {
 		const globalRef = getTestGlobal();
 		const script = segment({
-			writeKey: 'segment-key',
 			trackPageView: false,
+			writeKey: 'segment-key',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));

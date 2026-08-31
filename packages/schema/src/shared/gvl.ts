@@ -7,58 +7,46 @@
 import * as v from 'valibot';
 
 export const gvlPurposeSchema = v.object({
-	id: v.number(),
-	name: v.string(),
 	description: v.string(),
-	illustrations: v.array(v.string()),
 	descriptionLegal: v.optional(v.string()),
+	id: v.number(),
+	illustrations: v.array(v.string()),
+	name: v.string(),
 });
 
 export const gvlSpecialPurposeSchema = v.object({
-	id: v.number(),
-	name: v.string(),
 	description: v.string(),
-	illustrations: v.array(v.string()),
 	descriptionLegal: v.optional(v.string()),
+	id: v.number(),
+	illustrations: v.array(v.string()),
+	name: v.string(),
 });
 
 export const gvlFeatureSchema = v.object({
-	id: v.number(),
-	name: v.string(),
 	description: v.string(),
-	illustrations: v.array(v.string()),
 	descriptionLegal: v.optional(v.string()),
+	id: v.number(),
+	illustrations: v.array(v.string()),
+	name: v.string(),
 });
 
 export const gvlSpecialFeatureSchema = v.object({
-	id: v.number(),
-	name: v.string(),
 	description: v.string(),
-	illustrations: v.array(v.string()),
 	descriptionLegal: v.optional(v.string()),
+	id: v.number(),
+	illustrations: v.array(v.string()),
+	name: v.string(),
 });
 
 export const gvlVendorUrlSchema = v.object({
 	langId: v.string(),
-	privacy: v.optional(v.string()),
 	legIntClaim: v.optional(v.string()),
+	privacy: v.optional(v.string()),
 });
 
 export const gvlVendorSchema = v.object({
-	id: v.number(),
-	name: v.string(),
-	purposes: v.array(v.number()),
-	legIntPurposes: v.array(v.number()),
-	flexiblePurposes: v.array(v.number()),
-	specialPurposes: v.array(v.number()),
-	features: v.array(v.number()),
-	specialFeatures: v.array(v.number()),
 	cookieMaxAgeSeconds: v.nullable(v.number()),
-	usesCookies: v.boolean(),
 	cookieRefresh: v.boolean(),
-	usesNonCookieAccess: v.boolean(),
-	urls: v.array(gvlVendorUrlSchema),
-	deviceStorageDisclosureUrl: v.optional(v.string()),
 	dataCategories: v.optional(v.array(v.number())),
 	dataRetention: v.optional(
 		v.object({
@@ -68,39 +56,51 @@ export const gvlVendorSchema = v.object({
 		})
 	),
 	deletedDate: v.optional(v.string()),
+	deviceStorageDisclosureUrl: v.optional(v.string()),
+	features: v.array(v.number()),
+	flexiblePurposes: v.array(v.number()),
+	id: v.number(),
+	legIntPurposes: v.array(v.number()),
+	name: v.string(),
 	overflow: v.optional(
 		v.object({
 			httpGetLimit: v.number(),
 		})
 	),
+	purposes: v.array(v.number()),
+	specialFeatures: v.array(v.number()),
+	specialPurposes: v.array(v.number()),
+	urls: v.array(gvlVendorUrlSchema),
+	usesCookies: v.boolean(),
+	usesNonCookieAccess: v.boolean(),
 });
 
 export const gvlStackSchema = v.object({
+	description: v.string(),
 	id: v.number(),
 	name: v.string(),
-	description: v.string(),
 	purposes: v.array(v.number()),
 	specialFeatures: v.array(v.number()),
 });
 
 export const gvlDataCategorySchema = v.object({
+	description: v.string(),
 	id: v.number(),
 	name: v.string(),
-	description: v.string(),
 });
 
 export const globalVendorListSchema = v.object({
+	dataCategories: v.optional(v.record(v.string(), gvlDataCategorySchema)),
+	features: v.record(v.string(), gvlFeatureSchema),
 	gvlSpecificationVersion: v.number(),
-	vendorListVersion: v.number(),
-	tcfPolicyVersion: v.number(),
 	lastUpdated: v.string(),
 	purposes: v.record(v.string(), gvlPurposeSchema),
-	specialPurposes: v.record(v.string(), gvlSpecialPurposeSchema),
-	features: v.record(v.string(), gvlFeatureSchema),
 	specialFeatures: v.record(v.string(), gvlSpecialFeatureSchema),
-	vendors: v.record(v.string(), gvlVendorSchema),
+	specialPurposes: v.record(v.string(), gvlSpecialPurposeSchema),
 	stacks: v.record(v.string(), gvlStackSchema),
-	dataCategories: v.optional(v.record(v.string(), gvlDataCategorySchema)),
+	tcfPolicyVersion: v.number(),
+	vendorListVersion: v.number(),
+	vendors: v.record(v.string(), gvlVendorSchema),
 });
 
 export type GVLPurpose = v.InferOutput<typeof gvlPurposeSchema>;

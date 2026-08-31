@@ -34,7 +34,7 @@ import { MIGRATIONS, migrate } from './migrate';
  * with different SQL keeps this assertion measuring the database rather than
  * the driver's cache.
  */
-const ledger = Effect.gen(function* () {
+const ledger = Effect.gen(function* ledger() {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql<{ id: number | string }>`
 		select * from ${sql(LEDGER_TABLE)}
@@ -44,13 +44,9 @@ const ledger = Effect.gen(function* () {
 	);
 });
 
-const tableCount = Effect.fn('tableCount')(function* () {
+const tableCount = Effect.fn('tableCount')(function* tableCount() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{
-				name: string;
-			}>`select name from sqlite_master where type = 'table'`,
 		mysql: () =>
 			sql<{ name: string }>`
 				select table_name as name from information_schema.tables
@@ -61,6 +57,10 @@ const tableCount = Effect.fn('tableCount')(function* () {
 				select table_name as name from information_schema.tables
 				where table_schema = 'public' and table_type = 'BASE TABLE'
 			`,
+		sqlite: () =>
+			sql<{
+				name: string;
+			}>`select name from sqlite_master where type = 'table'`,
 	});
 	return rows.length;
 });
@@ -70,7 +70,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'takes an empty database to the current schema',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 
 					const report = yield* migrate();
@@ -92,7 +92,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'does nothing on a second run',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* migrate();
 
@@ -115,7 +115,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'applies only what an adopted database is missing',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 
@@ -137,7 +137,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'refuses a database it does not recognise',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					const quote = Dialect.escaperFor(yield* Dialect.current);
@@ -178,7 +178,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'a dry run changes nothing',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 
 					const report = yield* migrate({ dryRun: true });

@@ -88,20 +88,32 @@ export interface CaptureOptions {
 // consults canonical form.
 // ---------------------------------------------------------------------------
 
-function parseColorComponent(s: string, max: number): number | null {
+const parseColorComponent = function parseColorComponent(
+	s: string,
+	max: number
+): number | null {
 	if (s.endsWith('%')) {
 		const n = Number.parseFloat(s);
-		if (Number.isNaN(n)) return null;
+		if (Number.isNaN(n)) {
+			return null;
+		}
 		return max === 1 ? n / 100 : (n / 100) * max;
 	}
 	const n = Number.parseFloat(s);
-	if (Number.isNaN(n)) return null;
+	if (Number.isNaN(n)) {
+		return null;
+	}
 	return n;
-}
+};
 
-function parseHexColor(value: string): [number, number, number, number] | null {
-	const m = value.match(/^#([0-9a-f]+)$/i);
-	if (!m) return null;
+const parseHexColor = function parseHexColor(
+	value: string
+): [number, number, number, number] | null {
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const m = value.match(/^#([0-9a-f]+)$/iu);
+	if (!m) {
+		return null;
+	}
 	const h = m[1] as string;
 	if (h.length === 3) {
 		const [h0, h1, h2] = [h[0] as string, h[1] as string, h[2] as string];
@@ -143,25 +155,38 @@ function parseHexColor(value: string): [number, number, number, number] | null {
 		];
 	}
 	return null;
-}
+};
 
-function parseRgbColor(value: string): [number, number, number, number] | null {
-	const m = value.match(/^rgba?\s*\(\s*([^)]+)\s*\)$/i);
-	if (!m) return null;
+const parseRgbColor = function parseRgbColor(
+	value: string
+): [number, number, number, number] | null {
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const m = value.match(/^rgba?\s*\(\s*([^)]+)\s*\)$/iu);
+	if (!m) {
+		return null;
+	}
 	const parts = (m[1] as string)
-		.replace(/\//g, ',')
-		.split(/[\s,]+/)
+		.replace(/\//gu, ',')
+		.split(/[\s,]+/u)
 		.filter(Boolean);
-	if (parts.length < 3 || parts.length > 4) return null;
+	if (parts.length < 3 || parts.length > 4) {
+		return null;
+	}
 	const r = parseColorComponent(parts[0] as string, 255);
 	const g = parseColorComponent(parts[1] as string, 255);
 	const b = parseColorComponent(parts[2] as string, 255);
 	const a = parts[3] ? parseColorComponent(parts[3], 1) : 1;
-	if (r === null || g === null || b === null || a === null) return null;
+	if (r === null || g === null || b === null || a === null) {
+		return null;
+	}
 	return [r, g, b, a];
-}
+};
 
-function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+const hslToRgb = function hslToRgb(
+	h: number,
+	s: number,
+	l: number
+): [number, number, number] {
 	const hh = ((h % 360) + 360) % 360;
 	const c = (1 - Math.abs(2 * l - 1)) * s;
 	const x = c * (1 - Math.abs(((hh / 60) % 2) - 1));
@@ -193,29 +218,44 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 		Math.round((gp + m) * 255),
 		Math.round((bp + m) * 255),
 	];
-}
+};
 
-function parseHslColor(value: string): [number, number, number, number] | null {
-	const m = value.match(/^hsla?\s*\(\s*([^)]+)\s*\)$/i);
-	if (!m) return null;
+const parseHslColor = function parseHslColor(
+	value: string
+): [number, number, number, number] | null {
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const m = value.match(/^hsla?\s*\(\s*([^)]+)\s*\)$/iu);
+	if (!m) {
+		return null;
+	}
 	const parts = (m[1] as string)
-		.replace(/\//g, ',')
-		.split(/[\s,]+/)
+		.replace(/\//gu, ',')
+		.split(/[\s,]+/u)
 		.filter(Boolean);
-	if (parts.length < 3 || parts.length > 4) return null;
+	if (parts.length < 3 || parts.length > 4) {
+		return null;
+	}
 	const hueRaw = parts[0] as string;
 	let h = Number.parseFloat(hueRaw);
-	if (/rad$/i.test(hueRaw)) h = (h * 180) / Math.PI;
-	else if (/grad$/i.test(hueRaw)) h = h * 0.9;
-	else if (/turn$/i.test(hueRaw)) h = h * 360;
-	if (Number.isNaN(h)) return null;
+	if (/rad$/iu.test(hueRaw)) {
+		h = (h * 180) / Math.PI;
+	} else if (/grad$/iu.test(hueRaw)) {
+		h *= 0.9;
+	} else if (/turn$/iu.test(hueRaw)) {
+		h *= 360;
+	}
+	if (Number.isNaN(h)) {
+		return null;
+	}
 	const s = parseColorComponent(parts[1] as string, 1);
 	const l = parseColorComponent(parts[2] as string, 1);
 	const a = parts[3] ? parseColorComponent(parts[3], 1) : 1;
-	if (s === null || l === null || a === null) return null;
+	if (s === null || l === null || a === null) {
+		return null;
+	}
 	const [r, g, b] = hslToRgb(h, s, l);
 	return [r, g, b, a];
-}
+};
 
 /**
  * Canonicalize any CSS color value to `rgb(r, g, b)` / `rgba(r, g, b, a)`.
@@ -223,20 +263,28 @@ function parseHslColor(value: string): [number, number, number, number] | null {
  * currentColor, named colors, calc(), etc. — we'd have to carry a named-color
  * table to handle those, and they rarely differ across frameworks).
  */
-function canonicalizeColor(value: string): string {
+const canonicalizeColor = function canonicalizeColor(value: string): string {
 	const trimmed = value.trim();
 	let parsed: [number, number, number, number] | null = null;
-	if (trimmed.startsWith('#')) parsed = parseHexColor(trimmed);
-	else if (/^rgba?\s*\(/i.test(trimmed)) parsed = parseRgbColor(trimmed);
-	else if (/^hsla?\s*\(/i.test(trimmed)) parsed = parseHslColor(trimmed);
-	if (!parsed) return value;
+	if (trimmed.startsWith('#')) {
+		parsed = parseHexColor(trimmed);
+	} else if (/^rgba?\s*\(/iu.test(trimmed)) {
+		parsed = parseRgbColor(trimmed);
+	} else if (/^hsla?\s*\(/iu.test(trimmed)) {
+		parsed = parseHslColor(trimmed);
+	}
+	if (!parsed) {
+		return value;
+	}
 	const [r, g, b, a] = parsed;
 	const ri = Math.round(r);
 	const gi = Math.round(g);
 	const bi = Math.round(b);
-	if (a === 1) return `rgb(${ri}, ${gi}, ${bi})`;
+	if (a === 1) {
+		return `rgb(${ri}, ${gi}, ${bi})`;
+	}
 	return `rgba(${ri}, ${gi}, ${bi}, ${a})`;
-}
+};
 
 /**
  * Replace the first identifier token of an animation value with `<anim>`.
@@ -244,15 +292,25 @@ function canonicalizeColor(value: string): string {
  * ends in `-animation`. Keyword values (`none`, `initial`, `inherit`) pass
  * through.
  */
-function canonicalizeAnimation(value: string): string {
+const canonicalizeAnimation = function canonicalizeAnimation(
+	value: string
+): string {
 	const trimmed = value.trim();
-	if (!trimmed) return trimmed;
-	if (/^(none|initial|inherit|unset|normal|revert|revert-layer)$/.test(trimmed))
+	if (!trimmed) {
 		return trimmed;
-	return trimmed.replace(/^[A-Za-z_][\w-]*/, '<anim>');
-}
+	}
+	if (
+		// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+		/^(none|initial|inherit|unset|normal|revert|revert-layer)$/u.test(trimmed)
+	) {
+		return trimmed;
+	}
+	return trimmed.replace(/^[A-Za-z_][\w-]*/u, '<anim>');
+};
 
-function isColorPropertyName(name: string): boolean {
+const isColorPropertyName = function isColorPropertyName(
+	name: string
+): boolean {
 	const n = name.toLowerCase();
 	return (
 		n === 'color' ||
@@ -267,47 +325,56 @@ function isColorPropertyName(name: string): boolean {
 		// but we can detect color-like values by prefix.
 		n.startsWith('--')
 	);
-}
+};
 
-function looksLikeColor(value: string): boolean {
-	return /^(#[0-9a-f]+|rgba?\s*\(|hsla?\s*\()/i.test(value.trim());
-}
+const looksLikeColor = function looksLikeColor(value: string): boolean {
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	return /^(#[0-9a-f]+|rgba?\s*\(|hsla?\s*\()/iu.test(value.trim());
+};
 
-function isAnimationPropertyName(name: string): boolean {
+const isAnimationPropertyName = function isAnimationPropertyName(
+	name: string
+): boolean {
 	const n = name.toLowerCase();
 	return (
 		n === 'animation' || n === 'animation-name' || n.endsWith('-animation')
 	);
-}
+};
 
 /**
  * Canonicalize a single property value for diff comparison. Applied
  * symmetrically to both sides of every diff.
  */
-export function canonicalizeStyleValue(name: string, value: string): string {
-	if (isAnimationPropertyName(name)) return canonicalizeAnimation(value);
-	if (isColorPropertyName(name) && looksLikeColor(value))
+export const canonicalizeStyleValue = function canonicalizeStyleValue(
+	name: string,
+	value: string
+): string {
+	if (isAnimationPropertyName(name)) {
+		return canonicalizeAnimation(value);
+	}
+	if (isColorPropertyName(name) && looksLikeColor(value)) {
 		return canonicalizeColor(value);
+	}
 	return value;
-}
+};
 
-function getCustomProperties(
+const getCustomProperties = function getCustomProperties(
 	style: CSSStyleDeclaration
 ): Record<string, string> {
 	const out: Record<string, string> = {};
-	for (let i = 0; i < style.length; i++) {
+	for (let i = 0; i < style.length; i += 1) {
 		const name = style.item(i);
 		if (name.startsWith('--')) {
 			out[name] = style.getPropertyValue(name).trim();
 		}
 	}
 	return out;
-}
+};
 
 /**
  * Capture the computed style + CSS custom properties for a single element.
  */
-export function captureComputedStyle(
+export const captureComputedStyle = function captureComputedStyle(
 	el: Element,
 	options: CaptureOptions = {}
 ): ComputedStyleSnapshot {
@@ -321,17 +388,17 @@ export function captureComputedStyle(
 	}
 
 	return {
-		properties,
 		customProperties: captureCustom ? getCustomProperties(style) : {},
+		properties,
 	};
-}
+};
 
 /**
  * Capture computed styles for a map of elements keyed by `data-testid`.
  * Missing test-ids are silently skipped — consumers can assert presence
  * separately via the DOM contract.
  */
-export function captureComputedStyleFor(
+export const captureComputedStyleFor = function captureComputedStyleFor(
 	root: ParentNode,
 	testIds: readonly string[],
 	options: CaptureOptions = {}
@@ -339,15 +406,17 @@ export function captureComputedStyleFor(
 	const out: Record<string, ComputedStyleSnapshot> = {};
 	for (const id of testIds) {
 		const el = root.querySelector(`[data-testid="${id}"]`);
-		if (el) out[id] = captureComputedStyle(el, options);
+		if (el) {
+			out[id] = captureComputedStyle(el, options);
+		}
 	}
 	return out;
-}
+};
 
 /**
  * Diff two snapshots. Returns an array of divergences (empty if equal).
  */
-export function diffComputedStyle(
+export const diffComputedStyle = function diffComputedStyle(
 	a: ComputedStyleSnapshot,
 	b: ComputedStyleSnapshot,
 	path = '$'
@@ -364,7 +433,7 @@ export function diffComputedStyle(
 		const canonAv = av === undefined ? av : canonicalizeStyleValue(name, av);
 		const canonBv = bv === undefined ? bv : canonicalizeStyleValue(name, bv);
 		if (canonAv !== canonBv) {
-			diffs.push({ path, kind: 'property', name, a: av, b: bv });
+			diffs.push({ a: av, b: bv, kind: 'property', name, path });
 		}
 	}
 
@@ -378,19 +447,19 @@ export function diffComputedStyle(
 		const canonAv = av === undefined ? av : canonicalizeStyleValue(name, av);
 		const canonBv = bv === undefined ? bv : canonicalizeStyleValue(name, bv);
 		if (canonAv !== canonBv) {
-			diffs.push({ path, kind: 'custom-property', name, a: av, b: bv });
+			diffs.push({ a: av, b: bv, kind: 'custom-property', name, path });
 		}
 	}
 
 	return diffs;
-}
+};
 
 /**
  * Diff two keyed snapshot maps (as produced by `captureComputedStyleFor`).
  * Each divergence carries the test-id in its `path`. Missing keys on either
  * side are reported as property diffs with `undefined` on the missing side.
  */
-export function diffComputedStyleMap(
+export const diffComputedStyleMap = function diffComputedStyleMap(
 	a: Record<string, ComputedStyleSnapshot>,
 	b: Record<string, ComputedStyleSnapshot>
 ): ComputedStyleDiff[] {
@@ -401,15 +470,15 @@ export function diffComputedStyleMap(
 		const bv = b[key];
 		if (!av || !bv) {
 			diffs.push({
-				path: key,
-				kind: 'property',
-				name: '<presence>',
 				a: av ? 'present' : undefined,
 				b: bv ? 'present' : undefined,
+				kind: 'property',
+				name: '<presence>',
+				path: key,
 			});
 			continue;
 		}
 		diffs.push(...diffComputedStyle(av, bv, key));
 	}
 	return diffs;
-}
+};

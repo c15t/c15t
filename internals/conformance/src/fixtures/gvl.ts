@@ -11,67 +11,67 @@
  */
 
 export const MINIMAL_GVL = {
+	features: {
+		1: {
+			description: '',
+			id: 1,
+			illustrations: [],
+			name: 'Match and combine data',
+		},
+	},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 142,
-	tcfPolicyVersion: 5,
 	lastUpdated: '2024-01-15T16:00:23Z',
 	purposes: {
 		1: {
-			id: 1,
-			name: 'Store and/or access information on a device',
 			description: '',
+			id: 1,
 			illustrations: [],
+			name: 'Store and/or access information on a device',
 		},
 		2: {
+			description: '',
 			id: 2,
+			illustrations: [],
 			name: 'Use limited data to select advertising',
-			description: '',
-			illustrations: [],
-		},
-	},
-	specialPurposes: {
-		1: { id: 1, name: 'Security', description: '', illustrations: [] },
-	},
-	features: {
-		1: {
-			id: 1,
-			name: 'Match and combine data',
-			description: '',
-			illustrations: [],
 		},
 	},
 	specialFeatures: {
 		1: {
-			id: 1,
-			name: 'Use precise geolocation data',
 			description: '',
+			id: 1,
 			illustrations: [],
+			name: 'Use precise geolocation data',
 		},
 	},
-	vendors: {
-		1: {
-			id: 1,
-			name: 'Conformance Test Vendor',
-			purposes: [1, 2],
-			legIntPurposes: [],
-			specialPurposes: [],
-			features: [],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 0,
-			usesCookies: false,
-			cookieRefresh: false,
-			usesNonCookieAccess: false,
-			urls: [],
-		},
+	specialPurposes: {
+		1: { description: '', id: 1, illustrations: [], name: 'Security' },
 	},
 	stacks: {
 		1: {
+			description: '',
 			id: 1,
 			name: 'Conformance Test Stack',
-			description: '',
 			purposes: [2],
 			specialFeatures: [],
+		},
+	},
+	tcfPolicyVersion: 5,
+	vendorListVersion: 142,
+	vendors: {
+		1: {
+			cookieMaxAgeSeconds: 0,
+			cookieRefresh: false,
+			features: [],
+			flexiblePurposes: [],
+			id: 1,
+			legIntPurposes: [],
+			name: 'Conformance Test Vendor',
+			purposes: [1, 2],
+			specialFeatures: [],
+			specialPurposes: [],
+			urls: [],
+			usesCookies: false,
+			usesNonCookieAccess: false,
 		},
 	},
 } as const;

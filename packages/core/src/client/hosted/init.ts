@@ -9,7 +9,7 @@ import type { FetcherContext } from './fetcher';
 import { createResponseContext, fetcher } from './fetcher';
 import type { IABFallbackConfig } from './types';
 
-async function createFallbackContext(
+const createFallbackContext = async function createFallbackContext(
 	options: FetchOptions<InitResponse> | undefined,
 	data: InitResponse
 ): Promise<ResponseContext<InitResponse>> {
@@ -18,7 +18,7 @@ async function createFallbackContext(
 		await options.onSuccess(response);
 	}
 	return response;
-}
+};
 
 /**
  * Provides offline mode fallback for showConsentBanner API.
@@ -26,48 +26,49 @@ async function createFallbackContext(
  * In fallback mode, fetches GVL from gvl.inth.app when IAB is enabled.
  * @internal
  */
-export async function offlineFallbackForConsentBanner(
-	options?: FetchOptions<InitResponse>,
-	iabConfig?: IABFallbackConfig
-): Promise<ResponseContext<InitResponse>> {
-	const fallbackPolicy = resolveFallbackPolicy({});
+export const offlineFallbackForConsentBanner =
+	async function offlineFallbackForConsentBanner(
+		options?: FetchOptions<InitResponse>,
+		iabConfig?: IABFallbackConfig
+	): Promise<ResponseContext<InitResponse>> {
+		const fallbackPolicy = resolveFallbackPolicy({});
 
-	// Fetch GVL from external endpoint in offline/fallback mode
-	// Only when IAB is enabled on the client and the fallback policy is IAB.
-	// Uses the injected IAB module's fetchGVL if available.
-	let gvl = null;
-	if (iabConfig?.enabled && fallbackPolicy.model === 'iab') {
-		try {
-			const fetchGVL = iabConfig._module?.fetchGVL;
-			if (fetchGVL) {
-				const acceptLanguage = options?.headers?.['accept-language'];
-				gvl = await fetchGVL(
-					iabConfig.vendorIds,
-					acceptLanguage
-						? { headers: { 'accept-language': acceptLanguage } }
-						: undefined
-				);
+		// Fetch GVL from external endpoint in offline/fallback mode
+		// Only when IAB is enabled on the client and the fallback policy is IAB.
+		// Uses the injected IAB module's fetchGVL if available.
+		let gvl = null;
+		if (iabConfig?.enabled && fallbackPolicy.model === 'iab') {
+			try {
+				const fetchGVL = iabConfig._module?.fetchGVL;
+				if (fetchGVL) {
+					const acceptLanguage = options?.headers?.['accept-language'];
+					gvl = await fetchGVL(
+						iabConfig.vendorIds,
+						acceptLanguage
+							? { headers: { 'accept-language': acceptLanguage } }
+							: undefined
+					);
+				}
+			} catch (error) {
+				console.warn('Failed to fetch GVL in offline fallback:', error);
 			}
-		} catch (error) {
-			console.warn('Failed to fetch GVL in offline fallback:', error);
 		}
-	}
 
-	const fallbackData = buildFallbackInitData({
-		countryCode: options?.headers?.['x-c15t-country'] ?? null,
-		regionCode: options?.headers?.['x-c15t-region'] ?? null,
-		gvl,
-		policy: fallbackPolicy,
-	});
+		const fallbackData = buildFallbackInitData({
+			countryCode: options?.headers?.['x-c15t-country'] ?? null,
+			gvl,
+			policy: fallbackPolicy,
+			regionCode: options?.headers?.['x-c15t-region'] ?? null,
+		});
 
-	return createFallbackContext(options, fallbackData);
-}
+		return createFallbackContext(options, fallbackData);
+	};
 
 /**
  * Checks if a consent banner should be shown.
  * If the API request fails, falls back to offline mode behavior.
  */
-export async function init(
+export const init = async function init(
 	context: FetcherContext,
 	options?: FetchOptions<InitResponse>,
 	iabConfig?: IABFallbackConfig
@@ -97,4 +98,4 @@ export async function init(
 		);
 		return offlineFallbackForConsentBanner(options, iabConfig);
 	}
-}
+};

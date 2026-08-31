@@ -23,11 +23,11 @@
 		value?: string | string[];
 	} = $props();
 
-	function setValue(nextValue: string | string[] | undefined) {
+	const setValue = function setValue(nextValue: string | string[] | undefined) {
 		value = nextValue;
-	}
+	};
 
-	function toggleItem(itemValue: string) {
+	const toggleItem = function toggleItem(itemValue: string) {
 		setValue(
 			toggleAccordionValue({
 				collapsible,
@@ -36,19 +36,19 @@
 				value,
 			})
 		);
-	}
+	};
 
 	setAccordionRootContext({
 		get collapsible() {
 			return collapsible;
 		},
+		toggleItem,
 		get type() {
 			return type;
 		},
 		get value() {
 			return value;
 		},
-		toggleItem,
 	});
 </script>
 

@@ -17,21 +17,21 @@ describe('mergeSlotProps', () => {
 		const result = mergeSlotProps(
 			{
 				className: 'slot-class',
-				style: { color: 'blue' },
 				'data-slot-value': 'slot',
+				style: { color: 'blue' },
 			},
 			{
 				className: 'component-class',
-				style: { backgroundColor: 'red' },
 				'data-slot-value': 'component',
+				style: { backgroundColor: 'red' },
 			}
 		);
 
 		expect(result.className).toContain('slot-class');
 		expect(result.className).toContain('component-class');
 		expect(result.style).toEqual({
-			color: 'blue',
 			backgroundColor: 'red',
+			color: 'blue',
 		});
 		expect(result['data-slot-value']).toBe('component');
 	});
@@ -55,8 +55,8 @@ describe('mergeSlotProps', () => {
 		expect(result.className).toContain('component-class');
 		expect(result).not.toHaveProperty('noStyle');
 		expect(result.style).toEqual({
-			color: 'blue',
 			backgroundColor: 'red',
+			color: 'blue',
 		});
 	});
 });

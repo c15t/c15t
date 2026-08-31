@@ -18,15 +18,15 @@ describe('cloudflareWebAnalytics', () => {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		});
 		expect(script.attributes).toEqual({
-			'data-cf-beacon': JSON.stringify({ token: 'tok-abc', spa: true }),
+			'data-cf-beacon': JSON.stringify({ spa: true, token: 'tok-abc' }),
 		});
 	});
 
 	it('serializes spa: false into the beacon config', () => {
-		const script = cloudflareWebAnalytics({ token: 'tok-abc', spa: false });
+		const script = cloudflareWebAnalytics({ spa: false, token: 'tok-abc' });
 
 		expect(script.attributes).toEqual({
-			'data-cf-beacon': JSON.stringify({ token: 'tok-abc', spa: false }),
+			'data-cf-beacon': JSON.stringify({ spa: false, token: 'tok-abc' }),
 		});
 	});
 
@@ -34,7 +34,7 @@ describe('cloudflareWebAnalytics', () => {
 		const script = cloudflareWebAnalytics({ token: '  tok-abc  ' });
 
 		expect(script.attributes).toEqual({
-			'data-cf-beacon': JSON.stringify({ token: 'tok-abc', spa: true }),
+			'data-cf-beacon': JSON.stringify({ spa: true, token: 'tok-abc' }),
 		});
 	});
 
@@ -49,8 +49,8 @@ describe('cloudflareWebAnalytics', () => {
 
 	it('honors a custom loader URL', () => {
 		const script = cloudflareWebAnalytics({
-			token: 'tok-abc',
 			scriptUrl: 'https://cdn.example.com/beacon.js',
+			token: 'tok-abc',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/beacon.js');

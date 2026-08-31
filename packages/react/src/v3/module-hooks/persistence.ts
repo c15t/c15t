@@ -11,7 +11,7 @@ import { useRequiredKernel } from './shared';
 
 export type UsePersistenceOptions = Omit<PersistenceOptions, 'kernel'>;
 
-export function usePersistence(
+export const usePersistence = function usePersistence(
 	options: UsePersistenceOptions = {}
 ): PersistenceHandle {
 	const kernel = useRequiredKernel();
@@ -21,8 +21,8 @@ export function usePersistence(
 	const [handle, setHandle] = useState(() => {
 		const created = createPersistence({
 			kernel,
-			storageConfig: options.storageConfig,
 			skipHydration: true,
+			storageConfig: options.storageConfig,
 		});
 		if (options.skipHydration !== true) {
 			created.hydrate();
@@ -31,11 +31,9 @@ export function usePersistence(
 	});
 	void setHandle;
 
-	useEffect(() => {
-		return () => handle.dispose();
-	}, [handle]);
+	useEffect(() => () => handle.dispose(), [handle]);
 
 	return handle;
-}
+};
 
 export type { PersistenceHandle, PersistenceOptions };

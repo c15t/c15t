@@ -56,11 +56,11 @@ const forSqlite: Encoder = (value) => {
  * disagree with the database actually in use.
  */
 export const encoder: Effect.Effect<Encoder, never, SqlClient.SqlClient> =
-	Effect.gen(function* () {
+	Effect.gen(function* encoder() {
 		const sql = yield* SqlClient.SqlClient;
 		return yield* sql.onDialectOrElse({
-			sqlite: () => Effect.succeed(forSqlite),
 			orElse: () => Effect.succeed(passthrough),
+			sqlite: () => Effect.succeed(forSqlite),
 		});
 	});
 

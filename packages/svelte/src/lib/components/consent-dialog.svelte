@@ -122,8 +122,12 @@
 
 	// Trigger props
 	const triggerProps = $derived.by(() => {
-		if (showTrigger === true) return {};
-		if (showTrigger === false) return null;
+		if (showTrigger === true) {
+			return {};
+		}
+		if (showTrigger === false) {
+			return null;
+		}
 		return showTrigger;
 	});
 

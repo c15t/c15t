@@ -11,12 +11,13 @@ const scenario = 'css-v2-banner-monolith';
 
 const CssV2BannerMonolithPage = () => {
 	const options: ConsentManagerProviderProps['options'] = {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
 		callbacks: {
 			onBannerFetched() {
 				const state = getBenchState(scenario);
-				if (!state) return;
+				if (!state) {
+					return;
+				}
 				state.onBannerFetchedCount += 1;
 				if (state.onBannerFetchedMs === undefined) {
 					state.onBannerFetchedMs = performance.now();
@@ -24,15 +25,20 @@ const CssV2BannerMonolithPage = () => {
 			},
 			onConsentSet() {
 				const state = getBenchState(scenario);
-				if (!state) return;
+				if (!state) {
+					return;
+				}
 				state.onConsentSetCount += 1;
 			},
 			onError() {
 				const state = getBenchState(scenario);
-				if (!state) return;
+				if (!state) {
+					return;
+				}
 				state.onErrorCount += 1;
 			},
 		},
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {
@@ -47,7 +53,7 @@ const CssV2BannerMonolithPage = () => {
 	return (
 		<ConsentManagerProvider options={options}>
 			<ReactBenchmarkProbe scenario={scenario} />
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 				<h1>React v2 Banner + Monolith CSS Benchmark</h1>
 			</main>
 			<ConsentBanner disableAnimation />

@@ -59,7 +59,7 @@ export interface PolicyI18nValidationResult {
 	warnings: string[];
 }
 
-function normalizeLanguage(
+const normalizeLanguage = function normalizeLanguage(
 	value: string | null | undefined
 ): string | undefined {
 	if (!value) {
@@ -72,9 +72,9 @@ function normalizeLanguage(
 	}
 
 	return normalized.split('-')[0] ?? undefined;
-}
+};
 
-function normalizeProfiles(
+const normalizeProfiles = function normalizeProfiles(
 	input: PolicyI18nValidationOptions
 ): Record<string, PolicyI18nMessageProfileLike> {
 	const profiles = input.i18n?.messages;
@@ -94,9 +94,9 @@ function normalizeProfiles(
 	}
 
 	return {};
-}
+};
 
-function resolveFallbackLanguage(input: {
+const resolveFallbackLanguage = function resolveFallbackLanguage(input: {
 	profile?: PolicyI18nMessageProfileLike;
 }): string {
 	const configuredFallbackLanguage =
@@ -114,9 +114,9 @@ function resolveFallbackLanguage(input: {
 	}
 
 	return profileLanguages[0] ?? configuredFallbackLanguage;
-}
+};
 
-function resolveActiveProfile(input: {
+const resolveActiveProfile = function resolveActiveProfile(input: {
 	profiles: Record<string, PolicyI18nMessageProfileLike>;
 	defaultProfile: string;
 	policyProfile?: string;
@@ -125,9 +125,10 @@ function resolveActiveProfile(input: {
 	return input.profiles[requestedProfile]
 		? requestedProfile
 		: input.defaultProfile;
-}
+};
 
-export function validatePolicyI18nConfig(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const validatePolicyI18nConfig = function validatePolicyI18nConfig(
 	options: PolicyI18nValidationOptions
 ): PolicyI18nValidationResult {
 	const profiles = normalizeProfiles(options);
@@ -157,9 +158,9 @@ export function validatePolicyI18nConfig(
 		}
 
 		const profile = resolveActiveProfile({
-			profiles,
 			defaultProfile,
 			policyProfile: policy.i18n.messageProfile,
+			profiles,
 		});
 		const language = normalizeLanguage(policy.i18n.language);
 
@@ -208,8 +209,8 @@ export function validatePolicyI18nConfig(
 	}
 
 	return {
-		profiles: profileNames,
 		errors,
+		profiles: profileNames,
 		warnings,
 	};
-}
+};

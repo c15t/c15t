@@ -12,28 +12,28 @@ import type { CliContext } from '~/context/types';
  */
 export const THEME_OPTIONS = [
 	{
-		value: 'default',
-		label: 'Default',
-		hint: 'c15t branded theme',
 		description: 'Modern look with c15t branding',
+		hint: 'c15t branded theme',
+		label: 'Default',
+		value: 'default',
 	},
 	{
-		value: 'minimal',
-		label: 'Minimal',
-		hint: 'Clean, simple styling',
 		description: 'Clean design that fits any site',
+		hint: 'Clean, simple styling',
+		label: 'Minimal',
+		value: 'minimal',
 	},
 	{
-		value: 'system',
-		label: 'System',
-		hint: 'Follows OS light/dark mode',
 		description: "Automatically matches your users' system preference",
+		hint: 'Follows OS light/dark mode',
+		label: 'System',
+		value: 'system',
 	},
 	{
-		value: 'none',
-		label: 'Unstyled',
-		hint: 'BYO CSS',
 		description: 'No styles included - bring your own CSS',
+		hint: 'BYO CSS',
+		label: 'Unstyled',
+		value: 'none',
 	},
 ] as const;
 
@@ -42,16 +42,18 @@ export type ThemeId = (typeof THEME_OPTIONS)[number]['value'];
 /**
  * Get theme info by ID
  */
-export function getThemeInfo(
+export const getThemeInfo = function getThemeInfo(
 	id: ThemeId
 ): (typeof THEME_OPTIONS)[number] | undefined {
 	return THEME_OPTIONS.find((t) => t.value === id);
-}
+};
 
 /**
  * Prompt user to select a theme
  */
-export async function promptForTheme(context: CliContext): Promise<ThemeId> {
+export const promptForTheme = async function promptForTheme(
+	context: CliContext
+): Promise<ThemeId> {
 	const { logger } = context;
 
 	logger.message('');
@@ -61,9 +63,9 @@ export async function promptForTheme(context: CliContext): Promise<ThemeId> {
 	const result = await p.select({
 		message: 'Select a theme:',
 		options: THEME_OPTIONS.map((option) => ({
-			value: option.value,
-			label: option.label,
 			hint: option.hint,
+			label: option.label,
+			value: option.value,
 		})),
 	});
 
@@ -73,12 +75,14 @@ export async function promptForTheme(context: CliContext): Promise<ThemeId> {
 	}
 
 	return result as ThemeId;
-}
+};
 
 /**
  * Generate theme configuration
  */
-export function generateThemeConfig(theme: ThemeId): string {
+export const generateThemeConfig = function generateThemeConfig(
+	theme: ThemeId
+): string {
 	switch (theme) {
 		case 'default':
 			return `theme: {
@@ -105,12 +109,12 @@ export function generateThemeConfig(theme: ThemeId): string {
 		default:
 			return '';
 	}
-}
+};
 
 /**
  * Generate CSS import for theme
  */
-export function getThemeCssImport(
+export const getThemeCssImport = function getThemeCssImport(
 	theme: ThemeId,
 	framework?: 'react' | 'nextjs'
 ): string | null {
@@ -126,4 +130,4 @@ export function getThemeCssImport(
 		default:
 			return `${pkg}/styles.css`;
 	}
-}
+};

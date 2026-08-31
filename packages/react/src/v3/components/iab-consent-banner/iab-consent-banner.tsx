@@ -93,6 +93,7 @@ export interface IABConsentBannerProps {
  *
  * @public
  */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
@@ -117,8 +118,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});

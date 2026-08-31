@@ -22,7 +22,7 @@ const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 
 const GIVEN_AT = new Date(1_800_000_000_000);
 
-const setup = Effect.gen(function* () {
+const setup = Effect.gen(function* setup() {
 	yield* baseline;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
@@ -32,14 +32,14 @@ const setup = Effect.gen(function* () {
 });
 
 const submission = {
-	subjectId: 'sub_1',
 	domainId: 'dom_1',
-	policyId: null,
 	givenAt: GIVEN_AT,
+	policyId: null,
 	purposeIds: ['analytics'],
+	subjectId: 'sub_1',
 };
 
-const countConsents = Effect.fn('countConsents')(function* () {
+const countConsents = Effect.fn('countConsents')(function* countConsents() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{
 		total: string;
@@ -51,12 +51,12 @@ describe('consent.record', () => {
 	it.effect(
 		'records a new submission',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const result = yield* record(submission);
 
 				assert.isTrue(result.created);
-				assert.match(result.id, /^cns_/);
+				assert.match(result.id, /^cns_/u);
 				assert.strictEqual(yield* countConsents(), 1);
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
@@ -65,7 +65,7 @@ describe('consent.record', () => {
 	it.effect(
 		'is idempotent across retries',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const first = yield* record(submission);
 				const second = yield* record(submission);
@@ -83,7 +83,7 @@ describe('consent.record', () => {
 	it.effect(
 		'records one row when the same submission arrives concurrently',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 
 				// The case the old read-then-write could lose: both calls read
@@ -109,7 +109,7 @@ describe('consent.record', () => {
 	it.effect(
 		'treats a different givenAt as a different consent',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				yield* record(submission);
 				const later = yield* record({
@@ -128,7 +128,7 @@ describe('consent.record', () => {
 	it.effect(
 		'finds a row written before deterministic ids existed',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				const sql = yield* SqlClient.SqlClient;
 
@@ -152,7 +152,7 @@ describe('consent.record', () => {
 	it.effect(
 		'keeps tenants apart',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* setup;
 				yield* record({ ...submission, tenantId: 'tenant_a' });
 				const other = yield* record({ ...submission, tenantId: 'tenant_b' });

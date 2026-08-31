@@ -51,9 +51,9 @@ describe('microsoftUet contract', () => {
 
 		expect(constructorArgs).toHaveLength(1);
 		expect(constructorArgs[0]).toMatchObject({
-			ti: 'UET-CONTRACT',
 			enableAutoSpaTracking: true,
 			q: ['consent', 'default', { ad_storage: 'granted' }],
+			ti: 'UET-CONTRACT',
 		});
 		expect(pushCalls).toEqual([['pageLoad']]);
 	});

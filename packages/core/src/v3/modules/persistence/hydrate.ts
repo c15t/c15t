@@ -20,7 +20,7 @@ import type { StorageConfig, StoredPayload } from './types';
  *
  * No-op (returns `false`) when storage APIs are unavailable.
  */
-export function hydrateFromStorage(
+export const hydrateFromStorage = function hydrateFromStorage(
 	kernel: ConsentKernel,
 	storageConfig: StorageConfig | undefined
 ): boolean {
@@ -32,7 +32,9 @@ export function hydrateFromStorage(
 		| StoredPayload
 		| null
 		| undefined;
-	if (!stored) return false;
+	if (!stored) {
+		return false;
+	}
 
 	if (stored.consents) {
 		kernel.set.consent(stored.consents);
@@ -46,4 +48,4 @@ export function hydrateFromStorage(
 		kernel.set.activeUI('none');
 	}
 	return true;
-}
+};

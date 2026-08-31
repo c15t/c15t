@@ -12,7 +12,10 @@ import { describeRoute } from 'hono-openapi';
 import type { RouteContext } from '../context';
 import { buildManifestResponse } from '../manifest';
 
-export function register({ app, options, run }: RouteContext): void {
+export const register = function register({
+	app,
+	options,
+}: RouteContext): void {
 	app.get(
 		'/manifest',
 		describeRoute({
@@ -38,4 +41,4 @@ export function register({ app, options, run }: RouteContext): void {
 			return c.json(manifest.body);
 		}
 	);
-}
+};

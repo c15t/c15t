@@ -44,7 +44,7 @@ interface CodemodExecutionResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function logCodemodResult(
+const logCodemodResult = function logCodemodResult(
 	context: CliContext,
 	result: CodemodExecutionResult,
 	dryRun: boolean
@@ -80,18 +80,19 @@ function logCodemodResult(
 	for (const error of result.errors) {
 		logger.warn(`Skipped ${error.filePath}: ${error.error}`);
 	}
-}
+};
 
 const codemods: CodemodDefinition[] = [
 	{
+		hint: 'Migrates showPopup/isPrivacyDialogOpen and setter usage to activeUI.',
 		id: 'active-ui-api',
 		label: 'showPopup API -> activeUI API',
-		hint: 'Migrates showPopup/isPrivacyDialogOpen and setter usage to activeUI.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runActiveUiApiCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -101,14 +102,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Renames CookieBanner/ConsentManagerDialog/ConsentManagerWidget.',
 		id: 'component-renames',
 		label: 'legacy component names -> v2 names',
-		hint: 'Renames CookieBanner/ConsentManagerDialog/ConsentManagerWidget.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runComponentRenamesCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -118,14 +120,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Migrates gdprTypes/initialGDPRTypes to consentCategories.',
 		id: 'gdpr-types-to-consent-categories',
 		label: 'gdprTypes -> consentCategories',
-		hint: 'Migrates gdprTypes/initialGDPRTypes to consentCategories.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runGdprTypesToConsentCategoriesCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -135,14 +138,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: "Migrates ignoreGeoLocation to overrides (forces country='DE').",
 		id: 'ignore-geo-location-to-overrides',
 		label: 'ignoreGeoLocation -> overrides',
-		hint: "Migrates ignoreGeoLocation to overrides (forces country='DE').",
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runIgnoreGeoLocationToOverridesCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -152,14 +156,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: "Migrates legacy mode values from 'c15t' to 'hosted'.",
 		id: 'mode-c15t-to-hosted',
 		label: "mode: 'c15t' -> 'hosted'",
-		hint: "Migrates legacy mode values from 'c15t' to 'hosted'.",
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runC15tModeToHostedCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -169,14 +174,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Adds starter policyPackPresets to offline configs missing policies.',
 		id: 'offline-add-policy-packs',
 		label: 'offline mode -> add policy packs',
-		hint: 'Adds starter policyPackPresets to offline configs missing policies.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runOfflineAddPolicyPacksCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -186,14 +192,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Lifts react.theme/colorScheme/disableAnimation to top-level.',
 		id: 'react-options-to-top-level',
 		label: 'react options -> top-level options',
-		hint: 'Lifts react.theme/colorScheme/disableAnimation to top-level.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runReactOptionsToTopLevelCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -203,14 +210,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Migrates tracking blocker config to network blocker rules.',
 		id: 'tracking-blocker-to-network-blocker',
 		label: 'trackingBlockerConfig -> networkBlocker',
-		hint: 'Migrates tracking blocker config to network blocker rules.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runTrackingBlockerToNetworkBlockerCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -220,14 +228,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Migrates legacy translation config keys to the v2 i18n shape.',
 		id: 'translations-to-i18n',
 		label: 'translations -> i18n',
-		hint: 'Migrates legacy translation config keys to the v2 i18n shape.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runTranslationsToI18nCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -237,14 +246,15 @@ const codemods: CodemodDefinition[] = [
 		},
 	},
 	{
+		hint: 'Moves styled c15t imports into the app CSS entrypoint, including Tailwind 3 and IAB variants when needed.',
 		id: 'add-stylesheet-imports',
 		label: 'configure global CSS for prebuilt UI',
-		hint: 'Moves styled c15t imports into the app CSS entrypoint, including Tailwind 3 and IAB variants when needed.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runAddStylesheetImportsCodemod({
-				projectRoot,
 				dryRun,
+
+				projectRoot,
 			});
 			logCodemodResult(context, result, dryRun);
 		},
@@ -261,7 +271,9 @@ const codemods: CodemodDefinition[] = [
  * @param context CLI execution context.
  * @returns Promise that resolves when selected codemods complete.
  */
-export async function runCodemods(context: CliContext): Promise<void> {
+export const runCodemods = async function runCodemods(
+	context: CliContext
+): Promise<void> {
 	const { logger, commandArgs, projectRoot } = context;
 	const dryRun = commandArgs.includes('--dry-run');
 	const installedVersion = await detectInstalledC15tVersion(projectRoot);
@@ -292,9 +304,9 @@ export async function runCodemods(context: CliContext): Promise<void> {
 	const selected = await p.multiselect({
 		message: 'Select codemods to run (space to toggle, enter to confirm):',
 		options: availableCodemods.map((codemod) => ({
-			value: codemod.id,
-			label: codemod.label,
 			hint: codemod.hint,
+			label: codemod.label,
+			value: codemod.id,
 		})),
 		required: false,
 	});
@@ -327,18 +339,19 @@ export async function runCodemods(context: CliContext): Promise<void> {
 		}
 
 		logger.info(`Running: ${codemod.label}`);
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await codemod.run(context, dryRun);
 	}
-}
+};
 
 /**
  * Top-level CLI command definition for project codemods.
  */
 export const codemodsCommand: CliCommand = {
-	name: 'codemods',
-	label: 'Codemods',
-	hint: 'Run migration codemods',
+	action: runCodemods,
 	description:
 		'Run project codemods (for example translations -> i18n migration).',
-	action: runCodemods,
+	hint: 'Run migration codemods',
+	label: 'Codemods',
+	name: 'codemods',
 };

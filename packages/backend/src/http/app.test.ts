@@ -108,7 +108,7 @@ for (const engine of ENGINES) {
 			// so revive before validating — as a 2.x client would. Done generically
 			// rather than field by field, because naming each one means a new date
 			// field silently fails the assertion for the wrong reason.
-			const ISO = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/;
+			const ISO = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/u;
 			const revive = (value: unknown): unknown => {
 				if (typeof value === 'string')
 					return ISO.test(value) ? new Date(value) : value;
@@ -678,7 +678,7 @@ for (const engine of ENGINES) {
 
 			assert.strictEqual(response.status, 200);
 			const body = await response.json();
-			assert.match(body.consentId, /^cns_/);
+			assert.match(body.consentId, /^cns_/u);
 			assert.strictEqual(body.subjectId, 'sub_client');
 		});
 

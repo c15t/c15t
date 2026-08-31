@@ -23,33 +23,36 @@ declare global {
  */
 export const hotjarManifest = {
 	...vendorManifestContract,
-	vendor: 'hotjar',
 	category: 'measurement',
 	install: [
 		{
-			type: 'setGlobal',
+			ifUndefined: true,
+
 			name: '_hjSettings',
+			type: 'setGlobal',
 			value: {
 				hjid: '{{siteId}}',
 				hjsv: '{{version}}',
 			},
-			ifUndefined: true,
 		},
 		{
-			type: 'defineStubFunction',
+			ifUndefined: true,
+
 			name: 'hj',
 			queue: {
 				property: 'q',
 			},
 			queueFormat: 'array',
-			ifUndefined: true,
+			type: 'defineStubFunction',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'hotjar',
 } as const satisfies VendorManifest;
 
 export interface HotjarOptions {
@@ -82,7 +85,7 @@ export interface HotjarOptions {
  * hotjar({ siteId: 1234567 });
  * ```
  */
-export function hotjar({
+export const hotjar = function hotjar({
 	siteId,
 	version = 6,
 	scriptUrl,
@@ -97,11 +100,11 @@ export function hotjar({
 	}
 
 	return resolveManifest(hotjarManifest, {
-		siteId: normalizedSiteId,
-		version,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			`https://static.hotjar.com/c/hotjar-${normalizedSiteId}.js?sv=${version}`
 		),
+		siteId: normalizedSiteId,
+		version,
 	});
-}
+};

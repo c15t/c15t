@@ -73,9 +73,9 @@ export interface HostedTransportOptions {
 }
 
 /** Strip a single trailing slash so `${base}/init` doesn't double up. */
-function trimSlash(url: string): string {
+const trimSlash = function trimSlash(url: string): string {
 	return url.endsWith('/') ? url.slice(0, -1) : url;
-}
+};
 
 /**
  * Resolve the `domain` field sent on `POST /subjects`.
@@ -87,11 +87,13 @@ function trimSlash(url: string): string {
  *    runtimes.
  * 4. `'localhost'` as a final fallback.
  */
-function resolveDomain(
+const resolveDomain = function resolveDomain(
 	backendURL: string,
 	explicit: string | undefined
 ): string {
-	if (explicit) return explicit;
+	if (explicit) {
+		return explicit;
+	}
 	if (typeof window !== 'undefined' && window.location?.hostname) {
 		return window.location.hostname;
 	}
@@ -100,15 +102,17 @@ function resolveDomain(
 	} catch {
 		return 'localhost';
 	}
-}
+};
 
 const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
 
-function buildAllowedInitHeaders(
+const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 	headers: Record<string, string> | undefined
 ): Record<string, string> {
 	const allowed: Record<string, string> = {};
-	if (!headers) return allowed;
+	if (!headers) {
+		return allowed;
+	}
 	for (const [name, value] of Object.entries(headers)) {
 		const normalizedName = name.toLowerCase();
 		if (INIT_HEADER_ALLOWLIST.has(normalizedName)) {
@@ -116,13 +120,13 @@ function buildAllowedInitHeaders(
 		}
 	}
 	return allowed;
-}
+};
 
 /**
  * Build a hosted transport. The returned object is plain — no listeners,
  * no caches, no state. Safe to create per request.
  */
-export function createHostedTransport(
+export const createHostedTransport = function createHostedTransport(
 	options: HostedTransportOptions
 ): KernelTransport {
 	const base = trimSlash(options.backendURL);
@@ -139,13 +143,13 @@ export function createHostedTransport(
 	return {
 		async init(_ctx: InitContext): Promise<InitResponse> {
 			const response = await fetchImpl(`${base}/init`, {
-				method: 'GET',
 				credentials,
 				headers: {
 					accept: 'application/json',
 					...c15tVersionHeaders,
 					...initHeaders,
 				},
+				method: 'GET',
 			});
 
 			if (!response.ok) {
@@ -160,14 +164,14 @@ export function createHostedTransport(
 
 		async save(payload: SavePayload): Promise<SaveResult> {
 			const response = await fetchImpl(`${base}/subjects`, {
-				method: 'POST',
+				body: JSON.stringify(buildSubjectPostBody(payload, { domain })),
 				credentials,
 				headers: {
-					'content-type': 'application/json',
 					accept: 'application/json',
+					'content-type': 'application/json',
 					...c15tVersionHeaders,
 				},
-				body: JSON.stringify(buildSubjectPostBody(payload, { domain })),
+				method: 'POST',
 			});
 
 			if (!response.ok) {
@@ -180,4 +184,4 @@ export function createHostedTransport(
 			return data;
 		},
 	};
-}
+};

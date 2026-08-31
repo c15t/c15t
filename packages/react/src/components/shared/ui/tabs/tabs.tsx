@@ -40,7 +40,7 @@ interface TabsContextValue {
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 
-function useTabsContext() {
+const useTabsContext = function useTabsContext() {
 	const context = useContext(TabsContext);
 
 	if (!context) {
@@ -48,7 +48,7 @@ function useTabsContext() {
 	}
 
 	return context;
-}
+};
 
 export interface TabsRootProps
 	extends

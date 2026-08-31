@@ -13,8 +13,12 @@ const config = useConsentConfig();
 
 const branding = computed(() => init.value?.branding ?? 'c15t');
 const resolvedBranding = computed(() => {
-	if (branding.value === 'none') return 'none';
-	if (branding.value === 'inth' || branding.value === 'consent') return 'inth';
+	if (branding.value === 'none') {
+		return 'none';
+	}
+	if (branding.value === 'inth' || branding.value === 'consent') {
+		return 'inth';
+	}
 	return 'c15t';
 });
 

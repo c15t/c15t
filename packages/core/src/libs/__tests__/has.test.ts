@@ -15,29 +15,29 @@ describe('has - Consent Condition Evaluation', () => {
 
 		// Default consent state for most tests
 		mockConsents = {
-			necessary: true,
-			measurement: true,
-			marketing: false,
-			functionality: false,
 			experience: true,
+			functionality: false,
+			marketing: false,
+			measurement: true,
+			necessary: true,
 		};
 
 		// All consents granted
 		allTrueConsents = {
-			necessary: true,
-			measurement: true,
-			marketing: true,
-			functionality: true,
 			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+			necessary: true,
 		};
 
 		// All consents denied (except necessary which is typically required)
 		allFalseConsents = {
-			necessary: true,
-			measurement: false,
-			marketing: false,
-			functionality: false,
 			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
 		};
 	});
 
@@ -219,8 +219,10 @@ describe('has - Consent Condition Evaluation', () => {
 		it('should handle OR with AND conditions', () => {
 			const condition: HasCondition<AllConsentNames> = {
 				or: [
-					{ and: ['marketing', 'functionality'] }, // false
-					{ and: ['necessary', 'measurement'] }, // true
+					// false
+					{ and: ['marketing', 'functionality'] },
+					// true
+					{ and: ['necessary', 'measurement'] },
 				],
 			};
 			expect(has(condition, mockConsents)).toBe(true);
@@ -232,11 +234,14 @@ describe('has - Consent Condition Evaluation', () => {
 					'necessary',
 					{
 						or: [
-							{ and: ['marketing', 'functionality'] }, // false
-							{ not: { and: ['marketing', 'functionality'] } }, // true
+							// false
+							{ and: ['marketing', 'functionality'] },
+							// true
+							{ not: { and: ['marketing', 'functionality'] } },
 						],
 					},
-					{ not: 'functionality' }, // true
+					// true
+					{ not: 'functionality' },
 				],
 			};
 			expect(has(condition, mockConsents)).toBe(true);
@@ -257,8 +262,10 @@ describe('has - Consent Condition Evaluation', () => {
 			const failingCondition: HasCondition<AllConsentNames> = {
 				and: [
 					'necessary',
-					{ or: ['marketing', 'functionality'] }, // both false
-					{ not: 'measurement' }, // measurement is true, so NOT measurement is false
+					// both false
+					{ or: ['marketing', 'functionality'] },
+					// measurement is true, so NOT measurement is false
+					{ not: 'measurement' },
 				],
 			};
 			expect(has(failingCondition, mockConsents)).toBe(false);
@@ -282,8 +289,8 @@ describe('has - Consent Condition Evaluation', () => {
 
 		it('should handle undefined consent categories gracefully', () => {
 			const incompleteConsents = {
-				necessary: true,
 				measurement: true,
+				necessary: true,
 			} as ConsentState;
 
 			expect(() => {
@@ -295,11 +302,11 @@ describe('has - Consent Condition Evaluation', () => {
 	describe('Edge Cases', () => {
 		it('should handle boolean false values correctly', () => {
 			const consents: ConsentState = {
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			};
 
 			expect(has('measurement', consents)).toBe(false);
@@ -334,11 +341,11 @@ describe('has - Consent Condition Evaluation', () => {
 	describe('Policy-Aware Options', () => {
 		it('should respect out-of-scope category choices in permissive mode', () => {
 			const consents: ConsentState = {
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			};
 
 			expect(
@@ -367,11 +374,11 @@ describe('has - Consent Condition Evaluation', () => {
 
 		it('should keep out-of-scope categories blocked in strict mode', () => {
 			const consents: ConsentState = {
-				necessary: true,
-				measurement: true,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			};
 
 			expect(
@@ -423,7 +430,7 @@ describe('has - Consent Condition Evaluation', () => {
 		it('should handle deeply nested conditions efficiently', () => {
 			// Create a deep nesting structure
 			let condition: HasCondition<AllConsentNames> = 'necessary';
-			for (let i = 0; i < 10; i++) {
+			for (let i = 0; i < 10; i += 1) {
 				condition = { not: condition };
 			}
 
@@ -432,8 +439,10 @@ describe('has - Consent Condition Evaluation', () => {
 			const result = has(condition, mockConsents);
 			const end = performance.now();
 
-			expect(result).toBe(true); // Double negation should result in true
-			expect(end - start).toBeLessThan(100); // Should be fast
+			// Double negation should result in true
+			expect(result).toBe(true);
+			// Should be fast
+			expect(end - start).toBeLessThan(100);
 		});
 
 		it('should handle large AND/OR arrays efficiently', () => {

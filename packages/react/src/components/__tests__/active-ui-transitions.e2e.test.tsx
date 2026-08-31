@@ -38,15 +38,15 @@ const getDefined = <Value,>(
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -59,13 +59,15 @@ const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
 
-function queryRequiredElement(selector: string): HTMLElement {
+const queryRequiredElement = function queryRequiredElement(
+	selector: string
+): HTMLElement {
 	const element = document.querySelector<HTMLElement>(selector);
 	if (!element) {
 		throw new Error(`Expected element matching ${selector}`);
 	}
 	return element;
-}
+};
 
 describe('activeUI Transitions E2E Tests', () => {
 	beforeEach(() => {
@@ -201,16 +203,16 @@ describe('activeUI Transitions E2E Tests', () => {
 	test('banner hidden for returning visitor', async () => {
 		// Pre-set localStorage consent
 		const consentData = {
-			consents: {
-				necessary: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				experience: true,
-			},
 			consentInfo: {
 				time: Date.now(),
 				type: 'accept-all',
+			},
+			consents: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		};
 		window.localStorage.setItem('c15t', JSON.stringify(consentData));
@@ -321,15 +323,15 @@ describe('activeUI Transitions E2E Tests', () => {
 						orientation={orientation}
 						actions={[
 							{
+								icon: <span data-testid="theme-icon" />,
 								id: 'theme',
 								label: 'Toggle color scheme',
-								icon: <span data-testid="theme-icon" />,
 								onSelect: vi.fn(),
 							},
 							{
+								icon: <span />,
 								id: 'support',
 								label: 'Open support chat',
-								icon: <span />,
 								onSelect: openSupport,
 							},
 						]}

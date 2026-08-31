@@ -47,11 +47,13 @@ interface TranslationCandidate {
 const DEFAULT_PROFILE = 'default';
 const warnedKeys = new Set<string>();
 
-function isSupportedBaseLanguage(lang: string): lang is SupportedBaseLanguage {
+const isSupportedBaseLanguage = function isSupportedBaseLanguage(
+	lang: string
+): lang is SupportedBaseLanguage {
 	return lang in baseTranslations;
-}
+};
 
-function warnOnce(
+const warnOnce = function warnOnce(
 	logger: LoggerLike | undefined,
 	key: string,
 	message: string,
@@ -63,9 +65,9 @@ function warnOnce(
 
 	warnedKeys.add(key);
 	logger.warn(message, metadata);
-}
+};
 
-function normalizeLanguage(
+const normalizeLanguage = function normalizeLanguage(
 	value: string | null | undefined
 ): string | undefined {
 	if (!value) {
@@ -78,9 +80,9 @@ function normalizeLanguage(
 	}
 
 	return normalized.split('-')[0] ?? undefined;
-}
+};
 
-function normalizeProfiles(params: {
+const normalizeProfiles = function normalizeProfiles(params: {
 	customTranslations?: Record<string, Partial<Translations>>;
 	i18n?: I18nOptions;
 	logger?: LoggerLike;
@@ -113,9 +115,9 @@ function normalizeProfiles(params: {
 	}
 
 	return {};
-}
+};
 
-function buildCandidates(input: {
+const buildCandidates = function buildCandidates(input: {
 	language: string;
 	fallbackLanguage: string;
 }): TranslationCandidate[] {
@@ -139,23 +141,23 @@ function buildCandidates(input: {
 		dedupe.add(key);
 		return true;
 	});
-}
+};
 
-function getProfileLanguages(
+const getProfileLanguages = function getProfileLanguages(
 	profiles: I18nMessageProfiles,
 	profile: string
 ): string[] {
 	return Object.keys(profiles[profile]?.translations ?? {}).sort();
-}
+};
 
-function getSelectableLanguages(input: {
+const getSelectableLanguages = function getSelectableLanguages(input: {
 	profiles: I18nMessageProfiles;
 	profile: string;
 }): string[] {
 	return getProfileLanguages(input.profiles, input.profile);
-}
+};
 
-function resolveFallbackLanguage(input: {
+const resolveFallbackLanguage = function resolveFallbackLanguage(input: {
 	profile?: I18nMessageProfile;
 }): string {
 	const configuredFallbackLanguage =
@@ -173,9 +175,9 @@ function resolveFallbackLanguage(input: {
 	}
 
 	return profileLanguages[0] ?? configuredFallbackLanguage;
-}
+};
 
-function resolveActiveProfile(input: {
+const resolveActiveProfile = function resolveActiveProfile(input: {
 	profiles: I18nMessageProfiles;
 	defaultProfile: string;
 	policyProfile?: string;
@@ -196,9 +198,9 @@ function resolveActiveProfile(input: {
 	}
 
 	return input.defaultProfile;
-}
+};
 
-export function listProfiles(options: {
+export const listProfiles = function listProfiles(options: {
 	customTranslations?: Record<string, Partial<Translations>>;
 	i18n?: I18nOptions;
 }): string[] {
@@ -207,9 +209,9 @@ export function listProfiles(options: {
 		i18n: options.i18n,
 	});
 	return Object.keys(profiles).sort();
-}
+};
 
-export function validateMessages(options: {
+export const validateMessages = function validateMessages(options: {
 	customTranslations?: Record<string, Partial<Translations>>;
 	i18n?: I18nOptions;
 	policies?: PolicyConfig[];
@@ -223,9 +225,10 @@ export function validateMessages(options: {
 		i18n: options.i18n,
 		policies: options.policies,
 	});
-}
+};
 
-export function getTranslationsData(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const getTranslationsData = function getTranslationsData(
 	acceptLanguage: string | null,
 	customTranslations?: Record<string, Partial<Translations>>,
 	options?: TranslationResolutionOptions
@@ -237,17 +240,17 @@ export function getTranslationsData(
 	});
 	const defaultProfile = options?.i18n?.defaultProfile ?? DEFAULT_PROFILE;
 	const profile = resolveActiveProfile({
-		profiles,
 		defaultProfile,
-		policyProfile: options?.policyI18n?.messageProfile,
 		logger: options?.logger,
+		policyProfile: options?.policyI18n?.messageProfile,
+		profiles,
 	});
 
 	const configuredLanguages =
 		Object.keys(profiles).length > 0
 			? getSelectableLanguages({
-					profiles,
 					profile,
+					profiles,
 				})
 			: Object.keys(baseTranslations);
 	const fallbackLanguage =
@@ -259,13 +262,13 @@ export function getTranslationsData(
 	const requestedLanguage =
 		policyLanguage ??
 		selectLanguage(configuredLanguages, {
-			header: acceptLanguage,
 			fallback: fallbackLanguage,
+			header: acceptLanguage,
 		});
 
 	const candidates = buildCandidates({
-		language: requestedLanguage,
 		fallbackLanguage,
+		language: requestedLanguage,
 	});
 
 	const selectedCandidate = candidates.find(
@@ -278,10 +281,10 @@ export function getTranslationsData(
 			`i18n.fallback:${profile}:${requestedLanguage}:${selectedCandidate.language}`,
 			`Policy translation fallback used (${selectedCandidate.reason}).`,
 			{
-				requestedProfile: profile,
 				requestedLanguage,
-				resolvedProfile: profile,
+				requestedProfile: profile,
 				resolvedLanguage: selectedCandidate.language,
+				resolvedProfile: profile,
 			}
 		);
 	}
@@ -305,12 +308,12 @@ export function getTranslationsData(
 	const translations = custom ? deepMergeTranslations(base, custom) : base;
 
 	return {
-		translations: translations as CompleteTranslations,
 		language,
+		translations: translations as CompleteTranslations,
 	};
-}
+};
 
-export async function getTranslations(
+export const getTranslations = function getTranslations(
 	acceptLanguage: string,
 	options: {
 		customTranslations?: Record<string, Partial<Translations>>;
@@ -321,7 +324,7 @@ export async function getTranslations(
 ) {
 	return getTranslationsData(acceptLanguage, options.customTranslations, {
 		i18n: options.i18n,
-		policyI18n: options.policyI18n,
 		logger: options.logger,
+		policyI18n: options.policyI18n,
 	});
-}
+};

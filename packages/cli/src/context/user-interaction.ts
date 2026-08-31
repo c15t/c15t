@@ -5,7 +5,9 @@ import type { CliContext } from './types';
 /**
  * Creates user interaction utilities for the CLI context
  */
-export function createUserInteraction(context: CliContext) {
+export const createUserInteraction = function createUserInteraction(
+	context: CliContext
+) {
 	const { logger, error } = context;
 
 	return {
@@ -21,15 +23,16 @@ export function createUserInteraction(context: CliContext) {
 		): Promise<boolean> => {
 			logger.debug(`Confirm action: "${message}", Initial: ${initialValue}`);
 
-			const confirmed = await p.confirm({ message, initialValue });
+			const confirmed = await p.confirm({ initialValue, message });
 
 			if (p.isCancel(confirmed)) {
 				error.handleCancel();
-				return false; // Unreachable, but TypeScript doesn't know that
+				// Unreachable, but TypeScript doesn't know that
+				return false;
 			}
 
 			logger.debug(`Confirmation result: ${confirmed}`);
 			return confirmed;
 		},
 	};
-}
+};

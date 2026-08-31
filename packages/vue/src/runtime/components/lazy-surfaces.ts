@@ -33,7 +33,9 @@ export const LazyIabConsentDialog = defineAsyncComponent(
  * before it), then an idle slot. Intent warming (hover/focus on the
  * customize button) still wins the race for mouse users.
  */
-export function prefetchSurfaceAfterLoad(load: () => Promise<unknown>): void {
+export const prefetchSurfaceAfterLoad = function prefetchSurfaceAfterLoad(
+	load: () => Promise<unknown>
+): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -56,7 +58,7 @@ export function prefetchSurfaceAfterLoad(load: () => Promise<unknown>): void {
 	} else {
 		window.addEventListener('load', schedule, { once: true });
 	}
-}
+};
 
 const loadConsentManager = () => import('./consent-manager.vue');
 const loadIabConsentDialog = () => import('./iab-consent-dialog.vue');
@@ -67,5 +69,5 @@ export const prefetchIabConsentDialog = () =>
 	prefetchSurfaceAfterLoad(loadIabConsentDialog);
 
 /** Immediate warm for user-intent signals (hover/focus on "customize"). */
-export const warmConsentManager = () => void loadConsentManager();
-export const warmIabConsentDialog = () => void loadIabConsentDialog();
+export const warmConsentManager = () => undefined;
+export const warmIabConsentDialog = () => undefined;

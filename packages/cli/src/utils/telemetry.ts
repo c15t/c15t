@@ -12,85 +12,87 @@ import type { DrainPipelineOptions, PipelineDrainFn } from 'evlog/pipeline';
 import { ENV_VARS, PATHS, URLS } from '../constants';
 import type { CliLogger } from './logger';
 
+// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 export const TelemetryEventName = {
-	// CLI Lifecycle events
-	CLI_INVOKED: 'cli.invoked',
-	CLI_COMPLETED: 'cli.completed',
-	CLI_EXITED: 'cli.exited',
-	CLI_ENVIRONMENT_DETECTED: 'cli.environment_detected',
-
-	// Command events
-	COMMAND_EXECUTED: 'command.executed',
-	COMMAND_SUCCEEDED: 'command.succeeded',
-	COMMAND_FAILED: 'command.failed',
-	COMMAND_UNKNOWN: 'command.unknown',
-
-	// UI events
-	INTERACTIVE_MENU_OPENED: 'ui.menu.opened',
-	INTERACTIVE_MENU_EXITED: 'ui.menu.exited',
-
-	// Config events
-	CONFIG_LOADED: 'config.loaded',
-	CONFIG_ERROR: 'config.error',
-	CONFIG_UPDATED: 'config.updated',
-
-	// Help and version events
-	HELP_DISPLAYED: 'help.displayed',
-	VERSION_DISPLAYED: 'version.displayed',
-
-	// Onboarding events
-	ONBOARDING_STARTED: 'onboarding.started',
-	ONBOARDING_STAGE: 'onboarding.stage',
-	ONBOARDING_COMPLETED: 'onboarding.completed',
-	ONBOARDING_EXITED: 'onboarding.exited',
-	ONBOARDING_STORAGE_MODE_SELECTED: 'onboarding.storage_mode_selected',
-	ONBOARDING_C15T_MODE_CONFIGURED: 'onboarding.c15t_mode_configured',
-	ONBOARDING_OFFLINE_MODE_CONFIGURED: 'onboarding.offline_mode_configured',
-	ONBOARDING_SELF_HOSTED_CONFIGURED: 'onboarding.self_hosted_configured',
-	ONBOARDING_CUSTOM_MODE_CONFIGURED: 'onboarding.custom_mode_configured',
-	ONBOARDING_DEPENDENCIES_CHOICE: 'onboarding.dependencies_choice',
-	ONBOARDING_DEPENDENCIES_INSTALLED: 'onboarding.dependencies_installed',
-	ONBOARDING_GITHUB_STAR: 'onboarding.github_star',
+	AUTH_LOGIN_FAILED: 'auth.login.failed',
 
 	// Auth events
 	AUTH_LOGIN_STARTED: 'auth.login.started',
 	AUTH_LOGIN_SUCCEEDED: 'auth.login.succeeded',
-	AUTH_LOGIN_FAILED: 'auth.login.failed',
 	AUTH_LOGOUT: 'auth.logout',
+	CLI_COMPLETED: 'cli.completed',
+	CLI_ENVIRONMENT_DETECTED: 'cli.environment_detected',
+	CLI_EXITED: 'cli.exited',
+	// CLI Lifecycle events
+	CLI_INVOKED: 'cli.invoked',
+	CLI_STATE_CANCELLED: 'cli.state.cancelled',
+	CLI_STATE_COMPLETE: 'cli.state.complete',
 
-	// Hosted project events
-	PROJECTS_LISTED: 'projects.listed',
-	PROJECT_SELECTED: 'project.selected',
-	PROJECT_CREATED: 'project.created',
-
-	// Error events
-	ERROR_OCCURRED: 'error.occurred',
-
-	// Migration events
-	MIGRATION_STARTED: 'migration.started',
-	MIGRATION_PLANNED: 'migration.planned',
-	MIGRATION_EXECUTED: 'migration.executed',
-	MIGRATION_COMPLETED: 'migration.completed',
-	MIGRATION_FAILED: 'migration.failed',
-
-	// Generate events
-	GENERATE_STARTED: 'generate.started',
-	GENERATE_COMPLETED: 'generate.completed',
-	GENERATE_FAILED: 'generate.failed',
-
-	// Self-host events
-	SELF_HOST_STARTED: 'self-host.started',
-	SELF_HOST_COMPLETED: 'self-host.completed',
-	SELF_HOST_FAILED: 'self-host.failed',
+	CLI_STATE_ERROR: 'cli.state.error',
 
 	// State machine events
 	CLI_STATE_TRANSITION: 'cli.state.transition',
-	CLI_STATE_ERROR: 'cli.state.error',
-	CLI_STATE_CANCELLED: 'cli.state.cancelled',
-	CLI_STATE_COMPLETE: 'cli.state.complete',
+
+	// Command events
+	COMMAND_EXECUTED: 'command.executed',
+	COMMAND_FAILED: 'command.failed',
+	COMMAND_SUCCEEDED: 'command.succeeded',
+	COMMAND_UNKNOWN: 'command.unknown',
+	CONFIG_ERROR: 'config.error',
+
+	// Config events
+	CONFIG_LOADED: 'config.loaded',
+	CONFIG_UPDATED: 'config.updated',
+
+	// Error events
+	ERROR_OCCURRED: 'error.occurred',
+	GENERATE_COMPLETED: 'generate.completed',
+	GENERATE_FAILED: 'generate.failed',
+
+	// Generate events
+	GENERATE_STARTED: 'generate.started',
+
+	// Help and version events
+	HELP_DISPLAYED: 'help.displayed',
+	INTERACTIVE_MENU_EXITED: 'ui.menu.exited',
+
+	// UI events
+	INTERACTIVE_MENU_OPENED: 'ui.menu.opened',
+	MIGRATION_COMPLETED: 'migration.completed',
+	MIGRATION_EXECUTED: 'migration.executed',
+	MIGRATION_FAILED: 'migration.failed',
+	MIGRATION_PLANNED: 'migration.planned',
+
+	// Migration events
+	MIGRATION_STARTED: 'migration.started',
+	ONBOARDING_C15T_MODE_CONFIGURED: 'onboarding.c15t_mode_configured',
+	ONBOARDING_COMPLETED: 'onboarding.completed',
+	ONBOARDING_CUSTOM_MODE_CONFIGURED: 'onboarding.custom_mode_configured',
+	ONBOARDING_DEPENDENCIES_CHOICE: 'onboarding.dependencies_choice',
+	ONBOARDING_DEPENDENCIES_INSTALLED: 'onboarding.dependencies_installed',
+	ONBOARDING_EXITED: 'onboarding.exited',
+	ONBOARDING_GITHUB_STAR: 'onboarding.github_star',
+	ONBOARDING_OFFLINE_MODE_CONFIGURED: 'onboarding.offline_mode_configured',
+	ONBOARDING_SELF_HOSTED_CONFIGURED: 'onboarding.self_hosted_configured',
+	ONBOARDING_STAGE: 'onboarding.stage',
+
+	// Onboarding events
+	ONBOARDING_STARTED: 'onboarding.started',
+	ONBOARDING_STORAGE_MODE_SELECTED: 'onboarding.storage_mode_selected',
+	PROJECT_CREATED: 'project.created',
+	PROJECT_SELECTED: 'project.selected',
+
+	// Hosted project events
+	PROJECTS_LISTED: 'projects.listed',
+	SELF_HOST_COMPLETED: 'self-host.completed',
+	SELF_HOST_FAILED: 'self-host.failed',
+
+	// Self-host events
+	SELF_HOST_STARTED: 'self-host.started',
+	VERSION_DISPLAYED: 'version.displayed',
 } as const;
 
-export type TelemetryEventName =
+export type TelemetryEventNameType =
 	(typeof TelemetryEventName)[keyof typeof TelemetryEventName];
 
 type TelemetryPrimitive = string | number | boolean | null;
@@ -120,9 +122,9 @@ const RESERVED_TOP_LEVEL_KEYS = new Set([
 	'source',
 ]);
 const SENSITIVE_KEY_PATTERN =
-	/(^|[-_])(token|secret|password|authorization|cookie|api[-_]?key|access[-_]?token|refresh[-_]?token|config)([-_]|$)/i;
+	/(?<capture1>^|[-_])(?<capture2>token|secret|password|authorization|cookie|api[-_]?key|access[-_]?token|refresh[-_]?token|config)(?<capture3>[-_]|$)/iu;
 const SECRET_VALUE_PATTERN =
-	/^(Bearer\s+[A-Za-z0-9._-]+|[A-Za-z0-9+/=_-]{80,})$/;
+	/^(?<capture1>Bearer\s+[A-Za-z0-9._-]+|[A-Za-z0-9+/=_-]{80,})$/u;
 
 export interface TelemetryOptions {
 	disabled?: boolean;
@@ -159,6 +161,7 @@ export class Telemetry {
 	private queueReplayPromise: Promise<void> = Promise.resolve();
 	private queueWritePromise: Promise<void> = Promise.resolve();
 
+	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 	constructor(options?: TelemetryOptions) {
 		const envDisabled =
 			process.env[ENV_VARS.TELEMETRY_DISABLED] === '1' ||
@@ -189,20 +192,20 @@ export class Telemetry {
 		const onDropped = userDrainOptions?.onDropped;
 		const pipeline = createDrainPipeline<DrainContext>({
 			batch: {
-				size: userDrainOptions?.batch?.size ?? DEFAULT_BATCH_SIZE,
 				intervalMs:
 					userDrainOptions?.batch?.intervalMs ?? DEFAULT_BATCH_INTERVAL_MS,
-			},
-			retry: {
-				maxAttempts: userDrainOptions?.retry?.maxAttempts ?? 2,
-				backoff: userDrainOptions?.retry?.backoff ?? 'fixed',
-				initialDelayMs: userDrainOptions?.retry?.initialDelayMs ?? 250,
-				maxDelayMs: userDrainOptions?.retry?.maxDelayMs ?? 1_000,
+				size: userDrainOptions?.batch?.size ?? DEFAULT_BATCH_SIZE,
 			},
 			maxBufferSize: userDrainOptions?.maxBufferSize ?? DEFAULT_MAX_BUFFER_SIZE,
 			onDropped: (events, error) => {
 				onDropped?.(events, error);
 				void this.persistDroppedEvents(events, error);
+			},
+			retry: {
+				backoff: userDrainOptions?.retry?.backoff ?? 'fixed',
+				initialDelayMs: userDrainOptions?.retry?.initialDelayMs ?? 250,
+				maxAttempts: userDrainOptions?.retry?.maxAttempts ?? 2,
+				maxDelayMs: userDrainOptions?.retry?.maxDelayMs ?? 1_000,
 			},
 		});
 
@@ -215,7 +218,7 @@ export class Telemetry {
 	}
 
 	trackEvent(
-		eventName: TelemetryEventName | string,
+		eventName: TelemetryEventNameType | string,
 		properties: EventLike = {}
 	): void {
 		if (this.disabled) {
@@ -254,13 +257,13 @@ export class Telemetry {
 		const safeArgs = this.sanitizeValue(args) as TelemetryValue[];
 
 		this.trackEvent(TelemetryEventName.COMMAND_EXECUTED, {
-			command,
-			commandRunId: this.activeCommandRunId,
 			args: safeArgs,
 			argsCount: args.length,
-			flags: safeFlags,
+			command,
+			commandRunId: this.activeCommandRunId,
 			flagCount: Object.keys(safeFlags).length,
 			flagNames: Object.keys(safeFlags).sort(),
+			flags: safeFlags,
 			subcommand:
 				typeof safeArgs[0] === 'string' ? (safeArgs[0] as string) : undefined,
 		});
@@ -337,17 +340,17 @@ export class Telemetry {
 		const cliVersion = this.readString(this.defaultProperties.cliVersion);
 
 		initLogger({
-			enabled: !this.disabled,
-			silent: true,
-			pretty: false,
-			stringify: false,
 			_suppressDrainWarning: this.disabled,
+			drain: this.disabled ? undefined : this.drain,
+			enabled: !this.disabled,
 			env: {
-				service: 'c15t-cli',
 				environment: this.getEnvironmentName(),
+				service: 'c15t-cli',
 				version: cliVersion,
 			},
-			drain: this.disabled ? undefined : this.drain,
+			pretty: false,
+			silent: true,
+			stringify: false,
 		});
 	}
 
@@ -355,24 +358,25 @@ export class Telemetry {
 		this.sequence += 1;
 
 		return {
-			event: eventName,
-			source: 'c15t-cli',
-			installId: this.installId,
-			sessionId: this.sessionId,
-			commandRunId: this.activeCommandRunId,
-			command: this.activeCommandName,
-			sequence: this.sequence,
-			firstRun: this.isFirstRun,
-			interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
-			tty: Boolean(process.stdout.isTTY),
-			ci: this.isCi(),
-			platform: process.platform,
 			arch: process.arch,
+			ci: this.isCi(),
+			command: this.activeCommandName,
+			commandRunId: this.activeCommandRunId,
+			event: eventName,
+			firstRun: this.isFirstRun,
+			installId: this.installId,
+			interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
 			nodeVersion: process.version,
+			platform: process.platform,
+			sequence: this.sequence,
+			sessionId: this.sessionId,
+			source: 'c15t-cli',
+			tty: Boolean(process.stdout.isTTY),
 			...this.defaultProperties,
 		};
 	}
 
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 	private buildHeaders(
 		overrides?: Record<string, string>
 	): Record<string, string> {
@@ -422,9 +426,9 @@ export class Telemetry {
 
 		try {
 			const response = await this.fetchImpl(this.endpoint, {
-				method: 'POST',
-				headers: this.headers,
 				body: JSON.stringify(events),
+				headers: this.headers,
+				method: 'POST',
 				signal: controller.signal,
 			});
 
@@ -507,9 +511,9 @@ export class Telemetry {
 				return [];
 			}
 
-			return parsed.filter((item): item is WideEvent => {
-				return typeof item === 'object' && item !== null;
-			});
+			return parsed.filter(
+				(item): item is WideEvent => typeof item === 'object' && item !== null
+			);
 		} catch {
 			return [];
 		}
@@ -560,8 +564,8 @@ export class Telemetry {
 				this.statePath,
 				JSON.stringify(
 					{
-						installId,
 						createdAt: new Date().toISOString(),
+						installId,
 					},
 					null,
 					2
@@ -591,28 +595,30 @@ export class Telemetry {
 		};
 
 		return this.sanitizeProperties({
-			name: eventError.name,
-			message: eventError.message,
+			cause:
+				// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+				eventError.cause instanceof Error
+					? eventError.cause.message
+					: typeof eventError.cause === 'string'
+						? eventError.cause
+						: undefined,
 			code:
 				typeof eventError.code === 'string' ||
 				typeof eventError.code === 'number'
 					? eventError.code
 					: undefined,
+			message: eventError.message,
+			name: eventError.name,
 			status:
 				typeof eventError.status === 'number' ? eventError.status : undefined,
 			statusCode:
 				typeof eventError.statusCode === 'number'
 					? eventError.statusCode
 					: undefined,
-			cause:
-				eventError.cause instanceof Error
-					? eventError.cause.message
-					: typeof eventError.cause === 'string'
-						? eventError.cause
-						: undefined,
 		});
 	}
 
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 	private sanitizeError(error: Error): Error {
 		const safeError = new Error(error.message);
 		safeError.name = error.name;
@@ -746,6 +752,7 @@ export class Telemetry {
 		return String(value);
 	}
 
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 	private sanitizePrimitive(
 		value: string | number | boolean,
 		keyHint?: string
@@ -773,6 +780,7 @@ export class Telemetry {
 				parsed.password = '';
 				parsed.search = '';
 				parsed.hash = '';
+				// oxlint-disable-next-line no-param-reassign -- Preserve established bindings and assignment semantics.
 				value = parsed.toString();
 			} catch {
 				// Keep the original string if URL parsing fails.
@@ -790,6 +798,7 @@ export class Telemetry {
 		return process.env.NODE_ENV ?? (this.isCi() ? 'production' : 'development');
 	}
 
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 	private isCi(): boolean {
 		return Boolean(
 			process.env.CI ||
@@ -799,6 +808,7 @@ export class Telemetry {
 		);
 	}
 
+	// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 	private readString(value: TelemetryValue | undefined): string | undefined {
 		return typeof value === 'string' ? value : undefined;
 	}
@@ -812,6 +822,8 @@ export class Telemetry {
 	}
 }
 
-export function createTelemetry(options?: TelemetryOptions): Telemetry {
+export const createTelemetry = function createTelemetry(
+	options?: TelemetryOptions
+): Telemetry {
 	return new Telemetry(options);
-}
+};

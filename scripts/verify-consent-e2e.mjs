@@ -370,6 +370,7 @@ async function verifyNuxtNitroRoutes(app) {
 		Array.isArray(manifest.policyPacks) && manifest.policyPacks.length === 1,
 		`${app.label}: nitro manifest policyPacks`
 	);
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const pack = manifest.policyPacks[0];
 	assertEqual(
 		pack.fingerprint,

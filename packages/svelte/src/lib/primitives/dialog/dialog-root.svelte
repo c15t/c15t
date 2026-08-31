@@ -36,11 +36,13 @@
 	const titleId = `c15t-dialog-title-${componentId}`;
 	const descriptionId = `c15t-dialog-description-${componentId}`;
 
-	function setOpen(nextOpen: boolean) {
+	const setOpen = function setOpen(nextOpen: boolean) {
 		open = nextOpen;
-	}
+	};
 
-	function requestClose(reason: 'backdrop' | 'close-trigger' | 'escape') {
+	const requestClose = function requestClose(
+		reason: 'backdrop' | 'close-trigger' | 'escape'
+	) {
 		if (reason === 'escape' && !closeOnEscape) {
 			return;
 		}
@@ -50,7 +52,7 @@
 		}
 
 		setOpen(false);
-	}
+	};
 
 	$effect(() => {
 		if (open) {
@@ -99,6 +101,7 @@
 		get preventScroll() {
 			return preventScroll;
 		},
+		requestClose,
 		get shouldRender() {
 			return shouldRender;
 		},
@@ -108,7 +111,6 @@
 		get trapFocus() {
 			return trapFocus;
 		},
-		requestClose,
 	});
 </script>
 

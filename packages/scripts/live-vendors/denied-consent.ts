@@ -18,7 +18,7 @@ import type {
  * @param storage - Cookie names and localStorage keys snapshotted in the page.
  * @returns The consent-phase result with violation details on failure.
  */
-export function evaluateDeniedConsentProbe(
+export const evaluateDeniedConsentProbe = function evaluateDeniedConsentProbe(
 	config: DeniedConsentProbeConfig,
 	observedRequestUrls: string[],
 	storage: LiveStorageSnapshot
@@ -39,9 +39,9 @@ export function evaluateDeniedConsentProbe(
 
 	if (collectViolations.length === 0 && storageViolations.length === 0) {
 		return {
-			ok: true,
 			detail:
 				'loaded under denied consent with zero collection requests and no vendor storage',
+			ok: true,
 		};
 	}
 
@@ -61,5 +61,5 @@ export function evaluateDeniedConsentProbe(
 		);
 	}
 
-	return { ok: false, detail: parts.join('; ') };
-}
+	return { detail: parts.join('; '), ok: false };
+};

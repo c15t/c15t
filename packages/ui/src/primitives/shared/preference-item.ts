@@ -25,10 +25,14 @@ export const PREFERENCE_ITEM_INTERNAL_SLOTS = {
 export type PreferenceItemSlot =
 	(typeof PREFERENCE_ITEM_SLOTS)[keyof typeof PREFERENCE_ITEM_SLOTS];
 
-export function getPreferenceItemState(open: boolean) {
+export const getPreferenceItemState = function getPreferenceItemState(
+	open: boolean
+) {
 	return getOpenState(open);
-}
+};
 
-export function togglePreferenceItemValue(current: boolean) {
+export const togglePreferenceItemValue = function togglePreferenceItemValue(
+	current: boolean
+) {
 	return !current;
-}
+};

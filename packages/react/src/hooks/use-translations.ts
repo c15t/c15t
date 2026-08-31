@@ -33,10 +33,11 @@ import { useConsentManager } from './use-consent-manager';
  *
  * @public
  */
-export function useTranslations(): Translations {
+export const useTranslations = function useTranslations(): Translations {
 	const { translationConfig } = useConsentManager();
 
-	return useMemo(() => {
-		return resolveTranslations(translationConfig, defaultTranslationConfig);
-	}, [translationConfig]);
-}
+	return useMemo(
+		() => resolveTranslations(translationConfig, defaultTranslationConfig),
+		[translationConfig]
+	);
+};

@@ -10,11 +10,11 @@ import { EMPTY_POLICIES, MINIMAL_POLICIES } from '../fixtures/policies';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-function countSwitches(root: HTMLElement): number {
+const countSwitches = function countSwitches(root: HTMLElement): number {
 	return root.querySelectorAll('[role="switch"]').length;
-}
+};
 
-export function runPoliciesConformance(
+export const runPoliciesConformance = function runPoliciesConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
@@ -55,7 +55,9 @@ export function runPoliciesConformance(
 						const el = mounted.root.querySelector(
 							`[data-testid="consent-widget-switch-${policy.id}"]`
 						);
-						if (!el) continue;
+						if (!el) {
+							continue;
+						}
 						const disabled =
 							el.getAttribute('aria-disabled') === 'true' ||
 							el.getAttribute('disabled') !== null;
@@ -87,4 +89,4 @@ export function runPoliciesConformance(
 			}
 		);
 	});
-}
+};

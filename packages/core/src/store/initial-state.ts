@@ -55,13 +55,26 @@ export const STORAGE_KEY = 'privacy-consent-storage';
  * @public
  */
 export const initialState: StoreRuntimeState = {
-	debug: false,
+	/** No consent UI shown initially (set to 'banner' after init if needed) */
+	activeUI: 'none' as ActiveUI,
+
+	/** Show c15t branding by default */
+	branding: 'c15t',
+
+	callbacks: {},
 
 	config: {
+		mode: 'Unknown',
 		pkg: 'c15t',
 		version,
-		mode: 'Unknown',
 	},
+
+	consentCategories: ['necessary'],
+
+	/** No consent information stored initially */
+	consentInfo: null,
+
+	consentTypes,
 
 	/** Initial consent states based on default values from consent types */
 	consents: consentTypes.reduce((acc, consent) => {
@@ -69,76 +82,69 @@ export const initialState: StoreRuntimeState = {
 		return acc;
 	}, {} as ConsentState),
 
-	selectedConsents: consentTypes.reduce((acc, consent) => {
-		acc[consent.name] = consent.defaultValue;
-		return acc;
-	}, {} as ConsentState),
-
-	/** No consent information stored initially */
-	consentInfo: null,
-
-	/** Show c15t branding by default */
-	branding: 'c15t',
-
-	/** No consent UI shown initially (set to 'banner' after init if needed) */
-	activeUI: 'none' as ActiveUI,
-
-	/** Initial loading state for consent banner information */
-	isLoadingConsentInfo: false,
+	debug: false,
 
 	hasFetchedBanner: false,
 
-	lastBannerFetchData: null,
-
-	consentCategories: ['necessary'],
-
-	callbacks: {},
-
-	locationInfo: null,
-
-	overrides: undefined,
-
-	legalLinks: {},
-
-	translationConfig: defaultTranslationConfig,
-
-	user: undefined,
-
-	networkBlocker: undefined,
-
-	storageConfig: undefined,
-
-	includeNonDisplayedConsents: false,
-
-	consentTypes: consentTypes,
+	/** IAB TCF state (null when not configured) */
+	iab: null,
 
 	iframeBlockerConfig: {
 		disableAutomaticBlocking: false,
 	},
 
-	scripts: [],
+	includeNonDisplayedConsents: false,
+
+	initDataSource: null,
+
+	initDataSourceDetail: null,
+
+	/** Initial loading state for consent banner information */
+	isLoadingConsentInfo: false,
+
+	lastBannerFetchData: null,
+
+	legalLinks: {},
 
 	loadedScripts: {},
 
-	scriptIdMap: {},
+	locationInfo: null,
 
 	model: 'opt-in',
-	policyBanner: {},
-	policyDialog: {},
-	policyCategories: null,
-	policyScopeMode: null,
-	initDataSource: null,
-	initDataSourceDetail: null,
 
-	/** IAB TCF state (null when not configured) */
-	iab: null,
+	networkBlocker: undefined,
+
+	overrides: undefined,
+
+	policyBanner: {},
+
+	policyCategories: null,
+
+	policyDialog: {},
+
+	policyScopeMode: null,
 
 	/** Reload page when consent is revoked (recommended for privacy compliance) */
 	reloadOnConsentRevoked: true,
+
+	scriptIdMap: {},
+
+	scripts: [],
+
+	selectedConsents: consentTypes.reduce((acc, consent) => {
+		acc[consent.name] = consent.defaultValue;
+		return acc;
+	}, {} as ConsentState),
 
 	/** SSR data was not used initially */
 	ssrDataUsed: false,
 
 	/** No SSR skip reason initially (will be set during init) */
 	ssrSkippedReason: null,
+
+	storageConfig: undefined,
+
+	translationConfig: defaultTranslationConfig,
+
+	user: undefined,
 };

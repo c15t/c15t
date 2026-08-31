@@ -8,26 +8,26 @@ const ROOT = process.argv[2]
 	: join(import.meta.dirname, '..');
 
 const stylePackages = [
-	{ name: '@c15t/ui', dir: 'packages/ui' },
-	{ name: '@c15t/react', dir: 'packages/react' },
-	{ name: '@c15t/nextjs', dir: 'packages/nextjs' },
+	{ dir: 'packages/ui', name: '@c15t/ui' },
+	{ dir: 'packages/react', name: '@c15t/react' },
+	{ dir: 'packages/nextjs', name: '@c15t/nextjs' },
 ];
 
 const entries = ['styles.tw3.css', 'iab/styles.tw3.css'];
 
-function readRequiredFile(path: string): string {
+const readRequiredFile = function readRequiredFile(path: string): string {
 	if (!existsSync(path)) {
 		throw new Error(`Missing file: ${path}`);
 	}
 
 	return readFileSync(path, 'utf8');
-}
+};
 
-function expectedProxy(entry: string): string {
+const expectedProxy = function expectedProxy(entry: string): string {
 	return entry.startsWith('iab/')
 		? '@import "../dist/iab/styles.tw3.css";'
 		: '@import "./dist/styles.tw3.css";';
-}
+};
 
 const failures: string[] = [];
 
@@ -48,7 +48,7 @@ for (const stylePackage of stylePackages) {
 				);
 			}
 
-			if (/^\s*@import\b/m.test(distEntry)) {
+			if (/^\s*@import\b/mu.test(distEntry)) {
 				failures.push(
 					`${stylePackage.name}/dist/${entry} still contains a nested @import`
 				);

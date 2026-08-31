@@ -14,64 +14,68 @@ import type { AuthState, C15tConfig } from './types';
 /**
  * Get the path to the c15t config directory
  */
-export function getConfigDir(): string {
+export const getConfigDir = function getConfigDir(): string {
 	return path.join(os.homedir(), PATHS.CONFIG_DIR);
-}
+};
 
 /**
  * Get the path to the config file
  */
-export function getConfigPath(): string {
+export const getConfigPath = function getConfigPath(): string {
 	return path.join(getConfigDir(), PATHS.CONFIG_FILE);
-}
+};
 
 /**
  * Ensure the config directory exists
  */
-async function ensureConfigDir(): Promise<void> {
+const ensureConfigDir = async function ensureConfigDir(): Promise<void> {
 	const configDir = getConfigDir();
 	await fs.mkdir(configDir, { recursive: true });
-}
+};
 
 /**
  * Load the stored configuration
  */
-export async function loadConfig(): Promise<C15tConfig | null> {
-	try {
-		const configPath = getConfigPath();
-		const content = await fs.readFile(configPath, 'utf-8');
-		const config = JSON.parse(content) as C15tConfig;
+export const loadConfig =
+	async function loadConfig(): Promise<C15tConfig | null> {
+		try {
+			const configPath = getConfigPath();
+			const content = await fs.readFile(configPath, 'utf-8');
+			const config = JSON.parse(content) as C15tConfig;
 
-		// Validate the config has required fields
-		if (!config.accessToken) {
+			// Validate the config has required fields
+			if (!config.accessToken) {
+				return null;
+			}
+
+			return config;
+		} catch {
+			// File doesn't exist or is invalid
 			return null;
 		}
-
-		return config;
-	} catch (error) {
-		// File doesn't exist or is invalid
-		return null;
-	}
-}
+	};
 
 /**
  * Save configuration to the store
  */
-export async function saveConfig(config: C15tConfig): Promise<void> {
+export const saveConfig = async function saveConfig(
+	config: C15tConfig
+): Promise<void> {
 	await ensureConfigDir();
 
 	const configPath = getConfigPath();
 	const content = JSON.stringify(config, null, 2);
 
 	await fs.writeFile(configPath, content, {
-		mode: 0o600, // Read/write for owner only
+		// Read/write for owner only
+		mode: 0o600,
 	});
-}
+};
 
 /**
  * Update specific fields in the configuration
  */
-export async function updateConfig(
+export const updateConfig = async function updateConfig(
 	updates: Partial<C15tConfig>
 ): Promise<C15tConfig | null> {
 	const existing = await loadConfig();
@@ -82,24 +86,26 @@ export async function updateConfig(
 	const updated = { ...existing, ...updates };
 	await saveConfig(updated);
 	return updated;
-}
+};
 
 /**
  * Clear the stored configuration (logout)
  */
-export async function clearConfig(): Promise<void> {
+export const clearConfig = async function clearConfig(): Promise<void> {
 	try {
 		const configPath = getConfigPath();
 		await fs.unlink(configPath);
 	} catch {
 		// Ignore if file doesn't exist
 	}
-}
+};
 
 /**
  * Check if the stored token is expired
  */
-export function isTokenExpired(config: C15tConfig): boolean {
+export const isTokenExpired = function isTokenExpired(
+	config: C15tConfig
+): boolean {
 	if (!config.expiresAt) {
 		// If no expiration, assume it's valid
 		return false;
@@ -108,67 +114,72 @@ export function isTokenExpired(config: C15tConfig): boolean {
 	// Add a 5-minute buffer
 	const buffer = 5 * 60 * 1000;
 	return Date.now() > config.expiresAt - buffer;
-}
+};
 
 /**
  * Get the current auth state
  */
-export async function getAuthState(): Promise<AuthState> {
+export const getAuthState = async function getAuthState(): Promise<AuthState> {
 	const config = await loadConfig();
 
 	if (!config) {
 		return {
-			isLoggedIn: false,
 			config: null,
 			isExpired: false,
+			isLoggedIn: false,
 		};
 	}
 
 	return {
-		isLoggedIn: true,
 		config,
 		isExpired: isTokenExpired(config),
+		isLoggedIn: true,
 	};
-}
+};
 
 /**
  * Check if the user is logged in
  */
-export async function isLoggedIn(): Promise<boolean> {
+export const isLoggedIn = async function isLoggedIn(): Promise<boolean> {
 	const state = await getAuthState();
 	return state.isLoggedIn && !state.isExpired;
-}
+};
 
 /**
  * Get the stored access token
  */
-export async function getAccessToken(): Promise<string | null> {
+export const getAccessToken = async function getAccessToken(): Promise<
+	string | null
+> {
 	const config = await loadConfig();
 	if (!config || isTokenExpired(config)) {
 		return null;
 	}
 	return config.accessToken;
-}
+};
 
 /**
  * Get the selected project ID
  */
-export async function getSelectedInstanceId(): Promise<string | null> {
-	const config = await loadConfig();
-	return config?.selectedInstanceId || null;
-}
+export const getSelectedInstanceId =
+	async function getSelectedInstanceId(): Promise<string | null> {
+		const config = await loadConfig();
+		return config?.selectedInstanceId || null;
+	};
 
 /**
  * Set the selected project ID
  */
-export async function setSelectedInstanceId(instanceId: string): Promise<void> {
+export const setSelectedInstanceId = async function setSelectedInstanceId(
+	instanceId: string
+): Promise<void> {
 	await updateConfig({ selectedInstanceId: instanceId });
-}
+};
 
 /**
  * Store tokens from a token response
  */
-export async function storeTokens(
+export const storeTokens = async function storeTokens(
 	accessToken: string,
 	options?: {
 		refreshToken?: string;
@@ -178,12 +189,12 @@ export async function storeTokens(
 ): Promise<void> {
 	const config: C15tConfig = {
 		accessToken,
-		refreshToken: options?.refreshToken,
+		email: options?.email,
 		expiresAt: options?.expiresIn
 			? Date.now() + options.expiresIn * 1000
 			: undefined,
-		email: options?.email,
 		lastLogin: Date.now(),
+		refreshToken: options?.refreshToken,
 	};
 
 	// Preserve the selected project from existing config
@@ -193,4 +204,4 @@ export async function storeTokens(
 	}
 
 	await saveConfig(config);
-}
+};

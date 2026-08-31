@@ -27,43 +27,54 @@ import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();
 
-function measureAsync(
+const measureAsync = function measureAsync(
 	iterations: number,
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	return (async () => {
 		const samples: number[] = [];
-		for (let i = 0; i < iterations; i += 1) {
-			const start = performance.now();
-			await fn();
-			samples.push((performance.now() - start) * 1000);
+		{
+			let i = 0;
+			const runSequentialLoop1 =
+				async function runSequentialLoop1(): Promise<void> {
+					if (!(i < iterations)) {
+						return;
+					}
+					const start = performance.now();
+					await fn();
+					samples.push((performance.now() - start) * 1000);
+
+					i += 1;
+					await runSequentialLoop1();
+				};
+			await runSequentialLoop1();
 		}
 		return samples;
 	})();
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
-function pct(a: number, b: number): string {
+const pct = function pct(a: number, b: number): string {
 	const d = ((b - a) / a) * 100;
-	return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
-}
+	return `${(d >= 0 ? '+' : '') + d.toFixed(1)}%`;
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '200');
 
-async function runV2SaveAll(): Promise<Stats> {
+const runV2SaveAll = async function runV2SaveAll(): Promise<Stats> {
 	const manager = configureConsentManager({ mode: 'offline' });
 	const store = createConsentManagerStore(manager, {
 		initialConsentCategories: [
@@ -79,16 +90,16 @@ async function runV2SaveAll(): Promise<Stats> {
 		await store.getState().saveConsents('all');
 	});
 	return summarize(samples);
-}
+};
 
-async function runV3SaveAll(): Promise<Stats> {
+const runV3SaveAll = async function runV3SaveAll(): Promise<Stats> {
 	const kernel = createConsentKernel({
 		initialConsents: {
-			necessary: true,
+			experience: false,
 			functionality: false,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		},
 	});
 	const persistence = createPersistence({ kernel, skipHydration: true });
@@ -101,7 +112,7 @@ async function runV3SaveAll(): Promise<Stats> {
 	});
 	persistence.dispose();
 	return summarize(samples);
-}
+};
 
 const v2 = await runV2SaveAll();
 const v3 = await runV3SaveAll();
@@ -127,9 +138,9 @@ writeFileSync(
 	join(outputDir, 'persistence-compare.json'),
 	`${JSON.stringify(
 		{
-			suite: 'persistence-compare',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
+			suite: 'persistence-compare',
 			v2,
 			v3,
 		},

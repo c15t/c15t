@@ -182,6 +182,7 @@ describe('fetchCachedManifest upstream dedupe', () => {
 		// stamped its own headers over the backend's), so the in-process cache
 		// is the only thing standing between an older backend and one upstream
 		// fetch per request.
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchMock = vi.fn(async () => manifestResponse({}));
 
 		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
@@ -199,6 +200,7 @@ describe('fetchCachedManifest upstream dedupe', () => {
 	});
 
 	test('honours an explicit no-store by never reusing the response', async () => {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchMock = vi.fn(async () =>
 			manifestResponse({ 'cache-control': 'no-store' })
 		);
@@ -210,6 +212,7 @@ describe('fetchCachedManifest upstream dedupe', () => {
 	});
 
 	test('prefers the backend s-maxage over the dedupe floor', async () => {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchMock = vi.fn(async () =>
 			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
 		);
@@ -245,6 +248,7 @@ describe('init route', () => {
 		// RFC 0001 §3: an older backend with no /manifest must not break consent.
 		// The proxy has to go through serverFetch too, or a relative backendURL
 		// throws ERR_INVALID_URL in Node.
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		mocks.serverFetch.mockImplementation(async (url: string) => {
 			if (url.includes('/manifest')) {
 				return new Response('nope', { status: 404 });

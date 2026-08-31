@@ -67,8 +67,8 @@ describe('useTheme', () => {
 			theme: {
 				slots: {
 					dialog: 'local-style',
-					dialogTitle: 'global-title',
 					dialogContent: 'local-content',
+					dialogTitle: 'global-title',
 				},
 			},
 		});

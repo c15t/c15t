@@ -55,7 +55,8 @@ export interface CacheAdapter {
  *
  * @public
  */
-export const GVL_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
+// 3 days
+export const GVL_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
 /**
  * Default TTL for in-memory cache entries (5 minutes).
@@ -63,4 +64,5 @@ export const GVL_TTL_MS = 3 * 24 * 60 * 60 * 1000; // 3 days
  *
  * @public
  */
-export const MEMORY_TTL_MS = 5 * 60 * 1000; // 5 minutes
+// 5 minutes
+export const MEMORY_TTL_MS = 5 * 60 * 1000;

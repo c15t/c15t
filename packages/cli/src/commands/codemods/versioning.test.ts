@@ -15,9 +15,13 @@ const createdDirs: string[] = [];
 
 describe('codemod versioning', () => {
 	afterEach(async () => {
-		for (const dir of createdDirs.splice(0, createdDirs.length)) {
-			await rm(dir, { recursive: true, force: true });
-		}
+		await Array.from(createdDirs.splice(0, createdDirs.length)).reduce(
+			async (previousIteration, dir) => {
+				await previousIteration;
+				await rm(dir, { force: true, recursive: true });
+			},
+			Promise.resolve()
+		);
 	});
 
 	it('matches simple comparator sets including prerelease semantics', () => {
@@ -32,8 +36,8 @@ describe('codemod versioning', () => {
 	it('detects most conservative c15t version from package.json deps', () => {
 		const version = detectInstalledC15tVersionFromPackageJson({
 			dependencies: {
-				c15t: '^1.9.0',
 				'@c15t/react': '~1.8.1',
+				c15t: '^1.9.0',
 			},
 			devDependencies: {
 				'@c15t/cli': '2.0.0-rc.4',
@@ -81,10 +85,10 @@ describe('codemod versioning', () => {
 		createdDirs.push(rootDir);
 
 		const manifest = {
-			name: 'test-project',
 			dependencies: {
 				'@c15t/react': '^1.6.0',
 			},
+			name: 'test-project',
 		};
 
 		await writeFile(

@@ -91,7 +91,8 @@ export const switchVariants = ({
 	size = 'medium',
 }: SwitchVariantsProps = {}) => {
 	const sizeMap: Record<SwitchSize, keyof typeof styles | undefined> = {
-		medium: undefined, // Default size, no additional class
+		// Default size, no additional class
+		medium: undefined,
 		small: 'root-small',
 	};
 

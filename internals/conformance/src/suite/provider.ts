@@ -16,7 +16,7 @@ const REQUIRED_STATE_KEYS = [
 	'consentCategories',
 ] as const;
 
-export function runProviderConformance(
+export const runProviderConformance = function runProviderConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
@@ -46,7 +46,7 @@ export function runProviderConformance(
 					const store = driver.getStore();
 					let notified = 0;
 					const unsubscribe = store.subscribe(() => {
-						notified++;
+						notified += 1;
 					});
 					store.getState();
 					unsubscribe();
@@ -59,10 +59,10 @@ export function runProviderConformance(
 
 		conformanceTest(api, 'unmount cleans up the DOM', async () => {
 			const mounted = await driver.mount({ component: 'consent-banner' });
-			const root = mounted.root;
+			const { root } = mounted;
 			api.expect(root.childNodes.length).toBeGreaterThan(0);
 			await mounted.unmount();
 			api.expect(root.childNodes.length).toBe(0);
 		});
 	});
-}
+};

@@ -20,11 +20,11 @@ import {
 import { createConsentManagerStore } from '../store';
 
 const createMockConsentManager = (): ConsentManagerInterface => ({
-	showConsentBanner: vi.fn(),
-	setConsent: vi.fn(),
-	verifyConsent: vi.fn(),
-	identifyUser: vi.fn(),
 	$fetch: vi.fn(),
+	identifyUser: vi.fn(),
+	setConsent: vi.fn(),
+	showConsentBanner: vi.fn(),
+	verifyConsent: vi.fn(),
 });
 
 describe('v3 gate: runtime cache identity', () => {
@@ -59,13 +59,13 @@ describe('v3 gate: runtime cache identity', () => {
 	// at consent-manager-provider.tsx:169-198 with an extra useEffect.
 	test.fails('distinct callbacks must yield distinct runtimes', () => {
 		const a = getOrCreateConsentRuntime({
-			mode: 'offline',
 			callbacks: { onConsentSet: vi.fn() },
+			mode: 'offline',
 		});
 
 		const b = getOrCreateConsentRuntime({
-			mode: 'offline',
 			callbacks: { onConsentSet: vi.fn() },
+			mode: 'offline',
 		});
 
 		expect(a.consentStore).not.toBe(b.consentStore);
@@ -78,14 +78,14 @@ describe('v3 gate: runtime cache identity', () => {
 		const a = getOrCreateConsentRuntime({
 			mode: 'offline',
 			scripts: [
-				{ id: 's1', src: 'https://a.example/a.js', category: 'marketing' },
+				{ category: 'marketing', id: 's1', src: 'https://a.example/a.js' },
 			],
 		});
 
 		const b = getOrCreateConsentRuntime({
 			mode: 'offline',
 			scripts: [
-				{ id: 's2', src: 'https://b.example/b.js', category: 'measurement' },
+				{ category: 'measurement', id: 's2', src: 'https://b.example/b.js' },
 			],
 		});
 
@@ -105,12 +105,12 @@ describe('v3 gate: pure kernel construction', () => {
 		const guardedWindow = new Proxy(
 			{},
 			{
+				get() {
+					return undefined;
+				},
 				set(_target, prop) {
 					writes.add(prop);
 					return true;
-				},
-				get() {
-					return undefined;
 				},
 			}
 		);

@@ -12,77 +12,78 @@ import { formatLogMessage } from './logger';
 // --- Global Flags ---
 export const globalFlags: CliFlag[] = [
 	{
-		names: ['--help', '-h'],
 		description: 'Show this help message',
-		type: 'special',
 		expectsValue: false,
+		names: ['--help', '-h'],
+		type: 'special',
 	},
 	{
-		names: ['--version', '-v'],
 		description: 'Show the CLI version',
+		expectsValue: false,
+		names: ['--version', '-v'],
 		type: 'special',
-		expectsValue: false,
 	},
 	{
-		names: ['--logger'],
-		description: 'Set log level (error, warn, info, debug)',
-		type: 'string',
-		expectsValue: true,
 		defaultValue: 'info',
-	},
-	{
-		names: ['--config'],
-		description: 'Specify path to configuration file',
-		type: 'string',
+		description: 'Set log level (error, warn, info, debug)',
 		expectsValue: true,
+		names: ['--logger'],
+		type: 'string',
 	},
 	{
-		names: ['-y', '--yes'],
+		description: 'Specify path to configuration file',
+		expectsValue: true,
+		names: ['--config'],
+		type: 'string',
+	},
+	{
+		defaultValue: false,
 		description: 'Skip confirmation prompts',
-		type: 'boolean',
 		expectsValue: false,
-		defaultValue: false,
+		names: ['-y', '--yes'],
+		type: 'boolean',
 	},
 	{
-		names: ['--no-telemetry'],
+		defaultValue: false,
 		description: 'Disable telemetry data collection',
-		type: 'boolean',
 		expectsValue: false,
-		defaultValue: false,
+		names: ['--no-telemetry'],
+		type: 'boolean',
 	},
 	{
-		names: ['--telemetry-debug'],
+		defaultValue: false,
 		description: 'Enable debug mode for telemetry',
-		type: 'boolean',
 		expectsValue: false,
-		defaultValue: false,
+		names: ['--telemetry-debug'],
+		type: 'boolean',
 	},
 	{
-		names: ['--force'],
-		description: 'Force operation even if files exist',
-		type: 'boolean',
-		expectsValue: false,
 		defaultValue: false,
+		description: 'Force operation even if files exist',
+		expectsValue: false,
+		names: ['--force'],
+		type: 'boolean',
 	},
 ];
 
 /**
  * Get the primary name for a flag (without dashes)
  */
-function getPrimaryFlagName(flag: CliFlag): string {
+const getPrimaryFlagName = function getPrimaryFlagName(flag: CliFlag): string {
 	const firstName = flag.names[0] || '';
-	return firstName.replace(/^--?/, '');
-}
+	return firstName.replace(/^--?/u, '');
+};
 
 /**
  * Parse raw command line arguments into structured format
  */
-export function parseCliArgs(
+export const parseCliArgs = function parseCliArgs(
 	rawArgs: string[],
 	commands: CliCommand[]
 ): ParsedArgs {
 	const parsedFlags: Record<string, string | boolean | undefined> = {};
 	const potentialCommandArgs: string[] = [];
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
 	let commandName: string | undefined;
 	const commandArgs: string[] = [];
 
@@ -99,7 +100,7 @@ export function parseCliArgs(
 	}
 
 	// Parse arguments
-	for (let i = 0; i < rawArgs.length; i++) {
+	for (let i = 0; i < rawArgs.length; i += 1) {
 		const arg = rawArgs[i];
 		if (typeof arg !== 'string') {
 			continue;
@@ -111,7 +112,9 @@ export function parseCliArgs(
 		for (const flag of globalFlags) {
 			if (flag.names.includes(arg)) {
 				const primaryName = getPrimaryFlagName(flag);
-				if (!primaryName) continue;
+				if (!primaryName) {
+					continue;
+				}
 
 				isFlag = true;
 
@@ -121,7 +124,8 @@ export function parseCliArgs(
 					const nextArg = rawArgs[i + 1];
 					if (nextArg && !nextArg.startsWith('-')) {
 						parsedFlags[primaryName] = nextArg;
-						i++; // Skip the value
+						// Skip the value
+						i += 1;
 					} else {
 						p.log.warn(
 							formatLogMessage(
@@ -154,65 +158,66 @@ export function parseCliArgs(
 		}
 	}
 
-	return { commandName, commandArgs, parsedFlags };
-}
+	return { commandArgs, commandName, parsedFlags };
+};
 
 /**
  * Format help text for a flag
  */
-export function formatFlagHelp(flag: CliFlag): string {
+export const formatFlagHelp = function formatFlagHelp(flag: CliFlag): string {
 	const names = flag.names.join(', ');
 	const valueHint = flag.expectsValue ? ' <value>' : '';
 	return `  ${names}${valueHint}\t${flag.description}`;
-}
+};
 
 /**
  * Generate help text for all global flags
  */
-export function generateFlagsHelp(): string {
+export const generateFlagsHelp = function generateFlagsHelp(): string {
 	return globalFlags.map(formatFlagHelp).join('\n');
-}
+};
 
 /**
  * Check if a specific flag is set
  */
-export function hasFlag(
+export const hasFlag = function hasFlag(
 	flags: ParsedArgs['parsedFlags'],
 	name: string
 ): boolean {
 	return flags[name] === true;
-}
+};
 
 /**
  * Get a flag value
  */
-export function getFlagValue(
+export const getFlagValue = function getFlagValue(
 	flags: ParsedArgs['parsedFlags'],
 	name: string
 ): string | undefined {
 	const value = flags[name];
 	return typeof value === 'string' ? value : undefined;
-}
+};
 
 /**
  * Parse subcommand from command args
  */
-export function parseSubcommand(
+export const parseSubcommand = function parseSubcommand(
 	args: string[],
 	subcommands: CliCommand[]
 ): { subcommand: CliCommand | undefined; remainingArgs: string[] } {
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const subcommandName = args[0];
 	const subcommand = subcommands.find((cmd) => cmd.name === subcommandName);
 
 	if (subcommand) {
 		return {
-			subcommand,
 			remainingArgs: args.slice(1),
+			subcommand,
 		};
 	}
 
 	return {
-		subcommand: undefined,
 		remainingArgs: args,
+		subcommand: undefined,
 	};
-}
+};

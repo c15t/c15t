@@ -46,11 +46,22 @@ export interface KVNamespace {
  *
  * @public
  */
-export function createCloudflareKVAdapter(kv: KVNamespace): CacheAdapter {
+export const createCloudflareKVAdapter = function createCloudflareKVAdapter(
+	kv: KVNamespace
+): CacheAdapter {
 	return {
+		async delete(key: string): Promise<void> {
+			await kv.delete(key);
+		},
+
 		async get<T>(key: string): Promise<T | null> {
 			const value = await kv.get(key, { type: 'json' });
 			return value as T | null;
+		},
+
+		async has(key: string): Promise<boolean> {
+			const value = await kv.get(key);
+			return value !== null;
 		},
 
 		async set<T>(key: string, value: T, ttlMs = GVL_TTL_MS): Promise<void> {
@@ -58,14 +69,5 @@ export function createCloudflareKVAdapter(kv: KVNamespace): CacheAdapter {
 			const ttlSeconds = Math.ceil(ttlMs / 1000);
 			await kv.put(key, JSON.stringify(value), { expirationTtl: ttlSeconds });
 		},
-
-		async delete(key: string): Promise<void> {
-			await kv.delete(key);
-		},
-
-		async has(key: string): Promise<boolean> {
-			const value = await kv.get(key);
-			return value !== null;
-		},
 	};
-}
+};

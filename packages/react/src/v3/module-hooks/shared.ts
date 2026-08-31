@@ -5,7 +5,7 @@ import { useContext } from 'react';
 
 import { KernelContext } from '../context';
 
-export function useRequiredKernel(): ConsentKernel {
+export const useRequiredKernel = function useRequiredKernel(): ConsentKernel {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
@@ -13,4 +13,4 @@ export function useRequiredKernel(): ConsentKernel {
 		);
 	}
 	return kernel;
-}
+};

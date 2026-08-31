@@ -101,23 +101,23 @@ const ToolbarPreview = ({
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						id: 'theme',
 						label: 'Dark color scheme',
-						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						onSelect: () => setIsDark((current) => !current),
 						pressed: isDark,
 					},
 					{
+						icon: <AccessibilityIcon />,
 						id: 'accessibility',
 						label: 'Open accessibility options',
-						icon: <AccessibilityIcon />,
 						onSelect: () =>
 							window.dispatchEvent(new CustomEvent('c15t:accessibility')),
 					},
 					{
+						icon: <ChatIcon />,
 						id: 'support',
 						label: 'Open support chat',
-						icon: <ChatIcon />,
 						onSelect: () =>
 							window.dispatchEvent(new CustomEvent('c15t:support')),
 					},
@@ -212,9 +212,9 @@ const CustomStyledToolbarPreview = () => {
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						id: 'theme',
 						label: 'Dark color scheme',
-						icon: isDark ? <SunIcon /> : <MoonIcon />,
 						onSelect: () => setIsDark((current) => !current),
 						pressed: isDark,
 						style: isDark
@@ -225,9 +225,9 @@ const CustomStyledToolbarPreview = () => {
 							: undefined,
 					},
 					{
+						icon: <ChatIcon />,
 						id: 'support',
 						label: 'Open support chat',
-						icon: <ChatIcon />,
 						onSelect: () =>
 							window.dispatchEvent(new CustomEvent('c15t:support')),
 					},
@@ -259,6 +259,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: triggerOpensDialog,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
@@ -268,10 +269,10 @@ export const Default: Story = {
 			<ConsentDialogTrigger showWhen="always" />
 		</StorybookConsentProvider>
 	),
-	play: triggerOpensDialog,
 };
 
 export const DialogFocusManagement: Story = {
+	play: dialogFocusManagement,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
@@ -281,7 +282,6 @@ export const DialogFocusManagement: Story = {
 			<ConsentDialogTrigger showWhen="always" />
 		</StorybookConsentProvider>
 	),
-	play: dialogFocusManagement,
 };
 
 export const Mobile: Story = {

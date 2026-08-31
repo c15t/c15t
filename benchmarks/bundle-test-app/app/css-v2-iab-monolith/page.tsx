@@ -8,7 +8,7 @@ import { IABConsentDialog } from '@c15t/react/iab';
 const CssV2IabMonolithPage = () => {
 	return (
 		<ConsentManagerProvider options={{ mode: 'offline' }}>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 				<h1>React v2 IAB + Monolith CSS Benchmark</h1>
 			</main>
 			<IABConsentDialog />

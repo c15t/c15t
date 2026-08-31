@@ -29,7 +29,8 @@ export interface FrameworkDetectionResult {
  * @param logger - Optional logger instance for debug messages
  * @returns Object containing framework info and whether React is used
  */
-export async function detectFramework(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const detectFramework = async function detectFramework(
 	projectRoot: string,
 	logger?: CliLogger
 ): Promise<FrameworkDetectionResult> {
@@ -86,8 +87,8 @@ export async function detectFramework(
 		return {
 			framework,
 			frameworkVersion,
-			pkg,
 			hasReact,
+			pkg,
 			reactVersion,
 			tailwindVersion,
 		};
@@ -98,13 +99,13 @@ export async function detectFramework(
 		return {
 			framework: null,
 			frameworkVersion: null,
-			pkg: 'c15t',
 			hasReact: false,
+			pkg: 'c15t',
 			reactVersion: null,
 			tailwindVersion: null,
 		};
 	}
-}
+};
 
 /**
  * Detects the project root by finding the package.json file
@@ -113,7 +114,8 @@ export async function detectFramework(
  * @param logger - Optional logger instance for debug messages
  * @returns The project root directory path or cwd if not found
  */
-export async function detectProjectRoot(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const detectProjectRoot = async function detectProjectRoot(
 	cwd: string,
 	logger?: CliLogger
 ): Promise<string> {
@@ -123,7 +125,8 @@ export async function detectProjectRoot(
 	try {
 		let prevDir = '';
 		let depth = 0;
-		const maxDepth = 10; // Prevent infinite loops in case of circular symlinks
+		// Prevent infinite loops in case of circular symlinks
+		const maxDepth = 10;
 
 		while (projectRoot !== prevDir && depth < maxDepth) {
 			logger?.debug(`Checking directory (depth ${depth}): ${projectRoot}`);
@@ -132,16 +135,18 @@ export async function detectProjectRoot(
 				const packageJsonPath = path.join(projectRoot, 'package.json');
 				logger?.debug(`Looking for package.json at: ${packageJsonPath}`);
 
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await fs.access(packageJsonPath);
 				logger?.debug(`Found package.json at: ${projectRoot}`);
-				break; // Found package.json
+				// Found package.json
+				break;
 			} catch (error) {
 				logger?.debug(
 					`No package.json found in ${projectRoot}: ${error instanceof Error ? error.message : String(error)}`
 				);
 				prevDir = projectRoot;
 				projectRoot = path.dirname(projectRoot);
-				depth++;
+				depth += 1;
 			}
 		}
 
@@ -169,4 +174,4 @@ export async function detectProjectRoot(
 		// Fallback to current directory if not found
 		return cwd;
 	}
-}
+};

@@ -26,10 +26,10 @@ describe('@c15t/nextjs/v3/static', () => {
 		);
 
 		const resolution = createStaticConsentResolver({
-			manifest: MANIFEST_FIXTURE,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			geoURL: 'https://geo.example.com/context',
 			language: 'en',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifest: MANIFEST_FIXTURE,
 		});
 
 		expect(resolution.initial.policy?.id).toBe('eu-opt-in');
@@ -46,9 +46,9 @@ describe('@c15t/nextjs/v3/static', () => {
 			);
 
 		const source = await createStaticManifestModule({
-			manifestURL: 'https://consent.example.com/manifest',
 			exportName: 'testManifest',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
 		});
 
 		expect(source).toContain(

@@ -44,7 +44,7 @@ describe('gtag contract', () => {
 		loadScripts(
 			[
 				{
-					...gtag({ id: 'G-CONTRACT', category: 'measurement' }),
+					...gtag({ category: 'measurement', id: 'G-CONTRACT' }),
 					id: 'gtag-contract',
 				},
 			],
@@ -59,13 +59,13 @@ describe('gtag contract', () => {
 			'consent',
 			'default',
 			{
-				security_storage: 'granted',
-				functionality_storage: 'denied',
-				analytics_storage: 'denied',
+				ad_personalization: 'denied',
 				ad_storage: 'denied',
 				ad_user_data: 'denied',
-				ad_personalization: 'denied',
+				analytics_storage: 'denied',
+				functionality_storage: 'denied',
 				personalization_storage: 'denied',
+				security_storage: 'granted',
 			},
 		]);
 		const jsEntry = toArgs(win.dataLayer?.[1]);

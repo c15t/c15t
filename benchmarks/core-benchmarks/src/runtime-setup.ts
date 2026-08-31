@@ -1,13 +1,25 @@
 function createMockElement() {
 	return {
-		setAttribute: () => {},
+		setAttribute: () => {
+			/* empty */
+		},
 		getAttribute: () => null,
-		appendChild: () => {},
-		removeChild: () => {},
-		remove: () => {},
+		appendChild: () => {
+			/* empty */
+		},
+		removeChild: () => {
+			/* empty */
+		},
+		remove: () => {
+			/* empty */
+		},
 		cloneNode: () => createMockElement(),
-		addEventListener: () => {},
-		removeEventListener: () => {},
+		addEventListener: () => {
+			/* empty */
+		},
+		removeEventListener: () => {
+			/* empty */
+		},
 		dispatchEvent: () => true,
 		querySelector: () => null,
 		querySelectorAll: () => [],
@@ -61,9 +73,15 @@ export function ensureBenchmarkDom(): void {
 
 	if (typeof globalThis.MutationObserver === 'undefined') {
 		globalThis.MutationObserver = class MutationObserver {
-			constructor(_callback: MutationCallback) {}
-			disconnect() {}
-			observe(_target: Node, _options?: MutationObserverInit) {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
+			disconnect() {
+				/* empty */
+			}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
+			observe(_target: Node, _options?: MutationObserverInit) {
+				/* empty */
+			}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords(): MutationRecord[] {
 				return [];
 			}
@@ -73,7 +91,9 @@ export function ensureBenchmarkDom(): void {
 	if (!globalThis.window.location) {
 		globalThis.window.location = {
 			hostname: 'bench.local',
-			reload: () => {},
+			reload: () => {
+				/* empty */
+			},
 		} as Location;
 	}
 

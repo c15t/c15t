@@ -35,7 +35,7 @@ describe('hydrateFromStorage', () => {
 		// Subject IDs are `sub_<base58>` — example from isValidSubjectId docs.
 		const validId = 'sub_2VZxR7YmNpKq3WfLs8TgHd';
 		vi.spyOn(cookie, 'getConsentFromStorage').mockReturnValue({
-			consentInfo: { time: 0, subjectId: validId },
+			consentInfo: { subjectId: validId, time: 0 },
 		});
 		const kernel = createConsentKernel();
 		hydrateFromStorage(kernel, undefined);
@@ -45,7 +45,7 @@ describe('hydrateFromStorage', () => {
 
 	test('ignores invalid stored subjectId but still sets hasConsented', () => {
 		vi.spyOn(cookie, 'getConsentFromStorage').mockReturnValue({
-			consentInfo: { time: 0, subjectId: 'not-a-real-id' },
+			consentInfo: { subjectId: 'not-a-real-id', time: 0 },
 		});
 		const kernel = createConsentKernel();
 		hydrateFromStorage(kernel, undefined);

@@ -18,19 +18,19 @@ describe('umamiAnalytics', () => {
 			src: 'https://cloud.umami.is/script.js',
 		});
 		expect(script.attributes).toEqual({
-			'data-website-id': 'site-abc',
-			'data-host-url': undefined,
 			'data-auto-track': undefined,
-			'data-domains': undefined,
-			'data-tag': undefined,
 			'data-before-send': undefined,
+			'data-domains': undefined,
+			'data-host-url': undefined,
+			'data-tag': undefined,
+			'data-website-id': 'site-abc',
 		});
 	});
 
 	it('serializes a domain array into a JSON attribute', () => {
 		const script = umamiAnalytics({
-			websiteId: 'site-abc',
 			domains: ['example.com', 'www.example.com'],
+			websiteId: 'site-abc',
 		});
 
 		expect(script.attributes).toMatchObject({
@@ -40,28 +40,28 @@ describe('umamiAnalytics', () => {
 
 	it('serializes optional flags and passes through string values', () => {
 		const script = umamiAnalytics({
-			websiteId: 'site-abc',
-			hostUrl: 'https://analytics.example.com',
 			autoTrack: false,
-			tag: 'release-2025',
 			beforeSend: 'window.umamiBeforeSend',
 			domains: 'example.com',
+			hostUrl: 'https://analytics.example.com',
+			tag: 'release-2025',
+			websiteId: 'site-abc',
 		});
 
 		expect(script.attributes).toEqual({
-			'data-website-id': 'site-abc',
-			'data-host-url': 'https://analytics.example.com',
 			'data-auto-track': 'false',
-			'data-domains': 'example.com',
-			'data-tag': 'release-2025',
 			'data-before-send': 'window.umamiBeforeSend',
+			'data-domains': 'example.com',
+			'data-host-url': 'https://analytics.example.com',
+			'data-tag': 'release-2025',
+			'data-website-id': 'site-abc',
 		});
 	});
 
 	it('honors a custom loader URL', () => {
 		const script = umamiAnalytics({
-			websiteId: 'site-abc',
 			scriptUrl: 'https://cdn.example.com/umami.js',
+			websiteId: 'site-abc',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/umami.js');

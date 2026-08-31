@@ -78,7 +78,7 @@ suite('schema scoping against real Postgres', () => {
 		) => Promise<A>
 	): Promise<A> => {
 		const runtime = ManagedRuntime.make(
-			toLayer({ dialect: 'postgres', url: PG_URL ?? '', schema })
+			toLayer({ dialect: 'postgres', schema, url: PG_URL ?? '' })
 		);
 		try {
 			return await runWith(runtime);
@@ -92,7 +92,7 @@ suite('schema scoping against real Postgres', () => {
 
 		await withSchema(schema, async (runtime) => {
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql.unsafe(`drop schema if exists ${schema} cascade`);
 					// Establish the precondition rather than inherit it. The rest of
@@ -112,7 +112,7 @@ suite('schema scoping against real Postgres', () => {
 			assert.isTrue(report.applied);
 
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					const sql = yield* SqlClient.SqlClient;
 
 					const mine = yield* sql<{ n: string }>`
@@ -134,26 +134,30 @@ suite('schema scoping against real Postgres', () => {
 	}, 120_000);
 
 	it('keeps two schemas independent on one database', async () => {
-		for (const schema of ['c15t_scope_b', 'c15t_scope_c']) {
-			await withSchema(schema, async (runtime) => {
-				await runtime.runPromise(
-					Effect.gen(function* () {
-						const sql = yield* SqlClient.SqlClient;
-						yield* sql.unsafe(`drop schema if exists ${schema} cascade`);
-					})
-				);
-			});
-			await withSchema(schema, (runtime) => runtime.runPromise(migrate()));
-		}
+		await Array.from(['c15t_scope_b', 'c15t_scope_c']).reduce(
+			async (previousIteration, schema) => {
+				await previousIteration;
+				await withSchema(schema, async (runtime) => {
+					await runtime.runPromise(
+						Effect.gen(function* gen() {
+							const sql = yield* SqlClient.SqlClient;
+							yield* sql.unsafe(`drop schema if exists ${schema} cascade`);
+						})
+					);
+				});
+				await withSchema(schema, (runtime) => runtime.runPromise(migrate()));
+			},
+			Promise.resolve()
+		);
 
 		await withSchema('c15t_scope_b', async (runtime) => {
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql`
 							insert into ${sql('subject')} ${sql.insert({
-								id: 'sub_in_b',
 								createdAt: new Date(),
+								id: 'sub_in_b',
 								updatedAt: new Date(),
 							})}
 						`;
@@ -163,7 +167,7 @@ suite('schema scoping against real Postgres', () => {
 
 		await withSchema('c15t_scope_c', async (runtime) => {
 			const rows = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* rows() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{
 						id: string;
@@ -181,7 +185,7 @@ suite('schema scoping against real Postgres', () => {
 		const schema = 'c15t_scope_d';
 		await withSchema(schema, async (runtime) => {
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql.unsafe(`drop schema if exists ${schema} cascade`);
 				})

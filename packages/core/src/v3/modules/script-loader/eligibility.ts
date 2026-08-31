@@ -17,14 +17,16 @@ import type { NormalizedScript, ReconcilePass } from './types';
  * already contains policy-effective consents, so modules must not re-apply
  * policy scope here.
  */
-export function buildReconcilePass(snapshot: ConsentSnapshot): ReconcilePass {
+export const buildReconcilePass = function buildReconcilePass(
+	snapshot: ConsentSnapshot
+): ReconcilePass {
 	return {
-		snapshot,
 		consents: snapshot.consents as ConsentState,
-		isIabMode: snapshot.model === 'iab',
 		iab: snapshot.iab,
+		isIabMode: snapshot.model === 'iab',
+		snapshot,
 	};
-}
+};
 
 /**
  * Decide whether a normalized script should be mounted given the
@@ -39,15 +41,19 @@ export function buildReconcilePass(snapshot: ConsentSnapshot): ReconcilePass {
  *    directly. An unknown category throws — config bug, not user data.
  * 4. Otherwise the category tree is evaluated through `has`.
  */
-export function isEligible(
+export const isEligible = function isEligible(
 	entry: NormalizedScript,
 	pass: ReconcilePass
 ): boolean {
 	const { script } = entry;
-	if (script.alwaysLoad) return true;
+	if (script.alwaysLoad) {
+		return true;
+	}
 
 	if (pass.isIabMode && entry.hasIabMeta) {
-		if (!pass.iab) return false;
+		if (!pass.iab) {
+			return false;
+		}
 		return hasIABConsent(script, pass.iab);
 	}
 
@@ -61,4 +67,4 @@ export function isEligible(
 	}
 
 	return has(script.category, pass.consents);
-}
+};

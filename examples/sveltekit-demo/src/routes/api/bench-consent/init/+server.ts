@@ -9,37 +9,33 @@ const response = {
 		countryCode: 'DE',
 		regionCode: 'BE',
 	},
+	policy: BENCHMARK_POLICY,
+	policySnapshotToken: 'svelte-browser-bench',
 	translations: {
 		language: 'en',
 		translations: {
 			common: {
 				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
 				customize: 'Customize',
+				rejectAll: 'Reject All',
 				save: 'Save',
 			},
-			cookieBanner: {
-				title: 'Benchmark Consent Banner',
-				description: 'Deterministic benchmark fixture.',
-			},
 			consentManagerDialog: {
-				title: 'Benchmark Preferences',
 				description: 'Benchmark preferences description.',
+				title: 'Benchmark Preferences',
+			},
+			cookieBanner: {
+				description: 'Deterministic benchmark fixture.',
+				title: 'Benchmark Consent Banner',
 			},
 		},
 	},
-	policy: BENCHMARK_POLICY,
-	policySnapshotToken: 'svelte-browser-bench',
 };
 
 const headers = {
 	'cache-control': 'no-store',
 };
 
-export const GET: RequestHandler = async () => {
-	return json(response, { headers });
-};
+export const GET: RequestHandler = () => json(response, { headers });
 
-export const POST: RequestHandler = async () => {
-	return json(response, { headers });
-};
+export const POST: RequestHandler = () => json(response, { headers });

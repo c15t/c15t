@@ -3,17 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderScriptsPanel } from '../../panels/scripts';
 
-function createBaseState(
+const createBaseState = function createBaseState(
 	overrides: Partial<ConsentStoreState>
 ): ConsentStoreState {
 	return {
-		scripts: [],
-		loadedScripts: {},
 		consents: {},
 		has: vi.fn(() => false),
+		loadedScripts: {},
+		scripts: [],
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
 describe('scripts panel', () => {
 	let container: HTMLDivElement;
@@ -31,8 +31,8 @@ describe('scripts panel', () => {
 			has,
 			scripts: [
 				{
-					id: 'analytics',
 					category: condition,
+					id: 'analytics',
 				},
 			],
 		});
@@ -51,10 +51,10 @@ describe('scripts panel', () => {
 			has,
 			scripts: [
 				{
-					id: 'analytics',
 					category: {
 						or: ['measurement', 'marketing'],
 					} as unknown as ConsentStoreState['scripts'][number]['category'],
+					id: 'analytics',
 				},
 			],
 		});
@@ -72,21 +72,23 @@ describe('scripts panel', () => {
 		});
 
 		renderScriptsPanel(container, {
-			getState: () => state,
 			getEvents: () =>
 				[
 					{
-						id: '1',
-						type: 'network',
-						message: 'Network blocked: GET https://example.com/pixel',
-						timestamp: Date.now(),
 						data: {
 							method: 'GET',
-							url: 'https://example.com/pixel',
 							rule: { id: 'facebook-pixel' },
+
+							url: 'https://example.com/pixel',
 						},
+
+						id: '1',
+						message: 'Network blocked: GET https://example.com/pixel',
+						timestamp: Date.now(),
+						type: 'network',
 					},
 				] as const,
+			getState: () => state,
 		});
 
 		expect(container.textContent).toContain('Blocked Requests (1)');
@@ -97,39 +99,42 @@ describe('scripts panel', () => {
 		const state = createBaseState({
 			scripts: [
 				{
-					id: 'analytics',
 					category: 'measurement',
+					id: 'analytics',
 				},
 			],
 		});
 
 		renderScriptsPanel(container, {
-			getState: () => state,
 			getEvents: () => [
 				{
+					data: {
+						scope: 'lifecycle',
+
+						scriptId: 'analytics',
+					},
+
 					id: 'script-1',
-					type: 'script',
 					message: 'onBeforeLoad completed',
 					timestamp: new Date('2026-04-10T18:00:00.000Z').valueOf(),
-					data: {
-						scriptId: 'analytics',
-						scope: 'lifecycle',
-					},
+					type: 'script',
 				},
 				{
-					id: 'script-2',
-					type: 'script',
-					message: 'Executed pushToQueue',
-					timestamp: new Date('2026-04-10T18:00:01.000Z').valueOf(),
 					data: {
-						scriptId: 'analytics',
-						scope: 'phase',
 						callback: 'onBeforeLoad',
 						phase: 'setup',
+						scope: 'phase',
+						scriptId: 'analytics',
 						stepType: 'pushToQueue',
 					},
+
+					id: 'script-2',
+					message: 'Executed pushToQueue',
+					timestamp: new Date('2026-04-10T18:00:01.000Z').valueOf(),
+					type: 'script',
 				},
 			],
+			getState: () => state,
 		});
 
 		expect(container.textContent).toContain(
@@ -151,88 +156,101 @@ describe('scripts panel', () => {
 
 	it('orders grouped activity as timeline phases, oldest to newest', () => {
 		const state = createBaseState({
-			scripts: [
-				{
-					id: 'google-tag-manager',
-					category: 'necessary',
-				},
-			],
 			loadedScripts: {
 				'google-tag-manager': true,
 			},
+			scripts: [
+				{
+					category: 'necessary',
+
+					id: 'google-tag-manager',
+				},
+			],
 		});
 
 		renderScriptsPanel(container, {
-			getState: () => state,
 			getEvents: () => [
 				{
+					data: {
+						scope: 'lifecycle',
+
+						scriptId: 'google-tag-manager',
+					},
+
 					id: '6',
-					type: 'script',
 					message: 'Script marked as loaded',
 					timestamp: 6,
-					data: {
-						scriptId: 'google-tag-manager',
-						scope: 'lifecycle',
-					},
+					type: 'script',
 				},
 				{
+					data: {
+						scope: 'lifecycle',
+
+						scriptId: 'google-tag-manager',
+					},
+
 					id: '5',
-					type: 'script',
 					message: 'Script element appended to head',
 					timestamp: 5,
-					data: {
-						scriptId: 'google-tag-manager',
-						scope: 'lifecycle',
-					},
+					type: 'script',
 				},
 				{
+					data: {
+						callback: 'onBeforeLoad',
+
+						scope: 'lifecycle',
+						scriptId: 'google-tag-manager',
+					},
+
 					id: '4',
-					type: 'script',
 					message: 'onBeforeLoad completed',
 					timestamp: 4,
-					data: {
-						scriptId: 'google-tag-manager',
-						scope: 'lifecycle',
-						callback: 'onBeforeLoad',
-					},
+					type: 'script',
 				},
 				{
-					id: '3',
-					type: 'script',
-					message: 'Manifest phase setup completed',
-					timestamp: 3,
 					data: {
-						scriptId: 'google-tag-manager',
-						scope: 'phase',
 						callback: 'onBeforeLoad',
 						phase: 'setup',
+
+						scope: 'phase',
+						scriptId: 'google-tag-manager',
 					},
+
+					id: '3',
+					message: 'Manifest phase setup completed',
+					timestamp: 3,
+					type: 'script',
 				},
 				{
-					id: '2',
-					type: 'script',
-					message: 'Manifest phase consent-default started',
-					timestamp: 2,
 					data: {
-						scriptId: 'google-tag-manager',
-						scope: 'phase',
 						callback: 'onBeforeLoad',
 						phase: 'consent-default',
+
+						scope: 'phase',
+						scriptId: 'google-tag-manager',
 					},
+
+					id: '2',
+					message: 'Manifest phase consent-default started',
+					timestamp: 2,
+					type: 'script',
 				},
 				{
-					id: '1',
-					type: 'script',
-					message: 'Manifest phase bootstrap completed',
-					timestamp: 1,
 					data: {
-						scriptId: 'google-tag-manager',
-						scope: 'phase',
 						callback: 'onBeforeLoad',
 						phase: 'bootstrap',
+
+						scope: 'phase',
+						scriptId: 'google-tag-manager',
 					},
+
+					id: '1',
+					message: 'Manifest phase bootstrap completed',
+					timestamp: 1,
+					type: 'script',
 				},
 			],
+			getState: () => state,
 		});
 
 		const toggle = container.querySelector(
@@ -254,26 +272,28 @@ describe('scripts panel', () => {
 		const state = createBaseState({
 			scripts: [
 				{
-					id: 'analytics',
 					category: 'measurement',
+					id: 'analytics',
 				},
 			],
 		});
 
 		renderScriptsPanel(container, {
-			getState: () => state,
 			getEvents: () =>
 				Array.from({ length: 10 }, (_, index) => ({
+					data: {
+						callback: 'onBeforeLoad',
+
+						scope: 'lifecycle',
+						scriptId: 'analytics',
+					},
+
 					id: `script-${index + 1}`,
-					type: 'script' as const,
 					message: `event-${index + 1}`,
 					timestamp: index + 1,
-					data: {
-						scriptId: 'analytics',
-						scope: 'lifecycle',
-						callback: 'onBeforeLoad',
-					},
+					type: 'script' as const,
 				})),
+			getState: () => state,
 		});
 
 		const toggle = container.querySelector(
@@ -282,7 +302,7 @@ describe('scripts panel', () => {
 		toggle?.click();
 
 		const text = container.textContent ?? '';
-		expect(text).not.toMatch(/event-1(?!0)/);
+		expect(text).not.toMatch(/event-1(?!0)/u);
 		expect(text).not.toContain('event-2');
 		expect(text).toContain('event-3');
 		expect(text).toContain('event-10');

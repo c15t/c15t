@@ -278,49 +278,54 @@ declare global {
  */
 export const hightouchManifest = {
 	...vendorManifestContract,
-	vendor: 'hightouch',
-	category: 'measurement',
 	bootstrap: [
 		{
-			type: 'setGlobal',
-			name: 'htevents',
-			value: [],
 			ifUndefined: true,
+
+			name: 'htevents',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'htevents',
 			methods: [...HIGHTOUCH_QUEUE_METHODS],
+
+			target: 'htevents',
+			type: 'defineQueueMethods',
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['htevents', '_writeKey'],
+			type: 'setGlobalPath',
 			value: '{{writeKey}}',
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['htevents', '_loadOptions'],
+			type: 'setGlobalPath',
 			value: '{{loadOptions}}',
 		},
 	],
+	category: 'measurement',
 	install: [
 		{
-			type: 'callGlobal',
+			args: ['{{writeKey}}', '{{loadOptions}}'],
+
 			global: 'htevents',
 			method: 'load',
-			args: ['{{writeKey}}', '{{loadOptions}}'],
+			type: 'callGlobal',
 		},
 		{
-			type: 'callGlobal',
 			global: 'htevents',
 			method: 'page',
+
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'hightouch',
 } as const satisfies VendorManifest;
 
 export interface HightouchOptions {
@@ -353,7 +358,7 @@ export interface HightouchOptions {
 	scriptUrl?: string;
 }
 
-function validateWriteKey(writeKey: unknown): string {
+const validateWriteKey = function validateWriteKey(writeKey: unknown): string {
 	const normalized = typeof writeKey === 'string' ? writeKey.trim() : '';
 
 	if (normalized.length === 0) {
@@ -361,11 +366,13 @@ function validateWriteKey(writeKey: unknown): string {
 	}
 
 	return normalized;
-}
+};
 
-function normalizeApiHost(apiHost: string | undefined): string | undefined {
+const normalizeApiHost = function normalizeApiHost(
+	apiHost: string | undefined
+): string | undefined {
 	return trimToUndefined(apiHost);
-}
+};
 
 /**
  * Creates a Hightouch Events browser SDK script.
@@ -391,7 +398,7 @@ function normalizeApiHost(apiHost: string | undefined): string | undefined {
  * });
  * ```
  */
-export function hightouch({
+export const hightouch = function hightouch({
 	writeKey,
 	apiHost,
 	trackPageView = true,
@@ -420,10 +427,10 @@ export function hightouch({
 
 	return resolveManifest(manifest, {
 		loadOptions,
-		writeKey: normalizedWriteKey,
 		scriptUrl: resolveScriptUrl(
 			trimToUndefined(scriptUrl),
 			DEFAULT_HIGHTOUCH_SCRIPT_URL
 		),
+		writeKey: normalizedWriteKey,
 	});
-}
+};

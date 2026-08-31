@@ -233,11 +233,15 @@ async function measureInteractionLatency(
 async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(`${BASE_URL}/`);
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await sleep(500);
 	}
 
@@ -428,7 +432,7 @@ type NuxtBrowserSample = Omit<
 };
 
 function budgetsForScenario(scenario: string): MetricBudget[] {
-	const baseScenario = scenario.replace(/-(cold|steady)$/, '');
+	const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
 	const shared = browserBudgets.filter((budget) =>
 		[
 			'bannerReadyMs',
@@ -766,16 +770,19 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (
-			server.exitCode != null &&
+			server.exitCode !== null &&
+			server.exitCode !== undefined &&
 			!expectedServerShutdownCodes.has(server.exitCode)
 		) {
 			serverFailure = new Error(
 				`${logs || 'Nuxt browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
 			);
 		} else if (
-			server.exitCode == null &&
-			server.signalCode != null &&
-			!expectedServerShutdownSignals.has(server.signalCode)
+			server.exitCode === null ||
+			(server.exitCode === undefined &&
+				server.signalCode !== null &&
+				server.signalCode !== undefined &&
+				!expectedServerShutdownSignals.has(server.signalCode))
 		) {
 			serverFailure = new Error(
 				`${logs || 'Nuxt browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`

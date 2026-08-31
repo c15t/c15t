@@ -9,52 +9,8 @@ const response = {
 		countryCode: 'DE',
 		regionCode: 'BE',
 	},
-	translations: {
-		language: 'en',
-		translations: {
-			common: {
-				acceptAll: 'Accept All',
-				rejectAll: 'Reject All',
-				customize: 'Customize',
-				save: 'Save',
-			},
-			cookieBanner: {
-				title: 'Benchmark Consent Banner',
-				description: 'Benchmark fixture description.',
-			},
-			consentManagerDialog: {
-				title: 'Benchmark Preferences',
-				description: 'Benchmark preferences description.',
-			},
-			consentTypes: {
-				necessary: {
-					title: 'Necessary',
-					description: 'Required cookies.',
-				},
-				functionality: {
-					title: 'Functionality',
-					description: 'Feature cookies.',
-				},
-				experience: {
-					title: 'Experience',
-					description: 'Experience cookies.',
-				},
-				measurement: {
-					title: 'Measurement',
-					description: 'Analytics cookies.',
-				},
-				marketing: {
-					title: 'Marketing',
-					description: 'Advertising cookies.',
-				},
-			},
-		},
-	},
 	policy: {
-		id: 'react-browser-bench',
-		model: 'opt-in',
 		consent: {
-			model: 'opt-in',
 			categories: [
 				'necessary',
 				'functionality',
@@ -62,10 +18,12 @@ const response = {
 				'measurement',
 				'marketing',
 			],
+			model: 'opt-in',
 			scopeMode: 'strict',
 		},
+		id: 'react-browser-bench',
+		model: 'opt-in',
 		ui: {
-			mode: 'banner',
 			banner: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				primaryActions: ['accept'],
@@ -76,20 +34,62 @@ const response = {
 				primaryActions: ['accept'],
 				scrollLock: false,
 			},
+			mode: 'banner',
 		},
 	},
 	policyDecision: {
-		policyId: 'react-browser-bench',
-		fingerprint: 'fingerprint_react_browser_bench',
-		matchedBy: 'country',
 		country: 'DE',
-		region: 'BE',
+		fingerprint: 'fingerprint_react_browser_bench',
 		jurisdiction: 'GDPR',
+		matchedBy: 'country',
+		policyId: 'react-browser-bench',
+		region: 'BE',
 	},
 	policySnapshotToken: 'react-browser-bench',
+	translations: {
+		language: 'en',
+		translations: {
+			common: {
+				acceptAll: 'Accept All',
+				customize: 'Customize',
+				rejectAll: 'Reject All',
+				save: 'Save',
+			},
+			consentManagerDialog: {
+				description: 'Benchmark preferences description.',
+				title: 'Benchmark Preferences',
+			},
+			consentTypes: {
+				experience: {
+					description: 'Experience cookies.',
+					title: 'Experience',
+				},
+				functionality: {
+					description: 'Feature cookies.',
+					title: 'Functionality',
+				},
+				marketing: {
+					description: 'Advertising cookies.',
+					title: 'Marketing',
+				},
+				measurement: {
+					description: 'Analytics cookies.',
+					title: 'Measurement',
+				},
+				necessary: {
+					description: 'Required cookies.',
+					title: 'Necessary',
+				},
+			},
+			cookieBanner: {
+				description: 'Benchmark fixture description.',
+				title: 'Benchmark Consent Banner',
+			},
+		},
+	},
 };
 
-export async function GET() {
+export const GET = async function GET() {
 	const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
 	if (Number.isFinite(latencyMs) && latencyMs > 0) {
 		await sleep(latencyMs);
@@ -100,4 +100,4 @@ export async function GET() {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

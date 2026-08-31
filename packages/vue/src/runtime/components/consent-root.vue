@@ -32,15 +32,20 @@ onMounted(() => {
 		document.documentElement.style.setProperty(`--${key}`, String(value));
 	}
 	// Warm the dialog chunk during idle so the first open is instant.
-	if (init.value?.gvl) prefetchIabConsentDialog();
-	else prefetchConsentManager();
+	if (init.value?.gvl) {
+		prefetchIabConsentDialog();
+	} else {
+		prefetchConsentManager();
+	}
 });
 
 watch(
 	() => [props.country, props.region, props.language] as const,
 	([country, region, language]) => {
-		if (!(country || region || language)) return;
-		kernel.set.overrides({ country, region, language });
+		if (!(country || region || language)) {
+			return;
+		}
+		kernel.set.overrides({ country, language, region });
 		void kernel.commands.init();
 	},
 	{ immediate: true }

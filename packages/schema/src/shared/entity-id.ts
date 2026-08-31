@@ -49,22 +49,17 @@ const TIMESTAMP_BYTE_LENGTH = 8;
  * epoch exist, and dropping it would derive a different id for every one of
  * them. Two backends disagreeing there means duplicated consent.
  */
-function writeTimestamp(buf: Uint8Array, timestamp: number): void {
+const writeTimestamp = function writeTimestamp(
+	buf: Uint8Array,
+	timestamp: number
+): void {
 	const rawOffset = timestamp - EPOCH_TIMESTAMP;
 	const offset = Number.isFinite(rawOffset) ? Math.max(0, rawOffset) : 0;
 
-	const high = Math.floor(offset / 0x1_00_00_00_00);
-	const low = offset >>> 0;
-
-	buf[0] = (high >>> 24) & 255;
-	buf[1] = (high >>> 16) & 255;
-	buf[2] = (high >>> 8) & 255;
-	buf[3] = high & 255;
-	buf[4] = (low >>> 24) & 255;
-	buf[5] = (low >>> 16) & 255;
-	buf[6] = (low >>> 8) & 255;
-	buf[7] = low & 255;
-}
+	const view = new DataView(buf.buffer);
+	view.setUint32(0, Math.floor(offset / 2 ** 32), false);
+	view.setUint32(4, offset % 2 ** 32, false);
+};
 
 /**
  * Derives an id that is a pure function of the identity that produced it.
@@ -73,7 +68,7 @@ function writeTimestamp(buf: Uint8Array, timestamp: number): void {
  * idempotent without a read-then-write race: the database's primary key does
  * the deduplication.
  */
-export async function generateDeterministicId(
+export const generateDeterministicId = async function generateDeterministicId(
 	kind: EntityKind,
 	timestamp: number,
 	identity: readonly (string | null)[]
@@ -83,13 +78,13 @@ export async function generateDeterministicId(
 
 	writeTimestamp(buf, timestamp);
 
-	for (let i = TIMESTAMP_BYTE_LENGTH; i < ID_BYTE_LENGTH; i++) {
+	for (let i = TIMESTAMP_BYTE_LENGTH; i < ID_BYTE_LENGTH; i += 1) {
 		const offset = (i - TIMESTAMP_BYTE_LENGTH) * 2;
 		buf[i] = Number.parseInt(digest.slice(offset, offset + 2), 16);
 	}
 
 	return `${PREFIXES[kind]}_${b58.encode(buf)}`;
-}
+};
 
 /** The fields that identify a single consent submission. */
 export interface ConsentSubmissionIdentity {
@@ -106,7 +101,7 @@ export interface ConsentSubmissionIdentity {
  * Field order is part of the format — the identity is JSON-serialised before
  * hashing, so reordering these changes every id that would ever be derived.
  */
-export function buildConsentId(
+export const buildConsentId = function buildConsentId(
 	input: ConsentSubmissionIdentity
 ): Promise<string> {
 	return generateDeterministicId('consent', input.givenAt.getTime(), [
@@ -116,7 +111,7 @@ export function buildConsentId(
 		input.policyId ?? null,
 		input.givenAt.toISOString(),
 	]);
-}
+};
 
 /**
  * A fresh, time-ordered id for a record that is not deduplicated.
@@ -129,9 +124,12 @@ export function buildConsentId(
  * Same layout as the deterministic form — timestamp prefix then random bytes —
  * so ids remain chronologically sortable and visually consistent.
  */
-export function generateEntityId(kind: EntityKind, now = Date.now()): string {
+export const generateEntityId = function generateEntityId(
+	kind: EntityKind,
+	now = Date.now()
+): string {
 	const buf = new Uint8Array(ID_BYTE_LENGTH);
 	writeTimestamp(buf, now);
 	crypto.getRandomValues(buf.subarray(TIMESTAMP_BYTE_LENGTH));
 	return `${PREFIXES[kind]}_${b58.encode(buf)}`;
-}
+};

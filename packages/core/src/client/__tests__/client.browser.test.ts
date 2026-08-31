@@ -85,7 +85,7 @@ describe('c15t Client Browser Tests', () => {
 
 	it('should set Content-Type header for POST requests', async () => {
 		// Direct fetch spy
-		const fetchSpy = vi.spyOn(window, 'fetch');
+		const fetchSpyLocal = vi.spyOn(window, 'fetch');
 
 		// Configure client
 		const client = new C15tClient({
@@ -93,7 +93,7 @@ describe('c15t Client Browser Tests', () => {
 		});
 
 		// Mock successful response
-		fetchSpy.mockResolvedValueOnce(
+		fetchSpyLocal.mockResolvedValueOnce(
 			new Response(JSON.stringify({ success: true }), {
 				status: 200,
 				headers: { 'Content-Type': 'application/json' },
@@ -116,7 +116,7 @@ describe('c15t Client Browser Tests', () => {
 
 		// Verify Content-Type header was set
 		// v2.0 uses POST /subjects endpoint
-		expect(fetchSpy).toHaveBeenCalledWith(
+		expect(fetchSpyLocal).toHaveBeenCalledWith(
 			expect.stringContaining('/api/c15t/subjects'),
 			expect.objectContaining({
 				method: 'POST',

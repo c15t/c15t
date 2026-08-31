@@ -20,12 +20,12 @@ const CSS_ENTRYPOINT_CANDIDATES = [
 ] as const;
 
 const LOCAL_CSS_IMPORT_RE =
-	/^\s*import(?:\s+[^'"]+\s+from\s+)?['"]([^'"]+\.css)['"];\s*$/gm;
+	/^\s*import(?:\s+[^'"]+\s+from\s+)?['"](?<capture1>[^'"]+\.css)['"];\s*$/gmu;
 
-const CSS_IMPORT_RE = /^\s*@import\b.+;\s*(?:(?:\/\*.*\*\/|\/\/.*)\s*)?$/;
-const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/;
-const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/;
-const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/;
+const CSS_IMPORT_RE = /^\s*@import\b.+;\s*(?:(?:\/\*.*\*\/|\/\/.*)\s*)?$/u;
+const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/u;
+const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/u;
+const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/u;
 
 export type StyledPackageName =
 	| 'c15t/react'
@@ -53,27 +53,32 @@ export interface EnsureGlobalCssStylesheetImportsResult {
 
 type StylesheetKind = 'base' | 'iab';
 
-function normalizePath(projectRoot: string, filePath: string): string {
+const normalizePath = function normalizePath(
+	projectRoot: string,
+	filePath: string
+): string {
 	if (filePath.startsWith(projectRoot)) {
 		return filePath;
 	}
 
 	return resolve(projectRoot, filePath);
-}
+};
 
-function dedupePaths(paths: string[]): string[] {
+const dedupePaths = function dedupePaths(paths: string[]): string[] {
 	return [...new Set(paths)];
-}
+};
 
-function isNonModuleLocalCssImport(moduleSpecifier: string): boolean {
+const isNonModuleLocalCssImport = function isNonModuleLocalCssImport(
+	moduleSpecifier: string
+): boolean {
 	return (
 		moduleSpecifier.startsWith('.') &&
 		moduleSpecifier.endsWith('.css') &&
 		!moduleSpecifier.endsWith('.module.css')
 	);
-}
+};
 
-function getManagedPackages(
+const getManagedPackages = function getManagedPackages(
 	packageName: StyledPackageName
 ): StyledPackageName[] {
 	if (packageName === '@c15t/ui') {
@@ -84,13 +89,23 @@ function getManagedPackages(
 	// stylesheet imports are interchangeable — manage all variants so re-runs
 	// normalize an existing import to the requested package.
 	return ['c15t/react', 'c15t/next', '@c15t/react', '@c15t/nextjs'];
-}
+};
 
-function getStylesheetKind(importPath: string): StylesheetKind {
+const getStylesheetKind = function getStylesheetKind(
+	importPath: string
+): StylesheetKind {
 	return importPath.includes('/iab/') ? 'iab' : 'base';
-}
+};
 
-function getDesiredImportPath(
+export const isTailwindV3 = function isTailwindV3(
+	version: string | null
+): boolean {
+	return (
+		version !== null && version !== undefined && /^(?:\^|~)?3/u.test(version)
+	);
+};
+
+const getDesiredImportPath = function getDesiredImportPath(
 	packageName: StyledPackageName,
 	kind: StylesheetKind,
 	tailwindVersion: string | null
@@ -101,9 +116,9 @@ function getDesiredImportPath(
 	return kind === 'base'
 		? `${packageName}/${suffix}`
 		: `${packageName}/iab/${suffix}`;
-}
+};
 
-function getDesiredImports(
+const getDesiredImports = function getDesiredImports(
 	packageName: StyledPackageName,
 	tailwindVersion: string | null,
 	includeBase: boolean,
@@ -120,27 +135,31 @@ function getDesiredImports(
 	}
 
 	return imports;
-}
+};
 
-function getFrameworkImportPattern(packageNames: StyledPackageName[]): string {
+const getFrameworkImportPattern = function getFrameworkImportPattern(
+	packageNames: StyledPackageName[]
+): string {
 	const escapedPackages = packageNames
 		.map((packageName) => packageName.replace('/', '\\/'))
 		.join('|');
 
 	return `^\\s*@import\\s+['"]((?:${escapedPackages})(?:\\/iab)?\\/styles(?:\\.tw3)?\\.css)['"];\\s*$`;
-}
+};
 
-function getFrameworkImportRegex(packageNames: StyledPackageName[]): RegExp {
-	return new RegExp(getFrameworkImportPattern(packageNames));
-}
+const getFrameworkImportRegex = function getFrameworkImportRegex(
+	packageNames: StyledPackageName[]
+): RegExp {
+	return new RegExp(getFrameworkImportPattern(packageNames), 'u');
+};
 
-function getManagedImportPaths(
+const getManagedImportPaths = function getManagedImportPaths(
 	content: string,
 	managedPackages: StyledPackageName[]
 ): string[] {
 	const importRegex = new RegExp(
 		getFrameworkImportPattern(managedPackages),
-		'gm'
+		'gmu'
 	);
 
 	return dedupePaths(
@@ -148,9 +167,11 @@ function getManagedImportPaths(
 			match[1] ? [match[1]] : []
 		)
 	);
-}
+};
 
-function findTopInsertionLineIndex(lines: string[]): number {
+const findTopInsertionLineIndex = function findTopInsertionLineIndex(
+	lines: string[]
+): number {
 	let index = 0;
 
 	if (lines[index]?.trim().startsWith('/*')) {
@@ -168,45 +189,50 @@ function findTopInsertionLineIndex(lines: string[]): number {
 	}
 
 	return index;
-}
+};
 
-function findTailwindV4InsertionLineIndex(
-	lines: string[],
-	tailwindImportIndex: number
-): number {
-	let lastImportIndex = tailwindImportIndex;
+const findTailwindV4InsertionLineIndex =
+	function findTailwindV4InsertionLineIndex(
+		lines: string[],
+		tailwindImportIndex: number
+	): number {
+		let lastImportIndex = tailwindImportIndex;
 
-	for (let index = tailwindImportIndex + 1; index < lines.length; index += 1) {
-		const line = lines[index];
-		const trimmed = line?.trim() ?? '';
-		const isStandaloneCommentLine =
-			/^\/\*.*\*\/\s*$/.test(trimmed) ||
-			/^\/\/.*\s*$/.test(trimmed) ||
-			/^\/\*.*\s*$/.test(trimmed) ||
-			/^\*(?:\/|$|\s(?!\{).*)$/.test(trimmed);
+		for (
+			let index = tailwindImportIndex + 1;
+			index < lines.length;
+			index += 1
+		) {
+			const line = lines[index];
+			const trimmed = line?.trim() ?? '';
+			const isStandaloneCommentLine =
+				/^\/\*.*\*\/\s*$/u.test(trimmed) ||
+				/^\/\/.*\s*$/u.test(trimmed) ||
+				/^\/\*.*\s*$/u.test(trimmed) ||
+				/^\*(?:\/|$|\s(?!\{).*)$/u.test(trimmed);
 
-		if (trimmed === '' || isStandaloneCommentLine) {
-			continue;
+			if (trimmed === '' || isStandaloneCommentLine) {
+				continue;
+			}
+
+			if (CSS_IMPORT_RE.test(line ?? '')) {
+				lastImportIndex = index;
+				continue;
+			}
+
+			break;
 		}
 
-		if (CSS_IMPORT_RE.test(line ?? '')) {
-			lastImportIndex = index;
-			continue;
-		}
+		return lastImportIndex + 1;
+	};
 
-		break;
-	}
-
-	return lastImportIndex + 1;
-}
-
-function insertImportsIntoCssContent(
+const insertImportsIntoCssContent = function insertImportsIntoCssContent(
 	content: string,
 	desiredImports: string[],
 	tailwindVersion: string | null,
 	managedPackages: StyledPackageName[]
 ): string {
-	const normalizedContent = content.replace(/\r\n/g, '\n');
+	const normalizedContent = content.replace(/\r\n/gu, '\n');
 	const hadTrailingNewline = normalizedContent.endsWith('\n');
 	const body = hadTrailingNewline
 		? normalizedContent.slice(0, -1)
@@ -258,13 +284,13 @@ function insertImportsIntoCssContent(
 	}
 
 	if (content.includes('\r\n')) {
-		nextContent = nextContent.replace(/\n/g, '\r\n');
+		nextContent = nextContent.replace(/\n/gu, '\r\n');
 	}
 
 	return nextContent;
-}
+};
 
-function describeImportChange(
+const describeImportChange = function describeImportChange(
 	content: string,
 	managedPackages: StyledPackageName[],
 	desiredImportPath: string
@@ -279,15 +305,16 @@ function describeImportChange(
 		return `normalized @import "${desiredImportPath}";`;
 	}
 
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const replacedImportPath = existingImportPaths[0];
 	if (replacedImportPath) {
 		return `replaced @import "${replacedImportPath}"; with @import "${desiredImportPath}";`;
 	}
 
 	return `added @import "${desiredImportPath}";`;
-}
+};
 
-async function resolveCssEntrypoint({
+const resolveCssEntrypoint = async function resolveCssEntrypoint({
 	projectRoot,
 	entrypointPath,
 }: Pick<
@@ -301,6 +328,7 @@ async function resolveCssEntrypoint({
 		if (existsSync(resolvedEntrypointPath)) {
 			const entrypointContent = await readFile(resolvedEntrypointPath, 'utf-8');
 			for (const match of entrypointContent.matchAll(LOCAL_CSS_IMPORT_RE)) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				const moduleSpecifier = match[1];
 				if (!moduleSpecifier || !isNonModuleLocalCssImport(moduleSpecifier)) {
 					continue;
@@ -336,80 +364,77 @@ async function resolveCssEntrypoint({
 		filePath: null,
 		searchedPaths: dedupePaths(searchedPaths),
 	};
-}
+};
 
-export function formatSearchedCssPaths(
+export const formatSearchedCssPaths = function formatSearchedCssPaths(
 	projectRoot: string,
 	searchedPaths: string[]
 ): string {
 	return searchedPaths
 		.map((filePath) => relative(projectRoot, filePath) || '.')
 		.join(', ');
-}
+};
 
-export function isTailwindV3(version: string | null): boolean {
-	return version != null && /^(?:\^|~)?3/.test(version);
-}
+export const ensureGlobalCssStylesheetImports =
+	async function ensureGlobalCssStylesheetImports(
+		options: EnsureGlobalCssStylesheetImportsOptions
+	): Promise<EnsureGlobalCssStylesheetImportsResult> {
+		const desiredImports = getDesiredImports(
+			options.packageName,
+			options.tailwindVersion,
+			options.includeBase,
+			options.includeIab
+		);
 
-export async function ensureGlobalCssStylesheetImports(
-	options: EnsureGlobalCssStylesheetImportsOptions
-): Promise<EnsureGlobalCssStylesheetImportsResult> {
-	const desiredImports = getDesiredImports(
-		options.packageName,
-		options.tailwindVersion,
-		options.includeBase,
-		options.includeIab
-	);
+		if (desiredImports.length === 0) {
+			return {
+				changes: [],
+				filePath: null,
+				searchedPaths: [],
+				updated: false,
+			};
+		}
 
-	if (desiredImports.length === 0) {
+		const { filePath, searchedPaths } = await resolveCssEntrypoint(options);
+		if (!filePath) {
+			return {
+				changes: [],
+				filePath: null,
+				searchedPaths,
+				updated: false,
+			};
+		}
+
+		const content = await readFile(filePath, 'utf-8');
+		const managedPackages = getManagedPackages(options.packageName);
+		const nextContent = insertImportsIntoCssContent(
+			content,
+			desiredImports,
+			options.tailwindVersion,
+			managedPackages
+		);
+
+		if (nextContent === content) {
+			return {
+				changes: [],
+				filePath,
+				searchedPaths,
+				updated: false,
+			};
+		}
+
+		if (!options.dryRun) {
+			await writeFile(filePath, nextContent, 'utf-8');
+		}
+
+		const changes = desiredImports.map((importPath) =>
+			describeImportChange(content, managedPackages, importPath)
+		);
+
 		return {
-			updated: false,
-			filePath: null,
-			searchedPaths: [],
-			changes: [],
-		};
-	}
-
-	const { filePath, searchedPaths } = await resolveCssEntrypoint(options);
-	if (!filePath) {
-		return {
-			updated: false,
-			filePath: null,
-			searchedPaths,
-			changes: [],
-		};
-	}
-
-	const content = await readFile(filePath, 'utf-8');
-	const managedPackages = getManagedPackages(options.packageName);
-	const nextContent = insertImportsIntoCssContent(
-		content,
-		desiredImports,
-		options.tailwindVersion,
-		managedPackages
-	);
-
-	if (nextContent === content) {
-		return {
-			updated: false,
+			changes,
 			filePath,
 			searchedPaths,
-			changes: [],
+			updated: true,
 		};
-	}
-
-	if (!options.dryRun) {
-		await writeFile(filePath, nextContent, 'utf-8');
-	}
-
-	const changes = desiredImports.map((importPath) =>
-		describeImportChange(content, managedPackages, importPath)
-	);
-
-	return {
-		updated: true,
-		filePath,
-		searchedPaths,
-		changes,
 	};
-}

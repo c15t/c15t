@@ -129,6 +129,7 @@ export interface IABConsentDialogProps {
  *
  * @public
  */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
@@ -623,7 +624,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				}
 
 				// Force reflow before enabling transition
-				content.offsetHeight;
+				content.getBoundingClientRect();
 
 				// Animate to new height
 				content.style.transition =
@@ -980,7 +981,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																key={`special-${purpose.id}`}
 																purpose={purpose}
 																isEnabled={true}
-																onToggle={() => {}}
+																onToggle={() => {
+																	/* empty */
+																}}
 																vendorConsents={iabState.vendorConsents}
 																onVendorToggle={handleVendorToggle}
 																onVendorClick={handleVendorClick}
@@ -1000,7 +1003,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																	vendors: feature.vendors,
 																}}
 																isEnabled={true}
-																onToggle={() => {}}
+																onToggle={() => {
+																	/* empty */
+																}}
 																vendorConsents={iabState.vendorConsents}
 																onVendorToggle={handleVendorToggle}
 																onVendorClick={handleVendorClick}
@@ -1093,6 +1098,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		showTrigger === true
 			? {} // Use defaults
 			: showTrigger === false

@@ -11,11 +11,11 @@ describe('resolveSavePatch', () => {
 		const { patch, consentAction } = resolveSavePatch(snap, subjectId, 'all');
 		expect(consentAction).toBe('all');
 		expect(patch.consents).toMatchObject({
-			necessary: true,
+			experience: true,
 			functionality: true,
 			marketing: true,
 			measurement: true,
-			experience: true,
+			necessary: true,
 		});
 		expect(patch.subjectId).toBe(subjectId);
 		expect(patch.hasConsented).toBe(true);
@@ -29,11 +29,11 @@ describe('resolveSavePatch', () => {
 		const { patch, consentAction } = resolveSavePatch(snap, subjectId, 'none');
 		expect(consentAction).toBe('necessary');
 		expect(patch.consents).toMatchObject({
-			necessary: true,
+			experience: false,
 			functionality: false,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		});
 	});
 
@@ -82,8 +82,8 @@ describe('resolveSavePatch', () => {
 		// Manually construct a finalized snapshot via two patches.
 		const finalized = {
 			...baseline,
-			hasConsented: true,
 			activeUI: 'none' as const,
+			hasConsented: true,
 			subjectId,
 		};
 		// oxlint-disable-next-line typescript/no-explicit-any -- hand-rolled finalized fixture

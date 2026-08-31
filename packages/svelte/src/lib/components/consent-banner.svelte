@@ -235,9 +235,9 @@
 
 	const shouldFillActions = $derived(
 		shouldFillPolicyActions({
-			uiProfile: consent.state.policyBanner.uiProfile,
 			actionGroups,
 			direction,
+			uiProfile: consent.state.policyBanner.uiProfile,
 		})
 	);
 

@@ -17,19 +17,19 @@ import type { CookieOptions, StorageConfig } from './types';
  *
  * @internal
  */
-export function getDefaultCookieOptions(
+export const getDefaultCookieOptions = function getDefaultCookieOptions(
 	config?: StorageConfig
 ): Required<CookieOptions> {
 	return {
-		expiryDays: config?.defaultExpiryDays ?? 365,
 		crossSubdomain: config?.crossSubdomain ?? false,
 		domain: config?.defaultDomain ?? '',
+		expiryDays: config?.defaultExpiryDays ?? 365,
 		path: '/',
+		sameSite: 'Lax',
 		secure:
 			typeof window !== 'undefined' && window.location.protocol === 'https:',
-		sameSite: 'Lax',
 	};
-}
+};
 
 /**
  * Gets the root domain for cross-subdomain cookies.
@@ -48,15 +48,15 @@ export function getDefaultCookieOptions(
  *
  * @public
  */
-export function getRootDomain(): string {
+export const getRootDomain = function getRootDomain(): string {
 	if (typeof window === 'undefined') {
 		return '';
 	}
 
-	const hostname = window.location.hostname;
+	const { hostname } = window.location;
 
 	// Handle localhost and IP addresses
-	if (hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+	if (hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/u.test(hostname)) {
 		return hostname;
 	}
 
@@ -70,4 +70,4 @@ export function getRootDomain(): string {
 	}
 
 	return hostname;
-}
+};

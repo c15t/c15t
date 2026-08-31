@@ -59,13 +59,15 @@ export interface IABTarget {
  *
  * Missing IAB fields are vacuously true — an empty IAB target passes.
  */
-export function hasIABConsent(
+export const hasIABConsent = function hasIABConsent(
 	target: IABTarget,
 	iab: IABConsentInputs
 ): boolean {
 	if (target.vendorId !== undefined) {
 		const key = String(target.vendorId);
-		if (!iab.vendorConsents[key]) return false;
+		if (!iab.vendorConsents[key]) {
+			return false;
+		}
 	}
 	if (target.iabPurposes && target.iabPurposes.length > 0) {
 		if (!target.iabPurposes.every((id) => iab.purposeConsents[id] === true)) {
@@ -91,7 +93,7 @@ export function hasIABConsent(
 		}
 	}
 	return true;
-}
+};
 
 /**
  * Target shape the three blocker modules evaluate against. Has a
@@ -114,10 +116,9 @@ export interface ConsentGate<
  *
  * Returns `true` iff the target is allowed to load / fire / render.
  */
-export function evaluateConsent<CategoryType extends AllConsentNames>(
-	target: ConsentGate<CategoryType>,
-	snapshot: ConsentSnapshot
-): boolean {
+export const evaluateConsent = function evaluateConsent<
+	CategoryType extends AllConsentNames,
+>(target: ConsentGate<CategoryType>, snapshot: ConsentSnapshot): boolean {
 	const hasIABFields =
 		target.vendorId !== undefined ||
 		(target.iabPurposes && target.iabPurposes.length > 0) ||
@@ -125,22 +126,26 @@ export function evaluateConsent<CategoryType extends AllConsentNames>(
 		(target.iabSpecialFeatures && target.iabSpecialFeatures.length > 0);
 
 	if (snapshot.model === 'iab' && hasIABFields) {
-		const iab = snapshot.iab;
-		if (!iab) return false;
+		const { iab } = snapshot;
+		if (!iab) {
+			return false;
+		}
 		return hasIABConsent(target, iab);
 	}
 
 	return has(target.category, snapshot.consents as ConsentState);
-}
+};
 
 /**
  * Convenience for modules that only need the IAB-specific read, given
  * the full kernel snapshot. Returns `false` when IAB isn't populated.
  */
-export function snapshotHasIABConsent(
+export const snapshotHasIABConsent = function snapshotHasIABConsent(
 	target: IABTarget,
 	iab: KernelIABState | null
 ): boolean {
-	if (!iab) return false;
+	if (!iab) {
+		return false;
+	}
 	return hasIABConsent(target, iab);
-}
+};

@@ -27,7 +27,7 @@
  * // Returns: '"https://api.example.com"'
  * ```
  */
-export function getBackendURLValue(
+export const getBackendURLValue = function getBackendURLValue(
 	backendURL?: string,
 	useEnvFile?: boolean,
 	proxyNextjs?: boolean,
@@ -42,7 +42,7 @@ export function getBackendURLValue(
 	}
 
 	return `'${backendURL || 'https://your-project.inth.app'}'`;
-}
+};
 
 /**
  * Generates the inner options text for ConsentManagerProvider based on mode and configuration
@@ -67,7 +67,7 @@ export function getBackendURLValue(
  * // Returns: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t', ..."
  * ```
  */
-export function generateOptionsText(
+export const generateOptionsText = function generateOptionsText(
 	mode: string,
 	backendURL?: string,
 	useEnvFile?: boolean,
@@ -115,4 +115,4 @@ export function generateOptionsText(
 		default:
 			return `mode: 'offline',`;
 	}
-}
+};

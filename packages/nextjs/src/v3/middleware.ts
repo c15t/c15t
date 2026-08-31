@@ -20,15 +20,19 @@ const DEFAULT_REGION_COOKIE = 'c15t-region';
  * Use from `middleware.ts` when the deployment platform exposes geo to
  * middleware but strips it before Server Components or Route Handlers.
  */
-export function c15tMiddleware(
+export const c15tMiddleware = function c15tMiddleware(
 	request: NextRequest,
 	options: C15tMiddlewareOptions = {}
 ): NextResponse {
 	const requestHeaders = new Headers(request.headers);
 	const inputs = extractConsentRequestInputs(request.headers);
 
-	if (inputs.country) requestHeaders.set('x-c15t-country', inputs.country);
-	if (inputs.region) requestHeaders.set('x-c15t-region', inputs.region);
+	if (inputs.country) {
+		requestHeaders.set('x-c15t-country', inputs.country);
+	}
+	if (inputs.region) {
+		requestHeaders.set('x-c15t-region', inputs.region);
+	}
 	if (inputs.gpc !== undefined) {
 		requestHeaders.set('sec-gpc', inputs.gpc ? '1' : '0');
 	}
@@ -46,8 +50,8 @@ export function c15tMiddleware(
 				: DEFAULT_COUNTRY_COOKIE;
 		response.cookies.set(countryName, inputs.country, {
 			httpOnly: true,
-			sameSite: 'lax',
 			path: '/',
+			sameSite: 'lax',
 		});
 	}
 	if (options.cookie && inputs.region) {
@@ -57,10 +61,10 @@ export function c15tMiddleware(
 				: DEFAULT_REGION_COOKIE;
 		response.cookies.set(regionName, inputs.region, {
 			httpOnly: true,
-			sameSite: 'lax',
 			path: '/',
+			sameSite: 'lax',
 		});
 	}
 
 	return response;
-}
+};

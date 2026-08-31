@@ -61,7 +61,8 @@ export interface TCStringConfig {
  *
  * @public
  */
-export async function generateTCString(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const generateTCString = async function generateTCString(
 	consentData: TCFConsentData,
 	gvlData: GlobalVendorList,
 	config: TCStringConfig
@@ -143,7 +144,7 @@ export async function generateTCString(
 
 	// Encode and return
 	return TCString.encode(tcModel);
-}
+};
 
 /**
  * Decoded TC String data.
@@ -209,7 +210,7 @@ export interface DecodedTCString {
  *
  * @public
  */
-export async function decodeTCString(
+export const decodeTCString = async function decodeTCString(
 	tcString: string
 ): Promise<DecodedTCString> {
 	const { TCString } = await getTCFCore();
@@ -222,7 +223,7 @@ export async function decodeTCString(
 		maxId: number
 	): Record<number, boolean> => {
 		const record: Record<number, boolean> = {};
-		for (let i = 1; i <= maxId; i++) {
+		for (let i = 1; i <= maxId; i += 1) {
 			if (vector.has(i)) {
 				record[i] = true;
 			}
@@ -234,25 +235,25 @@ export async function decodeTCString(
 		cmpId: tcModel.cmpId as number,
 		cmpVersion: tcModel.cmpVersion as number,
 		consentLanguage: tcModel.consentLanguage,
+		created: tcModel.created,
 		isServiceSpecific: tcModel.isServiceSpecific,
+		lastUpdated: tcModel.lastUpdated,
+		policyVersion: tcModel.policyVersion as number,
 		purposeConsents: vectorToRecord(tcModel.purposeConsents, 11),
 		purposeLegitimateInterests: vectorToRecord(
 			tcModel.purposeLegitimateInterests,
 			11
 		),
+		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
 		vendorConsents: vectorToRecord(tcModel.vendorConsents, 1000),
 		vendorLegitimateInterests: vectorToRecord(
 			tcModel.vendorLegitimateInterests,
 			1000
 		),
-		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
-		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed, 1000),
-		created: tcModel.created,
-		lastUpdated: tcModel.lastUpdated,
 		vendorListVersion: tcModel.vendorListVersion as number,
-		policyVersion: tcModel.policyVersion as number,
+		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed, 1000),
 	};
-}
+};
 
 /**
  * Validates a TC String format.
@@ -262,7 +263,9 @@ export async function decodeTCString(
  *
  * @public
  */
-export function isValidTCStringFormat(tcString: string): boolean {
+export const isValidTCStringFormat = function isValidTCStringFormat(
+	tcString: string
+): boolean {
 	// TC Strings are base64url encoded and start with a version indicator
 	// Version 2 strings typically start with 'C' or 'B' after base64url encoding
 	if (!tcString || typeof tcString !== 'string') {
@@ -270,7 +273,7 @@ export function isValidTCStringFormat(tcString: string): boolean {
 	}
 
 	// Basic format check: should be base64url characters
-	const base64urlRegex = /^[A-Za-z0-9_-]+$/;
+	const base64urlRegex = /^[A-Za-z0-9_-]+$/u;
 	if (!base64urlRegex.test(tcString)) {
 		return false;
 	}
@@ -281,7 +284,7 @@ export function isValidTCStringFormat(tcString: string): boolean {
 	}
 
 	return true;
-}
+};
 
 /**
  * Checks if a TC String has consent for a specific vendor.
@@ -292,13 +295,13 @@ export function isValidTCStringFormat(tcString: string): boolean {
  *
  * @public
  */
-export async function hasVendorConsent(
+export const hasVendorConsent = async function hasVendorConsent(
 	tcString: string,
 	vendorId: number
 ): Promise<boolean> {
 	const decoded = await decodeTCString(tcString);
 	return decoded.vendorConsents[vendorId] === true;
-}
+};
 
 /**
  * Checks if a TC String has consent for a specific purpose.
@@ -309,10 +312,10 @@ export async function hasVendorConsent(
  *
  * @public
  */
-export async function hasPurposeConsent(
+export const hasPurposeConsent = async function hasPurposeConsent(
 	tcString: string,
 	purposeId: number
 ): Promise<boolean> {
 	const decoded = await decodeTCString(tcString);
 	return decoded.purposeConsents[purposeId] === true;
-}
+};

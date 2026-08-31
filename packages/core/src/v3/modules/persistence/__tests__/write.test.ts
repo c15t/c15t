@@ -44,6 +44,6 @@ describe('writeToStorage', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.subjectId).not.toBeNull();
 		// generateSubjectId emits `sub_<base58>` IDs.
-		expect(snap.subjectId).toMatch(/^sub_/);
+		expect(snap.subjectId).toMatch(/^sub_/u);
 	});
 });

@@ -12,13 +12,16 @@ import type { TestDriver } from '../driver';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-function parseHtml(html: string): Element | null {
+const parseHtml = function parseHtml(html: string): Element | null {
 	const template = document.createElement('template');
 	template.innerHTML = html.trim();
 	return template.content.firstElementChild;
-}
+};
 
-export function runSsrConformance(driver: TestDriver, api: SuiteApi): void {
+export const runSsrConformance = function runSsrConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] ssr`, () => {
 		conformanceTest(api, 'serverRender returns non-empty HTML', async () => {
 			const html = await driver.serverRender({ component: 'consent-banner' });
@@ -30,13 +33,17 @@ export function runSsrConformance(driver: TestDriver, api: SuiteApi): void {
 			const html = await driver.serverRender({ component: 'consent-banner' });
 			const serverEl = parseHtml(html);
 			api.expect(serverEl).not.toBeNull();
-			if (!serverEl) return;
+			if (!serverEl) {
+				return;
+			}
 			const serverSnap = domSnapshot(serverEl);
 
 			const mounted = await driver.mount({ component: 'consent-banner' });
 			try {
 				const clientChild = mounted.root.firstElementChild;
-				if (!clientChild) throw new Error('client root has no children');
+				if (!clientChild) {
+					throw new Error('client root has no children');
+				}
 				const clientSnap = domSnapshot(clientChild);
 				api.expect(clientSnap).toBe(serverSnap);
 			} finally {
@@ -44,4 +51,4 @@ export function runSsrConformance(driver: TestDriver, api: SuiteApi): void {
 			}
 		});
 	});
-}
+};

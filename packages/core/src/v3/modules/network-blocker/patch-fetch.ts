@@ -25,14 +25,18 @@ export interface FetchPatchDeps {
  * Install the `window.fetch` patch. Returns a teardown fn that restores
  * the original `fetch` when this install is still the active wrapper.
  */
-export function installFetchPatch(deps: FetchPatchDeps): () => void {
+export const installFetchPatch = function installFetchPatch(
+	deps: FetchPatchDeps
+): () => void {
 	const originalFetch = window.fetch.bind(window);
 
-	function patchedFetch(
+	const patchedFetch = function patchedFetch(
 		input: RequestInfo | URL,
 		init?: RequestInit
 	): Promise<Response> {
-		if (!deps.isEnabled()) return originalFetch(input, init);
+		if (!deps.isEnabled()) {
+			return originalFetch(input, init);
+		}
 
 		const method = normalizeMethod(
 			init?.method ??
@@ -41,7 +45,9 @@ export function installFetchPatch(deps: FetchPatchDeps): () => void {
 					: undefined)
 		);
 		const url = parseUrl(input as string | URL | Request);
-		if (!url) return originalFetch(input, init);
+		if (!url) {
+			return originalFetch(input, init);
+		}
 
 		const decision = evaluateBlock(
 			url,
@@ -52,8 +58,8 @@ export function installFetchPatch(deps: FetchPatchDeps): () => void {
 		if (decision.shouldBlock) {
 			deps.notifyBlocked({
 				method,
-				url: url.toString(),
 				rule: decision.rule,
+				url: url.toString(),
 			});
 			return Promise.resolve(
 				new Response(null, {
@@ -63,7 +69,7 @@ export function installFetchPatch(deps: FetchPatchDeps): () => void {
 			);
 		}
 		return originalFetch(input, init);
-	}
+	};
 
 	window.fetch = patchedFetch as typeof window.fetch;
 
@@ -74,4 +80,4 @@ export function installFetchPatch(deps: FetchPatchDeps): () => void {
 			window.fetch = originalFetch;
 		}
 	};
-}
+};

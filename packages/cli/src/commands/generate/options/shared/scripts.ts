@@ -7,7 +7,7 @@ interface GetScriptsToAddOptions {
 	handleCancel?: (value: unknown) => boolean;
 }
 
-export async function getScriptsToAdd({
+export const getScriptsToAdd = async function getScriptsToAdd({
 	context,
 	handleCancel,
 }: GetScriptsToAddOptions) {
@@ -16,8 +16,8 @@ export async function getScriptsToAdd({
 	);
 
 	const addScriptsSelection = await p.confirm({
-		message: 'Do you want to add @c15t/scripts to your project?',
 		initialValue: true,
+		message: 'Do you want to add @c15t/scripts to your project?',
 	});
 
 	if (handleCancel?.(addScriptsSelection)) {
@@ -28,4 +28,4 @@ export async function getScriptsToAdd({
 	}
 
 	return addScriptsSelection;
-}
+};

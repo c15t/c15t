@@ -17,11 +17,14 @@ import type { TestDriver } from '../driver';
 import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
 import type { SuiteApi } from './helpers';
 
-function accessibleName(el: HTMLElement): string {
+const accessibleName = function accessibleName(el: HTMLElement): string {
 	return (el.getAttribute('aria-label') ?? el.textContent ?? '').trim();
-}
+};
 
-export function runIabConformance(driver: TestDriver, api: SuiteApi): void {
+export const runIabConformance = function runIabConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] iab`, () => {
 		conformanceTest(
 			api,
@@ -100,4 +103,4 @@ export function runIabConformance(driver: TestDriver, api: SuiteApi): void {
 			}
 		);
 	});
-}
+};

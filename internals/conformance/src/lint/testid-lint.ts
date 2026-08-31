@@ -28,8 +28,10 @@ export interface TestIdViolation {
 
 // Match data-testid as a JSX/Svelte attribute only. Leading `(?:^|\s)` excludes
 // selector contexts like `[data-testid="foo"]` inside querySelector strings.
-const LITERAL_RE = /(?:^|\s)data-testid=(?:"([^"]+)"|'([^']+)')/g;
-const TEMPLATE_RE = /(?:^|\s)data-testid=\{`([^`]+)`\}/g;
+// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+const LITERAL_RE = /(?:^|\s)data-testid=(?:"([^"]+)"|'(?<capture1>[^']+)')/gu;
+// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+const TEMPLATE_RE = /(?:^|\s)data-testid=\{`([^`]+)`\}/gu;
 
 const SKIP_FRAGMENTS = [
 	'__tests__/',
@@ -41,64 +43,72 @@ const SKIP_FRAGMENTS = [
 	'/.svelte-kit/',
 ];
 
-export async function scanFileForViolations(
+export const scanFileForViolations = async function scanFileForViolations(
 	absPath: string
 ): Promise<TestIdViolation[]> {
 	const violations: TestIdViolation[] = [];
 	const contents = await Bun.file(absPath).text();
 	const lines = contents.split('\n');
 
-	for (let i = 0; i < lines.length; i++) {
+	for (let i = 0; i < lines.length; i += 1) {
 		const line = lines[i] ?? '';
 		for (const m of line.matchAll(LITERAL_RE)) {
 			const id = m[1] ?? m[2];
-			if (!id) continue;
+			if (!id) {
+				continue;
+			}
 			if (!isCanonicalTestId(id)) {
 				violations.push({
 					file: absPath,
+					kind: 'literal',
 					line: i + 1,
 					testId: id,
-					kind: 'literal',
 				});
 			}
 		}
 		for (const m of line.matchAll(TEMPLATE_RE)) {
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const template = m[1];
-			if (!template) continue;
+			if (!template) {
+				continue;
+			}
 			// Substitute `${...}` with a lowercase sample so the pattern regexes can
 			// match (each dynamic segment is required to be kebab-case by contract).
-			const probed = template.replace(/\$\{[^}]+\}/g, 'sample');
+			const probed = template.replace(/\$\{[^}]+\}/gu, 'sample');
 			if (!isCanonicalTestId(probed)) {
 				violations.push({
 					file: absPath,
+					kind: 'dynamic',
 					line: i + 1,
 					testId: template,
-					kind: 'dynamic',
 				});
 			}
 		}
 	}
 
 	return violations;
-}
+};
 
-export async function runTestIdLint(
+export const runTestIdLint = async function runTestIdLint(
 	roots: readonly string[]
 ): Promise<TestIdViolation[]> {
 	const violations: TestIdViolation[] = [];
 	for (const root of roots) {
 		const glob = new Glob('**/*.{tsx,jsx,ts,svelte,vue}');
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		for await (const match of glob.scan({ cwd: root, onlyFiles: true })) {
 			const rel = `${root}/${match}`;
-			if (SKIP_FRAGMENTS.some((frag) => rel.includes(frag))) continue;
+			if (SKIP_FRAGMENTS.some((frag) => rel.includes(frag))) {
+				continue;
+			}
 			const fileViolations = await scanFileForViolations(rel);
 			violations.push(...fileViolations);
 		}
 	}
 	return violations;
-}
+};
 
-async function main(): Promise<void> {
+const main = async function main(): Promise<void> {
 	const roots = [
 		'packages/react',
 		'packages/svelte',
@@ -123,7 +133,7 @@ async function main(): Promise<void> {
 		'\nAdd the test-id to internals/conformance/src/contract/test-ids.ts (TEST_IDS or TEST_ID_PATTERNS)'
 	);
 	process.exit(1);
-}
+};
 
 if (import.meta.main) {
 	await main();

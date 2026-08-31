@@ -24,13 +24,17 @@ import { validateRequestAuth } from '../auth';
 import type { RouteContext } from '../context';
 import { BadRequestError, NotFoundError } from '../errors';
 
-export function register({ app, options, run }: RouteContext): void {
+export const register = function register({
+	app,
+	options,
+	run,
+}: RouteContext): void {
 	app.get(
 		'/subjects',
 		describeRoute({
+			security: [{ bearerAuth: [] }],
 			summary: 'List subjects by external id',
 			tags: ['Subject'],
-			security: [{ bearerAuth: [] }],
 		}),
 		async (c) => {
 			// Listing subjects by external id exposes consent records for a named
@@ -38,7 +42,7 @@ export function register({ app, options, run }: RouteContext): void {
 			// route is documented as requiring a key.
 			if (!validateRequestAuth(c.req.raw.headers, options.apiKeys)) {
 				return c.json(
-					{ message: 'Unauthorized', cause: { code: 'UNAUTHORIZED' } },
+					{ cause: { code: 'UNAUTHORIZED' }, message: 'Unauthorized' },
 					401
 				);
 			}
@@ -47,12 +51,12 @@ export function register({ app, options, run }: RouteContext): void {
 
 			const result = await run(
 				c,
-				Effect.gen(function* () {
+				Effect.gen(function* result() {
 					if (externalId === undefined || externalId === '') {
 						// Matches 2.x's error shape exactly, code included.
 						return yield* new BadRequestError({
-							message: 'externalId query parameter is required',
 							code: 'EXTERNAL_ID_REQUIRED',
+							message: 'externalId query parameter is required',
 						});
 					}
 
@@ -62,6 +66,7 @@ export function register({ app, options, run }: RouteContext): void {
 					});
 
 					return {
+						// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 						subjects: subjects.map((subject) => ({
 							id: subject.id,
 							// 2.x falls back to the queried value when the stored
@@ -69,14 +74,14 @@ export function register({ app, options, run }: RouteContext): void {
 							externalId: subject.externalId ?? externalId,
 							createdAt: subject.createdAt,
 							consents: subject.consents.map((consent) => ({
+								givenAt: consent.givenAt,
 								id: consent.id,
-								type: consent.type,
+								isLatestPolicy: consent.isLatestPolicy,
+								policyEffectiveDate: consent.policyEffectiveDate,
+								policyHash: consent.policyHash,
 								policyId: consent.policyId,
 								policyVersion: consent.policyVersion,
-								policyHash: consent.policyHash,
-								policyEffectiveDate: consent.policyEffectiveDate,
-								givenAt: consent.givenAt,
-								isLatestPolicy: consent.isLatestPolicy,
+								type: consent.type,
 							})),
 						})),
 					};
@@ -121,12 +126,12 @@ export function register({ app, options, run }: RouteContext): void {
 
 			const result = await run(
 				c,
-				Effect.gen(function* () {
+				Effect.gen(function* result() {
 					const subject = yield* findById(subjectId);
 					if (subject === undefined) {
 						return yield* new NotFoundError({
-							resource: 'Subject',
 							id: subjectId,
+							resource: 'Subject',
 						});
 					}
 
@@ -136,21 +141,22 @@ export function register({ app, options, run }: RouteContext): void {
 								typeFilter.length === 0 || typeFilter.includes(consent.type)
 						)
 						.map((consent) => ({
+							givenAt: consent.givenAt,
 							id: consent.id,
-							type: consent.type,
+							isLatestPolicy: consent.isLatestPolicy,
+							policyEffectiveDate: consent.policyEffectiveDate,
+							policyHash: consent.policyHash,
 							policyId: consent.policyId,
 							policyVersion: consent.policyVersion,
-							policyHash: consent.policyHash,
-							policyEffectiveDate: consent.policyEffectiveDate,
-							givenAt: consent.givenAt,
-							isLatestPolicy: consent.isLatestPolicy,
+							type: consent.type,
 						}));
 
+					// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 					return {
 						subject: {
-							id: subject.id,
-							externalId: subject.externalId ?? undefined,
 							createdAt: subject.createdAt,
+							externalId: subject.externalId ?? undefined,
+							id: subject.id,
 						},
 						consents,
 						// Valid only if every requested type has consent against the
@@ -195,17 +201,17 @@ export function register({ app, options, run }: RouteContext): void {
 
 			const result = await run(
 				c,
-				Effect.gen(function* () {
+				Effect.gen(function* result() {
 					if (!body?.subjectId) {
 						return yield* new BadRequestError({
-							message: 'subjectId is required',
 							code: 'SUBJECT_ID_REQUIRED',
+							message: 'subjectId is required',
 						});
 					}
 					if (!body?.domainId) {
 						return yield* new BadRequestError({
-							message: 'domainId is required',
 							code: 'DOMAIN_ID_REQUIRED',
+							message: 'domainId is required',
 						});
 					}
 
@@ -216,23 +222,23 @@ export function register({ app, options, run }: RouteContext): void {
 					const givenAt = body.givenAt ? new Date(body.givenAt) : new Date();
 					if (Number.isNaN(givenAt.getTime())) {
 						return yield* new BadRequestError({
-							message: 'givenAt must be a valid ISO-8601 string',
 							code: 'INPUT_VALIDATION_FAILED',
+							message: 'givenAt must be a valid ISO-8601 string',
 						});
 					}
 
 					const submission = yield* submit({
-						subjectId: body.subjectId,
+						decision: body.decision,
 						domainId: body.domainId,
 						externalId: body.externalId ?? null,
+						givenAt,
 						identityProvider: body.identityProvider ?? null,
+						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+						metadata: body.metadata,
 						policyId: body.policyId ?? null,
 						purposeIds: body.purposeIds ?? [],
-						givenAt,
-						metadata: body.metadata,
-						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+						subjectId: body.subjectId,
 						userAgent: c.req.header('user-agent') ?? null,
-						decision: body.decision,
 					});
 
 					// `created` is the fact worth querying on: a replay is a normal,
@@ -241,15 +247,15 @@ export function register({ app, options, run }: RouteContext): void {
 					yield* setFields({
 						consent: {
 							created: submission.created,
-							id: submission.consentId,
 							decisionId: submission.decisionId ?? null,
+							id: submission.consentId,
 						},
 					});
 
 					return {
-						subjectId: submission.subjectId,
 						consentId: submission.consentId,
 						givenAt,
+						subjectId: submission.subjectId,
 					};
 				}).pipe(
 					// The client chose this `subjectId` and it is already taken by
@@ -258,7 +264,7 @@ export function register({ app, options, run }: RouteContext): void {
 					// the submission would lose a legal record.
 					Effect.catchTag('SubjectTenantConflictError', (error) =>
 						Effect.fail(
-							new BadRequestError({ message: error.message, code: 'CONFLICT' })
+							new BadRequestError({ code: 'CONFLICT', message: error.message })
 						)
 					),
 					// Same shape, different cause: the identity exists but the
@@ -267,7 +273,7 @@ export function register({ app, options, run }: RouteContext): void {
 					// not.
 					Effect.catchTag('ConsentPurposeConflictError', (error) =>
 						Effect.fail(
-							new BadRequestError({ message: error.message, code: 'CONFLICT' })
+							new BadRequestError({ code: 'CONFLICT', message: error.message })
 						)
 					)
 				)
@@ -293,28 +299,28 @@ export function register({ app, options, run }: RouteContext): void {
 
 			const result = await run(
 				c,
-				Effect.gen(function* () {
+				Effect.gen(function* result() {
 					if (!body?.externalId) {
 						return yield* new BadRequestError({
-							message: 'externalId is required',
 							code: 'EXTERNAL_ID_REQUIRED',
+							message: 'externalId is required',
 						});
 					}
 
 					const linked = yield* linkExternalId({
-						subjectId,
 						externalId: body.externalId,
 						// Matches @c15t/backend's default: an identity supplied
 						// without a named provider is still externally sourced.
 						identityProvider: body.identityProvider ?? 'external',
 						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+						subjectId,
 						userAgent: c.req.header('user-agent') ?? null,
 					});
 
 					if (linked === undefined) {
 						return yield* new NotFoundError({
-							resource: 'Subject',
 							id: subjectId,
+							resource: 'Subject',
 						});
 					}
 
@@ -329,4 +335,4 @@ export function register({ app, options, run }: RouteContext): void {
 			return c.json(result.value);
 		}
 	);
-}
+};

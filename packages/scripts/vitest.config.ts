@@ -16,6 +16,28 @@ export default mergeConfig(
 			},
 		},
 		test: {
+			coverage: {
+				// The live-vendor monitor drives real vendor endpoints from a
+				// scheduled workflow rather than from unit tests, so it is
+				// measured by its own run, not by this package's ratchet.
+				exclude: ['live-vendors/**'],
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					branches: 80,
+
+					functions: 90,
+					lines: 85,
+					statements: 85,
+				},
+			},
+			exclude: [
+				'**/node_modules/**',
+				'**/dist/**',
+				'**/build/**',
+				'**/.cache/**',
+				'**/coverage/**',
+			],
 			include: [
 				'src/**/*.test.tsx',
 				'src/**/*.test.ts',
@@ -25,27 +47,6 @@ export default mergeConfig(
 				'src/**/*.e2e.test.ts',
 				'live-vendors/**/*.test.ts',
 			],
-			exclude: [
-				'**/node_modules/**',
-				'**/dist/**',
-				'**/build/**',
-				'**/.cache/**',
-				'**/coverage/**',
-			],
-			coverage: {
-				// The live-vendor monitor drives real vendor endpoints from a
-				// scheduled workflow rather than from unit tests, so it is
-				// measured by its own run, not by this package's ratchet.
-				exclude: ['live-vendors/**'],
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
-				thresholds: {
-					lines: 85,
-					statements: 85,
-					functions: 90,
-					branches: 80,
-				},
-			},
 		},
 	})
 );

@@ -5,8 +5,6 @@ import { buildDefaultOptInPolicy } from './consent-manifest';
 describe('buildDefaultOptInPolicy', () => {
 	test('builds the shared bare-offline opt-in banner policy', () => {
 		expect(buildDefaultOptInPolicy()).toEqual({
-			id: 'default-opt-in',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -17,6 +15,8 @@ describe('buildDefaultOptInPolicy', () => {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'default-opt-in',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},

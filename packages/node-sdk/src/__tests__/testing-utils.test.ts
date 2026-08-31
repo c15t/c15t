@@ -39,7 +39,7 @@ describe('Testing Utilities', () => {
 		});
 
 		it('should support map method', () => {
-			const response = createMockResponse({ id: 'sub_123', count: 5 });
+			const response = createMockResponse({ count: 5, id: 'sub_123' });
 			const mapped = response.map((data) => data.count * 2);
 
 			expect(mapped.data).toBe(10);
@@ -47,12 +47,12 @@ describe('Testing Utilities', () => {
 
 		it('should create error response when ok is false', () => {
 			const response = createMockResponse(null, {
-				ok: false,
 				error: {
+					code: 'NOT_FOUND',
 					message: 'Not found',
 					status: 404,
-					code: 'NOT_FOUND',
 				},
+				ok: false,
 			});
 
 			expect(response.ok).toBe(false);
@@ -65,9 +65,9 @@ describe('Testing Utilities', () => {
 	describe('createMockErrorResponse', () => {
 		it('should create error response', () => {
 			const response = createMockErrorResponse({
+				code: 'VALIDATION_ERROR',
 				message: 'Validation failed',
 				status: 400,
-				code: 'VALIDATION_ERROR',
 			});
 
 			expect(response.ok).toBe(false);
@@ -107,10 +107,10 @@ describe('Testing Utilities', () => {
 
 		it('should allow overriding specific methods', async () => {
 			const mockClient = createMockClient({
-				getSubject: async (id) =>
+				getSubject: (id) =>
 					createMockResponse({
-						id,
 						externalId: 'user_123',
+						id,
 					}),
 			});
 
@@ -122,7 +122,7 @@ describe('Testing Utilities', () => {
 
 		it('should support namespaced methods', async () => {
 			const mockClient = createMockClient({
-				checkConsent: async () =>
+				checkConsent: () =>
 					createMockResponse({
 						results: { analytics: { hasConsent: true } },
 					}),
@@ -138,12 +138,12 @@ describe('Testing Utilities', () => {
 
 		it('should support subjects namespace', async () => {
 			const mockClient = createMockClient({
-				createSubject: async (input) =>
+				createSubject: (_input) =>
 					createMockResponse({
-						subjectId: 'sub_123',
 						consentId: 'con_456',
+						subjectId: 'sub_123',
 					}),
-				listSubjects: async () =>
+				listSubjects: () =>
 					createMockResponse({
 						items: [],
 						total: 0,
@@ -151,9 +151,9 @@ describe('Testing Utilities', () => {
 			});
 
 			const createResult = await mockClient.subjects.create({
-				type: 'cookie_banner',
-				subjectId: 'sub_123',
 				domain: 'example.com',
+				subjectId: 'sub_123',
+				type: 'cookie_banner',
 			});
 
 			expect(createResult.ok).toBe(true);
@@ -166,14 +166,15 @@ describe('Testing Utilities', () => {
 
 		it('should support meta namespace', async () => {
 			const mockClient = createMockClient({
-				status: async () =>
-					createMockResponse({
-						version: '1.0.0',
-						healthy: true,
-					}),
-				init: async () =>
+				init: () =>
 					createMockResponse({
 						clientId: 'client_123',
+					}),
+				status: () =>
+					createMockResponse({
+						healthy: true,
+
+						version: '1.0.0',
 					}),
 			});
 
@@ -186,11 +187,11 @@ describe('Testing Utilities', () => {
 
 		it('should work with error responses', async () => {
 			const mockClient = createMockClient({
-				getSubject: async () =>
+				getSubject: () =>
 					createMockErrorResponse({
+						code: 'NOT_FOUND',
 						message: 'Subject not found',
 						status: 404,
-						code: 'NOT_FOUND',
 					}),
 			});
 
@@ -205,7 +206,7 @@ describe('Testing Utilities', () => {
 		it('demonstrates typical test usage', async () => {
 			// Setup mock client
 			const mockClient = createMockClient({
-				checkConsent: async () =>
+				checkConsent: () =>
 					createMockResponse({
 						results: {
 							analytics: { hasConsent: true, isLatestPolicy: true },

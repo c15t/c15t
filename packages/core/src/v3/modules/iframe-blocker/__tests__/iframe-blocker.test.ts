@@ -29,46 +29,52 @@ interface StubBody {
 	observers: ((mutations: unknown[]) => void)[];
 }
 
-function createStubIframe(
+const createStubIframe = function createStubIframe(
 	category?: string,
 	src?: string,
 	dataSrc?: string
 ): StubIframe {
 	const attrs = new Map<string, string>();
-	if (category) attrs.set('data-category', category);
-	if (src) attrs.set('src', src);
-	if (dataSrc) attrs.set('data-src', dataSrc);
+	if (category) {
+		attrs.set('data-category', category);
+	}
+	if (src) {
+		attrs.set('src', src);
+	}
+	if (dataSrc) {
+		attrs.set('data-src', dataSrc);
+	}
 	return {
-		tagName: 'IFRAME',
-		nodeType: 1,
 		attributes: attrs,
 		getAttribute(key) {
 			return attrs.get(key) ?? null;
 		},
-		setAttribute(key, value) {
-			attrs.set(key, value);
+		nodeType: 1,
+		querySelectorAll() {
+			return [];
 		},
 		removeAttribute(key) {
 			attrs.delete(key);
 		},
-		querySelectorAll() {
-			return [];
+		setAttribute(key, value) {
+			attrs.set(key, value);
 		},
+		tagName: 'IFRAME',
 	};
-}
+};
 
 let body: StubBody;
 let observerCallbacks: ((mutations: unknown[]) => void)[] = [];
 
-function dispatchAdded(node: StubIframe): void {
+const dispatchAdded = function dispatchAdded(node: StubIframe): void {
 	const mutation = {
-		type: 'childList',
 		addedNodes: [node],
+		type: 'childList',
 	};
 	for (const observerHandler of observerCallbacks) {
 		observerHandler([mutation]);
 	}
-}
+};
 
 beforeEach(() => {
 	observerCallbacks = [];
@@ -89,12 +95,14 @@ beforeEach(() => {
 				this.handler = handler;
 				observerCallbacks.push(handler);
 			}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			observe() {}
 			disconnect() {
 				observerCallbacks = observerCallbacks.filter(
 					(handler) => handler !== this.handler
 				);
 			}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords() {
 				return [];
 			}
@@ -213,7 +221,7 @@ describe('iframe-blocker: validation', () => {
 
 		const kernel = createConsentKernel();
 		expect(() => createIframeBlocker({ kernel })).toThrow(
-			/invalid data-category/
+			/invalid data-category/u
 		);
 	});
 });
@@ -252,7 +260,7 @@ describe('iframe-blocker: disableAutomaticBlocking', () => {
 		body.children.push(iframe);
 
 		const kernel = createConsentKernel();
-		createIframeBlocker({ kernel, disableAutomaticBlocking: true });
+		createIframeBlocker({ disableAutomaticBlocking: true, kernel });
 
 		// Initial scan didn't run → src is untouched.
 		expect(iframe.getAttribute('src')).toBe('https://example.com/');
@@ -264,8 +272,8 @@ describe('iframe-blocker: disableAutomaticBlocking', () => {
 
 		const kernel = createConsentKernel();
 		const blocker = createIframeBlocker({
-			kernel,
 			disableAutomaticBlocking: true,
+			kernel,
 		});
 
 		blocker.processAllIframes();

@@ -18,7 +18,9 @@ const warmers = new Set<Warmer>();
 let warmed = false;
 
 /** Register a lazy chunk's import trigger. Returns an unregister fn. */
-export function registerDialogChunkWarmer(warmer: Warmer): () => void {
+export const registerDialogChunkWarmer = function registerDialogChunkWarmer(
+	warmer: Warmer
+): () => void {
 	warmers.add(warmer);
 	if (warmed) {
 		warmer();
@@ -26,10 +28,10 @@ export function registerDialogChunkWarmer(warmer: Warmer): () => void {
 	return () => {
 		warmers.delete(warmer);
 	};
-}
+};
 
 /** Fire all registered warmers once (idempotent). */
-export function warmDialogChunk(): void {
+export const warmDialogChunk = function warmDialogChunk(): void {
 	if (warmed) {
 		return;
 	}
@@ -37,10 +39,11 @@ export function warmDialogChunk(): void {
 	for (const warmer of warmers) {
 		warmer();
 	}
-}
+};
 
 /** Test-only reset. */
-export function resetDialogChunkWarmers(): void {
-	warmers.clear();
-	warmed = false;
-}
+export const resetDialogChunkWarmers =
+	function resetDialogChunkWarmers(): void {
+		warmers.clear();
+		warmed = false;
+	};

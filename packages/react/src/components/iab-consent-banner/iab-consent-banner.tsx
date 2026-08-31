@@ -116,8 +116,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -153,12 +153,12 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	) =>
 		resolveConsentButtonStyle({
 			consentAction: action,
+			fallback: {
+				mode: fallbackMode,
+				variant: isPrimary(action) ? 'primary' : 'neutral',
+			},
 			isPrimary: isPrimary(action),
 			theme,
-			fallback: {
-				variant: isPrimary(action) ? 'primary' : 'neutral',
-				mode: fallbackMode,
-			},
 		});
 
 	// Don't render if IAB is disabled (e.g., server returned null GVL) or calculations not complete

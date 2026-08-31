@@ -12,9 +12,9 @@ defineProps<{
 
 const activeUI = useConsentActiveUI();
 
-function openPreferences() {
+const openPreferences = function openPreferences() {
 	activeUI.value = 'manager';
-}
+};
 </script>
 
 <template>

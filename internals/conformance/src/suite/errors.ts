@@ -11,7 +11,10 @@ import type { TestDriver } from '../driver';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-export function runErrorConformance(driver: TestDriver, api: SuiteApi): void {
+export const runErrorConformance = function runErrorConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] errors`, () => {
 		conformanceTest(
 			api,
@@ -30,7 +33,9 @@ export function runErrorConformance(driver: TestDriver, api: SuiteApi): void {
 					});
 					await mounted.unmount();
 				} catch (err) {
-					if (err instanceof DriverNotImplementedError) throw err;
+					if (err instanceof DriverNotImplementedError) {
+						throw err;
+					}
 					threw = true;
 				}
 				api.expect(threw).toBe(false);
@@ -49,11 +54,13 @@ export function runErrorConformance(driver: TestDriver, api: SuiteApi): void {
 					});
 					await mounted.unmount();
 				} catch (err) {
-					if (err instanceof DriverNotImplementedError) throw err;
+					if (err instanceof DriverNotImplementedError) {
+						throw err;
+					}
 					threw = true;
 				}
 				api.expect(threw).toBe(false);
 			}
 		);
 	});
-}
+};

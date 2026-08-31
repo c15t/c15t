@@ -9,7 +9,9 @@ const manifestCache = new WeakMap<
 	Map<string, ResolvedManifest>
 >();
 
-function serializeConfigValue(value: unknown): string {
+const serializeConfigValue = function serializeConfigValue(
+	value: unknown
+): string {
 	if (value === undefined) {
 		return 'undefined';
 	}
@@ -36,13 +38,15 @@ function serializeConfigValue(value: unknown): string {
 	}
 
 	return `${typeof value}:${String(value)}`;
-}
+};
 
-function getManifestCacheKey(config: Record<string, unknown>): string {
+const getManifestCacheKey = function getManifestCacheKey(
+	config: Record<string, unknown>
+): string {
 	return serializeConfigValue(config);
-}
+};
 
-function getCompiledManifest(
+const getCompiledManifest = function getCompiledManifest(
 	manifest: VendorManifest,
 	config: Record<string, unknown>
 ): ResolvedManifest {
@@ -63,7 +67,7 @@ function getCompiledManifest(
 	configCache.set(cacheKey, compiled);
 
 	return compiled;
-}
+};
 
 /**
  * Compiles a `VendorManifest` + config into a `Script` object.
@@ -71,9 +75,9 @@ function getCompiledManifest(
  * This compatibility wrapper preserves the existing public resolver API while
  * delegating to the new compile and runtime conversion phases internally.
  */
-export function resolveManifest(
+export const resolveManifest = function resolveManifest(
 	manifest: VendorManifest,
 	config: Record<string, unknown> = {}
 ): Script {
 	return resolvedManifestToScript(getCompiledManifest(manifest, config));
-}
+};

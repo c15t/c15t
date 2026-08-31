@@ -51,11 +51,12 @@ describe('Hosted Client Retry Logic Tests', () => {
 			);
 
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 2, // With maxRetries=2, attemptsMade runs 0, 1, 2 (3 total attempts)
 				initialDelayMs: 10,
+				// With maxRetries=2, attemptsMade runs 0, 1, 2 (3 total attempts)
+				maxRetries: 2,
 				retryableStatusCodes: [503],
 			},
 		};
@@ -88,12 +89,12 @@ describe('Hosted Client Retry Logic Tests', () => {
 
 		const backoffFactor = 2;
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 3,
+				backoffFactor,
 				initialDelayMs: 100,
-				backoffFactor: backoffFactor,
+				maxRetries: 3,
 				retryableStatusCodes: [503],
 			},
 		};
@@ -108,7 +109,7 @@ describe('Hosted Client Retry Logic Tests', () => {
 
 		// Verify that each subsequent delay is at least as large as the previous delay * backoffFactor
 		// This confirms exponential backoff is working
-		for (let i = 1; i < timestamps.length; i++) {
+		for (let i = 1; i < timestamps.length; i += 1) {
 			expect(timestamps[i]).toBeGreaterThanOrEqual(
 				timestamps[i - 1] * backoffFactor
 			);
@@ -122,12 +123,13 @@ describe('Hosted Client Retry Logic Tests', () => {
 		);
 
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 3,
 				initialDelayMs: 10,
-				retryableStatusCodes: [503, 502], // 400 not included
+				maxRetries: 3,
+				// 400 not included
+				retryableStatusCodes: [503, 502],
 			},
 		};
 
@@ -136,7 +138,8 @@ describe('Hosted Client Retry Logic Tests', () => {
 
 		// Should only call fetch once, no retries, then fallback to offline mode
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(response.ok).toBe(true); // Offline fallback returns success
+		// Offline fallback returns success
+		expect(response.ok).toBe(true);
 	});
 
 	it('should retry on network errors', async () => {
@@ -150,11 +153,11 @@ describe('Hosted Client Retry Logic Tests', () => {
 			);
 
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 2,
 				initialDelayMs: 10,
+				maxRetries: 2,
 				retryOnNetworkError: true,
 				retryableStatusCodes: [503],
 			},
@@ -182,14 +185,15 @@ describe('Hosted Client Retry Logic Tests', () => {
 		fetchMock
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Too Many Requests' }), {
-					status: 429, // This is the status we want our custom function to retry
 					headers: { 'Content-Type': 'application/json' },
+					// This is the status we want our custom function to retry,
+					status: 429,
 				})
 			)
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ showConsentBanner: true }), {
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				})
 			);
 
@@ -198,9 +202,10 @@ describe('Hosted Client Retry Logic Tests', () => {
 			backendURL: '/api/c15t',
 			// Setting our custom retry config
 			retryConfig: {
-				maxRetries: 2,
 				initialDelayMs: 10,
-				retryableStatusCodes: [], // Intentionally empty to rely only on custom function
+				maxRetries: 2,
+				// Intentionally empty to rely only on custom function
+				retryableStatusCodes: [],
 				shouldRetry: shouldRetryFn,
 			},
 		});
@@ -210,13 +215,14 @@ describe('Hosted Client Retry Logic Tests', () => {
 		client.retryConfig.shouldRetry = shouldRetryFn;
 
 		// Mock setTimeout to execute callbacks immediately for faster tests
-		const originalSetTimeout = global.setTimeout;
+		const originalSetTimeoutLocal = global.setTimeout;
 		// Using proper type for setTimeout mock
 		global.setTimeout = vi.fn().mockImplementation((timerHandler) => {
 			if (typeof timerHandler === 'function') {
 				timerHandler();
 			}
-			return 1; // Return a valid timeout ID
+			// Return a valid timeout ID
+			return 1;
 		}) as unknown as typeof setTimeout;
 
 		try {
@@ -234,7 +240,7 @@ describe('Hosted Client Retry Logic Tests', () => {
 			expect(response.data).toEqual({ showConsentBanner: true });
 		} finally {
 			// Restore the original setTimeout function
-			global.setTimeout = originalSetTimeout;
+			global.setTimeout = originalSetTimeoutLocal;
 		}
 	});
 
@@ -249,12 +255,13 @@ describe('Hosted Client Retry Logic Tests', () => {
 			);
 
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 1,
 				initialDelayMs: 10,
-				retryableStatusCodes: [503], // 503 specifically included
+				maxRetries: 1,
+				// 503 specifically included
+				retryableStatusCodes: [503],
 			},
 		};
 
@@ -270,24 +277,25 @@ describe('Hosted Client Retry Logic Tests', () => {
 		// Mock a 404 error response
 		fetchMock.mockResolvedValueOnce(
 			new Response(
-				JSON.stringify({ message: 'Resource not found', code: 'NOT_FOUND' }),
+				JSON.stringify({ code: 'NOT_FOUND', message: 'Resource not found' }),
 				{
+					headers: { 'Content-Type': 'application/json' },
 					status: 404,
 					statusText: 'Not Found',
-					headers: { 'Content-Type': 'application/json' },
 				}
 			)
 		);
 
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
 			// retryConfig: {
 			// 	maxRetries: 3, // Set high enough to potentially retry multiple times
 			// 	initialDelayMs: 10, // Small delay for test
 			// 	retryableStatusCodes: [500, 502, 503, 504], // Default server errors
 			// },
+
+			mode: 'hosted',
 		};
 
 		// Track if setTimeout was called (which would indicate a retry attempt)
@@ -299,9 +307,12 @@ describe('Hosted Client Retry Logic Tests', () => {
 		const response = await client.init();
 
 		// Assertions
-		expect(fetchMock).toHaveBeenCalledTimes(1); // Should only be called once
-		expect(setTimeoutSpy).not.toHaveBeenCalled(); // No retry delay should be scheduled
-		expect(response.ok).toBe(true); // Offline fallback returns success
+		// Should only be called once
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		// No retry delay should be scheduled
+		expect(setTimeoutSpy).not.toHaveBeenCalled();
+		// Offline fallback returns success
+		expect(response.ok).toBe(true);
 		expect(response.data).toBeDefined();
 	});
 
@@ -328,11 +339,11 @@ describe('Hosted Client Retry Logic Tests', () => {
 
 		// Configure client with retry config
 		const config: ConsentManagerOptions = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 2,
 				initialDelayMs: 10,
+				maxRetries: 2,
 				retryableStatusCodes: [503],
 			},
 		};
@@ -343,7 +354,8 @@ describe('Hosted Client Retry Logic Tests', () => {
 
 		// Should have only made one request, then fallback to offline mode
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(firstResponse.ok).toBe(true); // Offline fallback returns success
+		// Offline fallback returns success
+		expect(firstResponse.ok).toBe(true);
 		expect(firstResponse.data).toBeDefined();
 
 		// Reset mock for next test
@@ -359,8 +371,8 @@ describe('Hosted Client Retry Logic Tests', () => {
 			)
 			.mockResolvedValueOnce(
 				new Response(JSON.stringify({ showConsentBanner: true }), {
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				})
 			);
 

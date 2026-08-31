@@ -25,30 +25,30 @@ export const STANDALONE_PURPOSE_ID = 1;
  */
 export const DEFAULT_STACKS: Record<number, GVLStack> = {
 	1: {
+		description: 'Advertising selection, delivery, and reporting',
 		id: 1,
 		name: 'Advertising',
-		description: 'Advertising selection, delivery, and reporting',
 		purposes: [2, 3, 4],
 		specialFeatures: [],
 	},
 	2: {
+		description: 'Content selection and personalization',
 		id: 2,
 		name: 'Content Personalization',
-		description: 'Content selection and personalization',
 		purposes: [5, 6, 11],
 		specialFeatures: [],
 	},
 	3: {
+		description: 'Performance measurement and analytics',
 		id: 3,
 		name: 'Measurement',
-		description: 'Performance measurement and analytics',
 		purposes: [7, 8, 9],
 		specialFeatures: [],
 	},
 	4: {
+		description: 'Product and service development',
 		id: 4,
 		name: 'Product Development',
-		description: 'Product and service development',
 		purposes: [10],
 		specialFeatures: [],
 	},
@@ -111,7 +111,9 @@ export interface GroupedPurposes<T extends { id: number }> {
  *
  * @public
  */
-export function groupPurposesIntoStacks<T extends { id: number }>(
+export const groupPurposesIntoStacks = function groupPurposesIntoStacks<
+	T extends { id: number },
+>(
 	purposes: T[] | Record<number, T>,
 	stacksFromGVL?: Record<number, GVLStack>
 ): GroupedPurposes<T> {
@@ -181,7 +183,7 @@ export function groupPurposesIntoStacks<T extends { id: number }>(
 		standalonePurposes,
 		ungroupedPurposes,
 	};
-}
+};
 
 /**
  * Gets the stack that contains a specific purpose.
@@ -192,7 +194,7 @@ export function groupPurposesIntoStacks<T extends { id: number }>(
  *
  * @public
  */
-export function getStackForPurpose(
+export const getStackForPurpose = function getStackForPurpose(
 	purposeId: number,
 	stacksFromGVL?: Record<number, GVLStack>
 ): GVLStack | null {
@@ -210,7 +212,7 @@ export function getStackForPurpose(
 	}
 
 	return null;
-}
+};
 
 /**
  * Checks if a purpose should be shown standalone.
@@ -220,9 +222,11 @@ export function getStackForPurpose(
  *
  * @public
  */
-export function isStandalonePurpose(purposeId: number): boolean {
+export const isStandalonePurpose = function isStandalonePurpose(
+	purposeId: number
+): boolean {
 	return purposeId === STANDALONE_PURPOSE_ID;
-}
+};
 
 /**
  * Gets all purposes in a stack.
@@ -234,7 +238,9 @@ export function isStandalonePurpose(purposeId: number): boolean {
  *
  * @public
  */
-export function getPurposesInStack<T extends { id: number }>(
+export const getPurposesInStack = function getPurposesInStack<
+	T extends { id: number },
+>(
 	stackId: number,
 	purposes: T[] | Record<number, T>,
 	stacksFromGVL?: Record<number, GVLStack>
@@ -262,7 +268,7 @@ export function getPurposesInStack<T extends { id: number }>(
 		.filter((id) => id !== STANDALONE_PURPOSE_ID)
 		.map((id) => purposeMap.get(id))
 		.filter((p): p is T => p !== undefined);
-}
+};
 
 /**
  * Creates a flat list of purposes ordered by stack.
@@ -275,7 +281,9 @@ export function getPurposesInStack<T extends { id: number }>(
  *
  * @public
  */
-export function flattenPurposesByStack<T extends { id: number }>(
+export const flattenPurposesByStack = function flattenPurposesByStack<
+	T extends { id: number },
+>(
 	purposes: T[] | Record<number, T>,
 	stacksFromGVL?: Record<number, GVLStack>
 ): T[] {
@@ -296,7 +304,7 @@ export function flattenPurposesByStack<T extends { id: number }>(
 	result.push(...ungroupedPurposes);
 
 	return result;
-}
+};
 
 /**
  * Converts GVL purposes record to array sorted by ID.
@@ -306,8 +314,8 @@ export function flattenPurposesByStack<T extends { id: number }>(
  *
  * @public
  */
-export function purposesToArray(
+export const purposesToArray = function purposesToArray(
 	purposes: Record<number, GVLPurpose>
 ): GVLPurpose[] {
 	return Object.values(purposes).sort((a, b) => a.id - b.id);
-}
+};

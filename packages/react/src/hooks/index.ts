@@ -1,3 +1,4 @@
+// oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from './use-component-config';
 export * from './use-consent-dialog-trigger';
 export * from './use-consent-manager';

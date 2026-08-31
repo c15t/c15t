@@ -6,10 +6,34 @@ import type { CliContext } from './types';
 /**
  * Creates error handling utilities for the CLI context
  */
-export function createErrorHandlers(context: CliContext) {
+export const createErrorHandlers = function createErrorHandlers(
+	context: CliContext
+) {
 	const { logger, telemetry } = context;
 
 	return {
+		/**
+		 * Handles user cancellation in a consistent way
+		 * @param message Optional message to display when cancelling
+		 * @param context Optional context about where the cancellation occurred
+		 */
+		handleCancel: (
+			message = 'Operation cancelled.',
+			contextLocal?: { command?: string; stage?: string }
+		): never => {
+			logger.debug(`Handling cancellation: ${message}`, contextLocal);
+
+			// Track cancellation with context
+			telemetry.trackEvent(TelemetryEventName.ONBOARDING_EXITED, {
+				command: contextLocal?.command || 'unknown',
+				reason: 'user_cancelled',
+				stage: contextLocal?.stage || 'unknown',
+			});
+
+			logger.failed(message);
+			process.exit(0);
+		},
+
 		/**
 		 * Handles errors in a consistent way across the CLI
 		 * @param error The error that occurred
@@ -30,27 +54,5 @@ export function createErrorHandlers(context: CliContext) {
 			logger.failed(`${color.red('Operation failed unexpectedly.')}`);
 			process.exit(1);
 		},
-
-		/**
-		 * Handles user cancellation in a consistent way
-		 * @param message Optional message to display when cancelling
-		 * @param context Optional context about where the cancellation occurred
-		 */
-		handleCancel: (
-			message = 'Operation cancelled.',
-			context?: { command?: string; stage?: string }
-		): never => {
-			logger.debug(`Handling cancellation: ${message}`, context);
-
-			// Track cancellation with context
-			telemetry.trackEvent(TelemetryEventName.ONBOARDING_EXITED, {
-				reason: 'user_cancelled',
-				command: context?.command || 'unknown',
-				stage: context?.stage || 'unknown',
-			});
-
-			logger.failed(message);
-			process.exit(0);
-		},
 	};
-}
+};

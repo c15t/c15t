@@ -3,140 +3,140 @@ import type { CompleteTranslations } from '../types';
 export const translations: CompleteTranslations = {
 	common: {
 		acceptAll: 'Samþykkja allt',
-		rejectAll: 'Hafna öllu',
-		customize: 'Sérsníða',
-		save: 'Vista stillingar',
 		close: 'Loka',
+		customize: 'Sérsníða',
+		rejectAll: 'Hafna öllu',
+		save: 'Vista stillingar',
 		securedBy: 'Varið af',
 	},
-	cookieBanner: {
-		title: 'Við metum friðhelgi þína',
-		description:
-			'Þessi vefur notar vafrakökur til að bæta vafraupplifun þína, greina umferð á vefnum og sýna persónumiðað efni.',
-	},
 	consentManagerDialog: {
-		title: 'Persónuverndastillingar',
 		description:
 			'Sérsníðaðu persónuverndastillingar þínar hér. Þú getur valið hvaða tegundir af vafrakökum og rakningartækni þú leyfir.',
+		title: 'Persónuverndastillingar',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Nauðsynlegar',
-			description:
-				'Þessar vafrakökur eru nauðsynlegar til að vefsíðan virki rétt og ekki er hægt að slökkva á þeim.',
-		},
-		functionality: {
-			title: 'Virkni',
-			description:
-				'Þessar vafrakökur gera mögulegt að auka virkni og persónumiða vefsíðuna.',
-		},
-		marketing: {
-			title: 'Markaðssetning',
-			description:
-				'Þessar vafrakökur eru notaðar til að birta viðeigandi auglýsingar og fylgjast með árangri þeirra.',
-		},
-		measurement: {
-			title: 'Greining',
-			description:
-				'Þessar vafrakökur hjálpa okkur að skilja hvernig gestir nota vefsíðuna og bæta frammistöðu hennar.',
-		},
 		experience: {
-			title: 'Upplifun',
 			description:
 				'Þessar vafrakökur hjálpa okkur að veita betri notendaupplifun og prófa nýja eiginleika.',
+			title: 'Upplifun',
+		},
+		functionality: {
+			description:
+				'Þessar vafrakökur gera mögulegt að auka virkni og persónumiða vefsíðuna.',
+			title: 'Virkni',
+		},
+		marketing: {
+			description:
+				'Þessar vafrakökur eru notaðar til að birta viðeigandi auglýsingar og fylgjast með árangri þeirra.',
+			title: 'Markaðssetning',
+		},
+		measurement: {
+			description:
+				'Þessar vafrakökur hjálpa okkur að skilja hvernig gestir nota vefsíðuna og bæta frammistöðu hennar.',
+			title: 'Greining',
+		},
+		necessary: {
+			description:
+				'Þessar vafrakökur eru nauðsynlegar til að vefsíðan virki rétt og ekki er hægt að slökkva á þeim.',
+			title: 'Nauðsynlegar',
 		},
 	},
+	cookieBanner: {
+		description:
+			'Þessi vefur notar vafrakökur til að bæta vafraupplifun þína, greina umferð á vefnum og sýna persónumiðað efni.',
+		title: 'Við metum friðhelgi þína',
+	},
 	frame: {
-		title: 'Samþykktu {category} samþykki til að skoða þetta efni.',
 		actionButton: 'Virkja {category} samþykki',
+		error: 'This content could not be loaded.',
+		loading: 'Loading content…',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
-		loading: 'Loading content…',
-		error: 'This content could not be loaded.',
-	},
-	legalLinks: {
-		privacyPolicy: 'Persónuverndarstefna',
-		cookiePolicy: 'Stefna um vafrakökur',
-		termsOfService: 'Þjónustuskilmálar',
+		title: 'Samþykktu {category} samþykki til að skoða þetta efni.',
 	},
 	iab: {
 		banner: {
-			title: 'Persónuverndastillingar',
+			andMore: 'Og {count} til viðbótar...',
 			description:
 				'Við og {partnerCount} samstarfsaðilar okkar geymum og/eða höfum aðgang að upplýsingum á tækinu þínu og vinnum persónuupplýsingar, svo sem einstök auðkenni og vafraupplýsingar, fyrir þessa vefsíðu, til að:',
-			partnersLink: '{count} samstarfsaðilar',
-			andMore: 'Og {count} til viðbótar...',
 			legitimateInterestNotice:
 				'Sumir samstarfsaðilar krefjast lögmætra hagsmuna til að vinna gögnin þín. Þú átt rétt á að andmæla þessari vinnslu, sérsníða val þitt og draga samþykki þitt til baka hvenær sem er.',
+			partnersLink: '{count} samstarfsaðilar',
+			scopeGroup: 'Val þitt gildir á öllum vefsíðum okkar í þessum hóp.',
 			scopeServiceSpecific:
 				'Samþykki þitt gildir aðeins fyrir þessa vefsíðu og hefur ekki áhrif á aðrar þjónustur.',
-			scopeGroup: 'Val þitt gildir á öllum vefsíðum okkar í þessum hóp.',
+			title: 'Persónuverndastillingar',
+		},
+		common: {
+			acceptAll: 'Samþykkja allt',
+			clearSelection: 'Hreinsa',
+			customPartner: 'Sérsniðinn samstarfsaðili ekki skráður hjá IAB',
+			customize: 'Sérsníða',
+			loading: 'Hleður...',
+			rejectAll: 'Hafna öllu',
+			saveSettings: 'Vista stillingar',
+			showingSelectedVendor: 'Sýnir valdan söluaðila',
 		},
 		preferenceCenter: {
-			title: 'Persónuverndastillingar',
 			description:
 				'Sérsníðaðu persónuverndastillingar þínar hér. Þú getur valið hvaða tegundir af vafrakökum og rakningartækni þú leyfir.',
-			tabs: {
-				purposes: 'Tilgangur',
-				vendors: 'Söluaðilar',
+			footer: {
+				consentStorage:
+					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði. Geymslutíminn kann að endurnýjast þegar þú uppfærir stillingar þínar.',
 			},
 			purposeItem: {
-				partners: '{count} samstarfsaðilar',
-				vendorsUseLegitimateInterest:
-					'{count} söluaðilar krefjast lögmætra hagsmuna',
 				examples: 'Dæmi',
-				partnersUsingPurpose: 'Samstarfsaðilar sem nota þennan tilgang',
-				withYourPermission: 'Með þínu leyfi',
 				legitimateInterest: 'Lögmætir hagsmunir',
 				objectButton: 'Andmæla',
 				objected: 'Andmælt',
+				partners: '{count} samstarfsaðilar',
+				partnersUsingPurpose: 'Samstarfsaðilar sem nota þennan tilgang',
 				rightToObject:
 					'Þú átt rétt á að andmæla vinnslu sem byggir á lögmætum hagsmunum.',
+				vendorsUseLegitimateInterest:
+					'{count} söluaðilar krefjast lögmætra hagsmuna',
+				withYourPermission: 'Með þínu leyfi',
 			},
 			specialPurposes: {
 				title: 'Nauðsynleg virkni (krafist)',
 				tooltip:
 					'Þetta er nauðsynlegt fyrir virkni og öryggi vefsins. Samkvæmt IAB TCF geturðu ekki andmælt þessum sérstöku markmiðum.',
 			},
+			tabs: {
+				purposes: 'Tilgangur',
+				vendors: 'Söluaðilar',
+			},
+			title: 'Persónuverndastillingar',
 			vendorList: {
-				search: 'Leita að söluaðilum...',
-				showingCount: '{filtered} af {total} söluaðilum',
-				iabVendorsHeading: 'IAB skráðir söluaðilar',
-				iabVendorsNotice:
-					'Þessir samstarfsaðilar eru skráðir hjá IAB Transparency & Consent Framework (TCF), iðnaðarstaðli til að stjórna samþykki',
 				customVendorsHeading: 'Sérsniðnir samstarfsaðilar',
 				customVendorsNotice:
 					'Þetta eru sérsniðnir samstarfsaðilar sem eru ekki skráðir hjá IAB Transparency & Consent Framework (TCF). Þeir vinna gögn byggt á samþykki þínu og gætu haft aðrar persónuverndarreglur en IAB-skráðir söluaðilar.',
-				purposes: 'Tilgangur',
-				specialPurposes: 'Sérstakur tilgangur',
-				specialFeatures: 'Sérstakir eiginleikar',
-				features: 'Eiginleikar',
 				dataCategories: 'Gagnaflokkar',
-				usesCookies: 'Notar vafrakökur',
-				nonCookieAccess: 'Aðgangur án vafrakaka',
-				maxAge: 'Hámarksaldur: {days}d',
-				retention: 'Varðveisla: {days}d',
+				features: 'Eiginleikar',
+				iabVendorsHeading: 'IAB skráðir söluaðilar',
+				iabVendorsNotice:
+					'Þessir samstarfsaðilar eru skráðir hjá IAB Transparency & Consent Framework (TCF), iðnaðarstaðli til að stjórna samþykki',
 				legitimateInterest: 'Lögm. hagsmunir',
+				maxAge: 'Hámarksaldur: {days}d',
+				nonCookieAccess: 'Aðgangur án vafrakaka',
 				privacyPolicy: 'Persónuverndarstefna',
-				storageDisclosure: 'Upplýsingar um geymslu',
+				purposes: 'Tilgangur',
 				requiredNotice:
 					'Nauðsynlegt fyrir virkni vefsins, ekki hægt að slökkva á',
-			},
-			footer: {
-				consentStorage:
-					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði. Geymslutíminn kann að endurnýjast þegar þú uppfærir stillingar þínar.',
+				retention: 'Varðveisla: {days}d',
+				search: 'Leita að söluaðilum...',
+				showingCount: '{filtered} af {total} söluaðilum',
+				specialFeatures: 'Sérstakir eiginleikar',
+				specialPurposes: 'Sérstakur tilgangur',
+				storageDisclosure: 'Upplýsingar um geymslu',
+				usesCookies: 'Notar vafrakökur',
 			},
 		},
-		common: {
-			acceptAll: 'Samþykkja allt',
-			rejectAll: 'Hafna öllu',
-			customize: 'Sérsníða',
-			saveSettings: 'Vista stillingar',
-			loading: 'Hleður...',
-			showingSelectedVendor: 'Sýnir valdan söluaðila',
-			clearSelection: 'Hreinsa',
-			customPartner: 'Sérsniðinn samstarfsaðili ekki skráður hjá IAB',
-		},
+	},
+	legalLinks: {
+		cookiePolicy: 'Stefna um vafrakökur',
+		privacyPolicy: 'Persónuverndarstefna',
+		termsOfService: 'Þjónustuskilmálar',
 	},
 };
 export default translations;

@@ -18,7 +18,7 @@ import { composePacks, policyBuilder } from './builder';
 describe('createPackWithDefault', () => {
 	it('appends a world fallback when the pack has none', () => {
 		const pack = policyBuilder.createPackWithDefault([
-			{ id: 'eu', countries: ['DE'], model: 'opt-in' },
+			{ countries: ['DE'], id: 'eu', model: 'opt-in' },
 		]);
 
 		// Without this a visitor from anywhere but Germany resolves nothing.
@@ -30,7 +30,7 @@ describe('createPackWithDefault', () => {
 
 	it('leaves a pack that already has a default alone', () => {
 		const pack = policyBuilder.createPackWithDefault([
-			{ id: 'eu', countries: ['DE'] },
+			{ countries: ['DE'], id: 'eu' },
 			{ id: 'catch_all', isDefault: true, model: 'none' },
 		]);
 
@@ -44,8 +44,8 @@ describe('createPackWithDefault', () => {
 
 	it('uses a supplied fallback, stripped of any geography', () => {
 		const pack = policyBuilder.createPackWithDefault(
-			[{ id: 'eu', countries: ['DE'] }],
-			{ id: 'house_rules', countries: ['US'], regions: [], model: 'opt-out' }
+			[{ countries: ['DE'], id: 'eu' }],
+			{ countries: ['US'], id: 'house_rules', model: 'opt-out', regions: [] }
 		);
 
 		const fallback = pack.at(-1);
@@ -62,11 +62,11 @@ describe('createPack', () => {
 	it('normalises UI surface config', () => {
 		const [policy] = policyBuilder.createPack([
 			{
-				id: 'eu',
-				countries: ['DE'],
 				banner: {
 					allowedActions: ['accept', 'accept', ' reject ', ''],
 				},
+				countries: ['DE'],
+				id: 'eu',
 			},
 		]);
 
@@ -80,7 +80,7 @@ describe('createPack', () => {
 
 	it('omits a surface that was not configured', () => {
 		const [policy] = policyBuilder.createPack([
-			{ id: 'eu', countries: ['DE'] },
+			{ countries: ['DE'], id: 'eu' },
 		]);
 
 		// Absent rather than an empty object: the manifest is fingerprinted, and
@@ -93,8 +93,8 @@ describe('createPack', () => {
 describe('composePacks', () => {
 	it('keeps the first policy to claim an id', () => {
 		const composed = composePacks(
-			policyBuilder.createPack([{ id: 'eu', countries: ['DE'] }]),
-			policyBuilder.createPack([{ id: 'eu', countries: ['FR'] }])
+			policyBuilder.createPack([{ countries: ['DE'], id: 'eu' }]),
+			policyBuilder.createPack([{ countries: ['FR'], id: 'eu' }])
 		);
 
 		assert.strictEqual(composed.length, 1);
@@ -103,8 +103,8 @@ describe('composePacks', () => {
 
 	it('preserves order across packs', () => {
 		const composed = composePacks(
-			policyBuilder.createPack([{ id: 'a', countries: ['DE'] }]),
-			policyBuilder.createPack([{ id: 'b', countries: ['US'] }]),
+			policyBuilder.createPack([{ countries: ['DE'], id: 'a' }]),
+			policyBuilder.createPack([{ countries: ['US'], id: 'b' }]),
 			policyBuilder.createPack([{ id: 'c', isDefault: true }])
 		);
 

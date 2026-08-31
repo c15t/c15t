@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-	title: 'No-TW + c15t CSS Test',
 	description: 'Verifies @layer components works without any CSS framework',
+	title: 'No-TW + c15t CSS Test',
 };
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {

@@ -58,7 +58,7 @@
 		stackChecked = allEnabled;
 	});
 
-	function handleStackToggle(value: boolean) {
+	const handleStackToggle = function handleStackToggle(value: boolean) {
 		for (const purpose of stack.purposes) {
 			onToggle(purpose.id, value);
 			for (const vendor of purpose.vendors) {
@@ -67,7 +67,7 @@
 				}
 			}
 		}
-	}
+	};
 
 	const totalVendors = $derived(
 		new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size

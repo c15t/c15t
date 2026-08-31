@@ -6,15 +6,17 @@ import type { Consent } from '../index';
 
 const NOW = 1_800_000_000_000;
 
-function makeConsent(overrides: Partial<Consent> = {}): Consent {
+const makeConsent = function makeConsent(
+	overrides: Partial<Consent> = {}
+): Consent {
 	return {
-		policies: {},
 		categories: {},
+		policies: {},
 		...overrides,
 	};
-}
+};
 
-function makeInit(
+const makeInit = function makeInit(
 	overrides: {
 		model?: 'opt-in' | 'opt-out' | 'none' | 'iab';
 		uiMode?: 'banner' | 'dialog' | 'none';
@@ -27,24 +29,24 @@ function makeInit(
 ): InitOutput {
 	return {
 		policy: {
-			id: 'policy-1',
-			model: overrides.model ?? 'opt-in',
 			consent: {
 				categories: overrides.categories ?? ['*'],
 				expiryDays: overrides.expiryDays,
 				gpc: overrides.gpc,
 				scopeMode: overrides.scopeMode,
 			},
+			id: 'policy-1',
+			model: overrides.model ?? 'opt-in',
 			ui: {
 				mode: overrides.uiMode ?? 'banner',
 			},
 		},
 		policyDecision: {
-			policyId: 'policy-1',
 			fingerprint: overrides.fingerprint ?? 'fingerprint-1',
+			policyId: 'policy-1',
 		},
 	} as InitOutput;
-}
+};
 
 describe('interpretStoredConsent', () => {
 	it('treats opt-in silence as denied except necessary', () => {
@@ -82,8 +84,8 @@ describe('interpretStoredConsent', () => {
 			interpretStoredConsent(
 				makeConsent(),
 				makeInit({
-					model: 'opt-out',
 					categories: ['necessary'],
+					model: 'opt-out',
 					scopeMode: 'permissive',
 				})
 			)
@@ -100,7 +102,7 @@ describe('interpretStoredConsent', () => {
 		expect(
 			interpretStoredConsent(
 				makeConsent(),
-				makeInit({ model: 'opt-out', gpc: true }),
+				makeInit({ gpc: true, model: 'opt-out' }),
 				true
 			)
 		).toEqual(['necessary', 'functionality', 'experience']);

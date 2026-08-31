@@ -1,7 +1,7 @@
 export type ButtonPrimitiveState = 'enabled' | 'disabled';
 
-export function getButtonPrimitiveState(
+export const getButtonPrimitiveState = function getButtonPrimitiveState(
 	disabled?: boolean
 ): ButtonPrimitiveState {
 	return disabled ? 'disabled' : 'enabled';
-}
+};

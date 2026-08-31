@@ -27,11 +27,11 @@ export const LOCALE_FIXTURES: readonly LocaleFixture[] = [
 		direction: 'ltr',
 		translations: {
 			banner: {
-				title: 'We value your privacy',
-				description: 'We use cookies to enhance your experience.',
 				acceptAll: 'Accept all',
-				rejectAll: 'Reject all',
 				customize: 'Customize',
+				description: 'We use cookies to enhance your experience.',
+				rejectAll: 'Reject all',
+				title: 'We value your privacy',
 			},
 		},
 	},
@@ -40,11 +40,11 @@ export const LOCALE_FIXTURES: readonly LocaleFixture[] = [
 		direction: 'rtl',
 		translations: {
 			banner: {
-				title: 'نحن نقدر خصوصيتك',
-				description: 'نستخدم ملفات تعريف الارتباط لتحسين تجربتك.',
 				acceptAll: 'قبول الكل',
-				rejectAll: 'رفض الكل',
 				customize: 'تخصيص',
+				description: 'نستخدم ملفات تعريف الارتباط لتحسين تجربتك.',
+				rejectAll: 'رفض الكل',
+				title: 'نحن نقدر خصوصيتك',
 			},
 		},
 	},
@@ -53,12 +53,12 @@ export const LOCALE_FIXTURES: readonly LocaleFixture[] = [
 		direction: 'ltr',
 		translations: {
 			banner: {
-				title: 'Datenschutzeinstellungen',
+				acceptAll: 'Alle akzeptieren',
+				customize: 'Einstellungen anpassen',
 				description:
 					'Wir verwenden Cookies und ähnliche Datenverarbeitungstechnologien, um Ihre Benutzererfahrung zu verbessern.',
-				acceptAll: 'Alle akzeptieren',
 				rejectAll: 'Alle ablehnen',
-				customize: 'Einstellungen anpassen',
+				title: 'Datenschutzeinstellungen',
 			},
 		},
 	},

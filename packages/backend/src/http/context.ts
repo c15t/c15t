@@ -187,5 +187,5 @@ export const makeRun =
 			log.error(result.failure);
 		}
 
-		return { ok: false, failure: toHttp(result.failure) };
+		return { failure: toHttp(result.failure), ok: false };
 	};

@@ -69,10 +69,6 @@ const disableAnimation = computed(() =>
 	Boolean(toValue(config).disableAnimation)
 );
 
-const showBanner = computed(
-	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady
-);
-
 const iabT = computed(() => {
 	const translations = toValue(init)?.translations?.translations as
 		| { iab?: Record<string, unknown> }
@@ -207,6 +203,10 @@ const bannerSummary = computed(() => {
 
 	return resolveBannerSummary(gvl.value, customVendors.value);
 });
+
+const showBanner = computed(
+	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady
+);
 
 const descriptionText = computed(() =>
 	(iabT.value?.banner?.description ?? '').replace(

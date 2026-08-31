@@ -23,7 +23,7 @@ const PREFIXES = [
 	{ packageName: '@c15t/vue', prefix: 'vue' },
 ];
 
-function toScopedSpecifier(subpath) {
+const toScopedSpecifier = function toScopedSpecifier(subpath) {
 	const segment = subpath === '.' ? '' : subpath.slice(2);
 	for (const { packageName, prefix } of PREFIXES) {
 		if (segment === prefix) {
@@ -34,9 +34,9 @@ function toScopedSpecifier(subpath) {
 		}
 	}
 	return segment ? `@c15t/core/${segment}` : '@c15t/core';
-}
+};
 
-function listShimModules(directory, prefix = '') {
+const listShimModules = function listShimModules(directory, prefix = '') {
 	const names = [];
 	for (const entry of readdirSync(directory, { withFileTypes: true })) {
 		const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
@@ -47,18 +47,18 @@ function listShimModules(directory, prefix = '') {
 		}
 	}
 	return names.sort();
-}
+};
 
-function toFailure(error) {
+const toFailure = function toFailure(error) {
 	return {
 		code: typeof error?.code === 'string' ? error.code : null,
 		message: String(error?.message ?? error).split('\n')[0],
 		name: error?.name ?? null,
 		ok: false,
 	};
-}
+};
 
-async function probeImport(specifier) {
+const probeImport = async function probeImport(specifier) {
 	try {
 		const namespace = await import(specifier);
 		return {
@@ -69,7 +69,7 @@ async function probeImport(specifier) {
 	} catch (error) {
 		return toFailure(error);
 	}
-}
+};
 
 const rows = [];
 for (const [subpath, value] of Object.entries(manifest.exports)) {
@@ -91,7 +91,9 @@ for (const [subpath, value] of Object.entries(manifest.exports)) {
 		);
 	}
 
-	for (const concrete of concretes) {
+	// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+	await Array.from(concretes).reduce(async (previousIteration, concrete) => {
+		await previousIteration;
 		const umbrella = concrete === '.' ? 'c15t' : `c15t/${concrete.slice(2)}`;
 		const scoped = toScopedSpecifier(concrete);
 		const row = { scoped, subpath: concrete, umbrella };
@@ -102,7 +104,7 @@ for (const [subpath, value] of Object.entries(manifest.exports)) {
 			};
 		}
 		rows.push(row);
-	}
+	}, Promise.resolve());
 }
 
 process.stdout.write(JSON.stringify(rows));

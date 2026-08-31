@@ -6,7 +6,7 @@ import { DOM_CONTRACT } from '../contract/dom-contract';
  * Implicit ARIA role for common elements (narrow — extend as needed).
  * Reference: https://www.w3.org/TR/html-aria/
  */
-function implicitRole(el: Element): string | undefined {
+const implicitRole = function implicitRole(el: Element): string | undefined {
 	const tag = el.tagName.toLowerCase();
 	switch (tag) {
 		case 'button':
@@ -33,17 +33,17 @@ function implicitRole(el: Element): string | undefined {
 		default:
 			return undefined;
 	}
-}
+};
 
-function resolveRole(el: Element): string | undefined {
+const resolveRole = function resolveRole(el: Element): string | undefined {
 	return el.getAttribute('role') ?? implicitRole(el);
-}
+};
 
 /**
  * Assert that every element declared in the DOM contract for `componentKey`
  * is present in `root` with the declared role and attributes.
  */
-export function assertDomContract(
+export const assertDomContract = function assertDomContract(
 	root: ParentNode,
 	componentKey: keyof typeof DOM_CONTRACT
 ): void {
@@ -57,7 +57,9 @@ export function assertDomContract(
 			`[data-testid="${spec.testId}"]`
 		) as HTMLElement | null;
 		expect(node, `missing [data-testid="${spec.testId}"]`).not.toBeNull();
-		if (!node) continue;
+		if (!node) {
+			continue;
+		}
 
 		const role = resolveRole(node);
 		expect(role, `role for [data-testid="${spec.testId}"]`).toBe(spec.role);
@@ -75,14 +77,14 @@ export function assertDomContract(
 			).toBe(value);
 		}
 	}
-}
+};
 
 /**
  * Assert the subset of stable elements are present — used when a component
  * may omit optional elements (e.g., branding when disabled) but must always
  * render the core set.
  */
-export function assertStableElements(
+export const assertStableElements = function assertStableElements(
 	root: ParentNode,
 	componentKey: keyof typeof DOM_CONTRACT
 ): void {
@@ -91,4 +93,4 @@ export function assertStableElements(
 		const node = root.querySelector(`[data-testid="${testId}"]`);
 		expect(node, `missing stable [data-testid="${testId}"]`).not.toBeNull();
 	}
-}
+};

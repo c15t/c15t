@@ -26,17 +26,17 @@ export const SUBJECTS_PATH = '/subjects';
  * @param options - Optional fetch options
  * @returns Created subject response
  */
-export async function createSubject(
+export const createSubject = function createSubject(
 	context: FetcherContext,
 	input: PostSubjectInput,
 	options?: FetchOptions<PostSubjectOutput, PostSubjectInput>
 ): Promise<ResponseContext<PostSubjectOutput>> {
 	return fetcher<PostSubjectOutput, PostSubjectInput>(context, SUBJECTS_PATH, {
-		method: 'POST',
 		body: input,
+		method: 'POST',
 		...options,
 	});
-}
+};
 
 /**
  * Get a subject by ID
@@ -47,7 +47,7 @@ export async function createSubject(
  * @param options - Optional fetch options
  * @returns Subject data response
  */
-export async function getSubject(
+export const getSubject = function getSubject(
 	context: FetcherContext,
 	id: string,
 	query?: GetSubjectQuery,
@@ -62,7 +62,7 @@ export async function getSubject(
 			...options,
 		}
 	);
-}
+};
 
 /**
  * Update a subject (link external ID or update preferences)
@@ -73,7 +73,7 @@ export async function getSubject(
  * @param options - Optional fetch options
  * @returns Updated subject response
  */
-export async function patchSubject(
+export const patchSubject = function patchSubject(
 	context: FetcherContext,
 	id: string,
 	input: Omit<PatchSubjectFullInput, 'id'>,
@@ -83,12 +83,12 @@ export async function patchSubject(
 		context,
 		`${SUBJECTS_PATH}/${id}`,
 		{
-			method: 'PATCH',
 			body: input,
+			method: 'PATCH',
 			...options,
 		}
 	);
-}
+};
 
 /**
  * List subjects with optional filtering
@@ -98,7 +98,7 @@ export async function patchSubject(
  * @param options - Optional fetch options
  * @returns List of subjects
  */
-export async function listSubjects(
+export const listSubjects = function listSubjects(
 	context: FetcherContext,
 	query?: ListSubjectsQuery,
 	options?: FetchOptions<ListSubjectsOutput, never, ListSubjectsQuery>
@@ -112,4 +112,4 @@ export async function listSubjects(
 			...options,
 		}
 	);
-}
+};

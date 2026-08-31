@@ -51,8 +51,8 @@ describe('config-store', () => {
 		test('should load and parse valid config', async () => {
 			const mockConfig = {
 				accessToken: 'test-token',
-				refreshToken: 'refresh-token',
 				expiresAt: Date.now() + 3600000,
+				refreshToken: 'refresh-token',
 			};
 			await fs.mkdir(mockConfigDir, { recursive: true });
 			await fs.writeFile(mockConfigPath, JSON.stringify(mockConfig));
@@ -106,7 +106,8 @@ describe('config-store', () => {
 		test('should return false when token is not expired', () => {
 			const config = {
 				accessToken: 'test',
-				expiresAt: Date.now() + 3600000, // 1 hour from now
+				// 1 hour from now
+				expiresAt: Date.now() + 3600000,
 			};
 			expect(isTokenExpired(config)).toBe(false);
 		});
@@ -114,7 +115,8 @@ describe('config-store', () => {
 		test('should return true when token is expired', () => {
 			const config = {
 				accessToken: 'test',
-				expiresAt: Date.now() - 1000, // 1 second ago
+				// 1 second ago
+				expiresAt: Date.now() - 1000,
 			};
 			expect(isTokenExpired(config)).toBe(true);
 		});

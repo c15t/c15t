@@ -7,15 +7,15 @@ interface NetworkRequestContext {
 	method: string;
 }
 
-function normalizeMethod(method: string): string {
+const normalizeMethod = function normalizeMethod(method: string): string {
 	if (!method) {
 		return 'GET';
 	}
 
 	return method.toUpperCase();
-}
+};
 
-function createUrl(rawUrl: string): URL | null {
+const createUrl = function createUrl(rawUrl: string): URL | null {
 	if (!rawUrl) {
 		return null;
 	}
@@ -29,9 +29,9 @@ function createUrl(rawUrl: string): URL | null {
 	} catch {
 		return null;
 	}
-}
+};
 
-function hostnameMatchesRule(
+const hostnameMatchesRule = function hostnameMatchesRule(
 	hostname: string,
 	rule: NetworkBlockerRule
 ): boolean {
@@ -54,9 +54,12 @@ function hostnameMatchesRule(
 	const hasSuffix = targetHost.endsWith(suffix);
 
 	return hasSuffix;
-}
+};
 
-function pathMatchesRule(pathname: string, rule: NetworkBlockerRule): boolean {
+const pathMatchesRule = function pathMatchesRule(
+	pathname: string,
+	rule: NetworkBlockerRule
+): boolean {
 	const hasPathFilter = typeof rule.pathIncludes === 'string';
 
 	if (!hasPathFilter) {
@@ -68,9 +71,12 @@ function pathMatchesRule(pathname: string, rule: NetworkBlockerRule): boolean {
 	}
 
 	return pathname.includes(rule.pathIncludes as string);
-}
+};
 
-function methodMatchesRule(method: string, rule: NetworkBlockerRule): boolean {
+const methodMatchesRule = function methodMatchesRule(
+	method: string,
+	rule: NetworkBlockerRule
+): boolean {
 	if (!rule.methods || rule.methods.length === 0) {
 		return true;
 	}
@@ -81,12 +87,12 @@ function methodMatchesRule(method: string, rule: NetworkBlockerRule): boolean {
 
 	const upperMethod = normalizeMethod(method);
 
-	return rule.methods.some((allowedMethod) => {
-		return normalizeMethod(allowedMethod) === upperMethod;
-	});
-}
+	return rule.methods.some(
+		(allowedMethod) => normalizeMethod(allowedMethod) === upperMethod
+	);
+};
 
-function shouldApplyRule(
+const shouldApplyRule = function shouldApplyRule(
 	url: URL,
 	method: string,
 	rule: NetworkBlockerRule
@@ -104,7 +110,7 @@ function shouldApplyRule(
 	}
 
 	return true;
-}
+};
 
 /**
  * Determines whether a network request should be blocked based on the
@@ -112,7 +118,7 @@ function shouldApplyRule(
  *
  * @internal
  */
-export function shouldBlockRequest(
+export const shouldBlockRequest = function shouldBlockRequest(
 	request: NetworkRequestContext,
 	consents: ConsentState,
 	config?: NetworkBlockerConfig
@@ -149,9 +155,9 @@ export function shouldBlockRequest(
 		const hasRequiredConsent = has(rule.category, consents);
 
 		if (!hasRequiredConsent) {
-			return { shouldBlock: true, rule };
+			return { rule, shouldBlock: true };
 		}
 	}
 
 	return { shouldBlock: false };
-}
+};

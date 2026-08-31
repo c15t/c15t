@@ -24,20 +24,20 @@ const SRC_V3_DIR = join(PACKAGE_DIR, 'src', 'styles', 'v3');
 const DIST_V3_DIR = join(PACKAGE_DIR, 'dist', 'styles', 'v3');
 const TYPES_V3_DIR = join(PACKAGE_DIR, 'types', 'styles', 'v3');
 
-function discoverV3ModuleNames(): string[] {
+const discoverV3ModuleNames = function discoverV3ModuleNames(): string[] {
 	return readdirSync(SRC_V3_DIR)
 		.filter((file) => file.endsWith('.module.css'))
 		.map((file) => file.replace('.module.css', ''))
 		.sort();
-}
+};
 
-function readExisting(pathCandidates: string[]): {
+const readExisting = function readExisting(pathCandidates: string[]): {
 	path: string;
 	content: string;
 } {
 	for (const path of pathCandidates) {
 		if (existsSync(path)) {
-			return { path, content: readFileSync(path, 'utf8') };
+			return { content: readFileSync(path, 'utf8'), path };
 		}
 	}
 
@@ -46,11 +46,14 @@ function readExisting(pathCandidates: string[]): {
 			', '
 		)}`
 	);
-}
+};
 
-function inlineRelativeCssImports(css: string, fromPath: string): string {
+const inlineRelativeCssImports = function inlineRelativeCssImports(
+	css: string,
+	fromPath: string
+): string {
 	return css.replace(
-		/@import\s+(?:url\()?["']([^"']+\.css)["']\)?\s*;/g,
+		/@import\s+(?:url\()?["'](?<capture1>[^"']+\.css)["']\)?\s*;/gu,
 		(match, specifier: string) => {
 			if (!specifier.startsWith('.')) {
 				return match;
@@ -61,20 +64,25 @@ function inlineRelativeCssImports(css: string, fromPath: string): string {
 			return `${importedCss}\n`;
 		}
 	);
-}
+};
 
-function normalizeStyleModule(source: string, name: string): string {
+const normalizeStyleModule = function normalizeStyleModule(
+	source: string,
+	name: string
+): string {
 	return source
-		.replace(new RegExp(`\\./${name}_module\\.css`, 'g'), `./${name}.css`)
-		.replace(new RegExp(`\\./${name}\\.module\\.css`, 'g'), `./${name}.css`);
-}
+		.replace(new RegExp(`\\./${name}_module\\.css`, 'gu'), `./${name}.css`)
+		.replace(new RegExp(`\\./${name}\\.module\\.css`, 'gu'), `./${name}.css`);
+};
 
-function normalizeDeclaration(source: string): string {
+const normalizeDeclaration = function normalizeDeclaration(
+	source: string
+): string {
 	return source.replace(
-		/export\s*=\s*styles;\s*$/m,
+		/export\s*=\s*styles;\s*$/mu,
 		'export default styles;\n'
 	);
-}
+};
 
 const moduleNames = discoverV3ModuleNames();
 

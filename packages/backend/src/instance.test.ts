@@ -42,13 +42,13 @@ const migrated = async () => {
 	await runtime.runPromise(baseline);
 
 	const client = await runtime.runPromise(
-		Effect.gen(function* () {
+		Effect.gen(function* client() {
 			return yield* SqlClient.SqlClient;
 		})
 	);
 	return {
-		layer: Layer.succeed(SqlClient.SqlClient, client),
 		dispose: () => runtime.dispose(),
+		layer: Layer.succeed(SqlClient.SqlClient, client),
 	};
 };
 
@@ -109,10 +109,11 @@ describe('c15tInstance', () => {
 	it('passes app options through to the routes', async () => {
 		const { layer, dispose } = await migrated();
 		const instance = c15tInstance({
-			database: layer,
 			// Listing subjects is key-only; with no keys configured nothing
 			// authenticates, which is the documented safe default.
 			apiKeys: [],
+
+			database: layer,
 		});
 
 		try {
@@ -131,8 +132,8 @@ describe('basePath', () => {
 	it('routes a request that arrives with the mount prefix', async () => {
 		const { layer, dispose } = await migrated();
 		const instance = c15tInstance({
-			database: layer,
 			basePath: '/api/self-host',
+			database: layer,
 		});
 
 		try {
@@ -151,8 +152,8 @@ describe('basePath', () => {
 	it('does not strip a prefix that is not a whole segment', async () => {
 		const { layer, dispose } = await migrated();
 		const instance = c15tInstance({
-			database: layer,
 			basePath: '/api/c15t',
+			database: layer,
 		});
 
 		try {
@@ -172,8 +173,8 @@ describe('basePath', () => {
 	it('routes the mount root itself', async () => {
 		const { layer, dispose } = await migrated();
 		const instance = c15tInstance({
-			database: layer,
 			basePath: '/api/self-host',
+			database: layer,
 		});
 
 		try {
@@ -207,8 +208,8 @@ describe('basePath', () => {
 	it('ignores a path that does not carry the prefix', async () => {
 		const { layer, dispose } = await migrated();
 		const instance = c15tInstance({
-			database: layer,
 			basePath: '/api/self-host',
+			database: layer,
 		});
 
 		try {
@@ -228,14 +229,14 @@ describe('basePath', () => {
 describe('policy authoring', () => {
 	it('builds and composes packs', () => {
 		const pack = policyBuilder.createPack([
-			{ id: 'eu', countries: ['DE'], model: 'opt-in' },
-			{ id: 'us', countries: ['US'], model: 'opt-out' },
+			{ countries: ['DE'], id: 'eu', model: 'opt-in' },
+			{ countries: ['US'], id: 'us', model: 'opt-out' },
 		]);
 
 		const composed = composePacks(pack, [
 			// A duplicate id must lose to the earlier pack rather than shadow it,
 			// or composition order silently changes which policy a visitor gets.
-			...policyBuilder.createPack([{ id: 'eu', countries: ['FR'] }]),
+			...policyBuilder.createPack([{ countries: ['FR'], id: 'eu' }]),
 		]);
 
 		assert.deepStrictEqual(

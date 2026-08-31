@@ -39,168 +39,172 @@ function createDeferredPromise<Value>(
 }
 
 const REALISTIC_INIT_OUTPUT = {
+	branding: 'c15t',
+	cmpId: 28,
+	customVendors: [
+		{
+			id: 'internal-analytics',
+			legIntPurposes: [2],
+			name: 'Internal Analytics',
+			privacyPolicyUrl: 'https://example.com/privacy',
+			purposes: [1, 7],
+			usesCookies: true,
+		},
+	],
+	gvl: {
+		features: {},
+		gvlSpecificationVersion: 3,
+		lastUpdated: '2026-01-01T00:00:00Z',
+		purposes: {},
+		specialFeatures: {},
+		specialPurposes: {},
+		stacks: {},
+		tcfPolicyVersion: 4,
+		vendorListVersion: 42,
+		vendors: {},
+	},
 	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: 'BE' },
+	policy: {
+		consent: {
+			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
+			expiryDays: 180,
+			gpc: true,
+			preselectedCategories: ['necessary'],
+			scopeMode: 'strict',
+		},
+		i18n: {
+			language: 'de',
+			messageProfile: 'formal',
+		},
+		id: 'de-iab',
+		model: 'iab',
+		proof: {
+			storeIp: false,
+			storeLanguage: true,
+			storeUserAgent: true,
+		},
+		ui: {
+			banner: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				direction: 'row',
+				primaryActions: ['accept'],
+				scrollLock: false,
+				uiProfile: 'balanced',
+			},
+			dialog: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				direction: 'column',
+				primaryActions: ['accept', 'customize'],
+				scrollLock: true,
+				uiProfile: 'strict',
+			},
+			mode: 'dialog',
+		},
+	},
+	policyDecision: {
+		country: 'DE',
+		fingerprint: 'policy-fingerprint',
+		jurisdiction: 'GDPR',
+		matchedBy: 'region',
+		policyId: 'de-iab',
+		region: 'BE',
+	},
+	policySnapshotToken: 'snapshot-token',
 	translations: {
 		language: 'de',
 		translations: {
 			common: {
 				acceptAll: 'Alle akzeptieren',
-				rejectAll: 'Alle ablehnen',
 				customize: 'Anpassen',
+				rejectAll: 'Alle ablehnen',
 				save: 'Speichern',
 			},
-			cookieBanner: {
-				title: 'Cookies verwalten',
-				description: 'Waehlen Sie aus, welche Cookies verwendet werden.',
-			},
 			consentManagerDialog: {
-				title: 'Datenschutzeinstellungen',
 				description: 'Verwalten Sie Ihre Praeferenzen.',
+				title: 'Datenschutzeinstellungen',
 			},
 			consentTypes: {
 				experience: {
-					title: 'Erlebnis',
 					description: 'Personalisierte Funktionen.',
+					title: 'Erlebnis',
 				},
 				functionality: {
-					title: 'Funktionalitaet',
 					description: 'Verbesserte Websitefunktionen.',
+					title: 'Funktionalitaet',
 				},
 				marketing: {
-					title: 'Marketing',
 					description: 'Personalisierte Werbung.',
+					title: 'Marketing',
 				},
 				measurement: {
-					title: 'Analyse',
 					description: 'Nutzungsmessung.',
+					title: 'Analyse',
 				},
 				necessary: {
-					title: 'Notwendig',
 					description: 'Erforderliche Cookies.',
+					title: 'Notwendig',
 				},
 			},
+			cookieBanner: {
+				description: 'Waehlen Sie aus, welche Cookies verwendet werden.',
+				title: 'Cookies verwalten',
+			},
 			frame: {
-				title: 'Cookie-Einstellungen',
 				actionButton: 'Einstellungen oeffnen',
+				title: 'Cookie-Einstellungen',
 			},
 			legalLinks: {
+				cookiePolicy: 'Cookie-Richtlinie',
 				privacyPolicy: 'Datenschutz',
 				termsOfService: 'Nutzungsbedingungen',
-				cookiePolicy: 'Cookie-Richtlinie',
 			},
 		},
 	},
-	branding: 'c15t',
-	gvl: {
-		gvlSpecificationVersion: 3,
-		vendorListVersion: 42,
-		tcfPolicyVersion: 4,
-		lastUpdated: '2026-01-01T00:00:00Z',
-		purposes: {},
-		specialPurposes: {},
-		features: {},
-		specialFeatures: {},
-		stacks: {},
-		vendors: {},
-	},
-	customVendors: [
-		{
-			id: 'internal-analytics',
-			name: 'Internal Analytics',
-			privacyPolicyUrl: 'https://example.com/privacy',
-			purposes: [1, 7],
-			legIntPurposes: [2],
-			usesCookies: true,
-		},
-	],
-	cmpId: 28,
-	policy: {
-		id: 'de-iab',
-		model: 'iab',
-		i18n: {
-			language: 'de',
-			messageProfile: 'formal',
-		},
-		consent: {
-			expiryDays: 180,
-			scopeMode: 'strict',
-			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
-			preselectedCategories: ['necessary'],
-			gpc: true,
-		},
-		ui: {
-			mode: 'dialog',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryActions: ['accept'],
-				direction: 'row',
-				uiProfile: 'balanced',
-				scrollLock: false,
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryActions: ['accept', 'customize'],
-				direction: 'column',
-				uiProfile: 'strict',
-				scrollLock: true,
-			},
-		},
-		proof: {
-			storeIp: false,
-			storeUserAgent: true,
-			storeLanguage: true,
-		},
-	},
-	policyDecision: {
-		policyId: 'de-iab',
-		fingerprint: 'policy-fingerprint',
-		matchedBy: 'region',
-		country: 'DE',
-		region: 'BE',
-		jurisdiction: 'GDPR',
-	},
-	policySnapshotToken: 'snapshot-token',
 } satisfies InitOutput;
 
 const MANIFEST_FIXTURE = {
-	schemaVersion: 1,
-	revision: 'manifest-revision',
 	branding: 'c15t',
 	cmpId: 28,
 	iab: {
-		enabled: true,
 		customVendors: [{ id: 'internal-analytics' }],
-		gvl: { version: 42, url: 'https://gvl.example.com' },
+		enabled: true,
+		gvl: { url: 'https://gvl.example.com', version: 42 },
 	},
 	policyPacks: [
 		{
+			fingerprint: 'policy-fingerprint',
+
 			policy: {
+				consent: {
+					expiryDays: 180,
+					gpc: true,
+
+					model: 'iab',
+					scopeMode: 'strict',
+				},
+
+				i18n: { language: 'de', messageProfile: 'formal' },
 				id: 'de-iab',
 				match: { regions: [{ country: 'DE', region: 'BE' }] },
-				i18n: { language: 'de', messageProfile: 'formal' },
-				consent: {
-					model: 'iab',
-					expiryDays: 180,
-					scopeMode: 'strict',
-					gpc: true,
-				},
 			},
 			resolvedPolicy: {
+				consent: {
+					categories: ['*'],
+					expiryDays: 180,
+					gpc: true,
+
+					scopeMode: 'strict',
+				},
+				i18n: { language: 'de', messageProfile: 'formal' },
 				id: 'de-iab',
 				model: 'iab',
-				i18n: { language: 'de', messageProfile: 'formal' },
-				consent: {
-					expiryDays: 180,
-					scopeMode: 'strict',
-					categories: ['*'],
-					gpc: true,
-				},
 				proof: {},
 			},
-			fingerprint: 'policy-fingerprint',
 		},
 	],
+	revision: 'manifest-revision',
+	schemaVersion: 1,
 	translations: {
 		i18n: {
 			defaultProfile: 'formal',
@@ -256,7 +260,7 @@ describe('kernel transport: no transport = no-op commands', () => {
 describe('kernel transport: init applies response to snapshot', () => {
 	test('legacy jurisdiction + showConsentBanner init fields are ignored', async () => {
 		const transport: KernelTransport = {
-			async init() {
+			init() {
 				return {
 					jurisdiction: 'GDPR',
 					showConsentBanner: true,
@@ -276,7 +280,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 	test('resolvedOverrides merge into snapshot.overrides', async () => {
 		const transport: KernelTransport = {
-			async init() {
+			init() {
 				return {
 					resolvedOverrides: { country: 'DE', region: 'BE' },
 				};
@@ -290,15 +294,15 @@ describe('kernel transport: init applies response to snapshot', () => {
 		await kernel.commands.init();
 
 		expect(kernel.getSnapshot().overrides).toEqual({
-			language: 'de',
 			country: 'DE',
+			language: 'de',
 			region: 'BE',
 		});
 	});
 
 	test('server-side consents override config when returned', async () => {
 		const transport: KernelTransport = {
-			async init() {
+			init() {
 				return {
 					consents: { marketing: true, measurement: true },
 					hasConsented: true,
@@ -340,7 +344,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 	test('init emits command:init:started then :completed', async () => {
 		const events: string[] = [];
 		const transport: KernelTransport = {
-			async init() {
+			init() {
 				return {};
 			},
 		};
@@ -358,7 +362,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 	test('init transport error → result.ok=false + command:error event', async () => {
 		const boom = new Error('backend on fire');
 		const transport: KernelTransport = {
-			async init() {
+			init() {
 				throw boom;
 			},
 		};
@@ -387,7 +391,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 			},
 		};
 		const kernel = createConsentKernel({
-			transport,
 			initialPolicy: {
 				id: 'placeholder',
 				model: 'opt-in',
@@ -395,6 +398,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
+			transport,
 		});
 
 		// Model is populated for SSR ergonomics, but no surface renders.
@@ -414,12 +418,11 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 	test('provisional policy becomes the compliance fallback when init fails', async () => {
 		const transport: KernelTransport = {
-			async init() {
+			init() {
 				throw new Error('backend unreachable');
 			},
 		};
 		const kernel = createConsentKernel({
-			transport,
 			initialPolicy: {
 				id: 'placeholder',
 				model: 'opt-in',
@@ -427,6 +430,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
+			transport,
 		});
 
 		const result = await kernel.commands.init();
@@ -439,17 +443,17 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 	test('getServerSnapshot stays at revision 0 through client mutations', async () => {
 		const kernel = createConsentKernel({
-			transport: {
-				async init() {
-					return {};
-				},
-			},
 			initialPolicy: {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
+			transport: {
+				init() {
+					return {};
+				},
+			},
 		});
 		const server = kernel.getServerSnapshot();
 		expect(server.revision).toBe(0);
@@ -469,7 +473,6 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 	test('provisional policy finalizes when the transport has no init', async () => {
 		const kernel = createConsentKernel({
-			transport: {},
 			initialPolicy: {
 				id: 'placeholder',
 				model: 'opt-in',
@@ -477,6 +480,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
+			transport: {},
 		});
 
 		expect(kernel.getSnapshot().activeUI).toBe('none');
@@ -502,7 +506,7 @@ describe('kernel transport: save flows consents to backend', () => {
 		expect(result.subjectId).toBe('sub-1');
 		expect(saveSpy).toHaveBeenCalledTimes(1);
 		const payload = saveSpy.mock.calls[0]?.[0];
-		expect(payload?.subjectId).toMatch(/^sub_/);
+		expect(payload?.subjectId).toMatch(/^sub_/u);
 		expect(payload?.consents.marketing).toBe(true);
 	});
 
@@ -519,7 +523,7 @@ describe('kernel transport: save flows consents to backend', () => {
 		await kernel.commands.save({ marketing: false });
 		const second = kernel.getSnapshot().subjectId;
 
-		expect(first).toMatch(/^sub_/);
+		expect(first).toMatch(/^sub_/u);
 		expect(second).toBe(first);
 		expect(saveSpy.mock.calls[0]?.[0].subjectId).toBe(first);
 		expect(saveSpy.mock.calls[1]?.[0].subjectId).toBe(first);
@@ -550,7 +554,7 @@ describe('kernel transport: save flows consents to backend', () => {
 	test('save transport error → result.ok=false + command:error event', async () => {
 		const boom = new Error('save failed');
 		const transport: KernelTransport = {
-			async save() {
+			save() {
 				throw boom;
 			},
 		};
@@ -583,7 +587,7 @@ describe('kernel transport: identify forwards to transport', () => {
 	test('identify transport error emits command:error but snapshot still updated', async () => {
 		const boom = new Error('identify failed');
 		const transport: KernelTransport = {
-			async identify() {
+			identify() {
 				throw boom;
 			},
 		};
@@ -601,11 +605,13 @@ describe('kernel transport: identify forwards to transport', () => {
 // ---- createHostedTransport unit tests ------------------------------------
 
 describe('createHostedTransport: request shape', () => {
-	test('init GETs `${backendURL}/init` with no body', async () => {
+	const backendURLToken = String.raw`\${backendURL}`;
+
+	test(`init GETs \`${backendURLToken}/init\` with no body`, async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 		const transport = createHostedTransport({
@@ -627,11 +633,11 @@ describe('createHostedTransport: request shape', () => {
 		expect((init as RequestInit).body).toBeUndefined();
 	});
 
-	test('save POSTs to `${backendURL}/subjects` with backend body', async () => {
+	test(`save POSTs to \`${backendURLToken}/subjects\` with backend body`, async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 		const transport = createHostedTransport({
@@ -640,25 +646,25 @@ describe('createHostedTransport: request shape', () => {
 		});
 
 		const result = await transport.save?.({
-			subjectId: 'sub_test',
+			consentAction: 'all',
 			consents: {
-				necessary: true,
+				experience: true,
 				functionality: true,
 				marketing: true,
 				measurement: true,
-				experience: true,
+				necessary: true,
 			},
+			model: 'opt-in',
 			overrides: {},
+			policySnapshotToken: 'snap-1',
+			subjectId: 'sub_test',
+			tcString: 'tc-1',
+			uiSource: 'banner',
 			user: {
 				externalId: 'user-1',
 				identityProvider: 'app',
-				properties: { plan: 'pro', beta: true },
+				properties: { beta: true, plan: 'pro' },
 			},
-			model: 'opt-in',
-			uiSource: 'banner',
-			consentAction: 'all',
-			policySnapshotToken: 'snap-1',
-			tcString: 'tc-1',
 		});
 
 		expect(result?.subjectId).toBe('sub-1');
@@ -666,26 +672,26 @@ describe('createHostedTransport: request shape', () => {
 		expect(url).toBe('/api/c15t/subjects');
 		const body = JSON.parse((init as RequestInit).body as string);
 		expect(body).toMatchObject({
-			subjectId: 'sub_test',
+			consentAction: 'all',
+			domain: 'localhost',
 			externalSubjectId: 'user-1',
 			identityProvider: 'app',
-			domain: 'localhost',
-			type: 'cookie_banner',
+			jurisdictionModel: 'opt-in',
+			metadata: {
+				userProperties: { beta: true, plan: 'pro' },
+			},
+			policySnapshotToken: 'snap-1',
 			preferences: {
-				necessary: true,
+				experience: true,
 				functionality: true,
 				marketing: true,
 				measurement: true,
-				experience: true,
+				necessary: true,
 			},
-			jurisdictionModel: 'opt-in',
-			uiSource: 'banner',
-			consentAction: 'all',
-			policySnapshotToken: 'snap-1',
+			subjectId: 'sub_test',
 			tcString: 'tc-1',
-			metadata: {
-				userProperties: { plan: 'pro', beta: true },
-			},
+			type: 'cookie_banner',
+			uiSource: 'banner',
 		});
 		expect(typeof body.givenAt).toBe('number');
 	});
@@ -700,11 +706,11 @@ describe('createHostedTransport: request shape', () => {
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			headers: {
+				'X-C15T-Region': 'BE',
 				'accept-language': 'de-DE,de;q=0.9',
 				authorization: 'Bearer t',
 				cookie: 'session=secret',
 				'sec-gpc': '1',
-				'X-C15T-Region': 'BE',
 				'x-c15t-country': 'DE',
 				'x-forwarded-for': '203.0.113.1',
 			},
@@ -719,15 +725,15 @@ describe('createHostedTransport: request shape', () => {
 			'x-c15t-country': 'DE',
 			'x-c15t-region': 'BE',
 			// Always attached by the transport itself, not consumer-forwarded.
-			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/),
+			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
 	});
 
 	test('init maps backend InitOutput into the kernel init response shape', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 		const transport = createHostedTransport({
@@ -739,25 +745,25 @@ describe('createHostedTransport: request shape', () => {
 		const response = await transport.init?.({ overrides: {}, user: null });
 
 		expect(response).toMatchObject({
-			resolvedOverrides: {
-				country: 'DE',
-				region: 'BE',
-				language: 'de',
-				gpc: true,
-			},
-			location: { countryCode: 'DE', regionCode: 'BE' },
-			translations: { language: 'de' },
 			branding: 'c15t',
+			cmpId: 28,
+			customVendors: [{ id: 'internal-analytics' }],
+			gvl: { vendorListVersion: 42 },
+			location: { countryCode: 'DE', regionCode: 'BE' },
 			policy: { id: 'de-iab', model: 'iab' },
 			policyDecision: {
-				policyId: 'de-iab',
-				matchedBy: 'region',
 				jurisdiction: 'GDPR',
+				matchedBy: 'region',
+				policyId: 'de-iab',
 			},
 			policySnapshotToken: 'snapshot-token',
-			gvl: { vendorListVersion: 42 },
-			customVendors: [{ id: 'internal-analytics' }],
-			cmpId: 28,
+			resolvedOverrides: {
+				country: 'DE',
+				gpc: true,
+				language: 'de',
+				region: 'BE',
+			},
+			translations: { language: 'de' },
 		});
 		expect('jurisdiction' in (response ?? {})).toBe(false);
 	});
@@ -796,7 +802,7 @@ describe('createHostedTransport: request shape', () => {
 
 		await expect(
 			transport.init?.({ overrides: {}, user: null })
-		).rejects.toThrow(/\/init responded 500/);
+		).rejects.toThrow(/\/init responded 500/u);
 	});
 });
 
@@ -804,41 +810,41 @@ describe('createManifestTransport: local init resolution', () => {
 	test('resolves init from an inline manifest and lazily fetches GVL for IAB', async () => {
 		const fetchGvl = vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl);
 		const transport = createManifestTransport({
-			manifest: MANIFEST_FIXTURE,
 			backendURL: 'https://api.example.com/c15t',
 			fetch: vi.fn() as unknown as typeof globalThis.fetch,
 			fetchGvl,
 			inputs: {
 				country: 'DE',
-				region: 'BE',
-				language: 'de-DE,de;q=0.9',
 				gpc: true,
+				language: 'de-DE,de;q=0.9',
+				region: 'BE',
 			},
+			manifest: MANIFEST_FIXTURE,
 		});
 
 		const response = await transport.init?.({ overrides: {}, user: null });
 
 		expect(response).toMatchObject({
-			resolvedOverrides: {
-				country: 'DE',
-				region: 'BE',
-				language: 'de',
-				gpc: true,
-			},
+			cmpId: 28,
+			customVendors: [{ id: 'internal-analytics' }],
+			gvl: { vendorListVersion: 42 },
 			policy: { id: 'de-iab', model: 'iab' },
 			policyDecision: {
-				policyId: 'de-iab',
 				fingerprint: 'policy-fingerprint',
 				matchedBy: 'region',
+				policyId: 'de-iab',
 			},
-			gvl: { vendorListVersion: 42 },
-			customVendors: [{ id: 'internal-analytics' }],
-			cmpId: 28,
+			resolvedOverrides: {
+				country: 'DE',
+				gpc: true,
+				language: 'de',
+				region: 'BE',
+			},
 		});
 		expect(fetchGvl).toHaveBeenCalledWith({
-			reference: { version: 42, url: 'https://gvl.example.com' },
-			language: 'de',
 			fetch: expect.any(Function),
+			language: 'de',
+			reference: { url: 'https://gvl.example.com', version: 42 },
 		});
 	});
 
@@ -854,36 +860,36 @@ describe('createManifestTransport: local init resolution', () => {
 				})
 			);
 		const transport = createManifestTransport({
-			manifestURL: 'https://api.example.com/c15t/manifest',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			fetchGvl: vi.fn().mockResolvedValue(null),
 			inputs: {
 				country: 'DE',
-				region: 'BE',
-				language: 'de',
 				gpc: true,
+				language: 'de',
+				region: 'BE',
 			},
+			manifestURL: 'https://api.example.com/c15t/manifest',
 		});
 
 		await transport.init?.({ overrides: {}, user: null });
 		const result = await transport.save?.({
-			subjectId: 'sub_test',
+			consentAction: 'custom',
 			consents: {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			},
+			model: 'iab',
 			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
 			user: {
 				externalId: 'user-2',
 				properties: { segment: 'docs' },
 			},
-			model: 'iab',
-			uiSource: 'banner',
-			consentAction: 'custom',
-			policySnapshotToken: null,
 		});
 
 		expect(result).toEqual({ ok: true, subjectId: 'sub-1' });
@@ -896,24 +902,24 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(subjectsUrl).toBe('https://api.example.com/c15t/subjects');
 		const body = JSON.parse((subjectsInit as RequestInit).body as string);
 		expect(body).toMatchObject({
-			subjectId: 'sub_test',
-			policyId: 'de-iab',
-			fingerprint: 'policy-fingerprint',
+			country: 'DE',
 			externalSubjectId: 'user-2',
+			fingerprint: 'policy-fingerprint',
+			gpc: true,
+			language: 'de',
 			metadata: {
 				userProperties: { segment: 'docs' },
 			},
-			country: 'DE',
-			region: 'BE',
-			language: 'de',
-			gpc: true,
+			policyId: 'de-iab',
 			preferences: {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			},
+			region: 'BE',
+			subjectId: 'sub_test',
 		});
 	});
 
@@ -924,40 +930,40 @@ describe('createManifestTransport: local init resolution', () => {
 			})
 		);
 		const transport = createManifestTransport({
-			manifest: MANIFEST_FIXTURE,
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initialInit: REALISTIC_INIT_OUTPUT,
 			inputs: {
 				country: 'DE',
-				region: 'BE',
-				language: 'de',
 				gpc: true,
+				language: 'de',
+				region: 'BE',
 			},
-			initialInit: REALISTIC_INIT_OUTPUT,
+			manifest: MANIFEST_FIXTURE,
 		});
 
 		await transport.save?.({
-			subjectId: 'sub_test',
+			consentAction: 'custom',
 			consents: {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			},
-			overrides: {},
-			user: null,
 			model: 'iab',
-			uiSource: 'banner',
-			consentAction: 'custom',
+			overrides: {},
 			policySnapshotToken: 'snapshot-token',
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
 		});
 
 		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
 		const body = JSON.parse((subjectsInit as RequestInit).body as string);
 		expect(body).toMatchObject({
-			subjectId: 'sub_test',
 			policySnapshotToken: 'snapshot-token',
+			subjectId: 'sub_test',
 		});
 		expect(body).not.toHaveProperty('policyId');
 		expect(body).not.toHaveProperty('fingerprint');
@@ -979,33 +985,33 @@ describe('createManifestTransport: local init resolution', () => {
 			policyPacks: [],
 		};
 		const transport = createManifestTransport({
-			manifest: packlessManifest as never,
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			inputs: {
 				country: null,
-				region: null,
-				language: 'en',
 				gpc: undefined,
+				language: 'en',
+				region: null,
 			},
+			manifest: packlessManifest as never,
 		});
 
 		await transport.init?.({ overrides: {}, user: null });
 		await transport.save?.({
-			subjectId: 'sub_test',
+			consentAction: 'custom',
 			consents: {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 			},
-			overrides: {},
-			user: null,
 			model: 'opt-in',
-			uiSource: 'banner',
-			consentAction: 'custom',
+			overrides: {},
 			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
 		});
 
 		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
@@ -1024,17 +1030,18 @@ describe('createManifestTransport: local init resolution', () => {
 
 describe('x-c15t-version header (issue #916)', () => {
 	test('hosted init and save carry the client version', async () => {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
 			const s = String(url);
 			if (s.endsWith('/init')) {
 				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				});
 			}
 			return new Response(JSON.stringify({ ok: true }), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			});
 		});
 		const kernel = createConsentKernel({
@@ -1053,30 +1060,31 @@ describe('x-c15t-version header (issue #916)', () => {
 				string,
 				string
 			>;
-			expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/);
+			expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 		}
 	});
 
 	test('manifest fetch and save both carry the client version', async () => {
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
 			const s = String(url);
 			if (s.endsWith('/manifest')) {
 				return new Response(JSON.stringify(MANIFEST_FIXTURE), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				});
 			}
 			return new Response(JSON.stringify({ ok: true }), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			});
 		});
 		const kernel = createConsentKernel({
 			transport: createManifestTransport({
 				backendURL: 'https://backend.example',
-				manifestURL: 'https://cdn.example/manifest',
-				inputs: { country: 'DE', region: 'BE', language: 'de' },
 				fetch: fetchSpy as unknown as typeof fetch,
+				inputs: { country: 'DE', language: 'de', region: 'BE' },
+				manifestURL: 'https://cdn.example/manifest',
 			}),
 		});
 
@@ -1096,12 +1104,11 @@ describe('x-c15t-version header (issue #916)', () => {
 			{}) as Record<string, string>;
 		// The manifest/GVL hosts are c15t/tenant-controlled (IAB requires
 		// self-hosting the GVL), so version telemetry rides here too.
-		expect(manifestHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/);
+		expect(manifestHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 
-		const saveHeaders = (saveCall?.[1] as RequestInit).headers as Record<
-			string,
-			string
-		>;
-		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/);
+		expect(saveCall?.[1]).toBeDefined();
+		const saveInit = saveCall?.[1] as RequestInit;
+		const saveHeaders = saveInit.headers as Record<string, string>;
+		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 	});
 });

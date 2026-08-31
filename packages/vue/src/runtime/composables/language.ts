@@ -3,7 +3,9 @@ import type { Ref } from 'vue';
 
 import { useConsentKernelContext } from './kernel';
 
-export function useConsentLanguage(): Ref<string | null> {
+export const useConsentLanguage = function useConsentLanguage(): Ref<
+	string | null
+> {
 	const context = useConsentKernelContext();
 	return computed({
 		get: () => context.snapshot.value.overrides.language ?? null,
@@ -13,4 +15,4 @@ export function useConsentLanguage(): Ref<string | null> {
 			}
 		},
 	});
-}
+};

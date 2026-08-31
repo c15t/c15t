@@ -5,18 +5,18 @@ import {
 	resetBenchConsentFixtureCounts,
 } from '../fixture';
 
-export async function GET() {
+export const GET = function GET() {
 	return NextResponse.json(getBenchConsentFixtureCounts(), {
 		headers: {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};
 
-export async function POST() {
+export const POST = function POST() {
 	return NextResponse.json(resetBenchConsentFixtureCounts(), {
 		headers: {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

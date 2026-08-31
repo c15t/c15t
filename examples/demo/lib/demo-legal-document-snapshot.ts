@@ -1,7 +1,7 @@
 export const DEMO_LEGAL_DOCUMENT_SNAPSHOT = {
+	issuer: 'c15t-demo',
 	signingKey: 'demo-legal-document-snapshot-signing-key',
 	tenantId: 'ins_1',
-	issuer: 'c15t-demo',
 	ttlSeconds: 1800,
 } as const;
 

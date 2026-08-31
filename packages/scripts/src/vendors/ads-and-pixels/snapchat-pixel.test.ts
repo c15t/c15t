@@ -52,10 +52,10 @@ describe('snapchatPixel', () => {
 	it('supports init options and disabling PAGE_VIEW', () => {
 		const globalRef = getTestGlobal();
 		const script = snapchatPixel({
-			pixelId: '123456789012345',
 			initOptions: { user_email: 'hello@example.com' },
-			trackPageView: false,
+			pixelId: '123456789012345',
 			scriptUrl: 'https://cdn.example.com/scevent.min.js',
+			trackPageView: false,
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/scevent.min.js');
@@ -93,21 +93,21 @@ describe('snapchatPixelEvent', () => {
 		globalRef.snaptr = snaptr;
 
 		snapchatPixelEvent('PURCHASE', {
-			price: 99,
-			currency: 'USD',
-			transaction_id: 'order-123',
 			client_dedup_id: 'event-123',
+			currency: 'USD',
 			item_ids: ['sku-123'],
 			number_items: 1,
+			price: 99,
+			transaction_id: 'order-123',
 		});
 
 		expect(snaptr).toHaveBeenCalledWith('track', 'PURCHASE', {
-			price: 99,
-			currency: 'USD',
-			transaction_id: 'order-123',
 			client_dedup_id: 'event-123',
+			currency: 'USD',
 			item_ids: ['sku-123'],
 			number_items: 1,
+			price: 99,
+			transaction_id: 'order-123',
 		});
 	});
 });

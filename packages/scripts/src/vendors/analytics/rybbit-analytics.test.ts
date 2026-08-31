@@ -21,8 +21,8 @@ describe('rybbitAnalytics', () => {
 
 	it('derives loader URL from analyticsHost when scriptUrl is omitted', () => {
 		const script = rybbitAnalytics({
-			siteId: 'rybbit-123',
 			analyticsHost: 'https://analytics.example.com',
+			siteId: 'rybbit-123',
 		});
 
 		expect(script.src).toBe('https://analytics.example.com/script.js');
@@ -30,9 +30,9 @@ describe('rybbitAnalytics', () => {
 
 	it('ignores blank scriptUrl overrides', () => {
 		const script = rybbitAnalytics({
-			siteId: 'rybbit-123',
 			analyticsHost: 'https://analytics.example.com',
 			scriptUrl: '   ',
+			siteId: 'rybbit-123',
 		});
 
 		expect(script.src).toBe('https://analytics.example.com/script.js');
@@ -40,8 +40,8 @@ describe('rybbitAnalytics', () => {
 
 	it('normalizes trailing slashes in analyticsHost', () => {
 		const script = rybbitAnalytics({
-			siteId: 'rybbit-123',
 			analyticsHost: 'https://analytics.example.com///',
+			siteId: 'rybbit-123',
 		});
 
 		expect(script.src).toBe('https://analytics.example.com/script.js');
@@ -49,33 +49,33 @@ describe('rybbitAnalytics', () => {
 
 	it('maps options to script data attributes', () => {
 		const script = rybbitAnalytics({
-			siteId: 'rybbit-123',
-			autoTrackPageview: true,
-			trackSpa: false,
-			trackQuery: true,
-			trackOutbound: true,
-			trackErrors: false,
-			sessionReplay: true,
-			webVitals: true,
-			skipPatterns: ['/admin'],
-			maskPatterns: ['/private'],
-			debounce: 500,
 			apiKey: 'secret-key',
+			autoTrackPageview: true,
+			debounce: 500,
+			maskPatterns: ['/private'],
+			sessionReplay: true,
+			siteId: 'rybbit-123',
+			skipPatterns: ['/admin'],
+			trackErrors: false,
+			trackOutbound: true,
+			trackQuery: true,
+			trackSpa: false,
+			webVitals: true,
 		});
 
 		expect(script.attributes).toEqual({
-			'data-site-id': 'rybbit-123',
-			'data-auto-track-pageview': 'true',
-			'data-track-spa': 'false',
-			'data-track-query': 'true',
-			'data-track-outbound': 'true',
-			'data-track-errors': 'false',
-			'data-session-replay': 'true',
-			'data-web-vitals': 'true',
-			'data-skip-patterns': '["/admin"]',
-			'data-mask-patterns': '["/private"]',
-			'data-debounce': '500',
 			'data-api-key': 'secret-key',
+			'data-auto-track-pageview': 'true',
+			'data-debounce': '500',
+			'data-mask-patterns': '["/private"]',
+			'data-session-replay': 'true',
+			'data-site-id': 'rybbit-123',
+			'data-skip-patterns': '["/admin"]',
+			'data-track-errors': 'false',
+			'data-track-outbound': 'true',
+			'data-track-query': 'true',
+			'data-track-spa': 'false',
+			'data-web-vitals': 'true',
 		});
 	});
 

@@ -3,12 +3,25 @@ import { defineConfig } from '@rslib/core';
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
 export default defineConfig({
+	lib: [
+		{
+			bundle: true,
+			dts: {
+				distPath: './dist-types',
+			},
+			format: 'esm',
+		},
+	],
+	output: {
+		cleanDistPath: true,
+		target: 'node',
+	},
 	source: {
 		entry: {
-			index: ['./src/index.ts'],
-			types: ['./src/types.ts'],
 			config: ['./src/config/index.ts'],
 			geo: ['./src/shared/geo-headers.ts'],
+			index: ['./src/index.ts'],
+			types: ['./src/types.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',
@@ -17,19 +30,6 @@ export default defineConfig({
 			'**/*.spec.ts',
 			'**/*.spec.tsx',
 		],
-	},
-	lib: [
-		{
-			dts: {
-				distPath: './dist-types',
-			},
-			bundle: true,
-			format: 'esm',
-		},
-	],
-	output: {
-		target: 'node',
-		cleanDistPath: true,
 	},
 	tools: {
 		rspack: {

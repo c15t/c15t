@@ -17,29 +17,29 @@ export type UIStyle = 'prebuilt' | 'expanded';
  */
 export const UI_STYLE_OPTIONS = [
 	{
-		value: 'prebuilt' as const,
-		label: 'Prebuilt (Recommended)',
-		hint: 'Ready-to-use components',
 		description:
 			'Single file with ConsentBanner component - simple to set up and customize',
+		hint: 'Ready-to-use components',
+		label: 'Prebuilt (Recommended)',
+		value: 'prebuilt' as const,
 	},
 	{
-		value: 'expanded' as const,
-		label: 'Compound components',
-		hint: 'Full customization control',
 		description:
 			'Separate files in consent-manager/ directory using compound components - full customization control',
+		hint: 'Full customization control',
+		label: 'Compound components',
+		value: 'expanded' as const,
 	},
 ] as const;
 
 /**
  * Get UI style display info
  */
-export function getUIStyleInfo(
+export const getUIStyleInfo = function getUIStyleInfo(
 	style: UIStyle
 ): (typeof UI_STYLE_OPTIONS)[number] | undefined {
 	return UI_STYLE_OPTIONS.find((s) => s.value === style);
-}
+};
 
 /**
  * Prompt user to select UI component style
@@ -48,7 +48,7 @@ export function getUIStyleInfo(
  * @param handleCancel - Function to handle prompt cancellations
  * @returns The selected UI style ('prebuilt' or 'expanded')
  */
-export async function promptForUIStyle(
+export const promptForUIStyle = async function promptForUIStyle(
 	context: CliContext,
 	handleCancel?: (value: unknown) => boolean
 ): Promise<UIStyle> {
@@ -60,13 +60,14 @@ export async function promptForUIStyle(
 	);
 
 	const result = await p.select({
+		initialValue: 'prebuilt' as UIStyle,
 		message: 'UI component style:',
 		options: UI_STYLE_OPTIONS.map((option) => ({
-			value: option.value,
-			label: option.label,
 			hint: option.hint,
+
+			label: option.label,
+			value: option.value,
 		})),
-		initialValue: 'prebuilt' as UIStyle,
 	});
 
 	if (handleCancel?.(result)) {
@@ -77,4 +78,4 @@ export async function promptForUIStyle(
 	}
 
 	return result as UIStyle;
-}
+};

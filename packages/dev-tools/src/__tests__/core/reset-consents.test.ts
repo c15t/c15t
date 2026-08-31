@@ -6,45 +6,46 @@ import { resetAllConsents } from '../../core/reset-consents';
 import type { StateManager } from '../../core/state-manager';
 
 // Mock store
-function createMockStore() {
+const createMockStore = function createMockStore() {
 	const mockState = {
-		resetConsents: vi.fn(),
 		initConsentManager: vi.fn().mockResolvedValue(undefined),
+		resetConsents: vi.fn(),
 	};
 
 	return {
-		getState: vi.fn(() => mockState),
 		getInitialState: vi.fn(() => mockState),
+		getState: vi.fn(() => mockState),
+		mockState,
 		setState: vi.fn(),
 		subscribe: vi.fn(() => vi.fn()),
-		mockState,
 	} as unknown as StoreApi<ConsentStoreState> & {
 		mockState: typeof mockState;
 	};
-}
+};
 
 // Mock state manager
-function createMockStateManager(): StateManager {
+const createMockStateManager = function createMockStateManager(): StateManager {
 	return {
-		getState: vi.fn(() => ({
-			isOpen: false,
-			position: 'bottom-right' as const,
-			activeTab: 'consents' as const,
-			isConnected: true,
-			eventLog: [],
-			maxEventLogSize: 100,
-		})),
-		subscribe: vi.fn(() => vi.fn()),
-		setOpen: vi.fn(),
-		toggle: vi.fn(),
-		setPosition: vi.fn(),
-		setActiveTab: vi.fn(),
-		setConnected: vi.fn(),
 		addEvent: vi.fn(),
 		clearEventLog: vi.fn(),
 		destroy: vi.fn(),
+		getState: vi.fn(() => ({
+			activeTab: 'consents' as const,
+			eventLog: [],
+			isConnected: true,
+			isOpen: false,
+			maxEventLogSize: 100,
+
+			position: 'bottom-right' as const,
+		})),
+		setActiveTab: vi.fn(),
+		setConnected: vi.fn(),
+		setOpen: vi.fn(),
+		setPosition: vi.fn(),
+		subscribe: vi.fn(() => vi.fn()),
+		toggle: vi.fn(),
 	};
-}
+};
 
 describe('resetAllConsents', () => {
 	let mockLocalStorage: Record<string, string>;
@@ -54,26 +55,26 @@ describe('resetAllConsents', () => {
 		// Reset localStorage mock
 		mockLocalStorage = {};
 		vi.stubGlobal('localStorage', {
-			getItem: vi.fn((key: string) => mockLocalStorage[key] ?? null),
-			setItem: vi.fn((key: string, value: string) => {
-				mockLocalStorage[key] = value;
+			clear: vi.fn(() => {
+				mockLocalStorage = {};
 			}),
+			getItem: vi.fn((key: string) => mockLocalStorage[key] ?? null),
 			removeItem: vi.fn((key: string) => {
 				Reflect.deleteProperty(mockLocalStorage, key);
 			}),
-			clear: vi.fn(() => {
-				mockLocalStorage = {};
+			setItem: vi.fn((key: string, value: string) => {
+				mockLocalStorage[key] = value;
 			}),
 		});
 
 		// Reset cookie mock
 		mockCookies = '';
 		Object.defineProperty(document, 'cookie', {
+			configurable: true,
 			get: () => mockCookies,
 			set: (value: string) => {
 				mockCookies = value;
 			},
-			configurable: true,
 		});
 	});
 
@@ -94,11 +95,11 @@ describe('resetAllConsents', () => {
 	it('should clear cookies by setting them to expired', async () => {
 		const cookiesSet: string[] = [];
 		Object.defineProperty(document, 'cookie', {
+			configurable: true,
 			get: () => cookiesSet.join('; '),
 			set: (value: string) => {
 				cookiesSet.push(value);
 			},
-			configurable: true,
 		});
 
 		const store = createMockStore();
@@ -139,8 +140,8 @@ describe('resetAllConsents', () => {
 		await resetAllConsents(store, stateManager);
 
 		expect(stateManager.addEvent).toHaveBeenCalledWith({
-			type: 'consent_reset',
 			message: 'All consents reset (storage cleared)',
+			type: 'consent_reset',
 		});
 	});
 

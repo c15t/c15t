@@ -14,22 +14,22 @@ export const benchThrottleProfiles: Record<
 	BenchThrottleProfileName,
 	BenchThrottleProfile
 > = {
-	none: {
-		name: 'none',
-		cpuThrottlingRate: 1,
+	mobile: {
+		cpuThrottlingRate: 4,
+		name: 'mobile',
 		network: {
-			latencyMs: 0,
-			downloadThroughputBytesPerSecond: -1,
-			uploadThroughputBytesPerSecond: -1,
+			downloadThroughputBytesPerSecond: 1_125_000,
+			latencyMs: 170,
+			uploadThroughputBytesPerSecond: 187_500,
 		},
 	},
-	mobile: {
-		name: 'mobile',
-		cpuThrottlingRate: 4,
+	none: {
+		cpuThrottlingRate: 1,
+		name: 'none',
 		network: {
-			latencyMs: 170,
-			downloadThroughputBytesPerSecond: 1_125_000,
-			uploadThroughputBytesPerSecond: 187_500,
+			downloadThroughputBytesPerSecond: -1,
+			latencyMs: 0,
+			uploadThroughputBytesPerSecond: -1,
 		},
 	},
 };
@@ -77,37 +77,39 @@ export interface BenchNavigationTimingMetrics {
 	loadEventMs: number | null;
 }
 
-export function readBenchNavigationTiming(): BenchNavigationTimingMetrics | null {
-	const finiteTimingValue = (value: number): number | null =>
-		Number.isFinite(value) && value >= 0 ? Number(value.toFixed(3)) : null;
-	const nav = performance.getEntriesByType('navigation')[0] as
-		| PerformanceNavigationTiming
-		| undefined;
-	if (!nav) {
-		return null;
-	}
+export const readBenchNavigationTiming =
+	function readBenchNavigationTiming(): BenchNavigationTimingMetrics | null {
+		const finiteTimingValue = (value: number): number | null =>
+			Number.isFinite(value) && value >= 0 ? Number(value.toFixed(3)) : null;
+		const nav = performance.getEntriesByType('navigation')[0] as
+			| PerformanceNavigationTiming
+			| undefined;
+		if (!nav) {
+			return null;
+		}
 
-	const navWithActivation = nav as PerformanceNavigationTiming & {
-		activationStart?: number;
-	};
-	const activationStart =
-		typeof navWithActivation.activationStart === 'number' &&
-		navWithActivation.activationStart > 0
-			? navWithActivation.activationStart
-			: 0;
-	const navigationStart = activationStart > 0 ? activationStart : nav.startTime;
-	const responseStart = nav.responseStart - navigationStart;
-	const htmlDone = nav.domContentLoadedEventEnd - navigationStart;
+		const navWithActivation = nav as PerformanceNavigationTiming & {
+			activationStart?: number;
+		};
+		const activationStart =
+			typeof navWithActivation.activationStart === 'number' &&
+			navWithActivation.activationStart > 0
+				? navWithActivation.activationStart
+				: 0;
+		const navigationStart =
+			activationStart > 0 ? activationStart : nav.startTime;
+		const responseStart = nav.responseStart - navigationStart;
+		const htmlDone = nav.domContentLoadedEventEnd - navigationStart;
 
-	return {
-		ttfbMs: nav.responseStart > 0 ? finiteTimingValue(responseStart) : null,
-		htmlDoneMs:
-			nav.domContentLoadedEventEnd > 0 ? finiteTimingValue(htmlDone) : null,
-		domContentLoadedMs: finiteTimingValue(nav.domContentLoadedEventEnd),
-		loadEventMs:
-			nav.loadEventEnd > 0 ? finiteTimingValue(nav.loadEventEnd) : null,
+		return {
+			domContentLoadedMs: finiteTimingValue(nav.domContentLoadedEventEnd),
+			htmlDoneMs:
+				nav.domContentLoadedEventEnd > 0 ? finiteTimingValue(htmlDone) : null,
+			loadEventMs:
+				nav.loadEventEnd > 0 ? finiteTimingValue(nav.loadEventEnd) : null,
+			ttfbMs: nav.responseStart > 0 ? finiteTimingValue(responseStart) : null,
+		};
 	};
-}
 
 /**
  * Self-contained page-context expression for reading navigation timing.
@@ -140,7 +142,7 @@ export const benchNavigationTimingExpression = `(() => {
 	};
 })()`;
 
-export function parseBenchThrottleProfile(
+export const parseBenchThrottleProfile = function parseBenchThrottleProfile(
 	value: string | undefined
 ): BenchThrottleProfileName {
 	const profile = value ?? 'none';
@@ -151,9 +153,11 @@ export function parseBenchThrottleProfile(
 	throw new Error(
 		`Unsupported benchmark throttle profile "${profile}". Expected "none" or "mobile".`
 	);
-}
+};
 
-export function parseBenchInitLatencyMs(value: string | undefined): number {
+export const parseBenchInitLatencyMs = function parseBenchInitLatencyMs(
+	value: string | undefined
+): number {
 	if (!value) {
 		return 0;
 	}
@@ -166,24 +170,25 @@ export function parseBenchInitLatencyMs(value: string | undefined): number {
 	}
 
 	return Math.round(parsed);
-}
+};
 
-export async function applyBenchThrottleProfile(
-	session: BenchCdpSession,
-	profileName: BenchThrottleProfileName
-): Promise<void> {
-	const profile = benchThrottleProfiles[profileName];
-	await session.send('Network.enable');
-	await session.send('Emulation.setCPUThrottlingRate', {
-		rate: profile.cpuThrottlingRate,
-	});
-	await session.send('Network.emulateNetworkConditions', {
-		offline: false,
-		latency: profile.network.latencyMs,
-		downloadThroughput: profile.network.downloadThroughputBytesPerSecond,
-		uploadThroughput: profile.network.uploadThroughputBytesPerSecond,
-	});
-}
+export const applyBenchThrottleProfile =
+	async function applyBenchThrottleProfile(
+		session: BenchCdpSession,
+		profileName: BenchThrottleProfileName
+	): Promise<void> {
+		const profile = benchThrottleProfiles[profileName];
+		await session.send('Network.enable');
+		await session.send('Emulation.setCPUThrottlingRate', {
+			rate: profile.cpuThrottlingRate,
+		});
+		await session.send('Network.emulateNetworkConditions', {
+			downloadThroughput: profile.network.downloadThroughputBytesPerSecond,
+			latency: profile.network.latencyMs,
+			offline: false,
+			uploadThroughput: profile.network.uploadThroughputBytesPerSecond,
+		});
+	};
 
 /**
  * Builds the self-contained page-context init script that records CLS,
@@ -209,12 +214,13 @@ export async function applyBenchThrottleProfile(
  *   microtask checkpoints — after parser/hydration insertion, before the
  *   next rendering opportunity.
  */
-export function benchPerformanceObserverScript(
-	options: BenchPerformanceObserverOptions
-): string {
-	const timingName = JSON.stringify(options.bannerElementTimingName);
-	const testId = JSON.stringify(options.bannerRootTestId);
-	return `(() => {
+export const benchPerformanceObserverScript =
+	function benchPerformanceObserverScript(
+		options: BenchPerformanceObserverOptions
+	): string {
+		const timingName = JSON.stringify(options.bannerElementTimingName);
+		const testId = JSON.stringify(options.bannerRootTestId);
+		return `(() => {
 	const timingName = ${timingName};
 	const testId = ${testId};
 	const metrics = {
@@ -304,11 +310,12 @@ export function benchPerformanceObserverScript(
 		);
 	} catch {}
 })();`;
-}
+	};
 
-export async function installBenchPerformanceObservers(
-	page: BenchInitScriptPage,
-	options: BenchPerformanceObserverOptions
-): Promise<void> {
-	await page.addInitScript(benchPerformanceObserverScript(options));
-}
+export const installBenchPerformanceObservers =
+	async function installBenchPerformanceObservers(
+		page: BenchInitScriptPage,
+		options: BenchPerformanceObserverOptions
+	): Promise<void> {
+		await page.addInitScript(benchPerformanceObserverScript(options));
+	};

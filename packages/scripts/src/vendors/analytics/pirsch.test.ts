@@ -23,40 +23,40 @@ describe('pirsch', () => {
 		});
 		expect(script.defer).toBe(true);
 		expect(script.attributes).toEqual({
-			id: 'pianjs',
 			'data-code': 'PIRSCH-CONTRACT',
+			id: 'pianjs',
 		});
 	});
 
 	it('serializes optional script attributes', () => {
 		const script = pirsch({
-			identificationCode: ' PIRSCH-CONTRACT ',
 			dev: 'example.com',
+			disablePageViews: true,
 			domain: [
 				'rollup.example.com:ROLLUP_CODE',
 				'second.example.com:SECOND_CODE',
 			],
 			eventEndpoint: 'https://analytics.example.com/event',
 			hitEndpoint: 'https://analytics.example.com/hit',
-			disablePageViews: true,
+			identificationCode: ' PIRSCH-CONTRACT ',
 		});
 
 		expect(script.attributes).toEqual({
-			id: 'pianjs',
 			'data-code': 'PIRSCH-CONTRACT',
 			'data-dev': 'example.com',
+			'data-disable-page-views': '',
 			'data-domain':
 				'rollup.example.com:ROLLUP_CODE,second.example.com:SECOND_CODE',
 			'data-event-endpoint': 'https://analytics.example.com/event',
 			'data-hit-endpoint': 'https://analytics.example.com/hit',
-			'data-disable-page-views': '',
+			id: 'pianjs',
 		});
 	});
 
 	it('uses the extended loader and script element id', () => {
 		const script = pirsch({
-			identificationCode: 'PIRSCH-CONTRACT',
 			extended: true,
+			identificationCode: 'PIRSCH-CONTRACT',
 		});
 
 		expect(script.src).toBe('https://api.pirsch.io/pirsch-extended.js');

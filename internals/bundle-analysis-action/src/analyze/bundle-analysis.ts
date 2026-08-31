@@ -130,6 +130,7 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 							(a: { id: string | number }) => String(a.id) === String(assetId)
 						);
 						if (asset?.gzipSize) {
+							// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 							gzipSize = asset.gzipSize;
 							break;
 						}
@@ -367,7 +368,8 @@ function parseWorkspaceDependencyName(version: string): string | undefined {
 	}
 
 	// Matches `workspace:pkg` and `workspace:pkg@range`
-	const match = specifier.match(/^(@[^/]+\/[^@/]+|[^@/][^@/]*)(?:@.+)?$/);
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const match = specifier.match(/^(@[^/]+\/[^@/]+|[^@/][^@/]*)(?:@.+)?$/u);
 	if (!match) {
 		return undefined;
 	}
@@ -674,9 +676,9 @@ export function generateMarkdownReport(
 			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
 			markdown += '|--------|-----------|--------------|--------|----------|\n';
 			for (const change of pkg.diffs.changed) {
-				const sign = change.diff >= 0 ? '+' : '';
-				const emoji = getChangeEmoji(change.diffPercent);
-				markdown += `| ${emoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${sign}${formatBytes(change.diff)} | ${sign}${change.diffPercent.toFixed(2)}% |\n`;
+				const signLocal = change.diff >= 0 ? '+' : '';
+				const emojiLocal = getChangeEmoji(change.diffPercent);
+				markdown += `| ${emojiLocal} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${signLocal}${formatBytes(change.diff)} | ${signLocal}${change.diffPercent.toFixed(2)}% |\n`;
 			}
 			markdown += '\n';
 		}
@@ -740,7 +742,8 @@ export function writeReport(
 		const errorStack =
 			error instanceof Error && error.stack ? error.stack : errorMessage;
 		throw new Error(
-			`Failed to write bundle analysis report to ${outputPath}: ${errorStack}`
+			`Failed to write bundle analysis report to ${outputPath}: ${errorStack}`,
+			{ cause: error }
 		);
 	}
 }

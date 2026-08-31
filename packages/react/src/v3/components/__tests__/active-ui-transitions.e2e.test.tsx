@@ -33,15 +33,15 @@ const getDefined = <Value,>(
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -51,7 +51,6 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -59,10 +58,9 @@ const defaultOptions: ConsentManagerOptions = {
 		'marketing',
 		'measurement',
 	],
+	mode: 'offline',
 	offlinePolicy: {
 		policy: {
-			id: 'active-ui-transitions-test',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -73,6 +71,8 @@ const defaultOptions: ConsentManagerOptions = {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'active-ui-transitions-test',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},
@@ -81,17 +81,17 @@ const defaultOptions: ConsentManagerOptions = {
 };
 
 const storedAcceptAllConsent = () => ({
+	consentInfo: {
+		subjectId: 'sub_123456789ABC',
+		time: Date.now(),
+		type: 'accept-all',
+	},
 	consents: {
-		necessary: true,
+		experience: true,
 		functionality: true,
 		marketing: true,
 		measurement: true,
-		experience: true,
-	},
-	consentInfo: {
-		time: Date.now(),
-		type: 'accept-all',
-		subjectId: 'sub_123456789ABC',
+		necessary: true,
 	},
 });
 

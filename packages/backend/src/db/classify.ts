@@ -68,7 +68,8 @@ const C15T_TABLES = new Set([
 	'runtimePolicyDecision',
 ]);
 
-const MARKER = /(^|_)c15t_settings$/;
+// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+const MARKER = /(^|_)c15t_settings$/u;
 
 interface Observed {
 	readonly tables: ReadonlySet<string>;
@@ -96,7 +97,9 @@ interface Observed {
  * prefix — or fumadb's own marker table, which is unambiguous — before this
  * claims to have found a prefixed installation.
  */
-function detectPrefix(all: readonly string[]): string | undefined {
+const detectPrefix = function detectPrefix(
+	all: readonly string[]
+): string | undefined {
 	const counts = new Map<string, number>();
 
 	for (const name of all) {
@@ -118,16 +121,12 @@ function detectPrefix(all: readonly string[]): string | undefined {
 		}
 	}
 	return undefined;
-}
+};
 
-const observe = Effect.fn('classify.observe')(function* () {
+const observe = Effect.fn('classify.observe')(function* observe() {
 	const sql = yield* SqlClient.SqlClient;
 
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{
-				name: string;
-			}>`select name from sqlite_master where type = 'table'`,
 		mysql: () =>
 			sql<{
 				name: string;
@@ -136,17 +135,22 @@ const observe = Effect.fn('classify.observe')(function* () {
 			sql<{
 				name: string;
 			}>`select table_name as name from information_schema.tables where table_schema = current_schema() and table_type = 'BASE TABLE'`,
+		sqlite: () =>
+			sql<{
+				name: string;
+			}>`select name from sqlite_master where type = 'table'`,
 	});
 
 	const all = rows.map((row) => row.name);
 	const tables = new Set(all.filter((name) => C15T_TABLES.has(name)));
 	return {
-		tables,
-		markerTable: all.find((name) => MARKER.test(name)),
 		ledger: all.includes('c15t_migrations'),
+		markerTable: all.find((name) => MARKER.test(name)),
 		// Only interesting when the unprefixed names found nothing; a database
 		// holding both is answering as itself.
 		prefix: tables.size === 0 ? detectPrefix(all) : undefined,
+
+		tables,
 	} satisfies Observed;
 });
 
@@ -157,15 +161,15 @@ const observe = Effect.fn('classify.observe')(function* () {
  * but holds no version row, which is itself a signal that something
  * half-applied.
  */
-const markerVersion = Effect.fn('classify.markerVersion')(function* (
-	table: string
-) {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ key: string; value: string }>`
+const markerVersion = Effect.fn('classify.markerVersion')(
+	function* markerVersion(table: string) {
+		const sql = yield* SqlClient.SqlClient;
+		const rows = yield* sql<{ key: string; value: string }>`
 		select ${sql('key')}, ${sql('value')} from ${sql(table)}
 	`;
-	return rows.find((row) => row.key === 'version')?.value;
-});
+		return rows.find((row) => row.key === 'version')?.value;
+	}
+);
 
 /**
  * Distinguishes legacy from fumadb 1.0.0, which carry identical table sets.
@@ -175,31 +179,34 @@ const markerVersion = Effect.fn('classify.markerVersion')(function* (
  * genuinely indistinguishable there by type — hence the marker check runs
  * first and this is only reached without one.
  */
-const looksLikeFumadb = Effect.fn('classify.looksLikeFumadb')(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	return yield* sql.onDialectOrElse({
-		orElse: () =>
-			Effect.gen(function* () {
-				const rows = yield* sql<{ data_type: string }>`
+const looksLikeFumadb = Effect.fn('classify.looksLikeFumadb')(
+	function* looksLikeFumadb() {
+		const sql = yield* SqlClient.SqlClient;
+		return yield* sql.onDialectOrElse({
+			// On MySQL the question does not arise: fumadb cannot migrate MySQL in
+			// either era, so no fumadb-shaped MySQL database exists to confuse this
+			// with. Both `fumadb-1.0.0/mysql` and `fumadb-2.0.0/mysql` fixtures
+			// record a migration failure rather than a schema.
+			//
+			// Answering by column type would get it wrong rather than merely be
+			// unhelpful: legacy MySQL declares `consent.metadata` as `json`, the
+			// same as the `orElse` branch treats as proof of fumadb. Postgres is
+			// where that test works, because legacy declares `jsonb` there.
+			mysql: () => Effect.succeed(false),
+
+			orElse: () =>
+				Effect.gen(function* orElse() {
+					const rows = yield* sql<{ data_type: string }>`
 					select data_type from information_schema.columns
 					where table_name = 'consent' and column_name = 'metadata'
 				`;
-				const type = rows[0]?.data_type?.toLowerCase();
-				return type === undefined ? undefined : type === 'json';
-			}),
-		sqlite: () => Effect.succeed(undefined),
-		// On MySQL the question does not arise: fumadb cannot migrate MySQL in
-		// either era, so no fumadb-shaped MySQL database exists to confuse this
-		// with. Both `fumadb-1.0.0/mysql` and `fumadb-2.0.0/mysql` fixtures
-		// record a migration failure rather than a schema.
-		//
-		// Answering by column type would get it wrong rather than merely be
-		// unhelpful: legacy MySQL declares `consent.metadata` as `json`, the
-		// same as the `orElse` branch treats as proof of fumadb. Postgres is
-		// where that test works, because legacy declares `jsonb` there.
-		mysql: () => Effect.succeed(false),
-	});
-});
+					const type = rows[0]?.data_type?.toLowerCase();
+					return type === undefined ? undefined : type === 'json';
+				}),
+			sqlite: () => Effect.succeed(undefined),
+		});
+	}
+);
 
 /**
  * Classifies the connected database.
@@ -211,7 +218,7 @@ export const classify: Effect.Effect<
 	DatabaseClassification,
 	SqlError.SqlError,
 	SqlClient.SqlClient
-> = Effect.gen(function* () {
+> = Effect.gen(function* classify() {
 	const observed = yield* observe();
 
 	if (observed.tables.size === 0) {

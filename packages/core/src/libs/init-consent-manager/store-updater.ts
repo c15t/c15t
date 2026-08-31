@@ -436,7 +436,7 @@ export async function updateStore(
 				enabled: false,
 			},
 		};
-	} else if (iab && data.cmpId != null) {
+	} else if (iab && data.cmpId !== null && data.cmpId !== undefined) {
 		// Persist server-provided cmpId in store so subsequent save() calls use it
 		storeUpdate.iab = {
 			...iab,
@@ -473,7 +473,8 @@ export async function updateStore(
 		const mergedConfig = {
 			...iab.config,
 			customVendors: mergedCustomVendors,
-			...(data.cmpId != null && { cmpId: data.cmpId }),
+			...(data.cmpId !== null &&
+				data.cmpId !== undefined && { cmpId: data.cmpId }),
 		};
 
 		// Non-blocking initialization - errors are handled within initializeIABMode

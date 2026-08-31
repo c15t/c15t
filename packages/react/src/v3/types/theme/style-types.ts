@@ -1,8 +1,6 @@
 import type {
 	ClassNameStyle as BaseClassNameStyle,
-	CSSPropertiesWithVars as BaseCSSPropertiesWithVars,
 	Theme as BaseTheme,
-	ThemeValue as BaseThemeValue,
 } from '@c15t/ui/theme';
 import type { CSSProperties } from 'react';
 
@@ -63,8 +61,8 @@ export interface Theme extends Omit<BaseTheme, 'slots'> {
  * Helper function to define a theme with full TypeScript autocompletion and validation.
  * @public
  */
-export function defineTheme<ThemeType extends Theme>(
+export const defineTheme = function defineTheme<ThemeType extends Theme>(
 	theme: ThemeType
 ): ThemeType {
 	return theme;
-}
+};

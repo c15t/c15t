@@ -194,6 +194,7 @@ function parseFetchOptions(): FetchOptions {
 	if (branchFlag) {
 		if (branchFlag.includes('=')) {
 			// Format: --branch=canary
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			branch = branchFlag.split('=')[1];
 		} else {
 			// Format: --branch canary

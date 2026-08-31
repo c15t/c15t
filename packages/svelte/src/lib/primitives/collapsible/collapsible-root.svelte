@@ -29,17 +29,17 @@
 	const triggerId = `c15t-collapsible-trigger-${componentId}`;
 	const contentId = `c15t-collapsible-content-${componentId}`;
 
-	function setOpen(nextOpen: boolean) {
+	const setOpen = function setOpen(nextOpen: boolean) {
 		if (disabled) {
 			return;
 		}
 
 		open = nextOpen;
-	}
+	};
 
-	function toggle() {
+	const toggle = function toggle() {
 		setOpen(toggleCollapsibleValue(open));
-	}
+	};
 
 	setCollapsibleRootContext({
 		get contentId() {
@@ -51,11 +51,11 @@
 		get open() {
 			return open;
 		},
+		setOpen,
+		toggle,
 		get triggerId() {
 			return triggerId;
 		},
-		setOpen,
-		toggle,
 	});
 </script>
 

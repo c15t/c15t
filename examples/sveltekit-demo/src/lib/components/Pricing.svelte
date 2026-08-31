@@ -1,9 +1,6 @@
 <script lang="ts">
 	const plans = [
 		{
-			name: 'Starter',
-			price: '\u00a39',
-			period: 'per delivery',
 			description: 'Perfect for occasional senders',
 			features: [
 				'Up to 500g packages',
@@ -12,12 +9,12 @@
 				'Email notifications',
 				'Basic support',
 			],
+			name: 'Starter',
+			period: 'per delivery',
 			popular: false,
+			price: '\u00a39',
 		},
 		{
-			name: 'Business',
-			price: '\u00a3199',
-			period: 'per month',
 			description: 'For growing businesses',
 			features: [
 				'Up to 2kg packages',
@@ -29,12 +26,12 @@
 				'Priority support',
 				'50 deliveries included',
 			],
+			name: 'Business',
+			period: 'per month',
 			popular: true,
+			price: '\u00a3199',
 		},
 		{
-			name: 'Enterprise',
-			price: 'Custom',
-			period: 'contact us',
 			description: 'For large organizations',
 			features: [
 				'Unlimited package weight',
@@ -47,7 +44,10 @@
 				'Custom integrations',
 				'SLA guarantee',
 			],
+			name: 'Enterprise',
+			period: 'contact us',
 			popular: false,
+			price: 'Custom',
 		},
 	];
 </script>

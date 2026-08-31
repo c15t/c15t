@@ -29,38 +29,38 @@ describe('deepMergeTranslations', () => {
 	const baseTranslations: Translations = {
 		common: {
 			acceptAll: 'Default Accept All',
-			rejectAll: 'Default Reject All',
 			customize: 'Default Customize',
+			rejectAll: 'Default Reject All',
 			save: 'Default Save',
-		},
-		cookieBanner: {
-			title: 'Base Title',
-			description: 'Base Description',
 		},
 		consentManagerDialog: {
 			title: 'Dialog Title',
 		},
 		consentTypes: {
 			necessary: {
-				title: 'Necessary',
 				description: 'These cookies are required',
+				title: 'Necessary',
 			},
 		},
+		cookieBanner: {
+			description: 'Base Description',
+			title: 'Base Title',
+		},
 		frame: {
-			title: 'Frame Title',
 			actionButton: 'Frame Button',
-			loading: 'Loading content',
 			error: 'Content failed',
+			loading: 'Loading content',
+			title: 'Frame Title',
 		},
 	};
 
 	it('should merge translations with override taking priority', () => {
 		const override: Partial<Translations> = {
-			cookieBanner: {
-				title: 'Custom Title',
-			},
 			consentManagerDialog: {
 				description: 'Custom Dialog Description',
+			},
+			cookieBanner: {
+				title: 'Custom Title',
 			},
 		};
 
@@ -69,29 +69,29 @@ describe('deepMergeTranslations', () => {
 		expect(result).toEqual({
 			common: {
 				acceptAll: 'Default Accept All',
-				rejectAll: 'Default Reject All',
 				customize: 'Default Customize',
+				rejectAll: 'Default Reject All',
 				save: 'Default Save',
 			},
-			cookieBanner: {
-				title: 'Custom Title',
-				description: 'Base Description',
-			},
 			consentManagerDialog: {
-				title: 'Dialog Title',
 				description: 'Custom Dialog Description',
+				title: 'Dialog Title',
 			},
 			consentTypes: {
 				necessary: {
-					title: 'Necessary',
 					description: 'These cookies are required',
+					title: 'Necessary',
 				},
 			},
+			cookieBanner: {
+				description: 'Base Description',
+				title: 'Custom Title',
+			},
 			frame: {
-				title: 'Frame Title',
 				actionButton: 'Frame Button',
-				loading: 'Loading content',
 				error: 'Content failed',
+				loading: 'Loading content',
+				title: 'Frame Title',
 			},
 		});
 	});
@@ -104,55 +104,56 @@ describe('deepMergeTranslations', () => {
 
 describe('mergeTranslationConfigs', () => {
 	const defaultConfig: TranslationConfig = {
+		defaultLanguage: 'en',
 		translations: {
-			en: {
-				common: {
-					acceptAll: 'Default Accept All',
-					rejectAll: 'Default Reject All',
-					customize: 'Default Customize',
-					save: 'Default Save',
-				},
-				cookieBanner: {
-					title: 'Default Title',
-					description: 'Default Description',
-				},
-				consentManagerDialog: {
-					title: 'Default Dialog',
-				},
-				consentTypes: {
-					necessary: {
-						title: 'Necessary',
-						description: 'These cookies are required',
-					},
-				},
-			},
 			de: {
 				common: {
 					acceptAll: 'German Accept All',
-					rejectAll: 'German Reject All',
 					customize: 'German Customize',
+					rejectAll: 'German Reject All',
 					save: 'German Save',
-				},
-				cookieBanner: {
-					title: 'German Title',
-					description: 'German Description',
 				},
 				consentManagerDialog: {
 					title: 'German Dialog',
 				},
 				consentTypes: {
 					necessary: {
-						title: 'Notwendig',
 						description: 'Diese Cookies sind erforderlich',
+						title: 'Notwendig',
 					},
+				},
+				cookieBanner: {
+					description: 'German Description',
+					title: 'German Title',
+				},
+			},
+			en: {
+				common: {
+					acceptAll: 'Default Accept All',
+					customize: 'Default Customize',
+					rejectAll: 'Default Reject All',
+					save: 'Default Save',
+				},
+				consentManagerDialog: {
+					title: 'Default Dialog',
+				},
+				consentTypes: {
+					necessary: {
+						description: 'These cookies are required',
+						title: 'Necessary',
+					},
+				},
+				cookieBanner: {
+					description: 'Default Description',
+					title: 'Default Title',
 				},
 			},
 		},
-		defaultLanguage: 'en',
 	};
 
 	it('should merge configs with custom taking priority', () => {
 		const customConfig: Partial<TranslationConfig> = {
+			defaultLanguage: 'de',
 			translations: {
 				en: {
 					cookieBanner: {
@@ -160,7 +161,6 @@ describe('mergeTranslationConfigs', () => {
 					},
 				},
 			},
-			defaultLanguage: 'de',
 		};
 
 		const result = mergeTranslationConfigs(defaultConfig, customConfig);
@@ -200,9 +200,10 @@ describe('mergeTranslationConfigs', () => {
 	it('should prioritize i18n over legacy fields when both are present', () => {
 		const result = mergeTranslationConfigs(
 			{
-				translations: defaultConfig.translations,
 				defaultLanguage: 'en',
 				i18n: {
+					detectBrowserLanguage: false,
+					locale: 'fr',
 					messages: {
 						fr: {
 							cookieBanner: {
@@ -210,9 +211,8 @@ describe('mergeTranslationConfigs', () => {
 							},
 						},
 					},
-					locale: 'fr',
-					detectBrowserLanguage: false,
 				},
+				translations: defaultConfig.translations,
 			},
 			{
 				defaultLanguage: 'de',
@@ -238,30 +238,30 @@ describe('detectBrowserLanguage', () => {
 
 	beforeEach(() => {
 		Object.defineProperty(window, 'navigator', {
-			value: mockNavigator,
 			configurable: true,
+			value: mockNavigator,
 		});
 	});
 
 	it('should return default language when auto-switch is disabled', () => {
-		const result = detectBrowserLanguage({ en: {}, de: {} }, 'de', true);
+		const result = detectBrowserLanguage({ de: {}, en: {} }, 'de', true);
 		expect(result).toBe('de');
 	});
 
 	it('should return en when no default language is provided and auto-switch is disabled', () => {
-		const result = detectBrowserLanguage({ en: {}, de: {} }, undefined, true);
+		const result = detectBrowserLanguage({ de: {}, en: {} }, undefined, true);
 		expect(result).toBe('en');
 	});
 
 	it('should detect browser language when available', () => {
 		mockNavigator.language = 'de-DE';
-		const result = detectBrowserLanguage({ en: {}, de: {} }, 'en', false);
+		const result = detectBrowserLanguage({ de: {}, en: {} }, 'en', false);
 		expect(result).toBe('de');
 	});
 
 	it('should fall back to default language when browser language not available', () => {
 		mockNavigator.language = 'fr-FR';
-		const result = detectBrowserLanguage({ en: {}, de: {} }, 'en', false);
+		const result = detectBrowserLanguage({ de: {}, en: {} }, 'en', false);
 		expect(result).toBe('en');
 	});
 });
@@ -297,15 +297,15 @@ describe('parseAcceptLanguage', () => {
 
 describe('selectLanguage', () => {
 	it('should return fallback when no available languages', () => {
-		expect(selectLanguage([], { header: 'de', fallback: 'en' })).toBe('en');
+		expect(selectLanguage([], { fallback: 'en', header: 'de' })).toBe('en');
 	});
 
 	it('should return first matching language from header', () => {
 		const available = ['en', 'de'];
 		expect(
 			selectLanguage(available, {
-				header: 'de-DE,en;q=0.9',
 				fallback: 'en',
+				header: 'de-DE,en;q=0.9',
 			})
 		).toBe('de');
 	});
@@ -314,8 +314,8 @@ describe('selectLanguage', () => {
 		const available = ['en', 'de'];
 		expect(
 			selectLanguage(available, {
-				header: 'xx-XX,yy;q=0.9',
 				fallback: 'en',
+				header: 'xx-XX,yy;q=0.9',
 			})
 		).toBe('en');
 	});
@@ -324,8 +324,8 @@ describe('selectLanguage', () => {
 		const available = ['en', 'de'];
 		expect(
 			selectLanguage(available, {
-				header: 'xx-XX,en;q=0.9,de;q=0.8',
 				fallback: 'de',
+				header: 'xx-XX,en;q=0.9,de;q=0.8',
 			})
 		).toBe('en');
 	});
@@ -339,66 +339,66 @@ describe('selectLanguage', () => {
 describe('i18n normalization', () => {
 	it('should map legacy translation config into i18n shape', () => {
 		const normalized = normalizeI18nConfig({
-			translations: { en: { common: { acceptAll: 'Accept' } } },
 			defaultLanguage: 'en',
 			disableAutoLanguageSwitch: true,
+			translations: { en: { common: { acceptAll: 'Accept' } } },
 		});
 
 		expect(normalized).toEqual({
-			messages: { en: { common: { acceptAll: 'Accept' } } },
-			locale: 'en',
 			detectBrowserLanguage: false,
+			locale: 'en',
+			messages: { en: { common: { acceptAll: 'Accept' } } },
 		});
 	});
 
 	it('should prefer i18n values when both i18n and legacy values are provided', () => {
 		const normalized = normalizeI18nConfig({
-			translations: { en: { common: { acceptAll: 'Legacy' } } },
 			defaultLanguage: 'en',
 			i18n: {
-				messages: { de: { common: { acceptAll: 'Neu' } } },
-				locale: 'de',
 				detectBrowserLanguage: true,
+				locale: 'de',
+				messages: { de: { common: { acceptAll: 'Neu' } } },
 			},
+			translations: { en: { common: { acceptAll: 'Legacy' } } },
 		});
 
 		expect(normalized).toEqual({
-			messages: { de: { common: { acceptAll: 'Neu' } } },
-			locale: 'de',
 			detectBrowserLanguage: true,
+			locale: 'de',
+			messages: { de: { common: { acceptAll: 'Neu' } } },
 		});
 	});
 
 	it('should map canonical i18n shape back to legacy translation config', () => {
 		const config: I18nConfig = {
-			messages: { en: { common: { acceptAll: 'Accept' } } },
-			locale: 'en',
 			detectBrowserLanguage: true,
+			locale: 'en',
+			messages: { en: { common: { acceptAll: 'Accept' } } },
 		};
 
 		expect(toTranslationConfig(config)).toEqual({
-			translations: { en: { common: { acceptAll: 'Accept' } } },
 			defaultLanguage: 'en',
 			disableAutoLanguageSwitch: false,
+			translations: { en: { common: { acceptAll: 'Accept' } } },
 		});
 	});
 });
 
 describe('prepareTranslationConfig', () => {
 	const defaultConfig: TranslationConfig = {
+		defaultLanguage: 'en',
 		translations: {
-			en: {
-				cookieBanner: {
-					title: 'Default Title',
-				},
-			},
 			de: {
 				cookieBanner: {
 					title: 'German Title',
 				},
 			},
+			en: {
+				cookieBanner: {
+					title: 'Default Title',
+				},
+			},
 		},
-		defaultLanguage: 'en',
 	};
 
 	const mockNavigator = {
@@ -407,8 +407,8 @@ describe('prepareTranslationConfig', () => {
 
 	beforeEach(() => {
 		Object.defineProperty(window, 'navigator', {
-			value: mockNavigator,
 			configurable: true,
+			value: mockNavigator,
 		});
 	});
 
@@ -419,6 +419,8 @@ describe('prepareTranslationConfig', () => {
 
 	it('should respect custom config settings', () => {
 		const customConfig: Partial<TranslationConfig> = {
+			defaultLanguage: 'en',
+			disableAutoLanguageSwitch: true,
 			translations: {
 				en: {
 					cookieBanner: {
@@ -426,8 +428,6 @@ describe('prepareTranslationConfig', () => {
 					},
 				},
 			},
-			defaultLanguage: 'en',
-			disableAutoLanguageSwitch: true,
 		};
 
 		const result = prepareTranslationConfig(defaultConfig, customConfig);

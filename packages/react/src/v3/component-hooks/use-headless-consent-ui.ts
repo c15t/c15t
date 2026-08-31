@@ -53,7 +53,7 @@ export type HeadlessConsentBannerState =
 export type HeadlessConsentDialogState =
 	HeadlessConsentSurfaceState<HeadlessConsentDialogAction>;
 
-function resolveSurfaceState(
+const resolveSurfaceState = function resolveSurfaceState(
 	activeUI: string,
 	surface: HeadlessConsentSurface,
 	policy: PolicyUiSurfaceConfig
@@ -72,30 +72,31 @@ function resolveSurfaceState(
 	const direction = resolvePolicyDirection(policy.direction);
 
 	return {
-		allowedActions,
-		orderedActions,
 		actionGroups,
+		allowedActions,
+		direction,
+		hasPolicyHints: hasPolicyHints(policy),
+		isVisible: activeUI === surface,
+		layout: policy.layout,
+		orderedActions,
 		primaryActions: resolvePolicyPrimaryActions({
 			orderedActions,
 			primaryActions: policy.primaryActions,
 		}),
-		layout: policy.layout,
-		direction,
-		uiProfile: policy.uiProfile,
 		scrollLock: policy.scrollLock,
-		hasPolicyHints: hasPolicyHints(policy),
 		shouldFillActions: shouldFillPolicyActions({
-			uiProfile: policy.uiProfile,
 			actionGroups,
 			direction,
+
+			uiProfile: policy.uiProfile,
 		}),
-		isVisible: activeUI === surface,
+		uiProfile: policy.uiProfile,
 	};
-}
+};
 
 const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
 
-export function useHeadlessConsentUI() {
+export const useHeadlessConsentUI = function useHeadlessConsentUI() {
 	const activeUI = useActiveUI() ?? 'none';
 	const policyBanner = usePolicyBanner() ?? EMPTY_POLICY_SURFACE;
 	const policyDialog = usePolicyDialog() ?? EMPTY_POLICY_SURFACE;
@@ -133,13 +134,13 @@ export function useHeadlessConsentUI() {
 	return {
 		activeUI,
 		banner,
+		closeUI,
 		dialog,
 		openBanner,
 		openDialog,
-		closeUI,
 		performAction,
 		performBannerAction: performAction,
 		performDialogAction: performAction,
 		saveCustomPreferences: () => saveConsents(),
 	};
-}
+};

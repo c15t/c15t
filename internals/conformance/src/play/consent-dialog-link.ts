@@ -8,7 +8,7 @@ export const linkOpensDialog: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	await userEvent.tab();
 	await expect(
-		canvas.getByRole('button', { name: /privacy preferences/i })
+		canvas.getByRole('button', { name: /privacy preferences/iu })
 	).toHaveFocus();
 	await userEvent.keyboard('{Enter}');
 	await expect(

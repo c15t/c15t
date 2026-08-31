@@ -199,7 +199,7 @@ export function buildPrefetchScript(options: PrefetchOptions): string {
 		},
 	};
 
-	const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+	const json = JSON.stringify(payload).replace(/</gu, '\\u003c');
 
 	return `(() => {
   const mapKey = '${WINDOW_PROMISES_KEY}';

@@ -97,43 +97,47 @@ const GIVEN_AT = iso(1_800_000_000_000);
 
 /** A small world that every case can rely on. */
 export const BASE_FIXTURE: SeedFixture = {
-	subjects: [
-		{ id: 'sub_1', externalId: 'ext_1', identityProvider: 'external' },
-		{ id: 'sub_2', externalId: 'ext_1', identityProvider: 'external' },
-		{ id: 'sub_orphan', externalId: null, identityProvider: 'anonymous' },
+	consents: [
+		{
+			domainId: 'dom_1',
+			givenAt: GIVEN_AT,
+
+			id: 'cns_1',
+			policyId: 'pol_current',
+			subjectId: 'sub_1',
+		},
+		{
+			domainId: 'dom_1',
+			givenAt: GIVEN_AT,
+
+			id: 'cns_old',
+			policyId: 'pol_superseded',
+			subjectId: 'sub_2',
+		},
 	],
 	domains: [{ id: 'dom_1', name: 'example.com' }],
 	policies: [
 		{
-			id: 'pol_current',
-			version: '2.0',
-			type: 'cookie',
 			effectiveDate: iso(1_800_000_000_000),
+			id: 'pol_current',
 			isActive: true,
+
+			type: 'cookie',
+			version: '2.0',
 		},
 		{
-			id: 'pol_superseded',
-			version: '1.0',
-			type: 'cookie',
 			effectiveDate: iso(1_700_000_000_000),
+			id: 'pol_superseded',
 			isActive: true,
+
+			type: 'cookie',
+			version: '1.0',
 		},
 	],
-	consents: [
-		{
-			id: 'cns_1',
-			subjectId: 'sub_1',
-			domainId: 'dom_1',
-			policyId: 'pol_current',
-			givenAt: GIVEN_AT,
-		},
-		{
-			id: 'cns_old',
-			subjectId: 'sub_2',
-			domainId: 'dom_1',
-			policyId: 'pol_superseded',
-			givenAt: GIVEN_AT,
-		},
+	subjects: [
+		{ externalId: 'ext_1', id: 'sub_1', identityProvider: 'external' },
+		{ externalId: 'ext_1', id: 'sub_2', identityProvider: 'external' },
+		{ externalId: null, id: 'sub_orphan', identityProvider: 'anonymous' },
 	],
 };
 
@@ -146,121 +150,162 @@ const authed = (apiKey: string, path: string, init: RequestInit = {}) =>
 		headers: { ...init.headers, Authorization: `Bearer ${apiKey}` },
 	});
 
+// Minimal assertions so the suite has no test-framework dependency and can be
+// driven from either package's runner.
+
+const assertStatus = function assertStatus(
+	response: Response,
+	expected: number
+): void {
+	if (response.status !== expected) {
+		throw new Error(`expected status ${expected}, got ${response.status}`);
+	}
+};
+
+const assertHas = function assertHas(value: unknown, key: string): void {
+	if (
+		typeof value !== 'object' ||
+		value === null ||
+		!Object.hasOwn(value, key)
+	) {
+		throw new Error(`expected an object with "${key}"`);
+	}
+};
+
+const assertEqual = function assertEqual<T>(
+	actual: T,
+	expected: T,
+	message?: string
+): void {
+	if (actual !== expected) {
+		throw new Error(
+			`${message ?? 'values differ'}: expected ${String(expected)}, got ${String(actual)}`
+		);
+	}
+};
+
 export const CASES: readonly ConformanceCase[] = [
 	// ---------------------------------------------------------------- status
 	{
-		name: 'status reports a version',
-		rationale:
-			'A health check that cannot answer is indistinguishable from a dead process.',
-		request: () => json('/status'),
 		expect: (response, body) => {
 			assertStatus(response, 200);
 			assertHas(body, 'version');
 		},
+		name: 'status reports a version',
+		rationale:
+			'A health check that cannot answer is indistinguishable from a dead process.',
+		request: () => json('/status'),
 	},
 	{
+		expect: (response) => assertStatus(response, 200),
 		name: 'status needs no API key',
 		rationale:
 			'A load balancer cannot present credentials, so requiring them makes the check useless.',
 		request: () => json('/status'),
-		expect: (response) => assertStatus(response, 200),
 	},
 
 	// -------------------------------------------------------------- subjects
 	{
+		expect: (response) => assertStatus(response, 401),
 		name: 'listing subjects requires an API key',
 		rationale:
 			'The response links a named person to their consent records; an unauthenticated read would disclose it.',
-		seed: BASE_FIXTURE,
 		request: () => json('/subjects?externalId=ext_1'),
-		expect: (response) => assertStatus(response, 401),
+		seed: BASE_FIXTURE,
 	},
 	{
+		expect: (response, body) => {
+			assertStatus(response, 200);
+			const { subjects } = body as { subjects: unknown[] };
+			assertEqual(subjects.length, 2, 'expected both subjects');
+		},
 		name: 'listing returns every subject sharing an external id',
 		rationale:
 			'One person can hold several subjects; returning only the first would hide consent records.',
-		seed: BASE_FIXTURE,
 		request: ({ apiKey }) => authed(apiKey, '/subjects?externalId=ext_1'),
-		expect: (response, body) => {
-			assertStatus(response, 200);
-			const subjects = (body as { subjects: unknown[] }).subjects;
-			assertEqual(subjects.length, 2, 'expected both subjects');
-		},
+		seed: BASE_FIXTURE,
 	},
 	{
+		expect: (response) => assertStatus(response, 400),
 		name: 'listing rejects a missing externalId',
 		rationale:
 			'Answering with everything would leak the whole tenant; answering with nothing would hide a client bug.',
 		request: ({ apiKey }) => authed(apiKey, '/subjects'),
-		expect: (response) => assertStatus(response, 400),
 	},
 	{
-		name: 'listing an unknown externalId returns an empty list',
-		rationale:
-			'Absence is not an error — a subject who has never consented is a normal state.',
-		seed: BASE_FIXTURE,
-		request: ({ apiKey }) => authed(apiKey, '/subjects?externalId=nobody'),
 		expect: (response, body) => {
 			assertStatus(response, 200);
 			assertEqual((body as { subjects: unknown[] }).subjects.length, 0);
 		},
+		name: 'listing an unknown externalId returns an empty list',
+		rationale:
+			'Absence is not an error — a subject who has never consented is a normal state.',
+		request: ({ apiKey }) => authed(apiKey, '/subjects?externalId=nobody'),
+		seed: BASE_FIXTURE,
 	},
 
 	// ------------------------------------------------------------ subject/:id
 	{
+		expect: (response) => assertStatus(response, 404),
 		name: 'a missing subject is 404, not an empty result',
 		rationale:
 			'An empty consent list asserts the subject exists and consented to nothing, which is a different claim.',
-		seed: BASE_FIXTURE,
 		request: () => json('/subjects/sub_absent'),
-		expect: (response) => assertStatus(response, 404),
+		seed: BASE_FIXTURE,
 	},
 	{
-		name: 'consent against a superseded policy is not valid',
-		rationale:
-			'The entire purpose of tracking policy versions is that old consent stops counting.',
-		seed: BASE_FIXTURE,
-		request: () => json('/subjects/sub_2?type=cookie'),
 		expect: (response, body) => {
 			assertStatus(response, 200);
 			assertEqual((body as { isValid: boolean }).isValid, false);
 		},
+		name: 'consent against a superseded policy is not valid',
+		rationale:
+			'The entire purpose of tracking policy versions is that old consent stops counting.',
+		request: () => json('/subjects/sub_2?type=cookie'),
+		seed: BASE_FIXTURE,
 	},
 
 	// --------------------------------------------------------- consents/check
 	{
+		expect: (response, body) => {
+			assertStatus(response, 200);
+			const { results } = body as { results: Record<string, unknown> };
+			assertHas(results, 'marketing');
+		},
 		name: 'check reports requested types that have no consent',
 		rationale:
 			'An omitted key makes "no consent" indistinguishable from "unknown type" to a caller gating scripts.',
-		seed: BASE_FIXTURE,
 		request: () =>
 			json('/consents/check?externalId=ext_1&type=cookie,marketing'),
-		expect: (response, body) => {
-			assertStatus(response, 200);
-			const results = (body as { results: Record<string, unknown> }).results;
-			assertHas(results, 'marketing');
-		},
+		seed: BASE_FIXTURE,
 	},
 	{
+		expect: (response) => assertStatus(response, 400),
 		name: 'check requires both parameters',
 		rationale:
 			'Either alone is ambiguous, and guessing the other would answer a question nobody asked.',
 		request: () => json('/consents/check?externalId=ext_1'),
-		expect: (response) => assertStatus(response, 400),
 	},
 
 	// ------------------------------------------------------------------ init
 	{
+		expect: (response) => assertStatus(response, 200),
 		name: 'init resolves without geo headers',
 		rationale:
 			'Most requests carry no geo at all; failing without it would break the default path.',
 		request: () => json('/init'),
-		expect: (response) => assertStatus(response, 200),
 	},
 	{
-		name: 'init is never cached across visitors',
-		rationale:
-			'The response depends on geo and GPC, so a shared cache would serve one visitor the decision made for another.',
+		expect: (response) => {
+			assertStatus(response, 200);
+			const cacheControl = response.headers.get('Cache-Control') ?? '';
+			if (!/no-store|no-cache|private/u.test(cacheControl)) {
+				throw new Error(
+					`expected /init to forbid shared caching, got "${cacheControl}"`
+				);
+			}
+		},
+
 		// Found by running this suite against the shipped backend: it sets no
 		// cache headers on /init at all. Most CDNs treat an uncached 200 GET as
 		// cacheable, so a visitor in one jurisdiction can receive the decision
@@ -274,24 +319,14 @@ export const CASES: readonly ConformanceCase[] = [
 			backend: '@c15t/backend',
 			why: 'Sets no Cache-Control on /init; a shared cache may serve one visitor the decision computed for another.',
 		},
+		name: 'init is never cached across visitors',
+		rationale:
+			'The response depends on geo and GPC, so a shared cache would serve one visitor the decision made for another.',
 		request: () => json('/init'),
-		expect: (response) => {
-			assertStatus(response, 200);
-			const cacheControl = response.headers.get('Cache-Control') ?? '';
-			if (!/no-store|no-cache|private/.test(cacheControl)) {
-				throw new Error(
-					`expected /init to forbid shared caching, got "${cacheControl}"`
-				);
-			}
-		},
 	},
 
 	// -------------------------------------------------------------- manifest
 	{
-		name: 'manifest is publicly cacheable',
-		rationale:
-			'It is per-tenant and geo-independent by design; without a cache header the CDN offload it exists for does not happen.',
-		request: () => json('/manifest'),
 		expect: (response) => {
 			assertStatus(response, 200);
 			const cacheControl = response.headers.get('Cache-Control') ?? '';
@@ -301,12 +336,12 @@ export const CASES: readonly ConformanceCase[] = [
 				);
 			}
 		},
+		name: 'manifest is publicly cacheable',
+		rationale:
+			'It is per-tenant and geo-independent by design; without a cache header the CDN offload it exists for does not happen.',
+		request: () => json('/manifest'),
 	},
 	{
-		name: 'manifest carries an etag',
-		rationale:
-			'Without one a client re-downloads an unchanged document on every check.',
-		request: () => json('/manifest'),
 		expect: (response) => {
 			assertStatus(response, 200);
 			assertHas({ etag: response.headers.get('ETag') }, 'etag');
@@ -314,42 +349,19 @@ export const CASES: readonly ConformanceCase[] = [
 				throw new Error('expected an ETag header');
 			}
 		},
+		name: 'manifest carries an etag',
+		rationale:
+			'Without one a client re-downloads an unchanged document on every check.',
+		request: () => json('/manifest'),
 	},
 	{
-		name: 'manifest is stable across requests',
-		rationale:
-			'A revision that moved per request would bust every CDN and client cache continuously.',
-		request: () => json('/manifest'),
 		expect: () => {
 			// Stability across calls is asserted by the runner issuing this case
 			// twice; a changing etag surfaces as a mismatch there.
 		},
+		name: 'manifest is stable across requests',
+		rationale:
+			'A revision that moved per request would bust every CDN and client cache continuously.',
+		request: () => json('/manifest'),
 	},
 ];
-
-// Minimal assertions so the suite has no test-framework dependency and can be
-// driven from either package's runner.
-
-function assertStatus(response: Response, expected: number): void {
-	if (response.status !== expected) {
-		throw new Error(`expected status ${expected}, got ${response.status}`);
-	}
-}
-
-function assertEqual<T>(actual: T, expected: T, message?: string): void {
-	if (actual !== expected) {
-		throw new Error(
-			`${message ?? 'values differ'}: expected ${String(expected)}, got ${String(actual)}`
-		);
-	}
-}
-
-function assertHas(value: unknown, key: string): void {
-	if (
-		typeof value !== 'object' ||
-		value === null ||
-		!Object.hasOwn(value, key)
-	) {
-		throw new Error(`expected an object with "${key}"`);
-	}
-}

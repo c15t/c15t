@@ -40,6 +40,100 @@ interface PurposeItemProps {
 	) => void;
 }
 
+const VendorRow: FC<VendorRowProps> = ({
+	vendor,
+	isConsented,
+	onToggle,
+	onClick,
+	isLegitimateInterest = false,
+	isLegitimateInterestAllowed = true,
+	onLegitimateInterestToggle,
+}) => {
+	const iab = useIABTranslations();
+
+	// For LI vendors, we show an objection control instead of consent toggle
+	const showLIControl = isLegitimateInterest && onLegitimateInterestToggle;
+
+	return (
+		<div
+			className={`${styles.vendorRow} ${isLegitimateInterest ? styles.vendorRowLi : ''}`}
+		>
+			<div className={styles.vendorInfo}>
+				<button
+					type="button"
+					onClick={onClick}
+					className={styles.vendorName}
+				>
+					<span>{vendor.name}</span>
+					{vendor.isCustom && (
+						<svg
+							className={styles.customVendorIcon}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							aria-label={iab.common.customPartner}
+						>
+							<circle
+								cx="12"
+								cy="12"
+								r="10"
+							/>
+							<line
+								x1="2"
+								y1="12"
+								x2="22"
+								y2="12"
+							/>
+							<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+						</svg>
+					)}
+				</button>
+				<div className={styles.vendorDetails}>
+					{isLegitimateInterest && (
+						<span className={`${styles.vendorDetail} ${styles.vendorDetailLi}`}>
+							{iab.preferenceCenter.purposeItem.legitimateInterest}
+						</span>
+					)}
+					{vendor.usesCookies && (
+						<span className={styles.vendorDetail}>
+							{iab.preferenceCenter.vendorList.usesCookies}
+						</span>
+					)}
+					{vendor.usesNonCookieAccess && (
+						<span className={styles.vendorDetail}>
+							{iab.preferenceCenter.vendorList.nonCookieAccess}
+						</span>
+					)}
+				</div>
+			</div>
+			{showLIControl ? (
+				<button
+					type="button"
+					onClick={() =>
+						onLegitimateInterestToggle(!isLegitimateInterestAllowed)
+					}
+					className={`${styles.objectButton} ${isLegitimateInterestAllowed ? '' : styles.objectButtonActive}`}
+					aria-pressed={!isLegitimateInterestAllowed}
+				>
+					{isLegitimateInterestAllowed
+						? iab.preferenceCenter.purposeItem.objectButton
+						: iab.preferenceCenter.purposeItem.objected}
+				</button>
+			) : (
+				<div style={{ transform: 'scale(0.75)' }}>
+					<Switch.Root
+						aria-label={vendor.name}
+						checked={isConsented}
+						onCheckedChange={onToggle}
+					/>
+				</div>
+			)}
+		</div>
+	);
+};
+
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const PurposeItem: FC<PurposeItemProps> = ({
 	purpose,
 	isEnabled,
@@ -255,7 +349,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							<button
 								type="button"
 								onClick={handlePurposeLIObjection}
-								className={`${styles.objectButton} ${!isPurposeLIAllowed ? styles.objectButtonActive : ''}`}
+								className={`${styles.objectButton} ${isPurposeLIAllowed ? '' : styles.objectButtonActive}`}
 								aria-pressed={!isPurposeLIAllowed}
 							>
 								{isPurposeLIAllowed
@@ -300,7 +394,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								noStyle
 							>
 								<svg
-									style={{ width: '0.75rem', height: '0.75rem' }}
+									style={{ height: '0.75rem', width: '0.75rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -337,7 +431,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							noStyle
 						>
 							<svg
-								style={{ width: '0.75rem', height: '0.75rem' }}
+								style={{ height: '0.75rem', width: '0.75rem' }}
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -381,7 +475,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLi}`}
 									>
 										<svg
-											style={{ width: '0.75rem', height: '0.75rem' }}
+											style={{ height: '0.75rem', width: '0.75rem' }}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
@@ -422,7 +516,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								<div className={styles.customVendorPurposeSection}>
 									<h5 className={styles.vendorSectionTitleCustom}>
 										<svg
-											style={{ width: '0.75rem', height: '0.75rem' }}
+											style={{ height: '0.75rem', width: '0.75rem' }}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
@@ -493,96 +587,3 @@ interface VendorRowProps {
 	/** Handler for LI objection - value true = allow, false = object */
 	onLegitimateInterestToggle?: (value: boolean) => void;
 }
-
-const VendorRow: FC<VendorRowProps> = ({
-	vendor,
-	isConsented,
-	onToggle,
-	onClick,
-	isLegitimateInterest = false,
-	isLegitimateInterestAllowed = true,
-	onLegitimateInterestToggle,
-}) => {
-	const iab = useIABTranslations();
-
-	// For LI vendors, we show an objection control instead of consent toggle
-	const showLIControl = isLegitimateInterest && onLegitimateInterestToggle;
-
-	return (
-		<div
-			className={`${styles.vendorRow} ${isLegitimateInterest ? styles.vendorRowLi : ''}`}
-		>
-			<div className={styles.vendorInfo}>
-				<button
-					type="button"
-					onClick={onClick}
-					className={styles.vendorName}
-				>
-					<span>{vendor.name}</span>
-					{vendor.isCustom && (
-						<svg
-							className={styles.customVendorIcon}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-							aria-label={iab.common.customPartner}
-						>
-							<circle
-								cx="12"
-								cy="12"
-								r="10"
-							/>
-							<line
-								x1="2"
-								y1="12"
-								x2="22"
-								y2="12"
-							/>
-							<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-						</svg>
-					)}
-				</button>
-				<div className={styles.vendorDetails}>
-					{isLegitimateInterest && (
-						<span className={`${styles.vendorDetail} ${styles.vendorDetailLi}`}>
-							{iab.preferenceCenter.purposeItem.legitimateInterest}
-						</span>
-					)}
-					{vendor.usesCookies && (
-						<span className={styles.vendorDetail}>
-							{iab.preferenceCenter.vendorList.usesCookies}
-						</span>
-					)}
-					{vendor.usesNonCookieAccess && (
-						<span className={styles.vendorDetail}>
-							{iab.preferenceCenter.vendorList.nonCookieAccess}
-						</span>
-					)}
-				</div>
-			</div>
-			{showLIControl ? (
-				<button
-					type="button"
-					onClick={() =>
-						onLegitimateInterestToggle(!isLegitimateInterestAllowed)
-					}
-					className={`${styles.objectButton} ${!isLegitimateInterestAllowed ? styles.objectButtonActive : ''}`}
-					aria-pressed={!isLegitimateInterestAllowed}
-				>
-					{isLegitimateInterestAllowed
-						? iab.preferenceCenter.purposeItem.objectButton
-						: iab.preferenceCenter.purposeItem.objected}
-				</button>
-			) : (
-				<div style={{ transform: 'scale(0.75)' }}>
-					<Switch.Root
-						aria-label={vendor.name}
-						checked={isConsented}
-						onCheckedChange={onToggle}
-					/>
-				</div>
-			)}
-		</div>
-	);
-};

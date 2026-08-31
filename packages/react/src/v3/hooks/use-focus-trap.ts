@@ -16,7 +16,7 @@ import type { RefObject } from 'react';
  *
  * @public
  */
-export function useFocusTrap(
+export const useFocusTrap = function useFocusTrap(
 	shouldTrap: boolean,
 	containerRef: RefObject<HTMLElement | null> | null
 ): void {
@@ -27,4 +27,4 @@ export function useFocusTrap(
 
 		return setupFocusTrap(containerRef.current);
 	}, [shouldTrap, containerRef]);
-}
+};

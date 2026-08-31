@@ -30,7 +30,7 @@
  * // Note: analytics: false is omitted
  * ```
  */
-export function flattenObject(
+export const flattenObject = function flattenObject(
 	obj: Record<string, unknown>,
 	prefix = ''
 ): Record<string, string> {
@@ -59,7 +59,7 @@ export function flattenObject(
 	}
 
 	return flattened;
-}
+};
 
 /**
  * Reconstructs a nested object from a flattened dot-notation object.
@@ -86,7 +86,7 @@ export function flattenObject(
  * // Returns: { c: { necessary: true, analytics: false }, i: { t: 123 } }
  * ```
  */
-export function unflattenObject(
+export const unflattenObject = function unflattenObject(
 	flattened: Record<string, string>
 ): Record<string, unknown> {
 	const result: Record<string, unknown> = {};
@@ -100,7 +100,7 @@ export function unflattenObject(
 
 		let current: Record<string, unknown> = result;
 
-		for (let i = 0; i < keys.length - 1; i++) {
+		for (let i = 0; i < keys.length - 1; i += 1) {
 			const k = keys[i];
 			if (k === undefined) {
 				continue;
@@ -134,7 +134,7 @@ export function unflattenObject(
 	}
 
 	return result;
-}
+};
 
 /**
  * Converts a flattened object to a compact string format.
@@ -160,11 +160,13 @@ export function unflattenObject(
  * // Returns: "c.necessary:1,c.analytics:0"
  * ```
  */
-export function flatToString(flattened: Record<string, string>): string {
+export const flatToString = function flatToString(
+	flattened: Record<string, string>
+): string {
 	return Object.entries(flattened)
 		.map(([key, value]) => `${key}:${value}`)
 		.join(',');
-}
+};
 
 /**
  * Parses a compact string format back to a flattened object.
@@ -190,7 +192,9 @@ export function flatToString(flattened: Record<string, string>): string {
  * // Returns: { 'c.necessary': '1', 'c.analytics': '0' }
  * ```
  */
-export function stringToFlat(str: string): Record<string, string> {
+export const stringToFlat = function stringToFlat(
+	str: string
+): Record<string, string> {
 	if (!str) {
 		return {};
 	}
@@ -210,4 +214,4 @@ export function stringToFlat(str: string): Record<string, string> {
 	}
 
 	return result;
-}
+};

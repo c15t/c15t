@@ -93,7 +93,7 @@ export interface UseDraggableReturn {
  * }
  * ```
  */
-export function useDraggable(
+export const useDraggable = function useDraggable(
 	options: UseDraggableOptions = {}
 ): UseDraggableReturn {
 	const {
@@ -148,11 +148,11 @@ export function useDraggable(
 		dragStartTimeRef.current = Date.now();
 
 		setDragState({
+			currentX: e.clientX,
+			currentY: e.clientY,
 			isDragging: true,
 			startX: e.clientX,
 			startY: e.clientY,
-			currentX: e.clientX,
-			currentY: e.clientY,
 		});
 
 		setIsSnapping(false);
@@ -244,15 +244,15 @@ export function useDraggable(
 
 	return {
 		corner,
-		isDragging: dragState.isDragging,
-		isSnapping,
-		wasDragged,
+		dragStyle,
 		handlers: {
+			onPointerCancel: handlePointerCancel,
 			onPointerDown: handlePointerDown,
 			onPointerMove: handlePointerMove,
 			onPointerUp: handlePointerUp,
-			onPointerCancel: handlePointerCancel,
 		},
-		dragStyle,
+		isDragging: dragState.isDragging,
+		isSnapping,
+		wasDragged,
 	};
-}
+};

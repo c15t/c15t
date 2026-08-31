@@ -6,6 +6,6 @@ export type { ClassValue };
 /**
  * Utilizes framework-agnostic `cn` from @c15t/ui.
  */
-export function cnExt(...classes: ClassValue[]) {
+export const cnExt = function cnExt(...classes: ClassValue[]) {
 	return baseCn(...classes);
-}
+};

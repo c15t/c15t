@@ -19,7 +19,7 @@ const grantedFunctionalityConsents = {
 	functionality: true,
 };
 
-function deepFreeze<ValueType>(value: ValueType): ValueType {
+const deepFreeze = function deepFreeze<ValueType>(value: ValueType): ValueType {
 	if (value === null || typeof value !== 'object') {
 		return value;
 	}
@@ -29,11 +29,13 @@ function deepFreeze<ValueType>(value: ValueType): ValueType {
 	}
 
 	return Object.freeze(value);
-}
+};
 
-function cloneFrozen<ValueType>(value: ValueType): ValueType {
+const cloneFrozen = function cloneFrozen<ValueType>(
+	value: ValueType
+): ValueType {
 	return deepFreeze(structuredClone(value));
-}
+};
 
 describe('functional vendor contracts', () => {
 	registerVendorContractCleanup();

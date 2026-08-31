@@ -35,15 +35,15 @@ const getDefined = <Value,>(
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -232,16 +232,16 @@ describe('Consent Flow E2E Tests', () => {
 		test('should not show banner if user has already consented', async () => {
 			// Set existing consent
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem('c15t', JSON.stringify(consentData));
@@ -265,16 +265,16 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Preference Center Trigger', () => {
 		test('should show trigger after consent given when showWhen is always', async () => {
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem('c15t', JSON.stringify(consentData));

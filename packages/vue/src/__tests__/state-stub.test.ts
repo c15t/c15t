@@ -10,7 +10,7 @@ import type { Ref } from 'vue';
 
 import { useState as createVueState } from '../runtime/composables/stubs/state';
 
-function mountConsumer(onSetup: () => void) {
+const mountConsumer = function mountConsumer(onSetup: () => void) {
 	return mount(
 		defineComponent({
 			setup() {
@@ -19,7 +19,7 @@ function mountConsumer(onSetup: () => void) {
 			},
 		})
 	);
-}
+};
 
 describe('useState stub', () => {
 	it('shares state between consumers under the same key', () => {

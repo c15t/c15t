@@ -13,17 +13,6 @@
 	const context = getPreferenceItemContext();
 	const variants = preferenceItemVariants();
 
-	const open = $derived(context.open);
-	const disabled = $derived(context.disabled);
-	const noStyle = $derived(context.noStyle);
-	const triggerId = $derived(context.triggerId);
-	const contentId = $derived(context.contentId);
-	const className = $derived.by(() =>
-		noStyle ? localClassName : variants.trigger({ class: localClassName })
-	);
-	const dataState = $derived(getPreferenceItemState(open));
-	const dataDisabled = $derived(getDataDisabled(disabled));
-
 	let {
 		children,
 		class: localClassName,
@@ -36,12 +25,23 @@
 		type?: 'button' | 'submit' | 'reset';
 	} = $props();
 
-	function handleClick(
+	const handleClick = function handleClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		context.toggle();
 		onclick?.(event);
-	}
+	};
+
+	const open = $derived(context.open);
+	const disabled = $derived(context.disabled);
+	const noStyle = $derived(context.noStyle);
+	const triggerId = $derived(context.triggerId);
+	const contentId = $derived(context.contentId);
+	const className = $derived.by(() =>
+		noStyle ? localClassName : variants.trigger({ class: localClassName })
+	);
+	const dataState = $derived(getPreferenceItemState(open));
+	const dataDisabled = $derived(getDataDisabled(disabled));
 </script>
 
 <button

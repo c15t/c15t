@@ -24,14 +24,14 @@ function createDeferredPromise<Value>(
 const RETRY_SESSIONS_COOKIE = 'c15t_demo_retry_sessions';
 const MAX_RETRY_SESSIONS = 12;
 
-function noStoreHeaders(contentType: string) {
+const noStoreHeaders = function noStoreHeaders(contentType: string) {
 	return {
 		'Cache-Control': 'no-store',
 		'Content-Type': contentType,
 	};
-}
+};
 
-function readRetrySessions(request: Request) {
+const readRetrySessions = function readRetrySessions(request: Request) {
 	const cookie = request.headers
 		.get('cookie')
 		?.split(';')
@@ -50,16 +50,18 @@ function readRetrySessions(request: Request) {
 	} catch {
 		return [];
 	}
-}
+};
 
-function createRetrySessionsCookie(sessions: string[]) {
+const createRetrySessionsCookie = function createRetrySessionsCookie(
+	sessions: string[]
+) {
 	const value = encodeURIComponent(
 		JSON.stringify(sessions.slice(-MAX_RETRY_SESSIONS))
 	);
 	return `${RETRY_SESSIONS_COOKIE}=${value}; Path=/api/integration-fixture; Max-Age=300; HttpOnly; SameSite=Lax`;
-}
+};
 
-export async function GET(request: Request) {
+export const GET = async function GET(request: Request) {
 	const url = new URL(request.url);
 	const fixture = url.searchParams.get('fixture');
 
@@ -137,4 +139,4 @@ export async function GET(request: Request) {
 		{ error: 'Unknown integration fixture.' },
 		{ status: 404 }
 	);
-}
+};

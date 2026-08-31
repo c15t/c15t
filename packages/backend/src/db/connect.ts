@@ -28,6 +28,7 @@
  * producing a `Layer`, flattened into a `Layer` the runtime can build.
  */
 
+// oxlint-disable-next-line max-classes-per-file -- Preserve declaration order, interface shape, and public compatibility.
 import { Effect, Layer, Redacted } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 
@@ -122,8 +123,8 @@ export class DriverNotInstalledError extends Error {
 }
 
 const driver = {
-	postgres: '@effect/sql-pg',
 	mysql: '@effect/sql-mysql2',
+	postgres: '@effect/sql-pg',
 	sqlite: '@effect/sql-sqlite-node',
 } as const;
 
@@ -141,8 +142,8 @@ export const loadDriver = <A>(
 	importer: () => Promise<A>
 ): Effect.Effect<A> =>
 	Effect.tryPromise({
-		try: importer,
 		catch: () => new DriverNotInstalledError(dialect, driver[dialect]),
+		try: importer,
 	}).pipe(
 		// A missing driver is a configuration error the operator must fix, not a
 		// condition the backend can recover from, so it is a defect rather than
@@ -163,7 +164,7 @@ export const loadDriver = <A>(
  * every unqualified name resolves into it — and the introspection queries ask
  * `current_schema()` rather than assuming `public`.
  */
-export function withSearchPath(
+export const withSearchPath = function withSearchPath(
 	url: string,
 	schema: string | undefined
 ): string {
@@ -174,7 +175,7 @@ export function withSearchPath(
 	// Rejected rather than escaped: this ends up in a startup parameter, not a
 	// bound value, and a schema name is a short identifier in every legitimate
 	// use. Anything else is a mistake worth surfacing loudly.
-	if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(schema)) {
+	if (!/^[A-Za-z_][A-Za-z0-9_$]*$/u.test(schema)) {
 		throw new Error(
 			`Invalid Postgres schema name "${schema}". Expected an unquoted ` +
 				'identifier: a letter or underscore followed by letters, digits, ' +
@@ -195,7 +196,7 @@ export function withSearchPath(
 			: `-c search_path=${schema}`
 	);
 	return parsed.toString();
-}
+};
 
 const fromConfig = (
 	config: DatabaseConfig

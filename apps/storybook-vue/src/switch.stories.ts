@@ -20,7 +20,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const variants = switchVariants();
-const smallVariants = switchVariants({ size: 'small' });
+const _smallVariants = switchVariants({ size: 'small' });
 
 export const Playground: Story = {
 	play: toggleOnOff,
@@ -33,12 +33,12 @@ export const Playground: Story = {
 			const switchState = computed(() => getSwitchState(checked.value));
 			return {
 				checked,
-				toggle,
-				switchState,
-				rootClass: variants.root(),
-				trackClass: variants.track(),
-				thumbClass: variants.thumb(),
 				label: consentTypes.measurement.title,
+				rootClass: variants.root(),
+				switchState,
+				thumbClass: variants.thumb(),
+				toggle,
+				trackClass: variants.track(),
 			};
 		},
 		template: `
@@ -72,12 +72,12 @@ export const Checked: Story = {
 			const switchState = computed(() => getSwitchState(checked.value));
 			return {
 				checked,
-				toggle,
-				switchState,
-				rootClass: variants.root(),
-				trackClass: variants.track(),
-				thumbClass: variants.thumb(),
 				label: consentTypes.measurement.title,
+				rootClass: variants.root(),
+				switchState,
+				thumbClass: variants.thumb(),
+				toggle,
+				trackClass: variants.track(),
 			};
 		},
 		template: `
@@ -112,12 +112,12 @@ export const Controlled: Story = {
 			const switchState = computed(() => getSwitchState(checked.value));
 			return {
 				checked,
-				toggle,
-				switchState,
-				rootClass: variants.root(),
-				trackClass: variants.track(),
-				thumbClass: variants.thumb(),
 				label: consentTypes.functionality.title,
+				rootClass: variants.root(),
+				switchState,
+				thumbClass: variants.thumb(),
+				toggle,
+				trackClass: variants.track(),
 			};
 		},
 		template: `
@@ -146,10 +146,10 @@ export const Disabled: Story = {
 	render: () => ({
 		setup() {
 			return {
-				rootClass: variants.root({ disabled: true }),
-				trackClass: variants.track(),
-				thumbClass: variants.thumb(),
 				label: consentTypes.measurement.title,
+				rootClass: variants.root({ disabled: true }),
+				thumbClass: variants.thumb(),
+				trackClass: variants.track(),
 			};
 		},
 		template: `
@@ -179,14 +179,14 @@ export const Sizes: Story = {
 			const medium = switchVariants();
 			const small = switchVariants({ size: 'small' });
 			return {
-				mediumRoot: medium.root(),
-				mediumTrack: medium.track(),
-				mediumThumb: medium.thumb(),
-				smallRoot: small.root(),
-				smallTrack: small.track(),
-				smallThumb: small.thumb(),
-				necessaryLabel: consentTypes.necessary.title,
 				functionalityLabel: consentTypes.functionality.title,
+				mediumRoot: medium.root(),
+				mediumThumb: medium.thumb(),
+				mediumTrack: medium.track(),
+				necessaryLabel: consentTypes.necessary.title,
+				smallRoot: small.root(),
+				smallThumb: small.thumb(),
+				smallTrack: small.track(),
 			};
 		},
 		template: `

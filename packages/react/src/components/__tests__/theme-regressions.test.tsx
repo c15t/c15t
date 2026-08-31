@@ -16,28 +16,11 @@ import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/he
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -45,22 +28,39 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
 		subscribeToConsentChanges: vi.fn(() => () => undefined),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
 describe('Theme regressions', () => {
 	test('styles trigger toolbar atoms through theme slots and direct overrides', async () => {
@@ -79,29 +79,29 @@ describe('Theme regressions', () => {
 								className: 'themed-trigger',
 								style: { backgroundColor: 'rgb(1, 2, 3)' },
 							},
-							consentDialogTriggerToolbarItem: 'themed-trigger-item',
 							consentDialogTriggerToolbarIcon: 'themed-trigger-icon',
+							consentDialogTriggerToolbarItem: 'themed-trigger-item',
 						},
 					},
 				}}
 			>
 				<StableConsentStateProvider
 					value={{
+						manager: null,
 						state,
 						store: {
 							getState: () => state,
-							subscribe: () => () => undefined,
 							setState: () => undefined,
+							subscribe: () => () => undefined,
 						},
-						manager: null,
 					}}
 				>
 					<ConsentDialogTriggerToolbar
 						actions={[
 							{
+								icon: 'settings',
 								id: 'support',
 								label: 'Open support chat',
-								icon: 'settings',
 								onSelect: vi.fn(),
 							},
 						]}
@@ -253,13 +253,13 @@ describe('Theme regressions', () => {
 			<StableGlobalThemeProvider value={{ noStyle: false }}>
 				<StableConsentStateProvider
 					value={{
+						manager: null,
 						state,
 						store: {
 							getState: () => state,
-							subscribe: () => () => undefined,
 							setState: () => undefined,
+							subscribe: () => () => undefined,
 						},
-						manager: null,
 					}}
 				>
 					<ConsentDialogOverlay

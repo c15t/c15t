@@ -49,9 +49,9 @@ describe('Fetcher', () => {
 
 		it('should create an error response context', () => {
 			const error = {
+				code: 'NOT_FOUND',
 				message: 'Not found',
 				status: 404,
-				code: 'NOT_FOUND',
 			};
 			const response = new Response(null, { status: 404 });
 
@@ -65,9 +65,9 @@ describe('Fetcher', () => {
 
 		it('should create a network error response context', () => {
 			const error = {
+				code: 'NETWORK_ERROR',
 				message: 'Network error',
 				status: 0,
-				code: 'NETWORK_ERROR',
 			};
 
 			const context = createResponseContext(false, null, error, null);
@@ -115,8 +115,8 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ success: true }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -136,15 +136,15 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ id: '123' }), {
-					status: 201,
 					headers: { 'content-type': 'application/json' },
+					status: 201,
 				})
 			);
 			globalThis.fetch = mockFetch;
 
 			const result = await fetcher(context, '/subjects', {
-				method: 'POST',
 				body: { name: 'Test' },
+				method: 'POST',
 			});
 
 			expect(result.ok).toBe(true);
@@ -160,16 +160,17 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({}), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
 
 			await fetcher(context, '/test', {
-				query: { foo: 'bar', baz: '123' },
+				query: { baz: '123', foo: 'bar' },
 			});
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('foo=bar');
 			expect(fetchCall[0]).toContain('baz=123');
@@ -184,8 +185,8 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValue(
 				new Response(JSON.stringify({ message: 'Not found' }), {
-					status: 404,
 					headers: { 'content-type': 'application/json' },
+					status: 404,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -194,7 +195,8 @@ describe('Fetcher', () => {
 
 			expect(result.ok).toBe(false);
 			expect(result.error?.status).toBe(404);
-			expect(mockFetch.mock.calls.length).toBe(1); // No retries for 404
+			// No retries for 404
+			expect(mockFetch.mock.calls.length).toBe(1);
 		});
 
 		it('should retry on 500 error', async () => {
@@ -202,9 +204,9 @@ describe('Fetcher', () => {
 				baseUrl: 'https://api.example.com',
 				headers: {},
 				retryConfig: {
-					maxRetries: 2,
-					initialDelayMs: 10,
 					backoffFactor: 2,
+					initialDelayMs: 10,
+					maxRetries: 2,
 				},
 			};
 
@@ -212,20 +214,20 @@ describe('Fetcher', () => {
 				.fn()
 				.mockResolvedValueOnce(
 					new Response(JSON.stringify({ message: 'Server error' }), {
-						status: 500,
 						headers: { 'content-type': 'application/json' },
+						status: 500,
 					})
 				)
 				.mockResolvedValueOnce(
 					new Response(JSON.stringify({ message: 'Server error' }), {
-						status: 500,
 						headers: { 'content-type': 'application/json' },
+						status: 500,
 					})
 				)
 				.mockResolvedValueOnce(
 					new Response(JSON.stringify({ success: true }), {
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					})
 				);
 			globalThis.fetch = mockFetch;
@@ -245,8 +247,8 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ success: true }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -258,8 +260,8 @@ describe('Fetcher', () => {
 			expect(onSuccess).toHaveBeenCalledOnce();
 			expect(onSuccess).toHaveBeenCalledWith(
 				expect.objectContaining({
-					ok: true,
 					data: { success: true },
+					ok: true,
 				})
 			);
 		});
@@ -273,8 +275,8 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Bad request' }), {
-					status: 400,
 					headers: { 'content-type': 'application/json' },
+					status: 400,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -301,8 +303,8 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Bad request' }), {
-					status: 400,
 					headers: { 'content-type': 'application/json' },
+					status: 400,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -321,8 +323,8 @@ describe('Fetcher', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({}), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -331,6 +333,7 @@ describe('Fetcher', () => {
 				headers: { 'X-Custom': 'value' },
 			});
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			const requestInit = fetchCall[1] as RequestInit;
 			const headers = requestInit.headers as Record<string, string>;

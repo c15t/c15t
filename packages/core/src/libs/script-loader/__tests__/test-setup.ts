@@ -42,6 +42,14 @@ export const sampleConsents: ConsentState = {
 };
 
 /**
+ * Mocks the Math.random function to return predictable values for testing
+ */
+export function mockRandomForTesting() {
+	// Mock only the random function to return a consistent value
+	vi.spyOn(Math, 'random').mockImplementation(() => 0.5);
+}
+
+/**
  * Sets up mocks for DOM manipulation in tests
  */
 export function setupDomMocks() {
@@ -129,12 +137,4 @@ export function setupTestHooks() {
 	afterEach(() => {
 		teardownDomMocks();
 	});
-}
-
-/**
- * Mocks the Math.random function to return predictable values for testing
- */
-export function mockRandomForTesting() {
-	// Mock only the random function to return a consistent value
-	vi.spyOn(Math, 'random').mockImplementation(() => 0.5);
 }

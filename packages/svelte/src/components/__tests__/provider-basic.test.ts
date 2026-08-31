@@ -55,12 +55,12 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					showConsentBanner: true,
 					jurisdiction: { code: 'GDPR' },
+					showConsentBanner: true,
 				}),
 				{
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
@@ -80,8 +80,8 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		await vi.waitFor(() => {
 			expect((window as WindowWithC15t).c15t).toMatchObject({
-				pkg: '@c15t/svelte',
 				mode: 'offline',
+				pkg: '@c15t/svelte',
 			});
 		});
 		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
@@ -99,8 +99,8 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		await vi.waitFor(() => {
 			expect((window as WindowWithC15t).c15t).toMatchObject({
-				pkg: '@c15t/svelte',
 				mode: 'hosted',
+				pkg: '@c15t/svelte',
 			});
 		});
 
@@ -125,11 +125,11 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		render(ConsentManagerProvider, {
-			options: {
-				mode: 'hosted',
-				backendURL: 'https://example.invalid',
-			},
 			mode: 'offline',
+			options: {
+				backendURL: 'https://example.invalid',
+				mode: 'hosted',
+			},
 		});
 
 		await createDeferredPromise((resolve) => setTimeout(resolve, 100));
@@ -157,18 +157,18 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		const { getByTestId } = render(ContextConsumerFixture, {
 			options: {
 				mode: 'offline',
-				policies: [
-					{
-						id: 'policy_region_us_ca',
-						match: { regions: [{ country: 'US', region: 'CA' }] },
-						consent: { model: 'opt-out' },
-						ui: { mode: 'banner' },
-					},
-				],
 				overrides: {
 					country: 'US',
 					region: 'CA',
 				},
+				policies: [
+					{
+						consent: { model: 'opt-out' },
+						id: 'policy_region_us_ca',
+						match: { regions: [{ country: 'US', region: 'CA' }] },
+						ui: { mode: 'banner' },
+					},
+				],
 			},
 		});
 
@@ -180,13 +180,13 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	});
 
 	test('should call transport init once on initial mount', async () => {
-		const init = vi.fn(async () => ({}));
+		const init = vi.fn(() => ({}));
 
 		render(ProviderOnlyFixture, {
 			options: {
 				transport: {
 					init,
-					async save(payload) {
+					save(payload) {
 						return { ok: true, subjectId: payload.subjectId };
 					},
 				},

@@ -139,6 +139,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 	const iabConfig = useMemo(
 		() =>
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 			iab({
 				// Offline mode has no server to supply a CMP ID, so the client
 				// config must provide one. Matches the self-host backend.
@@ -283,11 +284,14 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 										</PillButton>
 									</div>
 									<p className="text-muted-foreground text-sm">
-										{params.mode === 'offline'
-											? 'Offline mode simulates the selected scenario locally — no backend required.'
-											: isSelfHost
-												? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
-												: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'}
+										{
+											// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+											params.mode === 'offline'
+												? 'Offline mode simulates the selected scenario locally — no backend required.'
+												: isSelfHost
+													? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
+													: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'
+										}
 									</p>
 								</div>
 							)}

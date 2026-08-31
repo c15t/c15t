@@ -13,29 +13,31 @@ import { createConsentKernel } from '../../index';
 import type { ConsentSnapshot, KernelIABState } from '../../types';
 import { evaluateConsent, has, hasIABConsent } from '../has';
 
-function iabSlice(patch: Partial<KernelIABState> = {}): KernelIABState {
+const iabSlice = function iabSlice(
+	patch: Partial<KernelIABState> = {}
+): KernelIABState {
 	return {
+		cmpId: null,
+		customVendors: [],
 		enabled: true,
 		gvl: null,
-		customVendors: [],
-		cmpId: null,
-		vendorConsents: {},
-		vendorLegitimateInterests: {},
 		purposeConsents: {},
 		purposeLegitimateInterests: {},
 		specialFeatureOptIns: {},
 		tcString: null,
+		vendorConsents: {},
+		vendorLegitimateInterests: {},
 		...patch,
 	};
-}
+};
 
 describe('has() — v2 semantics preserved', () => {
 	const consents = {
-		necessary: true,
+		experience: false,
 		functionality: false,
 		marketing: true,
 		measurement: true,
-		experience: false,
+		necessary: true,
 	};
 
 	test('simple category', () => {
@@ -104,13 +106,13 @@ describe('hasIABConsent — v2 parity', () => {
 
 	test('multiple fields must ALL pass (AND across fields)', () => {
 		const iab = iabSlice({
-			vendorConsents: { '755': true },
 			purposeConsents: { 1: true, 2: true },
+			vendorConsents: { '755': true },
 		});
-		expect(hasIABConsent({ vendorId: 755, iabPurposes: [1, 2] }, iab)).toBe(
+		expect(hasIABConsent({ iabPurposes: [1, 2], vendorId: 755 }, iab)).toBe(
 			true
 		);
-		expect(hasIABConsent({ vendorId: 755, iabPurposes: [1, 3] }, iab)).toBe(
+		expect(hasIABConsent({ iabPurposes: [1, 3], vendorId: 755 }, iab)).toBe(
 			false
 		);
 	});
@@ -121,7 +123,7 @@ describe('hasIABConsent — v2 parity', () => {
 });
 
 describe('evaluateConsent — dispatch between IAB and category paths', () => {
-	function snapshotFor(
+	const snapshotFor = function snapshotFor(
 		options: {
 			model?: ConsentSnapshot['model'];
 			iab?: Partial<KernelIABState>;
@@ -130,11 +132,11 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 	): ConsentSnapshot {
 		const kernel = createConsentKernel({
 			initialConsents: {
-				necessary: true,
+				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				experience: false,
+				necessary: true,
 				...options.consents,
 			},
 			initialIab: options.iab,
@@ -146,7 +148,7 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 			...snap,
 			model: options.model ?? snap.model,
 		};
-	}
+	};
 
 	test('category path: no IAB metadata → uses has(category)', () => {
 		const snap = snapshotFor({ consents: { marketing: true } });
@@ -156,8 +158,8 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 
 	test('IAB path: model==="iab" + vendorId → IAB evaluation', () => {
 		const snap = snapshotFor({
-			model: 'iab',
 			iab: { vendorConsents: { '755': true } },
+			model: 'iab',
 		});
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 755 }, snap)
@@ -169,9 +171,9 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 
 	test('model!=="iab" + IAB fields → category path still wins', () => {
 		const snap = snapshotFor({
-			model: 'opt-in',
-			iab: { vendorConsents: { '755': true } },
 			consents: { marketing: true },
+			iab: { vendorConsents: { '755': true } },
+			model: 'opt-in',
 		});
 		// Not in iab mode → vendorId is ignored, marketing check wins.
 		expect(

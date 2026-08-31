@@ -59,7 +59,9 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
  *
  * @public
  */
-export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
+export const extractRelevantHeaders = function extractRelevantHeaders(
+	headersList: Headers
+): RelevantHeaders {
 	const relevantHeaders: RelevantHeaders = {};
 
 	// Extract all relevant headers
@@ -87,4 +89,4 @@ export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
 	}
 
 	return relevantHeaders;
-}
+};

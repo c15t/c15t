@@ -36,38 +36,38 @@ export const Default: Story = {
 };
 
 export const BannerContract: Story = {
+	play: bannerContract,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 		</StorybookConsentProvider>
 	),
-	play: bannerContract,
 };
 
 export const BannerToDialogFlow: Story = {
+	play: bannerToDialogFlow,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: bannerToDialogFlow,
 };
 
 export const BannerAcceptViaKeyboard: Story = {
+	play: bannerAcceptViaKeyboard,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 		</StorybookConsentProvider>
 	),
-	play: bannerAcceptViaKeyboard,
 };
 
 export const BannerFocusManagement: Story = {
+	play: bannerFocusManagement,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner trapFocus />
 		</StorybookConsentProvider>
 	),
-	play: bannerFocusManagement,
 };

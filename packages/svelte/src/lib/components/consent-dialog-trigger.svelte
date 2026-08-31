@@ -61,12 +61,19 @@
 	});
 
 	const branding = $derived(consent.state.branding);
-	const hasConsented = $derived(consent.state.consentInfo != null);
+	const hasConsented = $derived(
+		consent.state.consentInfo !== null &&
+			consent.state.consentInfo !== undefined
+	);
 	const activeUI = $derived(consent.state.activeUI);
 
 	const shouldShow = $derived.by(() => {
-		if (showWhen === 'never') return false;
-		if (showWhen === 'after-consent') return hasConsented;
+		if (showWhen === 'never') {
+			return false;
+		}
+		if (showWhen === 'after-consent') {
+			return hasConsented;
+		}
 		return true;
 	});
 
@@ -74,16 +81,16 @@
 
 	// Position class mapping
 	const cornerClassMap: Record<CornerPosition, string> = {
-		'bottom-right': styles.bottomRight || '',
 		'bottom-left': styles.bottomLeft || '',
-		'top-right': styles.topRight || '',
+		'bottom-right': styles.bottomRight || '',
 		'top-left': styles.topLeft || '',
+		'top-right': styles.topRight || '',
 	};
 
 	const sizeClassMap: Record<string, string> = {
-		sm: styles.sm || '',
-		md: styles.md || '',
 		lg: styles.lg || '',
+		md: styles.md || '',
+		sm: styles.sm || '',
 	};
 
 	const positionClass = $derived(cornerClassMap[corner] || '');
@@ -95,16 +102,18 @@
 			: ''
 	);
 
-	function updateCorner(newCorner: CornerPosition) {
+	const updateCorner = function updateCorner(newCorner: CornerPosition) {
 		corner = newCorner;
 		if (persistPosition) {
 			persistToStorage(newCorner);
 		}
 		onPositionChange?.(newCorner);
-	}
+	};
 
-	function handlePointerDown(e: PointerEvent) {
-		if (e.button !== 0) return;
+	const handlePointerDown = function handlePointerDown(e: PointerEvent) {
+		if (e.button !== 0) {
+			return;
+		}
 
 		(e.target as HTMLElement).setPointerCapture(e.pointerId);
 		capturedElement = e.target as HTMLElement;
@@ -112,18 +121,20 @@
 		dragStartTime = Date.now();
 
 		dragState = {
+			currentX: e.clientX,
+			currentY: e.clientY,
 			isDragging: true,
 			startX: e.clientX,
 			startY: e.clientY,
-			currentX: e.clientX,
-			currentY: e.clientY,
 		};
 
 		isSnapping = false;
-	}
+	};
 
-	function handlePointerMove(e: PointerEvent) {
-		if (!dragState.isDragging) return;
+	const handlePointerMove = function handlePointerMove(e: PointerEvent) {
+		if (!dragState.isDragging) {
+			return;
+		}
 
 		const dx = Math.abs(e.clientX - dragState.startX);
 		const dy = Math.abs(e.clientY - dragState.startY);
@@ -136,15 +147,17 @@
 			currentX: e.clientX,
 			currentY: e.clientY,
 		};
-	}
+	};
 
-	function handlePointerUp(e: PointerEvent) {
+	const handlePointerUp = function handlePointerUp(e: PointerEvent) {
 		if (capturedElement) {
 			capturedElement.releasePointerCapture(e.pointerId);
 			capturedElement = null;
 		}
 
-		if (!dragState.isDragging) return;
+		if (!dragState.isDragging) {
+			return;
+		}
 
 		if (hasDragged) {
 			const dragX = e.clientX - dragState.startX;
@@ -169,29 +182,31 @@
 		}
 
 		dragState = createInitialDragState();
-	}
+	};
 
-	function handlePointerCancel(e: PointerEvent) {
+	const handlePointerCancel = function handlePointerCancel(e: PointerEvent) {
 		if (capturedElement) {
 			capturedElement.releasePointerCapture(e.pointerId);
 			capturedElement = null;
 		}
 		dragState = createInitialDragState();
-	}
+	};
 
-	function handleClick(e: MouseEvent) {
+	const handleClick = function handleClick(e: MouseEvent) {
 		// Don't open dialog if this was a drag interaction
-		if (hasDragged) return;
+		if (hasDragged) {
+			return;
+		}
 		consent.state.setActiveUI('dialog');
 		onclick?.(e);
-	}
+	};
 
-	function handleKeyDown(e: KeyboardEvent) {
+	const handleKeyDown = function handleKeyDown(e: KeyboardEvent) {
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
 			consent.state.setActiveUI('dialog');
 		}
-	}
+	};
 
 	const buttonClasses = $derived(
 		noStyle

@@ -369,6 +369,7 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 describe('v3 react: network blocker lifecycle', () => {
 	function installFetchStub() {
 		const originalFetch = window.fetch;
+		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchStub = vi.fn(async () => new Response('ok', { status: 200 }));
 		window.fetch = fetchStub as unknown as typeof window.fetch;
 		return {

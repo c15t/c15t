@@ -48,7 +48,7 @@ describe('mergeIab', () => {
 	});
 
 	test('detects scalar field flip', () => {
-		const baseline = mergeIab(null, { enabled: true, cmpId: 1 }).next;
+		const baseline = mergeIab(null, { cmpId: 1, enabled: true }).next;
 		const result = mergeIab(baseline, { cmpId: 2 });
 		expect(result.changed).toBe(true);
 		expect(result.next.cmpId).toBe(2);
@@ -56,20 +56,20 @@ describe('mergeIab', () => {
 });
 
 describe('buildSetters', () => {
-	function makeKernelStub() {
+	const makeKernelStub = function makeKernelStub() {
 		let snapshot: ConsentSnapshot = buildInitialSnapshot({});
 		const events: { type: string }[] = [];
 		const setters = buildSetters({
-			getSnapshot: () => snapshot,
 			advance: (patch: SnapshotPatch) => {
 				snapshot = applyPatch(snapshot, patch);
 			},
 			emit: (event) => {
 				events.push({ type: event.type });
 			},
+			getSnapshot: () => snapshot,
 		});
-		return { setters, events, getSnapshot: () => snapshot };
-	}
+		return { events, getSnapshot: () => snapshot, setters };
+	};
 
 	test('set.consent emits when a key changes', () => {
 		const { setters, events, getSnapshot } = makeKernelStub();
@@ -117,11 +117,11 @@ describe('buildSetters', () => {
 			} as any,
 		});
 		const setters = buildSetters({
-			getSnapshot: () => snapshot,
 			advance: (patch: SnapshotPatch) => {
 				snapshot = applyPatch(snapshot, patch);
 			},
 			emit: () => {},
+			getSnapshot: () => snapshot,
 		});
 		expect(snapshot.model).toBeNull();
 		setters.iab({ enabled: true });

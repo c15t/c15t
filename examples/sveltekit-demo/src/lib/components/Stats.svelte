@@ -1,20 +1,20 @@
 <script lang="ts">
 	const stats = [
 		{
-			value: '15min',
 			label: 'Average delivery time',
 			sublabel: 'Across London',
+			value: '15min',
 		},
 		{
-			value: '99.8%',
 			label: 'On-time delivery rate',
 			sublabel: 'Industry leading',
+			value: '99.8%',
 		},
-		{ value: '50K+', label: 'Deliveries per month', sublabel: 'And growing' },
+		{ label: 'Deliveries per month', sublabel: 'And growing', value: '50K+' },
 		{
-			value: '4.9/5',
 			label: 'Customer satisfaction',
 			sublabel: 'From 10K+ reviews',
+			value: '4.9/5',
 		},
 	];
 </script>

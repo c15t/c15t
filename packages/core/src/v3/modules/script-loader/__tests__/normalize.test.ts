@@ -8,9 +8,9 @@ import {
 import type { Script } from '../types';
 
 const baseScript: Script = {
+	category: 'marketing',
 	id: 's1',
 	src: 'https://example.com/s.js',
-	category: 'marketing',
 };
 
 describe('generateRandomId', () => {
@@ -57,7 +57,7 @@ describe('normalizeScripts', () => {
 			{
 				...baseScript,
 				// oxlint-disable-next-line typescript/no-explicit-any -- HasCondition shape varies
-				category: { type: 'AND', conditions: [] } as any,
+				category: { conditions: [], type: 'AND' } as any,
 			},
 		]);
 		expect(out?.simpleCategory).toBeNull();

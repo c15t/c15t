@@ -6,28 +6,28 @@ import Link from 'next/link';
  */
 const devPages = [
 	{
-		href: '/dev/integrations',
-		title: 'Integration states',
 		description:
 			'Deterministically inspect loading, error, retry, and ready behavior for consent-aware integrations.',
+		href: '/dev/integrations',
+		title: 'Integration states',
 	},
 	{
-		href: '/self-host',
-		title: 'Self-hosted backend',
 		description:
 			'The same demo, but hosted mode resolves policies through this app’s /api/self-host route (requires DATABASE_URL).',
+		href: '/self-host',
+		title: 'Self-hosted backend',
 	},
 	{
-		href: '/policy-actions',
-		title: 'Policy actions',
 		description:
 			'Compare how banner action layouts (order, grouping, direction, profiles) resolve across policies.',
+		href: '/policy-actions',
+		title: 'Policy actions',
 	},
 	{
-		href: '/terms',
-		title: 'Terms acceptance',
 		description:
 			'Legal document consent flow: identify a user and record acceptance of a terms release (requires DATABASE_URL).',
+		href: '/terms',
+		title: 'Terms acceptance',
 	},
 ];
 

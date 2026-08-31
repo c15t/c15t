@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(
+export const GET = async function GET(
 	_request: Request,
 	{ params }: { params: Promise<{ id: string }> }
 ) {
@@ -16,4 +16,4 @@ export async function GET(
 			'content-type': 'application/javascript; charset=utf-8',
 		},
 	});
-}
+};

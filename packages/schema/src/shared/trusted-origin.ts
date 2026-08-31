@@ -32,14 +32,14 @@ export interface LoggerLike {
  * @param wildcardPattern - Wildcard pattern (e.g. *.example.com)
  * @returns true if the origin is a subdomain of the wildcard pattern
  */
-export function matchesWildcard(
+export const matchesWildcard = function matchesWildcard(
 	origin: string,
 	wildcardPattern: string
 ): boolean {
 	const wildcardDomain = wildcardPattern.slice(2);
 
 	return origin !== wildcardDomain && origin.endsWith(`.${wildcardDomain}`);
-}
+};
 
 /**
  * Origin validation utilities for CORS security
@@ -48,10 +48,10 @@ export function matchesWildcard(
  */
 
 /** Regular expression to match www prefix in domain names */
-const WWW_REGEX = /^www\./;
+const WWW_REGEX = /^www\./u;
 
 /** Regular expression matching a URL scheme prefix (e.g. `https://`) */
-const PROTOCOL_REGEX = /^[a-z][a-z\d+.-]*:\/\//i;
+const PROTOCOL_REGEX = /^[a-z][a-z\d+.-]*:\/\//iu;
 
 /** Default ports for the protocols we accept, used to resolve origins. */
 const DEFAULT_PORTS: Record<string, string> = {
@@ -74,18 +74,22 @@ interface NormalizedTrustedDomain {
  *
  * @internal
  */
-function extractExplicitPort(authority: string): string | undefined {
+const extractExplicitPort = function extractExplicitPort(
+	authority: string
+): string | undefined {
 	// IPv6 literals carry the port after the closing bracket: [::1]:3000
-	const ipv6 = authority.match(/^\[[^\]]+\](?::(\d+))?$/);
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const ipv6 = authority.match(/^\[[^\]]+\](?::(\d+))?$/u);
 	if (ipv6) {
 		return ipv6[1] || undefined;
 	}
 
-	const match = authority.match(/:(\d+)$/);
+	// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+	const match = authority.match(/:(\d+)$/u);
 	return match ? match[1] : undefined;
-}
+};
 
-function normalizeTrustedDomain(
+const normalizeTrustedDomain = function normalizeTrustedDomain(
 	domain: string
 ): NormalizedTrustedDomain | null {
 	const trimmed = domain.trim();
@@ -96,7 +100,7 @@ function normalizeTrustedDomain(
 	const hasProtocol = PROTOCOL_REGEX.test(trimmed);
 	const withoutProtocol = trimmed.replace(PROTOCOL_REGEX, '');
 	// The authority is everything before the first path/query/fragment marker.
-	const authority = withoutProtocol.split(/[/?#]/)[0] ?? '';
+	const authority = withoutProtocol.split(/[/?#]/u)[0] ?? '';
 
 	try {
 		const parsed = new URL(hasProtocol ? trimmed : `https://${authority}`);
@@ -110,7 +114,7 @@ function normalizeTrustedDomain(
 	} catch {
 		return null;
 	}
-}
+};
 
 /**
  * Validates if a given origin matches any of the trusted domain patterns
@@ -142,7 +146,7 @@ function normalizeTrustedDomain(
  * isOriginTrusted('https://any-domain.com', ['*']); // true
  * ```
  */
-export function isOriginTrusted(
+export const isOriginTrusted = function isOriginTrusted(
 	origin: string,
 	trustedDomains: string[],
 	logger?: LoggerLike
@@ -220,4 +224,4 @@ export function isOriginTrusted(
 		logger?.error?.('Error validating origin:', error);
 		return false;
 	}
-}
+};

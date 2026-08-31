@@ -35,17 +35,21 @@
 	});
 
 	const activeTheme = $derived.by(() => {
-		if (!themePresetStore.mounted) return undefined;
-		const theme = themePresetStore.theme;
-		if (!theme) return undefined;
+		if (!themePresetStore.mounted) {
+			return undefined;
+		}
+		const { theme } = themePresetStore;
+		if (!theme) {
+			return undefined;
+		}
 		return {
 			...theme,
 			slots: {
 				...theme.slots,
 				iabBanner: {
 					style: {
-						inset: 0,
 						alignItems: 'center',
+						inset: 0,
 						justifyContent: 'end',
 					},
 				},

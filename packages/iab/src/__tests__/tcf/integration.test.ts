@@ -287,6 +287,7 @@ describe('IAB TCF Integration', () => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					listenerCalls++;
 					if (data?.listenerId !== undefined) {
+						// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 						listenerId = data.listenerId;
 					}
 					if (listenerCalls === 1) {

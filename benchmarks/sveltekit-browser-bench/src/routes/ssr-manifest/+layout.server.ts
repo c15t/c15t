@@ -12,7 +12,6 @@ import type { LayoutServerLoad } from './$types';
  */
 export const load: LayoutServerLoad = async ({ request, fetch }) => {
 	const consentPrefetch = await prefetchInitialConsent({
-		headers: request.headers,
 		backendURL: '/api/c15t',
 		fetch,
 		forwardHeaders: [
@@ -21,6 +20,7 @@ export const load: LayoutServerLoad = async ({ request, fetch }) => {
 			'x-c15t-country',
 			'x-c15t-region',
 		],
+		headers: request.headers,
 	});
 	return { consentPrefetch };
 };

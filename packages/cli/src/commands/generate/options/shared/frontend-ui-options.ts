@@ -47,7 +47,7 @@ interface FrontendUIOptionsResult {
  * c15t (core):
  *   - DevTools option
  */
-export async function getFrontendUIOptions({
+export const getFrontendUIOptions = async function getFrontendUIOptions({
 	context,
 	hasBackend = false,
 	handleCancel,
@@ -57,7 +57,7 @@ export async function getFrontendUIOptions({
 	let uiStyle: UIStyle | undefined;
 	let expandedTheme: ExpandedTheme | undefined;
 
-	const pkg = context.framework.pkg;
+	const { pkg } = context.framework;
 
 	// Next.js: SSR (only with backend) + UI style + theme
 	if (pkg === 'c15t/next') {
@@ -91,9 +91,9 @@ export async function getFrontendUIOptions({
 	}
 
 	return {
-		enableSSR,
 		enableDevTools,
-		uiStyle,
+		enableSSR,
 		expandedTheme,
+		uiStyle,
 	};
-}
+};

@@ -58,39 +58,41 @@ const DEFAULT_PROPS = [
 	'direction',
 ] as const;
 
-export async function captureComputedStyleMap(
+export const captureComputedStyleMap = function captureComputedStyleMap(
 	page: Page,
 	selector: string
 ): Promise<Record<string, ComputedStyleSnapshot>> {
 	return page.evaluate(
 		(args: { sel: string; props: readonly string[] }) => {
 			const root = document.querySelector(args.sel);
-			if (!root) throw new Error(`no element: ${args.sel}`);
+			if (!root) {
+				throw new Error(`no element: ${args.sel}`);
+			}
 
-			function getCustomProperties(
+			const getCustomProperties = function getCustomProperties(
 				style: CSSStyleDeclaration
 			): Record<string, string> {
 				const out: Record<string, string> = {};
-				for (let i = 0; i < style.length; i++) {
+				for (let i = 0; i < style.length; i += 1) {
 					const name = style.item(i);
 					if (name.startsWith('--')) {
 						out[name] = style.getPropertyValue(name).trim();
 					}
 				}
 				return out;
-			}
+			};
 
-			function captureOne(el: Element) {
+			const captureOne = function captureOne(el: Element) {
 				const style = getComputedStyle(el);
 				const properties: Record<string, string> = {};
 				for (const name of args.props) {
 					properties[name] = style.getPropertyValue(name).trim();
 				}
 				return {
-					properties,
 					customProperties: getCustomProperties(style),
+					properties,
 				};
-			}
+			};
 
 			const out: Record<
 				string,
@@ -103,12 +105,14 @@ export async function captureComputedStyleMap(
 			const elements = root.querySelectorAll('[data-testid]');
 			for (const el of Array.from(elements)) {
 				const id = el.getAttribute('data-testid');
-				if (!id || seen.has(id)) continue;
+				if (!id || seen.has(id)) {
+					continue;
+				}
 				seen.add(id);
 				out[id] = captureOne(el);
 			}
 			return out;
 		},
-		{ sel: selector, props: DEFAULT_PROPS }
+		{ props: DEFAULT_PROPS, sel: selector }
 	);
-}
+};

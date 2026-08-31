@@ -50,13 +50,14 @@ const termsHighlights = [
 	'The preferred client contract is a signed document snapshot token; the hash path is a fallback for lighter integrations.',
 ];
 
-function formatDate(value: string) {
+const formatDate = function formatDate(value: string) {
 	return new Intl.DateTimeFormat('en', {
 		dateStyle: 'medium',
 		timeStyle: 'short',
 	}).format(new Date(value));
-}
+};
 
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 	const { consentInfo, identifyUser, unstable_acceptPolicyConsent, user } =
 		useConsentManager();
@@ -74,6 +75,7 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 	const defaultIdentityProvider = form.identityProvider.trim() || 'demo-auth';
 	const identifiedUser =
 		identified ??
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		(user?.id
 			? {
 					externalId: user.id,
@@ -123,6 +125,7 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 	);
 
 	const feedbackClassName =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		feedback?.tone === 'error'
 			? 'border-destructive/30 bg-destructive/10 text-destructive'
 			: feedback?.tone === 'success'
@@ -131,10 +134,10 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 
 	const createDemoSnapshotToken = async () => {
 		const tokenResult = await createUnsafeDemoLegalDocumentSnapshotToken({
+			effectiveDate: policy.effectiveDate,
+			hash: policy.hash,
 			type: 'terms_and_conditions',
 			version: policy.version,
-			hash: policy.hash,
-			effectiveDate: policy.effectiveDate,
 		});
 
 		return tokenResult.token;
@@ -297,9 +300,9 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 
 										if (!externalId) {
 											setFeedback({
-												tone: 'error',
 												message:
 													'External user ID is required before you can identify the subject.',
+												tone: 'error',
 											});
 											return;
 										}
@@ -318,18 +321,18 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 											});
 											setAcceptance(null);
 											setFeedback({
-												tone: 'success',
 												message: hasExistingSubject
 													? `c15t linked subject ${consentInfo.subjectId} to ${externalId}.`
 													: `c15t stored ${externalId} in client state. The first consent write will create or reuse the subject and attach the user identity.`,
+												tone: 'success',
 											});
 										} catch (error) {
 											setFeedback({
-												tone: 'error',
 												message:
 													error instanceof Error
 														? error.message
 														: 'Unable to identify the user with c15t.',
+												tone: 'error',
 											});
 										}
 									});
@@ -430,9 +433,9 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 									onClick={() => {
 										if (!identifiedUser) {
 											setFeedback({
-												tone: 'error',
 												message:
 													'Identify the user first so c15t has a subject to attach the terms consent to.',
+												tone: 'error',
 											});
 											return;
 										}
@@ -454,22 +457,22 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 												const result = await unstable_acceptPolicyConsent(
 													documentSnapshotToken
 														? {
-																type: 'terms_and_conditions',
 																documentSnapshotToken,
-																uiSource: 'terms-demo',
 																metadata: {
-																	source: 'examples/demo/terms',
 																	release: policy.version,
+																	source: 'examples/demo/terms',
 																},
+																type: 'terms_and_conditions',
+																uiSource: 'terms-demo',
 															}
 														: {
-																type: 'terms_and_conditions',
-																policyHash: policy.hash,
-																uiSource: 'terms-demo',
 																metadata: {
-																	source: 'examples/demo/terms',
 																	release: policy.version,
+																	source: 'examples/demo/terms',
 																},
+																policyHash: policy.hash,
+																type: 'terms_and_conditions',
+																uiSource: 'terms-demo',
 															}
 												);
 
@@ -483,25 +486,25 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 												}
 
 												setAcceptance({
-													subjectId: result.subjectId,
+													acceptedAt: new Date(result.givenAt).toISOString(),
+													consentId: result.consentId,
 													externalId: identifiedUser.externalId,
 													identityProvider: identifiedUser.identityProvider,
-													consentId: result.consentId,
-													policyVersion: policy.version,
 													policyHash: policy.hash,
-													acceptedAt: new Date(result.givenAt).toISOString(),
+													policyVersion: policy.version,
+													subjectId: result.subjectId,
 												});
 												setFeedback({
-													tone: 'success',
 													message: `Terms accepted and stored as consent ${result.consentId}.`,
+													tone: 'success',
 												});
 											} catch (error) {
 												setFeedback({
-													tone: 'error',
 													message:
 														error instanceof Error
 															? error.message
 															: 'Unable to record the terms acceptance with c15t.',
+													tone: 'error',
 												});
 											}
 										});

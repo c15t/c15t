@@ -55,7 +55,8 @@ function parseArgs(argv: readonly string[]): Args {
 
 	const engines = engineName
 		? [engineByName(engineName)]
-		: // MySQL needs Docker, so it is opt-in via --engine mysql rather than
+		: // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+			// MySQL needs Docker, so it is opt-in via --engine mysql rather than
 			// something a bare `bun run generate` silently fails on.
 			ENGINES.filter((engine) => !engine.needsDocker);
 
@@ -123,6 +124,7 @@ function eraSubpaths(era: DatabaseFixture['era']): {
 	schema?: string;
 	adapter?: string;
 } {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (era) {
 		case 'legacy':
 			return { migrator: 'pkgs/migrations' };

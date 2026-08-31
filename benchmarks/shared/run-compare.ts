@@ -26,7 +26,7 @@ interface ArmMapFile {
 	mappings?: Record<string, string | string[]>;
 }
 
-function loadArmMap(): Map<string, string[]> {
+const loadArmMap = function loadArmMap(): Map<string, string[]> {
 	try {
 		const parsed = readJson<ArmMapFile | Record<string, string | string[]>>(
 			armMapPath
@@ -40,9 +40,9 @@ function loadArmMap(): Map<string, string[]> {
 	} catch {
 		return new Map();
 	}
-}
+};
 
-async function main() {
+const main = async function main() {
 	const baseResults = new Map<string, BenchmarkResult>();
 	for (const file of listJsonFiles(baseDir)) {
 		const result = readJson<BenchmarkResult>(file);
@@ -54,11 +54,11 @@ async function main() {
 	const armMap = loadArmMap();
 
 	const comparison: BenchmarkComparisonResult = {
-		schemaVersion: BENCHMARK_SCHEMA_VERSION,
-		generatedAt: new Date().toISOString(),
 		baseSha: undefined,
+		generatedAt: new Date().toISOString(),
 		headSha: undefined,
 		results: [],
+		schemaVersion: BENCHMARK_SCHEMA_VERSION,
 	};
 
 	for (const file of listJsonFiles(headDir)) {
@@ -80,12 +80,23 @@ async function main() {
 			comparison.headSha ??= headResult.commitSha;
 
 			comparison.results.push({
-				key,
 				baseKey: baseKey === key ? undefined : baseKey,
-				suite: headResult.suite,
-				package: headResult.package,
+				budgets: budgets.map((budget) =>
+					evaluateBudget(
+						{
+							comparator: budget.comparator,
+							description: budget.description,
+
+							metric: budget.metric,
+							secondaryThreshold: budget.secondaryThreshold,
+							threshold: budget.threshold,
+						},
+						indexedHeadMetrics.get(budget.metric),
+						indexedBaseMetrics.get(budget.metric)
+					)
+				),
 				framework: headResult.framework,
-				scenario: headResult.scenario,
+				key,
 				metrics: headResult.metrics.map((metric) => {
 					const baseMetric = indexedBaseMetrics.get(metric.name);
 					const delta =
@@ -105,28 +116,19 @@ async function main() {
 								)
 							: null;
 					return {
-						name: metric.name,
-						unit: metric.unit,
 						baseMedian: baseMetric?.median ?? null,
-						headMedian: metric.median,
 						delta,
 						deltaPercent,
+
+						headMedian: metric.median,
+						name: metric.name,
+						unit: metric.unit,
 					};
 				}),
-				budgets: budgets.map((budget) =>
-					evaluateBudget(
-						{
-							metric: budget.metric,
-							comparator: budget.comparator,
-							threshold: budget.threshold,
-							secondaryThreshold: budget.secondaryThreshold,
-							description: budget.description,
-						},
-						indexedHeadMetrics.get(budget.metric),
-						indexedBaseMetrics.get(budget.metric)
-					)
-				),
 				notes: headResult.notes,
+				package: headResult.package,
+				scenario: headResult.scenario,
+				suite: headResult.suite,
 			});
 		}
 	}
@@ -147,7 +149,7 @@ async function main() {
 	) {
 		throw new Error('Benchmark budget failures detected');
 	}
-}
+};
 
 try {
 	await main();

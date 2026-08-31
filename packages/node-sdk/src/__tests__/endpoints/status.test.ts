@@ -29,21 +29,21 @@ describe('Status Endpoint', () => {
 		const mockFetch = vi.fn().mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					version: '1.0.0',
-					timestamp: new Date().toISOString(),
 					client: {
-						ip: '127.0.0.1',
-						userAgent: 'test',
 						acceptLanguage: null,
+						ip: '127.0.0.1',
 						region: {
 							countryCode: null,
 							regionCode: null,
 						},
+						userAgent: 'test',
 					},
+					timestamp: new Date().toISOString(),
+					version: '1.0.0',
 				}),
 				{
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
@@ -54,6 +54,7 @@ describe('Status Endpoint', () => {
 		expect(result.ok).toBe(true);
 		expect(result.data?.version).toBe('1.0.0');
 
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const fetchCall = mockFetch.mock.calls[0];
 		expect(fetchCall[0]).toContain('/status');
 		expect(fetchCall[1].method).toBe('GET');
@@ -63,13 +64,14 @@ describe('Status Endpoint', () => {
 		const context: FetcherContext = {
 			baseUrl: 'https://api.example.com',
 			headers: {},
-			retryConfig: { maxRetries: 0 }, // Disable retries for this test
+			// Disable retries for this test
+			retryConfig: { maxRetries: 0 },
 		};
 
 		const mockFetch = vi.fn().mockResolvedValueOnce(
 			new Response(JSON.stringify({ message: 'Service unavailable' }), {
-				status: 503,
 				headers: { 'content-type': 'application/json' },
+				status: 503,
 			})
 		);
 		globalThis.fetch = mockFetch;

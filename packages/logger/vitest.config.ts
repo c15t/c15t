@@ -16,6 +16,24 @@ export default mergeConfig(
 			},
 		},
 		test: {
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					branches: 65,
+
+					functions: 80,
+					lines: 70,
+					statements: 70,
+				},
+			},
+			exclude: [
+				'**/node_modules/**',
+				'**/dist/**',
+				'**/build/**',
+				'**/.cache/**',
+				'**/coverage/**',
+			],
 			include: [
 				'src/**/*.test.tsx',
 				'src/**/*.test.ts',
@@ -24,23 +42,6 @@ export default mergeConfig(
 				'src/**/*.e2e.test.tsx',
 				'src/**/*.e2e.test.ts',
 			],
-			exclude: [
-				'**/node_modules/**',
-				'**/dist/**',
-				'**/build/**',
-				'**/.cache/**',
-				'**/coverage/**',
-			],
-			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
-				thresholds: {
-					lines: 70,
-					statements: 70,
-					functions: 80,
-					branches: 65,
-				},
-			},
 		},
 	})
 );

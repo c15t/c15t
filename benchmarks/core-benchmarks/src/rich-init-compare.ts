@@ -82,14 +82,16 @@ const V2_API_PAYLOAD = {
 	policySnapshotToken: FULL_INIT_PAYLOAD.policySnapshotToken,
 };
 
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const mockFetchV2 = async () =>
 	new Response(JSON.stringify(V2_API_PAYLOAD), {
 		status: 200,
 		headers: { 'content-type': 'application/json' },
 	});
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const mockFetchV3 = async () => new Response('ok');
 
-function measureSync(iterations: number, fn: () => void): number[] {
+function _measureSync(iterations: number, fn: () => void): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();

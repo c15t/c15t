@@ -27,23 +27,25 @@ declare global {
  */
 export const umamiAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'umami-analytics',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			defer: true,
 			attributes: {
-				'data-website-id': '{{websiteId}}',
-				'data-host-url': '{{hostUrl}}',
 				'data-auto-track': '{{autoTrackAttribute}}',
-				'data-domains': '{{domains}}',
-				'data-tag': '{{tag}}',
 				'data-before-send': '{{beforeSend}}',
+
+				'data-domains': '{{domains}}',
+				'data-host-url': '{{hostUrl}}',
+				'data-tag': '{{tag}}',
+				'data-website-id': '{{websiteId}}',
 			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'umami-analytics',
 } as const satisfies VendorManifest;
 
 export interface UmamiAnalyticsOptions {
@@ -107,7 +109,9 @@ export interface UmamiAnalyticsOptions {
  * });
  * ```
  */
-export function umamiAnalytics(options: UmamiAnalyticsOptions): Script {
+export const umamiAnalytics = function umamiAnalytics(
+	options: UmamiAnalyticsOptions
+): Script {
 	const websiteId = options.websiteId.trim();
 	if (websiteId.length === 0) {
 		throw new Error(
@@ -116,17 +120,17 @@ export function umamiAnalytics(options: UmamiAnalyticsOptions): Script {
 	}
 
 	const resolved = resolveManifest(umamiAnalyticsManifest, {
-		websiteId,
-		hostUrl: options.hostUrl,
 		autoTrackAttribute: booleanDataAttribute(options.autoTrack),
-		domains: listDataAttribute(options.domains),
-		tag: options.tag,
 		beforeSend: options.beforeSend,
+		domains: listDataAttribute(options.domains),
+		hostUrl: options.hostUrl,
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			'https://cloud.umami.is/script.js'
 		),
+		tag: options.tag,
+		websiteId,
 	});
 
 	return resolved;
-}
+};

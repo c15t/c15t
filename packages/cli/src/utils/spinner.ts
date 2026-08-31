@@ -101,8 +101,6 @@ export interface ProgressBar {
  * Create a progress bar
  */
 export function createProgressBar(total: number, label?: string): ProgressBar {
-	let lastCurrent = 0;
-
 	function render(current: number, message?: string): string {
 		const percentage = Math.round((current / total) * 100);
 		const filled = Math.round((current / total) * 20);
@@ -117,7 +115,6 @@ export function createProgressBar(total: number, label?: string): ProgressBar {
 
 	return {
 		update(current: number, message?: string): void {
-			lastCurrent = current;
 			p.log.step(render(current, message));
 		},
 
@@ -200,7 +197,7 @@ export function createTaskGroup(): TaskGroup {
 					await task();
 					spinner.success(name);
 					success.push(name);
-				} catch (error) {
+				} catch {
 					spinner.error(name);
 					failed.push(name);
 				}

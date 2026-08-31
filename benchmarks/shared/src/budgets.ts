@@ -21,259 +21,259 @@ import type { MetricBudget } from './schema';
  */
 export const coreRuntimeV3Budgets: MetricBudget[] = [
 	{
-		metric: 'createConsentKernel',
 		comparator: 'percent-lte',
-		threshold: 0,
 		description:
 			'v3 kernel construction must not regress vs v2 baseline (target: sub-µs, pure).',
+		metric: 'createConsentKernel',
+		threshold: 0,
 	},
 	{
-		metric: 'initConsentManager',
 		comparator: 'percent-lte',
-		threshold: -50,
 		description: 'v3 full init must be at least 50% faster than v2 baseline.',
+		metric: 'initConsentManager',
+		threshold: -50,
 	},
 	{
-		metric: 'repeatVisitorInit',
 		comparator: 'percent-lte',
-		threshold: -50,
 		description:
 			'v3 repeat-visitor init must be at least 50% faster than v2 baseline.',
+		metric: 'repeatVisitorInit',
+		threshold: -50,
 	},
 ];
 
 export const bundleV3Budgets: MetricBudget[] = [
 	{
-		metric: 'core-only',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 /core-only route addition must be at least 30% smaller than v2 baseline.',
+		metric: 'core-only',
+		threshold: -30,
 	},
 	{
-		metric: 'react-headless',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 /react-headless route addition must be at least 30% smaller than v2 baseline.',
+		metric: 'react-headless',
+		threshold: -30,
 	},
 	{
-		metric: 'react-banner-only',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 /react-banner-only route addition must be at least 30% smaller than v2 baseline.',
+		metric: 'react-banner-only',
+		threshold: -30,
 	},
 	{
-		metric: 'react-full',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 /react-full route addition must be at least 30% smaller than v2 baseline.',
+		metric: 'react-full',
+		threshold: -30,
 	},
 	{
-		metric: 'nextjs-basic',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 /nextjs-basic route addition must be at least 30% smaller than v2 baseline.',
+		metric: 'nextjs-basic',
+		threshold: -30,
 	},
 ];
 
 export const artifactV3Budgets: MetricBudget[] = [
 	{
-		metric: 'c15t',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 c15t package tarball must be at least 30% smaller than v2.',
+		metric: 'c15t',
+		threshold: -30,
 	},
 	{
-		metric: '@c15t/react',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 @c15t/react package tarball must be at least 30% smaller than v2.',
+		metric: '@c15t/react',
+		threshold: -30,
 	},
 	{
-		metric: '@c15t/nextjs',
 		comparator: 'percent-lte',
-		threshold: -30,
 		description:
 			'v3 @c15t/nextjs package tarball must be at least 30% smaller than v2.',
+		metric: '@c15t/nextjs',
+		threshold: -30,
 	},
 ];
 
 export const coreRuntimeBudgets: MetricBudget[] = [
 	{
-		metric: 'configureConsentManager',
 		comparator: 'percent-lte',
-		threshold: 30,
 		description:
 			'Tiny runtime operations may regress slightly, but should stay within 30%.',
+		metric: 'configureConsentManager',
+		threshold: 30,
 	},
 	{
-		metric: 'createConsentManagerStore',
 		comparator: 'percent-lte',
-		threshold: 20,
 		description: 'Store creation should remain within 20% of the baseline.',
+		metric: 'createConsentManagerStore',
+		threshold: 20,
 	},
 	{
-		metric: 'initConsentManager',
 		comparator: 'percent-lte',
-		threshold: 15,
 		description: 'Full init cost should remain within 15% of the baseline.',
+		metric: 'initConsentManager',
+		threshold: 15,
 	},
 ];
 
 export const bundleBudgets: MetricBudget[] = [
 	{
-		metric: 'core-only',
 		comparator: 'delta-bytes-lte',
-		threshold: 1536,
 		description:
 			'The core-only route should not gain more than 1.5kB over the base branch.',
+		metric: 'core-only',
+		threshold: 1536,
 	},
 	{
-		metric: 'react-headless',
 		comparator: 'delta-bytes-lte',
-		threshold: 2048,
 		description: 'Headless React bundle delta budget.',
+		metric: 'react-headless',
+		threshold: 2048,
 	},
 	{
-		metric: 'react-banner-only',
 		comparator: 'delta-bytes-lte',
-		threshold: 3072,
 		description: 'React banner bundle delta budget.',
-	},
-	{
-		metric: 'react-full',
-		comparator: 'delta-bytes-lte',
-		threshold: 4096,
-		description: 'React full bundle delta budget.',
-	},
-	{
-		metric: 'nextjs-basic',
-		comparator: 'delta-bytes-lte',
+		metric: 'react-banner-only',
 		threshold: 3072,
+	},
+	{
+		comparator: 'delta-bytes-lte',
+		description: 'React full bundle delta budget.',
+		metric: 'react-full',
+		threshold: 4096,
+	},
+	{
+		comparator: 'delta-bytes-lte',
 		description: 'Next.js package bundle delta budget.',
+		metric: 'nextjs-basic',
+		threshold: 3072,
 	},
 ];
 
 export const artifactBudgets: MetricBudget[] = [
 	{
-		metric: 'c15t',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 15360,
-		secondaryThreshold: 10,
 		description: 'Core package tarball growth must stay below 15kB and 10%.',
+		metric: 'c15t',
+		secondaryThreshold: 10,
+		threshold: 15360,
 	},
 	{
-		metric: '@c15t/react',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 15360,
-		secondaryThreshold: 10,
 		description: 'React package tarball growth must stay below 15kB and 10%.',
+		metric: '@c15t/react',
+		secondaryThreshold: 10,
+		threshold: 15360,
 	},
 	{
-		metric: '@c15t/nextjs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 15360,
-		secondaryThreshold: 10,
 		description: 'Next.js package tarball growth must stay below 15kB and 10%.',
+		metric: '@c15t/nextjs',
+		secondaryThreshold: 10,
+		threshold: 15360,
 	},
 ];
 
 export const browserBudgets: MetricBudget[] = [
 	{
-		metric: 'bannerReadyMs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 25,
-		secondaryThreshold: 15,
 		description:
 			'Banner readiness should not regress by more than 25ms and 15%.',
-	},
-	{
-		metric: 'lastAppScriptEndMs',
-		comparator: 'absolute-and-percent-lte',
-		threshold: 15,
-		secondaryThreshold: 10,
-		description: 'Final app-script response end budget.',
-	},
-	{
-		metric: 'interactionLatencyMs',
-		comparator: 'absolute-and-percent-lte',
-		threshold: 20,
-		secondaryThreshold: 20,
-		description: 'Interaction latency budget.',
-	},
-	{
-		metric: 'longTaskTotalMs',
-		comparator: 'percent-lte',
+		metric: 'bannerReadyMs',
+		secondaryThreshold: 15,
 		threshold: 25,
+	},
+	{
+		comparator: 'absolute-and-percent-lte',
+		description: 'Final app-script response end budget.',
+		metric: 'lastAppScriptEndMs',
+		secondaryThreshold: 10,
+		threshold: 15,
+	},
+	{
+		comparator: 'absolute-and-percent-lte',
+		description: 'Interaction latency budget.',
+		metric: 'interactionLatencyMs',
+		secondaryThreshold: 20,
+		threshold: 20,
+	},
+	{
+		comparator: 'percent-lte',
 		description: 'Long-task total should not grow by more than 25%.',
+		metric: 'longTaskTotalMs',
+		threshold: 25,
 	},
 	{
-		metric: 'initRequestsAfterLoad',
 		comparator: 'count-eq',
-		threshold: 1,
 		description: 'Client/prefetch initial request count invariant.',
+		metric: 'initRequestsAfterLoad',
+		threshold: 1,
 	},
 	{
-		metric: 'ssrInitRequestsAfterLoad',
 		comparator: 'count-eq',
-		threshold: 0,
 		description: 'SSR routes should not show browser-observed init requests.',
+		metric: 'ssrInitRequestsAfterLoad',
+		threshold: 0,
 	},
 ];
 
 export const scriptLifecycleBudgets: MetricBudget[] = [
 	{
-		metric: 'grantStandardLifecycleMs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 20,
-		secondaryThreshold: 20,
 		description: 'Grant-standard script lifecycle budget.',
+		metric: 'grantStandardLifecycleMs',
+		secondaryThreshold: 20,
+		threshold: 20,
 	},
 	{
-		metric: 'revokeStandardLifecycleMs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 25,
-		secondaryThreshold: 20,
 		description: 'Revoke-standard script lifecycle budget.',
+		metric: 'revokeStandardLifecycleMs',
+		secondaryThreshold: 20,
+		threshold: 25,
 	},
 	{
-		metric: 'reloadSingleScriptMs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 15,
-		secondaryThreshold: 20,
 		description: 'Single-script reload lifecycle budget.',
+		metric: 'reloadSingleScriptMs',
+		secondaryThreshold: 20,
+		threshold: 15,
 	},
 	{
-		metric: 'callbackOnlyToggleMs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 10,
-		secondaryThreshold: 20,
 		description: 'Callback-only script lifecycle budget.',
+		metric: 'callbackOnlyToggleMs',
+		secondaryThreshold: 20,
+		threshold: 10,
 	},
 	{
-		metric: 'alwaysLoadRetentionMs',
 		comparator: 'absolute-and-percent-lte',
-		threshold: 20,
-		secondaryThreshold: 20,
 		description: 'alwaysLoad script retention lifecycle budget.',
-	},
-	{
-		metric: 'persistAfterRevokedMs',
-		comparator: 'absolute-and-percent-lte',
-		threshold: 20,
+		metric: 'alwaysLoadRetentionMs',
 		secondaryThreshold: 20,
-		description: 'persistAfterConsentRevoked lifecycle budget.',
+		threshold: 20,
 	},
 	{
-		metric: 'errorCount',
+		comparator: 'absolute-and-percent-lte',
+		description: 'persistAfterConsentRevoked lifecycle budget.',
+		metric: 'persistAfterRevokedMs',
+		secondaryThreshold: 20,
+		threshold: 20,
+	},
+	{
 		comparator: 'count-eq',
-		threshold: 0,
 		description: 'Script lifecycle benchmark should not emit errors.',
+		metric: 'errorCount',
+		threshold: 0,
 	},
 ];

@@ -38,7 +38,7 @@ export interface StatusResponse {
  * to 503 rather than 500 — the distinction matters to orchestrators, which
  * treat 503 as "retry me" and 500 as "I am broken".
  */
-export const status = Effect.fn('status')(function* (
+export const status = Effect.fn('status')(function* status(
 	headers: Headers,
 	version: string,
 	ipConfig: IpAddressConfig | undefined
@@ -55,16 +55,16 @@ export const status = Effect.fn('status')(function* (
 	yield* sql`select 1 from ${sql('subject')} limit 1`;
 
 	return {
-		version,
-		timestamp: new Date(),
 		client: {
-			ip: getIpAddress(headers, ipConfig),
 			acceptLanguage: signals.language,
-			userAgent: headers.get('user-agent'),
+			ip: getIpAddress(headers, ipConfig),
 			region: {
 				countryCode: signals.country,
 				regionCode: signals.region,
 			},
+			userAgent: headers.get('user-agent'),
 		},
+		timestamp: new Date(),
+		version,
 	};
 });

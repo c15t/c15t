@@ -9,7 +9,7 @@ import type { Ref } from 'vue';
  *
  * @returns A ref that becomes `true` after mount
  */
-export function useMounted(): Ref<boolean> {
+export const useMounted = function useMounted(): Ref<boolean> {
 	const mounted = ref(false);
 
 	onMounted(() => {
@@ -17,4 +17,4 @@ export function useMounted(): Ref<boolean> {
 	});
 
 	return mounted;
-}
+};

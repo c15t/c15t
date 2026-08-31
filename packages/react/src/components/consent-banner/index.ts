@@ -127,21 +127,22 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
  * @public
  */
 const ConsentBanner = Object.assign(ConsentBannerComponent, {
-	Root,
-	Card,
-	Header,
-	Title,
-	Description,
-	PolicyActions,
-	Footer,
-	FooterSubGroup,
-	RejectButton,
-	CustomizeButton,
 	AcceptButton,
-	Overlay,
+	Actions: FooterSubGroup,
+
+	Card,
 	// Aliases for backward compatibility
 	Content: Card,
-	Actions: FooterSubGroup,
+	CustomizeButton,
+	Description,
+	Footer,
+	FooterSubGroup,
+	Header,
+	Overlay,
+	PolicyActions,
+	RejectButton,
+	Root,
+	Title,
 }) as ConsentBannerCompoundComponent;
 
 // Export the main component as both default and named export

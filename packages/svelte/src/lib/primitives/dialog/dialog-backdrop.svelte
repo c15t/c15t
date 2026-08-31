@@ -18,12 +18,12 @@
 		class?: string;
 	} = $props();
 
-	function handleClick(
+	const handleClick = function handleClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
 	) {
 		dialog.requestClose('backdrop');
 		onclick?.(event);
-	}
+	};
 </script>
 
 {#if shouldRender}

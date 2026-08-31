@@ -31,7 +31,7 @@ interface GitHubIssue {
  * @returns The report path, defaulting to `live-vendors-report.json`.
  * @throws {Error} when `--report` is passed without a value.
  */
-function parseReportPath(argv: string[]): string {
+const parseReportPath = function parseReportPath(argv: string[]): string {
 	const index = argv.indexOf('--report');
 
 	if (index !== -1) {
@@ -43,7 +43,7 @@ function parseReportPath(argv: string[]): string {
 	}
 
 	return 'live-vendors-report.json';
-}
+};
 
 /**
  * Reads a required environment variable.
@@ -52,7 +52,7 @@ function parseReportPath(argv: string[]): string {
  * @returns The non-empty value.
  * @throws {Error} naming the variable when it is unset or empty.
  */
-function requireEnv(name: string): string {
+const requireEnv = function requireEnv(name: string): string {
 	const value = Bun.env[name];
 
 	if (!value) {
@@ -60,7 +60,7 @@ function requireEnv(name: string): string {
 	}
 
 	return value;
-}
+};
 
 /**
  * Performs an authenticated GitHub REST request.
@@ -73,7 +73,7 @@ function requireEnv(name: string): string {
  * @throws {Error} with the status and response text on non-2xx responses,
  * or an abort error when the request exceeds 30s.
  */
-async function githubRequest<T>(
+const githubRequest = async function githubRequest<T>(
 	token: string,
 	method: string,
 	path: string,
@@ -91,9 +91,9 @@ async function githubRequest<T>(
 	}
 
 	const response = await fetch(`https://api.github.com${path}`, {
-		method,
-		headers,
 		body: serializedBody,
+		headers,
+		method,
 		signal: AbortSignal.timeout(GITHUB_REQUEST_TIMEOUT_MS),
 	});
 
@@ -105,7 +105,7 @@ async function githubRequest<T>(
 	}
 
 	return (await response.json()) as T;
-}
+};
 
 /**
  * Lists open monitor issues (deduped by title prefix), including bodies so
@@ -113,13 +113,14 @@ async function githubRequest<T>(
  *
  * @throws {Error} when a GitHub API page request fails.
  */
-async function listOpenMonitorIssues(
+const listOpenMonitorIssues = async function listOpenMonitorIssues(
 	token: string,
 	repository: string
 ): Promise<ExistingMonitorIssue[]> {
 	const issues: ExistingMonitorIssue[] = [];
 
-	for (let page = 1; page <= 10; page++) {
+	for (let page = 1; page <= 10; page += 1) {
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const batch = await githubRequest<GitHubIssue[]>(
 			token,
 			'GET',
@@ -134,9 +135,9 @@ async function listOpenMonitorIssues(
 
 			if (issue.title.startsWith(MONITOR_ISSUE_TITLE_PREFIX)) {
 				issues.push({
+					body: issue.body,
 					number: issue.number,
 					title: issue.title,
-					body: issue.body,
 				});
 			}
 		}
@@ -147,9 +148,9 @@ async function listOpenMonitorIssues(
 	}
 
 	return issues;
-}
+};
 
-async function main(): Promise<void> {
+const main = async function main(): Promise<void> {
 	const reportPath = parseReportPath(Bun.argv.slice(2));
 	const token = requireEnv('GITHUB_TOKEN');
 	const repository = requireEnv('GITHUB_REPOSITORY');
@@ -159,21 +160,23 @@ async function main(): Promise<void> {
 	const plan = planMonitorIssueActions(report, existingIssues);
 	const failures: string[] = [];
 
-	for (const action of plan.create) {
+	await Array.from(plan.create).reduce(async (previousIteration, action) => {
+		await previousIteration;
 		try {
 			const issue = await githubRequest<GitHubIssue>(
 				token,
 				'POST',
 				`/repos/${repository}/issues`,
-				{ title: action.title, body: action.body }
+				{ body: action.body, title: action.title }
 			);
 			console.log(`Opened #${issue.number} for ${action.vendor}`);
 		} catch (error) {
 			failures.push(`create ${action.vendor}: ${String(error)}`);
 		}
-	}
+	}, Promise.resolve());
 
-	for (const action of plan.update) {
+	await Array.from(plan.update).reduce(async (previousIteration, action) => {
+		await previousIteration;
 		try {
 			await githubRequest(
 				token,
@@ -187,9 +190,10 @@ async function main(): Promise<void> {
 		} catch (error) {
 			failures.push(`update ${action.vendor}: ${String(error)}`);
 		}
-	}
+	}, Promise.resolve());
 
-	for (const action of plan.close) {
+	await Array.from(plan.close).reduce(async (previousIteration, action) => {
+		await previousIteration;
 		try {
 			await githubRequest(
 				token,
@@ -207,7 +211,7 @@ async function main(): Promise<void> {
 		} catch (error) {
 			failures.push(`close ${action.vendor}: ${String(error)}`);
 		}
-	}
+	}, Promise.resolve());
 
 	console.log(
 		`Issue sync complete: ${plan.create.length} opened, ${plan.update.length} updated, ${plan.close.length} closed.`
@@ -217,6 +221,6 @@ async function main(): Promise<void> {
 		console.error(`Issue sync errors:\n- ${failures.join('\n- ')}`);
 		process.exitCode = 1;
 	}
-}
+};
 
 await main();

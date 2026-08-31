@@ -46,8 +46,8 @@ describe('logRocket contract', () => {
 					},
 				},
 			}),
-			id: 'logrocket-contract',
 			anonymizeId: false,
+			id: 'logrocket-contract',
 		};
 
 		loadScripts([script], deniedConsents);

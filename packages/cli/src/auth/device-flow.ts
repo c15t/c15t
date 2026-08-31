@@ -328,11 +328,13 @@ export async function pollForToken(
 
 	while (Date.now() < expiryTime) {
 		// Wait for the interval
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await sleep(currentInterval);
 
 		try {
 			// Prefer v1 control-plane token polling endpoint unless unavailable.
 			if (!useLegacyOAuthEndpoints) {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const v1Response = await fetch(endpoints.deviceTokenV1Endpoint, {
 					method: 'POST',
 					headers: {
@@ -342,6 +344,7 @@ export async function pollForToken(
 				});
 
 				if (v1Response.ok) {
+					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					const payload = await parseJsonSafe(v1Response);
 					const data = isApiSuccessPayload<TokenResponseV1>(payload)
 						? payload.data
@@ -352,6 +355,7 @@ export async function pollForToken(
 				if (v1Response.status === 404) {
 					useLegacyOAuthEndpoints = true;
 				} else {
+					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					const payload = await parseJsonSafe(v1Response);
 					const mappedError = toDeviceFlowErrorFromV1(v1Response, payload);
 
@@ -384,6 +388,7 @@ export async function pollForToken(
 				}
 			}
 
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(endpoints.tokenEndpoint, {
 				method: 'POST',
 				headers: {
@@ -397,12 +402,14 @@ export async function pollForToken(
 			});
 
 			if (response.ok) {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const payload = await parseJsonSafe(response);
 				const token = normalizeTokenResponse(payload);
 				return token;
 			}
 
 			// Check for known error codes
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const payload = await parseJsonSafe(response);
 			const error = payload as DeviceFlowError;
 

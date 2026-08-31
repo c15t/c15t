@@ -25,11 +25,11 @@ declare global {
 	}
 }
 
-export function nowMs(): number {
+export const nowMs = function nowMs(): number {
 	return performance.now();
-}
+};
 
-export function getBenchState(
+export const getBenchState = function getBenchState(
 	scenario: ScriptLifecycleScenarioName
 ): ScriptBenchState | undefined {
 	if (typeof window === 'undefined') {
@@ -41,39 +41,41 @@ export function getBenchState(
 		window.__c15tScriptBench.scenario !== scenario
 	) {
 		window.__c15tScriptBench = {
-			scenario,
-			startedAtMs: nowMs(),
-			consentSaveCount: 0,
 			activeUI: 'none',
-			loadedIds: [],
-			loadEventCounts: {},
 			beforeLoadEventCounts: {},
-			consentChangeEventCounts: {},
-			domPresenceById: {},
-			reloadCount: 0,
-			errors: [],
-			scriptEvents: {},
 			completionMarkers: {},
+			consentChangeEventCounts: {},
+			consentSaveCount: 0,
+			domPresenceById: {},
+			errors: [],
+			loadEventCounts: {},
+			loadedIds: [],
+			reloadCount: 0,
+			scenario,
+			scriptEvents: {},
+			startedAtMs: nowMs(),
 		};
 	}
 
 	return window.__c15tScriptBench;
-}
+};
 
-export function incrementCounter(
+export const incrementCounter = function incrementCounter(
 	record: Record<string, number>,
 	key: string
 ): void {
 	record[key] = (record[key] ?? 0) + 1;
-}
+};
 
-export function listDomPresence(ids: string[]): Record<string, boolean> {
+export const listDomPresence = function listDomPresence(
+	ids: string[]
+): Record<string, boolean> {
 	return ids.reduce<Record<string, boolean>>((acc, id) => {
 		acc[id] = document.querySelector(`[data-bench-script-id="${id}"]`) !== null;
 		return acc;
 	}, {});
-}
+};
 
-export function normalizeIds(ids: string[]): string[] {
+export const normalizeIds = function normalizeIds(ids: string[]): string[] {
 	return [...ids].sort((left, right) => left.localeCompare(right));
-}
+};

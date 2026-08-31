@@ -47,30 +47,32 @@ export interface ComponentContract {
 
 export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	consentBanner: {
-		key: 'consentBanner',
-		rootTestId: TEST_IDS.consentBanner.root,
 		elements: [
 			{
-				testId: TEST_IDS.consentBanner.card,
-				role: 'dialog',
-				requiredAttrs: ['aria-label'],
 				exactAttrs: { 'aria-modal': 'true' },
+
+				requiredAttrs: ['aria-label'],
+				role: 'dialog',
+				testId: TEST_IDS.consentBanner.card,
 			},
-			{ testId: TEST_IDS.consentBanner.title, role: 'heading' },
+			{ role: 'heading', testId: TEST_IDS.consentBanner.title },
 			{
+				exactAttrs: { type: 'button' },
+
+				role: 'button',
 				testId: TEST_IDS.consentBanner.acceptButton,
-				role: 'button',
-				exactAttrs: { type: 'button' },
 			},
 			{
+				exactAttrs: { type: 'button' },
+
+				role: 'button',
 				testId: TEST_IDS.consentBanner.rejectButton,
-				role: 'button',
-				exactAttrs: { type: 'button' },
 			},
 			{
-				testId: TEST_IDS.consentBanner.customizeButton,
-				role: 'button',
 				exactAttrs: { type: 'button' },
+
+				role: 'button',
+				testId: TEST_IDS.consentBanner.customizeButton,
 			},
 		],
 		focus: {
@@ -81,6 +83,8 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 				TEST_IDS.consentBanner.customizeButton,
 			],
 		},
+		key: 'consentBanner',
+		rootTestId: TEST_IDS.consentBanner.root,
 		stableElements: [
 			TEST_IDS.consentBanner.root,
 			TEST_IDS.consentBanner.card,
@@ -92,23 +96,24 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	},
 
 	consentDialog: {
-		key: 'consentDialog',
-		rootTestId: TEST_IDS.consentDialog.root,
 		elements: [
 			{
-				testId: TEST_IDS.consentDialog.root,
-				role: 'dialog',
-				requiredAttrs: ['aria-labelledby'],
 				exactAttrs: { 'aria-modal': 'true' },
+
+				requiredAttrs: ['aria-labelledby'],
+				role: 'dialog',
+				testId: TEST_IDS.consentDialog.root,
 			},
-			{ testId: TEST_IDS.consentDialog.title, role: 'heading' },
-			{ testId: TEST_IDS.consentDialog.overlay, role: 'presentation' },
+			{ role: 'heading', testId: TEST_IDS.consentDialog.title },
+			{ role: 'presentation', testId: TEST_IDS.consentDialog.overlay },
 		],
 		focus: {
 			initialFocusTestId: TEST_IDS.consentDialog.root,
 			returnFocusTestId: TEST_IDS.consentDialog.trigger,
 			tabOrderTestIds: [],
 		},
+		key: 'consentDialog',
+		rootTestId: TEST_IDS.consentDialog.root,
 		stableElements: [
 			TEST_IDS.consentDialog.root,
 			TEST_IDS.consentDialog.title,
@@ -117,17 +122,18 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	},
 
 	consentWidget: {
-		key: 'consentWidget',
-		rootTestId: TEST_IDS.consentWidget.root,
 		elements: [
-			{ testId: TEST_IDS.consentWidget.root, role: 'group' },
-			{ testId: TEST_IDS.consentWidget.accordion, role: 'group' },
+			{ role: 'group', testId: TEST_IDS.consentWidget.root },
+			{ role: 'group', testId: TEST_IDS.consentWidget.accordion },
 			{
-				testId: TEST_IDS.consentWidget.footerSaveButton,
-				role: 'button',
 				exactAttrs: { type: 'button' },
+
+				role: 'button',
+				testId: TEST_IDS.consentWidget.footerSaveButton,
 			},
 		],
+		key: 'consentWidget',
+		rootTestId: TEST_IDS.consentWidget.root,
 		stableElements: [
 			TEST_IDS.consentWidget.root,
 			TEST_IDS.consentWidget.accordion,
@@ -136,31 +142,35 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	},
 
 	iabConsentBanner: {
-		key: 'iabConsentBanner',
-		rootTestId: TEST_IDS.iabConsentBanner.root,
 		elements: [
 			{
-				testId: TEST_IDS.iabConsentBanner.card,
-				role: 'dialog',
-				requiredAttrs: ['aria-label'],
 				exactAttrs: { 'aria-modal': 'true' },
+
+				requiredAttrs: ['aria-label'],
+				role: 'dialog',
+				testId: TEST_IDS.iabConsentBanner.card,
 			},
 			{
+				exactAttrs: { type: 'button' },
+
+				role: 'button',
 				testId: TEST_IDS.iabConsentBanner.acceptButton,
-				role: 'button',
-				exactAttrs: { type: 'button' },
 			},
 			{
+				exactAttrs: { type: 'button' },
+
+				role: 'button',
 				testId: TEST_IDS.iabConsentBanner.rejectButton,
-				role: 'button',
-				exactAttrs: { type: 'button' },
 			},
 			{
-				testId: TEST_IDS.iabConsentBanner.customizeButton,
-				role: 'button',
 				exactAttrs: { type: 'button' },
+
+				role: 'button',
+				testId: TEST_IDS.iabConsentBanner.customizeButton,
 			},
 		],
+		key: 'iabConsentBanner',
+		rootTestId: TEST_IDS.iabConsentBanner.root,
 		stableElements: [
 			TEST_IDS.iabConsentBanner.root,
 			TEST_IDS.iabConsentBanner.card,
@@ -169,20 +179,21 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	},
 
 	iabConsentDialog: {
-		key: 'iabConsentDialog',
-		rootTestId: TEST_IDS.iabConsentDialog.root,
 		elements: [
 			{
-				testId: TEST_IDS.iabConsentDialog.card,
-				role: 'dialog',
-				requiredAttrs: ['aria-label'],
 				exactAttrs: { 'aria-modal': 'true' },
+
+				requiredAttrs: ['aria-label'],
+				role: 'dialog',
+				testId: TEST_IDS.iabConsentDialog.card,
 			},
 		],
 		focus: {
 			initialFocusTestId: TEST_IDS.iabConsentDialog.card,
 			tabOrderTestIds: [],
 		},
+		key: 'iabConsentDialog',
+		rootTestId: TEST_IDS.iabConsentDialog.root,
 		stableElements: [
 			TEST_IDS.iabConsentDialog.root,
 			TEST_IDS.iabConsentDialog.card,

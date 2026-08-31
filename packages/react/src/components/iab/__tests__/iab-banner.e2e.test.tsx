@@ -73,7 +73,7 @@ describe('IAB Banner E2E Tests', () => {
 					?.textContent || '';
 
 			// Should contain a number (partner count)
-			expect(bannerText).toMatch(/\d+/);
+			expect(bannerText).toMatch(/\d+/u);
 		});
 
 		test('should display purpose summary with stack grouping', async () => {

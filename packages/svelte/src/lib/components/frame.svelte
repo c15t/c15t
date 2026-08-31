@@ -10,9 +10,9 @@
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 
 	const btn = buttonVariants({
-		variant: 'primary',
 		mode: 'stroke',
 		size: 'small',
+		variant: 'primary',
 	});
 
 	let {
@@ -67,9 +67,9 @@
 		});
 	});
 
-	function openDialog() {
+	const openDialog = function openDialog() {
 		consent.state.setActiveUI('dialog');
-	}
+	};
 </script>
 
 <div class={className}>

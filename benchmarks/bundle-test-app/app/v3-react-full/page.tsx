@@ -34,46 +34,46 @@ const Diagnostics = lazy(() => import('./diagnostics'));
  */
 const DEMO_SCRIPTS: Script[] = [
 	{
+		async: true,
+		category: 'measurement',
 		id: 'gtm',
 		src: 'https://www.googletagmanager.com/gtm.js?id=GTM-DEMO',
-		category: 'measurement',
-		async: true,
 	},
 	{
+		async: true,
+		category: 'measurement',
 		id: 'ga',
 		src: 'https://www.google-analytics.com/analytics.js',
-		category: 'measurement',
-		async: true,
 	},
 	{
+		async: true,
+		category: 'measurement',
 		id: 'hotjar',
 		src: 'https://static.hotjar.com/c/hotjar.js',
-		category: 'measurement',
-		async: true,
 	},
 	{
+		async: true,
+		category: 'marketing',
 		id: 'fb-pixel',
 		src: 'https://connect.facebook.net/en_US/fbevents.js',
-		category: 'marketing',
-		async: true,
 	},
 	{
+		async: true,
+		category: 'marketing',
 		id: 'fb-sdk',
 		src: 'https://connect.facebook.net/en_US/sdk.js',
-		category: 'marketing',
-		async: true,
 	},
 	{
+		async: true,
+		category: 'marketing',
 		id: 'linkedin-insight',
 		src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
-		category: 'marketing',
-		async: true,
 	},
 	{
+		async: true,
+		category: 'functionality',
 		id: 'intercom',
 		src: 'https://widget.intercom.io/widget.js',
-		category: 'functionality',
-		async: true,
 	},
 ];
 
@@ -82,24 +82,24 @@ const V3ReactFullPage = () => {
 		<ConsentProvider
 			options={{
 				mode: 'offline',
-				scripts: DEMO_SCRIPTS,
 				networkBlocker: {
-					rules: [
-						{ domain: 'google-analytics.com', category: 'measurement' },
-						{ domain: 'facebook.net', category: 'marketing' },
-						{ domain: 'hotjar.com', category: 'measurement' },
-					],
 					logBlockedRequests: false,
+					rules: [
+						{ category: 'measurement', domain: 'google-analytics.com' },
+						{ category: 'marketing', domain: 'facebook.net' },
+						{ category: 'measurement', domain: 'hotjar.com' },
+					],
 				},
+				scripts: DEMO_SCRIPTS,
 			}}
 		>
 			<ConsentDraftProvider>
 				<main
 					style={{
-						padding: '2rem',
 						fontFamily: 'system-ui, -apple-system, sans-serif',
-						maxWidth: 960,
 						margin: '0 auto',
+						maxWidth: 960,
+						padding: '2rem',
 					}}
 				>
 					<h1 style={{ marginTop: 0 }}>c15t v3 — live test harness</h1>

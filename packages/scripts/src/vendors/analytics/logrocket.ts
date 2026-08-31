@@ -22,7 +22,9 @@ declare global {
 const DEFAULT_LOGROCKET_SCRIPT_URL =
 	'https://cdn.logrocket.io/LogRocket.min.js';
 
-function validateLogRocketAppId(appId: unknown): string {
+const validateLogRocketAppId = function validateLogRocketAppId(
+	appId: unknown
+): string {
 	const normalized = typeof appId === 'string' ? appId.trim() : '';
 	const segments = normalized.split('/');
 
@@ -36,7 +38,7 @@ function validateLogRocketAppId(appId: unknown): string {
 	}
 
 	return normalized;
-}
+};
 
 /**
  * LogRocket vendor manifest.
@@ -48,25 +50,27 @@ function validateLogRocketAppId(appId: unknown): string {
  */
 export const logRocketManifest = {
 	...vendorManifestContract,
-	vendor: 'logrocket',
+	afterLoad: [
+		{
+			args: ['{{appId}}', '{{initOptions}}'],
+
+			global: 'LogRocket',
+			method: 'init',
+			type: 'callGlobal',
+		},
+	],
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			attributes: {
 				crossorigin: 'anonymous',
 			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
-	afterLoad: [
-		{
-			type: 'callGlobal',
-			global: 'LogRocket',
-			method: 'init',
-			args: ['{{appId}}', '{{initOptions}}'],
-		},
-	],
+	vendor: 'logrocket',
 } as const satisfies VendorManifest;
 
 export interface LogRocketOptions {
@@ -132,7 +136,7 @@ export interface LogRocketOptions {
  * });
  * ```
  */
-export function logRocket(options: LogRocketOptions): Script {
+export const logRocket = function logRocket(options: LogRocketOptions): Script {
 	const appId = validateLogRocketAppId(options?.appId);
 	const asyncScriptUrl = trimToUndefined(options.asyncScriptUrl);
 
@@ -144,10 +148,10 @@ export function logRocket(options: LogRocketOptions): Script {
 			...logRocketManifest,
 			bootstrap: [
 				{
-					type: 'setGlobal',
-					name: '_lrAsyncScript',
-					value: '{{asyncScriptUrl}}',
 					ifUndefined: false,
+					name: '_lrAsyncScript',
+					type: 'setGlobal',
+					value: '{{asyncScriptUrl}}',
 				},
 			],
 		} satisfies VendorManifest;
@@ -162,4 +166,4 @@ export function logRocket(options: LogRocketOptions): Script {
 			DEFAULT_LOGROCKET_SCRIPT_URL
 		),
 	});
-}
+};

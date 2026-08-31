@@ -116,7 +116,7 @@ function deriveBackendURL(options: ManifestTransportOptions): string {
 	}
 
 	const withoutQuery =
-		options.manifestURL.split(/[?#]/)[0] ?? options.manifestURL;
+		options.manifestURL.split(/[?#]/u)[0] ?? options.manifestURL;
 	const trimmed = trimSlash(withoutQuery);
 	return trimmed.endsWith('/manifest')
 		? trimmed.slice(0, -'/manifest'.length)
@@ -308,12 +308,12 @@ export function createManifestTransport(
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
 					...(shouldAssertDecisionInputs && {
-						policyId: lastDecisionInputs?.policyId,
-						fingerprint: lastDecisionInputs?.fingerprint,
 						country: lastDecisionInputs?.country,
-						region: lastDecisionInputs?.region,
-						language: lastDecisionInputs?.language,
+						fingerprint: lastDecisionInputs?.fingerprint,
 						gpc: lastDecisionInputs?.gpc,
+						language: lastDecisionInputs?.language,
+						policyId: lastDecisionInputs?.policyId,
+						region: lastDecisionInputs?.region,
 					}),
 				}),
 			});

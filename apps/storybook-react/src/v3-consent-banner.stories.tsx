@@ -28,11 +28,11 @@ export const Default: Story = {
 };
 
 export const BannerToDialogFlow: Story = {
+	play: bannerToDialogFlow,
 	render: () => (
 		<StorybookV3ConsentProvider>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookV3ConsentProvider>
 	),
-	play: bannerToDialogFlow,
 };

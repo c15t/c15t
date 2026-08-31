@@ -191,7 +191,7 @@ const ensureSchema = Effect.gen(function* () {
 				const head = (path[0]?.search_path ?? '')
 					.split(',')[0]
 					?.trim()
-					.replace(/^"|"$/g, '');
+					.replace(/^"|"$/gu, '');
 
 				if (!head || head === '$user') {
 					return;

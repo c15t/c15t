@@ -24,11 +24,45 @@ type WindowWithC15t = Window & {
 	};
 };
 
+// oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
 function createManifestFixture(): ConsentManifest {
 	return {
-		schemaVersion: 1,
-		revision: 'manifest-rev-1',
 		branding: 'c15t',
+		policyPacks: [
+			createConsentManifestPolicyPack({
+				fingerprint: 'fingerprint-eu',
+				policy: {
+					consent: {
+						categories: ['necessary', 'measurement', 'marketing'],
+
+						expiryDays: 365,
+						model: 'opt-in',
+						scopeMode: 'strict',
+					},
+					id: 'eu-opt-in',
+					match: { countries: ['DE'], fallback: true },
+					ui: { mode: 'banner' },
+				},
+			}),
+			createConsentManifestPolicyPack({
+				fingerprint: 'fingerprint-ca',
+				policy: {
+					consent: {
+						categories: ['necessary', 'marketing'],
+						expiryDays: 365,
+						gpc: true,
+
+						model: 'opt-out',
+						scopeMode: 'permissive',
+					},
+					id: 'ca-opt-out',
+					match: { regions: [{ country: 'US', region: 'CA' }] },
+					ui: { mode: 'banner' },
+				},
+			}),
+		],
+		revision: 'manifest-rev-1',
+		schemaVersion: 1,
 		translations: {
 			i18n: {
 				defaultProfile: 'default',
@@ -36,16 +70,16 @@ function createManifestFixture(): ConsentManifest {
 					default: {
 						fallbackLanguage: 'en',
 						translations: {
-							en: {
-								common: {
-									acceptAll: 'Accept all',
-									rejectAll: 'Reject all',
-								},
-							},
 							de: {
 								common: {
 									acceptAll: 'Alle akzeptieren',
 									rejectAll: 'Alle ablehnen',
+								},
+							},
+							en: {
+								common: {
+									acceptAll: 'Accept all',
+									rejectAll: 'Reject all',
 								},
 							},
 						},
@@ -53,37 +87,6 @@ function createManifestFixture(): ConsentManifest {
 				},
 			},
 		},
-		policyPacks: [
-			createConsentManifestPolicyPack({
-				fingerprint: 'fingerprint-eu',
-				policy: {
-					id: 'eu-opt-in',
-					match: { countries: ['DE'], fallback: true },
-					consent: {
-						model: 'opt-in',
-						expiryDays: 365,
-						scopeMode: 'strict',
-						categories: ['necessary', 'measurement', 'marketing'],
-					},
-					ui: { mode: 'banner' },
-				},
-			}),
-			createConsentManifestPolicyPack({
-				fingerprint: 'fingerprint-ca',
-				policy: {
-					id: 'ca-opt-out',
-					match: { regions: [{ country: 'US', region: 'CA' }] },
-					consent: {
-						model: 'opt-out',
-						expiryDays: 365,
-						scopeMode: 'permissive',
-						categories: ['necessary', 'marketing'],
-						gpc: true,
-					},
-					ui: { mode: 'banner' },
-				},
-			}),
-		],
 	};
 }
 
@@ -97,32 +100,32 @@ afterEach(() => {
 describe('@c15t/vue Nuxt manifest mode', () => {
 	test('resolves init locally from a cached manifest and geo headers', () => {
 		const init = resolveManifestInit({
-			manifest: createManifestFixture(),
 			headers: {
+				'accept-language': 'de-DE,de;q=0.8,en;q=0.7',
 				'x-c15t-country': 'DE',
 				'x-c15t-region': 'BE',
-				'accept-language': 'de-DE,de;q=0.8,en;q=0.7',
 			},
+			manifest: createManifestFixture(),
 		});
 
 		expect(init).toMatchObject({
+			branding: 'c15t',
 			jurisdiction: 'GDPR',
 			location: {
 				countryCode: 'DE',
 				regionCode: 'BE',
 			},
-			branding: 'c15t',
 			policy: {
 				id: 'eu-opt-in',
 				model: 'opt-in',
 			},
 			policyDecision: {
-				policyId: 'eu-opt-in',
-				fingerprint: 'fingerprint-eu',
-				matchedBy: 'country',
 				country: 'DE',
-				region: 'BE',
+				fingerprint: 'fingerprint-eu',
 				jurisdiction: 'GDPR',
+				matchedBy: 'country',
+				policyId: 'eu-opt-in',
+				region: 'BE',
 			},
 		});
 		expect(init.translations.language).toBe('de');
@@ -131,14 +134,14 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 	test('derives manifest cache TTL from backend s-maxage', async () => {
 		const manifest = createManifestFixture();
 		const fetchMock = vi.fn(
-			async (_input: RequestInfo | URL, _init?: RequestInit) =>
+			(_input: RequestInfo | URL, _init?: RequestInit) =>
 				new Response(JSON.stringify(manifest), {
-					status: 200,
 					headers: {
-						'content-type': 'application/json',
 						'cache-control': 'public, s-maxage=60, stale-while-revalidate=120',
+						'content-type': 'application/json',
 						etag: '"manifest-rev-1"',
 					},
+					status: 200,
 				})
 		);
 		const config = {
@@ -176,16 +179,16 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 	test('maps Sec-GPC through to resolver inputs', () => {
 		expect(
 			getResolverInputsFromHeaders({
-				'x-vercel-ip-country': 'US',
-				'x-vercel-ip-country-region': 'CA',
 				'accept-language': 'en-US,en;q=0.9',
 				'sec-gpc': '1',
+				'x-vercel-ip-country': 'US',
+				'x-vercel-ip-country-region': 'CA',
 			})
 		).toEqual({
 			country: 'US',
-			region: 'CA',
-			language: 'en',
 			gpc: true,
+			language: 'en',
+			region: 'CA',
 		});
 	});
 
@@ -193,8 +196,8 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		expect(
 			getNuxtInitFetchTarget({ backendURL: 'https://backend.example' })
 		).toEqual({
-			url: '/init',
 			baseURL: 'https://backend.example',
+			url: '/init',
 		});
 		expect(
 			getNuxtInitFetchTarget({
@@ -207,8 +210,8 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		expect(
 			getNuxtInitFetchTarget({
 				backendURL: 'https://backend.example',
-				manifestURL: 'https://backend.example/manifest',
 				initRoute: '/internal/consent/init',
+				manifestURL: 'https://backend.example/manifest',
 			})
 		).toEqual({
 			url: '/internal/consent/init',
@@ -224,27 +227,27 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 
 	test('client manifest mode fetches the manifest in the browser and resolves init locally', async () => {
 		Object.defineProperty(window.navigator, 'language', {
-			value: 'de-DE',
 			configurable: true,
+			value: 'de-DE',
 		});
 		Object.defineProperty(window.navigator, 'globalPrivacyControl', {
-			value: true,
 			configurable: true,
+			value: true,
 		});
-		const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+		const fetchMock = vi.fn((input: RequestInfo | URL) => {
 			expect(String(input)).toBe('https://cdn.example/manifest');
 			return new Response(JSON.stringify(createManifestFixture()), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			});
 		});
 
 		const context = createVueConsentKernelContext({
 			config: {
 				backendURL: 'https://backend.example',
+				customFetch: fetchMock as unknown as typeof fetch,
 				manifest: 'client',
 				manifestURL: 'https://cdn.example/manifest',
-				customFetch: fetchMock as unknown as typeof fetch,
 			} as ConsentConfig,
 		});
 
@@ -256,17 +259,17 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 				countryCode: null,
 				regionCode: null,
 			},
+			overrides: {
+				gpc: true,
+				language: 'de',
+			},
 			policy: {
 				id: 'eu-opt-in',
 				model: 'opt-in',
 			},
 			policyDecision: {
-				policyId: 'eu-opt-in',
 				matchedBy: 'fallback',
-			},
-			overrides: {
-				language: 'de',
-				gpc: true,
+				policyId: 'eu-opt-in',
 			},
 		});
 		context.dispose();
@@ -274,28 +277,28 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 
 	test('client manifest mode applies strict unknown-geo policy before geo microfetch re-resolves', async () => {
 		const seenPolicyIds: string[] = [];
-		const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+		const fetchMock = vi.fn((input: RequestInfo | URL) => {
 			const url = String(input);
 			if (url === 'https://cdn.example/manifest') {
 				return new Response(JSON.stringify(createManifestFixture()), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				});
 			}
 			if (url === '/api/geo') {
 				return new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				});
 			}
 			return new Response('not found', { status: 404 });
 		});
 		const config = {
 			backendURL: 'https://backend.example',
+			customFetch: fetchMock as unknown as typeof fetch,
+			geoURL: '/api/geo',
 			manifest: 'client',
 			manifestURL: 'https://cdn.example/manifest',
-			geoURL: '/api/geo',
-			customFetch: fetchMock as unknown as typeof fetch,
 		} as ConsentConfig;
 		const context = createVueConsentKernelContext({
 			config,
@@ -312,15 +315,15 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		});
 
 		expect((window as WindowWithC15t).c15t).toMatchObject({
-			pkg: '@c15t/vue',
 			mode: 'manifest',
+			pkg: '@c15t/vue',
 		});
 		expect(seenPolicyIds[0]).toBe('eu-opt-in');
 		expect(seenPolicyIds.at(-1)).toBe('ca-opt-out');
 		expect(context.snapshot.value.policyDecision).toMatchObject({
-			policyId: 'ca-opt-out',
-			matchedBy: 'region',
 			country: 'US',
+			matchedBy: 'region',
+			policyId: 'ca-opt-out',
 			region: 'CA',
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -330,19 +333,19 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 
 	test('prefetched manifest init seeds decision inputs for save', async () => {
 		const init = resolveManifestInit({
-			manifest: createManifestFixture(),
 			headers: {
+				'accept-language': 'de',
 				'x-c15t-country': 'DE',
 				'x-c15t-region': 'BE',
-				'accept-language': 'de',
 			},
+			manifest: createManifestFixture(),
 		}) satisfies InitOutput;
 		const subjectBodies: Record<string, unknown>[] = [];
 		const fetchMock = vi.fn(
-			async (input: RequestInfo | URL, init?: RequestInit) => {
+			(input: RequestInfo | URL, initLocal?: RequestInit) => {
 				const url = String(input);
 				if (url.endsWith('/subjects')) {
-					const body = JSON.parse(String(init?.body ?? '{}')) as Record<
+					const body = JSON.parse(String(initLocal?.body ?? '{}')) as Record<
 						string,
 						unknown
 					>;
@@ -350,8 +353,8 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 					return new Response(
 						JSON.stringify({ ok: true, subjectId: 'sub-1' }),
 						{
-							status: 200,
 							headers: { 'content-type': 'application/json' },
+							status: 200,
 						}
 					);
 				}
@@ -362,9 +365,9 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		const context = createVueConsentKernelContext({
 			config: {
 				backendURL: 'https://backend.example',
-				manifest: true,
-				domain: 'example.com',
 				customFetch: fetchMock as unknown as typeof fetch,
+				domain: 'example.com',
+				manifest: true,
 			} as ConsentConfig,
 			prefetch: init,
 		});
@@ -373,12 +376,12 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 
 		expect(subjectBodies).toHaveLength(1);
 		expect(subjectBodies[0]).toMatchObject({
-			domain: 'example.com',
-			policyId: 'eu-opt-in',
-			fingerprint: 'fingerprint-eu',
 			country: 'DE',
-			region: 'BE',
+			domain: 'example.com',
+			fingerprint: 'fingerprint-eu',
 			language: 'de',
+			policyId: 'eu-opt-in',
+			region: 'BE',
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		context.dispose();

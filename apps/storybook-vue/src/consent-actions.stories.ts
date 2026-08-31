@@ -6,8 +6,8 @@ import ConsentActions from '../../../packages/vue/src/runtime/components/consent
 
 const labels: Record<PolicyUiAction, string> = {
 	accept: 'Accept all',
-	reject: 'Reject all',
 	customize: 'Save settings',
+	reject: 'Reject all',
 };
 
 const meta = {

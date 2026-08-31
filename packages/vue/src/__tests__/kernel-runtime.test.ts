@@ -36,123 +36,121 @@ type WindowWithC15t = Window & {
 };
 
 const initFixture: InitOutput = {
+	branding: 'c15t',
 	jurisdiction: 'GDPR',
 	location: {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	translations: {
-		language: 'en',
-		translations: {
-			common: {
-				acceptAll: 'Accept all',
-				rejectAll: 'Reject all',
-				customize: 'Customize',
-				save: 'Save',
-			},
-			cookieBanner: {
-				title: 'Cookie choices',
-				description: 'Pick how c15t may use cookies.',
-			},
-			consentManagerDialog: {
-				title: 'Privacy preferences',
-				description: 'Manage your choices.',
-			},
-			consentTypes: {
-				necessary: {
-					title: 'Necessary',
-					description: 'Required cookies.',
-				},
-				functionality: {
-					title: 'Functionality',
-					description: 'Feature cookies.',
-				},
-				experience: {
-					title: 'Experience',
-					description: 'Experience cookies.',
-				},
-				measurement: {
-					title: 'Measurement',
-					description: 'Analytics cookies.',
-				},
-				marketing: {
-					title: 'Marketing',
-					description: 'Advertising cookies.',
-				},
-			},
-			frame: {
-				title: 'Privacy',
-				actionButton: 'Manage',
-			},
-			legalLinks: {
-				privacyPolicy: 'Privacy policy',
-				termsOfService: 'Terms of service',
-				cookiePolicy: 'Cookie policy',
-			},
-		},
-	},
-	branding: 'c15t',
 	policy: {
-		id: 'policy_gdpr',
-		model: 'opt-in',
 		consent: {
 			categories: ['necessary', 'measurement', 'marketing'],
 			preselectedCategories: ['necessary', 'measurement', 'marketing'],
 			scopeMode: 'strict',
 		},
+		id: 'policy_gdpr',
+		model: 'opt-in',
 		ui: {
-			mode: 'banner',
 			banner: {
 				allowedActions: ['reject', 'accept', 'customize'],
 			},
 			dialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
 			},
+			mode: 'banner',
 		},
 	},
 	policyDecision: {
-		policyId: 'policy_gdpr',
-		fingerprint: 'fingerprint_gdpr',
-		matchedBy: 'country',
 		country: 'DE',
-		region: null,
+		fingerprint: 'fingerprint_gdpr',
 		jurisdiction: 'GDPR',
+		matchedBy: 'country',
+		policyId: 'policy_gdpr',
+		region: null,
 	},
 	policySnapshotToken: 'token_gdpr',
+	translations: {
+		language: 'en',
+		translations: {
+			common: {
+				acceptAll: 'Accept all',
+				customize: 'Customize',
+				rejectAll: 'Reject all',
+				save: 'Save',
+			},
+			consentManagerDialog: {
+				description: 'Manage your choices.',
+				title: 'Privacy preferences',
+			},
+			consentTypes: {
+				experience: {
+					description: 'Experience cookies.',
+					title: 'Experience',
+				},
+				functionality: {
+					description: 'Feature cookies.',
+					title: 'Functionality',
+				},
+				marketing: {
+					description: 'Advertising cookies.',
+					title: 'Marketing',
+				},
+				measurement: {
+					description: 'Analytics cookies.',
+					title: 'Measurement',
+				},
+				necessary: {
+					description: 'Required cookies.',
+					title: 'Necessary',
+				},
+			},
+			cookieBanner: {
+				description: 'Pick how c15t may use cookies.',
+				title: 'Cookie choices',
+			},
+			frame: {
+				actionButton: 'Manage',
+				title: 'Privacy',
+			},
+			legalLinks: {
+				cookiePolicy: 'Cookie policy',
+				privacyPolicy: 'Privacy policy',
+				termsOfService: 'Terms of service',
+			},
+		},
+	},
 };
 
-function createFetchMock() {
+const createFetchMock = function createFetchMock() {
 	const subjectBodies: unknown[] = [];
-	const fetchMock = vi.fn(
-		async (input: RequestInfo | URL, init?: RequestInit) => {
-			const url = String(input);
-			if (url.endsWith('/init')) {
-				return new Response(JSON.stringify(initFixture), {
-					status: 200,
-					headers: { 'content-type': 'application/json' },
-				});
-			}
-			if (url.endsWith('/subjects')) {
-				const body = JSON.parse(String(init?.body ?? '{}')) as {
-					subjectId?: string;
-				};
-				subjectBodies.push(body);
-				return new Response(
-					JSON.stringify({ ok: true, subjectId: body.subjectId }),
-					{
-						status: 200,
-						headers: { 'content-type': 'application/json' },
-					}
-				);
-			}
-			return new Response('not found', { status: 404 });
+	const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+		const url = String(input);
+		if (url.endsWith('/init')) {
+			return new Response(JSON.stringify(initFixture), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			});
 		}
-	);
+		if (url.endsWith('/subjects')) {
+			const body = JSON.parse(String(init?.body ?? '{}')) as {
+				subjectId?: string;
+			};
+			subjectBodies.push(body);
+			return new Response(
+				JSON.stringify({ ok: true, subjectId: body.subjectId }),
+				{
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				}
+			);
+		}
+		return new Response('not found', { status: 404 });
+	});
 
 	return { fetchMock, subjectBodies };
-}
+};
 
-async function mountRoot() {
+const mountRoot = async function mountRoot() {
 	const { fetchMock, subjectBodies } = createFetchMock();
 	vi.stubGlobal('fetch', fetchMock);
 	const wrapper = mount(ConsentRoot, {
@@ -162,18 +160,18 @@ async function mountRoot() {
 					c15tVue,
 					{
 						backendURL: 'https://consent.example',
-						domain: 'consent.example',
 						consentCategories: ['necessary', 'measurement', 'marketing'],
+						domain: 'consent.example',
 					},
 				],
 			],
 		},
 	});
 	await flushPromises();
-	return { wrapper, fetchMock, subjectBodies };
-}
+	return { fetchMock, subjectBodies, wrapper };
+};
 
-async function mountRootWithConsentProbe() {
+const mountRootWithConsentProbe = async function mountRootWithConsentProbe() {
 	const { fetchMock, subjectBodies } = createFetchMock();
 	vi.stubGlobal('fetch', fetchMock);
 	const Probe = defineComponent({
@@ -191,18 +189,18 @@ async function mountRootWithConsentProbe() {
 					c15tVue,
 					{
 						backendURL: 'https://consent.example',
-						domain: 'consent.example',
 						consentCategories: ['necessary', 'measurement', 'marketing'],
+						domain: 'consent.example',
 					},
 				],
 			],
 		},
 	});
 	await flushPromises();
-	return { wrapper, fetchMock, subjectBodies };
-}
+	return { fetchMock, subjectBodies, wrapper };
+};
 
-function provideContext(
+const provideContext = function provideContext(
 	app: ReturnType<typeof createSSRApp>,
 	context: VueConsentKernelContext,
 	config: ConsentConfig
@@ -214,15 +212,17 @@ function provideContext(
 	app.provide(symbolInit, context.init);
 	app.provide(symbolActiveUI, context.activeUI);
 	app.provide(symbolConsent, context.storedConsent);
-}
+};
 
-async function renderRootToString(cookieHeader?: string) {
+const renderRootToString = async function renderRootToString(
+	cookieHeader?: string
+) {
 	const { fetchMock } = createFetchMock();
 	const config: RuntimeConsentConfig = {
 		backendURL: 'https://consent.example',
-		domain: 'consent.example',
 		consentCategories: ['necessary', 'measurement', 'marketing'],
 		customFetch: fetchMock as unknown as typeof fetch,
+		domain: 'consent.example',
 	};
 	const initialStoredConsent = readStoredConsentFromCookie(
 		cookieHeader,
@@ -247,7 +247,7 @@ async function renderRootToString(cookieHeader?: string) {
 		context.dispose();
 		throw error;
 	}
-}
+};
 
 beforeEach(() => {
 	delete (window as WindowWithC15t).c15t;
@@ -270,8 +270,8 @@ describe('@c15t/vue kernel runtime', () => {
 		const { wrapper } = await mountRoot();
 
 		expect((window as WindowWithC15t).c15t).toMatchObject({
-			pkg: '@c15t/vue',
 			mode: 'hosted',
+			pkg: '@c15t/vue',
 		});
 		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
 
@@ -300,9 +300,9 @@ describe('@c15t/vue kernel runtime', () => {
 			expect(snapshot.hasConsented).toBe(true);
 			expect(snapshot.activeUI).toBe('none');
 			expect(snapshot.consents).toMatchObject({
-				necessary: true,
-				measurement: true,
 				marketing: true,
+				measurement: true,
+				necessary: true,
 			});
 			expect(html).not.toContain('data-testid="consent-banner-root"');
 			expect(html).not.toContain('Cookie choices');
@@ -344,8 +344,8 @@ describe('@c15t/vue kernel runtime', () => {
 		try {
 			expect(context.kernel.getSnapshot().overrides).toMatchObject({
 				country: 'US',
-				region: 'CA',
 				language: 'de',
+				region: 'CA',
 			});
 		} finally {
 			context.dispose();
@@ -382,15 +382,15 @@ describe('@c15t/vue kernel runtime', () => {
 			expect(subjectBodies).toHaveLength(1);
 		});
 		expect(subjectBodies[0]).toMatchObject({
-			domain: 'consent.example',
-			type: 'cookie_banner',
-			preferences: {
-				necessary: true,
-				measurement: true,
-				marketing: true,
-			},
 			consentAction: 'all',
+			domain: 'consent.example',
 			policySnapshotToken: 'token_gdpr',
+			preferences: {
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			type: 'cookie_banner',
 		});
 
 		wrapper.unmount();
@@ -430,13 +430,13 @@ describe('@c15t/vue kernel runtime', () => {
 		});
 		const stored = JSON.parse(window.localStorage.getItem('c15t') ?? '{}');
 		expect(stored).toMatchObject({
-			consents: {
-				necessary: true,
-				measurement: true,
-				marketing: true,
-			},
 			consentInfo: {
-				subjectId: expect.stringMatching(/^sub_/),
+				subjectId: expect.stringMatching(/^sub_/u),
+			},
+			consents: {
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		expect(document.cookie).toContain('c15t=');
@@ -460,13 +460,13 @@ describe('@c15t/vue kernel runtime', () => {
 		});
 		const stored = JSON.parse(window.localStorage.getItem('c15t') ?? '{}');
 		expect(stored).toMatchObject({
-			consents: {
-				necessary: true,
-				measurement: false,
-				marketing: false,
-			},
 			consentInfo: {
-				subjectId: expect.stringMatching(/^sub_/),
+				subjectId: expect.stringMatching(/^sub_/u),
+			},
+			consents: {
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			},
 		});
 		expect(document.cookie).toContain('c15t=');
@@ -479,15 +479,15 @@ describe('@c15t/vue kernel runtime', () => {
 		const onRequestBlocked = vi.fn();
 		const config: RuntimeConsentConfig = {
 			backendURL: 'https://consent.example',
-			domain: 'consent.example',
 			consentCategories: ['necessary', 'measurement', 'marketing'],
 			customFetch: fetchMock as unknown as typeof fetch,
+			domain: 'consent.example',
+			iframeBlocker: false,
 			networkBlocker: {
-				rules: [{ domain: 'tracker.example', category: 'marketing' }],
 				logBlockedRequests: false,
 				onRequestBlocked,
+				rules: [{ category: 'marketing', domain: 'tracker.example' }],
 			},
-			iframeBlocker: false,
 		};
 		const context = createVueConsentKernelContext({
 			config,
@@ -510,13 +510,14 @@ describe('@c15t/vue kernel runtime', () => {
 		}
 	});
 
+	// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 	test('iframe blocker is wired by default and honors opting out', async () => {
 		const { fetchMock } = createFetchMock();
 		const baseConfig: RuntimeConsentConfig = {
 			backendURL: 'https://consent.example',
-			domain: 'consent.example',
 			consentCategories: ['necessary', 'measurement', 'marketing'],
 			customFetch: fetchMock as unknown as typeof fetch,
+			domain: 'consent.example',
 		};
 
 		const gated = document.createElement('iframe');

@@ -35,7 +35,7 @@ import type { IframeBlockerHandle, IframeBlockerOptions } from './types';
 
 export type { IframeBlockerHandle, IframeBlockerOptions } from './types';
 
-export function createIframeBlocker(
+export const createIframeBlocker = function createIframeBlocker(
 	options: IframeBlockerOptions
 ): IframeBlockerHandle {
 	const { kernel } = options;
@@ -46,12 +46,16 @@ export function createIframeBlocker(
 
 	if (!hasDom) {
 		// No-op handle for SSR / non-browser contexts.
-		const unsubscribe = kernel.subscribe(() => {});
+		const unsubscribe = kernel.subscribe(() => {
+			/* empty */
+		});
 		return {
 			dispose() {
 				unsubscribe();
 			},
-			processAllIframes() {},
+			processAllIframes() {
+				/* empty */
+			},
 		};
 	}
 
@@ -59,7 +63,10 @@ export function createIframeBlocker(
 		const pass = buildReconcilePass(kernel.getSnapshot());
 		for (const mutation of mutations) {
 			for (const node of Array.from(mutation.addedNodes)) {
-				if (node.nodeType !== 1 /* ELEMENT_NODE */) continue;
+				// oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+				if (node.nodeType !== 1 /* ELEMENT_NODE */) {
+					continue;
+				}
 				const element = node as Element;
 				if (element.tagName?.toUpperCase() === 'IFRAME') {
 					reconcileIframe(element as HTMLIFrameElement, pass);
@@ -74,9 +81,9 @@ export function createIframeBlocker(
 		}
 	});
 
-	function processAll(): void {
+	const processAll = function processAll(): void {
 		reconcileAllIframes(kernel.getSnapshot());
-	}
+	};
 
 	if (!disableAuto) {
 		processAll();
@@ -90,7 +97,9 @@ export function createIframeBlocker(
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
 	const unsubscribe = kernel.subscribe((snapshot) => {
-		if (disableAuto) return;
+		if (disableAuto) {
+			return;
+		}
 		if (
 			snapshot.consents === lastConsents &&
 			snapshot.policyCategories === lastPolicyCategories &&
@@ -111,4 +120,4 @@ export function createIframeBlocker(
 		},
 		processAllIframes: processAll,
 	};
-}
+};

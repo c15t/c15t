@@ -58,7 +58,7 @@ export interface SubmissionResult {
 	readonly created: boolean;
 }
 
-export const submit = Effect.fn('consent.submit')(function* (
+export const submit = Effect.fn('consent.submit')(function* submit(
 	request: ConsentSubmissionRequest
 ): Generator<
 	Effect.Effect<
@@ -80,9 +80,9 @@ export const submit = Effect.fn('consent.submit')(function* (
 	const tenantId = yield* currentTenantId;
 
 	const subject = yield* findOrCreate({
-		subjectId: request.subjectId,
 		externalId: request.externalId,
 		identityProvider: request.identityProvider,
+		subjectId: request.subjectId,
 		tenantId,
 	});
 
@@ -93,14 +93,14 @@ export const submit = Effect.fn('consent.submit')(function* (
 		: undefined;
 
 	const submission: ConsentSubmission = {
-		tenantId,
-		subjectId: subject.id,
 		domainId: request.domainId,
-		policyId: request.policyId,
 		givenAt: request.givenAt,
-		purposeIds: request.purposeIds,
-		metadata: request.metadata,
 		ipAddress: request.ipAddress,
+		metadata: request.metadata,
+		policyId: request.policyId,
+		purposeIds: request.purposeIds,
+		subjectId: subject.id,
+		tenantId,
 		userAgent: request.userAgent,
 	};
 
@@ -113,21 +113,21 @@ export const submit = Effect.fn('consent.submit')(function* (
 		yield* sql`
 			insert into ${sql('auditLog')} ${sql.insert(
 				encodeRow(yield* encoder, {
-					id: generateEntityId('auditLog'),
-					subjectId: subject.id,
-					entityType: 'consent',
-					entityId: consent.id,
 					actionType: 'consent_given',
-					ipAddress: request.ipAddress,
-					userAgent: request.userAgent,
 					changes: JSON.stringify({ purposeIds: request.purposeIds }),
-					metadata: JSON.stringify({
-						policyId: request.policyId ?? null,
-						domainId: request.domainId,
-						decisionId: decision?.id ?? null,
-					}),
-					tenantId: tenantId ?? null,
 					createdAt: new Date(),
+					entityId: consent.id,
+					entityType: 'consent',
+					id: generateEntityId('auditLog'),
+					ipAddress: request.ipAddress,
+					metadata: JSON.stringify({
+						decisionId: decision?.id ?? null,
+						domainId: request.domainId,
+						policyId: request.policyId ?? null,
+					}),
+					subjectId: subject.id,
+					tenantId: tenantId ?? null,
+					userAgent: request.userAgent,
 				})
 			)}
 		`;
@@ -146,9 +146,9 @@ export const submit = Effect.fn('consent.submit')(function* (
 	}
 
 	return {
-		subjectId: subject.id,
 		consentId: consent.id,
-		decisionId: decision?.id,
 		created: consent.created,
+		decisionId: decision?.id,
+		subjectId: subject.id,
 	};
 });

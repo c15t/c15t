@@ -141,6 +141,7 @@ async function measureInteractionLatency(
 		| 'repeat-visitor'
 		| 'react-v3-repeat'
 ) {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (scenario) {
 		case 'baseline': {
 			// Zero-consent arm: measure a trivial interaction as the floor.
@@ -283,11 +284,15 @@ async function measureInteractionLatency(
 async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(`${BASE_URL}/`);
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await sleep(500);
 	}
 
@@ -723,16 +728,19 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (
-			server.exitCode != null &&
+			server.exitCode !== null &&
+			server.exitCode !== undefined &&
 			!expectedServerShutdownCodes.has(server.exitCode)
 		) {
 			serverFailure = new Error(
 				`${logs || 'React browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
 			);
 		} else if (
-			server.exitCode == null &&
-			server.signalCode != null &&
-			!expectedServerShutdownSignals.has(server.signalCode)
+			server.exitCode === null ||
+			(server.exitCode === undefined &&
+				server.signalCode !== null &&
+				server.signalCode !== undefined &&
+				!expectedServerShutdownSignals.has(server.signalCode))
 		) {
 			serverFailure = new Error(
 				`${logs || 'React browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`

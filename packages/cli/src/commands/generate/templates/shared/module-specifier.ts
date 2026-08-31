@@ -35,32 +35,33 @@ import type { SourceFile } from 'ts-morph';
  * // Returns: '../components/consent-manager'
  * ```
  */
-export function computeRelativeModuleSpecifier(
-	fromFilePath: string,
-	toFilePath: string
-): string {
-	// Get the directory of the file that will contain the import
-	const fromDir = path.dirname(fromFilePath);
+export const computeRelativeModuleSpecifier =
+	function computeRelativeModuleSpecifier(
+		fromFilePath: string,
+		toFilePath: string
+	): string {
+		// Get the directory of the file that will contain the import
+		const fromDir = path.dirname(fromFilePath);
 
-	// Compute relative path from the source directory to the target file
-	let relativePath = path.relative(fromDir, toFilePath);
+		// Compute relative path from the source directory to the target file
+		let relativePath = path.relative(fromDir, toFilePath);
 
-	// Normalize path separators to forward slashes (for module specifiers)
-	relativePath = relativePath.split(path.sep).join('/');
+		// Normalize path separators to forward slashes (for module specifiers)
+		relativePath = relativePath.split(path.sep).join('/');
 
-	// Strip the file extension (.ts, .tsx, .js, .jsx)
-	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
+		// Strip the file extension (.ts, .tsx, .js, .jsx)
+		relativePath = relativePath.replace(/\.(?<capture1>tsx?|jsx?)$/u, '');
 
-	// Strip /index suffix for cleaner imports (bundlers resolve index files automatically)
-	relativePath = relativePath.replace(/\/index$/, '');
+		// Strip /index suffix for cleaner imports (bundlers resolve index files automatically)
+		relativePath = relativePath.replace(/\/index$/u, '');
 
-	// Ensure the path starts with './' or '../'
-	if (!relativePath.startsWith('.')) {
-		relativePath = `./${relativePath}`;
-	}
+		// Ensure the path starts with './' or '../'
+		if (!relativePath.startsWith('.')) {
+			relativePath = `./${relativePath}`;
+		}
 
-	return relativePath;
-}
+		return relativePath;
+	};
 
 /**
  * Checks if a ConsentManager import already exists in a source file
@@ -75,7 +76,7 @@ export function computeRelativeModuleSpecifier(
  * - Any import ending with `/consent-manager` or `/consent-manager/index`
  * - Optionally, an exact match on a computed module specifier
  */
-export function hasConsentManagerImport(
+export const hasConsentManagerImport = function hasConsentManagerImport(
 	sourceFile: SourceFile,
 	moduleSpecifier?: string
 ): boolean {
@@ -90,7 +91,7 @@ export function hasConsentManagerImport(
 			(moduleSpecifier !== undefined && spec === moduleSpecifier)
 		);
 	});
-}
+};
 
 /**
  * Adds the ConsentManager import to a source file
@@ -110,7 +111,7 @@ export function hasConsentManagerImport(
  * // Adds: import { ConsentManager } from '../components/consent-manager';
  * ```
  */
-export function addConsentManagerImport(
+export const addConsentManagerImport = function addConsentManagerImport(
 	sourceFile: SourceFile,
 	consentManagerFilePath: string
 ): void {
@@ -125,8 +126,8 @@ export function addConsentManagerImport(
 	// Check if import already exists
 	if (!hasConsentManagerImport(sourceFile, moduleSpecifier)) {
 		sourceFile.addImportDeclaration({
-			namedImports: ['ConsentManager'],
 			moduleSpecifier,
+			namedImports: ['ConsentManager'],
 		});
 	}
-}
+};

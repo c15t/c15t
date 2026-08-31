@@ -40,13 +40,13 @@ export const DEMO_IAB_VENDOR_IDS = Array.from(
 
 export const DEMO_CUSTOM_VENDORS = [
 	{
+		cookieMaxAgeSeconds: 31536000,
+		dataCategories: [1, 2],
 		id: 'demo-analytics',
 		name: 'Demo Analytics',
 		privacyPolicyUrl: 'https://example.com/privacy',
 		purposes: [1, 8],
-		dataCategories: [1, 2],
 		usesCookies: true,
-		cookieMaxAgeSeconds: 31536000,
 		usesNonCookieAccess: false,
 	},
 ];
@@ -74,7 +74,7 @@ export const DEMO_LANGUAGES = ['en', 'fr', 'de', 'es', 'pt'] as const;
  * switching to any picker language works in every scenario instead of
  * silently falling back to English.
  */
-function profile(
+const profile = function profile(
 	overrides: Partial<
 		Record<(typeof DEMO_LANGUAGES)[number], Partial<Translations>>
 	> = {}
@@ -87,69 +87,70 @@ function profile(
 			])
 		),
 	};
-}
+};
 
+// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 export const demoI18nMessages: I18nMessageProfiles = {
 	// Stock c15t translations, used by the shipped policy-pack presets.
 	default: profile(),
 	eu: profile({
-		en: {
-			cookieBanner: {
-				title: 'EU GDPR Consent',
-				description:
-					'We only use optional cookies with your consent. You can change settings anytime.',
-			},
-		},
 		de: {
 			cookieBanner: {
-				title: 'GDPR-Einwilligung',
 				description:
 					'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
+				title: 'GDPR-Einwilligung',
+			},
+		},
+		en: {
+			cookieBanner: {
+				description:
+					'We only use optional cookies with your consent. You can change settings anytime.',
+				title: 'EU GDPR Consent',
 			},
 		},
 		fr: {
 			cookieBanner: {
-				title: 'Consentement RGPD',
 				description:
 					'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
+				title: 'Consentement RGPD',
 			},
 		},
 	}),
 	fr: profile({
+		de: {
+			cookieBanner: {
+				description:
+					'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
+				title: 'Datenschutzeinstellungen (IAB)',
+			},
+		},
 		en: {
 			cookieBanner: {
-				title: 'France IAB Preferences',
 				description:
 					'You can accept, reject, or customize IAB purposes for advertising and measurement.',
+				title: 'France IAB Preferences',
 			},
 		},
 		fr: {
 			cookieBanner: {
-				title: 'Paramètres de confidentialité (IAB)',
 				description:
 					'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
-			},
-		},
-		de: {
-			cookieBanner: {
-				title: 'Datenschutzeinstellungen (IAB)',
-				description:
-					'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
+				title: 'Paramètres de confidentialité (IAB)',
 			},
 		},
 	}),
 	caSales: profile({
 		en: {
-			cookieBanner: {
-				title: 'Your California privacy choices',
-				description:
-					'You can allow all optional uses, or opt out of the sale and sharing of your personal information.',
-			},
 			common: {
 				...baseTranslations.en.common,
 				acceptAll: 'Accept All',
-				rejectAll: 'Do not sell/share my personal information',
 				customize: 'Customize',
+				rejectAll: 'Do not sell/share my personal information',
+			},
+			cookieBanner: {
+				description:
+					'You can allow all optional uses, or opt out of the sale and sharing of your personal information.',
+				title: 'Your California privacy choices',
 			},
 		},
 	}),
@@ -176,262 +177,266 @@ const worldFallbackPolicy = policyPackPresets.worldNoBanner();
 export const demoScenarios: DemoScenario[] = [
 	// ── Built-in presets ──────────────────────────────────────────────────
 	{
-		id: 'preset-europe-opt-in',
-		label: 'Europe Opt-In',
-		group: 'preset',
 		country: 'GB',
 		description: 'Shipped preset for Europe + UK opt-in banners.',
+		group: 'preset',
+		id: 'preset-europe-opt-in',
+		label: 'Europe Opt-In',
 		policy: policyPackPresets.europeOptIn(),
 	},
 	{
-		id: 'preset-europe-iab',
-		label: 'Europe IAB',
-		group: 'preset',
 		country: 'FR',
 		description: 'Shipped preset for IAB TCF 2.3 across Europe.',
+		group: 'preset',
+		id: 'preset-europe-iab',
+		label: 'Europe IAB',
 		policy: policyPackPresets.europeIab(),
 	},
 	{
+		country: 'US',
+		description: 'Shipped preset for a compact California opt-in banner.',
+		group: 'preset',
 		id: 'preset-california-opt-in',
 		label: 'California Opt-In',
-		group: 'preset',
-		country: 'US',
-		region: 'CA',
-		description: 'Shipped preset for a compact California opt-in banner.',
 		policy: policyPackPresets.californiaOptIn(),
+		region: 'CA',
 	},
 	{
+		country: 'US',
+		description: 'Shipped preset for California opt-out with no banner.',
+		group: 'preset',
 		id: 'preset-california-opt-out',
 		label: 'California Opt-Out',
-		group: 'preset',
-		country: 'US',
-		region: 'CA',
-		description: 'Shipped preset for California opt-out with no banner.',
 		policy: policyPackPresets.californiaOptOut(),
+		region: 'CA',
 	},
 	{
+		country: 'CA',
+		description: 'Shipped preset for Quebec opt-in requirements.',
+		group: 'preset',
 		id: 'preset-quebec-opt-in',
 		label: 'Quebec Opt-In',
-		group: 'preset',
-		country: 'CA',
-		region: 'QC',
-		description: 'Shipped preset for Quebec opt-in requirements.',
 		policy: policyPackPresets.quebecOptIn(),
+		region: 'QC',
 	},
 	{
-		id: 'preset-world-no-banner',
-		label: 'World No Banner',
-		group: 'preset',
 		country: 'AU',
 		description: 'Shipped preset for the no-banner rest-of-world fallback.',
+		group: 'preset',
+		id: 'preset-world-no-banner',
+		label: 'World No Banner',
 		policy: worldFallbackPolicy,
 	},
 
 	// ── Custom examples ───────────────────────────────────────────────────
 	{
-		id: 'custom-fr-iab',
-		label: 'France IAB',
-		group: 'custom',
 		country: 'FR',
 		description:
 			'Country-level IAB TCF policy with custom banner copy (the "fr" message profile) in English, French, and German.',
+		group: 'custom',
+		id: 'custom-fr-iab',
+		label: 'France IAB',
 		policy: {
+			consent: {
+				categories: ['*'],
+				expiryDays: 180,
+				model: 'iab',
+			},
+			i18n: { messageProfile: 'fr' },
 			id: 'fr_iab',
 			match: { countries: ['FR'] },
-			i18n: { messageProfile: 'fr' },
-			consent: {
-				model: 'iab',
-				expiryDays: 180,
-				categories: ['*'],
-			},
 			proof: {
 				storeIp: true,
-				storeUserAgent: true,
 				storeLanguage: true,
+				storeUserAgent: true,
 			},
 		},
 	},
 	{
-		id: 'custom-de-strict',
-		label: 'Germany Strict',
-		group: 'custom',
 		country: 'DE',
 		description:
 			'Strict opt-in with specific categories, compact split-row actions, and custom GDPR copy (the "eu" message profile).',
+		group: 'custom',
+		id: 'custom-de-strict',
+		label: 'Germany Strict',
 		policy: {
+			consent: {
+				categories: ['necessary', 'functionality', 'measurement'],
+				expiryDays: 365,
+				model: 'opt-in',
+				scopeMode: 'strict',
+			},
+			i18n: { messageProfile: 'eu' },
 			id: 'de_strict',
 			match: { countries: ['DE'] },
-			i18n: { messageProfile: 'eu' },
-			consent: {
-				model: 'opt-in',
-				expiryDays: 365,
-				scopeMode: 'strict',
-				categories: ['necessary', 'functionality', 'measurement'],
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
 			},
 			ui: {
-				mode: 'banner',
 				banner: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					layout: [['reject', 'accept'], 'customize'],
 					direction: 'row',
+					layout: [['reject', 'accept'], 'customize'],
 					primaryActions: ['accept', 'customize'],
 					uiProfile: 'compact',
 				},
 				dialog: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					layout: [['reject', 'accept'], 'customize'],
 					direction: 'row',
+					layout: [['reject', 'accept'], 'customize'],
 					primaryActions: ['accept', 'customize'],
 					uiProfile: 'compact',
 				},
-			},
-			proof: {
-				storeIp: true,
-				storeUserAgent: true,
-				storeLanguage: true,
+				mode: 'banner',
 			},
 		},
 	},
 	{
-		id: 'custom-es-split-stack',
-		label: 'Spain Split-Stack',
-		group: 'custom',
 		country: 'ES',
 		description:
 			'Editorial layout with customize on its own row and accept/reject grouped underneath.',
+		group: 'custom',
+		id: 'custom-es-split-stack',
+		label: 'Spain Split-Stack',
 		policy: {
+			consent: {
+				categories: ['necessary', 'measurement', 'marketing'],
+				expiryDays: 180,
+				model: 'opt-in',
+			},
+			i18n: { messageProfile: 'default' },
 			id: 'es_split_stack',
 			match: { countries: ['ES'] },
-			i18n: { messageProfile: 'default' },
-			consent: {
-				model: 'opt-in',
-				expiryDays: 180,
-				categories: ['necessary', 'measurement', 'marketing'],
+			proof: {
+				storeIp: false,
+				storeLanguage: true,
+				storeUserAgent: true,
 			},
 			ui: {
-				mode: 'banner',
 				banner: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					layout: ['customize', ['reject', 'accept']],
 					direction: 'column',
+					layout: ['customize', ['reject', 'accept']],
 					primaryActions: ['accept'],
 					uiProfile: 'balanced',
 				},
 				dialog: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					layout: ['customize', ['reject', 'accept']],
 					direction: 'column',
+					layout: ['customize', ['reject', 'accept']],
 					primaryActions: ['accept'],
 					uiProfile: 'balanced',
 				},
-			},
-			proof: {
-				storeIp: false,
-				storeUserAgent: true,
-				storeLanguage: true,
+				mode: 'banner',
 			},
 		},
 	},
 	{
-		id: 'custom-br-growth',
-		label: 'Brazil Opt-Out',
-		group: 'custom',
 		country: 'BR',
 		description:
 			'Softer opt-out experience with accept + customize actions and a permissive scope.',
+		group: 'custom',
+		id: 'custom-br-growth',
+		label: 'Brazil Opt-Out',
 		policy: {
+			consent: {
+				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+				expiryDays: 120,
+				model: 'opt-out',
+				scopeMode: 'permissive',
+			},
+			i18n: { messageProfile: 'default' },
 			id: 'br_growth',
 			match: { countries: ['BR'] },
-			i18n: { messageProfile: 'default' },
-			consent: {
-				model: 'opt-out',
-				expiryDays: 120,
-				scopeMode: 'permissive',
-				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			proof: {
+				storeIp: false,
+				storeLanguage: true,
+				storeUserAgent: false,
 			},
 			ui: {
-				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'customize'],
-					layout: [['accept'], 'customize'],
 					direction: 'row',
+					layout: [['accept'], 'customize'],
 					primaryActions: ['accept'],
 					uiProfile: 'balanced',
 				},
 				dialog: {
 					allowedActions: ['accept', 'customize'],
-					layout: [['accept'], 'customize'],
 					direction: 'row',
+					layout: [['accept'], 'customize'],
 					primaryActions: ['accept'],
 					uiProfile: 'balanced',
 				},
-			},
-			proof: {
-				storeIp: false,
-				storeUserAgent: false,
-				storeLanguage: true,
+				mode: 'banner',
 			},
 		},
 	},
 	{
-		id: 'custom-ca-do-not-sell',
-		label: 'California CTA',
-		group: 'custom',
 		country: 'US',
-		region: 'CA',
 		description:
 			'Two actions only: Accept All as the primary CTA plus a custom "Do not sell/share" opt-out label (the "caSales" message profile).',
+		group: 'custom',
+		id: 'custom-ca-do-not-sell',
+		label: 'California CTA',
 		policy: {
-			id: 'ca_do_not_sell',
-			match: { regions: [{ country: 'US', region: 'CA' }] },
-			i18n: { messageProfile: 'caSales' },
 			consent: {
-				model: 'opt-in',
+				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 				expiryDays: 365,
 				gpc: true,
+				model: 'opt-in',
 				scopeMode: 'permissive',
-				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+			},
+			i18n: { messageProfile: 'caSales' },
+			id: 'ca_do_not_sell',
+			match: { regions: [{ country: 'US', region: 'CA' }] },
+			proof: {
+				storeIp: true,
+				storeLanguage: true,
+				storeUserAgent: true,
 			},
 			ui: {
-				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					layout: ['accept', 'reject'],
 					direction: 'column',
+					layout: ['accept', 'reject'],
 					primaryActions: ['accept'],
 					uiProfile: 'compact',
 				},
 				dialog: {
 					allowedActions: ['accept', 'reject'],
-					layout: ['accept', 'reject'],
 					direction: 'column',
+					layout: ['accept', 'reject'],
 					primaryActions: ['accept'],
 					uiProfile: 'compact',
 				},
-			},
-			proof: {
-				storeIp: true,
-				storeUserAgent: true,
-				storeLanguage: true,
+				mode: 'banner',
 			},
 		},
+		region: 'CA',
 	},
 ];
 
-export function getScenarioById(id: string | null | undefined): DemoScenario {
+export const getScenarioById = function getScenarioById(
+	id: string | null | undefined
+): DemoScenario {
 	return (
 		demoScenarios.find((scenario) => scenario.id === id) ??
 		(demoScenarios.find(
 			(scenario) => scenario.id === DEFAULT_SCENARIO_ID
 		) as DemoScenario)
 	);
-}
+};
 
 /**
  * Policy packs for one scenario: the scenario's policy plus the world
  * no-banner fallback (unless the scenario itself is the default fallback).
  */
-export function getScenarioPolicyPacks(id: string): PolicyConfig[] {
+export const getScenarioPolicyPacks = function getScenarioPolicyPacks(
+	id: string
+): PolicyConfig[] {
 	const scenario = getScenarioById(id);
 
 	if (scenario.policy.match?.isDefault) {
@@ -439,7 +444,7 @@ export function getScenarioPolicyPacks(id: string): PolicyConfig[] {
 	}
 
 	return [scenario.policy, worldFallbackPolicy];
-}
+};
 
 /**
  * Every demo policy, used by the CLI backend config.

@@ -15,7 +15,7 @@ import type { Ref } from 'vue';
  * unavailable
  * @returns A writable ref backed by `localStorage`
  */
-export function useLocalStorageRef<StoredValue>(
+export const useLocalStorageRef = function useLocalStorageRef<StoredValue>(
 	key: string,
 	defaultValue: StoredValue
 ): Ref<StoredValue> {
@@ -38,7 +38,7 @@ export function useLocalStorageRef<StoredValue>(
 		stored,
 		(value) => {
 			try {
-				if (value == null) {
+				if (value === null || value === undefined) {
 					window.localStorage.removeItem(key);
 				} else {
 					window.localStorage.setItem(key, JSON.stringify(value));
@@ -51,4 +51,4 @@ export function useLocalStorageRef<StoredValue>(
 	);
 
 	return stored;
-}
+};

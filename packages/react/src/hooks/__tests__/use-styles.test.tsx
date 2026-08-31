@@ -62,8 +62,8 @@ describe('useStyles', () => {
 		expect(result.current.className).toContain('theme-class');
 		expect(result.current.className).toContain('component-class');
 		expect(result.current.style).toEqual({
-			color: 'blue',
 			backgroundColor: 'red',
+			color: 'blue',
 		});
 	});
 
@@ -91,8 +91,8 @@ describe('useStyles', () => {
 				slots: {
 					dialogCard: {
 						className: 'theme-class',
-						style: { color: 'blue' },
 						noStyle: true,
+						style: { color: 'blue' },
 					},
 				},
 			},
@@ -103,8 +103,8 @@ describe('useStyles', () => {
 		const componentStyle = {
 			baseClassName: 'base-class-to-remove',
 			className: 'component-class',
-			style: { backgroundColor: 'red' },
 			noStyle: true,
+			style: { backgroundColor: 'red' },
 		};
 
 		const { result } = await renderHook(

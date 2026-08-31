@@ -52,6 +52,22 @@ async function requireAuth(context: CliContext): Promise<void> {
 }
 
 /**
+ * Get colored status string
+ */
+function getStatusColor(status: Instance['status']): string {
+	switch (status) {
+		case 'active':
+			return color.green('active');
+		case 'inactive':
+			return color.yellow('inactive');
+		case 'pending':
+			return color.blue('pending');
+		default:
+			return status;
+	}
+}
+
+/**
  * List projects command
  */
 async function listAction(context: CliContext): Promise<void> {
@@ -249,6 +265,7 @@ async function createAction(context: CliContext): Promise<void> {
 
 		let name: string;
 		if (commandArgs.length > 0) {
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const providedName = commandArgs[0];
 			if (!providedName) {
 				throw new CliError('INSTANCE_NAME_INVALID', {
@@ -368,28 +385,13 @@ async function createAction(context: CliContext): Promise<void> {
 }
 
 /**
- * Get colored status string
- */
-function getStatusColor(status: Instance['status']): string {
-	switch (status) {
-		case 'active':
-			return color.green('active');
-		case 'inactive':
-			return color.yellow('inactive');
-		case 'pending':
-			return color.blue('pending');
-		default:
-			return status;
-	}
-}
-
-/**
  * Main projects command (defaults to list)
  */
 async function projectsAction(context: CliContext): Promise<void> {
 	const { commandArgs } = context;
 
 	// Check for subcommand
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const subcommand = commandArgs[0];
 
 	switch (subcommand) {

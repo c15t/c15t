@@ -42,7 +42,9 @@ interface StepExecutionContext {
 	phase: string;
 }
 
-function isRuntimeValue(value: unknown): value is RuntimeValue {
+const isRuntimeValue = function isRuntimeValue(
+	value: unknown
+): value is RuntimeValue {
 	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
 		return false;
 	}
@@ -52,17 +54,19 @@ function isRuntimeValue(value: unknown): value is RuntimeValue {
 		candidate.kind === RUNTIME_VALUE_KIND &&
 		(candidate.value === 'date' || candidate.value === 'timestamp')
 	);
-}
+};
 
-function resolveRuntimeValue(value: RuntimeValue): Date | number {
+const resolveRuntimeValue = function resolveRuntimeValue(
+	value: RuntimeValue
+): Date | number {
 	if (value.value === 'date') {
 		return new Date();
 	}
 
 	return Date.now();
-}
+};
 
-function cloneStepValue(value: unknown): unknown {
+const cloneStepValue = function cloneStepValue(value: unknown): unknown {
 	if (isRuntimeValue(value)) {
 		return resolveRuntimeValue(value);
 	}
@@ -84,13 +88,15 @@ function cloneStepValue(value: unknown): unknown {
 	}
 
 	return value;
-}
+};
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = function isRecord(
+	value: unknown
+): value is Record<string, unknown> {
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
+};
 
-function getPathTarget(
+const getPathTarget = function getPathTarget(
 	root: Record<string, unknown>,
 	path: string[]
 ): { target: Record<string, unknown>; key: string } | undefined {
@@ -109,12 +115,12 @@ function getPathTarget(
 	}
 
 	return {
-		target,
 		key: path[path.length - 1] as string,
+		target,
 	};
-}
+};
 
-function resolveQueueTarget(
+const resolveQueueTarget = function resolveQueueTarget(
 	root: Record<string, unknown>,
 	queue:
 		| { global: string; property?: never }
@@ -133,11 +139,13 @@ function resolveQueueTarget(
 	const queueProperty = queue.property as string;
 	const queueTarget = owner[queueProperty];
 	return Array.isArray(queueTarget) ? queueTarget : undefined;
-}
+};
 
-function executeStep(step: ManifestStep): void {
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+const executeStep = function executeStep(step: ManifestStep): void {
 	const win = window as unknown as Record<string, unknown>;
 
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (step.type) {
 		case 'setGlobal': {
 			const shouldSet = step.ifUndefined !== false;
@@ -162,10 +170,12 @@ function executeStep(step: ManifestStep): void {
 				}
 
 				if (step.pushStyle === 'array') {
+					// oxlint-disable-next-line prefer-rest-params -- Preserve sequential execution and callback compatibility.
 					queueTarget.push(Array.from(arguments));
 					return;
 				}
 
+				// oxlint-disable-next-line prefer-rest-params -- Preserve sequential execution and callback compatibility.
 				queueTarget.push(arguments);
 			};
 			break;
@@ -177,12 +187,14 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
+			// oxlint-disable-next-line func-name-matching -- Preserve declaration order, interface shape, and public compatibility.
 			const stub = function stubFunction(this: unknown) {
 				const self = win[step.name] as Record<string, unknown> | undefined;
 				const dispatcher =
 					self && step.dispatchProperty
 						? self[step.dispatchProperty]
 						: undefined;
+				// oxlint-disable-next-line prefer-rest-params -- Preserve sequential execution and callback compatibility.
 				const runtimeArgs = Array.from(arguments);
 
 				if (typeof dispatcher === 'function') {
@@ -200,6 +212,7 @@ function executeStep(step: ManifestStep): void {
 					return;
 				}
 
+				// oxlint-disable-next-line prefer-rest-params -- Preserve sequential execution and callback compatibility.
 				queueTarget.push(arguments);
 			};
 
@@ -305,8 +318,8 @@ function executeStep(step: ManifestStep): void {
 					) {
 						const promise = createDeferredPromise<unknown>((resolve) => {
 							queueTarget.push({
-								name: methodName,
 								args,
+								name: methodName,
 								resolve,
 							});
 						});
@@ -324,7 +337,6 @@ function executeStep(step: ManifestStep): void {
 
 					if (step.queueFormat === 'callback') {
 						queueTarget.push({
-							name: methodName,
 							fn: () => {
 								const latestTarget = win[step.target];
 								if (
@@ -345,6 +357,7 @@ function executeStep(step: ManifestStep): void {
 									method.apply(latestTarget, args);
 								}
 							},
+							name: methodName,
 						});
 						return;
 					}
@@ -365,6 +378,7 @@ function executeStep(step: ManifestStep): void {
 			}
 
 			const queueProperty = step.queueProperty ?? '_q';
+			// oxlint-disable-next-line func-name-matching -- Preserve declaration order, interface shape, and public compatibility.
 			const QueueClass = function queuedHelperClass(
 				this: Record<string, unknown>
 			) {
@@ -380,8 +394,8 @@ function executeStep(step: ManifestStep): void {
 					const queueTarget = this[queueProperty];
 					if (Array.isArray(queueTarget)) {
 						queueTarget.push({
-							name: methodName,
 							args,
+							name: methodName,
 						});
 					}
 
@@ -407,7 +421,9 @@ function executeStep(step: ManifestStep): void {
 				targetRecord[method.name] =
 					method.behavior === 'return'
 						? () => cloneStepValue(method.value)
-						: () => {};
+						: () => {
+								/* empty */
+							};
 			}
 			break;
 		}
@@ -420,6 +436,7 @@ function executeStep(step: ManifestStep): void {
 
 			const args = (step.args ?? []).map((arg) => cloneStepValue(arg));
 			if (step.copyAssignedValueToArgProperty) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				const firstArg = args[0];
 				const targetOptions = isRecord(firstArg) ? firstArg : {};
 				targetOptions[step.copyAssignedValueToArgProperty] = win[step.assignTo];
@@ -438,9 +455,9 @@ function executeStep(step: ManifestStep): void {
 			break;
 		}
 	}
-}
+};
 
-function executePhaseSteps(
+const executePhaseSteps = function executePhaseSteps(
 	steps: ManifestStep[],
 	context: StepExecutionContext
 ): void {
@@ -449,79 +466,80 @@ function executePhaseSteps(
 	}
 
 	emitScriptDebugEvent({
-		source: 'manifest-runtime',
-		scope: 'phase',
 		action: 'phase_start',
-		message: `Manifest phase ${context.phase} started`,
-		scriptId: context.scriptId,
-		elementId: context.elementId,
-		hasConsent: context.hasConsent,
 		callback: context.callback,
-		phase: context.phase,
 		data: {
 			stepCount: steps.length,
 		},
+		elementId: context.elementId,
+		hasConsent: context.hasConsent,
+		message: `Manifest phase ${context.phase} started`,
+		phase: context.phase,
+		scope: 'phase',
+		scriptId: context.scriptId,
+		source: 'manifest-runtime',
 	});
 
 	for (const [stepIndex, step] of steps.entries()) {
 		try {
 			executeStep(step);
 			emitScriptDebugEvent({
-				source: 'manifest-runtime',
-				scope: 'step',
 				action: 'step_executed',
-				message: `Executed ${step.type}`,
-				scriptId: context.scriptId,
+				callback: context.callback,
 				elementId: context.elementId,
 				hasConsent: context.hasConsent,
-				callback: context.callback,
+				message: `Executed ${step.type}`,
 				phase: context.phase,
-				stepType: step.type,
+				scope: 'step',
+				scriptId: context.scriptId,
+				source: 'manifest-runtime',
 				stepIndex,
+				stepType: step.type,
 			});
 		} catch (error) {
 			emitScriptDebugEvent({
-				source: 'manifest-runtime',
-				scope: 'step',
 				action: 'step_error',
-				message: `Failed to execute ${step.type}`,
-				scriptId: context.scriptId,
-				elementId: context.elementId,
-				hasConsent: context.hasConsent,
 				callback: context.callback,
-				phase: context.phase,
-				stepType: step.type,
-				stepIndex,
 				data: {
 					error:
+						// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 						error instanceof Error
 							? error.message
 							: typeof error === 'string'
 								? error
 								: 'Unknown error',
 				},
+				elementId: context.elementId,
+				hasConsent: context.hasConsent,
+				message: `Failed to execute ${step.type}`,
+				phase: context.phase,
+				scope: 'step',
+				scriptId: context.scriptId,
+				source: 'manifest-runtime',
+				stepIndex,
+				stepType: step.type,
 			});
 			throw error;
 		}
 	}
 
 	emitScriptDebugEvent({
-		source: 'manifest-runtime',
-		scope: 'phase',
 		action: 'phase_complete',
-		message: `Manifest phase ${context.phase} completed`,
-		scriptId: context.scriptId,
-		elementId: context.elementId,
-		hasConsent: context.hasConsent,
 		callback: context.callback,
-		phase: context.phase,
 		data: {
 			stepCount: steps.length,
 		},
+		elementId: context.elementId,
+		hasConsent: context.hasConsent,
+		message: `Manifest phase ${context.phase} completed`,
+		phase: context.phase,
+		scope: 'phase',
+		scriptId: context.scriptId,
+		source: 'manifest-runtime',
 	});
-}
+};
 
-function mapConsentState(
+const mapConsentState = function mapConsentState(
 	mapping: Record<string, string[]>,
 	consents: ConsentState
 ): Record<string, 'granted' | 'denied'> {
@@ -535,9 +553,9 @@ function mapConsentState(
 	}
 
 	return result;
-}
+};
 
-function partitionConsentIds(
+const partitionConsentIds = function partitionConsentIds(
 	mapping: Record<string, string[]>,
 	consents: ConsentState
 ): { allowedConsentIds: string[]; deniedConsentIds: string[] } {
@@ -552,9 +570,9 @@ function partitionConsentIds(
 	}
 
 	return { allowedConsentIds, deniedConsentIds };
-}
+};
 
-function getConsentSignalSteps(
+const getConsentSignalSteps = function getConsentSignalSteps(
 	resolvedManifest: ResolvedManifest,
 	mode: 'default' | 'update',
 	consents: ConsentState
@@ -563,15 +581,16 @@ function getConsentSignalSteps(
 		return [];
 	}
 
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (resolvedManifest.consentSignal) {
 		case 'gtag': {
 			const mapped = mapConsentState(resolvedManifest.consentMapping, consents);
 
 			return [
 				{
-					type: 'callGlobal',
-					global: resolvedManifest.consentSignalTarget ?? 'gtag',
 					args: ['consent', mode, mapped],
+					global: resolvedManifest.consentSignalTarget ?? 'gtag',
+					type: 'callGlobal',
 				},
 			];
 		}
@@ -589,26 +608,26 @@ function getConsentSignalSteps(
 
 			return [
 				{
-					type: 'callGlobal',
-					global: resolvedManifest.consentSignalTarget ?? 'rudderanalytics',
-					method: 'consent',
 					args: [
 						{
 							consentManagement: {
-								enabled: true,
-								provider: 'custom',
 								allowedConsentIds: partition.allowedConsentIds,
 								deniedConsentIds: partition.deniedConsentIds,
+								enabled: true,
+								provider: 'custom',
 							},
 						},
 					],
+					global: resolvedManifest.consentSignalTarget ?? 'rudderanalytics',
+					method: 'consent',
+					type: 'callGlobal',
 				},
 			];
 		}
 	}
-}
+};
 
-export function resolvedManifestToScript(
+export const resolvedManifestToScript = function resolvedManifestToScript(
 	resolvedManifest: ResolvedManifest
 ): Script {
 	const hasConsentMapping = !!(
@@ -626,15 +645,15 @@ export function resolvedManifestToScript(
 	);
 
 	const script: Script = {
-		id: resolvedManifest.vendor,
-		category: resolvedManifest.category as Script['category'],
 		alwaysLoad: resolvedManifest.alwaysLoad,
-		persistAfterConsentRevoked: resolvedManifest.persistAfterConsentRevoked,
-		callbackOnly: !resolvedManifest.loadScript ? true : undefined,
-		src: resolvedManifest.loadScript?.src,
 		async: resolvedManifest.loadScript?.async,
-		defer: resolvedManifest.loadScript?.defer,
 		attributes: resolvedManifest.loadScript?.attributes,
+		callbackOnly: resolvedManifest.loadScript ? undefined : true,
+		category: resolvedManifest.category as Script['category'],
+		defer: resolvedManifest.loadScript?.defer,
+		id: resolvedManifest.vendor,
+		persistAfterConsentRevoked: resolvedManifest.persistAfterConsentRevoked,
+		src: resolvedManifest.loadScript?.src,
 	};
 
 	if (
@@ -646,10 +665,10 @@ export function resolvedManifestToScript(
 	) {
 		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
-				scriptId: resolvedManifest.vendor,
+				callback: 'onBeforeLoad' as const,
 				elementId: info.elementId,
 				hasConsent: info.hasConsent,
-				callback: 'onBeforeLoad' as const,
+				scriptId: resolvedManifest.vendor,
 			};
 
 			executePhaseSteps(resolvedManifest.bootstrapSteps, {
@@ -682,10 +701,10 @@ export function resolvedManifestToScript(
 	if (resolvedManifest.afterLoadSteps.length > 0) {
 		script.onLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
-				scriptId: resolvedManifest.vendor,
+				callback: 'onLoad' as const,
 				elementId: info.elementId,
 				hasConsent: info.hasConsent,
-				callback: 'onLoad' as const,
+				scriptId: resolvedManifest.vendor,
 			};
 			executePhaseSteps(resolvedManifest.afterLoadSteps, {
 				...baseContext,
@@ -710,10 +729,10 @@ export function resolvedManifestToScript(
 	} else if (hasLoadConsentBranches) {
 		script.onLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
-				scriptId: resolvedManifest.vendor,
+				callback: 'onLoad' as const,
 				elementId: info.elementId,
 				hasConsent: info.hasConsent,
-				callback: 'onLoad' as const,
+				scriptId: resolvedManifest.vendor,
 			};
 			if (info.hasConsent && resolvedManifest.onLoadGrantedSteps.length > 0) {
 				executePhaseSteps(resolvedManifest.onLoadGrantedSteps, {
@@ -735,10 +754,10 @@ export function resolvedManifestToScript(
 	if (hasConsentLifecycle) {
 		script.onConsentChange = (info: ScriptCallbackInfo) => {
 			const baseContext = {
-				scriptId: resolvedManifest.vendor,
+				callback: 'onConsentChange' as const,
 				elementId: info.elementId,
 				hasConsent: info.hasConsent,
-				callback: 'onConsentChange' as const,
+				scriptId: resolvedManifest.vendor,
 			};
 			executePhaseSteps(
 				getConsentSignalSteps(resolvedManifest, 'update', info.consents),
@@ -776,4 +795,4 @@ export function resolvedManifestToScript(
 	}
 
 	return script;
-}
+};

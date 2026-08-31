@@ -234,6 +234,13 @@ function mergeCountries(
 	);
 }
 
+function createRegionMatcherKey(
+	countryCode: string,
+	regionCode: string
+): string {
+	return `${countryCode}:${regionCode}`;
+}
+
 function mergeRegions(
 	existing: PolicyMatch['regions'],
 	regions: PolicyRegionMatcher[]
@@ -374,13 +381,6 @@ function normalizeRegionCode(regionCode: string | null): string | null {
 	);
 }
 
-function createRegionMatcherKey(
-	countryCode: string,
-	regionCode: string
-): string {
-	return `${countryCode}:${regionCode}`;
-}
-
 function normalizeModel(policy: PolicyConfig): PolicyModel {
 	return policy.consent?.model ?? 'opt-in';
 }
@@ -392,6 +392,10 @@ function normalizeCategories(policy: PolicyConfig): string[] | undefined {
 	}
 
 	return dedupeTrimmedStrings(policy.consent?.categories);
+}
+
+function normalizeScopeMode(policy: PolicyConfig): PolicyScopeMode {
+	return policy.consent?.scopeMode ?? 'permissive';
 }
 
 function normalizePreselectedCategories(
@@ -422,8 +426,8 @@ function normalizePreselectedCategories(
 	);
 }
 
-function normalizeScopeMode(policy: PolicyConfig): PolicyScopeMode {
-	return policy.consent?.scopeMode ?? 'permissive';
+function hasUiSurfaceConfig(surface?: PolicyUiSurfaceConfig): boolean {
+	return hasRealPolicyUiHints(surface);
 }
 
 function hasUiConfig(policy: PolicyConfig): boolean {
@@ -438,10 +442,6 @@ function hasUiConfig(policy: PolicyConfig): boolean {
 	return (
 		hasUiSurfaceConfig(policy.ui.banner) || hasUiSurfaceConfig(policy.ui.dialog)
 	);
-}
-
-function hasUiSurfaceConfig(surface?: PolicyUiSurfaceConfig): boolean {
-	return hasRealPolicyUiHints(surface);
 }
 
 function hasExplicitMatchers(policy: PolicyConfig): boolean {

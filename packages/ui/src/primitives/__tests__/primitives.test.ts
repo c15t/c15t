@@ -26,17 +26,17 @@ describe('primitives helpers', () => {
 	test('accordion helpers manage single and multiple values', () => {
 		expect(
 			toggleAccordionValue({
+				itemValue: 'item-1',
 				type: 'single',
 				value: undefined,
-				itemValue: 'item-1',
 			})
 		).toBe('item-1');
 
 		expect(
 			toggleAccordionValue({
+				itemValue: 'item-2',
 				type: 'multiple',
 				value: ['item-1'],
-				itemValue: 'item-2',
 			})
 		).toEqual(['item-1', 'item-2']);
 

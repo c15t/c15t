@@ -3,7 +3,7 @@ import { expect, userEvent, waitFor } from 'storybook/test';
 /**
  * Assert that pressing `Escape` dismisses an element matched by `rootTestId`.
  */
-export async function assertEscapeDismisses(
+export const assertEscapeDismisses = async function assertEscapeDismisses(
 	root: ParentNode,
 	rootTestId: string
 ): Promise<void> {
@@ -15,13 +15,13 @@ export async function assertEscapeDismisses(
 			`expected [data-testid="${rootTestId}"] to be removed on Escape`
 		).toBeNull();
 	});
-}
+};
 
 /**
  * Assert that pressing `Enter` while a button is focused activates it. Use
  * `onActivate` to verify the expected side effect.
  */
-export async function assertEnterActivates(
+export const assertEnterActivates = async function assertEnterActivates(
 	buttonTestId: string,
 	onActivate: () => Promise<void> | void,
 	root: ParentNode = document.body
@@ -33,12 +33,12 @@ export async function assertEnterActivates(
 	button?.focus();
 	await userEvent.keyboard('{Enter}');
 	await onActivate();
-}
+};
 
 /**
  * Assert that pressing `Space` while a button is focused activates it.
  */
-export async function assertSpaceActivates(
+export const assertSpaceActivates = async function assertSpaceActivates(
 	buttonTestId: string,
 	onActivate: () => Promise<void> | void,
 	root: ParentNode = document.body
@@ -50,4 +50,4 @@ export async function assertSpaceActivates(
 	button?.focus();
 	await userEvent.keyboard(' ');
 	await onActivate();
-}
+};

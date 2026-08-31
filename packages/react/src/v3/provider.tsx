@@ -470,6 +470,7 @@ function createProviderKernel(options: ConsentProviderOptions): ConsentKernel {
 
 	const transport = withSSRData(baseTransport, options.ssrData);
 
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	return createConsentKernel({
 		...prefetch,
 		transport,
@@ -927,7 +928,9 @@ const IABGate = ({
 		() => kernel.getServerSnapshot().model
 	);
 	const shouldLoadIAB =
-		model === 'iab' || (model == null && initialModel === 'iab');
+		model === 'iab' ||
+		model === null ||
+		(model === undefined && initialModel === 'iab');
 
 	if (!enabled || !options || !shouldLoadIAB) {
 		return children;

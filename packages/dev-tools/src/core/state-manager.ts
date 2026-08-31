@@ -9,7 +9,7 @@ const ACTIVE_TAB_STORAGE_KEY = 'c15t-devtools-active-tab';
 /**
  * Load persisted events from sessionStorage
  */
-function loadPersistedEvents(): EventLogEntry[] {
+const loadPersistedEvents = function loadPersistedEvents(): EventLogEntry[] {
 	if (typeof window === 'undefined') {
 		return [];
 	}
@@ -22,12 +22,12 @@ function loadPersistedEvents(): EventLogEntry[] {
 		// Ignore storage errors
 	}
 	return [];
-}
+};
 
 /**
  * Persist events to sessionStorage
  */
-function persistEvents(events: EventLogEntry[]): void {
+const persistEvents = function persistEvents(events: EventLogEntry[]): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -36,9 +36,11 @@ function persistEvents(events: EventLogEntry[]): void {
 	} catch {
 		// Ignore storage errors (quota exceeded, etc.)
 	}
-}
+};
 
-function isDevToolsTab(value: unknown): value is DevToolsTab {
+const isDevToolsTab = function isDevToolsTab(
+	value: unknown
+): value is DevToolsTab {
 	return (
 		value === 'consents' ||
 		value === 'location' ||
@@ -48,24 +50,25 @@ function isDevToolsTab(value: unknown): value is DevToolsTab {
 		value === 'events' ||
 		value === 'actions'
 	);
-}
+};
 
-function loadPersistedActiveTab(): DevToolsTab | null {
-	if (typeof window === 'undefined') {
-		return null;
-	}
-	try {
-		const stored = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
-		if (isDevToolsTab(stored)) {
-			return stored;
+const loadPersistedActiveTab =
+	function loadPersistedActiveTab(): DevToolsTab | null {
+		if (typeof window === 'undefined') {
+			return null;
 		}
-	} catch {
-		// Ignore storage errors
-	}
-	return null;
-}
+		try {
+			const stored = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+			if (isDevToolsTab(stored)) {
+				return stored;
+			}
+		} catch {
+			// Ignore storage errors
+		}
+		return null;
+	};
 
-function persistActiveTab(tab: DevToolsTab): void {
+const persistActiveTab = function persistActiveTab(tab: DevToolsTab): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
@@ -74,7 +77,7 @@ function persistActiveTab(tab: DevToolsTab): void {
 	} catch {
 		// Ignore storage errors
 	}
-}
+};
 
 /**
  * Position options for the DevTools panel
@@ -145,7 +148,7 @@ export type StateListener = (
 /**
  * Creates a state manager for DevTools
  */
-export function createStateManager(
+export const createStateManager = function createStateManager(
 	initialState: Partial<DevToolsState> = {}
 ): StateManager {
 	// Load persisted events from sessionStorage
@@ -153,60 +156,30 @@ export function createStateManager(
 	const persistedActiveTab = loadPersistedActiveTab();
 
 	let state: DevToolsState = {
-		isOpen: false,
 		activeTab: persistedActiveTab ?? 'location',
-		position: 'bottom-right',
-		isConnected: false,
 		eventLog: persistedEvents,
+		isConnected: false,
+		isOpen: false,
 		maxEventLogSize: 100,
+		position: 'bottom-right',
 		...initialState,
 	};
 
 	const listeners = new Set<StateListener>();
 
-	function notify(prevState: DevToolsState): void {
+	const notify = function notify(prevState: DevToolsState): void {
 		for (const listener of listeners) {
 			listener(state, prevState);
 		}
-	}
+	};
 
-	function setState(partial: Partial<DevToolsState>): void {
+	const setState = function setState(partial: Partial<DevToolsState>): void {
 		const prevState = state;
 		state = { ...state, ...partial };
 		notify(prevState);
-	}
+	};
 
 	return {
-		getState: () => state,
-
-		subscribe: (listener) => {
-			listeners.add(listener);
-			return () => {
-				listeners.delete(listener);
-			};
-		},
-
-		setOpen: (isOpen) => {
-			setState({ isOpen });
-		},
-
-		toggle: () => {
-			setState({ isOpen: !state.isOpen });
-		},
-
-		setActiveTab: (tab) => {
-			setState({ activeTab: tab });
-			persistActiveTab(tab);
-		},
-
-		setPosition: (position) => {
-			setState({ position });
-		},
-
-		setConnected: (isConnected) => {
-			setState({ isConnected });
-		},
-
 		addEvent: (entry) => {
 			const newEvent: EventLogEntry = {
 				...entry,
@@ -232,8 +205,38 @@ export function createStateManager(
 		destroy: () => {
 			listeners.clear();
 		},
+
+		getState: () => state,
+
+		setActiveTab: (tab) => {
+			setState({ activeTab: tab });
+			persistActiveTab(tab);
+		},
+
+		setConnected: (isConnected) => {
+			setState({ isConnected });
+		},
+
+		setOpen: (isOpen) => {
+			setState({ isOpen });
+		},
+
+		setPosition: (position) => {
+			setState({ position });
+		},
+
+		subscribe: (listener) => {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
+
+		toggle: () => {
+			setState({ isOpen: !state.isOpen });
+		},
 	};
-}
+};
 
 /**
  * State manager interface

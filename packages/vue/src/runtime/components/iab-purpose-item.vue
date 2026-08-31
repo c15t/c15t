@@ -90,17 +90,17 @@ const checked = computed({
 	},
 });
 
-function getVendorConsent(vendorId: IabVendorId) {
+const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
-}
+};
 
-function handlePurposeLiObjection() {
+const handlePurposeLiObjection = function handlePurposeLiObjection() {
 	const nextValue = !isPurposeLiAllowed.value;
 	emit('purposeLegitimateInterestToggle', nextValue);
 	for (const vendor of legIntVendors.value) {
 		emit('vendorToggle', vendor.id, nextValue);
 	}
-}
+};
 </script>
 
 <template>

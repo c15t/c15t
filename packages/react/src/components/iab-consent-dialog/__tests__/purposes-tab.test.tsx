@@ -31,15 +31,15 @@ const getDefined = <Value,>(
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = String(value);
 		},
 	};
 })();
@@ -50,172 +50,172 @@ Object.defineProperty(window, 'localStorage', {
 
 // Mock GVL with all purposes
 const mockGVL = {
+	features: {
+		1: {
+			description: '',
+			id: 1,
+			illustrations: [],
+			name: 'Match and combine data from other data sources',
+		},
+		2: {
+			description: '',
+			id: 2,
+			illustrations: [],
+			name: 'Link different devices',
+		},
+		3: {
+			description: '',
+			id: 3,
+			illustrations: [],
+			name: 'Identify devices based on information transmitted automatically',
+		},
+	},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 142,
-	tcfPolicyVersion: 5,
 	lastUpdated: '2024-01-15T16:00:23Z',
 	purposes: {
 		1: {
-			id: 1,
-			name: 'Store and/or access information on a device',
 			description: 'Cookies, device identifiers...',
+			id: 1,
 			illustrations: [],
-		},
-		2: {
-			id: 2,
-			name: 'Use limited data to select advertising',
-			description: 'Advertising can be presented...',
-			illustrations: [],
-		},
-		3: {
-			id: 3,
-			name: 'Create profiles for personalised advertising',
-			description: 'Information about your activity...',
-			illustrations: [],
-		},
-		4: {
-			id: 4,
-			name: 'Use profiles to select personalised advertising',
-			description: '',
-			illustrations: [],
-		},
-		5: {
-			id: 5,
-			name: 'Create profiles to personalise content',
-			description: '',
-			illustrations: [],
-		},
-		6: {
-			id: 6,
-			name: 'Use profiles to select personalised content',
-			description: '',
-			illustrations: [],
-		},
-		7: {
-			id: 7,
-			name: 'Measure advertising performance',
-			description: '',
-			illustrations: [],
-		},
-		8: {
-			id: 8,
-			name: 'Measure content performance',
-			description: '',
-			illustrations: [],
-		},
-		9: {
-			id: 9,
-			name: 'Understand audiences through statistics',
-			description: '',
-			illustrations: [],
+			name: 'Store and/or access information on a device',
 		},
 		10: {
-			id: 10,
-			name: 'Develop and improve services',
 			description: '',
+			id: 10,
 			illustrations: [],
+			name: 'Develop and improve services',
 		},
 		11: {
+			description: '',
 			id: 11,
+			illustrations: [],
 			name: 'Use limited data to select content',
-			description: '',
-			illustrations: [],
-		},
-	},
-	specialPurposes: {
-		1: {
-			id: 1,
-			name: 'Ensure security, prevent and detect fraud, and fix errors',
-			description: '',
-			illustrations: [],
 		},
 		2: {
+			description: 'Advertising can be presented...',
 			id: 2,
-			name: 'Deliver and present advertising and content',
-			description: '',
 			illustrations: [],
-		},
-	},
-	features: {
-		1: {
-			id: 1,
-			name: 'Match and combine data from other data sources',
-			description: '',
-			illustrations: [],
-		},
-		2: {
-			id: 2,
-			name: 'Link different devices',
-			description: '',
-			illustrations: [],
+			name: 'Use limited data to select advertising',
 		},
 		3: {
+			description: 'Information about your activity...',
 			id: 3,
-			name: 'Identify devices based on information transmitted automatically',
-			description: '',
 			illustrations: [],
+			name: 'Create profiles for personalised advertising',
+		},
+		4: {
+			description: '',
+			id: 4,
+			illustrations: [],
+			name: 'Use profiles to select personalised advertising',
+		},
+		5: {
+			description: '',
+			id: 5,
+			illustrations: [],
+			name: 'Create profiles to personalise content',
+		},
+		6: {
+			description: '',
+			id: 6,
+			illustrations: [],
+			name: 'Use profiles to select personalised content',
+		},
+		7: {
+			description: '',
+			id: 7,
+			illustrations: [],
+			name: 'Measure advertising performance',
+		},
+		8: {
+			description: '',
+			id: 8,
+			illustrations: [],
+			name: 'Measure content performance',
+		},
+		9: {
+			description: '',
+			id: 9,
+			illustrations: [],
+			name: 'Understand audiences through statistics',
 		},
 	},
 	specialFeatures: {
 		1: {
-			id: 1,
-			name: 'Use precise geolocation data',
 			description: 'With your acceptance, your precise location...',
+			id: 1,
 			illustrations: [],
+			name: 'Use precise geolocation data',
 		},
 		2: {
-			id: 2,
-			name: 'Actively scan device characteristics for identification',
 			description: '',
+			id: 2,
 			illustrations: [],
+			name: 'Actively scan device characteristics for identification',
 		},
 	},
-	vendors: {
+	specialPurposes: {
 		1: {
+			description: '',
 			id: 1,
-			name: 'Test Vendor 1',
-			purposes: [1, 2, 3, 7],
-			legIntPurposes: [8, 9],
-			specialPurposes: [1],
-			features: [1],
-			specialFeatures: [1],
-			flexiblePurposes: [2],
-			cookieMaxAgeSeconds: 31536000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: false,
-			urls: [],
+			illustrations: [],
+			name: 'Ensure security, prevent and detect fraud, and fix errors',
 		},
-		755: {
-			id: 755,
-			name: 'Google Advertising',
-			purposes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-			legIntPurposes: [],
-			specialPurposes: [1, 2],
-			features: [1, 2, 3],
-			specialFeatures: [1, 2],
-			flexiblePurposes: [2, 7, 9, 10, 11],
-			cookieMaxAgeSeconds: 63072000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: true,
-			urls: [],
+		2: {
+			description: '',
+			id: 2,
+			illustrations: [],
+			name: 'Deliver and present advertising and content',
 		},
 	},
 	stacks: {
 		1: {
+			description: '',
 			id: 1,
 			name: 'Advertising measurement',
-			description: '',
 			purposes: [2, 7],
 			specialFeatures: [],
 		},
 		2: {
+			description: '',
 			id: 2,
 			name: 'Content personalisation',
-			description: '',
 			purposes: [5, 6, 11],
 			specialFeatures: [],
+		},
+	},
+	tcfPolicyVersion: 5,
+	vendorListVersion: 142,
+	vendors: {
+		1: {
+			cookieMaxAgeSeconds: 31536000,
+			cookieRefresh: true,
+			features: [1],
+			flexiblePurposes: [2],
+			id: 1,
+			legIntPurposes: [8, 9],
+			name: 'Test Vendor 1',
+			purposes: [1, 2, 3, 7],
+			specialFeatures: [1],
+			specialPurposes: [1],
+			urls: [],
+			usesCookies: true,
+			usesNonCookieAccess: false,
+		},
+		755: {
+			cookieMaxAgeSeconds: 63072000,
+			cookieRefresh: true,
+			features: [1, 2, 3],
+			flexiblePurposes: [2, 7, 9, 10, 11],
+			id: 755,
+			legIntPurposes: [],
+			name: 'Google Advertising',
+			purposes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			specialFeatures: [1, 2],
+			specialPurposes: [1, 2],
+			urls: [],
+			usesCookies: true,
+			usesNonCookieAccess: true,
 		},
 	},
 };
@@ -223,19 +223,19 @@ const mockGVL = {
 globalThis.fetch = vi.fn(() =>
 	Promise.resolve(
 		new Response(JSON.stringify(mockGVL), {
-			status: 200,
 			headers: { 'Content-Type': 'application/json' },
+			status: 200,
 		})
 	)
 ) as typeof fetch;
 
 const defaultIABOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
 	}),
+	mode: 'offline',
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},

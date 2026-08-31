@@ -6,7 +6,7 @@ import type { ClassNameStyle } from '../theme/types';
  * Framework adapters should use this when spreading the output of `resolveStyles()`
  * into rendered elements so flags like `noStyle` never leak as attributes.
  */
-export function sanitizeDOMStyleProps<
+export const sanitizeDOMStyleProps = function sanitizeDOMStyleProps<
 	VariableMap = Record<string, string | number>,
 >(
 	style?: ClassNameStyle<VariableMap>
@@ -15,4 +15,4 @@ export function sanitizeDOMStyleProps<
 		className: style?.className,
 		style: style?.style,
 	};
-}
+};

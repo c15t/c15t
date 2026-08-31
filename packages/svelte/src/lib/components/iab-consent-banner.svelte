@@ -69,7 +69,9 @@
 
 	// Vendor count from GVL + custom vendors
 	const vendorCount = $derived.by(() => {
-		if (!iabState?.gvl) return 0;
+		if (!iabState?.gvl) {
+			return 0;
+		}
 		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
 		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
 		return gvlVendorCount + customVendorCount;
@@ -78,38 +80,40 @@
 	// Display items: stacks + purposes + special features (max 5)
 	const displayItems = $derived.by(() => {
 		if (!iabState?.gvl) {
-			return { displayed: [] as string[], remainingCount: 0, isReady: false };
+			return { displayed: [] as string[], isReady: false, remainingCount: 0 };
 		}
 		const result = getIABBannerDisplayItems(iabState.gvl);
 		return { ...result, isReady: true };
 	});
 
 	// Handlers
-	function handleAcceptAll() {
+	const handleAcceptAll = function handleAcceptAll() {
 		iabState?.acceptAll();
 		iabState?.save();
 		consent.state.setActiveUI('none');
-	}
+	};
 
-	function handleRejectAll() {
+	const handleRejectAll = function handleRejectAll() {
 		iabState?.rejectAll();
 		iabState?.save();
 		consent.state.setActiveUI('none');
-	}
+	};
 
-	function handleCustomize() {
+	const handleCustomize = function handleCustomize() {
 		iabState?.setPreferenceCenterTab('purposes');
 		consent.state.setActiveUI('dialog');
-	}
+	};
 
-	function handleViewVendors() {
+	const handleViewVendors = function handleViewVendors() {
 		iabState?.setPreferenceCenterTab('vendors');
 		consent.state.setActiveUI('dialog');
-	}
+	};
 
-	function isPrimary(button: 'reject' | 'accept' | 'customize'): boolean {
+	const isPrimary = function isPrimary(
+		button: 'reject' | 'accept' | 'customize'
+	): boolean {
 		return button === primaryButton;
-	}
+	};
 
 	// Styling
 	const rootStyle = $derived(

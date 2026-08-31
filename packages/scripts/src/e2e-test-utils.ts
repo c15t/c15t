@@ -169,11 +169,11 @@ export type TestWindow = Window &
 export { loadScripts, updateScripts };
 
 export const deniedConsents = {
-	necessary: true,
-	functionality: false,
-	measurement: false,
-	marketing: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
 };
 
 export const grantedMeasurementConsents = {
@@ -186,15 +186,17 @@ export const grantedMarketingConsents = {
 	marketing: true,
 };
 
-export function isArgumentsPayload(value: unknown): value is IArguments {
+export const isArgumentsPayload = function isArgumentsPayload(
+	value: unknown
+): value is IArguments {
 	return Object.prototype.toString.call(value) === '[object Arguments]';
-}
+};
 
-export function toArgs(value: unknown): unknown[] {
+export const toArgs = function toArgs(value: unknown): unknown[] {
 	return Array.from(value as IArguments);
-}
+};
 
-function installAppendProbe(
+const installAppendProbe = function installAppendProbe(
 	target: HTMLHeadElement | HTMLBodyElement,
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
@@ -209,21 +211,21 @@ function installAppendProbe(
 
 		return appended;
 	});
-}
+};
 
-export function installHeadProbe(
+export const installHeadProbe = function installHeadProbe(
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
 	return installAppendProbe(document.head, onAppend);
-}
+};
 
-export function installBodyProbe(
+export const installBodyProbe = function installBodyProbe(
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
 	return installAppendProbe(document.body, onAppend);
-}
+};
 
-function resetVendorGlobals() {
+const resetVendorGlobals = function resetVendorGlobals() {
 	const win = window as TestWindow;
 
 	for (const key of [
@@ -279,14 +281,15 @@ function resetVendorGlobals() {
 	] as const) {
 		Reflect.deleteProperty(win, key);
 	}
-}
+};
 
-export function registerVendorContractCleanup() {
-	afterEach(() => {
-		clearAllScripts();
-		vi.restoreAllMocks();
-		document.head.innerHTML = '';
-		document.body.innerHTML = '';
-		resetVendorGlobals();
-	});
-}
+export const registerVendorContractCleanup =
+	function registerVendorContractCleanup() {
+		afterEach(() => {
+			clearAllScripts();
+			vi.restoreAllMocks();
+			document.head.innerHTML = '';
+			document.body.innerHTML = '';
+			resetVendorGlobals();
+		});
+	};

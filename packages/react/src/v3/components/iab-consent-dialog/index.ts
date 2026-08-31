@@ -83,16 +83,16 @@ export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogPr
  * @public
  */
 const IABConsentDialog = Object.assign(IABConsentDialogComponent, {
-	Root: IABConsentDialogRoot,
 	Card: IABConsentDialogCard,
-	Header: IABConsentDialogHeader,
-	Tabs: IABConsentDialogTabs,
-	TabButton: IABConsentDialogTabButton,
 	Content: IABConsentDialogContent,
 	Footer: IABConsentDialogFooter,
+	Header: IABConsentDialogHeader,
 	Overlay: IABConsentDialogOverlay,
 	PurposeItem,
+	Root: IABConsentDialogRoot,
 	StackItem,
+	TabButton: IABConsentDialogTabButton,
+	Tabs: IABConsentDialogTabs,
 	VendorList,
 }) as IABConsentDialogCompoundComponent;
 

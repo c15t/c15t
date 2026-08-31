@@ -29,8 +29,149 @@ export interface IabPanelOptions {
 const iabSearchByContainer = new WeakMap<HTMLElement, string>();
 
 /**
+ * Creates a purpose row item
+ */
+// oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
+function createPurposeRow(
+	id: string,
+	name: string,
+	consent: boolean,
+	onChange: (value: boolean) => void,
+	ariaKind: 'purpose' | 'feature' = 'purpose'
+): HTMLElement {
+	return div({
+		children: [
+			span({
+				style: {
+					color: 'var(--c15t-text)',
+					flex: '1',
+					marginRight: '8px',
+
+					overflow: 'hidden',
+					textOverflow: 'ellipsis',
+					whiteSpace: 'nowrap',
+				},
+				text: `${id}. ${name}`,
+				title: name,
+			}),
+			div({
+				children: [
+					createBadge({
+						text: consent ? '✓' : '✕',
+						variant: consent ? 'success' : 'error',
+					}),
+					createToggle({
+						ariaLabel: `Toggle ${ariaKind} ${id}`,
+						checked: consent,
+						onChange,
+					}),
+				],
+
+				style: {
+					alignItems: 'center',
+					display: 'flex',
+					gap: '6px',
+				},
+			}),
+		],
+		style: {
+			alignItems: 'center',
+			borderBottom: '1px solid var(--c15t-border)',
+			display: 'flex',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			justifyContent: 'space-between',
+			padding: '4px 0',
+		},
+	});
+}
+
+/**
+ * Truncates text to a maximum length with ellipsis
+ */
+const truncateText = function truncateText(
+	text: string,
+	maxLength: number
+): string {
+	if (text.length <= maxLength) {
+		return text;
+	}
+	return `${text.slice(0, maxLength - 3)}...`;
+};
+
+/**
+ * Creates a vendor row item
+ */
+const createVendorRow = function createVendorRow(
+	id: string,
+	name: string,
+	consent: boolean,
+	type: 'iab' | 'custom',
+	onChange: (value: boolean) => void
+): HTMLElement {
+	return div({
+		children: [
+			div({
+				children: [
+					type === 'custom'
+						? span({
+								style: {
+									backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
+									borderRadius: '2px',
+									color: 'var(--c15t-devtools-badge-info)',
+									flexShrink: '0',
+									fontSize: '9px',
+									padding: '1px 4px',
+								},
+								text: 'CUSTOM',
+							})
+						: null,
+					span({
+						style: {
+							color: 'var(--c15t-text)',
+							overflow: 'hidden',
+							textOverflow: 'ellipsis',
+							whiteSpace: 'nowrap',
+						},
+						text: `${id}. ${truncateText(name, 25)}`,
+						title: name,
+					}),
+				].filter(Boolean) as HTMLElement[],
+
+				style: {
+					alignItems: 'center',
+					display: 'flex',
+					flex: '1',
+					gap: '6px',
+					marginRight: '8px',
+					overflow: 'hidden',
+				},
+			}),
+			createBadge({
+				text: consent ? '✓' : '✕',
+				variant: consent ? 'success' : 'error',
+			}),
+			createToggle({
+				ariaLabel: `Toggle vendor ${id}`,
+
+				checked: consent,
+				onChange,
+			}),
+		],
+		style: {
+			alignItems: 'center',
+			borderBottom: '1px solid var(--c15t-border)',
+			display: 'flex',
+			fontSize: 'var(--c15t-devtools-font-size-xs)',
+			justifyContent: 'space-between',
+			padding: '4px 0',
+		},
+	});
+};
+
+/**
  * Renders the IAB panel content
  */
+// oxlint-disable-next-line complexity, func-style -- Preserve control flow and declaration compatibility.
 export function renderIabPanel(
 	container: HTMLElement,
 	options: IabPanelOptions
@@ -70,57 +211,60 @@ export function renderIabPanel(
 	}
 
 	// TC String section with Copy button in header
-	const tcString = iabState.tcString;
+	const { tcString } = iabState;
 	const tcStringSection = createSection({
-		title: 'TC String',
 		actions: tcString
 			? [
 					createButton({
-						text: 'Copy',
-						small: true,
 						onClick: () => {
 							navigator.clipboard.writeText(tcString);
 						},
+
+						small: true,
+						text: 'Copy',
 					}),
 				]
 			: [],
 		children: [
 			div({
 				style: {
-					padding: '8px',
 					backgroundColor: 'var(--c15t-surface-muted)',
 					borderRadius: '4px',
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					color: tcString ? 'var(--c15t-text)' : 'var(--c15t-text-muted)',
+
 					fontFamily: 'monospace',
-					wordBreak: 'break-all',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
 					maxHeight: '80px',
 					overflowY: 'auto',
-					color: tcString ? 'var(--c15t-text)' : 'var(--c15t-text-muted)',
+					padding: '8px',
+					wordBreak: 'break-all',
 				},
 				text: tcString || 'No TC String generated yet',
 			}),
 		],
+		title: 'TC String',
 	});
 
 	container.appendChild(tcStringSection);
 
-	const gvl = iabState.gvl;
+	const { gvl } = iabState;
 	const searchQuery = iabSearchByContainer.get(container) ?? '';
 	container.appendChild(
 		createSection({
-			title: 'Filter',
 			children: [
 				createInput({
-					value: searchQuery,
-					placeholder: 'Filter purposes or vendors…',
 					ariaLabel: 'Filter IAB purposes and vendors',
-					small: true,
 					onInput: (value) => {
 						iabSearchByContainer.set(container, value.trim().toLowerCase());
 						renderIabPanel(container, options);
 					},
+
+					placeholder: 'Filter purposes or vendors…',
+					small: true,
+					value: searchQuery,
 				}),
 			],
+			title: 'Filter',
 		})
 	);
 
@@ -161,8 +305,8 @@ export function renderIabPanel(
 		}
 
 		const purposesSection = createSection({
-			title: `Purposes (${purposeEntries.length})`,
 			children: [purposeList],
+			title: `Purposes (${purposeEntries.length})`,
 		});
 
 		container.appendChild(purposesSection);
@@ -211,8 +355,8 @@ export function renderIabPanel(
 		}
 
 		const specialFeaturesSection = createSection({
-			title: `Special Features (${specialFeatureEntries.length})`,
 			children: [specialFeatureList],
+			title: `Special Features (${specialFeatureEntries.length})`,
 		});
 
 		container.appendChild(specialFeaturesSection);
@@ -267,8 +411,8 @@ export function renderIabPanel(
 		}
 
 		const vendorsSection = createSection({
-			title: `IAB Vendors (${iabVendors.length})`,
 			children: [vendorList],
+			title: `IAB Vendors (${iabVendors.length})`,
 		});
 
 		container.appendChild(vendorsSection);
@@ -295,8 +439,8 @@ export function renderIabPanel(
 		}
 
 		const customVendorsSection = createSection({
-			title: `Custom Vendors (${customVendors.length})`,
 			children: [customVendorList],
+			title: `Custom Vendors (${customVendors.length})`,
 		});
 
 		container.appendChild(customVendorsSection);
@@ -311,10 +455,10 @@ export function renderIabPanel(
 		container.appendChild(
 			div({
 				style: {
-					padding: '16px',
-					textAlign: 'center',
 					color: 'var(--c15t-text-muted)',
 					fontSize: 'var(--c15t-devtools-font-size-sm)',
+					padding: '16px',
+					textAlign: 'center',
 				},
 				text: 'No purposes or vendors configured',
 			})
@@ -323,180 +467,53 @@ export function renderIabPanel(
 
 	// Footer with reset button
 	const footer = div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			padding: '12px 16px',
-			marginTop: 'auto',
-			borderTop: '1px solid var(--c15t-border)',
-			backgroundColor: 'var(--c15t-surface)',
-		},
 		children: [
 			div({
-				style: {
-					display: 'flex',
-					gap: '6px',
-				},
 				children: [
 					createButton({
+						onClick: onAcceptAll,
+
+						small: true,
 						text: 'Accept All',
 						variant: 'primary',
-						small: true,
-						onClick: onAcceptAll,
 					}),
 					createButton({
-						text: 'Reject All',
-						small: true,
 						onClick: onRejectAll,
+
+						small: true,
+						text: 'Reject All',
 					}),
 					createButton({
+						onClick: onSave,
+
+						small: true,
 						text: 'Save',
 						variant: 'primary',
-						small: true,
-						onClick: onSave,
 					}),
 				],
+
+				style: {
+					display: 'flex',
+					gap: '6px',
+				},
 			}),
 			createButton({
+				onClick: onReset,
+
+				small: true,
 				text: 'Reset',
 				variant: 'danger',
-				small: true,
-				onClick: onReset,
 			}),
 		],
+		style: {
+			alignItems: 'center',
+			backgroundColor: 'var(--c15t-surface)',
+			borderTop: '1px solid var(--c15t-border)',
+			display: 'flex',
+			justifyContent: 'space-between',
+			marginTop: 'auto',
+			padding: '12px 16px',
+		},
 	});
 	container.appendChild(footer);
-}
-
-/**
- * Creates a purpose row item
- */
-function createPurposeRow(
-	id: string,
-	name: string,
-	consent: boolean,
-	onChange: (value: boolean) => void,
-	ariaKind: 'purpose' | 'feature' = 'purpose'
-): HTMLElement {
-	return div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			padding: '4px 0',
-			fontSize: 'var(--c15t-devtools-font-size-xs)',
-			borderBottom: '1px solid var(--c15t-border)',
-		},
-		children: [
-			span({
-				style: {
-					color: 'var(--c15t-text)',
-					overflow: 'hidden',
-					textOverflow: 'ellipsis',
-					whiteSpace: 'nowrap',
-					flex: '1',
-					marginRight: '8px',
-				},
-				text: `${id}. ${name}`,
-				title: name,
-			}),
-			div({
-				style: {
-					display: 'flex',
-					alignItems: 'center',
-					gap: '6px',
-				},
-				children: [
-					createBadge({
-						text: consent ? '✓' : '✕',
-						variant: consent ? 'success' : 'error',
-					}),
-					createToggle({
-						checked: consent,
-						onChange,
-						ariaLabel: `Toggle ${ariaKind} ${id}`,
-					}),
-				],
-			}),
-		],
-	});
-}
-
-/**
- * Creates a vendor row item
- */
-function createVendorRow(
-	id: string,
-	name: string,
-	consent: boolean,
-	type: 'iab' | 'custom',
-	onChange: (value: boolean) => void
-): HTMLElement {
-	return div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'space-between',
-			padding: '4px 0',
-			fontSize: 'var(--c15t-devtools-font-size-xs)',
-			borderBottom: '1px solid var(--c15t-border)',
-		},
-		children: [
-			div({
-				style: {
-					display: 'flex',
-					alignItems: 'center',
-					gap: '6px',
-					overflow: 'hidden',
-					flex: '1',
-					marginRight: '8px',
-				},
-				children: [
-					type === 'custom'
-						? span({
-								style: {
-									fontSize: '9px',
-									padding: '1px 4px',
-									backgroundColor: 'var(--c15t-devtools-badge-info-bg)',
-									color: 'var(--c15t-devtools-badge-info)',
-									borderRadius: '2px',
-									flexShrink: '0',
-								},
-								text: 'CUSTOM',
-							})
-						: null,
-					span({
-						style: {
-							color: 'var(--c15t-text)',
-							overflow: 'hidden',
-							textOverflow: 'ellipsis',
-							whiteSpace: 'nowrap',
-						},
-						text: `${id}. ${truncateText(name, 25)}`,
-						title: name,
-					}),
-				].filter(Boolean) as HTMLElement[],
-			}),
-			createBadge({
-				text: consent ? '✓' : '✕',
-				variant: consent ? 'success' : 'error',
-			}),
-			createToggle({
-				checked: consent,
-				onChange,
-				ariaLabel: `Toggle vendor ${id}`,
-			}),
-		],
-	});
-}
-
-/**
- * Truncates text to a maximum length with ellipsis
- */
-function truncateText(text: string, maxLength: number): string {
-	if (text.length <= maxLength) {
-		return text;
-	}
-	return `${text.slice(0, maxLength - 3)}...`;
 }

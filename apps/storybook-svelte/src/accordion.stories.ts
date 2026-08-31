@@ -25,34 +25,34 @@ type Story = StoryObj<typeof meta>;
 
 export const Single: Story = {
 	args: {
-		item1Title: consentTypes.necessary.title,
 		item1Description: consentTypes.necessary.description,
-		item2Title: consentTypes.measurement.title,
+		item1Title: consentTypes.necessary.title,
 		item2Description: consentTypes.measurement.description,
+		item2Title: consentTypes.measurement.title,
 	},
 	play: singleModeToggle,
 };
 
 export const Multiple: Story = {
 	args: {
-		item1Title: consentTypes.marketing.title,
-		item1Description: consentTypes.marketing.description,
-		item2Title: consentTypes.functionality.title,
-		item2Description: consentTypes.functionality.description,
-		type: 'multiple',
 		initialValue: ['purpose-1', 'purpose-2'],
+		item1Description: consentTypes.marketing.description,
+		item1Title: consentTypes.marketing.title,
+		item2Description: consentTypes.functionality.description,
+		item2Title: consentTypes.functionality.title,
+		type: 'multiple',
 	},
 	play: multipleModeToggle,
 };
 
 export const WithIntroduction: Story = {
 	args: {
-		introTitle: consentManagerDialog.title,
 		introDescription: consentManagerDialog.description,
-		item1Title: consentTypes.necessary.title,
+		introTitle: consentManagerDialog.title,
 		item1Description: consentTypes.necessary.description,
-		item2Title: consentTypes.measurement.title,
+		item1Title: consentTypes.necessary.title,
 		item2Description: consentTypes.measurement.description,
+		item2Title: consentTypes.measurement.title,
 	},
 	// @ts-expect-error -- different component for this story
 	component: AccordionWithIntroDemo,

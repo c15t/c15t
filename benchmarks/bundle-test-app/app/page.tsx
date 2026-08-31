@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 const HomePage = () => {
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>Bundle Size Test App</h1>
 			<p>
 				Run <code>bun run analyze</code> to see bundle sizes for each import

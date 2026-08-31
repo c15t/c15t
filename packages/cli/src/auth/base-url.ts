@@ -6,11 +6,12 @@ import { URLS } from '../constants';
  * Default: inth.com
  * Override: CONSENT_URL
  */
-export function getControlPlaneBaseUrl(): string {
-	const envValue = process.env.CONSENT_URL?.trim();
-	if (!envValue) {
-		return URLS.CONSENT_IO;
-	}
+export const getControlPlaneBaseUrl =
+	function getControlPlaneBaseUrl(): string {
+		const envValue = process.env.CONSENT_URL?.trim();
+		if (!envValue) {
+			return URLS.CONSENT_IO;
+		}
 
-	return envValue.replace(/\/+$/, '');
-}
+		return envValue.replace(/\/+$/u, '');
+	};

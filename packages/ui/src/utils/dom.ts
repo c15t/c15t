@@ -9,7 +9,9 @@
  * @param colorScheme - 'light' | 'dark' | 'system'
  * @returns Cleanup function
  */
-export function setupColorScheme(colorScheme?: 'light' | 'dark' | 'system') {
+export const setupColorScheme = function setupColorScheme(
+	colorScheme?: 'light' | 'dark' | 'system'
+) {
 	const systemDarkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 	const defaultDarkQuery = document.documentElement.classList.contains('dark');
 
@@ -63,7 +65,7 @@ export function setupColorScheme(colorScheme?: 'light' | 'dark' | 'system') {
 		systemDarkQuery.removeEventListener('change', updateSystemColorScheme);
 		observer.disconnect();
 	};
-}
+};
 
 const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ku', 'dv'];
 
@@ -88,18 +90,22 @@ if (typeof document !== 'undefined') {
 /**
  * Gets text direction based on the language.
  */
-export function getTextDirection(language?: string): 'rtl' | 'ltr' {
+export const getTextDirection = function getTextDirection(
+	language?: string
+): 'rtl' | 'ltr' {
 	const normalizedLanguage = language
 		? language.split('-')[0]?.toLowerCase()
 		: 'en';
 	return RTL_LANGUAGES.includes(normalizedLanguage || '') ? 'rtl' : 'ltr';
-}
+};
 
 /**
  * Sets text direction class on document body.
  * @returns Cleanup function
  */
-export function setupTextDirection(language?: string) {
+export const setupTextDirection = function setupTextDirection(
+	language?: string
+) {
 	const direction = getTextDirection(language);
 	if (direction === 'rtl') {
 		document.body.classList.add('c15t-rtl');
@@ -110,12 +116,14 @@ export function setupTextDirection(language?: string) {
 	return () => {
 		document.body.classList.remove('c15t-rtl');
 	};
-}
+};
 
 /**
  * Gets all focusable elements within a container.
  */
-export function getFocusableElements(container: HTMLElement): HTMLElement[] {
+export const getFocusableElements = function getFocusableElements(
+	container: HTMLElement
+): HTMLElement[] {
 	const selector = [
 		'a[href]:not([disabled]):not([tabindex="-1"])',
 		'button:not([disabled]):not([tabindex="-1"])',
@@ -153,13 +161,13 @@ export function getFocusableElements(container: HTMLElement): HTMLElement[] {
 			return true;
 		}
 	);
-}
+};
 
 /**
  * Locks document scrolling.
  * @returns Cleanup function to restore scroll
  */
-export function setupScrollLock() {
+export const setupScrollLock = function setupScrollLock() {
 	const originalStyles = {
 		overflow: document.body.style.overflow,
 		paddingRight: document.body.style.paddingRight,
@@ -177,7 +185,7 @@ export function setupScrollLock() {
 		document.body.style.overflow = originalStyles.overflow;
 		document.body.style.paddingRight = originalStyles.paddingRight;
 	};
-}
+};
 
 /**
  * Finds a rendered equivalent of an element that was unmounted while a focus
@@ -187,7 +195,9 @@ export function setupScrollLock() {
  * node would silently no-op and drop keyboard users at `<body>`. Matching by
  * `id`, then by `data-testid`, re-targets the remounted opener instead.
  */
-function findFocusRestoreEquivalent(element: HTMLElement): HTMLElement | null {
+const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
+	element: HTMLElement
+): HTMLElement | null {
 	if (element.id) {
 		const byId = document.getElementById(element.id);
 		if (byId) {
@@ -205,13 +215,13 @@ function findFocusRestoreEquivalent(element: HTMLElement): HTMLElement | null {
 	}
 
 	return null;
-}
+};
 
 /**
  * Traps focus within a container.
  * @returns Cleanup function to remove listeners and restore focus
  */
-export function setupFocusTrap(container: HTMLElement) {
+export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 	const activeElement = document.activeElement as HTMLElement | null;
 	const previousFocus =
 		activeElement &&
@@ -228,11 +238,11 @@ export function setupFocusTrap(container: HTMLElement) {
 	}
 	setTimeout(() => {
 		try {
-			const activeElement = document.activeElement;
+			const activeElementLocal = document.activeElement;
 			if (
-				activeElement instanceof HTMLElement &&
-				activeElement !== document.body &&
-				container.contains(activeElement)
+				activeElementLocal instanceof HTMLElement &&
+				activeElementLocal !== document.body &&
+				container.contains(activeElementLocal)
 			) {
 				return;
 			}
@@ -253,6 +263,7 @@ export function setupFocusTrap(container: HTMLElement) {
 			return;
 		}
 
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const firstElement = elements[0];
 		const lastElement = elements[elements.length - 1];
 		const active = document.activeElement as HTMLElement | null;
@@ -297,4 +308,4 @@ export function setupFocusTrap(container: HTMLElement) {
 			}, 0);
 		}
 	};
-}
+};

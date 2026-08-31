@@ -28,13 +28,13 @@
 	const baseId = `c15t-tabs-${componentId}`;
 	const dataDisabled = $derived(getDataDisabled(disabled));
 
-	function setValue(nextValue: string) {
+	const setValue = function setValue(nextValue: string) {
 		if (disabled) {
 			return;
 		}
 
 		value = nextValue;
-	}
+	};
 
 	setTabsRootContext({
 		get baseId() {
@@ -49,10 +49,10 @@
 		get orientation() {
 			return orientation;
 		},
+		setValue,
 		get value() {
 			return value;
 		},
-		setValue,
 	});
 </script>
 

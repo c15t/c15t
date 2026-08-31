@@ -17,42 +17,42 @@ export type ExpandedTheme = 'none' | 'minimal' | 'dark' | 'tailwind';
  */
 export const EXPANDED_THEME_OPTIONS = [
 	{
-		value: 'none' as const,
-		label: 'None',
-		hint: 'No preset styling',
 		description: 'No preset styling - you control the theme completely',
+		hint: 'No preset styling',
+		label: 'None',
+		value: 'none' as const,
 	},
 	{
-		value: 'minimal' as const,
-		label: 'Minimal',
-		hint: 'Clean light theme',
 		description:
 			'Clean, light theme with subtle grays and refined typography - uses standard CSS',
+		hint: 'Clean light theme',
+		label: 'Minimal',
+		value: 'minimal' as const,
 	},
 	{
-		value: 'dark' as const,
-		label: 'Dark',
-		hint: 'High contrast dark mode',
 		description:
 			'Vercel-style black and white high contrast theme - stays dark regardless of system preference',
+		hint: 'High contrast dark mode',
+		label: 'Dark',
+		value: 'dark' as const,
 	},
 	{
-		value: 'tailwind' as const,
-		label: 'Tailwind',
-		hint: 'Uses Tailwind utility classes',
 		description:
 			'Standard Tailwind colors (blue/slate), backdrop blur effects, utility class-based styling',
+		hint: 'Uses Tailwind utility classes',
+		label: 'Tailwind',
+		value: 'tailwind' as const,
 	},
 ] as const;
 
 /**
  * Get expanded theme display info
  */
-export function getExpandedThemeInfo(
+export const getExpandedThemeInfo = function getExpandedThemeInfo(
 	theme: ExpandedTheme
 ): (typeof EXPANDED_THEME_OPTIONS)[number] | undefined {
 	return EXPANDED_THEME_OPTIONS.find((t) => t.value === theme);
-}
+};
 
 /**
  * Prompt user to select expanded theme preset
@@ -61,7 +61,7 @@ export function getExpandedThemeInfo(
  * @param handleCancel - Function to handle prompt cancellations
  * @returns The selected expanded theme ('none', 'minimal', 'dark', or 'tailwind')
  */
-export async function promptForExpandedTheme(
+export const promptForExpandedTheme = async function promptForExpandedTheme(
 	context: CliContext,
 	handleCancel?: (value: unknown) => boolean
 ): Promise<ExpandedTheme> {
@@ -71,13 +71,14 @@ export async function promptForExpandedTheme(
 	);
 
 	const result = await p.select({
+		initialValue: 'none' as ExpandedTheme,
 		message: 'Theme preset:',
 		options: EXPANDED_THEME_OPTIONS.map((option) => ({
-			value: option.value,
-			label: option.label,
 			hint: option.hint,
+
+			label: option.label,
+			value: option.value,
 		})),
-		initialValue: 'none' as ExpandedTheme,
 	});
 
 	if (handleCancel?.(result)) {
@@ -88,4 +89,4 @@ export async function promptForExpandedTheme(
 	}
 
 	return result as ExpandedTheme;
-}
+};

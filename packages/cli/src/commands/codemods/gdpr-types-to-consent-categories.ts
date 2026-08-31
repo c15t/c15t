@@ -60,7 +60,7 @@ export interface CodemodRunResult {
 
 function getPropertyName(property: TsMorphTypes.PropertyAssignment): string {
 	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
+	return rawName.replace(/^['"]|['"]$/gu, '');
 }
 
 function objectHasConsentCategories(

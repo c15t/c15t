@@ -12,28 +12,11 @@ import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'banner',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -41,29 +24,46 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			layout: ['customize', ['reject', 'accept']],
-			direction: 'row',
-			uiProfile: 'balanced',
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
 		},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {
+			allowedActions: ['reject', 'accept', 'customize'],
+			direction: 'row',
+			layout: ['customize', ['reject', 'accept']],
+			primaryActions: ['accept'],
+			uiProfile: 'balanced',
+		},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-async function renderPolicyActions(
+const renderPolicyActions = async function renderPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {},
 	renderAction?: ComponentProps<
 		typeof ConsentBanner.PolicyActions
@@ -81,13 +81,13 @@ async function renderPolicyActions(
 		>
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				<ConsentBanner.PolicyActions
@@ -110,9 +110,9 @@ async function renderPolicyActions(
 			</StableConsentStateProvider>
 		</StableGlobalThemeProvider>
 	);
-}
+};
 
-async function renderDefaultPolicyActions(
+const renderDefaultPolicyActions = async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
@@ -121,20 +121,20 @@ async function renderDefaultPolicyActions(
 		<StableGlobalThemeProvider value={{ noStyle: false }}>
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				<ConsentBanner.PolicyActions />
 			</StableConsentStateProvider>
 		</StableGlobalThemeProvider>
 	);
-}
+};
 
 describe('ConsentBanner.PolicyActions', () => {
 	test('renders policy group ordering', async () => {
@@ -177,9 +177,9 @@ describe('ConsentBanner.PolicyActions', () => {
 		await renderPolicyActions({
 			policyBanner: {
 				allowedActions: ['accept'],
-				primaryActions: ['accept'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'row',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['accept'],
 			},
 		});
 
@@ -198,9 +198,9 @@ describe('ConsentBanner.PolicyActions', () => {
 		await renderPolicyActions({
 			policyBanner: {
 				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['accept'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'column',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['accept'],
 				uiProfile: 'strict',
 			},
 		});
@@ -213,10 +213,10 @@ describe('ConsentBanner.PolicyActions', () => {
 		);
 
 		expect(
-			footer?.className.split(/\s+/).filter(Boolean).length
+			footer?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
-			firstGroup?.className.split(/\s+/).filter(Boolean).length
+			firstGroup?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
 			document.querySelector('[data-testid="banner-action-accept"]')
@@ -248,9 +248,9 @@ describe('ConsentBanner.PolicyActions', () => {
 			{
 				policyBanner: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					primaryActions: ['customize'],
-					layout: ['customize', ['reject', 'accept']],
 					direction: 'row',
+					layout: ['customize', ['reject', 'accept']],
+					primaryActions: ['customize'],
 				},
 			},
 			(action, props) => {
@@ -286,8 +286,8 @@ describe('ConsentBanner.PolicyActions', () => {
 			},
 			{
 				consentActions: {
-					default: { variant: 'neutral' },
 					accept: { variant: 'primary' },
+					default: { variant: 'neutral' },
 				},
 				slots: {
 					buttonPrimary: 'button-primary-marker',
@@ -311,9 +311,9 @@ describe('ConsentBanner.PolicyActions', () => {
 			{
 				policyBanner: {
 					allowedActions: ['reject', 'accept', 'customize'],
-					primaryActions: ['customize'],
-					layout: ['customize', ['reject', 'accept']],
 					direction: 'row',
+					layout: ['customize', ['reject', 'accept']],
+					primaryActions: ['customize'],
 				},
 			},
 			(action, props) => {

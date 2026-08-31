@@ -49,39 +49,40 @@ describe('Script Loader Core', () => {
 	// Sample scripts for testing
 	const scripts: Script[] = [
 		{
-			id: 'necessary-script',
-			src: 'https://example.com/necessary.js',
 			category: 'necessary',
 			fetchPriority: 'high',
+			id: 'necessary-script',
+			src: 'https://example.com/necessary.js',
 		},
 		{
+			category: 'marketing',
 			id: 'marketing-script',
 			src: 'https://example.com/marketing.js',
-			category: 'marketing',
 		},
 		{
+			async: true,
+			category: 'measurement',
 			id: 'analytics-script',
 			src: 'https://example.com/analytics.js',
-			category: 'measurement',
-			async: true,
 		},
 		{
-			id: 'complex-script',
-			src: 'https://example.com/complex.js',
 			category: { and: ['functionality', 'measurement'] },
 			defer: true,
+			id: 'complex-script',
+			src: 'https://example.com/complex.js',
 		},
 		{
+			category: { or: ['marketing', 'experience'] },
 			id: 'either-script',
 			src: 'https://example.com/either.js',
-			category: { or: ['marketing', 'experience'] },
 		},
 		{
+			category: 'marketing',
 			id: 'text-based-script',
 			textContent: 'console.log("Hello from inline script!");',
-			category: 'marketing',
 		},
 		{
+			category: 'marketing',
 			id: 'meta-pixel-script',
 			textContent: `
 !function(f,b,e,v,n,t,s)
@@ -95,12 +96,11 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 fbq('init', '123456789012345');
 fbq('track', 'PageView');
 			`.trim(),
-			category: 'marketing',
 		},
 		{
-			id: 'callback-only-script',
-			category: 'necessary',
 			callbackOnly: true,
+			category: 'necessary',
+			id: 'callback-only-script',
 			onBeforeLoad: vi.fn(),
 			onLoad: vi.fn(),
 		},
@@ -134,15 +134,15 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
-						id: 'telemetry-script',
-						src: 'https://example.com/telemetry.js',
 						category: 'necessary',
+						id: 'telemetry-script',
 						onBeforeLoad: vi.fn(),
+						src: 'https://example.com/telemetry.js',
 					},
 					{
+						category: 'marketing',
 						id: 'blocked-telemetry-script',
 						src: 'https://example.com/blocked.js',
-						category: 'marketing',
 					},
 				],
 				sampleConsents
@@ -153,32 +153,32 @@ fbq('track', 'PageView');
 			expect(events).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({
-						source: 'script-loader',
-						scope: 'lifecycle',
 						action: 'callback_start',
-						scriptId: 'telemetry-script',
 						callback: 'onBeforeLoad',
+						scope: 'lifecycle',
+						scriptId: 'telemetry-script',
+						source: 'script-loader',
 					}),
 					expect.objectContaining({
-						source: 'script-loader',
-						scope: 'lifecycle',
 						action: 'element_appended',
+						scope: 'lifecycle',
 						scriptId: 'telemetry-script',
+						source: 'script-loader',
 					}),
 					expect.objectContaining({
-						source: 'script-loader',
-						scope: 'lifecycle',
 						action: 'loaded',
+						scope: 'lifecycle',
 						scriptId: 'telemetry-script',
+						source: 'script-loader',
 					}),
 					expect.objectContaining({
-						source: 'script-loader',
-						scope: 'lifecycle',
 						action: 'skipped',
-						scriptId: 'blocked-telemetry-script',
 						data: expect.objectContaining({
 							reason: 'missing_consent',
 						}),
+						scope: 'lifecycle',
+						scriptId: 'blocked-telemetry-script',
+						source: 'script-loader',
 					}),
 				])
 			);
@@ -188,18 +188,19 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
-						id: 'test-script',
-						src: 'https://example.com/test.js',
-						category: 'necessary',
-						fetchPriority: 'high',
+						// Ensure we get a non-anonymized ID for testing
+						anonymizeId: false,
 						async: true,
-						defer: true,
-						nonce: 'abc123',
-						anonymizeId: false, // Ensure we get a non-anonymized ID for testing
 						attributes: {
-							'data-test': 'value',
 							crossorigin: 'anonymous',
+							'data-test': 'value',
 						},
+						category: 'necessary',
+						defer: true,
+						fetchPriority: 'high',
+						id: 'test-script',
+						nonce: 'abc123',
+						src: 'https://example.com/test.js',
 					},
 				],
 				sampleConsents
@@ -232,9 +233,9 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
+						category: 'necessary',
 						id: 'default-nonce-script',
 						src: 'https://example.com/test.js',
-						category: 'necessary',
 					},
 				],
 				sampleConsents,
@@ -254,10 +255,10 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
-						id: 'own-nonce-script',
-						src: 'https://example.com/test.js',
 						category: 'necessary',
+						id: 'own-nonce-script',
 						nonce: 'script-nonce',
+						src: 'https://example.com/test.js',
 					},
 				],
 				sampleConsents,
@@ -277,9 +278,9 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
+						category: 'necessary',
 						id: 'no-nonce-script',
 						src: 'https://example.com/test.js',
-						category: 'necessary',
 					},
 				],
 				sampleConsents
@@ -302,9 +303,9 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
+						category: 'necessary',
 						id: 'anonymized-script',
 						src: 'https://example.com/anonymized.js',
-						category: 'necessary',
 					},
 				],
 				sampleConsents,
@@ -331,10 +332,10 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
+						anonymizeId: false,
+						category: 'necessary',
 						id: 'non-anonymized-script',
 						src: 'https://example.com/non-anonymized.js',
-						category: 'necessary',
-						anonymizeId: false,
 					},
 				],
 				sampleConsents,
@@ -362,11 +363,11 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
-						id: 'event-script',
-						src: 'https://example.com/event.js',
 						category: 'necessary',
-						onLoad,
+						id: 'event-script',
 						onError,
+						onLoad,
+						src: 'https://example.com/event.js',
 					},
 				],
 				sampleConsents,
@@ -387,10 +388,10 @@ fbq('track', 'PageView');
 
 			// Create the expected callback info
 			const expectedCallbackInfo = {
-				id: 'event-script',
-				elementId,
 				consents: sampleConsents,
 				element: scriptElement,
+				elementId,
+				id: 'event-script',
 			};
 
 			// Simulate the load event
@@ -398,10 +399,10 @@ fbq('track', 'PageView');
 			expect(onLoad).toHaveBeenCalledTimes(1);
 			expect(onLoad).toHaveBeenCalledWith(
 				expect.objectContaining({
-					id: expect.any(String),
-					elementId: expect.any(String),
 					consents: expect.any(Object),
 					element: expect.any(Object),
+					elementId: expect.any(String),
+					id: expect.any(String),
 				})
 			);
 
@@ -414,11 +415,11 @@ fbq('track', 'PageView');
 			expect(onError).toHaveBeenCalledTimes(1);
 			expect(onError).toHaveBeenCalledWith(
 				expect.objectContaining({
-					id: expect.any(String),
-					elementId: expect.any(String),
 					consents: expect.any(Object),
 					element: expect.any(Object),
+					elementId: expect.any(String),
 					error: expect.any(Error),
+					id: expect.any(String),
 				})
 			);
 		});
@@ -449,10 +450,10 @@ fbq('track', 'PageView');
 			loadScripts(
 				[
 					{
-						id: 'before-load-script',
-						src: 'https://example.com/before-load.js',
 						category: 'necessary',
+						id: 'before-load-script',
 						onBeforeLoad,
+						src: 'https://example.com/before-load.js',
 					},
 				],
 				sampleConsents,
@@ -484,9 +485,9 @@ fbq('track', 'PageView');
 			const scriptIdMap: Record<string, string> = {};
 
 			const callbackOnlyScript: Script = {
-				id: 'test-callback-only',
-				category: 'necessary',
 				callbackOnly: true,
+				category: 'necessary',
+				id: 'test-callback-only',
 				onBeforeLoad,
 				onLoad,
 			};
@@ -513,20 +514,22 @@ fbq('track', 'PageView');
 			// Callback info should contain the correct properties
 			expect(onBeforeLoad).toHaveBeenCalledWith(
 				expect.objectContaining({
-					id: 'test-callback-only',
-					elementId: expect.any(String),
 					consents: expect.any(Object),
 					// No element property for callback-only scripts
+
+					elementId: expect.any(String),
+					id: 'test-callback-only',
 				})
 			);
 
 			// onLoad should receive the same callback info
 			expect(onLoad).toHaveBeenCalledWith(
 				expect.objectContaining({
-					id: 'test-callback-only',
-					elementId: expect.any(String),
 					consents: expect.any(Object),
 					// No element property for callback-only scripts
+
+					elementId: expect.any(String),
+					id: 'test-callback-only',
 				})
 			);
 
@@ -536,9 +539,10 @@ fbq('track', 'PageView');
 
 		it('should load text-based scripts with inline content', () => {
 			const textScript: Script = {
+				// Use necessary category to ensure consent
+				category: 'necessary',
 				id: 'test-text-script',
 				textContent: 'console.log("Test inline script");',
-				category: 'necessary', // Use necessary category to ensure consent
 			};
 
 			const loadedIds = loadScripts([textScript], sampleConsents);
@@ -555,10 +559,11 @@ fbq('track', 'PageView');
 
 		it('should throw error when script has both src and textContent', () => {
 			const invalidScript: Script = {
+				// Use necessary category to ensure it gets processed
+				category: 'necessary',
 				id: 'invalid-script',
 				src: 'https://example.com/script.js',
 				textContent: 'console.log("Invalid");',
-				category: 'necessary', // Use necessary category to ensure it gets processed
 			};
 
 			expect(() => {
@@ -570,8 +575,9 @@ fbq('track', 'PageView');
 
 		it('should throw error when script has neither src nor textContent nor callbackOnly', () => {
 			const invalidScript: Script = {
+				// Use necessary category to ensure it gets processed
+				category: 'necessary',
 				id: 'invalid-script',
-				category: 'necessary', // Use necessary category to ensure it gets processed
 			};
 
 			expect(() => {
@@ -584,10 +590,11 @@ fbq('track', 'PageView');
 		it('should execute onLoad callback for text-based scripts', async () => {
 			const onLoadMock = vi.fn();
 			const textScript: Script = {
+				// Use necessary category to ensure consent
+				category: 'necessary',
 				id: 'test-text-script-callback',
-				textContent: 'console.log("Test callback");',
-				category: 'necessary', // Use necessary category to ensure consent
 				onLoad: onLoadMock,
+				textContent: 'console.log("Test callback");',
 			};
 
 			loadScripts([textScript], sampleConsents);
@@ -598,19 +605,20 @@ fbq('track', 'PageView');
 			// onLoad should be called for text-based scripts
 			expect(onLoadMock).toHaveBeenCalledWith(
 				expect.objectContaining({
-					id: 'test-text-script-callback',
-					elementId: expect.any(String),
 					consents: expect.any(Object),
-					element: expect.any(Object), // Use Object instead of HTMLScriptElement
+					// Use Object instead of HTMLScriptElement
+					element: expect.any(Object),
+					elementId: expect.any(String),
+					id: 'test-text-script-callback',
 				})
 			);
 		});
 
 		it('should default to loading scripts in head when target is not specified', () => {
 			const script: Script = {
+				category: 'necessary',
 				id: 'head-default-script',
 				src: 'https://example.com/head.js',
-				category: 'necessary',
 			};
 
 			loadScripts([script], sampleConsents);
@@ -622,9 +630,9 @@ fbq('track', 'PageView');
 
 		it('should load scripts in head when target is explicitly set to head', () => {
 			const script: Script = {
+				category: 'necessary',
 				id: 'head-script',
 				src: 'https://example.com/head.js',
-				category: 'necessary',
 				target: 'head',
 			};
 
@@ -637,9 +645,9 @@ fbq('track', 'PageView');
 
 		it('should load scripts in body when target is set to body', () => {
 			const script: Script = {
+				category: 'necessary',
 				id: 'body-script',
 				src: 'https://example.com/body.js',
-				category: 'necessary',
 				target: 'body',
 			};
 
@@ -652,16 +660,16 @@ fbq('track', 'PageView');
 
 		it('should handle mixed head and body scripts', () => {
 			const headScript: Script = {
+				category: 'necessary',
 				id: 'head-script',
 				src: 'https://example.com/head.js',
-				category: 'necessary',
 				target: 'head',
 			};
 
 			const bodyScript: Script = {
+				category: 'necessary',
 				id: 'body-script',
 				src: 'https://example.com/body.js',
-				category: 'necessary',
 				target: 'body',
 			};
 
@@ -681,9 +689,9 @@ fbq('track', 'PageView');
 			});
 
 			const script: Script = {
+				category: 'necessary',
 				id: 'body-script',
 				src: 'https://example.com/body.js',
-				category: 'necessary',
 				target: 'body',
 			};
 
@@ -707,9 +715,9 @@ fbq('track', 'PageView');
 			});
 
 			const script: Script = {
+				category: 'necessary',
 				id: 'head-script',
 				src: 'https://example.com/head.js',
-				category: 'necessary',
 				target: 'head',
 			};
 
@@ -733,8 +741,8 @@ fbq('track', 'PageView');
 			// Change consent state
 			const newConsents: ConsentState = {
 				...sampleConsents,
-				measurement: false,
 				functionality: false,
+				measurement: false,
 			};
 
 			// Unload scripts without consent
@@ -763,9 +771,9 @@ fbq('track', 'PageView');
 			const onLoad = vi.fn();
 
 			const callbackOnlyScript: Script = {
-				id: 'callback-only-unload',
-				category: 'measurement',
 				callbackOnly: true,
+				category: 'measurement',
+				id: 'callback-only-unload',
 				onBeforeLoad,
 				onLoad,
 			};
@@ -808,9 +816,9 @@ fbq('track', 'PageView');
 
 		it('should unload scripts from body correctly', () => {
 			const bodyScript: Script = {
+				category: 'measurement',
 				id: 'body-script-unload',
 				src: 'https://example.com/body.js',
-				category: 'measurement',
 				target: 'body',
 			};
 
@@ -848,13 +856,14 @@ fbq('track', 'PageView');
 	describe('updateScripts', () => {
 		it('should load new scripts and unload revoked scripts', () => {
 			// First load some scripts
-			loadScripts([scripts[0], scripts[2]], sampleConsents); // necessary and analytics
+			// necessary and analytics
+			loadScripts([scripts[0], scripts[2]], sampleConsents);
 
 			// Change consent state
 			const newConsents: ConsentState = {
 				...sampleConsents,
-				measurement: false,
 				marketing: true,
+				measurement: false,
 			};
 
 			// Update scripts
@@ -875,7 +884,8 @@ fbq('track', 'PageView');
 	describe('isScriptLoaded and getLoadedScriptIds', () => {
 		it('should correctly report loaded script status', () => {
 			// Load some scripts
-			loadScripts([scripts[0], scripts[2]], sampleConsents); // necessary and analytics
+			// necessary and analytics
+			loadScripts([scripts[0], scripts[2]], sampleConsents);
 
 			// Check if scripts are loaded
 			expect(isScriptLoaded('necessary-script')).toBe(true);
@@ -918,7 +928,8 @@ fbq('track', 'PageView');
 	describe('reloadScript', () => {
 		it('should reload an existing script', () => {
 			// Load a script
-			loadScripts([scripts[0]], sampleConsents); // necessary script
+			// necessary script
+			loadScripts([scripts[0]], sampleConsents);
 
 			// Mock document.createElement to track new script creation
 			vi.spyOn(document, 'createElement').mockClear();
@@ -937,7 +948,8 @@ fbq('track', 'PageView');
 
 		it('should not reload a script without consent', () => {
 			// Load a script
-			loadScripts([scripts[0]], sampleConsents); // necessary script
+			// necessary script
+			loadScripts([scripts[0]], sampleConsents);
 
 			// Change consent state
 			const newConsents: ConsentState = {
@@ -969,10 +981,10 @@ fbq('track', 'PageView');
 			// Create a script with onBeforeLoad callback
 			const onBeforeLoad = vi.fn();
 			const scriptWithCallback = {
-				id: 'reload-script',
-				src: 'https://example.com/reload.js',
 				category: 'necessary' as AllConsentNames,
+				id: 'reload-script',
 				onBeforeLoad,
+				src: 'https://example.com/reload.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -992,13 +1004,14 @@ fbq('track', 'PageView');
 			expect(result).toBe(true);
 
 			// onBeforeLoad should have been called for the new script with enhanced callback info
-			expect(onBeforeLoad).toHaveBeenCalledTimes(2); // Once during initial load, once during reload
+			// Once during initial load, once during reload
+			expect(onBeforeLoad).toHaveBeenCalledTimes(2);
 			expect(onBeforeLoad).toHaveBeenCalledWith(
 				expect.objectContaining({
-					id: expect.any(String),
-					elementId: expect.any(String),
 					consents: expect.any(Object),
 					element: expect.any(Object),
+					elementId: expect.any(String),
+					id: expect.any(String),
 				})
 			);
 		});
@@ -1009,9 +1022,9 @@ fbq('track', 'PageView');
 			const onLoad = vi.fn();
 
 			const callbackOnlyScript: Script = {
-				id: 'callback-only-reload',
-				category: 'necessary',
 				callbackOnly: true,
+				category: 'necessary',
+				id: 'callback-only-reload',
 				onBeforeLoad,
 				onLoad,
 			};
@@ -1054,21 +1067,21 @@ fbq('track', 'PageView');
 	describe('persistAfterConsentRevoked', () => {
 		it('should keep script in DOM when persistAfterConsentRevoked is true during unloadScripts', () => {
 			const persistentScript: Script = {
-				id: 'persistent-script',
-				src: 'https://example.com/persistent.js',
 				category: 'marketing',
+				id: 'persistent-script',
 				persistAfterConsentRevoked: true,
+				src: 'https://example.com/persistent.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script with marketing consent
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
@@ -1086,11 +1099,11 @@ fbq('track', 'PageView');
 
 			// Revoke marketing consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Unload scripts
@@ -1110,21 +1123,21 @@ fbq('track', 'PageView');
 
 		it('should remove script from DOM when persistAfterConsentRevoked is false during unloadScripts', () => {
 			const nonPersistentScript: Script = {
-				id: 'non-persistent-script',
-				src: 'https://example.com/non-persistent.js',
 				category: 'marketing',
+				id: 'non-persistent-script',
 				persistAfterConsentRevoked: false,
+				src: 'https://example.com/non-persistent.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script with marketing consent
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
@@ -1147,11 +1160,11 @@ fbq('track', 'PageView');
 
 			// Revoke marketing consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Unload scripts
@@ -1171,21 +1184,21 @@ fbq('track', 'PageView');
 
 		it('should keep script in DOM when persistAfterConsentRevoked is true during clearAllScripts', () => {
 			const persistentScript: Script = {
-				id: 'persistent-clear-script',
-				src: 'https://example.com/persistent-clear.js',
 				category: 'marketing',
+				id: 'persistent-clear-script',
 				persistAfterConsentRevoked: true,
+				src: 'https://example.com/persistent-clear.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
@@ -1214,21 +1227,21 @@ fbq('track', 'PageView');
 
 		it('should remove script from DOM when persistAfterConsentRevoked is false during clearAllScripts', () => {
 			const nonPersistentScript: Script = {
-				id: 'non-persistent-clear-script',
-				src: 'https://example.com/non-persistent-clear.js',
 				category: 'marketing',
+				id: 'non-persistent-clear-script',
 				persistAfterConsentRevoked: false,
+				src: 'https://example.com/non-persistent-clear.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
@@ -1263,22 +1276,22 @@ fbq('track', 'PageView');
 		it('should keep script in DOM when persistAfterConsentRevoked is true during reloadScript', () => {
 			const onBeforeLoad = vi.fn();
 			const persistentScript: Script = {
-				id: 'persistent-reload-script',
-				src: 'https://example.com/persistent-reload.js',
 				category: 'marketing',
-				persistAfterConsentRevoked: true,
+				id: 'persistent-reload-script',
 				onBeforeLoad,
+				persistAfterConsentRevoked: true,
+				src: 'https://example.com/persistent-reload.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
@@ -1312,22 +1325,22 @@ fbq('track', 'PageView');
 		it('should remove script from DOM when persistAfterConsentRevoked is false during reloadScript', () => {
 			const onBeforeLoad = vi.fn();
 			const nonPersistentScript: Script = {
-				id: 'non-persistent-reload-script',
-				src: 'https://example.com/non-persistent-reload.js',
 				category: 'marketing',
-				persistAfterConsentRevoked: false,
+				id: 'non-persistent-reload-script',
 				onBeforeLoad,
+				persistAfterConsentRevoked: false,
+				src: 'https://example.com/non-persistent-reload.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
@@ -1365,9 +1378,9 @@ fbq('track', 'PageView');
 
 		it('should handle persistAfterConsentRevoked for callback-only scripts', () => {
 			const persistentCallbackScript: Script = {
-				id: 'persistent-callback-script',
-				category: 'marketing',
 				callbackOnly: true,
+				category: 'marketing',
+				id: 'persistent-callback-script',
 				persistAfterConsentRevoked: true,
 			};
 
@@ -1375,11 +1388,11 @@ fbq('track', 'PageView');
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts(
@@ -1393,11 +1406,11 @@ fbq('track', 'PageView');
 
 			// Revoke marketing consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Unload scripts
@@ -1417,21 +1430,22 @@ fbq('track', 'PageView');
 
 		it('should default to false when persistAfterConsentRevoked is undefined', () => {
 			const defaultScript: Script = {
-				id: 'default-script',
-				src: 'https://example.com/default.js',
 				category: 'marketing',
 				// persistAfterConsentRevoked is undefined, should default to false
+
+				id: 'default-script',
+				src: 'https://example.com/default.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([defaultScript], consentsWithMarketing, scriptIdMap);
@@ -1454,11 +1468,11 @@ fbq('track', 'PageView');
 
 			// Revoke marketing consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Unload scripts
@@ -1479,22 +1493,22 @@ fbq('track', 'PageView');
 		it('should not create duplicate script elements when persistAfterConsentRevoked is true', () => {
 			const onConsentChange = vi.fn();
 			const persistentScript: Script = {
-				id: 'duplicate-test-script',
-				src: 'https://example.com/duplicate-test.js',
 				category: 'marketing',
-				persistAfterConsentRevoked: true,
+				id: 'duplicate-test-script',
 				onConsentChange,
+				persistAfterConsentRevoked: true,
+				src: 'https://example.com/duplicate-test.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script with marketing consent
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// First load
@@ -1513,11 +1527,11 @@ fbq('track', 'PageView');
 
 			// Revoke marketing consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			// Unload scripts (script stays in DOM due to persistAfterConsentRevoked: true)
@@ -1548,22 +1562,22 @@ fbq('track', 'PageView');
 		it('should reuse existing DOM element when script is reloaded with persistAfterConsentRevoked', () => {
 			const onConsentChange = vi.fn();
 			const persistentScript: Script = {
-				id: 'reload-test-script',
-				src: 'https://example.com/reload-test.js',
 				category: 'marketing',
-				persistAfterConsentRevoked: true,
+				id: 'reload-test-script',
 				onConsentChange,
+				persistAfterConsentRevoked: true,
+				src: 'https://example.com/reload-test.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
@@ -1604,22 +1618,22 @@ fbq('track', 'PageView');
 
 		it('should handle existing DOM elements with different anonymized IDs', () => {
 			const persistentScript: Script = {
-				id: 'anonymized-test-script',
-				src: 'https://example.com/anonymized-test.js',
-				category: 'marketing',
-				persistAfterConsentRevoked: true,
 				anonymizeId: true,
+				category: 'marketing',
+				id: 'anonymized-test-script',
+				persistAfterConsentRevoked: true,
+				src: 'https://example.com/anonymized-test.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([persistentScript], consentsWithMarketing, scriptIdMap);
@@ -1631,11 +1645,11 @@ fbq('track', 'PageView');
 
 			// Revoke consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			unloadScripts([persistentScript], consentsWithoutMarketing, scriptIdMap);
@@ -1652,21 +1666,21 @@ fbq('track', 'PageView');
 
 		it('should still create new elements for scripts without persistAfterConsentRevoked', () => {
 			const nonPersistentScript: Script = {
-				id: 'non-persistent-duplicate-test',
-				src: 'https://example.com/non-persistent-duplicate.js',
 				category: 'marketing',
+				id: 'non-persistent-duplicate-test',
 				persistAfterConsentRevoked: false,
+				src: 'https://example.com/non-persistent-duplicate.js',
 			};
 
 			const scriptIdMap: Record<string, string> = {};
 
 			// Load the script
 			const consentsWithMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: true,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			loadScripts([nonPersistentScript], consentsWithMarketing, scriptIdMap);
@@ -1674,11 +1688,11 @@ fbq('track', 'PageView');
 
 			// Revoke consent
 			const consentsWithoutMarketing: ConsentState = {
-				necessary: true,
+				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
-				functionality: false,
-				experience: false,
+				necessary: true,
 			};
 
 			unloadScripts(

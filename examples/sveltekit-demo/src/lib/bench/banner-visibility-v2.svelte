@@ -11,18 +11,20 @@
 	onMount(() => {
 		const runtime = getOrCreateConsentRuntime(
 			{
-				mode: 'hosted',
 				backendURL: '/api/bench-consent',
-				storageConfig: {
-					storageKey: 'svelte-bench-banner-v2',
-				},
 				callbacks: {
 					onError({ error }) {
 						const state = getBenchState('v2');
-						if (!state) return;
+						if (!state) {
+							return;
+						}
 						state.errorCount += 1;
 						state.errors.push(String(error));
 					},
+				},
+				mode: 'hosted',
+				storageConfig: {
+					storageKey: 'svelte-bench-banner-v2',
 				},
 			},
 			{ pkg: '@c15t/svelte-bench', version: '0.0.0' }

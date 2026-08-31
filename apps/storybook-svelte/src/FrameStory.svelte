@@ -8,8 +8,8 @@
 	const storedConsent = $derived(
 		granted
 			? {
-					necessary: true,
 					marketing: true,
+					necessary: true,
 				}
 			: undefined
 	);

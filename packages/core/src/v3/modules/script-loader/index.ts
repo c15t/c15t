@@ -52,12 +52,12 @@ export type {
 	ScriptLoaderOptions,
 } from './types';
 
-export function createScriptLoader(
+export const createScriptLoader = function createScriptLoader(
 	options: ScriptLoaderOptions
 ): ScriptLoaderHandle {
 	const { kernel, onDebug } = options;
 	const emitToV2 = options.emitToV2DebugListeners ?? true;
-	const emit = createDebugEmitter({ onDebug, emitToV2 });
+	const emit = createDebugEmitter({ emitToV2, onDebug });
 	const hasDebugListener = !!onDebug || emitToV2;
 
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
@@ -68,11 +68,11 @@ export function createScriptLoader(
 	const eligibilityByScriptId = new Map<string, boolean>();
 
 	const mountDeps: MountDeps = {
-		loadedElements,
-		ownedScriptIds,
 		elementIds,
 		emit,
 		hasDebugListener,
+		loadedElements,
+		ownedScriptIds,
 	};
 
 	// Track the last-seen consent-relevant references so a kernel tick
@@ -84,7 +84,7 @@ export function createScriptLoader(
 	let lastScopeMode: unknown = null;
 	let lastIab: unknown = null;
 
-	function reconcile(force = false): void {
+	const reconcile = function reconcile(force = false): void {
 		const snapshot: ConsentSnapshot = kernel.getSnapshot();
 
 		if (
@@ -110,7 +110,9 @@ export function createScriptLoader(
 			const previousEligibility = eligibilityByScriptId.get(script.id);
 			eligibilityByScriptId.set(script.id, eligible);
 
-			if (!force && previousEligibility === eligible) continue;
+			if (!force && previousEligibility === eligible) {
+				continue;
+			}
 
 			if (eligible) {
 				mountScript(mountDeps, script, snapshot, true, batch);
@@ -120,7 +122,7 @@ export function createScriptLoader(
 		}
 
 		flushPendingMounts(mountDeps, batch);
-	}
+	};
 
 	// Initial reconciliation — caller is already inside useEffect /
 	// onMounted when invoking the factory, so this runs in the browser.
@@ -130,9 +132,13 @@ export function createScriptLoader(
 	return {
 		dispose() {
 			unsubscribe();
-			if (typeof document === 'undefined') return;
+			if (typeof document === 'undefined') {
+				return;
+			}
 			for (const [scriptId, element] of loadedElements) {
-				if (!ownedScriptIds.has(scriptId)) continue;
+				if (!ownedScriptIds.has(scriptId)) {
+					continue;
+				}
 				if (element?.parentNode) {
 					element.parentNode.removeChild(element);
 				}
@@ -141,6 +147,9 @@ export function createScriptLoader(
 			ownedScriptIds.clear();
 			elementIds.clear();
 			eligibilityByScriptId.clear();
+		},
+		getLoadedScriptIds() {
+			return Array.from(loadedElements.keys());
 		},
 		updateScripts(next: Script[]) {
 			const nextIds = new Set(next.map((s) => s.id));
@@ -154,8 +163,5 @@ export function createScriptLoader(
 			normalized = normalizeScripts(next);
 			reconcile(true);
 		},
-		getLoadedScriptIds() {
-			return Array.from(loadedElements.keys());
-		},
 	};
-}
+};

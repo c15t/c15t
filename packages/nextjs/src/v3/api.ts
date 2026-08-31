@@ -57,20 +57,31 @@ export interface ManifestFetchResult {
 	status: number;
 }
 
-function getEnv(name: string): string | undefined {
-	if (typeof process === 'undefined') return undefined;
+const getEnv = function getEnv(name: string): string | undefined {
+	if (typeof process === 'undefined') {
+		return undefined;
+	}
 	return process.env?.[name];
-}
+};
 
-function readManifestRevalidateFromEnv(): number | false | undefined {
+const readManifestRevalidateFromEnv = function readManifestRevalidateFromEnv():
+	| number
+	| false
+	| undefined {
 	const raw = getEnv('C15T_MANIFEST_REVALIDATE_SECONDS');
-	if (raw === undefined) return undefined;
-	if (raw === 'false') return false;
+	if (raw === undefined) {
+		return undefined;
+	}
+	if (raw === 'false') {
+		return false;
+	}
 	const parsed = Number.parseInt(raw, 10);
 	return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
-}
+};
 
-function getRequestResolutionHeaders(request: Request): Record<string, string> {
+const getRequestResolutionHeaders = function getRequestResolutionHeaders(
+	request: Request
+): Record<string, string> {
 	const url = new URL(request.url);
 	const headers: Record<string, string> = {
 		host: url.host,
@@ -83,19 +94,21 @@ function getRequestResolutionHeaders(request: Request): Record<string, string> {
 		'referer',
 	]) {
 		const value = request.headers.get(name);
-		if (value) headers[name] = value;
+		if (value) {
+			headers[name] = value;
+		}
 	}
 	return headers;
-}
+};
 
-function resolveRequestURL(
+const resolveRequestURL = function resolveRequestURL(
 	backendURL: string,
 	request: Request
 ): string | null {
 	return resolveBackendURL(backendURL, getRequestResolutionHeaders(request));
-}
+};
 
-function resolveManifestURL(
+const resolveManifestURL = function resolveManifestURL(
 	request: Request,
 	options: NextConsentManifestHandlersOptions
 ): string {
@@ -122,27 +135,40 @@ function resolveManifestURL(
 		throw new Error('@c15t/nextjs/v3/api: invalid C15T_BACKEND_URL.');
 	}
 	return `${resolved}/manifest`;
-}
+};
 
-function withLanguage(url: string, language: string | null) {
-	if (!language) return url;
+const withLanguage = function withLanguage(
+	url: string,
+	language: string | null
+) {
+	if (!language) {
+		return url;
+	}
 	const next = new URL(url);
 	next.searchParams.set('language', language);
 	return next.toString();
-}
+};
 
-export function getSMaxAge(cacheControl: string | null): number | undefined {
-	if (!cacheControl) return undefined;
+export const getSMaxAge = function getSMaxAge(
+	cacheControl: string | null
+): number | undefined {
+	if (!cacheControl) {
+		return undefined;
+	}
 	for (const part of cacheControl.split(',')) {
 		const [key, value] = part.trim().split('=');
-		if (key?.toLowerCase() !== 's-maxage' || value === undefined) continue;
+		if (key?.toLowerCase() !== 's-maxage' || value === undefined) {
+			continue;
+		}
 		const parsed = Number.parseInt(value, 10);
-		if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+		if (Number.isFinite(parsed) && parsed >= 0) {
+			return parsed;
+		}
 	}
 	return undefined;
-}
+};
 
-function getManifestRevalidate(
+const getManifestRevalidate = function getManifestRevalidate(
 	options: NextConsentManifestHandlersOptions
 ): number | false {
 	return (
@@ -150,20 +176,20 @@ function getManifestRevalidate(
 		readManifestRevalidateFromEnv() ??
 		DEFAULT_MANIFEST_REVALIDATE_SECONDS
 	);
-}
+};
 
-export function createManifestFetchInit(
+export const createManifestFetchInit = function createManifestFetchInit(
 	options: NextConsentManifestHandlersOptions = {}
 ): NextFetchInit {
 	const revalidate = getManifestRevalidate(options);
 	return {
-		method: 'GET',
 		headers: { accept: 'application/json', ...c15tVersionHeaders },
+		method: 'GET',
 		next: { revalidate },
 	};
-}
+};
 
-export async function fetchCachedManifest(
+export const fetchCachedManifest = async function fetchCachedManifest(
 	request: Request,
 	options: NextConsentManifestHandlersOptions = {},
 	language?: string | null
@@ -189,90 +215,98 @@ export async function fetchCachedManifest(
 		response.headers.get('cache-control') ?? DEFAULT_MANIFEST_CACHE_CONTROL;
 	const revalidate = getSMaxAge(cacheControl) ?? getManifestRevalidate(options);
 	return {
-		manifest: (await response.json()) as ConsentManifest,
 		cacheControl,
 		etag: response.headers.get('etag') ?? undefined,
+		manifest: (await response.json()) as ConsentManifest,
 		revalidate,
 		status: response.status,
 	};
-}
+};
 
-function shouldFetchGvl(manifest: ConsentManifest, payload: InitOutput) {
+const shouldFetchGvl = function shouldFetchGvl(
+	manifest: ConsentManifest,
+	payload: InitOutput
+) {
 	return (
 		manifest.iab?.enabled === true &&
 		manifest.iab.gvl !== undefined &&
 		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
 	);
-}
+};
 
-async function defaultFetchGvl(input: {
+const defaultFetchGvl = async function defaultFetchGvl(input: {
 	reference: ConsentManifestGVLReference;
 	language: string;
 	fetch: typeof globalThis.fetch;
 }): Promise<GlobalVendorList | null> {
 	const response = await input.fetch(input.reference.url, {
-		method: 'GET',
 		headers: {
 			'accept-language': input.language,
 		},
+		method: 'GET',
 	});
-	if (response.status === 204) return null;
+	if (response.status === 204) {
+		return null;
+	}
 	if (!response.ok) {
 		throw new Error(
 			`@c15t/nextjs/v3/api: GVL responded ${response.status} ${response.statusText}`
 		);
 	}
 	return (await response.json()) as GlobalVendorList;
-}
+};
 
-export function createNextConsentRouteHandlers(
-	options: NextConsentManifestHandlersOptions = {}
-) {
-	return {
-		async GET(request: Request): Promise<Response> {
-			const { manifest } = await fetchCachedManifest(request, options);
-			const inputs = extractConsentRequestInputs(request.headers);
-			const payload = resolveInitFromManifest(manifest, inputs);
+export const createNextConsentRouteHandlers =
+	function createNextConsentRouteHandlers(
+		options: NextConsentManifestHandlersOptions = {}
+	) {
+		return {
+			async GET(request: Request): Promise<Response> {
+				const { manifest } = await fetchCachedManifest(request, options);
+				const inputs = extractConsentRequestInputs(request.headers);
+				const payload = resolveInitFromManifest(manifest, inputs);
 
-			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
-				const language = payload.translations.language.split('-')[0] || 'en';
-				payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
-					reference: manifest.iab.gvl,
-					language,
-					fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
+					const language = payload.translations.language.split('-')[0] || 'en';
+					payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
+						fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+						language,
+						reference: manifest.iab.gvl,
+					});
+				}
+
+				return Response.json(payload, {
+					headers: {
+						'cache-control': INIT_CACHE_CONTROL,
+					},
 				});
-			}
+			},
 
-			return Response.json(payload, {
-				headers: {
-					'cache-control': INIT_CACHE_CONTROL,
-				},
-			});
-		},
+			async manifestGET(request: Request): Promise<Response> {
+				const requestURL = new URL(request.url);
+				const result = await fetchCachedManifest(
+					request,
+					options,
+					requestURL.searchParams.get('language')
+				);
+				const headers = new Headers({
+					'cache-control': result.cacheControl,
+					'content-type': 'application/json',
+				});
+				if (result.etag) {
+					headers.set('etag', result.etag);
+				}
+				headers.set('x-c15t-next-revalidate', String(result.revalidate));
 
-		async manifestGET(request: Request): Promise<Response> {
-			const requestURL = new URL(request.url);
-			const result = await fetchCachedManifest(
-				request,
-				options,
-				requestURL.searchParams.get('language')
-			);
-			const headers = new Headers({
-				'cache-control': result.cacheControl,
-				'content-type': 'application/json',
-			});
-			if (result.etag) headers.set('etag', result.etag);
-			headers.set('x-c15t-next-revalidate', String(result.revalidate));
-
-			return new Response(JSON.stringify(result.manifest), {
-				status: 200,
-				headers,
-			});
-		},
+				return new Response(JSON.stringify(result.manifest), {
+					headers,
+					status: 200,
+				});
+			},
+		};
 	};
-}
 
 const defaultHandlers = createNextConsentRouteHandlers();
 
-export const GET = defaultHandlers.GET;
-export const manifestGET = defaultHandlers.manifestGET;
+export const { GET } = defaultHandlers;
+export const { manifestGET } = defaultHandlers;

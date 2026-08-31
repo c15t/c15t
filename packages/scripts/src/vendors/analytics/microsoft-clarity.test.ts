@@ -30,8 +30,8 @@ describe('microsoft-clarity', () => {
 	it('queues default consent on boot when provided', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({
-			id: 'abcdef1234',
 			defaultConsent: { ad_Storage: 'granted' },
+			id: 'abcdef1234',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -60,16 +60,16 @@ describe('microsoft-clarity', () => {
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementAndMarketingConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(

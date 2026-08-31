@@ -22,11 +22,11 @@ export const Default: Story = {
 	render: () => (
 		<StorybookV3ConsentProvider
 			storedConsent={{
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			}}
 		>
 			<ConsentDialog />
@@ -39,11 +39,11 @@ export const Small: Story = {
 	render: () => (
 		<StorybookV3ConsentProvider
 			storedConsent={{
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			}}
 		>
 			<ConsentDialog />

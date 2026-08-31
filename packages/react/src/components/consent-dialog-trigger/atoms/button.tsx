@@ -17,19 +17,19 @@ import { useTriggerContext } from './root';
  * Maps corner position to CSS class name.
  */
 const cornerClassMap = {
-	'bottom-right': styles.bottomRight,
 	'bottom-left': styles.bottomLeft,
-	'top-right': styles.topRight,
+	'bottom-right': styles.bottomRight,
 	'top-left': styles.topLeft,
+	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
 /**
  * Maps size to CSS class name.
  */
 const sizeClassMap = {
-	sm: styles.sm,
-	md: styles.md,
 	lg: styles.lg,
+	md: styles.md,
+	sm: styles.sm,
 } as const;
 
 /**

@@ -34,10 +34,14 @@ import { applyPolicyScopeForRuntimeGating } from './policy';
  * @public
  */
 export type HasCondition<CategoryType> =
-	| CategoryType // e.g., "measurement"
-	| { and: HasCondition<CategoryType> | HasCondition<CategoryType>[] } // e.g., { and: ["measurement", "marketing"] }
-	| { or: HasCondition<CategoryType> | HasCondition<CategoryType>[] } // e.g., { or: ["measurement", "marketing"] }
-	| { not: HasCondition<CategoryType> }; // e.g., { not: "measurement" }, { not: { and: ["measurement", "marketing"] } }
+	// e.g., "measurement"
+	| CategoryType
+	// e.g., { and: ["measurement", "marketing"] }
+	| { and: HasCondition<CategoryType> | HasCondition<CategoryType>[] }
+	// e.g., { or: ["measurement", "marketing"] }
+	| { or: HasCondition<CategoryType> | HasCondition<CategoryType>[] }
+	// e.g., { not: "measurement" }, { not: { and: ["measurement", "marketing"] } }
+	| { not: HasCondition<CategoryType> };
 
 /**
  * Optional runtime policy options for consent evaluation.
@@ -65,14 +69,16 @@ export interface HasOptions {
  *
  * @internal
  */
-function validateNonEmptyConditions<CategoryType>(
+const validateNonEmptyConditions = function validateNonEmptyConditions<
+	CategoryType,
+>(
 	conditions: CategoryType[] | HasCondition<CategoryType>[],
 	conditionType: string
 ): void {
 	if (conditions.length === 0) {
 		throw new TypeError(`${conditionType} condition cannot be empty`);
 	}
-}
+};
 
 /**
  * Evaluates a simple category consent condition.
@@ -85,7 +91,7 @@ function validateNonEmptyConditions<CategoryType>(
  *
  * @internal
  */
-function evaluateCategoryCondition(
+const evaluateCategoryCondition = function evaluateCategoryCondition(
 	category: AllConsentNames,
 	consents: ConsentState
 ): boolean {
@@ -95,53 +101,7 @@ function evaluateCategoryCondition(
 		);
 	}
 	return consents[category] || false;
-}
-
-/**
- * Evaluates an AND logic condition.
- *
- * @param andCondition - The AND condition to evaluate (can be a single condition or array of conditions)
- * @param consents - The current consent state
- * @returns True if all sub-conditions are satisfied
- *
- * @throws {TypeError} When AND condition is empty
- *
- * @internal
- */
-function evaluateAndCondition<CategoryType extends AllConsentNames>(
-	andCondition: HasCondition<CategoryType> | HasCondition<CategoryType>[],
-	consents: ConsentState
-): boolean {
-	const andConditions = Array.isArray(andCondition)
-		? andCondition
-		: [andCondition];
-	validateNonEmptyConditions(andConditions, 'AND');
-	return andConditions.every((subCondition) =>
-		evaluateConditionRecursive(subCondition, consents)
-	);
-}
-
-/**
- * Evaluates an OR logic condition.
- *
- * @param orCondition - The OR condition to evaluate (can be a single condition or array of conditions)
- * @param consents - The current consent state
- * @returns True if any sub-condition is satisfied
- *
- * @throws {TypeError} When OR condition is empty
- *
- * @internal
- */
-function evaluateOrCondition<CategoryType extends AllConsentNames>(
-	orCondition: HasCondition<CategoryType> | HasCondition<CategoryType>[],
-	consents: ConsentState
-): boolean {
-	const orConditions = Array.isArray(orCondition) ? orCondition : [orCondition];
-	validateNonEmptyConditions(orConditions, 'OR');
-	return orConditions.some((subCondition) =>
-		evaluateConditionRecursive(subCondition, consents)
-	);
-}
+};
 
 /**
  * Recursively evaluates consent conditions.
@@ -155,10 +115,9 @@ function evaluateOrCondition<CategoryType extends AllConsentNames>(
  *
  * @internal
  */
-function evaluateConditionRecursive<CategoryType extends AllConsentNames>(
-	condition: HasCondition<CategoryType>,
-	consents: ConsentState
-): boolean {
+const evaluateConditionRecursive = function evaluateConditionRecursive<
+	CategoryType extends AllConsentNames,
+>(condition: HasCondition<CategoryType>, consents: ConsentState): boolean {
 	// Handle simple category string
 	if (typeof condition === 'string') {
 		return evaluateCategoryCondition(condition, consents);
@@ -168,12 +127,24 @@ function evaluateConditionRecursive<CategoryType extends AllConsentNames>(
 	if (typeof condition === 'object' && condition !== null) {
 		// Handle AND condition
 		if ('and' in condition) {
-			return evaluateAndCondition(condition.and, consents);
+			const andConditions = Array.isArray(condition.and)
+				? condition.and
+				: [condition.and];
+			validateNonEmptyConditions(andConditions, 'AND');
+			return andConditions.every((subCondition) =>
+				evaluateConditionRecursive(subCondition, consents)
+			);
 		}
 
 		// Handle OR condition
 		if ('or' in condition) {
-			return evaluateOrCondition(condition.or, consents);
+			const orConditions = Array.isArray(condition.or)
+				? condition.or
+				: [condition.or];
+			validateNonEmptyConditions(orConditions, 'OR');
+			return orConditions.some((subCondition) =>
+				evaluateConditionRecursive(subCondition, consents)
+			);
 		}
 
 		// Handle NOT condition
@@ -185,7 +156,7 @@ function evaluateConditionRecursive<CategoryType extends AllConsentNames>(
 	throw new TypeError(
 		`Invalid condition structure: ${JSON.stringify(condition)}`
 	);
-}
+};
 
 /**
  * Evaluates whether current consent state satisfies the given condition.
@@ -246,7 +217,7 @@ function evaluateConditionRecursive<CategoryType extends AllConsentNames>(
  *
  * @public
  */
-export function has<CategoryType extends AllConsentNames>(
+export const has = function has<CategoryType extends AllConsentNames>(
 	condition: HasCondition<CategoryType>,
 	consents: ConsentState,
 	options?: HasOptions
@@ -260,7 +231,7 @@ export function has<CategoryType extends AllConsentNames>(
 		: consents;
 
 	return evaluateConditionRecursive(condition, runtimeConsents);
-}
+};
 
 /**
  * Extracts all consent category names from a {@link HasCondition}.
@@ -270,30 +241,31 @@ export function has<CategoryType extends AllConsentNames>(
  * @returns An array of unique consent category names
  * @public
  */
-export function extractConsentNamesFromCondition<
-	CategoryType extends AllConsentNames,
->(condition: HasCondition<CategoryType>): CategoryType[] {
-	const categories = new Set<CategoryType>();
+export const extractConsentNamesFromCondition =
+	function extractConsentNamesFromCondition<
+		CategoryType extends AllConsentNames,
+	>(condition: HasCondition<CategoryType>): CategoryType[] {
+		const categories = new Set<CategoryType>();
 
-	function recurse(cond: HasCondition<CategoryType>) {
-		if (typeof cond === 'string') {
-			categories.add(cond);
-			return;
-		}
-
-		if (typeof cond === 'object' && cond !== null) {
-			if ('and' in cond) {
-				const conditions = Array.isArray(cond.and) ? cond.and : [cond.and];
-				conditions.forEach(recurse);
-			} else if ('or' in cond) {
-				const conditions = Array.isArray(cond.or) ? cond.or : [cond.or];
-				conditions.forEach(recurse);
-			} else if ('not' in cond) {
-				recurse(cond.not);
+		const recurse = function recurse(cond: HasCondition<CategoryType>) {
+			if (typeof cond === 'string') {
+				categories.add(cond);
+				return;
 			}
-		}
-	}
 
-	recurse(condition);
-	return Array.from(categories);
-}
+			if (typeof cond === 'object' && cond !== null) {
+				if ('and' in cond) {
+					const conditions = Array.isArray(cond.and) ? cond.and : [cond.and];
+					conditions.forEach(recurse);
+				} else if ('or' in cond) {
+					const conditions = Array.isArray(cond.or) ? cond.or : [cond.or];
+					conditions.forEach(recurse);
+				} else if ('not' in cond) {
+					recurse(cond.not);
+				}
+			}
+		};
+
+		recurse(condition);
+		return Array.from(categories);
+	};

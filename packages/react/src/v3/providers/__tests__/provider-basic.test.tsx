@@ -14,7 +14,7 @@ import {
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
-function clearConsentStorage(): void {
+const clearConsentStorage = function clearConsentStorage(): void {
 	window.localStorage.clear();
 	for (const cookie of document.cookie.split(';')) {
 		const name = cookie.split('=')[0]?.trim();
@@ -22,7 +22,7 @@ function clearConsentStorage(): void {
 			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 		}
 	}
-}
+};
 
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
@@ -36,18 +36,18 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockResolvedValue(
 			new Response(
 				JSON.stringify({
-					showConsentBanner: true,
 					jurisdiction: {
 						code: 'GDPR',
 					},
+					showConsentBanner: true,
 					translations: {
 						language: 'en',
 						translations: defaultTranslationConfig.translations.en,
 					},
 				}),
 				{
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
@@ -65,8 +65,8 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
+					mode: 'hosted',
 				}}
 			>
 				<div>Test Component</div>
@@ -91,7 +91,8 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline', // Use offline mode to prevent additional fetches
+					// Use offline mode to prevent additional fetches
+					mode: 'offline',
 					theme: { colors: { primary: '#ffffff' } },
 				}}
 			>
@@ -128,8 +129,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
+					// Use unique URLs to distinguish calls
+					backendURL: '/api/c15t-1',
 					mode: 'hosted',
-					backendURL: '/api/c15t-1', // Use unique URLs to distinguish calls
 				}}
 			>
 				<div>First URL</div>
@@ -151,8 +153,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		rerender(
 			<ConsentManagerProvider
 				options={{
+					// Different backend URL
+					backendURL: '/api/c15t-2',
 					mode: 'hosted',
-					backendURL: '/api/c15t-2', // Different backend URL
 				}}
 			>
 				<div>Second URL</div>
@@ -177,7 +180,8 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline', // Use offline mode to avoid fetch calls
+					// Use offline mode to avoid fetch calls
+					mode: 'offline',
 				}}
 			>
 				<div>Counter: 0</div>
@@ -191,18 +195,29 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect(mockFetch).not.toHaveBeenCalled();
 
 		// Simulate rapid re-renders
-		for (let i = 1; i <= 5; i++) {
-			rerender(
-				<ConsentManagerProvider
-					options={{
-						mode: 'offline',
-					}}
-				>
-					<div>Counter: {i}</div>
-				</ConsentManagerProvider>
-			);
-			// Process any potential async tasks between renders
-			await vi.runAllTimersAsync();
+		{
+			let i = 1;
+			const runSequentialLoop1 =
+				async function runSequentialLoop1(): Promise<void> {
+					if (!(i <= 5)) {
+						return;
+					}
+					rerender(
+						<ConsentManagerProvider
+							options={{
+								mode: 'offline',
+							}}
+						>
+							<div>Counter: {i}</div>
+						</ConsentManagerProvider>
+					);
+					// Process any potential async tasks between renders
+					await vi.runAllTimersAsync();
+
+					i += 1;
+					await runSequentialLoop1();
+				};
+			await runSequentialLoop1();
 		}
 
 		// Should still have no fetch calls
@@ -214,7 +229,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			const { model, activeUI } = useConsentManager();
 			return (
 				<div data-testid="policy-probe">
-					{JSON.stringify({ model, activeUI })}
+					{JSON.stringify({ activeUI, model })}
 				</div>
 			);
 		};
@@ -226,9 +241,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 					offlinePolicy: {
 						policyPacks: [
 							{
+								consent: { model: 'opt-out' },
 								id: 'policy_region_us_ca',
 								match: { regions: [{ country: 'US', region: 'CA' }] },
-								consent: { model: 'opt-out' },
 								ui: { mode: 'banner' },
 							},
 						],
@@ -268,23 +283,23 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline',
-					reloadOnConsentRevoked: false,
 					callbacks: {
 						onConsentChanged: firstOnConsentChanged,
 					},
 					consentCategories: ['necessary', 'measurement'],
+					mode: 'offline',
 					offlinePolicy: {
 						policy: {
-							model: 'opt-in',
 							consent: {
 								categories: ['necessary', 'measurement'],
 							},
+							model: 'opt-in',
 							ui: {
 								mode: 'banner',
 							},
 						},
 					},
+					reloadOnConsentRevoked: false,
 				}}
 			>
 				<Probe />
@@ -296,23 +311,23 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		rerender(
 			<ConsentManagerProvider
 				options={{
-					mode: 'offline',
-					reloadOnConsentRevoked: false,
 					callbacks: {
 						onConsentChanged: secondOnConsentChanged,
 					},
 					consentCategories: ['necessary', 'measurement'],
+					mode: 'offline',
 					offlinePolicy: {
 						policy: {
-							model: 'opt-in',
 							consent: {
 								categories: ['necessary', 'measurement'],
 							},
+							model: 'opt-in',
 							ui: {
 								mode: 'banner',
 							},
 						},
 					},
+					reloadOnConsentRevoked: false,
 				}}
 			>
 				<Probe />

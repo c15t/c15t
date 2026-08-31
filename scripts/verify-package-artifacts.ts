@@ -10,7 +10,10 @@ import {
 	wildcardToRegExp,
 } from './manifest-utils';
 
-function collectPackageFiles(dir: string, prefix = ''): string[] {
+const collectPackageFiles = function collectPackageFiles(
+	dir: string,
+	prefix = ''
+): string[] {
 	const result: string[] = [];
 
 	for (const entry of readdirSync(join(dir, prefix), { withFileTypes: true })) {
@@ -32,9 +35,9 @@ function collectPackageFiles(dir: string, prefix = ''): string[] {
 	}
 
 	return result;
-}
+};
 
-function getMissingTargets(
+const getMissingTargets = function getMissingTargets(
 	packageDir: string,
 	targets: ManifestTarget[]
 ): ManifestTarget[] {
@@ -48,7 +51,7 @@ function getMissingTargets(
 
 		return !existsSync(join(packageDir, target));
 	});
-}
+};
 
 const packageDir = process.cwd();
 const manifest = readManifest(packageDir);

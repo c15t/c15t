@@ -33,11 +33,11 @@ interface PersistedState {
 	hasConsented?: unknown;
 }
 
-function readState(driver: TestDriver): PersistedState {
+const readState = function readState(driver: TestDriver): PersistedState {
 	return driver.getStore().getState() as PersistedState;
-}
+};
 
-export function runPersistenceConformance(
+export const runPersistenceConformance = function runPersistenceConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
@@ -130,4 +130,4 @@ export function runPersistenceConformance(
 			}
 		);
 	});
-}
+};

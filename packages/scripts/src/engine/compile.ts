@@ -6,10 +6,13 @@ import type {
 } from '../types';
 import { VENDOR_MANIFEST_KIND, VENDOR_MANIFEST_SCHEMA_VERSION } from '../types';
 
-const EXACT_PLACEHOLDER_PATTERN = /^\{\{([A-Za-z0-9_]+)\}\}$/;
-const PLACEHOLDER_PATTERN = /\{\{([A-Za-z0-9_]+)\}\}/g;
+const EXACT_PLACEHOLDER_PATTERN = /^\{\{(?<capture1>[A-Za-z0-9_]+)\}\}$/u;
+const PLACEHOLDER_PATTERN = /\{\{(?<capture1>[A-Za-z0-9_]+)\}\}/gu;
 
-function getConfigValue(config: Record<string, unknown>, key: string): unknown {
+const getConfigValue = function getConfigValue(
+	config: Record<string, unknown>,
+	key: string
+): unknown {
 	if (!(key in config)) {
 		throw new Error(`Missing manifest interpolation value for '${key}'.`);
 	}
@@ -22,9 +25,12 @@ function getConfigValue(config: Record<string, unknown>, key: string): unknown {
 	}
 
 	return value;
-}
+};
 
-function stringifyInterpolatedValue(value: unknown, key: string): string {
+const stringifyInterpolatedValue = function stringifyInterpolatedValue(
+	value: unknown,
+	key: string
+): string {
 	if (value === undefined) {
 		throw new Error(`Missing manifest interpolation value for '${key}'.`);
 	}
@@ -42,9 +48,9 @@ function stringifyInterpolatedValue(value: unknown, key: string): string {
 	}
 
 	return String(value);
-}
+};
 
-function interpolateString(
+const interpolateString = function interpolateString(
 	template: string,
 	config: Record<string, unknown>
 ): unknown {
@@ -57,9 +63,9 @@ function interpolateString(
 		const value = getConfigValue(config, key);
 		return stringifyInterpolatedValue(value, key);
 	});
-}
+};
 
-export function interpolateValue(
+export const interpolateValue = function interpolateValue(
 	value: unknown,
 	config: Record<string, unknown>
 ): unknown {
@@ -83,9 +89,9 @@ export function interpolateValue(
 	}
 
 	return value;
-}
+};
 
-function interpolateSteps(
+const interpolateSteps = function interpolateSteps(
 	steps: ManifestStep[] | undefined,
 	config: Record<string, unknown>
 ): ManifestStep[] {
@@ -94,9 +100,11 @@ function interpolateSteps(
 	}
 
 	return steps.map((step) => interpolateValue(step, config) as ManifestStep);
-}
+};
 
-function extractInstallArtifacts(install: ManifestStep[]): {
+const extractInstallArtifacts = function extractInstallArtifacts(
+	install: ManifestStep[]
+): {
 	loadScript?: LoadScriptStep;
 	setupSteps: ManifestStep[];
 } {
@@ -130,9 +138,11 @@ function extractInstallArtifacts(install: ManifestStep[]): {
 	return {
 		setupSteps: install,
 	};
-}
+};
 
-function validateManifestContract(manifest: VendorManifest): void {
+const validateManifestContract = function validateManifestContract(
+	manifest: VendorManifest
+): void {
 	if (manifest.kind !== VENDOR_MANIFEST_KIND) {
 		throw new Error(
 			`Unsupported manifest kind '${String(
@@ -148,9 +158,9 @@ function validateManifestContract(manifest: VendorManifest): void {
 			)}'. Expected '${VENDOR_MANIFEST_SCHEMA_VERSION}'.`
 		);
 	}
-}
+};
 
-export function compileManifest(
+export const compileManifest = function compileManifest(
 	manifest: VendorManifest,
 	config: Record<string, unknown> = {}
 ): ResolvedManifest {
@@ -161,41 +171,16 @@ export function compileManifest(
 	const { loadScript, setupSteps } = extractInstallArtifacts(install);
 
 	return {
-		kind: manifest.kind,
-		schemaVersion: manifest.schemaVersion,
-		vendor: manifest.vendor,
-		category: interpolateValue(
-			manifest.category,
-			config
-		) as ResolvedManifest['category'],
+		afterLoadSteps: interpolateSteps(manifest.afterLoad, config),
 		alwaysLoad:
 			manifest.alwaysLoad === undefined
 				? undefined
 				: (interpolateValue(manifest.alwaysLoad, config) as boolean),
-		persistAfterConsentRevoked:
-			manifest.persistAfterConsentRevoked === undefined
-				? undefined
-				: (interpolateValue(
-						manifest.persistAfterConsentRevoked,
-						config
-					) as boolean),
 		bootstrapSteps,
-		setupSteps,
-		loadScript,
-		afterLoadSteps: interpolateSteps(manifest.afterLoad, config),
-		onBeforeLoadGrantedSteps: interpolateSteps(
-			manifest.onBeforeLoadGranted,
+		category: interpolateValue(
+			manifest.category,
 			config
-		),
-		onBeforeLoadDeniedSteps: interpolateSteps(
-			manifest.onBeforeLoadDenied,
-			config
-		),
-		onLoadGrantedSteps: interpolateSteps(manifest.onLoadGranted, config),
-		onLoadDeniedSteps: interpolateSteps(manifest.onLoadDenied, config),
-		onConsentChangeSteps: interpolateSteps(manifest.onConsentChange, config),
-		onConsentGrantedSteps: interpolateSteps(manifest.onConsentGranted, config),
-		onConsentDeniedSteps: interpolateSteps(manifest.onConsentDenied, config),
+		) as ResolvedManifest['category'],
 		consentMapping: manifest.consentMapping
 			? (interpolateValue(
 					manifest.consentMapping,
@@ -207,5 +192,30 @@ export function compileManifest(
 			typeof manifest.consentSignalTarget === 'string'
 				? (interpolateValue(manifest.consentSignalTarget, config) as string)
 				: manifest.consentSignalTarget,
+		kind: manifest.kind,
+		loadScript,
+		onBeforeLoadDeniedSteps: interpolateSteps(
+			manifest.onBeforeLoadDenied,
+			config
+		),
+		onBeforeLoadGrantedSteps: interpolateSteps(
+			manifest.onBeforeLoadGranted,
+			config
+		),
+		onConsentChangeSteps: interpolateSteps(manifest.onConsentChange, config),
+		onConsentDeniedSteps: interpolateSteps(manifest.onConsentDenied, config),
+		onConsentGrantedSteps: interpolateSteps(manifest.onConsentGranted, config),
+		onLoadDeniedSteps: interpolateSteps(manifest.onLoadDenied, config),
+		onLoadGrantedSteps: interpolateSteps(manifest.onLoadGranted, config),
+		persistAfterConsentRevoked:
+			manifest.persistAfterConsentRevoked === undefined
+				? undefined
+				: (interpolateValue(
+						manifest.persistAfterConsentRevoked,
+						config
+					) as boolean),
+		schemaVersion: manifest.schemaVersion,
+		setupSteps,
+		vendor: manifest.vendor,
 	};
-}
+};

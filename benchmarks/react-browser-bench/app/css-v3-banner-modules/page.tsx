@@ -18,13 +18,13 @@ const consentCategories = [
 
 const CssV3BannerModulesPage = () => {
 	const options: ConsentProviderOptions = {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
-		consentCategories,
 		callbacks: {
 			onBannerFetched() {
 				const state = getBenchState(scenario);
-				if (!state) return;
+				if (!state) {
+					return;
+				}
 				state.onBannerFetchedCount += 1;
 				if (state.onBannerFetchedMs === undefined) {
 					state.onBannerFetchedMs = performance.now();
@@ -32,15 +32,21 @@ const CssV3BannerModulesPage = () => {
 			},
 			onConsentSet() {
 				const state = getBenchState(scenario);
-				if (!state) return;
+				if (!state) {
+					return;
+				}
 				state.onConsentSetCount += 1;
 			},
 			onError() {
 				const state = getBenchState(scenario);
-				if (!state) return;
+				if (!state) {
+					return;
+				}
 				state.onErrorCount += 1;
 			},
 		},
+		consentCategories,
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {
@@ -55,7 +61,7 @@ const CssV3BannerModulesPage = () => {
 	return (
 		<ConsentProvider options={options}>
 			<ReactV3BenchmarkProbe scenario={scenario} />
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 				<h1>React v3 Banner + CSS Modules Benchmark</h1>
 			</main>
 			<ConsentBanner disableAnimation />

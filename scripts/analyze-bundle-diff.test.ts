@@ -572,7 +572,7 @@ describe('analyze-bundle-diff', () => {
 			// no-changes package should not have a details section since it has no diffs
 			// Check that there's no details section specifically for no-changes
 			const noChangesInDetails = result.match(
-				/<details>[\s\S]*?no-changes[\s\S]*?<\/details>/
+				/<details>[\s\S]*?no-changes[\s\S]*?<\/details>/u
 			);
 			expect(noChangesInDetails).toBeNull(); // Should not find no-changes inside details
 			// with-changes package should have a details section

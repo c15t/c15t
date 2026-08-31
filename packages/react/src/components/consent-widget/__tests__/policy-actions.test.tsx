@@ -11,28 +11,11 @@ import { ConsentWidget } from '~/components/consent-widget';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'dialog',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -40,29 +23,46 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['customize'],
-			layout: ['customize', ['reject', 'accept']],
-			direction: 'row',
-			uiProfile: 'balanced',
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
 		},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {
+			allowedActions: ['reject', 'accept', 'customize'],
+			direction: 'row',
+			layout: ['customize', ['reject', 'accept']],
+			primaryActions: ['customize'],
+			uiProfile: 'balanced',
+		},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-async function renderPolicyActions(
+const renderPolicyActions = async function renderPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
@@ -71,13 +71,13 @@ async function renderPolicyActions(
 		<StableGlobalThemeProvider value={{ noStyle: false }}>
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				<ConsentWidget.PolicyActions
@@ -97,9 +97,9 @@ async function renderPolicyActions(
 			</StableConsentStateProvider>
 		</StableGlobalThemeProvider>
 	);
-}
+};
 
-async function renderDefaultPolicyActions(
+const renderDefaultPolicyActions = async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
@@ -108,22 +108,22 @@ async function renderDefaultPolicyActions(
 		<StableGlobalThemeProvider value={{ noStyle: false }}>
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				<ConsentWidget.PolicyActions />
 			</StableConsentStateProvider>
 		</StableGlobalThemeProvider>
 	);
-}
+};
 
-async function renderWidget(
+const renderWidget = async function renderWidget(
 	stateOverrides: Partial<ConsentStoreState> = {},
 	themeSlots: Record<string, string> = {}
 ) {
@@ -140,20 +140,20 @@ async function renderWidget(
 		>
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				<ConsentWidget hideBranding={false} />
 			</StableConsentStateProvider>
 		</StableGlobalThemeProvider>
 	);
-}
+};
 
 describe('ConsentWidget.PolicyActions', () => {
 	test('renders policy group ordering', async () => {
@@ -196,9 +196,9 @@ describe('ConsentWidget.PolicyActions', () => {
 		await renderPolicyActions({
 			policyDialog: {
 				allowedActions: ['reject', 'customize'],
-				primaryActions: ['customize'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'row',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['customize'],
 			},
 		});
 
@@ -217,9 +217,9 @@ describe('ConsentWidget.PolicyActions', () => {
 		await renderPolicyActions({
 			policyDialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['customize'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'column',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['customize'],
 				uiProfile: 'strict',
 			},
 		});
@@ -232,10 +232,10 @@ describe('ConsentWidget.PolicyActions', () => {
 		);
 
 		expect(
-			footer?.className.split(/\s+/).filter(Boolean).length
+			footer?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
-			firstGroup?.className.split(/\s+/).filter(Boolean).length
+			firstGroup?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
 			document.querySelector('[data-testid="widget-action-customize"]')

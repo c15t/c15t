@@ -68,12 +68,12 @@ export interface ThemeContextValue {
  * @public
  */
 export const GlobalThemeContext = createContext<ThemeContextValue>({
-	theme: undefined,
-	noStyle: false,
-	disableAnimation: false,
-	scrollLock: false,
-	trapFocus: true,
 	colorScheme: 'system',
+	disableAnimation: false,
+	noStyle: false,
+	scrollLock: false,
+	theme: undefined,
+	trapFocus: true,
 });
 
 /**

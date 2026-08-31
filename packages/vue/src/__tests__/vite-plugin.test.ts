@@ -22,7 +22,9 @@ interface ResolvedPluginPaths {
 	composablesPath: string;
 }
 
-function resolvePluginPaths(factory: () => unknown): ResolvedPluginPaths {
+const resolvePluginPaths = function resolvePluginPaths(
+	factory: () => unknown
+): ResolvedPluginPaths {
 	const plugin = factory() as {
 		resolveId: (id: string) => string | undefined;
 		config: () => { resolve: { alias: Record<string, string> } };
@@ -33,7 +35,7 @@ function resolvePluginPaths(factory: () => unknown): ResolvedPluginPaths {
 		throw new Error('plugin did not resolve its runtime modules');
 	}
 	return { composablesPath, stubPath };
-}
+};
 
 describe('c15tVue plugin runtime resolution', () => {
 	it('resolves the committed .ts runtime modules from source', () => {

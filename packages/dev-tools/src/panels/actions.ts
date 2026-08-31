@@ -59,8 +59,87 @@ export interface ActionsPanelOptions {
 }
 
 /**
+ * Creates an icon wrapper element
+ */
+const createIconWrapper = function createIconWrapper(
+	icon: string,
+	size: number
+): HTMLElement {
+	const wrapper = div({
+		style: {
+			alignItems: 'center',
+			color: 'var(--c15t-text-muted)',
+			display: 'flex',
+			justifyContent: 'center',
+		},
+	});
+	wrapper.appendChild(createSvgElement(icon, { height: size, width: size }));
+	return wrapper;
+};
+
+/**
+ * Creates an action card with icon and label
+ */
+const createActionCard = function createActionCard(options: {
+	icon: string;
+	label: string;
+	onClick: () => void;
+	disabled?: boolean;
+}): HTMLElement {
+	const { icon, label, onClick, disabled = false } = options;
+
+	const card = div({
+		children: [
+			createIconWrapper(icon, 20),
+			span({
+				style: {
+					color: 'var(--c15t-text)',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					fontWeight: '500',
+					textAlign: 'center',
+				},
+				text: label,
+			}),
+		],
+		className: componentStyles.gridCard ?? '',
+		style: {
+			alignItems: 'center',
+			cursor: 'pointer',
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '6px',
+			justifyContent: 'center',
+			opacity: disabled ? '0.55' : '1',
+			padding: '16px 8px',
+			transition:
+				'background-color var(--c15t-duration-fast) var(--c15t-easing)',
+		},
+	});
+
+	if (!disabled) {
+		card.addEventListener('click', onClick);
+		card.addEventListener('mouseenter', () => {
+			card.style.backgroundColor = 'var(--c15t-surface-hover)';
+		});
+		card.addEventListener('mouseleave', () => {
+			card.style.backgroundColor = '';
+		});
+	}
+
+	return card;
+};
+
+/**
+ * Gets the namespace from the store config
+ */
+const getNamespace = function getNamespace(state: ConsentStoreState): string {
+	return (state.config?.meta?.namespace as string) || 'c15tStore';
+};
+
+/**
  * Renders the actions panel content
  */
+// oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
 export function renderActionsPanel(
 	container: HTMLElement,
 	options: ActionsPanelOptions
@@ -107,159 +186,89 @@ export function renderActionsPanel(
 			onClick: onCopyState,
 		}),
 		createActionCard({
+			disabled: !onExportDebugBundle,
 			icon: REFRESH_ICON,
 			label: 'Export Debug',
 			onClick: () => onExportDebugBundle?.(),
-			disabled: !onExportDebugBundle,
 		}),
 	];
 
 	const grid = createGrid({
-		columns: 2,
 		children: actionCards,
+		columns: 2,
 	});
 
 	container.appendChild(grid);
 
 	// Danger zone - reset button
 	const dangerZone = div({
-		style: {
-			padding: '12px 16px',
-			borderTop: '1px solid var(--c15t-border)',
-		},
 		children: [
 			createButton({
-				text: 'Reset All Consents',
 				icon: TRASH_ICON,
-				variant: 'danger',
 				onClick: onResetConsents,
+
+				text: 'Reset All Consents',
+				variant: 'danger',
 			}),
 		],
+		style: {
+			borderTop: '1px solid var(--c15t-border)',
+			padding: '12px 16px',
+		},
 	});
 
 	container.appendChild(dangerZone);
 
 	// Console API section
 	const consoleSection = div({
-		style: {
-			padding: '12px 16px',
-			borderTop: '1px solid var(--c15t-border)',
-		},
 		children: [
 			div({
-				style: {
-					display: 'flex',
-					alignItems: 'center',
-					gap: '6px',
-					marginBottom: '8px',
-				},
 				children: [
 					createIconWrapper(TERMINAL_ICON, 14),
 					span({
 						style: {
+							color: 'var(--c15t-text)',
+
 							fontSize: 'var(--c15t-devtools-font-size-xs)',
 							fontWeight: '600',
-							color: 'var(--c15t-text)',
 						},
 						text: 'Console API',
 					}),
 				],
+
+				style: {
+					alignItems: 'center',
+					display: 'flex',
+					gap: '6px',
+					marginBottom: '8px',
+				},
 			}),
 			div({
-				style: {
-					display: 'flex',
-					flexDirection: 'column',
-					gap: '4px',
-					padding: '8px',
-					borderRadius: 'var(--c15t-radius-md)',
-					backgroundColor: 'var(--c15t-surface-muted)',
-					fontFamily:
-						'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
-					fontSize: '11px',
-					color: 'var(--c15t-text-muted)',
-				},
 				children: [
 					span({ text: `window.${getNamespace(state)}.getState()` }),
 					span({ text: 'window.__c15tDevTools.open()' }),
 				],
+
+				style: {
+					backgroundColor: 'var(--c15t-surface-muted)',
+					borderRadius: 'var(--c15t-radius-md)',
+					color: 'var(--c15t-text-muted)',
+
+					display: 'flex',
+					flexDirection: 'column',
+					fontFamily:
+						'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+					fontSize: '11px',
+					gap: '4px',
+					padding: '8px',
+				},
 			}),
 		],
+		style: {
+			borderTop: '1px solid var(--c15t-border)',
+			padding: '12px 16px',
+		},
 	});
 
 	container.appendChild(consoleSection);
-}
-
-/**
- * Creates an action card with icon and label
- */
-function createActionCard(options: {
-	icon: string;
-	label: string;
-	onClick: () => void;
-	disabled?: boolean;
-}): HTMLElement {
-	const { icon, label, onClick, disabled = false } = options;
-
-	const card = div({
-		className: componentStyles.gridCard ?? '',
-		style: {
-			display: 'flex',
-			flexDirection: 'column',
-			alignItems: 'center',
-			justifyContent: 'center',
-			gap: '6px',
-			padding: '16px 8px',
-			cursor: 'pointer',
-			transition:
-				'background-color var(--c15t-duration-fast) var(--c15t-easing)',
-			opacity: disabled ? '0.55' : '1',
-		},
-		children: [
-			createIconWrapper(icon, 20),
-			span({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					fontWeight: '500',
-					color: 'var(--c15t-text)',
-					textAlign: 'center',
-				},
-				text: label,
-			}),
-		],
-	});
-
-	if (!disabled) {
-		card.addEventListener('click', onClick);
-		card.addEventListener('mouseenter', () => {
-			card.style.backgroundColor = 'var(--c15t-surface-hover)';
-		});
-		card.addEventListener('mouseleave', () => {
-			card.style.backgroundColor = '';
-		});
-	}
-
-	return card;
-}
-
-/**
- * Creates an icon wrapper element
- */
-function createIconWrapper(icon: string, size: number): HTMLElement {
-	const wrapper = div({
-		style: {
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'center',
-			color: 'var(--c15t-text-muted)',
-		},
-	});
-	wrapper.appendChild(createSvgElement(icon, { width: size, height: size }));
-	return wrapper;
-}
-
-/**
- * Gets the namespace from the store config
- */
-function getNamespace(state: ConsentStoreState): string {
-	return (state.config?.meta?.namespace as string) || 'c15tStore';
 }

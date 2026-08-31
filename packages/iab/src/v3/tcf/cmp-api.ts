@@ -42,7 +42,7 @@ function getCookie(name: string): string | null {
 		return null;
 	}
 
-	const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+	const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`, 'u'));
 	if (match?.[2]) {
 		return decodeURIComponent(match[2]);
 	}
@@ -126,8 +126,10 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		if (tcString && !currentConsentData) {
 			try {
 				const decoded = await decodeTCString(tcString);
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				purposeConsents = decoded.purposeConsents;
 				purposeLegitInterests = decoded.purposeLegitimateInterests;
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				vendorConsents = decoded.vendorConsents;
 				vendorLegitInterests = decoded.vendorLegitimateInterests;
 				specialFeatureOptins = decoded.specialFeatureOptIns;

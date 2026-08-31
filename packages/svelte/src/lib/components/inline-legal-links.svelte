@@ -35,7 +35,9 @@
 			return null;
 		}
 		const allLinks = consent.state.legalLinks;
-		if (!allLinks) return null;
+		if (!allLinks) {
+			return null;
+		}
 		const entries = Object.entries(allLinks).filter(([key]) =>
 			links.includes(key as keyof LegalLinksType)
 		);

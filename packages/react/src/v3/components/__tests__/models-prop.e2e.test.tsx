@@ -49,15 +49,15 @@ function createDeferredPromise<Value>(
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value.toString();
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = value.toString();
 		},
 	};
 })();
@@ -67,7 +67,6 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 const optInOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -75,10 +74,9 @@ const optInOptions: ConsentManagerOptions = {
 		'marketing',
 		'measurement',
 	],
+	mode: 'offline',
 	offlinePolicy: {
 		policy: {
-			id: 'models-prop-opt-in-test',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -89,6 +87,8 @@ const optInOptions: ConsentManagerOptions = {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'models-prop-opt-in-test',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},

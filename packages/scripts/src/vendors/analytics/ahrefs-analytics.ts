@@ -28,18 +28,19 @@ declare global {
  */
 export const ahrefsAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'ahrefs-analytics',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
 			attributes: {
 				'data-key': '{{key}}',
 			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'ahrefs-analytics',
 } as const satisfies VendorManifest;
 
 export interface AhrefsAnalyticsOptions {
@@ -73,7 +74,9 @@ export interface AhrefsAnalyticsOptions {
  * ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' });
  * ```
  */
-export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
+export const ahrefsAnalytics = function ahrefsAnalytics(
+	options: AhrefsAnalyticsOptions
+): Script {
 	const key = typeof options.key === 'string' ? options.key.trim() : '';
 	if (key.length === 0) {
 		throw new Error('ahrefsAnalytics: missing or invalid key');
@@ -86,4 +89,4 @@ export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
 			'https://analytics.ahrefs.com/analytics.js'
 		),
 	});
-}
+};

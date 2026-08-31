@@ -533,13 +533,13 @@ const driver: TestDriver = {
 		}
 
 		return {
-			root: container,
 			resolveInit: lifecycle.resolve
 				? async () => {
 						lifecycle.resolve?.();
 						await flushScheduler();
 					}
 				: undefined,
+			root: container,
 			unmount: async () => {
 				root.unmount();
 				await flushScheduler();

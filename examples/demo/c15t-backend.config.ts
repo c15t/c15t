@@ -17,7 +17,6 @@ export default defineConfig({
 		dialect: 'postgres',
 		url: process.env.DATABASE_URL ?? '',
 	},
-	trustedOrigins: ['localhost', 'vercel.app'],
 	manifest: {
 		appName: 'c15t-self-host',
 		i18n: {
@@ -30,4 +29,5 @@ export default defineConfig({
 		signingKey: DEMO_POLICY_SNAPSHOT_KEY,
 		ttlSeconds: 60 * 60,
 	},
+	trustedOrigins: ['localhost', 'vercel.app'],
 });

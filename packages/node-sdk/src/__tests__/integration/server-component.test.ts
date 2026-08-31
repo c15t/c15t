@@ -58,8 +58,8 @@ describe('Server Component Integration', () => {
 						},
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -84,12 +84,12 @@ describe('Server Component Integration', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						message: 'External ID not found',
 						code: 'NOT_FOUND',
+						message: 'External ID not found',
 					}),
 					{
-						status: 404,
 						headers: { 'content-type': 'application/json' },
+						status: 404,
 					}
 				)
 			);
@@ -117,18 +117,18 @@ describe('Server Component Integration', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						subjectId: 'sub_123',
 						consentId: 'con_456',
-						domainId: 'dom_789',
 						domain: 'example.com',
-						type: 'cookie_banner',
-						status: 'active',
-						recordId: 'rec_abc',
+						domainId: 'dom_789',
 						givenAt: new Date().toISOString(),
+						recordId: 'rec_abc',
+						status: 'active',
+						subjectId: 'sub_123',
+						type: 'cookie_banner',
 					}),
 					{
-						status: 201,
 						headers: { 'content-type': 'application/json' },
+						status: 201,
 					}
 				)
 			);
@@ -140,12 +140,12 @@ describe('Server Component Integration', () => {
 
 			// Pattern used in API routes
 			const result = await client.createSubject({
-				type: 'cookie_banner',
-				subjectId: 'sub_123',
-				externalSubjectId: 'user_123',
 				domain: 'example.com',
-				preferences: { analytics: true, marketing: false },
+				externalSubjectId: 'user_123',
 				givenAt: Date.now(),
+				preferences: { analytics: true, marketing: false },
+				subjectId: 'sub_123',
+				type: 'cookie_banner',
 			});
 
 			expect(result.ok).toBe(true);
@@ -156,13 +156,13 @@ describe('Server Component Integration', () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
 					JSON.stringify({
-						message: 'Validation failed',
 						code: 'VALIDATION_ERROR',
 						details: { domain: ['Domain is required'] },
+						message: 'Validation failed',
 					}),
 					{
-						status: 400,
 						headers: { 'content-type': 'application/json' },
+						status: 400,
 					}
 				)
 			);
@@ -173,11 +173,11 @@ describe('Server Component Integration', () => {
 			});
 
 			const result = await client.createSubject({
-				type: 'cookie_banner',
-				subjectId: 'sub_123',
 				domain: '',
-				preferences: {},
 				givenAt: Date.now(),
+				preferences: {},
+				subjectId: 'sub_123',
+				type: 'cookie_banner',
 			});
 
 			expect(result.ok).toBe(false);
@@ -190,10 +190,10 @@ describe('Server Component Integration', () => {
 		it('should provide all necessary fields for error handling', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(
-					JSON.stringify({ message: 'Server error', code: 'INTERNAL_ERROR' }),
+					JSON.stringify({ code: 'INTERNAL_ERROR', message: 'Server error' }),
 					{
-						status: 500,
 						headers: { 'content-type': 'application/json' },
+						status: 500,
 					}
 				)
 			);
@@ -214,8 +214,8 @@ describe('Server Component Integration', () => {
 
 			expect(result.ok).toBe(false);
 			expect(result.error).toMatchObject({
-				message: 'Server error',
 				code: 'INTERNAL_ERROR',
+				message: 'Server error',
 				status: 500,
 			});
 		});
@@ -223,11 +223,11 @@ describe('Server Component Integration', () => {
 		it('should include response object for header access', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: {
 						'content-type': 'application/json',
 						'x-request-id': 'req_123',
 					},
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;

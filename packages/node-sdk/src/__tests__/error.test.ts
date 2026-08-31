@@ -10,11 +10,11 @@ describe('C15TError', () => {
 	describe('constructor', () => {
 		it('should create error with all properties', () => {
 			const error = new C15TError({
-				message: 'Not found',
-				status: 404,
+				cause: new Error('Original error'),
 				code: 'NOT_FOUND',
 				details: { id: 'sub_123' },
-				cause: new Error('Original error'),
+				message: 'Not found',
+				status: 404,
 			});
 
 			expect(error.message).toBe('Not found');
@@ -57,9 +57,9 @@ describe('C15TError', () => {
 		it('isNotFound should detect 404 status', () => {
 			const error404 = new C15TError({ message: 'Not found', status: 404 });
 			const errorCode = new C15TError({
+				code: 'NOT_FOUND',
 				message: 'Not found',
 				status: 400,
-				code: 'NOT_FOUND',
 			});
 			const other = new C15TError({ message: 'Bad request', status: 400 });
 
@@ -74,9 +74,9 @@ describe('C15TError', () => {
 				status: 400,
 			});
 			const errorCode = new C15TError({
+				code: 'VALIDATION_ERROR',
 				message: 'Invalid',
 				status: 422,
-				code: 'VALIDATION_ERROR',
 			});
 			const other = new C15TError({ message: 'Not found', status: 404 });
 
@@ -88,9 +88,9 @@ describe('C15TError', () => {
 		it('isUnauthorized should detect 401 status', () => {
 			const error401 = new C15TError({ message: 'Unauthorized', status: 401 });
 			const errorCode = new C15TError({
+				code: 'UNAUTHORIZED',
 				message: 'Auth failed',
 				status: 400,
-				code: 'UNAUTHORIZED',
 			});
 
 			expect(error401.isUnauthorized()).toBe(true);
@@ -100,9 +100,9 @@ describe('C15TError', () => {
 		it('isForbidden should detect 403 status', () => {
 			const error403 = new C15TError({ message: 'Forbidden', status: 403 });
 			const errorCode = new C15TError({
+				code: 'FORBIDDEN',
 				message: 'Access denied',
 				status: 400,
-				code: 'FORBIDDEN',
 			});
 
 			expect(error403.isForbidden()).toBe(true);
@@ -127,9 +127,9 @@ describe('C15TError', () => {
 				status: 0,
 			});
 			const errorCode = new C15TError({
+				code: 'NETWORK_ERROR',
 				message: 'Network error',
 				status: 0,
-				code: 'NETWORK_ERROR',
 			});
 			const other = new C15TError({ message: 'Server error', status: 500 });
 
@@ -142,20 +142,20 @@ describe('C15TError', () => {
 	describe('toJSON', () => {
 		it('should serialize error to JSON', () => {
 			const error = new C15TError({
-				message: 'Not found',
-				status: 404,
 				code: 'NOT_FOUND',
 				details: { resource: 'subject' },
+				message: 'Not found',
+				status: 404,
 			});
 
 			const json = error.toJSON();
 
 			expect(json).toEqual({
-				name: 'C15TError',
-				message: 'Not found',
-				status: 404,
 				code: 'NOT_FOUND',
 				details: { resource: 'subject' },
+				message: 'Not found',
+				name: 'C15TError',
+				status: 404,
 			});
 		});
 
@@ -197,9 +197,9 @@ describe('C15TError', () => {
 		it('should work in try-catch pattern', () => {
 			const throwError = () => {
 				throw new C15TError({
+					code: 'NOT_FOUND',
 					message: 'Subject not found',
 					status: 404,
-					code: 'NOT_FOUND',
 				});
 			};
 
@@ -210,7 +210,7 @@ describe('C15TError', () => {
 					expect(error.status).toBe(404);
 					expect(error.isNotFound()).toBe(true);
 				} else {
-					throw new Error('Expected C15TError');
+					throw new Error('Expected C15TError', { cause: error });
 				}
 			}
 		});

@@ -50,7 +50,7 @@
 	);
 
 	const variantClasses = $derived(
-		noStyle ? '' : buttonVariants({ variant, mode, size }).root()
+		noStyle ? '' : buttonVariants({ mode, size, variant }).root()
 	);
 
 	const buttonStyle = $derived(
@@ -62,7 +62,7 @@
 		)
 	);
 
-	function handleClick(
+	const handleClick = function handleClick(
 		e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		const { state } = consent;
@@ -80,6 +80,7 @@
 		onclick?.(e);
 
 		if (action !== 'open-consent-dialog') {
+			// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 			switch (action) {
 				case 'accept-consent':
 					state.saveConsents('all');
@@ -99,7 +100,7 @@
 					break;
 			}
 		}
-	}
+	};
 </script>
 
 <button

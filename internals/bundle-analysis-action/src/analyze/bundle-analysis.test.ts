@@ -409,11 +409,11 @@ describe('bundle-analysis', () => {
 						removed: [],
 						changed: [
 							{
-								name: 'main.js',
 								baseSize: 1024,
 								currentSize: 1200,
 								diff: 200,
 								diffPercent: 20,
+								name: 'main.js',
 							},
 						],
 					},
@@ -544,6 +544,7 @@ describe('bundle-analysis', () => {
 				isDirectory: () => true,
 			} as unknown as ReturnType<typeof statSync>);
 
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			vi.mocked(fs.readdir).mockImplementation(async (path: PathLike) => {
 				if (String(path).includes('dist')) {
 					return [
@@ -609,6 +610,7 @@ describe('bundle-analysis', () => {
 				isDirectory: () => true,
 			} as unknown as ReturnType<typeof statSync>);
 
+			// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 			vi.mocked(fs.readdir).mockImplementation(async (path: PathLike) => {
 				if (String(path).includes('dist')) {
 					return [

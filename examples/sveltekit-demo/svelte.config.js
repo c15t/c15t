@@ -8,13 +8,13 @@ const root = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-	preprocess: vitePreprocess(),
 	kit: {
 		adapter: adapter(),
 		alias: {
 			'~/*': resolve(root, '../../packages/core/src/*'),
 		},
 	},
+	preprocess: vitePreprocess(),
 };
 
 export default config;

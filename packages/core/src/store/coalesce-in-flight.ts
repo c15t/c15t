@@ -9,7 +9,7 @@
  * @param createRequest - Starts the operation when no request is in flight
  * @returns The existing or newly tracked request
  */
-export function coalesceInFlight<Result>(
+export const coalesceInFlight = function coalesceInFlight<Result>(
 	requests: Map<string, Promise<Result>>,
 	key: string,
 	createRequest: () => Promise<Result>
@@ -33,4 +33,4 @@ export function coalesceInFlight<Result>(
 
 	requests.set(key, request);
 	return request;
-}
+};

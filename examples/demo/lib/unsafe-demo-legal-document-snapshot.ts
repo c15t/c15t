@@ -32,47 +32,50 @@ export interface UnsafeDemoLegalDocumentSnapshotResult {
 const DEFAULT_ISSUER = 'c15t';
 const DEFAULT_TTL_SECONDS = 1800;
 
-function resolveAudience(_input: UnsafeDemoLegalDocumentSnapshotInput) {
+const resolveAudience = function resolveAudience(
+	_input: UnsafeDemoLegalDocumentSnapshotInput
+) {
 	return DEMO_LEGAL_DOCUMENT_SNAPSHOT_AUDIENCE;
-}
+};
 
 /**
  * Demo-only helper for local development until the real terms server can issue
  * authoritative snapshot tokens. This must never be treated as production-safe
  * because it requires exposing a signing key to the browser bundle.
  */
-export async function createUnsafeDemoLegalDocumentSnapshotToken(
-	input: UnsafeDemoLegalDocumentSnapshotInput
-): Promise<UnsafeDemoLegalDocumentSnapshotResult> {
-	const iat = Math.floor(Date.now() / 1000);
-	const exp =
-		iat + (DEMO_LEGAL_DOCUMENT_SNAPSHOT.ttlSeconds ?? DEFAULT_TTL_SECONDS);
-	const iss = DEMO_LEGAL_DOCUMENT_SNAPSHOT.issuer || DEFAULT_ISSUER;
-	const aud = resolveAudience(input);
-	const payload = {
-		iss,
-		aud,
-		sub: input.hash,
-		tenantId: DEMO_LEGAL_DOCUMENT_SNAPSHOT.tenantId,
-		type: input.type,
-		version: input.version,
-		hash: input.hash,
-		effectiveDate: input.effectiveDate,
-		iat,
-		exp,
-	};
+export const createUnsafeDemoLegalDocumentSnapshotToken =
+	async function createUnsafeDemoLegalDocumentSnapshotToken(
+		input: UnsafeDemoLegalDocumentSnapshotInput
+	): Promise<UnsafeDemoLegalDocumentSnapshotResult> {
+		const iat = Math.floor(Date.now() / 1000);
+		const exp =
+			iat + (DEMO_LEGAL_DOCUMENT_SNAPSHOT.ttlSeconds ?? DEFAULT_TTL_SECONDS);
+		const iss = DEMO_LEGAL_DOCUMENT_SNAPSHOT.issuer || DEFAULT_ISSUER;
+		const aud = resolveAudience(input);
+		const payload = {
+			aud,
+			effectiveDate: input.effectiveDate,
+			exp,
+			hash: input.hash,
+			iat,
+			iss,
+			sub: input.hash,
+			tenantId: DEMO_LEGAL_DOCUMENT_SNAPSHOT.tenantId,
+			type: input.type,
+			version: input.version,
+		};
 
-	const token = await new SignJWT(payload)
-		.setProtectedHeader({
-			alg: 'HS256',
-			typ: 'JWT',
-		})
-		.setIssuedAt(iat)
-		.setExpirationTime(exp)
-		.sign(new TextEncoder().encode(DEMO_LEGAL_DOCUMENT_SNAPSHOT.signingKey));
+		const token = await new SignJWT(payload)
+			.setProtectedHeader({
+				alg: 'HS256',
+				typ: 'JWT',
+			})
+			.setIssuedAt(iat)
+			.setExpirationTime(exp)
+			.sign(new TextEncoder().encode(DEMO_LEGAL_DOCUMENT_SNAPSHOT.signingKey));
 
-	return {
-		token,
-		payload,
+		return {
+			payload,
+			token,
+		};
 	};
-}

@@ -27,8 +27,8 @@ describe('microsoftUet', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -45,8 +45,8 @@ describe('microsoftUet', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: false,
+				id: script.id,
 			})
 		);
 
@@ -78,23 +78,23 @@ describe('microsoftUet', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: false,
+				id: script.id,
 			})
 		);
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
 		const instance = globalRef.uetq as UetMock;
 		expect(instance).toBeInstanceOf(UetMock);
 		expect(instance.options).toEqual({
-			ti: 'uet-123',
 			enableAutoSpaTracking: true,
 			q: ['consent', 'default', { ad_storage: 'denied' }],
+			ti: 'uet-123',
 		});
 		expect(instance.pushCalls).toEqual([['pageLoad']]);
 
@@ -114,14 +114,14 @@ describe('microsoftUet', () => {
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: false,
+				id: script.id,
 			})
 		);
 

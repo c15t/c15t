@@ -4,7 +4,7 @@ export {
 	createTelemetry,
 	Telemetry,
 	TelemetryEventName,
-	type TelemetryEventName as TelemetryEventNameType,
+	type TelemetryEventNameType,
 	type TelemetryOptions,
 } from '../utils/telemetry';
 

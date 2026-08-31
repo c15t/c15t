@@ -41,7 +41,7 @@ const DEFAULT_REVALIDATE_SECONDS = 1;
  * )
  * ```
  */
-export async function fetchInitialData(
+export const fetchInitialData = async function fetchInitialData(
 	options: FetchInitialDataOptions
 ): Promise<SSRInitialData | undefined> {
 	const headers = await nextHeaders();
@@ -60,8 +60,8 @@ export async function fetchInitialData(
 	}
 
 	const cacheKey = createSSRInitCacheKey({
-		normalizedURL,
 		headers,
+		normalizedURL,
 		overrides: options.overrides,
 	});
 	const cacheTTL = revalidateSeconds ?? DEFAULT_REVALIDATE_SECONDS;
@@ -80,4 +80,4 @@ export async function fetchInitialData(
 	);
 
 	return cachedFetch();
-}
+};

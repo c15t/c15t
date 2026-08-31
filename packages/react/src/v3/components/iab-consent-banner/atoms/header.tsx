@@ -30,8 +30,8 @@ const IABConsentBannerHeader = forwardRef<
 	const themedStyle = mergeSlotProps(components?.['iab-banner']?.header, {
 		baseClassName: styles.header,
 		className,
-		noStyle,
 		'data-testid': dataTestId ?? 'iab-consent-banner-header',
+		noStyle,
 		...props,
 	});
 

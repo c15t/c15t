@@ -286,17 +286,22 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 					TABLES.some((spec) => spec.name === fk.referencesTable);
 				if (!columnKnown || !referenceKnown) continue;
 
-				const count = yield* (
-					!present.has(fk.column)
-						? // The column is being added now, so every row is null and
-							// nothing can orphan.
-							Effect.succeed(0)
-						: existing.tables.has(fk.referencesTable)
-							? countOrphans(table, fk)
-							: // The referenced table is created empty by this same plan,
-								// so every non-null value in an existing column orphans.
-								countUnmatchable(table, fk)
-				).pipe(Effect.orElseSucceed(() => 0));
+				const countEffect = (() => {
+					if (!present.has(fk.column)) {
+						// The column is being added now, so every row is null and
+						// nothing can orphan.
+						return Effect.succeed(0);
+					}
+
+					if (existing.tables.has(fk.referencesTable)) {
+						return countOrphans(table, fk);
+					}
+
+					// The referenced table is created empty by this same plan,
+					// so every non-null value in an existing column orphans.
+					return countUnmatchable(table, fk);
+				})();
+				const count = yield* countEffect.pipe(Effect.orElseSucceed(() => 0));
 				if (count > 0) {
 					orphans.push({
 						table: table.name,

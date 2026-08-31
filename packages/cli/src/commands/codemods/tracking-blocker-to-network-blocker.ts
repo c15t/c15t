@@ -64,7 +64,7 @@ export interface CodemodRunResult {
 
 function getPropertyName(property: PropertyAssignment): string {
 	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
+	return rawName.replace(/^['"]|['"]$/gu, '');
 }
 
 function getProperty(
@@ -112,7 +112,7 @@ function getObjectPropertyKeyText(
 	}
 
 	const raw = nameNode.getText();
-	return raw.replace(/^['"]|['"]$/g, '');
+	return raw.replace(/^['"]|['"]$/gu, '');
 }
 
 function buildRulesExpression(

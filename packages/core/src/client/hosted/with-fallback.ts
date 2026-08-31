@@ -14,7 +14,7 @@ import { fetcher } from './fetcher';
  * @returns Response from API or fallback
  * @internal
  */
-export async function withFallback<
+export const withFallback = async function withFallback<
 	ResponseType,
 	BodyType = unknown,
 	QueryType = unknown,
@@ -56,4 +56,4 @@ export async function withFallback<
 		);
 		return fallbackFn(options);
 	}
-}
+};

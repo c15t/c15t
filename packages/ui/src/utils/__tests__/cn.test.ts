@@ -32,7 +32,7 @@ describe('cn', () => {
 	});
 
 	test('handles objects with boolean values', () => {
-		expect(cn({ foo: true, bar: false, baz: true })).toBe('foo baz');
+		expect(cn({ bar: false, baz: true, foo: true })).toBe('foo baz');
 	});
 
 	test('handles mixed types', () => {

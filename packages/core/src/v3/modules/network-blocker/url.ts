@@ -11,10 +11,14 @@ import type { NetworkBlockerRule } from './types';
  * Normalize an HTTP method to upper-case. `null`/`undefined`/empty
  * defaults to `'GET'`, matching the XHR / fetch spec defaults.
  */
-export function normalizeMethod(method: string | undefined | null): string {
-	if (!method) return 'GET';
+export const normalizeMethod = function normalizeMethod(
+	method: string | undefined | null
+): string {
+	if (!method) {
+		return 'GET';
+	}
 	return method.toUpperCase();
-}
+};
 
 /**
  * Best-effort URL parsing across the inputs `fetch` and XHR accept.
@@ -28,11 +32,17 @@ export function normalizeMethod(method: string | undefined | null): string {
  * Callers treat `null` as "let the request through" — we don't have
  * enough information to gate on it.
  */
-export function parseUrl(rawUrl: string | URL | Request): URL | null {
+export const parseUrl = function parseUrl(
+	rawUrl: string | URL | Request
+): URL | null {
 	try {
-		if (rawUrl instanceof URL) return rawUrl;
+		if (rawUrl instanceof URL) {
+			return rawUrl;
+		}
 		if (typeof rawUrl === 'string') {
-			if (typeof window === 'undefined') return null;
+			if (typeof window === 'undefined') {
+				return null;
+			}
 			return new URL(rawUrl, window.location?.href);
 		}
 		if (typeof Request !== 'undefined' && rawUrl instanceof Request) {
@@ -42,49 +52,61 @@ export function parseUrl(rawUrl: string | URL | Request): URL | null {
 	} catch {
 		return null;
 	}
-}
+};
 
 /**
  * Match a hostname against a rule's `domain`, treating the rule as a
  * suffix match: `example.com` rule matches both `example.com` and
  * `cdn.example.com`. Case-insensitive.
  */
-export function hostnameMatchesRule(
+export const hostnameMatchesRule = function hostnameMatchesRule(
 	hostname: string,
 	rule: NetworkBlockerRule
 ): boolean {
-	if (!hostname) return false;
+	if (!hostname) {
+		return false;
+	}
 	const ruleDomain = rule.domain.trim().toLowerCase();
 	const targetHost = hostname.trim().toLowerCase();
-	if (!ruleDomain || !targetHost) return false;
-	if (targetHost === ruleDomain) return true;
+	if (!ruleDomain || !targetHost) {
+		return false;
+	}
+	if (targetHost === ruleDomain) {
+		return true;
+	}
 	return targetHost.endsWith(`.${ruleDomain}`);
-}
+};
 
 /**
  * Match a request pathname against a rule's optional `pathIncludes`
  * filter (substring match). When the rule has no `pathIncludes`, every
  * pathname matches.
  */
-export function pathMatchesRule(
+export const pathMatchesRule = function pathMatchesRule(
 	pathname: string,
 	rule: NetworkBlockerRule
 ): boolean {
-	if (typeof rule.pathIncludes !== 'string') return true;
-	if (!pathname) return false;
+	if (typeof rule.pathIncludes !== 'string') {
+		return true;
+	}
+	if (!pathname) {
+		return false;
+	}
 	return pathname.includes(rule.pathIncludes);
-}
+};
 
 /**
  * Match an HTTP method against a rule's optional `methods` allow-list.
  * When the rule has no `methods`, every method matches. Comparison is
  * normalized to upper-case on both sides.
  */
-export function methodMatchesRule(
+export const methodMatchesRule = function methodMatchesRule(
 	method: string,
 	rule: NetworkBlockerRule
 ): boolean {
-	if (!rule.methods || rule.methods.length === 0) return true;
+	if (!rule.methods || rule.methods.length === 0) {
+		return true;
+	}
 	const upper = normalizeMethod(method);
 	return rule.methods.some((m: string) => normalizeMethod(m) === upper);
-}
+};

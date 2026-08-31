@@ -25,34 +25,39 @@ ensureBenchmarkDom();
 
 const INIT_PAYLOAD: InitResponse = {
 	jurisdiction: 'GDPR',
-	showConsentBanner: true,
 	resolvedOverrides: { country: 'DE' },
+	showConsentBanner: true,
 };
 
 const V2_API_PAYLOAD = {
-	showConsentBanner: true,
 	jurisdiction: { code: 'GDPR' },
+	showConsentBanner: true,
 	translations: { language: 'en', translations: {} },
 };
 
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const mockFetch = async (_input: RequestInfo | URL, _init?: RequestInit) =>
 	new Response(JSON.stringify(INIT_PAYLOAD), {
-		status: 200,
 		headers: { 'content-type': 'application/json' },
+		status: 200,
 	});
 
 // v2 expects showConsentBanner on a specific interface; point its mocks
 // at a v2-shaped payload.
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const v2Fetch = async (_input: RequestInfo | URL, _init?: RequestInit) =>
 	new Response(JSON.stringify(V2_API_PAYLOAD), {
-		status: 200,
 		headers: { 'content-type': 'application/json' },
+		status: 200,
 	});
 
 const injectedFetch = mockFetch as unknown as typeof globalThis.fetch;
 const BACKEND_URL = 'http://bench.example.com/api/c15t';
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -60,31 +65,42 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
-async function measureAsync(
+const measureAsync = async function measureAsync(
 	iterations: number,
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	const samples: number[] = [];
-	for (let i = 0; i < iterations; i += 1) {
-		const start = performance.now();
-		await fn();
-		samples.push((performance.now() - start) * 1000);
+	{
+		let i = 0;
+		const runSequentialLoop1 =
+			async function runSequentialLoop1(): Promise<void> {
+				if (!(i < iterations)) {
+					return;
+				}
+				const start = performance.now();
+				await fn();
+				samples.push((performance.now() - start) * 1000);
+
+				i += 1;
+				await runSequentialLoop1();
+			};
+		await runSequentialLoop1();
 	}
 	return samples;
-}
+};
 
-function summarize(samples: number[]) {
+const summarize = function summarize(samples: number[]) {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
-		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
-		min: sorted[0] ?? 0,
 		max: sorted[sorted.length - 1] ?? 0,
+		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
+		min: sorted[0] ?? 0,
+		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '50');
 
@@ -135,10 +151,10 @@ const v3InitCall = await measureAsync(ITERATIONS, async () => {
 	await kernel.commands.init();
 });
 
-function row(label: string, samples: number[]) {
+const row = function row(label: string, samples: number[]) {
 	const s = summarize(samples);
 	return `| ${label} | ${s.avg.toFixed(2)} | ${s.median.toFixed(2)} | ${s.p95.toFixed(2)} |`;
-}
+};
 
 const v2ExplicitSummary = summarize(v2ExplicitInit);
 const v3InitSummary = summarize(v3InitCall);
@@ -181,16 +197,16 @@ writeFileSync(
 	join(outputDir, 'hosted-init-compare.json'),
 	`${JSON.stringify(
 		{
-			suite: 'hosted-init-compare',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
+			suite: 'hosted-init-compare',
 			v2: {
 				construct: summarize(v2ConstructWithHostedFetch),
 				explicitInit: v2ExplicitSummary,
 			},
 			v3: {
-				kernelOnly: summarize(v3KernelOnly),
 				initCall: v3InitSummary,
+				kernelOnly: summarize(v3KernelOnly),
 			},
 		},
 		null,

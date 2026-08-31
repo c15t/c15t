@@ -19,8 +19,8 @@ describe('Client Factory Tests', () => {
 
 	it('should create C15tClient when mode is hosted', () => {
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		});
 
 		expect(client).toBeInstanceOf(C15tClient);
@@ -28,8 +28,8 @@ describe('Client Factory Tests', () => {
 
 	it('should create C15tClient when mode is legacy c15t', () => {
 		const client = configureConsentManager({
-			mode: 'c15t',
 			backendURL: '/api/c15t',
+			mode: 'c15t',
 		});
 
 		expect(client).toBeInstanceOf(C15tClient);
@@ -45,14 +45,14 @@ describe('Client Factory Tests', () => {
 
 	it('should create CustomClient when mode is custom', () => {
 		const mockHandlers = {
-			showConsentBanner: vi.fn(),
 			setConsent: vi.fn(),
+			showConsentBanner: vi.fn(),
 			verifyConsent: vi.fn(),
 		};
 
 		const client = configureConsentManager({
-			mode: 'custom',
 			endpointHandlers: mockHandlers,
+			mode: 'custom',
 		});
 
 		expect(client).toBeInstanceOf(CustomClient);
@@ -73,9 +73,9 @@ describe('Client Factory Tests', () => {
 				offlinePolicy: {
 					policyPacks: [
 						{
+							consent: { categories: ['necessary'], model: 'opt-in' },
 							id: 'policy_us',
 							match: { countries: ['US'] },
-							consent: { model: 'opt-in', categories: ['necessary'] },
 						},
 					],
 				},
@@ -90,8 +90,8 @@ describe('Client Factory Tests', () => {
 					policyPacks: [
 						{
 							consent: { categories: ['necessary'], model: 'opt-in' },
-							match: { countries: ['US'] },
 							id: 'policy_us',
+							match: { countries: ['US'] },
 						},
 					],
 				},

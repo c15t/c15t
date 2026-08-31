@@ -5,7 +5,7 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
@@ -117,7 +117,7 @@ describe('IAB Storage E2E Tests', () => {
 
 			// TC strings are base64url encoded with dots as section separators
 			// Format: core.disclosedVendors.allowedVendors.publisherTC
-			const tcStringRegex = /^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/;
+			const tcStringRegex = /^[A-Za-z0-9_-]+(?<capture1>\.[A-Za-z0-9_-]+)*$/u;
 			expect(tcString).toMatch(tcStringRegex);
 		});
 	});

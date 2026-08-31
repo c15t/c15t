@@ -44,8 +44,8 @@ describe('hotjar', () => {
 
 	it('honors a custom loader URL', () => {
 		const script = hotjar({
-			siteId: 1234567,
 			scriptUrl: 'https://cdn.example.com/hotjar.js',
+			siteId: 1234567,
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/hotjar.js');

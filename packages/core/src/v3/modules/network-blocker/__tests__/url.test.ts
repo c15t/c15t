@@ -10,9 +10,9 @@ import {
 } from '../url';
 
 const rule: NetworkBlockerRule = {
-	id: 'r',
-	domain: 'example.com',
 	category: 'marketing',
+	domain: 'example.com',
+	id: 'r',
 };
 
 describe('normalizeMethod', () => {

@@ -50,11 +50,16 @@ describe('validation utilities', () => {
 		});
 
 		test('should reject invalid project slugs', () => {
-			expect(isValidInstanceName('ab')).toBe(false); // Too short
-			expect(isValidInstanceName('a'.repeat(64))).toBe(false); // Too long
-			expect(isValidInstanceName('My-App')).toBe(false); // Uppercase
-			expect(isValidInstanceName('my--app')).toBe(false); // Double hyphen
-			expect(isValidInstanceName('1app')).toBe(false); // Starts with number
+			// Too short
+			expect(isValidInstanceName('ab')).toBe(false);
+			// Too long
+			expect(isValidInstanceName('a'.repeat(64))).toBe(false);
+			// Uppercase
+			expect(isValidInstanceName('My-App')).toBe(false);
+			// Double hyphen
+			expect(isValidInstanceName('my--app')).toBe(false);
+			// Starts with number
+			expect(isValidInstanceName('1app')).toBe(false);
 		});
 	});
 

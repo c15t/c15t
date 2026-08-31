@@ -6,7 +6,7 @@ import {
 	recordBenchConsentFixtureExecution,
 } from '../fixture';
 
-export async function GET() {
+export const GET = async function GET() {
 	recordBenchConsentFixtureExecution('init');
 	await applyBenchConsentLatency();
 
@@ -15,4 +15,4 @@ export async function GET() {
 			'cache-control': 'no-store',
 		},
 	});
-}
+};

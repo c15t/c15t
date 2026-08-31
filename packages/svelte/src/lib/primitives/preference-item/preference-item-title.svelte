@@ -9,11 +9,6 @@
 	const context = getPreferenceItemContext();
 	const variants = preferenceItemVariants();
 
-	const noStyle = $derived(context.noStyle);
-	const className = $derived.by(() =>
-		noStyle ? localClassName : variants.title({ class: localClassName })
-	);
-
 	let {
 		children,
 		class: localClassName,
@@ -22,6 +17,11 @@
 		children?: Snippet;
 		class?: string;
 	} = $props();
+
+	const noStyle = $derived(context.noStyle);
+	const className = $derived.by(() =>
+		noStyle ? localClassName : variants.title({ class: localClassName })
+	);
 </script>
 
 <h3

@@ -36,7 +36,7 @@ const collect = () => {
 	const drain = (ctx: DrainContext) => {
 		events.push(ctx.event as unknown as Record<string, unknown>);
 	};
-	return { events, drain };
+	return { drain, events };
 };
 
 const withApp = async <A>(
@@ -47,14 +47,15 @@ const withApp = async <A>(
 		PgliteClient.layer({}) as unknown as Layer.Layer<SqlClient.SqlClient>
 	);
 	await runtime.runPromise(
-		Effect.gen(function* () {
+		// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+		Effect.gen(function* withApp() {
 			yield* baseline;
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`
 				insert into ${sql('domain')} ${sql.insert({
+					createdAt: new Date(1_800_000_000_000),
 					id: 'dom_1',
 					name: 'example.com',
-					createdAt: new Date(1_800_000_000_000),
 					updatedAt: new Date(1_800_000_000_000),
 				})}
 			`;
@@ -89,7 +90,7 @@ describe('observability: the default', () => {
 		const { events, drain } = collect();
 
 		await withApp(
-			{ manifest: seed, observability: { drain }, apiKeys: [] },
+			{ apiKeys: [], manifest: seed, observability: { drain } },
 			async (app) => {
 				// 401: no API key configured, so nothing authenticates.
 				const response = await app.request('/subjects?externalId=ext_1');
@@ -110,9 +111,9 @@ describe('observability: the default', () => {
 
 		await withApp(
 			{
-				manifest: seed,
-				observability: { level: 'silent', drain },
 				apiKeys: [],
+				manifest: seed,
+				observability: { drain, level: 'silent' },
 			},
 			async (app) => {
 				await app.request('/status');
@@ -130,7 +131,7 @@ describe("observability: level 'info'", () => {
 		const { events, drain } = collect();
 
 		await withApp(
-			{ manifest: seed, observability: { level: 'info', drain } },
+			{ manifest: seed, observability: { drain, level: 'info' } },
 			async (app) => {
 				await app.request('/status');
 				await app.request('/status');
@@ -147,20 +148,20 @@ describe("observability: level 'info'", () => {
 		const { events, drain } = collect();
 
 		const body = {
-			subjectId: 'sub_wide_event',
 			domainId: 'dom_1',
-			purposeIds: ['analytics'],
 			givenAt: new Date(1_800_000_000_000).toISOString(),
+			purposeIds: ['analytics'],
+			subjectId: 'sub_wide_event',
 		};
 		const post = () =>
 			new Request('http://localhost/subjects', {
-				method: 'POST',
-				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify(body),
+				headers: { 'content-type': 'application/json' },
+				method: 'POST',
 			});
 
 		await withApp(
-			{ manifest: seed, observability: { level: 'info', drain } },
+			{ manifest: seed, observability: { drain, level: 'info' } },
 			async (app) => {
 				const first = await app.request(post());
 				assert.strictEqual(first.status, 200, await first.text());
@@ -185,7 +186,7 @@ describe("observability: level 'info'", () => {
 		await withApp(
 			{
 				manifest: seed,
-				observability: { level: 'info', drain, exclude: ['/status'] },
+				observability: { drain, exclude: ['/status'], level: 'info' },
 			},
 			async (app) => {
 				await app.request('/status');
@@ -212,8 +213,8 @@ describe("observability: level 'info'", () => {
 
 	it('passes route filters through verbatim', () => {
 		const resolved = resolveOptions({
-			include: ['/subjects/**'],
 			exclude: ['/status'],
+			include: ['/subjects/**'],
 		});
 		assert.deepStrictEqual(resolved.include, ['/subjects/**']);
 		assert.deepStrictEqual(resolved.exclude, ['/status']);
@@ -231,9 +232,9 @@ describe('a database failure', () => {
 		);
 		try {
 			const app = createApp(runtime, {
+				apiKeys: ['sk_test'],
 				manifest: seed,
 				observability: { drain },
-				apiKeys: ['sk_test'],
 			});
 
 			// No baseline at all, so the read path's first query fails. The

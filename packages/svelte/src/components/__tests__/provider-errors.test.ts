@@ -20,8 +20,8 @@ describe('ConsentManagerProvider Error Handling', () => {
 
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify({ error: 'API error' }), {
-				status: 500,
 				headers: { 'Content-Type': 'application/json' },
+				status: 500,
 			})
 		);
 	});

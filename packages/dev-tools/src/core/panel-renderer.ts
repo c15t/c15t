@@ -57,7 +57,7 @@ export interface PanelRenderer {
 /**
  * Creates a panel renderer with shared logic for rendering DevTools panels
  */
-export function createPanelRenderer(
+export const createPanelRenderer = function createPanelRenderer(
 	config: PanelRendererConfig
 ): PanelRenderer {
 	const {
@@ -86,7 +86,7 @@ export function createPanelRenderer(
 		data?: Record<string, unknown>
 	): void => {
 		if (enableEventLogging) {
-			stateManager.addEvent({ type, message, data });
+			stateManager.addEvent({ data, message, type });
 		}
 	};
 
@@ -101,10 +101,18 @@ export function createPanelRenderer(
 	};
 
 	const renderPanel = (container: HTMLElement, tab: DevToolsTab): void => {
+		// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 		switch (tab) {
 			case 'consents':
 				renderConsentsPanel(container, {
 					getState: getStoreState,
+					onAcceptAll: () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							store.getState().saveConsents('all');
+							logEvent('consent_save', 'Accepted all consents');
+						}
+					},
 					onConsentChange: (name, value) => {
 						const store = storeConnector.getStore();
 						if (store) {
@@ -122,20 +130,6 @@ export function createPanelRenderer(
 							);
 						}
 					},
-					onSave: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('custom');
-							logEvent('consent_save', 'Saved consent preferences');
-						}
-					},
-					onAcceptAll: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('all');
-							logEvent('consent_save', 'Accepted all consents');
-						}
-					},
 					onRejectAll: () => {
 						const store = storeConnector.getStore();
 						if (store) {
@@ -144,6 +138,13 @@ export function createPanelRenderer(
 						}
 					},
 					onReset: resetConsents,
+					onSave: () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							store.getState().saveConsents('custom');
+							logEvent('consent_save', 'Saved consent preferences');
+						}
+					},
 				});
 				break;
 
@@ -155,21 +156,21 @@ export function createPanelRenderer(
 						if (store) {
 							await store.getState().setOverrides({
 								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
 								gpc: overrides.gpc,
+								language: overrides.language,
+								region: overrides.region,
 							});
 							logEvent('info', 'Overrides updated', {
 								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
 								gpc: overrides.gpc,
+								language: overrides.language,
+								region: overrides.region,
 							});
 							onPersistOverrides?.({
 								country: overrides.country,
-								region: overrides.region,
-								language: overrides.language,
 								gpc: overrides.gpc,
+								language: overrides.language,
+								region: overrides.region,
 							});
 						}
 					},
@@ -178,9 +179,9 @@ export function createPanelRenderer(
 						if (store) {
 							await store.getState().setOverrides({
 								country: undefined,
-								region: undefined,
-								language: undefined,
 								gpc: undefined,
+								language: undefined,
+								region: undefined,
 							});
 							logEvent('info', 'Overrides cleared');
 							onClearPersistedOverrides?.();
@@ -197,38 +198,14 @@ export function createPanelRenderer(
 
 			case 'scripts':
 				renderScriptsPanel(container, {
-					getState: getStoreState,
 					getEvents: () => stateManager.getState().eventLog,
+					getState: getStoreState,
 				});
 				break;
 
 			case 'iab':
 				renderIabPanel(container, {
 					getState: getStoreState,
-					onSetPurposeConsent: (purposeId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.setPurposeConsent(purposeId, value);
-						logEvent('iab', `IAB purpose ${purposeId} set to ${value}`);
-					},
-					onSetVendorConsent: (vendorId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.setVendorConsent(vendorId, value);
-						logEvent('iab', `IAB vendor ${vendorId} set to ${value}`);
-					},
-					onSetSpecialFeatureOptIn: (featureId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
-						}
-						iab.setSpecialFeatureOptIn(featureId, value);
-						logEvent('iab', `IAB feature ${featureId} set to ${value}`);
-					},
 					onAcceptAll: () => {
 						const iab = storeConnector.getStore()?.getState().iab;
 						if (!iab) {
@@ -245,6 +222,7 @@ export function createPanelRenderer(
 						iab.rejectAll();
 						logEvent('iab', 'IAB reject all selected');
 					},
+					onReset: resetConsents,
 					onSave: () => {
 						const iab = storeConnector.getStore()?.getState().iab;
 						if (!iab) {
@@ -262,7 +240,30 @@ export function createPanelRenderer(
 							}
 						})();
 					},
-					onReset: resetConsents,
+					onSetPurposeConsent: (purposeId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setPurposeConsent(purposeId, value);
+						logEvent('iab', `IAB purpose ${purposeId} set to ${value}`);
+					},
+					onSetSpecialFeatureOptIn: (featureId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setSpecialFeatureOptIn(featureId, value);
+						logEvent('iab', `IAB feature ${featureId} set to ${value}`);
+					},
+					onSetVendorConsent: (vendorId, value) => {
+						const iab = storeConnector.getStore()?.getState().iab;
+						if (!iab) {
+							return;
+						}
+						iab.setVendorConsent(vendorId, value);
+						logEvent('iab', `IAB vendor ${vendorId} set to ${value}`);
+					},
 				});
 				break;
 
@@ -279,28 +280,6 @@ export function createPanelRenderer(
 			case 'actions':
 				renderActionsPanel(container, {
 					getState: getStoreState,
-					onResetConsents: resetConsents,
-					onRefetchBanner: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().initConsentManager();
-							logEvent('info', 'Banner data refetched');
-						}
-					},
-					onShowBanner: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().setActiveUI('banner', { force: true });
-							logEvent('info', 'Banner shown');
-						}
-					},
-					onOpenPreferences: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().setActiveUI('dialog');
-							logEvent('info', 'Preferences dialog opened');
-						}
-					},
 					onCopyState: () => {
 						const state = getStoreState();
 						if (state) {
@@ -352,14 +331,36 @@ export function createPanelRenderer(
 								}
 							}
 						: undefined,
+					onOpenPreferences: () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							store.getState().setActiveUI('dialog');
+							logEvent('info', 'Preferences dialog opened');
+						}
+					},
+					onRefetchBanner: async () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							await store.getState().initConsentManager();
+							logEvent('info', 'Banner data refetched');
+						}
+					},
+					onResetConsents: resetConsents,
+					onShowBanner: () => {
+						const store = storeConnector.getStore();
+						if (store) {
+							store.getState().setActiveUI('banner', { force: true });
+							logEvent('info', 'Banner shown');
+						}
+					},
 				});
 				break;
 		}
 	};
 
 	return {
-		renderPanel,
 		getStoreState,
+		renderPanel,
 		resetConsents,
 	};
-}
+};

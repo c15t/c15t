@@ -36,7 +36,7 @@ import { encodeRow, encoder, toBoolean } from './values';
  * Two tenants whose data collides on every natural key: same external id, same
  * subject id shape, same policy type. Anything that leaks will be visible.
  */
-const seedBothTenants = Effect.gen(function* () {
+const seedBothTenants = Effect.gen(function* seedBothTenants() {
 	yield* resetDatabase;
 	yield* baseline;
 	const sql = yield* SqlClient.SqlClient;
@@ -48,41 +48,41 @@ const seedBothTenants = Effect.gen(function* () {
 	for (const tenant of ['tenant_a', 'tenant_b']) {
 		yield* sql`insert into ${sql('domain')} ${sql.insert(
 			encodeRow(encode, {
+				createdAt: now,
 				id: `dom_${tenant}`,
 				name: 'shared.example',
 				tenantId: tenant,
-				createdAt: now,
 				updatedAt: now,
 			})
 		)}`;
 		yield* sql`insert into ${sql('subject')} ${sql.insert(
 			encodeRow(encode, {
-				id: `sub_${tenant}`,
-				externalId: 'shared_external_id',
-				tenantId: tenant,
 				createdAt: now,
+				externalId: 'shared_external_id',
+				id: `sub_${tenant}`,
+				tenantId: tenant,
 				updatedAt: now,
 			})
 		)}`;
 		yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
 			encodeRow(encode, {
-				id: `pol_${tenant}`,
-				version: '1.0',
-				type: 'cookie',
+				createdAt: now,
 				effectiveDate: now,
+				id: `pol_${tenant}`,
 				isActive: true,
 				tenantId: tenant,
-				createdAt: now,
+				type: 'cookie',
+				version: '1.0',
 			})
 		)}`;
 		yield* sql`insert into ${sql('consent')} ${sql.insert(
 			encodeRow(encode, {
-				id: `cns_${tenant}`,
-				subjectId: `sub_${tenant}`,
 				domainId: `dom_${tenant}`,
+				givenAt: now,
+				id: `cns_${tenant}`,
 				policyId: `pol_${tenant}`,
 				purposeIds: '[]',
-				givenAt: now,
+				subjectId: `sub_${tenant}`,
 				tenantId: tenant,
 			})
 		)}`;
@@ -94,7 +94,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'listing sees only its own tenant despite a shared external id',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 					const subjects = yield* listByExternalId('shared_external_id');
 
@@ -107,7 +107,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'counting does not count another tenant',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 					// Both tenants have exactly one subject under this external id.
 					assert.strictEqual(yield* countByExternalId('shared_external_id'), 1);
@@ -118,7 +118,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'fetching another tenant subject by id returns nothing',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 					// Knowing the id must not be enough — ids are guessable and
 					// sometimes logged.
@@ -131,7 +131,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'a consent is not marked latest by another tenant policy',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 					const subjects = yield* listByExternalId('shared_external_id');
 					const consent = subjects[0]?.consents[0];
@@ -149,15 +149,15 @@ for (const engine of ENGINES) {
 		it.effect(
 			'syncing a release does not deactivate another tenant policy',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 
 					yield* syncCurrent({
+						effectiveDate: new Date(),
+						hash: 'sha256-new',
 						tenantId: 'tenant_a',
 						type: 'cookie',
 						version: '2.0',
-						hash: 'sha256-new',
-						effectiveDate: new Date(),
 					});
 
 					const sql = yield* SqlClient.SqlClient;
@@ -181,14 +181,14 @@ for (const engine of ENGINES) {
 		it.effect(
 			'identifying a subject cannot reach another tenant',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 
 					const result = yield* linkExternalId({
-						subjectId: 'sub_tenant_b',
 						externalId: 'hijacked',
 						identityProvider: 'external',
 						ipAddress: null,
+						subjectId: 'sub_tenant_b',
 						userAgent: null,
 					});
 
@@ -207,7 +207,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'the same submission under two tenants is two consents',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
 					const sql = yield* SqlClient.SqlClient;
@@ -218,18 +218,18 @@ for (const engine of ENGINES) {
 					// unable to tell "the tenant is in the id" from "the domain is".
 					yield* sql`insert into ${sql('domain')} ${sql.insert(
 						encodeRow(encode, {
+							createdAt: new Date(1_800_000_000_000),
 							id: 'dom_shared',
 							name: 'd',
-							createdAt: new Date(1_800_000_000_000),
 							updatedAt: new Date(1_800_000_000_000),
 						})
 					)}`;
 
 					const submission = {
 						domainId: 'dom_shared',
-						purposeIds: ['analytics'],
 						givenAt: new Date(1_800_000_000_000),
 						ipAddress: null,
+						purposeIds: ['analytics'],
 						userAgent: null,
 					};
 
@@ -273,14 +273,14 @@ for (const engine of ENGINES) {
 		it.effect(
 			'a null-tenant scope does not see tenanted rows',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* seedBothTenants;
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql`insert into ${sql('subject')} ${sql.insert(
 						encodeRow(yield* encoder, {
-							id: 'sub_null',
-							externalId: 'shared_external_id',
 							createdAt: new Date(1_800_000_000_000),
+							externalId: 'shared_external_id',
+							id: 'sub_null',
 							updatedAt: new Date(1_800_000_000_000),
 						})
 					)}`;

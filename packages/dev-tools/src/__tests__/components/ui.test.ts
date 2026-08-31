@@ -59,8 +59,8 @@ describe('UI Components', () => {
 			const onChange = vi.fn();
 			const toggle = createToggle({
 				checked: false,
-				onChange,
 				disabled: true,
+				onChange,
 			});
 
 			toggle.click();
@@ -70,9 +70,9 @@ describe('UI Components', () => {
 
 		it('should set aria-label when provided', () => {
 			const toggle = createToggle({
+				ariaLabel: 'Toggle analytics',
 				checked: false,
 				onChange: vi.fn(),
-				ariaLabel: 'Toggle analytics',
 			});
 
 			expect(toggle.getAttribute('aria-label')).toBe('Toggle analytics');
@@ -120,8 +120,8 @@ describe('UI Components', () => {
 	describe('createButton', () => {
 		it('should create a button element with text', () => {
 			const btn = createButton({
-				text: 'Click me',
 				onClick: vi.fn(),
+				text: 'Click me',
 			});
 
 			expect(btn.tagName).toBe('BUTTON');
@@ -131,8 +131,8 @@ describe('UI Components', () => {
 		it('should call onClick when clicked', () => {
 			const onClick = vi.fn();
 			const btn = createButton({
-				text: 'Click me',
 				onClick,
+				text: 'Click me',
 			});
 
 			btn.click();
@@ -142,9 +142,9 @@ describe('UI Components', () => {
 
 		it('should be disabled when disabled prop is true', () => {
 			const btn = createButton({
-				text: 'Disabled',
-				onClick: vi.fn(),
 				disabled: true,
+				onClick: vi.fn(),
+				text: 'Disabled',
 			});
 
 			expect(btn.disabled).toBe(true);
@@ -152,9 +152,9 @@ describe('UI Components', () => {
 
 		it('should apply small class when small prop is true', () => {
 			const btn = createButton({
-				text: 'Small',
 				onClick: vi.fn(),
 				small: true,
+				text: 'Small',
 			});
 
 			expect(btn.className).toContain('btn');
@@ -162,13 +162,13 @@ describe('UI Components', () => {
 
 		it('should apply variant classes', () => {
 			const primaryBtn = createButton({
-				text: 'Primary',
 				onClick: vi.fn(),
+				text: 'Primary',
 				variant: 'primary',
 			});
 			const dangerBtn = createButton({
-				text: 'Danger',
 				onClick: vi.fn(),
+				text: 'Danger',
 				variant: 'danger',
 			});
 
@@ -179,9 +179,9 @@ describe('UI Components', () => {
 		it('should include icon when provided', () => {
 			const iconSvg = '<svg></svg>';
 			const btn = createButton({
-				text: 'With Icon',
-				onClick: vi.fn(),
 				icon: iconSvg,
+				onClick: vi.fn(),
+				text: 'With Icon',
 			});
 
 			const iconWrapper = btn.querySelector('svg');
@@ -200,8 +200,8 @@ describe('UI Components', () => {
 
 		it('should include description when provided', () => {
 			const item = createListItem({
-				title: 'Test Item',
 				description: 'This is a description',
+				title: 'Test Item',
 			});
 
 			expect(item.textContent).toContain('This is a description');
@@ -212,8 +212,8 @@ describe('UI Components', () => {
 			actionBtn.textContent = 'Action';
 
 			const item = createListItem({
-				title: 'Test Item',
 				actions: [actionBtn],
+				title: 'Test Item',
 			});
 
 			expect(item.querySelector('button')).not.toBeNull();
@@ -223,8 +223,8 @@ describe('UI Components', () => {
 	describe('createSection', () => {
 		it('should create a section with title', () => {
 			const section = createSection({
-				title: 'Section Title',
 				children: [],
+				title: 'Section Title',
 			});
 
 			expect(section.textContent).toContain('Section Title');
@@ -235,8 +235,8 @@ describe('UI Components', () => {
 			child.textContent = 'Child content';
 
 			const section = createSection({
-				title: 'Section',
 				children: [child],
+				title: 'Section',
 			});
 
 			expect(section.textContent).toContain('Child content');
@@ -247,9 +247,9 @@ describe('UI Components', () => {
 			actionBtn.textContent = 'Action';
 
 			const section = createSection({
-				title: 'Section',
 				actions: [actionBtn],
 				children: [],
+				title: 'Section',
 			});
 
 			expect(section.querySelector('button')).not.toBeNull();
@@ -299,8 +299,8 @@ describe('UI Components', () => {
 
 		it('should support 3 columns', () => {
 			const grid = createGrid({
-				columns: 3,
 				children: [],
+				columns: 3,
 			});
 
 			expect(grid.className).toContain('grid');
@@ -334,8 +334,8 @@ describe('UI Components', () => {
 			actionBtn.textContent = 'Click';
 
 			const card = createGridCard({
-				title: 'Card',
 				action: actionBtn,
+				title: 'Card',
 			});
 
 			expect(card.querySelector('button')).not.toBeNull();

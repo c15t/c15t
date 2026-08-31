@@ -45,7 +45,9 @@
 		)
 	);
 
-	function resolveBranding(value: string): ResolvedBranding {
+	const resolveBranding = function resolveBranding(
+		value: string
+	): ResolvedBranding {
 		if (value === 'none') {
 			return 'none';
 		}
@@ -55,13 +57,13 @@
 		}
 
 		return 'c15t';
-	}
+	};
 
 	const resolvedBranding = $derived(resolveBranding(branding));
 	const showBranding = $derived(!hideBranding && resolvedBranding !== 'none');
 	const brandingHref = $derived.by(() => {
 		const refParam =
-			typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+			typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
 		return resolvedBranding === 'inth'
 			? `https://inth.com${refParam}`
 			: `https://c15t.com${refParam}`;
@@ -70,7 +72,7 @@
 	const baseClassName = $derived(
 		[
 			styles.branding,
-			variant !== 'footer' ? styles.brandingTag : '',
+			variant === 'footer' ? '' : styles.brandingTag,
 			variant === 'dialog-tag' ? styles.brandingTagDialog : '',
 			variant === 'banner-tag' ? styles.brandingTagBanner : '',
 		]

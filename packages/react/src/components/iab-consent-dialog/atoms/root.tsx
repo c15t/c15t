@@ -126,6 +126,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const themedStyle = useStyles('iabConsentDialog', {
 		baseClassName: cn(
 			styles.root,
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 			disableAnimation
 				? undefined
 				: isVisible

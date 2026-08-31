@@ -16,12 +16,12 @@ describe('applyInitResponse', () => {
 		const patch = applyInitResponse(snap, {
 			resolvedOverrides: { country: 'US' },
 		});
-		expect(patch?.overrides).toEqual({ language: 'en', country: 'US' });
+		expect(patch?.overrides).toEqual({ country: 'US', language: 'en' });
 	});
 
 	test('gvl: null disables IAB even if previously enabled', () => {
 		const snap = buildInitialSnapshot({
-			initialIab: { enabled: true, cmpId: 7 },
+			initialIab: { cmpId: 7, enabled: true },
 		});
 		const patch = applyInitResponse(snap, { gvl: null });
 		expect(patch?.iab).not.toBeNull();
@@ -51,9 +51,9 @@ describe('applyInitResponse', () => {
 			policy: {
 				model: 'opt-in',
 				ui: {
-					mode: 'banner',
 					banner: { theme: 'dark' },
 					dialog: { theme: 'light' },
+					mode: 'banner',
 				},
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
@@ -79,8 +79,8 @@ describe('applyInitResponse', () => {
 		const snap = buildInitialSnapshot({});
 		const hydrated = {
 			...snap,
-			hasConsented: true,
 			activeUI: 'none' as const,
+			hasConsented: true,
 		};
 		const patch = applyInitResponse(hydrated, {
 			policy: {
@@ -97,11 +97,11 @@ describe('applyInitResponse', () => {
 		const snap = buildInitialSnapshot({});
 		const patch = applyInitResponse(snap, {
 			policy: {
-				model: 'opt-in',
 				consent: {
 					categories: ['necessary', 'marketing'],
 					scopeMode: 'strict',
 				},
+				model: 'opt-in',
 				ui: { mode: 'banner' },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
@@ -114,12 +114,12 @@ describe('applyInitResponse', () => {
 		const snap = buildInitialSnapshot({});
 		const patch = applyInitResponse(snap, {
 			policy: {
-				model: 'opt-in',
 				consent: {
 					categories: ['necessary', 'marketing', 'measurement'],
 					preselectedCategories: ['necessary', 'marketing', 'measurement'],
 					scopeMode: 'strict',
 				},
+				model: 'opt-in',
 				ui: { mode: 'banner' },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
@@ -127,9 +127,9 @@ describe('applyInitResponse', () => {
 
 		expect(patch?.hasConsented).toBeUndefined();
 		expect(patch?.consents).toMatchObject({
-			necessary: true,
 			marketing: false,
 			measurement: false,
+			necessary: true,
 		});
 	});
 
@@ -137,12 +137,12 @@ describe('applyInitResponse', () => {
 		const snap = buildInitialSnapshot({});
 		const patch = applyInitResponse(snap, {
 			policy: {
-				model: 'opt-in',
 				consent: {
 					categories: ['necessary'],
 					preselectedCategories: ['necessary'],
 					scopeMode: 'permissive',
 				},
+				model: 'opt-in',
 				ui: { mode: 'banner' },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
@@ -150,11 +150,11 @@ describe('applyInitResponse', () => {
 
 		expect(patch?.hasConsented).toBeUndefined();
 		expect(patch?.consents).toMatchObject({
-			necessary: true,
+			experience: false,
 			functionality: false,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		});
 	});
 
@@ -205,10 +205,10 @@ describe('applyInitResponse', () => {
 			initialTranslations: {
 				language: 'en',
 				translations: {
-					common: { securedBy: 'Secured by', acceptAll: 'Accept All' },
+					common: { acceptAll: 'Accept All', securedBy: 'Secured by' },
 					cookieBanner: {
-						title: 'We value your privacy',
 						description: 'Default description',
+						title: 'We value your privacy',
 					},
 					// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
 				} as any,

@@ -129,7 +129,7 @@ describe('useFocusTrap', () => {
 	});
 
 	describe('Focus Trap Behavior', () => {
-		test('should not throw when container ref is null', async () => {
+		test('should not throw when container ref is null', () => {
 			// Component that uses null ref
 			const NullRefComponent = () => {
 				useFocusTrap(true, null);

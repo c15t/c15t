@@ -34,6 +34,7 @@ export const Default: Story = {
 };
 
 export const ExpandedCategories: Story = {
+	play: expandedCategories,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
@@ -44,5 +45,4 @@ export const ExpandedCategories: Story = {
 			</div>
 		</StorybookConsentProvider>
 	),
-	play: expandedCategories,
 };

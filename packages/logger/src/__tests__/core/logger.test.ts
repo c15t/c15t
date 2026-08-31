@@ -33,10 +33,14 @@ describe('logger', () => {
 		it('should respect log level option', () => {
 			const logger = createLogger({ level: 'warn' });
 
-			logger.error('This should be logged'); // Should be logged
-			logger.warn('This should be logged'); // Should be logged
-			logger.info('This should not be logged'); // Should not be logged
-			logger.debug('This should not be logged'); // Should not be logged
+			// Should be logged
+			logger.error('This should be logged');
+			// Should be logged
+			logger.warn('This should be logged');
+			// Should not be logged
+			logger.info('This should not be logged');
+			// Should not be logged
+			logger.debug('This should not be logged');
 
 			// Verify calls - with 'warn' level, only error and warn should be logged
 			expect(console.error).toHaveBeenCalled();
@@ -48,8 +52,8 @@ describe('logger', () => {
 		it('should use custom log handler when provided', () => {
 			const customLog = vi.fn();
 			const logger = createLogger({
-				log: customLog,
 				level: 'debug',
+				log: customLog,
 			});
 
 			logger.info('Info message');
@@ -80,7 +84,7 @@ describe('logger', () => {
 			expect(firstCallArg).toContain('Test message');
 
 			// Check that timestamp matches the current time-only format (HH:MM:SS.mmm)
-			expect(firstCallArg).toMatch(/\d{2}:\d{2}:\d{2}\.\d{3}/);
+			expect(firstCallArg).toMatch(/\d{2}:\d{2}:\d{2}\.\d{3}/u);
 		});
 
 		it('should pass additional arguments to console methods', () => {

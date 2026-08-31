@@ -12,7 +12,7 @@ import type { ComponentType, ReactElement, ReactNode } from 'react';
  *
  * @returns The cloned node(s) with the additional props applied to the matched components.
  */
-export function recursiveCloneChildren(
+export const recursiveCloneChildren = function recursiveCloneChildren(
 	children: ReactNode,
 	additionalProps: Record<string, unknown>,
 	displayNames: string[],
@@ -49,4 +49,4 @@ export function recursiveCloneChildren(
 	});
 
 	return asChild ? mappedChildren?.[0] : mappedChildren;
-}
+};

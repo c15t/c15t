@@ -41,7 +41,7 @@ const EXPECTED_TABLES = [
 const Pglite = PgliteClient.layer({});
 
 /** Column names actually present, straight from `information_schema`. */
-const introspect = Effect.fn('introspect')(function* (table: string) {
+const introspect = Effect.fn('introspect')(function* introspect(table: string) {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{
 		column_name: string;
@@ -49,7 +49,7 @@ const introspect = Effect.fn('introspect')(function* (table: string) {
 	return rows.map((row) => row.column_name).sort();
 });
 
-const tableNames = Effect.fn('tableNames')(function* () {
+const tableNames = Effect.fn('tableNames')(function* tableNames() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{ table_name: string }>`
 		select table_name from information_schema.tables
@@ -62,7 +62,7 @@ describe('baseline migration', () => {
 	it.effect(
 		'creates exactly the tables a shipped 2.0.0 database has',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* up;
 
 				const loaded = yield* Effect.promise(() =>
@@ -73,14 +73,17 @@ describe('baseline migration', () => {
 					'captured',
 					'fumadb-2.0.0/postgres should be a captured fixture'
 				);
-				if (loaded.kind !== 'captured') return;
+				if (loaded.kind !== 'captured') {
+					return;
+				}
 
 				// The fixture carries fumadb's own marker table; the baseline
 				// deliberately does not create it. Our migrator owns its ledger
 				// (RFC §3.3) rather than inheriting fumadb's bookkeeping.
 				const fromFixture = loaded.fixture.tables
 					.map((table) => table.name)
-					.filter((name) => !/(^|_)c15t_settings$/.test(name))
+					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+					.filter((name) => !/(^|_)c15t_settings$/u.test(name))
 					.sort();
 
 				assert.deepStrictEqual(fromFixture, [...EXPECTED_TABLES]);
@@ -97,7 +100,7 @@ describe('baseline migration', () => {
 	it.effect(
 		'reproduces every foreign key',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* up;
 				const sql = yield* SqlClient.SqlClient;
 
@@ -152,7 +155,7 @@ describe('baseline migration', () => {
 	it.effect(
 		'reproduces every unique and primary key constraint',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* up;
 				const sql = yield* SqlClient.SqlClient;
 
@@ -175,7 +178,8 @@ describe('baseline migration', () => {
 					`${index.table}.${index.columns.join('+')} unique=${index.isUnique} pk=${index.isPrimary}`;
 
 				const expected = loaded.fixture.indexes
-					.filter((index) => !/(^|_)c15t_settings$/.test(index.table))
+					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+					.filter((index) => !/(^|_)c15t_settings$/u.test(index.table))
 					.map(describe_)
 					.sort();
 
@@ -201,10 +205,10 @@ describe('baseline migration', () => {
 				const actual = rows
 					.map((row) =>
 						describe_({
-							table: row.table_name,
 							columns: [row.column_name],
-							isUnique: row.is_unique,
 							isPrimary: row.is_primary,
+							isUnique: row.is_unique,
+							table: row.table_name,
 						})
 					)
 					.sort();
@@ -218,7 +222,7 @@ describe('baseline migration', () => {
 		it.effect(
 			`reproduces every column of "${table}"`,
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* up;
 
 					const loaded = yield* Effect.promise(() =>
@@ -253,7 +257,9 @@ describe('baseline migration', () => {
 describe('baseline migration (sqlite)', () => {
 	const Sqlite = SqliteClient.layer({ filename: ':memory:' });
 
-	const sqliteColumns = Effect.fn('sqliteColumns')(function* (table: string) {
+	const sqliteColumns = Effect.fn('sqliteColumns')(function* sqliteColumns(
+		table: string
+	) {
 		const sql = yield* SqlClient.SqlClient;
 		const rows = yield* sql<{
 			name: string;
@@ -265,7 +271,7 @@ describe('baseline migration (sqlite)', () => {
 		it.effect(
 			`reproduces every column of "${table}"`,
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* up;
 
 					const loaded = yield* Effect.promise(() =>

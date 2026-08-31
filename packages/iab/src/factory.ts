@@ -21,8 +21,8 @@ export type IABUserConfig = Omit<IABConfig, 'enabled' | '_module'>;
 
 const iabModule: IABModule = {
 	createIABManager,
-	initializeIABMode,
 	fetchGVL,
+	initializeIABMode,
 };
 
 /**
@@ -41,10 +41,10 @@ const iabModule: IABModule = {
  * }}>
  * ```
  */
-export function iab(config: IABUserConfig): IABConfig {
+export const iab = function iab(config: IABUserConfig): IABConfig {
 	return {
 		...config,
-		enabled: true,
 		_module: iabModule,
+		enabled: true,
 	};
-}
+};

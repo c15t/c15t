@@ -16,11 +16,11 @@ describe('override-storage', () => {
 
 		vi.stubGlobal('localStorage', {
 			getItem: vi.fn((key: string) => mockLocalStorage[key] ?? null),
-			setItem: vi.fn((key: string, value: string) => {
-				mockLocalStorage[key] = value;
-			}),
 			removeItem: vi.fn((key: string) => {
 				Reflect.deleteProperty(mockLocalStorage, key);
+			}),
+			setItem: vi.fn((key: string, value: string) => {
+				mockLocalStorage[key] = value;
 			}),
 		});
 	});
@@ -28,36 +28,36 @@ describe('override-storage', () => {
 	it('loads persisted overrides from localStorage', () => {
 		mockLocalStorage[STORAGE_KEY] = JSON.stringify({
 			country: 'DE',
-			region: 'BE',
-			language: 'de',
 			gpc: true,
+			language: 'de',
+			region: 'BE',
 		});
 
 		const overrides = loadPersistedOverrides(STORAGE_KEY);
 
 		expect(overrides).toEqual({
 			country: 'DE',
-			region: 'BE',
-			language: 'de',
 			gpc: true,
+			language: 'de',
+			region: 'BE',
 		});
 	});
 
 	it('normalizes empty string override values', () => {
 		mockLocalStorage[STORAGE_KEY] = JSON.stringify({
 			country: '  ',
-			region: '',
-			language: '  de  ',
 			gpc: false,
+			language: '  de  ',
+			region: '',
 		});
 
 		const overrides = loadPersistedOverrides(STORAGE_KEY);
 
 		expect(overrides).toEqual({
 			country: undefined,
-			region: undefined,
-			language: 'de',
 			gpc: false,
+			language: 'de',
+			region: undefined,
 		});
 	});
 
@@ -70,9 +70,9 @@ describe('override-storage', () => {
 	it('returns null when persisted data has no usable overrides', () => {
 		mockLocalStorage[STORAGE_KEY] = JSON.stringify({
 			country: '',
-			region: ' ',
-			language: '',
 			gpc: 'true',
+			language: '',
+			region: ' ',
 		});
 
 		expect(loadPersistedOverrides(STORAGE_KEY)).toBeNull();
@@ -82,9 +82,9 @@ describe('override-storage', () => {
 		persistOverrides(
 			{
 				country: 'US',
-				region: 'CA',
-				language: 'en',
 				gpc: undefined,
+				language: 'en',
+				region: 'CA',
 			},
 			STORAGE_KEY
 		);
@@ -93,9 +93,9 @@ describe('override-storage', () => {
 			STORAGE_KEY,
 			JSON.stringify({
 				country: 'US',
-				region: 'CA',
-				language: 'en',
 				gpc: undefined,
+				language: 'en',
+				region: 'CA',
 			})
 		);
 	});
@@ -104,9 +104,9 @@ describe('override-storage', () => {
 		persistOverrides(
 			{
 				country: undefined,
-				region: undefined,
-				language: undefined,
 				gpc: undefined,
+				language: undefined,
+				region: undefined,
 			},
 			STORAGE_KEY
 		);

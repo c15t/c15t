@@ -6,26 +6,26 @@ import {
 } from '../shared/rslib-utils';
 
 export default defineConfig({
-	source: {
-		entry: {
-			index: ['./src/index.ts'],
-			all: ['./src/all.ts'],
-			'translations/en': ['./src/translations/en.ts'],
-		},
-		exclude: standardExcludePatterns,
-	},
 	lib: [
 		{
+			bundle: true,
 			dts: {
 				distPath: './dist-types',
 			},
-			bundle: true,
 			format: 'esm',
 		},
 	],
 	output: {
-		target: 'node',
 		cleanDistPath: true,
+		target: 'node',
+	},
+	source: {
+		entry: {
+			all: ['./src/all.ts'],
+			index: ['./src/index.ts'],
+			'translations/en': ['./src/translations/en.ts'],
+		},
+		exclude: standardExcludePatterns,
 	},
 	tools: {
 		rspack: {

@@ -11,23 +11,23 @@ import { bench, runMicroBenchmarkSuite } from './wrapper';
 // Sample partial override (simulates user customization)
 const partialOverride = {
 	cookieBanner: {
-		title: 'Custom Title',
 		description: 'Custom description text',
+		title: 'Custom Title',
 	},
 };
 
 // Larger partial override (more realistic)
 const largerOverride = {
-	cookieBanner: {
-		title: 'Custom Cookie Notice',
-		description: 'We use cookies to improve your experience.',
-		acceptButton: 'Accept All',
-		rejectButton: 'Reject All',
-		customizeButton: 'Customize',
-	},
 	common: {
 		close: 'Close',
 		save: 'Save Preferences',
+	},
+	cookieBanner: {
+		acceptButton: 'Accept All',
+		customizeButton: 'Customize',
+		description: 'We use cookies to improve your experience.',
+		rejectButton: 'Reject All',
+		title: 'Custom Cookie Notice',
 	},
 };
 
@@ -51,10 +51,10 @@ const largerOverrideConfig = {
 const multiLangConfig = {
 	defaultLanguage: 'en',
 	translations: {
-		en: enTranslations,
 		de: partialOverride,
-		fr: partialOverride,
+		en: enTranslations,
 		es: partialOverride,
+		fr: partialOverride,
 	},
 };
 
@@ -90,11 +90,11 @@ bench('mergeTranslationConfigs - no custom config', () => {
 
 // Language detection benchmarks
 bench('detectBrowserLanguage - with matching language', () => {
-	detectBrowserLanguage({ en: {}, de: {}, fr: {} }, 'en', false);
+	detectBrowserLanguage({ de: {}, en: {}, fr: {} }, 'en', false);
 });
 
 bench('detectBrowserLanguage - with auto-switch disabled', () => {
-	detectBrowserLanguage({ en: {}, de: {}, fr: {} }, 'en', true);
+	detectBrowserLanguage({ de: {}, en: {}, fr: {} }, 'en', true);
 });
 
 bench('detectBrowserLanguage - fallback to default', () => {

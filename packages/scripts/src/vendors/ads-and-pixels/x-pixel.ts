@@ -116,34 +116,34 @@ declare global {
  */
 export const xPixelManifest = {
 	...vendorManifestContract,
-	vendor: 'x-pixel',
-	category: 'marketing',
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
-			name: 'twq',
-			queue: {
-				property: 'queue',
-			},
 			dispatchProperty: 'exe',
+			ifUndefined: true,
+			name: 'twq',
 			properties: {
 				version: '1.1',
 			},
-			ifUndefined: true,
+			queue: {
+				property: 'queue',
+			},
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'marketing',
 	install: [
 		{
-			type: 'callGlobal',
-			global: 'twq',
 			args: ['config', '{{pixelId}}'],
+			global: 'twq',
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
 			async: true,
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'x-pixel',
 } as const satisfies VendorManifest;
 
 export interface XPixelOptions {
@@ -174,14 +174,17 @@ export interface XPixelOptions {
  *
  * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites} X conversion tracking documentation
  */
-export function xPixel({ pixelId, scriptSrc }: XPixelOptions): Script {
+export const xPixel = function xPixel({
+	pixelId,
+	scriptSrc,
+}: XPixelOptions): Script {
 	const resolved = resolveManifest(xPixelManifest, {
 		pixelId,
 		scriptSrc: scriptSrc ?? 'https://static.ads-twitter.com/uwt.js',
 	});
 
 	return resolved;
-}
+};
 
 /**
  * @param eventId - The event ID to track

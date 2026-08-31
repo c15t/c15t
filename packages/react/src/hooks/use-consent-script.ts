@@ -167,15 +167,17 @@ const managerScriptRegistries = new WeakMap<
 	Map<string, ScriptRegistryEntry<unknown>>
 >();
 
-function toError(error: unknown): Error {
+const toError = function toError(error: unknown): Error {
 	if (error instanceof Error) {
 		return error;
 	}
 
 	return new Error(String(error));
-}
+};
 
-function normalizeSignatureValue(value: unknown): unknown {
+const normalizeSignatureValue = function normalizeSignatureValue(
+	value: unknown
+): unknown {
 	if (typeof value === 'function' || value === undefined) {
 		return undefined;
 	}
@@ -194,21 +196,25 @@ function normalizeSignatureValue(value: unknown): unknown {
 	}
 
 	return value;
-}
+};
 
-function createScriptSignature(script: Script): string {
+const createScriptSignature = function createScriptSignature(
+	script: Script
+): string {
 	return JSON.stringify(normalizeSignatureValue(script));
-}
+};
 
-function normalizeTimeout(timeoutMs: number | undefined): number | undefined {
+const normalizeTimeout = function normalizeTimeout(
+	timeoutMs: number | undefined
+): number | undefined {
 	if (timeoutMs === undefined || timeoutMs <= 0) {
 		return undefined;
 	}
 
 	return timeoutMs;
-}
+};
 
-function getRegistry(
+const getRegistry = function getRegistry(
 	store: ConsentStore
 ): Map<string, ScriptRegistryEntry<unknown>> {
 	const existing = managerScriptRegistries.get(store);
@@ -219,9 +225,11 @@ function getRegistry(
 	const registry = new Map<string, ScriptRegistryEntry<unknown>>();
 	managerScriptRegistries.set(store, registry);
 	return registry;
-}
+};
 
-function cleanupReadiness(entry: ScriptRegistryEntry<unknown>): void {
+const cleanupReadiness = function cleanupReadiness(
+	entry: ScriptRegistryEntry<unknown>
+): void {
 	if (entry.timeoutId) {
 		clearTimeout(entry.timeoutId);
 		entry.timeoutId = undefined;
@@ -229,9 +237,9 @@ function cleanupReadiness(entry: ScriptRegistryEntry<unknown>): void {
 
 	entry.cleanupReadyCallback?.();
 	entry.cleanupReadyCallback = undefined;
-}
+};
 
-function callConsumers(
+const callConsumers = function callConsumers(
 	entry: ScriptRegistryEntry<unknown>,
 	callback: 'onBeforeLoad' | 'onLoad' | 'onError' | 'onConsentChange',
 	info: ScriptCallbackInfo
@@ -249,9 +257,9 @@ function callConsumers(
 	if (callbackError !== undefined) {
 		throw callbackError;
 	}
-}
+};
 
-function createRegistryEntry<TReady>({
+const createRegistryEntry = function createRegistryEntry<TReady>({
 	options,
 	readinessConsumer,
 	readinessKey,
@@ -273,29 +281,16 @@ function createRegistryEntry<TReady>({
 	});
 
 	const entry: ScriptRegistryEntry<TReady> = {
-		refCount: 0,
-		signature: createScriptSignature(options.script),
-		readinessKey,
-		timeoutMs,
-		unmountBehavior,
-		registered: false,
-		ownsRegistration: false,
-		loaded: false,
-		started: false,
-		settled: false,
-		readyValue: null,
+		consumers: new Set(),
 		error: null,
+		loaded: false,
+		ownsRegistration: false,
 		promise,
-		resolve: (value) => {
-			if (entry.settled) {
-				return;
-			}
-
-			entry.settled = true;
-			entry.readyValue = value;
-			cleanupReadiness(entry as unknown as ScriptRegistryEntry<unknown>);
-			resolvePromise(value);
-		},
+		readinessConsumer,
+		readinessKey,
+		readyValue: null,
+		refCount: 0,
+		registered: false,
 		reject: (error) => {
 			if (entry.settled) {
 				return;
@@ -306,6 +301,21 @@ function createRegistryEntry<TReady>({
 			cleanupReadiness(entry as unknown as ScriptRegistryEntry<unknown>);
 			rejectPromise(error);
 		},
+		resolve: (value) => {
+			if (entry.settled) {
+				return;
+			}
+
+			entry.settled = true;
+			entry.readyValue = value;
+			cleanupReadiness(entry as unknown as ScriptRegistryEntry<unknown>);
+			resolvePromise(value);
+		},
+		script: options.script,
+		settled: false,
+		signature: createScriptSignature(options.script),
+		started: false,
+		timeoutMs,
 		tryResolve: (scriptLoaded = false) => {
 			if (entry.settled) {
 				return true;
@@ -333,9 +343,7 @@ function createRegistryEntry<TReady>({
 
 			return false;
 		},
-		script: options.script,
-		readinessConsumer,
-		consumers: new Set(),
+		unmountBehavior,
 	};
 
 	entry.script = {
@@ -347,12 +355,10 @@ function createRegistryEntry<TReady>({
 				info
 			);
 		},
-		onLoad: (info) => {
-			entry.loaded = true;
-			entry.tryResolve(true);
+		onConsentChange: (info) => {
 			callConsumers(
 				entry as unknown as ScriptRegistryEntry<unknown>,
-				'onLoad',
+				'onConsentChange',
 				info
 			);
 		},
@@ -366,19 +372,21 @@ function createRegistryEntry<TReady>({
 				info
 			);
 		},
-		onConsentChange: (info) => {
+		onLoad: (info) => {
+			entry.loaded = true;
+			entry.tryResolve(true);
 			callConsumers(
 				entry as unknown as ScriptRegistryEntry<unknown>,
-				'onConsentChange',
+				'onLoad',
 				info
 			);
 		},
 	};
 
 	return entry;
-}
+};
 
-function getOrCreateRegistryEntry<TReady>({
+const getOrCreateRegistryEntry = function getOrCreateRegistryEntry<TReady>({
 	store,
 	options,
 	consumer,
@@ -455,22 +463,23 @@ function getOrCreateRegistryEntry<TReady>({
 		entry as unknown as ScriptRegistryEntry<unknown>
 	);
 	return entry;
-}
+};
 
-function startReadiness<TReady>(entry: ScriptRegistryEntry<TReady>): void {
+const startReadiness = function startReadiness<TReady>(
+	entry: ScriptRegistryEntry<TReady>
+): void {
 	if (entry.started) {
 		return;
 	}
 
 	entry.started = true;
-	const registerReadyCallback =
-		entry.readinessConsumer.current.registerReadyCallback;
+	const { registerReadyCallback } = entry.readinessConsumer.current;
 
 	if (registerReadyCallback) {
 		try {
 			const cleanup = registerReadyCallback({
-				resolve: entry.resolve,
 				reject: entry.reject,
+				resolve: entry.resolve,
 			});
 			if (cleanup) {
 				entry.cleanupReadyCallback = cleanup;
@@ -494,9 +503,9 @@ function startReadiness<TReady>(entry: ScriptRegistryEntry<TReady>): void {
 	}
 
 	entry.tryResolve(false);
-}
+};
 
-function releaseRegistryEntry<TReady>({
+const releaseRegistryEntry = function releaseRegistryEntry<TReady>({
 	store,
 	entry,
 	consumer,
@@ -528,7 +537,7 @@ function releaseRegistryEntry<TReady>({
 	if (entry.ownsRegistration && entry.registered) {
 		store.getState().removeScript(entry.script.id);
 	}
-}
+};
 
 /**
  * Registers a consent-gated script through c15t and exposes SDK readiness as a promise.
@@ -539,7 +548,7 @@ function releaseRegistryEntry<TReady>({
  * registrations it does not own. Inline script objects and callbacks are safe:
  * lifecycle callbacks are read from the latest render without re-registering.
  */
-export function useConsentScript<TReady = unknown>(
+export const useConsentScript = function useConsentScript<TReady = unknown>(
 	options: UseConsentScriptOptions<TReady>
 ): UseConsentScriptResult<TReady> {
 	const {
@@ -611,12 +620,12 @@ export function useConsentScript<TReady = unknown>(
 
 		try {
 			entry = getOrCreateRegistryEntry({
-				store: context.store,
-				options: latestOptionsRef.current,
 				consumer,
-				signature,
+				options: latestOptionsRef.current,
 				readinessKey,
 				retryFailed,
+				signature,
+				store: context.store,
 				timeoutMs,
 				unmountBehavior,
 			});
@@ -694,9 +703,9 @@ export function useConsentScript<TReady = unknown>(
 				activeEntryRef.current = null;
 			}
 			releaseRegistryEntry({
-				store: context.store,
-				entry,
 				consumer,
+				entry,
+				store: context.store,
 			});
 		};
 	}, [
@@ -732,12 +741,12 @@ export function useConsentScript<TReady = unknown>(
 	}
 
 	return {
-		status,
-		scriptId: script.id,
-		hasConsent,
-		scriptAppended,
-		readyValue,
 		error,
+		hasConsent,
 		ready,
+		readyValue,
+		scriptAppended,
+		scriptId: script.id,
+		status,
 	};
-}
+};

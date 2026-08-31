@@ -15,7 +15,10 @@ import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 
 const createdDirs: string[] = [];
 
-async function copyV1Fixture(): Promise<{ rootDir: string; appFile: string }> {
+const copyV1Fixture = async function copyV1Fixture(): Promise<{
+	rootDir: string;
+	appFile: string;
+}> {
 	const tempRoot = await mkdtemp(join(tmpdir(), 'c15t-v1-app-'));
 	const projectRoot = join(tempRoot, 'v1-app');
 	const fixtureRoot = new URL(
@@ -25,41 +28,45 @@ async function copyV1Fixture(): Promise<{ rootDir: string; appFile: string }> {
 	await cp(fixtureRoot, projectRoot, { recursive: true });
 	createdDirs.push(tempRoot);
 	return {
-		rootDir: projectRoot,
 		appFile: join(projectRoot, 'src/app.tsx'),
+		rootDir: projectRoot,
 	};
-}
+};
 
 describe('v1 app codemod migration', () => {
 	afterEach(async () => {
-		for (const dir of createdDirs.splice(0, createdDirs.length)) {
-			await rm(dir, { recursive: true, force: true });
-		}
+		await Array.from(createdDirs.splice(0, createdDirs.length)).reduce(
+			async (previousIteration, dir) => {
+				await previousIteration;
+				await rm(dir, { force: true, recursive: true });
+			},
+			Promise.resolve()
+		);
 	});
 
 	it('migrates fixture app from v1-style APIs to v2-style APIs', async () => {
 		const { rootDir, appFile } = await copyV1Fixture();
 
-		await runC15tModeToHostedCodemod({ projectRoot: rootDir, dryRun: false });
+		await runC15tModeToHostedCodemod({ dryRun: false, projectRoot: rootDir });
 		await runTrackingBlockerToNetworkBlockerCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 		await runIgnoreGeoLocationToOverridesCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
-		await runComponentRenamesCodemod({ projectRoot: rootDir, dryRun: false });
-		await runActiveUiApiCodemod({ projectRoot: rootDir, dryRun: false });
+		await runComponentRenamesCodemod({ dryRun: false, projectRoot: rootDir });
+		await runActiveUiApiCodemod({ dryRun: false, projectRoot: rootDir });
 		await runGdprTypesToConsentCategoriesCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 		await runReactOptionsToTopLevelCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
-		await runTranslationsToI18nCodemod({ projectRoot: rootDir, dryRun: false });
+		await runTranslationsToI18nCodemod({ dryRun: false, projectRoot: rootDir });
 
 		const updated = await readFile(appFile, 'utf-8');
 

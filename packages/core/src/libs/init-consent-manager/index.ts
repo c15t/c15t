@@ -20,6 +20,11 @@ import type { PendingConsentSync } from '../save-consents';
 import { updateStore } from './store-updater';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 import { checkLocalStorageAccess } from './utils';
+// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+let inspectBackendCache: (headers: Headers) => {
+	isCacheHit: boolean;
+	detail: string | null;
+};
 
 // Re-export types for external use
 export type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
@@ -50,62 +55,43 @@ function shouldReuseSSRData(
 	return matchesStoredRequestContext(requestContext, matcher);
 }
 
-/**
- * Initializes the consent manager by fetching jurisdiction, location,
- * translations, and branding information.
- *
- * This function handles:
- * - SSR data hydration (uses prefetched data if available)
- * - Client-side API fetching (fallback when no SSR data)
- * - Store state updates
- * - Callback triggers
- * - IAB TCF mode initialization (if enabled)
- *
- * @param config - Configuration object containing store and manager instances
- * @returns A promise that resolves with the consent banner response
- *
- * @example
- * ```typescript
- * const response = await initConsentManager({
- *   manager: consentManager,
- *   get: store.getState,
- *   set: store.setState,
- *   ssrData: ssrPrefetchedData,
- * });
- * ```
- */
-export async function initConsentManager(
-	config: InitConsentManagerConfig
-): Promise<ConsentBannerResponse | undefined> {
-	const { get, set, manager } = config;
-	const { callbacks } = get();
+function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
+	const cache = data.metadata?.cache;
+	const requestDurationMs = data.metadata?.requestDurationMs;
+	const detailParts: string[] = ['via=ssr'];
 
-	// Skip on server-side
-	if (typeof window === 'undefined') {
-		return undefined;
+	if (cache?.detail) {
+		detailParts.push(cache.detail);
+	}
+	if (
+		typeof requestDurationMs === 'number' &&
+		Number.isFinite(requestDurationMs)
+	) {
+		detailParts.push(
+			`duration=${Math.max(0, Math.round(requestDurationMs))}ms`
+		);
 	}
 
-	// Check if localStorage is available
-	const hasLocalStorageAccess = checkLocalStorageAccess(set);
-	if (!hasLocalStorageAccess) {
-		return undefined;
+	const detail = detailParts.length > 0 ? detailParts.join(', ') : null;
+
+	if (cache?.isHit === true) {
+		return {
+			initDataSource: 'backend-cache-hit',
+			initDataSourceDetail: detail,
+		};
 	}
 
-	set({ isLoadingConsentInfo: true });
-
-	// Process any pending consent sync from a previous page reload
-	// This fires the API call that was deferred when consent was revoked
-	processPendingConsentSync(manager, callbacks);
-
-	// Try to use SSR-prefetched data first
-	const ssrResult = await tryUseSSRData(config);
-
-	if (ssrResult) {
-		return ssrResult;
+	if (cache) {
+		return {
+			initDataSource: 'backend',
+			initDataSourceDetail: detail,
+		};
 	}
 
-	// Fall back to client-side API fetch
-	return fetchFromAPI(config, hasLocalStorageAccess, manager, callbacks);
+	return {
+		initDataSource: 'ssr',
+		initDataSourceDetail: detail,
+	};
 }
 
 /**
@@ -143,6 +129,38 @@ async function tryUseSSRData(
 
 	set({ ssrDataUsed: false, ssrSkippedReason: 'fetch_failed' });
 	return undefined;
+}
+
+function inferInitSourceMetadata(
+	initContext: Pick<ResponseContext<ConsentBannerResponse>, 'response'> | null,
+	mode: string
+): InitSourceMetadata {
+	const response = initContext?.response ?? null;
+	if (response) {
+		const cache = inspectBackendCache(response.headers);
+		if (cache.isCacheHit) {
+			return {
+				initDataSource: 'backend-cache-hit',
+				initDataSourceDetail: cache.detail,
+			};
+		}
+		return {
+			initDataSource: 'backend',
+			initDataSourceDetail: cache.detail,
+		};
+	}
+
+	if (mode === 'offline') {
+		return { initDataSource: 'offline-mode', initDataSourceDetail: null };
+	}
+	if (mode === 'custom') {
+		return { initDataSource: 'custom', initDataSourceDetail: null };
+	}
+	if (mode === 'hosted' || mode === 'c15t') {
+		return { initDataSource: 'offline-fallback', initDataSourceDetail: null };
+	}
+
+	return { initDataSource: 'backend', initDataSourceDetail: null };
 }
 
 /**
@@ -215,120 +233,6 @@ async function fetchFromAPI(
 
 		return undefined;
 	}
-}
-
-function inferInitSourceMetadata(
-	initContext: Pick<ResponseContext<ConsentBannerResponse>, 'response'> | null,
-	mode: string
-): InitSourceMetadata {
-	const response = initContext?.response ?? null;
-	if (response) {
-		const cache = inspectBackendCache(response.headers);
-		if (cache.isCacheHit) {
-			return {
-				initDataSource: 'backend-cache-hit',
-				initDataSourceDetail: cache.detail,
-			};
-		}
-		return {
-			initDataSource: 'backend',
-			initDataSourceDetail: cache.detail,
-		};
-	}
-
-	if (mode === 'offline') {
-		return { initDataSource: 'offline-mode', initDataSourceDetail: null };
-	}
-	if (mode === 'custom') {
-		return { initDataSource: 'custom', initDataSourceDetail: null };
-	}
-	if (mode === 'hosted' || mode === 'c15t') {
-		return { initDataSource: 'offline-fallback', initDataSourceDetail: null };
-	}
-
-	return { initDataSource: 'backend', initDataSourceDetail: null };
-}
-
-function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
-	const cache = data.metadata?.cache;
-	const requestDurationMs = data.metadata?.requestDurationMs;
-	const detailParts: string[] = ['via=ssr'];
-
-	if (cache?.detail) {
-		detailParts.push(cache.detail);
-	}
-	if (
-		typeof requestDurationMs === 'number' &&
-		Number.isFinite(requestDurationMs)
-	) {
-		detailParts.push(
-			`duration=${Math.max(0, Math.round(requestDurationMs))}ms`
-		);
-	}
-
-	const detail = detailParts.length > 0 ? detailParts.join(', ') : null;
-
-	if (cache?.isHit === true) {
-		return {
-			initDataSource: 'backend-cache-hit',
-			initDataSourceDetail: detail,
-		};
-	}
-
-	if (cache) {
-		return {
-			initDataSource: 'backend',
-			initDataSourceDetail: detail,
-		};
-	}
-
-	return {
-		initDataSource: 'ssr',
-		initDataSourceDetail: detail,
-	};
-}
-
-function inspectBackendCache(headers: Headers): {
-	isCacheHit: boolean;
-	detail: string | null;
-} {
-	const cacheHeaders = [
-		'x-vercel-cache',
-		'cf-cache-status',
-		'x-cache',
-		'cache-status',
-	] as const;
-
-	let headerDetail: string | null = null;
-	let headerIndicatesHit = false;
-
-	for (const headerName of cacheHeaders) {
-		const headerValue = headers.get(headerName);
-		if (!headerValue) {
-			continue;
-		}
-
-		headerDetail = `${headerName}=${headerValue}`;
-		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/i.test(
-			headerValue
-		);
-		break;
-	}
-
-	const ageHeader = headers.get('age');
-	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
-	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
-	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
-
-	const detail =
-		headerDetail && ageDetail
-			? `${headerDetail}, ${ageDetail}`
-			: (headerDetail ?? ageDetail);
-
-	return {
-		isCacheHit: headerIndicatesHit || ageIndicatesCache,
-		detail,
-	};
 }
 
 /**
@@ -408,4 +312,107 @@ function processPendingConsentSync(
 		// localStorage might be unavailable or data might be corrupted
 		// Silently ignore - consent is already persisted locally
 	}
+}
+
+inspectBackendCache = (
+	headers: Headers
+): {
+	isCacheHit: boolean;
+	detail: string | null;
+} => {
+	const cacheHeaders = [
+		'x-vercel-cache',
+		'cf-cache-status',
+		'x-cache',
+		'cache-status',
+	] as const;
+
+	let headerDetail: string | null = null;
+	let headerIndicatesHit = false;
+
+	for (const headerName of cacheHeaders) {
+		const headerValue = headers.get(headerName);
+		if (!headerValue) {
+			continue;
+		}
+
+		headerDetail = `${headerName}=${headerValue}`;
+		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/iu.test(
+			headerValue
+		);
+		break;
+	}
+
+	const ageHeader = headers.get('age');
+	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
+	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
+	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
+
+	const detail =
+		headerDetail && ageDetail
+			? `${headerDetail}, ${ageDetail}`
+			: (headerDetail ?? ageDetail);
+
+	return {
+		isCacheHit: headerIndicatesHit || ageIndicatesCache,
+		detail,
+	};
+};
+
+/**
+ * Initializes the consent manager by fetching jurisdiction, location,
+ * translations, and branding information.
+ *
+ * This function handles:
+ * - SSR data hydration (uses prefetched data if available)
+ * - Client-side API fetching (fallback when no SSR data)
+ * - Store state updates
+ * - Callback triggers
+ * - IAB TCF mode initialization (if enabled)
+ *
+ * @param config - Configuration object containing store and manager instances
+ * @returns A promise that resolves with the consent banner response
+ *
+ * @example
+ * ```typescript
+ * const response = await initConsentManager({
+ *   manager: consentManager,
+ *   get: store.getState,
+ *   set: store.setState,
+ *   ssrData: ssrPrefetchedData,
+ * });
+ * ```
+ */
+export async function initConsentManager(
+	config: InitConsentManagerConfig
+): Promise<ConsentBannerResponse | undefined> {
+	const { get, set, manager } = config;
+	const { callbacks } = get();
+
+	// Skip on server-side
+	if (typeof window === 'undefined') {
+		return undefined;
+	}
+
+	// Check if localStorage is available
+	const hasLocalStorageAccess = checkLocalStorageAccess(set);
+	if (!hasLocalStorageAccess) {
+		return undefined;
+	}
+
+	set({ isLoadingConsentInfo: true });
+
+	// Process any pending consent sync from a previous page reload
+	// This fires the API call that was deferred when consent was revoked
+	processPendingConsentSync(manager, callbacks);
+
+	// Try to use SSR-prefetched data first
+	const ssrResult = await tryUseSSRData(config);
+
+	if (ssrResult) {
+		return ssrResult;
+	}
+
+	// Fall back to client-side API fetch
+	return fetchFromAPI(config, hasLocalStorageAccess, manager, callbacks);
 }

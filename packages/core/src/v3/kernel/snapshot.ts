@@ -20,11 +20,11 @@ import type {
  * everything else starts denied so kernels are safe before init runs.
  */
 export const DEFAULT_CONSENTS: ConsentState = {
-	necessary: true,
+	experience: false,
 	functionality: false,
 	marketing: false,
 	measurement: false,
-	experience: false,
+	necessary: true,
 };
 
 /**
@@ -32,16 +32,16 @@ export const DEFAULT_CONSENTS: ConsentState = {
  * state and when folding partial IAB patches onto a previously-null slice.
  */
 export const DEFAULT_IAB: KernelIABState = {
+	cmpId: null,
+	customVendors: [],
 	enabled: false,
 	gvl: null,
-	customVendors: [],
-	cmpId: null,
-	vendorConsents: {},
-	vendorLegitimateInterests: {},
 	purposeConsents: {},
 	purposeLegitimateInterests: {},
 	specialFeatureOptIns: {},
 	tcString: null,
+	vendorConsents: {},
+	vendorLegitimateInterests: {},
 };
 
 /**
@@ -51,7 +51,7 @@ export const DEFAULT_IAB: KernelIABState = {
  * else is dropped silently. This guards against config typos surfacing
  * later as runtime gating bugs.
  */
-export function buildInitialConsents(
+export const buildInitialConsents = function buildInitialConsents(
 	initial: Partial<ConsentState> | undefined
 ): ConsentState {
 	if (!initial) {
@@ -64,7 +64,7 @@ export function buildInitialConsents(
 		}
 	}
 	return merged;
-}
+};
 
 /**
  * Merge a user-supplied initial IAB slice over the IAB defaults.
@@ -73,15 +73,17 @@ export function buildInitialConsents(
  * snapshot is `null`-by-default so consumers can detect "IAB not in play"
  * without checking `enabled`.
  */
-export function buildInitialIab(
+export const buildInitialIab = function buildInitialIab(
 	initial: Partial<KernelIABState> | undefined
 ): KernelIABState | null {
-	if (!initial) return null;
+	if (!initial) {
+		return null;
+	}
 	return {
 		...DEFAULT_IAB,
 		...initial,
 	};
-}
+};
 
 /**
  * Deep-freeze a snapshot in place and return it typed as `ConsentSnapshot`.
@@ -92,20 +94,38 @@ export function buildInitialIab(
  *
  * Mutates the input object (freezes it) but returns the same reference.
  */
-export function freezeSnapshot(snapshot: ConsentSnapshot): ConsentSnapshot {
+export const freezeSnapshot = function freezeSnapshot(
+	snapshot: ConsentSnapshot
+): ConsentSnapshot {
 	Object.freeze(snapshot.consents);
 	Object.freeze(snapshot.overrides);
-	if (snapshot.user) Object.freeze(snapshot.user);
-	if (snapshot.translations) Object.freeze(snapshot.translations);
-	if (snapshot.policy) Object.freeze(snapshot.policy);
-	if (snapshot.policyDecision) Object.freeze(snapshot.policyDecision);
-	if (snapshot.policyBanner) Object.freeze(snapshot.policyBanner);
-	if (snapshot.policyDialog) Object.freeze(snapshot.policyDialog);
-	if (snapshot.iab) Object.freeze(snapshot.iab);
-	if (snapshot.location) Object.freeze(snapshot.location);
+	if (snapshot.user) {
+		Object.freeze(snapshot.user);
+	}
+	if (snapshot.translations) {
+		Object.freeze(snapshot.translations);
+	}
+	if (snapshot.policy) {
+		Object.freeze(snapshot.policy);
+	}
+	if (snapshot.policyDecision) {
+		Object.freeze(snapshot.policyDecision);
+	}
+	if (snapshot.policyBanner) {
+		Object.freeze(snapshot.policyBanner);
+	}
+	if (snapshot.policyDialog) {
+		Object.freeze(snapshot.policyDialog);
+	}
+	if (snapshot.iab) {
+		Object.freeze(snapshot.iab);
+	}
+	if (snapshot.location) {
+		Object.freeze(snapshot.location);
+	}
 	Object.freeze(snapshot.policyCategories);
 	return Object.freeze(snapshot) as ConsentSnapshot;
-}
+};
 
 /**
  * Build the initial frozen snapshot from a kernel config.
@@ -121,7 +141,10 @@ export function freezeSnapshot(snapshot: ConsentSnapshot): ConsentSnapshot {
  *
  * Pure — no side effects. Returns a snapshot at revision 0.
  */
-export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const buildInitialSnapshot = function buildInitialSnapshot(
+	config: KernelConfig
+): ConsentSnapshot {
 	const initialIab = buildInitialIab(config.initialIab);
 	const initialPolicy = config.initialPolicy
 		? { ...config.initialPolicy }
@@ -130,31 +153,14 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 	const initialHasConsented = config.initialHasConsented ?? false;
 	const initialPolicyResult = applyPolicyToConsents({
 		consents: buildInitialConsents(config.initialConsents),
+		gpc: config.initialOverrides?.gpc,
 		hasConsented: initialHasConsented,
 		policy: initialPolicy,
-		gpc: config.initialOverrides?.gpc,
 	});
 
 	const initialPolicyProvisional = config.initialPolicyProvisional ?? false;
 
 	return freezeSnapshot({
-		consents: initialPolicyResult.consents,
-		overrides: { ...(config.initialOverrides ?? {}) },
-		user: config.initialUser ? { ...config.initialUser } : null,
-		subjectId: config.initialSubjectId ?? null,
-		hasConsented: initialHasConsented,
-		revision: 0,
-		location: config.initialLocation ? { ...config.initialLocation } : null,
-		translations: config.initialTranslations
-			? { ...config.initialTranslations }
-			: null,
-		branding: config.initialBranding ?? null,
-		policy: initialPolicy,
-		policyDecision: config.initialPolicyDecision
-			? { ...config.initialPolicyDecision }
-			: null,
-		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
-		model: initialModel,
 		// A provisional policy must not drive a visible surface — the copy
 		// and actions it would render can be replaced by the in-flight init
 		// (mid-read copy swap, CLS, consent recorded against a placeholder).
@@ -162,15 +168,33 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 			initialHasConsented || initialPolicyProvisional
 				? 'none'
 				: deriveActiveUI(initialModel, initialPolicy),
-		policyProvisional: initialPolicyProvisional,
-		policyCategories: initialPolicyResult.policyCategories,
-		policyScopeMode: initialPolicyResult.policyScopeMode,
+		branding: config.initialBranding ?? null,
+		consents: initialPolicyResult.consents,
+		hasConsented: initialHasConsented,
+		iab: initialIab,
+
+		location: config.initialLocation ? { ...config.initialLocation } : null,
+		model: initialModel,
+		overrides: { ...(config.initialOverrides ?? {}) },
+		policy: initialPolicy,
 		policyBanner: config.initialPolicy?.ui?.banner
 			? { ...config.initialPolicy.ui.banner }
+			: null,
+		policyCategories: initialPolicyResult.policyCategories,
+		policyDecision: config.initialPolicyDecision
+			? { ...config.initialPolicyDecision }
 			: null,
 		policyDialog: config.initialPolicy?.ui?.dialog
 			? { ...config.initialPolicy.ui.dialog }
 			: null,
-		iab: initialIab,
+		policyProvisional: initialPolicyProvisional,
+		policyScopeMode: initialPolicyResult.policyScopeMode,
+		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
+		revision: 0,
+		subjectId: config.initialSubjectId ?? null,
+		translations: config.initialTranslations
+			? { ...config.initialTranslations }
+			: null,
+		user: config.initialUser ? { ...config.initialUser } : null,
 	});
-}
+};

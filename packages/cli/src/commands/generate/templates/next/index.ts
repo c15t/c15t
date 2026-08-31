@@ -29,7 +29,7 @@ interface UpdateNextLayoutOptions {
 
 type NextStructure = 'app' | 'pages' | null;
 
-export async function updateNextLayout(
+export const updateNextLayout = async function updateNextLayout(
 	options: UpdateNextLayoutOptions
 ): Promise<{
 	updated: boolean;
@@ -46,10 +46,10 @@ export async function updateNextLayout(
 
 	if (!layoutDetection) {
 		return {
-			updated: false,
-			filePath: null,
 			alreadyModified: false,
+			filePath: null,
 			structureType: null,
+			updated: false,
 		};
 	}
 
@@ -77,4 +77,4 @@ export async function updateNextLayout(
 		...result,
 		structureType,
 	};
-}
+};

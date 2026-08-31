@@ -47,8 +47,8 @@ describe('IAB TCF Spec Compliance', () => {
 		cmpApi = createCMPApi({
 			cmpId: 28,
 			cmpVersion: 1,
-			gvl: mockGVL,
 			gdprApplies: true,
+			gvl: mockGVL,
 		});
 	});
 
@@ -291,7 +291,8 @@ describe('IAB TCF Spec Compliance', () => {
 							expect(success).toBe(false);
 							resolve();
 						},
-						999999 // Invalid ID
+						// Invalid ID
+						999999
 					);
 				});
 			});
@@ -332,7 +333,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
-					callCount++;
+					callCount += 1;
 					if (callCount === 2) {
 						expect(tcData?.eventStatus).toBe('cmpuishown');
 						resolve();
@@ -348,7 +349,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
-					callCount++;
+					callCount += 1;
 					if (callCount === 2) {
 						expect(tcData?.eventStatus).toBe('useractioncomplete');
 						resolve();
@@ -525,6 +526,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 	describe('Vendor Data Compliance', () => {
 		it('should have required vendor fields', () => {
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor = mockGVL.vendors[1];
 
 			expect(vendor).toHaveProperty('id');
@@ -542,6 +544,7 @@ describe('IAB TCF Spec Compliance', () => {
 		});
 
 		it('should have valid vendor purposes (1-11 range)', () => {
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor = mockGVL.vendors[1];
 
 			for (const purposeId of vendor.purposes) {

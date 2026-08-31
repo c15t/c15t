@@ -220,13 +220,13 @@ export const createConsentManagerStore = (
 					activeUI: 'none' as const,
 					isLoadingConsentInfo: true,
 				}),
-		setActiveUI: (ui, options = {}) => {
+		setActiveUI: (ui, optionsLocal = {}) => {
 			if (ui === 'none' || ui === 'dialog') {
 				set({ activeUI: ui });
 				return;
 			}
 			// ui === 'banner' — validate before showing
-			if (options.force) {
+			if (optionsLocal.force) {
 				set({ activeUI: 'banner' });
 				return;
 			}
@@ -253,10 +253,10 @@ export const createConsentManagerStore = (
 			});
 		},
 
-		saveConsents: (type, options) => {
+		saveConsents: (type, optionsLocal) => {
 			const requestKey = JSON.stringify([
 				type,
-				options?.uiSource ?? null,
+				optionsLocal?.uiSource ?? null,
 				type === 'custom' ? get().selectedConsents : null,
 			]);
 
@@ -266,7 +266,7 @@ export const createConsentManagerStore = (
 					type,
 					get,
 					set,
-					options,
+					options: optionsLocal,
 					emitConsentChanged: (payload) => {
 						get().callbacks.onConsentChanged?.(payload);
 
@@ -399,15 +399,15 @@ export const createConsentManagerStore = (
 			}),
 
 		getDisplayedConsents: () => {
-			const { consentCategories, consentTypes } = get();
-			return consentTypes.filter((consent) =>
+			const { consentCategories, consentTypes: storedConsentTypes } = get();
+			return storedConsentTypes.filter((consent) =>
 				consentCategories.includes(consent.name)
 			);
 		},
 
 		hasConsented: () => {
 			const { consentInfo } = get();
-			return consentInfo != null;
+			return consentInfo !== null && consentInfo !== undefined;
 		},
 
 		has: <CategoryType extends AllConsentNames>(
@@ -497,6 +497,7 @@ export const createConsentManagerStore = (
 				input,
 			]);
 
+			// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 			return coalesceInFlight(inFlightPolicyConsents, requestKey, async () => {
 				const currentState = get();
 				const currentInfo = currentState.consentInfo;

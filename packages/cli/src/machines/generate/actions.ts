@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import type { GenerateMachineContext, GenerateMachineEvent } from './types';
 
-function normalizeMode(
+const normalizeMode = function normalizeMode(
 	mode: GenerateMachineContext['selectedMode']
 ): GenerateMachineContext['selectedMode'] {
 	if (mode === 'c15t') {
@@ -21,7 +21,7 @@ function normalizeMode(
 	}
 
 	return mode;
-}
+};
 
 /**
  * Action arguments passed to assign functions
@@ -34,26 +34,27 @@ interface ActionArgs {
 /**
  * Record state entry in history
  */
-export function recordStateEntry({
+export const recordStateEntry = function recordStateEntry({
 	context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	const entry: StateHistoryEntry = {
-		state: 'unknown', // Will be set by the machine
-		timestamp: Date.now(),
 		event: event.type,
+		// Will be set by the machine
+		state: 'unknown',
+		timestamp: Date.now(),
 	};
 
 	return {
 		stateHistory: [...context.stateHistory, entry],
 	};
-}
+};
 
 /**
  * Set preflight results in context
  */
-export function setPreflightResults({
-	context,
+export const setPreflightResults = function setPreflightResults({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'PREFLIGHT_COMPLETE') {
@@ -61,19 +62,19 @@ export function setPreflightResults({
 	}
 
 	return {
-		preflightPassed: event.result.passed,
-		preflightChecks: event.result.checks,
-		projectRoot: event.result.projectRoot,
 		framework: event.result.framework,
 		packageManager: event.result.packageManager,
+		preflightChecks: event.result.checks,
+		preflightPassed: event.result.passed,
+		projectRoot: event.result.projectRoot,
 	};
-}
+};
 
 /**
  * Set selected mode
  */
-export function setSelectedMode({
-	context,
+export const setSelectedMode = function setSelectedMode({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'SELECT_MODE' && event.type !== 'MODE_SELECTED') {
@@ -85,24 +86,24 @@ export function setSelectedMode({
 	return {
 		selectedMode: normalizeMode(mode),
 	};
-}
+};
 
 /**
  * Use mode from CLI argument
  */
-export function useModeArg({
+export const useModeArg = function useModeArg({
 	context,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	return {
 		selectedMode: normalizeMode(context.modeArg),
 	};
-}
+};
 
 /**
  * Set backend URL
  */
-export function setBackendURL({
-	context,
+export const setBackendURL = function setBackendURL({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'BACKEND_URL_ENTERED') {
@@ -112,13 +113,13 @@ export function setBackendURL({
 	return {
 		backendURL: event.url,
 	};
-}
+};
 
 /**
  * Set backend options
  */
-export function setBackendOptions({
-	context,
+export const setBackendOptions = function setBackendOptions({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'BACKEND_OPTIONS_COMPLETE') {
@@ -126,15 +127,15 @@ export function setBackendOptions({
 	}
 
 	return {
-		useEnvFile: event.useEnvFile,
 		proxyNextjs: event.proxyNextjs,
+		useEnvFile: event.useEnvFile,
 	};
-}
+};
 
 /**
  * Set frontend UI options
  */
-export function setFrontendOptions({
+export const setFrontendOptions = function setFrontendOptions({
 	context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
@@ -143,18 +144,18 @@ export function setFrontendOptions({
 	}
 
 	return {
-		enableSSR: event.enableSSR ?? context.enableSSR,
 		enableDevTools: event.enableDevTools ?? context.enableDevTools,
-		uiStyle: event.uiStyle,
+		enableSSR: event.enableSSR ?? context.enableSSR,
 		expandedTheme: event.expandedTheme ?? null,
+		uiStyle: event.uiStyle,
 	};
-}
+};
 
 /**
  * Set scripts option
  */
-export function setScriptsOption({
-	context,
+export const setScriptsOption = function setScriptsOption({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'SCRIPTS_OPTION_COMPLETE') {
@@ -164,12 +165,12 @@ export function setScriptsOption({
 	return {
 		addScripts: event.addScripts,
 	};
-}
+};
 
 /**
  * Record files created/modified for potential rollback
  */
-export function recordFiles({
+export const recordFiles = function recordFiles({
 	context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
@@ -181,12 +182,12 @@ export function recordFiles({
 		filesCreated: [...context.filesCreated, ...event.filesCreated],
 		filesModified: [...context.filesModified, ...event.filesModified],
 	};
-}
+};
 
 /**
  * Add dependencies to install
  */
-export function addDependencies({
+export const addDependencies = function addDependencies({
 	context,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	const deps: string[] = [];
@@ -210,13 +211,13 @@ export function addDependencies({
 	return {
 		dependenciesToAdd: [...new Set([...context.dependenciesToAdd, ...deps])],
 	};
-}
+};
 
 /**
  * Set install confirmation
  */
-export function setInstallConfirmation({
-	context,
+export const setInstallConfirmation = function setInstallConfirmation({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'CONFIRM_INSTALL') {
@@ -224,16 +225,16 @@ export function setInstallConfirmation({
 	}
 
 	return {
-		installConfirmed: event.confirmed,
 		installAttempted: event.confirmed,
+		installConfirmed: event.confirmed,
 	};
-}
+};
 
 /**
  * Set install result
  */
-export function setInstallResult({
-	context,
+export const setInstallResult = function setInstallResult({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'INSTALL_COMPLETE') {
@@ -243,12 +244,12 @@ export function setInstallResult({
 	return {
 		installSucceeded: event.success,
 	};
-}
+};
 
 /**
  * Record an error
  */
-export function recordError({
+export const recordError = function recordError({
 	context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
@@ -257,21 +258,21 @@ export function recordError({
 	}
 
 	const error: MachineError = {
-		state: 'fileGeneration',
 		error: event.error,
+		state: 'fileGeneration',
 		timestamp: Date.now(),
 	};
 
 	return {
 		errors: [...context.errors, error],
 	};
-}
+};
 
 /**
  * Set cancel reason
  */
-export function setCancelReason({
-	context,
+export const setCancelReason = function setCancelReason({
+	context: _context,
 	event,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	if (event.type !== 'CANCEL') {
@@ -281,65 +282,65 @@ export function setCancelReason({
 	return {
 		cancelReason: event.reason ?? 'User cancelled',
 	};
-}
+};
 
 /**
  * Mark cleanup as done
  */
-export function markCleanupDone({
-	context,
+export const markCleanupDone = function markCleanupDone({
+	context: _context,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	return {
 		cleanupDone: true,
 	};
-}
+};
 
 /**
  * Clear files after rollback
  */
-export function clearFiles({
-	context,
+export const clearFiles = function clearFiles({
+	context: _context,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	return {
 		filesCreated: [],
 		filesModified: [],
 	};
-}
+};
 
 /**
  * Reset context for retry
  */
-export function resetForRetry({
-	context,
+export const resetForRetry = function resetForRetry({
+	context: _context,
 }: ActionArgs): Partial<GenerateMachineContext> {
 	return {
-		preflightPassed: false,
-		preflightChecks: [],
 		errors: [],
+		preflightChecks: [],
+		preflightPassed: false,
 	};
-}
+};
 
 /**
  * All actions exported for use in machine definition
  */
 export const actions = {
-	recordStateEntry,
-	setPreflightResults,
-	setSelectedMode,
-	useModeArg,
-	setBackendURL,
-	setBackendOptions,
-	setFrontendOptions,
-	setScriptsOption,
-	recordFiles,
 	addDependencies,
+	clearFiles,
+	markCleanupDone,
+	recordError,
+	recordFiles,
+	recordStateEntry,
+	resetForRetry,
+	setBackendOptions,
+	setBackendURL,
+	setCancelReason,
+	setFrontendOptions,
 	setInstallConfirmation,
 	setInstallResult,
-	recordError,
-	setCancelReason,
-	markCleanupDone,
-	clearFiles,
-	resetForRetry,
+	setPreflightResults,
+	setScriptsOption,
+	setSelectedMode,
+	useModeArg,
 };
 
 /**
@@ -347,38 +348,40 @@ export const actions = {
  *
  * This is an async action that should be called as a service/actor
  */
-export async function performRollback(
+export const performRollback = async function performRollback(
 	filesCreated: string[],
 	filesModified: FileModification[]
 ): Promise<void> {
 	const fs = await import('node:fs/promises');
 
 	// Delete created files
-	for (const filePath of filesCreated) {
+	await Array.from(filesCreated).reduce(async (previousIteration, filePath) => {
+		await previousIteration;
 		try {
 			await fs.unlink(filePath);
 		} catch {
 			// File may not exist, ignore
 		}
-	}
+	}, Promise.resolve());
 
 	// Restore modified files from backup
-	for (const mod of filesModified) {
+	await Array.from(filesModified).reduce(async (previousIteration, mod) => {
+		await previousIteration;
 		try {
 			await fs.writeFile(mod.path, mod.backup, 'utf-8');
 		} catch {
 			// Best effort restore
 		}
-	}
-}
+	}, Promise.resolve());
+};
 
 /**
  * Perform cleanup - clear any temporary state
  */
-export async function performCleanup(
+export const performCleanup = async function performCleanup(
 	filesCreated: string[],
 	filesModified: FileModification[]
 ): Promise<void> {
 	// Rollback is the cleanup for now
 	await performRollback(filesCreated, filesModified);
-}
+};

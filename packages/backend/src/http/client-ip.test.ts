@@ -18,7 +18,9 @@ import { assert, describe, it } from 'vitest';
 
 const headersWith = (values: Record<string, string>) => {
 	const headers = new Headers();
-	for (const [key, value] of Object.entries(values)) headers.set(key, value);
+	for (const [key, value] of Object.entries(values)) {
+		headers.set(key, value);
+	}
 	return headers;
 };
 

@@ -34,7 +34,10 @@ const MatrixScenarioPage = async ({
 		<CssLayerScenarioRenderer
 			environmentId="tw3"
 			environmentLabel="Tailwind CSS 3"
-			isPreview={resolvedSearchParams?.preview != null}
+			isPreview={
+				resolvedSearchParams?.preview !== null &&
+				resolvedSearchParams?.preview !== undefined
+			}
 			scenario={scenario}
 		/>
 	);

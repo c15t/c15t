@@ -82,7 +82,7 @@ describe('UI Source Tracking E2E Tests', () => {
 
 	describe('Dialog uiSource', () => {
 		test('should render dialog and save consent via accept button', async () => {
-			render(DialogFixture, { options: defaultOptions, open: true });
+			render(DialogFixture, { open: true, options: defaultOptions });
 
 			await waitFor(() => {
 				const dialog = document.querySelector(
@@ -105,7 +105,7 @@ describe('UI Source Tracking E2E Tests', () => {
 		});
 
 		test('should render dialog without crashing', async () => {
-			render(DialogFixture, { options: defaultOptions, open: true });
+			render(DialogFixture, { open: true, options: defaultOptions });
 
 			await waitFor(() => {
 				const dialog = document.querySelector(

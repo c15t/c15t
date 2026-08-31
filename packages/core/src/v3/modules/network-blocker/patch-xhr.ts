@@ -29,7 +29,9 @@ const INTERNAL_URL = Symbol('c15t-xhr-url');
  * restores the original prototype methods when the patches are still
  * the active wrappers.
  */
-export function installXhrPatch(deps: XhrPatchDeps): () => void {
+export const installXhrPatch = function installXhrPatch(
+	deps: XhrPatchDeps
+): () => void {
 	const originalOpen = XMLHttpRequest.prototype.open;
 	const originalSend = XMLHttpRequest.prototype.send;
 
@@ -60,7 +62,9 @@ export function installXhrPatch(deps: XhrPatchDeps): () => void {
 		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
 		const rawUrl: string = (this as any)[INTERNAL_URL] ?? '';
 		const url = parseUrl(rawUrl);
-		if (!url) return originalSend.call(this, body as never);
+		if (!url) {
+			return originalSend.call(this, body as never);
+		}
 
 		const decision = evaluateBlock(
 			url,
@@ -74,15 +78,15 @@ export function installXhrPatch(deps: XhrPatchDeps): () => void {
 
 		deps.notifyBlocked({
 			method,
-			url: url.toString(),
 			rule: decision.rule,
+			url: url.toString(),
 		});
 		this.abort();
 		// Synthetic error — dispatch via onerror + dispatchEvent (v2 parity).
 		const event =
-			typeof ProgressEvent !== 'undefined'
-				? new ProgressEvent('error')
-				: ({ type: 'error' } as Event);
+			typeof ProgressEvent === 'undefined'
+				? ({ type: 'error' } as Event)
+				: new ProgressEvent('error');
 		// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
 		if (typeof (this as any).onerror === 'function') {
 			// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
@@ -102,4 +106,4 @@ export function installXhrPatch(deps: XhrPatchDeps): () => void {
 			XMLHttpRequest.prototype.send = originalSend;
 		}
 	};
-}
+};

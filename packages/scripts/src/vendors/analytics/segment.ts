@@ -138,33 +138,37 @@ declare global {
  */
 export const segmentManifest = {
 	...vendorManifestContract,
-	vendor: 'segment',
-	category: 'measurement',
 	bootstrap: [
 		{
-			type: 'setGlobal',
-			name: 'analytics',
-			value: [],
 			ifUndefined: true,
+
+			name: 'analytics',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'analytics',
 			methods: ['track', 'page', 'identify', 'group', 'alias', 'reset'],
+
+			target: 'analytics',
+			type: 'defineQueueMethods',
 		},
 	],
+	category: 'measurement',
 	install: [
 		{
-			type: 'callGlobal',
 			global: 'analytics',
 			method: 'page',
+
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'segment',
 } as const satisfies VendorManifest;
 
 export interface SegmentOptions {
@@ -182,7 +186,7 @@ export interface SegmentOptions {
  * @param options - The options for the Segment script.
  * @returns The Segment script configuration.
  */
-export function segment({
+export const segment = function segment({
 	writeKey,
 	trackPageView = true,
 	scriptUrl,
@@ -216,4 +220,4 @@ export function segment({
 	return resolveManifest(manifest, {
 		scriptUrl: resolveScriptUrl(scriptUrl, defaultScriptUrl),
 	});
-}
+};

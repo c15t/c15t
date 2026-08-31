@@ -22,10 +22,11 @@ describe('Hosted Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 0, // Prevent automatic retries
+				// Prevent automatic retries
+				maxRetries: 0,
 				retryOnNetworkError: false,
 			},
 		});
@@ -53,8 +54,8 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		);
 
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
 				maxRetries: 0,
 				retryOnNetworkError: false,
@@ -82,10 +83,11 @@ describe('Hosted Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 0, // Prevent automatic retries
+				// Prevent automatic retries
+				maxRetries: 0,
 				retryOnNetworkError: false,
 			},
 		});
@@ -97,14 +99,14 @@ describe('Hosted Client Offline Fallback Tests', () => {
 
 		// Consent data to test - v2.0 requires subjectId and givenAt
 		const consentData = {
-			subjectId: 'sub_test123abc',
-			type: 'cookie_banner' as const,
 			domain: 'example.com',
 			givenAt: Date.now(),
 			preferences: {
 				analytics: true,
 				marketing: false,
 			},
+			subjectId: 'sub_test123abc',
+			type: 'cookie_banner' as const,
 		};
 
 		// Call the API that will fail
@@ -139,43 +141,44 @@ describe('Hosted Client Offline Fallback Tests', () => {
 
 		// Configure the client with retryConfig.maxRetries = 0 to prevent retries
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 0, // Prevent automatic retries
+				// Prevent automatic retries
+				maxRetries: 0,
 				retryOnNetworkError: false,
 			},
 		});
 
 		// Create two different consent submissions - v2.0 requires subjectId and givenAt
 		const cookieBannerConsent = {
-			subjectId: 'sub_test123abc',
-			type: 'cookie_banner' as const,
 			domain: 'example.com',
 			givenAt: Date.now(),
+			metadata: {
+				acceptanceMethod: 'all',
+				source: 'consent_widget',
+			},
 			preferences: {
 				analytics: true,
 				marketing: false,
 			},
-			metadata: {
-				source: 'consent_widget',
-				acceptanceMethod: 'all',
-			},
+			subjectId: 'sub_test123abc',
+			type: 'cookie_banner' as const,
 		};
 
 		const termsConsent = {
-			subjectId: 'sub_test123abc',
-			type: 'terms_and_conditions' as const,
 			domain: 'example.com',
 			givenAt: Date.now(),
-			preferences: {
-				terms: true,
-				privacy: true,
-			},
 			metadata: {
-				source: 'terms_page',
 				acceptanceMethod: 'custom',
+				source: 'terms_page',
 			},
+			preferences: {
+				privacy: true,
+				terms: true,
+			},
+			subjectId: 'sub_test123abc',
+			type: 'terms_and_conditions' as const,
 		};
 
 		// Submit first consent
@@ -223,11 +226,11 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
 		// v2.0: requires subjectId and givenAt
 		const cookieBannerConsent = {
-			subjectId: 'sub_test123abc',
-			type: 'cookie_banner',
 			domain: 'example.com',
 			givenAt: Date.now(),
 			preferences: { analytics: true },
+			subjectId: 'sub_test123abc',
+			type: 'cookie_banner',
 		};
 
 		mockLocalStorage.getItem.mockImplementation((key) => {
@@ -259,8 +262,8 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		expect(fetchMock).toHaveBeenCalledWith(
 			expect.stringContaining(API_ENDPOINTS.POST_SUBJECT),
 			expect.objectContaining({
-				method: 'POST',
 				body: JSON.stringify(cookieBannerConsent),
+				method: 'POST',
 			})
 		);
 
@@ -280,25 +283,25 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		// Set up pending submissions - v2.0: requires subjectId and givenAt
 		const pendingSubmissions = [
 			{
-				subjectId: 'sub_test123abc',
-				type: 'cookie_banner',
 				domain: 'example.com',
 				givenAt: Date.now(),
 				preferences: { analytics: true },
+				subjectId: 'sub_test123abc',
+				type: 'cookie_banner',
 			},
 			{
-				subjectId: 'sub_test123abc',
-				type: 'terms_and_conditions',
 				domain: 'example.com',
 				givenAt: Date.now(),
 				preferences: { terms: true },
+				subjectId: 'sub_test123abc',
+				type: 'terms_and_conditions',
 			},
 		];
 
 		// Mock fetch responses with a counter to ensure we get the exact behavior we want
 		let callCount = 0;
 		const mockFetch = vi.fn().mockImplementation(() => {
-			callCount++;
+			callCount += 1;
 			// First call succeeds, second call fails
 			if (callCount === 1) {
 				return Promise.resolve(
@@ -313,7 +316,8 @@ describe('Hosted Client Offline Fallback Tests', () => {
 			backendURL: '/api/c15t',
 			customFetch: mockFetch,
 			retryConfig: {
-				maxRetries: 0, // No retries to keep the test simple
+				// No retries to keep the test simple
+				maxRetries: 0,
 			},
 		});
 

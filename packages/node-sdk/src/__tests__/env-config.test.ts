@@ -21,15 +21,15 @@ describe('Environment Variable Configuration', () => {
 
 	afterEach(() => {
 		// Restore original values
-		if (originalApiUrl !== undefined) {
-			process.env.C15T_API_URL = originalApiUrl;
-		} else {
+		if (originalApiUrl === undefined) {
 			delete process.env.C15T_API_URL;
-		}
-		if (originalApiToken !== undefined) {
-			process.env.C15T_API_TOKEN = originalApiToken;
 		} else {
+			process.env.C15T_API_URL = originalApiUrl;
+		}
+		if (originalApiToken === undefined) {
 			delete process.env.C15T_API_TOKEN;
+		} else {
+			process.env.C15T_API_TOKEN = originalApiToken;
 		}
 		vi.restoreAllMocks();
 	});
@@ -79,8 +79,8 @@ describe('Environment Variable Configuration', () => {
 		it('should use token from options when provided', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({}), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -92,6 +92,7 @@ describe('Environment Variable Configuration', () => {
 
 			await client.status();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer options-token');
@@ -102,8 +103,8 @@ describe('Environment Variable Configuration', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({}), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -114,6 +115,7 @@ describe('Environment Variable Configuration', () => {
 
 			await client.status();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer env-token');
@@ -124,8 +126,8 @@ describe('Environment Variable Configuration', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({}), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -137,6 +139,7 @@ describe('Environment Variable Configuration', () => {
 
 			await client.status();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBe('Bearer options-token');
@@ -147,8 +150,8 @@ describe('Environment Variable Configuration', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({}), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -159,6 +162,7 @@ describe('Environment Variable Configuration', () => {
 
 			await client.status();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			const headers = fetchCall[1].headers as Record<string, string>;
 			expect(headers.Authorization).toBeUndefined();
@@ -172,8 +176,8 @@ describe('Environment Variable Configuration', () => {
 
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
@@ -185,6 +189,7 @@ describe('Environment Variable Configuration', () => {
 			expect(result.ok).toBe(true);
 			expect(mockFetch).toHaveBeenCalled();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('api.example.com');
 			const headers = fetchCall[1].headers as Record<string, string>;

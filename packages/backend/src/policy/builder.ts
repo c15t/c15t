@@ -79,15 +79,17 @@ const DEFAULT_FALLBACK_POLICY_INPUT: PolicyBuilderInput = {
 	uiMode: 'none',
 };
 
-function mergeMatch(input: PolicyBuilderInput): PolicyConfig['match'] {
+const mergeMatch = function mergeMatch(
+	input: PolicyBuilderInput
+): PolicyConfig['match'] {
 	return policyMatchers.merge(
 		input.countries?.length ? policyMatchers.countries(input.countries) : {},
 		input.regions?.length ? policyMatchers.regions(input.regions) : {},
 		input.isDefault ? policyMatchers.default() : {}
 	);
-}
+};
 
-function compactUiSurface(
+const compactUiSurface = function compactUiSurface(
 	value?: PolicyUiSurfaceConfig
 ): PolicyUiSurfaceConfig | undefined {
 	if (!value) {
@@ -98,13 +100,13 @@ function compactUiSurface(
 		allowedActions: dedupeTrimmedStrings(value.allowedActions) as
 			| PolicyUiSurfaceConfig['allowedActions']
 			| undefined,
-		primaryActions: value.primaryActions,
-		layout: value.layout,
 		direction: value.direction,
-		uiProfile: value.uiProfile,
+		layout: value.layout,
+		primaryActions: value.primaryActions,
 		scrollLock: value.scrollLock,
+		uiProfile: value.uiProfile,
 	});
-}
+};
 
 /**
  * Converts a single {@link PolicyBuilderInput} into a normalized
@@ -116,36 +118,38 @@ function compactUiSurface(
  *
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
+export const buildPolicyConfig = function buildPolicyConfig(
+	input: PolicyBuilderInput
+): PolicyConfig {
 	const categories = dedupeTrimmedStrings(input.categories);
 	const preselectedCategories = dedupeTrimmedStrings(
 		input.preselectedCategories
 	);
 
 	return {
+		consent: compactDefined({
+			categories,
+			expiryDays: input.expiryDays,
+			gpc: input.gpc,
+			model: input.model,
+			preselectedCategories,
+			scopeMode: input.scopeMode,
+		}),
+		i18n: input.i18n,
 		id: input.id,
 		match: mergeMatch(input),
-		i18n: input.i18n,
-		consent: compactDefined({
-			model: input.model,
-			expiryDays: input.expiryDays,
-			scopeMode: input.scopeMode,
-			categories,
-			preselectedCategories,
-			gpc: input.gpc,
-		}),
-		ui: compactDefined({
-			mode: input.uiMode,
-			banner: compactUiSurface(input.banner),
-			dialog: compactUiSurface(input.dialog),
-		}),
 		proof: compactDefined({
 			storeIp: input.proof?.storeIp,
-			storeUserAgent: input.proof?.storeUserAgent,
 			storeLanguage: input.proof?.storeLanguage,
+			storeUserAgent: input.proof?.storeUserAgent,
+		}),
+		ui: compactDefined({
+			banner: compactUiSurface(input.banner),
+			dialog: compactUiSurface(input.dialog),
+			mode: input.uiMode,
 		}),
 	};
-}
+};
 
 /**
  * Converts an ordered list of builder inputs into a policy pack.
@@ -157,9 +161,11 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
  *
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
+export const buildPolicyPack = function buildPolicyPack(
+	inputs: PolicyBuilderInput[]
+): PolicyConfig[] {
 	return inputs.map((input) => buildPolicyConfig(input));
-}
+};
 
 /**
  * Creates a policy pack and guarantees that it ends with a default policy.
@@ -176,7 +182,7 @@ export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
  *
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export function buildPolicyPackWithDefault(
+export const buildPolicyPackWithDefault = function buildPolicyPackWithDefault(
 	inputs: PolicyBuilderInput[],
 	defaultPolicy?: PolicyBuilderInput
 ): PolicyConfig[] {
@@ -190,14 +196,14 @@ export function buildPolicyPackWithDefault(
 	const fallbackInput = defaultPolicy
 		? {
 				...defaultPolicy,
-				isDefault: true,
 				countries: undefined,
+				isDefault: true,
 				regions: undefined,
 			}
 		: DEFAULT_FALLBACK_POLICY_INPUT;
 
 	return [...pack, buildPolicyConfig(fallbackInput)];
-}
+};
 
 /**
  * Merges multiple policy packs or individual policies into a single pack.
@@ -221,7 +227,9 @@ export function buildPolicyPackWithDefault(
  *
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export function composePacks(...packs: PolicyConfig[][]): PolicyConfig[] {
+export const composePacks = function composePacks(
+	...packs: PolicyConfig[][]
+): PolicyConfig[] {
 	const seen = new Set<string>();
 	const result: PolicyConfig[] = [];
 
@@ -235,7 +243,7 @@ export function composePacks(...packs: PolicyConfig[][]): PolicyConfig[] {
 	}
 
 	return result;
-}
+};
 
 /**
  * Convenience namespace for the policy builder helpers.
@@ -247,8 +255,8 @@ export function composePacks(...packs: PolicyConfig[][]): PolicyConfig[] {
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export const policyBuilder = {
+	composePacks,
 	create: buildPolicyConfig,
 	createPack: buildPolicyPack,
 	createPackWithDefault: buildPolicyPackWithDefault,
-	composePacks,
 };

@@ -32,9 +32,9 @@ function createDeferredPromise<Value>(
  * @param context - The CLI context
  * @param version - The CLI version string.
  */
-export async function displayIntro(
+export const displayIntro = async function displayIntro(
 	context: CliContext,
-	version: string
+	_version: string
 ): Promise<void> {
 	const { logger } = context;
 
@@ -44,7 +44,8 @@ export async function displayIntro(
 	logger.message('');
 
 	// Generate and display Figlet text (async)
-	let figletText = 'c15t'; // Default
+	// Default
+	let figletText = 'c15t';
 	try {
 		figletText = await createDeferredPromise((resolve) => {
 			figlet.text(
@@ -53,8 +54,8 @@ export async function displayIntro(
 					font: 'Nancyj-Improved',
 					horizontalLayout: 'default',
 					verticalLayout: 'default',
-					width: 80,
 					whitespaceBreak: true,
+					width: 80,
 				},
 				(err, data) => {
 					if (err) {
@@ -74,14 +75,22 @@ export async function displayIntro(
 	// Apply a teal color fade with more vibrant top colors
 	const customColor = {
 		// More vibrant teal colors with less grayness at the top
-		teal10: (text: string) => `\x1b[38;2;10;80;70m${text}\x1b[0m`, // Dark but more saturated
-		teal20: (text: string) => `\x1b[38;2;15;100;90m${text}\x1b[0m`, // Less gray, more teal
-		teal30: (text: string) => `\x1b[38;2;20;120;105m${text}\x1b[0m`, // Vibrant mid-dark
-		teal40: (text: string) => `\x1b[38;2;25;150;130m${text}\x1b[0m`, // Medium brightness
-		teal50: (text: string) => `\x1b[38;2;30;170;150m${text}\x1b[0m`, // Getting brighter
-		teal75: (text: string) => `\x1b[38;2;34;211;187m${text}\x1b[0m`, // Original color
-		teal90: (text: string) => `\x1b[38;2;45;225;205m${text}\x1b[0m`, // Enhanced brightness
-		teal100: (text: string) => `\x1b[38;2;65;235;220m${text}\x1b[0m`, // Super bright
+		// Enhanced brightness
+		teal10: (text: string) => `\x1b[38;2;10;80;70m${text}\x1b[0m`,
+		// Super bright
+		teal100: (text: string) => `\x1b[38;2;65;235;220m${text}\x1b[0m`,
+		// Dark but more saturated
+		// Less gray, more teal
+		teal20: (text: string) => `\x1b[38;2;15;100;90m${text}\x1b[0m`,
+		// Vibrant mid-dark
+		teal30: (text: string) => `\x1b[38;2;20;120;105m${text}\x1b[0m`,
+		// Medium brightness
+		teal40: (text: string) => `\x1b[38;2;25;150;130m${text}\x1b[0m`,
+		// Getting brighter
+		teal50: (text: string) => `\x1b[38;2;30;170;150m${text}\x1b[0m`,
+		// Original color
+		teal75: (text: string) => `\x1b[38;2;34;211;187m${text}\x1b[0m`,
+		teal90: (text: string) => `\x1b[38;2;45;225;205m${text}\x1b[0m`,
 	};
 
 	const lines = figletText.split('\n');
@@ -91,27 +100,35 @@ export async function displayIntro(
 
 		// Create more gradual transitions, especially at the top
 		if (position < 0.1) {
-			return customColor.teal10(line); // Start darker
+			// Start darker
+			return customColor.teal10(line);
 		}
 		if (position < 0.2) {
-			return customColor.teal20(line); // Gradual transition
+			// Gradual transition
+			return customColor.teal20(line);
 		}
 		if (position < 0.3) {
-			return customColor.teal30(line); // More gradual steps
+			// More gradual steps
+			return customColor.teal30(line);
 		}
 		if (position < 0.4) {
-			return customColor.teal40(line); // Medium brightness
+			// Medium brightness
+			return customColor.teal40(line);
 		}
 		if (position < 0.5) {
-			return customColor.teal50(line); // Getting brighter
+			// Getting brighter
+			return customColor.teal50(line);
 		}
 		if (position < 0.65) {
-			return customColor.teal75(line); // Original full color
+			// Original full color
+			return customColor.teal75(line);
 		}
 		if (position < 0.8) {
-			return customColor.teal90(line); // Enhanced brightness
+			// Enhanced brightness
+			return customColor.teal90(line);
 		}
-		return customColor.teal100(line); // End with super bright
+		// End with super bright
+		return customColor.teal100(line);
 	});
 
 	// Join all colored lines and send as a single message
@@ -123,4 +140,4 @@ export async function displayIntro(
 
 	// Spacing before next step
 	// logger.message('');
-}
+};

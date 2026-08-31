@@ -25,7 +25,10 @@ const canvasCSS = `
 	}
 `;
 
-function ensureGlobalStyle(id: string, cssText: string) {
+const ensureGlobalStyle = function ensureGlobalStyle(
+	id: string,
+	cssText: string
+) {
 	if (typeof document === 'undefined') {
 		return;
 	}
@@ -38,7 +41,7 @@ function ensureGlobalStyle(id: string, cssText: string) {
 	style.id = id;
 	style.textContent = cssText;
 	document.head.appendChild(style);
-}
+};
 
 ensureGlobalStyle(storybookThemeStyleId, themeCSS);
 ensureGlobalStyle(storybookCanvasStyleId, canvasCSS);

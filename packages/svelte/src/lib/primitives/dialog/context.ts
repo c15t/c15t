@@ -15,18 +15,21 @@ export interface DialogRootContextValue {
 	requestClose: (reason: 'backdrop' | 'close-trigger' | 'escape') => void;
 }
 
-export function setDialogRootContext(value: DialogRootContextValue) {
+export const setDialogRootContext = function setDialogRootContext(
+	value: DialogRootContextValue
+) {
 	setContext(DIALOG_ROOT_CONTEXT_KEY, value);
-}
+};
 
-export function getDialogRootContext(): DialogRootContextValue {
-	const context = getContext<DialogRootContextValue | undefined>(
-		DIALOG_ROOT_CONTEXT_KEY
-	);
+export const getDialogRootContext =
+	function getDialogRootContext(): DialogRootContextValue {
+		const context = getContext<DialogRootContextValue | undefined>(
+			DIALOG_ROOT_CONTEXT_KEY
+		);
 
-	if (!context) {
-		throw new Error('Dialog primitives must be used within Dialog.Root');
-	}
+		if (!context) {
+			throw new Error('Dialog primitives must be used within Dialog.Root');
+		}
 
-	return context;
-}
+		return context;
+	};

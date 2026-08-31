@@ -44,14 +44,14 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 
 		expect(css).toContain('.c15t-ui-button-a1b2c');
 		expect(css).toContain('.c15t-ui-force');
-		expect(css).not.toMatch(/@layer\b/);
+		expect(css).not.toMatch(/@layer\b/u);
 	});
 
 	test('unwraps @layer blocks for built @c15t/ui stylesheets in the monorepo', async () => {
 		const css = await processCss('/repo/packages/ui/dist/styles/v3/button.css');
 
 		expect(css).toContain('.c15t-ui-button-a1b2c');
-		expect(css).not.toMatch(/@layer\b/);
+		expect(css).not.toMatch(/@layer\b/u);
 	});
 
 	test('leaves app stylesheets untouched', async () => {
@@ -82,7 +82,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		});
 
 		expect(result.css).toContain('.c15t-ui-button-a1b2c');
-		expect(result.css).not.toMatch(/@layer\b/);
+		expect(result.css).not.toMatch(/@layer\b/u);
 	});
 
 	test('loads through a real require() of the built dist entry', () => {
@@ -105,7 +105,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 
 		expect(css).toContain('.c15t-ui-button-a1b2c');
 		expect(css).toContain('.c15t-ui-force');
-		expect(css).not.toMatch(/@layer\b/);
+		expect(css).not.toMatch(/@layer\b/u);
 	});
 
 	test('matches realistic package paths only', () => {

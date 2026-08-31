@@ -74,7 +74,7 @@ function readValue(
 }
 
 function assertPositiveInteger(value: string, label: string) {
-	if (!/^[1-9]\d*$/.test(value)) {
+	if (!/^[1-9]\d*$/u.test(value)) {
 		throw new Error(`${label} must be a positive integer`);
 	}
 }
@@ -83,7 +83,7 @@ function assertCounts(value: string) {
 	const counts = value.split(',').map((count) => count.trim());
 	if (
 		counts.length === 0 ||
-		counts.some((count) => !/^[1-9]\d*$/.test(count))
+		counts.some((count) => !/^[1-9]\d*$/u.test(count))
 	) {
 		throw new Error(
 			'--script-counts must be a comma-separated list of integers'
@@ -156,7 +156,7 @@ function prefixOutput(name: string, stream: NodeJS.ReadableStream) {
 
 	stream.on('data', (chunk) => {
 		buffer += String(chunk);
-		const lines = buffer.split(/\r?\n/);
+		const lines = buffer.split(/\r?\n/u);
 		buffer = lines.pop() ?? '';
 		for (const line of lines) {
 			if (line.length > 0) {

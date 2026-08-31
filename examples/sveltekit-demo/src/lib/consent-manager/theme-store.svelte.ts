@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import { themePresets } from './theme-presets';
 import type { ThemePresetName } from './theme-presets';
 
-function createThemePresetStore() {
+const createThemePresetStore = function createThemePresetStore() {
 	let preset = $state<ThemePresetName>('none');
 	let mounted = $state(false);
 
@@ -16,14 +16,11 @@ function createThemePresetStore() {
 	}
 
 	return {
-		get preset() {
-			return preset;
-		},
-		get theme() {
-			return themePresets[preset];
-		},
 		get mounted() {
 			return mounted;
+		},
+		get preset() {
+			return preset;
 		},
 		setPreset(name: ThemePresetName) {
 			preset = name;
@@ -31,7 +28,10 @@ function createThemePresetStore() {
 				localStorage.setItem('c15t-theme-preset', name);
 			}
 		},
+		get theme() {
+			return themePresets[preset];
+		},
 	};
-}
+};
 
 export const themePresetStore = createThemePresetStore();

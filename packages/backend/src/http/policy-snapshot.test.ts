@@ -12,7 +12,6 @@
  * to be balanced onto the wrong instance.
  */
 
-import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
 
 // From source: @c15t/backend does not emit handlers as build entries.
@@ -24,16 +23,16 @@ import {
 const OPTIONS = { signingKey: 'test-signing-key-at-least-32-chars-long' };
 
 const claims = {
-	policyId: 'pol_1',
-	fingerprint: 'fp_1',
-	matchedBy: 'country',
-	country: 'DE',
-	region: null,
-	jurisdiction: 'gdpr',
-	model: 'opt_in',
-	language: 'de',
 	categories: ['analytics'],
+	country: 'DE',
+	fingerprint: 'fp_1',
 	gpc: false,
+	jurisdiction: 'gdpr',
+	language: 'de',
+	matchedBy: 'country',
+	model: 'opt_in',
+	policyId: 'pol_1',
+	region: null,
 };
 
 describe('policy snapshot tokens', () => {
@@ -89,14 +88,14 @@ describe('policy snapshot tokens', () => {
 			{ signingKey: 'a-completely-different-signing-key-value' },
 			undefined
 		);
-		assert.deepStrictEqual(wrongKey, { valid: false, reason: 'invalid' });
+		assert.deepStrictEqual(wrongKey, { reason: 'invalid', valid: false });
 
 		const garbage = await verifyPolicySnapshotToken(
 			'not.a.jwt',
 			OPTIONS,
 			undefined
 		);
-		assert.deepStrictEqual(garbage, { valid: false, reason: 'invalid' });
+		assert.deepStrictEqual(garbage, { reason: 'invalid', valid: false });
 	});
 });
 

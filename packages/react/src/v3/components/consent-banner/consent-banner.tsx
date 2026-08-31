@@ -219,13 +219,13 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 
-	const orderedActions = banner.orderedActions;
+	const { orderedActions } = banner;
 	const allowedActions = new Set(orderedActions);
 	const effectivePrimaryButton =
 		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
@@ -235,6 +235,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const resolvedDirection = direction ?? banner.direction ?? 'row';
 	const activeGroups = resolvedLayout
 		.map((item) =>
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 			Array.isArray(item)
 				? item.filter((action): action is PolicyUiAction =>
 						allowedActions.has(action)
@@ -245,9 +246,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		)
 		.filter((group) => group.length > 0);
 	const shouldFillActions = shouldFillPolicyActions({
-		uiProfile: banner.uiProfile,
 		actionGroups: activeGroups,
 		direction: resolvedDirection,
+		uiProfile: banner.uiProfile,
 	});
 
 	const renderButton = (type: ConsentBannerButton, className?: string) => {

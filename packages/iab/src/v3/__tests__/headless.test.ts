@@ -5,23 +5,23 @@ import { completeGVL } from '../../__tests__/tcf/fixtures/gvl-sample';
 import { processGVLForDialog, resolveIABBannerSummary } from '../headless';
 
 const customVendor: NonIABVendor = {
+	cookieMaxAgeSeconds: 31_536_000,
+	features: [1],
 	id: 'custom-analytics',
+	legIntPurposes: [9],
 	name: 'Custom Analytics',
 	privacyPolicyUrl: 'https://example.com/privacy',
 	purposes: [1, 8],
-	legIntPurposes: [9],
-	features: [1],
 	specialFeatures: [2],
 	usesCookies: true,
 	usesNonCookieAccess: false,
-	cookieMaxAgeSeconds: 31_536_000,
 };
 
 describe('@c15t/iab/v3 headless dialog data', () => {
 	test('derives purposes, vendors, stacks, features, and special features from a GVL', () => {
 		const data = processGVLForDialog({
-			gvl: completeGVL,
 			customVendors: [customVendor],
+			gvl: completeGVL,
 		});
 
 		expect(data.isReady).toBe(true);
@@ -37,8 +37,8 @@ describe('@c15t/iab/v3 headless dialog data', () => {
 
 	test('includes custom vendors in purpose derivation', () => {
 		const data = processGVLForDialog({
-			gvl: completeGVL,
 			customVendors: [customVendor],
+			gvl: completeGVL,
 		});
 
 		const storagePurpose = data.purposes.find((purpose) => purpose.id === 1);
@@ -47,8 +47,8 @@ describe('@c15t/iab/v3 headless dialog data', () => {
 		);
 
 		expect(analyticsVendor).toMatchObject({
-			name: 'Custom Analytics',
 			isCustom: true,
+			name: 'Custom Analytics',
 			policyUrl: 'https://example.com/privacy',
 			usesLegitimateInterest: false,
 		});
@@ -56,8 +56,8 @@ describe('@c15t/iab/v3 headless dialog data', () => {
 
 	test('partitions legitimate-interest vendors by purpose', () => {
 		const data = processGVLForDialog({
-			gvl: completeGVL,
 			customVendors: [customVendor],
+			gvl: completeGVL,
 		});
 
 		const statisticsPurpose = data.purposes.find((purpose) => purpose.id === 9);
@@ -76,13 +76,11 @@ describe('@c15t/iab/v3 headless dialog data', () => {
 describe('@c15t/iab/v3 headless banner summary', () => {
 	test('derives vendor count and display summary from stack and special-feature data', () => {
 		const summary = resolveIABBannerSummary({
-			gvl: completeGVL,
 			customVendors: [customVendor],
+			gvl: completeGVL,
 		});
 
 		expect(summary).toEqual({
-			isReady: true,
-			vendorCount: 5,
 			displayItems: [
 				'Store and/or access information on a device',
 				'Personalised advertising profile and target audience measurement',
@@ -90,7 +88,9 @@ describe('@c15t/iab/v3 headless banner summary', () => {
 				'Advertising based on limited data and advertising measurement',
 				'Content measurement and product development',
 			],
+			isReady: true,
 			remainingCount: 2,
+			vendorCount: 5,
 		});
 	});
 });

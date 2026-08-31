@@ -6,11 +6,11 @@ import { useConsentConfig } from './config';
 import { useConsentInit } from './init';
 import { useConsentKernel, useConsentKernelContext } from './kernel';
 
-function useStoredConsent() {
+const useStoredConsent = function useStoredConsent() {
 	return useConsentKernelContext().storedConsent;
-}
+};
 
-function useConsent() {
+const useConsent = function useConsent() {
 	const context = useConsentKernelContext();
 	return computed({
 		get: () => context.snapshot.value.consents,
@@ -18,9 +18,9 @@ function useConsent() {
 			context.kernel.set.consent(value);
 		},
 	});
-}
+};
 
-function useHasConsent() {
+const useHasConsent = function useHasConsent() {
 	const context = useConsentKernelContext();
 	return computed(() => {
 		const snapshot = context.snapshot.value;
@@ -28,11 +28,11 @@ function useHasConsent() {
 			.filter(([, enabled]) => enabled)
 			.map(([category]) => category as CONSENT_CATEGORY);
 	});
-}
+};
 
 export type ConsentSaveInput = CONSENT_CATEGORY[] | 'all' | 'none';
 
-function useConsentSave() {
+const useConsentSave = function useConsentSave() {
 	const config = useConsentConfig();
 	const init = useConsentInit();
 	const kernel = useConsentKernel();
@@ -55,7 +55,7 @@ function useConsentSave() {
 		}
 		void kernel.commands.save(next);
 	};
-}
+};
 
 // Single grouped export: unimport/mlly's export scanner skipped ALTERNATING
 // inline `export function` declarations in the built output (kept #2/#4,

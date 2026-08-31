@@ -19,9 +19,9 @@ export const GET: RequestHandler = ({ request }) => {
 	const inputs = extractConsentRequestInputs(request.headers);
 	const init = resolveInitFromManifest(benchConsentManifestResponse, {
 		country: inputs.country,
-		region: inputs.region,
-		language: inputs.language ?? 'en',
 		gpc: inputs.gpc,
+		language: inputs.language ?? 'en',
+		region: inputs.region,
 	});
 
 	return json(
@@ -31,9 +31,9 @@ export const GET: RequestHandler = ({ request }) => {
 			// wants the fields dropped instead (same as the Nuxt handler).
 			resolvedOverrides: consentInputsToOverrides({
 				country: inputs.country ?? undefined,
-				region: inputs.region ?? undefined,
-				language: inputs.language ?? undefined,
 				gpc: inputs.gpc,
+				language: inputs.language ?? undefined,
+				region: inputs.region ?? undefined,
 			}),
 		},
 		{ headers: { 'cache-control': 'private, no-store' } }

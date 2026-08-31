@@ -104,11 +104,12 @@ const DEFAULT_LEVEL: ObservabilityLevel = 'warn';
 /** The lowest status that counts as worth keeping, per level. */
 const keepFrom: Record<Exclude<ObservabilityLevel, 'silent'>, number> = {
 	error: 500,
-	warn: 400,
 	// Everything is kept anyway; the threshold is unreachable rather than
 	// special-cased.
 	info: 0,
 	inherit: Number.POSITIVE_INFINITY,
+
+	warn: 400,
 };
 
 /**
@@ -122,11 +123,11 @@ const ratesFor = (
 ): Record<string, number> | undefined => {
 	switch (level) {
 		case 'error':
-			return { info: 0, debug: 0, warn: 0 };
+			return { debug: 0, info: 0, warn: 0 };
 		case 'warn':
-			return { info: 0, debug: 0 };
+			return { debug: 0, info: 0 };
 		case 'info':
-			return { info: 100, debug: 100, warn: 100 };
+			return { debug: 100, info: 100, warn: 100 };
 		default:
 			return undefined;
 	}
@@ -141,7 +142,7 @@ const ratesFor = (
  * contains PII today so an end-to-end test would pass either way; and `keep`,
  * because it is what stops the default level discarding failures.
  */
-export function resolveOptions(
+export const resolveOptions = function resolveOptions(
 	options: ObservabilityOptions
 ): EvlogHonoOptions {
 	const level = options.level ?? DEFAULT_LEVEL;
@@ -150,12 +151,10 @@ export function resolveOptions(
 	const caller = options.keep;
 
 	return {
-		include: options.include ? [...options.include] : undefined,
-		exclude: options.exclude ? [...options.exclude] : undefined,
-		// Defaults on; see the file header.
-		redact: options.redact ?? true,
 		drain: options.drain,
 		enrich: options.enrich,
+		exclude: options.exclude ? [...options.exclude] : undefined,
+		include: options.include ? [...options.include] : undefined,
 		keep: async (ctx) => {
 			if ((ctx.status ?? 200) >= threshold) {
 				ctx.shouldKeep = true;
@@ -163,8 +162,11 @@ export function resolveOptions(
 			// The caller's own rule runs too, and can only ever keep more.
 			await caller?.(ctx);
 		},
+
+		// Defaults on; see the file header.
+		redact: options.redact ?? true,
 	};
-}
+};
 
 /**
  * Marks the event `warn` or `error` from the response status.
@@ -184,7 +186,7 @@ export const gradeLevel: MiddlewareHandler = async (c, runNext) => {
 		return;
 	}
 
-	const status = c.res.status;
+	const { status } = c.res;
 	if (status >= 500) {
 		log.setLevel('error');
 	} else if (status >= 400) {
@@ -198,7 +200,7 @@ export const gradeLevel: MiddlewareHandler = async (c, runNext) => {
  * `undefined` rather than a pass-through so `level: 'silent'` costs nothing
  * per request and does not appear in a stack trace.
  */
-export function middleware(
+export const middleware = function middleware(
 	options: ObservabilityOptions | undefined
 ): MiddlewareHandler | undefined {
 	const level = options?.level ?? DEFAULT_LEVEL;
@@ -222,7 +224,7 @@ export function middleware(
 	}
 
 	return evlog(resolveOptions(options ?? {}));
-}
+};
 
 /**
  * Adapts evlog's request logger to the narrow `RequestLog` the app depends on.
@@ -231,14 +233,14 @@ export function middleware(
  * `include`/`exclude`, `c.get('log')` is undefined and handlers still need
  * somewhere to write.
  */
-export function toRequestLog(
+export const toRequestLog = function toRequestLog(
 	logger: AuditableLogger | undefined
 ): RequestLog | undefined {
 	if (logger === undefined) {
 		return undefined;
 	}
 	return {
-		set: (fields) => logger.set(fields),
 		error: (error, fields) => logger.error(error, fields),
+		set: (fields) => logger.set(fields),
 	};
-}
+};

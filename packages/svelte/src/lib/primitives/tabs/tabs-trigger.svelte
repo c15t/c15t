@@ -35,7 +35,7 @@
 	const triggerId = $derived(`${baseId}-trigger-${value}`);
 	const contentId = $derived(`${baseId}-content-${value}`);
 
-	function moveFocus(nextValue: string) {
+	const moveFocus = function moveFocus(nextValue: string) {
 		root.setValue(nextValue);
 
 		if (typeof document === 'undefined') {
@@ -49,9 +49,9 @@
 		if (nextButton instanceof HTMLButtonElement) {
 			nextButton.focus();
 		}
-	}
+	};
 
-	function handleKeyDown(
+	const handleKeyDown = function handleKeyDown(
 		event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		if (typeof document === 'undefined') {
@@ -78,14 +78,14 @@
 			moveFocus(nextValue);
 		}
 		onkeydown?.(event);
-	}
+	};
 
-	function handleClick(
+	const handleClick = function handleClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		root.setValue(value);
 		onclick?.(event);
-	}
+	};
 </script>
 
 <button

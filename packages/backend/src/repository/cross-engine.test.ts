@@ -50,7 +50,7 @@ import {
 /** Fixed rather than `new Date()` so the assertion can be exact. */
 const GIVEN_AT = new Date(1_800_000_000_123);
 
-const setup = Effect.gen(function* () {
+const setup = Effect.gen(function* setup() {
 	yield* resetDatabase;
 	yield* baseline;
 	// Included because the index migration is itself engine-divergent — MySQL
@@ -63,9 +63,9 @@ const setup = Effect.gen(function* () {
 	yield* sql`
 		insert into ${sql('domain')} ${sql.insert(
 			encodeRow(yield* encoder, {
+				createdAt: GIVEN_AT,
 				id: 'dom_1',
 				name: 'example.com',
-				createdAt: GIVEN_AT,
 				updatedAt: GIVEN_AT,
 			})
 		)}
@@ -73,15 +73,15 @@ const setup = Effect.gen(function* () {
 });
 
 const submission = {
-	subjectId: 'sub_1',
 	domainId: 'dom_1',
-	purposeIds: ['analytics'],
 	givenAt: GIVEN_AT,
 	ipAddress: '203.0.113.0',
+	purposeIds: ['analytics'],
+	subjectId: 'sub_1',
 	userAgent: 'test-agent',
 };
 
-const countOf = Effect.fn('countOf')(function* (table: string) {
+const countOf = Effect.fn('countOf')(function* countOf(table: string) {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{
 		total: number | string;
@@ -94,7 +94,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'records a consent, and a replay adds nothing',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 
 					const first = yield* submit(submission);
@@ -116,7 +116,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'races to a single consent',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 
 					const results = yield* Effect.all(
@@ -139,7 +139,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'creates a subject once',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 
 					const first = yield* findOrCreate({ subjectId: 'sub_x' });
@@ -155,16 +155,16 @@ for (const engine of ENGINES) {
 		it.effect(
 			'deduplicates a decision on its unique key',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 
 					const input = {
-						policyId: 'pol_1',
-						fingerprint: 'fp_1',
-						matchedBy: 'country',
-						jurisdiction: 'gdpr',
-						model: 'opt_in',
 						dedupeKey: 'default|fp_1|country|DE|none|gdpr',
+						fingerprint: 'fp_1',
+						jurisdiction: 'gdpr',
+						matchedBy: 'country',
+						model: 'opt_in',
+						policyId: 'pol_1',
 					};
 
 					const first = yield* recordDecision(input);
@@ -183,14 +183,14 @@ for (const engine of ENGINES) {
 		it.effect(
 			'reads a subject back through the join',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 					yield* submit({ ...submission, externalId: 'ext_1' });
 					yield* linkExternalId({
-						subjectId: 'sub_1',
 						externalId: 'ext_1',
 						identityProvider: 'auth0',
 						ipAddress: null,
+						subjectId: 'sub_1',
 						userAgent: null,
 					});
 
@@ -218,20 +218,20 @@ for (const engine of ENGINES) {
 		it.effect(
 			'ranks the latest policy per type',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 
 					yield* syncCurrent({
+						effectiveDate: new Date(1_700_000_000_000),
+						hash: 'sha256-one',
 						type: 'cookie',
 						version: '1.0',
-						hash: 'sha256-one',
-						effectiveDate: new Date(1_700_000_000_000),
 					});
 					const second = yield* syncCurrent({
+						effectiveDate: new Date(1_800_000_000_000),
+						hash: 'sha256-two',
 						type: 'cookie',
 						version: '2.0',
-						hash: 'sha256-two',
-						effectiveDate: new Date(1_800_000_000_000),
 					});
 
 					// `row_number() over (partition by …)` and the boolean column it
@@ -246,21 +246,21 @@ for (const engine of ENGINES) {
 		it.effect(
 			'supersedes a policy inside one transaction',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 					const sql = yield* SqlClient.SqlClient;
 
 					yield* syncCurrent({
+						effectiveDate: new Date(1_700_000_000_000),
+						hash: 'sha256-one',
 						type: 'cookie',
 						version: '1.0',
-						hash: 'sha256-one',
-						effectiveDate: new Date(1_700_000_000_000),
 					});
 					yield* syncCurrent({
+						effectiveDate: new Date(1_800_000_000_000),
+						hash: 'sha256-two',
 						type: 'cookie',
 						version: '2.0',
-						hash: 'sha256-two',
-						effectiveDate: new Date(1_800_000_000_000),
 					});
 
 					// Exactly one active policy per type is the invariant every
@@ -277,7 +277,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'keeps two tenants apart',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* setup;
 					const sql = yield* SqlClient.SqlClient;
 
@@ -286,10 +286,10 @@ for (const engine of ENGINES) {
 						yield* sql`
 							insert into ${sql('subject')} ${sql.insert(
 								encodeRow(encode, {
-									id: `sub_${tenant}`,
-									externalId: 'shared_external_id',
-									tenantId: tenant,
 									createdAt: GIVEN_AT,
+									externalId: 'shared_external_id',
+									id: `sub_${tenant}`,
+									tenantId: tenant,
 									updatedAt: GIVEN_AT,
 								})
 							)}

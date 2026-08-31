@@ -231,6 +231,38 @@ describe('umbrella facade parity', () => {
 	});
 });
 
+/** Mirrors the prefix mapping in `parity-runner.mjs` for file subpaths. */
+function rowsScopedSpecifier(subpath: string): string {
+	const segment = subpath.slice(2);
+	const prefixes: [string, string][] = [
+		['react', '@c15t/react'],
+		['next', '@c15t/nextjs'],
+		['vue', '@c15t/vue'],
+	];
+	for (const [prefix, packageName] of prefixes) {
+		if (segment === prefix) {
+			return packageName;
+		}
+		if (segment.startsWith(`${prefix}/`)) {
+			return `${packageName}/${segment.slice(prefix.length + 1)}`;
+		}
+	}
+	return `@c15t/core/${segment}`;
+}
+
+function listFiles(directory: string, prefix = ''): string[] {
+	const files: string[] = [];
+	for (const entry of readdirSync(directory, { withFileTypes: true })) {
+		const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+		if (entry.isDirectory()) {
+			files.push(...listFiles(join(directory, entry.name), relative));
+		} else {
+			files.push(relative);
+		}
+	}
+	return files;
+}
+
 describe('umbrella file subpaths', () => {
 	const fileSubpaths = Object.entries(manifest.exports).filter(
 		(entry): entry is [string, string] =>
@@ -288,7 +320,8 @@ describe('umbrella file subpaths', () => {
 					'utf8'
 				);
 				const emittedSpecifiers = [
-					...shimSource.matchAll(/from '([^']+)'/g),
+					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+					...shimSource.matchAll(/from '([^']+)'/gu),
 				].flatMap((match) => (match[1] ? [match[1]] : []));
 				expect(
 					emittedSpecifiers.length,
@@ -309,35 +342,3 @@ describe('umbrella file subpaths', () => {
 		}
 	});
 });
-
-/** Mirrors the prefix mapping in `parity-runner.mjs` for file subpaths. */
-function rowsScopedSpecifier(subpath: string): string {
-	const segment = subpath.slice(2);
-	const prefixes: [string, string][] = [
-		['react', '@c15t/react'],
-		['next', '@c15t/nextjs'],
-		['vue', '@c15t/vue'],
-	];
-	for (const [prefix, packageName] of prefixes) {
-		if (segment === prefix) {
-			return packageName;
-		}
-		if (segment.startsWith(`${prefix}/`)) {
-			return `${packageName}/${segment.slice(prefix.length + 1)}`;
-		}
-	}
-	return `@c15t/core/${segment}`;
-}
-
-function listFiles(directory: string, prefix = ''): string[] {
-	const files: string[] = [];
-	for (const entry of readdirSync(directory, { withFileTypes: true })) {
-		const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
-		if (entry.isDirectory()) {
-			files.push(...listFiles(join(directory, entry.name), relative));
-		} else {
-			files.push(relative);
-		}
-	}
-	return files;
-}

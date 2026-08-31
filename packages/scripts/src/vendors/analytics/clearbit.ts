@@ -5,9 +5,11 @@ import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
-function getDefaultClearbitScriptUrl(publishableKey: string): string {
+const getDefaultClearbitScriptUrl = function getDefaultClearbitScriptUrl(
+	publishableKey: string
+): string {
 	return `https://tag.clearbitscripts.com/v1/${encodeURIComponent(publishableKey)}/tags.js`;
-}
+};
 
 /**
  * Clearbit vendor manifest.
@@ -20,17 +22,18 @@ function getDefaultClearbitScriptUrl(publishableKey: string): string {
  */
 export const clearbitManifest = {
 	...vendorManifestContract,
-	vendor: 'clearbit',
 	category: 'marketing',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			attributes: {
 				referrerpolicy: 'strict-origin-when-cross-origin',
 			},
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'clearbit',
 } as const satisfies VendorManifest;
 
 export interface ClearbitOptions {
@@ -71,7 +74,7 @@ export interface ClearbitOptions {
  * });
  * ```
  */
-export function clearbit(options: ClearbitOptions): Script {
+export const clearbit = function clearbit(options: ClearbitOptions): Script {
 	const publishableKey =
 		typeof options.publishableKey === 'string'
 			? options.publishableKey.trim()
@@ -89,4 +92,4 @@ export function clearbit(options: ClearbitOptions): Script {
 			getDefaultClearbitScriptUrl(publishableKey)
 		),
 	});
-}
+};

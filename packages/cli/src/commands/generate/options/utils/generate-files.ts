@@ -69,7 +69,7 @@ interface LayoutUpdateResult {
  * @param options - Configuration options for React layout handling
  * @returns Object containing layout update status and path
  */
-async function handleReactLayout(options: {
+const handleReactLayout = async function handleReactLayout(options: {
 	projectRoot: string;
 	mode: GenerateMode;
 	backendURL?: string;
@@ -101,17 +101,17 @@ async function handleReactLayout(options: {
 	} = options;
 	spinner.start('Updating layout file...');
 	const layoutResult = await updateReactLayout({
-		projectRoot,
-		mode,
 		backendURL,
-		useEnvFile,
-		proxyNextjs,
-		enableSSR,
 		enableDevTools,
-		uiStyle,
+		enableSSR,
 		expandedTheme,
-		selectedScripts,
+		mode,
 		pkg,
+		projectRoot,
+		proxyNextjs,
+		selectedScripts,
+		uiStyle,
+		useEnvFile,
 	});
 
 	const spinnerMessage = () => {
@@ -173,17 +173,17 @@ async function handleReactLayout(options: {
 	spinner.stop(formatLogMessage(type, message));
 
 	return {
-		layoutUpdated: layoutResult.updated,
 		layoutPath: layoutResult.filePath,
+		layoutUpdated: layoutResult.updated,
 	};
-}
+};
 
 /**
  * Handles the Next.js config file updates
  * @param options - Configuration options for Next.js config handling
  * @returns Object containing config update status and path
  */
-async function handleNextConfig(options: {
+const handleNextConfig = async function handleNextConfig(options: {
 	projectRoot: string;
 	backendURL?: string;
 	useEnvFile?: boolean;
@@ -197,8 +197,8 @@ async function handleNextConfig(options: {
 	spinner.start('Updating Next.js config...');
 
 	const configResult = await updateNextConfig({
-		projectRoot,
 		backendURL,
+		projectRoot,
 		useEnvFile,
 	});
 
@@ -232,17 +232,17 @@ async function handleNextConfig(options: {
 	spinner.stop(formatLogMessage(type, message));
 
 	return {
-		nextConfigUpdated: configResult.updated,
-		nextConfigPath: configResult.filePath,
 		nextConfigCreated: configResult.created,
+		nextConfigPath: configResult.filePath,
+		nextConfigUpdated: configResult.updated,
 	};
-}
+};
 
 /**
  * Handles the creation and updating of environment files
  * @param options - Configuration options for environment file handling
  */
-async function handleEnvFiles(options: {
+const handleEnvFiles = async function handleEnvFiles(options: {
 	projectRoot: string;
 	backendURL: string;
 	pkg: AvailablePackages;
@@ -304,7 +304,7 @@ async function handleEnvFiles(options: {
 		);
 		throw error;
 	}
-}
+};
 
 /**
  * Generates appropriate files based on the package type and mode
@@ -312,7 +312,7 @@ async function handleEnvFiles(options: {
  * @param options - Configuration options for file generation
  * @returns Information about generated/updated files
  */
-export async function generateFiles({
+export const generateFiles = async function generateFiles({
 	context,
 	mode,
 	spinner,
@@ -336,19 +336,19 @@ export async function generateFiles({
 
 	if (pkg === 'c15t/next' || pkg === 'c15t/react') {
 		const layoutResult = await handleReactLayout({
-			projectRoot,
-			mode,
 			backendURL,
-			useEnvFile,
-			proxyNextjs,
-			enableSSR,
-			enableDevTools,
-			uiStyle,
-			expandedTheme,
-			selectedScripts,
-			pkg,
-			spinner,
 			cwd: context.cwd,
+			enableDevTools,
+			enableSSR,
+			expandedTheme,
+			mode,
+			pkg,
+			projectRoot,
+			proxyNextjs,
+			selectedScripts,
+			spinner,
+			uiStyle,
+			useEnvFile,
 		});
 		result.layoutUpdated = layoutResult.layoutUpdated;
 		result.layoutPath = layoutResult.layoutPath;
@@ -361,10 +361,10 @@ export async function generateFiles({
 		(mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted')
 	) {
 		const configResult = await handleNextConfig({
-			projectRoot,
 			backendURL,
-			useEnvFile,
+			projectRoot,
 			spinner,
+			useEnvFile,
 		});
 		result.nextConfigUpdated = configResult.nextConfigUpdated;
 		result.nextConfigPath = configResult.nextConfigPath;
@@ -390,21 +390,21 @@ export async function generateFiles({
 
 	if (useEnvFile && backendURL) {
 		await handleEnvFiles({
-			projectRoot,
 			backendURL,
-			pkg,
-			spinner,
 			cwd: context.cwd,
+			pkg,
+			projectRoot,
+			spinner,
 		});
 	}
 
 	if (pkg === 'c15t/react' || pkg === 'c15t/next') {
 		spinner.start('Configuring app stylesheet...');
 		const stylesheetResult = await updateAppStylesheetImports({
-			projectRoot,
-			packageName: pkg,
-			tailwindVersion: context.framework.tailwindVersion,
 			entrypointPath: result.layoutPath,
+			packageName: pkg,
+			projectRoot,
+			tailwindVersion: context.framework.tailwindVersion,
 		});
 		if (stylesheetResult.updated) {
 			result.tailwindCssUpdated = true;
@@ -433,4 +433,4 @@ export async function generateFiles({
 	}
 
 	return result;
-}
+};

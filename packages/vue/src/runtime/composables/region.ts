@@ -8,14 +8,15 @@ export interface RequestRegion {
 	country?: string;
 }
 
-export function useRequestRegion(): Ref<RequestRegion> {
-	const context = useConsentKernelContext();
-	return computed(() => ({
-		country:
-			context.snapshot.value.location?.countryCode ??
-			context.snapshot.value.overrides.country,
-		region:
-			context.snapshot.value.location?.regionCode ??
-			context.snapshot.value.overrides.region,
-	}));
-}
+export const useRequestRegion =
+	function useRequestRegion(): Ref<RequestRegion> {
+		const context = useConsentKernelContext();
+		return computed(() => ({
+			country:
+				context.snapshot.value.location?.countryCode ??
+				context.snapshot.value.overrides.country,
+			region:
+				context.snapshot.value.location?.regionCode ??
+				context.snapshot.value.overrides.region,
+		}));
+	};

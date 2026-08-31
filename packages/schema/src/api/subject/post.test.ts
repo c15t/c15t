@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { postSubjectInputSchema } from './post';
 
 const baseInput = {
-	type: 'cookie_banner' as const,
-	subjectId: 'sub_user1',
 	domain: 'example.com',
 	preferences: { necessary: true },
+	subjectId: 'sub_user1',
+	type: 'cookie_banner' as const,
 };
 
 const parseGivenAt = (givenAt: unknown) =>

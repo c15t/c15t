@@ -20,10 +20,10 @@ import {
 const options = { signingKey: 'a-signing-key-of-reasonable-length' };
 
 const claims = {
+	effectiveDate: '2026-04-13T00:00:00.000Z',
+	hash: 'sha256-of-the-terms',
 	type: 'terms_and_conditions',
 	version: '2026-04-13',
-	hash: 'sha256-of-the-terms',
-	effectiveDate: '2026-04-13T00:00:00.000Z',
 };
 
 describe('legal document snapshot', () => {
@@ -127,7 +127,7 @@ describe('legal document snapshot', () => {
 		// "missing" is a normal state — the client simply did not send one.
 		// Everything else collapses to "invalid" without saying which check
 		// failed, so a forged token gets no feedback to iterate against.
-		assert.deepStrictEqual(absent, { valid: false, reason: 'missing' });
-		assert.deepStrictEqual(rubbish, { valid: false, reason: 'invalid' });
+		assert.deepStrictEqual(absent, { reason: 'missing', valid: false });
+		assert.deepStrictEqual(rubbish, { reason: 'invalid', valid: false });
 	});
 });

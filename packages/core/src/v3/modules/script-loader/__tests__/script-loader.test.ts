@@ -51,49 +51,57 @@ interface StubParent {
 	removeChild: (el: StubScriptElement) => void;
 }
 
-function createStubElement(): StubScriptElement {
+const createStubElement = function createStubElement(): StubScriptElement {
 	const el: StubScriptElement = {
-		id: '',
-		parentNode: null,
-		listeners: new Map(),
-		attributes: new Map(),
-		setAttribute(key, value) {
-			this.attributes.set(key, value);
-		},
 		addEventListener(event, handler) {
 			const bucket = this.listeners.get(event) ?? [];
 			bucket.push(handler);
 			this.listeners.set(event, bucket);
 		},
+		attributes: new Map(),
+		id: '',
+		listeners: new Map(),
+		parentNode: null,
 		removeEventListener(event, handler) {
 			const bucket = this.listeners.get(event);
-			if (!bucket) return;
+			if (!bucket) {
+				return;
+			}
 			const idx = bucket.indexOf(handler);
-			if (idx >= 0) bucket.splice(idx, 1);
+			if (idx >= 0) {
+				bucket.splice(idx, 1);
+			}
+		},
+		setAttribute(key, value) {
+			this.attributes.set(key, value);
 		},
 		triggerEvent(event, payload) {
 			const bucket = this.listeners.get(event);
-			if (!bucket) return;
-			for (const handler of bucket) handler(payload ?? {});
+			if (!bucket) {
+				return;
+			}
+			for (const handler of bucket) {
+				handler(payload ?? {});
+			}
 		},
 	};
 	return el;
-}
+};
 
-function createStubParent(): StubParent {
+const createStubParent = function createStubParent(): StubParent {
 	const parent: StubParent = {
-		children: [],
 		appendChild(el) {
 			parent.children.push(el);
 			el.parentNode = parent;
 		},
+		children: [],
 		removeChild(el) {
 			parent.children = parent.children.filter((c) => c !== el);
 			el.parentNode = null;
 		},
 	};
 	return parent;
-}
+};
 
 let head: StubParent;
 let body: StubParent;
@@ -102,8 +110,11 @@ beforeEach(() => {
 	head = createStubParent();
 	body = createStubParent();
 	vi.stubGlobal('document', {
+		body,
 		createElement(tag: string) {
-			if (tag !== 'script') throw new Error(`Unexpected tag: ${tag}`);
+			if (tag !== 'script') {
+				throw new Error(`Unexpected tag: ${tag}`);
+			}
 			return createStubElement();
 		},
 		getElementById(id: string) {
@@ -114,7 +125,6 @@ beforeEach(() => {
 			);
 		},
 		head,
-		body,
 	});
 	// Fake timers so inline-script setTimeout(...,0) → onLoad fires
 	// deterministically.
@@ -136,7 +146,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 
@@ -149,7 +159,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 
@@ -158,6 +168,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 
 	test('does NOT mount an in-policy marketing script before opt-in consent even when preselected', () => {
 		const kernel = createConsentKernel({
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 			initialPolicy: {
 				model: 'opt-in',
 				ui: { mode: 'banner' },
@@ -173,7 +184,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 
@@ -184,6 +195,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 
 	test('does NOT mount an out-of-policy marketing script before opt-in consent in permissive scope', () => {
 		const kernel = createConsentKernel({
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 			initialPolicy: {
 				model: 'opt-in',
 				ui: { mode: 'banner' },
@@ -199,7 +211,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 
@@ -213,9 +225,9 @@ describe('script-loader: basic load/unload on consent change', () => {
 			initialConsents: { marketing: true },
 		});
 		const script: Script = {
+			category: 'marketing',
 			id: 'gtm',
 			src: 'https://example.com/gtm.js',
-			category: 'marketing',
 		};
 		createScriptLoader({ kernel, scripts: [script] });
 
@@ -229,9 +241,9 @@ describe('script-loader: basic load/unload on consent change', () => {
 			initialConsents: { marketing: true },
 		});
 		const script: Script = {
+			category: 'marketing',
 			id: 'gtm',
 			src: 'https://example.com/gtm.js',
-			category: 'marketing',
 		};
 		createScriptLoader({ kernel, scripts: [script] });
 
@@ -248,15 +260,16 @@ describe('script-loader: DOM dedupe across loader instances', () => {
 			initialConsents: { marketing: true },
 		});
 		const script: Script = {
+			category: 'marketing',
 			id: 'shared-anon',
 			src: 'https://example.com/shared.js',
-			category: 'marketing',
 		};
 
 		const first = createScriptLoader({ kernel, scripts: [script] });
 		expect(head.children).toHaveLength(1);
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		const element = head.children[0];
-		expect(element?.id).toMatch(/^c15t-/);
+		expect(element?.id).toMatch(/^c15t-/u);
 		expect(element?.id).not.toBe('c15t-script-shared-anon');
 
 		const second = createScriptLoader({ kernel, scripts: [script] });
@@ -278,10 +291,10 @@ describe('script-loader: DOM dedupe across loader instances', () => {
 			initialConsents: { marketing: true },
 		});
 		const script: Script = {
+			anonymizeId: false,
+			category: 'marketing',
 			id: 'shared-stable',
 			src: 'https://example.com/shared-stable.js',
-			category: 'marketing',
-			anonymizeId: false,
 		};
 
 		const first = createScriptLoader({ kernel, scripts: [script] });
@@ -305,10 +318,10 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 			kernel,
 			scripts: [
 				{
+					alwaysLoad: true,
+					category: 'marketing',
 					id: 'gtm',
 					src: 'https://example.com/gtm.js',
-					category: 'marketing',
-					alwaysLoad: true,
 				},
 			],
 		});
@@ -327,10 +340,10 @@ describe('script-loader: persistAfterConsentRevoked', () => {
 			kernel,
 			scripts: [
 				{
-					id: 'gtm',
-					src: 'https://example.com/gtm.js',
 					category: 'marketing',
+					id: 'gtm',
 					persistAfterConsentRevoked: true,
+					src: 'https://example.com/gtm.js',
 				},
 			],
 		});
@@ -352,9 +365,9 @@ describe('script-loader: callbackOnly skips DOM mount', () => {
 			kernel,
 			scripts: [
 				{
-					id: 'consent-mode',
-					category: 'measurement',
 					callbackOnly: true,
+					category: 'measurement',
+					id: 'consent-mode',
 					onLoad,
 				},
 			],
@@ -375,11 +388,11 @@ describe('script-loader: callbacks fire in sequence', () => {
 			kernel,
 			scripts: [
 				{
-					id: 'ga',
-					src: 'https://example.com/ga.js',
 					category: 'measurement',
+					id: 'ga',
 					onBeforeLoad: () => order.push('before'),
 					onLoad: () => order.push('load'),
+					src: 'https://example.com/ga.js',
 				},
 			],
 		});
@@ -399,10 +412,10 @@ describe('script-loader: callbacks fire in sequence', () => {
 			kernel,
 			scripts: [
 				{
-					id: 'inline',
-					textContent: 'console.log("hi");',
 					category: 'functionality',
+					id: 'inline',
 					onLoad,
+					textContent: 'console.log("hi");',
 				},
 			],
 		});
@@ -421,10 +434,10 @@ describe('script-loader: callbacks fire in sequence', () => {
 			kernel,
 			scripts: [
 				{
-					id: 'gtm',
-					src: 'https://example.com/gtm.js',
 					category: 'marketing',
+					id: 'gtm',
 					onConsentChange,
+					src: 'https://example.com/gtm.js',
 				},
 			],
 		});
@@ -443,10 +456,10 @@ describe('script-loader: callbacks fire in sequence', () => {
 			kernel,
 			scripts: [
 				{
-					id: 'gtm',
-					src: 'https://example.com/gtm.js',
 					category: 'marketing',
+					id: 'gtm',
 					onConsentChange,
+					src: 'https://example.com/gtm.js',
 				},
 			],
 		});
@@ -465,11 +478,11 @@ describe('script-loader: anonymizeId', () => {
 		createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 		const firstId = head.children[0]?.id;
-		expect(firstId).toMatch(/^c15t-/);
+		expect(firstId).toMatch(/^c15t-/u);
 		expect(firstId).not.toBe('c15t-script-gtm');
 
 		// Revoke + regrant should keep the same anonymized ID.
@@ -486,10 +499,10 @@ describe('script-loader: anonymizeId', () => {
 			kernel,
 			scripts: [
 				{
+					anonymizeId: false,
+					category: 'marketing',
 					id: 'gtm',
 					src: 'https://example.com/gtm.js',
-					category: 'marketing',
-					anonymizeId: false,
 				},
 			],
 		});
@@ -500,15 +513,15 @@ describe('script-loader: anonymizeId', () => {
 describe('script-loader: nested AND/OR/NOT conditions', () => {
 	test('AND requires all', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { measurement: true, marketing: false },
+			initialConsents: { marketing: false, measurement: true },
 		});
 		createScriptLoader({
 			kernel,
 			scripts: [
 				{
+					category: { and: ['measurement', 'marketing'] },
 					id: 's',
 					src: 'https://example.com/s.js',
-					category: { and: ['measurement', 'marketing'] },
 				},
 			],
 		});
@@ -524,9 +537,9 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 			kernel,
 			scripts: [
 				{
+					category: { or: ['measurement', 'marketing'] },
 					id: 's',
 					src: 'https://example.com/s.js',
-					category: { or: ['measurement', 'marketing'] },
 				},
 			],
 		});
@@ -544,9 +557,9 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 			kernel,
 			scripts: [
 				{
+					category: { not: 'marketing' },
 					id: 's',
 					src: 'https://example.com/s.js',
-					category: { not: 'marketing' },
 				},
 			],
 		});
@@ -561,22 +574,22 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 describe('script-loader: IAB evaluation when model="iab"', () => {
 	test('vendorId gate: vendor consent drives load', () => {
 		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
 			initialIab: { enabled: true },
 			initialPolicy: {
 				id: 'iab',
 				model: 'iab',
 				ui: { mode: 'banner' },
 			} as never,
-			initialConsents: { marketing: true },
 		});
 
 		createScriptLoader({
 			kernel,
 			scripts: [
 				{
+					category: 'marketing',
 					id: 'vendor-script',
 					src: 'https://example.com/v.js',
-					category: 'marketing',
 					vendorId: 755,
 				},
 			],
@@ -601,16 +614,16 @@ describe('script-loader: updateScripts swaps config', () => {
 		const loader = createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 		expect(head.children).toHaveLength(1);
 
 		loader.updateScripts([
 			{
+				category: 'measurement',
 				id: 'ga',
 				src: 'https://example.com/ga.js',
-				category: 'measurement',
 			},
 		]);
 		// gtm unmounted, ga mounted
@@ -627,7 +640,7 @@ describe('script-loader: dispose', () => {
 		const loader = createScriptLoader({
 			kernel,
 			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
 			],
 		});
 		expect(head.children).toHaveLength(1);
@@ -650,10 +663,10 @@ describe('script-loader: onDebug emits lifecycle events', () => {
 		});
 		createScriptLoader({
 			kernel,
-			scripts: [
-				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
-			],
 			onDebug: (e) => events.push(`${e.action}:${e.scriptId}`),
+			scripts: [
+				{ category: 'marketing', id: 'gtm', src: 'https://example.com/gtm.js' },
+			],
 		});
 
 		expect(events).toContain('loaded:gtm');

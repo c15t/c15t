@@ -235,8 +235,8 @@ describe('runtime', () => {
 				storageConfig,
 				store: expect.objectContaining({
 					initialTranslationConfig: {
-						translations: {},
 						defaultLanguage: 'de',
+						translations: {},
 					},
 					iab,
 				}),

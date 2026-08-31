@@ -8,9 +8,10 @@ describe('createEventBus', () => {
 		const listener = vi.fn();
 		bus.on('consent:set', listener);
 		bus.emit({
-			type: 'consent:set',
 			// oxlint-disable-next-line typescript/no-explicit-any -- stub snapshot
 			snapshot: {} as any,
+
+			type: 'consent:set',
 		});
 		expect(listener).toHaveBeenCalledOnce();
 	});

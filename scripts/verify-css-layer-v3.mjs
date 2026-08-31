@@ -32,6 +32,7 @@ const apps = [
 		expectImportantUtilities: true,
 		expectPreflightSurvival: true,
 	},
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	{
 		env: 'tw4',
 		label: 'Tailwind 4',
@@ -90,12 +91,14 @@ async function waitForServer(url, timeoutMs = 20_000) {
 
 	while (Date.now() - startedAt < timeoutMs) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(url);
 			if (response.ok) {
 				return;
 			}
 		} catch {}
 
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await delay(250);
 	}
 

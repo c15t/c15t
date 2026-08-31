@@ -89,7 +89,7 @@ describe('switchVariants', () => {
 		test('disabled and custom class together for thumb', () => {
 			const variants = switchVariants();
 			const customClass = 'extra-styles';
-			const thumbClass = variants.thumb({ disabled: true, class: customClass });
+			const thumbClass = variants.thumb({ class: customClass, disabled: true });
 
 			expect(thumbClass).toContain(customClass);
 		});
@@ -97,7 +97,7 @@ describe('switchVariants', () => {
 		test('disabled and custom class together for track', () => {
 			const variants = switchVariants();
 			const customClass = 'extra-styles';
-			const trackClass = variants.track({ disabled: true, class: customClass });
+			const trackClass = variants.track({ class: customClass, disabled: true });
 
 			expect(trackClass).toContain(customClass);
 		});

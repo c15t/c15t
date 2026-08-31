@@ -28,8 +28,8 @@ export const ConsentWidget = ({
 	const globalTheme = useTheme();
 
 	const mergedProps = {
-		noStyle: localNoStyle ?? globalTheme.noStyle,
 		disableAnimation: localDisableAnimation ?? globalTheme.disableAnimation,
+		noStyle: localNoStyle ?? globalTheme.noStyle,
 		scrollLock: localScrollLock ?? globalTheme.scrollLock,
 		trapFocus: localTrapFocus ?? globalTheme.trapFocus,
 		...props,

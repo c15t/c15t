@@ -5,9 +5,9 @@ import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 
 export const INTERCOM_API_BASES = {
-	us: 'https://api-iam.intercom.io',
-	eu: 'https://api-iam.eu.intercom.io',
 	au: 'https://api-iam.au.intercom.io',
+	eu: 'https://api-iam.eu.intercom.io',
+	us: 'https://api-iam.intercom.io',
 } as const;
 
 export type IntercomApiBase =
@@ -91,30 +91,33 @@ declare global {
  */
 export const intercomManifest = {
 	...vendorManifestContract,
-	vendor: 'intercom',
 	category: 'functionality',
 	install: [
 		{
-			type: 'defineStubFunction',
+			ifUndefined: true,
+
 			name: 'Intercom',
 			queue: {
 				property: 'q',
 			},
 			queueFormat: 'array',
-			ifUndefined: true,
+			type: 'defineStubFunction',
 		},
 		{
-			type: 'setGlobal',
-			name: 'intercomSettings',
-			value: '{{settings}}',
 			ifUndefined: false,
+
+			name: 'intercomSettings',
+			type: 'setGlobal',
+			value: '{{settings}}',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
 			async: true,
+
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'intercom',
 } as const satisfies VendorManifest;
 
 export interface IntercomOptions {
@@ -158,18 +161,18 @@ export interface IntercomOptions {
  *
  * @see {@link https://developers.intercom.com/installing-intercom/web/installation} Intercom installation documentation.
  */
-export function intercom({
+export const intercom = function intercom({
 	appId,
 	apiBase = INTERCOM_API_BASES.us,
 	settings,
 	scriptSrc,
 }: IntercomOptions): Script {
 	return resolveManifest(intercomManifest, {
+		scriptSrc: scriptSrc ?? `https://widget.intercom.io/widget/${appId}`,
 		settings: {
 			...(settings ?? {}),
-			app_id: appId,
 			api_base: apiBase,
+			app_id: appId,
 		},
-		scriptSrc: scriptSrc ?? `https://widget.intercom.io/widget/${appId}`,
 	});
-}
+};

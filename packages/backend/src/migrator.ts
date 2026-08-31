@@ -60,10 +60,10 @@ export const createMigrator = (database: DatabaseOption): Migrator => {
 	);
 
 	return {
-		plan: (options) =>
-			runtime.runPromise(migrate({ ...options, dryRun: true })),
 		apply: (options) =>
 			runtime.runPromise(migrate({ ...options, dryRun: false })),
 		dispose: () => runtime.dispose(),
+		plan: (options) =>
+			runtime.runPromise(migrate({ ...options, dryRun: true })),
 	};
 };

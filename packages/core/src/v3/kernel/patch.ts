@@ -74,52 +74,52 @@ export interface SnapshotPatch {
  * snapshot is not mutated. The caller is responsible for swapping in the
  * returned snapshot and notifying subscribers.
  */
-export function applyPatch(
+export const applyPatch = function applyPatch(
 	current: ConsentSnapshot,
 	patch: SnapshotPatch
 ): ConsentSnapshot {
 	return freezeSnapshot({
-		consents: patch.consents ?? current.consents,
-		overrides: patch.overrides ?? current.overrides,
-		user: patch.user === undefined ? current.user : patch.user,
-		subjectId:
-			patch.subjectId === undefined ? current.subjectId : patch.subjectId,
-		hasConsented: patch.hasConsented ?? current.hasConsented,
-		revision: current.revision + 1,
-		location: patch.location === undefined ? current.location : patch.location,
-		translations:
-			patch.translations === undefined
-				? current.translations
-				: patch.translations,
-		branding: patch.branding === undefined ? current.branding : patch.branding,
-		policy: patch.policy === undefined ? current.policy : patch.policy,
-		policyDecision:
-			patch.policyDecision === undefined
-				? current.policyDecision
-				: patch.policyDecision,
-		policySnapshotToken:
-			patch.policySnapshotToken === undefined
-				? current.policySnapshotToken
-				: patch.policySnapshotToken,
-		model: patch.model === undefined ? current.model : patch.model,
 		activeUI: patch.activeUI === undefined ? current.activeUI : patch.activeUI,
-		policyProvisional: patch.policyProvisional ?? current.policyProvisional,
-		policyCategories:
-			patch.policyCategories === undefined
-				? current.policyCategories
-				: patch.policyCategories,
-		policyScopeMode:
-			patch.policyScopeMode === undefined
-				? current.policyScopeMode
-				: patch.policyScopeMode,
+		branding: patch.branding === undefined ? current.branding : patch.branding,
+		consents: patch.consents ?? current.consents,
+		hasConsented: patch.hasConsented ?? current.hasConsented,
+		iab: patch.iab === undefined ? current.iab : patch.iab,
+		location: patch.location === undefined ? current.location : patch.location,
+		model: patch.model === undefined ? current.model : patch.model,
+		overrides: patch.overrides ?? current.overrides,
+		policy: patch.policy === undefined ? current.policy : patch.policy,
 		policyBanner:
 			patch.policyBanner === undefined
 				? current.policyBanner
 				: patch.policyBanner,
+		policyCategories:
+			patch.policyCategories === undefined
+				? current.policyCategories
+				: patch.policyCategories,
+		policyDecision:
+			patch.policyDecision === undefined
+				? current.policyDecision
+				: patch.policyDecision,
 		policyDialog:
 			patch.policyDialog === undefined
 				? current.policyDialog
 				: patch.policyDialog,
-		iab: patch.iab === undefined ? current.iab : patch.iab,
+		policyProvisional: patch.policyProvisional ?? current.policyProvisional,
+		policyScopeMode:
+			patch.policyScopeMode === undefined
+				? current.policyScopeMode
+				: patch.policyScopeMode,
+		policySnapshotToken:
+			patch.policySnapshotToken === undefined
+				? current.policySnapshotToken
+				: patch.policySnapshotToken,
+		revision: current.revision + 1,
+		subjectId:
+			patch.subjectId === undefined ? current.subjectId : patch.subjectId,
+		translations:
+			patch.translations === undefined
+				? current.translations
+				: patch.translations,
+		user: patch.user === undefined ? current.user : patch.user,
 	});
-}
+};

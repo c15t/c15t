@@ -3,108 +3,126 @@
  *
  * We run the normalizer inside the page so we don't need a Node-side DOM
  * (jsdom/happy-dom) just to parse captured HTML. The normalizer source
- * is inlined via a string so Playwright's `evaluate` can ship it with a
- * single RPC call; this matches what `domSnapshot` does in
- * `@c15t/conformance/dom-snapshot`.
+ * is passed directly to Playwright so it still runs in the browser context.
  */
 
 import type { Page } from '@playwright/test';
 
-const INLINE_NORMALIZER = /* js */ `
-	const SVELTE = /\\bsvelte-[a-z0-9]+\\b/g;
-	const S_SCOPED = /\\bs-[a-z0-9]{6,}\\b/g;
-	const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/;
-	// Framework-auto-id suffixes appended to stable prefixes. React's useId()
-	// (with ':' stripped) emits tokens like "_r_0_" / "r0"; Svelte's $props.id()
-	// emits tokens like "c1"; Vue's useId() emits tokens like "v-0" (and
-	// "v-0-1" inside async boundaries). The prefix portion
-	// ("c15t-preference-item-content-") is identical across frameworks and
-	// stable; only the suffix differs. Replace just the suffix with __AUTO__
-	// so id/aria-controls/for attributes compare equal without masking other
-	// drift.
-	const AUTO_ID_SUFFIX = /-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/;
-	const STRIP = new Set(['data-reactroot','data-reactid','data-svelte-h','data-v-app']);
-	function isProviderArtifact(el){
-		// <style id="c15t-theme"> is emitted by the theme provider. React renders
-		// it inline inside the component tree; Svelte injects it into <head> via
-		// an effect. Both are legitimate; neither contributes to component
-		// structure, a11y, or user-visible behavior — it's a provider injection
-		// strategy detail. Excluded from the snapshot so component-level drift
-		// isn't masked by this cross-framework implementation choice.
-		return el.tagName === 'STYLE' && el.id === 'c15t-theme';
-	}
-	function stripClasses(v){
-		// Dedupe: React's theme-styling helpers occasionally concatenate the
-		// same class name through multiple paths (baseClassName + themeKey
-		// resolved class), producing "foo foo" in the rendered DOM. CSS
-		// itself is idempotent under repeated classes, so the duplicates are
-		// cosmetic — normalize them away for parity.
-		const seen = new Set();
-		const out = [];
-		for (const tok of v.replace(SVELTE,'').replace(S_SCOPED,'').split(/\\s+/)) {
-			if (!tok || seen.has(tok)) continue;
-			seen.add(tok);
-			out.push(tok);
-		}
-		out.sort();
-		return out.join(' ');
-	}
-	function canonicalStyle(style){
-		return Array.from(style).sort().map((name) => {
-			const value = style.getPropertyValue(name).trim();
-			const priority = style.getPropertyPriority(name);
-			return name+':'+value+(priority?' !'+priority:'');
-		}).join(';');
-	}
-	function normAttr(el, name, value){
-		if (name==='id'||name==='aria-labelledby'||name==='aria-describedby'||name==='aria-controls'||name==='for') {
-			if (AUTO_ID.test(value)) return '__AUTO__';
-			return value.replace(AUTO_ID_SUFFIX, '-__AUTO__');
-		}
-		if (name==='class') return stripClasses(value);
-		if (name==='style' && 'style' in el) return canonicalStyle(el.style);
-		return value;
-	}
-	function canonicalize(el){
-		const tag = el.tagName.toLowerCase();
-		const attrs = [];
-		for (const a of Array.from(el.attributes)){
-			if (STRIP.has(a.name)) continue;
-			const v = normAttr(el, a.name, a.value);
-			if (a.name==='class' && v==='') continue;
-			attrs.push(a.name+'="'+v+'"');
-		}
-		attrs.sort();
-		const open = '<'+tag+(attrs.length?' '+attrs.join(' '):'')+'>';
-		const children = [];
-		for (const node of Array.from(el.childNodes)){
-			if (node.nodeType===1) {
-				if (isProviderArtifact(node)) continue;
-				children.push(canonicalize(node));
-				continue;
-			}
-			if (node.nodeType===3) {
-				const t = (node.textContent||'').replace(/\\s+/g,' ').trim();
-				if (t) children.push(t);
-			}
-		}
-		return open + children.join('') + '</'+tag+'>';
-	}
-	return canonicalize(target);
-`;
-
-export async function captureDomSnapshot(
+export const captureDomSnapshot = function captureDomSnapshot(
 	page: Page,
 	selector: string
 ): Promise<string> {
-	return page.evaluate(
-		(args: { sel: string; src: string }) => {
-			const target = document.querySelector(args.sel);
-			if (!target) throw new Error(`no element: ${args.sel}`);
-			// oxlint-disable-next-line no-eval -- trusted inline script
-			const fn = new Function('target', args.src);
-			return fn(target) as string;
-		},
-		{ sel: selector, src: INLINE_NORMALIZER }
-	);
-}
+	return page.locator(selector).evaluate((target) => {
+		const SVELTE = /\bsvelte-[a-z0-9]+\b/gu;
+		const S_SCOPED = /\bs-[a-z0-9]{6,}\b/gu;
+		const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
+		const AUTO_ID_SUFFIX =
+			/-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/u;
+		const STRIP = new Set([
+			'data-reactroot',
+			'data-reactid',
+			'data-svelte-h',
+			'data-v-app',
+		]);
+
+		const isProviderArtifact = function isProviderArtifact(
+			element: Element
+		): boolean {
+			return element.tagName === 'STYLE' && element.id === 'c15t-theme';
+		};
+
+		const stripClasses = function stripClasses(value: string): string {
+			const seen = new Set<string>();
+			const out: string[] = [];
+			for (const token of value
+				.replace(SVELTE, '')
+				.replace(S_SCOPED, '')
+				.split(/\s+/u)) {
+				if (!token || seen.has(token)) {
+					continue;
+				}
+				seen.add(token);
+				out.push(token);
+			}
+			out.sort();
+			return out.join(' ');
+		};
+
+		const canonicalStyle = function canonicalStyle(
+			style: CSSStyleDeclaration
+		): string {
+			return Array.from(style)
+				.sort()
+				.map((name) => {
+					const value = style.getPropertyValue(name).trim();
+					const priority = style.getPropertyPriority(name);
+					return `${name}:${value}${priority ? ` !${priority}` : ''}`;
+				})
+				.join(';');
+		};
+
+		const normAttr = function normAttr(
+			element: Element,
+			name: string,
+			value: string
+		): string {
+			if (
+				name === 'id' ||
+				name === 'aria-labelledby' ||
+				name === 'aria-describedby' ||
+				name === 'aria-controls' ||
+				name === 'for'
+			) {
+				if (AUTO_ID.test(value)) {
+					return '__AUTO__';
+				}
+				return value.replace(AUTO_ID_SUFFIX, '-__AUTO__');
+			}
+			if (name === 'class') {
+				return stripClasses(value);
+			}
+			if (name === 'style' && 'style' in element) {
+				return canonicalStyle(
+					(element as Element & { style: CSSStyleDeclaration }).style
+				);
+			}
+			return value;
+		};
+
+		const canonicalize = function canonicalize(element: Element): string {
+			const tag = element.tagName.toLowerCase();
+			const attrs: string[] = [];
+			for (const attribute of Array.from(element.attributes)) {
+				if (STRIP.has(attribute.name)) {
+					continue;
+				}
+				const value = normAttr(element, attribute.name, attribute.value);
+				if (attribute.name === 'class' && value === '') {
+					continue;
+				}
+				attrs.push(`${attribute.name}="${value}"`);
+			}
+			attrs.sort();
+			const open = `<${tag}${attrs.length ? ` ${attrs.join(' ')}` : ''}>`;
+			const children: string[] = [];
+			for (const node of Array.from(element.childNodes)) {
+				if (node.nodeType === 1) {
+					if (isProviderArtifact(node as Element)) {
+						continue;
+					}
+					children.push(canonicalize(node as Element));
+					continue;
+				}
+				if (node.nodeType === 3) {
+					const text = (node.textContent || '').replace(/\s+/gu, ' ').trim();
+					if (text) {
+						children.push(text);
+					}
+				}
+			}
+			return `${open}${children.join('')}</${tag}>`;
+		};
+
+		return canonicalize(target);
+	});
+};

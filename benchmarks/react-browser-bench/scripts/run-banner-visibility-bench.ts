@@ -119,9 +119,13 @@ async function ensureBuild() {
 async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(`${BASE_URL}/banner-visibility`);
 			if (response.ok) return;
-		} catch {}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await sleep(500);
 	}
 	throw new Error('Timed out waiting for banner visibility benchmark server');
@@ -175,6 +179,7 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let cleanupError: Error | undefined;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
@@ -262,8 +267,11 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Banner visibility bench server failed');
+			cleanupError = new Error(logs || 'Banner visibility bench server failed');
 		}
+	}
+	if (cleanupError) {
+		throw cleanupError;
 	}
 }
 

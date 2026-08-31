@@ -23,10 +23,10 @@ export const listSubjectsQuerySchema = v.object({
  * Subject item in GET /subjects response
  */
 export const subjectItemSchema = v.object({
-	id: v.string(),
-	externalId: v.string(),
-	createdAt: v.date(),
 	consents: v.array(consentItemSchema),
+	createdAt: v.date(),
+	externalId: v.string(),
+	id: v.string(),
 });
 
 /**
@@ -40,14 +40,15 @@ export const listSubjectsOutputSchema = v.object({
  * Error schemas for GET /subjects
  */
 export const listSubjectsErrorSchemas = {
-	inputValidationFailed: v.object({
-		formErrors: v.array(v.string()),
-		fieldErrors: v.record(v.string(), v.array(v.string())),
-	}),
-	unauthorized: v.object({
+	externalIdRequired: v.object({
 		message: v.string(),
 	}),
-	externalIdRequired: v.object({
+	inputValidationFailed: v.object({
+		fieldErrors: v.record(v.string(), v.array(v.string())),
+
+		formErrors: v.array(v.string()),
+	}),
+	unauthorized: v.object({
 		message: v.string(),
 	}),
 };

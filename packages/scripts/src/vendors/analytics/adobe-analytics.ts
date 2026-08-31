@@ -16,59 +16,60 @@ interface AdobeAnalyticsManifestOptions {
 	seedAdobeDataLayer: boolean;
 }
 
-function validateAdobeAnalyticsScriptUrl(scriptUrl: string): string {
-	const trimmed = scriptUrl.trim();
-	if (trimmed.length === 0) {
-		throw new Error(
-			'adobeAnalytics: invalid scriptUrl - must be a non-empty https URL from your Adobe Data Collection embed code'
-		);
-	}
+const validateAdobeAnalyticsScriptUrl =
+	function validateAdobeAnalyticsScriptUrl(scriptUrl: string): string {
+		const trimmed = scriptUrl.trim();
+		if (trimmed.length === 0) {
+			throw new Error(
+				'adobeAnalytics: invalid scriptUrl - must be a non-empty https URL from your Adobe Data Collection embed code'
+			);
+		}
 
-	let parsed: URL;
-	try {
-		parsed = new URL(trimmed);
-	} catch {
-		throw new Error(
-			'adobeAnalytics: invalid scriptUrl - must be a valid https URL from your Adobe Data Collection embed code'
-		);
-	}
+		let parsed: URL;
+		try {
+			parsed = new URL(trimmed);
+		} catch {
+			throw new Error(
+				'adobeAnalytics: invalid scriptUrl - must be a valid https URL from your Adobe Data Collection embed code'
+			);
+		}
 
-	if (parsed.protocol !== 'https:') {
-		throw new Error(
-			'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code'
-		);
-	}
+		if (parsed.protocol !== 'https:') {
+			throw new Error(
+				'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code'
+			);
+		}
 
-	return trimmed;
-}
+		return trimmed;
+	};
 
-function createAdobeAnalyticsManifest(
+const createAdobeAnalyticsManifest = function createAdobeAnalyticsManifest(
 	options: AdobeAnalyticsManifestOptions
 ): VendorManifest {
 	const install: VendorManifest['install'] = [];
 
 	if (options.seedAdobeDataLayer) {
 		install.push({
-			type: 'setGlobal',
-			name: 'adobeDataLayer',
-			value: [],
 			ifUndefined: true,
+			name: 'adobeDataLayer',
+			type: 'setGlobal',
+			value: [],
 		});
 	}
 
 	install.push({
-		type: 'loadScript',
-		src: '{{scriptUrl}}',
 		async: options.async,
+		src: '{{scriptUrl}}',
+		type: 'loadScript',
 	});
 
 	return {
 		...vendorManifestContract,
-		vendor: 'adobe-analytics',
 		category: 'measurement',
 		install,
+		vendor: 'adobe-analytics',
 	};
-}
+};
 
 /**
  * Adobe Analytics vendor manifest.
@@ -143,7 +144,9 @@ export interface AdobeAnalyticsOptions {
  * });
  * ```
  */
-export function adobeAnalytics(options: AdobeAnalyticsOptions): Script {
+export const adobeAnalytics = function adobeAnalytics(
+	options: AdobeAnalyticsOptions
+): Script {
 	const scriptUrl = validateAdobeAnalyticsScriptUrl(options.scriptUrl);
 	const manifest = createAdobeAnalyticsManifest({
 		async: options.async ?? true,
@@ -153,4 +156,4 @@ export function adobeAnalytics(options: AdobeAnalyticsOptions): Script {
 	return resolveManifest(manifest, {
 		scriptUrl,
 	});
-}
+};

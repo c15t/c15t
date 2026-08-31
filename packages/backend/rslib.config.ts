@@ -7,24 +7,24 @@ import {
 } from '../shared/rslib-utils';
 
 export default defineConfig({
+	lib: [
+		{
+			bundle: false,
+			dts: {
+				distPath: './dist-types',
+			},
+			format: 'esm',
+		},
+	],
+	output: {
+		cleanDistPath: true,
+		target: 'node',
+	},
 	source: {
 		entry: {
 			'**': standardSourceEntries,
 		},
 		exclude: standardExcludePatterns,
-	},
-	lib: [
-		{
-			dts: {
-				distPath: './dist-types',
-			},
-			bundle: false,
-			format: 'esm',
-		},
-	],
-	output: {
-		target: 'node',
-		cleanDistPath: true,
 	},
 	tools: {
 		rspack: {

@@ -24,56 +24,63 @@ export interface MockPrompts {
 	note: Mock;
 }
 
-export function createMockPrompts(
+export const createMockPrompts = function createMockPrompts(
 	responses: Record<string, unknown> = {}
 ): MockPrompts {
 	return {
-		select: vi
-			.fn()
-			.mockImplementation(async ({ message }: { message: string }) => {
-				return responses[message] ?? responses.default ?? 'mock-value';
-			}),
-
-		text: vi
-			.fn()
-			.mockImplementation(async ({ message }: { message: string }) => {
-				return responses[message] ?? responses.default ?? 'mock-text';
-			}),
-
 		confirm: vi
 			.fn()
-			.mockImplementation(async ({ message }: { message: string }) => {
-				return responses[message] ?? responses.default ?? true;
-			}),
+			.mockImplementation(
+				({ message }: { message: string }) =>
+					responses[message] ?? responses.default ?? true
+			),
 
-		multiselect: vi
-			.fn()
-			.mockImplementation(async ({ message }: { message: string }) => {
-				return responses[message] ?? responses.default ?? [];
-			}),
+		intro: vi.fn(),
 
 		isCancel: vi.fn().mockReturnValue(false),
 
-		spinner: vi.fn().mockReturnValue({
-			start: vi.fn(),
-			stop: vi.fn(),
-			message: vi.fn(),
-		}),
-
 		log: {
-			message: vi.fn(),
-			info: vi.fn(),
-			warn: vi.fn(),
 			error: vi.fn(),
+			info: vi.fn(),
+			message: vi.fn(),
 			step: vi.fn(),
+			warn: vi.fn(),
 		},
 
-		intro: vi.fn(),
-		outro: vi.fn(),
-		note: vi.fn(),
-	};
-}
+		multiselect: vi
+			.fn()
+			.mockImplementation(
+				({ message }: { message: string }) =>
+					responses[message] ?? responses.default ?? []
+			),
 
-export function mockCancel(prompts: MockPrompts): void {
+		note: vi.fn(),
+
+		outro: vi.fn(),
+
+		select: vi
+			.fn()
+			.mockImplementation(
+				({ message }: { message: string }) =>
+					responses[message] ?? responses.default ?? 'mock-value'
+			),
+
+		spinner: vi.fn().mockReturnValue({
+			message: vi.fn(),
+
+			start: vi.fn(),
+			stop: vi.fn(),
+		}),
+
+		text: vi
+			.fn()
+			.mockImplementation(
+				({ message }: { message: string }) =>
+					responses[message] ?? responses.default ?? 'mock-text'
+			),
+	};
+};
+
+export const mockCancel = function mockCancel(prompts: MockPrompts): void {
 	prompts.isCancel.mockReturnValue(true);
-}
+};

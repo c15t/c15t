@@ -1,28 +1,28 @@
 <script lang="ts">
 	const testimonials = [
 		{
-			name: 'Sarah Mitchell',
-			role: 'Operations Manager',
 			company: 'TechStart London',
 			content:
 				'PigeonPost has revolutionized our same-day delivery needs. The speed is incredible and our customers love the eco-friendly approach.',
+			name: 'Sarah Mitchell',
 			rating: 5,
+			role: 'Operations Manager',
 		},
 		{
-			name: 'James Chen',
-			role: 'Founder',
 			company: 'Artisan Bakery Co.',
 			content:
 				'We deliver fresh pastries across London every morning. PigeonPost ensures they arrive warm and on time, every single day.',
+			name: 'James Chen',
 			rating: 5,
+			role: 'Founder',
 		},
 		{
-			name: 'Emma Thompson',
-			role: 'Logistics Director',
 			company: 'Fashion Forward',
 			content:
 				"The analytics dashboard gives us incredible insights. We've optimized our delivery routes and cut costs by 40%.",
+			name: 'Emma Thompson',
 			rating: 5,
+			role: 'Logistics Director',
 		},
 	];
 </script>

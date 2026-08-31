@@ -56,7 +56,7 @@ interface ComponentStyles {
  * });
  * ```
  */
-export async function testComponentStyles({
+export const testComponentStyles = async function testComponentStyles({
 	component,
 	testCases,
 	noStyle = false,
@@ -120,6 +120,6 @@ export async function testComponentStyles({
 		// We don't check actual computed styles as they can vary by browser
 		// For reliable tests, just checking the element renders correctly is sufficient
 	}
-}
+};
 
 export default testComponentStyles;

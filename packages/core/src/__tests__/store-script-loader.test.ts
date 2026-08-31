@@ -328,14 +328,14 @@ describe('Store Script Loader Integration', () => {
 			expect(store.getState().isScriptLoaded('marketing-script')).toBe(false);
 
 			// Directly update consent state for measurement
-			store.setState((state) => ({
-				...state,
+			store.setState((stateLocal) => ({
+				...stateLocal,
 				consents: {
-					...state.consents,
+					...stateLocal.consents,
 					measurement: true,
 				},
 				selectedConsents: {
-					...state.selectedConsents,
+					...stateLocal.selectedConsents,
 					measurement: true,
 				},
 			}));
@@ -369,14 +369,14 @@ describe('Store Script Loader Integration', () => {
 			expect(store.getState().isScriptLoaded('marketing-script')).toBe(false);
 
 			// Directly update consent state to revoke necessary consent
-			store.setState((state) => ({
-				...state,
+			store.setState((stateLocal) => ({
+				...stateLocal,
 				consents: {
-					...state.consents,
+					...stateLocal.consents,
 					necessary: false,
 				},
 				selectedConsents: {
-					...state.selectedConsents,
+					...stateLocal.selectedConsents,
 					necessary: false,
 				},
 			}));
@@ -467,8 +467,8 @@ describe('Store Script Loader Integration', () => {
 			expect(store.getState().isScriptLoaded('marketing-script')).toBe(true);
 
 			// Directly set only necessary consent to true
-			store.setState((state) => ({
-				...state,
+			store.setState((stateLocal) => ({
+				...stateLocal,
 				consents: {
 					necessary: true,
 					marketing: false,
@@ -596,14 +596,14 @@ describe('Store Script Loader Integration', () => {
 			expect(store.getState().isScriptLoaded('analytics-script')).toBe(true);
 
 			// Revoke measurement consent
-			store.setState((state) => ({
-				...state,
+			store.setState((stateLocal) => ({
+				...stateLocal,
 				consents: {
-					...state.consents,
+					...stateLocal.consents,
 					measurement: false,
 				},
 				selectedConsents: {
-					...state.selectedConsents,
+					...stateLocal.selectedConsents,
 					measurement: false,
 				},
 			}));

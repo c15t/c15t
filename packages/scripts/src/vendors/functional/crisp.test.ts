@@ -38,13 +38,13 @@ describe('crisp', () => {
 	it('sets optional Crisp runtime globals when provided', () => {
 		const globalRef = getTestGlobal();
 		const script = crisp({
-			websiteId: 'crisp-123',
-			locale: 'fr',
 			cookieDomain: '.example.com',
 			cookieExpiry: 3600,
-			tokenId: 'token-123',
-			sessionMerge: true,
+			locale: 'fr',
 			safeMode: true,
+			sessionMerge: true,
+			tokenId: 'token-123',
+			websiteId: 'crisp-123',
 		});
 
 		script.onBeforeLoad?.(
@@ -66,8 +66,8 @@ describe('crisp', () => {
 	it('sets session merge without requiring a locale override', () => {
 		const globalRef = getTestGlobal();
 		const script = crisp({
-			websiteId: 'crisp-123',
 			sessionMerge: true,
+			websiteId: 'crisp-123',
 		});
 
 		script.onBeforeLoad?.(
@@ -83,8 +83,8 @@ describe('crisp', () => {
 
 	it('supports overriding the loader URL', () => {
 		const script = crisp({
-			websiteId: 'crisp-123',
 			scriptSrc: 'https://cdn.example.com/crisp.js',
+			websiteId: 'crisp-123',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/crisp.js');

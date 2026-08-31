@@ -17,7 +17,7 @@ import { extractRelevantHeaders } from './headers';
  *
  * @public
  */
-export function createSSRInitCacheKey({
+export const createSSRInitCacheKey = function createSSRInitCacheKey({
 	normalizedURL,
 	headers,
 	overrides,
@@ -37,10 +37,10 @@ export function createSSRInitCacheKey({
 	const gpc = relevantHeaders['sec-gpc'] ?? '';
 
 	return JSON.stringify({
-		normalizedURL,
 		country: effectiveCountry,
-		region: effectiveRegion,
-		language: effectiveLanguage,
 		gpc,
+		language: effectiveLanguage,
+		normalizedURL,
+		region: effectiveRegion,
 	});
-}
+};

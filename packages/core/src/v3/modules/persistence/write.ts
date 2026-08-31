@@ -30,7 +30,7 @@ import type { StorageConfig } from './types';
  * Regenerates `subjectId` and pushes it back to the kernel via
  * `kernel.set.subjectId` when the snapshot's ID is missing or invalid.
  */
-export function writeToStorage(
+export const writeToStorage = function writeToStorage(
 	snapshot: ConsentSnapshot,
 	kernel: ConsentKernel,
 	storageConfig: StorageConfig | undefined
@@ -38,9 +38,11 @@ export function writeToStorage(
 	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
 		return;
 	}
-	if (!snapshot.hasConsented) return;
+	if (!snapshot.hasConsented) {
+		return;
+	}
 
-	let subjectId = snapshot.subjectId;
+	let { subjectId } = snapshot;
 	if (!subjectId || !isValidSubjectId(subjectId)) {
 		subjectId = generateSubjectId();
 		kernel.set.subjectId(subjectId);
@@ -48,12 +50,12 @@ export function writeToStorage(
 
 	saveConsentToStorage(
 		{
-			consents: snapshot.consents as V2ConsentState,
 			consentInfo: {
-				time: Date.now(),
 				subjectId,
+				time: Date.now(),
 			},
+			consents: snapshot.consents as V2ConsentState,
 		},
 		storageConfig
 	);
-}
+};

@@ -10,38 +10,38 @@
 		ThemePresetName,
 		{ label: string; icon: string; description: string }
 	> = {
-		minimal: {
-			label: 'Minimal',
-			icon: '\u25fb\ufe0f',
-			description: 'Standard CSS',
-		},
 		dark: {
-			label: 'Dark Mode',
-			icon: '\ud83c\udf19',
 			description: 'Always dark',
+			icon: '\ud83c\udf19',
+			label: 'Dark Mode',
 		},
 		full: {
-			label: 'Enterprise',
-			icon: '\ud83c\udfe2',
 			description: 'Full width banner',
+			icon: '\ud83c\udfe2',
+			label: 'Enterprise',
 		},
-		tailwind: {
-			label: 'Tailwind',
-			icon: '\ud83c\udf0a',
-			description: 'Uses app variables',
+		minimal: {
+			description: 'Standard CSS',
+			icon: '\u25fb\ufe0f',
+			label: 'Minimal',
 		},
 		none: {
-			label: 'Default',
-			icon: '\u2699\ufe0f',
 			description: 'No theme preset',
+			icon: '\u2699\ufe0f',
+			label: 'Default',
+		},
+		tailwind: {
+			description: 'Uses app variables',
+			icon: '\ud83c\udf0a',
+			label: 'Tailwind',
 		},
 	};
 
-	function handleClickOutside(e: MouseEvent) {
+	const handleClickOutside = function handleClickOutside(e: MouseEvent) {
 		if (ref && !ref.contains(e.target as Node)) {
 			open = false;
 		}
-	}
+	};
 
 	$effect(() => {
 		if (open) {

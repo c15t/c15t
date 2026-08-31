@@ -3,13 +3,13 @@ import type { Ref } from 'vue';
 
 export type UseStateInit<T> = (() => T) | T;
 
-function resolveInit<T>(init: UseStateInit<T>): T {
+const resolveInit = function resolveInit<T>(init: UseStateInit<T>): T {
 	if (typeof init === 'function') {
 		return (init as () => T)();
 	}
 
 	return init;
-}
+};
 
 /**
  * Keyed refs shared by every `useState` consumer. The store is torn down
@@ -20,13 +20,13 @@ function resolveInit<T>(init: UseStateInit<T>): T {
 let store: Map<string, Ref<unknown>> | null = null;
 let subscribers = 0;
 
-function releaseStore() {
+const releaseStore = function releaseStore() {
 	subscribers -= 1;
 	if (subscribers <= 0) {
 		subscribers = 0;
 		store = null;
 	}
-}
+};
 
 /**
  * Plain-Vue stand-in for Nuxt's `useState`: a keyed ref shared across all
@@ -36,7 +36,10 @@ function releaseStore() {
  * @param init - Initial value, or a factory producing it
  * @returns The shared ref for `key`
  */
-export function useState<T>(key: string, init: UseStateInit<T>): Ref<T> {
+export const useState = function useState<T>(
+	key: string,
+	init: UseStateInit<T>
+): Ref<T> {
 	if (getCurrentScope()) {
 		subscribers += 1;
 		onScopeDispose(releaseStore);
@@ -51,4 +54,4 @@ export function useState<T>(key: string, init: UseStateInit<T>): Ref<T> {
 	}
 
 	return store.get(key) as Ref<T>;
-}
+};

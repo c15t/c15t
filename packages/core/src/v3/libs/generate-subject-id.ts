@@ -26,7 +26,7 @@ const BASE58_ALPHABET =
  *
  * @internal
  */
-function base58Encode(bytes: Uint8Array): string {
+const base58Encode = function base58Encode(bytes: Uint8Array): string {
 	const base = BigInt(58);
 	let num = BigInt(0);
 
@@ -41,7 +41,7 @@ function base58Encode(bytes: Uint8Array): string {
 		const remainder = num % base;
 		// remainder is always 0-57, so this index is always valid
 		chars.unshift(BASE58_ALPHABET.charAt(Number(remainder)));
-		num = num / base;
+		num /= base;
 	}
 
 	// Handle leading zeros
@@ -54,7 +54,7 @@ function base58Encode(bytes: Uint8Array): string {
 	}
 
 	return chars.join('') || BASE58_ALPHABET.charAt(0);
-}
+};
 
 /**
  * Custom epoch for timestamp (matches server)
@@ -86,27 +86,19 @@ const EPOCH_TIMESTAMP = 1_700_000_000_000;
  *
  * @public
  */
-export function generateSubjectId(): string {
+export const generateSubjectId = function generateSubjectId(): string {
 	// Create a 20-byte buffer (8 timestamp + 12 random)
 	const buf = crypto.getRandomValues(new Uint8Array(20));
 
 	// Calculate timestamp since custom epoch
 	const t = Date.now() - EPOCH_TIMESTAMP;
 
-	// Encode timestamp into first 8 bytes (big-endian)
-	const high = Math.floor(t / 0x100000000);
-	const low = t >>> 0;
-	buf[0] = (high >>> 24) & 255;
-	buf[1] = (high >>> 16) & 255;
-	buf[2] = (high >>> 8) & 255;
-	buf[3] = high & 255;
-	buf[4] = (low >>> 24) & 255;
-	buf[5] = (low >>> 16) & 255;
-	buf[6] = (low >>> 8) & 255;
-	buf[7] = low & 255;
+	const view = new DataView(buf.buffer);
+	view.setUint32(0, Math.floor(t / 2 ** 32), false);
+	view.setUint32(4, t % 2 ** 32, false);
 
 	return `sub_${base58Encode(buf)}`;
-}
+};
 
 /**
  * Validates that a string matches the expected subject ID format.
@@ -123,7 +115,7 @@ export function generateSubjectId(): string {
  *
  * @public
  */
-export function isValidSubjectId(id: string): boolean {
+export const isValidSubjectId = function isValidSubjectId(id: string): boolean {
 	// Must start with 'sub_'
 	if (!id.startsWith('sub_')) {
 		return false;
@@ -144,4 +136,4 @@ export function isValidSubjectId(id: string): boolean {
 	}
 
 	return true;
-}
+};

@@ -37,21 +37,21 @@ function createDeferredPromise<Value>(
 // Mock Setup
 // ─────────────────────────────────────────────────────────────────────────────
 
-function createMockManager() {
+const createMockManager = function createMockManager() {
 	return {
+		$fetch: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+		identifyUser: vi.fn().mockResolvedValue({ data: {}, ok: true }),
 		init: vi.fn().mockResolvedValue({
-			ok: true,
 			data: {
 				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				translations: { language: 'en', translations: {} },
 			},
+			ok: true,
 		}),
-		setConsent: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-		identifyUser: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-		$fetch: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+		setConsent: vi.fn().mockResolvedValue({ data: {}, ok: true }),
 	};
-}
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tests
@@ -129,17 +129,17 @@ describe('Consent Store', () => {
 		it('should restore state from stored consent if available', () => {
 			// Pre-save consent data
 			const storedData = {
-				consents: {
-					necessary: true,
-					marketing: true,
-					measurement: false,
-					functionality: false,
-					experience: false,
-				},
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
+				},
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: false,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedData));
@@ -160,50 +160,50 @@ describe('Consent Store', () => {
 	describe('unstable_acceptPolicyConsent', () => {
 		it('passes proof fields for suffixed legal-document types', async () => {
 			mockManager.setConsent.mockResolvedValueOnce({
-				ok: true,
 				data: {
-					subjectId: 'sub_2jv6z8n4q9',
 					consentId: 'cns_123',
-					domainId: 'dom_123',
 					domain: 'example.com',
-					type: 'terms_and_conditions_b2b',
+					domainId: 'dom_123',
 					givenAt: new Date('2026-04-07T00:00:00.000Z'),
+					subjectId: 'sub_2jv6z8n4q9',
+					type: 'terms_and_conditions_b2b',
 				},
+				ok: true,
 			});
 			const store = createConsentManagerStore(mockManager);
 
 			await store.getState().unstable_acceptPolicyConsent({
-				type: 'terms_and_conditions_b2b',
-				policyHash: 'sha256:abc123',
 				domain: 'example.com',
 				givenAt: 1_775_520_000_000,
+				policyHash: 'sha256:abc123',
+				type: 'terms_and_conditions_b2b',
 			});
 
 			expect(mockManager.setConsent).toHaveBeenCalledWith({
 				body: expect.objectContaining({
-					type: 'terms_and_conditions_b2b',
 					policyHash: 'sha256:abc123',
+					type: 'terms_and_conditions_b2b',
 				}),
 			});
 		});
 
 		it('coalesces concurrent identical policy consent submissions', async () => {
 			mockManager.setConsent.mockResolvedValue({
-				ok: true,
 				data: {
-					subjectId: 'sub_123',
 					consentId: 'cns_123',
-					domainId: 'dom_123',
 					domain: 'example.com',
-					type: 'other',
+					domainId: 'dom_123',
 					givenAt: new Date('2026-04-07T00:00:00.000Z'),
+					subjectId: 'sub_123',
+					type: 'other',
 				},
+				ok: true,
 			});
 			const store = createConsentManagerStore(mockManager);
 			const input = {
-				type: 'other' as const,
 				domain: 'example.com',
 				preferences: { necessary: true },
+				type: 'other' as const,
 			};
 
 			const first = store.getState().unstable_acceptPolicyConsent(input);
@@ -220,22 +220,22 @@ describe('Consent Store', () => {
 			const clientGivenAt = Date.parse('2026-04-08T00:00:00.000Z');
 			const serverGivenAt = new Date('2026-04-07T00:00:00.000Z');
 			mockManager.setConsent.mockResolvedValue({
-				ok: true,
 				data: {
-					subjectId: 'sub_123',
 					consentId: 'cns_123',
-					domainId: 'dom_123',
 					domain: 'example.com',
-					type: 'other',
+					domainId: 'dom_123',
 					givenAt: serverGivenAt,
+					subjectId: 'sub_123',
+					type: 'other',
 				},
+				ok: true,
 			});
 			const store = createConsentManagerStore(mockManager);
 
 			const consent = await store.getState().unstable_acceptPolicyConsent({
-				type: 'other',
 				domain: 'example.com',
 				givenAt: clientGivenAt,
+				type: 'other',
 			});
 
 			expect(consent.givenAt).toEqual(serverGivenAt);
@@ -280,9 +280,9 @@ describe('Consent Store', () => {
 			// First, ensure we have consent info so setConsent can save
 			store.setState({
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'custom',
-					subjectId: 'test-subject',
 				},
 			});
 
@@ -314,17 +314,17 @@ describe('Consent Store', () => {
 
 			// Set some custom consents
 			store.setState({
-				consents: {
-					necessary: true,
-					marketing: true,
-					measurement: true,
-					functionality: true,
-					experience: true,
-				},
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			});
 
@@ -355,9 +355,9 @@ describe('Consent Store', () => {
 			// Set existing consent info
 			store.setState({
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
 				},
 				isLoadingConsentInfo: false,
 			});
@@ -373,9 +373,9 @@ describe('Consent Store', () => {
 			// Set existing consent info
 			store.setState({
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
 				},
 				isLoadingConsentInfo: false,
 			});
@@ -401,9 +401,9 @@ describe('Consent Store', () => {
 			// Set existing consent info
 			store.setState({
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
 				},
 			});
 
@@ -416,8 +416,8 @@ describe('Consent Store', () => {
 
 			// Simulate finished loading with no consent
 			store.setState({
-				isLoadingConsentInfo: false,
 				consentInfo: null,
+				isLoadingConsentInfo: false,
 			});
 			window.localStorage.clear();
 
@@ -438,17 +438,17 @@ describe('Consent Store', () => {
 		it('should not show banner without force when stored consent exists', () => {
 			// Pre-set localStorage with consent data
 			const storedData = {
-				consents: {
-					necessary: true,
-					marketing: true,
-					measurement: false,
-					functionality: false,
-					experience: false,
-				},
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
+				},
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: true,
+					measurement: false,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(storedData));
@@ -490,19 +490,19 @@ describe('Consent Store', () => {
 
 		it('should omit invalid optional subject identifiers when saving from restored consent state', async () => {
 			const storedData = {
-				consents: {
-					necessary: true,
-					marketing: false,
-					measurement: true,
-					functionality: false,
-					experience: false,
-				},
 				consentInfo: {
-					time: Date.now(),
-					type: 'custom' as const,
-					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
 					externalId: 'undefined',
 					identityProvider: null,
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					time: Date.now(),
+					type: 'custom' as const,
+				},
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: true,
+					necessary: true,
 				},
 			};
 
@@ -511,9 +511,9 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			expect(store.getState().consentInfo).toEqual({
+				subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
 				time: storedData.consentInfo.time,
 				type: 'custom',
-				subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
 			});
 			expect(store.getState().user).toBeUndefined();
 
@@ -534,17 +534,17 @@ describe('Consent Store', () => {
 
 			// First, save consents to set consentInfo
 			store.setState({
-				consents: {
-					necessary: true,
-					marketing: true,
-					measurement: true,
-					functionality: true,
-					experience: true,
-				},
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 				isLoadingConsentInfo: false,
 			});
@@ -669,9 +669,9 @@ describe('Consent Store', () => {
 			store.setState({
 				consentCategories: ['necessary', 'marketing'],
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'custom',
-					subjectId: 'test-subject',
 				},
 				isLoadingConsentInfo: false,
 			});
@@ -682,18 +682,18 @@ describe('Consent Store', () => {
 
 			expect(mockOnConsentChanged).toHaveBeenCalledTimes(1);
 			expect(mockOnConsentChanged).toHaveBeenCalledWith({
-				preferences: expect.objectContaining({
-					necessary: true,
-					marketing: true,
-				}),
-				previousPreferences: expect.objectContaining({
-					necessary: true,
-					marketing: false,
-				}),
 				allowedCategories: ['necessary', 'marketing'],
 				deniedCategories: [],
+				preferences: expect.objectContaining({
+					marketing: true,
+					necessary: true,
+				}),
 				previousAllowedCategories: ['necessary'],
 				previousDeniedCategories: ['marketing'],
+				previousPreferences: expect.objectContaining({
+					marketing: false,
+					necessary: true,
+				}),
 			});
 		});
 
@@ -706,9 +706,9 @@ describe('Consent Store', () => {
 			store.setState({
 				consentCategories: ['necessary', 'marketing'],
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'custom',
-					subjectId: 'test-subject',
 				},
 				isLoadingConsentInfo: false,
 			});
@@ -720,18 +720,18 @@ describe('Consent Store', () => {
 
 			expect(listener).toHaveBeenCalledTimes(1);
 			expect(listener).toHaveBeenCalledWith({
-				preferences: expect.objectContaining({
-					necessary: true,
-					marketing: true,
-				}),
-				previousPreferences: expect.objectContaining({
-					necessary: true,
-					marketing: false,
-				}),
 				allowedCategories: ['necessary', 'marketing'],
 				deniedCategories: [],
+				preferences: expect.objectContaining({
+					marketing: true,
+					necessary: true,
+				}),
 				previousAllowedCategories: ['necessary'],
 				previousDeniedCategories: ['marketing'],
+				previousPreferences: expect.objectContaining({
+					marketing: false,
+					necessary: true,
+				}),
 			});
 
 			unsubscribe();
@@ -751,9 +751,9 @@ describe('Consent Store', () => {
 			store.setState({
 				consentCategories: ['necessary', 'marketing'],
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'custom',
-					subjectId: 'test-subject',
 				},
 				isLoadingConsentInfo: false,
 			});
@@ -780,18 +780,18 @@ describe('Consent Store', () => {
 			store.setState({
 				consentCategories: ['necessary', 'marketing'],
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'custom',
-					subjectId: 'test-subject',
-				},
-				selectedConsents: {
-					necessary: true,
-					functionality: false,
-					experience: false,
-					marketing: false,
-					measurement: false,
 				},
 				isLoadingConsentInfo: false,
+				selectedConsents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+					necessary: true,
+				},
 			});
 
 			store.getState().subscribeToConsentChanges(listener);
@@ -855,9 +855,9 @@ describe('Consent Store', () => {
 
 			store.getState().setTranslationConfig({
 				defaultLanguage: 'de',
+				mode: 'override',
 				overrideLanguage: 'de',
 				translations: {},
-				mode: 'override',
 			});
 
 			expect(store.getState().translationConfig.defaultLanguage).toBe('de');
@@ -871,11 +871,11 @@ describe('Consent Store', () => {
 			// Set up known consent state
 			store.setState({
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
 			});
 
@@ -889,11 +889,11 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
 			});
 
@@ -910,11 +910,11 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
 			});
 
@@ -931,11 +931,11 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
 			});
 
@@ -948,11 +948,11 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
 			});
 
@@ -972,15 +972,15 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			store.setState({
-				policyCategories: ['necessary', 'measurement'],
-				policyScopeMode: 'permissive',
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
+				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'permissive',
 			});
 
 			expect(store.getState().has('experience')).toBe(false);
@@ -992,15 +992,15 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			store.setState({
-				policyCategories: ['necessary', 'measurement'],
-				policyScopeMode: 'strict',
 				consents: {
-					necessary: true,
+					experience: false,
+					functionality: false,
 					marketing: false,
 					measurement: true,
-					functionality: false,
-					experience: false,
+					necessary: true,
 				},
+				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 			});
 
 			expect(store.getState().has('experience')).toBe(false);
@@ -1022,9 +1022,9 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consentInfo: {
+					subjectId: 'test-subject',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject',
 				},
 			});
 			expect(store.getState().hasConsented()).toBe(true);
@@ -1082,9 +1082,9 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consentInfo: {
+					subjectId: 'test-subject-id',
 					time: Date.now(),
 					type: 'all',
-					subjectId: 'test-subject-id',
 				},
 			});
 
@@ -1095,9 +1095,9 @@ describe('Consent Store', () => {
 
 			expect(mockManager.identifyUser).toHaveBeenCalledWith({
 				body: {
-					subjectId: 'test-subject-id',
 					externalId: 'user-123',
 					identityProvider: 'custom',
+					subjectId: 'test-subject-id',
 				},
 			});
 		});
@@ -1107,11 +1107,11 @@ describe('Consent Store', () => {
 
 			store.setState({
 				consentInfo: {
-					time: Date.now(),
-					type: 'all',
-					subjectId: 'test-subject-id',
 					externalId: 'user-123',
 					identityProvider: 'custom',
+					subjectId: 'test-subject-id',
+					time: Date.now(),
+					type: 'all',
 				},
 			});
 
@@ -1151,8 +1151,8 @@ describe('Consent Store', () => {
 
 			store.getState().setScripts([
 				{
-					id: 'analytics',
 					category: 'measurement',
+					id: 'analytics',
 					src: 'https://example.com/analytics.js',
 				},
 			]);
@@ -1167,13 +1167,13 @@ describe('Consent Store', () => {
 			// Add scripts first
 			store.getState().setScripts([
 				{
-					id: 'analytics',
 					category: 'measurement',
+					id: 'analytics',
 					src: 'https://example.com/analytics.js',
 				},
 				{
-					id: 'marketing',
 					category: 'marketing',
+					id: 'marketing',
 					src: 'https://example.com/marketing.js',
 				},
 			]);
@@ -1193,8 +1193,8 @@ describe('Consent Store', () => {
 			// Add scripts
 			store.getState().setScripts([
 				{
-					id: 'analytics',
 					category: 'measurement',
+					id: 'analytics',
 					src: 'https://example.com/analytics.js',
 				},
 			]);
@@ -1247,8 +1247,8 @@ describe('Consent Store', () => {
 			const store = createConsentManagerStore(mockManager, {
 				scripts: [
 					{
-						id: 'analytics',
 						category: 'measurement',
+						id: 'analytics',
 						src: 'https://example.com/analytics.js',
 					},
 				],
@@ -1261,15 +1261,15 @@ describe('Consent Store', () => {
 		it('should not add out-of-policy script categories to consentCategories in strict scope mode', () => {
 			const store = createConsentManagerStore(mockManager);
 			store.setState({
+				consentCategories: ['necessary', 'measurement'],
 				policyCategories: ['necessary', 'measurement'],
 				policyScopeMode: 'strict',
-				consentCategories: ['necessary', 'measurement'],
 			});
 
 			store.getState().setScripts([
 				{
-					id: 'marketing-pixel',
 					category: 'marketing',
+					id: 'marketing-pixel',
 					src: 'https://example.com/marketing.js',
 				},
 			]);
@@ -1283,8 +1283,8 @@ describe('Consent Store', () => {
 		it('should apply storage config', () => {
 			const store = createConsentManagerStore(mockManager, {
 				storageConfig: {
-					storageKey: 'custom-key',
 					crossSubdomain: true,
+					storageKey: 'custom-key',
 				},
 			});
 

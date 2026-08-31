@@ -355,6 +355,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -419,6 +420,7 @@ export async function runActiveUiApiCodemod(
 			});
 
 			if (!options.dryRun) {
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await sourceFile.save();
 			}
 		} catch (error) {

@@ -21,7 +21,7 @@ import {
 // service, so a query cannot run without one.
 const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 
-const migrate = Effect.gen(function* () {
+const migrate = Effect.gen(function* migrate() {
 	yield* baseline;
 	yield* indexes;
 });
@@ -33,7 +33,7 @@ const migrate = Effect.gen(function* () {
  * Both dimensions are the ones the old implementation scaled queries on: it
  * issued a chunk per hundred subjects and one query per policy type.
  */
-const seed = Effect.fn('seed')(function* (
+const seed = Effect.fn('seed')(function* seed(
 	externalId: string,
 	subjects: number,
 	policyTypes: number
@@ -45,7 +45,7 @@ const seed = Effect.fn('seed')(function* (
 	yield* sql.unsafe(`insert into "domain" ("id", "name", "createdAt", "updatedAt")
 		values ('dom_${ns}', 'example.com', now(), now())`);
 
-	for (let type = 0; type < policyTypes; type++) {
+	for (let type = 0; type < policyTypes; type += 1) {
 		// Two versions per type, so "latest active policy per type" has
 		// something to actually choose between.
 		for (const [index, age] of [0, 1].entries()) {
@@ -56,7 +56,7 @@ const seed = Effect.fn('seed')(function* (
 		}
 	}
 
-	for (let subject = 0; subject < subjects; subject++) {
+	for (let subject = 0; subject < subjects; subject += 1) {
 		yield* sql.unsafe(`insert into "subject"
 			("id", "externalId", "createdAt", "updatedAt")
 			values ('sub_${ns}_${subject}', '${externalId}', now(), now())`);
@@ -71,7 +71,7 @@ describe('subject repository', () => {
 	it.effect(
 		'returns each subject with its consents',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* migrate;
 				yield* seed('ext_1', 3, 2);
 
@@ -90,7 +90,7 @@ describe('subject repository', () => {
 	it.effect(
 		'includes a subject that has no consents at all',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* migrate;
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql.unsafe(`insert into "subject"
@@ -110,7 +110,7 @@ describe('subject repository', () => {
 	it.effect(
 		'marks consents against the newest active policy of their type',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* migrate;
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql.unsafe(`insert into "domain" ("id", "name", "createdAt", "updatedAt")
@@ -145,7 +145,7 @@ describe('subject repository', () => {
 	it.effect(
 		'ignores inactive policies when deciding what is latest',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* migrate;
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql.unsafe(`insert into "consentPolicy"
@@ -164,7 +164,7 @@ describe('subject repository', () => {
 	it.effect(
 		'issues the same number of queries at 1 subject as at 250',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* migrate;
 				const sql = yield* SqlClient.SqlClient;
 
@@ -185,7 +185,7 @@ describe('subject repository', () => {
 				// networked database — the shipped backend's problem is nine of
 				// them, not nine scans. `xact_commit` counts statements, each of
 				// which runs in its own implicit transaction.
-				const statements = Effect.fn('statements')(function* () {
+				const statements = Effect.fn('statements')(function* statements() {
 					yield* sql`select pg_stat_force_next_flush()`;
 					const rows = yield* sql<{ n: string }>`
 						select xact_commit as n from pg_stat_database
@@ -228,7 +228,7 @@ describe('subject repository', () => {
 	it.effect(
 		'counts every matching subject, not just the page',
 		() =>
-			Effect.gen(function* () {
+			Effect.gen(function* gen() {
 				yield* migrate;
 				yield* seed('ext_1', 7, 2);
 

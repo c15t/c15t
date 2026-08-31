@@ -27,6 +27,7 @@ export const Default: Story = {
 };
 
 export const ExpandedCategories: Story = {
+	play: expandedCategories,
 	render: () => ({
 		components: { ConsentWidget },
 		setup() {
@@ -34,5 +35,4 @@ export const ExpandedCategories: Story = {
 		},
 		template: '<div style="width: 32rem;"><ConsentWidget /></div>',
 	}),
-	play: expandedCategories,
 };

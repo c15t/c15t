@@ -117,6 +117,7 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 							(a: { id: string | number }) => String(a.id) === String(assetId)
 						);
 						if (asset?.gzipSize) {
+							// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 							gzipSize = asset.gzipSize;
 							break;
 						}
@@ -234,7 +235,7 @@ export function analyzePackage(
 	baseDir: string,
 	currentDir: string
 ): PackageBundleData | null {
-	const packageName = packageDir.replace(/.*\//, '');
+	const packageName = packageDir.replace(/.*\//u, '');
 	const baseDistPath = join(baseDir, packageDir, 'dist');
 	const currentDistPath = join(currentDir, packageDir, 'dist');
 
@@ -339,9 +340,9 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
 			markdown += '|--------|-----------|--------------|--------|----------|\n';
 			for (const change of pkg.diffs.changed) {
-				const sign = change.diff >= 0 ? '+' : '';
-				const emoji = getSizeChangeEmoji(change.diffPercent);
-				markdown += `| ${emoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${sign}${formatBytes(change.diff)} | ${sign}${change.diffPercent.toFixed(2)}% |\n`;
+				const signLocal = change.diff >= 0 ? '+' : '';
+				const emojiLocal = getSizeChangeEmoji(change.diffPercent);
+				markdown += `| ${emojiLocal} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${signLocal}${formatBytes(change.diff)} | ${signLocal}${change.diffPercent.toFixed(2)}% |\n`;
 			}
 			markdown += '\n';
 		}

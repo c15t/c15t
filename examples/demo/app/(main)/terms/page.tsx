@@ -22,10 +22,10 @@ const TermsPage = () => {
 		<TermsProvider>
 			<TermsDemo
 				policy={{
+					effectiveDate: policy.effectiveDate,
+					hash: policy.hash,
 					title: policy.title,
 					version: policy.version,
-					hash: policy.hash,
-					effectiveDate: policy.effectiveDate,
 				}}
 			/>
 		</TermsProvider>

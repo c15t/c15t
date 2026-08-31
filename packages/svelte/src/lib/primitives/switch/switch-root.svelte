@@ -29,26 +29,26 @@
 	const dataState = $derived(getSwitchState(checked));
 	const dataDisabled = $derived(getDataDisabled(disabled));
 
-	function setChecked(nextChecked: boolean) {
+	const setChecked = function setChecked(nextChecked: boolean) {
 		if (disabled) {
 			return;
 		}
 
 		checked = nextChecked;
-	}
+	};
 
-	function toggle() {
+	const toggle = function toggle() {
 		setChecked(toggleSwitchValue(checked));
-	}
+	};
 
-	function handleClick(
+	const handleClick = function handleClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		toggle();
 		onclick?.(event);
-	}
+	};
 
-	function handleKeyDown(
+	const handleKeyDown = function handleKeyDown(
 		event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		if (event.key === 'Enter') {
@@ -56,7 +56,7 @@
 			toggle();
 		}
 		onkeydown?.(event);
-	}
+	};
 
 	setSwitchRootContext({
 		get checked() {

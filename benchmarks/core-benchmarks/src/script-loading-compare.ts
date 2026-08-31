@@ -35,90 +35,91 @@ ensureBenchmarkDom();
 
 const FIVE: V2Script[] = [
 	{
+		category: 'measurement',
 		id: 'gtm',
 		src: 'https://www.googletagmanager.com/gtm.js',
-		category: 'measurement',
 	},
 	{
+		category: 'marketing',
 		id: 'fb-pixel',
 		src: 'https://connect.facebook.net/sdk.js',
-		category: 'marketing',
 	},
 	{
+		category: 'measurement',
 		id: 'hotjar',
 		src: 'https://static.hotjar.com/c/hotjar.js',
-		category: 'measurement',
 	},
 	{
+		category: 'functionality',
 		id: 'intercom',
 		src: 'https://widget.intercom.io/widget.js',
-		category: 'functionality',
 	},
 	{
+		category: 'measurement',
 		id: 'analytics',
 		src: 'https://www.google-analytics.com/analytics.js',
-		category: 'measurement',
 	},
 ];
 
 const FIFTEEN: V2Script[] = [
 	...FIVE,
 	{
+		category: 'marketing',
 		id: 'linkedin',
 		src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'twitter',
 		src: 'https://static.ads-twitter.com/uwt.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'tiktok',
 		src: 'https://analytics.tiktok.com/i18n/pixel/events.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'pinterest',
 		src: 'https://ct.pinterest.com/ct.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'reddit',
 		src: 'https://www.redditstatic.com/ads/pixel.js',
-		category: 'marketing',
 	},
 	{
+		category: 'measurement',
 		id: 'segment',
 		src: 'https://cdn.segment.com/analytics.js',
-		category: 'measurement',
 	},
 	{
+		category: 'measurement',
 		id: 'mixpanel',
 		src: 'https://cdn.mxpnl.com/libs/mixpanel.js',
-		category: 'measurement',
 	},
 	{
+		category: 'measurement',
 		id: 'amplitude',
 		src: 'https://cdn.amplitude.com/libs/amplitude.js',
-		category: 'measurement',
 	},
 	{
+		category: 'functionality',
 		id: 'sentry',
 		src: 'https://browser.sentry-cdn.com/sentry.js',
-		category: 'functionality',
 	},
-	{ id: 'stripe', src: 'https://js.stripe.com/v3/', category: 'functionality' },
+	{ category: 'functionality', id: 'stripe', src: 'https://js.stripe.com/v3/' },
 ];
 
 const FIFTY: V2Script[] = Array.from({ length: 50 }, (_, i) => ({
-	id: `script-${i}`,
-	src: `https://cdn.example.com/s${i}.js`,
+	// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 	category: (i % 3 === 0
 		? 'marketing'
 		: i % 3 === 1
 			? 'measurement'
 			: 'functionality') as 'marketing' | 'measurement' | 'functionality',
+	id: `script-${i}`,
+	src: `https://cdn.example.com/s${i}.js`,
 }));
 
 const SCENARIOS: { name: string; scripts: V2Script[] }[] = [
@@ -129,7 +130,10 @@ const SCENARIOS: { name: string; scripts: V2Script[] }[] = [
 
 // -- Timing helpers --------------------------------------------------------
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -137,7 +141,7 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
@@ -147,16 +151,16 @@ interface Stats {
 	max: number;
 }
 
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
-		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
-		min: sorted[0] ?? 0,
 		max: sorted[sorted.length - 1] ?? 0,
+		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
+		min: sorted[0] ?? 0,
+		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '50');
 
@@ -166,17 +170,19 @@ const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '50');
 // between iterations, the "already loaded" short-circuit skews the
 // numbers. Clean heads each run.
 
-function clearHead(): void {
-	if (typeof document === 'undefined') return;
-	const head = document.head;
+const clearHead = function clearHead(): void {
+	if (typeof document === 'undefined') {
+		return;
+	}
+	const { head } = document;
 	if (head && typeof head.innerHTML === 'string') {
 		head.innerHTML = '';
 	}
-}
+};
 
 // -- v2: createConsentManagerStore with scripts + updateScripts -------------
 
-function runV2(scripts: V2Script[]): number[] {
+const runV2 = function runV2(scripts: V2Script[]): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
 	return measureSync(ITERATIONS, () => {
 		clearHead();
@@ -191,11 +197,11 @@ function runV2(scripts: V2Script[]): number[] {
 		});
 		store.getState().updateScripts();
 	});
-}
+};
 
 // -- v3: createConsentKernel + createScriptLoader ---------------------------
 
-function runV3(scripts: V2Script[]): number[] {
+const runV3 = function runV3(scripts: V2Script[]): number[] {
 	// Stash each iteration's loader so GC doesn't pressure us inside
 	// the measurement window but dispose() isn't part of the timed path
 	// either (v2 doesn't do an equivalent teardown).
@@ -204,17 +210,17 @@ function runV3(scripts: V2Script[]): number[] {
 		clearHead();
 		const kernel = createConsentKernel({
 			initialConsents: {
-				necessary: true,
-				measurement: true,
-				marketing: true,
-				functionality: true,
 				experience: false,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		const loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts: scripts as V3Script[],
-			emitToV2DebugListeners: false,
 		});
 		leaks.push(loader);
 	});
@@ -223,12 +229,14 @@ function runV3(scripts: V2Script[]): number[] {
 		loader.dispose();
 	}
 	return samples;
-}
+};
 
 // -- Mount-only variant: measure the reconcile cycle alone once kernel
 //    and config are already set up (steady-state cost). ----------------------
 
-function runV2ReconcileOnly(scripts: V2Script[]): number[] {
+const runV2ReconcileOnly = function runV2ReconcileOnly(
+	scripts: V2Script[]
+): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
 	const store = createConsentManagerStore(manager, {
 		initialConsentCategories: [
@@ -243,22 +251,24 @@ function runV2ReconcileOnly(scripts: V2Script[]): number[] {
 		clearHead();
 		store.getState().updateScripts();
 	});
-}
+};
 
-function runV3ReconcileOnly(scripts: V2Script[]): number[] {
+const runV3ReconcileOnly = function runV3ReconcileOnly(
+	scripts: V2Script[]
+): number[] {
 	const kernel = createConsentKernel({
 		initialConsents: {
-			necessary: true,
-			measurement: true,
-			marketing: true,
-			functionality: true,
 			experience: false,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+			necessary: true,
 		},
 	});
-	const loader = createScriptLoader({
+	const _loader = createScriptLoader({
+		emitToV2DebugListeners: false,
 		kernel,
 		scripts: scripts as V3Script[],
-		emitToV2DebugListeners: false,
 	});
 	// Flip marketing off/on to force a full unload/load cycle on each
 	// iteration. This is the "consent change → scripts reconcile" path.
@@ -267,10 +277,7 @@ function runV3ReconcileOnly(scripts: V2Script[]): number[] {
 		kernel.set.consent({ marketing: false });
 		kernel.set.consent({ marketing: true });
 	});
-	// (loader is leaked, but we're in a short-lived script — fine for bench.)
-	// oxlint-disable-next-line no-unused-vars -- see comment above
-	loader;
-}
+};
 
 // -- Report -----------------------------------------------------------------
 
@@ -309,11 +316,11 @@ for (const scenario of SCENARIOS) {
 	});
 }
 
-function pct(v2: number, v3: number): string {
+const pct = function pct(v2: number, v3: number): string {
 	const d = ((v3 - v2) / v2) * 100;
 	const sign = d >= 0 ? '+' : '';
 	return `${sign}${d.toFixed(1)}%`;
-}
+};
 
 console.log('# Script loading — v2 vs v3 (µs, page-init to DOM-appended)\n');
 console.log(`Iterations per metric: ${ITERATIONS}\n`);
@@ -359,10 +366,10 @@ writeFileSync(
 	join(outputDir, 'script-loading-compare.json'),
 	`${JSON.stringify(
 		{
-			suite: 'script-loading-compare',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
 			scenarios: results,
+			suite: 'script-loading-compare',
 		},
 		null,
 		2

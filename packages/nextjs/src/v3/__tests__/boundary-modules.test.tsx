@@ -20,9 +20,9 @@ describe('ConsentBoundary module props', () => {
 				persistence={false}
 				scripts={[
 					{
+						category: 'marketing',
 						id: 'test-script',
 						src: 'https://example.com/test.js',
-						category: 'marketing',
 					},
 				]}
 			>

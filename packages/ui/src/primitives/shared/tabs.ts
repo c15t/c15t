@@ -1,14 +1,14 @@
 export type TabsOrientation = 'horizontal' | 'vertical';
 
-export function getTabState(selected: boolean) {
+export const getTabState = function getTabState(selected: boolean) {
 	return selected ? 'active' : 'inactive';
-}
+};
 
-export function getTabPanelState(selected: boolean) {
+export const getTabPanelState = function getTabPanelState(selected: boolean) {
 	return selected ? 'active' : 'inactive';
-}
+};
 
-export function getNextTabValue(params: {
+export const getNextTabValue = function getNextTabValue(params: {
 	orientation: TabsOrientation;
 	loop?: boolean;
 	triggerValues: string[];
@@ -52,4 +52,4 @@ export function getNextTabValue(params: {
 	}
 
 	return triggerValues[nextIndex] ?? currentValue;
-}
+};

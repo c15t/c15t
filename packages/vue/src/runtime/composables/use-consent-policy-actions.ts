@@ -10,7 +10,7 @@ import {
 import { computed, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
-export function useConsentPolicyActions(
+export const useConsentPolicyActions = function useConsentPolicyActions(
 	surfaceUi: MaybeRefOrGetter<PolicyUiSurfaceConfig | undefined>
 ) {
 	const allowedActions = computed(() => {
@@ -47,9 +47,9 @@ export function useConsentPolicyActions(
 	const shouldFillActions = computed(() => {
 		const ui = toValue(surfaceUi);
 		return shouldFillPolicyActions({
-			uiProfile: ui?.uiProfile,
 			actionGroups: actionGroups.value,
 			direction: direction.value,
+			uiProfile: ui?.uiProfile,
 		});
 	});
 
@@ -59,4 +59,4 @@ export function useConsentPolicyActions(
 		primaryActions,
 		shouldFillActions,
 	};
-}
+};

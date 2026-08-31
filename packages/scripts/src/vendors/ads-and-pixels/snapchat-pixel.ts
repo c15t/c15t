@@ -119,43 +119,47 @@ declare global {
  */
 export const snapchatPixelManifest = {
 	...vendorManifestContract,
-	vendor: 'snapchat-pixel',
-	category: 'marketing',
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
-			name: 'snaptr',
-			queue: {
-				property: 'queue',
-			},
-			dispatchProperty: 'handleRequest',
-			queueFormat: 'array',
 			aliases: ['_snaptr'],
-			selfReferences: ['push'],
+			dispatchProperty: 'handleRequest',
+			ifUndefined: true,
+
+			name: 'snaptr',
 			properties: {
 				loaded: true,
 				version: '1.0',
 			},
-			ifUndefined: true,
+			queue: {
+				property: 'queue',
+			},
+			queueFormat: 'array',
+			selfReferences: ['push'],
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'marketing',
 	install: [
 		{
-			type: 'callGlobal',
-			global: 'snaptr',
 			args: ['init', '{{pixelId}}'],
-		},
-		{
-			type: 'callGlobal',
+
 			global: 'snaptr',
-			args: ['track', 'PAGE_VIEW'],
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
+			args: ['track', 'PAGE_VIEW'],
+
+			global: 'snaptr',
+			type: 'callGlobal',
+		},
+		{
 			async: true,
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'snapchat-pixel',
 } as const satisfies VendorManifest;
 
 export interface SnapchatPixelOptions {
@@ -215,7 +219,7 @@ export interface SnapchatPixelOptions {
  * });
  * ```
  */
-export function snapchatPixel({
+export const snapchatPixel = function snapchatPixel({
 	pixelId,
 	initOptions,
 	trackPageView = true,
@@ -246,14 +250,14 @@ export function snapchatPixel({
 	} as const satisfies VendorManifest;
 
 	return resolveManifest(manifest, {
-		pixelId,
 		initOptions,
+		pixelId,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://sc-static.net/scevent.min.js'
 		),
 	});
-}
+};
 
 /**
  * Tracks a Snapchat Pixel event.

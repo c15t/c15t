@@ -29,22 +29,25 @@ export const tursoDb = {
 } as const;
 
 export const DEMO_TERMS_RELEASE = {
+	effectiveDate: '2026-04-13T00:00:00.000Z',
+	hash: 'c15t-example-terms-v2026-04-13',
 	title: 'c15t Example Terms & Conditions',
 	type: 'terms_and_conditions' as const,
 	version: '2026-04-13',
-	hash: 'c15t-example-terms-v2026-04-13',
-	effectiveDate: '2026-04-13T00:00:00.000Z',
 };
 
-export function createDemoInstance(scenario = DEFAULT_SCENARIO_ID) {
+export const createDemoInstance = function createDemoInstance(
+	scenario = DEFAULT_SCENARIO_ID
+) {
 	const gvlCache =
 		process.env.REDIS_URL && process.env.REDIS_TOKEN
 			? createUpstashRedisAdapter({
-					url: process.env.REDIS_URL,
 					token: process.env.REDIS_TOKEN,
+					url: process.env.REDIS_URL,
 				})
 			: undefined;
 
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	return c15tInstance({
 		database: postgresDb,
 		basePath: '/api/self-host',
@@ -54,37 +57,37 @@ export function createDemoInstance(scenario = DEFAULT_SCENARIO_ID) {
 		// manifest, built by @c15t/schema so the server and the browser resolve
 		// it identically.
 		manifest: {
-			tenantId: 'ins_1',
 			appName: 'c15t-self-host',
 			branding: 'c15t',
 			i18n: {
 				defaultProfile: 'default',
 				messages: demoI18nMessages,
 			},
-			policyPacks: getScenarioPolicyPacks(scenario),
 			iab: {
-				enabled: true,
 				cmpId: DEMO_CMP_ID,
 				customVendors: DEMO_CUSTOM_VENDORS,
+				enabled: true,
 			},
+			policyPacks: getScenarioPolicyPacks(scenario),
+			tenantId: 'ins_1',
 		},
 		policySnapshot: {
 			signingKey: DEMO_POLICY_SNAPSHOT_KEY,
 			ttlSeconds: 60 * 60,
 		},
 		legalDocumentSnapshot: {
-			signingKey: DEMO_LEGAL_DOCUMENT_SNAPSHOT.signingKey,
 			issuer: DEMO_LEGAL_DOCUMENT_SNAPSHOT.issuer,
+			signingKey: DEMO_LEGAL_DOCUMENT_SNAPSHOT.signingKey,
 		},
 		openapi: { enabled: true },
 		// The cache attaches to GVL resolution, which is the only thing in the
 		// backend worth caching across instances.
-		gvl: { vendorIds: DEMO_IAB_VENDOR_IDS, cache: gvlCache },
+		gvl: { cache: gvlCache, vendorIds: DEMO_IAB_VENDOR_IDS },
 	});
-}
+};
 
-export function getDemoTermsRelease() {
+export const getDemoTermsRelease = function getDemoTermsRelease() {
 	return {
 		...DEMO_TERMS_RELEASE,
 	};
-}
+};

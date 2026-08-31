@@ -8,30 +8,35 @@ import { updateAppStylesheetImports } from './css';
 
 const tempDirs: string[] = [];
 
-async function createProject(
+const createProject = async function createProject(
 	files: Record<string, string>
 ): Promise<{ root: string }> {
 	const root = await mkdtemp(join(tmpdir(), 'c15t-tailwind-css-'));
 	tempDirs.push(root);
 
-	for (const [relativePath, content] of Object.entries(files)) {
-		const filePath = join(root, relativePath);
-		await mkdir(dirname(filePath), { recursive: true });
-		await writeFile(filePath, content, 'utf-8');
-	}
+	await Array.from(Object.entries(files)).reduce(
+		async (previousIteration, [relativePath, content]) => {
+			await previousIteration;
+			const filePath = join(root, relativePath);
+			await mkdir(dirname(filePath), { recursive: true });
+			await writeFile(filePath, content, 'utf-8');
+		},
+		Promise.resolve()
+	);
 
 	return { root };
-}
+};
 
 afterEach(async () => {
 	await Promise.all(
-		tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
+		tempDirs.splice(0).map((dir) => rm(dir, { force: true, recursive: true }))
 	);
 });
 
 describe('updateAppStylesheetImports', () => {
 	it('adds the React stylesheet to src/index.css for non-Tailwind apps', async () => {
 		const { root } = await createProject({
+			'src/index.css': ':root { color: #111827; }\n',
 			'src/main.tsx': [
 				"import './index.css';",
 				'',
@@ -39,14 +44,13 @@ describe('updateAppStylesheetImports', () => {
 				'  return null;',
 				'}',
 			].join('\n'),
-			'src/index.css': ':root { color: #111827; }\n',
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/react',
-			tailwindVersion: null,
 			entrypointPath: 'src/main.tsx',
+			packageName: 'c15t/react',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -59,13 +63,6 @@ describe('updateAppStylesheetImports', () => {
 
 	it('inserts the Tailwind v4 stylesheet at the end of the import block', async () => {
 		const { root } = await createProject({
-			'app/layout.tsx': [
-				"import './globals.css';",
-				'',
-				'export default function RootLayout({ children }: { children: React.ReactNode }) {',
-				'  return <html><body>{children}</body></html>;',
-				'}',
-			].join('\n'),
 			'app/globals.css': [
 				'@import "tailwindcss";',
 				'@import "tw-animate-css";',
@@ -73,13 +70,20 @@ describe('updateAppStylesheetImports', () => {
 				'',
 				':root { color: #111827; }',
 			].join('\n'),
+			'app/layout.tsx': [
+				"import './globals.css';",
+				'',
+				'export default function RootLayout({ children }: { children: React.ReactNode }) {',
+				'  return <html><body>{children}</body></html>;',
+				'}',
+			].join('\n'),
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/next',
-			tailwindVersion: '^4.2.2',
 			entrypointPath: 'app/layout.tsx',
+			packageName: 'c15t/next',
+			projectRoot: root,
+			tailwindVersion: '^4.2.2',
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -91,6 +95,11 @@ describe('updateAppStylesheetImports', () => {
 
 	it('inserts the Tailwind v3 stylesheet after @tailwind components', async () => {
 		const { root } = await createProject({
+			'app/globals.css': [
+				'@tailwind base;',
+				'@tailwind components;',
+				'@tailwind utilities;',
+			].join('\n'),
 			'app/layout.tsx': [
 				"import './globals.css';",
 				'',
@@ -98,18 +107,13 @@ describe('updateAppStylesheetImports', () => {
 				'  return <html><body>{children}</body></html>;',
 				'}',
 			].join('\n'),
-			'app/globals.css': [
-				'@tailwind base;',
-				'@tailwind components;',
-				'@tailwind utilities;',
-			].join('\n'),
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/next',
-			tailwindVersion: '3.4.17',
 			entrypointPath: 'app/layout.tsx',
+			packageName: 'c15t/next',
+			projectRoot: root,
+			tailwindVersion: '3.4.17',
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -141,11 +145,11 @@ describe('updateAppStylesheetImports', () => {
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/react',
-			tailwindVersion: null,
 			entrypointPath: 'src/main.tsx',
 			includeIab: true,
+			packageName: 'c15t/react',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/styles.css'), 'utf-8');
 
@@ -157,6 +161,8 @@ describe('updateAppStylesheetImports', () => {
 
 	it('replaces an existing scoped stylesheet import with the umbrella one', async () => {
 		const { root } = await createProject({
+			'src/index.css':
+				'@import "@c15t/react/styles.css";\n:root { color: #111827; }\n',
 			'src/main.tsx': [
 				"import './index.css';",
 				'',
@@ -164,15 +170,13 @@ describe('updateAppStylesheetImports', () => {
 				'  return null;',
 				'}',
 			].join('\n'),
-			'src/index.css':
-				'@import "@c15t/react/styles.css";\n:root { color: #111827; }\n',
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/react',
-			tailwindVersion: null,
 			entrypointPath: 'src/main.tsx',
+			packageName: 'c15t/react',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -187,6 +191,8 @@ describe('updateAppStylesheetImports', () => {
 
 	it('reports a replacement when normalizing a scoped import across package names', async () => {
 		const { root } = await createProject({
+			'app/globals.css':
+				'@import "@c15t/nextjs/styles.css";\n:root { color: #111827; }\n',
 			'app/layout.tsx': [
 				"import './globals.css';",
 				'',
@@ -194,15 +200,13 @@ describe('updateAppStylesheetImports', () => {
 				'  return <html><body>{children}</body></html>;',
 				'}',
 			].join('\n'),
-			'app/globals.css':
-				'@import "@c15t/nextjs/styles.css";\n:root { color: #111827; }\n',
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/next',
-			tailwindVersion: null,
 			entrypointPath: 'app/layout.tsx',
+			packageName: 'c15t/next',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -222,6 +226,7 @@ describe('updateAppStylesheetImports', () => {
 			'package.json': JSON.stringify({
 				dependencies: { '@c15t/react': '^2.0.0' },
 			}),
+			'src/index.css': cssContent,
 			'src/main.tsx': [
 				"import './index.css';",
 				'',
@@ -229,14 +234,13 @@ describe('updateAppStylesheetImports', () => {
 				'  return null;',
 				'}',
 			].join('\n'),
-			'src/index.css': cssContent,
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/react',
-			tailwindVersion: null,
 			entrypointPath: 'src/main.tsx',
+			packageName: 'c15t/react',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -246,9 +250,7 @@ describe('updateAppStylesheetImports', () => {
 
 	it('adds the scoped stylesheet when a scoped app is missing the import', async () => {
 		const { root } = await createProject({
-			'package.json': JSON.stringify({
-				dependencies: { '@c15t/nextjs': '^2.0.0' },
-			}),
+			'app/globals.css': ':root { color: #111827; }\n',
 			'app/layout.tsx': [
 				"import './globals.css';",
 				'',
@@ -256,14 +258,16 @@ describe('updateAppStylesheetImports', () => {
 				'  return <html><body>{children}</body></html>;',
 				'}',
 			].join('\n'),
-			'app/globals.css': ':root { color: #111827; }\n',
+			'package.json': JSON.stringify({
+				dependencies: { '@c15t/nextjs': '^2.0.0' },
+			}),
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/next',
-			tailwindVersion: null,
 			entrypointPath: 'app/layout.tsx',
+			packageName: 'c15t/next',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -276,8 +280,10 @@ describe('updateAppStylesheetImports', () => {
 	it('still normalizes scoped imports when the app depends on the umbrella package', async () => {
 		const { root } = await createProject({
 			'package.json': JSON.stringify({
-				dependencies: { c15t: '^3.0.0', '@c15t/react': '^2.0.0' },
+				dependencies: { '@c15t/react': '^2.0.0', c15t: '^3.0.0' },
 			}),
+			'src/index.css':
+				'@import "@c15t/react/styles.css";\n:root { color: #111827; }\n',
 			'src/main.tsx': [
 				"import './index.css';",
 				'',
@@ -285,15 +291,13 @@ describe('updateAppStylesheetImports', () => {
 				'  return null;',
 				'}',
 			].join('\n'),
-			'src/index.css':
-				'@import "@c15t/react/styles.css";\n:root { color: #111827; }\n',
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/react',
-			tailwindVersion: null,
 			entrypointPath: 'src/main.tsx',
+			packageName: 'c15t/react',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -313,10 +317,10 @@ describe('updateAppStylesheetImports', () => {
 		});
 
 		const result = await updateAppStylesheetImports({
-			projectRoot: root,
-			packageName: 'c15t/react',
-			tailwindVersion: null,
 			entrypointPath: 'src/main.tsx',
+			packageName: 'c15t/react',
+			projectRoot: root,
+			tailwindVersion: null,
 		});
 
 		expect(result.updated).toBe(false);

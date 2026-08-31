@@ -136,16 +136,16 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('banner hidden for returning visitor', async () => {
 		const consentData = {
-			consents: {
-				necessary: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				experience: true,
-			},
 			consentInfo: {
 				time: Date.now(),
 				type: 'accept-all',
+			},
+			consents: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		};
 		window.localStorage.setItem('c15t', JSON.stringify(consentData));

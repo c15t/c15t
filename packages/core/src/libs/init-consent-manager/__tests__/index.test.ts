@@ -43,11 +43,11 @@ describe('initConsentManager', () => {
 		storeSet = mockSet as unknown as StoreApi<ConsentStoreState>['setState'];
 
 		mockState = createMockStoreState({
-			hasConsented: vi.fn().mockReturnValue(false),
 			callbacks: {
 				onBannerFetched: vi.fn(),
 				onError: vi.fn(),
 			},
+			hasConsented: vi.fn().mockReturnValue(false),
 		});
 
 		mockGet.mockReturnValue(mockState);
@@ -62,8 +62,8 @@ describe('initConsentManager', () => {
 				(globalThis as any).window = undefined;
 
 				const result = await initConsentManager({
-					manager: mockManager,
 					get: storeGet,
+					manager: mockManager,
 					set: storeSet,
 				});
 
@@ -78,22 +78,22 @@ describe('initConsentManager', () => {
 			const originalLocalStorage = window.localStorage;
 			// oxlint-disable-next-line typescript/no-explicit-any -- Testing localStorage access
 			(window as any).localStorage = {
+				removeItem: vi.fn(),
 				setItem: vi.fn().mockImplementation(() => {
 					throw new Error('localStorage not available');
 				}),
-				removeItem: vi.fn(),
 			};
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
 			expect(mockSet).toHaveBeenCalledWith({
-				isLoadingConsentInfo: false,
 				activeUI: 'none',
+				isLoadingConsentInfo: false,
 			});
 
 			window.localStorage = originalLocalStorage;
@@ -105,39 +105,40 @@ describe('initConsentManager', () => {
 			window.localStorage.setItem(
 				'c15t:pending-consent-sync',
 				JSON.stringify({
-					type: 'custom',
-					subjectId: 'existing-subject',
-					preferences: {
-						necessary: true,
-						functionality: false,
-						experience: false,
-						marketing: false,
-						measurement: false,
-					},
+					domain: 'example.com',
 					givenAt: 1_746_000_000_000,
 					jurisdiction: 'GDPR',
 					jurisdictionModel: 'opt-in',
-					domain: 'example.com',
-					uiSource: 'dialog',
 					policySnapshotToken: 'snapshot-token-123',
+					preferences: {
+						experience: false,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						necessary: true,
+					},
+					subjectId: 'existing-subject',
+					type: 'custom',
+					uiSource: 'dialog',
 				})
 			);
 
 			mockManager = createMockConsentManager({
-				setConsent: vi.fn().mockResolvedValue({
-					ok: true,
-					data: undefined,
-					error: null,
-				}),
 				init: vi.fn().mockResolvedValue({
 					data: createMockConsentBannerResponse(),
 					error: null,
 				}),
+				setConsent: vi.fn().mockResolvedValue({
+					data: undefined,
+					error: null,
+
+					ok: true,
+				}),
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -155,13 +156,13 @@ describe('initConsentManager', () => {
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
-				init: mockResponse,
 				gvl: undefined,
+				init: mockResponse,
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
 			});
@@ -180,8 +181,8 @@ describe('initConsentManager', () => {
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
 			});
@@ -192,8 +193,8 @@ describe('initConsentManager', () => {
 
 		it('should fall back to API call when initial data init is undefined', async () => {
 			const ssrData = Promise.resolve({
-				init: undefined,
 				gvl: undefined,
+				init: undefined,
 			});
 			const mockResponse = createMockConsentBannerResponse();
 
@@ -203,8 +204,8 @@ describe('initConsentManager', () => {
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
 			});
@@ -216,31 +217,31 @@ describe('initConsentManager', () => {
 		it('reuses initial data when overrides match the stored request context', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
-				init: mockResponse,
 				gvl: undefined,
+				init: mockResponse,
 				metadata: {
 					requestContext: {
 						backendURL: `${window.location.origin}/api/c15t`,
 						country: 'DE',
-						region: 'BE',
-						language: 'de',
 						gpc: false,
+						language: 'de',
+						region: 'BE',
 					},
 				},
 			});
 
 			mockState.overrides = {
 				country: 'DE',
-				region: 'BE',
 				language: 'de',
+				region: 'BE',
 			};
 
 			const result = await initConsentManager({
-				manager: mockManager,
+				backendURL: '/api/c15t',
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
-				backendURL: '/api/c15t',
 			});
 
 			expect(result).toEqual(mockResponse);
@@ -250,23 +251,23 @@ describe('initConsentManager', () => {
 		it('falls back to API when overrides mismatch the stored request context', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
-				init: mockResponse,
 				gvl: undefined,
+				init: mockResponse,
 				metadata: {
 					requestContext: {
 						backendURL: `${window.location.origin}/api/c15t`,
 						country: 'DE',
-						region: 'BE',
-						language: 'de',
 						gpc: false,
+						language: 'de',
+						region: 'BE',
 					},
 				},
 			});
 
 			mockState.overrides = {
 				country: 'DE',
-				region: 'BE',
 				language: 'fr',
+				region: 'BE',
 			};
 
 			const apiResponse = createMockConsentBannerResponse({
@@ -279,11 +280,11 @@ describe('initConsentManager', () => {
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
+				backendURL: '/api/c15t',
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
-				backendURL: '/api/c15t',
 			});
 
 			expect(result).toEqual(apiResponse);
@@ -297,15 +298,15 @@ describe('initConsentManager', () => {
 		it('falls back to API when GPC mismatches the stored request context', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
-				init: mockResponse,
 				gvl: undefined,
+				init: mockResponse,
 				metadata: {
 					requestContext: {
 						backendURL: `${window.location.origin}/api/c15t`,
 						country: null,
-						region: null,
-						language: null,
 						gpc: false,
+						language: null,
+						region: null,
 					},
 				},
 			});
@@ -322,11 +323,11 @@ describe('initConsentManager', () => {
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
+				backendURL: '/api/c15t',
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
-				backendURL: '/api/c15t',
 			});
 
 			expect(result).toEqual(apiResponse);
@@ -340,62 +341,64 @@ describe('initConsentManager', () => {
 		it('reopens consent UI when the active material policy fingerprint changes', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				policy: {
-					id: 'policy_runtime_gdpr',
-					model: 'opt-in',
 					consent: {
+						categories: ['necessary', 'measurement'],
 						expiryDays: 365,
 						scopeMode: 'strict',
-						categories: ['necessary', 'measurement'],
 					},
+					id: 'policy_runtime_gdpr',
+					model: 'opt-in',
 					ui: {
-						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryActions: ['accept'],
-							layout: [['accept', 'reject']],
 							direction: 'row',
+							layout: [['accept', 'reject']],
+							primaryActions: ['accept'],
 						},
+						mode: 'banner',
 					},
 				},
 			});
 			let state = createMockStoreState({
-				consents: {
-					necessary: true,
-					functionality: false,
-					experience: false,
-					marketing: false,
-					measurement: true,
-				},
-				selectedConsents: {
-					necessary: true,
-					functionality: false,
-					experience: false,
-					marketing: false,
-					measurement: true,
-				},
 				consentInfo: {
-					time: 1_700_000_000_000,
-					subjectId: 'sub_existing',
 					materialPolicyFingerprint: 'f'.repeat(64),
+					subjectId: 'sub_existing',
+					time: 1_700_000_000_000,
 				},
 				consentTypes: [
 					{
-						name: 'necessary',
 						defaultValue: true,
 						description: '',
 						disabled: true,
 						display: true,
 						gdprType: 1,
+
+						name: 'necessary',
 					},
 					{
-						name: 'measurement',
 						defaultValue: false,
 						description: '',
 						disabled: false,
 						display: true,
 						gdprType: 4,
+
+						name: 'measurement',
 					},
 				],
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: true,
+					necessary: true,
+				},
+				selectedConsents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: true,
+					necessary: true,
+				},
 			});
 			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
 			storeSet = ((update) => {
@@ -413,8 +416,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -427,30 +430,30 @@ describe('initConsentManager', () => {
 		it('seeds the current material policy fingerprint for existing consent without reopening UI', async () => {
 			const mockResponse = createMockConsentBannerResponse({
 				policy: {
-					id: 'policy_runtime_gdpr',
-					model: 'opt-in',
 					consent: {
+						categories: ['necessary', 'measurement'],
 						expiryDays: 365,
 						scopeMode: 'strict',
-						categories: ['necessary', 'measurement'],
 					},
+					id: 'policy_runtime_gdpr',
+					model: 'opt-in',
 					ui: {
-						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryActions: ['accept'],
-							layout: [['accept', 'reject']],
 							direction: 'row',
+							layout: [['accept', 'reject']],
+							primaryActions: ['accept'],
 						},
+						mode: 'banner',
 					},
 				},
 			});
 			let state = createMockStoreState({
-				consentInfo: {
-					time: 1_700_000_000_000,
-					subjectId: 'sub_existing',
-				},
 				activeUI: 'none',
+				consentInfo: {
+					subjectId: 'sub_existing',
+					time: 1_700_000_000_000,
+				},
 			});
 			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
 			storeSet = ((update) => {
@@ -468,13 +471,13 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(state.consentInfo?.materialPolicyFingerprint).toMatch(
-				/^[a-f0-9]{64}$/
+				/^[a-f0-9]{64}$/u
 			);
 			expect(state.activeUI).toBe('none');
 		});
@@ -482,8 +485,8 @@ describe('initConsentManager', () => {
 		it('should pass overrides as headers to init', async () => {
 			mockState.overrides = {
 				country: 'FR',
-				region: 'IDF',
 				language: 'fr',
+				region: 'IDF',
 			};
 
 			const mockResponse = createMockConsentBannerResponse({
@@ -496,16 +499,16 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(mockManager.init).toHaveBeenCalledWith({
 				headers: {
+					'accept-language': 'fr',
 					'x-c15t-country': 'FR',
 					'x-c15t-region': 'IDF',
-					'accept-language': 'fr',
 				},
 				onError: expect.any(Function),
 			});
@@ -526,8 +529,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -550,8 +553,8 @@ describe('initConsentManager', () => {
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -571,15 +574,15 @@ describe('initConsentManager', () => {
 			});
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
 			expect(mockSet).toHaveBeenCalledWith({
-				isLoadingConsentInfo: false,
 				activeUI: 'none',
+				isLoadingConsentInfo: false,
 			});
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
 				error: `Failed to fetch consent banner info: ${errorMessage}`,
@@ -591,15 +594,15 @@ describe('initConsentManager', () => {
 			mockManager.init = vi.fn().mockRejectedValue(networkError);
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(result).toBeUndefined();
 			expect(mockSet).toHaveBeenCalledWith({
-				isLoadingConsentInfo: false,
 				activeUI: 'none',
+				isLoadingConsentInfo: false,
 			});
 			expect(mockState.callbacks.onError).toHaveBeenCalledWith({
 				error: 'Network error',
@@ -611,8 +614,8 @@ describe('initConsentManager', () => {
 			mockManager.init = vi.fn().mockRejectedValue(unknownError);
 
 			const result = await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -627,13 +630,13 @@ describe('initConsentManager', () => {
 		it('stores init source as ssr when SSR prefetched data is used', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
-				init: mockResponse,
 				gvl: undefined,
+				init: mockResponse,
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
 			});
@@ -649,20 +652,20 @@ describe('initConsentManager', () => {
 		it('maps SSR cache metadata to backend-cache-hit source', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
-				init: mockResponse,
 				gvl: undefined,
+				init: mockResponse,
 				metadata: {
-					requestDurationMs: 42,
 					cache: {
-						isHit: true,
 						detail: 'x-vercel-cache=HIT, age=12',
+						isHit: true,
 					},
+					requestDurationMs: 42,
 				},
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 				ssrData,
 			});
@@ -682,17 +685,17 @@ describe('initConsentManager', () => {
 				data: mockResponse,
 				error: null,
 				response: new Response(JSON.stringify(mockResponse), {
-					status: 200,
 					headers: {
 						'content-type': 'application/json',
 						'x-vercel-cache': 'HIT',
 					},
+					status: 200,
 				}),
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -714,8 +717,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -737,8 +740,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -760,8 +763,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -782,20 +785,20 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
-					isLoadingConsentInfo: false,
 					hasFetchedBanner: true,
+					isLoadingConsentInfo: false,
 					lastBannerFetchData: mockResponse,
 					locationInfo: {
 						countryCode: 'DE',
-						regionCode: 'BE',
 						jurisdiction: mockResponse.jurisdiction ?? null,
+						regionCode: 'BE',
 					},
 					translationConfig: expect.any(Object),
 				})
@@ -813,19 +816,19 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {
-						necessary: true,
-						functionality: true,
 						experience: true,
+						functionality: true,
 						marketing: true,
 						measurement: true,
+						necessary: true,
 					},
 				})
 			);
@@ -844,19 +847,19 @@ describe('initConsentManager', () => {
 			setGlobalPrivacyControlSignal(true);
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {
-						necessary: true,
-						functionality: true,
 						experience: true,
+						functionality: true,
 						marketing: false,
 						measurement: false,
+						necessary: true,
 					},
 				})
 			);
@@ -875,8 +878,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -899,8 +902,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -923,8 +926,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -948,8 +951,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -974,8 +977,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -983,8 +986,8 @@ describe('initConsentManager', () => {
 				expect.objectContaining({
 					locationInfo: {
 						countryCode: 'FR',
-						regionCode: 'IDF',
 						jurisdiction: mockResponse.jurisdiction ?? null,
+						regionCode: 'IDF',
 					},
 				})
 			);
@@ -1002,10 +1005,10 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
-				set: storeSet,
 				initialTranslationConfig,
+				manager: mockManager,
+				set: storeSet,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -1027,8 +1030,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -1049,8 +1052,8 @@ describe('initConsentManager', () => {
 			});
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -1064,8 +1067,8 @@ describe('initConsentManager', () => {
 			mockManager.init = vi.fn().mockRejectedValue(networkError);
 
 			await initConsentManager({
-				manager: mockManager,
 				get: storeGet,
+				manager: mockManager,
 				set: storeSet,
 			});
 
@@ -1081,8 +1084,8 @@ describe('initConsentManager', () => {
 
 			await expect(
 				initConsentManager({
-					manager: mockManager,
 					get: storeGet,
+					manager: mockManager,
 					set: storeSet,
 				})
 			).resolves.toBeUndefined();

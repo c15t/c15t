@@ -78,18 +78,18 @@ export const current: Effect.Effect<
 	Dialect,
 	UnsupportedDialectError,
 	SqlClient.SqlClient
-> = Effect.gen(function* () {
+> = Effect.gen(function* current() {
 	const sql = yield* SqlClient.SqlClient;
 	return yield* sql.onDialectOrElse({
-		pg: () => Effect.succeed<Dialect>('postgres'),
 		mysql: () => Effect.succeed<Dialect>('mysql'),
-		sqlite: () => Effect.succeed<Dialect>('sqlite'),
 		orElse: () =>
 			Effect.fail(
 				new UnsupportedDialectError({
 					supported: ['postgres', 'mysql', 'sqlite'],
 				})
 			),
+		pg: () => Effect.succeed<Dialect>('postgres'),
+		sqlite: () => Effect.succeed<Dialect>('sqlite'),
 	});
 });
 
@@ -130,28 +130,29 @@ export interface PhysicalTypes {
 }
 
 const TYPES: Readonly<Record<Dialect, PhysicalTypes>> = {
-	postgres: {
-		id: 'varchar(255)',
-		text: 'text',
-		indexedText: 'text',
-		// `json`, not `jsonb` — matching what 2.0.0 databases actually hold.
-		// Switching would mean rewriting every JSON column on adoption.
-		json: 'json',
-		bool: 'boolean',
-		timestamp: 'timestamp',
-	},
 	mysql: {
-		id: 'varchar(255)',
-		text: 'text',
-		indexedText: 'varchar(255)',
-		json: 'json',
 		// An alias for `tinyint(1)`, which is what legacy MySQL databases
 		// introspect as.
 		bool: 'boolean',
+		id: 'varchar(255)',
+		indexedText: 'varchar(255)',
+		json: 'json',
+		text: 'text',
 		// Not `timestamp` — see the note on the 2038 cut-off and time-zone
 		// conversion at the top of this file.
 		timestamp: 'datetime(3)',
 	},
+	postgres: {
+		bool: 'boolean',
+		id: 'varchar(255)',
+		indexedText: 'text',
+		// `json`, not `jsonb` — matching what 2.0.0 databases actually hold.
+		// Switching would mean rewriting every JSON column on adoption.
+		json: 'json',
+		text: 'text',
+		timestamp: 'timestamp',
+	},
+	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	sqlite: {
 		// SQLite reports the declared type verbatim, and 2.0.0 databases
 		// declare TEXT — declaring varchar(255) here would leave a fresh
@@ -166,9 +167,9 @@ const TYPES: Readonly<Record<Dialect, PhysicalTypes>> = {
 	},
 };
 
-export function typesFor(dialect: Dialect): PhysicalTypes {
+export const typesFor = function typesFor(dialect: Dialect): PhysicalTypes {
 	return TYPES[dialect];
-}
+};
 
 /**
  * Quotes an identifier the way the engine expects.
@@ -190,8 +191,10 @@ export function typesFor(dialect: Dialect): PhysicalTypes {
  * quote('subject'); // `subject`
  * ```
  */
-export function escaperFor(dialect: Dialect): (name: string) => string {
+export const escaperFor = function escaperFor(
+	dialect: Dialect
+): (name: string) => string {
 	return dialect === 'mysql'
 		? Statement.defaultEscape('`')
 		: Statement.defaultEscape('"');
-}
+};

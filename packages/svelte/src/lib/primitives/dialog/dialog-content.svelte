@@ -28,7 +28,7 @@
 		class?: string;
 	} = $props();
 
-	function handleKeyDown(
+	const handleKeyDown = function handleKeyDown(
 		event: KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement }
 	) {
 		if (isDialogDismissKey(event.key)) {
@@ -36,7 +36,7 @@
 			dialog.requestClose('escape');
 		}
 		onkeydown?.(event);
-	}
+	};
 
 	$effect(() => {
 		if (!open || !node) {
@@ -48,7 +48,7 @@
 				return;
 			}
 
-			const activeElement = document.activeElement;
+			const { activeElement } = document;
 			if (!activeElement || !node.contains(activeElement)) {
 				const preferredFocusTarget = node.querySelector<HTMLElement>(
 					'[data-c15t-dialog-focus="true"]'

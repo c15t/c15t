@@ -41,7 +41,7 @@ import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
 
-function useKernel(): ConsentKernel {
+const useKernel = function useKernel(): ConsentKernel {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
@@ -49,13 +49,18 @@ function useKernel(): ConsentKernel {
 		);
 	}
 	return kernel;
-}
+};
 
-function subscribe(kernel: ConsentKernel, listener: () => void): () => void {
+const subscribe = function subscribe(
+	kernel: ConsentKernel,
+	listener: () => void
+): () => void {
 	return kernel.subscribe(listener);
-}
+};
 
-function useKernelSelector<T>(selector: (snap: ConsentSnapshot) => T): T {
+const useKernelSelector = function useKernelSelector<T>(
+	selector: (snap: ConsentSnapshot) => T
+): T {
 	const kernel = useKernel();
 	return useSyncExternalStore(
 		(listener) => subscribe(kernel, listener),
@@ -67,226 +72,253 @@ function useKernelSelector<T>(selector: (snap: ConsentSnapshot) => T): T {
 		// unowned DOM (a banner React never removes).
 		() => selector(kernel.getServerSnapshot())
 	);
-}
+};
 
 /**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
  * multiple slices. Prefer narrow hooks for re-render isolation.
  */
-export function useSnapshot(): ConsentSnapshot {
+export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 	const kernel = useKernel();
 	return useSyncExternalStore(
 		(listener) => subscribe(kernel, listener),
 		() => kernel.getSnapshot(),
 		() => kernel.getServerSnapshot()
 	);
-}
+};
 
 /**
  * Has a specific category been granted? Primitive boolean; re-renders
  * only when that exact category flips.
  */
-export function useConsent(category: AllConsentNames): boolean {
+export const useConsent = function useConsent(
+	category: AllConsentNames
+): boolean {
 	return useKernelSelector((snap) => snap.consents[category]);
-}
+};
 
 /**
  * Full consent record. Re-renders on any category change.
  */
-export function useConsents(): Readonly<ConsentState> {
+export const useConsents = function useConsents(): Readonly<ConsentState> {
 	return useKernelSelector((snap) => snap.consents);
-}
+};
 
 /**
  * Whether the user has completed any consent interaction.
  */
-export function useHasConsented(): boolean {
+export const useHasConsented = function useHasConsented(): boolean {
 	return useKernelSelector((snap) => snap.hasConsented);
-}
+};
 
 /**
  * Current overrides (country, region, language, GPC).
  */
-export function useOverrides(): Readonly<KernelOverrides> {
+export const useOverrides = function useOverrides(): Readonly<KernelOverrides> {
 	return useKernelSelector((snap) => snap.overrides);
-}
+};
 
 /**
  * Identified user or null.
  */
-export function useUser(): Readonly<KernelUser> | null {
+export const useUser = function useUser(): Readonly<KernelUser> | null {
 	return useKernelSelector((snap) => snap.user);
-}
+};
 
 // -- Rich-init selectors ---------------------------------------------------
 
 /** Geographic context reported by the backend. */
-export function useLocation(): Readonly<LocationResponse> | null {
-	return useKernelSelector((snap) => snap.location);
-}
+export const useLocation =
+	function useLocation(): Readonly<LocationResponse> | null {
+		return useKernelSelector((snap) => snap.location);
+	};
 
 /** Active translation bundle. */
-export function useTranslations(): Readonly<KernelTranslations> | null {
-	return useKernelSelector((snap) => snap.translations);
-}
+export const useTranslations =
+	function useTranslations(): Readonly<KernelTranslations> | null {
+		return useKernelSelector((snap) => snap.translations);
+	};
 
 /** Active branding identifier. */
-export function useBranding(): KernelBranding | null {
+export const useBranding = function useBranding(): KernelBranding | null {
 	return useKernelSelector((snap) => snap.branding);
-}
+};
 
 /** Full resolved policy from `/init`. */
-export function usePolicy(): Readonly<ResolvedPolicy> | null {
+export const usePolicy = function usePolicy(): Readonly<ResolvedPolicy> | null {
 	return useKernelSelector((snap) => snap.policy);
-}
+};
 
 /** Policy-decision explainability metadata. */
-export function usePolicyDecision(): Readonly<PolicyDecision> | null {
-	return useKernelSelector((snap) => snap.policyDecision);
-}
+export const usePolicyDecision =
+	function usePolicyDecision(): Readonly<PolicyDecision> | null {
+		return useKernelSelector((snap) => snap.policyDecision);
+	};
 
 /** Derived consent model (opt-in / opt-out / iab / null). */
-export function useModel(): KernelModel {
+export const useModel = function useModel(): KernelModel {
 	return useKernelSelector((snap) => snap.model);
-}
+};
 
 /** Which UI surface to render (none / banner / dialog). */
-export function useActiveUI(): KernelActiveUI {
+export const useActiveUI = function useActiveUI(): KernelActiveUI {
 	return useKernelSelector((snap) => snap.activeUI);
-}
+};
 
 /** Category allowlist from `policy.consent.categories`. */
-export function usePolicyCategories(): readonly AllConsentNames[] {
-	return useKernelSelector((snap) => snap.policyCategories);
-}
+export const usePolicyCategories =
+	function usePolicyCategories(): readonly AllConsentNames[] {
+		return useKernelSelector((snap) => snap.policyCategories);
+	};
 
 /** `strict` or `permissive` — from `policy.consent.scopeMode`. */
-export function usePolicyScopeMode(): PolicyScopeMode {
-	return useKernelSelector((snap) => snap.policyScopeMode);
-}
+export const usePolicyScopeMode =
+	function usePolicyScopeMode(): PolicyScopeMode {
+		return useKernelSelector((snap) => snap.policyScopeMode);
+	};
 
 /** UI hints for the banner surface. */
-export function usePolicyBanner(): Readonly<PolicyUiSurfaceConfig> | null {
-	return useKernelSelector((snap) => snap.policyBanner);
-}
+export const usePolicyBanner =
+	function usePolicyBanner(): Readonly<PolicyUiSurfaceConfig> | null {
+		return useKernelSelector((snap) => snap.policyBanner);
+	};
 
 /** UI hints for the dialog surface. */
-export function usePolicyDialog(): Readonly<PolicyUiSurfaceConfig> | null {
-	return useKernelSelector((snap) => snap.policyDialog);
-}
+export const usePolicyDialog =
+	function usePolicyDialog(): Readonly<PolicyUiSurfaceConfig> | null {
+		return useKernelSelector((snap) => snap.policyDialog);
+	};
 
 /** Full IAB state slice (null when IAB is not enabled). */
-export function useIABSnapshot(): Readonly<KernelIABState> | null {
-	return useKernelSelector((snap) => snap.iab);
-}
+export const useIABSnapshot =
+	function useIABSnapshot(): Readonly<KernelIABState> | null {
+		return useKernelSelector((snap) => snap.iab);
+	};
 
 /** Is IAB active? */
-export function useIABEnabled(): boolean {
+export const useIABEnabled = function useIABEnabled(): boolean {
 	return useKernelSelector((snap) => snap.iab?.enabled ?? false);
-}
+};
 
 /** Consent for a specific IAB vendor. Accepts numeric or string IDs; IAB
  * vendors are numeric but the kernel stores them as strings for
  * uniformity with custom vendors. */
-export function useVendorConsent(vendorId: string | number): boolean {
+export const useVendorConsent = function useVendorConsent(
+	vendorId: string | number
+): boolean {
 	const key = String(vendorId);
 	return useKernelSelector((snap) => snap.iab?.vendorConsents[key] ?? false);
-}
+};
 
 /** Consent for a specific IAB purpose (1–11). */
-export function usePurposeConsent(purposeId: number): boolean {
+export const usePurposeConsent = function usePurposeConsent(
+	purposeId: number
+): boolean {
 	return useKernelSelector(
 		(snap) => snap.iab?.purposeConsents[purposeId] ?? false
 	);
-}
+};
 
 /** Opt-in for a special feature (1 = geolocation, 2 = device ID). */
-export function useSpecialFeatureOptIn(featureId: number): boolean {
+export const useSpecialFeatureOptIn = function useSpecialFeatureOptIn(
+	featureId: number
+): boolean {
 	return useKernelSelector(
 		(snap) => snap.iab?.specialFeatureOptIns[featureId] ?? false
 	);
-}
+};
 
 /** Latest TCF string. `null` until the IAB module encodes one. */
-export function useTCString(): string | null {
+export const useTCString = function useTCString(): string | null {
 	return useKernelSelector((snap) => snap.iab?.tcString ?? null);
-}
+};
 
 // -- Action hooks -----------------------------------------------------------
 
 /**
  * Sync mutation: apply a partial consent patch. No-op on equal values.
  */
-export function useSetConsent(): (input: Partial<ConsentState>) => void {
+export const useSetConsent = function useSetConsent(): (
+	input: Partial<ConsentState>
+) => void {
 	const kernel = useKernel();
 	return kernel.set.consent;
-}
+};
 
 /**
  * Sync mutation: apply overrides (country, region, language, GPC).
  */
-export function useSetOverrides(): (input: KernelOverrides) => void {
+export const useSetOverrides = function useSetOverrides(): (
+	input: KernelOverrides
+) => void {
 	const kernel = useKernel();
 	return kernel.set.overrides;
-}
+};
 
 /**
  * Sync mutation: switch active language.
  */
-export function useSetLanguage(): (code: string) => void {
+export const useSetLanguage = function useSetLanguage(): (
+	code: string
+) => void {
 	const kernel = useKernel();
 	return kernel.set.language;
-}
+};
 
 /**
  * Sync mutation: set the active UI surface (banner/dialog/none).
  */
-export function useSetActiveUI(): (ui: KernelActiveUI) => void {
+export const useSetActiveUI = function useSetActiveUI(): (
+	ui: KernelActiveUI
+) => void {
 	const kernel = useKernel();
 	return (
 		kernel.set as typeof kernel.set & {
 			activeUI: (ui: KernelActiveUI) => void;
 		}
 	).activeUI;
-}
+};
 
 /**
  * Async command: persist current or given consents. Returns the kernel's
  * own save() method so identity is stable across renders.
  */
-export function useSaveConsents(): ConsentKernel['commands']['save'] {
-	const kernel = useKernel();
-	return kernel.commands.save;
-}
+export const useSaveConsents =
+	function useSaveConsents(): ConsentKernel['commands']['save'] {
+		const kernel = useKernel();
+		return kernel.commands.save;
+	};
 
 /**
  * Subscribe to consent changes. The callback receives the full consent record
  * whenever the kernel emits a snapshot.
  */
-export function useSubscribeToConsentChanges(): (
-	listener: (state: ConsentState) => void
-) => () => void {
-	const kernel = useKernel();
-	return useCallback(
-		(listener: (state: ConsentState) => void) =>
-			kernel.subscribe((snapshot) => listener(snapshot.consents)),
-		[kernel]
-	);
-}
+export const useSubscribeToConsentChanges =
+	function useSubscribeToConsentChanges(): (
+		listener: (state: ConsentState) => void
+	) => () => void {
+		const kernel = useKernel();
+		return useCallback(
+			(listener: (state: ConsentState) => void) =>
+				kernel.subscribe((snapshot) => listener(snapshot.consents)),
+			[kernel]
+		);
+	};
 
 /**
  * Async command: identify a user.
  */
-export function useIdentify(): ConsentKernel['commands']['identify'] {
-	const kernel = useKernel();
-	return kernel.commands.identify;
-}
+export const useIdentify =
+	function useIdentify(): ConsentKernel['commands']['identify'] {
+		const kernel = useKernel();
+		return kernel.commands.identify;
+	};
 
 /**
  * Async command: run the init transport (currently a no-op in the kernel;
  * boot modules wire in SSR hydration, prefetch, banner fetch).
  */
-export function useInit(): ConsentKernel['commands']['init'] {
+export const useInit = function useInit(): ConsentKernel['commands']['init'] {
 	const kernel = useKernel();
 	return kernel.commands.init;
-}
+};

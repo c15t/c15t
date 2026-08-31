@@ -50,7 +50,7 @@ describe('buildInitialIab', () => {
 	});
 
 	test('merges over the IAB defaults when a seed is provided', () => {
-		const result = buildInitialIab({ enabled: true, cmpId: 7 });
+		const result = buildInitialIab({ cmpId: 7, enabled: true });
 		expect(result).not.toBeNull();
 		expect(result?.enabled).toBe(true);
 		expect(result?.cmpId).toBe(7);
@@ -108,19 +108,19 @@ describe('buildInitialSnapshot', () => {
 
 	test('initialHasConsented hides active UI and preserves user consents', () => {
 		const snap = buildInitialSnapshot({
-			initialHasConsented: true,
 			initialConsents: { marketing: true, measurement: true },
+			initialHasConsented: true,
 			initialPolicy: {
-				model: 'opt-in',
-				ui: {
-					mode: 'banner',
-				},
 				consent: {
 					categories: ['marketing'],
 					scopeMode: 'strict',
 				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+				id: 'initial-consent-policy',
+				model: 'opt-in',
+				ui: {
+					mode: 'banner',
+				},
+			},
 		});
 
 		expect(snap.hasConsented).toBe(true);
@@ -132,8 +132,6 @@ describe('buildInitialSnapshot', () => {
 	test('fresh opt-in policy denies optional consents even when preselected', () => {
 		const snap = buildInitialSnapshot({
 			initialPolicy: {
-				model: 'opt-in',
-				ui: { mode: 'banner' },
 				consent: {
 					categories: [
 						'necessary',
@@ -149,41 +147,43 @@ describe('buildInitialSnapshot', () => {
 					],
 					scopeMode: 'strict',
 				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+				id: 'strict-opt-in-policy',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+			},
 		});
 
 		expect(snap.hasConsented).toBe(false);
 		expect(snap.consents).toMatchObject({
-			necessary: true,
+			experience: false,
 			functionality: false,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		});
 	});
 
 	test('fresh opt-in permissive policy denies out-of-policy optional consents', () => {
 		const snap = buildInitialSnapshot({
 			initialPolicy: {
-				model: 'opt-in',
-				ui: { mode: 'banner' },
 				consent: {
 					categories: ['necessary'],
 					preselectedCategories: ['necessary'],
 					scopeMode: 'permissive',
 				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+				id: 'permissive-opt-in-policy',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+			},
 		});
 
 		expect(snap.hasConsented).toBe(false);
 		expect(snap.consents).toEqual({
-			necessary: true,
+			experience: false,
 			functionality: false,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		});
 	});
 
@@ -191,8 +191,6 @@ describe('buildInitialSnapshot', () => {
 		const snap = buildInitialSnapshot({
 			initialOverrides: { gpc: true },
 			initialPolicy: {
-				model: 'opt-out',
-				ui: { mode: 'banner' },
 				consent: {
 					categories: [
 						'necessary',
@@ -204,17 +202,19 @@ describe('buildInitialSnapshot', () => {
 					gpc: true,
 					scopeMode: 'strict',
 				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+				id: 'strict-opt-out-policy',
+				model: 'opt-out',
+				ui: { mode: 'banner' },
+			},
 		});
 
 		expect(snap.hasConsented).toBe(false);
 		expect(snap.consents).toMatchObject({
-			necessary: true,
-			functionality: true,
 			experience: true,
-			measurement: false,
+			functionality: true,
 			marketing: false,
+			measurement: false,
+			necessary: true,
 		});
 	});
 
@@ -223,9 +223,9 @@ describe('buildInitialSnapshot', () => {
 			initialPolicy: {
 				model: 'opt-in',
 				ui: {
-					mode: 'banner',
 					banner: { theme: 'dark' },
 					dialog: { theme: 'light' },
+					mode: 'banner',
 				},
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,

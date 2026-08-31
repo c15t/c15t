@@ -61,13 +61,17 @@
 		purpose.vendors.filter((v) => !v.usesLegitimateInterest)
 	);
 
-	function getVendorConsent(vendorId: VendorId): boolean {
+	const getVendorConsent = function getVendorConsent(
+		vendorId: VendorId
+	): boolean {
 		return vendorConsents[String(vendorId)] ?? false;
-	}
+	};
 
-	function getVendorLegitimateInterest(vendorId: VendorId): boolean {
+	const getVendorLegitimateInterest = function getVendorLegitimateInterest(
+		vendorId: VendorId
+	): boolean {
 		return vendorLegitimateInterests[String(vendorId)] ?? true;
-	}
+	};
 
 	// Check if purpose-level LI is allowed (not objected)
 	const isPurposeLIAllowed = $derived(
@@ -75,7 +79,7 @@
 	);
 
 	// Handler for purpose-level LI objection
-	function handlePurposeLIObjection() {
+	const handlePurposeLIObjection = function handlePurposeLIObjection() {
 		const newValue = !isPurposeLIAllowed;
 		onPurposeLegitimateInterestToggle?.(purpose.id, newValue);
 		if (onVendorLegitimateInterestToggle) {
@@ -83,7 +87,7 @@
 				onVendorLegitimateInterestToggle(vendor.id, newValue);
 			}
 		}
-	}
+	};
 
 	// Separate IAB and custom vendors
 	const iabConsentVendors = $derived(consentVendors.filter((v) => !v.isCustom));
@@ -98,12 +102,12 @@
 	});
 
 	// Handle purpose toggle - also toggles all consent-based vendors
-	function handlePurposeToggle(value: boolean) {
+	const handlePurposeToggle = function handlePurposeToggle(value: boolean) {
 		onToggle(value);
 		for (const vendor of consentVendors) {
 			onVendorToggle(vendor.id, value);
 		}
-	}
+	};
 </script>
 
 <PreferenceItem.Root

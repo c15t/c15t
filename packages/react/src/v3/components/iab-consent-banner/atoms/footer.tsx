@@ -30,8 +30,8 @@ const IABConsentBannerFooter = forwardRef<
 	const themedStyle = mergeSlotProps(components?.['iab-banner']?.footer, {
 		baseClassName: styles.footer,
 		className,
-		noStyle,
 		'data-testid': dataTestId ?? 'iab-consent-banner-footer',
+		noStyle,
 		...props,
 	});
 

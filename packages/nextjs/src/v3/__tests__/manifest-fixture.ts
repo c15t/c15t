@@ -1,88 +1,100 @@
 import type { ConsentManifest } from '@c15t/schema/types';
 
 export const MANIFEST_FIXTURE = {
-	schemaVersion: 1,
-	revision: 'manifest-revision',
 	branding: 'c15t',
 	policyPacks: [
 		{
+			fingerprint: 'eu-fingerprint',
+
 			policy: {
+				consent: {
+					categories: ['necessary', 'measurement', 'marketing'],
+
+					expiryDays: 365,
+					model: 'opt-in',
+					scopeMode: 'strict',
+				},
 				id: 'eu-opt-in',
 				match: { countries: ['DE'] },
-				consent: {
-					model: 'opt-in',
-					expiryDays: 365,
-					scopeMode: 'strict',
-					categories: ['necessary', 'measurement', 'marketing'],
-				},
 				ui: { mode: 'banner' },
 			},
 			resolvedPolicy: {
+				consent: {
+					categories: ['necessary', 'measurement', 'marketing'],
+
+					expiryDays: 365,
+					scopeMode: 'strict',
+				},
 				id: 'eu-opt-in',
 				model: 'opt-in',
-				consent: {
-					expiryDays: 365,
-					scopeMode: 'strict',
-					categories: ['necessary', 'measurement', 'marketing'],
-				},
-				ui: { mode: 'banner' },
 				proof: {},
+
+				ui: { mode: 'banner' },
 			},
-			fingerprint: 'eu-fingerprint',
 		},
 		{
+			fingerprint: 'ca-fingerprint',
+
 			policy: {
+				consent: {
+					categories: ['necessary', 'marketing'],
+					expiryDays: 365,
+					gpc: true,
+
+					model: 'opt-out',
+					scopeMode: 'permissive',
+				},
 				id: 'us-ca-opt-out',
 				match: { regions: [{ country: 'US', region: 'CA' }] },
-				consent: {
-					model: 'opt-out',
-					expiryDays: 365,
-					scopeMode: 'permissive',
-					categories: ['necessary', 'marketing'],
-					gpc: true,
-				},
 				ui: { mode: 'banner' },
 			},
 			resolvedPolicy: {
+				consent: {
+					categories: ['necessary', 'marketing'],
+					expiryDays: 365,
+					gpc: true,
+
+					scopeMode: 'permissive',
+				},
 				id: 'us-ca-opt-out',
 				model: 'opt-out',
-				consent: {
-					expiryDays: 365,
-					scopeMode: 'permissive',
-					categories: ['necessary', 'marketing'],
-					gpc: true,
-				},
-				ui: { mode: 'banner' },
 				proof: {},
+
+				ui: { mode: 'banner' },
 			},
-			fingerprint: 'ca-fingerprint',
 		},
 		{
+			fingerprint: 'notice-fingerprint',
+
 			policy: {
+				consent: {
+					categories: ['necessary'],
+
+					expiryDays: 30,
+					model: 'none',
+					scopeMode: 'permissive',
+				},
 				id: 'notice-default',
 				match: { isDefault: true },
-				consent: {
-					model: 'none',
-					expiryDays: 30,
-					scopeMode: 'permissive',
-					categories: ['necessary'],
-				},
 				ui: { mode: 'none' },
 			},
 			resolvedPolicy: {
-				id: 'notice-default',
-				model: 'none',
 				consent: {
+					categories: ['necessary'],
+
 					expiryDays: 30,
 					scopeMode: 'permissive',
-					categories: ['necessary'],
 				},
-				ui: { mode: 'none' },
+				id: 'notice-default',
+				model: 'none',
 				proof: {},
+
+				ui: { mode: 'none' },
 			},
-			fingerprint: 'notice-fingerprint',
 		},
 	],
+	revision: 'manifest-revision',
+	schemaVersion: 1,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',

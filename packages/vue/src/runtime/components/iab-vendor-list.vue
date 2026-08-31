@@ -55,18 +55,18 @@ const iabVendors = computed(() => {
 
 	return Object.entries(props.vendorData.vendors).map(([id, vendor]) => ({
 		id: Number(id),
+		isCustom: false,
 		name: vendor.name,
 		policyUrl: (vendor as { policyUrl?: string }).policyUrl ?? '',
-		isCustom: false,
 	}));
 });
 
 const customVendorItems = computed(() =>
 	(props.customVendors ?? []).map((vendor) => ({
 		id: vendor.id,
+		isCustom: true,
 		name: vendor.name,
 		policyUrl: vendor.privacyPolicyUrl,
-		isCustom: true,
 	}))
 );
 
@@ -112,9 +112,9 @@ const filteredCount = computed(
 	() => filteredIabVendors.value.length + filteredCustomVendors.value.length
 );
 
-function getVendorConsent(vendorId: IabVendorId) {
+const getVendorConsent = function getVendorConsent(vendorId: IabVendorId) {
 	return props.vendorConsents[String(vendorId)] ?? false;
-}
+};
 
 watch(
 	() => props.selectedVendorId,

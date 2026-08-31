@@ -57,11 +57,11 @@
 
 	let openItems = $state<Record<string, boolean>>({});
 
-	function toggleConsent(name: string, checked: boolean) {
+	const toggleConsent = function toggleConsent(name: string, checked: boolean) {
 		consent.state.setSelectedConsent(name as AllConsentNames, checked);
-	}
+	};
 
-	function toggleOpenItem(name: string) {
+	const toggleOpenItem = function toggleOpenItem(name: string) {
 		const nextOpen = !(openItems[name] ?? false);
 		openItems = Object.fromEntries(
 			displayedConsents.map((consentType) => [
@@ -69,13 +69,15 @@
 				nextOpen && consentType.name === name,
 			])
 		);
-	}
+	};
 
-	function formatConsentName(name: AllConsentNames): string {
+	const formatConsentName = function formatConsentName(
+		name: AllConsentNames
+	): string {
 		return (name as string)
-			.replace(/_/g, ' ')
-			.replace(/\b\w/g, (c: string) => c.toUpperCase());
-	}
+			.replace(/_/gu, ' ')
+			.replace(/\b\w/gu, (c: string) => c.toUpperCase());
+	};
 
 	// Per-element theme key resolution
 	const widgetRootStyle = $derived(
@@ -138,9 +140,9 @@
 
 	const shouldFillActions = $derived(
 		shouldFillPolicyActions({
-			uiProfile: consent.state.policyDialog.uiProfile,
 			actionGroups,
 			direction,
+			uiProfile: consent.state.policyDialog.uiProfile,
 		})
 	);
 </script>

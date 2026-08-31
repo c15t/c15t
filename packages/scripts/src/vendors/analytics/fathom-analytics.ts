@@ -32,22 +32,24 @@ declare global {
  */
 export const fathomAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'fathom-analytics',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			defer: true,
 			attributes: {
-				'data-site': '{{site}}',
-				'data-spa': '{{spa}}',
 				'data-auto': '{{autoAttribute}}',
 				'data-canonical': '{{canonicalAttribute}}',
 				'data-honor-dnt': '{{honorDntAttribute}}',
+
+				'data-site': '{{site}}',
+				'data-spa': '{{spa}}',
 			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'fathom-analytics',
 } as const satisfies VendorManifest;
 
 export interface FathomAnalyticsOptions {
@@ -103,10 +105,10 @@ export interface FathomAnalyticsOptions {
  * });
  * ```
  */
-export function fathomAnalytics(options: FathomAnalyticsOptions): Script {
+export const fathomAnalytics = function fathomAnalytics(
+	options: FathomAnalyticsOptions
+): Script {
 	const resolved = resolveManifest(fathomAnalyticsManifest, {
-		site: options.site,
-		spa: options.spa,
 		autoAttribute: booleanDataAttribute(options.auto),
 		canonicalAttribute: booleanDataAttribute(options.canonical),
 		honorDntAttribute: booleanDataAttribute(options.honorDnt),
@@ -114,7 +116,9 @@ export function fathomAnalytics(options: FathomAnalyticsOptions): Script {
 			options.scriptUrl,
 			'https://cdn.usefathom.com/script.js'
 		),
+		site: options.site,
+		spa: options.spa,
 	});
 
 	return resolved;
-}
+};

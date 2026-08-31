@@ -31,14 +31,14 @@ export interface TabsVariantsProps {
 }
 
 export const tabsVariants = () => ({
-	root: (options?: { class?: string }) =>
-		[styles.root, options?.class].filter(Boolean).join(' '),
-	list: (options?: { class?: string }) =>
-		[styles.list, options?.class].filter(Boolean).join(' '),
-	trigger: (options?: { class?: string }) =>
-		[styles.trigger, options?.class].filter(Boolean).join(' '),
 	content: (options?: { class?: string }) =>
 		[styles.content, options?.class].filter(Boolean).join(' '),
+	list: (options?: { class?: string }) =>
+		[styles.list, options?.class].filter(Boolean).join(' '),
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	trigger: (options?: { class?: string }) =>
+		[styles.trigger, options?.class].filter(Boolean).join(' '),
 });
 
 interface TabsContextValue {
@@ -54,7 +54,7 @@ interface TabsContextValue {
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 
-function useTabsContext() {
+const useTabsContext = function useTabsContext() {
 	const context = useContext(TabsContext);
 
 	if (!context) {
@@ -62,7 +62,7 @@ function useTabsContext() {
 	}
 
 	return context;
-}
+};
 
 export interface TabsRootProps
 	extends

@@ -6,7 +6,7 @@ import { executeHandler } from './utils';
 /**
  * Initializes consent manager by fetching jurisdiction, location, translations, and branding information.
  */
-export async function init(
+export const init = async function init(
 	endpointHandlers: EndpointHandlers,
 	options?: FetchOptions<InitResponse>
 ): Promise<ResponseContext<InitResponse>> {
@@ -22,4 +22,4 @@ export async function init(
 		handlerKey,
 		options
 	);
-}
+};

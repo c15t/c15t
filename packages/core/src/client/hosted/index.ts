@@ -107,35 +107,35 @@ export class C15tClient implements ConsentManagerInterface {
 
 		// Merge provided retry config with defaults
 		this.retryConfig = {
-			maxRetries:
-				options.retryConfig?.maxRetries ?? DEFAULT_RETRY_CONFIG.maxRetries ?? 3,
-			initialDelayMs:
-				options.retryConfig?.initialDelayMs ??
-				DEFAULT_RETRY_CONFIG.initialDelayMs ??
-				100,
 			backoffFactor:
 				options.retryConfig?.backoffFactor ??
 				DEFAULT_RETRY_CONFIG.backoffFactor ??
 				2,
-			retryableStatusCodes:
-				options.retryConfig?.retryableStatusCodes ??
-				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
+			initialDelayMs:
+				options.retryConfig?.initialDelayMs ??
+				DEFAULT_RETRY_CONFIG.initialDelayMs ??
+				100,
+			maxRetries:
+				options.retryConfig?.maxRetries ?? DEFAULT_RETRY_CONFIG.maxRetries ?? 3,
 			nonRetryableStatusCodes:
 				options.retryConfig?.nonRetryableStatusCodes ??
 				DEFAULT_RETRY_CONFIG.nonRetryableStatusCodes,
-			shouldRetry:
-				options.retryConfig?.shouldRetry ?? DEFAULT_RETRY_CONFIG.shouldRetry,
 			retryOnNetworkError:
 				options.retryConfig?.retryOnNetworkError ??
 				DEFAULT_RETRY_CONFIG.retryOnNetworkError,
+			retryableStatusCodes:
+				options.retryConfig?.retryableStatusCodes ??
+				DEFAULT_RETRY_CONFIG.retryableStatusCodes,
+			shouldRetry:
+				options.retryConfig?.shouldRetry ?? DEFAULT_RETRY_CONFIG.shouldRetry,
 		};
 
 		// Create fetcher context
 		this.fetcherContext = {
 			backendURL: this.backendURL,
-			headers: this.headers,
-			customFetch: this.customFetch,
 			corsMode: this.corsMode,
+			customFetch: this.customFetch,
+			headers: this.headers,
 			retryConfig: this.retryConfig,
 		};
 
@@ -148,7 +148,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Checks if a consent banner should be shown.
 	 * If the API request fails, falls back to offline mode behavior.
 	 */
-	async init(
+	init(
 		options?: FetchOptions<InitResponse>
 	): Promise<ResponseContext<InitResponse>> {
 		return init(this.fetcherContext, options, this.iabConfig);
@@ -161,7 +161,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * @remarks
 	 * v2.0: This calls POST /subjects with a client-generated subjectId.
 	 */
-	async setConsent(
+	setConsent(
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 	): Promise<ResponseContext<SetConsentResponse>> {
 		return setConsent(this.fetcherContext, this.storageConfig, options);
@@ -174,7 +174,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * @remarks
 	 * v2.0: Maps to PATCH /subjects/:id endpoint.
 	 */
-	async identifyUser(
+	identifyUser(
 		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 	): Promise<ResponseContext<IdentifyUserResponse>> {
 		return identifyUser(this.fetcherContext, this.storageConfig, options);
@@ -183,7 +183,7 @@ export class C15tClient implements ConsentManagerInterface {
 	/**
 	 * Makes a custom API request to any endpoint.
 	 */
-	async $fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
+	$fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
 	): Promise<ResponseContext<ResponseType>> {
@@ -208,7 +208,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Process pending consent submissions
 	 * @internal
 	 */
-	private async processPendingConsentSubmissions(
+	private processPendingConsentSubmissions(
 		submissions: SetConsentRequestBody[]
 	) {
 		return processPendingConsentSubmissions(this.fetcherContext, submissions);
@@ -228,7 +228,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Process pending identify user submissions
 	 * @internal
 	 */
-	private async processPendingIdentifySubmissions(
+	private processPendingIdentifySubmissions(
 		submissions: IdentifyUserRequestBody[]
 	) {
 		return processPendingIdentifySubmissions(this.fetcherContext, submissions);

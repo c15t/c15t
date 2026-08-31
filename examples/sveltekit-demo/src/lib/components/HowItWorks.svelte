@@ -1,28 +1,28 @@
 <script lang="ts">
 	const steps = [
 		{
-			number: '01',
-			title: 'Book Your Delivery',
 			description:
 				'Enter pickup and delivery locations through our app or website. Get instant pricing and availability.',
+			number: '01',
+			title: 'Book Your Delivery',
 		},
 		{
-			number: '02',
-			title: 'Secure Packaging',
 			description:
 				'Our team collects your package and secures it in our specialized lightweight carrier system.',
+			number: '02',
+			title: 'Secure Packaging',
 		},
 		{
-			number: '03',
-			title: 'Pigeon Takes Flight',
 			description:
 				'A trained carrier pigeon is dispatched with your package, flying the most direct route to the destination.',
+			number: '03',
+			title: 'Pigeon Takes Flight',
 		},
 		{
-			number: '04',
-			title: 'Delivered & Confirmed',
 			description:
 				'Package arrives at the destination hub and is delivered to the recipient with instant confirmation.',
+			number: '04',
+			title: 'Delivered & Confirmed',
 		},
 	];
 </script>

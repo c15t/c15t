@@ -22,17 +22,17 @@ import {
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
 const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
-	meta: {
-		name: '@c15t/vue',
-		configKey: 'c15t',
-	},
 	defaults: () => ({
 		...defaultConsentConfig,
-		manifest: false,
 		initRoute: resolveNuxtInitRoute({}),
+		manifest: false,
 		manifestRoute: resolveNuxtManifestRoute({}),
 	}),
-	async setup(options, nuxt) {
+	meta: {
+		configKey: 'c15t',
+		name: '@c15t/vue',
+	},
+	setup(options, nuxt) {
 		const resolver = createResolver(import.meta.url);
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
@@ -48,9 +48,9 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			nuxt.options.runtimeConfig.c15t ?? {},
 			{
 				backendURL: options.backendURL,
-				manifestURL: options.manifestURL,
 				initRoute,
 				manifestRoute,
+				manifestURL: options.manifestURL,
 			}
 		);
 
@@ -58,8 +58,8 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			nuxt.options.runtimeConfig.public.c15t ?? {},
 			{
 				...options,
-				manifest: manifestMode,
 				initRoute,
+				manifest: manifestMode,
 				manifestRoute,
 			}
 		);
@@ -90,25 +90,26 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 
 		if (manifestMode === 'server') {
 			addServerHandler({
-				route: initRoute,
-				method: 'get',
 				handler: resolver.resolve('./runtime/server/init.get'),
+				method: 'get',
+				route: initRoute,
 			});
 			addServerHandler({
-				route: manifestRoute,
-				method: 'get',
 				handler: resolver.resolve('./runtime/server/manifest.get'),
+				method: 'get',
+				route: manifestRoute,
 			});
 		} else if (manifestMode === 'client' && !options.manifestURL) {
 			addServerHandler({
-				route: manifestRoute,
-				method: 'get',
 				handler: resolver.resolve('./runtime/server/manifest.get'),
+				method: 'get',
+				route: manifestRoute,
 			});
 		}
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
 
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		addComponent({
 			// Global so runtime resolution (<component :is="'ConsentRoot'">)
 			// works too — ConsentRoot is the documented mount-anywhere entry.
@@ -117,6 +118,7 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			filePath: resolver.resolve('./runtime/components/nuxt-consent-root.vue'),
 		});
 
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		addComponent({
 			// Inline consent widget for settings/privacy pages — same DOM
 			// contract as @c15t/react and @c15t/svelte ConsentWidget.

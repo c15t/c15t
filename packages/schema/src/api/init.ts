@@ -15,16 +15,16 @@ import {
  * Title and description schema for translations
  */
 export const titleDescriptionSchema = v.object({
-	title: v.string(),
 	description: v.string(),
+	title: v.string(),
 });
 
 /**
  * Partial title and description schema
  */
 export const partialTitleDescriptionSchema = v.object({
-	title: v.optional(v.string()),
 	description: v.optional(v.string()),
+	title: v.optional(v.string()),
 });
 
 /**
@@ -34,11 +34,10 @@ export const partialTitleDescriptionSchema = v.object({
 export const completeTranslationsSchema = v.object({
 	common: v.object({
 		acceptAll: v.string(),
-		rejectAll: v.string(),
 		customize: v.string(),
+		rejectAll: v.string(),
 		save: v.string(),
 	}),
-	cookieBanner: titleDescriptionSchema,
 	consentManagerDialog: titleDescriptionSchema,
 	consentTypes: v.object({
 		experience: titleDescriptionSchema,
@@ -47,14 +46,17 @@ export const completeTranslationsSchema = v.object({
 		measurement: titleDescriptionSchema,
 		necessary: titleDescriptionSchema,
 	}),
+	cookieBanner: titleDescriptionSchema,
 	frame: v.object({
-		title: v.string(),
 		actionButton: v.string(),
+
+		title: v.string(),
 	}),
 	legalLinks: v.object({
+		cookiePolicy: v.string(),
+
 		privacyPolicy: v.string(),
 		termsOfService: v.string(),
-		cookiePolicy: v.string(),
 	}),
 });
 
@@ -66,12 +68,11 @@ export const partialTranslationsSchema = v.object({
 	common: v.partial(
 		v.object({
 			acceptAll: v.optional(v.string()),
-			rejectAll: v.optional(v.string()),
 			customize: v.optional(v.string()),
+			rejectAll: v.optional(v.string()),
 			save: v.optional(v.string()),
 		})
 	),
-	cookieBanner: partialTitleDescriptionSchema,
 	consentManagerDialog: partialTitleDescriptionSchema,
 	consentTypes: v.partial(
 		v.object({
@@ -82,20 +83,23 @@ export const partialTranslationsSchema = v.object({
 			necessary: partialTitleDescriptionSchema,
 		})
 	),
+	cookieBanner: partialTitleDescriptionSchema,
 	frame: v.optional(
 		v.partial(
 			v.object({
-				title: v.optional(v.string()),
 				actionButton: v.optional(v.string()),
+
+				title: v.optional(v.string()),
 			})
 		)
 	),
 	legalLinks: v.optional(
 		v.partial(
 			v.object({
+				cookiePolicy: v.optional(v.string()),
+
 				privacyPolicy: v.optional(v.string()),
 				termsOfService: v.optional(v.string()),
-				cookiePolicy: v.optional(v.string()),
 			})
 		)
 	),
@@ -132,35 +136,38 @@ export const policyMatchedBySchema = v.picklist([
  * Resolved runtime policy returned by /init.
  */
 export const resolvedPolicySchema = v.object({
-	id: v.string(),
-	model: policyModelSchema,
+	consent: v.optional(
+		v.object({
+			categories: v.optional(v.array(v.string())),
+			expiryDays: v.optional(v.number()),
+			gpc: v.optional(v.boolean()),
+
+			preselectedCategories: v.optional(v.array(v.string())),
+			scopeMode: v.optional(policyScopeModeSchema),
+		})
+	),
 	i18n: v.optional(
 		v.object({
 			language: v.optional(v.string()),
 			messageProfile: v.optional(v.string()),
 		})
 	),
-	consent: v.optional(
+	id: v.string(),
+	model: policyModelSchema,
+	proof: v.optional(
 		v.object({
-			expiryDays: v.optional(v.number()),
-			scopeMode: v.optional(policyScopeModeSchema),
-			categories: v.optional(v.array(v.string())),
-			preselectedCategories: v.optional(v.array(v.string())),
-			gpc: v.optional(v.boolean()),
+			storeIp: v.optional(v.boolean()),
+			storeLanguage: v.optional(v.boolean()),
+
+			storeUserAgent: v.optional(v.boolean()),
 		})
 	),
 	ui: v.optional(
 		v.object({
-			mode: v.optional(policyUiModeSchema),
 			banner: v.optional(policyUiSurfaceConfigSchema),
 			dialog: v.optional(policyUiSurfaceConfigSchema),
-		})
-	),
-	proof: v.optional(
-		v.object({
-			storeIp: v.optional(v.boolean()),
-			storeUserAgent: v.optional(v.boolean()),
-			storeLanguage: v.optional(v.boolean()),
+
+			mode: v.optional(policyUiModeSchema),
 		})
 	),
 });
@@ -169,25 +176,29 @@ export const resolvedPolicySchema = v.object({
  * Explainability details for the resolved policy decision.
  */
 export const policyDecisionSchema = v.object({
-	policyId: v.string(),
-	fingerprint: v.string(),
-	matchedBy: policyMatchedBySchema,
 	country: v.nullable(v.string()),
-	region: v.nullable(v.string()),
+	fingerprint: v.string(),
 	jurisdiction: jurisdictionCodeSchema,
+	matchedBy: policyMatchedBySchema,
+	policyId: v.string(),
+	region: v.nullable(v.string()),
 });
 
 /**
  * Output schema for init endpoint
  */
 export const initOutputSchema = v.object({
-	jurisdiction: jurisdictionCodeSchema,
-	location: locationSchema,
-	translations: v.object({
-		language: v.string(),
-		translations: translationsSchema,
-	}),
 	branding: brandingSchema,
+	/**
+	 * CMP ID registered with IAB Europe.
+	 * Provided by the backend when IAB is enabled and a CMP ID is configured.
+	 */
+	cmpId: v.optional(v.number()),
+	/**
+	 * Custom vendors not registered with IAB.
+	 * These are configured on the backend and synced to the frontend.
+	 */
+	customVendors: v.optional(v.array(nonIABVendorSchema)),
 	/**
 	 * Global Vendor List for IAB TCF compliance.
 	 * Present when IAB is active for the resolved request policy.
@@ -195,16 +206,8 @@ export const initOutputSchema = v.object({
 	 * If absent (and response is 200), IAB mode should be disabled on client.
 	 */
 	gvl: v.optional(v.nullable(globalVendorListSchema)),
-	/**
-	 * Custom vendors not registered with IAB.
-	 * These are configured on the backend and synced to the frontend.
-	 */
-	customVendors: v.optional(v.array(nonIABVendorSchema)),
-	/**
-	 * CMP ID registered with IAB Europe.
-	 * Provided by the backend when IAB is enabled and a CMP ID is configured.
-	 */
-	cmpId: v.optional(v.number()),
+	jurisdiction: jurisdictionCodeSchema,
+	location: locationSchema,
 	/**
 	 * Runtime policy resolved for the request's geo/jurisdiction context.
 	 * Present only when backend policies are configured and a match is found.
@@ -219,6 +222,10 @@ export const initOutputSchema = v.object({
 	 * Present when backend policy snapshots are configured.
 	 */
 	policySnapshotToken: v.optional(v.string()),
+	translations: v.object({
+		language: v.string(),
+		translations: translationsSchema,
+	}),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;

@@ -127,6 +127,7 @@ export interface IABConsentDialogProps {
  *
  * @public
  */
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
@@ -171,8 +172,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -332,6 +333,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		content.style.transition = 'none';
 
 		// Use double-RAF to ensure browser has laid out new content
+		// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
 		let rafId1: number;
 		let rafId2: number;
 
@@ -355,7 +357,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				}
 
 				// Force reflow before enabling transition
-				content.offsetHeight;
+				content.getBoundingClientRect();
 
 				// Animate to new height
 				content.style.transition =
@@ -553,7 +555,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							>
 								<svg
 									aria-hidden="true"
-									style={{ width: '1rem', height: '1rem' }}
+									style={{ height: '1rem', width: '1rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
@@ -692,10 +694,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 												<PurposeItem
 													key={`feature-${feature.id}`}
 													purpose={{
-														id: feature.id,
-														name: feature.name,
 														description: feature.description,
+														id: feature.id,
 														illustrations: feature.illustrations,
+														name: feature.name,
 														vendors: feature.vendors,
 													}}
 													isEnabled={
@@ -824,7 +826,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																	key={`special-${purpose.id}`}
 																	purpose={purpose}
 																	isEnabled={true}
-																	onToggle={() => {}}
+																	onToggle={() => {
+																		/* empty */
+																	}}
 																	vendorConsents={iabState.vendorConsents}
 																	onVendorToggle={handleVendorToggle}
 																	onVendorClick={handleVendorClick}
@@ -837,14 +841,16 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																<PurposeItem
 																	key={`feature-${feature.id}`}
 																	purpose={{
-																		id: feature.id,
-																		name: feature.name,
 																		description: feature.description,
+																		id: feature.id,
 																		illustrations: feature.illustrations,
+																		name: feature.name,
 																		vendors: feature.vendors,
 																	}}
 																	isEnabled={true}
-																	onToggle={() => {}}
+																	onToggle={() => {
+																		/* empty */
+																	}}
 																	vendorConsents={iabState.vendorConsents}
 																	onVendorToggle={handleVendorToggle}
 																	onVendorClick={handleVendorClick}
@@ -943,8 +949,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		showTrigger === true
-			? {} // Use defaults
+			? // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+				// Use defaults
+				{}
 			: showTrigger === false
 				? null
 				: showTrigger;

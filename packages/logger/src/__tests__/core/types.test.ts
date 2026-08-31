@@ -48,11 +48,11 @@ describe('types', () => {
 		it('should have methods for all log levels', () => {
 			// Create an object that satisfies the Logger type
 			const logger: Logger = {
+				debug: (_message: string, ..._args: unknown[]) => {},
+				error: (_message: string, ..._args: unknown[]) => {},
 				info: (_message: string, ..._args: unknown[]) => {},
 				success: (_message: string, ..._args: unknown[]) => {},
 				warn: (_message: string, ..._args: unknown[]) => {},
-				error: (_message: string, ..._args: unknown[]) => {},
-				debug: (_message: string, ..._args: unknown[]) => {},
 			};
 
 			expect(logger).toHaveProperty('info');
@@ -74,12 +74,12 @@ describe('types', () => {
 
 			// Create a complete LoggableError
 			const fullError: LoggableError = {
-				message: 'Test error',
-				code: 'TEST_ERROR',
-				status: 400,
-				meta: { test: true },
 				category: 'test',
+				code: 'TEST_ERROR',
+				message: 'Test error',
+				meta: { test: true },
 				stack: 'Error stack trace',
+				status: 400,
 			};
 
 			expect(fullError).toHaveProperty('message');

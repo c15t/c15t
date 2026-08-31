@@ -13,6 +13,6 @@ export interface V3UIConfigValue {
 export const V3UIConfigContext = createContext<V3UIConfigValue>({});
 V3UIConfigContext.displayName = 'C15tV3UIConfigContext';
 
-export function useUIConfig() {
+export const useUIConfig = function useUIConfig() {
 	return useContext(V3UIConfigContext);
-}
+};

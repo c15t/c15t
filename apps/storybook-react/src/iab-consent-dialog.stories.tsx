@@ -25,10 +25,10 @@ export const Overview: Story = {
 };
 
 export const TabAndExpansionFlow: Story = {
+	play: tabAndExpansionFlow,
 	render: () => (
 		<StorybookIABProvider>
 			<IABConsentDialog open />
 		</StorybookIABProvider>
 	),
-	play: tabAndExpansionFlow,
 };

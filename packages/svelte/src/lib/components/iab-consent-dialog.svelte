@@ -95,13 +95,17 @@
 
 	// Process GVL data
 	const gvlData = $derived.by(() => {
-		if (!iabState?.gvl) return null;
+		if (!iabState?.gvl) {
+			return null;
+		}
 		return processGVLData(iabState.gvl, iabState.nonIABVendors || []);
 	});
 
 	// Total vendor count
 	const totalVendors = $derived.by(() => {
-		if (!iabState?.gvl) return 0;
+		if (!iabState?.gvl) {
+			return 0;
+		}
 		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
 		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
 		return gvlVendorCount + customVendorCount;
@@ -111,61 +115,74 @@
 
 	// Partner count for special purposes + features section
 	const specialSectionPartnerCount = $derived.by(() => {
-		if (!gvlData) return 0;
+		if (!gvlData) {
+			return 0;
+		}
 		return new Set([
 			...gvlData.specialPurposes.flatMap((sp) => sp.vendors.map((v) => v.id)),
 			...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
 		]).size;
 	});
 
-	function handlePurposeToggle(purposeId: number, value: boolean) {
-		iabState?.setPurposeConsent(purposeId, value);
-	}
-
-	function handleSpecialFeatureToggle(featureId: number, value: boolean) {
-		iabState?.setSpecialFeatureOptIn(featureId, value);
-	}
-
-	function handleVendorToggle(vendorId: VendorId, value: boolean) {
-		iabState?.setVendorConsent(vendorId, value);
-	}
-
-	function handleVendorLegitimateInterestToggle(
-		vendorId: VendorId,
-		value: boolean
-	) {
-		iabState?.setVendorLegitimateInterest(vendorId, value);
-	}
-
-	function handlePurposeLegitimateInterestToggle(
+	const handlePurposeToggle = function handlePurposeToggle(
 		purposeId: number,
 		value: boolean
 	) {
-		iabState?.setPurposeLegitimateInterest(purposeId, value);
-	}
+		iabState?.setPurposeConsent(purposeId, value);
+	};
 
-	function handleAcceptAll() {
+	const handleSpecialFeatureToggle = function handleSpecialFeatureToggle(
+		featureId: number,
+		value: boolean
+	) {
+		iabState?.setSpecialFeatureOptIn(featureId, value);
+	};
+
+	const handleVendorToggle = function handleVendorToggle(
+		vendorId: VendorId,
+		value: boolean
+	) {
+		iabState?.setVendorConsent(vendorId, value);
+	};
+
+	const handleVendorLegitimateInterestToggle =
+		function handleVendorLegitimateInterestToggle(
+			vendorId: VendorId,
+			value: boolean
+		) {
+			iabState?.setVendorLegitimateInterest(vendorId, value);
+		};
+
+	const handlePurposeLegitimateInterestToggle =
+		function handlePurposeLegitimateInterestToggle(
+			purposeId: number,
+			value: boolean
+		) {
+			iabState?.setPurposeLegitimateInterest(purposeId, value);
+		};
+
+	const handleAcceptAll = function handleAcceptAll() {
 		iabState?.acceptAll();
 		iabState?.save();
 		consent.state.setActiveUI('none');
-	}
+	};
 
-	function handleRejectAll() {
+	const handleRejectAll = function handleRejectAll() {
 		iabState?.rejectAll();
 		iabState?.save();
 		consent.state.setActiveUI('none');
-	}
+	};
 
-	function handleSave() {
+	const handleSave = function handleSave() {
 		iabState?.save();
 		consent.state.setActiveUI('none');
-	}
+	};
 
-	function handleVendorClick(vendorId: VendorId) {
+	const handleVendorClick = function handleVendorClick(vendorId: VendorId) {
 		selectedVendorId = vendorId;
 		activeTab = 'vendors';
 		iabState?.setPreferenceCenterTab('vendors');
-	}
+	};
 </script>
 
 <Dialog.Root

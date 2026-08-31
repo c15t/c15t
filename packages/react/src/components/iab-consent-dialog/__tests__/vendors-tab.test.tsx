@@ -31,15 +31,15 @@ const getDefined = <Value,>(
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = String(value);
 		},
 	};
 })();
@@ -50,105 +50,105 @@ Object.defineProperty(window, 'localStorage', {
 
 // Mock GVL with multiple vendors
 const mockGVL = {
+	features: {
+		1: { description: '', id: 1, illustrations: [], name: 'Match data' },
+	},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 142,
-	tcfPolicyVersion: 5,
 	lastUpdated: '2024-01-15T16:00:23Z',
 	purposes: {
 		1: {
-			id: 1,
-			name: 'Store and/or access information on a device',
 			description: '',
+			id: 1,
 			illustrations: [],
+			name: 'Store and/or access information on a device',
+		},
+		10: {
+			description: '',
+			id: 10,
+			illustrations: [],
+			name: 'Develop and improve services',
 		},
 		2: {
-			id: 2,
-			name: 'Use limited data to select advertising',
 			description: '',
+			id: 2,
 			illustrations: [],
+			name: 'Use limited data to select advertising',
 		},
 		7: {
-			id: 7,
-			name: 'Measure advertising performance',
 			description: '',
+			id: 7,
 			illustrations: [],
+			name: 'Measure advertising performance',
 		},
 		9: {
+			description: '',
 			id: 9,
+			illustrations: [],
 			name: 'Understand audiences through statistics',
-			description: '',
-			illustrations: [],
 		},
-		10: {
-			id: 10,
-			name: 'Develop and improve services',
-			description: '',
-			illustrations: [],
-		},
-	},
-	specialPurposes: {
-		1: { id: 1, name: 'Security', description: '', illustrations: [] },
-	},
-	features: {
-		1: { id: 1, name: 'Match data', description: '', illustrations: [] },
 	},
 	specialFeatures: {
-		1: { id: 1, name: 'Geolocation', description: '', illustrations: [] },
+		1: { description: '', id: 1, illustrations: [], name: 'Geolocation' },
 	},
-	vendors: {
-		1: {
-			id: 1,
-			name: 'Exponential Interactive',
-			purposes: [1, 2],
-			legIntPurposes: [7, 9, 10],
-			specialPurposes: [1],
-			features: [1],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 31536000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: false,
-			urls: [{ langId: 'en', privacy: 'https://vendor1.com/privacy' }],
-		},
-		10: {
-			id: 10,
-			name: 'Index Exchange',
-			purposes: [1],
-			legIntPurposes: [2, 7, 9, 10],
-			specialPurposes: [1],
-			features: [],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 31536000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: false,
-			urls: [{ langId: 'en', privacy: 'https://indexexchange.com/privacy' }],
-		},
-		755: {
-			id: 755,
-			name: 'Google Advertising Products',
-			purposes: [1, 2, 7, 9, 10],
-			legIntPurposes: [],
-			specialPurposes: [1],
-			features: [1],
-			specialFeatures: [1],
-			flexiblePurposes: [2, 7, 9, 10],
-			cookieMaxAgeSeconds: 63072000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: true,
-			urls: [{ langId: 'en', privacy: 'https://policies.google.com/privacy' }],
-		},
+	specialPurposes: {
+		1: { description: '', id: 1, illustrations: [], name: 'Security' },
 	},
 	stacks: {
 		1: {
+			description: '',
 			id: 1,
 			name: 'Advertising',
-			description: '',
 			purposes: [2, 7],
 			specialFeatures: [],
+		},
+	},
+	tcfPolicyVersion: 5,
+	vendorListVersion: 142,
+	vendors: {
+		1: {
+			cookieMaxAgeSeconds: 31536000,
+			cookieRefresh: true,
+			features: [1],
+			flexiblePurposes: [],
+			id: 1,
+			legIntPurposes: [7, 9, 10],
+			name: 'Exponential Interactive',
+			purposes: [1, 2],
+			specialFeatures: [],
+			specialPurposes: [1],
+			urls: [{ langId: 'en', privacy: 'https://vendor1.com/privacy' }],
+			usesCookies: true,
+			usesNonCookieAccess: false,
+		},
+		10: {
+			cookieMaxAgeSeconds: 31536000,
+			cookieRefresh: true,
+			features: [],
+			flexiblePurposes: [],
+			id: 10,
+			legIntPurposes: [2, 7, 9, 10],
+			name: 'Index Exchange',
+			purposes: [1],
+			specialFeatures: [],
+			specialPurposes: [1],
+			urls: [{ langId: 'en', privacy: 'https://indexexchange.com/privacy' }],
+			usesCookies: true,
+			usesNonCookieAccess: false,
+		},
+		755: {
+			cookieMaxAgeSeconds: 63072000,
+			cookieRefresh: true,
+			features: [1],
+			flexiblePurposes: [2, 7, 9, 10],
+			id: 755,
+			legIntPurposes: [],
+			name: 'Google Advertising Products',
+			purposes: [1, 2, 7, 9, 10],
+			specialFeatures: [1],
+			specialPurposes: [1],
+			urls: [{ langId: 'en', privacy: 'https://policies.google.com/privacy' }],
+			usesCookies: true,
+			usesNonCookieAccess: true,
 		},
 	},
 };
@@ -156,19 +156,19 @@ const mockGVL = {
 globalThis.fetch = vi.fn(() =>
 	Promise.resolve(
 		new Response(JSON.stringify(mockGVL), {
-			status: 200,
 			headers: { 'Content-Type': 'application/json' },
+			status: 200,
 		})
 	)
 ) as typeof fetch;
 
 const defaultIABOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
 	}),
+	mode: 'offline',
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},

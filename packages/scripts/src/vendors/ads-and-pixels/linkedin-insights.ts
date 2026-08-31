@@ -36,41 +36,45 @@ declare global {
  */
 export const linkedinInsightsManifest = {
 	...vendorManifestContract,
-	vendor: 'linkedin-insights',
 	category: 'marketing',
 	install: [
 		{
-			type: 'setGlobal',
-			name: '_linkedin_partner_id',
-			value: '{{id}}',
 			ifUndefined: false,
-		},
-		{
+
+			name: '_linkedin_partner_id',
 			type: 'setGlobal',
-			name: '_linkedin_data_partner_ids',
-			value: [],
-			ifUndefined: true,
-		},
-		{
-			type: 'pushToQueue',
-			queue: '_linkedin_data_partner_ids',
 			value: '{{id}}',
 		},
 		{
-			type: 'defineStubFunction',
+			ifUndefined: true,
+
+			name: '_linkedin_data_partner_ids',
+			type: 'setGlobal',
+			value: [],
+		},
+		{
+			queue: '_linkedin_data_partner_ids',
+			type: 'pushToQueue',
+			value: '{{id}}',
+		},
+		{
+			ifUndefined: true,
+
 			name: 'lintrk',
 			queue: {
 				property: 'q',
 			},
 			queueFormat: 'array',
-			ifUndefined: true,
+			type: 'defineStubFunction',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
 			async: true,
+
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'linkedin-insights',
 } as const satisfies VendorManifest;
 
 export interface LinkedInInsightsOptions {
@@ -103,7 +107,7 @@ export interface LinkedInInsightsOptions {
  *
  * @see {@link https://www.linkedin.com/help/lms/answer/a418880} Add the LinkedIn Insight Tag to your website
  */
-export function linkedinInsights({
+export const linkedinInsights = function linkedinInsights({
 	id,
 	scriptSrc,
 }: LinkedInInsightsOptions): Script {
@@ -114,4 +118,4 @@ export function linkedinInsights({
 	});
 
 	return resolved;
-}
+};

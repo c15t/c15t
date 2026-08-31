@@ -48,11 +48,11 @@ export interface ExpectedScriptSnapshot {
  * advertising-related storage, and `experience` controls personalization.
  */
 export const deniedConsentState: ConsentState = {
-	necessary: true,
-	functionality: false,
-	measurement: false,
-	marketing: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
 };
 
 /**
@@ -63,11 +63,11 @@ export const deniedConsentState: ConsentState = {
  * advertising-related storage, and `experience` controls personalization.
  */
 export const grantedMeasurementConsentState: ConsentState = {
-	necessary: true,
-	functionality: false,
-	measurement: true,
-	marketing: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: true,
+	necessary: true,
 };
 
 /**
@@ -82,22 +82,22 @@ export type CallbackInfoOverrides = Partial<ScriptCallbackInfo> &
  * Defaults model a denied-consent callback for the same DOM element ID as the
  * script ID, while allowing individual tests to override the relevant fields.
  */
-export function createCallbackInfo(
+export const createCallbackInfo = function createCallbackInfo(
 	overrides: CallbackInfoOverrides
 ): ScriptCallbackInfo {
 	return {
+		consents: deniedConsentState,
 		elementId: overrides.id,
 		hasConsent: false,
-		consents: deniedConsentState,
 		...overrides,
 	};
-}
+};
 
 export type LifecycleCallbackOverrides = Partial<
 	Omit<ScriptCallbackInfo, 'id'>
 >;
 
-export function runOnBeforeLoad(
+export const runOnBeforeLoad = function runOnBeforeLoad(
 	script: Pick<Script, 'id' | 'onBeforeLoad'>,
 	overrides: LifecycleCallbackOverrides = {}
 ): void {
@@ -107,7 +107,7 @@ export function runOnBeforeLoad(
 			...overrides,
 		})
 	);
-}
+};
 
 /**
  * Returns a mutable test-friendly reference to the global object.
@@ -120,158 +120,11 @@ export function runOnBeforeLoad(
  * globalRef.dataLayer = [];
  * ```
  */
-export function getTestGlobal(): TestGlobal {
+export const getTestGlobal = function getTestGlobal(): TestGlobal {
 	return globalThis as TestGlobal;
-}
+};
 
-/**
- * Registers browser-like setup and teardown hooks for script helper tests.
- *
- * Before each test, this installs mocked `window` and `document` globals.
- * After each test, it unstubs globals and removes vendor-specific globals left
- * behind by script execution.
- *
- * @returns Nothing.
- *
- * @example
- * ```ts
- * describe('googleTagManager', () => {
- * 	setupScriptHelperTest();
- * });
- * ```
- */
-export function setupScriptHelperTest(): void {
-	beforeEach(() => {
-		setupMockBrowser();
-	});
-
-	afterEach(() => {
-		cleanupMockBrowser();
-	});
-}
-
-/**
- * Asserts that a helper-generated script matches registry metadata and
- * expected script fields.
- *
- * @param key - Built-in integration key used to find the registry entry.
- * @param script - Snapshot of the helper-generated script under test.
- * @param expected - Expected script metadata and output for the assertion.
- * @returns Nothing.
- *
- * @remarks
- * If `key` does not match any built-in integration, the assertion fails before
- * the non-null access is used.
- *
- * @example
- * ```ts
- * expectScriptMatchesIntegration(
- * 	'googleTagManager',
- * 	googleTagManager({ id: 'GTM-123' }),
- * 	{
- * 		alwaysLoad: true,
- * 		persistAfterConsentRevoked: undefined,
- * 		src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
- * 	}
- * );
- * ```
- */
-export function expectScriptMatchesIntegration(
-	key: BuiltInScriptIntegrationKey,
-	script: HelperScriptSnapshot,
-	expected: ExpectedScriptSnapshot
-): void {
-	const matchedIntegration = getBuiltInScriptIntegration(key);
-
-	expect(script.id, key).toBe(matchedIntegration.vendor);
-	expect(script.category, key).toBe(matchedIntegration.consentCategory);
-	expect(script.alwaysLoad, key).toBe(expected.alwaysLoad);
-	expect(script.persistAfterConsentRevoked, key).toBe(
-		expected.persistAfterConsentRevoked
-	);
-	expect(script.src, key).toBe(expected.src);
-}
-
-/**
- * Converts an array-like value into a plain array.
- *
- * @param value - Array-like input such as `arguments`, a `NodeList`, or a
- * vendor queue entry.
- * @returns A new array containing the indexed values from `value`.
- *
- * @remarks
- * Passing `null` or `undefined` throws because `slice` requires an object-like
- * value.
- *
- * @example
- * ```ts
- * function collectArgs(...args: unknown[]) {
- * 	return toArgumentsArray(args);
- * }
- * ```
- */
-export function toArgumentsArray(value: unknown): unknown[] {
-	return Array.prototype.slice.call(value);
-}
-
-export function expectGoogleConsentDefault(entry: unknown): void {
-	expect(toArgumentsArray(entry)).toEqual([
-		'consent',
-		'default',
-		{
-			security_storage: 'granted',
-			functionality_storage: 'denied',
-			analytics_storage: 'denied',
-			ad_storage: 'denied',
-			ad_user_data: 'denied',
-			ad_personalization: 'denied',
-			personalization_storage: 'denied',
-		},
-	]);
-}
-
-export function expectStubCommandQueue(
-	stub: unknown,
-	queueKey: string,
-	commands: unknown[][]
-): void {
-	const queueOwner = stub as Record<string, unknown> | undefined;
-	const actualQueue = Array.isArray(queueOwner?.[queueKey])
-		? (queueOwner[queueKey] as unknown[]).map((command) =>
-				toArgumentsArray(command)
-			)
-		: queueOwner?.[queueKey];
-	expect(actualQueue).toEqual(
-		commands.map((command) => toArgumentsArray(command))
-	);
-}
-
-function setupMockBrowser() {
-	const globalRef = getTestGlobal();
-	const scriptAnchor = {
-		parentNode: {
-			insertBefore: vi.fn((node: Record<string, unknown>) => node),
-		},
-	};
-
-	const document = {
-		head: {
-			appendChild: vi.fn((node: Record<string, unknown>) => node),
-		},
-		createElement: vi.fn((_tag: string) => ({
-			textContent: '',
-			async: false,
-			defer: false,
-			setAttribute: vi.fn(),
-		})),
-		getElementsByTagName: vi.fn(() => [scriptAnchor]),
-	};
-
-	vi.stubGlobal('window', globalRef as unknown as Window & typeof globalThis);
-	vi.stubGlobal('document', document as unknown as Document);
-}
-
-function cleanupMockBrowser() {
+const cleanupMockBrowser = function cleanupMockBrowser() {
 	const globalRef = getTestGlobal();
 	vi.unstubAllGlobals();
 	delete globalRef.dataLayer;
@@ -316,4 +169,157 @@ function cleanupMockBrowser() {
 	delete globalRef.rudderanalytics;
 	delete globalRef.rudderAnalyticsBuildType;
 	delete globalRef.RudderSnippetVersion;
-}
+};
+
+const setupMockBrowser = function setupMockBrowser() {
+	const globalRef = getTestGlobal();
+	const scriptAnchor = {
+		parentNode: {
+			insertBefore: vi.fn((node: Record<string, unknown>) => node),
+		},
+	};
+
+	const document = {
+		createElement: vi.fn((_tag: string) => ({
+			async: false,
+			defer: false,
+			setAttribute: vi.fn(),
+
+			textContent: '',
+		})),
+		getElementsByTagName: vi.fn(() => [scriptAnchor]),
+		head: {
+			appendChild: vi.fn((node: Record<string, unknown>) => node),
+		},
+	};
+
+	vi.stubGlobal('window', globalRef as unknown as Window & typeof globalThis);
+	vi.stubGlobal('document', document as unknown as Document);
+};
+
+/**
+ * Registers browser-like setup and teardown hooks for script helper tests.
+ *
+ * Before each test, this installs mocked `window` and `document` globals.
+ * After each test, it unstubs globals and removes vendor-specific globals left
+ * behind by script execution.
+ *
+ * @returns Nothing.
+ *
+ * @example
+ * ```ts
+ * describe('googleTagManager', () => {
+ * 	setupScriptHelperTest();
+ * });
+ * ```
+ */
+export const setupScriptHelperTest = function setupScriptHelperTest(): void {
+	beforeEach(() => {
+		setupMockBrowser();
+	});
+
+	afterEach(() => {
+		cleanupMockBrowser();
+	});
+};
+
+/**
+ * Asserts that a helper-generated script matches registry metadata and
+ * expected script fields.
+ *
+ * @param key - Built-in integration key used to find the registry entry.
+ * @param script - Snapshot of the helper-generated script under test.
+ * @param expected - Expected script metadata and output for the assertion.
+ * @returns Nothing.
+ *
+ * @remarks
+ * If `key` does not match any built-in integration, the assertion fails before
+ * the non-null access is used.
+ *
+ * @example
+ * ```ts
+ * expectScriptMatchesIntegration(
+ * 	'googleTagManager',
+ * 	googleTagManager({ id: 'GTM-123' }),
+ * 	{
+ * 		alwaysLoad: true,
+ * 		persistAfterConsentRevoked: undefined,
+ * 		src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
+ * 	}
+ * );
+ * ```
+ */
+export const expectScriptMatchesIntegration =
+	function expectScriptMatchesIntegration(
+		key: BuiltInScriptIntegrationKey,
+		script: HelperScriptSnapshot,
+		expected: ExpectedScriptSnapshot
+	): void {
+		const matchedIntegration = getBuiltInScriptIntegration(key);
+
+		expect(script.id, key).toBe(matchedIntegration.vendor);
+		expect(script.category, key).toBe(matchedIntegration.consentCategory);
+		expect(script.alwaysLoad, key).toBe(expected.alwaysLoad);
+		expect(script.persistAfterConsentRevoked, key).toBe(
+			expected.persistAfterConsentRevoked
+		);
+		expect(script.src, key).toBe(expected.src);
+	};
+
+/**
+ * Converts an array-like value into a plain array.
+ *
+ * @param value - Array-like input such as `arguments`, a `NodeList`, or a
+ * vendor queue entry.
+ * @returns A new array containing the indexed values from `value`.
+ *
+ * @remarks
+ * Passing `null` or `undefined` throws because `slice` requires an object-like
+ * value.
+ *
+ * @example
+ * ```ts
+ * function collectArgs(...args: unknown[]) {
+ * 	return toArgumentsArray(args);
+ * }
+ * ```
+ */
+export const toArgumentsArray = function toArgumentsArray(
+	value: unknown
+): unknown[] {
+	return Array.prototype.slice.call(value);
+};
+
+export const expectGoogleConsentDefault = function expectGoogleConsentDefault(
+	entry: unknown
+): void {
+	expect(toArgumentsArray(entry)).toEqual([
+		'consent',
+		'default',
+		{
+			ad_personalization: 'denied',
+			ad_storage: 'denied',
+			ad_user_data: 'denied',
+			analytics_storage: 'denied',
+			functionality_storage: 'denied',
+			personalization_storage: 'denied',
+			security_storage: 'granted',
+		},
+	]);
+};
+
+export const expectStubCommandQueue = function expectStubCommandQueue(
+	stub: unknown,
+	queueKey: string,
+	commands: unknown[][]
+): void {
+	const queueOwner = stub as Record<string, unknown> | undefined;
+	const actualQueue = Array.isArray(queueOwner?.[queueKey])
+		? (queueOwner[queueKey] as unknown[]).map((command) =>
+				toArgumentsArray(command)
+			)
+		: queueOwner?.[queueKey];
+	expect(actualQueue).toEqual(
+		commands.map((command) => toArgumentsArray(command))
+	);
+};

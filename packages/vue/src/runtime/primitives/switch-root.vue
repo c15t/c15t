@@ -16,12 +16,12 @@ const props = defineProps<{
 const model = defineModel<boolean>({ default: false });
 provide(switchCheckedKey, model);
 
-function toggle() {
+const toggle = function toggle() {
 	if (props.disabled) {
 		return;
 	}
 	model.value = !model.value;
-}
+};
 </script>
 
 <template>

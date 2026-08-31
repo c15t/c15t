@@ -7,27 +7,27 @@ export const load: PageServerLoad = async ({ url }) => {
 	const type = url.searchParams.get('type') || 'analytics';
 
 	if (!externalId) {
-		return { externalId: null, type, result: null, error: null };
+		return { error: null, externalId: null, result: null, type };
 	}
 
 	const result = await consentClient.checkConsent({ externalId, type });
 
 	if (!result.ok) {
 		return {
-			externalId,
-			type,
-			result: null,
 			error: {
-				message: result.error?.message || 'Unknown error',
 				code: result.error?.code,
+				message: result.error?.message || 'Unknown error',
 			},
+			externalId,
+			result: null,
+			type,
 		};
 	}
 
 	return {
-		externalId,
-		type,
-		result: result.data,
 		error: null,
+		externalId,
+		result: result.data,
+		type,
 	};
 };

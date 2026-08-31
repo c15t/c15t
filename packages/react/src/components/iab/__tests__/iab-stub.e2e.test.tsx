@@ -4,7 +4,7 @@
  * Browser-based tests for IAB stub and queue behavior.
  */
 
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import {

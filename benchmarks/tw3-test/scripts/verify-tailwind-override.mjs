@@ -18,24 +18,26 @@ const CUSTOMIZE_SELECTOR = 'button:has-text("Customize")';
 const EXPECTED_PADDING = '8px 12px';
 const EXPECTED_BACKGROUND = 'rgb(255, 255, 255)';
 
-async function waitForServer(url, timeoutMs = 15_000) {
+const waitForServer = async function waitForServer(url, timeoutMs = 15_000) {
 	const startedAt = Date.now();
 
 	while (Date.now() - startedAt < timeoutMs) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(url);
 			if (response.ok) {
 				return;
 			}
 		} catch {}
 
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await delay(250);
 	}
 
 	throw new Error(`Timed out waiting for ${url}`);
-}
+};
 
-async function main() {
+const main = async function main() {
 	const server = spawn(
 		'./node_modules/.bin/next',
 		['start', '--port', String(PORT)],
@@ -51,7 +53,7 @@ async function main() {
 		const browser = await chromium.launch({ headless: true });
 		try {
 			const page = await browser.newPage({
-				viewport: { width: 1280, height: 900 },
+				viewport: { height: 900, width: 1280 },
 			});
 			await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
@@ -74,8 +76,8 @@ async function main() {
 			const buttonStyles = await customize.evaluate((element) => {
 				const styles = window.getComputedStyle(element);
 				return {
-					padding: styles.padding,
 					backgroundColor: styles.backgroundColor,
+					padding: styles.padding,
 				};
 			});
 
@@ -97,7 +99,7 @@ async function main() {
 		server.kill('SIGTERM');
 		await createDeferredPromise((resolve) => server.once('exit', resolve));
 	}
-}
+};
 
 try {
 	await main();

@@ -80,7 +80,7 @@ describe('buttonVariants', () => {
 
 			for (const variant of variants) {
 				for (const mode of modes) {
-					expect(() => buttonVariants({ variant, mode })).not.toThrow();
+					expect(() => buttonVariants({ mode, variant })).not.toThrow();
 				}
 			}
 		});

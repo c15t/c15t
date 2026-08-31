@@ -12,54 +12,57 @@ import { processGVLData } from '../lib/iab-types';
 import type { NonIABVendor } from '../lib/iab-types';
 
 // Helper to create a minimal GVL fixture
-function createGVL(
+const createGVL = function createGVL(
 	overrides: Partial<GlobalVendorList> = {}
 ): GlobalVendorList {
 	return {
-		gvlSpecificationVersion: 3,
-		vendorListVersion: 1,
-		tcfPolicyVersion: 4,
-		lastUpdated: '2024-01-01',
-		vendors: {},
-		purposes: {},
-		specialPurposes: {},
-		specialFeatures: {},
-		features: {},
-		stacks: {},
 		dataCategories: {},
+		features: {},
+		gvlSpecificationVersion: 3,
+		lastUpdated: '2024-01-01',
+		purposes: {},
+		specialFeatures: {},
+		specialPurposes: {},
+		stacks: {},
+		tcfPolicyVersion: 4,
+		vendorListVersion: 1,
+		vendors: {},
 		...overrides,
 	} as GlobalVendorList;
-}
+};
 
-function createVendor(
+const createVendor = function createVendor(
 	overrides: Partial<GlobalVendorList['vendors'][string]> = {}
 ) {
 	return {
-		name: 'Test Vendor',
-		purposes: [],
-		legIntPurposes: [],
-		specialPurposes: [],
-		specialFeatures: [],
-		features: [],
-		usesNonCookieAccess: false,
-		usesCookies: true,
 		cookieMaxAgeSeconds: 31536000,
 		cookieRefresh: false,
-		deviceStorageDisclosureUrl: null,
-		urls: [],
 		dataRetention: undefined,
+		deviceStorageDisclosureUrl: null,
+		features: [],
+		legIntPurposes: [],
+		name: 'Test Vendor',
+		purposes: [],
+		specialFeatures: [],
+		specialPurposes: [],
+		urls: [],
+		usesCookies: true,
+		usesNonCookieAccess: false,
 		...overrides,
 	} as GlobalVendorList['vendors'][string];
-}
+};
 
-function createPurpose(name: string, description = 'Test description') {
+const createPurpose = function createPurpose(
+	name: string,
+	description = 'Test description'
+) {
 	return {
-		name,
 		description,
 		descriptionLegal: `${description} (legal)`,
 		illustrations: [],
+		name,
 	};
-}
+};
 
 // ─── Basic purpose processing ────────────────────────────────────────────────
 
@@ -112,9 +115,9 @@ describe('processGVLData', () => {
 				},
 				vendors: {
 					'100': createVendor({
+						legIntPurposes: [2],
 						name: 'LegitCorp',
 						purposes: [],
-						legIntPurposes: [2],
 					}),
 				},
 			});
@@ -137,8 +140,8 @@ describe('processGVLData', () => {
 						purposes: [2],
 					}),
 					'101': createVendor({
-						name: 'LegitVendor',
 						legIntPurposes: [2],
+						name: 'LegitVendor',
 					}),
 				},
 			});
@@ -218,18 +221,19 @@ describe('processGVLData', () => {
 
 			const customVendors: NonIABVendor[] = [
 				{
+					cookieMaxAgeSeconds: 3600,
 					id: 'cv-1',
+					legIntPurposes: [2],
 					name: 'My Vendor',
 					privacyPolicyUrl: 'https://example.com/privacy',
 					purposes: [2],
-					legIntPurposes: [2],
 					usesCookies: true,
 					usesNonCookieAccess: true,
-					cookieMaxAgeSeconds: 3600,
 				},
 			];
 
 			const result = processGVLData(gvl, customVendors);
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor = result.purposes[0].vendors[0];
 
 			expect(vendor.id).toBe('cv-1');
@@ -328,8 +332,8 @@ describe('processGVLData', () => {
 				},
 				vendors: {
 					'100': createVendor({
-						name: 'LinkVendor',
 						features: [1],
+						name: 'LinkVendor',
 					}),
 				},
 			});
@@ -351,18 +355,18 @@ describe('processGVLData', () => {
 					'2': createPurpose('Advertising'),
 					'3': createPurpose('Analytics'),
 				},
+				stacks: {
+					'1': {
+						description: 'Advertising stack',
+						name: 'Ad Stack',
+						purposes: [1, 2, 3],
+					},
+				},
 				vendors: {
 					'100': createVendor({
 						name: 'Vendor',
 						purposes: [1, 2, 3],
 					}),
-				},
-				stacks: {
-					'1': {
-						name: 'Ad Stack',
-						description: 'Advertising stack',
-						purposes: [1, 2, 3],
-					},
 				},
 			});
 
@@ -384,23 +388,23 @@ describe('processGVLData', () => {
 					'2': createPurpose('Advertising'),
 					'3': createPurpose('Analytics'),
 				},
+				stacks: {
+					'1': {
+						description: 'Only one purpose',
+						name: 'Single Purpose Stack',
+						purposes: [2],
+					},
+					'2': {
+						description: 'Multiple purposes',
+						name: 'Multi Stack',
+						purposes: [2, 3],
+					},
+				},
 				vendors: {
 					'100': createVendor({
 						name: 'Vendor',
 						purposes: [2, 3],
 					}),
-				},
-				stacks: {
-					'1': {
-						name: 'Single Purpose Stack',
-						description: 'Only one purpose',
-						purposes: [2],
-					},
-					'2': {
-						name: 'Multi Stack',
-						description: 'Multiple purposes',
-						purposes: [2, 3],
-					},
 				},
 			});
 
@@ -419,23 +423,23 @@ describe('processGVLData', () => {
 					'4': createPurpose('Personalization'),
 					'5': createPurpose('Measurement'),
 				},
+				stacks: {
+					'1': {
+						description: 'Two purposes',
+						name: 'Small Stack',
+						purposes: [2, 3],
+					},
+					'2': {
+						description: 'Three purposes',
+						name: 'Big Stack',
+						purposes: [2, 3, 4],
+					},
+				},
 				vendors: {
 					'100': createVendor({
 						name: 'Vendor',
 						purposes: [2, 3, 4, 5],
 					}),
-				},
-				stacks: {
-					'1': {
-						name: 'Small Stack',
-						description: 'Two purposes',
-						purposes: [2, 3],
-					},
-					'2': {
-						name: 'Big Stack',
-						description: 'Three purposes',
-						purposes: [2, 3, 4],
-					},
 				},
 			});
 
@@ -453,28 +457,28 @@ describe('processGVLData', () => {
 					'4': createPurpose('Personalization'),
 					'5': createPurpose('Measurement'),
 				},
+				stacks: {
+					'1': {
+						description: 'First stack',
+						name: 'Stack A',
+						purposes: [2, 3],
+					},
+					'2': {
+						description: 'Overlapping stack',
+						name: 'Stack B',
+						purposes: [3, 4],
+					},
+					'3': {
+						description: 'Third stack',
+						name: 'Stack C',
+						purposes: [4, 5],
+					},
+				},
 				vendors: {
 					'100': createVendor({
 						name: 'Vendor',
 						purposes: [2, 3, 4, 5],
 					}),
-				},
-				stacks: {
-					'1': {
-						name: 'Stack A',
-						description: 'First stack',
-						purposes: [2, 3],
-					},
-					'2': {
-						name: 'Stack B',
-						description: 'Overlapping stack',
-						purposes: [3, 4],
-					},
-					'3': {
-						name: 'Stack C',
-						description: 'Third stack',
-						purposes: [4, 5],
-					},
 				},
 			});
 
@@ -496,18 +500,18 @@ describe('processGVLData', () => {
 					'3': createPurpose('Analytics'),
 					'4': createPurpose('Personalization'),
 				},
+				stacks: {
+					'1': {
+						description: 'Ad purposes',
+						name: 'Ad Stack',
+						purposes: [2, 3],
+					},
+				},
 				vendors: {
 					'100': createVendor({
 						name: 'Vendor',
 						purposes: [2, 3, 4],
 					}),
-				},
-				stacks: {
-					'1': {
-						name: 'Ad Stack',
-						description: 'Ad purposes',
-						purposes: [2, 3],
-					},
 				},
 			});
 
@@ -535,21 +539,21 @@ describe('processGVLData', () => {
 
 		test('missing optional fields handled gracefully', () => {
 			const gvl = createGVL({
+				features: undefined as unknown as GlobalVendorList['features'],
 				purposes: {
 					'2': createPurpose('Advertising'),
 				},
+				specialFeatures:
+					undefined as unknown as GlobalVendorList['specialFeatures'],
+				specialPurposes:
+					undefined as unknown as GlobalVendorList['specialPurposes'],
+				stacks: undefined as unknown as GlobalVendorList['stacks'],
 				vendors: {
 					'100': createVendor({
 						name: 'Vendor',
 						purposes: [2],
 					}),
 				},
-				specialPurposes:
-					undefined as unknown as GlobalVendorList['specialPurposes'],
-				specialFeatures:
-					undefined as unknown as GlobalVendorList['specialFeatures'],
-				features: undefined as unknown as GlobalVendorList['features'],
-				stacks: undefined as unknown as GlobalVendorList['stacks'],
 			});
 
 			// Should not throw

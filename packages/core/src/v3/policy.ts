@@ -23,14 +23,18 @@ import type { ConsentState, KernelActiveUI, KernelModel } from './types';
  * input to policy resolution, but the kernel only cares about the policy
  * the backend or offline transport selected.
  */
-export function deriveModel(
+export const deriveModel = function deriveModel(
 	policy: ResolvedPolicy | null,
 	iabEnabled: boolean
 ): KernelModel {
-	if (!policy || policy.model === 'none') return null;
-	if (policy.model === 'iab') return iabEnabled ? 'iab' : null;
+	if (!policy || policy.model === 'none') {
+		return null;
+	}
+	if (policy.model === 'iab') {
+		return iabEnabled ? 'iab' : null;
+	}
 	return policy.model;
-}
+};
 
 /**
  * Derives which UI surface the adapter should render, if any.
@@ -40,7 +44,7 @@ export function deriveModel(
  * - Otherwise, if a model is in effect, default to `'banner'`.
  * - If no model applies, render nothing.
  */
-export function deriveActiveUI(
+export const deriveActiveUI = function deriveActiveUI(
 	model: KernelModel,
 	policy: ResolvedPolicy | null
 ): KernelActiveUI {
@@ -56,14 +60,14 @@ export function deriveActiveUI(
 		return 'none';
 	}
 	return 'banner';
-}
+};
 
 /**
  * Resolves the category allowlist from a policy. Returns an empty array
  * when the policy allows all categories (wildcard or absent) so the
  * kernel can represent "unrestricted" uniformly.
  */
-export function deriveCategoryAllowlist(
+export const deriveCategoryAllowlist = function deriveCategoryAllowlist(
 	policy: ResolvedPolicy | null
 ): AllConsentNames[] {
 	const allowed = policy?.consent?.categories;
@@ -71,7 +75,7 @@ export function deriveCategoryAllowlist(
 		return [];
 	}
 	return v2FilterCategories(Array.from(allConsentNames), allowed);
-}
+};
 
 /**
  * Filters consents for runtime gating using the v2 scope rules. In
@@ -80,7 +84,7 @@ export function deriveCategoryAllowlist(
  * outside the allowlist are forced to `true` so gating decisions treat
  * them as granted.
  */
-export function applyPolicyScope(
+export const applyPolicyScope = function applyPolicyScope(
 	consents: ConsentState,
 	policyCategories: readonly AllConsentNames[],
 	scopeMode: PolicyScopeMode
@@ -88,7 +92,7 @@ export function applyPolicyScope(
 	const allowed =
 		policyCategories.length === 0 ? undefined : Array.from(policyCategories);
 	return v2ApplyPolicyScope(consents, allowed, scopeMode);
-}
+};
 
 /**
  * Applies `policy.consent.preselectedCategories` to a consent record
@@ -99,13 +103,15 @@ export function applyPolicyScope(
  * - Out-of-policy preselected entries are dropped.
  * - `necessary` is always `true`.
  */
-export function applyPreselectedConsents(
+export const applyPreselectedConsents = function applyPreselectedConsents(
 	consents: ConsentState,
 	policy: ResolvedPolicy | null,
 	policyCategories: readonly AllConsentNames[],
 	hasConsented: boolean
 ): ConsentState {
-	if (hasConsented) return consents;
+	if (hasConsented) {
+		return consents;
+	}
 
 	const preselected = policy?.consent?.preselectedCategories;
 	if (!Array.isArray(preselected) || preselected.length === 0) {
@@ -131,18 +137,20 @@ export function applyPreselectedConsents(
 			category === 'necessary' ? true : preselectedSet.has(category);
 	}
 	return next;
-}
+};
 
-function isOutOfPolicyCategory(
+const isOutOfPolicyCategory = function isOutOfPolicyCategory(
 	category: AllConsentNames,
 	policyCategories: readonly AllConsentNames[]
 ): boolean {
 	return policyCategories.length > 0 && !policyCategories.includes(category);
-}
+};
 
-function isTrackingCategory(category: AllConsentNames): boolean {
+const isTrackingCategory = function isTrackingCategory(
+	category: AllConsentNames
+): boolean {
 	return category === 'marketing' || category === 'measurement';
-}
+};
 
 /**
  * Applies model defaults before a subject has made an explicit choice.
@@ -152,49 +160,50 @@ function isTrackingCategory(category: AllConsentNames): boolean {
  * categories unless strict scope or GPC says otherwise. This mirrors
  * `interpretStoredConsent()` for the empty stored-consent case.
  */
-export function applyModelDefaultsForNoConsent(params: {
-	consents: ConsentState;
-	policy: ResolvedPolicy | null;
-	policyCategories: readonly AllConsentNames[];
-	scopeMode: PolicyScopeMode;
-	hasConsented: boolean;
-	gpc?: boolean;
-}): ConsentState {
-	if (params.hasConsented || !params.policy?.model) {
-		return params.consents;
-	}
-
-	const model = params.policy.model;
-	if (model !== 'opt-in' && model !== 'opt-out' && model !== 'iab') {
-		return { ...params.consents, necessary: true };
-	}
-
-	const next = { ...params.consents } as ConsentState;
-	for (const category of allConsentNames) {
-		if (category === 'necessary') {
-			next[category] = true;
-			continue;
+export const applyModelDefaultsForNoConsent =
+	function applyModelDefaultsForNoConsent(params: {
+		consents: ConsentState;
+		policy: ResolvedPolicy | null;
+		policyCategories: readonly AllConsentNames[];
+		scopeMode: PolicyScopeMode;
+		hasConsented: boolean;
+		gpc?: boolean;
+	}): ConsentState {
+		if (params.hasConsented || !params.policy?.model) {
+			return params.consents;
 		}
 
-		if (model === 'opt-out') {
-			next[category] =
-				!(
-					params.gpc === true &&
-					params.policy.consent?.gpc === true &&
-					isTrackingCategory(category)
-				) &&
-				!(
-					params.scopeMode === 'strict' &&
-					isOutOfPolicyCategory(category, params.policyCategories)
-				);
-			continue;
+		const { model } = params.policy;
+		if (model !== 'opt-in' && model !== 'opt-out' && model !== 'iab') {
+			return { ...params.consents, necessary: true };
 		}
 
-		next[category] = false;
-	}
+		const next = { ...params.consents } as ConsentState;
+		for (const category of allConsentNames) {
+			if (category === 'necessary') {
+				next[category] = true;
+				continue;
+			}
 
-	return next;
-}
+			if (model === 'opt-out') {
+				next[category] =
+					!(
+						params.gpc === true &&
+						params.policy.consent?.gpc === true &&
+						isTrackingCategory(category)
+					) &&
+					!(
+						params.scopeMode === 'strict' &&
+						isOutOfPolicyCategory(category, params.policyCategories)
+					);
+				continue;
+			}
+
+			next[category] = false;
+		}
+
+		return next;
+	};
 
 /**
  * Convenience: apply all runtime policy-derived transformations in one call.
@@ -220,7 +229,7 @@ export interface PolicyApplyResult {
 	policyScopeMode: PolicyScopeMode;
 }
 
-export function applyPolicyToConsents(
+export const applyPolicyToConsents = function applyPolicyToConsents(
 	input: PolicyApplyInputs
 ): PolicyApplyResult {
 	const policyCategories = deriveCategoryAllowlist(input.policy);
@@ -228,11 +237,11 @@ export function applyPolicyToConsents(
 		input.policy?.consent?.scopeMode ?? 'permissive';
 	const modelDefaults = applyModelDefaultsForNoConsent({
 		consents: input.consents,
+		gpc: input.gpc,
+		hasConsented: input.hasConsented,
 		policy: input.policy,
 		policyCategories,
 		scopeMode,
-		hasConsented: input.hasConsented,
-		gpc: input.gpc,
 	});
 	const scoped = input.hasConsented
 		? applyPolicyScope(modelDefaults, policyCategories, scopeMode)
@@ -242,4 +251,4 @@ export function applyPolicyToConsents(
 		policyCategories,
 		policyScopeMode: scopeMode,
 	};
-}
+};

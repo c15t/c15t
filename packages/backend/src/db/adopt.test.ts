@@ -23,7 +23,7 @@ import { up as baseline } from './migrations/1-baseline';
  * everywhere would test a database that has never existed, and on MySQL would
  * not even create: it cannot index a `TEXT` foreign key column.
  */
-const legacyish = Effect.gen(function* () {
+const legacyish = Effect.gen(function* legacyish() {
 	const sql = yield* SqlClient.SqlClient;
 	const dialect = yield* Dialect.current;
 	const q = Dialect.escaperFor(dialect);
@@ -62,20 +62,20 @@ const legacyish = Effect.gen(function* () {
 		${q('id')} ${t.id} primary key, ${q('consentId')} ${t.indexedText}
 	)`);
 
-	yield* sql`insert into ${sql('subject')} ${sql.insert({ id: 'sub_1', externalId: 'ext_1' })}`;
+	yield* sql`insert into ${sql('subject')} ${sql.insert({ externalId: 'ext_1', id: 'sub_1' })}`;
 	yield* sql`insert into ${sql('domain')} ${sql.insert({ id: 'dom_1', name: 'a.com' })}`;
 	yield* sql`insert into ${sql('consent')} ${sql.insert({
-		id: 'cns_1',
-		subjectId: 'sub_1',
 		domainId: 'dom_1',
+		id: 'cns_1',
 		status: 'active',
+		subjectId: 'sub_1',
 		withdrawalReason: 'changed mind',
 	})}`;
-	yield* sql`insert into ${sql('consentRecord')} ${sql.insert({ id: 'rec_1', consentId: 'cns_1' })}`;
+	yield* sql`insert into ${sql('consentRecord')} ${sql.insert({ consentId: 'cns_1', id: 'rec_1' })}`;
 });
 
 /** Row count of a table, quoted for the connected engine. */
-const countOf = Effect.fn('countOf')(function* (table: string) {
+const countOf = Effect.fn('countOf')(function* countOf(table: string) {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql<{
 		count: string | number;
@@ -84,13 +84,9 @@ const countOf = Effect.fn('countOf')(function* (table: string) {
 });
 
 /** Table names in the current database. SQLite has no information_schema. */
-const tablesOf = Effect.gen(function* () {
+const tablesOf = Effect.gen(function* tablesOf() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{
-				name: string;
-			}>`select name from sqlite_master where type = 'table'`,
 		mysql: () =>
 			sql<{ name: string }>`
 				select table_name as name from information_schema.tables
@@ -101,16 +97,18 @@ const tablesOf = Effect.gen(function* () {
 				select table_name as name from information_schema.tables
 				where table_schema = current_schema() and table_type = 'BASE TABLE'
 			`,
+		sqlite: () =>
+			sql<{
+				name: string;
+			}>`select name from sqlite_master where type = 'table'`,
 	});
 	return rows.map((row) => row.name);
 });
 
 /** Column names of a table. SQLite has no information_schema. */
-const columnsOf = Effect.fn('columnsOf')(function* (table: string) {
+const columnsOf = Effect.fn('columnsOf')(function* columnsOf(table: string) {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{ name: string }>`select name from pragma_table_info(${table})`,
 		mysql: () =>
 			sql<{ name: string }>`
 				select column_name as name from information_schema.columns
@@ -121,6 +119,8 @@ const columnsOf = Effect.fn('columnsOf')(function* (table: string) {
 				select column_name as name from information_schema.columns
 				where table_schema = current_schema() and table_name = ${table}
 			`,
+		sqlite: () =>
+			sql<{ name: string }>`select name from pragma_table_info(${table})`,
 	});
 	return rows.map((row) => row.name).sort();
 });
@@ -156,15 +156,9 @@ const canDropNamedConstraint = (engine: (typeof ENGINES)[number]) =>
  * this compares what the database actually has rather than what our planner
  * believes it put there.
  */
-const foreignKeys = Effect.gen(function* () {
+const foreignKeys = Effect.gen(function* foreignKeys() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{ table_name: string; column_name: string }>`
-				select m.name as table_name, f."from" as column_name
-				from sqlite_master m join pragma_foreign_key_list(m.name) f
-				where m.type = 'table'
-			`,
 		mysql: () =>
 			sql<{ table_name: string; column_name: string }>`
 				select table_name as table_name, column_name as column_name
@@ -183,6 +177,12 @@ const foreignKeys = Effect.gen(function* () {
 					and att.attnum = k.attnum
 				where con.contype = 'f' and ns.nspname = current_schema()
 			`,
+		sqlite: () =>
+			sql<{ table_name: string; column_name: string }>`
+				select m.name as table_name, f."from" as column_name
+				from sqlite_master m join pragma_foreign_key_list(m.name) f
+				where m.type = 'table'
+			`,
 	});
 	return new Set(rows.map((row) => `${row.table_name}.${row.column_name}`));
 });
@@ -192,7 +192,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'plans a full create for an empty database',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const adoption = yield* plan;
 					assert.strictEqual(adoption.classification._tag, 'Empty');
@@ -209,7 +209,7 @@ for (const engine of ENGINES) {
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
 			'never drops data that schema 2.0.0 removed',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* legacyish;
 					const adoption = yield* plan;
@@ -246,7 +246,7 @@ for (const engine of ENGINES) {
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
 			'brings a 1.0.0-era database up to the baseline contract',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* legacyish;
 					yield* apply(yield* plan);
@@ -273,10 +273,11 @@ for (const engine of ENGINES) {
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
 			'emits no destructive statement for any database shape it can encounter',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
-					const destructive = /\b(drop|truncate)\b|\bdelete\s+from\b/i;
+					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
+					const destructive = /\b(drop|truncate)\b|\bdelete\s+from\b/iu;
 
 					// Empty database.
 					for (const step of (yield* plan).steps) {
@@ -308,7 +309,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'refuses to apply a plan carrying a destructive statement',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* legacyish;
 					const adoption = yield* plan;
@@ -319,8 +320,8 @@ for (const engine of ENGINES) {
 						steps: [
 							...adoption.steps,
 							{
-								kind: 'add-column' as const,
 								description: 'sneaky',
+								kind: 'add-column' as const,
 								sql: 'drop table "consentRecord"',
 							},
 						],
@@ -338,7 +339,7 @@ for (const engine of ENGINES) {
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
 			'reports the database as ours once adopted',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* legacyish;
 					yield* apply(yield* plan);
@@ -351,7 +352,7 @@ for (const engine of ENGINES) {
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
 			'is safe to re-run after a partial application',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* legacyish;
 					yield* apply(yield* plan);
@@ -369,7 +370,7 @@ for (const engine of ENGINES) {
 		(canDropNamedConstraint(engine) ? it.effect : it.effect.skip)(
 			'refuses to add a foreign key that existing rows would violate',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					yield* baseline;
@@ -399,7 +400,7 @@ for (const engine of ENGINES) {
 		(canDropNamedConstraint(engine) ? it.effect : it.effect.skip)(
 			'proceeds without foreign keys when explicitly told to',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					yield* baseline;
@@ -439,7 +440,7 @@ for (const engine of ENGINES) {
 			: it.effect.skip)(
 			'an adopted database ends with the same foreign keys as a fresh one',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					// The convergence property adoption exists for, checked on the
 					// constraints rather than the columns. A foreign key skipped
 					// during adoption is never added later: a re-plan classifies the
@@ -471,7 +472,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'refuses an unrecognised database rather than guessing',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					const q = Dialect.escaperFor(yield* Dialect.current);
@@ -508,7 +509,7 @@ for (const engine of ENGINES) {
 		(canDropNamedConstraint(engine) ? it.effect : it.effect.skip)(
 			'dies rather than applying a blocked plan',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					yield* baseline;
@@ -534,7 +535,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'plans nothing for a database already at the baseline',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					const q = Dialect.escaperFor(yield* Dialect.current);
@@ -557,7 +558,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'adds only the columns a partial database is missing',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					yield* baseline;
@@ -589,7 +590,7 @@ for (const engine of ENGINES) {
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
 			'reports retained columns so an operator can prune deliberately',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* legacyish;
 					const adoption = yield* plan;

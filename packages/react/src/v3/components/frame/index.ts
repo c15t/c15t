@@ -26,9 +26,9 @@ import type { FrameCompoundComponent } from './types';
  * @see {@link AllConsentNames} for consent categories
  */
 const Frame = Object.assign(FrameComponent, {
+	Button: atoms.FrameButton,
 	Root: atoms.FrameRoot,
 	Title: atoms.FrameTitle,
-	Button: atoms.FrameButton,
 }) as FrameCompoundComponent;
 
 export { FrameButton, FrameRoot, FrameTitle } from './atoms';

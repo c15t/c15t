@@ -23,12 +23,12 @@ import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
 const input = {
-	policyId: 'pol_1',
-	fingerprint: 'fp_1',
-	matchedBy: 'country',
-	jurisdiction: 'gdpr',
-	model: 'opt-in',
 	dedupeKey: 'shared|key',
+	fingerprint: 'fp_1',
+	jurisdiction: 'gdpr',
+	matchedBy: 'country',
+	model: 'opt-in',
+	policyId: 'pol_1',
 };
 
 describe('scopedDedupeKey', () => {
@@ -42,7 +42,7 @@ describe('scopedDedupeKey', () => {
 	it('qualifies a tenanted key', async () => {
 		const key = await scopedDedupeKey('tenant_a', 'abc');
 		assert.notStrictEqual(key, 'abc');
-		assert.match(key, /^t_[0-9a-f]{64}$/);
+		assert.match(key, /^t_[0-9a-f]{64}$/u);
 	});
 
 	it('stays within the MySQL column width whatever goes in', async () => {
@@ -71,7 +71,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'the same key from two tenants is two decisions',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
 
@@ -104,7 +104,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'the same key from one tenant is one decision',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
 
@@ -127,7 +127,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'a single-tenant deployment still deduplicates',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
 
@@ -153,7 +153,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'a composite unique would not have worked',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					// Quoted by the dialect, and varchar rather than text: MySQL
@@ -170,7 +170,7 @@ for (const engine of ENGINES) {
 					yield* sql.unsafe(
 						`create table ${q('probe_composite')} (${q('t')} varchar(64), ${q('k')} varchar(64), unique (${q('t')}, ${q('k')}))`
 					);
-					for (let i = 0; i < 2; i++) {
+					for (let i = 0; i < 2; i += 1) {
 						yield* sql.unsafe(
 							`insert into ${q('probe_composite')} values (null, 'same')`
 						);

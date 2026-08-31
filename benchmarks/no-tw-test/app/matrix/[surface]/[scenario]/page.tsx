@@ -34,7 +34,10 @@ const MatrixScenarioPage = async ({
 		<CssLayerScenarioRenderer
 			environmentId="no-tw"
 			environmentLabel="Plain CSS"
-			isPreview={resolvedSearchParams?.preview != null}
+			isPreview={
+				resolvedSearchParams?.preview !== null &&
+				resolvedSearchParams?.preview !== undefined
+			}
 			scenario={scenario}
 		/>
 	);

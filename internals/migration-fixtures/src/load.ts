@@ -28,6 +28,17 @@ export interface UnsupportedSchemaSnapshot {
 	readonly unsupported: string;
 }
 
+async function readJson<T>(path: string): Promise<T | undefined> {
+	try {
+		return JSON.parse(await readFile(path, 'utf8')) as T;
+	} catch (error) {
+		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+			return undefined;
+		}
+		throw error;
+	}
+}
+
 /**
  * Loads one fixture.
  *
@@ -70,7 +81,7 @@ export function domainTableNames(
 ): readonly string[] {
 	return fixture.tables
 		.map((table) => table.name)
-		.filter((name) => !/(^|_)c15t_settings$/.test(name))
+		.filter((name) => !/(^|_)c15t_settings$/u.test(name))
 		.sort();
 }
 
@@ -87,15 +98,4 @@ export function columnNames(
 		);
 	}
 	return found.columns.map((column) => column.name).sort();
-}
-
-async function readJson<T>(path: string): Promise<T | undefined> {
-	try {
-		return JSON.parse(await readFile(path, 'utf8')) as T;
-	} catch (error) {
-		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
-			return undefined;
-		}
-		throw error;
-	}
 }

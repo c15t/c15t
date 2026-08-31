@@ -12,9 +12,9 @@ const props = withDefaults(
 		type?: 'button' | 'submit' | 'reset';
 	}>(),
 	{
-		variant: 'primary',
 		mode: 'filled',
 		type: 'button',
+		variant: 'primary',
 	}
 );
 
@@ -22,10 +22,10 @@ const config = useConsentConfig();
 const buttonAttrs = computed(() =>
 	mergeProps(
 		{
-			type: props.type,
+			'data-mode': props.mode,
 			'data-testid': 'consent-button',
 			'data-variant': props.variant,
-			'data-mode': props.mode,
+			type: props.type,
 		},
 		((props.variant === 'primary'
 			? config.value.components?.button?.primary

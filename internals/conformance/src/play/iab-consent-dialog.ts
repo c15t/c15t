@@ -22,7 +22,7 @@ export const iabDialogContract: PlayFunction = async () => {
  */
 export const tabAndExpansionFlow: PlayFunction = async () => {
 	const body = within(document.body);
-	await userEvent.click(await body.findByRole('tab', { name: /vendors/i }));
+	await userEvent.click(await body.findByRole('tab', { name: /vendors/iu }));
 	const vendorTrigger = body
 		.getAllByRole('button')
 		.find((button) => button.className.includes('vendorListTrigger'));
@@ -30,7 +30,7 @@ export const tabAndExpansionFlow: PlayFunction = async () => {
 	if (vendorTrigger) {
 		await userEvent.click(vendorTrigger);
 	}
-	await userEvent.click(await body.findByRole('tab', { name: /purposes/i }));
+	await userEvent.click(await body.findByRole('tab', { name: /purposes/iu }));
 
 	await expect(body.getByTestId('iab-consent-dialog-root')).toBeInTheDocument();
 };

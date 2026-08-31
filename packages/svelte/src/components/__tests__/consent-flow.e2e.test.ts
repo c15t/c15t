@@ -158,16 +158,16 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Returning Visitor Flow', () => {
 		test('should not show banner if user has already consented', async () => {
 			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'accept-all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			};
 			window.localStorage.setItem('c15t', JSON.stringify(consentData));
@@ -215,7 +215,7 @@ describe('Consent Flow E2E Tests', () => {
 
 	describe('Dialog Integration', () => {
 		test('should show dialog when open prop is true', async () => {
-			render(DialogFixture, { options: defaultOptions, open: true });
+			render(DialogFixture, { open: true, options: defaultOptions });
 
 			await waitFor(() => {
 				const dialog = document.querySelector(
@@ -226,7 +226,7 @@ describe('Consent Flow E2E Tests', () => {
 		});
 
 		test('should contain widget inside dialog', async () => {
-			render(DialogFixture, { options: defaultOptions, open: true });
+			render(DialogFixture, { open: true, options: defaultOptions });
 
 			await waitFor(() => {
 				const widget = document.querySelector(

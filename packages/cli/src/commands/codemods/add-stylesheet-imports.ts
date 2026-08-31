@@ -147,6 +147,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -291,7 +292,7 @@ function findEntrypoint(
 }
 
 const FRAMEWORK_STYLESHEET_IMPORT_RE =
-	/^@c15t\/(?:react|nextjs)(?:\/iab)?\/styles(?:\.tw3)?\.css$/;
+	/^@c15t\/(?:react|nextjs)(?:\/iab)?\/styles(?:\.tw3)?\.css$/u;
 
 function removeFrameworkStylesheetImports(
 	project: Project,

@@ -5,7 +5,7 @@ export const DEFAULT_MANIFEST_ROUTE = '/api/c15t/manifest';
 
 export type ResolvedManifestMode = 'client' | 'server' | false;
 
-export function resolveManifestMode(
+export const resolveManifestMode = function resolveManifestMode(
 	config: Partial<Pick<ConsentConfig, 'manifest' | 'manifestURL'>>
 ): ResolvedManifestMode {
 	if (config.manifest === false) {
@@ -18,40 +18,40 @@ export function resolveManifestMode(
 		return 'server';
 	}
 	return config.manifestURL ? 'server' : false;
-}
+};
 
-export function isManifestModeEnabled(
+export const isManifestModeEnabled = function isManifestModeEnabled(
 	config: Partial<Pick<ConsentConfig, 'manifest' | 'manifestURL'>>
 ): boolean {
 	return resolveManifestMode(config) !== false;
-}
+};
 
-export function isClientManifestModeEnabled(
+export const isClientManifestModeEnabled = function isClientManifestModeEnabled(
 	config: Partial<Pick<ConsentConfig, 'manifest' | 'manifestURL'>>
 ): boolean {
 	return resolveManifestMode(config) === 'client';
-}
+};
 
-export function isServerManifestModeEnabled(
+export const isServerManifestModeEnabled = function isServerManifestModeEnabled(
 	config: Partial<Pick<ConsentConfig, 'manifest' | 'manifestURL'>>
 ): boolean {
 	return resolveManifestMode(config) === 'server';
-}
+};
 
-export function resolveNuxtInitRoute(
+export const resolveNuxtInitRoute = function resolveNuxtInitRoute(
 	config: Pick<ConsentConfig, 'initRoute'>
 ): string {
 	return config.initRoute ?? DEFAULT_NUXT_INIT_ROUTE;
-}
+};
 
-export function resolveNuxtManifestRoute(
+export const resolveNuxtManifestRoute = function resolveNuxtManifestRoute(
 	config: Pick<ConsentConfig, 'manifestRoute'>
 ): string {
 	return config.manifestRoute ?? DEFAULT_MANIFEST_ROUTE;
-}
+};
 
-export function resolveClientManifestURL(
+export const resolveClientManifestURL = function resolveClientManifestURL(
 	config: Pick<ConsentConfig, 'manifestRoute' | 'manifestURL'>
 ): string {
 	return config.manifestURL ?? resolveNuxtManifestRoute(config);
-}
+};

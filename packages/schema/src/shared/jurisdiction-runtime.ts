@@ -18,11 +18,17 @@ const getDefined = <Value>(
  * - Specific countries map to their local laws (CH, BR, CA, AU, JP, KR).
  * - CCPA is applied for certain US regions (e.g. California).
  */
-export function checkJurisdiction(
+export const checkJurisdiction = function checkJurisdiction(
 	countryCode: string | null,
 	regionCode?: string | null
 ): JurisdictionCode {
 	const jurisdictions = {
+		AU: new Set(['AU']),
+		BR: new Set(['BR']),
+		CA: new Set(['CA']),
+		CA_QC_REGIONS: new Set(['QC']),
+		CH: new Set(['CH']),
+		EEA: new Set(['IS', 'NO', 'LI']),
 		EU: new Set([
 			'AT',
 			'BE',
@@ -52,16 +58,10 @@ export function checkJurisdiction(
 			'ES',
 			'SE',
 		]),
-		EEA: new Set(['IS', 'NO', 'LI']),
-		UK: new Set(['GB']),
-		CH: new Set(['CH']),
-		BR: new Set(['BR']),
-		CA: new Set(['CA']),
-		AU: new Set(['AU']),
 		JP: new Set(['JP']),
 		KR: new Set(['KR']),
+		UK: new Set(['GB']),
 		US_CCPA_REGIONS: new Set(['CA']),
-		CA_QC_REGIONS: new Set(['QC']),
 	};
 
 	let jurisdiction: JurisdictionCode = 'NONE';
@@ -94,19 +94,19 @@ export function checkJurisdiction(
 
 		const jurisdictionMap = [
 			{
-				sets: [jurisdictions.UK],
 				code: 'UK_GDPR' as const,
+				sets: [jurisdictions.UK],
 			},
 			{
-				sets: [jurisdictions.EU, jurisdictions.EEA],
 				code: 'GDPR' as const,
+				sets: [jurisdictions.EU, jurisdictions.EEA],
 			},
-			{ sets: [jurisdictions.CH], code: 'CH' as const },
-			{ sets: [jurisdictions.BR], code: 'BR' as const },
-			{ sets: [jurisdictions.CA], code: 'PIPEDA' as const },
-			{ sets: [jurisdictions.AU], code: 'AU' as const },
-			{ sets: [jurisdictions.JP], code: 'APPI' as const },
-			{ sets: [jurisdictions.KR], code: 'PIPA' as const },
+			{ code: 'CH' as const, sets: [jurisdictions.CH] },
+			{ code: 'BR' as const, sets: [jurisdictions.BR] },
+			{ code: 'PIPEDA' as const, sets: [jurisdictions.CA] },
+			{ code: 'AU' as const, sets: [jurisdictions.AU] },
+			{ code: 'APPI' as const, sets: [jurisdictions.JP] },
+			{ code: 'PIPA' as const, sets: [jurisdictions.KR] },
 		];
 
 		for (const { sets, code } of jurisdictionMap) {
@@ -118,9 +118,9 @@ export function checkJurisdiction(
 	}
 
 	return jurisdiction;
-}
+};
 
-export function getJurisdictionFromLocation(
+export const getJurisdictionFromLocation = function getJurisdictionFromLocation(
 	location: { countryCode: string | null; regionCode: string | null },
 	options?: { disableGeoLocation?: boolean }
 ): JurisdictionCode {
@@ -129,4 +129,4 @@ export function getJurisdictionFromLocation(
 	}
 
 	return checkJurisdiction(location.countryCode, location.regionCode);
-}
+};

@@ -114,19 +114,19 @@ export interface ConsentDialogCompoundComponent extends FC<ConsentDialogProps> {
  */
 const ConsentDialog = Object.assign(ConsentDialogComponent, {
 	Card,
-	Header,
-	HeaderTitle,
-	HeaderDescription,
-	Content,
-	Footer,
 	ConsentCustomizationCard,
+	ConsentDialogContent,
 	ConsentDialogFooter,
 	ConsentDialogHeader,
-	ConsentDialogHeaderTitle,
 	ConsentDialogHeaderDescription,
-	ConsentDialogContent,
+	ConsentDialogHeaderTitle,
+	Content,
+	Footer,
+	Header,
+	HeaderDescription,
+	HeaderTitle,
 	Overlay,
-	Root: Root,
+	Root,
 }) as ConsentDialogCompoundComponent;
 
 // Export the main component as both default and named export

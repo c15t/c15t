@@ -66,9 +66,9 @@ describe('readInitialConsentConfig: cookies', () => {
 		const config = await readInitialConsentConfig();
 		expect(config.initialHasConsented).toBe(true);
 		expect(config.initialConsents).toMatchObject({
-			necessary: true,
 			marketing: true,
 			measurement: false,
+			necessary: true,
 		});
 	});
 

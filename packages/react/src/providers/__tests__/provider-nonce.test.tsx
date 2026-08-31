@@ -105,10 +105,10 @@ describe('ConsentManagerProvider CSP nonce', () => {
 					nonce: 'shared-nonce',
 					scripts: [
 						{
+							alwaysLoad: true,
+							category: 'necessary',
 							id: 'nonce-e2e',
 							src,
-							category: 'necessary',
-							alwaysLoad: true,
 						},
 					],
 				}}

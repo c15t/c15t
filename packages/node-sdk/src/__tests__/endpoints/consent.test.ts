@@ -35,8 +35,8 @@ describe('Consent Endpoints', () => {
 						},
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -50,6 +50,7 @@ describe('Consent Endpoints', () => {
 			expect(result.ok).toBe(true);
 			expect(result.data?.results).toBeDefined();
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('/consents/check');
 			expect(fetchCall[0]).toContain('externalId=user_123');
@@ -63,8 +64,8 @@ describe('Consent Endpoints', () => {
 						results: {},
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -85,8 +86,8 @@ describe('Consent Endpoints', () => {
 						results: { analytics: { hasConsent: true, isLatestPolicy: true } },
 					}),
 					{
-						status: 200,
 						headers: { 'content-type': 'application/json' },
+						status: 200,
 					}
 				)
 			);
@@ -97,6 +98,7 @@ describe('Consent Endpoints', () => {
 				type: 'analytics',
 			});
 
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const fetchCall = mockFetch.mock.calls[0];
 			expect(fetchCall[0]).toContain('type=analytics');
 		});
@@ -104,8 +106,8 @@ describe('Consent Endpoints', () => {
 		it('should handle authentication errors', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ message: 'Unauthorized' }), {
-					status: 401,
 					headers: { 'content-type': 'application/json' },
+					status: 401,
 				})
 			);
 			globalThis.fetch = mockFetch;

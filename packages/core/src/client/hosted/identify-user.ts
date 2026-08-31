@@ -19,73 +19,78 @@ import { withFallback } from './with-fallback';
  * Queues the identify request for retry on next page load.
  * @internal
  */
-export async function offlineFallbackForIdentifyUser(
-	options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
-): Promise<ResponseContext<IdentifyUserResponse>> {
-	const pendingSubmissionsKey = 'c15t-pending-identify-submissions';
-	const newSubjectId = getIdentifySubjectId(options?.body);
+export const offlineFallbackForIdentifyUser =
+	async function offlineFallbackForIdentifyUser(
+		options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
+	): Promise<ResponseContext<IdentifyUserResponse>> {
+		const pendingSubmissionsKey = 'c15t-pending-identify-submissions';
+		const newSubjectId = getIdentifySubjectId(options?.body);
 
-	try {
-		if (typeof window !== 'undefined' && options?.body && window.localStorage) {
-			let pendingSubmissions: IdentifyUserRequestBody[] = [];
+		try {
+			if (
+				typeof window !== 'undefined' &&
+				options?.body &&
+				window.localStorage
+			) {
+				let pendingSubmissions: IdentifyUserRequestBody[] = [];
 
-			try {
-				const storedSubmissions = window.localStorage.getItem(
-					pendingSubmissionsKey
-				);
-				if (storedSubmissions) {
-					pendingSubmissions = JSON.parse(storedSubmissions);
+				try {
+					const storedSubmissions = window.localStorage.getItem(
+						pendingSubmissionsKey
+					);
+					if (storedSubmissions) {
+						pendingSubmissions = JSON.parse(storedSubmissions);
+					}
+				} catch (e) {
+					// If there's an error parsing existing submissions, start fresh
+					console.warn('Error parsing pending identify submissions:', e);
+					pendingSubmissions = [];
 				}
-			} catch (e) {
-				// If there's an error parsing existing submissions, start fresh
-				console.warn('Error parsing pending identify submissions:', e);
-				pendingSubmissions = [];
-			}
 
-			// Add this submission to the queue if not already present
-			const newSubmission = options.body;
-			const isDuplicate = pendingSubmissions.some(
-				(submission) =>
-					getIdentifySubjectId(submission) === newSubjectId &&
-					submission.externalId === newSubmission.externalId
+				// Add this submission to the queue if not already present
+				const newSubmission = options.body;
+				const isDuplicate = pendingSubmissions.some(
+					(submission) =>
+						getIdentifySubjectId(submission) === newSubjectId &&
+						submission.externalId === newSubmission.externalId
+				);
+
+				if (!isDuplicate) {
+					pendingSubmissions.push(newSubmission);
+					window.localStorage.setItem(
+						pendingSubmissionsKey,
+						JSON.stringify(pendingSubmissions)
+					);
+
+					getDebugLogger().log(
+						'Queued identify user submission for retry on next page load'
+					);
+				}
+			}
+		} catch (error) {
+			// Ignore localStorage errors but log them
+			console.warn(
+				'Failed to write to localStorage in identify offline fallback:',
+				error
 			);
-
-			if (!isDuplicate) {
-				pendingSubmissions.push(newSubmission);
-				window.localStorage.setItem(
-					pendingSubmissionsKey,
-					JSON.stringify(pendingSubmissions)
-				);
-
-				getDebugLogger().log(
-					'Queued identify user submission for retry on next page load'
-				);
-			}
 		}
-	} catch (error) {
-		// Ignore localStorage errors but log them
-		console.warn(
-			'Failed to write to localStorage in identify offline fallback:',
-			error
+
+		// Create a success response even if we couldn't save to localStorage
+		// This prevents UI errors and allows the flow to continue
+		const response = createResponseContext<IdentifyUserResponse>(
+			true,
+			null,
+			null,
+			null
 		);
-	}
 
-	// Create a success response even if we couldn't save to localStorage
-	// This prevents UI errors and allows the flow to continue
-	const response = createResponseContext<IdentifyUserResponse>(
-		true,
-		null,
-		null,
-		null
-	);
+		// Call success callback if provided
+		if (options?.onSuccess) {
+			await options.onSuccess(response);
+		}
 
-	// Call success callback if provided
-	if (options?.onSuccess) {
-		await options.onSuccess(response);
-	}
-
-	return response;
-}
+		return response;
+	};
 
 /**
  * Links an external user ID to a subject via PATCH /subjects/:id.
@@ -96,7 +101,7 @@ export async function offlineFallbackForIdentifyUser(
  * @param options - Request options containing subjectId, externalId, and identityProvider
  * @returns Response context with the updated subject
  */
-export async function identifyUser(
+export const identifyUser = function identifyUser(
 	context: FetcherContext,
 	storageConfig: StorageConfig | undefined,
 	options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
@@ -105,16 +110,16 @@ export async function identifyUser(
 	const subjectId = getIdentifySubjectId(body);
 
 	if (!body || !subjectId) {
-		return {
-			ok: false,
+		return Promise.resolve({
 			data: null,
-			response: null,
 			error: {
+				code: 'MISSING_SUBJECT_ID',
 				message: 'Subject ID is required to identify user',
 				status: 400,
-				code: 'MISSING_SUBJECT_ID',
 			},
-		};
+			ok: false,
+			response: null,
+		});
 	}
 
 	// 1. Save externalId to storage FIRST (optimistic update)
@@ -127,14 +132,14 @@ export async function identifyUser(
 
 	saveConsentToStorage(
 		{
-			consents: existingData?.consents || {},
 			consentInfo: {
 				...existingData?.consentInfo,
-				time: existingData?.consentInfo?.time || Date.now(),
-				subjectId,
 				externalId: body.externalId,
 				identityProvider: body.identityProvider,
+				subjectId,
+				time: existingData?.consentInfo?.time || Date.now(),
 			},
+			consents: existingData?.consents || {},
 		},
 		undefined,
 		storageConfig
@@ -155,7 +160,7 @@ export async function identifyUser(
 			...restOptions,
 			body: patchBody,
 		},
-		async (fallbackOptions) => {
+		(fallbackOptions) => {
 			// Re-add the subject ID for the fallback queue
 			const fullBody = { subjectId, ...fallbackOptions?.body };
 			return offlineFallbackForIdentifyUser({
@@ -164,4 +169,4 @@ export async function identifyUser(
 			});
 		}
 	);
-}
+};

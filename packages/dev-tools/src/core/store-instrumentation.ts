@@ -26,7 +26,7 @@ type InstrumentationRegistry = Map<string, InstrumentationEntry>;
 const REGISTRY_KEY = '__c15tDevToolsInstrumentationRegistry';
 let fallbackRegistry: InstrumentationRegistry | null = null;
 
-function getRegistry(): InstrumentationRegistry {
+const getRegistry = function getRegistry(): InstrumentationRegistry {
 	if (typeof window === 'undefined') {
 		if (!fallbackRegistry) {
 			fallbackRegistry = new Map();
@@ -42,26 +42,30 @@ function getRegistry(): InstrumentationRegistry {
 	const registry: InstrumentationRegistry = new Map();
 	host[REGISTRY_KEY] = registry;
 	return registry;
-}
+};
 
-function getBlockedRequestMessage(payload: unknown): string {
+const getBlockedRequestMessage = function getBlockedRequestMessage(
+	payload: unknown
+): string {
 	const data = payload as { method?: unknown; url?: unknown };
 	const method =
 		typeof data?.method === 'string' ? data.method.toUpperCase() : 'REQUEST';
 	const url = typeof data?.url === 'string' ? data.url : 'unknown-url';
 	return `Network blocked: ${method} ${url}`;
-}
+};
 
-function emitEvent(
+const emitEvent = function emitEvent(
 	entry: InstrumentationEntry,
 	event: InstrumentationEvent
 ): void {
 	for (const listener of entry.listeners) {
 		listener(event);
 	}
-}
+};
 
-function ensureNetworkBlockerWrapped(entry: InstrumentationEntry): void {
+const ensureNetworkBlockerWrapped = function ensureNetworkBlockerWrapped(
+	entry: InstrumentationEntry
+): void {
 	const blocker = entry.store.getState().networkBlocker;
 	if (!blocker) {
 		return;
@@ -73,9 +77,9 @@ function ensureNetworkBlockerWrapped(entry: InstrumentationEntry): void {
 	entry.originalNetworkBlockedCallback = blocker.onRequestBlocked;
 	entry.wrappedNetworkBlockedCallback = (payload: unknown) => {
 		emitEvent(entry, {
-			type: 'network',
-			message: getBlockedRequestMessage(payload),
 			data: payload as Record<string, unknown>,
+			message: getBlockedRequestMessage(payload),
+			type: 'network',
 		});
 
 		if (typeof entry.originalNetworkBlockedCallback === 'function') {
@@ -89,9 +93,11 @@ function ensureNetworkBlockerWrapped(entry: InstrumentationEntry): void {
 		...blocker,
 		onRequestBlocked: entry.wrappedNetworkBlockedCallback,
 	});
-}
+};
 
-function restoreInstrumentation(entry: InstrumentationEntry): void {
+const restoreInstrumentation = function restoreInstrumentation(
+	entry: InstrumentationEntry
+): void {
 	entry.stopWatchingStore?.();
 	entry.stopWatchingStore = null;
 
@@ -141,29 +147,29 @@ function restoreInstrumentation(entry: InstrumentationEntry): void {
 	}
 
 	entry.wrappedNetworkBlockedCallback = null;
-}
+};
 
-function createInstrumentationEntry(
+const createInstrumentationEntry = function createInstrumentationEntry(
 	store: StoreApi<ConsentStoreState>
 ): InstrumentationEntry {
 	const entry: InstrumentationEntry = {
-		store,
 		listeners: new Set(),
 		originalCallbacks: {
 			...store.getState().callbacks,
 		},
 		originalNetworkBlockedCallback:
 			store.getState().networkBlocker?.onRequestBlocked,
-		wrappedNetworkBlockedCallback: null,
 		stopWatchingStore: null,
+		store,
+		wrappedNetworkBlockedCallback: null,
 	};
 
 	store.getState().setCallback('onBannerFetched', (payload: unknown) => {
-		const jurisdiction = (payload as { jurisdiction?: unknown }).jurisdiction;
+		const { jurisdiction } = payload as { jurisdiction?: unknown };
 		emitEvent(entry, {
-			type: 'info',
-			message: `Banner fetched: ${String(jurisdiction)}`,
 			data: payload as Record<string, unknown>,
+			message: `Banner fetched: ${String(jurisdiction)}`,
+			type: 'info',
 		});
 		if (typeof entry.originalCallbacks.onBannerFetched === 'function') {
 			(entry.originalCallbacks.onBannerFetched as (event: unknown) => void)(
@@ -174,9 +180,9 @@ function createInstrumentationEntry(
 
 	store.getState().setCallback('onConsentSet', (payload: unknown) => {
 		emitEvent(entry, {
-			type: 'consent_set',
-			message: 'Consent preferences updated',
 			data: payload as Record<string, unknown>,
+			message: 'Consent preferences updated',
+			type: 'consent_set',
 		});
 		if (typeof entry.originalCallbacks.onConsentSet === 'function') {
 			(entry.originalCallbacks.onConsentSet as (event: unknown) => void)(
@@ -187,9 +193,9 @@ function createInstrumentationEntry(
 
 	store.getState().setCallback('onConsentChanged', (payload: unknown) => {
 		emitEvent(entry, {
-			type: 'consent_save',
-			message: 'Consent preferences changed',
 			data: payload as Record<string, unknown>,
+			message: 'Consent preferences changed',
+			type: 'consent_save',
 		});
 		if (typeof entry.originalCallbacks.onConsentChanged === 'function') {
 			(entry.originalCallbacks.onConsentChanged as (event: unknown) => void)(
@@ -201,9 +207,9 @@ function createInstrumentationEntry(
 	store.getState().setCallback('onError', (payload: unknown) => {
 		const errorMessage = (payload as { error?: unknown }).error;
 		emitEvent(entry, {
-			type: 'error',
-			message: `Error: ${String(errorMessage)}`,
 			data: payload as Record<string, unknown>,
+			message: `Error: ${String(errorMessage)}`,
+			type: 'error',
 		});
 		if (typeof entry.originalCallbacks.onError === 'function') {
 			(entry.originalCallbacks.onError as (event: unknown) => void)(payload);
@@ -214,9 +220,9 @@ function createInstrumentationEntry(
 		.getState()
 		.setCallback('onBeforeConsentRevocationReload', (payload: unknown) => {
 			emitEvent(entry, {
-				type: 'info',
-				message: 'Consent revocation - page will reload',
 				data: payload as Record<string, unknown>,
+				message: 'Consent revocation - page will reload',
+				type: 'info',
 			});
 			if (
 				typeof entry.originalCallbacks.onBeforeConsentRevocationReload ===
@@ -236,7 +242,7 @@ function createInstrumentationEntry(
 	});
 
 	return entry;
-}
+};
 
 interface InstrumentationOptions {
 	namespace: string;
@@ -244,33 +250,34 @@ interface InstrumentationOptions {
 	onEvent: InstrumentationListener;
 }
 
-export function registerStoreInstrumentation(
-	options: InstrumentationOptions
-): () => void {
-	const { namespace, store, onEvent } = options;
-	const registry = getRegistry();
-	let entry = registry.get(namespace);
+export const registerStoreInstrumentation =
+	function registerStoreInstrumentation(
+		options: InstrumentationOptions
+	): () => void {
+		const { namespace, store, onEvent } = options;
+		const registry = getRegistry();
+		let entry = registry.get(namespace);
 
-	if (!entry || entry.store !== store) {
-		if (entry) {
-			restoreInstrumentation(entry);
-		}
-		entry = createInstrumentationEntry(store);
-		registry.set(namespace, entry);
-	}
-
-	entry.listeners.add(onEvent);
-
-	return () => {
-		const current = registry.get(namespace);
-		if (!current) {
-			return;
+		if (!entry || entry.store !== store) {
+			if (entry) {
+				restoreInstrumentation(entry);
+			}
+			entry = createInstrumentationEntry(store);
+			registry.set(namespace, entry);
 		}
 
-		current.listeners.delete(onEvent);
-		if (current.listeners.size === 0) {
-			restoreInstrumentation(current);
-			registry.delete(namespace);
-		}
+		entry.listeners.add(onEvent);
+
+		return () => {
+			const current = registry.get(namespace);
+			if (!current) {
+				return;
+			}
+
+			current.listeners.delete(onEvent);
+			if (current.listeners.size === 0) {
+				restoreInstrumentation(current);
+				registry.delete(namespace);
+			}
+		};
 	};
-}

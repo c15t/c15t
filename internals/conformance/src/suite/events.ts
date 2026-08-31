@@ -13,16 +13,16 @@ import type { SuiteApi } from './helpers';
 
 type Spy = ((...args: unknown[]) => void) & { calls: unknown[][] };
 
-function spy(): Spy {
+const spy = function spy(): Spy {
 	const calls: unknown[][] = [];
 	const fn = ((...args: unknown[]) => {
 		calls.push(args);
 	}) as Spy;
 	fn.calls = calls;
 	return fn;
-}
+};
 
-export function runEventContractConformance(
+export const runEventContractConformance = function runEventContractConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
@@ -61,7 +61,9 @@ export function runEventContractConformance(
 					try {
 						const before = callbacks[pair.before];
 						const after = callbacks[pair.after];
-						if (!before || !after) return;
+						if (!before || !after) {
+							return;
+						}
 						if (before.calls.length > 0 && after.calls.length > 0) {
 							api.expect(before.calls.length).toBeGreaterThanOrEqual(1);
 							api.expect(after.calls.length).toBeGreaterThanOrEqual(1);
@@ -73,4 +75,4 @@ export function runEventContractConformance(
 			);
 		}
 	});
-}
+};

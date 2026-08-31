@@ -12,7 +12,11 @@ import { describeRoute } from 'hono-openapi';
 import type { RouteContext } from '../context';
 import { status } from '../status';
 
-export function register({ app, options, run }: RouteContext): void {
+export const register = function register({
+	app,
+	options,
+	run,
+}: RouteContext): void {
 	app.get(
 		'/status',
 		describeRoute({
@@ -34,8 +38,8 @@ export function register({ app, options, run }: RouteContext): void {
 				// an unreachable database is the former.
 				return c.json(
 					{
-						message: 'Database health check failed',
 						cause: { code: 'SERVICE_UNAVAILABLE' },
+						message: 'Database health check failed',
 					},
 					503
 				);
@@ -44,4 +48,4 @@ export function register({ app, options, run }: RouteContext): void {
 			return c.json(result.value);
 		}
 	);
-}
+};

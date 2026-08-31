@@ -19,8 +19,8 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 	test('should render children immediately without blocking', () => {
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
 				consentCategories: ['necessary', 'marketing'],
+				mode: 'offline',
 			},
 		});
 
@@ -30,10 +30,10 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 
 	test('should render children with custom label', () => {
 		render(ProviderOnlyFixture, {
+			label: 'custom-content',
 			options: {
 				mode: 'offline',
 			},
-			label: 'custom-content',
 		});
 
 		expect(screen.getByTestId('render-custom-content')).toBeInTheDocument();
@@ -45,8 +45,8 @@ describe('ConsentManagerProvider Rendering Behavior', () => {
 	test('should render children with different consent categories', () => {
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
 				consentCategories: ['necessary'],
+				mode: 'offline',
 			},
 		});
 

@@ -129,7 +129,9 @@ async function waitForServer() {
 		try {
 			const response = await fetch(`${BASE_URL}/script-count`);
 			if (response.ok) return;
-		} catch {}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
 		await sleep(500);
 	}
 	throw new Error('Timed out waiting for script count benchmark server');
@@ -226,6 +228,7 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let cleanupError: Error | undefined;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
@@ -313,8 +316,11 @@ async function run() {
 			server.kill('SIGKILL');
 		}
 		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Script count bench server failed');
+			cleanupError = new Error(logs || 'Script count bench server failed');
 		}
+	}
+	if (cleanupError) {
+		throw cleanupError;
 	}
 }
 

@@ -6,11 +6,10 @@
  */
 
 import { assert, describe, it } from '@effect/vitest';
-import { Effect, Layer } from 'effect';
+import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';
-import { singleTenant } from '../db/tenant';
 import { classify } from './classify';
 import * as Dialect from './dialect';
 import { up as baseline } from './migrations/1-baseline';
@@ -22,7 +21,7 @@ import { up as baseline } from './migrations/1-baseline';
  * rather than going through `schema.ts`. MySQL delimits with backticks and
  * rejects the double quotes the other two want.
  */
-const quoted = Effect.gen(function* () {
+const quoted = Effect.gen(function* quoted() {
 	return Dialect.escaperFor(yield* Dialect.current);
 });
 
@@ -32,7 +31,8 @@ const quoted = Effect.gen(function* () {
  * load-bearing for classification is omitted.
  */
 const sevenTables = (metadataType: 'json' | 'jsonb') =>
-	Effect.gen(function* () {
+	// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+	Effect.gen(function* sevenTables() {
 		const sql = yield* SqlClient.SqlClient;
 		const q = yield* quoted;
 		// MySQL has no `jsonb`; both eras store `json` there, which is exactly
@@ -61,7 +61,8 @@ const sevenTables = (metadataType: 'json' | 'jsonb') =>
 	});
 
 const withMarker = (version: string) =>
-	Effect.gen(function* () {
+	// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+	Effect.gen(function* withMarker() {
 		const sql = yield* SqlClient.SqlClient;
 		const q = yield* quoted;
 		// `key` is reserved on MySQL, and the value column must be bounded to
@@ -94,7 +95,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'reports Empty for a database with no c15t tables',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const classification = yield* classify;
 					assert.strictEqual(classification._tag, 'Empty');
@@ -105,7 +106,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'recognises our own baseline output as the 2.0.0 shape',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					// Expected, and worth stating: the baseline reproduces 2.0.0
 					// exactly, so before the ledger is stamped it is indistinguishable
@@ -123,7 +124,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'reports Baseline once the ledger exists',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					const q = yield* quoted;
@@ -140,7 +141,7 @@ for (const engine of ENGINES) {
 		(distinguishesByColumnType(engine) ? it.effect : it.effect.skip)(
 			'distinguishes legacy from fumadb 1.0.0 by column type when neither has a marker',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* sevenTables('jsonb');
 					const classification = yield* classify;
@@ -152,7 +153,7 @@ for (const engine of ENGINES) {
 		(distinguishesByColumnType(engine) ? it.effect : it.effect.skip)(
 			'does not mistake an unmarked fumadb 1.0.0 database for legacy',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					// The ORM codegen path: c15t printed schema for the user to apply
 					// with Drizzle/Prisma/TypeORM, so fumadb's migrator never ran and
@@ -171,7 +172,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'trusts the marker over schema inference when one is present',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* sevenTables('jsonb');
 					yield* withMarker('1.0.0');
@@ -187,7 +188,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'refuses to guess at a marker naming an unknown schema version',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* sevenTables('json');
 					yield* withMarker('3.7.0');
@@ -205,7 +206,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'refuses rather than reporting it empty',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					// What `tablePrefix: 'acme_'` produced in 2.x.
@@ -234,7 +235,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'is not fooled by one unrelated table that happens to end in a known name',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					const sql = yield* SqlClient.SqlClient;
 					// Someone else's billing table. One match is not evidence.
@@ -251,7 +252,7 @@ for (const engine of ENGINES) {
 		it.effect(
 			'still recognises an ordinary empty database',
 			() =>
-				Effect.gen(function* () {
+				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					assert.strictEqual((yield* classify)._tag, 'Empty');
 				}).pipe(Effect.provide(engine.layer)),

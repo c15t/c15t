@@ -11,18 +11,18 @@ describe('events panel', () => {
 		container = document.createElement('div');
 		events = [
 			{
+				data: { method: 'GET', url: 'https://example.com' },
 				id: 'network-1',
-				type: 'network',
 				message: 'Network blocked: GET https://example.com',
 				timestamp: Date.now(),
-				data: { method: 'GET', url: 'https://example.com' },
+				type: 'network',
 			},
 			{
+				data: { tcString: 'abc' },
 				id: 'iab-1',
-				type: 'iab',
 				message: 'IAB preferences saved',
 				timestamp: Date.now() - 1000,
-				data: { tcString: 'abc' },
+				type: 'iab',
 			},
 		];
 	});

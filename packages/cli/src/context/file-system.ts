@@ -7,7 +7,7 @@ import type { CliContext, PackageInfo } from './types';
 /**
  * Creates file system utilities for the CLI context
  */
-export function createFileSystem(context: CliContext) {
+export const createFileSystem = function createFileSystem(context: CliContext) {
 	const { logger, cwd } = context;
 
 	return {
@@ -41,4 +41,4 @@ export function createFileSystem(context: CliContext) {
 			}
 		},
 	};
-}
+};

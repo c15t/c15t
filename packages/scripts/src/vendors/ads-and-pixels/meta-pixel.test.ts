@@ -53,8 +53,8 @@ describe('metaPixel', () => {
 	it('supports init options and disabling the default PageView', () => {
 		const globalRef = getTestGlobal();
 		const script = metaPixel({
-			pixelId: '123456',
 			initOptions: { external_id: 'customer-123' },
+			pixelId: '123456',
 			trackPageView: false,
 		});
 
@@ -72,12 +72,12 @@ describe('metaPixel', () => {
 	it('queues data processing options before pixel init', () => {
 		const globalRef = getTestGlobal();
 		const script = metaPixel({
-			pixelId: '123456',
 			dataProcessingOptions: {
-				options: ['LDU'],
 				country: 1,
+				options: ['LDU'],
 				state: 1000,
 			},
+			pixelId: '123456',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -96,10 +96,10 @@ describe('metaPixel', () => {
 	it('supports explicitly disabling limited data use', () => {
 		const globalRef = getTestGlobal();
 		const script = metaPixel({
-			pixelId: '123456',
 			dataProcessingOptions: {
 				options: [],
 			},
+			pixelId: '123456',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -122,14 +122,14 @@ describe('metaPixel', () => {
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				hasConsent: false,
+				id: script.id,
 			})
 		);
 
@@ -164,16 +164,16 @@ describe('metaPixelEvent', () => {
 		globalRef.fbq = fbq;
 
 		metaPixelEvent('Purchase', {
-			value: 10,
 			currency: 'USD',
+			value: 10,
 		});
 
 		expect(fbq).toHaveBeenCalledWith(
 			'track',
 			'Purchase',
 			{
-				value: 10,
 				currency: 'USD',
+				value: 10,
 			},
 			undefined
 		);
@@ -187,8 +187,8 @@ describe('metaPixelEvent', () => {
 		metaPixelEvent(
 			'Purchase',
 			{
-				value: 10,
 				currency: 'USD',
+				value: 10,
 			},
 			'event-123'
 		);
@@ -197,8 +197,8 @@ describe('metaPixelEvent', () => {
 			'track',
 			'Purchase',
 			{
-				value: 10,
 				currency: 'USD',
+				value: 10,
 			},
 			{ eventID: 'event-123' }
 		);
@@ -232,8 +232,8 @@ describe('metaPixelEvent', () => {
 			'pixel-a',
 			'Lead',
 			{
-				value: 40,
 				currency: 'USD',
+				value: 40,
 			},
 			'event-789'
 		);
@@ -243,8 +243,8 @@ describe('metaPixelEvent', () => {
 			'pixel-a',
 			'Lead',
 			{
-				value: 40,
 				currency: 'USD',
+				value: 40,
 			},
 			{ eventID: 'event-789' }
 		);

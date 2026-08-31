@@ -62,7 +62,10 @@ export interface ScriptLoaderOptions {
  *
  * @internal
  */
-function hasIABConsent(script: Script, iabConsent: IABConsentState): boolean {
+const hasIABConsent = function hasIABConsent(
+	script: Script,
+	iabConsent: IABConsentState
+): boolean {
 	// If script has a vendorId, check vendor consent
 	if (script.vendorId !== undefined) {
 		const vendorKey = String(script.vendorId);
@@ -102,14 +105,14 @@ function hasIABConsent(script: Script, iabConsent: IABConsentState): boolean {
 	}
 
 	return true;
-}
+};
 
 /**
  * Checks if a script has consent to load based on current model and consent state.
  *
  * @internal
  */
-function scriptHasConsent(
+const scriptHasConsent = function scriptHasConsent(
 	script: Script,
 	consents: ConsentState,
 	options?: ScriptLoaderOptions
@@ -128,39 +131,9 @@ function scriptHasConsent(
 
 	// Fall back to standard category-based consent check
 	return has(script.category, consents);
-}
+};
 
-function emitLifecycleEvent(
-	script: Script,
-	action:
-		| 'skipped'
-		| 'already_loaded'
-		| 'callback_start'
-		| 'callback_complete'
-		| 'callback_error'
-		| 'element_appended'
-		| 'loaded'
-		| 'load_listener_attached'
-		| 'error_listener_attached'
-		| 'unloaded',
-	message: string,
-	info?: Partial<ScriptCallbackInfo>,
-	data?: Record<string, unknown>
-): void {
-	emitScriptDebugEvent({
-		source: 'script-loader',
-		scope: 'lifecycle',
-		action,
-		message,
-		scriptId: script.id,
-		elementId: info?.elementId,
-		hasConsent: info?.hasConsent,
-		callback: getCallbackFromAction(action, data),
-		data,
-	});
-}
-
-function getCallbackFromAction(
+const getCallbackFromAction = function getCallbackFromAction(
 	action:
 		| 'skipped'
 		| 'already_loaded'
@@ -188,9 +161,39 @@ function getCallbackFromAction(
 	}
 
 	return undefined;
-}
+};
 
-function getErrorMessage(error: unknown): string {
+const emitLifecycleEvent = function emitLifecycleEvent(
+	script: Script,
+	action:
+		| 'skipped'
+		| 'already_loaded'
+		| 'callback_start'
+		| 'callback_complete'
+		| 'callback_error'
+		| 'element_appended'
+		| 'loaded'
+		| 'load_listener_attached'
+		| 'error_listener_attached'
+		| 'unloaded',
+	message: string,
+	info?: Partial<ScriptCallbackInfo>,
+	data?: Record<string, unknown>
+): void {
+	emitScriptDebugEvent({
+		action,
+		callback: getCallbackFromAction(action, data),
+		data,
+		elementId: info?.elementId,
+		hasConsent: info?.hasConsent,
+		message,
+		scope: 'lifecycle',
+		scriptId: script.id,
+		source: 'script-loader',
+	});
+};
+
+const getErrorMessage = function getErrorMessage(error: unknown): string {
 	if (error instanceof Error) {
 		return error.message;
 	}
@@ -200,9 +203,9 @@ function getErrorMessage(error: unknown): string {
 	}
 
 	return 'Unknown error';
-}
+};
 
-function invokeScriptCallback(
+const invokeScriptCallback = function invokeScriptCallback(
 	script: Script,
 	callbackName: 'onBeforeLoad' | 'onLoad' | 'onConsentChange' | 'onError',
 	handler: ((info: ScriptCallbackInfo) => void) | undefined,
@@ -246,7 +249,7 @@ function invokeScriptCallback(
 		);
 		throw error;
 	}
-}
+};
 
 /**
  * Loads scripts based on user consent settings.
@@ -280,7 +283,7 @@ function invokeScriptCallback(
  *
  * @public
  */
-export function loadScripts(
+export const loadScripts = function loadScripts(
 	scripts: Script[],
 	consents: ConsentState,
 	scriptIdMap: Record<string, string> = {},
@@ -288,6 +291,7 @@ export function loadScripts(
 ): string[] {
 	const loadedScriptIds: string[] = [];
 
+	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 	scripts.forEach((script) => {
 		const hasConsent = scriptHasConsent(script, consents, options);
 
@@ -310,14 +314,14 @@ export function loadScripts(
 		// Skip if script is already loaded
 		if (hasLoadedScript(script.id)) {
 			const callbackInfo: ScriptCallbackInfo = {
-				id: script.id,
+				consents,
 				elementId: getScriptElementId(
 					script.id,
 					script.anonymizeId !== false,
 					scriptIdMap
 				),
 				hasConsent,
-				consents,
+				id: script.id,
 			};
 
 			emitLifecycleEvent(
@@ -361,10 +365,10 @@ export function loadScripts(
 
 			// Create callback info object without an actual DOM element
 			const callbackInfo: ScriptCallbackInfo = {
-				id: script.id,
-				elementId,
 				consents,
+				elementId,
 				hasConsent,
+				id: script.id,
 			};
 
 			invokeScriptCallback(
@@ -391,7 +395,8 @@ export function loadScripts(
 		}
 
 		// Determine if we should use an anonymized ID
-		const shouldAnonymize = script.anonymizeId !== false; // Default to true if not specified
+		// Default to true if not specified
+		const shouldAnonymize = script.anonymizeId !== false;
 
 		// Determine the element ID to use
 		const elementId = getScriptElementId(
@@ -408,11 +413,11 @@ export function loadScripts(
 			if (existingElement) {
 				// Script element already exists in DOM, just track it and execute callbacks
 				const callbackInfo: ScriptCallbackInfo = {
-					id: script.id,
-					hasConsent,
-					elementId,
 					consents,
 					element: existingElement,
+					elementId,
+					hasConsent,
+					id: script.id,
 				};
 
 				emitLifecycleEvent(
@@ -495,11 +500,11 @@ export function loadScripts(
 
 		// Create callback info object
 		const callbackInfo: ScriptCallbackInfo = {
-			id: script.id,
-			hasConsent,
-			elementId,
 			consents,
 			element: scriptElement,
+			elementId,
+			hasConsent,
+			id: script.id,
 		};
 
 		// Handle load and error events based on script type
@@ -590,7 +595,7 @@ export function loadScripts(
 	});
 
 	return loadedScriptIds;
-}
+};
 
 /**
  * Unloads scripts that no longer have consent.
@@ -618,7 +623,7 @@ export function loadScripts(
  *
  * @public
  */
-export function unloadScripts(
+export const unloadScripts = function unloadScripts(
 	scripts: Script[],
 	consents: ConsentState,
 	scriptIdMap: Record<string, string> = {},
@@ -643,16 +648,16 @@ export function unloadScripts(
 		if (!hasConsent) {
 			const scriptElement = getLoadedScript(script.id);
 			const callbackInfo: Partial<ScriptCallbackInfo> = {
-				id: script.id,
+				consents,
+				element:
+					scriptElement && scriptElement !== null ? scriptElement : undefined,
 				elementId: getScriptElementId(
 					script.id,
 					script.anonymizeId !== false,
 					scriptIdMap
 				),
 				hasConsent,
-				consents,
-				element:
-					scriptElement && scriptElement !== null ? scriptElement : undefined,
+				id: script.id,
 			};
 
 			// Handle callback-only scripts
@@ -673,7 +678,22 @@ export function unloadScripts(
 			// Handle standard scripts with DOM elements
 			else if (scriptElement) {
 				// Only remove from DOM if persistAfterConsentRevoked is not true
-				if (!script.persistAfterConsentRevoked) {
+				if (script.persistAfterConsentRevoked) {
+					deleteLoadedScript(script.id);
+					unloadedScriptIds.push(script.id);
+					emitLifecycleEvent(
+						script,
+						'unloaded',
+						'Persistent script marked as unloaded without removing element',
+						callbackInfo,
+						{
+							persistAfterConsentRevoked: true,
+							removedElement: false,
+						}
+					);
+				}
+				// If persistAfterConsentRevoked is true, keep the script in DOM but still track as unloaded
+				else {
 					scriptElement.remove();
 					// Remove from tracking
 					deleteLoadedScript(script.id);
@@ -688,27 +708,12 @@ export function unloadScripts(
 						}
 					);
 				}
-				// If persistAfterConsentRevoked is true, keep the script in DOM but still track as unloaded
-				else {
-					deleteLoadedScript(script.id);
-					unloadedScriptIds.push(script.id);
-					emitLifecycleEvent(
-						script,
-						'unloaded',
-						'Persistent script marked as unloaded without removing element',
-						callbackInfo,
-						{
-							removedElement: false,
-							persistAfterConsentRevoked: true,
-						}
-					);
-				}
 			}
 		}
 	});
 
 	return unloadedScriptIds;
-}
+};
 
 /**
  * Updates scripts based on current consent state, loading new scripts and unloading revoked ones.
@@ -727,7 +732,7 @@ export function unloadScripts(
  *
  * @public
  */
-export function updateScripts(
+export const updateScripts = function updateScripts(
 	scripts: Script[],
 	consents: ConsentState,
 	scriptIdMap: Record<string, string> = {},
@@ -740,7 +745,7 @@ export function updateScripts(
 		loaded,
 		unloaded,
 	};
-}
+};
 
 /**
  * Checks if a script is currently loaded.
@@ -750,9 +755,11 @@ export function updateScripts(
  *
  * @public
  */
-export function isScriptLoaded(scriptId: string): boolean {
+export const isScriptLoaded = function isScriptLoaded(
+	scriptId: string
+): boolean {
 	return hasLoadedScript(scriptId);
-}
+};
 
 /**
  * Gets all currently loaded script IDs.
@@ -761,9 +768,9 @@ export function isScriptLoaded(scriptId: string): boolean {
  *
  * @public
  */
-export function getLoadedScriptIds(): string[] {
+export const getLoadedScriptIds = function getLoadedScriptIds(): string[] {
 	return Array.from(getLoadedScriptsSnapshot().keys());
-}
+};
 
 /**
  * Removes all loaded scripts from the DOM and clears the tracking.
@@ -776,7 +783,9 @@ export function getLoadedScriptIds(): string[] {
  *
  * @public
  */
-export function clearAllScripts(scripts?: Script[]): string[] {
+export const clearAllScripts = function clearAllScripts(
+	scripts?: Script[]
+): string[] {
 	const unloadedScriptIds: string[] = [];
 
 	getLoadedScriptsSnapshot().forEach((scriptElement, id) => {
@@ -802,7 +811,7 @@ export function clearAllScripts(scripts?: Script[]): string[] {
 
 	clearLoadedScripts();
 	return unloadedScriptIds;
-}
+};
 
 /**
  * Reloads a script by first removing it and then loading it again.
@@ -817,7 +826,7 @@ export function clearAllScripts(scripts?: Script[]): string[] {
  *
  * @public
  */
-export function reloadScript(
+export const reloadScript = function reloadScript(
 	scriptId: string,
 	scripts: Script[],
 	consents: ConsentState,
@@ -856,12 +865,12 @@ export function reloadScript(
 			'skipped',
 			'Reload skipped due to missing consent',
 			{
-				hasConsent: false,
 				elementId: getScriptElementId(
 					script.id,
 					script.anonymizeId !== false,
 					scriptIdMap
 				),
+				hasConsent: false,
 			},
 			{
 				reason: 'reload_missing_consent',
@@ -873,4 +882,4 @@ export function reloadScript(
 	// Load the script
 	loadScripts([script], consents, scriptIdMap, options);
 	return true;
-}
+};

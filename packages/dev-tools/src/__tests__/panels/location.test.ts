@@ -3,45 +3,45 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { renderLocationPanel } from '../../panels/location';
 
-function createBaseState(
+const createBaseState = function createBaseState(
 	overrides: Partial<ConsentStoreState>
 ): ConsentStoreState {
 	return {
+		initDataSource: null,
+		initDataSourceDetail: null,
+		lastBannerFetchData: null,
 		locationInfo: {
 			countryCode: 'US',
-			regionCode: 'CA',
 			jurisdiction: 'CCPA',
+			regionCode: 'CA',
 		},
+		model: 'opt-in',
 		overrides: undefined,
+		policyBanner: {
+			allowedActions: null,
+			direction: null,
+			layout: null,
+			primaryActions: null,
+			scrollLock: null,
+			uiProfile: null,
+		},
+		policyCategories: null,
+		policyDialog: {
+			allowedActions: null,
+			direction: null,
+			layout: null,
+			primaryActions: null,
+			scrollLock: null,
+			uiProfile: null,
+		},
+		policyScopeMode: null,
 		translationConfig: {
 			defaultLanguage: 'en',
 			translations: {},
 		},
-		model: 'opt-in',
-		lastBannerFetchData: null,
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {
-			allowedActions: null,
-			primaryActions: null,
-			layout: null,
-			direction: null,
-			uiProfile: null,
-			scrollLock: null,
-		},
-		policyDialog: {
-			allowedActions: null,
-			primaryActions: null,
-			layout: null,
-			direction: null,
-			uiProfile: null,
-			scrollLock: null,
-		},
-		initDataSource: null,
-		initDataSourceDetail: null,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
 describe('location panel', () => {
 	let container: HTMLDivElement;
@@ -52,66 +52,72 @@ describe('location panel', () => {
 
 	it('renders compact active policy summary when runtime policy is present', () => {
 		const state = createBaseState({
-			policyCategories: ['necessary', 'measurement'],
-			policyScopeMode: 'permissive',
-			policyBanner: {
-				allowedActions: ['accept', 'reject'],
-				primaryActions: ['accept'],
-				layout: [['reject', 'accept']],
-				direction: 'row',
-				uiProfile: null,
-				scrollLock: null,
-			},
 			initDataSource: 'backend-cache-hit',
 			initDataSourceDetail: 'x-vercel-cache=HIT',
 			lastBannerFetchData: {
+				branding: 'c15t',
 				jurisdiction: 'CCPA',
 				location: {
 					countryCode: 'US',
 					regionCode: 'CA',
 				},
+				policy: {
+					consent: {
+						categories: ['necessary', 'measurement'],
+
+						expiryDays: 365,
+						scopeMode: 'permissive',
+					},
+					i18n: {
+						messageProfile: 'us_ca',
+					},
+					id: 'policy_us_ca',
+					model: 'opt-in',
+					proof: {
+						storeIp: true,
+						storeLanguage: false,
+
+						storeUserAgent: true,
+					},
+
+					ui: {
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							direction: 'row',
+
+							layout: [['reject', 'accept']],
+							primaryActions: ['accept'],
+						},
+
+						mode: 'banner',
+					},
+				},
+				policyDecision: {
+					country: 'US',
+					fingerprint:
+						'f470109af469620656707632979f2f8058edbb081c09848499cef03b305f8363',
+					jurisdiction: 'CCPA',
+
+					matchedBy: 'region',
+					policyId: 'policy_us_ca',
+					region: 'CA',
+				},
+				policySnapshotToken: 'token-123',
 				translations: {
 					language: 'en',
 					translations: {},
 				},
-				branding: 'c15t',
-				policy: {
-					id: 'policy_us_ca',
-					model: 'opt-in',
-					i18n: {
-						messageProfile: 'us_ca',
-					},
-					consent: {
-						scopeMode: 'permissive',
-						expiryDays: 365,
-						categories: ['necessary', 'measurement'],
-					},
-					ui: {
-						mode: 'banner',
-						banner: {
-							allowedActions: ['accept', 'reject'],
-							primaryActions: ['accept'],
-							layout: [['reject', 'accept']],
-							direction: 'row',
-						},
-					},
-					proof: {
-						storeIp: true,
-						storeUserAgent: true,
-						storeLanguage: false,
-					},
-				},
-				policyDecision: {
-					policyId: 'policy_us_ca',
-					fingerprint:
-						'f470109af469620656707632979f2f8058edbb081c09848499cef03b305f8363',
-					matchedBy: 'region',
-					country: 'US',
-					region: 'CA',
-					jurisdiction: 'CCPA',
-				},
-				policySnapshotToken: 'token-123',
 			} as unknown as ConsentStoreState['lastBannerFetchData'],
+			policyBanner: {
+				allowedActions: ['accept', 'reject'],
+				direction: 'row',
+				layout: [['reject', 'accept']],
+				primaryActions: ['accept'],
+				scrollLock: null,
+				uiProfile: null,
+			},
+			policyCategories: ['necessary', 'measurement'],
+			policyScopeMode: 'permissive',
 		});
 
 		renderLocationPanel(container, {
@@ -136,10 +142,10 @@ describe('location panel', () => {
 		const state = createBaseState({
 			initDataSource: 'offline-fallback',
 			lastBannerFetchData: {
+				branding: 'c15t',
 				jurisdiction: 'NONE',
 				location: { countryCode: 'AU', regionCode: null },
 				translations: { language: 'en', translations: {} },
-				branding: 'c15t',
 			} as unknown as ConsentStoreState['lastBannerFetchData'],
 		});
 

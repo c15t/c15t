@@ -38,24 +38,28 @@ declare global {
  */
 export const tiktokPixelManifest = {
 	...vendorManifestContract,
-	vendor: 'tiktok-pixel',
-	category: 'marketing',
-	persistAfterConsentRevoked: true,
+	afterLoad: [
+		{
+			global: 'ttq',
+			method: 'grantConsent',
+
+			type: 'callGlobal',
+		},
+	],
 	bootstrap: [
 		{
-			type: 'setGlobal',
 			name: 'TiktokAnalyticsObject',
+			type: 'setGlobal',
 			value: 'ttq',
 		},
 		{
-			type: 'setGlobal',
-			name: 'ttq',
-			value: [],
 			ifUndefined: true,
+
+			name: 'ttq',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'ttq',
 			methods: [
 				'page',
 				'track',
@@ -74,46 +78,50 @@ export const tiktokPixelManifest = {
 				'revokeConsent',
 				'grantConsent',
 			],
+
+			target: 'ttq',
+			type: 'defineQueueMethods',
 		},
 	],
+	category: 'marketing',
 	install: [
 		{
-			type: 'callGlobal',
 			global: 'ttq',
 			method: 'grantConsent',
+
+			type: 'callGlobal',
 		},
 		{
-			type: 'callGlobal',
 			global: 'ttq',
 			method: 'page',
+
+			type: 'callGlobal',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}?sdkid={{pixelId}}&lib=ttq',
 			async: true,
-		},
-	],
-	afterLoad: [
-		{
-			type: 'callGlobal',
-			global: 'ttq',
-			method: 'grantConsent',
-		},
-	],
-	onConsentGranted: [
-		{
-			type: 'callGlobal',
-			global: 'ttq',
-			method: 'grantConsent',
+
+			src: '{{scriptSrc}}?sdkid={{pixelId}}&lib=ttq',
+			type: 'loadScript',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
 			global: 'ttq',
 			method: 'revokeConsent',
+
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			global: 'ttq',
+			method: 'grantConsent',
+
+			type: 'callGlobal',
+		},
+	],
+	persistAfterConsentRevoked: true,
+	vendor: 'tiktok-pixel',
 } as const satisfies VendorManifest;
 
 export interface TikTokPixelOptions {
@@ -143,7 +151,7 @@ export interface TikTokPixelOptions {
  *
  * @see {@link https://ads.tiktok.com/help/article/tiktok-pixel} TikTok Pixel documentation
  */
-export function tiktokPixel({
+export const tiktokPixel = function tiktokPixel({
 	pixelId,
 	scriptSrc,
 }: TikTokPixelOptions): Script {
@@ -153,4 +161,4 @@ export function tiktokPixel({
 	});
 
 	return resolved;
-}
+};

@@ -15,7 +15,7 @@
  * @param resolvedVersion - The current version of the workspace package.
  * @returns The range to publish.
  */
-export function resolveWorkspaceProtocol(
+export const resolveWorkspaceProtocol = function resolveWorkspaceProtocol(
 	value: string,
 	resolvedVersion: string
 ): string {
@@ -32,4 +32,4 @@ export function resolveWorkspaceProtocol(
 		return value.replace('workspace:', '');
 	}
 	return value;
-}
+};

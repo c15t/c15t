@@ -63,7 +63,7 @@ const activeUI = useConsentActiveUI();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 
-function getBenchState(): NuxtBenchState | undefined {
+const getBenchState = function getBenchState(): NuxtBenchState | undefined {
 	if (!import.meta.client) {
 		return undefined;
 	}
@@ -73,21 +73,21 @@ function getBenchState(): NuxtBenchState | undefined {
 		window.__c15tNuxtBench.scenario !== props.scenario
 	) {
 		window.__c15tNuxtBench = {
-			scenario: props.scenario,
-			startedAtMs: performance.now(),
-			mountCount: 0,
-			renderCount: 0,
 			activeUI: 'none',
+			mountCount: 0,
 			onBannerFetchedCount: 0,
 			onConsentSetCount: 0,
 			onErrorCount: 0,
+			renderCount: 0,
+			scenario: props.scenario,
+			startedAtMs: performance.now(),
 		};
 	}
 
 	return window.__c15tNuxtBench;
-}
+};
 
-function normalizeActiveUI(value: unknown): string {
+const normalizeActiveUI = function normalizeActiveUI(value: unknown): string {
 	if (value === 'manager') {
 		return 'dialog';
 	}
@@ -95,9 +95,11 @@ function normalizeActiveUI(value: unknown): string {
 		return 'none';
 	}
 	return String(value);
-}
+};
 
-function updateSnapshotProbe(state: NuxtBenchState) {
+const updateSnapshotProbe = function updateSnapshotProbe(
+	state: NuxtBenchState
+) {
 	state.overrides = { ...snapshot.value.overrides };
 	state.location = snapshot.value.location
 		? {
@@ -106,9 +108,9 @@ function updateSnapshotProbe(state: NuxtBenchState) {
 			}
 		: null;
 	state.hasConsented = snapshot.value.hasConsented;
-}
+};
 
-function isElementVisible(element: Element): boolean {
+const isElementVisible = function isElementVisible(element: Element): boolean {
 	if (!(element instanceof HTMLElement)) {
 		return false;
 	}
@@ -124,9 +126,11 @@ function isElementVisible(element: Element): boolean {
 		style.visibility !== 'hidden' &&
 		Number(style.opacity) >= 0.99
 	);
-}
+};
 
-function hasRunningAnimations(element: Element): boolean {
+const hasRunningAnimations = function hasRunningAnimations(
+	element: Element
+): boolean {
 	if (
 		!(element instanceof HTMLElement) ||
 		typeof element.getAnimations !== 'function'
@@ -137,9 +141,9 @@ function hasRunningAnimations(element: Element): boolean {
 	return element
 		.getAnimations()
 		.some((animation) => animation.playState === 'running');
-}
+};
 
-function readBannerPaintMs(): number | null {
+const readBannerPaintMs = function readBannerPaintMs(): number | null {
 	const entries = performance
 		.getEntriesByType('element')
 		.filter(
@@ -148,16 +152,18 @@ function readBannerPaintMs(): number | null {
 				BANNER_ELEMENT_TIMING_NAME
 		);
 	const entry = entries.at(-1);
-	if (!entry) return null;
+	if (!entry) {
+		return null;
+	}
 	for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
 		if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
 			return value;
 		}
 	}
 	return null;
-}
+};
 
-function markRepeatVisitorReady() {
+const markRepeatVisitorReady = function markRepeatVisitorReady() {
 	const state = getBenchState();
 	if (!state || props.scenario !== 'repeat-visitor') {
 		return;
@@ -166,13 +172,13 @@ function markRepeatVisitorReady() {
 		snapshot.value.hasConsented &&
 		normalizeActiveUI(activeUI.value) === 'none'
 	) {
-		state.bannerReadyMs = state.bannerReadyMs ?? 0;
-		state.bannerVisibleMs = state.bannerVisibleMs ?? 0;
-		state.bannerPaintMs = state.bannerPaintMs ?? null;
+		state.bannerReadyMs ??= 0;
+		state.bannerVisibleMs ??= 0;
+		state.bannerPaintMs ??= null;
 	}
-}
+};
 
-function watchBannerVisibility() {
+const watchBannerVisibility = function watchBannerVisibility() {
 	const state = getBenchState();
 	if (
 		!state ||
@@ -226,7 +232,7 @@ function watchBannerVisibility() {
 
 	frameId = window.requestAnimationFrame(check);
 	return () => window.cancelAnimationFrame(frameId);
-}
+};
 
 if (import.meta.client) {
 	const state = getBenchState();
@@ -257,7 +263,7 @@ watch(
 		const state = getBenchState();
 		if (state && value) {
 			state.onBannerFetchedCount += 1;
-			state.onBannerFetchedMs = state.onBannerFetchedMs ?? performance.now();
+			state.onBannerFetchedMs ??= performance.now();
 		}
 	},
 	{ immediate: true }

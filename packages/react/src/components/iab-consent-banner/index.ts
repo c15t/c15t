@@ -85,15 +85,15 @@ export interface IABConsentBannerCompoundComponent extends FC<IABConsentBannerPr
  * @public
  */
 const IABConsentBanner = Object.assign(IABConsentBannerComponent, {
-	Root: IABConsentBannerRoot,
+	ButtonGroup: IABConsentBannerButtonGroup,
 	Card: IABConsentBannerCard,
-	Header: IABConsentBannerHeader,
-	Title: IABConsentBannerTitle,
 	Description: IABConsentBannerDescription,
 	Footer: IABConsentBannerFooter,
-	ButtonGroup: IABConsentBannerButtonGroup,
 	FooterSpacer: IABConsentBannerFooterSpacer,
+	Header: IABConsentBannerHeader,
 	Overlay: IABConsentBannerOverlay,
+	Root: IABConsentBannerRoot,
+	Title: IABConsentBannerTitle,
 }) as IABConsentBannerCompoundComponent;
 
 // Export the main component as both default and named export

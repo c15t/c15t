@@ -47,17 +47,17 @@ interface ControlPlaneInstance {
 	backendVersion?: string;
 }
 
-function extractAwsRegion(
+const extractAwsRegion = function extractAwsRegion(
 	value: string | null | undefined
 ): string | undefined {
 	if (!value) {
 		return undefined;
 	}
-	const match = value.match(/[a-z]{2}-[a-z]+-\d/);
+	const match = value.match(/[a-z]{2}-[a-z]+-\d/u);
 	return match?.[0];
-}
+};
 
-function isApiSuccessPayload<T>(
+const isApiSuccessPayload = function isApiSuccessPayload<T>(
 	payload: unknown
 ): payload is ControlPlaneApiSuccessPayload<T> {
 	return (
@@ -67,17 +67,21 @@ function isApiSuccessPayload<T>(
 		(payload as { success?: unknown }).success === true &&
 		'data' in payload
 	);
-}
+};
 
-async function parseJsonSafe(response: Response): Promise<unknown> {
+const parseJsonSafe = async function parseJsonSafe(
+	response: Response
+): Promise<unknown> {
 	try {
 		return await response.json();
 	} catch {
 		return null;
 	}
-}
+};
 
-function mapControlPlaneInstance(raw: ControlPlaneInstance): Instance {
+const mapControlPlaneInstance = function mapControlPlaneInstance(
+	raw: ControlPlaneInstance
+): Instance {
 	const regionFromObject =
 		typeof raw.region === 'string'
 			? raw.region
@@ -90,15 +94,15 @@ function mapControlPlaneInstance(raw: ControlPlaneInstance): Instance {
 		extractAwsRegion(raw.dashboardURL);
 
 	return {
+		createdAt: new Date(0).toISOString(),
 		id: raw.instanceId,
 		name: raw.instanceName,
 		organizationSlug: raw.organizationSlug,
 		region,
-		url: raw.backendURL ?? raw.dashboardURL ?? '',
-		createdAt: new Date(0).toISOString(),
 		status: raw.backendURL ? 'active' : 'pending',
+		url: raw.backendURL ?? raw.dashboardURL ?? '',
 	};
-}
+};
 
 /**
  * Client for c15t hosted projects.
@@ -121,22 +125,23 @@ export class ControlPlaneClient {
 	/**
 	 * Connect the client.
 	 */
-	async connect(): Promise<ControlPlaneConnectionState> {
+	connect(): Promise<ControlPlaneConnectionState> {
 		this.connected = true;
 
-		return {
-			connected: true,
+		return Promise.resolve({
 			capabilities: {
 				tools: ['listInstances', 'createInstance', 'getInstance'],
 			},
-		};
+			connected: true,
+		});
 	}
 
 	/**
 	 * Disconnect the client.
 	 */
-	async close(): Promise<void> {
+	close(): Promise<void> {
 		this.connected = false;
+		return Promise.resolve();
 	}
 
 	/**
@@ -168,12 +173,12 @@ export class ControlPlaneClient {
 		this.ensureConnected();
 
 		const response = await fetch(this.buildUrl(path), {
-			method: init?.method ?? 'GET',
+			body: init?.body === undefined ? undefined : JSON.stringify(init.body),
 			headers: {
 				Authorization: `Bearer ${this.config.accessToken}`,
 				'Content-Type': 'application/json',
 			},
-			body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+			method: init?.method ?? 'GET',
 		});
 
 		const payload = await parseJsonSafe(response);
@@ -196,11 +201,11 @@ export class ControlPlaneClient {
 		});
 	}
 
-	async listOrganizations(): Promise<ControlPlaneOrganization[]> {
+	listOrganizations(): Promise<ControlPlaneOrganization[]> {
 		return this.request<ControlPlaneOrganization[]>('/consent/organizations');
 	}
 
-	async listRegions(): Promise<ControlPlaneRegion[]> {
+	listRegions(): Promise<ControlPlaneRegion[]> {
 		return this.request<ControlPlaneRegion[]>('/consent/regions');
 	}
 
@@ -242,15 +247,15 @@ export class ControlPlaneClient {
 		const instance = await this.request<ControlPlaneInstance>(
 			'/consent/instances',
 			{
-				method: 'POST',
 				body: {
-					organizationSlug,
 					name: request.name,
-					region,
+					organizationSlug,
 					production: false,
+					region,
 					trustedOrigins: trustedOrigins ?? [],
 					useV2: true,
 				},
+				method: 'POST',
 			}
 		);
 
@@ -273,13 +278,13 @@ export class ControlPlaneClient {
 /**
  * Create and connect a client.
  */
-export async function createControlPlaneClient(
+export const createControlPlaneClient = async function createControlPlaneClient(
 	accessToken: string,
 	baseUrl: string = URLS.CONSENT_IO
 ): Promise<ControlPlaneClient> {
 	const client = new ControlPlaneClient({
-		baseUrl,
 		accessToken,
+		baseUrl,
 	});
 
 	const state = await client.connect();
@@ -290,20 +295,21 @@ export async function createControlPlaneClient(
 	}
 
 	return client;
-}
+};
 
 /**
  * Create a client from stored config.
  */
-export async function createControlPlaneClientFromConfig(
-	baseUrl: string = URLS.CONSENT_IO
-): Promise<ControlPlaneClient | null> {
-	const { getAccessToken } = await import('../auth/config-store');
+export const createControlPlaneClientFromConfig =
+	async function createControlPlaneClientFromConfig(
+		baseUrl: string = URLS.CONSENT_IO
+	): Promise<ControlPlaneClient | null> {
+		const { getAccessToken } = await import('../auth/config-store');
 
-	const accessToken = await getAccessToken();
-	if (!accessToken) {
-		return null;
-	}
+		const accessToken = await getAccessToken();
+		if (!accessToken) {
+			return null;
+		}
 
-	return createControlPlaneClient(accessToken, baseUrl);
-}
+		return createControlPlaneClient(accessToken, baseUrl);
+	};

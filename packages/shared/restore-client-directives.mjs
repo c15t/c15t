@@ -19,25 +19,32 @@ const distDirs = (distArgs.length > 0 ? distArgs : ['dist']).map((d) =>
 	resolve(d)
 );
 
-const DIRECTIVE = /^(?:'use client'|"use client");?\s*\n/;
+const DIRECTIVE = /^(?:'use client'|"use client");?\s*\n/u;
 
-function* walk(dir) {
+const walk = function* walk(dir) {
 	for (const entry of readdirSync(dir)) {
 		const full = join(dir, entry);
 		if (statSync(full).isDirectory()) {
-			if (entry === 'node_modules' || entry.startsWith('__tests__')) continue;
+			if (entry === 'node_modules' || entry.startsWith('__tests__')) {
+				continue;
+			}
 			yield* walk(full);
-		} else if (/\.(ts|tsx|js|jsx)$/.test(entry) && !/\.test\./.test(entry)) {
+		} else if (
+			/\.(?<capture1>ts|tsx|js|jsx)$/u.test(entry) &&
+			!/\.test\./u.test(entry)
+		) {
 			yield full;
 		}
 	}
-}
+};
 
 let restored = 0;
 for (const file of walk(srcDir)) {
 	const source = readFileSync(file, 'utf8');
-	if (!DIRECTIVE.test(source)) continue;
-	const rel = relative(srcDir, file).replace(/\.(tsx?|jsx?)$/, '');
+	if (!DIRECTIVE.test(source)) {
+		continue;
+	}
+	const rel = relative(srcDir, file).replace(/\.(?<capture1>tsx?|jsx?)$/u, '');
 	for (const distDir of distDirs) {
 		for (const ext of ['.js', '.mjs']) {
 			const target = join(distDir, `${rel}${ext}`);

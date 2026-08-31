@@ -105,55 +105,55 @@ const json = (value: unknown) =>
  * conflict rather than creating a second row, and the follow-up select only
  * runs when that happens.
  */
-export const recordDecision = Effect.fn('decision.record')(function* (
-	input: DecisionInput
-) {
-	const sql = yield* SqlClient.SqlClient;
-	const id = generateEntityId('runtimePolicyDecision');
-	// From the scope rather than the input: the key arrives in the request body,
-	// so a caller could otherwise namespace itself into another tenant.
-	const tenantId = yield* currentTenantId;
-	const dedupeKey = yield* Effect.promise(() =>
-		scopedDedupeKey(tenantId, input.dedupeKey)
-	);
+export const recordDecision = Effect.fn('decision.record')(
+	function* recordDecision(input: DecisionInput) {
+		const sql = yield* SqlClient.SqlClient;
+		const id = generateEntityId('runtimePolicyDecision');
+		// From the scope rather than the input: the key arrives in the request body,
+		// so a caller could otherwise namespace itself into another tenant.
+		const tenantId = yield* currentTenantId;
+		const dedupeKey = yield* Effect.promise(() =>
+			scopedDedupeKey(tenantId, input.dedupeKey)
+		);
 
-	const created = yield* insertOnce({
-		into: 'runtimePolicyDecision',
-		conflictOn: 'dedupeKey',
-		values: {
-			id,
-			tenantId: tenantId ?? null,
-			policyId: input.policyId,
-			fingerprint: input.fingerprint,
-			matchedBy: input.matchedBy,
-			countryCode: input.countryCode ?? null,
-			regionCode: input.regionCode ?? null,
-			jurisdiction: input.jurisdiction,
-			language: input.language ?? null,
-			model: input.model,
-			policyI18n: json(input.policyI18n),
-			uiMode: input.uiMode ?? null,
-			bannerUi: json(input.bannerUi),
-			dialogUi: json(input.dialogUi),
-			categories: json(input.categories),
-			preselectedCategories: json(input.preselectedCategories),
-			proofConfig: json(input.proofConfig),
-			dedupeKey,
-			createdAt: new Date(),
-		},
-	});
+		const created = yield* insertOnce({
+			conflictOn: 'dedupeKey',
+			into: 'runtimePolicyDecision',
+			values: {
+				bannerUi: json(input.bannerUi),
+				categories: json(input.categories),
+				countryCode: input.countryCode ?? null,
+				createdAt: new Date(),
+				dedupeKey,
+				dialogUi: json(input.dialogUi),
+				fingerprint: input.fingerprint,
+				id,
+				jurisdiction: input.jurisdiction,
+				language: input.language ?? null,
+				matchedBy: input.matchedBy,
+				model: input.model,
+				policyI18n: json(input.policyI18n),
+				policyId: input.policyId,
+				preselectedCategories: json(input.preselectedCategories),
+				proofConfig: json(input.proofConfig),
+				regionCode: input.regionCode ?? null,
+				tenantId: tenantId ?? null,
+				uiMode: input.uiMode ?? null,
+			},
+		});
 
-	if (created) {
-		return { id, created: true };
-	}
+		if (created) {
+			return { created: true, id };
+		}
 
-	// Lost the conflict: someone already recorded this exact decision. Unlike
-	// consent, the id here is random rather than derived, so the existing
-	// row's id has to be read back rather than recomputed.
-	const existing = yield* sql<{ id: string }>`
+		// Lost the conflict: someone already recorded this exact decision. Unlike
+		// consent, the id here is random rather than derived, so the existing
+		// row's id has to be read back rather than recomputed.
+		const existing = yield* sql<{ id: string }>`
 		select ${sql('id')} from ${sql('runtimePolicyDecision')}
 		where ${sql('dedupeKey')} = ${dedupeKey}
 	`;
 
-	return { id: existing[0]?.id ?? id, created: false };
-});
+		return { created: false, id: existing[0]?.id ?? id };
+	}
+);

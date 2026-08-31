@@ -17,7 +17,7 @@ export const CONSENT_CHECK_PATH = '/consents/check';
  * @param options - Optional fetch options
  * @returns Consent check response
  */
-export async function checkConsent(
+export const checkConsent = function checkConsent(
 	context: FetcherContext,
 	query: CheckConsentQuery,
 	options?: FetchOptions<CheckConsentOutput, never, CheckConsentQuery>
@@ -31,4 +31,4 @@ export async function checkConsent(
 			...options,
 		}
 	);
-}
+};

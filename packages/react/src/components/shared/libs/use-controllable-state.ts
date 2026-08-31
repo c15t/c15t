@@ -6,7 +6,7 @@ interface UseControllableStateOptions<T> {
 	value?: T;
 }
 
-export function useControllableState<T>({
+export const useControllableState = function useControllableState<T>({
 	defaultValue,
 	onChange,
 	value,
@@ -27,4 +27,4 @@ export function useControllableState<T>({
 	};
 
 	return [currentValue, setValue] as const;
-}
+};

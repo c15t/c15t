@@ -7,13 +7,13 @@ const activeUI = useConsentActiveUI();
 const hasConsent = useHasConsent();
 const init = useConsentInit();
 
-function reopenBanner() {
+const reopenBanner = function reopenBanner() {
 	activeUI.value = 'banner';
-}
+};
 
-function openPreferences() {
+const openPreferences = function openPreferences() {
 	activeUI.value = 'manager';
-}
+};
 </script>
 
 <template>

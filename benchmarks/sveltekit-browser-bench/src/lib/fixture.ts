@@ -13,47 +13,44 @@ import type { ConsentManifest } from '@c15t/schema/types';
 export const benchConsentTranslations = {
 	common: {
 		acceptAll: 'Accept All',
-		rejectAll: 'Reject All',
 		customize: 'Customize',
+		rejectAll: 'Reject All',
 		save: 'Save',
 	},
-	cookieBanner: {
-		title: 'Benchmark Consent Banner',
-		description: 'Benchmark fixture description.',
-	},
 	consentManagerDialog: {
-		title: 'Benchmark Preferences',
 		description: 'Benchmark preferences description.',
+		title: 'Benchmark Preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required cookies.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics cookies.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Advertising cookies.',
+			title: 'Marketing',
 		},
+		measurement: {
+			description: 'Analytics cookies.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required cookies.',
+			title: 'Necessary',
+		},
+	},
+	cookieBanner: {
+		description: 'Benchmark fixture description.',
+		title: 'Benchmark Consent Banner',
 	},
 };
 
 const policy = {
-	id: 'sveltekit-browser-bench',
-	model: 'opt-in',
 	consent: {
-		model: 'opt-in',
 		categories: [
 			'necessary',
 			'functionality',
@@ -61,10 +58,12 @@ const policy = {
 			'measurement',
 			'marketing',
 		],
+		model: 'opt-in',
 		scopeMode: 'strict',
 	},
+	id: 'sveltekit-browser-bench',
+	model: 'opt-in',
 	ui: {
-		mode: 'banner',
 		banner: {
 			allowedActions: ['reject', 'accept', 'customize'],
 			primaryActions: ['accept'],
@@ -75,31 +74,32 @@ const policy = {
 			primaryActions: ['accept'],
 			scrollLock: false,
 		},
+		mode: 'banner',
 	},
 };
 
 const resolvedPolicy = {
+	consent: policy.consent,
 	id: policy.id,
 	model: policy.model,
-	consent: policy.consent,
-	ui: policy.ui,
 	proof: {},
+	ui: policy.ui,
 };
 
 export const benchConsentManifestResponse = {
-	schemaVersion: 1,
-	revision: 'sveltekit-browser-bench-manifest',
 	branding: 'c15t',
 	policyPacks: [
 		{
+			fingerprint: 'fingerprint_sveltekit_browser_bench',
 			policy: {
 				...policy,
 				match: { isDefault: true },
 			},
 			resolvedPolicy,
-			fingerprint: 'fingerprint_sveltekit_browser_bench',
 		},
 	],
+	revision: 'sveltekit-browser-bench-manifest',
+	schemaVersion: 1,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',
@@ -107,8 +107,8 @@ export const benchConsentManifestResponse = {
 				default: {
 					fallbackLanguage: 'en',
 					translations: {
-						en: benchConsentTranslations,
 						de: benchConsentTranslations,
+						en: benchConsentTranslations,
 					},
 				},
 			},

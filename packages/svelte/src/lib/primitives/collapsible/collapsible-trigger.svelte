@@ -26,12 +26,12 @@
 		type?: 'button' | 'submit' | 'reset';
 	} = $props();
 
-	function handleClick(
+	const handleClick = function handleClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		root.toggle();
 		onclick?.(event);
-	}
+	};
 </script>
 
 <button

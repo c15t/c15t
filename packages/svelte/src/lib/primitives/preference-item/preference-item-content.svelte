@@ -13,6 +13,17 @@
 	const context = getPreferenceItemContext();
 	const variants = preferenceItemVariants();
 
+	let {
+		children,
+		class: localClassName,
+		innerClassName,
+		...restProps
+	}: HTMLAttributes<HTMLDivElement> & {
+		children?: Snippet;
+		class?: string;
+		innerClassName?: string;
+	} = $props();
+
 	const open = $derived(context.open);
 	const triggerId = $derived(context.triggerId);
 	const contentId = $derived(context.contentId);
@@ -24,17 +35,6 @@
 	const innerClassNameValue = $derived.by(() =>
 		variants.contentInner({ class: innerClassName })
 	);
-
-	let {
-		children,
-		class: localClassName,
-		innerClassName,
-		...restProps
-	}: HTMLAttributes<HTMLDivElement> & {
-		children?: Snippet;
-		class?: string;
-		innerClassName?: string;
-	} = $props();
 </script>
 
 <div

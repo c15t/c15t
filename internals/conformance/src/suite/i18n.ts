@@ -12,27 +12,36 @@ import { LOCALE_FIXTURES } from '../fixtures/locales';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-function findDirRoot(root: HTMLElement): HTMLElement | null {
-	if (root.getAttribute('dir')) return root;
+const findDirRoot = function findDirRoot(
+	root: HTMLElement
+): HTMLElement | null {
+	if (root.getAttribute('dir')) {
+		return root;
+	}
 	const local = root.querySelector<HTMLElement>('[dir]');
-	if (local) return local;
+	if (local) {
+		return local;
+	}
 	// Banner/dialog portals render outside the mount container (to document.body),
 	// so fall through to the document body as a secondary lookup.
 	return document.body.querySelector<HTMLElement>('[dir]');
-}
+};
 
 /**
  * Banner/dialog components render via portal to document.body. Tests that
  * probe for visible translated text must look at the document, not just
  * the mount container the driver returned.
  */
-function visibleText(mountRoot: HTMLElement): string {
+const visibleText = function visibleText(mountRoot: HTMLElement): string {
 	const direct = mountRoot.textContent ?? '';
 	const portaled = document.body.textContent ?? '';
 	return `${direct}\n${portaled}`;
-}
+};
 
-export function runI18nConformance(driver: TestDriver, api: SuiteApi): void {
+export const runI18nConformance = function runI18nConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] i18n`, () => {
 		for (const locale of LOCALE_FIXTURES) {
 			conformanceTest(
@@ -44,18 +53,20 @@ export function runI18nConformance(driver: TestDriver, api: SuiteApi): void {
 						locale: locale.code,
 						providerOptions: {
 							i18n: {
-								locale: locale.code,
 								detectBrowserLanguage: false,
+								locale: locale.code,
 								messages: {
 									[locale.code]: {
 										common: {
 											acceptAll: locale.translations.banner.acceptAll,
-											rejectAll: locale.translations.banner.rejectAll,
 											customize: locale.translations.banner.customize,
+
+											rejectAll: locale.translations.banner.rejectAll,
 										},
 										cookieBanner: {
-											title: locale.translations.banner.title,
 											description: locale.translations.banner.description,
+
+											title: locale.translations.banner.title,
 										},
 									},
 								},
@@ -83,13 +94,14 @@ export function runI18nConformance(driver: TestDriver, api: SuiteApi): void {
 							locale: locale.code,
 							providerOptions: {
 								i18n: {
-									locale: locale.code,
 									detectBrowserLanguage: false,
+									locale: locale.code,
 									messages: {
 										[locale.code]: {
 											cookieBanner: {
-												title: locale.translations.banner.title,
 												description: locale.translations.banner.description,
+
+												title: locale.translations.banner.title,
 											},
 										},
 									},
@@ -115,4 +127,4 @@ export function runI18nConformance(driver: TestDriver, api: SuiteApi): void {
 			}
 		}
 	});
-}
+};

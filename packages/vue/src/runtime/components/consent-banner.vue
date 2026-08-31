@@ -61,18 +61,18 @@ const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
-		reject: common?.rejectAll ?? 'Reject all',
 		customize: common?.customize ?? 'Customize',
+		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
 
 const actionTestIds = {
 	accept: 'consent-banner-accept-button',
-	reject: 'consent-banner-reject-button',
 	customize: 'consent-banner-customize-button',
+	reject: 'consent-banner-reject-button',
 } as const;
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		activeUI.value = 'manager';
 		return;
@@ -86,7 +86,7 @@ function onAction(action: PolicyUiAction) {
 		save('none');
 		activeUI.value = null;
 	}
-}
+};
 </script>
 
 <template>

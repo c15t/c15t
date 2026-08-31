@@ -2,21 +2,21 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchSSRData } from './fetch-ssr-data';
 
-function createRequestHeaders(): Headers {
+const createRequestHeaders = function createRequestHeaders(): Headers {
 	const headers = new Headers();
 	headers.set('cf-ipcountry', 'US');
 	headers.set('x-forwarded-proto', 'https');
 	headers.set('x-forwarded-host', 'example.com');
 	return headers;
-}
+};
 
-function createResponse(payload: unknown) {
+const createResponse = function createResponse(payload: unknown) {
 	return {
-		ok: true,
 		headers: new Headers(),
 		json: vi.fn().mockResolvedValue(payload),
+		ok: true,
 	} as unknown as Response;
-}
+};
 
 describe('fetchSSRData', () => {
 	afterEach(() => {
@@ -26,22 +26,22 @@ describe('fetchSSRData', () => {
 
 	it('returns SSR metadata with cache-hit diagnostics and request duration', async () => {
 		const initResponse = {
+			branding: 'c15t',
 			jurisdiction: 'CCPA',
 			location: { countryCode: 'US', regionCode: 'CA' },
 			translations: { language: 'en', translations: {} },
-			branding: 'c15t',
 		};
 
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(
 				new Response(JSON.stringify(initResponse), {
-					status: 200,
 					headers: {
+						age: '10',
 						'content-type': 'application/json',
 						'x-vercel-cache': 'HIT',
-						age: '10',
 					},
+					status: 200,
 				})
 			)
 		);
@@ -53,15 +53,15 @@ describe('fetchSSRData', () => {
 
 		expect(result?.init).toEqual(initResponse);
 		expect(result?.metadata?.cache).toEqual({
-			isHit: true,
 			detail: 'x-vercel-cache=HIT, age=10',
+			isHit: true,
 		});
 		expect(result?.metadata?.requestContext).toEqual({
 			backendURL: 'https://example.com/api/c15t',
 			country: 'US',
-			region: null,
-			language: null,
 			gpc: false,
+			language: null,
+			region: null,
 		});
 		expect(typeof result?.metadata?.requestDurationMs).toBe('number');
 		expect(result?.metadata?.requestDurationMs).toBeGreaterThanOrEqual(0);
@@ -69,21 +69,21 @@ describe('fetchSSRData', () => {
 
 	it('returns cache metadata for non-hit responses', async () => {
 		const initResponse = {
+			branding: 'c15t',
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			translations: { language: 'de', translations: {} },
-			branding: 'c15t',
 		};
 
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(
 				new Response(JSON.stringify(initResponse), {
-					status: 200,
 					headers: {
 						'content-type': 'application/json',
 						'x-vercel-cache': 'MISS',
 					},
+					status: 200,
 				})
 			)
 		);
@@ -94,15 +94,15 @@ describe('fetchSSRData', () => {
 		});
 
 		expect(result?.metadata?.cache).toEqual({
-			isHit: false,
 			detail: 'x-vercel-cache=MISS',
+			isHit: false,
 		});
 	});
 
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi
 			.fn()
-			.mockResolvedValue(createResponse({ gvl: null, categories: [] }));
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
 		vi.stubGlobal('fetch', fetchMock);
 
 		const headers = createRequestHeaders();
@@ -124,7 +124,7 @@ describe('fetchSSRData', () => {
 	it('returns init data when backend responds with success', async () => {
 		const fetchMock = vi
 			.fn()
-			.mockResolvedValue(createResponse({ gvl: null, categories: [] }));
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
 		vi.stubGlobal('fetch', fetchMock);
 
 		const headers = createRequestHeaders();
@@ -135,20 +135,20 @@ describe('fetchSSRData', () => {
 		});
 
 		expect(result).toMatchObject({
-			init: { gvl: null, categories: [] },
 			gvl: null,
+			init: { categories: [], gvl: null },
 		});
 		expect(result?.metadata).toEqual({
+			cache: {
+				detail: null,
+				isHit: false,
+			},
 			requestContext: {
 				backendURL: 'https://consent.example.com/api/c15t',
 				country: 'US',
-				region: null,
-				language: null,
 				gpc: false,
-			},
-			cache: {
-				isHit: false,
-				detail: null,
+				language: null,
+				region: null,
 			},
 			requestDurationMs: expect.any(Number),
 		});
@@ -162,11 +162,11 @@ describe('fetchSSRData', () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(
-				new Response(JSON.stringify({ gvl: null, categories: [] }), {
-					status: 200,
+				new Response(JSON.stringify({ categories: [], gvl: null }), {
 					headers: {
 						'content-type': 'application/json',
 					},
+					status: 200,
 				})
 			)
 		);
@@ -176,17 +176,17 @@ describe('fetchSSRData', () => {
 			headers,
 			overrides: {
 				country: 'DE',
-				region: 'BE',
 				language: 'de',
+				region: 'BE',
 			},
 		});
 
 		expect(result?.metadata?.requestContext).toEqual({
 			backendURL: 'https://example.com/api/c15t',
 			country: 'DE',
-			region: 'BE',
-			language: 'de',
 			gpc: true,
+			language: 'de',
+			region: 'BE',
 		});
 	});
 

@@ -42,7 +42,7 @@ export interface CodemodVersionMetadata {
 function parseVersion(raw: string): ParsedVersion | null {
 	const match = raw
 		.trim()
-		.match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
+		.match(/^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/u);
 
 	if (!match) {
 		return null;
@@ -62,7 +62,7 @@ function parseVersion(raw: string): ParsedVersion | null {
 }
 
 function extractVersionFromSpecifier(specifier: string): string | null {
-	const match = specifier.match(/(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/);
+	const match = specifier.match(/(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)/u);
 	if (!match) {
 		return null;
 	}
@@ -72,7 +72,7 @@ function extractVersionFromSpecifier(specifier: string): string | null {
 }
 
 function isNumericSegment(value: string): boolean {
-	return /^\d+$/.test(value);
+	return /^\d+$/u.test(value);
 }
 
 function comparePreRelease(a: string[], b: string[]): number {
@@ -150,7 +150,7 @@ function compareVersions(a: string, b: string): number | null {
 function satisfiesComparator(version: string, comparator: string): boolean {
 	const match = comparator
 		.trim()
-		.match(/^(<=|>=|<|>|=)?\s*v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/);
+		.match(/^(<=|>=|<|>|=)?\s*v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u);
 
 	if (!match) {
 		return false;
@@ -187,7 +187,7 @@ function satisfiesComparator(version: string, comparator: string): boolean {
  * Supports comparator sets such as `>=1.0.0 <2.0.0`.
  */
 export function satisfiesSimpleRange(version: string, range: string): boolean {
-	const comparators = range.trim().split(/\s+/).filter(Boolean);
+	const comparators = range.trim().split(/\s+/u).filter(Boolean);
 
 	if (comparators.length === 0) {
 		return true;

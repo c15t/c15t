@@ -128,6 +128,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.root, {
 		baseClassName: cn(
 			styles.root,
+			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 			disableAnimation
 				? undefined
 				: isVisible

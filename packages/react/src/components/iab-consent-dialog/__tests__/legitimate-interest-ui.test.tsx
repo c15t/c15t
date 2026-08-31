@@ -5,7 +5,6 @@
  */
 
 import { iab } from '@c15t/iab';
-import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -21,15 +20,15 @@ import { IABConsentDialog } from '../iab-consent-dialog';
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
 	return {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+		clear: () => {
+			store = {};
 		},
+		getItem: (key: string) => store[key] || null,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			store = {};
+		setItem: (key: string, value: string) => {
+			store[key] = String(value);
 		},
 	};
 })();
@@ -40,164 +39,168 @@ Object.defineProperty(window, 'localStorage', {
 
 // Mock GVL with vendors that have LI purposes
 const mockGVL = {
+	features: {
+		1: {
+			description: '',
+			id: 1,
+			illustrations: [],
+			name: 'Match and combine data from other sources',
+		},
+		2: {
+			description: '',
+			id: 2,
+			illustrations: [],
+			name: 'Link different devices',
+		},
+	},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 142,
-	tcfPolicyVersion: 5,
 	lastUpdated: '2024-01-15T16:00:23Z',
 	purposes: {
 		1: {
-			id: 1,
-			name: 'Store and/or access information on a device',
 			description: 'Cookies...',
+			id: 1,
 			illustrations: [],
-		},
-		2: {
-			id: 2,
-			name: 'Use limited data to select advertising',
-			description: 'Advertising...',
-			illustrations: [],
-		},
-		3: {
-			id: 3,
-			name: 'Create profiles for personalised advertising',
-			description: '',
-			illustrations: [],
-		},
-		7: {
-			id: 7,
-			name: 'Measure advertising performance',
-			description: '',
-			illustrations: [],
-		},
-		8: {
-			id: 8,
-			name: 'Measure content performance',
-			description: '',
-			illustrations: [],
-		},
-		9: {
-			id: 9,
-			name: 'Understand audiences through statistics',
-			description: '',
-			illustrations: [],
+			name: 'Store and/or access information on a device',
 		},
 		10: {
+			description: '',
 			id: 10,
+			illustrations: [],
 			name: 'Develop and improve services',
-			description: '',
-			illustrations: [],
-		},
-	},
-	specialPurposes: {
-		1: {
-			id: 1,
-			name: 'Ensure security, prevent and detect fraud',
-			description: '',
-			illustrations: [],
-		},
-		2: { id: 2, name: 'Deliver content', description: '', illustrations: [] },
-	},
-	features: {
-		1: {
-			id: 1,
-			name: 'Match and combine data from other sources',
-			description: '',
-			illustrations: [],
 		},
 		2: {
+			description: 'Advertising...',
 			id: 2,
-			name: 'Link different devices',
-			description: '',
 			illustrations: [],
+			name: 'Use limited data to select advertising',
+		},
+		3: {
+			description: '',
+			id: 3,
+			illustrations: [],
+			name: 'Create profiles for personalised advertising',
+		},
+		7: {
+			description: '',
+			id: 7,
+			illustrations: [],
+			name: 'Measure advertising performance',
+		},
+		8: {
+			description: '',
+			id: 8,
+			illustrations: [],
+			name: 'Measure content performance',
+		},
+		9: {
+			description: '',
+			id: 9,
+			illustrations: [],
+			name: 'Understand audiences through statistics',
 		},
 	},
 	specialFeatures: {
 		1: {
-			id: 1,
-			name: 'Use precise geolocation data',
 			description: '',
+			id: 1,
 			illustrations: [],
+			name: 'Use precise geolocation data',
 		},
 		2: {
-			id: 2,
-			name: 'Actively scan device characteristics',
 			description: '',
+			id: 2,
 			illustrations: [],
+			name: 'Actively scan device characteristics',
 		},
 	},
-	vendors: {
-		// Vendor with consent purposes only
+	specialPurposes: {
 		1: {
+			description: '',
 			id: 1,
-			name: 'Consent Only Vendor',
-			purposes: [1, 2, 3],
-			legIntPurposes: [],
-			specialPurposes: [1],
-			features: [1],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 31536000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: false,
-			urls: [{ langId: 'en', privacy: 'https://vendor1.com/privacy' }],
+			illustrations: [],
+			name: 'Ensure security, prevent and detect fraud',
 		},
-		// Vendor with LI purposes
-		10: {
-			id: 10,
-			name: 'LI Vendor',
-			purposes: [1],
-			legIntPurposes: [2, 7, 9, 10],
-			specialPurposes: [1],
-			features: [],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 31536000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: false,
-			urls: [{ langId: 'en', privacy: 'https://vendor10.com/privacy' }],
-		},
-		// Another vendor with LI purposes (same purposes as vendor 10)
-		20: {
-			id: 20,
-			name: 'Another LI Vendor',
-			purposes: [1, 2],
-			legIntPurposes: [7, 8, 9],
-			specialPurposes: [1, 2],
-			features: [1, 2],
-			specialFeatures: [],
-			flexiblePurposes: [2],
-			cookieMaxAgeSeconds: 63072000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: true,
-			urls: [{ langId: 'en', privacy: 'https://vendor20.com/privacy' }],
-		},
-		// Vendor with mixed consent and LI
-		755: {
-			id: 755,
-			name: 'Google Advertising Products',
-			purposes: [1, 2, 3],
-			legIntPurposes: [7, 9, 10],
-			specialPurposes: [1, 2],
-			features: [1, 2],
-			specialFeatures: [1],
-			flexiblePurposes: [2, 7, 9, 10],
-			cookieMaxAgeSeconds: 63072000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: true,
-			urls: [{ langId: 'en', privacy: 'https://policies.google.com/privacy' }],
-		},
+		2: { description: '', id: 2, illustrations: [], name: 'Deliver content' },
 	},
 	stacks: {
 		1: {
+			description: '',
 			id: 1,
 			name: 'Advertising measurement',
-			description: '',
 			purposes: [2, 7],
 			specialFeatures: [],
+		},
+	},
+	tcfPolicyVersion: 5,
+	vendorListVersion: 142,
+	vendors: {
+		// Vendor with consent purposes only
+		1: {
+			cookieMaxAgeSeconds: 31536000,
+			cookieRefresh: true,
+			features: [1],
+			flexiblePurposes: [],
+			id: 1,
+			legIntPurposes: [],
+			name: 'Consent Only Vendor',
+			purposes: [1, 2, 3],
+			specialFeatures: [],
+			specialPurposes: [1],
+			urls: [{ langId: 'en', privacy: 'https://vendor1.com/privacy' }],
+
+			usesCookies: true,
+			usesNonCookieAccess: false,
+		},
+		// Vendor with LI purposes
+		10: {
+			cookieMaxAgeSeconds: 31536000,
+			cookieRefresh: true,
+			features: [],
+			flexiblePurposes: [],
+			id: 10,
+			legIntPurposes: [2, 7, 9, 10],
+			name: 'LI Vendor',
+			purposes: [1],
+			specialFeatures: [],
+			specialPurposes: [1],
+			urls: [{ langId: 'en', privacy: 'https://vendor10.com/privacy' }],
+
+			usesCookies: true,
+			usesNonCookieAccess: false,
+		},
+		// Another vendor with LI purposes (same purposes as vendor 10)
+		20: {
+			cookieMaxAgeSeconds: 63072000,
+			cookieRefresh: true,
+			features: [1, 2],
+			flexiblePurposes: [2],
+			id: 20,
+			legIntPurposes: [7, 8, 9],
+			name: 'Another LI Vendor',
+			purposes: [1, 2],
+			specialFeatures: [],
+			specialPurposes: [1, 2],
+			urls: [{ langId: 'en', privacy: 'https://vendor20.com/privacy' }],
+
+			usesCookies: true,
+			usesNonCookieAccess: true,
+		},
+		// Vendor with mixed consent and LI
+		755: {
+			cookieMaxAgeSeconds: 63072000,
+			cookieRefresh: true,
+			features: [1, 2],
+			flexiblePurposes: [2, 7, 9, 10],
+			id: 755,
+			legIntPurposes: [7, 9, 10],
+			name: 'Google Advertising Products',
+			purposes: [1, 2, 3],
+			specialFeatures: [1],
+			specialPurposes: [1, 2],
+			urls: [{ langId: 'en', privacy: 'https://policies.google.com/privacy' }],
+
+			usesCookies: true,
+			usesNonCookieAccess: true,
 		},
 	},
 };
@@ -205,19 +208,19 @@ const mockGVL = {
 globalThis.fetch = vi.fn(() =>
 	Promise.resolve(
 		new Response(JSON.stringify(mockGVL), {
-			status: 200,
 			headers: { 'Content-Type': 'application/json' },
+			status: 200,
 		})
 	)
 ) as typeof fetch;
 
 const defaultIABOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
 	}),
+	mode: 'offline',
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},

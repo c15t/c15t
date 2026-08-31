@@ -33,7 +33,7 @@ const defaultIframeManagerDependencies: IframeManagerDependencies = {
  *
  * @internal
  */
-export function createIframeManager(
+export const createIframeManager = function createIframeManager(
 	get: () => ConsentStoreState,
 	_set: (partial: Partial<ConsentStoreState>) => void,
 	dependencies: IframeManagerDependencies = defaultIframeManagerDependencies
@@ -44,6 +44,42 @@ export function createIframeManager(
 	let isInitialized = false;
 
 	return {
+		/**
+		 * Destroys the iframe blocker and cleans up the observer.
+		 *
+		 * @remarks
+		 * Disconnects the underlying `MutationObserver` and marks the
+		 * iframe manager as uninitialized. Safe to call multiple times.
+		 * No-ops in non-browser environments or when automatic blocking is
+		 * disabled.
+		 */
+		destroyIframeBlocker: () => {
+			// Only destroy if initialized
+			if (!isInitialized) {
+				return;
+			}
+
+			// Skip destruction in non-browser environments
+			if (typeof document === 'undefined') {
+				return;
+			}
+
+			const state = get();
+			const { iframeBlockerConfig } = state;
+
+			if (iframeBlockerConfig?.disableAutomaticBlocking) {
+				return;
+			}
+
+			if (observer) {
+				observer.disconnect();
+				observer = null;
+			}
+
+			// Mark as not initialized
+			isInitialized = false;
+		},
+
 		/**
 		 * Initializes the iframe blocker and starts monitoring iframes.
 		 *
@@ -157,41 +193,5 @@ export function createIframeManager(
 				)
 			);
 		},
-
-		/**
-		 * Destroys the iframe blocker and cleans up the observer.
-		 *
-		 * @remarks
-		 * Disconnects the underlying `MutationObserver` and marks the
-		 * iframe manager as uninitialized. Safe to call multiple times.
-		 * No-ops in non-browser environments or when automatic blocking is
-		 * disabled.
-		 */
-		destroyIframeBlocker: () => {
-			// Only destroy if initialized
-			if (!isInitialized) {
-				return;
-			}
-
-			// Skip destruction in non-browser environments
-			if (typeof document === 'undefined') {
-				return;
-			}
-
-			const state = get();
-			const { iframeBlockerConfig } = state;
-
-			if (iframeBlockerConfig?.disableAutomaticBlocking) {
-				return;
-			}
-
-			if (observer) {
-				observer.disconnect();
-				observer = null;
-			}
-
-			// Mark as not initialized
-			isInitialized = false;
-		},
 	};
-}
+};

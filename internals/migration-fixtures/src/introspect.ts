@@ -1,3 +1,5 @@
+// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+let rawDdlQuery: (engine: string) => string | null;
 /**
  * Captured shape of a database after a published c15t release migrated it.
  *
@@ -64,109 +66,6 @@ export interface CapturedSchemaSnapshot {
 	readonly ddl: Record<string, string>;
 }
 
-/**
- * Source for the capture step, evaluated inside the throwaway workspace.
- *
- * Emitted as source for the same reason as the connection: the workspace has
- * its own kysely, and the introspection API must come from the same copy that
- * built the connection.
- */
-export function introspectSource(engine: string): string {
-	return `
-const RAW_DDL_QUERY = ${JSON.stringify(rawDdlQuery(engine))};
-
-export async function capture(db) {
-  const tables = (await db.introspection.getTables())
-    .filter((table) => !table.isView)
-    .map((table) => ({
-      name: table.name,
-      columns: [...table.columns]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((column) => ({
-          name: column.name,
-          dataType: column.dataType,
-          isNullable: column.isNullable,
-          isAutoIncrementing: column.isAutoIncrementing,
-          hasDefaultValue: column.hasDefaultValue,
-        })),
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  // fumadb's version marker. Observed as 'private_c15t_settings' on 2.1.0, but
-  // matched by suffix so a prefix change in any release still resolves.
-  // Legacy releases never create it, so its absence is part of the fixture.
-  let settings = null;
-  const settingsTable = tables.find((table) =>
-    /(^|_)c15t_settings$/.test(table.name)
-  );
-  if (settingsTable) {
-    const { sql } = await import('kysely');
-    const result = await sql
-      .raw(\`select * from "\${settingsTable.name}"\`)
-      .execute(db);
-    // fumadb stores JSON documents (notably 'name-variants', the physical
-    // per-dialect names) as escaped strings. Parse them so a fixture diff is
-    // reviewable instead of one enormous quoted line.
-    settings = {
-      table: settingsTable.name,
-      rows: result.rows.map((row) => {
-        if (typeof row.value !== 'string') return row;
-        try {
-          return { ...row, value: JSON.parse(row.value) };
-        } catch {
-          return row;
-        }
-      }),
-    };
-  }
-
-  const ddl = {};
-  if (RAW_DDL_QUERY) {
-    const { sql } = await import('kysely');
-    if (${JSON.stringify(engine)} === 'mysql') {
-      for (const table of tables) {
-        const result = await sql.raw(\`show create table \\\`\${table.name}\\\`\`).execute(db);
-        const row = result.rows[0] ?? {};
-        ddl[table.name] = row['Create Table'] ?? row['Create View'] ?? '';
-      }
-    } else {
-      const result = await sql.raw(RAW_DDL_QUERY).execute(db);
-      for (const row of result.rows) {
-        if (row.sql) ddl[row.name] = row.sql;
-      }
-    }
-  }
-
-  const { indexes, foreignKeys } = await constraints(db, tables);
-
-  return { settings, tables, indexes, foreignKeys, ddl };
-}
-
-${constraintsSource(engine)}
-`;
-}
-
-/**
- * Index and foreign-key capture, per engine.
- *
- * There is no portable way to do this — `information_schema` does not describe
- * indexes on SQLite at all, and its foreign-key views disagree between
- * Postgres and MySQL on how composite keys are ordered. Each engine gets the
- * query that is actually correct for it, normalised into the same shape.
- */
-function constraintsSource(engine: string): string {
-	switch (engine) {
-		case 'sqlite':
-			return SQLITE_CONSTRAINTS;
-		case 'postgres':
-			return POSTGRES_CONSTRAINTS;
-		case 'mysql':
-			return MYSQL_CONSTRAINTS;
-		default:
-			return 'async function constraints() { return { indexes: [], foreignKeys: [] }; }';
-	}
-}
-
 const SORT = `
 function sortIndexes(rows) {
   return rows.sort((a, b) =>
@@ -180,6 +79,66 @@ function sortForeignKeys(rows) {
     a.table.localeCompare(b.table) ||
     a.columns.join(',').localeCompare(b.columns.join(','))
   );
+}
+`;
+
+const MYSQL_CONSTRAINTS = `${SORT}
+async function constraints(db) {
+  const { sql } = await import('kysely');
+
+  const idx = await sql\`
+    select table_name, index_name, non_unique, column_name, seq_in_index
+    from information_schema.statistics
+    where table_schema = database()
+    order by table_name, index_name, seq_in_index
+  \`.execute(db);
+
+  const byIndex = new Map();
+  for (const row of idx.rows) {
+    const table = row.table_name ?? row.TABLE_NAME;
+    const name = row.index_name ?? row.INDEX_NAME;
+    const column = row.column_name ?? row.COLUMN_NAME;
+    const nonUnique = row.non_unique ?? row.NON_UNIQUE;
+    const key = table + '.' + name;
+    const existing = byIndex.get(key) ?? {
+      table,
+      name,
+      columns: [],
+      isUnique: Number(nonUnique) === 0,
+      isPrimary: name === 'PRIMARY',
+    };
+    existing.columns.push(column);
+    byIndex.set(key, existing);
+  }
+
+  const fk = await sql\`
+    select table_name, constraint_name, column_name,
+           referenced_table_name, referenced_column_name, ordinal_position
+    from information_schema.key_column_usage
+    where table_schema = database() and referenced_table_name is not null
+    order by table_name, constraint_name, ordinal_position
+  \`.execute(db);
+
+  const byFk = new Map();
+  for (const row of fk.rows) {
+    const table = row.table_name ?? row.TABLE_NAME;
+    const name = row.constraint_name ?? row.CONSTRAINT_NAME;
+    const key = table + '.' + name;
+    const existing = byFk.get(key) ?? {
+      table,
+      columns: [],
+      referencedTable: row.referenced_table_name ?? row.REFERENCED_TABLE_NAME,
+      referencedColumns: [],
+    };
+    existing.columns.push(row.column_name ?? row.COLUMN_NAME);
+    existing.referencedColumns.push(row.referenced_column_name ?? row.REFERENCED_COLUMN_NAME);
+    byFk.set(key, existing);
+  }
+
+  return {
+    indexes: sortIndexes([...byIndex.values()]),
+    foreignKeys: sortForeignKeys([...byFk.values()]),
+  };
 }
 `;
 
@@ -237,6 +196,14 @@ async function constraints(db, tables) {
 }
 `;
 
+/**
+ * Index and foreign-key capture, per engine.
+ *
+ * There is no portable way to do this — `information_schema` does not describe
+ * indexes on SQLite at all, and its foreign-key views disagree between
+ * Postgres and MySQL on how composite keys are ordered. Each engine gets the
+ * query that is actually correct for it, normalised into the same shape.
+ */
 const POSTGRES_CONSTRAINTS = `${SORT}
 async function constraints(db) {
   const { sql } = await import('kysely');
@@ -313,67 +280,104 @@ async function constraints(db) {
 }
 `;
 
-const MYSQL_CONSTRAINTS = `${SORT}
-async function constraints(db) {
-  const { sql } = await import('kysely');
+const constraintsSource = function constraintsSource(engine: string): string {
+	switch (engine) {
+		case 'sqlite':
+			return SQLITE_CONSTRAINTS;
+		case 'postgres':
+			return POSTGRES_CONSTRAINTS;
+		case 'mysql':
+			return MYSQL_CONSTRAINTS;
+		default:
+			return 'async function constraints() { return { indexes: [], foreignKeys: [] }; }';
+	}
+};
 
-  const idx = await sql\`
-    select table_name, index_name, non_unique, column_name, seq_in_index
-    from information_schema.statistics
-    where table_schema = database()
-    order by table_name, index_name, seq_in_index
-  \`.execute(db);
+/**
+ * Source for the capture step, evaluated inside the throwaway workspace.
+ *
+ * Emitted as source for the same reason as the connection: the workspace has
+ * its own kysely, and the introspection API must come from the same copy that
+ * built the connection.
+ */
+export const introspectSource = function introspectSource(
+	engine: string
+): string {
+	return `
+const RAW_DDL_QUERY = ${JSON.stringify(rawDdlQuery(engine))};
 
-  const byIndex = new Map();
-  for (const row of idx.rows) {
-    const table = row.table_name ?? row.TABLE_NAME;
-    const name = row.index_name ?? row.INDEX_NAME;
-    const column = row.column_name ?? row.COLUMN_NAME;
-    const nonUnique = row.non_unique ?? row.NON_UNIQUE;
-    const key = table + '.' + name;
-    const existing = byIndex.get(key) ?? {
-      table,
-      name,
-      columns: [],
-      isUnique: Number(nonUnique) === 0,
-      isPrimary: name === 'PRIMARY',
+export async function capture(db) {
+  const tables = (await db.introspection.getTables())
+    .filter((table) => !table.isView)
+    .map((table) => ({
+      name: table.name,
+      columns: [...table.columns]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((column) => ({
+          name: column.name,
+          dataType: column.dataType,
+          isNullable: column.isNullable,
+          isAutoIncrementing: column.isAutoIncrementing,
+          hasDefaultValue: column.hasDefaultValue,
+        })),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // fumadb's version marker. Observed as 'private_c15t_settings' on 2.1.0, but
+  // matched by suffix so a prefix change in any release still resolves.
+  // Legacy releases never create it, so its absence is part of the fixture.
+  let settings = null;
+  const settingsTable = tables.find((table) =>
+    /(^|_)c15t_settings$/.test(table.name)
+  );
+  if (settingsTable) {
+    const { sql } = await import('kysely');
+    const result = await sql
+      .raw(\`select * from "\${settingsTable.name}"\`)
+      .execute(db);
+    // fumadb stores JSON documents (notably 'name-variants', the physical
+    // per-dialect names) as escaped strings. Parse them so a fixture diff is
+    // reviewable instead of one enormous quoted line.
+    settings = {
+      table: settingsTable.name,
+      rows: result.rows.map((row) => {
+        if (typeof row.value !== 'string') return row;
+        try {
+          return { ...row, value: JSON.parse(row.value) };
+        } catch {
+          return row;
+        }
+      }),
     };
-    existing.columns.push(column);
-    byIndex.set(key, existing);
   }
 
-  const fk = await sql\`
-    select table_name, constraint_name, column_name,
-           referenced_table_name, referenced_column_name, ordinal_position
-    from information_schema.key_column_usage
-    where table_schema = database() and referenced_table_name is not null
-    order by table_name, constraint_name, ordinal_position
-  \`.execute(db);
-
-  const byFk = new Map();
-  for (const row of fk.rows) {
-    const table = row.table_name ?? row.TABLE_NAME;
-    const name = row.constraint_name ?? row.CONSTRAINT_NAME;
-    const key = table + '.' + name;
-    const existing = byFk.get(key) ?? {
-      table,
-      columns: [],
-      referencedTable: row.referenced_table_name ?? row.REFERENCED_TABLE_NAME,
-      referencedColumns: [],
-    };
-    existing.columns.push(row.column_name ?? row.COLUMN_NAME);
-    existing.referencedColumns.push(row.referenced_column_name ?? row.REFERENCED_COLUMN_NAME);
-    byFk.set(key, existing);
+  const ddl = {};
+  if (RAW_DDL_QUERY) {
+    const { sql } = await import('kysely');
+    if (${JSON.stringify(engine)} === 'mysql') {
+      for (const table of tables) {
+        const result = await sql.raw(\`show create table \\\`\${table.name}\\\`\`).execute(db);
+        const row = result.rows[0] ?? {};
+        ddl[table.name] = row['Create Table'] ?? row['Create View'] ?? '';
+      }
+    } else {
+      const result = await sql.raw(RAW_DDL_QUERY).execute(db);
+      for (const row of result.rows) {
+        if (row.sql) ddl[row.name] = row.sql;
+      }
+    }
   }
 
-  return {
-    indexes: sortIndexes([...byIndex.values()]),
-    foreignKeys: sortForeignKeys([...byFk.values()]),
-  };
+  const { indexes, foreignKeys } = await constraints(db, tables);
+
+  return { settings, tables, indexes, foreignKeys, ddl };
 }
-`;
 
-function rawDdlQuery(engine: string): string | null {
+${constraintsSource(engine)}
+`;
+};
+
+rawDdlQuery = (engine: string): string | null => {
 	switch (engine) {
 		case 'sqlite':
 			return 'select name, sql from sqlite_master where sql is not null order by name';
@@ -386,4 +390,4 @@ function rawDdlQuery(engine: string): string | null {
 			// The normalised JSON carries the contract for that engine.
 			return null;
 	}
-}
+};

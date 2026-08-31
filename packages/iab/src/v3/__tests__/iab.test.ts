@@ -17,44 +17,44 @@ import { createIAB } from '../index';
 import { setMockGVL } from '../tcf/fetch-gvl';
 
 const MOCK_GVL: GlobalVendorList = {
+	features: {},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 42,
-	tcfPolicyVersion: 4,
 	lastUpdated: '2026-01-01T00:00:00Z',
 	purposes: {
-		1: { id: 1, name: 'Store and/or access information', description: '' },
-		2: { id: 2, name: 'Select basic ads', description: '' },
-		3: { id: 3, name: 'Create a personalised ads profile', description: '' },
-		4: { id: 4, name: 'Select personalised ads', description: '' },
+		1: { description: '', id: 1, name: 'Store and/or access information' },
+		2: { description: '', id: 2, name: 'Select basic ads' },
+		3: { description: '', id: 3, name: 'Create a personalised ads profile' },
+		4: { description: '', id: 4, name: 'Select personalised ads' },
+	},
+	specialFeatures: {
+		1: { description: '', id: 1, name: 'Use precise geolocation data' },
 	},
 	specialPurposes: {},
-	features: {},
-	specialFeatures: {
-		1: { id: 1, name: 'Use precise geolocation data', description: '' },
-	},
 	stacks: {},
+	tcfPolicyVersion: 4,
+	vendorListVersion: 42,
 	vendors: {
 		'1': {
-			id: 1,
-			name: 'Vendor 1',
-			purposes: [1, 2],
-			legIntPurposes: [],
-			flexiblePurposes: [],
-			specialPurposes: [],
 			features: [],
-			specialFeatures: [],
+			flexiblePurposes: [],
+			id: 1,
+			legIntPurposes: [],
+			name: 'Vendor 1',
 			policyUrl: '',
+			purposes: [1, 2],
+			specialFeatures: [],
+			specialPurposes: [],
 		},
 		'755': {
-			id: 755,
-			name: 'Google',
-			purposes: [1, 2, 3],
-			legIntPurposes: [],
-			flexiblePurposes: [],
-			specialPurposes: [],
 			features: [],
-			specialFeatures: [],
+			flexiblePurposes: [],
+			id: 755,
+			legIntPurposes: [],
+			name: 'Google',
 			policyUrl: '',
+			purposes: [1, 2, 3],
+			specialFeatures: [],
+			specialPurposes: [],
 		},
 	},
 } as unknown as GlobalVendorList;
@@ -71,10 +71,10 @@ describe('createIAB: seeding the kernel', () => {
 		] as unknown as Parameters<typeof createIAB>[0]['customVendors'];
 
 		const iab = createIAB({
-			kernel,
 			cmpId: 28,
 			customVendors,
 			gvl: MOCK_GVL,
+			kernel,
 		});
 
 		const snap = kernel.getSnapshot();
@@ -89,9 +89,9 @@ describe('createIAB: seeding the kernel', () => {
 	test('null gvl disables IAB (non-IAB region)', () => {
 		const kernel = createConsentKernel();
 		const iab = createIAB({
-			kernel,
 			cmpId: 28,
 			gvl: null,
+			kernel,
 		});
 		expect(kernel.getSnapshot().iab?.enabled).toBe(false);
 		iab.dispose();
@@ -101,7 +101,7 @@ describe('createIAB: seeding the kernel', () => {
 describe('createIAB: mutations', () => {
 	test('setVendorConsent updates the snapshot', () => {
 		const kernel = createConsentKernel();
-		const iab = createIAB({ kernel, cmpId: 28, gvl: MOCK_GVL });
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
 
 		iab.setVendorConsent(755, true);
 		expect(kernel.getSnapshot().iab?.vendorConsents['755']).toBe(true);
@@ -114,7 +114,7 @@ describe('createIAB: mutations', () => {
 
 	test('setPurposeConsent propagates to c15t categories when all related purposes are granted', () => {
 		const kernel = createConsentKernel();
-		const iab = createIAB({ kernel, cmpId: 28, gvl: MOCK_GVL });
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
 
 		// `marketing` requires purposes 2+3+4 all true. Flip them in
 		// sequence and verify marketing flips on the last.
@@ -130,7 +130,7 @@ describe('createIAB: mutations', () => {
 
 	test('acceptAll flips every vendor + purpose + special feature', () => {
 		const kernel = createConsentKernel();
-		const iab = createIAB({ kernel, cmpId: 28, gvl: MOCK_GVL });
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
 
 		iab.acceptAll();
 		const snap = kernel.getSnapshot();
@@ -148,7 +148,7 @@ describe('createIAB: mutations', () => {
 
 	test('rejectAll clears everything', () => {
 		const kernel = createConsentKernel();
-		const iab = createIAB({ kernel, cmpId: 28, gvl: MOCK_GVL });
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
 		iab.acceptAll();
 		iab.rejectAll();
 		const snap = kernel.getSnapshot();
@@ -162,7 +162,7 @@ describe('createIAB: mutations', () => {
 describe('createIAB: dispose', () => {
 	test('unsubscribes from kernel and tears down CMP API', () => {
 		const kernel = createConsentKernel();
-		const iab = createIAB({ kernel, cmpId: 28, gvl: MOCK_GVL });
+		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
 
 		const listener = vi.fn();
 		kernel.subscribe(listener);

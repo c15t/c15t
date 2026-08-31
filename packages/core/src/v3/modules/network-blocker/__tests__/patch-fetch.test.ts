@@ -8,9 +8,9 @@ import { installFetchPatch } from '../patch-fetch';
 import type { NetworkBlockerRule } from '../types';
 
 const rule: NetworkBlockerRule = {
-	id: 'r',
-	domain: 'tracker.example',
 	category: 'marketing',
+	domain: 'tracker.example',
+	id: 'r',
 };
 
 describe('installFetchPatch', () => {

@@ -9,32 +9,34 @@ import type {
  * Shared compact UI profile — identical to the europeOptIn policy-pack preset
  * so that offline mode and hosted mode produce the same banner/dialog layout.
  */
-function createCompactUiProfile(): PolicyUiSurfaceConfig {
-	return {
-		allowedActions: ['accept', 'reject', 'customize'],
-		layout: [['reject', 'accept'], 'customize'] as PolicyUiActionGroup[],
-		direction: 'row',
-		primaryActions: ['customize'],
-		uiProfile: 'compact',
+const createCompactUiProfile =
+	function createCompactUiProfile(): PolicyUiSurfaceConfig {
+		return {
+			allowedActions: ['accept', 'reject', 'customize'],
+			direction: 'row',
+			layout: [['reject', 'accept'], 'customize'] as PolicyUiActionGroup[],
+			primaryActions: ['customize'],
+			uiProfile: 'compact',
+		};
 	};
-}
 
-function offlineOptInBannerPolicy(): ResolvedPolicy {
-	return {
-		id: 'offline_opt_in_banner',
-		model: 'opt-in',
-		consent: {
-			expiryDays: 365,
-		},
-		ui: {
-			mode: 'banner',
-			banner: createCompactUiProfile(),
-			dialog: createCompactUiProfile(),
-		},
+const offlineOptInBannerPolicy =
+	function offlineOptInBannerPolicy(): ResolvedPolicy {
+		return {
+			consent: {
+				expiryDays: 365,
+			},
+			id: 'offline_opt_in_banner',
+			model: 'opt-in',
+			ui: {
+				banner: createCompactUiProfile(),
+				dialog: createCompactUiProfile(),
+				mode: 'banner',
+			},
+		};
 	};
-}
 
-function offlineNoBannerPolicy(): ResolvedPolicy {
+const offlineNoBannerPolicy = function offlineNoBannerPolicy(): ResolvedPolicy {
 	return {
 		id: 'offline_no_banner',
 		model: 'none',
@@ -42,7 +44,7 @@ function offlineNoBannerPolicy(): ResolvedPolicy {
 			mode: 'none',
 		},
 	};
-}
+};
 
 export interface PolicyDefaults {
 	offlineOptInBanner: () => ResolvedPolicy;
@@ -50,20 +52,20 @@ export interface PolicyDefaults {
 	offlineNoBanner: () => ResolvedPolicy;
 }
 
-function offlineIabPolicy(): ResolvedPolicy {
+const offlineIabPolicy = function offlineIabPolicy(): ResolvedPolicy {
 	return {
-		id: 'offline_iab',
-		model: 'iab',
 		consent: {
+			categories: ['*'],
 			expiryDays: 365,
 			scopeMode: 'permissive',
-			categories: ['*'],
 		},
+		id: 'offline_iab',
+		model: 'iab',
 	};
-}
+};
 
 export const policyDefaults: PolicyDefaults = {
-	offlineOptInBanner: () => offlineOptInBannerPolicy(),
 	offlineIab: () => offlineIabPolicy(),
 	offlineNoBanner: () => offlineNoBannerPolicy(),
+	offlineOptInBanner: () => offlineOptInBannerPolicy(),
 };

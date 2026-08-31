@@ -25,29 +25,31 @@ declare global {
  */
 export const rybbitAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'rybbit-analytics',
 	category: 'measurement',
 	install: [
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
-			defer: true,
 			attributes: {
-				'data-site-id': '{{siteId}}',
-				'data-auto-track-pageview': '{{autoTrackPageview}}',
-				'data-track-spa': '{{trackSpa}}',
-				'data-track-query': '{{trackQuery}}',
-				'data-track-outbound': '{{trackOutbound}}',
-				'data-track-errors': '{{trackErrors}}',
-				'data-session-replay': '{{sessionReplay}}',
-				'data-web-vitals': '{{webVitals}}',
-				'data-skip-patterns': '{{skipPatterns}}',
-				'data-mask-patterns': '{{maskPatterns}}',
-				'data-debounce': '{{debounce}}',
 				'data-api-key': '{{apiKey}}',
+
+				'data-auto-track-pageview': '{{autoTrackPageview}}',
+				'data-debounce': '{{debounce}}',
+				'data-mask-patterns': '{{maskPatterns}}',
+				'data-session-replay': '{{sessionReplay}}',
+				'data-site-id': '{{siteId}}',
+				'data-skip-patterns': '{{skipPatterns}}',
+				'data-track-errors': '{{trackErrors}}',
+				'data-track-outbound': '{{trackOutbound}}',
+				'data-track-query': '{{trackQuery}}',
+				'data-track-spa': '{{trackSpa}}',
+				'data-web-vitals': '{{webVitals}}',
 			},
+
+			defer: true,
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'rybbit-analytics',
 } as const satisfies VendorManifest;
 
 export interface RybbitAnalyticsOptions {
@@ -93,7 +95,9 @@ export interface RybbitAnalyticsOptions {
  *
  * @internal
  */
-function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
+const getRybbitScriptUrl = function getRybbitScriptUrl(
+	options: RybbitAnalyticsOptions
+): string {
 	const url = options.scriptUrl?.trim();
 	if (url && url.length > 0) {
 		return url;
@@ -103,7 +107,7 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
 	}
 
 	return 'https://app.rybbit.io/api/script.js';
-}
+};
 
 /**
  * Creates a Rybbit Analytics script.
@@ -114,7 +118,9 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
  * `options.siteId` is undefined, null, or trims to an empty string. Provide a
  * valid non-empty site ID string to prevent this error.
  */
-export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
+export const rybbitAnalytics = function rybbitAnalytics(
+	options: RybbitAnalyticsOptions
+): Script {
 	let siteId: string;
 	if (options.siteId === undefined || options.siteId === null) {
 		siteId = '';
@@ -141,18 +147,18 @@ export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
 	}
 
 	return resolveManifest(rybbitAnalyticsManifest, {
-		scriptUrl: getRybbitScriptUrl(options),
-		siteId,
-		autoTrackPageview: booleanDataAttribute(options.autoTrackPageview),
-		trackSpa: booleanDataAttribute(options.trackSpa),
-		trackQuery: booleanDataAttribute(options.trackQuery),
-		trackOutbound: booleanDataAttribute(options.trackOutbound),
-		trackErrors: booleanDataAttribute(options.trackErrors),
-		sessionReplay: booleanDataAttribute(options.sessionReplay),
-		webVitals: booleanDataAttribute(options.webVitals),
-		skipPatterns,
-		maskPatterns,
-		debounce,
 		apiKey: options.apiKey,
+		autoTrackPageview: booleanDataAttribute(options.autoTrackPageview),
+		debounce,
+		maskPatterns,
+		scriptUrl: getRybbitScriptUrl(options),
+		sessionReplay: booleanDataAttribute(options.sessionReplay),
+		siteId,
+		skipPatterns,
+		trackErrors: booleanDataAttribute(options.trackErrors),
+		trackOutbound: booleanDataAttribute(options.trackOutbound),
+		trackQuery: booleanDataAttribute(options.trackQuery),
+		trackSpa: booleanDataAttribute(options.trackSpa),
+		webVitals: booleanDataAttribute(options.webVitals),
 	});
-}
+};

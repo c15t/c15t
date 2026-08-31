@@ -1,84 +1,80 @@
 import { defineDocsConfig, defineFrameworkNavigation } from 'leadtype';
 
-const generateDocsConfig = () => {
-	return defineDocsConfig({
-		product: {
-			name: 'c15t',
-			tagline:
-				'Developer-first consent management for JavaScript, React, Next.js, and self-hosted deployments.',
-			summary:
-				'Developer-first consent management for JavaScript, React, Next.js, and self-hosted deployments.',
-			bullets: [
-				'Add GDPR-ready cookie banners, consent dialogs, and preference flows.',
-				'Use framework-specific guides for JavaScript, React, and Next.js.',
-				'Load scripts, iframes, and analytics only after the required consent.',
-				'Self-host the consent backend when managed hosting is not the right fit.',
-			],
-			bestStartingPoints: [
-				{ urlPath: '/docs/frameworks/next/quickstart' },
-				{ urlPath: '/docs/frameworks/react/quickstart' },
-				{ urlPath: '/docs/frameworks/javascript/quickstart' },
-				{ urlPath: '/docs/self-host/quickstart' },
-				{ urlPath: '/docs/cli/quickstart' },
-				{ urlPath: '/changelog' },
-			],
-			agentGuidance:
-				'Start with the framework-specific quickstart for the target app. Use /docs/llms.txt for routing and /llms-full.txt when page-level context is not enough.',
-		},
+const generateDocsConfig = () =>
+	defineDocsConfig({
 		groups: [
 			{
-				slug: 'frameworks',
-				title: 'Frameworks',
 				description:
 					'Install and configure c15t in JavaScript, React, and Next.js applications.',
+
+				slug: 'frameworks',
+				title: 'Frameworks',
 			},
 			{
-				slug: 'self-host',
-				title: 'Self Host',
 				description:
 					'Run the c15t backend, configure storage, and operate consent infrastructure.',
+
+				slug: 'self-host',
+				title: 'Self Host',
 			},
 			{
-				slug: 'integrations',
-				title: 'Integrations',
 				description:
 					'Connect analytics, advertising, maps, media, and other third-party tools behind consent.',
+
+				slug: 'integrations',
+				title: 'Integrations',
 			},
 			{
-				slug: 'cli',
-				title: 'CLI',
 				description:
 					'Scaffold, migrate, and configure c15t projects from the command line.',
+
+				slug: 'cli',
+				title: 'CLI',
 			},
 			{
-				slug: 'reference',
-				title: 'Reference',
 				description:
 					'Concepts, legal templates, open-source policies, and contributor documentation.',
+
+				slug: 'reference',
+				title: 'Reference',
 			},
 			{
-				slug: 'changelog',
-				title: 'Changelog',
 				description:
 					'Release notes and migration context for c15t package versions.',
+
+				slug: 'changelog',
+				title: 'Changelog',
 			},
 		],
 		navigation: [
 			defineFrameworkNavigation({
-				title: 'Frameworks',
 				base: 'frameworks',
+				frameworks: [
+					{
+						base: 'react',
+						template: 'componentFramework',
+
+						title: 'React',
+					},
+					{
+						base: 'javascript',
+						template: 'javascript',
+
+						title: 'JavaScript',
+					},
+					{
+						base: 'next',
+						template: 'componentFramework',
+
+						title: 'Next.js',
+					},
+				],
+
 				pages: ['index'],
 				templates: {
 					componentFramework: {
-						pages: [
-							'quickstart',
-							'optimization',
-							'/granular-installs',
-							'/ai-agents',
-						],
 						children: [
 							{
-								title: 'Concepts',
 								pages: [
 									'concepts/initialization-flow',
 									'concepts/client-modes',
@@ -88,9 +84,10 @@ const generateDocsConfig = () => {
 									'concepts/cookie-management',
 									'concepts/glossary',
 								],
+
+								title: 'Concepts',
 							},
 							{
-								title: 'Guides',
 								pages: [
 									'script-loader',
 									'iframe-blocking',
@@ -100,9 +97,10 @@ const generateDocsConfig = () => {
 									'policy-packs',
 									'server-side',
 								],
+
+								title: 'Guides',
 							},
 							{
-								title: 'Components',
 								pages: [
 									'components/consent-manager-provider',
 									'components/consent-banner',
@@ -113,9 +111,10 @@ const generateDocsConfig = () => {
 									'components/frame',
 									'components/dev-tools',
 								],
+
+								title: 'Components',
 							},
 							{
-								title: 'Styling',
 								pages: [
 									'styling/overview',
 									'styling/tokens',
@@ -125,9 +124,10 @@ const generateDocsConfig = () => {
 									'styling/color-scheme',
 									'styling/css-variables',
 								],
+
+								title: 'Styling',
 							},
 							{
-								title: 'Hooks',
 								pages: [
 									'hooks/use-consent-manager/overview',
 									'hooks/use-consent-manager/checking-consent',
@@ -141,36 +141,41 @@ const generateDocsConfig = () => {
 									'hooks/use-ssr-status',
 									'hooks/use-draggable',
 								],
+
+								title: 'Hooks',
 							},
 							{
-								title: 'Troubleshooting',
 								pages: ['troubleshooting'],
+
+								title: 'Troubleshooting',
 							},
 							{
-								title: 'Headless',
 								pages: ['building-headless-components', 'headless'],
+
+								title: 'Headless',
 							},
 							{
-								title: 'IAB TCF',
 								pages: [
 									'iab/overview',
 									'iab/consent-banner',
 									'iab/consent-dialog',
 									'iab/use-gvl-data',
 								],
+
+								title: 'IAB TCF',
 							},
 						],
-					},
-					javascript: {
+
 						pages: [
 							'quickstart',
 							'optimization',
 							'/granular-installs',
 							'/ai-agents',
 						],
+					},
+					javascript: {
 						children: [
 							{
-								title: 'Concepts',
 								pages: [
 									'concepts/initialization-flow',
 									'concepts/client-modes',
@@ -180,9 +185,10 @@ const generateDocsConfig = () => {
 									'concepts/cookie-management',
 									'concepts/glossary',
 								],
+
+								title: 'Concepts',
 							},
 							{
-								title: 'Guides',
 								pages: [
 									'script-loader',
 									'iframe-blocking',
@@ -191,56 +197,50 @@ const generateDocsConfig = () => {
 									'internationalization',
 									'policy-packs',
 								],
+
+								title: 'Guides',
 							},
 							{
-								title: 'Store API',
 								pages: [
 									'api/overview',
 									'api/checking-consent',
 									'api/setting-consent',
 									'api/location-info',
 								],
+
+								title: 'Store API',
 							},
 							{
-								title: 'Building Framework Libraries',
 								pages: ['building-ui'],
+
+								title: 'Building Framework Libraries',
 							},
 							{
-								title: 'Troubleshooting',
 								pages: ['troubleshooting'],
+
+								title: 'Troubleshooting',
 							},
 							{
-								title: 'IAB TCF',
 								pages: ['iab/overview'],
+
+								title: 'IAB TCF',
 							},
+						],
+
+						pages: [
+							'quickstart',
+							'optimization',
+							'/granular-installs',
+							'/ai-agents',
 						],
 					},
 				},
-				frameworks: [
-					{
-						title: 'React',
-						base: 'react',
-						template: 'componentFramework',
-					},
-					{
-						title: 'JavaScript',
-						base: 'javascript',
-						template: 'javascript',
-					},
-					{
-						title: 'Next.js',
-						base: 'next',
-						template: 'componentFramework',
-					},
-				],
+				title: 'Frameworks',
 			}),
 			{
-				title: 'CLI',
 				base: 'cli',
-				pages: ['overview', 'quickstart'],
 				children: [
 					{
-						title: 'Commands',
 						pages: [
 							'commands/setup',
 							'commands/generate',
@@ -249,28 +249,33 @@ const generateDocsConfig = () => {
 							'commands/skills',
 							'commands/auth',
 						],
+
+						title: 'Commands',
 					},
 					{
-						title: 'Reference',
 						pages: ['global-flags', 'telemetry'],
+
+						title: 'Reference',
 					},
 				],
+
+				pages: ['overview', 'quickstart'],
+				title: 'CLI',
 			},
 			{
-				title: 'Integrations',
 				base: 'integrations',
-				pages: ['overview', 'building-integrations'],
 				children: [
 					{
-						title: 'Renderable',
 						pages: ['google-maps', 'youtube'],
+
+						title: 'Renderable',
 					},
 					{
-						title: 'Tag Managers',
 						pages: ['google-tag-manager'],
+
+						title: 'Tag Managers',
 					},
 					{
-						title: 'Analytics',
 						pages: [
 							'google-tag',
 							'ahrefs-analytics',
@@ -297,13 +302,15 @@ const generateDocsConfig = () => {
 							'umami-analytics',
 							'vercel-analytics',
 						],
+
+						title: 'Analytics',
 					},
 					{
-						title: 'Functional',
 						pages: ['crisp', 'intercom'],
+
+						title: 'Functional',
 					},
 					{
-						title: 'Ads & Pixels',
 						pages: [
 							'meta-pixel',
 							'reddit-pixel',
@@ -313,16 +320,18 @@ const generateDocsConfig = () => {
 							'snapchat-pixel',
 							'x-pixel',
 						],
+
+						title: 'Ads & Pixels',
 					},
 				],
+
+				pages: ['overview', 'building-integrations'],
+				title: 'Integrations',
 			},
 			{
-				title: 'Self Host',
 				base: 'self-host',
-				pages: ['quickstart'],
 				children: [
 					{
-						title: 'Guides',
 						pages: [
 							'guides/database-setup',
 							'guides/framework-integration',
@@ -332,20 +341,26 @@ const generateDocsConfig = () => {
 							'guides/policy-packs',
 							'guides/observability',
 						],
+
+						title: 'Guides',
 					},
 					{
-						title: 'API Reference',
 						pages: ['api/endpoints', 'api/configuration'],
+
+						title: 'API Reference',
 					},
 				],
+
+				pages: ['quickstart'],
+				title: 'Self Host',
 			},
 			{
-				title: 'Contributing',
 				base: 'contributing',
 				pages: ['index', 'docs-preview-action', 'documentation-setup'],
+
+				title: 'Contributing',
 			},
 			{
-				title: 'Open Source',
 				base: 'oss',
 				pages: [
 					'why-open-source',
@@ -353,15 +368,41 @@ const generateDocsConfig = () => {
 					'code-of-conduct',
 					'license',
 				],
+
+				title: 'Open Source',
 			},
 			{
-				title: 'Legal',
 				base: 'legals',
-				pages: ['cookie-policy', 'privacy-policy'],
 				optional: true,
+
+				pages: ['cookie-policy', 'privacy-policy'],
+				title: 'Legal',
 			},
 		],
+		product: {
+			agentGuidance:
+				'Start with the framework-specific quickstart for the target app. Use /docs/llms.txt for routing and /llms-full.txt when page-level context is not enough.',
+
+			bestStartingPoints: [
+				{ urlPath: '/docs/frameworks/next/quickstart' },
+				{ urlPath: '/docs/frameworks/react/quickstart' },
+				{ urlPath: '/docs/frameworks/javascript/quickstart' },
+				{ urlPath: '/docs/self-host/quickstart' },
+				{ urlPath: '/docs/cli/quickstart' },
+				{ urlPath: '/changelog' },
+			],
+			bullets: [
+				'Add GDPR-ready cookie banners, consent dialogs, and preference flows.',
+				'Use framework-specific guides for JavaScript, React, and Next.js.',
+				'Load scripts, iframes, and analytics only after the required consent.',
+				'Self-host the consent backend when managed hosting is not the right fit.',
+			],
+			name: 'c15t',
+			summary:
+				'Developer-first consent management for JavaScript, React, Next.js, and self-hosted deployments.',
+			tagline:
+				'Developer-first consent management for JavaScript, React, Next.js, and self-hosted deployments.',
+		},
 	});
-};
 
 export default generateDocsConfig();

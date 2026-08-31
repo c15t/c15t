@@ -18,7 +18,7 @@ import {
 import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
 
 // Helper to clear all cookies
-function clearAllCookies() {
+const clearAllCookies = function clearAllCookies() {
 	const cookies = document.cookie.split(';');
 	for (const cookie of cookies) {
 		const name = cookie.split('=')[0]?.trim();
@@ -26,7 +26,7 @@ function clearAllCookies() {
 			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 		}
 	}
-}
+};
 
 describe('CMP API', () => {
 	let cmpApi: CMPApi;
@@ -51,8 +51,8 @@ describe('CMP API', () => {
 		cmpApi = createCMPApi({
 			cmpId: 28,
 			cmpVersion: 1,
-			gvl: mockGVL,
 			gdprApplies: true,
+			gvl: mockGVL,
 		});
 	});
 
@@ -88,10 +88,10 @@ describe('CMP API', () => {
 				window.__tcfapi?.('ping', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data).toMatchObject({
-						gdprApplies: true,
+						cmpId: 28,
 						cmpLoaded: true,
 						cmpStatus: 'loaded',
-						cmpId: 28,
+						gdprApplies: true,
 						gvlVersion: mockGVL.vendorListVersion,
 						tcfPolicyVersion: mockGVL.tcfPolicyVersion,
 					});
@@ -232,7 +232,7 @@ describe('CMP API', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
-					callCount++;
+					callCount += 1;
 					// Second call should be from updateConsent
 					if (callCount === 2) {
 						expect(data?.eventStatus).toBe('useractioncomplete');
@@ -251,7 +251,7 @@ describe('CMP API', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
-					callCount++;
+					callCount += 1;
 					// Second call should be from setDisplayStatus
 					if (callCount === 2) {
 						expect(data?.eventStatus).toBe('cmpuishown');
@@ -268,7 +268,7 @@ describe('CMP API', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, () => {
-					callCount++;
+					callCount += 1;
 					resolve();
 				});
 			});
@@ -323,12 +323,13 @@ describe('CMP API', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, () => {
-					callCount++;
+					callCount += 1;
 					resolve();
 				});
 			});
 
-			expect(callCount).toBe(1); // Initial call
+			// Initial call
+			expect(callCount).toBe(1);
 
 			cmpApi.destroy();
 

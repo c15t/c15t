@@ -24,14 +24,14 @@
 		type?: 'button' | 'submit' | 'reset';
 	} = $props();
 
-	function handleClick(
+	const handleClick = function handleClick(
 		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
 		if (!disabled) {
 			dialog.requestClose('close-trigger');
 		}
 		onclick?.(event);
-	}
+	};
 </script>
 
 <button

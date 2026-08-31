@@ -15,7 +15,7 @@ describe('gtag', () => {
 
 	it('runs consent defaults before config calls', () => {
 		const globalRef = getTestGlobal();
-		const script = gtag({ id: 'G-ORDER', category: 'measurement' });
+		const script = gtag({ category: 'measurement', id: 'G-ORDER' });
 		globalRef.dataLayer = [];
 
 		runOnBeforeLoad(script, {
@@ -31,14 +31,14 @@ describe('gtag', () => {
 
 	it('preserves deprecated script overrides', () => {
 		const script = gtag({
-			id: 'G-OVERRIDE',
 			category: 'measurement',
+			id: 'G-OVERRIDE',
 			script: {
-				nonce: 'abc123',
-				target: 'body',
 				attributes: {
 					'data-test': '1',
 				},
+				nonce: 'abc123',
+				target: 'body',
 			},
 		});
 

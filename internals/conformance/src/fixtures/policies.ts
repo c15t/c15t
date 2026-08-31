@@ -16,32 +16,32 @@ export interface PolicyFixture {
 
 export const MINIMAL_POLICIES: readonly PolicyFixture[] = [
 	{
-		id: 'necessary',
-		label: { en: 'Necessary', de: 'Erforderlich', ar: 'ضروري' },
 		description: {
-			en: 'Required for the site to function.',
-			de: 'Erforderlich für das Funktionieren der Website.',
 			ar: 'مطلوب لكي يعمل الموقع.',
+			de: 'Erforderlich für das Funktionieren der Website.',
+			en: 'Required for the site to function.',
 		},
+		id: 'necessary',
+		label: { ar: 'ضروري', de: 'Erforderlich', en: 'Necessary' },
 		required: true,
 	},
 	{
-		id: 'measurement',
-		label: { en: 'Measurement', de: 'Messung', ar: 'قياس' },
 		description: {
-			en: 'Analytics and performance measurement.',
-			de: 'Analyse und Leistungsmessung.',
 			ar: 'التحليلات وقياس الأداء.',
+			de: 'Analyse und Leistungsmessung.',
+			en: 'Analytics and performance measurement.',
 		},
+		id: 'measurement',
+		label: { ar: 'قياس', de: 'Messung', en: 'Measurement' },
 	},
 	{
-		id: 'marketing',
-		label: { en: 'Marketing', de: 'Marketing', ar: 'تسويق' },
 		description: {
-			en: 'Targeted advertising.',
-			de: 'Zielgerichtete Werbung.',
 			ar: 'الإعلانات المستهدفة.',
+			de: 'Zielgerichtete Werbung.',
+			en: 'Targeted advertising.',
 		},
+		id: 'marketing',
+		label: { ar: 'تسويق', de: 'Marketing', en: 'Marketing' },
 	},
 ];
 

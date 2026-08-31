@@ -13,8 +13,8 @@ const VanillaCorePage = () => {
 
 	useEffect(() => {
 		const manager = configureConsentManager({
-			mode: 'c15t',
 			backendURL: '/api/bench-consent',
+			mode: 'c15t',
 		});
 		const store = createConsentManagerStore(manager);
 		storeRef.current = store;
@@ -37,7 +37,7 @@ const VanillaCorePage = () => {
 	}, []);
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>Vanilla Core Benchmark</h1>
 			<p data-testid="vanilla-core-state">Active UI: {activeUI}</p>
 			<button

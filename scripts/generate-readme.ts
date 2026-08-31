@@ -145,7 +145,7 @@ const renderNumberedWithCodeBlocks = (items: string[]) => {
 	}
 	return `${lines
 		.join('\n')
-		.replace(/\n{3,}/g, '\n\n')
+		.replace(/\n{3,}/gu, '\n\n')
 		.trim()}\n\n\n\n`;
 };
 
@@ -157,9 +157,12 @@ const addSection = (
 ) => {
 	if (!content || content.length === 0) return '';
 	const body = content.map(formatter).join('\n');
-	return `${header}\n\n\n\n\n${body}\n\n\n\n`.replace(/\n{3,}/g, '\n\n').trim();
+	return `${header}\n\n\n\n\n${body}\n\n\n\n`
+		.replace(/\n{3,}/gu, '\n\n')
+		.trim();
 };
 
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const config: PackageReadmeConfig = { ...rawConfig };
 
@@ -369,8 +372,8 @@ For further information, guides, and examples visit the [reference documentation
 	]
 		.filter((section) => isNonEmpty(section))
 		.join('\n\n')
-		.replace(/\n{3,}/g, '\n\n')
-		.replace(/\n{2,}$/, '\n'); // Remove multiple trailing newlines
+		.replace(/\n{3,}/gu, '\n\n')
+		.replace(/\n{2,}$/u, '\n'); // Remove multiple trailing newlines
 
 	return `${readmeContent.trim()}\n`;
 };

@@ -30,9 +30,9 @@ describe('matomoAnalytics', () => {
 		const globalRef = getTestGlobal();
 		const script = matomoAnalytics({
 			cloudId: 'my-site.matomo.cloud',
-			siteId: 2,
-			enableLinkTracking: true,
 			disableCookies: true,
+			enableLinkTracking: true,
+			siteId: 2,
 		});
 
 		expect(script.src).toBe('https://my-site.matomo.cloud/matomo.js');
@@ -49,9 +49,9 @@ describe('matomoAnalytics', () => {
 	it('uses consent mode with alwaysLoad and consent queue transitions', () => {
 		const globalRef = getTestGlobal();
 		const script = matomoAnalytics({
+			defaultConsent: 'required',
 			matomoUrl: 'https://analytics.example.com',
 			siteId: 1,
-			defaultConsent: 'required',
 			trackPageView: true,
 		});
 
@@ -60,22 +60,22 @@ describe('matomoAnalytics', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: false,
 				consents: deniedConsentState,
+				hasConsent: false,
+				id: script.id,
 			})
 		);
 
@@ -87,9 +87,9 @@ describe('matomoAnalytics', () => {
 	it('treats defaultConsent given as immediately granted', () => {
 		const globalRef = getTestGlobal();
 		const script = matomoAnalytics({
+			defaultConsent: 'given',
 			matomoUrl: 'https://analytics.example.com',
 			siteId: 1,
-			defaultConsent: 'given',
 			trackPageView: true,
 		});
 
@@ -98,15 +98,15 @@ describe('matomoAnalytics', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: false,
 				consents: deniedConsentState,
+				hasConsent: false,
+				id: script.id,
 			})
 		);
 

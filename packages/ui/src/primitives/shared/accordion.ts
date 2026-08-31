@@ -2,7 +2,7 @@ import { getOpenState } from './data-state';
 
 export type AccordionType = 'single' | 'multiple';
 
-export function isAccordionItemOpen(
+export const isAccordionItemOpen = function isAccordionItemOpen(
 	type: AccordionType,
 	value: string | string[] | undefined,
 	itemValue: string
@@ -12,9 +12,9 @@ export function isAccordionItemOpen(
 	}
 
 	return value === itemValue;
-}
+};
 
-export function toggleAccordionValue(params: {
+export const toggleAccordionValue = function toggleAccordionValue(params: {
 	type: AccordionType;
 	value: string | string[] | undefined;
 	itemValue: string;
@@ -34,12 +34,12 @@ export function toggleAccordionValue(params: {
 	}
 
 	return itemValue;
-}
+};
 
-export function getAccordionItemState(
+export const getAccordionItemState = function getAccordionItemState(
 	type: AccordionType,
 	value: string | string[] | undefined,
 	itemValue: string
 ) {
 	return getOpenState(isAccordionItemOpen(type, value, itemValue));
-}
+};

@@ -8,44 +8,41 @@ import { runAddStylesheetImportsCodemod } from './add-stylesheet-imports';
 
 const tempDirs: string[] = [];
 
-async function createProject(
+const createProject = async function createProject(
 	files: Record<string, string>
 ): Promise<{ root: string }> {
 	const root = await mkdtemp(join(tmpdir(), 'c15t-add-stylesheet-'));
 	tempDirs.push(root);
 
-	for (const [relativePath, content] of Object.entries(files)) {
-		const filePath = join(root, relativePath);
-		await mkdir(dirname(filePath), { recursive: true });
-		await writeFile(filePath, content, 'utf-8');
-	}
+	await Array.from(Object.entries(files)).reduce(
+		async (previousIteration, [relativePath, content]) => {
+			await previousIteration;
+			const filePath = join(root, relativePath);
+			await mkdir(dirname(filePath), { recursive: true });
+			await writeFile(filePath, content, 'utf-8');
+		},
+		Promise.resolve()
+	);
 
 	return { root };
-}
+};
 
-async function readProjectFile(
+const readProjectFile = function readProjectFile(
 	root: string,
 	relativePath: string
 ): Promise<string> {
 	return readFile(join(root, relativePath), 'utf-8');
-}
+};
 
 afterEach(async () => {
 	await Promise.all(
-		tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
+		tempDirs.splice(0).map((dir) => rm(dir, { force: true, recursive: true }))
 	);
 });
 
 describe('add-stylesheet-imports codemod', () => {
 	it('adds the React stylesheet to the imported CSS entrypoint', async () => {
 		const { root } = await createProject({
-			'src/main.tsx': [
-				"import './index.css';",
-				"import { App } from './app';",
-				'',
-				'export default App;',
-			].join('\n'),
-			'src/index.css': ':root { color: #111827; }\n',
 			'src/app.tsx': [
 				"import { ConsentBanner } from '@c15t/react';",
 				'',
@@ -53,11 +50,18 @@ describe('add-stylesheet-imports codemod', () => {
 				'  return <ConsentBanner />;',
 				'}',
 			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
+			'src/main.tsx': [
+				"import './index.css';",
+				"import { App } from './app';",
+				'',
+				'export default App;',
+			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: false,
+			projectRoot: root,
 		});
 		const indexCss = await readProjectFile(root, 'src/index.css');
 		const mainTsx = await readProjectFile(root, 'src/main.tsx');
@@ -74,12 +78,11 @@ describe('add-stylesheet-imports codemod', () => {
 
 	it('moves Next.js Tailwind 3 imports into app/globals.css and removes the JS import', async () => {
 		const { root } = await createProject({
-			'package.json': JSON.stringify({
-				name: 'tw3-next-app',
-				devDependencies: {
-					tailwindcss: '^3.4.17',
-				},
-			}),
+			'app/globals.css': [
+				'@tailwind base;',
+				'@tailwind components;',
+				'@tailwind utilities;',
+			].join('\n'),
 			'app/layout.tsx': [
 				"import '@c15t/nextjs/styles.css';",
 				"import './globals.css';",
@@ -88,11 +91,6 @@ describe('add-stylesheet-imports codemod', () => {
 				'  return <html><body>{children}</body></html>;',
 				'}',
 			].join('\n'),
-			'app/globals.css': [
-				'@tailwind base;',
-				'@tailwind components;',
-				'@tailwind utilities;',
-			].join('\n'),
 			'app/provider.tsx': [
 				"import { ConsentBanner } from '@c15t/nextjs';",
 				'',
@@ -100,11 +98,18 @@ describe('add-stylesheet-imports codemod', () => {
 				'  return <ConsentBanner />;',
 				'}',
 			].join('\n'),
+			'package.json': JSON.stringify({
+				devDependencies: {
+					tailwindcss: '^3.4.17',
+				},
+
+				name: 'tw3-next-app',
+			}),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: false,
+			projectRoot: root,
 		});
 		const globalsCss = await readProjectFile(root, 'app/globals.css');
 		const layout = await readProjectFile(root, 'app/layout.tsx');
@@ -124,13 +129,6 @@ describe('add-stylesheet-imports codemod', () => {
 
 	it('adds both base and IAB imports in order to the CSS entrypoint', async () => {
 		const { root } = await createProject({
-			'src/main.tsx': [
-				"import './index.css';",
-				"import { App } from './app';",
-				'',
-				'export default App;',
-			].join('\n'),
-			'src/index.css': ':root { color: #111827; }\n',
 			'src/app.tsx': [
 				"import { ConsentBanner } from '@c15t/react';",
 				"import { IABConsentBanner } from '@c15t/react/iab';",
@@ -142,11 +140,18 @@ describe('add-stylesheet-imports codemod', () => {
 				'  </>;',
 				'}',
 			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
+			'src/main.tsx': [
+				"import './index.css';",
+				"import { App } from './app';",
+				'',
+				'export default App;',
+			].join('\n'),
 		});
 
 		await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: false,
+			projectRoot: root,
 		});
 		const indexCss = await readProjectFile(root, 'src/index.css');
 
@@ -157,26 +162,26 @@ describe('add-stylesheet-imports codemod', () => {
 
 	it('is idempotent when the correct CSS import already exists', async () => {
 		const { root } = await createProject({
-			'src/main.tsx': [
-				"import './index.css';",
-				"import { App } from './app';",
-				'',
-				'export default App;',
+			'src/app.tsx': [
+				"import { ConsentBanner } from '@c15t/react';",
+				'export function App() { return <ConsentBanner />; }',
 			].join('\n'),
 			'src/index.css': [
 				'@import "@c15t/react/styles.css";',
 				'',
 				':root { color: #111827; }',
 			].join('\n'),
-			'src/app.tsx': [
-				"import { ConsentBanner } from '@c15t/react';",
-				'export function App() { return <ConsentBanner />; }',
+			'src/main.tsx': [
+				"import './index.css';",
+				"import { App } from './app';",
+				'',
+				'export default App;',
 			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: false,
+			projectRoot: root,
 		});
 
 		expect(result.changedFiles).toHaveLength(0);
@@ -185,6 +190,11 @@ describe('add-stylesheet-imports codemod', () => {
 
 	it('reports changes during dry runs without writing files', async () => {
 		const { root } = await createProject({
+			'src/app.tsx': [
+				"import { ConsentBanner } from '@c15t/react';",
+				'export function App() { return <ConsentBanner />; }',
+			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
 			'src/main.tsx': [
 				"import '@c15t/react/styles.css';",
 				"import './index.css';",
@@ -192,16 +202,11 @@ describe('add-stylesheet-imports codemod', () => {
 				'',
 				'export default App;',
 			].join('\n'),
-			'src/index.css': ':root { color: #111827; }\n',
-			'src/app.tsx': [
-				"import { ConsentBanner } from '@c15t/react';",
-				'export function App() { return <ConsentBanner />; }',
-			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: true,
+			projectRoot: root,
 		});
 		const mainTsx = await readProjectFile(root, 'src/main.tsx');
 		const indexCss = await readProjectFile(root, 'src/index.css');
@@ -213,13 +218,6 @@ describe('add-stylesheet-imports codemod', () => {
 
 	it('skips headless-only projects', async () => {
 		const { root } = await createProject({
-			'src/main.tsx': [
-				"import './index.css';",
-				"import { App } from './app';",
-				'',
-				'export default App;',
-			].join('\n'),
-			'src/index.css': ':root { color: #111827; }\n',
 			'src/app.tsx': [
 				"import { useConsentManager } from '@c15t/react/headless';",
 				'',
@@ -228,11 +226,18 @@ describe('add-stylesheet-imports codemod', () => {
 				'  return <div>{String(Boolean(store))}</div>;',
 				'}',
 			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
+			'src/main.tsx': [
+				"import './index.css';",
+				"import { App } from './app';",
+				'',
+				'export default App;',
+			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: false,
+			projectRoot: root,
 		});
 
 		expect(result.changedFiles).toHaveLength(0);
@@ -241,20 +246,20 @@ describe('add-stylesheet-imports codemod', () => {
 
 	it('returns an actionable error when no global CSS entrypoint exists', async () => {
 		const { root } = await createProject({
+			'src/app.tsx': [
+				"import { ConsentBanner } from '@c15t/react';",
+				'export function App() { return <ConsentBanner />; }',
+			].join('\n'),
 			'src/main.tsx': [
 				"import { App } from './app';",
 				'',
 				'export default App;',
 			].join('\n'),
-			'src/app.tsx': [
-				"import { ConsentBanner } from '@c15t/react';",
-				'export function App() { return <ConsentBanner />; }',
-			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: root,
 			dryRun: false,
+			projectRoot: root,
 		});
 
 		expect(result.changedFiles).toHaveLength(0);

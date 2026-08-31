@@ -2,7 +2,7 @@ import { setupFocusTrap } from '@c15t/ui/utils';
 import { onBeforeUnmount, watch } from 'vue';
 import type { Ref } from 'vue';
 
-export function useFocusTrap(
+export const useFocusTrap = function useFocusTrap(
 	container: Ref<HTMLElement | null>,
 	active: () => boolean
 ): void {
@@ -12,10 +12,10 @@ export function useFocusTrap(
 
 	let cleanup: (() => void) | undefined;
 
-	function stopTrap() {
+	const stopTrap = function stopTrap() {
 		cleanup?.();
 		cleanup = undefined;
-	}
+	};
 
 	watch(
 		() => [active(), container.value] as const,
@@ -25,8 +25,8 @@ export function useFocusTrap(
 				cleanup = setupFocusTrap(element);
 			}
 		},
-		{ immediate: true, flush: 'post' }
+		{ flush: 'post', immediate: true }
 	);
 
 	onBeforeUnmount(stopTrap);
-}
+};

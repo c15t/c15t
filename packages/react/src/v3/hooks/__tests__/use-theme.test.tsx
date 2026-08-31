@@ -49,8 +49,8 @@ describe('useTheme', () => {
 		const localTheme: ThemeContextValue = {
 			theme: {
 				colors: {
-					primary: '#ffffff',
 					border: '#eeeeee',
+					primary: '#ffffff',
 				},
 			},
 		};
@@ -69,9 +69,9 @@ describe('useTheme', () => {
 			noStyle: false,
 			theme: {
 				colors: {
+					border: '#eeeeee',
 					primary: '#ffffff',
 					secondary: '#111111',
-					border: '#eeeeee',
 				},
 			},
 		});

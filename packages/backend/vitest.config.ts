@@ -15,6 +15,7 @@ export default mergeConfig(
 				'~': path.resolve(__dirname, './src'),
 			},
 		},
+		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		test: {
 			environment: 'node',
 			// PGlite and SQLite get a fresh in-process database per test, so files

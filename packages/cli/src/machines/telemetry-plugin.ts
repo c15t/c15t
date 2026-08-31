@@ -60,7 +60,7 @@ const GENERATE_STAGE_NAMES: Record<string, string> = {
 function normalizeGenerateStageName(state: string): string {
 	return (
 		GENERATE_STAGE_NAMES[state] ??
-		state.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`)
+		state.replace(/[A-Z]/gu, (char) => `_${char.toLowerCase()}`)
 	);
 }
 
@@ -102,7 +102,7 @@ function normalizeCancelReason(reason?: string | null): string {
 		return normalized
 			.replace('prompt cancelled at stage:', '')
 			.trim()
-			.replace(/\s+/g, '_')
+			.replace(/\s+/gu, '_')
 			.concat('_cancelled');
 	}
 
@@ -312,7 +312,7 @@ export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
  * Useful for debugging and error reporting
  */
 export function getStateHistory(
-	subscriber: ReturnType<typeof createTelemetrySubscriber>
+	_subscriber: ReturnType<typeof createTelemetrySubscriber>
 ): StateHistoryEntry[] {
 	// The history is captured in closure, this is a placeholder
 	// for accessing it through context if needed

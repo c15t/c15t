@@ -24,13 +24,15 @@ export interface FetcherContext {
  * Removes trailing slashes from a string efficiently.
  * More performant than regex for strings with many trailing slashes.
  */
-function removeTrailingSlashes(str: string): string {
+const removeTrailingSlashes = function removeTrailingSlashes(
+	str: string
+): string {
 	let i = str.length;
 	while (i > 0 && str[i - 1] === '/') {
-		i--;
+		i -= 1;
 	}
 	return str.slice(0, i);
-}
+};
 
 /**
  * Resolves a URL path against the backend URL, handling both absolute and relative URLs.
@@ -39,7 +41,10 @@ function removeTrailingSlashes(str: string): string {
  * @param path - The path to append
  * @returns The resolved URL string
  */
-export function resolveUrl(backendURL: string, path: string): string {
+export const resolveUrl = function resolveUrl(
+	backendURL: string,
+	path: string
+): string {
 	// Case 1: backendURL is already an absolute URL (includes protocol)
 	if (ABSOLUTE_URL_REGEX.test(backendURL)) {
 		const backendURLObj = new URL(backendURL);
@@ -58,7 +63,7 @@ export function resolveUrl(backendURL: string, path: string): string {
 	const cleanBase = removeTrailingSlashes(backendURL);
 	const cleanPath = path.replace(LEADING_SLASHES_REGEX, '');
 	return `${cleanBase}/${cleanPath}`;
-}
+};
 
 /**
  * Re-export createResponseContext from shared utils for convenience
@@ -68,7 +73,8 @@ export const createResponseContext = createResponseContextShared;
 /**
  * Makes an HTTP request to the API with retry logic.
  */
-export async function fetcher<
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const fetcher = async function fetcher<
 	ResponseType,
 	BodyType = unknown,
 	QueryType = unknown,
@@ -81,14 +87,14 @@ export async function fetcher<
 	const finalRetryConfig: RetryConfig = {
 		...context.retryConfig,
 		...(options?.retryConfig || {}),
-		retryableStatusCodes:
-			options?.retryConfig?.retryableStatusCodes ??
-			context.retryConfig.retryableStatusCodes ??
-			DEFAULT_RETRY_CONFIG.retryableStatusCodes,
 		nonRetryableStatusCodes:
 			options?.retryConfig?.nonRetryableStatusCodes ??
 			context.retryConfig.nonRetryableStatusCodes ??
 			DEFAULT_RETRY_CONFIG.nonRetryableStatusCodes,
+		retryableStatusCodes:
+			options?.retryConfig?.retryableStatusCodes ??
+			context.retryConfig.retryableStatusCodes ??
+			DEFAULT_RETRY_CONFIG.retryableStatusCodes,
 	};
 
 	const {
@@ -109,7 +115,8 @@ export async function fetcher<
 	// We're using a 0-based attempt counter, so we'll make a total of maxRetries+1 attempts
 	// (initial request = attempt 0, then retries 1 through maxRetries)
 	while (attemptsMade <= (maxRetries ?? 0)) {
-		const requestId = generateUUID(); // Generate new ID for each attempt
+		// Generate new ID for each attempt
+		const requestId = generateUUID();
 		const fetchImpl = context.customFetch || globalThis.fetch;
 
 		// Resolve the full URL using the resolveUrl method
@@ -134,15 +141,17 @@ export async function fetcher<
 		}
 
 		const requestOptions: RequestInit = {
-			method: options?.method || 'GET',
-			mode: context.corsMode, // Use configured CORS mode
-			credentials: 'include', // Always include credentials by default
+			// Always include credentials by default
+			credentials: 'include',
 			headers: {
 				...C15T_VERSION_HEADERS,
 				...context.headers,
 				'X-Request-ID': requestId,
 				...options?.headers,
 			},
+			method: options?.method || 'GET',
+			// Use configured CORS mode,
+			mode: context.corsMode,
 			...options?.fetchOptions,
 		};
 
@@ -152,6 +161,7 @@ export async function fetcher<
 
 		try {
 			// Make the request
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetchImpl(url.toString(), requestOptions);
 
 			// Parse response
@@ -162,9 +172,12 @@ export async function fetcher<
 				const contentType = response.headers.get('content-type');
 				if (
 					contentType?.includes('application/json') &&
-					response.status !== 204 && // No content
-					response.headers.get('content-length') !== '0' // Explicit zero length
+					// No content
+					response.status !== 204 &&
+					// Explicit zero length
+					response.headers.get('content-length') !== '0'
 				) {
+					// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 					data = await response.json();
 				} else if (response.status === 204) {
 					// Handle No Content explicitly
@@ -180,10 +193,10 @@ export async function fetcher<
 					false,
 					null,
 					{
+						cause: parseError,
+						code: 'PARSE_ERROR',
 						message: 'Failed to parse response',
 						status: response.status,
-						code: 'PARSE_ERROR',
-						cause: parseError,
 					},
 					response
 				);
@@ -193,7 +206,8 @@ export async function fetcher<
 				if (options?.throw) {
 					throw new Error('Failed to parse response');
 				}
-				return errorResponse; // Return immediately, no retry
+				// Return immediately, no retry
+				return errorResponse;
 			}
 
 			// Determine if the request was successful
@@ -202,13 +216,15 @@ export async function fetcher<
 			if (isSuccess) {
 				const successResponse = createResponseContext<ResponseType>(
 					true,
-					data as ResponseType, // Assume data is ResponseType on success
+					// Assume data is ResponseType on success
+					data as ResponseType,
 					null,
 					response
 				);
 
 				options?.onSuccess?.(successResponse);
-				return successResponse; // Return successful response
+				// Return successful response
+				return successResponse;
 			}
 
 			// Handle API errors (non-2xx status codes)
@@ -217,18 +233,19 @@ export async function fetcher<
 				message: string;
 				code: string;
 				details: Record<string, unknown> | null;
-			} | null; // Allow data to be null if parsing failed or status was 204
+				// Allow data to be null if parsing failed or status was 204
+			} | null;
 
 			const errorResponse = createResponseContext<ResponseType>(
 				false,
 				null,
 				{
+					code: errorData?.code || 'API_ERROR',
+					details: errorData?.details || null,
 					message:
 						errorData?.message ||
 						`Request failed with status ${response.status}`,
 					status: response.status,
-					code: errorData?.code || 'API_ERROR',
-					details: errorData?.details || null,
 				},
 				response
 			);
@@ -251,8 +268,8 @@ export async function fetcher<
 				try {
 					shouldRetryThisRequest = finalRetryConfig.shouldRetry(response, {
 						attemptsMade,
-						url: url.toString(),
 						method: requestOptions.method || 'GET',
+						url: url.toString(),
 					});
 					getDebugLogger().debug(
 						`Custom retry strategy for ${path} with status ${response.status}: ${shouldRetryThisRequest}`
@@ -282,15 +299,18 @@ export async function fetcher<
 				if (options?.throw) {
 					throw new Error(errorResponse.error?.message || 'Request failed');
 				}
-				return errorResponse; // Return the error response
+				// Return the error response
+				return errorResponse;
 			}
 
 			// Increment attempt count BEFORE retrying
-			attemptsMade++;
+			attemptsMade += 1;
 
 			// Wait before retrying
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await delay(currentDelay ?? 0);
-			currentDelay = (currentDelay ?? 0) * (backoffFactor ?? 2); // Exponential backoff
+			// Exponential backoff
+			currentDelay = (currentDelay ?? 0) * (backoffFactor ?? 2);
 		} catch (fetchError) {
 			// Handle network/request errors
 			// Don't retry if it was a parse error thrown from above
@@ -298,7 +318,8 @@ export async function fetcher<
 				fetchError &&
 				(fetchError as Error).message === 'Failed to parse response'
 			) {
-				throw fetchError; // Re-throw parse errors immediately
+				// Re-throw parse errors immediately
+				throw fetchError;
 			}
 
 			const isNetworkError = !(fetchError instanceof Response);
@@ -308,15 +329,17 @@ export async function fetcher<
 				false,
 				null,
 				{
+					cause: fetchError,
+					code: 'NETWORK_ERROR',
 					message:
 						fetchError instanceof Error
 							? fetchError.message
 							: String(fetchError),
-					status: 0, // Indicate network error or similar
-					code: 'NETWORK_ERROR',
-					cause: fetchError,
+					// Indicate network error or similar,
+					status: 0,
 				},
-				null // No response object available
+				// No response object available
+				null
 			);
 
 			// Store last error response
@@ -330,19 +353,24 @@ export async function fetcher<
 				options?.onError?.(errorResponse, path);
 
 				if (options?.throw) {
-					throw fetchError; // Re-throw the original fetch error
+					// Re-throw the original fetch error
+					throw fetchError;
 				}
-				return errorResponse; // Return the error response
+				// Return the error response
+				return errorResponse;
 			}
 
 			// Increment attempt count BEFORE retrying
-			attemptsMade++;
+			attemptsMade += 1;
 
 			// Wait before retrying
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await delay(currentDelay ?? 0);
-			currentDelay = (currentDelay ?? 0) * (backoffFactor ?? 2); // Exponential backoff
+			// Exponential backoff
+			currentDelay = (currentDelay ?? 0) * (backoffFactor ?? 2);
 		}
-	} // End of while loop
+		// End of while loop
+	}
 
 	// This should be unreachable with the above logic
 	// But just in case, return the last error we encountered
@@ -352,9 +380,9 @@ export async function fetcher<
 			false,
 			null,
 			{
+				code: 'MAX_RETRIES_EXCEEDED',
 				message: `Request failed after ${maxRetries} retries`,
 				status: 0,
-				code: 'MAX_RETRIES_EXCEEDED',
 			},
 			null
 		);
@@ -366,4 +394,4 @@ export async function fetcher<
 	}
 
 	return maxRetriesErrorResponse;
-}
+};

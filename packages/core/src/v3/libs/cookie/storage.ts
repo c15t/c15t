@@ -21,7 +21,7 @@ import {
 } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
 
-function sanitizeConsentInfo(
+const sanitizeConsentInfo = function sanitizeConsentInfo(
 	consentInfo: ConsentInfo | null | undefined
 ): ConsentInfo | null | undefined {
 	if (!consentInfo) {
@@ -47,7 +47,7 @@ function sanitizeConsentInfo(
 	}
 
 	return sanitized;
-}
+};
 
 /**
  * Checks if consent data is in the v1.x legacy format that uses `id` instead of `subjectId`.
@@ -61,7 +61,9 @@ function sanitizeConsentInfo(
  *
  * @internal
  */
-function isLegacyConsentFormat(data: unknown): boolean {
+const isLegacyConsentFormat = function isLegacyConsentFormat(
+	data: unknown
+): boolean {
 	if (typeof data !== 'object' || data === null) {
 		return false;
 	}
@@ -77,7 +79,7 @@ function isLegacyConsentFormat(data: unknown): boolean {
 	const hasSubjectId = typeof consentInfo.subjectId === 'string';
 
 	return hasLegacyId && !hasSubjectId;
-}
+};
 
 /**
  * Migrates consent data from legacy storage key to new storage key.
@@ -91,7 +93,9 @@ function isLegacyConsentFormat(data: unknown): boolean {
  *
  * @internal
  */
-function migrateLegacyStorage(config?: StorageConfig): void {
+const migrateLegacyStorage = function migrateLegacyStorage(
+	config?: StorageConfig
+): void {
 	const newKey = config?.storageKey || STORAGE_KEY_V2;
 	const legacyKey = STORAGE_KEY;
 
@@ -125,103 +129,7 @@ function migrateLegacyStorage(config?: StorageConfig): void {
 	} catch (error) {
 		console.warn('[c15t] Failed to migrate legacy storage:', error);
 	}
-}
-
-/**
- * Saves consent data to both localStorage and cookie.
- *
- * @param data - Consent data to save
- * @param options - Cookie configuration options
- * @param config - Storage configuration
- *
- * @remarks
- * This function ensures dual persistence of consent data for maximum reliability.
- *
- * @throws {Error} When neither storage method succeeds
- *
- * @example
- * ```typescript
- * saveConsentToStorage({
- *   consents: { necessary: true, analytics: false },
- *   consentInfo: { time: Date.now(), type: 'custom' }
- * });
- * ```
- *
- * @public
- */
-export function saveConsentToStorage(
-	data: {
-		consents: Partial<ConsentState>;
-		consentInfo: ConsentInfo;
-		iabCustomVendorConsents?: Record<string, boolean>;
-		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
-	},
-	options?: CookieOptions,
-	config?: StorageConfig
-): void {
-	let localStorageSuccess = false;
-	let cookieSuccess = false;
-
-	const storageKey = config?.storageKey || STORAGE_KEY_V2;
-	const existing = getConsentFromStorage<{
-		consents: Partial<ConsentState>;
-		consentInfo: ConsentInfo;
-		iabCustomVendorConsents?: Record<string, boolean>;
-		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
-	}>(config);
-	const mergedData = {
-		...existing,
-		...data,
-		consentInfo: sanitizeConsentInfo(
-			data.consentInfo || existing?.consentInfo
-				? {
-						...(existing?.consentInfo ?? {}),
-						...(data.consentInfo ?? {}),
-					}
-				: undefined
-		),
-		iabCustomVendorConsents:
-			data.iabCustomVendorConsents ?? existing?.iabCustomVendorConsents,
-		iabCustomVendorLegitimateInterests:
-			data.iabCustomVendorLegitimateInterests ??
-			existing?.iabCustomVendorLegitimateInterests,
-	};
-	const cleanedData = { ...mergedData };
-	if (
-		!cleanedData.iabCustomVendorConsents ||
-		Object.keys(cleanedData.iabCustomVendorConsents).length === 0
-	) {
-		delete cleanedData.iabCustomVendorConsents;
-	}
-	if (
-		!cleanedData.iabCustomVendorLegitimateInterests ||
-		Object.keys(cleanedData.iabCustomVendorLegitimateInterests).length === 0
-	) {
-		delete cleanedData.iabCustomVendorLegitimateInterests;
-	}
-
-	// Save to localStorage
-	try {
-		if (typeof window !== 'undefined' && window.localStorage) {
-			window.localStorage.setItem(storageKey, JSON.stringify(cleanedData));
-			localStorageSuccess = true;
-		}
-	} catch (error) {
-		console.warn('Failed to save consent to localStorage:', error);
-	}
-
-	// Save to cookie
-	try {
-		setCookie(storageKey, cleanedData, options, config);
-		cookieSuccess = true;
-	} catch (error) {
-		console.warn('Failed to save consent to cookie:', error);
-	}
-
-	if (!localStorageSuccess && !cookieSuccess) {
-		throw new Error('Failed to save consent to any storage method');
-	}
-}
+};
 
 /**
  * Normalizes consent data to ensure all consent values are explicitly set.
@@ -239,7 +147,7 @@ export function saveConsentToStorage(
  *
  * @internal
  */
-function normalizeConsentData<
+const normalizeConsentData = function normalizeConsentData<
 	DataType extends { consents?: Partial<ConsentState> },
 >(data: DataType): DataType {
 	const consents = data.consents || {};
@@ -259,11 +167,11 @@ function normalizeConsentData<
 		...data,
 		consents: normalizedConsents as ConsentState,
 	};
-}
+};
 
-function normalizeStoredConsentData<ReturnType = unknown>(
-	data: ReturnType
-): ReturnType {
+const normalizeStoredConsentData = function normalizeStoredConsentData<
+	ReturnType = unknown,
+>(data: ReturnType): ReturnType {
 	if (data && typeof data === 'object') {
 		const normalizedData = normalizeConsentData(data as never) as
 			| (ReturnType & { consentInfo?: ConsentInfo | null })
@@ -287,58 +195,55 @@ function normalizeStoredConsentData<ReturnType = unknown>(
 	}
 
 	return data;
-}
-
-function decodeCookieValue(value: string): string {
-	try {
-		return decodeURIComponent(value);
-	} catch {
-		return value;
-	}
-}
-
-function readCookieValueFromHeader(
-	cookieHeader: string | undefined,
-	name: string
-): string | undefined {
-	if (!cookieHeader) return undefined;
-
-	const nameEQ = `${name}=`;
-	for (const cookie of cookieHeader.split(';')) {
-		const trimmed = cookie.trim();
-		if (trimmed.startsWith(nameEQ)) {
-			return trimmed.substring(nameEQ.length);
-		}
-	}
-
-	return undefined;
-}
+};
 
 /**
- * Retrieves consent data from a request cookie header or browser cookie
- * string without touching localStorage or mutating cookies.
+ * Deletes consent data from both localStorage and cookie.
  *
- * @typeParam ReturnType - The expected type of the consent data
- *
- * @param cookieHeader - Raw `Cookie` header value, or `document.cookie`.
+ * @param options - Cookie configuration options
  * @param config - Storage configuration
- * @returns Consent data or null if not found
+ *
+ * @remarks
+ * This ensures complete removal of consent data from all storage locations,
+ * including legacy storage keys.
+ *
+ * @example
+ * ```typescript
+ * deleteConsentFromStorage();
+ * ```
  *
  * @public
  */
-export function getConsentFromCookieHeader<ReturnType = unknown>(
-	cookieHeader: string | undefined,
+export const deleteConsentFromStorage = function deleteConsentFromStorage(
+	options?: CookieOptions,
 	config?: StorageConfig
-): ReturnType | null {
+): void {
 	const storageKey = config?.storageKey || STORAGE_KEY_V2;
-	const rawValue = readCookieValueFromHeader(cookieHeader, storageKey);
-	if (!rawValue) return null;
 
-	const parsed = parseCookieValue<ReturnType>(decodeCookieValue(rawValue));
-	if (!parsed) return null;
+	// Remove from localStorage (both new and legacy keys)
+	try {
+		if (typeof window !== 'undefined' && window.localStorage) {
+			window.localStorage.removeItem(storageKey);
+			// Also remove legacy key if it exists
+			if (storageKey !== STORAGE_KEY) {
+				window.localStorage.removeItem(STORAGE_KEY);
+			}
+		}
+	} catch (error) {
+		console.warn('Failed to remove consent from localStorage:', error);
+	}
 
-	return normalizeStoredConsentData(parsed);
-}
+	// Remove cookie (both new and legacy keys)
+	try {
+		deleteCookie(storageKey, options, config);
+		// Also remove legacy cookie if it exists
+		if (storageKey !== STORAGE_KEY) {
+			deleteCookie(STORAGE_KEY, options, config);
+		}
+	} catch (error) {
+		console.warn('Failed to remove consent cookie:', error);
+	}
+};
 
 /**
  * Retrieves consent data from localStorage or cookie (with fallback).
@@ -378,9 +283,10 @@ export function getConsentFromCookieHeader<ReturnType = unknown>(
  *
  * @public
  */
-export function getConsentFromStorage<ReturnType = unknown>(
-	config?: StorageConfig
-): ReturnType | null {
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const getConsentFromStorage = function getConsentFromStorage<
+	ReturnType = unknown,
+>(config?: StorageConfig): ReturnType | null {
 	// Attempt migration before reading
 	migrateLegacyStorage(config);
 
@@ -516,52 +422,157 @@ export function getConsentFromStorage<ReturnType = unknown>(
 
 	// Normalize consent data to ensure all values are explicit booleans
 	return chosenData ? normalizeStoredConsentData(chosenData) : chosenData;
-}
+};
 
 /**
- * Deletes consent data from both localStorage and cookie.
+ * Saves consent data to both localStorage and cookie.
  *
+ * @param data - Consent data to save
  * @param options - Cookie configuration options
  * @param config - Storage configuration
  *
  * @remarks
- * This ensures complete removal of consent data from all storage locations,
- * including legacy storage keys.
+ * This function ensures dual persistence of consent data for maximum reliability.
+ *
+ * @throws {Error} When neither storage method succeeds
  *
  * @example
  * ```typescript
- * deleteConsentFromStorage();
+ * saveConsentToStorage({
+ *   consents: { necessary: true, analytics: false },
+ *   consentInfo: { time: Date.now(), type: 'custom' }
+ * });
  * ```
  *
  * @public
  */
-export function deleteConsentFromStorage(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const saveConsentToStorage = function saveConsentToStorage(
+	data: {
+		consents: Partial<ConsentState>;
+		consentInfo: ConsentInfo;
+		iabCustomVendorConsents?: Record<string, boolean>;
+		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+	},
 	options?: CookieOptions,
 	config?: StorageConfig
 ): void {
-	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	let localStorageSuccess = false;
+	let cookieSuccess = false;
 
-	// Remove from localStorage (both new and legacy keys)
+	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	const existing = getConsentFromStorage<{
+		consents: Partial<ConsentState>;
+		consentInfo: ConsentInfo;
+		iabCustomVendorConsents?: Record<string, boolean>;
+		iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+	}>(config);
+	const mergedData = {
+		...existing,
+		...data,
+		consentInfo: sanitizeConsentInfo(
+			data.consentInfo || existing?.consentInfo
+				? {
+						...(existing?.consentInfo ?? {}),
+						...(data.consentInfo ?? {}),
+					}
+				: undefined
+		),
+		iabCustomVendorConsents:
+			data.iabCustomVendorConsents ?? existing?.iabCustomVendorConsents,
+		iabCustomVendorLegitimateInterests:
+			data.iabCustomVendorLegitimateInterests ??
+			existing?.iabCustomVendorLegitimateInterests,
+	};
+	const cleanedData = { ...mergedData };
+	if (
+		!cleanedData.iabCustomVendorConsents ||
+		Object.keys(cleanedData.iabCustomVendorConsents).length === 0
+	) {
+		delete cleanedData.iabCustomVendorConsents;
+	}
+	if (
+		!cleanedData.iabCustomVendorLegitimateInterests ||
+		Object.keys(cleanedData.iabCustomVendorLegitimateInterests).length === 0
+	) {
+		delete cleanedData.iabCustomVendorLegitimateInterests;
+	}
+
+	// Save to localStorage
 	try {
 		if (typeof window !== 'undefined' && window.localStorage) {
-			window.localStorage.removeItem(storageKey);
-			// Also remove legacy key if it exists
-			if (storageKey !== STORAGE_KEY) {
-				window.localStorage.removeItem(STORAGE_KEY);
-			}
+			window.localStorage.setItem(storageKey, JSON.stringify(cleanedData));
+			localStorageSuccess = true;
 		}
 	} catch (error) {
-		console.warn('Failed to remove consent from localStorage:', error);
+		console.warn('Failed to save consent to localStorage:', error);
 	}
 
-	// Remove cookie (both new and legacy keys)
+	// Save to cookie
 	try {
-		deleteCookie(storageKey, options, config);
-		// Also remove legacy cookie if it exists
-		if (storageKey !== STORAGE_KEY) {
-			deleteCookie(STORAGE_KEY, options, config);
-		}
+		setCookie(storageKey, cleanedData, options, config);
+		cookieSuccess = true;
 	} catch (error) {
-		console.warn('Failed to remove consent cookie:', error);
+		console.warn('Failed to save consent to cookie:', error);
 	}
-}
+
+	if (!localStorageSuccess && !cookieSuccess) {
+		throw new Error('Failed to save consent to any storage method');
+	}
+};
+
+const decodeCookieValue = function decodeCookieValue(value: string): string {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+};
+
+const readCookieValueFromHeader = function readCookieValueFromHeader(
+	cookieHeader: string | undefined,
+	name: string
+): string | undefined {
+	if (!cookieHeader) {
+		return undefined;
+	}
+
+	const nameEQ = `${name}=`;
+	for (const cookie of cookieHeader.split(';')) {
+		const trimmed = cookie.trim();
+		if (trimmed.startsWith(nameEQ)) {
+			return trimmed.substring(nameEQ.length);
+		}
+	}
+
+	return undefined;
+};
+
+/**
+ * Retrieves consent data from a request cookie header or browser cookie
+ * string without touching localStorage or mutating cookies.
+ *
+ * @typeParam ReturnType - The expected type of the consent data
+ *
+ * @param cookieHeader - Raw `Cookie` header value, or `document.cookie`.
+ * @param config - Storage configuration
+ * @returns Consent data or null if not found
+ *
+ * @public
+ */
+export const getConsentFromCookieHeader = function getConsentFromCookieHeader<
+	ReturnType = unknown,
+>(cookieHeader: string | undefined, config?: StorageConfig): ReturnType | null {
+	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	const rawValue = readCookieValueFromHeader(cookieHeader, storageKey);
+	if (!rawValue) {
+		return null;
+	}
+
+	const parsed = parseCookieValue<ReturnType>(decodeCookieValue(rawValue));
+	if (!parsed) {
+		return null;
+	}
+
+	return normalizeStoredConsentData(parsed);
+};

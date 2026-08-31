@@ -8,12 +8,14 @@
  *
  * @example
  * ```ts
- * trimToUndefined('  https://cdn.example.com  '); // 'https://cdn.example.com'
+ * trimToUndefined(', https://cdn.example.com  '); // 'https://cdn.example.com'
  * trimToUndefined('   '); // undefined
  * trimToUndefined(undefined); // undefined
  * ```
  */
-export function trimToUndefined(value: string | undefined): string | undefined {
+export const trimToUndefined = function trimToUndefined(
+	value: string | undefined
+): string | undefined {
 	if (value === undefined) {
 		return undefined;
 	}
@@ -24,7 +26,7 @@ export function trimToUndefined(value: string | undefined): string | undefined {
 	}
 
 	return trimmed;
-}
+};
 
 /**
  * Resolves a script URL from an optional override and a required fallback.
@@ -53,7 +55,7 @@ export function trimToUndefined(value: string | undefined): string | undefined {
  * // 'https://custom.com/script.js'
  * ```
  */
-export function resolveScriptUrl(
+export const resolveScriptUrl = function resolveScriptUrl(
 	override: string | undefined,
 	fallback: string
 ): string {
@@ -62,7 +64,7 @@ export function resolveScriptUrl(
 	}
 
 	return fallback;
-}
+};
 
 /**
  * Removes leading slash characters without using a regular expression.
@@ -70,14 +72,16 @@ export function resolveScriptUrl(
  * This helper is used on caller-controlled URL fragments, so it intentionally
  * stays linear even for very long repeated slash input.
  */
-export function stripLeadingSlashes(value: string): string {
+export const stripLeadingSlashes = function stripLeadingSlashes(
+	value: string
+): string {
 	let index = 0;
 	while (index < value.length && value.charCodeAt(index) === 47) {
 		index += 1;
 	}
 
 	return index === 0 ? value : value.slice(index);
-}
+};
 
 /**
  * Removes trailing slash characters without using a regular expression.
@@ -85,14 +89,16 @@ export function stripLeadingSlashes(value: string): string {
  * This helper is used on caller-controlled URL fragments, so it intentionally
  * stays linear even for very long repeated slash input.
  */
-export function stripTrailingSlashes(value: string): string {
+export const stripTrailingSlashes = function stripTrailingSlashes(
+	value: string
+): string {
 	let end = value.length;
 	while (end > 0 && value.charCodeAt(end - 1) === 47) {
 		end -= 1;
 	}
 
 	return end === value.length ? value : value.slice(0, end);
-}
+};
 
 /**
  * Joins a base URL and path with exactly one slash between them.
@@ -110,7 +116,10 @@ export function stripTrailingSlashes(value: string): string {
  * // 'https://example.com/script.js'
  * ```
  */
-export function joinUrlPath(base: string, path: string): string {
+export const joinUrlPath = function joinUrlPath(
+	base: string,
+	path: string
+): string {
 	const trimmedBase = base.trim();
 	const trimmedPath = path.trim();
 
@@ -131,4 +140,4 @@ export function joinUrlPath(base: string, path: string): string {
 	}
 
 	return `${stripTrailingSlashes(trimmedBase)}/${stripLeadingSlashes(trimmedPath)}`;
-}
+};

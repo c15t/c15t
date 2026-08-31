@@ -6,33 +6,33 @@ import type {
 	MetricSampleSet,
 } from './schema';
 
-export function evaluateBudget(
+export const evaluateBudget = function evaluateBudget(
 	budget: MetricBudget,
 	headMetric: MetricSampleSet | undefined,
 	baseMetric?: MetricSampleSet
 ): MetricBudgetResult {
 	if (!headMetric) {
 		return {
+			actual: null,
+			comparator: budget.comparator,
+			message: `Missing metric "${budget.metric}"`,
 			metric: budget.metric,
 			pass: false,
-			comparator: budget.comparator,
-			actual: null,
-			threshold: budget.threshold,
 			secondaryThreshold: budget.secondaryThreshold,
-			message: `Missing metric "${budget.metric}"`,
+			threshold: budget.threshold,
 		};
 	}
 
 	const headMedian = headMetric.median as number | null;
 	if (headMedian === null) {
 		return {
+			actual: null,
+			comparator: budget.comparator,
+			message: `Metric "${budget.metric}" has no supported samples`,
 			metric: budget.metric,
 			pass: false,
-			comparator: budget.comparator,
-			actual: null,
-			threshold: budget.threshold,
 			secondaryThreshold: budget.secondaryThreshold,
-			message: `Metric "${budget.metric}" has no supported samples`,
+			threshold: budget.threshold,
 		};
 	}
 	const baseMedian = baseMetric?.median ?? 0;
@@ -42,32 +42,33 @@ export function evaluateBudget(
 			? Number((((headMedian - baseMedian) / baseMedian) * 100).toFixed(3))
 			: null;
 
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (budget.comparator) {
 		case 'delta-bytes-lte': {
 			const pass = delta <= budget.threshold;
 			return {
-				metric: budget.metric,
-				pass,
-				comparator: budget.comparator,
 				actual: delta,
-				threshold: budget.threshold,
+				comparator: budget.comparator,
 				message: pass
 					? `${budget.metric} increased by ${delta.toFixed(2)} bytes`
 					: `${budget.metric} exceeded byte budget by ${(delta - budget.threshold).toFixed(2)} bytes`,
+				metric: budget.metric,
+				pass,
+				threshold: budget.threshold,
 			};
 		}
 		case 'percent-lte': {
 			const actual = deltaPercent ?? 0;
 			const pass = actual <= budget.threshold;
 			return {
-				metric: budget.metric,
-				pass,
-				comparator: budget.comparator,
 				actual,
-				threshold: budget.threshold,
+				comparator: budget.comparator,
 				message: pass
 					? `${budget.metric} changed by ${actual.toFixed(2)}%`
 					: `${budget.metric} regressed by ${actual.toFixed(2)}%`,
+				metric: budget.metric,
+				pass,
+				threshold: budget.threshold,
 			};
 		}
 		case 'absolute-and-percent-lte': {
@@ -77,15 +78,15 @@ export function evaluateBudget(
 				actualPercent <=
 					(budget.secondaryThreshold ?? Number.POSITIVE_INFINITY);
 			return {
-				metric: budget.metric,
-				pass,
-				comparator: budget.comparator,
 				actual: delta,
-				threshold: budget.threshold,
-				secondaryThreshold: budget.secondaryThreshold,
+				comparator: budget.comparator,
 				message: pass
 					? `${budget.metric} changed by ${delta.toFixed(2)} (${actualPercent.toFixed(2)}%)`
 					: `${budget.metric} regressed by ${delta.toFixed(2)} (${actualPercent.toFixed(2)}%)`,
+				metric: budget.metric,
+				pass,
+				secondaryThreshold: budget.secondaryThreshold,
+				threshold: budget.threshold,
 			};
 		}
 		case 'count-eq':
@@ -93,20 +94,20 @@ export function evaluateBudget(
 			const actual = headMedian;
 			const pass = actual === budget.threshold;
 			return {
-				metric: budget.metric,
-				pass,
-				comparator: budget.comparator,
 				actual,
-				threshold: budget.threshold,
+				comparator: budget.comparator,
 				message: pass
 					? `${budget.metric} matched expected value ${budget.threshold}`
 					: `${budget.metric} expected ${budget.threshold} but saw ${actual}`,
+				metric: budget.metric,
+				pass,
+				threshold: budget.threshold,
 			};
 		}
 	}
-}
+};
 
-export function toMarkdownComparison(
+export const toMarkdownComparison = function toMarkdownComparison(
 	comparison: BenchmarkComparisonResult
 ): string {
 	const lines = [
@@ -155,18 +156,18 @@ export function toMarkdownComparison(
 	}
 
 	return `${lines.join('\n')}\n`;
-}
+};
 
-export function indexMetrics(
+export const indexMetrics = function indexMetrics(
 	result: BenchmarkResult
 ): Map<string, MetricSampleSet> {
 	return new Map(result.metrics.map((metric) => [metric.name, metric]));
-}
+};
 
-export function hasFailingBudgets(
+export const hasFailingBudgets = function hasFailingBudgets(
 	comparison: BenchmarkComparisonResult
 ): boolean {
 	return comparison.results.some((result) =>
 		result.budgets.some((budget) => !budget.pass)
 	);
-}
+};

@@ -30,7 +30,7 @@ export interface ManifestCacheOptions {
 	readonly staleWhileRevalidate?: number;
 }
 
-function normalizeCacheSeconds(
+const normalizeCacheSeconds = function normalizeCacheSeconds(
 	value: number | undefined,
 	fallback: number
 ): number {
@@ -40,9 +40,9 @@ function normalizeCacheSeconds(
 	return Number.isFinite(value) && value !== undefined && value >= 0
 		? Math.floor(value)
 		: fallback;
-}
+};
 
-export function createManifestCacheControl(
+export const createManifestCacheControl = function createManifestCacheControl(
 	cache: ManifestCacheOptions | undefined
 ): string {
 	const sMaxAge = normalizeCacheSeconds(
@@ -54,7 +54,7 @@ export function createManifestCacheControl(
 		DEFAULT_MANIFEST_STALE_WHILE_REVALIDATE
 	);
 	return `public, s-maxage=${sMaxAge}, stale-while-revalidate=${staleWhileRevalidate}`;
-}
+};
 
 export interface ManifestResult {
 	readonly body: unknown;
@@ -69,7 +69,7 @@ export interface ManifestResult {
  * the slice is derived from the same manifest, so it cannot drift from the
  * full document.
  */
-export async function buildManifestResponse(
+export const buildManifestResponse = async function buildManifestResponse(
 	config: ConsentManifestConfig,
 	cache: ManifestCacheOptions | undefined,
 	language: string | null
@@ -80,9 +80,10 @@ export async function buildManifestResponse(
 		body: language
 			? sliceConsentManifestLanguage(manifest, language)
 			: manifest,
+		cacheControl: createManifestCacheControl(cache),
+
 		// The revision already fingerprints the manifest, so it is the etag.
 		// Deriving a second hash would risk the two disagreeing.
 		etag: `"${manifest.revision}"`,
-		cacheControl: createManifestCacheControl(cache),
 	};
-}
+};

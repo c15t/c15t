@@ -41,14 +41,14 @@ describe('createIframeManager', () => {
 	describe('initializeIframeBlocker', () => {
 		it('should initialize iframe blocker with config and consents', () => {
 			const mockState: Partial<ConsentStoreState> = {
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {
-					necessary: true,
-					functionality: false,
 					experience: false,
+					functionality: false,
 					marketing: true,
 					measurement: false,
+					necessary: true,
 				},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			};
 
 			mockGet.mockReturnValue(mockState);
@@ -66,16 +66,16 @@ describe('createIframeManager', () => {
 		it('should not initialize iframe blocker when already initialized', () => {
 			// First initialization
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 
 			manager.initializeIframeBlocker();
 
 			// Second initialization should not process again
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 
 			manager.initializeIframeBlocker();
@@ -88,8 +88,8 @@ describe('createIframeManager', () => {
 
 		it('should respect disableAutomaticBlocking config', () => {
 			mockGet.mockReturnValue({
-				iframeBlockerConfig: { disableAutomaticBlocking: true },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: true },
 			});
 
 			manager.initializeIframeBlocker();
@@ -110,8 +110,8 @@ describe('createIframeManager', () => {
 			]);
 
 			mockGet.mockReturnValue({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				updateConsentCategories: mockUpdateConsentCategories,
 			});
 
@@ -133,8 +133,8 @@ describe('createIframeManager', () => {
 			vi.mocked(getIframeConsentCategories).mockReturnValueOnce([]);
 
 			mockGet.mockReturnValue({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				updateConsentCategories: mockUpdateConsentCategories,
 			});
 
@@ -151,17 +151,17 @@ describe('createIframeManager', () => {
 		it('should reprocess all iframes when blocker is active', () => {
 			// First initialize the blocker
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 			manager.initializeIframeBlocker();
 
 			const mockConsents = {
-				necessary: true,
-				functionality: true,
 				experience: false,
+				functionality: true,
 				marketing: true,
 				measurement: false,
+				necessary: true,
 			};
 
 			mockGet.mockReturnValue({
@@ -193,15 +193,15 @@ describe('createIframeManager', () => {
 		it('should disconnect observer and mark as inactive', () => {
 			// First initialize
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 			manager.initializeIframeBlocker();
 
 			// Then destroy
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 			manager.destroyIframeBlocker();
 
@@ -219,17 +219,17 @@ describe('createIframeManager', () => {
 	describe('integration scenarios', () => {
 		it('should handle full lifecycle correctly', () => {
 			const initialConsents = {
-				necessary: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			};
 
 			// Initialize
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: initialConsents,
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 
 			manager.initializeIframeBlocker();
@@ -253,8 +253,8 @@ describe('createIframeManager', () => {
 
 			// Destroy
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 			manager.destroyIframeBlocker();
 			expect(mockObserver.disconnect).toHaveBeenCalled();
@@ -263,8 +263,8 @@ describe('createIframeManager', () => {
 		it('should handle multiple consent updates', () => {
 			// Initialize first
 			mockGet.mockReturnValueOnce({
-				iframeBlockerConfig: { disableAutomaticBlocking: false },
 				consents: {},
+				iframeBlockerConfig: { disableAutomaticBlocking: false },
 			});
 			manager.initializeIframeBlocker();
 
@@ -273,8 +273,8 @@ describe('createIframeManager', () => {
 
 			// Multiple updates
 			const consents1 = { marketing: true };
-			const consents2 = { marketing: false, functionality: true };
-			const consents3 = { marketing: true, functionality: true };
+			const consents2 = { functionality: true, marketing: false };
+			const consents3 = { functionality: true, marketing: true };
 
 			mockGet.mockReturnValueOnce({
 				consents: consents1,

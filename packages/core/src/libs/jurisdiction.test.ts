@@ -67,12 +67,12 @@ describe('checkJurisdiction', () => {
 
 	describe('Other specific jurisdictions', () => {
 		const jurisdictionCases = [
-			{ country: 'CH', code: 'CH', message: '' },
-			{ country: 'BR', code: 'BR', message: '' },
-			{ country: 'CA', code: 'PIPEDA', message: '' },
-			{ country: 'AU', code: 'AU', message: '' },
-			{ country: 'JP', code: 'APPI', message: '' },
-			{ country: 'KR', code: 'PIPA', message: '' },
+			{ code: 'CH', country: 'CH', message: '' },
+			{ code: 'BR', country: 'BR', message: '' },
+			{ code: 'PIPEDA', country: 'CA', message: '' },
+			{ code: 'AU', country: 'AU', message: '' },
+			{ code: 'APPI', country: 'JP', message: '' },
+			{ code: 'PIPA', country: 'KR', message: '' },
 		] as const;
 
 		it.each(jurisdictionCases)(
@@ -87,16 +87,26 @@ describe('checkJurisdiction', () => {
 
 	describe('Non-regulated countries', () => {
 		const nonRegulatedCountries = [
-			'US', // United States
-			'RU', // Russia
-			'CN', // China
-			'IN', // India
-			'MX', // Mexico
-			'AR', // Argentina
-			'EG', // Egypt
-			'ZA', // South Africa
-			'TH', // Thailand
-			'PH', // Philippines
+			// United States
+			'US',
+			// Russia
+			'RU',
+			// China
+			'CN',
+			// India
+			'IN',
+			// Mexico
+			'MX',
+			// Argentina
+			'AR',
+			// Egypt
+			'EG',
+			// South Africa
+			'ZA',
+			// Thailand
+			'TH',
+			// Philippines
+			'PH',
 		];
 
 		it.each(nonRegulatedCountries)(
@@ -131,15 +141,15 @@ describe('checkJurisdiction', () => {
 
 		it('should handle mixed case country codes across different jurisdictions', () => {
 			const testCases = [
-				{ input: 'de', expectedJurisdiction: 'GDPR' },
-				{ input: 'De', expectedJurisdiction: 'GDPR' },
-				{ input: 'DE', expectedJurisdiction: 'GDPR' },
-				{ input: 'ch', expectedJurisdiction: 'CH' },
-				{ input: 'Ch', expectedJurisdiction: 'CH' },
-				{ input: 'CH', expectedJurisdiction: 'CH' },
-				{ input: 'ca', expectedJurisdiction: 'PIPEDA' },
-				{ input: 'Ca', expectedJurisdiction: 'PIPEDA' },
-				{ input: 'CA', expectedJurisdiction: 'PIPEDA' },
+				{ expectedJurisdiction: 'GDPR', input: 'de' },
+				{ expectedJurisdiction: 'GDPR', input: 'De' },
+				{ expectedJurisdiction: 'GDPR', input: 'DE' },
+				{ expectedJurisdiction: 'CH', input: 'ch' },
+				{ expectedJurisdiction: 'CH', input: 'Ch' },
+				{ expectedJurisdiction: 'CH', input: 'CH' },
+				{ expectedJurisdiction: 'PIPEDA', input: 'ca' },
+				{ expectedJurisdiction: 'PIPEDA', input: 'Ca' },
+				{ expectedJurisdiction: 'PIPEDA', input: 'CA' },
 			] as const;
 
 			for (const { input, expectedJurisdiction } of testCases) {
@@ -225,63 +235,63 @@ describe('checkJurisdiction', () => {
 			// Test one representative from each jurisdiction group
 			const testCases = [
 				{
+					expectedJurisdiction: 'GDPR' as const,
+					expectedShow: true,
 					input: 'DE',
-					expectedJurisdiction: 'GDPR' as const,
-					expectedShow: true,
 				},
 				{
+					expectedJurisdiction: 'GDPR' as const,
+					expectedShow: true,
 					input: 'NO',
-					expectedJurisdiction: 'GDPR' as const,
-					expectedShow: true,
 				},
 				{
+					expectedJurisdiction: 'GDPR' as const,
+					expectedShow: true,
 					input: 'GB',
-					expectedJurisdiction: 'GDPR' as const,
-					expectedShow: true,
 				},
 				{
-					input: 'CH',
 					expectedJurisdiction: 'CH' as const,
 					expectedShow: true,
+					input: 'CH',
 				},
 				{
-					input: 'BR',
 					expectedJurisdiction: 'BR' as const,
 					expectedShow: true,
+					input: 'BR',
 				},
 				{
-					input: 'CA',
 					expectedJurisdiction: 'PIPEDA' as const,
 					expectedShow: true,
+					input: 'CA',
 				},
 				{
-					input: 'AU',
 					expectedJurisdiction: 'AU' as const,
 					expectedShow: true,
+					input: 'AU',
 				},
 				{
-					input: 'JP',
 					expectedJurisdiction: 'APPI' as const,
 					expectedShow: true,
+					input: 'JP',
 				},
 				{
-					input: 'KR',
 					expectedJurisdiction: 'PIPA' as const,
 					expectedShow: true,
+					input: 'KR',
 				},
 				{
-					input: 'US',
 					expectedJurisdiction: 'NONE' as const,
 					expectedShow: false,
+					input: 'US',
 				},
 				{
-					input: null,
 					expectedJurisdiction: 'NONE' as const,
 					expectedShow: true,
+					input: null,
 				},
 			];
 
-			for (const { input, expectedJurisdiction, expectedShow } of testCases) {
+			for (const { input, expectedJurisdiction, _expectedShow } of testCases) {
 				const result = checkJurisdiction(input);
 
 				expect(result).toBe(expectedJurisdiction);

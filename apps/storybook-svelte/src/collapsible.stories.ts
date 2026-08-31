@@ -23,18 +23,18 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
+		description: consentTypes.measurement.description,
 		open: true,
 		title: consentTypes.measurement.title,
-		description: consentTypes.measurement.description,
 	},
 	play: toggleOpenClose,
 };
 
 export const ClosedByDefault: Story = {
 	args: {
+		description: consentTypes.functionality.description,
 		open: false,
 		title: consentTypes.functionality.title,
-		description: consentTypes.functionality.description,
 	},
 	play: startsClosedByDefault,
 };

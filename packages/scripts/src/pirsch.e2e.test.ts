@@ -41,12 +41,12 @@ describe('pirsch contract', () => {
 
 		const script = {
 			...pirsch({
-				identificationCode: 'PIRSCH-CONTRACT',
 				dev: 'example.com',
+				disablePageViews: true,
 				domain: 'rollup.example.com:ROLLUP_CODE',
 				eventEndpoint: 'https://analytics.example.com/event',
 				hitEndpoint: 'https://analytics.example.com/hit',
-				disablePageViews: true,
+				identificationCode: 'PIRSCH-CONTRACT',
 			}),
 			id: 'pirsch-contract',
 		};

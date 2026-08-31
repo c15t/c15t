@@ -18,6 +18,42 @@ export type LogFormatter = (
 const formatters: Record<string, LogFormatter> = {};
 
 /**
+ * Format additional arguments for logging in a structured way.
+ *
+ * @param args - Array of arguments to format
+ * @returns Formatted string representation of arguments
+ */
+export const formatArgs = (args: unknown[]): string => {
+	if (args.length === 0) {
+		return '';
+	}
+
+	return `\n${args
+		.map((arg) => {
+			if (arg === null) {
+				return '  - null';
+			}
+			if (arg === undefined) {
+				return '  - undefined';
+			}
+
+			try {
+				// Handle Error objects specially
+				if (arg instanceof Error) {
+					return `  - ${arg.name}: ${arg.message}\n    ${arg.stack || ''}`;
+				}
+
+				// Format other objects
+				return `  - ${JSON.stringify(arg, null, 2).replace(/\n/gu, '\n    ')}`;
+			} catch {
+				// Fallback for objects that can't be stringified
+				return `  - [Object: ${Object.prototype.toString.call(arg)}]`;
+			}
+		})
+		.join('\n')}`;
+};
+
+/**
  * Default formatter - formatted output with color and timestamp.
  */
 const defaultFormatter: LogFormatter = (
@@ -65,42 +101,6 @@ const defaultFormatter: LogFormatter = (
 };
 
 /**
- * Format additional arguments for logging in a structured way.
- *
- * @param args - Array of arguments to format
- * @returns Formatted string representation of arguments
- */
-export const formatArgs = (args: unknown[]): string => {
-	if (args.length === 0) {
-		return '';
-	}
-
-	return `\n${args
-		.map((arg) => {
-			if (arg === null) {
-				return '  - null';
-			}
-			if (arg === undefined) {
-				return '  - undefined';
-			}
-
-			try {
-				// Handle Error objects specially
-				if (arg instanceof Error) {
-					return `  - ${arg.name}: ${arg.message}\n    ${arg.stack || ''}`;
-				}
-
-				// Format other objects
-				return `  - ${JSON.stringify(arg, null, 2).replace(/\n/g, '\n    ')}`;
-			} catch {
-				// Fallback for objects that can't be stringified
-				return `  - [Object: ${Object.prototype.toString.call(arg)}]`;
-			}
-		})
-		.join('\n')}`;
-};
-
-/**
  * Next.js specific formatter with time-only timestamps and cleaner format
  */
 export const nextjsFormatter: LogFormatter = (
@@ -145,9 +145,8 @@ export const registerFormatter = (
  * @param name - The formatter name to retrieve
  * @returns The formatter function
  */
-export const getFormatter = (name = 'default'): LogFormatter => {
-	return formatters[name] || defaultFormatter;
-};
+export const getFormatter = (name = 'default'): LogFormatter =>
+	formatters[name] || defaultFormatter;
 
 /**
  * Format a log message using the specified formatter.

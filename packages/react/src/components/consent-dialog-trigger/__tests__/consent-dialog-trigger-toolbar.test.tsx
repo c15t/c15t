@@ -15,28 +15,11 @@ import { GlobalThemeContext } from '~/context/theme-context';
 
 import { ConsentDialogTrigger, ConsentDialogTriggerToolbar } from '../index';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'none',
-		model: 'opt-in',
-		translationConfig: defaultTranslationConfig,
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -44,24 +27,41 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
-		policyBanner: {},
-		policyDialog: {},
-		saveConsents: vi.fn().mockResolvedValue(undefined),
-		setConsent: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		setActiveUI: vi.fn(),
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		getDisplayedConsents: vi.fn(() => []),
 		has: vi.fn(),
 		hasConsented: vi.fn(),
-		getDisplayedConsents: vi.fn(() => []),
+		model: 'opt-in',
+		policyBanner: {},
+		policyCategories: null,
+		policyDialog: {},
+		policyScopeMode: null,
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		setActiveUI: vi.fn(),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
 		subscribeToConsentChanges: vi.fn(() => () => undefined),
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-function renderWithConsentState(
+const renderWithConsentState = function renderWithConsentState(
 	children: ReactNode,
 	{
 		noStyle = false,
@@ -72,13 +72,13 @@ function renderWithConsentState(
 		<StableGlobalThemeProvider value={{ noStyle }}>
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				{children}
@@ -87,9 +87,9 @@ function renderWithConsentState(
 	);
 
 	return state;
-}
+};
 
-async function getToolbar(): Promise<HTMLElement> {
+const getToolbar = async function getToolbar(): Promise<HTMLElement> {
 	await vi.waitFor(() => {
 		expect(document.querySelector('[role="toolbar"]')).toBeInTheDocument();
 	});
@@ -99,24 +99,25 @@ async function getToolbar(): Promise<HTMLElement> {
 		throw new Error('Expected the consent dialog trigger toolbar to render');
 	}
 	return toolbar;
-}
+};
 
-function queryRequiredElement<ElementType extends Element = HTMLElement>(
-	root: ParentNode,
-	selector: string
-): ElementType {
+const queryRequiredElement = function queryRequiredElement<
+	ElementType extends Element = HTMLElement,
+>(root: ParentNode, selector: string): ElementType {
 	const element = root.querySelector<ElementType>(selector);
 	if (!element) {
 		throw new Error(`Expected element matching ${selector}`);
 	}
 	return element;
-}
+};
 
-async function dragElement(element: HTMLElement): Promise<void> {
+const dragElement = async function dragElement(
+	element: HTMLElement
+): Promise<void> {
 	const releasePointerCapture = vi.fn();
 	Object.defineProperties(element, {
-		setPointerCapture: { value: vi.fn() },
 		releasePointerCapture: { value: releasePointerCapture },
+		setPointerCapture: { value: vi.fn() },
 	});
 
 	element.dispatchEvent(
@@ -149,7 +150,7 @@ async function dragElement(element: HTMLElement): Promise<void> {
 	await vi.waitFor(() => {
 		expect(releasePointerCapture).toHaveBeenCalledWith(1);
 	});
-}
+};
 
 describe('ConsentDialogTrigger compatibility', () => {
 	test('keeps the existing single-button trigger behavior and compound API', async () => {
@@ -219,9 +220,9 @@ describe('ConsentDialogTriggerToolbar', () => {
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						icon: 'settings',
 						id: 'support',
 						label: 'Open support chat',
-						icon: 'settings',
 						onSelect: onCustomSelect,
 					},
 				]}
@@ -268,9 +269,9 @@ describe('ConsentDialogTriggerToolbar', () => {
 					<ConsentDialogTriggerToolbar
 						actions={[
 							{
+								icon: 'settings',
 								id: 'support',
 								label: 'Open support chat',
-								icon: 'settings',
 								onSelect: vi.fn(),
 							},
 						]}
@@ -298,16 +299,16 @@ describe('ConsentDialogTriggerToolbar', () => {
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						disabled: true,
+						icon: 'settings',
 						id: 'disabled',
 						label: 'Unavailable action',
-						icon: 'settings',
 						onSelect: disabledSelect,
-						disabled: true,
 					},
 					{
+						icon: 'settings',
 						id: 'theme',
 						label: 'Use dark theme',
-						icon: 'settings',
 						onSelect: vi.fn(),
 						pressed: true,
 					},
@@ -350,11 +351,11 @@ describe('ConsentDialogTriggerToolbar', () => {
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						className: 'custom-action',
+						icon: 'settings',
 						id: 'support',
 						label: 'Open support chat',
-						icon: 'settings',
 						onSelect: vi.fn(),
-						className: 'custom-action',
 					},
 				]}
 				className="custom-toolbar"
@@ -395,9 +396,9 @@ describe('ConsentDialogTriggerToolbar', () => {
 			<ConsentDialogTriggerToolbar
 				actions={[
 					{
+						icon: 'settings',
 						id: 'support',
 						label: 'Open support chat',
-						icon: 'settings',
 						onSelect,
 					},
 				]}

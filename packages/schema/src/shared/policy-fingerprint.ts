@@ -24,18 +24,6 @@ export function stableStringify(value: unknown): string {
 		.join(',')}}`;
 }
 
-export async function hashSha256Hex(input: string): Promise<string> {
-	const subtle = globalThis.crypto?.subtle;
-	if (subtle) {
-		const data = new TextEncoder().encode(input);
-		const hash = await subtle.digest('SHA-256', data);
-		return Array.from(new Uint8Array(hash))
-			.map((byte) => byte.toString(16).padStart(2, '0'))
-			.join('');
-	}
-	return sha256HexPureJs(input);
-}
-
 function sha256HexPureJs(input: string): string {
 	const data = new TextEncoder().encode(input);
 
@@ -126,6 +114,18 @@ function sha256HexPureJs(input: string): string {
 	return Array.from(H)
 		.map((w) => w.toString(16).padStart(8, '0'))
 		.join('');
+}
+
+export async function hashSha256Hex(input: string): Promise<string> {
+	const subtle = globalThis.crypto?.subtle;
+	if (subtle) {
+		const data = new TextEncoder().encode(input);
+		const hash = await subtle.digest('SHA-256', data);
+		return Array.from(new Uint8Array(hash))
+			.map((byte) => byte.toString(16).padStart(2, '0'))
+			.join('');
+	}
+	return sha256HexPureJs(input);
 }
 
 export function createDeterministicFingerprintSync(value: unknown): string {

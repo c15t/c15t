@@ -104,7 +104,9 @@ async function formatGeneratedFiles(
 
 	for (const { bin, args } of formatters) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await fs.access(bin);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await execFileAsync(bin, [...args, ...codeFiles], { cwd: projectRoot });
 			logger.debug(
 				`Formatted ${codeFiles.length} files with ${path.basename(bin)}`

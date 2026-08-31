@@ -256,6 +256,7 @@ export async function runGenerateMachine(
 				const success = finalState === 'complete';
 				const durationMs = duration;
 				const reason = normalizeSetupReason(finalState, finalContext);
+				// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 				const result = success
 					? 'success'
 					: finalState === 'exited'

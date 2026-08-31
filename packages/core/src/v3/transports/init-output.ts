@@ -17,13 +17,13 @@ type RichInitOutput = InitOutput &
 		>
 	>;
 
-function mapBranding(
+const mapBranding = function mapBranding(
 	branding: InitOutput['branding']
 ): KernelBranding | undefined {
 	return branding === 'none' ? undefined : branding;
-}
+};
 
-function mapResolvedOverrides(
+const mapResolvedOverrides = function mapResolvedOverrides(
 	payload: Pick<InitOutput, 'location' | 'translations'>,
 	headers: Record<string, string>
 ): KernelOverrides {
@@ -44,22 +44,23 @@ function mapResolvedOverrides(
 	}
 
 	return overrides;
-}
+};
 
-export function mapInitOutputToInitResponse(
+export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	payload: RichInitOutput,
 	headers: Record<string, string>
 ): InitResponse {
 	const mapped: InitResponse = {
+		// On the real backend, omitted `gvl` on a 200 response means IAB is not
+		// active for this request. The kernel disables IAB on explicit null.
+		gvl: payload.gvl ?? null,
+
+		location: payload.location,
 		resolvedOverrides: {
 			...mapResolvedOverrides(payload, headers),
 			...(payload.resolvedOverrides ?? {}),
 		},
-		location: payload.location,
 		translations: payload.translations,
-		// On the real backend, omitted `gvl` on a 200 response means IAB is not
-		// active for this request. The kernel disables IAB on explicit null.
-		gvl: payload.gvl ?? null,
 	};
 
 	const branding = mapBranding(payload.branding);
@@ -97,115 +98,120 @@ export function mapInitOutputToInitResponse(
 	}
 
 	return mapped;
-}
+};
 
-export function mergeInitResponseIntoKernelConfig(
-	base: KernelConfig,
-	response: InitResponse | undefined
-): KernelConfig {
-	if (!response) return base;
+export const mergeInitResponseIntoKernelConfig =
+	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+	function mergeInitResponseIntoKernelConfig(
+		base: KernelConfig,
+		response: InitResponse | undefined
+	): KernelConfig {
+		if (!response) {
+			return base;
+		}
 
-	const merged: KernelConfig = { ...base };
-	const derivedOverrides: KernelOverrides = {};
+		const merged: KernelConfig = { ...base };
+		const derivedOverrides: KernelOverrides = {};
 
-	if (response.location?.countryCode) {
-		derivedOverrides.country = response.location.countryCode;
-	}
-	if (response.location?.regionCode) {
-		derivedOverrides.region = response.location.regionCode;
-	}
-	if (response.translations?.language) {
-		derivedOverrides.language = response.translations.language;
-	}
+		if (response.location?.countryCode) {
+			derivedOverrides.country = response.location.countryCode;
+		}
+		if (response.location?.regionCode) {
+			derivedOverrides.region = response.location.regionCode;
+		}
+		if (response.translations?.language) {
+			derivedOverrides.language = response.translations.language;
+		}
 
-	const nextOverrides = {
-		...(base.initialOverrides ?? {}),
-		...derivedOverrides,
-		...(response.resolvedOverrides ?? {}),
+		const nextOverrides = {
+			...(base.initialOverrides ?? {}),
+			...derivedOverrides,
+			...(response.resolvedOverrides ?? {}),
+		};
+		if (Object.keys(nextOverrides).length > 0) {
+			merged.initialOverrides = nextOverrides;
+		}
+
+		if (response.consents) {
+			merged.initialConsents = {
+				...(base.initialConsents ?? {}),
+				...(response.consents as Partial<ConsentState>),
+			};
+		}
+		if (response.hasConsented !== undefined) {
+			merged.initialHasConsented = response.hasConsented;
+		} else if (response.consents) {
+			merged.initialHasConsented = true;
+		}
+		if (response.subjectId) {
+			merged.initialSubjectId = response.subjectId;
+		}
+		if (response.location !== undefined) {
+			merged.initialLocation = response.location;
+		}
+		if (response.translations !== undefined) {
+			merged.initialTranslations = response.translations;
+		}
+		if (
+			response.branding !== undefined &&
+			(response.branding as KernelBranding | 'none') !== 'none'
+		) {
+			merged.initialBranding = response.branding;
+		}
+		if (response.policy !== undefined) {
+			merged.initialPolicy = response.policy;
+		}
+		if (response.policyDecision !== undefined) {
+			merged.initialPolicyDecision = response.policyDecision;
+		}
+		if (response.policySnapshotToken !== undefined) {
+			merged.initialPolicySnapshotToken = response.policySnapshotToken;
+		}
+		if (
+			response.gvl !== undefined ||
+			response.customVendors !== undefined ||
+			response.cmpId !== undefined
+		) {
+			const nextIab: Partial<KernelIABState> = {
+				...(merged.initialIab ?? {}),
+			};
+			if (response.gvl !== undefined) {
+				nextIab.gvl = response.gvl;
+				nextIab.enabled = response.gvl !== null;
+			}
+			if (response.customVendors !== undefined) {
+				nextIab.customVendors = response.customVendors;
+			}
+			if (response.cmpId !== undefined) {
+				nextIab.cmpId = response.cmpId;
+			}
+			merged.initialIab = nextIab;
+		}
+
+		return merged;
 	};
-	if (Object.keys(nextOverrides).length > 0) {
-		merged.initialOverrides = nextOverrides;
-	}
 
-	if (response.consents) {
-		merged.initialConsents = {
-			...(base.initialConsents ?? {}),
-			...(response.consents as Partial<ConsentState>),
-		};
-	}
-	if (response.hasConsented !== undefined) {
-		merged.initialHasConsented = response.hasConsented;
-	} else if (response.consents) {
-		merged.initialHasConsented = true;
-	}
-	if (response.subjectId) {
-		merged.initialSubjectId = response.subjectId;
-	}
-	if (response.location !== undefined) {
-		merged.initialLocation = response.location;
-	}
-	if (response.translations !== undefined) {
-		merged.initialTranslations = response.translations;
-	}
-	if (
-		response.branding !== undefined &&
-		(response.branding as KernelBranding | 'none') !== 'none'
-	) {
-		merged.initialBranding = response.branding;
-	}
-	if (response.policy !== undefined) {
-		merged.initialPolicy = response.policy;
-	}
-	if (response.policyDecision !== undefined) {
-		merged.initialPolicyDecision = response.policyDecision;
-	}
-	if (response.policySnapshotToken !== undefined) {
-		merged.initialPolicySnapshotToken = response.policySnapshotToken;
-	}
-	if (
-		response.gvl !== undefined ||
-		response.customVendors !== undefined ||
-		response.cmpId !== undefined
-	) {
-		const nextIab: Partial<KernelIABState> = {
-			...(merged.initialIab ?? {}),
-		};
-		if (response.gvl !== undefined) {
-			nextIab.gvl = response.gvl;
-			nextIab.enabled = response.gvl !== null;
-		}
-		if (response.customVendors !== undefined) {
-			nextIab.customVendors = response.customVendors;
-		}
-		if (response.cmpId !== undefined) {
-			nextIab.cmpId = response.cmpId;
-		}
-		merged.initialIab = nextIab;
-	}
-
-	return merged;
-}
-
-export function initResponseToKernelConfig(
+export const initResponseToKernelConfig = function initResponseToKernelConfig(
 	response: InitResponse | undefined
 ): KernelConfig {
 	return mergeInitResponseIntoKernelConfig({}, response);
-}
+};
 
-export function mergeInitOutputIntoKernelConfig(
-	base: KernelConfig,
-	payload: RichInitOutput | undefined,
-	headers: Record<string, string> = {}
-): KernelConfig {
-	return mergeInitResponseIntoKernelConfig(
-		base,
-		payload ? mapInitOutputToInitResponse(payload, headers) : undefined
-	);
-}
+export const mergeInitOutputIntoKernelConfig =
+	function mergeInitOutputIntoKernelConfig(
+		base: KernelConfig,
+		payload: RichInitOutput | undefined,
+		headers: Record<string, string> = {}
+	): KernelConfig {
+		return mergeInitResponseIntoKernelConfig(
+			base,
+			payload ? mapInitOutputToInitResponse(payload, headers) : undefined
+		);
+	};
 
-export function initOutputToKernelConfig(
+export const initOutputToKernelConfig = function initOutputToKernelConfig(
 	payload: RichInitOutput | undefined,
 	headers: Record<string, string> = {}
 ): KernelConfig {
 	return mergeInitOutputIntoKernelConfig({}, payload, headers);
-}
+};

@@ -41,7 +41,9 @@ interface ComponentFilePaths {
  * This function wraps content with <ConsentManager> instead of inline provider components.
  * For Pages Directory, we pass initialData from pageProps.
  */
-function wrapPagesJsxContent(originalJsx: string): string {
+const wrapPagesJsxContent = function wrapPagesJsxContent(
+	originalJsx: string
+): string {
 	const trimmedJsx = originalJsx.trim();
 	const hasParentheses = trimmedJsx.startsWith('(') && trimmedJsx.endsWith(')');
 
@@ -57,7 +59,7 @@ function wrapPagesJsxContent(originalJsx: string): string {
 	`;
 
 	return `(${wrappedContent})`;
-}
+};
 
 /**
  * Creates the consent-manager component file in a components directory
@@ -79,53 +81,54 @@ function wrapPagesJsxContent(originalJsx: string): string {
  * Unlike App Directory, Pages Directory doesn't need a separate client component
  * because it doesn't use the 'use client' directive pattern.
  */
-async function createConsentManagerComponent(
-	projectRoot: string,
-	pagesDir: string,
-	optionsText: string,
-	selectedScripts?: string[],
-	enableDevTools?: boolean
-): Promise<ComponentFilePaths> {
-	// Determine the components directory path based on pages directory location
-	// If pages is at 'src/pages', components should be at 'src/components'
-	// If pages is at 'pages', components should be at 'components'
-	let componentsDir: string;
-	if (pagesDir.includes('src')) {
-		componentsDir = path.join('src', 'components');
-	} else {
-		componentsDir = 'components';
-	}
+const createConsentManagerComponent =
+	async function createConsentManagerComponent(
+		projectRoot: string,
+		pagesDir: string,
+		optionsText: string,
+		selectedScripts?: string[],
+		enableDevTools?: boolean
+	): Promise<ComponentFilePaths> {
+		// Determine the components directory path based on pages directory location
+		// If pages is at 'src/pages', components should be at 'src/components'
+		// If pages is at 'pages', components should be at 'components'
+		let componentsDir: string;
+		if (pagesDir.includes('src')) {
+			componentsDir = path.join('src', 'components');
+		} else {
+			componentsDir = 'components';
+		}
 
-	const componentsDirPath = path.join(projectRoot, componentsDir);
+		const componentsDirPath = path.join(projectRoot, componentsDir);
 
-	// Ensure components directory exists
-	await fs.mkdir(componentsDirPath, { recursive: true });
+		// Ensure components directory exists
+		await fs.mkdir(componentsDirPath, { recursive: true });
 
-	// Generate component file content
-	const consentManagerContent = generateConsentComponent({
-		importSource: 'c15t/next',
-		optionsText,
-		selectedScripts,
-		initialDataProp: true,
-		enableDevTools,
-		includeOverrides: true,
-	});
+		// Generate component file content
+		const consentManagerContent = generateConsentComponent({
+			enableDevTools,
+			importSource: 'c15t/next',
+			includeOverrides: true,
+			initialDataProp: true,
+			optionsText,
+			selectedScripts,
+		});
 
-	// Define file path in components directory
-	const consentManagerPath = path.join(
-		componentsDirPath,
-		'consent-manager.tsx'
-	);
+		// Define file path in components directory
+		const consentManagerPath = path.join(
+			componentsDirPath,
+			'consent-manager.tsx'
+		);
 
-	// Write file
-	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
+		// Write file
+		await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
 
-	return {
-		consentManager: consentManagerPath,
+		return {
+			consentManager: consentManagerPath,
+		};
 	};
-}
 
-function addServerSideDataComment(
+const addServerSideDataComment = function addServerSideDataComment(
 	appFile: SourceFile,
 	backendURL?: string,
 	useEnvFile?: boolean,
@@ -161,9 +164,11 @@ function addServerSideDataComment(
 	if (!hasServerSideComment) {
 		appFile.insertText(0, `${serverSideComment}\n\n`);
 	}
-}
+};
 
-function updateAppComponentTyping(appFile: SourceFile): void {
+const updateAppComponentTyping = function updateAppComponentTyping(
+	appFile: SourceFile
+): void {
 	const exportAssignment = appFile.getExportAssignment(() => true);
 	if (!exportAssignment) {
 		return;
@@ -190,12 +195,12 @@ function updateAppComponentTyping(appFile: SourceFile): void {
 
 		if (!hasAppPropsImport) {
 			appFile.addImportDeclaration({
-				namedImports: ['AppProps'],
 				moduleSpecifier: 'next/app',
+				namedImports: ['AppProps'],
 			});
 		}
 	}
-}
+};
 
 const PAGES_APP_PATTERNS = [
 	'pages/_app.tsx',
@@ -224,7 +229,7 @@ const PAGES_APP_PATTERNS = [
  * Unlike App Directory, Pages Directory only needs one component file because
  * it doesn't use the 'use client' directive pattern.
  */
-export async function updatePagesLayout({
+export const updatePagesLayout = function updatePagesLayout({
 	projectRoot,
 	mode,
 	backendURL,
@@ -248,23 +253,22 @@ export async function updatePagesLayout({
 	);
 
 	return runLayoutUpdatePipeline({
-		filePatterns: PAGES_APP_PATTERNS,
-		projectRoot,
-		knownFilePath: layoutFilePath,
-		frameworkDirName: 'pages',
-		wrapJsx: wrapPagesJsxContent,
-		createComponents: async (_layoutFilePath, pagesDir) => {
-			return createConsentManagerComponent(
+		afterImport: (appFile) => {
+			updateAppComponentTyping(appFile);
+			addServerSideDataComment(appFile, backendURL, useEnvFile, proxyNextjs);
+		},
+		createComponents: (_layoutFilePath, pagesDir) =>
+			createConsentManagerComponent(
 				projectRoot,
 				pagesDir,
 				optionsText,
 				selectedScripts,
 				enableDevTools
-			);
-		},
-		afterImport: (appFile) => {
-			updateAppComponentTyping(appFile);
-			addServerSideDataComment(appFile, backendURL, useEnvFile, proxyNextjs);
-		},
+			),
+		filePatterns: PAGES_APP_PATTERNS,
+		frameworkDirName: 'pages',
+		knownFilePath: layoutFilePath,
+		projectRoot,
+		wrapJsx: wrapPagesJsxContent,
 	});
-}
+};

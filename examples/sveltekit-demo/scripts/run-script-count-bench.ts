@@ -126,7 +126,9 @@ async function waitForServer() {
 		try {
 			const response = await fetch(`${BASE_URL}/bench/script-count`);
 			if (response.ok) return;
-		} catch {}
+		} catch {
+			// Ignore transient failures while polling or cleaning up.
+		}
 		await sleep(500);
 	}
 
@@ -225,6 +227,7 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let cleanupError: Error | undefined;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
@@ -316,8 +319,11 @@ async function run() {
 			server.exitCode !== 0 &&
 			server.exitCode !== 143
 		) {
-			throw new Error(logs || 'Svelte script benchmark server failed');
+			cleanupError = new Error(logs || 'Svelte script benchmark server failed');
 		}
+	}
+	if (cleanupError) {
+		throw cleanupError;
 	}
 }
 

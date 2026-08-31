@@ -267,20 +267,24 @@ function createEmbeddedTabs(options: {
 			: 'none';
 	}
 
+	const createEmbeddedTabClickHandler = (selectedTabId: DevToolsTab) => () => {
+		if (disabledTabs.includes(selectedTabId)) {
+			return;
+		}
+		activeTab = selectedTabId;
+		for (const [buttonTabId, tabButton] of buttons) {
+			applyButtonState(buttonTabId, tabButton);
+		}
+		onTabChange(selectedTabId);
+	};
+
 	for (const tab of EMBEDDED_TABS) {
+		const tabId = tab.id;
+		const tabLabel = tab.label;
 		const buttonElement = button({
 			role: 'tab',
-			text: tab.label,
-			onClick: () => {
-				if (disabledTabs.includes(tab.id)) {
-					return;
-				}
-				activeTab = tab.id;
-				for (const [tabId, tabButton] of buttons) {
-					applyButtonState(tabId, tabButton);
-				}
-				onTabChange(tab.id);
-			},
+			text: tabLabel,
+			onClick: createEmbeddedTabClickHandler(tabId),
 			style: {
 				display: 'inline-flex',
 				alignItems: 'center',
@@ -395,6 +399,9 @@ export interface DevToolsInstance {
 export function createDevTools(
 	options: DevToolsOptions = {}
 ): DevToolsInstance {
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let renderContent: (container: HTMLElement) => void;
+
 	const {
 		namespace = 'c15tStore',
 		position = 'bottom-right',
@@ -527,7 +534,7 @@ export function createDevTools(
 	/**
 	 * Renders the content based on active tab
 	 */
-	function renderContent(container: HTMLElement): void {
+	renderContent = (container: HTMLElement): void => {
 		const panel = container.parentElement;
 		const previousPanelHeight = panel?.getBoundingClientRect().height ?? 0;
 
@@ -579,7 +586,7 @@ export function createDevTools(
 		if (panel) {
 			panelHeightAnimator.animate(panel, previousPanelHeight);
 		}
-	}
+	};
 
 	// Create the instance
 	const instance: DevToolsInstance = {
@@ -631,6 +638,12 @@ export function createDevToolsPanel(options: {
 	element: HTMLElement;
 	destroy: () => void;
 } {
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let syncTabs: () => DevToolsTab;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let renderActivePanel: () => void;
+
 	const { namespace = 'c15tStore', mode = 'standalone' } = options;
 	const isEmbedded = mode === 'embedded';
 	let detachInstrumentation: (() => void) | null = null;
@@ -745,13 +758,13 @@ export function createDevToolsPanel(options: {
 	});
 
 	// Render active panel
-	function renderActivePanel(): void {
+	renderActivePanel = (): void => {
 		if (!contentArea) {
 			return;
 		}
 		const activeTab = syncTabs();
 		panelRenderer.renderPanel(contentArea, activeTab);
-	}
+	};
 
 	let tabsInstance: EmbeddedTabsInstance | null = null;
 	let disabledTabsKey = '';
@@ -765,7 +778,7 @@ export function createDevToolsPanel(options: {
 		return disabledTabs;
 	}
 
-	function syncTabs(): DevToolsTab {
+	syncTabs = (): DevToolsTab => {
 		const disabledTabs = getDisabledTabs();
 		const nextDisabledTabsKey = disabledTabs.join('|');
 		let activeTab = stateManager.getState().activeTab;
@@ -797,7 +810,7 @@ export function createDevToolsPanel(options: {
 		}
 
 		return activeTab;
-	}
+	};
 
 	syncTabs();
 	container.appendChild(contentArea);

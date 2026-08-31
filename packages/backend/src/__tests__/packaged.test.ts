@@ -75,7 +75,7 @@ suite('the published artifact', () => {
 		// resolves locally and fails for everyone else.
 		for (const [, targets] of entries) {
 			for (const target of Object.values(targets)) {
-				const top = target.replace(/^\.\//, '').split('/')[0] ?? '';
+				const top = target.replace(/^\.\//u, '').split('/')[0] ?? '';
 				assert.include(
 					manifest.files,
 					top,
@@ -115,6 +115,7 @@ suite('the published artifact', () => {
 			if (subpath === '.') {
 				continue;
 			}
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const module = (await import(join(packageRoot, targets.import))) as
 				| Record<string, unknown>
 				| undefined;

@@ -19,7 +19,7 @@ export interface UseConsentDialogTriggerResult {
 	openDialog: () => void;
 }
 
-export function useConsentDialogTrigger(
+export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	options: UseConsentDialogTriggerOptions = {}
 ): UseConsentDialogTriggerResult {
 	const { showWhen = 'after-consent', onClick } = options;
@@ -44,4 +44,4 @@ export function useConsentDialogTrigger(
 		isVisible: shouldShow && activeUI === 'none',
 		openDialog,
 	};
-}
+};

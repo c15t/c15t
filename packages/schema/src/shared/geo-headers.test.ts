@@ -27,8 +27,8 @@ describe('getRegionFromHeaders', () => {
 	it('prioritizes x-c15t-country over cf-ipcountry', () => {
 		expect(
 			getRegionFromHeaders({
-				'x-c15t-country': 'DE',
 				'cf-ipcountry': 'FR',
+				'x-c15t-country': 'DE',
 			})
 		).toEqual({ country: 'DE' });
 	});
@@ -41,12 +41,12 @@ describe('getRegionFromHeaders', () => {
 describe('extractConsentRequestInputs', () => {
 	it('x-c15t-* overrides always beat infrastructure headers', () => {
 		const headers = new Headers({
+			'cf-ipcountry': 'FR',
+			'cf-region-code': 'IDF',
 			'x-c15t-country': 'DE',
 			'x-c15t-region': 'BE',
-			'cf-ipcountry': 'FR',
 			'x-vercel-ip-country': 'US',
 			'x-vercel-ip-country-region': 'CA',
-			'cf-region-code': 'IDF',
 		});
 		const inputs = extractConsentRequestInputs(headers);
 		expect(inputs.country).toBe('DE');
@@ -56,20 +56,20 @@ describe('extractConsentRequestInputs', () => {
 	it('resolves infra precedence cloudflare → vercel → cloudfront → generic', () => {
 		expect(
 			extractConsentRequestInputs(
-				new Headers({ 'x-vercel-ip-country': 'US', 'cf-ipcountry': 'FR' })
+				new Headers({ 'cf-ipcountry': 'FR', 'x-vercel-ip-country': 'US' })
 			).country
 		).toBe('FR');
 		expect(
 			extractConsentRequestInputs(
-				new Headers({ 'x-country': 'GB', 'x-amz-cf-ipcountry': 'BR' })
+				new Headers({ 'x-amz-cf-ipcountry': 'BR', 'x-country': 'GB' })
 			).country
 		).toBe('BR');
 	});
 
 	it('accepts plain header records (lowercase keys)', () => {
 		const inputs = extractConsentRequestInputs({
-			'x-c15t-country': 'NL',
 			'sec-gpc': '1',
+			'x-c15t-country': 'NL',
 		});
 		expect(inputs.country).toBe('NL');
 		expect(inputs.gpc).toBe(true);
@@ -109,7 +109,7 @@ describe('consentInputsToOverrides / headersToRecord', () => {
 
 	it('headersToRecord lowercases keys', () => {
 		const record = headersToRecord(
-			new Headers({ 'X-C15T-Country': 'DE', 'Accept-Language': 'de' })
+			new Headers({ 'Accept-Language': 'de', 'X-C15T-Country': 'DE' })
 		);
 		expect(record['x-c15t-country']).toBe('DE');
 		expect(record['accept-language']).toBe('de');

@@ -21,15 +21,16 @@ import type { IframeBlocker, IframeBlockerConfig } from './types';
 /**
  * Create default consent state with all consents set to their default values
  */
-function createDefaultConsentState(): ConsentState {
-	return {
-		experience: false,
-		functionality: false,
-		marketing: false,
-		measurement: false,
-		necessary: true,
+const createDefaultConsentState =
+	function createDefaultConsentState(): ConsentState {
+		return {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		};
 	};
-}
 
 /**
  * Determine the required consent for an iframe based on its category attribute
@@ -39,7 +40,7 @@ function createDefaultConsentState(): ConsentState {
  *
  * @throws {Error} When the category attribute contains an invalid consent name
  */
-function determineRequiredConsent(
+const determineRequiredConsent = function determineRequiredConsent(
 	iframe: HTMLIFrameElement
 ): AllConsentNames | undefined {
 	const categoryAttr = iframe.getAttribute('data-category');
@@ -57,7 +58,7 @@ function determineRequiredConsent(
 	}
 
 	return categoryAttr as AllConsentNames;
-}
+};
 
 /**
  * Process a single iframe element based on consent settings
@@ -66,7 +67,7 @@ function determineRequiredConsent(
  * @param consents - Current consent state
  * @throws {Error} When the iframe has an invalid category attribute
  */
-function processIframeElement(
+const processIframeElement = function processIframeElement(
 	iframe: HTMLIFrameElement,
 	consents: ConsentState
 ): void {
@@ -89,11 +90,12 @@ function processIframeElement(
 		}
 	} else {
 		// If iframe doesn't have consent, block it
+		// oxlint-disable-next-line no-lonely-if -- Preserve established branch order and control flow.
 		if (iframe.src) {
 			iframe.removeAttribute('src');
 		}
 	}
-}
+};
 
 /**
  * Creates an iframe blocker instance that handles blocking of iframes based on consent
@@ -115,7 +117,7 @@ function processIframeElement(
  * blocker.destroy();
  * ```
  */
-export function createIframeBlocker(
+export const createIframeBlocker = function createIframeBlocker(
 	config: IframeBlockerConfig = {},
 	initialConsents?: ConsentState
 ): IframeBlocker {
@@ -129,48 +131,52 @@ export function createIframeBlocker(
 	/**
 	 * Process all iframes on the page
 	 */
-	function processIframes(): void {
+	const processIframes = function processIframes(): void {
 		const iframes = document.querySelectorAll('iframe');
 
 		iframes.forEach((iframe) => {
 			processIframeElement(iframe, consents);
 		});
-	}
+	};
 
 	/**
 	 * Set up mutation observer to handle dynamically added iframes
 	 */
-	function setupMutationObserver(): MutationObserver {
-		const observer = new MutationObserver((mutations) => {
-			mutations.forEach((mutation) => {
-				mutation.addedNodes.forEach((node) => {
-					if (node.nodeType === Node.ELEMENT_NODE) {
-						const element = node as Element;
+	const setupMutationObserver =
+		function setupMutationObserver(): MutationObserver {
+			const observer = new MutationObserver((mutations) => {
+				mutations.forEach((mutation) => {
+					mutation.addedNodes.forEach((node) => {
+						if (node.nodeType === Node.ELEMENT_NODE) {
+							const element = node as Element;
 
-						// Check if the added node is an iframe
-						if (element.tagName && element.tagName.toUpperCase() === 'IFRAME') {
-							processIframeElement(element as HTMLIFrameElement, consents);
-						}
+							// Check if the added node is an iframe
+							if (
+								element.tagName &&
+								element.tagName.toUpperCase() === 'IFRAME'
+							) {
+								processIframeElement(element as HTMLIFrameElement, consents);
+							}
 
-						// Check if the added node contains iframes
-						const iframes = element.querySelectorAll?.('iframe');
-						if (iframes) {
-							iframes.forEach((iframe) => {
-								processIframeElement(iframe, consents);
-							});
+							// Check if the added node contains iframes
+							const iframes = element.querySelectorAll?.('iframe');
+							if (iframes) {
+								iframes.forEach((iframe) => {
+									processIframeElement(iframe, consents);
+								});
+							}
 						}
-					}
+					});
 				});
 			});
-		});
 
-		observer.observe(document.body, {
-			childList: true,
-			subtree: true,
-		});
+			observer.observe(document.body, {
+				childList: true,
+				subtree: true,
+			});
 
-		return observer;
-	}
+			return observer;
+		};
 
 	let mutationObserver: MutationObserver | null = null;
 
@@ -184,21 +190,21 @@ export function createIframeBlocker(
 	}
 
 	return {
-		updateConsents: (newConsents: Partial<ConsentState>) => {
-			consents = { ...consents, ...newConsents };
-
-			// Process all iframes with updated consent state
-			processIframes();
-		},
-		processIframes,
 		destroy: () => {
 			if (mutationObserver) {
 				mutationObserver.disconnect();
 				mutationObserver = null;
 			}
 		},
+		processIframes,
+		updateConsents: (newConsents: Partial<ConsentState>) => {
+			consents = { ...consents, ...newConsents };
+
+			// Process all iframes with updated consent state
+			processIframes();
+		},
 	};
-}
+};
 
 /**
  * Extracts consent categories from all iframes with data-category attributes on the page.
@@ -214,38 +220,39 @@ export function createIframeBlocker(
  * // Returns: ['marketing', 'measurement']
  * ```
  */
-export function getIframeConsentCategories(): AllConsentNames[] {
-	if (typeof document === 'undefined') {
-		return [];
-	}
-
-	const iframes = document.querySelectorAll('iframe[data-category]');
-	const categories = new Set<AllConsentNames>();
-
-	// Guard against null/undefined querySelectorAll result
-	if (!iframes) {
-		return [];
-	}
-
-	iframes.forEach((iframe) => {
-		const categoryAttr = iframe.getAttribute('data-category');
-
-		if (!categoryAttr) {
-			return;
+export const getIframeConsentCategories =
+	function getIframeConsentCategories(): AllConsentNames[] {
+		if (typeof document === 'undefined') {
+			return [];
 		}
 
-		// Parse category - handle both single categories and complex conditions
-		// For now, extract simple category names (like script loader does)
-		const category = categoryAttr.trim();
+		const iframes = document.querySelectorAll('iframe[data-category]');
+		const categories = new Set<AllConsentNames>();
 
-		// Check if it's a valid consent name
-		if (allConsentNames.includes(category as AllConsentNames)) {
-			categories.add(category as AllConsentNames);
+		// Guard against null/undefined querySelectorAll result
+		if (!iframes) {
+			return [];
 		}
-	});
 
-	return Array.from(categories);
-}
+		iframes.forEach((iframe) => {
+			const categoryAttr = iframe.getAttribute('data-category');
+
+			if (!categoryAttr) {
+				return;
+			}
+
+			// Parse category - handle both single categories and complex conditions
+			// For now, extract simple category names (like script loader does)
+			const category = categoryAttr.trim();
+
+			// Check if it's a valid consent name
+			if (allConsentNames.includes(category as AllConsentNames)) {
+				categories.add(category as AllConsentNames);
+			}
+		});
+
+		return Array.from(categories);
+	};
 
 /**
  * Processes all iframes on the page based on current consent state.
@@ -262,7 +269,9 @@ export function getIframeConsentCategories(): AllConsentNames[] {
  * processAllIframes({ marketing: false, necessary: true });
  * ```
  */
-export function processAllIframes(consents: ConsentState): void {
+export const processAllIframes = function processAllIframes(
+	consents: ConsentState
+): void {
 	if (typeof document === 'undefined') {
 		return;
 	}
@@ -277,7 +286,7 @@ export function processAllIframes(consents: ConsentState): void {
 	iframes.forEach((iframe) => {
 		processIframeElement(iframe, consents);
 	});
-}
+};
 
 /**
  * Creates and starts a MutationObserver to watch for dynamically added iframes.
@@ -299,7 +308,7 @@ export function processAllIframes(consents: ConsentState): void {
  * observer.disconnect();
  * ```
  */
-export function setupIframeObserver(
+export const setupIframeObserver = function setupIframeObserver(
 	getConsents: () => ConsentState,
 	onCategoriesDiscovered?: (categories: AllConsentNames[]) => void
 ): MutationObserver {
@@ -351,4 +360,4 @@ export function setupIframeObserver(
 	});
 
 	return observer;
-}
+};

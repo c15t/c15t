@@ -46,6 +46,7 @@ class StubXHR {
 // oxlint-disable-next-line typescript/no-explicit-any -- node global stub
 (globalThis as any).XMLHttpRequest = StubXHR;
 // Ensure window.fetch exists and returns cheaply.
+// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const baseFetch = async () => new Response('ok', { status: 200 });
 // oxlint-disable-next-line typescript/no-explicit-any -- node stub
 (globalThis.window as any).fetch = baseFetch;

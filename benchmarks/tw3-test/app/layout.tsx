@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-	title: 'TW3 + c15t CSS Test',
 	description: 'Verifies @layer components works with Tailwind CSS 3',
+	title: 'TW3 + c15t CSS Test',
 };
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {

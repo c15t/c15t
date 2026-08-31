@@ -6,47 +6,47 @@ import type { CliCommand, CliFlag, ParsedArgs } from './types';
 // Define flags within the parser module
 export const globalFlags: CliFlag[] = [
 	{
-		names: ['--help', '-h'],
 		description: 'Show this help message.',
-		type: 'special',
 		expectsValue: false,
+		names: ['--help', '-h'],
+		type: 'special',
 	},
 	{
-		names: ['--version', '-v'],
 		description: 'Show the CLI version.',
+		expectsValue: false,
+		names: ['--version', '-v'],
 		type: 'special',
-		expectsValue: false,
 	},
 	{
-		names: ['--logger'],
 		description: 'Set log level (fatal, error, warn, info, debug).',
-		type: 'string',
 		expectsValue: true,
+		names: ['--logger'],
+		type: 'string',
 	},
 	{
-		names: ['--config'],
 		description: 'Specify path to configuration file.',
-		type: 'string',
 		expectsValue: true,
+		names: ['--config'],
+		type: 'string',
 	},
 	{
-		names: ['-y', '--yes'],
 		description: 'Skip confirmation prompts (use with caution).',
-		type: 'boolean',
 		expectsValue: false,
+		names: ['-y', '--yes'],
+		type: 'boolean',
 	},
 	{
-		names: ['--no-telemetry'],
 		description: 'Disable telemetry data collection.',
-		type: 'boolean',
 		expectsValue: false,
+		names: ['--no-telemetry'],
+		type: 'boolean',
 	},
 	{
-		names: ['--telemetry-debug'],
 		description:
 			'Enable debug mode for telemetry (shows detailed telemetry logs).',
-		type: 'boolean',
 		expectsValue: false,
+		names: ['--telemetry-debug'],
+		type: 'boolean',
 	},
 ];
 
@@ -57,25 +57,26 @@ export const globalFlags: CliFlag[] = [
  * @param commands - The list of available CLI commands (needed to identify command name).
  * @returns A ParsedArgs object.
  */
-export function parseCliArgs(
+export const parseCliArgs = function parseCliArgs(
 	rawArgs: string[],
 	commands: CliCommand[]
 ): ParsedArgs {
 	const parsedFlags: Record<string, string | boolean | undefined> = {};
 	const potentialCommandArgsAndUndefined: (string | undefined)[] = [];
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
 	let commandName: string | undefined;
 	const commandArgs: string[] = [];
 
 	// Initialize flags
 	for (const flag of globalFlags) {
-		const primaryName = flag.names[0]?.replace(/^--/, '').replace(/^-/, '');
+		const primaryName = flag.names[0]?.replace(/^--/u, '').replace(/^-/u, '');
 		if (primaryName) {
 			parsedFlags[primaryName] = flag.type === 'boolean' ? false : undefined;
 		}
 	}
 
 	// First pass: Identify flags and their values
-	for (let i = 0; i < rawArgs.length; i++) {
+	for (let i = 0; i < rawArgs.length; i += 1) {
 		const arg = rawArgs[i];
 		if (typeof arg !== 'string') {
 			continue;
@@ -83,7 +84,9 @@ export function parseCliArgs(
 		let argIsFlagOrValue = false;
 		for (const flag of globalFlags) {
 			if (flag.names.includes(arg)) {
-				const primaryName = flag.names[0]?.replace(/^--/, '').replace(/^-/, '');
+				const primaryName = flag.names[0]
+					?.replace(/^--/u, '')
+					.replace(/^-/u, '');
 				if (primaryName) {
 					argIsFlagOrValue = true;
 					if (flag.type === 'boolean') {
@@ -92,7 +95,7 @@ export function parseCliArgs(
 						const nextArg = rawArgs[i + 1];
 						if (nextArg && !nextArg.startsWith('-')) {
 							parsedFlags[primaryName] = nextArg;
-							i++;
+							i += 1;
 						} else {
 							p.log.warn(
 								formatLogMessage(
@@ -127,5 +130,5 @@ export function parseCliArgs(
 		}
 	}
 
-	return { commandName, commandArgs, parsedFlags };
-}
+	return { commandArgs, commandName, parsedFlags };
+};

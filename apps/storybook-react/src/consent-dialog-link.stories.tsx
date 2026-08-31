@@ -24,6 +24,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: linkOpensDialog,
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}
@@ -37,5 +38,4 @@ export const Default: Story = {
 			</div>
 		</StorybookConsentProvider>
 	),
-	play: linkOpensDialog,
 };

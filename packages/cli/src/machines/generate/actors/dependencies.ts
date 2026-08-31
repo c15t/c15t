@@ -33,7 +33,7 @@ export interface DependencyInstallOutput {
 /**
  * Execute package manager command to install dependencies
  */
-async function runPackageManagerInstall(
+const runPackageManagerInstall = async function runPackageManagerInstall(
 	projectRoot: string,
 	dependencies: string[],
 	packageManager: PackageManager
@@ -76,7 +76,7 @@ async function runPackageManagerInstall(
 	if (exitCode !== 0) {
 		throw new Error(`Package manager exited with code ${exitCode}`);
 	}
-}
+};
 
 /**
  * Dependency installation actor
@@ -90,8 +90,8 @@ export const dependencyInstallActor = fromPromise<
 
 	if (dependencies.length === 0) {
 		return {
-			success: true,
 			installedDependencies: [],
+			success: true,
 		};
 	}
 
@@ -106,8 +106,8 @@ export const dependencyInstallActor = fromPromise<
 		);
 
 		return {
-			success: true,
 			installedDependencies: dependencies,
+			success: true,
 		};
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -115,9 +115,9 @@ export const dependencyInstallActor = fromPromise<
 		logger.error(`Dependency installation failed: ${errorMessage}`);
 
 		return {
-			success: false,
-			installedDependencies: [],
 			error: errorMessage,
+			installedDependencies: [],
+			success: false,
 		};
 	}
 });
@@ -125,7 +125,7 @@ export const dependencyInstallActor = fromPromise<
 /**
  * Get manual install command for display to user
  */
-export function getManualInstallCommand(
+export const getManualInstallCommand = function getManualInstallCommand(
 	dependencies: string[],
 	packageManager: PackageManager
 ): string {
@@ -141,7 +141,7 @@ export function getManualInstallCommand(
 		default:
 			return `npm install ${dependencies.join(' ')}`;
 	}
-}
+};
 
 /**
  * Check if dependencies are already installed
@@ -168,7 +168,7 @@ export interface CheckDepsOutput {
  * @param allDeps - Merged dependencies and devDependencies from package.json
  * @returns Whether the dependency does not need to be installed
  */
-function isDependencySatisfied(
+const isDependencySatisfied = function isDependencySatisfied(
 	depName: string,
 	allDeps: Record<string, unknown>
 ): boolean {
@@ -180,7 +180,7 @@ function isDependencySatisfied(
 		depName === UMBRELLA_PACKAGE &&
 		SCOPED_FRAMEWORK_PACKAGES.some((scopedPackage) => scopedPackage in allDeps)
 	);
-}
+};
 
 /**
  * Split requested dependencies into installed and missing sets based on the
@@ -189,42 +189,45 @@ function isDependencySatisfied(
  * @param input - Project root and the dependencies to check
  * @returns Installed and missing dependency lists
  */
-export async function checkInstalledDependencies(
-	input: CheckDepsInput
-): Promise<CheckDepsOutput> {
-	const { projectRoot, dependencies } = input;
-	const fs = await import('node:fs/promises');
-	const path = await import('node:path');
+export const checkInstalledDependencies =
+	async function checkInstalledDependencies(
+		input: CheckDepsInput
+	): Promise<CheckDepsOutput> {
+		const { projectRoot, dependencies } = input;
+		const fs = await import('node:fs/promises');
+		const path = await import('node:path');
 
-	const installed: string[] = [];
-	const missing: string[] = [];
+		const installed: string[] = [];
+		const missing: string[] = [];
 
-	try {
-		const packageJsonPath = path.join(projectRoot, 'package.json');
-		const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8'));
+		try {
+			const packageJsonPath = path.join(projectRoot, 'package.json');
+			const packageJson = JSON.parse(
+				await fs.readFile(packageJsonPath, 'utf-8')
+			);
 
-		const allDeps = {
-			...packageJson.dependencies,
-			...packageJson.devDependencies,
-		};
+			const allDeps = {
+				...packageJson.dependencies,
+				...packageJson.devDependencies,
+			};
 
-		for (const dep of dependencies) {
-			// Handle scoped packages
-			const depName = dep.startsWith('@') ? dep : dep.split('@')[0];
+			for (const dep of dependencies) {
+				// Handle scoped packages
+				const depName = dep.startsWith('@') ? dep : dep.split('@')[0];
 
-			if (depName && isDependencySatisfied(depName, allDeps)) {
-				installed.push(dep);
-			} else {
-				missing.push(dep);
+				if (depName && isDependencySatisfied(depName, allDeps)) {
+					installed.push(dep);
+				} else {
+					missing.push(dep);
+				}
 			}
+		} catch {
+			// If we can't read package.json, assume all are missing
+			missing.push(...dependencies);
 		}
-	} catch {
-		// If we can't read package.json, assume all are missing
-		missing.push(...dependencies);
-	}
 
-	return { installed, missing };
-}
+		return { installed, missing };
+	};
 
 export const checkDependenciesActor = fromPromise<
 	CheckDepsOutput,

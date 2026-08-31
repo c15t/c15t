@@ -34,8 +34,8 @@ const IABConsentBannerCard = forwardRef<
 	const themedStyle = mergeSlotProps(components?.['iab-banner']?.card, {
 		baseClassName: styles.card,
 		className,
-		noStyle,
 		'data-testid': dataTestId ?? 'iab-consent-banner-card',
+		noStyle,
 		...props,
 	});
 

@@ -18,24 +18,28 @@ export interface ManifestTarget {
 
 const MAX_WILDCARD_PATTERN_LENGTH = 256;
 
-export function readManifest(packageDir: string): PackageManifest {
+export const readManifest = function readManifest(
+	packageDir: string
+): PackageManifest {
 	return JSON.parse(
 		readFileSync(join(packageDir, 'package.json'), 'utf8')
 	) as PackageManifest;
-}
+};
 
-export function normalizePackagePath(target: string): string | null {
+export const normalizePackagePath = function normalizePackagePath(
+	target: string
+): string | null {
 	const slashNormalized = target.replaceAll('\\', '/');
 
 	if (
 		slashNormalized.startsWith('/') ||
-		/^[A-Za-z]:\//.test(slashNormalized) ||
+		/^[A-Za-z]:\//u.test(slashNormalized) ||
 		slashNormalized.includes('://')
 	) {
 		return null;
 	}
 
-	const normalized = pathPosix.normalize(slashNormalized.replace(/^\.\//, ''));
+	const normalized = pathPosix.normalize(slashNormalized.replace(/^\.\//u, ''));
 
 	if (
 		normalized === '.' ||
@@ -47,9 +51,9 @@ export function normalizePackagePath(target: string): string | null {
 	}
 
 	return normalized;
-}
+};
 
-export function collectExportTargets(
+export const collectExportTargets = function collectExportTargets(
 	value: unknown,
 	targets: ManifestTarget[],
 	source: string
@@ -74,9 +78,9 @@ export function collectExportTargets(
 			collectExportTargets(item, targets, `${source}[${JSON.stringify(key)}]`);
 		}
 	}
-}
+};
 
-export function collectManifestTargets(
+export const collectManifestTargets = function collectManifestTargets(
 	manifest: PackageManifest
 ): ManifestTarget[] {
 	const targets: ManifestTarget[] = [];
@@ -110,15 +114,17 @@ export function collectManifestTargets(
 	collectExportTargets(manifest.exports, targets, 'exports');
 
 	return targets;
-}
+};
 
-export function wildcardToRegExp(pattern: string): RegExp {
+export const wildcardToRegExp = function wildcardToRegExp(
+	pattern: string
+): RegExp {
 	if (pattern.length > MAX_WILDCARD_PATTERN_LENGTH) {
 		throw new Error(
 			`Manifest wildcard target is too long (${pattern.length} characters; max ${MAX_WILDCARD_PATTERN_LENGTH}).`
 		);
 	}
 
-	const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-	return new RegExp(`^${escaped.replaceAll('*', '.+')}$`);
-}
+	const escaped = pattern.replace(/[.+?^${}()|[\]\\]/gu, '\\$&');
+	return new RegExp(`^${escaped.replaceAll('*', '.+')}$`, 'u');
+};

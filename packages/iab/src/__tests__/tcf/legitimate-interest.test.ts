@@ -51,19 +51,21 @@ describe('Legitimate Interest Handling', () => {
 			expect(liState.purposeLegitimateInterests[1]).toBeUndefined();
 
 			// Purposes 2-11 should have LI allowed by default
-			for (let i = 2; i <= 11; i++) {
+			for (let i = 2; i <= 11; i += 1) {
 				expect(liState.purposeLegitimateInterests[i]).toBe(true);
 			}
 		});
 
 		it('should recognize vendors with legIntPurposes in GVL', () => {
 			// Vendor 1 has legIntPurposes: [7, 8, 9]
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor1 = mockGVL.vendors[1];
 			expect(vendor1.legIntPurposes).toContain(7);
 			expect(vendor1.legIntPurposes).toContain(8);
 			expect(vendor1.legIntPurposes).toContain(9);
 
 			// Vendor 10 has legIntPurposes: [2, 7, 9, 10]
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor10 = mockGVL.vendors[10];
 			expect(vendor10.legIntPurposes).toContain(2);
 			expect(vendor10.legIntPurposes).toContain(7);
@@ -118,7 +120,8 @@ describe('Legitimate Interest Handling', () => {
 
 		it('should allow purpose-level objection independent of vendor-level', () => {
 			const liState = createMockLegitimateInterestState({
-				purposeObjections: { 9: true }, // Object to purpose 9
+				// Object to purpose 9
+				purposeObjections: { 9: true },
 			});
 
 			// Purpose 9 objected
@@ -134,13 +137,14 @@ describe('Legitimate Interest Handling', () => {
 		it('should encode vendor LI objection in TC String', async () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true, 2: true },
-				purposeLegitimateInterests: { 7: true, 9: true, 10: true },
+				purposeLegitimateInterests: { 10: true, 7: true, 9: true },
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true, 10: true },
 				vendorLegitimateInterests: {
 					1: true,
-					10: false, // Objected
+					// Objected
+					10: false,
 				},
-				specialFeatureOptIns: {},
 				vendorsDisclosed: { 1: true, 10: true },
 			};
 
@@ -162,13 +166,14 @@ describe('Legitimate Interest Handling', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {
-					7: true,
-					9: false, // Objected
 					10: true,
+					7: true,
+					// Objected,
+					9: false,
 				},
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true },
 				vendorLegitimateInterests: { 1: true },
-				specialFeatureOptIns: {},
 				vendorsDisclosed: { 1: true },
 			};
 
@@ -230,9 +235,11 @@ describe('Legitimate Interest Handling', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: { 9: true },
-				vendorConsents: { 10: false }, // No consent
-				vendorLegitimateInterests: { 10: false }, // No LI (objected)
 				specialFeatureOptIns: {},
+				// No consent
+				vendorConsents: { 10: false },
+				// No LI (objected)
+				vendorLegitimateInterests: { 10: false },
 				vendorsDisclosed: { 10: true },
 			};
 
@@ -254,10 +261,12 @@ describe('Legitimate Interest Handling', () => {
 	describe('Flexible Purposes', () => {
 		it('should recognize vendors with flexible purposes', () => {
 			// Vendor 1 has flexiblePurposes: [2] - can use either consent or LI
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor1 = mockGVL.vendors[1];
 			expect(vendor1.flexiblePurposes).toContain(2);
 
 			// Vendor 755 has flexiblePurposes: [2, 7, 9, 10, 11]
+			// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 			const vendor755 = mockGVL.vendors[755];
 			expect(vendor755.flexiblePurposes).toContain(2);
 			expect(vendor755.flexiblePurposes).toContain(7);
@@ -266,11 +275,14 @@ describe('Legitimate Interest Handling', () => {
 		it('should allow vendor to operate under consent if LI is objected for flexible purpose', async () => {
 			// For a flexible purpose, if user objects to LI, vendor can still use consent
 			const consentData: TCFConsentData = {
-				purposeConsents: { 1: true, 2: true }, // Consent granted for purpose 2
-				purposeLegitimateInterests: { 2: false }, // LI objected for purpose 2
-				vendorConsents: { 1: true },
-				vendorLegitimateInterests: { 1: false }, // Vendor 1 LI objected
+				// Consent granted for purpose 2
+				purposeConsents: { 1: true, 2: true },
+				// LI objected for purpose 2
+				purposeLegitimateInterests: { 2: false },
 				specialFeatureOptIns: {},
+				vendorConsents: { 1: true },
+				// Vendor 1 LI objected
+				vendorLegitimateInterests: { 1: false },
 				vendorsDisclosed: { 1: true },
 			};
 
@@ -332,8 +344,8 @@ describe('Legitimate Interest Handling', () => {
 
 		it('should create state with both vendor and purpose objections', () => {
 			const state = createMockLegitimateInterestState({
-				vendorObjections: { 1: true },
 				purposeObjections: { 9: true },
+				vendorObjections: { 1: true },
 			});
 
 			expect(state.vendorLegitimateInterests[1]).toBe(false);
@@ -348,9 +360,10 @@ describe('Legitimate Interest Handling', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: { 9: true },
-				vendorConsents: { 1: true },
-				vendorLegitimateInterests: { 1: false }, // Objected
 				specialFeatureOptIns: {},
+				vendorConsents: { 1: true },
+				// Objected
+				vendorLegitimateInterests: { 1: false },
 				vendorsDisclosed: { 1: true },
 			};
 
@@ -369,9 +382,10 @@ describe('Legitimate Interest Handling', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: { 9: true },
-				vendorConsents: { 1: true },
-				vendorLegitimateInterests: { 1: true }, // Granted
 				specialFeatureOptIns: {},
+				vendorConsents: { 1: true },
+				// Granted
+				vendorLegitimateInterests: { 1: true },
 				vendorsDisclosed: { 1: true },
 			};
 

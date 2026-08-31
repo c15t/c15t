@@ -20,7 +20,7 @@ export const Playground: Story = {
 	render: () => ({
 		setup() {
 			const rootClass = buttonVariants({ variant: 'primary' }).root();
-			return { rootClass, label: enTranslations.common.customize };
+			return { label: enTranslations.common.customize, rootClass };
 		},
 		template: `
 			<button :class="rootClass" type="button">{{ label }}</button>
@@ -31,8 +31,8 @@ export const Playground: Story = {
 export const WithIcon: Story = {
 	render: () => ({
 		setup() {
-			const classes = buttonVariants({ variant: 'primary', mode: 'filled' });
-			return { rootClass: classes.root(), iconClass: classes.icon() };
+			const classes = buttonVariants({ mode: 'filled', variant: 'primary' });
+			return { iconClass: classes.icon(), rootClass: classes.root() };
 		},
 		template: `
 			<button :class="rootClass" type="button">
@@ -47,8 +47,8 @@ export const NeutralGhost: Story = {
 	render: () => ({
 		setup() {
 			const rootClass = buttonVariants({
-				variant: 'neutral',
 				mode: 'ghost',
+				variant: 'neutral',
 			}).root();
 			return { rootClass };
 		},
@@ -63,38 +63,38 @@ export const AllModes: Story = {
 		setup() {
 			const modes = [
 				{
-					variant: 'primary' as const,
-					mode: 'filled' as const,
 					label: 'Primary filled',
-				},
-				{
-					variant: 'neutral' as const,
 					mode: 'filled' as const,
+					variant: 'primary' as const,
+				},
+				{
 					label: 'Neutral filled',
+					mode: 'filled' as const,
+					variant: 'neutral' as const,
 				},
 				{
-					variant: 'primary' as const,
-					mode: 'stroke' as const,
 					label: 'Primary stroke',
-				},
-				{
-					variant: 'neutral' as const,
 					mode: 'stroke' as const,
-					label: 'Neutral stroke',
-				},
-				{
 					variant: 'primary' as const,
-					mode: 'lighter' as const,
-					label: 'Primary lighter',
 				},
 				{
+					label: 'Neutral stroke',
+					mode: 'stroke' as const,
 					variant: 'neutral' as const,
-					mode: 'ghost' as const,
+				},
+				{
+					label: 'Primary lighter',
+					mode: 'lighter' as const,
+					variant: 'primary' as const,
+				},
+				{
 					label: 'Neutral ghost',
+					mode: 'ghost' as const,
+					variant: 'neutral' as const,
 				},
 			];
 			const buttons = modes.map((m) => ({
-				className: buttonVariants({ variant: m.variant, mode: m.mode }).root(),
+				className: buttonVariants({ mode: m.mode, variant: m.variant }).root(),
 				label: m.label,
 			}));
 			return { buttons };

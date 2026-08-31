@@ -50,7 +50,7 @@ export type {
 	NetworkBlockerRule,
 } from './types';
 
-export function createNetworkBlocker(
+export const createNetworkBlocker = function createNetworkBlocker(
 	options: NetworkBlockerOptions
 ): NetworkBlockerHandle {
 	const { kernel, onRequestBlocked } = options;
@@ -75,16 +75,16 @@ export function createNetworkBlocker(
 			dispose() {
 				unsubscribe();
 			},
-			updateRules(next) {
-				rules = [...next];
-			},
 			setEnabled(v) {
 				enabled = v;
+			},
+			updateRules(next) {
+				rules = [...next];
 			},
 		};
 	}
 
-	function notifyBlocked(info: BlockedRequestInfo): void {
+	const notifyBlocked = function notifyBlocked(info: BlockedRequestInfo): void {
 		if (logBlocked) {
 			// oxlint-disable-next-line no-console -- user-configurable warning
 			console.warn(
@@ -100,7 +100,7 @@ export function createNetworkBlocker(
 				// Swallow — v2 parity.
 			}
 		}
-	}
+	};
 
 	const patchDeps = {
 		getRules: () => rules,
@@ -118,11 +118,11 @@ export function createNetworkBlocker(
 			uninstallFetch();
 			uninstallXhr();
 		},
-		updateRules(next) {
-			rules = [...next];
-		},
 		setEnabled(v) {
 			enabled = v;
 		},
+		updateRules(next) {
+			rules = [...next];
+		},
 	};
-}
+};

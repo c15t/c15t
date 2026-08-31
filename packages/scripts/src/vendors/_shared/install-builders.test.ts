@@ -11,14 +11,14 @@ describe('vendor install builders', () => {
 			})
 		).toEqual([
 			{
-				type: 'callGlobal',
-				global: 'rdt',
 				args: ['init', '{{pixelId}}'],
+				global: 'rdt',
+				type: 'callGlobal',
 			},
 			{
-				type: 'loadScript',
-				src: '{{scriptUrl}}',
 				async: true,
+				src: '{{scriptUrl}}',
+				type: 'loadScript',
 			},
 		]);
 	});
@@ -34,19 +34,19 @@ describe('vendor install builders', () => {
 			})
 		).toEqual([
 			{
-				type: 'callGlobal',
-				global: 'snaptr',
 				args: ['init', '{{pixelId}}'],
-			},
-			{
-				type: 'callGlobal',
 				global: 'snaptr',
-				args: ['track', 'PAGE_VIEW'],
+				type: 'callGlobal',
 			},
 			{
-				type: 'loadScript',
-				src: '{{scriptUrl}}',
+				args: ['track', 'PAGE_VIEW'],
+				global: 'snaptr',
+				type: 'callGlobal',
+			},
+			{
 				async: true,
+				src: '{{scriptUrl}}',
+				type: 'loadScript',
 			},
 		]);
 	});
@@ -59,9 +59,9 @@ describe('vendor install builders', () => {
 				scriptPlaceholder: '{{loaderUrl}}',
 			})
 		).toContainEqual({
-			type: 'loadScript',
-			src: '{{loaderUrl}}',
 			async: true,
+			src: '{{loaderUrl}}',
+			type: 'loadScript',
 		});
 	});
 });

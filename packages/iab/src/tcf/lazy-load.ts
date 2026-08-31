@@ -38,10 +38,10 @@ let loadingPromise: Promise<TCFCoreModule> | null = null;
  *
  * @public
  */
-export async function getTCFCore(): Promise<TCFCoreModule> {
+export const getTCFCore = function getTCFCore(): Promise<TCFCoreModule> {
 	// Return cached module if already loaded
 	if (tcfCoreModule) {
-		return tcfCoreModule;
+		return Promise.resolve(tcfCoreModule);
 	}
 
 	// If already loading, return the existing promise
@@ -66,7 +66,7 @@ export async function getTCFCore(): Promise<TCFCoreModule> {
 	})();
 
 	return loadingPromise;
-}
+};
 
 /**
  * Checks if the TCF core module is already loaded.
@@ -75,9 +75,9 @@ export async function getTCFCore(): Promise<TCFCoreModule> {
  *
  * @public
  */
-export function isTCFCoreLoaded(): boolean {
+export const isTCFCoreLoaded = function isTCFCoreLoaded(): boolean {
 	return tcfCoreModule !== null;
-}
+};
 
 /**
  * Gets the cached TCF core module synchronously.
@@ -86,16 +86,16 @@ export function isTCFCoreLoaded(): boolean {
  *
  * @public
  */
-export function getTCFCoreSync(): TCFCoreModule | null {
+export const getTCFCoreSync = function getTCFCoreSync(): TCFCoreModule | null {
 	return tcfCoreModule;
-}
+};
 
 /**
  * Resets the module cache (mainly for testing).
  *
  * @internal
  */
-export function resetTCFCoreCache(): void {
+export const resetTCFCoreCache = function resetTCFCoreCache(): void {
 	tcfCoreModule = null;
 	loadingPromise = null;
-}
+};

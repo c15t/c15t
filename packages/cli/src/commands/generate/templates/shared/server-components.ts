@@ -28,7 +28,7 @@ interface GenerateServerComponentOptions {
  * @param options.framework - Framework-specific configuration
  * @returns The complete component file content
  */
-export function generateServerComponent({
+export const generateServerComponent = function generateServerComponent({
 	enableSSR,
 	backendURLValue,
 	framework,
@@ -71,7 +71,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 	);
 }
 `;
-}
+};
 
 /**
  * Generates a simple non-RSC wrapper component for React (no SSR)
@@ -80,11 +80,12 @@ export function ConsentManager({ children }: { children: ReactNode }) {
  * @param docsSlug - Docs URL slug (e.g. 'react')
  * @returns The complete wrapper file content
  */
-export function generateSimpleWrapperComponent(
-	_frameworkName: string,
-	docsSlug: string
-): string {
-	return `import type { ReactNode } from 'react';
+export const generateSimpleWrapperComponent =
+	function generateSimpleWrapperComponent(
+		_frameworkName: string,
+		docsSlug: string
+	): string {
+		return `import type { ReactNode } from 'react';
 import ConsentManagerProvider from './provider';
 
 /**
@@ -95,4 +96,4 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 	return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
 }
 `;
-}
+	};

@@ -57,13 +57,13 @@ interface Sample {
  */
 const BACKGROUND_RATIO = 20;
 
-const seed = Effect.fn('seed')(function* (subjects: number) {
+const seed = Effect.fn('seed')(function* seed(subjects: number) {
 	const sql = yield* SqlClient.SqlClient;
 
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
 		values ('dom_1','example.com',now(),now())`);
 
-	for (let type = 0; type < POLICY_TYPES; type++) {
+	for (let type = 0; type < POLICY_TYPES; type += 1) {
 		for (const version of [0, 1]) {
 			yield* sql.unsafe(`insert into "consentPolicy"
 				("id","version","type","effectiveDate","isActive","createdAt")
@@ -120,7 +120,7 @@ const seed = Effect.fn('seed')(function* (subjects: number) {
 	yield* sql.unsafe('analyze');
 });
 
-const measure = Effect.fn('measure')(function* (
+const measure = Effect.fn('measure')(function* measure(
 	arm: (
 		externalId: string
 	) => Effect.Effect<ArmResult, unknown, SqlClient.SqlClient | never>,
@@ -128,25 +128,26 @@ const measure = Effect.fn('measure')(function* (
 	migrations: string[],
 	subjects: number
 ) {
-	for (let index = 0; index < WARMUP; index++) {
+	for (let index = 0; index < WARMUP; index += 1) {
 		yield* arm('ext_bench');
 	}
 
 	const durations: number[] = [];
 	let queries = 0;
-	for (let index = 0; index < ITERATIONS; index++) {
+	for (let index = 0; index < ITERATIONS; index += 1) {
 		const start = performance.now();
 		const result = yield* arm('ext_bench');
 		durations.push(performance.now() - start);
+		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 		queries = result.queries;
 	}
 
 	return {
 		arm: label,
-		migrations,
-		subjects,
-		queries,
 		durations,
+		migrations,
+		queries,
+		subjects,
 	} satisfies Sample;
 });
 
@@ -157,9 +158,12 @@ const measure = Effect.fn('measure')(function* (
  * only difference between them is how they query it.
  */
 const cell = (subjects: number, indexed: boolean) =>
-	Effect.gen(function* () {
+	// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
+	Effect.gen(function* cell() {
 		yield* baseline;
-		if (indexed) yield* hotPathIndexes;
+		if (indexed) {
+			yield* hotPathIndexes;
+		}
 		yield* seed(subjects);
 
 		const migrations = indexed
@@ -189,13 +193,13 @@ const stats = (values: number[]) => {
 	const at = (q: number) =>
 		sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] ?? 0;
 	return {
+		avg: sorted.reduce((total, value) => total + value, 0) / sorted.length,
 		median: at(0.5),
 		p95: at(0.95),
-		avg: sorted.reduce((total, value) => total + value, 0) / sorted.length,
 	};
 };
 
-const program = Effect.gen(function* () {
+const program = Effect.gen(function* program() {
 	const samples: Sample[] = [];
 	for (const subjects of SUBJECT_COUNTS) {
 		for (const indexed of [false, true]) {
@@ -210,21 +214,19 @@ const samples = await Effect.runPromise(program);
 const rows = samples.map((sample) => ({
 	arm: sample.arm,
 	indexed: sample.migrations.length > 1,
-	subjects: sample.subjects,
 	queries: sample.queries,
+	subjects: sample.subjects,
 	...stats(sample.durations),
 }));
 
 process.stdout.write(
-	'\n| arm | indexed | subjects | queries | median ms | p95 ms |\n' +
-		'| --- | --- | ---: | ---: | ---: | ---: |\n' +
-		rows
+	`\n| arm | indexed | subjects | queries | median ms | p95 ms |\n` +
+		`| --- | --- | ---: | ---: | ---: | ---: |\n${rows
 			.map(
 				(row) =>
 					`| ${row.arm} | ${row.indexed ? 'yes' : 'no'} | ${row.subjects} | ${row.queries} | ${row.median.toFixed(3)} | ${row.p95.toFixed(3)} |`
 			)
-			.join('\n') +
-		'\n\n'
+			.join('\n')}\n\n`
 );
 
 const outputDir =
@@ -234,13 +236,13 @@ writeFileSync(
 	join(outputDir, 'subject-list.json'),
 	`${JSON.stringify(
 		{
-			suite: 'backend-runtime',
+			engine: 'postgres',
 			framework: 'backend',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
-			engine: 'postgres',
 			note: 'Query patterns compared against one client. The chunked-fanout arm reproduces list.handler.ts and consent-enrichment.ts rather than calling @c15t/backend, which isolates the pattern and excludes fumadb overhead — so it measures the floor of the old design, not the shipped package.',
 			rows,
+			suite: 'backend-runtime',
 		},
 		null,
 		2

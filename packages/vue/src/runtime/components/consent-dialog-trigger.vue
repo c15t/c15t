@@ -36,7 +36,9 @@ const persistedPosition = useLocalStorageRef<{ x: number; y: number } | null>(
 	null
 );
 
-function resolveSizePixels(size: ConsentDialogTriggerSize): number {
+const resolveSizePixels = function resolveSizePixels(
+	size: ConsentDialogTriggerSize
+): number {
 	if (size === 'sm') {
 		return 32;
 	}
@@ -44,9 +46,9 @@ function resolveSizePixels(size: ConsentDialogTriggerSize): number {
 		return 48;
 	}
 	return 40;
-}
+};
 
-function resolveInitialPosition(
+const resolveInitialPosition = function resolveInitialPosition(
 	position: ConsentDialogTriggerPosition,
 	size: ConsentDialogTriggerSize
 ) {
@@ -69,7 +71,7 @@ function resolveInitialPosition(
 		return { x: STORAGE_OFFSET, y: maxY };
 	}
 	return { x: maxX, y: maxY };
-}
+};
 
 const initialValue = computed(
 	() =>
@@ -82,12 +84,12 @@ const initialValue = computed(
 
 const { position, isDragging } = useDraggable(triggerRef, {
 	initialValue: initialValue.value,
-	onEnd: (position) => {
+	onEnd: (nextPosition) => {
 		if (!config.value.triggerPersistPosition) {
 			return;
 		}
 
-		persistedPosition.value = { x: position.x, y: position.y };
+		persistedPosition.value = { x: nextPosition.x, y: nextPosition.y };
 	},
 	preventDefault: true,
 	stopPropagation: true,
@@ -112,10 +114,10 @@ watch(
 	{ immediate: true }
 );
 
-function hasIabConsent(): boolean {
+const hasIabConsent = function hasIabConsent(): boolean {
 	const state = iabSelection.value;
 	return Object.values(state.vendorConsents).some(Boolean);
-}
+};
 
 const hasConsented = computed(() => {
 	if (init.value?.policy?.model === 'iab') {
@@ -144,15 +146,15 @@ const isVisible = computed(() => {
 });
 
 const triggerStyle = computed(() => ({
-	position: 'fixed' as const,
-	zIndex: 9999,
 	left: `${position.value.x}px`,
+	position: 'fixed' as const,
 	top: `${position.value.y}px`,
+	zIndex: 9999,
 }));
 
-function openDialog() {
+const openDialog = function openDialog() {
 	activeUI.value = 'manager';
-}
+};
 </script>
 
 <template>

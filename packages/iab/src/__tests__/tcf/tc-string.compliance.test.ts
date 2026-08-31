@@ -14,11 +14,10 @@ import {
 	generateTCString,
 	isValidTCStringFormat,
 } from '../../tcf/tc-string';
-import { INVALID_TC_STRING, MINIMAL_TC_STRING } from './fixtures/tc-strings';
+import { MINIMAL_TC_STRING } from './fixtures/tc-strings';
 import {
 	createMockGVL,
 	createMockGVLWithLIVendors,
-	createMockTCFConsent,
 	createMockTCFConsentAllGranted,
 } from './test-setup';
 
@@ -95,6 +94,8 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: {
 					1: true,
+					10: false,
+					11: true,
 					2: true,
 					3: false,
 					4: true,
@@ -103,13 +104,11 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 					7: true,
 					8: false,
 					9: true,
-					10: false,
-					11: true,
 				},
 				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true },
 				vendorLegitimateInterests: {},
-				specialFeatureOptIns: {},
 				vendorsDisclosed: { 1: true },
 			};
 
@@ -141,17 +140,18 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {
+					10: true,
+
 					// Purpose 1 cannot have LI per TCF spec
 					// Only set LI for purposes that GVL vendors support
 					2: true,
 					7: true,
 					8: true,
 					9: true,
-					10: true,
 				},
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true },
 				vendorLegitimateInterests: { 1: true },
-				specialFeatureOptIns: {},
 				vendorsDisclosed: { 1: true },
 			};
 
@@ -177,15 +177,15 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
 				vendorConsents: {
 					1: true,
-					2: true,
 					10: false,
+					2: true,
 					755: true,
 				},
 				vendorLegitimateInterests: {},
-				specialFeatureOptIns: {},
-				vendorsDisclosed: { 1: true, 2: true, 10: true, 755: true },
+				vendorsDisclosed: { 1: true, 10: true, 2: true, 755: true },
 			};
 
 			const tcString = await generateTCString(consentData, mockGVL, {
@@ -205,14 +205,14 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: { 9: true },
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true },
 				vendorLegitimateInterests: {
 					1: true,
-					2: false,
 					10: true,
+					2: false,
 				},
-				specialFeatureOptIns: {},
-				vendorsDisclosed: { 1: true, 2: true, 10: true },
+				vendorsDisclosed: { 1: true, 10: true, 2: true },
 			};
 
 			const tcString = await generateTCString(consentData, mockGVL, {
@@ -231,12 +231,12 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {},
-				vendorConsents: { 1: true },
-				vendorLegitimateInterests: {},
 				specialFeatureOptIns: {
 					1: true,
 					2: false,
 				},
+				vendorConsents: { 1: true },
+				vendorLegitimateInterests: {},
 				vendorsDisclosed: { 1: true },
 			};
 
@@ -255,13 +255,13 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true },
 				vendorLegitimateInterests: {},
-				specialFeatureOptIns: {},
 				vendorsDisclosed: {
 					1: true,
-					2: true,
 					10: true,
+					2: true,
 					755: true,
 				},
 			};
@@ -386,6 +386,8 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: {
 					1: true,
+					10: true,
+					11: true,
 					2: true,
 					3: true,
 					4: false,
@@ -394,32 +396,30 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 					7: true,
 					8: true,
 					9: false,
-					10: true,
-					11: true,
 				},
 				purposeLegitimateInterests: {
 					2: true,
 					7: true,
 					9: true,
 				},
-				vendorConsents: {
+				specialFeatureOptIns: {
 					1: true,
 					2: true,
+				},
+				vendorConsents: {
+					1: true,
 					10: true,
+					2: true,
 					755: true,
 				},
 				vendorLegitimateInterests: {
 					1: true,
 					10: true,
 				},
-				specialFeatureOptIns: {
-					1: true,
-					2: true,
-				},
 				vendorsDisclosed: {
 					1: true,
-					2: true,
 					10: true,
+					2: true,
 					755: true,
 				},
 			};
@@ -498,9 +498,9 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: {},
 				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
 				vendorConsents: {},
 				vendorLegitimateInterests: {},
-				specialFeatureOptIns: {},
 				vendorsDisclosed: {},
 			};
 
@@ -515,7 +515,7 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 
 			// TC String may contain segment separators (.)
 			// Each segment should be valid base64url (allowing shorter segments)
-			const base64urlRegex = /^[A-Za-z0-9_-]+$/;
+			const base64urlRegex = /^[A-Za-z0-9_-]+$/u;
 			const segments = tcString.split('.');
 			for (const segment of segments) {
 				expect(segment.length).toBeGreaterThan(0);
@@ -532,9 +532,9 @@ describe('TC String Compliance - IAB TCF 2.3', () => {
 			const consentData: TCFConsentData = {
 				purposeConsents: { 1: true },
 				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
 				vendorConsents: { 1: true },
 				vendorLegitimateInterests: {},
-				specialFeatureOptIns: {},
 				vendorsDisclosed: {},
 			};
 

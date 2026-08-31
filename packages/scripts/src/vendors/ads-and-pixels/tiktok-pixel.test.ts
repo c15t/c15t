@@ -59,28 +59,28 @@ describe('tiktokPixel', () => {
 		window.ttq.revokeConsent = revokeConsent;
 
 		script.onConsentChange?.({
-			id: script.id,
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			elementId: script.id,
 			hasConsent: false,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: false,
-				experience: false,
-			},
+			id: script.id,
 		});
 		script.onConsentChange?.({
-			id: script.id,
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: true,
+				measurement: false,
+				necessary: true,
+			},
 			elementId: script.id,
 			hasConsent: true,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: true,
-				experience: false,
-			},
+			id: script.id,
 		});
 
 		expect(revokeConsent).toHaveBeenCalledTimes(1);

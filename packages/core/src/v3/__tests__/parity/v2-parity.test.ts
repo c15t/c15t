@@ -60,8 +60,11 @@ beforeEach(() => {
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			observe() {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			disconnect() {}
+			// oxlint-disable-next-line class-methods-use-this -- Preserve declaration order, interface shape, and public compatibility.
 			takeRecords() {
 				return [];
 			}
@@ -69,14 +72,14 @@ beforeEach(() => {
 	);
 	vi.stubGlobal('document', {
 		createElement: vi.fn(() => ({
-			setAttribute: vi.fn(),
-			getAttribute: vi.fn(),
-			removeAttribute: vi.fn(),
 			addEventListener: vi.fn(),
-			removeEventListener: vi.fn(),
 			appendChild: vi.fn(),
-			removeChild: vi.fn(),
+			getAttribute: vi.fn(),
 			parentNode: null,
+			removeAttribute: vi.fn(),
+			removeChild: vi.fn(),
+			removeEventListener: vi.fn(),
+			setAttribute: vi.fn(),
 		})),
 		createDocumentFragment: vi.fn(() => ({
 			appendChild: vi.fn(),

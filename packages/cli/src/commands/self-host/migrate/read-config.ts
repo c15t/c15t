@@ -35,7 +35,7 @@ const defaultReadDatabaseConfigDependencies: ReadDatabaseConfigDependencies = {
  *
  * @throws {Error} when the file is missing, unreadable, or has no `database`.
  */
-export async function readDatabaseConfig(
+export const readDatabaseConfig = async function readDatabaseConfig(
 	context: CliContext,
 	absoluteConfigPath: string,
 	dependencies: ReadDatabaseConfigDependencies = defaultReadDatabaseConfigDependencies
@@ -88,6 +88,8 @@ export async function readDatabaseConfig(
 		if (error instanceof Error) {
 			throw error;
 		}
-		throw new Error(`Unknown error loading backend config: ${String(error)}`);
+		throw new Error(`Unknown error loading backend config: ${String(error)}`, {
+			cause: error,
+		});
 	}
-}
+};

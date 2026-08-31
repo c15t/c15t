@@ -5,19 +5,19 @@ import type { EndpointHandlers } from './types';
 /**
  * Creates a basic response context for error cases.
  */
-export function createErrorResponse<T>(
+export const createErrorResponse = function createErrorResponse<T>(
 	message: string,
 	status = 500,
 	code = 'HANDLER_ERROR',
 	cause?: unknown
 ): ResponseContext<T> {
 	return createErrorResponseShared<T>(message, status, code, cause);
-}
+};
 
 /**
  * Handles execution of a specific endpoint handler.
  */
-export async function executeHandler<
+export const executeHandler = async function executeHandler<
 	ResponseType,
 	BodyType = unknown,
 	QueryType = unknown,
@@ -73,4 +73,4 @@ export async function executeHandler<
 
 		return errorResponse;
 	}
-}
+};

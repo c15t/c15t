@@ -19,34 +19,44 @@ export interface AccordionItemContextValue {
 	readonly value: string;
 }
 
-export function setAccordionRootContext(value: AccordionRootContextValue) {
+export const setAccordionRootContext = function setAccordionRootContext(
+	value: AccordionRootContextValue
+) {
 	setContext(ACCORDION_ROOT_CONTEXT_KEY, value);
-}
+};
 
-export function getAccordionRootContext(): AccordionRootContextValue {
-	const context = getContext<AccordionRootContextValue | undefined>(
-		ACCORDION_ROOT_CONTEXT_KEY
-	);
+export const getAccordionRootContext =
+	function getAccordionRootContext(): AccordionRootContextValue {
+		const context = getContext<AccordionRootContextValue | undefined>(
+			ACCORDION_ROOT_CONTEXT_KEY
+		);
 
-	if (!context) {
-		throw new Error('Accordion primitives must be used within Accordion.Root');
-	}
+		if (!context) {
+			throw new Error(
+				'Accordion primitives must be used within Accordion.Root'
+			);
+		}
 
-	return context;
-}
+		return context;
+	};
 
-export function setAccordionItemContext(value: AccordionItemContextValue) {
+export const setAccordionItemContext = function setAccordionItemContext(
+	value: AccordionItemContextValue
+) {
 	setContext(ACCORDION_ITEM_CONTEXT_KEY, value);
-}
+};
 
-export function getAccordionItemContext(): AccordionItemContextValue {
-	const context = getContext<AccordionItemContextValue | undefined>(
-		ACCORDION_ITEM_CONTEXT_KEY
-	);
+export const getAccordionItemContext =
+	function getAccordionItemContext(): AccordionItemContextValue {
+		const context = getContext<AccordionItemContextValue | undefined>(
+			ACCORDION_ITEM_CONTEXT_KEY
+		);
 
-	if (!context) {
-		throw new Error('Accordion primitives must be used within Accordion.Item');
-	}
+		if (!context) {
+			throw new Error(
+				'Accordion primitives must be used within Accordion.Item'
+			);
+		}
 
-	return context;
-}
+		return context;
+	};

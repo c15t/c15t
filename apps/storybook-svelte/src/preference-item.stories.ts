@@ -33,9 +33,9 @@ export const TriggerOnly: Story = {
 export const WithTrailingSwitch: Story = {
 	args: {
 		checked: true,
-		open: true,
 		description: consentTypes.measurement.description,
 		meta: '4 partners',
+		open: true,
 		title: consentTypes.measurement.title,
 		withSwitch: true,
 	},
@@ -44,11 +44,11 @@ export const WithTrailingSwitch: Story = {
 
 export const DisabledControl: Story = {
 	args: {
-		open: true,
 		description:
 			'Used to understand whether advertising campaigns lead to useful outcomes.',
 		disabled: true,
 		meta: '6 partners',
+		open: true,
 		title: 'Advertising measurement',
 		withSwitch: true,
 	},

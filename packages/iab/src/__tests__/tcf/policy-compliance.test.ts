@@ -40,7 +40,7 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 			});
 
 			it('vendor consents should not be pre-checked', () => {
-				const defaultConsent = createMockTCFConsent();
+				const _defaultConsent = createMockTCFConsent();
 
 				// Only explicitly granted vendors should be true
 				// Default mock has vendors 1, 2 as true (simulating user action)
@@ -63,14 +63,16 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 					purposeConsents: { 1: true },
 					purposeLegitimateInterests: {
 						7: true,
-						9: false, // User objected
+						// User objected
+						9: false,
 					},
+					specialFeatureOptIns: {},
 					vendorConsents: { 1: true },
 					vendorLegitimateInterests: {
 						1: true,
-						10: false, // User objected
+						// User objected
+						10: false,
 					},
-					specialFeatureOptIns: {},
 					vendorsDisclosed: { 1: true, 10: true },
 				};
 
@@ -104,12 +106,14 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 				const consent: TCFConsentData = {
 					purposeConsents: { 1: true },
 					purposeLegitimateInterests: {},
+					specialFeatureOptIns: {
+						// User opted in
+						1: true,
+						// User did not opt in
+						2: false,
+					},
 					vendorConsents: { 1: true },
 					vendorLegitimateInterests: {},
-					specialFeatureOptIns: {
-						1: true, // User opted in
-						2: false, // User did not opt in
-					},
 					vendorsDisclosed: { 1: true },
 				};
 
@@ -183,14 +187,16 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 				const consent: TCFConsentData = {
 					purposeConsents: { 1: true },
 					purposeLegitimateInterests: {},
+					specialFeatureOptIns: {},
 					vendorConsents: {
 						1: true,
-						10: false, // No consent
+						// No consent
+						10: false,
 					},
 					vendorLegitimateInterests: {
-						10: false, // No LI (objected)
+						// No LI (objected)
+						10: false,
 					},
-					specialFeatureOptIns: {},
 					vendorsDisclosed: { 1: true, 10: true },
 				};
 
@@ -217,8 +223,12 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 						7: true,
 					},
 					purposeLegitimateInterests: {
-						9: true,
 						10: false,
+						9: true,
+					},
+					specialFeatureOptIns: {
+						1: true,
+						2: false,
 					},
 					vendorConsents: {
 						1: true,
@@ -228,10 +238,6 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 					vendorLegitimateInterests: {
 						1: true,
 						755: false,
-					},
-					specialFeatureOptIns: {
-						1: true,
-						2: false,
 					},
 					vendorsDisclosed: {
 						1: true,
@@ -271,6 +277,7 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 		describe('Initial Layer Requirements', () => {
 			it('should provide storage notice through purpose 1', () => {
 				// Purpose 1 covers storage/access notice
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				const purpose1 = mockGVL.purposes[1];
 				expect(purpose1.name).toContain('Store');
 				expect(purpose1.description).toBeDefined();
@@ -283,7 +290,8 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 
 			it('should provide purpose list from GVL', () => {
 				const purposeCount = Object.keys(mockGVL.purposes).length;
-				expect(purposeCount).toBe(11); // All 11 purposes
+				// All 11 purposes
+				expect(purposeCount).toBe(11);
 			});
 		});
 
@@ -314,13 +322,13 @@ describe('IAB Policy Compliance - TCF 2.3', () => {
 				const consent: TCFConsentData = {
 					purposeConsents: { 1: true },
 					purposeLegitimateInterests: {},
+					specialFeatureOptIns: {},
 					vendorConsents: { 1: true },
 					vendorLegitimateInterests: {},
-					specialFeatureOptIns: {},
 					vendorsDisclosed: {
 						1: true,
-						2: true,
 						10: true,
+						2: true,
 						755: true,
 					},
 				};

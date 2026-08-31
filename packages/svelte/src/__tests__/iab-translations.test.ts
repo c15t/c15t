@@ -26,11 +26,12 @@ const getDefined = <Value>(
  * The config must pass isTranslations() which requires cookieBanner,
  * consentManagerDialog, consentTypes, and common keys.
  */
-function createConfigWithIABOverrides(
+const createConfigWithIABOverrides = function createConfigWithIABOverrides(
 	iabOverrides: Record<string, unknown>
 ): TranslationConfig {
 	const defaultEn = getDefined(defaultTranslationConfig.translations.en);
 	return {
+		defaultLanguage: 'en',
 		translations: {
 			en: {
 				...defaultEn,
@@ -43,9 +44,8 @@ function createConfigWithIABOverrides(
 				},
 			} as TranslationConfig['translations'][string],
 		},
-		defaultLanguage: 'en',
 	};
-}
+};
 
 describe('getIABTranslations', () => {
 	describe('with no config', () => {

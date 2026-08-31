@@ -115,294 +115,296 @@ const validConsentCategories = [
 ] as const satisfies readonly AllConsentNames[];
 
 const helperParityCases = {
-	googleTagManager: {
-		script: googleTagManager({ id: 'GTM-123' }),
-		expected: {
-			alwaysLoad: true,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
-		},
-	},
-	gtag: {
-		script: gtag({ id: 'G-123', category: 'measurement' }),
-		expected: {
-			alwaysLoad: true,
-			persistAfterConsentRevoked: true,
-			src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
-		},
-	},
-	ahrefsAnalytics: {
-		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://analytics.ahrefs.com/analytics.js',
-		},
-	},
 	adobeAnalytics: {
-		script: adobeAnalytics({
-			scriptUrl:
-				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
-		}),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
 		},
+		script: adobeAnalytics({
+			scriptUrl:
+				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+		}),
+	},
+	ahrefsAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.ahrefs.com/analytics.js',
+		},
+		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
 	},
 	amplitude: {
-		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
-	},
-	cloudflareWebAnalytics: {
-		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://static.cloudflareinsights.com/beacon.min.js',
-		},
+		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
 	},
 	clearbit: {
-		script: clearbit({ publishableKey: 'pk_contract' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://tag.clearbitscripts.com/v1/pk_contract/tags.js',
 		},
+		script: clearbit({ publishableKey: 'pk_contract' }),
 	},
-	'microsoft-clarity': {
-		script: clarity({ id: 'abcdef1234' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://www.clarity.ms/tag/abcdef1234',
-		},
-	},
-	databuddy: {
-		script: databuddy({
-			clientId: 'db_123',
-			configWhenGranted: { clientId: 'db_123', disabled: false },
-			configWhenDenied: { clientId: 'db_123', disabled: true },
-		}),
-		expected: {
-			alwaysLoad: true,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.databuddy.cc/databuddy.js',
-		},
-	},
-	fathomAnalytics: {
-		script: fathomAnalytics({ site: 'SITE123' }),
+	cloudflareWebAnalytics: {
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.usefathom.com/script.js',
+			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
-	},
-	heap: {
-		script: heap({ envId: '123456789' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.us.heap-api.com/config/123456789/heap_config.js',
-		},
-	},
-	mixpanelAnalytics: {
-		script: mixpanelAnalytics({
-			token: '1234567890abcdef1234567890abcdef',
-		}),
-		expected: {
-			alwaysLoad: true,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
-		},
-	},
-	hotjar: {
-		script: hotjar({ siteId: 1234567 }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
-		},
-	},
-	hightouch: {
-		script: hightouch({ writeKey: 'abc123xyz456' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js',
-		},
-	},
-	rudderstack: {
-		script: rudderstack({
-			writeKey: 'abc123xyz456',
-			dataPlaneUrl: 'https://c15t-live-probe.invalid',
-		}),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.rudderlabs.com/v3/modern/rsa.min.js',
-		},
-	},
-	logRocket: {
-		script: logRocket({ appId: 'c15tfake/c15tfake' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.logrocket.io/LogRocket.min.js',
-		},
-	},
-	matomoAnalytics: {
-		script: matomoAnalytics({
-			matomoUrl: 'https://analytics.example.com',
-			siteId: 1,
-		}),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://analytics.example.com/matomo.js',
-		},
-	},
-	posthog: {
-		script: posthog({ id: 'phc_123' }),
-		expected: {
-			alwaysLoad: true,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://eu-assets.i.posthog.com/static/array.js',
-		},
-	},
-	promptwatch: {
-		script: promptwatch({
-			projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
-		}),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://ingest.promptwatch.com/js/client.min.js',
-		},
-	},
-	pirsch: {
-		script: pirsch({ identificationCode: 'PIRSCH-CONTRACT' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://api.pirsch.io/pa.js',
-		},
-	},
-	segment: {
-		script: segment({ writeKey: 'abc123xyz456' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.segment.com/analytics.js/v1/abc123xyz456/analytics.min.js',
-		},
-	},
-	rybbitAnalytics: {
-		script: rybbitAnalytics({ siteId: 'rybbit-123' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://app.rybbit.io/api/script.js',
-		},
-	},
-	plausibleAnalytics: {
-		script: plausibleAnalytics({ domain: 'example.com' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://plausible.io/js/script.js',
-		},
-	},
-	umamiAnalytics: {
-		script: umamiAnalytics({ websiteId: 'site-abc' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://cloud.umami.is/script.js',
-		},
-	},
-	vercelAnalytics: {
-		script: vercelAnalytics(),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://va.vercel-scripts.com/v1/script.js',
-		},
+		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
 	},
 	crisp: {
-		script: crisp({ websiteId: 'crisp-123' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://client.crisp.chat/l.js',
 		},
+		script: crisp({ websiteId: 'crisp-123' }),
+	},
+	databuddy: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.databuddy.cc/databuddy.js',
+		},
+		script: databuddy({
+			clientId: 'db_123',
+			configWhenDenied: { clientId: 'db_123', disabled: true },
+
+			configWhenGranted: { clientId: 'db_123', disabled: false },
+		}),
+	},
+	fathomAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.usefathom.com/script.js',
+		},
+		script: fathomAnalytics({ site: 'SITE123' }),
+	},
+	googleTagManager: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
+		},
+		script: googleTagManager({ id: 'GTM-123' }),
+	},
+	gtag: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
+		},
+		script: gtag({ category: 'measurement', id: 'G-123' }),
+	},
+	heap: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.us.heap-api.com/config/123456789/heap_config.js',
+		},
+		script: heap({ envId: '123456789' }),
+	},
+	hightouch: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js',
+		},
+		script: hightouch({ writeKey: 'abc123xyz456' }),
+	},
+	hotjar: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+		script: hotjar({ siteId: 1234567 }),
 	},
 	intercom: {
-		script: intercom({ appId: 'abc123' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://widget.intercom.io/widget/abc123',
 		},
-	},
-	metaPixel: {
-		script: metaPixel({ pixelId: '123456' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://connect.facebook.net/en_US/fbevents.js',
-		},
-	},
-	redditPixel: {
-		script: redditPixel({ pixelId: 't2_abcdef' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://www.redditstatic.com/ads/pixel.js',
-		},
-	},
-	tiktokPixel: {
-		script: tiktokPixel({ pixelId: 'tt-123' }),
-		expected: {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=tt-123&lib=ttq',
-		},
+		script: intercom({ appId: 'abc123' }),
 	},
 	linkedinInsights: {
-		script: linkedinInsights({ id: '987654' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
 		},
+		script: linkedinInsights({ id: '987654' }),
+	},
+	logRocket: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.logrocket.io/LogRocket.min.js',
+		},
+		script: logRocket({ appId: 'c15tfake/c15tfake' }),
+	},
+	matomoAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.example.com/matomo.js',
+		},
+		script: matomoAnalytics({
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		}),
+	},
+	metaPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://connect.facebook.net/en_US/fbevents.js',
+		},
+		script: metaPixel({ pixelId: '123456' }),
+	},
+	'microsoft-clarity': {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
+		},
+		script: clarity({ id: 'abcdef1234' }),
 	},
 	microsoftUet: {
-		script: microsoftUet({ id: 'uet-123' }),
 		expected: {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: true,
 			src: '//bat.bing.com/bat.js',
 		},
+		script: microsoftUet({ id: 'uet-123' }),
+	},
+	mixpanelAnalytics: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		},
+		script: mixpanelAnalytics({
+			token: '1234567890abcdef1234567890abcdef',
+		}),
+	},
+	pirsch: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://api.pirsch.io/pa.js',
+		},
+		script: pirsch({ identificationCode: 'PIRSCH-CONTRACT' }),
+	},
+	plausibleAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://plausible.io/js/script.js',
+		},
+		script: plausibleAnalytics({ domain: 'example.com' }),
+	},
+	posthog: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://eu-assets.i.posthog.com/static/array.js',
+		},
+		script: posthog({ id: 'phc_123' }),
+	},
+	promptwatch: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://ingest.promptwatch.com/js/client.min.js',
+		},
+		script: promptwatch({
+			projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+		}),
+	},
+	redditPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.redditstatic.com/ads/pixel.js',
+		},
+		script: redditPixel({ pixelId: 't2_abcdef' }),
+	},
+	rudderstack: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.rudderlabs.com/v3/modern/rsa.min.js',
+		},
+		script: rudderstack({
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+
+			writeKey: 'abc123xyz456',
+		}),
+	},
+	rybbitAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://app.rybbit.io/api/script.js',
+		},
+		script: rybbitAnalytics({ siteId: 'rybbit-123' }),
+	},
+	segment: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.segment.com/analytics.js/v1/abc123xyz456/analytics.min.js',
+		},
+		script: segment({ writeKey: 'abc123xyz456' }),
 	},
 	snapchatPixel: {
-		script: snapchatPixel({ pixelId: '123456789012345' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://sc-static.net/scevent.min.js',
 		},
+		script: snapchatPixel({ pixelId: '123456789012345' }),
+	},
+	tiktokPixel: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=tt-123&lib=ttq',
+		},
+		script: tiktokPixel({ pixelId: 'tt-123' }),
+	},
+	umamiAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cloud.umami.is/script.js',
+		},
+		script: umamiAnalytics({ websiteId: 'site-abc' }),
+	},
+	vercelAnalytics: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://va.vercel-scripts.com/v1/script.js',
+		},
+		script: vercelAnalytics(),
 	},
 	xPixel: {
-		script: xPixel({ pixelId: 'tw-123' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.ads-twitter.com/uwt.js',
 		},
+		script: xPixel({ pixelId: 'tw-123' }),
 	},
 } satisfies Record<
 	BuiltInScriptIntegrationKey,
@@ -451,22 +453,26 @@ const vendorManifests = [
 	xPixelManifest,
 ];
 
-function getPublicScriptExportSubpaths(): string[] {
-	return Object.keys(packageJson.exports)
-		.filter(
-			(key) =>
-				key.startsWith('./') &&
-				key !== '.' &&
-				key !== './*' &&
-				key !== './package.json' &&
-				key !== './registry'
-		)
-		.map((key) => key.replace('./', ''));
-}
+const getPublicScriptExportSubpaths =
+	function getPublicScriptExportSubpaths(): string[] {
+		return Object.keys(packageJson.exports)
+			.filter(
+				(key) =>
+					key.startsWith('./') &&
+					key !== '.' &&
+					key !== './*' &&
+					key !== './package.json' &&
+					key !== './registry'
+			)
+			.map((key) => key.replace('./', ''));
+	};
 
-function expectUnique(values: readonly string[], label: string): void {
+const expectUnique = function expectUnique(
+	values: readonly string[],
+	label: string
+): void {
 	expect(new Set(values).size, label).toBe(values.length);
-}
+};
 
 describe('script integration registry', () => {
 	it('keeps identity fields unique', () => {

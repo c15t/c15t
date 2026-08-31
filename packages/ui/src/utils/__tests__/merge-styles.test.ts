@@ -51,8 +51,8 @@ describe('mergeStyles', () => {
 				{ style: { backgroundColor: 'blue' } }
 			);
 			expect(result.style).toEqual({
-				color: 'red',
 				backgroundColor: 'blue',
+				color: 'red',
 			});
 		});
 
@@ -93,8 +93,8 @@ describe('mergeStyles', () => {
 				{ className: 'class1', style: { color: 'red' } },
 				{
 					className: 'class2',
-					style: { backgroundColor: 'blue' },
 					noStyle: true,
+					style: { backgroundColor: 'blue' },
 				}
 			);
 			expect(result.style).toEqual({ backgroundColor: 'blue' });
@@ -122,18 +122,18 @@ describe('mergeStyles', () => {
 				{
 					baseClassName: 'base-default',
 					className: 'user-class-1',
-					style: { padding: '10px', margin: '5px' },
+					style: { margin: '5px', padding: '10px' },
 				},
 				{
 					className: 'user-class-2',
-					style: { margin: '10px', border: '1px solid' },
+					style: { border: '1px solid', margin: '10px' },
 				}
 			);
 			expect(result.className).toBe('base-default user-class-1 user-class-2');
 			expect(result.style).toEqual({
-				padding: '10px',
-				margin: '10px',
 				border: '1px solid',
+				margin: '10px',
+				padding: '10px',
 			});
 		});
 	});

@@ -223,62 +223,69 @@ declare global {
  */
 export const metaPixelManifest = {
 	...vendorManifestContract,
-	vendor: 'meta-pixel',
-	category: 'marketing',
-	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
-			type: 'defineStubFunction',
-			name: 'fbq',
-			queue: {
-				property: 'queue',
-			},
-			dispatchProperty: 'callMethod',
-			selfReferences: ['push'],
 			aliases: ['_fbq'],
+			dispatchProperty: 'callMethod',
+			ifUndefined: true,
+
+			name: 'fbq',
 			properties: {
 				loaded: true,
 				version: '2.0',
 			},
-			ifUndefined: true,
+			queue: {
+				property: 'queue',
+			},
+			selfReferences: ['push'],
+			type: 'defineStubFunction',
 		},
 	],
+	category: 'marketing',
 	install: [
 		{
-			type: 'callGlobal',
-			global: 'fbq',
 			args: ['consent', 'grant'],
+
+			global: 'fbq',
+			type: 'callGlobal',
 		},
 		{
-			type: 'callGlobal',
-			global: 'fbq',
 			args: ['init', '{{pixelId}}'],
+
+			global: 'fbq',
+			type: 'callGlobal',
 		},
 		{
-			type: 'callGlobal',
-			global: 'fbq',
 			args: ['track', 'PageView'],
-		},
-		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
-			async: true,
-		},
-	],
-	onConsentGranted: [
-		{
-			type: 'callGlobal',
+
 			global: 'fbq',
-			args: ['consent', 'grant'],
+			type: 'callGlobal',
+		},
+		{
+			async: true,
+
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
-			global: 'fbq',
 			args: ['consent', 'revoke'],
+
+			global: 'fbq',
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			args: ['consent', 'grant'],
+
+			global: 'fbq',
+			type: 'callGlobal',
+		},
+	],
+	persistAfterConsentRevoked: true,
+	vendor: 'meta-pixel',
 } as const satisfies VendorManifest;
 
 export interface MetaPixelOptions {
@@ -310,6 +317,71 @@ export interface MetaPixelOptions {
 	scriptSrc?: string;
 }
 
+const getMetaPixelDataProcessingArgs = function getMetaPixelDataProcessingArgs({
+	options,
+	country,
+	state,
+}: MetaPixelDataProcessingOptions): unknown[] {
+	const args: unknown[] = ['dataProcessingOptions', options];
+
+	if (country !== undefined || state !== undefined) {
+		args.push(country ?? 0, state ?? 0);
+	}
+
+	return args;
+};
+
+const getMetaPixelPageViewStep = function getMetaPixelPageViewStep(
+	trackPageView: boolean
+): { args: unknown[] } | undefined {
+	if (trackPageView) {
+		return {
+			args: ['track', 'PageView'],
+		};
+	}
+
+	return undefined;
+};
+
+const buildMetaPixelInstall = function buildMetaPixelInstall({
+	hasInitOptions,
+	trackPageView,
+	dataProcessingOptions,
+}: {
+	hasInitOptions: boolean;
+	trackPageView: boolean;
+	dataProcessingOptions?: MetaPixelDataProcessingOptions;
+}): VendorManifest['install'] {
+	const initArgs: unknown[] = ['init', '{{pixelId}}'];
+
+	if (hasInitOptions) {
+		initArgs.push('{{initOptions}}');
+	}
+
+	const install = buildQueuePixelInstall({
+		global: 'fbq',
+		initArgs,
+		scriptPlaceholder: '{{scriptSrc}}',
+		trackStep: getMetaPixelPageViewStep(trackPageView),
+	});
+
+	if (dataProcessingOptions !== undefined) {
+		install.unshift({
+			args: getMetaPixelDataProcessingArgs(dataProcessingOptions),
+			global: 'fbq',
+			type: 'callGlobal',
+		});
+	}
+
+	install.unshift({
+		args: ['consent', 'grant'],
+		global: 'fbq',
+		type: 'callGlobal',
+	});
+
+	return install;
+};
+
 /**
  * Creates a Meta Pixel script.
  *
@@ -328,7 +400,7 @@ export interface MetaPixelOptions {
  *
  * @see {@link https://developers.facebook.com/docs/meta-pixel/get-started} Meta Pixel documentation
  */
-export function metaPixel({
+export const metaPixel = function metaPixel({
 	pixelId,
 	initOptions,
 	trackPageView = true,
@@ -336,9 +408,9 @@ export function metaPixel({
 	scriptSrc,
 }: MetaPixelOptions): Script {
 	const install = buildMetaPixelInstall({
+		dataProcessingOptions,
 		hasInitOptions: initOptions !== undefined,
 		trackPageView,
-		dataProcessingOptions,
 	});
 
 	const manifest = {
@@ -347,8 +419,8 @@ export function metaPixel({
 	} as const satisfies VendorManifest;
 
 	const resolved = resolveManifest(manifest, {
-		pixelId,
 		initOptions,
+		pixelId,
 		scriptSrc: resolveScriptUrl(
 			scriptSrc,
 			'https://connect.facebook.net/en_US/fbevents.js'
@@ -356,74 +428,9 @@ export function metaPixel({
 	});
 
 	return resolved;
-}
+};
 
-function buildMetaPixelInstall({
-	hasInitOptions,
-	trackPageView,
-	dataProcessingOptions,
-}: {
-	hasInitOptions: boolean;
-	trackPageView: boolean;
-	dataProcessingOptions?: MetaPixelDataProcessingOptions;
-}): VendorManifest['install'] {
-	const initArgs: unknown[] = ['init', '{{pixelId}}'];
-
-	if (hasInitOptions) {
-		initArgs.push('{{initOptions}}');
-	}
-
-	const install = buildQueuePixelInstall({
-		global: 'fbq',
-		initArgs,
-		trackStep: getMetaPixelPageViewStep(trackPageView),
-		scriptPlaceholder: '{{scriptSrc}}',
-	});
-
-	if (dataProcessingOptions !== undefined) {
-		install.unshift({
-			type: 'callGlobal',
-			global: 'fbq',
-			args: getMetaPixelDataProcessingArgs(dataProcessingOptions),
-		});
-	}
-
-	install.unshift({
-		type: 'callGlobal',
-		global: 'fbq',
-		args: ['consent', 'grant'],
-	});
-
-	return install;
-}
-
-function getMetaPixelDataProcessingArgs({
-	options,
-	country,
-	state,
-}: MetaPixelDataProcessingOptions): unknown[] {
-	const args: unknown[] = ['dataProcessingOptions', options];
-
-	if (country !== undefined || state !== undefined) {
-		args.push(country ?? 0, state ?? 0);
-	}
-
-	return args;
-}
-
-function getMetaPixelPageViewStep(
-	trackPageView: boolean
-): { args: unknown[] } | undefined {
-	if (trackPageView) {
-		return {
-			args: ['track', 'PageView'],
-		};
-	}
-
-	return undefined;
-}
-
-function resolveMetaPixelEventOptions(
+const resolveMetaPixelEventOptions = function resolveMetaPixelEventOptions(
 	eventOptions?: MetaPixelEventOptions | string
 ): MetaPixelEventOptions | undefined {
 	if (typeof eventOptions === 'string') {
@@ -433,7 +440,7 @@ function resolveMetaPixelEventOptions(
 	}
 
 	return eventOptions;
-}
+};
 
 /**
  * Tracks a Meta Pixel standard event.

@@ -62,20 +62,20 @@ export type ResolvedComponentConfig = Required<ComponentConfig>;
  *
  * @public
  */
-export function useComponentConfig(
+export const useComponentConfig = function useComponentConfig(
 	localOverrides?: ComponentConfig
 ): ResolvedComponentConfig {
 	const globalTheme = useTheme();
 	const prefersReducedMotion = useReducedMotion();
 
 	return {
-		noStyle: localOverrides?.noStyle ?? globalTheme.noStyle ?? false,
 		// Auto-disable animations if OS preference is set, unless explicitly overridden
 		disableAnimation:
 			localOverrides?.disableAnimation ??
 			globalTheme.disableAnimation ??
 			prefersReducedMotion,
+		noStyle: localOverrides?.noStyle ?? globalTheme.noStyle ?? false,
 		scrollLock: localOverrides?.scrollLock ?? globalTheme.scrollLock ?? false,
 		trapFocus: localOverrides?.trapFocus ?? globalTheme.trapFocus ?? true,
 	};
-}
+};

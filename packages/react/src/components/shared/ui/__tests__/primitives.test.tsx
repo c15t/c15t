@@ -545,9 +545,10 @@ describe('Accordion', () => {
 					const firstTrigger = document.querySelector(
 						'button[data-state="closed"]'
 					);
-					const secondTrigger = document.querySelectorAll('button')[1];
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
+					const secondTriggerLocal = document.querySelectorAll('button')[1];
 					expect(firstTrigger).toBeInTheDocument();
-					expect(secondTrigger?.getAttribute('data-state')).toBe('open');
+					expect(secondTriggerLocal?.getAttribute('data-state')).toBe('open');
 				},
 				{ timeout: 3000 }
 			);

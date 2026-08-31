@@ -53,7 +53,10 @@ const WARNING_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24
 /**
  * Get position class name
  */
-function getPositionClass(position: DevToolsPosition): string {
+const getPositionClass = function getPositionClass(
+	position: DevToolsPosition
+): string {
+	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (position) {
 		case 'bottom-right':
 			return panelStyles.positionBottomRight ?? '';
@@ -64,9 +67,11 @@ function getPositionClass(position: DevToolsPosition): string {
 		case 'top-left':
 			return panelStyles.positionTopLeft ?? '';
 	}
-}
+};
 
-function formatRetryDelay(delayMs: number | null): string {
+const formatRetryDelay = function formatRetryDelay(
+	delayMs: number | null
+): string {
 	if (delayMs === null) {
 		return 'n/a';
 	}
@@ -74,7 +79,7 @@ function formatRetryDelay(delayMs: number | null): string {
 		return `${delayMs}ms`;
 	}
 	return `${(delayMs / 1000).toFixed(1)}s`;
-}
+};
 
 export interface PanelOptions {
 	stateManager: StateManager;
@@ -98,7 +103,17 @@ export interface PanelInstance {
 /**
  * Creates the main panel component
  */
+// oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
 export function createPanel(options: PanelOptions): PanelInstance {
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let closePanel: () => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let renderErrorState: (container: HTMLElement) => void;
+
+	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
+	let updateFooter: () => void;
+
 	const {
 		stateManager,
 		storeConnector,
@@ -117,15 +132,16 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	let preferenceTriggerVisible = false;
 
 	// Toggle preference trigger visibility (wraps utility with local state management)
-	function updatePreferenceTriggerVisibility(visible: boolean): void {
-		preferenceTriggerVisible = visible;
-		// Use utility for DOM manipulation
-		setPreferenceTriggerVisibility(visible);
-		// Update the menu item checked state
-		if (dropdownMenu) {
-			dropdownMenu.updateItemChecked('toggle-trigger', visible);
-		}
-	}
+	const updatePreferenceTriggerVisibility =
+		function updatePreferenceTriggerVisibility(visible: boolean): void {
+			preferenceTriggerVisible = visible;
+			// Use utility for DOM manipulation
+			setPreferenceTriggerVisibility(visible);
+			// Update the menu item checked state
+			if (dropdownMenu) {
+				dropdownMenu.updateItemChecked('toggle-trigger', visible);
+			}
+		};
 
 	// Create container
 	const container = div({
@@ -137,13 +153,14 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	// Note: Position is handled by the draggable, not CSS classes
 	// Animation is disabled to avoid transform breaking fixed positioning
 	const floatingButton = button({
-		className: panelStyles.floatingButton ?? '',
 		ariaLabel: 'Open c15t Options',
 		// onClick is handled by the draggable to distinguish click from drag
+
+		className: panelStyles.floatingButton ?? '',
 	});
 
 	// Check if unified mode should be enabled
-	function checkUnifiedMode(): void {
+	const checkUnifiedMode = function checkUnifiedMode(): void {
 		if (!enableUnifiedMode) {
 			useUnifiedMode = false;
 			return;
@@ -161,19 +178,19 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			dropdownMenu = createDropdownMenu({
 				items: [
 					{
-						id: 'devtools',
-						label: 'DevTools',
 						description: 'View and manage consents',
 						icon: DEVTOOLS_ICON,
+						id: 'devtools',
+						label: 'DevTools',
 						onClick: () => {
 							stateManager.setOpen(true);
 						},
 					},
 					{
-						id: 'preferences',
-						label: 'Preferences',
 						description: 'Open privacy settings',
 						icon: PREFERENCES_ICON,
+						id: 'preferences',
+						label: 'Preferences',
 						onClick: () => {
 							const opener = getPreferenceCenterOpener(namespace);
 							if (opener) {
@@ -182,25 +199,26 @@ export function createPanel(options: PanelOptions): PanelInstance {
 						},
 					},
 					{
-						id: 'toggle-trigger',
-						label: 'Show Trigger',
+						checked: preferenceTriggerVisible,
 						description: 'Show preference button',
 						icon: EYE_ICON,
-						type: 'toggle',
-						checked: preferenceTriggerVisible,
+						id: 'toggle-trigger',
+						label: 'Show Trigger',
 						onClick: () => {
 							updatePreferenceTriggerVisibility(!preferenceTriggerVisible);
 						},
+
+						type: 'toggle',
 					},
 				],
-				position: draggable?.getCorner() ?? stateManager.getState().position,
-				referenceElement: floatingButton,
-				onOpen: () => {
-					floatingButton.ariaLabel = 'Close c15t Options';
-				},
 				onClose: () => {
 					floatingButton.ariaLabel = 'Open c15t Options';
 				},
+				onOpen: () => {
+					floatingButton.ariaLabel = 'Close c15t Options';
+				},
+				position: draggable?.getCorner() ?? stateManager.getState().position,
+				referenceElement: floatingButton,
 			});
 
 			// Add menu to container (will be positioned via JS)
@@ -214,19 +232,11 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		floatingButton.ariaLabel = useUnifiedMode
 			? 'Open c15t Options'
 			: 'Open c15t DevTools';
-	}
+	};
 
 	// Create draggable instance for the button wrapper
 	draggable = createDraggable({
 		defaultPosition: stateManager.getState().position,
-		persistPosition: true,
-		onPositionChange: (position) => {
-			stateManager.setPosition(position);
-			// Update menu position when button moves
-			if (dropdownMenu) {
-				dropdownMenu.updatePosition(position);
-			}
-		},
 		onDragEnd: (wasDragged) => {
 			// Only handle click if it wasn't a drag
 			if (!wasDragged) {
@@ -239,11 +249,19 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				}
 			}
 		},
+		onPositionChange: (position) => {
+			stateManager.setPosition(position);
+			// Update menu position when button moves
+			if (dropdownMenu) {
+				dropdownMenu.updatePosition(position);
+			}
+		},
+		persistPosition: true,
 	});
 
 	// Add icon to button (wrapped for hardware acceleration)
 	const iconWrapper = div({ className: panelStyles.floatingButtonIcon });
-	const logoSvg = createSvgElement(LOGO_ICON, { width: 24, height: 24 });
+	const logoSvg = createSvgElement(LOGO_ICON, { height: 24, width: 24 });
 	iconWrapper.appendChild(logoSvg);
 	floatingButton.appendChild(iconWrapper);
 
@@ -262,6 +280,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	/**
 	 * Creates the panel structure
 	 */
+	// oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
 	function createPanelElement(): HTMLElement {
 		// Use the draggable's current corner for panel positioning
 		const corner = draggable?.getCorner() ?? stateManager.getState().position;
@@ -269,43 +288,45 @@ export function createPanel(options: PanelOptions): PanelInstance {
 
 		// Create panel
 		const panel = div({
+			ariaLabel: 'c15t DevTools',
 			className: `${panelStyles.panel} ${positionClass} ${animationStyles.animateEnter}`,
 			role: 'dialog',
-			ariaLabel: 'c15t DevTools',
 		});
 
 		// Header
 		const header = div({
-			className: panelStyles.header,
 			children: [
 				div({
-					className: panelStyles.headerTitle,
 					children: [
 						(() => {
 							const logoWrapper = div({ className: panelStyles.headerLogo });
 							logoWrapper.appendChild(
-								createSvgElement(LOGO_ICON, { width: 20, height: 20 })
+								createSvgElement(LOGO_ICON, { height: 20, width: 20 })
 							);
 							return logoWrapper;
 						})(),
 						span({ text: 'c15t DevTools' }),
 					],
+
+					className: panelStyles.headerTitle,
 				}),
 				button({
-					className: panelStyles.closeButton,
 					ariaLabel: 'Close DevTools',
-					onClick: () => closePanel(),
 					children: [
 						(() => {
 							const iconWrap = div({ className: panelStyles.closeButtonIcon });
 							iconWrap.appendChild(
-								createSvgElement(CLOSE_ICON, { width: 16, height: 16 })
+								createSvgElement(CLOSE_ICON, { height: 16, width: 16 })
 							);
 							return iconWrap;
 						})(),
 					],
+
+					className: panelStyles.closeButton,
+					onClick: () => closePanel(),
 				}),
 			],
+			className: panelStyles.header,
 		});
 
 		// Content
@@ -332,7 +353,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	/**
 	 * Updates the footer to reflect connection and loading state
 	 */
-	function updateFooter(): void {
+	updateFooter = (): void => {
 		if (!footerElement) {
 			return;
 		}
@@ -382,8 +403,8 @@ export function createPanel(options: PanelOptions): PanelInstance {
 
 		footerElement.appendChild(
 			div({
-				className: panelStyles.footerStatus,
 				children: statusChildren,
+				className: panelStyles.footerStatus,
 			})
 		);
 
@@ -391,31 +412,30 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			footerElement.appendChild(
 				button({
 					className: panelStyles.inlineActionButton,
-					text: 'Retry',
 					onClick: () => {
 						storeConnector.retryConnection();
 					},
+					text: 'Retry',
 				})
 			);
 		}
 
 		footerElement.appendChild(span({ text: `v${version}` }));
-	}
+	};
 
 	/**
 	 * Renders error state when store is not connected
 	 */
-	function renderErrorState(container: HTMLElement): void {
-		clearElement(container);
+	renderErrorState = (containerLocal: HTMLElement): void => {
+		clearElement(containerLocal);
 		const diagnostics = storeConnector.getDiagnostics();
 
 		const errorState = div({
-			className: panelStyles.errorState,
 			children: [
 				(() => {
 					const iconWrap = div({ className: panelStyles.errorIcon });
 					iconWrap.appendChild(
-						createSvgElement(WARNING_ICON, { width: 48, height: 48 })
+						createSvgElement(WARNING_ICON, { height: 48, width: 48 })
 					);
 					return iconWrap;
 				})(),
@@ -430,8 +450,8 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				div({
 					className: panelStyles.errorMessage,
 					style: {
-						marginTop: '4px',
 						fontSize: 'var(--c15t-devtools-font-size-xs)',
+						marginTop: '4px',
 					},
 					text: `Namespace: ${diagnostics.namespace} · Retries: ${diagnostics.reconnectAttempts} · Next retry: ${formatRetryDelay(diagnostics.nextRetryInMs)}`,
 				}),
@@ -439,30 +459,32 @@ export function createPanel(options: PanelOptions): PanelInstance {
 					? div({
 							className: panelStyles.errorMessage,
 							style: {
-								marginTop: '4px',
-								fontSize: 'var(--c15t-devtools-font-size-xs)',
 								color: 'var(--c15t-text-muted)',
+								fontSize: 'var(--c15t-devtools-font-size-xs)',
+								marginTop: '4px',
 							},
 							text: `Last error: ${diagnostics.lastError}`,
 						})
 					: null,
 				button({
 					className: panelStyles.inlineActionButton,
-					text: 'Retry Connection',
 					onClick: () => {
 						storeConnector.retryConnection();
 					},
+
+					text: 'Retry Connection',
 				}),
 			],
+			className: panelStyles.errorState,
 		});
 
-		container.appendChild(errorState);
-	}
+		containerLocal.appendChild(errorState);
+	};
 
 	/**
 	 * Opens the panel
 	 */
-	function openPanel(): void {
+	const openPanel = function openPanel(): void {
 		if (panelElement || isAnimatingOut) {
 			return;
 		}
@@ -482,12 +504,12 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		// Add to container
 		container.appendChild(backdropElement);
 		container.appendChild(panelElement);
-	}
+	};
 
 	/**
 	 * Closes the panel with animation
 	 */
-	function closePanel(): void {
+	closePanel = (): void => {
 		if (!panelElement || isAnimatingOut) {
 			return;
 		}
@@ -535,12 +557,12 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			},
 			{ once: true }
 		);
-	}
+	};
 
 	/**
 	 * Updates the panel based on state changes
 	 */
-	function update(): void {
+	const update = function update(): void {
 		const state = stateManager.getState();
 
 		// Position is now handled by the draggable, no need to update classes
@@ -557,7 +579,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		if (contentContainer && storeConnector.isConnected()) {
 			onRenderContent(contentContainer);
 		}
-	}
+	};
 
 	// Subscribe to state changes
 	const unsubscribeState = stateManager.subscribe(() => {
@@ -589,11 +611,6 @@ export function createPanel(options: PanelOptions): PanelInstance {
 	removePortal = createPortal(container);
 
 	return {
-		element: container,
-		floatingButton,
-
-		update,
-
 		destroy: () => {
 			unsubscribeState();
 			unsubscribeStore();
@@ -614,5 +631,8 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				removePortal = null;
 			}
 		},
+		element: container,
+		floatingButton,
+		update,
 	};
 }

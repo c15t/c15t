@@ -26,19 +26,23 @@ const PHASE_ORDER: LiveProbePhase[] = [
  * // "[vendor-script-monitor] microsoft-clarity live script contract failed"
  * ```
  */
-export function buildMonitorIssueTitle(vendor: string): string {
+export const buildMonitorIssueTitle = function buildMonitorIssueTitle(
+	vendor: string
+): string {
 	return `${MONITOR_ISSUE_TITLE_PREFIX} ${vendor} live script contract failed`;
-}
+};
 
-function escapeRegExp(value: string): string {
-	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+const escapeRegExp = function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+};
 
 const MONITOR_ISSUE_TITLE_PATTERN = new RegExp(
-	`^${escapeRegExp(MONITOR_ISSUE_TITLE_PREFIX)} (\\S+) live script contract failed$`
+	`^${escapeRegExp(MONITOR_ISSUE_TITLE_PREFIX)} (\\S+) live script contract failed$`,
+	'u'
 );
 
-const SIGNATURE_MARKER_PATTERN = /<!-- c15t-monitor-signature: ([a-z, ]*) -->/;
+const SIGNATURE_MARKER_PATTERN =
+	/<!-- c15t-monitor-signature: (?<capture1>[a-z, ]*) -->/u;
 
 /**
  * Escapes third-party text (vendor URLs, error messages, probe details)
@@ -48,13 +52,13 @@ const SIGNATURE_MARKER_PATTERN = /<!-- c15t-monitor-signature: ([a-z, ]*) -->/;
  * @param value - Untrusted text destined for an issue body.
  * @returns A single-line, backtick-free, length-capped string.
  */
-function sanitizeInline(value: string): string {
+const sanitizeInline = function sanitizeInline(value: string): string {
 	const flattened = value
 		.replaceAll('`', "'")
 		// Neutralize Markdown/HTML syntax that would render outside code spans:
 		// links, images, autolinks, mentions, and issue references.
-		.replace(/[[\]<>*_~#@!\\]/g, (match) => `\\${match}`)
-		.replace(/\s+/g, ' ')
+		.replace(/[[\]<>*_~#@!\\]/gu, (match) => `\\${match}`)
+		.replace(/\s+/gu, ' ')
 		.trim();
 
 	if (flattened.length <= 300) {
@@ -62,7 +66,7 @@ function sanitizeInline(value: string): string {
 	}
 
 	return `${flattened.slice(0, 300)}…`;
-}
+};
 
 /**
  * Extracts the vendor id from a monitor issue title.
@@ -70,27 +74,40 @@ function sanitizeInline(value: string): string {
  * @returns The vendor id, or `undefined` when the title is not a monitor
  * issue title.
  */
-export function vendorFromMonitorIssueTitle(title: string): string | undefined {
+export const vendorFromMonitorIssueTitle = function vendorFromMonitorIssueTitle(
+	title: string
+): string | undefined {
 	const match = MONITOR_ISSUE_TITLE_PATTERN.exec(title.trim());
 
 	return match?.[1];
-}
+};
+
+/**
+ * Lists the phases that failed for a probe result, in probe order.
+ */
+export const failedPhases = function failedPhases(
+	result: LiveVendorResult
+): LiveProbePhase[] {
+	return PHASE_ORDER.filter((phase) => result.phases[phase]?.ok === false);
+};
 
 /**
  * Builds the stable failure signature for a result — the ordered list of
  * failing phases. Embedded in issue bodies so subsequent runs can tell
  * "still failing the same way" apart from "failing differently".
  */
-export function buildMonitorSignature(result: LiveVendorResult): string {
+export const buildMonitorSignature = function buildMonitorSignature(
+	result: LiveVendorResult
+): string {
 	return failedPhases(result).join(',');
-}
+};
 
 /**
  * Reads the failure signature marker out of an existing issue body.
  *
  * @returns The signature, or `undefined` when the body has no marker.
  */
-export function signatureFromIssueBody(
+export const signatureFromIssueBody = function signatureFromIssueBody(
 	body: string | undefined
 ): string | undefined {
 	if (!body) {
@@ -98,16 +115,11 @@ export function signatureFromIssueBody(
 	}
 
 	return SIGNATURE_MARKER_PATTERN.exec(body)?.[1]?.trim();
-}
+};
 
-/**
- * Lists the phases that failed for a probe result, in probe order.
- */
-export function failedPhases(result: LiveVendorResult): LiveProbePhase[] {
-	return PHASE_ORDER.filter((phase) => result.phases[phase]?.ok === false);
-}
-
-function formatPhaseLines(result: LiveVendorResult): string {
+const formatPhaseLines = function formatPhaseLines(
+	result: LiveVendorResult
+): string {
 	return PHASE_ORDER.filter((phase) => result.phases[phase] !== undefined)
 		.map((phase) => {
 			const check = result.phases[phase];
@@ -116,9 +128,12 @@ function formatPhaseLines(result: LiveVendorResult): string {
 			return `- ${status} \`${phase}\`${detail}`;
 		})
 		.join('\n');
-}
+};
 
-function formatErrorList(heading: string, errors: string[]): string {
+const formatErrorList = function formatErrorList(
+	heading: string,
+	errors: string[]
+): string {
 	if (errors.length === 0) {
 		return '';
 	}
@@ -133,7 +148,7 @@ function formatErrorList(heading: string, errors: string[]): string {
 	}
 
 	return `\n### ${heading}\n\n${items}${overflow}\n`;
-}
+};
 
 /**
  * Builds the monitor issue body for a failing vendor probe.
@@ -141,7 +156,7 @@ function formatErrorList(heading: string, errors: string[]): string {
  * Includes the failing phases, expected vs actual detail, loader status, page
  * errors, run metadata, and a local reproduction command.
  */
-export function buildMonitorIssueBody(
+export const buildMonitorIssueBody = function buildMonitorIssueBody(
 	result: LiveVendorResult,
 	report: LiveVendorReport
 ): string {
@@ -192,19 +207,19 @@ bun run --filter @c15t/scripts test:live-vendors -- --vendor ${result.vendor}
 \`\`\`
 
 <sub>Opened automatically by the script vendor monitor. This issue closes automatically once the vendor passes again.</sub>`;
-}
+};
 
 /**
  * Comment body posted when a previously failing vendor recovers.
  */
-export function buildMonitorRecoveryComment(
+export const buildMonitorRecoveryComment = function buildMonitorRecoveryComment(
 	result: LiveVendorResult,
 	report: LiveVendorReport
 ): string {
 	const runLine = report.runUrl ? ` in ${report.runUrl}` : '';
 
 	return `\`${result.vendor}\` passed the live vendor probes again${runLine}. Closing this monitor issue automatically.`;
-}
+};
 
 /**
  * Open GitHub issue candidate considered during dedupe planning.
@@ -252,7 +267,7 @@ export interface MonitorIssuePlan {
  * (`--vendor`) never close issues for vendors they did not probe. Skipped
  * vendors are left untouched.
  */
-export function planMonitorIssueActions(
+export const planMonitorIssueActions = function planMonitorIssueActions(
 	report: LiveVendorReport,
 	existingIssues: ExistingMonitorIssue[]
 ): MonitorIssuePlan {
@@ -265,7 +280,7 @@ export function planMonitorIssueActions(
 		}
 	}
 
-	const plan: MonitorIssuePlan = { create: [], update: [], close: [] };
+	const plan: MonitorIssuePlan = { close: [], create: [], update: [] };
 
 	for (const result of report.results) {
 		if (result.skipped) {
@@ -283,16 +298,16 @@ export function planMonitorIssueActions(
 				const previousSignature = signatureFromIssueBody(openIssue.body);
 				if (previousSignature !== buildMonitorSignature(result)) {
 					plan.update.push({
-						vendor: result.vendor,
-						issueNumber: openIssue.number,
 						body,
+						issueNumber: openIssue.number,
+						vendor: result.vendor,
 					});
 				}
 			} else {
 				plan.create.push({
-					vendor: result.vendor,
-					title: buildMonitorIssueTitle(result.vendor),
 					body,
+					title: buildMonitorIssueTitle(result.vendor),
+					vendor: result.vendor,
 				});
 			}
 
@@ -301,12 +316,12 @@ export function planMonitorIssueActions(
 
 		if (openIssue) {
 			plan.close.push({
-				vendor: result.vendor,
-				issueNumber: openIssue.number,
 				body: buildMonitorRecoveryComment(result, report),
+				issueNumber: openIssue.number,
+				vendor: result.vendor,
 			});
 		}
 	}
 
 	return plan;
-}
+};

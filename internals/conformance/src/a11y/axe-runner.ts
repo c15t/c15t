@@ -34,23 +34,25 @@ const DEFAULT_TAGS = [
 	'best-practice',
 ] as const;
 
-function normalizeNode(n: NodeResult): A11yViolation['nodes'][number] {
+const normalizeNode = function normalizeNode(
+	n: NodeResult
+): A11yViolation['nodes'][number] {
 	return {
-		target: n.target.map(String),
 		failureSummary: n.failureSummary,
 		html: n.html,
+		target: n.target.map(String),
 	};
-}
+};
 
-export async function runAxe(
+export const runAxe = async function runAxe(
 	target: Element | Document = document,
 	config: A11yConfig = {}
 ): Promise<A11yViolation[]> {
 	const runOptions: RunOptions = {
-		runOnly: { type: 'tag', values: [...(config.tags ?? DEFAULT_TAGS)] },
 		rules: Object.fromEntries(
 			(config.disableRules ?? []).map((id) => [id, { enabled: false }])
 		),
+		runOnly: { type: 'tag', values: [...(config.tags ?? DEFAULT_TAGS)] },
 	};
 
 	const results: AxeResults = await axe.run(
@@ -59,25 +61,27 @@ export async function runAxe(
 	);
 
 	return results.violations.map((v) => ({
-		id: v.id,
-		impact: v.impact,
 		help: v.help,
 		helpUrl: v.helpUrl,
+		id: v.id,
+		impact: v.impact,
 		nodes: v.nodes.map(normalizeNode),
 	}));
-}
+};
 
 /**
  * Assert zero a11y violations for the given target. Throws with a readable
  * summary of violations otherwise.
  */
-export async function assertNoA11yViolations(
+export const assertNoA11yViolations = async function assertNoA11yViolations(
 	target: Element | Document = document,
 	config: A11yConfig = {}
 ): Promise<void> {
 	const violations = await runAxe(target, config);
 	const threshold = config.maxViolations ?? 0;
-	if (violations.length <= threshold) return;
+	if (violations.length <= threshold) {
+		return;
+	}
 	const summary = violations
 		.map(
 			(v) =>
@@ -90,4 +94,4 @@ export async function assertNoA11yViolations(
 		violations.length,
 		`axe reported ${violations.length} violation(s):\n${summary}`
 	).toBeLessThanOrEqual(threshold);
-}
+};

@@ -36,7 +36,7 @@ import { DEFAULT_IAB } from './snapshot';
  * A language switch replaces outright: mixing languages is worse than
  * trusting the transport.
  */
-function mergeInitTranslations(
+const mergeInitTranslations = function mergeInitTranslations(
 	current: Readonly<KernelTranslations> | null,
 	incoming: KernelTranslations
 ): KernelTranslations {
@@ -54,13 +54,14 @@ function mergeInitTranslations(
 			incoming.translations as Partial<Translations>
 		) as KernelTranslations['translations'],
 	};
-}
+};
 
 /**
  * Build a `SnapshotPatch` from an init response. Returns `null` if the
  * response carries no fields that would change the snapshot.
  */
-export function applyInitResponse(
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const applyInitResponse = function applyInitResponse(
 	current: ConsentSnapshot,
 	response: InitResponse
 ): SnapshotPatch | null {
@@ -106,12 +107,12 @@ export function applyInitResponse(
 		const baseline = current.iab ?? DEFAULT_IAB;
 		const nextIab: KernelIABState = {
 			...baseline,
-			gvl: response.gvl !== undefined ? response.gvl : baseline.gvl,
+			cmpId: response.cmpId === undefined ? baseline.cmpId : response.cmpId,
 			customVendors:
-				response.customVendors !== undefined
-					? response.customVendors
-					: baseline.customVendors,
-			cmpId: response.cmpId !== undefined ? response.cmpId : baseline.cmpId,
+				response.customVendors === undefined
+					? baseline.customVendors
+					: response.customVendors,
+			gvl: response.gvl === undefined ? baseline.gvl : response.gvl,
 		};
 		// Server explicitly returned `gvl: null` → IAB disabled for this
 		// request (non-IAB region on a 200 response).
@@ -135,7 +136,9 @@ export function applyInitResponse(
 				changed = true;
 			}
 		}
-		if (changed) patch.consents = nextConsents;
+		if (changed) {
+			patch.consents = nextConsents;
+		}
 	}
 	if (response.hasConsented !== undefined) {
 		patch.hasConsented = response.hasConsented;
@@ -160,16 +163,16 @@ export function applyInitResponse(
 	// input fields are resolved. Policy derivations depend on the final
 	// effective policy + iab.enabled, so compute them last.
 	const effectivePolicy =
-		patch.policy !== undefined ? patch.policy : current.policy;
+		patch.policy === undefined ? current.policy : patch.policy;
 	const effectiveOverrides =
-		patch.overrides !== undefined ? patch.overrides : current.overrides;
+		patch.overrides === undefined ? current.overrides : patch.overrides;
 	const effectiveIabEnabled =
-		(patch.iab !== undefined ? patch.iab : current.iab)?.enabled ?? false;
+		(patch.iab === undefined ? current.iab : patch.iab)?.enabled ?? false;
 
 	const hasConsentedForPolicy =
-		patch.hasConsented !== undefined
-			? patch.hasConsented
-			: current.hasConsented;
+		patch.hasConsented === undefined
+			? current.hasConsented
+			: patch.hasConsented;
 	const nextModel = deriveModel(effectivePolicy, effectiveIabEnabled);
 	patch.model = nextModel;
 	patch.activeUI = hasConsentedForPolicy
@@ -177,16 +180,16 @@ export function applyInitResponse(
 		: deriveActiveUI(nextModel, effectivePolicy);
 
 	const consentsForPolicy =
-		patch.consents !== undefined ? patch.consents : current.consents;
+		patch.consents === undefined ? current.consents : patch.consents;
 	const policyResult = applyPolicyToConsents({
 		consents: consentsForPolicy,
+		gpc: effectiveOverrides.gpc,
 		hasConsented: hasConsentedForPolicy,
 		policy: effectivePolicy,
-		gpc: effectiveOverrides.gpc,
 	});
 	patch.consents = policyResult.consents;
 	patch.policyCategories = policyResult.policyCategories;
 	patch.policyScopeMode = policyResult.policyScopeMode;
 
 	return patch;
-}
+};

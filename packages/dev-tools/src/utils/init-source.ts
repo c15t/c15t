@@ -1,6 +1,6 @@
 import type { ConsentStoreState } from '@c15t/core';
 
-export function formatInitSource(
+export const formatInitSource = function formatInitSource(
 	source: ConsentStoreState['initDataSource'],
 	detail: string | null | undefined
 ): string {
@@ -24,4 +24,4 @@ export function formatInitSource(
 	})();
 
 	return detail ? `${label} [${detail}]` : label;
-}
+};

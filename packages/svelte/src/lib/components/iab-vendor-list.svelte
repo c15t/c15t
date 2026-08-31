@@ -58,51 +58,53 @@
 
 	// Map IAB vendors
 	const iabVendors = $derived.by((): ProcessedVendor[] => {
-		if (!vendorData) return [];
+		if (!vendorData) {
+			return [];
+		}
 		return Object.entries(vendorData.vendors).map(([id, vendor]) => ({
-			id: Number(id),
-			name: vendor.name,
-			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-			usesNonCookieAccess: vendor.usesNonCookieAccess,
-			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-			usesCookies: vendor.usesCookies,
 			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 			cookieRefresh: vendor.cookieRefresh,
-			specialPurposes: vendor.specialPurposes || [],
-			specialFeatures: vendor.specialFeatures || [],
-			features: vendor.features || [],
-			purposes: vendor.purposes || [],
-			legIntPurposes: vendor.legIntPurposes || [],
-			isCustom: false,
-			legitimateInterestUrl:
-				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-			dataRetention: vendor.dataRetention,
 			dataDeclaration:
 				(vendor as unknown as { dataDeclaration?: number[] }).dataDeclaration ||
 				[],
+			dataRetention: vendor.dataRetention,
+			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+			features: vendor.features || [],
+			id: Number(id),
+			isCustom: false,
+			legIntPurposes: vendor.legIntPurposes || [],
+			legitimateInterestUrl:
+				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+			name: vendor.name,
+			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
+			purposes: vendor.purposes || [],
+			specialFeatures: vendor.specialFeatures || [],
+			specialPurposes: vendor.specialPurposes || [],
+			usesCookies: vendor.usesCookies,
+			usesNonCookieAccess: vendor.usesNonCookieAccess,
 		}));
 	});
 
 	// Map custom vendors
 	const mappedCustomVendors = $derived.by((): ProcessedVendor[] =>
 		customVendors.map((cv) => ({
-			id: cv.id,
-			name: cv.name,
-			policyUrl: cv.privacyPolicyUrl,
-			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-			deviceStorageDisclosureUrl: null,
-			usesCookies: cv.usesCookies ?? false,
 			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 			cookieRefresh: undefined,
-			specialPurposes: [],
-			specialFeatures: cv.specialFeatures || [],
-			features: cv.features || [],
-			purposes: cv.purposes || [],
-			legIntPurposes: cv.legIntPurposes || [],
-			isCustom: true,
-			legitimateInterestUrl: null,
-			dataRetention: undefined,
 			dataDeclaration: cv.dataCategories || [],
+			dataRetention: undefined,
+			deviceStorageDisclosureUrl: null,
+			features: cv.features || [],
+			id: cv.id,
+			isCustom: true,
+			legIntPurposes: cv.legIntPurposes || [],
+			legitimateInterestUrl: null,
+			name: cv.name,
+			policyUrl: cv.privacyPolicyUrl,
+			purposes: cv.purposes || [],
+			specialFeatures: cv.specialFeatures || [],
+			specialPurposes: [],
+			usesCookies: cv.usesCookies ?? false,
+			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 		}))
 	);
 
@@ -146,13 +148,16 @@
 		filteredVendors.filter((v) => v.isCustom)
 	);
 
-	function handleVendorOpenChange(vendorId: VendorId, open: boolean) {
+	const handleVendorOpenChange = function handleVendorOpenChange(
+		vendorId: VendorId,
+		open: boolean
+	) {
 		if (open) {
 			expandedVendors.add(vendorId);
 		} else {
 			expandedVendors.delete(vendorId);
 		}
-	}
+	};
 
 	// Precompute vendor lookup maps once (O(V+P)) instead of per-vendor-per-render (O(V×P)).
 	type VendorPurposeEntry = ProcessedPurpose & {
@@ -181,15 +186,19 @@
 
 	const vendorSpecialPurposesMap = $derived.by(() => {
 		const map = new SvelteMap<string, SimpleEntry[]>();
-		if (!vendorData) return map;
+		if (!vendorData) {
+			return map;
+		}
 		for (const vendor of vendors) {
 			const entries = vendor.specialPurposes
 				.map((id) => vendorData.specialPurposes[id])
-				.filter((sp): sp is NonNullable<typeof sp> => sp != null)
+				.filter(
+					(sp): sp is NonNullable<typeof sp> => sp !== null && sp !== undefined
+				)
 				.map((sp) => ({
+					description: sp.description,
 					id: sp.id,
 					name: sp.name,
-					description: sp.description,
 				}));
 			map.set(String(vendor.id), entries);
 		}
@@ -198,15 +207,19 @@
 
 	const vendorSpecialFeaturesMap = $derived.by(() => {
 		const map = new SvelteMap<string, SimpleEntry[]>();
-		if (!vendorData) return map;
+		if (!vendorData) {
+			return map;
+		}
 		for (const vendor of vendors) {
 			const entries = vendor.specialFeatures
 				.map((id) => vendorData.specialFeatures[id])
-				.filter((sf): sf is NonNullable<typeof sf> => sf != null)
+				.filter(
+					(sf): sf is NonNullable<typeof sf> => sf !== null && sf !== undefined
+				)
 				.map((sf) => ({
+					description: sf.description,
 					id: sf.id,
 					name: sf.name,
-					description: sf.description,
 				}));
 			map.set(String(vendor.id), entries);
 		}
@@ -215,35 +228,47 @@
 
 	const vendorFeaturesMap = $derived.by(() => {
 		const map = new SvelteMap<string, SimpleEntry[]>();
-		if (!vendorData) return map;
+		if (!vendorData) {
+			return map;
+		}
 		for (const vendor of vendors) {
 			const entries = (vendor.features || [])
 				.map((id) => vendorData.features[id])
-				.filter((f): f is NonNullable<typeof f> => f != null)
-				.map((f) => ({ id: f.id, name: f.name, description: f.description }));
+				.filter(
+					(f): f is NonNullable<typeof f> => f !== null && f !== undefined
+				)
+				.map((f) => ({ description: f.description, id: f.id, name: f.name }));
 			map.set(String(vendor.id), entries);
 		}
 		return map;
 	});
 
-	function getVendorPurposes(vendorId: VendorId) {
+	const getVendorPurposes = function getVendorPurposes(vendorId: VendorId) {
 		return vendorPurposesMap.get(String(vendorId)) ?? [];
-	}
+	};
 
-	function getVendorSpecialPurposes(vendorId: VendorId) {
+	const getVendorSpecialPurposes = function getVendorSpecialPurposes(
+		vendorId: VendorId
+	) {
 		return vendorSpecialPurposesMap.get(String(vendorId)) ?? [];
-	}
+	};
 
-	function getVendorSpecialFeatures(vendorId: VendorId) {
+	const getVendorSpecialFeatures = function getVendorSpecialFeatures(
+		vendorId: VendorId
+	) {
 		return vendorSpecialFeaturesMap.get(String(vendorId)) ?? [];
-	}
+	};
 
-	function getVendorFeatures(vendorId: VendorId) {
+	const getVendorFeatures = function getVendorFeatures(vendorId: VendorId) {
 		return vendorFeaturesMap.get(String(vendorId)) ?? [];
-	}
+	};
 
-	function getMaxAgeText(vendor: ProcessedVendor): string | null {
-		if (!vendor.cookieMaxAgeSeconds) return null;
+	const getMaxAgeText = function getMaxAgeText(
+		vendor: ProcessedVendor
+	): string | null {
+		if (!vendor.cookieMaxAgeSeconds) {
+			return null;
+		}
 		let text = iabT.preferenceCenter.vendorList.maxAge.replace(
 			'{days}',
 			String(Math.floor(vendor.cookieMaxAgeSeconds / 86400))
@@ -252,7 +277,7 @@
 			text = `${text} ${iabT.preferenceCenter.vendorList.maxAgeRefreshes}`;
 		}
 		return text;
-	}
+	};
 </script>
 
 <div>

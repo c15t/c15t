@@ -12,7 +12,7 @@ const rawSources: Record<string, string> = {
 			'!../../components/**/*.test.*',
 			'!../../components/**/*.spec.*',
 		],
-		{ query: '?raw', import: 'default', eager: true }
+		{ eager: true, import: 'default', query: '?raw' }
 	),
 	...import.meta.glob(
 		[
@@ -21,14 +21,14 @@ const rawSources: Record<string, string> = {
 			'!../../primitives/**/*.test.*',
 			'!../../primitives/**/*.spec.*',
 		],
-		{ query: '?raw', import: 'default', eager: true }
+		{ eager: true, import: 'default', query: '?raw' }
 	),
 } as Record<string, string>;
 
 const DYNAMIC_CONTEXT_SLOTS = {
 	description: ['banner', 'dialog', 'manager'],
-	tag: ['banner', 'dialog', 'manager', 'iab-banner', 'iab-dialog'],
 	link: ['banner', 'dialog', 'manager'],
+	tag: ['banner', 'dialog', 'manager', 'iab-banner', 'iab-dialog'],
 } as const;
 
 const MUST_BE_REACHABLE_SLOTS = [
@@ -68,14 +68,14 @@ const MUST_BE_REACHABLE_SLOTS = [
 	'iab-stack-item.root',
 ] as const;
 
-function getReactSources(): string[] {
+const getReactSources = function getReactSources(): string[] {
 	return Object.values(rawSources);
-}
+};
 
-function extractSlotKeyPaths(source: string) {
+const extractSlotKeyPaths = function extractSlotKeyPaths(source: string) {
 	const paths = new Set<string>();
 	const slotKeyPattern =
-		/(?:slotKey|[A-Za-z_$][\w$]*SlotKey)=["']([^"']+\.[^"']+)["']/g;
+		/(?:slotKey|[A-Za-z_$][\w$]*SlotKey)=["'](?<capture1>[^"']+\.[^"']+)["']/gu;
 	let match = slotKeyPattern.exec(source);
 
 	while (match) {
@@ -86,12 +86,12 @@ function extractSlotKeyPaths(source: string) {
 	}
 
 	return paths;
-}
+};
 
-function extractStaticSlotPaths(source: string) {
+const extractStaticSlotPaths = function extractStaticSlotPaths(source: string) {
 	const paths = new Set<string>();
 	const componentPathPattern =
-		/components\?\.(?:\[['"]([^'"]+)['"]\]|([A-Za-z_$][\w$-]*))\?\.(?:\[['"]([^'"]+)['"]\]|([A-Za-z_$][\w$-]*))/g;
+		/components\?\.(?:\[['"](?<capture1>[^'"]+)['"]\]|(?<capture2>[A-Za-z_$][\w$-]*))\?\.(?:\[['"](?<capture3>[^'"]+)['"]\]|(?<capture4>[A-Za-z_$][\w$-]*))/gu;
 	let match = componentPathPattern.exec(source);
 
 	while (match) {
@@ -104,12 +104,14 @@ function extractStaticSlotPaths(source: string) {
 	}
 
 	return paths;
-}
+};
 
-function extractDynamicContextSlotPaths(source: string) {
+const extractDynamicContextSlotPaths = function extractDynamicContextSlotPaths(
+	source: string
+) {
 	const paths = new Set<string>();
 	const dynamicContextPattern =
-		/(?:components\?\.(description|tag|link)\?\.\[context\]|slotKey=\{`(description|tag|link)\.\$\{context\}`\})/g;
+		/(?:components\?\.(?<capture1>description|tag|link)\?\.\[context\]|slotKey=\{`(?<capture2>description|tag|link)\.\$\{context\}`\})/gu;
 	let match = dynamicContextPattern.exec(source);
 
 	while (match) {
@@ -121,9 +123,9 @@ function extractDynamicContextSlotPaths(source: string) {
 	}
 
 	return paths;
-}
+};
 
-function extractReachableSlotPaths() {
+const extractReachableSlotPaths = function extractReachableSlotPaths() {
 	const paths = new Set<string>();
 	for (const source of getReactSources()) {
 		for (const path of extractSlotKeyPaths(source)) {
@@ -137,7 +139,7 @@ function extractReachableSlotPaths() {
 		}
 	}
 	return [...paths].sort();
-}
+};
 
 describe('React theme slot contract', () => {
 	test('every declared schema slot has an exact reachable React binding', () => {

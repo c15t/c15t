@@ -42,47 +42,49 @@ type SaveType = 'all' | 'custom' | 'necessary';
 const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
 const DEFAULT_CONSENT_TYPES: ConsentType[] = [
 	{
-		name: 'necessary',
-		gdprType: 1,
-		description: 'Required for basic site functionality',
 		defaultValue: true,
+		description: 'Required for basic site functionality',
 		disabled: true,
 		display: true,
+		gdprType: 1,
+		name: 'necessary',
 	},
 	{
-		name: 'functionality',
-		gdprType: 2,
+		defaultValue: false,
 		description: 'Enables enhanced features',
-		defaultValue: false,
 		display: true,
+		gdprType: 2,
+		name: 'functionality',
 	},
 	{
-		name: 'measurement',
-		gdprType: 4,
+		defaultValue: false,
 		description: 'Analytics and performance measurement',
-		defaultValue: false,
 		display: true,
+		gdprType: 4,
+		name: 'measurement',
 	},
 	{
-		name: 'experience',
-		gdprType: 3,
+		defaultValue: false,
 		description: 'Improves your experience',
-		defaultValue: false,
 		display: true,
+		gdprType: 3,
+		name: 'experience',
 	},
 	{
-		name: 'marketing',
-		gdprType: 5,
-		description: 'Advertising and marketing',
 		defaultValue: false,
+		description: 'Advertising and marketing',
 		display: true,
+		gdprType: 5,
+		name: 'marketing',
 	},
 ];
 
-function toTranslationConfig(
+const toTranslationConfig = function toTranslationConfig(
 	resolved: ReturnType<typeof useTranslations>
 ): TranslationConfig {
-	if (!resolved) return defaultTranslationConfig;
+	if (!resolved) {
+		return defaultTranslationConfig;
+	}
 
 	return {
 		...defaultTranslationConfig,
@@ -92,13 +94,13 @@ function toTranslationConfig(
 			[resolved.language]: resolved.translations,
 		},
 	};
-}
+};
 
-function toActiveUI(ui: KernelActiveUI): ActiveUI {
+const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
-}
+};
 
-function evaluateHas(
+const evaluateHas = function evaluateHas(
 	condition: HasCondition<AllConsentNames>,
 	consents: ConsentState,
 	options: {
@@ -135,35 +137,43 @@ function evaluateHas(
 		return allowed.includes(category) && Boolean(consents[category]);
 	}
 	return Boolean(consents[category]);
-}
+};
 
-function toLightweightIab(iab: KernelIABState | null): ReactIABState | null {
-	if (!iab) return null;
-	const noop = () => {};
-	const noopAsync = async () => {};
+const toLightweightIab = function toLightweightIab(
+	iab: KernelIABState | null
+): ReactIABState | null {
+	if (!iab) {
+		return null;
+	}
+	const noop = () => {
+		/* empty */
+	};
+	const noopAsync = async () => {
+		/* empty */
+	};
 
 	return {
 		...iab,
+		acceptAll: noop,
 		config: {
-			enabled: false,
 			cmpId: iab.cmpId,
+			enabled: false,
 		},
 		isLoadingGVL: iab.enabled,
 		nonIABVendors: iab.customVendors,
 		preferenceCenterTab: 'purposes',
+		rejectAll: noop,
+		save: noopAsync,
 		setPreferenceCenterTab: noop,
-		setVendorConsent: noop,
-		setVendorLegitimateInterest: noop,
 		setPurposeConsent: noop,
 		setPurposeLegitimateInterest: noop,
 		setSpecialFeatureOptIn: noop,
-		acceptAll: noop,
-		rejectAll: noop,
-		save: noopAsync,
+		setVendorConsent: noop,
+		setVendorLegitimateInterest: noop,
 	};
-}
+};
 
-export function useConsentManager() {
+export const useConsentManager = function useConsentManager() {
 	const snapshot = useSnapshot();
 	const consents = useConsents();
 	const activeUI = useActiveUI();
@@ -190,11 +200,13 @@ export function useConsentManager() {
 		() => Array.from(policyCategoriesSnapshot),
 		[policyCategoriesSnapshot]
 	);
-	const consentCategories = useMemo<AllConsentNames[]>(() => {
-		return policyCategories.length > 0
-			? (policyCategories as AllConsentNames[])
-			: DEFAULT_CONSENT_TYPES.map((type) => type.name);
-	}, [policyCategories]);
+	const consentCategories = useMemo<AllConsentNames[]>(
+		() =>
+			policyCategories.length > 0
+				? (policyCategories as AllConsentNames[])
+				: DEFAULT_CONSENT_TYPES.map((type) => type.name),
+		[policyCategories]
+	);
 
 	const getDisplayedConsents = useCallback((): ConsentType[] => {
 		const allowed = new Set(consentCategories);
@@ -269,11 +281,10 @@ export function useConsentManager() {
 		...snapshot,
 		activeUI: toActiveUI(activeUI),
 		branding: branding ?? 'c15t',
-		consents: consents as ConsentState,
-		selectedConsents: draft.values,
-		consentInfo: hasConsentedValue ? { type: 'v3' } : null,
 		consentCategories,
+		consentInfo: hasConsentedValue ? { type: 'v3' } : null,
 		consentTypes: getDisplayedConsents(),
+		consents: consents as ConsentState,
 		getDisplayedConsents,
 		has,
 		hasConsented,
@@ -286,6 +297,7 @@ export function useConsentManager() {
 		policyScopeMode,
 		saveConsents,
 		selectedConsentTypes: draft.values,
+		selectedConsents: draft.values,
 		setActiveUI,
 		setConsent,
 		setSelectedConsent,
@@ -293,4 +305,4 @@ export function useConsentManager() {
 		translationConfig,
 		updateConsentCategories,
 	};
-}
+};

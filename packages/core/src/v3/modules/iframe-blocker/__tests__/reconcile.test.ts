@@ -18,12 +18,16 @@ afterEach(() => {
 	document.body.innerHTML = '';
 });
 
-function makeIframe(attrs: Record<string, string> = {}): HTMLIFrameElement {
+const makeIframe = function makeIframe(
+	attrs: Record<string, string> = {}
+): HTMLIFrameElement {
 	const iframe = document.createElement('iframe');
-	for (const [k, v] of Object.entries(attrs)) iframe.setAttribute(k, v);
+	for (const [k, v] of Object.entries(attrs)) {
+		iframe.setAttribute(k, v);
+	}
 	document.body.appendChild(iframe);
 	return iframe;
-}
+};
 
 describe('determineCategory', () => {
 	test('returns undefined when data-category is absent', () => {
@@ -38,7 +42,7 @@ describe('determineCategory', () => {
 
 	test('throws on invalid category', () => {
 		const iframe = makeIframe({ 'data-category': 'totally-fake' });
-		expect(() => determineCategory(iframe)).toThrow(/invalid data-category/);
+		expect(() => determineCategory(iframe)).toThrow(/invalid data-category/u);
 	});
 });
 
@@ -79,8 +83,8 @@ describe('reconcileIframe', () => {
 		}).getSnapshot();
 		const iframe = makeIframe({
 			'data-category': 'marketing',
-			src: 'https://example.com/already',
 			'data-src': 'https://example.com/queued',
+			src: 'https://example.com/already',
 		});
 		reconcileIframe(iframe, buildReconcilePass(snap));
 		expect(iframe.getAttribute('src')).toBe('https://example.com/already');

@@ -6,7 +6,7 @@ import { createErrorResponse, executeHandler } from './utils';
 /**
  * Makes a custom API request to any endpoint.
  */
-export async function customFetch<
+export const customFetch = async function customFetch<
 	ResponseType,
 	BodyType = unknown,
 	QueryType = unknown,
@@ -22,6 +22,7 @@ export async function customFetch<
 	options?: FetchOptions<ResponseType, BodyType, QueryType>
 ): Promise<ResponseContext<ResponseType>> {
 	// Extract endpoint name from path
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const endpointName = path.replace(LEADING_SLASHES_REGEX, '').split('/')[0];
 
 	// Check for dynamic handlers first
@@ -57,4 +58,4 @@ export async function customFetch<
 		endpointName as keyof EndpointHandlers,
 		options
 	);
-}
+};

@@ -15,60 +15,60 @@ describe('databuddy', () => {
 	it('preserves config seeding and sync behavior', () => {
 		const globalRef = getTestGlobal();
 		const script = databuddy({
-			clientId: 'db_123',
 			apiUrl: 'https://basket.databuddy.cc',
-			configWhenGranted: {
-				clientId: 'db_123',
-				apiUrl: 'https://basket.databuddy.cc',
-				trackScreenViews: true,
-				disabled: false,
-			},
+			clientId: 'db_123',
 			configWhenDenied: {
-				clientId: 'db_123',
 				apiUrl: 'https://basket.databuddy.cc',
-				trackScreenViews: true,
+				clientId: 'db_123',
 				disabled: true,
+				trackScreenViews: true,
+			},
+			configWhenGranted: {
+				apiUrl: 'https://basket.databuddy.cc',
+				clientId: 'db_123',
+				disabled: false,
+				trackScreenViews: true,
 			},
 		});
 
 		expect(script.src).toBe('https://cdn.databuddy.cc/databuddy.js');
 		expect(script.attributes).toEqual({
 			crossorigin: 'anonymous',
-			'data-client-id': 'db_123',
 			'data-api-url': 'https://basket.databuddy.cc',
+			'data-client-id': 'db_123',
 		});
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
 		expect(globalRef.databuddyConfig).toEqual({
-			clientId: 'db_123',
 			apiUrl: 'https://basket.databuddy.cc',
-			trackScreenViews: true,
+			clientId: 'db_123',
 			disabled: true,
+			trackScreenViews: true,
 		});
 
 		globalRef.databuddy = {
-			track: vi.fn(),
-			screenView: vi.fn(),
 			clear: vi.fn(),
 			flush: vi.fn(),
-			setGlobalProperties: vi.fn(),
-			trackCustomEvent: vi.fn(),
 			options: {
 				disabled: true,
 			},
+			screenView: vi.fn(),
+			setGlobalProperties: vi.fn(),
+			track: vi.fn(),
+			trackCustomEvent: vi.fn(),
 		};
 
 		script.onLoad?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -79,8 +79,8 @@ describe('databuddy', () => {
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: deniedConsentState,
+				id: script.id,
 			})
 		);
 
@@ -89,25 +89,25 @@ describe('databuddy', () => {
 				.disabled
 		).toBe(true);
 		expect(globalRef.databuddyConfig).toEqual({
-			clientId: 'db_123',
 			apiUrl: 'https://basket.databuddy.cc',
-			trackScreenViews: true,
+			clientId: 'db_123',
 			disabled: true,
+			trackScreenViews: true,
 		});
 
 		script.onConsentChange?.(
 			createCallbackInfo({
-				id: script.id,
-				hasConsent: true,
 				consents: grantedMeasurementConsentState,
+				hasConsent: true,
+				id: script.id,
 			})
 		);
 
 		expect(globalRef.databuddyConfig).toEqual({
-			clientId: 'db_123',
 			apiUrl: 'https://basket.databuddy.cc',
-			trackScreenViews: true,
+			clientId: 'db_123',
 			disabled: false,
+			trackScreenViews: true,
 		});
 		expect(
 			(globalRef.databuddy as { options: { disabled: boolean } }).options

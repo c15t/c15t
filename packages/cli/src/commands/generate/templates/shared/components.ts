@@ -36,6 +36,39 @@ interface GenerateConsentComponentOptions {
 	docsSlug?: string;
 }
 
+const buildDocComment = function buildDocComment({
+	defaultExport,
+	initialDataProp,
+	ssrDataOption: _ssrDataOption,
+	docsSlug,
+}: {
+	defaultExport: boolean;
+	initialDataProp: boolean;
+	ssrDataOption: boolean;
+	docsSlug?: string;
+}): string {
+	if (defaultExport) {
+		const slug = docsSlug || 'nextjs';
+		return `/**
+ * Client-side consent manager provider.
+ * @see https://c15t.com/docs/frameworks/${slug}/quickstart
+ */`;
+	}
+
+	if (initialDataProp) {
+		return `/**
+ * Consent management wrapper for Next.js Pages Router.
+ * @see https://c15t.com/docs/frameworks/nextjs/quickstart
+ */`;
+	}
+
+	const slug = docsSlug || 'react';
+	return `/**
+ * Consent manager provider.
+ * @see https://c15t.com/docs/frameworks/${slug}/quickstart
+ */`;
+};
+
 /**
  * Generates a consent manager component with Provider, Banner, and Dialog
  *
@@ -72,7 +105,8 @@ interface GenerateConsentComponentOptions {
  * });
  * ```
  */
-export function generateConsentComponent({
+// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
+export const generateConsentComponent = function generateConsentComponent({
 	importSource,
 	optionsText,
 	selectedScripts = [],
@@ -80,7 +114,7 @@ export function generateConsentComponent({
 	useClientDirective = false,
 	defaultExport = false,
 	ssrDataOption = false,
-	includeOverrides = false,
+	includeOverrides: _includeOverrides = false,
 	enableDevTools = false,
 	useFrameworkProps,
 	includeTheme = false,
@@ -170,9 +204,9 @@ export function generateConsentComponent({
 	// Build doc comment
 	const docComment = buildDocComment({
 		defaultExport,
+		docsSlug,
 		initialDataProp,
 		ssrDataOption,
-		docsSlug,
 	});
 
 	// Build pre-doc extras (e.g. client-only comment for Pages)
@@ -199,37 +233,4 @@ ${exportPrefix} ${componentName}(${propsDestructure}) {
 	);
 }
 `;
-}
-
-function buildDocComment({
-	defaultExport,
-	initialDataProp,
-	ssrDataOption,
-	docsSlug,
-}: {
-	defaultExport: boolean;
-	initialDataProp: boolean;
-	ssrDataOption: boolean;
-	docsSlug?: string;
-}): string {
-	if (defaultExport) {
-		const slug = docsSlug || 'nextjs';
-		return `/**
- * Client-side consent manager provider.
- * @see https://c15t.com/docs/frameworks/${slug}/quickstart
- */`;
-	}
-
-	if (initialDataProp) {
-		return `/**
- * Consent management wrapper for Next.js Pages Router.
- * @see https://c15t.com/docs/frameworks/nextjs/quickstart
- */`;
-	}
-
-	const slug = docsSlug || 'react';
-	return `/**
- * Consent manager provider.
- * @see https://c15t.com/docs/frameworks/${slug}/quickstart
- */`;
-}
+};

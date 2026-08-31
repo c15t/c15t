@@ -45,8 +45,8 @@ describe('hightouch', () => {
 	it('passes apiHost when provided', () => {
 		const globalRef = getTestGlobal();
 		const script = hightouch({
-			writeKey: 'WRITE_KEY',
 			apiHost: ' us-east-1.hightouch-events.com ',
+			writeKey: 'WRITE_KEY',
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -87,9 +87,9 @@ describe('hightouch', () => {
 	it('can disable default page queue and use a custom script URL', () => {
 		const globalRef = getTestGlobal();
 		const script = hightouch({
-			writeKey: 'WRITE_KEY',
-			trackPageView: false,
 			scriptUrl: 'https://cdn.example.com/events.min.js',
+			trackPageView: false,
+			writeKey: 'WRITE_KEY',
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/events.min.js');
@@ -104,8 +104,8 @@ describe('hightouch', () => {
 
 	it('falls back to the default URL when scriptUrl is blank', () => {
 		const script = hightouch({
-			writeKey: 'WRITE_KEY',
 			scriptUrl: '   ',
+			writeKey: 'WRITE_KEY',
 		});
 
 		expect(script.src).toBe(

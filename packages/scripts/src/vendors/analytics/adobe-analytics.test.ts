@@ -38,9 +38,9 @@ describe('adobeAnalytics', () => {
 
 	it('supports synchronous deployment', () => {
 		const script = adobeAnalytics({
+			async: false,
 			scriptUrl:
 				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
-			async: false,
 		});
 
 		expect(script.async).toBe(false);

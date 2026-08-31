@@ -40,7 +40,10 @@ export { runRequestLifecycleConformance } from './request-lifecycle';
 export { runSsrConformance } from './ssr';
 export { runStoreConformance } from './store';
 
-export function runConformanceSuite(driver: TestDriver, api: SuiteApi): void {
+export const runConformanceSuite = function runConformanceSuite(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	runProviderConformance(driver, api);
 	runStoreConformance(driver, api);
 	runI18nConformance(driver, api);
@@ -53,4 +56,4 @@ export function runConformanceSuite(driver: TestDriver, api: SuiteApi): void {
 	runGpcConformance(driver, api);
 	runPersistenceConformance(driver, api);
 	runIabConformance(driver, api);
-}
+};

@@ -28,11 +28,11 @@ export const Default: Story = {
 };
 
 export const CustomizeFlow: Story = {
+	play: customizeFlow,
 	render: () => (
 		<StorybookIABProvider>
 			<IABConsentBanner />
 			<IABConsentDialog />
 		</StorybookIABProvider>
 	),
-	play: customizeFlow,
 };

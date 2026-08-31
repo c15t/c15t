@@ -113,6 +113,7 @@ async function waitForElement(
 		if (element) {
 			return element;
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await wait(10);
 	}
 	throw new Error(`Timed out waiting for [data-testid="${testId}"]`);
@@ -127,6 +128,7 @@ async function waitForElementRemoved(
 		if (!byTestId(root, testId)) {
 			return;
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await wait(10);
 	}
 	throw new Error(`Timed out waiting for [data-testid="${testId}"] removal`);
@@ -146,6 +148,7 @@ async function waitForActiveElement(
 		if (predicate(doc.activeElement)) {
 			return doc.activeElement;
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await wait(10);
 	}
 	return doc.activeElement;

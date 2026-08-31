@@ -39,8 +39,8 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		cmpApi = createCMPApi({
 			cmpId: 160,
 			cmpVersion: 1,
-			gvl: mockGVL,
 			gdprApplies: true,
+			gvl: mockGVL,
 		});
 	});
 
@@ -225,7 +225,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
-					callCount++;
+					callCount += 1;
 					if (callCount === 1) {
 						cmpApi.setDisplayStatus('visible');
 					}
@@ -242,7 +242,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
-					callCount++;
+					callCount += 1;
 					if (callCount === 1) {
 						cmpApi.updateConsent('test-tc-string');
 					}
@@ -302,7 +302,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					listenerId = tcData?.listenerId;
-					callCount++;
+					callCount += 1;
 					resolve();
 				});
 			});

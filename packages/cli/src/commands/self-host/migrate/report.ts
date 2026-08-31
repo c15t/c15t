@@ -16,7 +16,10 @@ import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 
 /** Prints what the migration found and intends to do. */
-export function describePlan(context: CliContext, report: MigrateReport): void {
+export const describePlan = function describePlan(
+	context: CliContext,
+	report: MigrateReport
+): void {
 	const { logger } = context;
 
 	logger.info(`Database shape: ${report['shape']._tag}`);
@@ -52,7 +55,7 @@ export function describePlan(context: CliContext, report: MigrateReport): void {
 			'Retained'
 		);
 	}
-}
+};
 
 /**
  * Whether there is anything to do.
@@ -68,11 +71,11 @@ export const isUpToDate = (report: MigrateReport): boolean =>
  *
  * Defaults to no. The operator has to opt in to writing to their database.
  */
-export async function confirmApply(): Promise<boolean> {
+export const confirmApply = async function confirmApply(): Promise<boolean> {
 	const answer = await p.confirm({
-		message: 'Apply this migration?',
 		initialValue: false,
+		message: 'Apply this migration?',
 	});
 
 	return !p.isCancel(answer) && answer;
-}
+};

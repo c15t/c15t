@@ -43,11 +43,11 @@ declare global {
 	}
 }
 
-export function nowMs(): number {
+export const nowMs = function nowMs(): number {
 	return performance.now();
-}
+};
 
-export function getBenchState(
+export const getBenchState = function getBenchState(
 	scenario: ReactBenchScenario
 ): BenchState | undefined {
 	if (typeof window === 'undefined') {
@@ -59,22 +59,22 @@ export function getBenchState(
 		window.__c15tReactBench.scenario !== scenario
 	) {
 		window.__c15tReactBench = {
-			scenario,
-			startedAtMs: nowMs(),
-			mountCount: 0,
-			renderCount: 0,
 			activeUI: 'none',
+			interaction: {},
+			mountCount: 0,
 			onBannerFetchedCount: 0,
 			onConsentSetCount: 0,
 			onErrorCount: 0,
-			interaction: {},
+			renderCount: 0,
+			scenario,
+			startedAtMs: nowMs(),
 		};
 	}
 
 	return window.__c15tReactBench;
-}
+};
 
-export function markInteraction(
+export const markInteraction = function markInteraction(
 	scenario: ReactBenchScenario,
 	key: keyof BenchInteractionMetrics
 ): void {
@@ -84,9 +84,11 @@ export function markInteraction(
 	}
 
 	state.interaction[key] = nowMs();
-}
+};
 
-export function isElementVisible(element: Element): boolean {
+export const isElementVisible = function isElementVisible(
+	element: Element
+): boolean {
 	if (!(element instanceof HTMLElement)) {
 		return false;
 	}
@@ -102,9 +104,11 @@ export function isElementVisible(element: Element): boolean {
 		style.visibility !== 'hidden' &&
 		Number(style.opacity) >= 0.99
 	);
-}
+};
 
-export function hasRunningAnimations(element: Element): boolean {
+export const hasRunningAnimations = function hasRunningAnimations(
+	element: Element
+): boolean {
 	if (
 		!(element instanceof HTMLElement) ||
 		typeof element.getAnimations !== 'function'
@@ -115,4 +119,4 @@ export function hasRunningAnimations(element: Element): boolean {
 	return element
 		.getAnimations()
 		.some((animation) => animation.playState === 'running');
-}
+};

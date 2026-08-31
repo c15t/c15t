@@ -7,16 +7,18 @@ import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { configureConsentManager } from '../client-factory';
 import { OfflineClient } from '../offline';
 
-function profile(translations: Record<string, Partial<Translations>>) {
+const profile = function profile(
+	translations: Record<string, Partial<Translations>>
+) {
 	return { translations };
-}
+};
 
-function profileWithFallback(
+const profileWithFallback = function profileWithFallback(
 	fallbackLanguage: string,
 	translations: Record<string, Partial<Translations>>
 ) {
 	return { fallbackLanguage, translations };
-}
+};
 
 describe('Offline Client Tests', () => {
 	beforeEach(() => {
@@ -130,24 +132,24 @@ describe('Offline Client Tests', () => {
 								pt: { cookieBanner: { title: 'Default PT Title' } },
 							}),
 							eu: profile({
+								de: { cookieBanner: { title: 'EU DE Title' } },
 								en: { cookieBanner: { title: 'EU EN Title' } },
 								fr: { cookieBanner: { title: 'EU FR Title' } },
-								de: { cookieBanner: { title: 'EU DE Title' } },
 							}),
 						},
 					},
 					policyPacks: [
 						{
+							consent: { model: 'opt-in' },
+							i18n: { messageProfile: 'eu' },
 							id: 'eu',
 							match: { countries: ['DE', 'FR', 'GB'] },
-							i18n: { messageProfile: 'eu' },
-							consent: { model: 'opt-in' },
 							ui: { mode: 'banner' },
 						},
 						{
+							consent: { model: 'none' },
 							id: 'default_world',
 							match: { isDefault: true },
-							consent: { model: 'none' },
 							ui: { mode: 'none' },
 						},
 					],
@@ -157,8 +159,8 @@ describe('Offline Client Tests', () => {
 
 		const zhResponse = await client.init({
 			headers: {
-				'x-c15t-country': 'DE',
 				'accept-language': 'zh-CN,zh;q=0.9',
+				'x-c15t-country': 'DE',
 			},
 		});
 
@@ -170,8 +172,8 @@ describe('Offline Client Tests', () => {
 
 		const esResponse = await client.init({
 			headers: {
-				'x-c15t-country': 'DE',
 				'accept-language': 'es-ES,es;q=0.9',
+				'x-c15t-country': 'DE',
 			},
 		});
 
@@ -201,10 +203,10 @@ describe('Offline Client Tests', () => {
 					},
 					policyPacks: [
 						{
+							consent: { model: 'opt-in' },
+							i18n: { messageProfile: 'eu' },
 							id: 'eu',
 							match: { countries: ['DE'] },
-							i18n: { messageProfile: 'eu' },
-							consent: { model: 'opt-in' },
 							ui: { mode: 'banner' },
 						},
 					],
@@ -214,8 +216,8 @@ describe('Offline Client Tests', () => {
 
 		const response = await client.init({
 			headers: {
-				'x-c15t-country': 'DE',
 				'accept-language': 'zh-CN,zh;q=0.9',
+				'x-c15t-country': 'DE',
 			},
 		});
 
@@ -226,39 +228,40 @@ describe('Offline Client Tests', () => {
 		);
 	});
 
+	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 	it('should include configured offline policy payload in init response', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',
 			store: {
 				offlinePolicy: {
 					policy: {
+						consent: {
+							categories: ['necessary', 'measurement'],
+							expiryDays: 120,
+							preselectedCategories: ['measurement'],
+							scopeMode: 'strict',
+						},
 						id: 'offline_preview_us_ca',
 						model: 'opt-in',
-						consent: {
-							expiryDays: 120,
-							scopeMode: 'strict',
-							categories: ['necessary', 'measurement'],
-							preselectedCategories: ['measurement'],
-						},
 						ui: {
-							mode: 'banner',
 							banner: {
 								allowedActions: ['accept', 'reject'],
-								primaryActions: ['accept'],
-								layout: [['accept', 'reject']],
 								direction: 'row',
-								uiProfile: 'balanced',
+								layout: [['accept', 'reject']],
+								primaryActions: ['accept'],
 								scrollLock: true,
+								uiProfile: 'balanced',
 							},
+							mode: 'banner',
 						},
 					},
 					policyDecision: {
-						policyId: 'offline_preview_us_ca',
-						fingerprint: 'offline-preview',
-						matchedBy: 'region',
 						country: 'US',
-						region: 'CA',
+						fingerprint: 'offline-preview',
 						jurisdiction: 'NONE',
+						matchedBy: 'region',
+						policyId: 'offline_preview_us_ca',
+						region: 'CA',
 					},
 					policySnapshotToken: 'offline-preview-token',
 				},
@@ -295,27 +298,27 @@ describe('Offline Client Tests', () => {
 	it('should resolve configured offline policy pack using backend matcher precedence', async () => {
 		const policies = [
 			{
+				consent: { model: 'none' as const },
 				id: 'policy_default_none',
 				match: { isDefault: true },
-				consent: { model: 'none' as const },
 				ui: { mode: 'none' as const },
 			},
 			{
+				consent: { model: 'opt-out' as const },
 				id: 'policy_country_us',
 				match: { countries: ['US'] },
-				consent: { model: 'opt-out' as const },
 				ui: { mode: 'banner' as const },
 			},
 			{
+				consent: { model: 'opt-in' as const },
 				id: 'policy_region_us_ca',
 				match: { regions: [{ country: 'US', region: 'CA' }] },
-				consent: { model: 'opt-in' as const },
 				ui: {
-					mode: 'dialog' as const,
 					dialog: {
-						layout: [['reject', 'accept'], 'customize'],
 						direction: 'row' as const,
+						layout: [['reject', 'accept'], 'customize'],
 					},
+					mode: 'dialog' as const,
 				},
 			},
 		];
@@ -328,10 +331,10 @@ describe('Offline Client Tests', () => {
 			},
 		});
 		const expectedDecision = await resolveSharedPolicyDecision({
-			policies,
 			countryCode: 'US',
-			regionCode: 'CA',
 			jurisdiction: 'NONE',
+			policies,
+			regionCode: 'CA',
 		});
 
 		const response = await client.init({
@@ -362,9 +365,9 @@ describe('Offline Client Tests', () => {
 				offlinePolicy: {
 					policyPacks: [
 						{
+							consent: { model: 'iab' },
 							id: 'policy_gdpr_iab',
 							match: { countries: ['DE'] },
-							consent: { model: 'iab' },
 						},
 					],
 				},
@@ -387,9 +390,9 @@ describe('Offline Client Tests', () => {
 				offlinePolicy: {
 					policyPacks: [
 						{
+							consent: { model: 'opt-out' },
 							id: 'policy_country_us',
 							match: { countries: ['US'] },
-							consent: { model: 'opt-out' },
 							ui: { mode: 'banner' },
 						},
 					],
@@ -461,9 +464,9 @@ describe('Offline Client Tests', () => {
 				offlinePolicy: {
 					policyPacks: [
 						{
+							consent: { model: 'opt-in' },
 							id: 'us_opt_in',
 							match: { countries: ['US'] },
-							consent: { model: 'opt-in' },
 							ui: { mode: 'banner' },
 						},
 					],
@@ -494,9 +497,9 @@ describe('Offline Client Tests', () => {
 				offlinePolicy: {
 					policyPacks: [
 						{
+							consent: { categories: ['*'], model: 'iab' },
 							id: 'de_iab',
 							match: { countries: ['DE'] },
-							consent: { model: 'iab', categories: ['*'] },
 						},
 					],
 				},
@@ -527,10 +530,10 @@ describe('Offline Client Tests', () => {
 					},
 					policyPacks: [
 						{
+							consent: { model: 'opt-in' },
+							i18n: { messageProfile: 'missing' },
 							id: 'eu',
 							match: { countries: ['DE'] },
-							i18n: { messageProfile: 'missing' },
-							consent: { model: 'opt-in' },
 							ui: { mode: 'banner' },
 						},
 					],
@@ -561,10 +564,10 @@ describe('Offline Client Tests', () => {
 					},
 					policyPacks: [
 						{
+							consent: { model: 'opt-in' },
+							i18n: { language: 'fr', messageProfile: 'empty' },
 							id: 'de',
 							match: { countries: ['DE'] },
-							i18n: { language: 'fr', messageProfile: 'empty' },
-							consent: { model: 'opt-in' },
 							ui: { mode: 'banner' },
 						},
 					],
@@ -595,8 +598,8 @@ describe('Offline Client Tests', () => {
 
 		const response = await client.init({
 			headers: {
-				'x-c15t-country': 'DE',
 				'accept-language': 'de',
+				'x-c15t-country': 'DE',
 			},
 		});
 
@@ -625,12 +628,12 @@ describe('Offline Client Tests', () => {
 
 		// Call setConsent with properly typed data
 		const consentData = {
-			type: 'cookie_banner' as const,
 			domain: 'example.com',
 			preferences: {
 				analytics: true,
 				marketing: false,
 			},
+			type: 'cookie_banner' as const,
 		};
 
 		await client.setConsent({ body: consentData });

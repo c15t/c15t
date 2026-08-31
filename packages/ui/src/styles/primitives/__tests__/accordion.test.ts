@@ -70,7 +70,7 @@ describe('accordionVariants', () => {
 
 			for (const variant of variants) {
 				for (const size of sizes) {
-					expect(() => accordionVariants({ variant, size })).not.toThrow();
+					expect(() => accordionVariants({ size, variant })).not.toThrow();
 				}
 			}
 		});

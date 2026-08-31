@@ -29,22 +29,22 @@ type MockableConsentManagerMethods = Pick<
  * @param overrides - Method overrides
  * @returns Mocked ConsentManagerInterface
  */
-export function createMockConsentManager(
+export const createMockConsentManager = function createMockConsentManager(
 	overrides: Partial<MockableConsentManagerMethods> = {}
 ): ConsentManagerInterface {
 	const base: ConsentManagerInterface = {
+		$fetch: vi.fn(),
+		identifyUser: vi.fn(),
 		init: vi.fn(),
 		setConsent: vi.fn(),
 		verifyConsent: vi.fn(),
-		identifyUser: vi.fn(),
-		$fetch: vi.fn(),
 	};
 
 	return {
 		...base,
 		...overrides,
 	};
-}
+};
 
 /**
  * Creates a mock store state for testing.
@@ -52,102 +52,102 @@ export function createMockConsentManager(
  * @param overrides - State overrides
  * @returns Mocked ConsentStoreState
  */
-export function createMockStoreState(
+export const createMockStoreState = function createMockStoreState(
 	overrides: Omit<Partial<ConsentStoreState>, 'getDisplayedConsents'> = {}
 ): ConsentStoreState {
 	return {
-		config: { pkg: 'test', version: '1.0.0', mode: 'test' },
-		debug: false,
-		legalLinks: {},
-		branding: 'c15t',
-		consents: {
-			necessary: false,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		selectedConsents: {
-			necessary: false,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		activeUI: 'none' as const,
-		isLoadingConsentInfo: false,
-		hasFetchedBanner: false,
-		lastBannerFetchData: null,
-		consentCategories: [],
-		iframeBlockerConfig: {} as IframeBlockerConfig,
+		branding: 'c15t',
 		callbacks: {},
-		model: null,
-		policyBanner: {
-			allowedActions: null,
-			primaryActions: null,
-			layout: null,
-			direction: null,
-			uiProfile: null,
-			scrollLock: null,
+		config: { mode: 'test', pkg: 'test', version: '1.0.0' },
+		consentCategories: [],
+		consentInfo: null,
+		consentTypes: [],
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: false,
 		},
-		policyDialog: {
-			allowedActions: null,
-			primaryActions: null,
-			layout: null,
-			direction: null,
-			uiProfile: null,
-			scrollLock: null,
-		},
-		policyCategories: null,
-		policyScopeMode: null,
+		debug: false,
+		destroyIframeBlocker: vi.fn(),
+		destroyNetworkBlocker: vi.fn(),
+		getDisplayedConsents: vi.fn(() => [] as ConsentType[]),
+		getLoadedScriptIds: vi.fn().mockReturnValue([]),
+		has: vi.fn(),
+		hasConsented: vi.fn(),
+		hasFetchedBanner: false,
+		iab: null,
+		identifyUser: vi.fn(),
+		iframeBlockerConfig: {} as IframeBlockerConfig,
+		includeNonDisplayedConsents: false,
+		initConsentManager: vi.fn(),
 		initDataSource: null,
 		initDataSourceDetail: null,
+		initializeIframeBlocker: vi.fn(),
+		initializeNetworkBlocker: vi.fn(),
+		isLoadingConsentInfo: false,
+		isScriptLoaded: vi.fn(),
+		lastBannerFetchData: null,
+		legalLinks: {},
+		loadedScripts: {},
 		locationInfo: null,
+		model: null,
+		overrides: undefined,
+		policyBanner: {
+			allowedActions: null,
+			direction: null,
+			layout: null,
+			primaryActions: null,
+			scrollLock: null,
+			uiProfile: null,
+		},
+		policyCategories: null,
+		policyDialog: {
+			allowedActions: null,
+			direction: null,
+			layout: null,
+			primaryActions: null,
+			scrollLock: null,
+			uiProfile: null,
+		},
+		policyScopeMode: null,
+		removeScript: vi.fn(),
+		resetConsents: vi.fn(),
+		saveConsents: vi.fn(),
+		scriptIdMap: {},
+		scripts: [],
+		selectedConsents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: false,
+		},
+		setActiveUI: vi.fn(),
+		setCallback: vi.fn(),
+		setConsent: vi.fn(),
+		setConsentCategories: vi.fn(),
+		setLanguage: vi.fn(),
+		setLocationInfo: vi.fn(),
+		setNetworkBlocker: vi.fn(),
+		setOverrides: vi.fn(),
+		setScripts: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		setTranslationConfig: vi.fn(),
 		translationConfig: {
-			translations: {},
 			defaultLanguage: 'en',
 			disableAutoLanguageSwitch: false,
+			translations: {},
 		},
-		setTranslationConfig: vi.fn(),
-		setLanguage: vi.fn(),
-		includeNonDisplayedConsents: false,
-		consentTypes: [],
-		scripts: [],
-		loadedScripts: {},
-		scriptIdMap: {},
-		setScripts: vi.fn(),
-		removeScript: vi.fn(),
-		updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
-		isScriptLoaded: vi.fn(),
-		getLoadedScriptIds: vi.fn().mockReturnValue([]),
-		setConsent: vi.fn(),
-		setActiveUI: vi.fn(),
-		saveConsents: vi.fn(),
-		resetConsents: vi.fn(),
-		initializeIframeBlocker: vi.fn(),
-		updateIframeConsents: vi.fn(),
-		destroyIframeBlocker: vi.fn(),
-		initializeNetworkBlocker: vi.fn(),
-		updateNetworkBlockerConsents: vi.fn(),
-		setNetworkBlocker: vi.fn(),
-		destroyNetworkBlocker: vi.fn(),
 		updateConsentCategories: vi.fn(),
-		identifyUser: vi.fn(),
-		setConsentCategories: vi.fn(),
-		setCallback: vi.fn(),
-		setLocationInfo: vi.fn(),
-		initConsentManager: vi.fn(),
-		getDisplayedConsents: vi.fn(() => [] as ConsentType[]),
-		hasConsented: vi.fn(),
-		setSelectedConsent: vi.fn(),
-		has: vi.fn(),
-		overrides: undefined,
-		setOverrides: vi.fn(),
-		iab: null,
+		updateIframeConsents: vi.fn(),
+		updateNetworkBlockerConsents: vi.fn(),
+		updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 		...overrides,
 	};
-}
+};
 
 /**
  * Creates a mock consent banner response for testing.
@@ -155,57 +155,58 @@ export function createMockStoreState(
  * @param overrides - Response overrides
  * @returns Mocked InitOutput
  */
-export function createMockConsentBannerResponse(
-	overrides: Partial<InitResponse> = {}
-): InitResponse {
-	return {
-		branding: 'c15t',
-		jurisdiction: 'GDPR',
-		location: {
-			countryCode: 'DE',
-			regionCode: 'BE',
-		},
-		translations: {
-			language: 'en',
+export const createMockConsentBannerResponse =
+	function createMockConsentBannerResponse(
+		overrides: Partial<InitResponse> = {}
+	): InitResponse {
+		return {
+			branding: 'c15t',
+			jurisdiction: 'GDPR',
+			location: {
+				countryCode: 'DE',
+				regionCode: 'BE',
+			},
 			translations: {
-				common: {
-					acceptAll: 'Accept All',
-					rejectAll: 'Reject All',
-					customize: 'Customize',
-					save: 'Save',
-				},
-				cookieBanner: {
-					title: 'Cookie Banner',
-					description: 'We use cookies to enhance your experience',
-				},
-				consentManagerDialog: {
-					title: 'Consent Manager',
-					description: 'Manage your consent preferences',
-				},
-				consentTypes: {
-					necessary: {
-						title: 'Necessary',
-						description: 'Essential for the website to function',
+				language: 'en',
+				translations: {
+					common: {
+						acceptAll: 'Accept All',
+						customize: 'Customize',
+						rejectAll: 'Reject All',
+						save: 'Save',
 					},
-					functionality: {
-						title: 'Functionality',
-						description: 'Enhances website functionality',
+					consentManagerDialog: {
+						description: 'Manage your consent preferences',
+						title: 'Consent Manager',
 					},
-					experience: {
-						title: 'Experience',
-						description: 'Improves user experience',
+					consentTypes: {
+						experience: {
+							description: 'Improves user experience',
+							title: 'Experience',
+						},
+						functionality: {
+							description: 'Enhances website functionality',
+							title: 'Functionality',
+						},
+						marketing: {
+							description: 'Used for marketing purposes',
+							title: 'Marketing',
+						},
+						measurement: {
+							description: 'Used for analytics and measurement',
+							title: 'Measurement',
+						},
+						necessary: {
+							description: 'Essential for the website to function',
+							title: 'Necessary',
+						},
 					},
-					marketing: {
-						title: 'Marketing',
-						description: 'Used for marketing purposes',
-					},
-					measurement: {
-						title: 'Measurement',
-						description: 'Used for analytics and measurement',
+					cookieBanner: {
+						description: 'We use cookies to enhance your experience',
+						title: 'Cookie Banner',
 					},
 				},
 			},
-		},
-		...overrides,
+			...overrides,
+		};
 	};
-}

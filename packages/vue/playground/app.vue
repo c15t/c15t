@@ -18,9 +18,9 @@ const regionPresets = [
 	{ id: 'quebec', label: 'Quebec', to: '/?country=CA&region=QC' },
 ] as const;
 
-function openBanner() {
+const openBanner = function openBanner() {
 	activeUI.value = 'banner';
-}
+};
 </script>
 
 <template>

@@ -16,7 +16,7 @@ export const STATUS_PATH = '/status';
  * @param options - Optional fetch options
  * @returns Status response
  */
-export async function status(
+export const status = function status(
 	context: FetcherContext,
 	options?: FetchOptions<StatusOutput>
 ): Promise<ResponseContext<StatusOutput>> {
@@ -24,4 +24,4 @@ export async function status(
 		method: 'GET',
 		...options,
 	});
-}
+};

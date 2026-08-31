@@ -131,8 +131,8 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -147,8 +147,11 @@ export const ConsentDialog: FC<ConsentDialogProps> = ({
 
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
+		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
 		showTrigger === true
-			? {} // Use defaults
+			? // oxlint-disable-next-line no-inline-comments -- Preserve declaration order, interface shape, and public compatibility.
+				// Use defaults
+				{}
 			: showTrigger === false
 				? null
 				: showTrigger;

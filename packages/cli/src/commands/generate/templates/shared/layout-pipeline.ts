@@ -58,7 +58,7 @@ export interface LayoutPipelineConfig {
  * 7. Find the first return statement, wrap its JSX with wrapJsx
  * 8. Save the file
  */
-export async function runLayoutUpdatePipeline(
+export const runLayoutUpdatePipeline = async function runLayoutUpdatePipeline(
 	config: LayoutPipelineConfig
 ): Promise<LayoutUpdateResult> {
 	const {
@@ -86,6 +86,7 @@ export async function runLayoutUpdatePipeline(
 		for (const pattern of filePatterns) {
 			const files = project.addSourceFilesAtPaths(`${projectRoot}/${pattern}`);
 			if (files.length > 0) {
+				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				layoutFile = files[0];
 				break;
 			}
@@ -93,7 +94,7 @@ export async function runLayoutUpdatePipeline(
 	}
 
 	if (!layoutFile) {
-		return { updated: false, filePath: null, alreadyModified: false };
+		return { alreadyModified: false, filePath: null, updated: false };
 	}
 
 	const layoutFilePath = layoutFile.getFilePath();
@@ -104,9 +105,9 @@ export async function runLayoutUpdatePipeline(
 	// Step 3: Check for existing import
 	if (hasConsentManagerImport(layoutFile)) {
 		return {
-			updated: false,
-			filePath: layoutFilePath,
 			alreadyModified: true,
+			filePath: layoutFilePath,
+			updated: false,
 		};
 	}
 
@@ -122,23 +123,24 @@ export async function runLayoutUpdatePipeline(
 	}
 
 	// Step 7: Find return statement and wrap JSX
+	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const returnStatement = layoutFile.getDescendantsOfKind(
 		SyntaxKind.ReturnStatement
 	)[0];
 	if (!returnStatement) {
 		return {
-			updated: false,
-			filePath: layoutFilePath,
 			alreadyModified: false,
+			filePath: layoutFilePath,
+			updated: false,
 		};
 	}
 
 	const expression = returnStatement.getExpression();
 	if (!expression) {
 		return {
-			updated: false,
-			filePath: layoutFilePath,
 			alreadyModified: false,
+			filePath: layoutFilePath,
+			updated: false,
 		};
 	}
 
@@ -149,9 +151,9 @@ export async function runLayoutUpdatePipeline(
 	// Step 8: Save
 	await layoutFile.save();
 	return {
-		updated: true,
-		filePath: layoutFilePath,
 		alreadyModified: false,
 		componentFiles,
+		filePath: layoutFilePath,
+		updated: true,
 	};
-}
+};

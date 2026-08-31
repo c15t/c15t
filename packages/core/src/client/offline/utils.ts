@@ -4,16 +4,18 @@ import { createResponseContext as createResponseContextShared } from '../utils';
 /**
  * Creates a response context object for success cases.
  */
-export function createResponseContext<T>(
+export const createResponseContext = function createResponseContext<T>(
 	data: T | null = null
 ): ResponseContext<T> {
 	return createResponseContextShared<T>(true, data);
-}
+};
 
 /**
  * Handles empty API response with callbacks.
  */
-export async function handleOfflineResponse<ResponseType>(
+export const handleOfflineResponse = async function handleOfflineResponse<
+	ResponseType,
+>(
 	options?: FetchOptions<ResponseType>
 ): Promise<ResponseContext<ResponseType>> {
 	const emptyResponse = createResponseContext<ResponseType>();
@@ -24,4 +26,4 @@ export async function handleOfflineResponse<ResponseType>(
 	}
 
 	return emptyResponse;
-}
+};

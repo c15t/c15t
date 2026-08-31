@@ -18,30 +18,30 @@ describe('Custom Client Tests', () => {
 		// Set up default responses for the mock handlers
 		initMock.mockResolvedValue({
 			data: {
+				branding: 'c15t',
 				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				translations: {
 					language: 'en',
 					translations: {},
 				},
-				branding: 'c15t',
 			},
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		});
 
 		setConsentMock.mockResolvedValue({
 			data: { success: true },
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		});
 
 		verifyConsentMock.mockResolvedValue({
 			data: { valid: true },
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		});
 	});
@@ -49,13 +49,13 @@ describe('Custom Client Tests', () => {
 	it('should use custom handler for init', async () => {
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'custom',
 			endpointHandlers: {
+				identifyUser: identifyUserMock,
 				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
-				identifyUser: identifyUserMock,
 			},
+			mode: 'custom',
 		});
 
 		// Call the API
@@ -66,26 +66,26 @@ describe('Custom Client Tests', () => {
 		expect(fetchMock).not.toHaveBeenCalled();
 		expect(response.ok).toBe(true);
 		expect(response.data).toEqual({
+			branding: 'c15t',
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			translations: {
 				language: 'en',
 				translations: {},
 			},
-			branding: 'c15t',
 		});
 	});
 
 	it('should pass options to custom handlers', async () => {
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'custom',
 			endpointHandlers: {
+				identifyUser: identifyUserMock,
 				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
-				identifyUser: identifyUserMock,
 			},
+			mode: 'custom',
 		});
 
 		// Consent preferences to set
@@ -116,24 +116,24 @@ describe('Custom Client Tests', () => {
 		// Mock error response
 		setConsentMock.mockResolvedValueOnce({
 			data: null,
-			ok: false,
 			error: {
+				code: 'CUSTOM_ERROR',
 				message: 'Custom Error',
 				status: 400,
-				code: 'CUSTOM_ERROR',
 			},
+			ok: false,
 			response: null,
 		});
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'custom',
 			endpointHandlers: {
+				identifyUser: identifyUserMock,
 				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
-				identifyUser: identifyUserMock,
 			},
+			mode: 'custom',
 		});
 
 		// Call the API
@@ -150,18 +150,18 @@ describe('Custom Client Tests', () => {
 		// Custom handler for dynamic endpoint
 		const customDynamicHandler = vi.fn().mockResolvedValue({
 			data: { customData: true },
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		});
 
 		// Configure the client
 		const client = new CustomClient({
 			endpointHandlers: {
+				identifyUser: identifyUserMock,
 				init: initMock,
 				setConsent: setConsentMock,
 				verifyConsent: verifyConsentMock,
-				identifyUser: identifyUserMock,
 			},
 		});
 

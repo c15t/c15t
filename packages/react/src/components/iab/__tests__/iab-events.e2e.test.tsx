@@ -173,7 +173,9 @@ describe('IAB Events E2E Tests', () => {
 			// Should be called almost immediately
 			await vi.waitFor(
 				() => {
-					if (!called) throw new Error('Not called');
+					if (!called) {
+						throw new Error('Not called');
+					}
 				},
 				{ timeout: 100 }
 			);
@@ -223,7 +225,8 @@ describe('IAB Events E2E Tests', () => {
 			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
-					callCount++;
+					callCount += 1;
+					// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 					listenerId = data.listenerId;
 				});
 			}
@@ -231,7 +234,9 @@ describe('IAB Events E2E Tests', () => {
 			// Wait for initial call
 			await vi.waitFor(
 				() => {
-					if (callCount === 0) throw new Error('Not called');
+					if (callCount === 0) {
+						throw new Error('Not called');
+					}
 				},
 				{ timeout: 100 }
 			);
@@ -331,7 +336,9 @@ describe('IAB Events E2E Tests', () => {
 
 			await vi.waitFor(
 				() => {
-					if (!receivedData) throw new Error('No data received');
+					if (!receivedData) {
+						throw new Error('No data received');
+					}
 				},
 				{ timeout: 500 }
 			);

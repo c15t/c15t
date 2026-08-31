@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { buttonVariants } from '@c15t/svelte';
 
-	const primaryFilled = buttonVariants({ variant: 'primary', mode: 'filled' });
-	const neutralFilled = buttonVariants({ variant: 'neutral', mode: 'filled' });
-	const primaryStroke = buttonVariants({ variant: 'primary', mode: 'stroke' });
-	const neutralStroke = buttonVariants({ variant: 'neutral', mode: 'stroke' });
+	const primaryFilled = buttonVariants({ mode: 'filled', variant: 'primary' });
+	const neutralFilled = buttonVariants({ mode: 'filled', variant: 'neutral' });
+	const primaryStroke = buttonVariants({ mode: 'stroke', variant: 'primary' });
+	const neutralStroke = buttonVariants({ mode: 'stroke', variant: 'neutral' });
 	const primaryLighter = buttonVariants({
-		variant: 'primary',
 		mode: 'lighter',
+		variant: 'primary',
 	});
-	const neutralGhost = buttonVariants({ variant: 'neutral', mode: 'ghost' });
+	const neutralGhost = buttonVariants({ mode: 'ghost', variant: 'neutral' });
 </script>
 
 <div

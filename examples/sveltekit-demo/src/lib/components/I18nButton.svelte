@@ -4,12 +4,12 @@
 	const consent = getConsentManager();
 	const languages = ['en', 'zh', 'fr', 'de'];
 
-	function cycleLanguage() {
+	const cycleLanguage = function cycleLanguage() {
 		const currentLang = consent.translationConfig?.defaultLanguage ?? 'en';
 		const currentIndex = languages.indexOf(currentLang);
 		const nextIndex = (currentIndex + 1) % languages.length;
 		consent.setLanguage(languages[nextIndex]);
-	}
+	};
 </script>
 
 <button

@@ -36,32 +36,30 @@ declare global {
  */
 export const mixpanelAnalyticsManifest = {
 	...vendorManifestContract,
-	vendor: 'mixpanel-analytics',
-	category: 'measurement',
 	alwaysLoad: true,
+	category: 'measurement',
 	install: [
 		{
-			type: 'setGlobal',
-			name: 'mixpanel',
-			value: [],
 			ifUndefined: true,
+
+			name: 'mixpanel',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'setGlobalPath',
 			path: ['mixpanel', '__SV'],
+			type: 'setGlobalPath',
 			value: 1.2,
 		},
 		{
+			path: ['mixpanel', '_i'],
 			// The official snippet always pushes an explicit instance name; the
 			// SDK's create_mplib resolves the queue stub through that name, so a
 			// two-element tuple would leave the queue unreplayed.
 			type: 'setGlobalPath',
-			path: ['mixpanel', '_i'],
 			value: [['{{token}}', '{{initOptions}}', 'mixpanel']],
 		},
 		{
-			type: 'defineQueueMethods',
-			target: 'mixpanel',
 			methods: [
 				'track',
 				'identify',
@@ -70,41 +68,50 @@ export const mixpanelAnalyticsManifest = {
 				'opt_in_tracking',
 				'opt_out_tracking',
 			],
+
+			target: 'mixpanel',
+			type: 'defineQueueMethods',
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptUrl}}',
 			async: true,
-		},
-	],
-	onLoadGranted: [
-		{
-			type: 'callGlobal',
-			global: 'mixpanel',
-			method: 'opt_in_tracking',
-		},
-	],
-	onLoadDenied: [
-		{
-			type: 'callGlobal',
-			global: 'mixpanel',
-			method: 'opt_out_tracking',
-		},
-	],
-	onConsentGranted: [
-		{
-			type: 'callGlobal',
-			global: 'mixpanel',
-			method: 'opt_in_tracking',
+
+			src: '{{scriptUrl}}',
+			type: 'loadScript',
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'callGlobal',
 			global: 'mixpanel',
 			method: 'opt_out_tracking',
+
+			type: 'callGlobal',
 		},
 	],
+	onConsentGranted: [
+		{
+			global: 'mixpanel',
+			method: 'opt_in_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onLoadDenied: [
+		{
+			global: 'mixpanel',
+			method: 'opt_out_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	onLoadGranted: [
+		{
+			global: 'mixpanel',
+			method: 'opt_in_tracking',
+
+			type: 'callGlobal',
+		},
+	],
+	vendor: 'mixpanel-analytics',
 } as const satisfies VendorManifest;
 
 export interface MixpanelAnalyticsOptions {
@@ -141,13 +148,13 @@ export interface MixpanelAnalyticsOptions {
  * });
  * ```
  */
-export function mixpanelAnalytics({
+export const mixpanelAnalytics = function mixpanelAnalytics({
 	token,
 	initOptions,
 	scriptUrl,
 }: MixpanelAnalyticsOptions): Script {
 	const normalizedToken = token.trim();
-	if (!/^[a-f0-9]{32}$/i.test(normalizedToken)) {
+	if (!/^[a-f0-9]{32}$/iu.test(normalizedToken)) {
 		throw new Error(
 			'mixpanelAnalytics: token must be a non-empty ' +
 				'32-character hexadecimal string'
@@ -155,9 +162,9 @@ export function mixpanelAnalytics({
 	}
 
 	return resolveManifest(mixpanelAnalyticsManifest, {
-		token: normalizedToken,
 		initOptions: initOptions ?? {},
 		scriptUrl:
 			scriptUrl ?? 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		token: normalizedToken,
 	});
-}
+};

@@ -39,31 +39,31 @@ export const Default: Story = {
 };
 
 export const DialogContract: Story = {
+	play: dialogContract,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: dialogContract,
 };
 
 export const SaveFlow: Story = {
+	play: saveFlow,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: saveFlow,
 };
 
 export const DialogEscapeCloses: Story = {
+	play: dialogEscapeCloses,
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: dialogEscapeCloses,
 };

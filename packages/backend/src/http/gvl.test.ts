@@ -36,35 +36,35 @@ function createDeferredPromise<Value>(
 
 /** Minimal document satisfying `globalVendorListSchema`. */
 const GVL = {
+	features: {},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 1,
-	tcfPolicyVersion: 4,
 	lastUpdated: '2026-01-01T00:00:00Z',
 	purposes: {},
-	specialPurposes: {},
-	features: {},
 	specialFeatures: {},
+	specialPurposes: {},
 	stacks: {},
+	tcfPolicyVersion: 4,
+	vendorListVersion: 1,
 	vendors: {},
 };
 
 const memoryCache = (): CacheAdapter & { entries: Map<string, unknown> } => {
 	const entries = new Map<string, unknown>();
 	return {
-		entries,
-		get: async <T>(key: string) => (entries.get(key) as T) ?? null,
-		set: async (key, value) => {
-			entries.set(key, value);
-		},
-		delete: async (key) => {
+		delete: (key) => {
 			entries.delete(key);
 		},
-		has: async (key) => entries.has(key),
+		entries,
+		get: <T>(key: string) => (entries.get(key) as T) ?? null,
+		has: (key) => entries.has(key),
+		set: (key, value) => {
+			entries.set(key, value);
+		},
 	};
 };
 
 const respondWith = (body: unknown, ok = true) =>
-	(async () =>
+	(() =>
 		new Response(JSON.stringify(body), {
 			status: ok ? 200 : 500,
 		})) as unknown as typeof globalThis.fetch;
@@ -95,7 +95,7 @@ describe('resolveGvl', () => {
 	it('fetches and caches', async () => {
 		const cache = memoryCache();
 		let calls = 0;
-		const fetchOnce = (async () => {
+		const fetchOnce = (() => {
 			calls += 1;
 			return new Response(JSON.stringify(GVL));
 		}) as unknown as typeof globalThis.fetch;
@@ -123,7 +123,7 @@ describe('resolveGvl', () => {
 		assert.isNull(await resolveGvl('en', { fetch: respondWith(GVL, false) }));
 		assert.isNull(
 			await resolveGvl('en', {
-				fetch: (async () => {
+				fetch: (() => {
 					throw new Error('network down');
 				}) as unknown as typeof globalThis.fetch,
 			})

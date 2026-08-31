@@ -33,7 +33,7 @@ import type { CookieOptions, StorageConfig } from './types';
  *
  * @internal
  */
-export function setCookie(
+export const setCookie = function setCookie(
 	name: string,
 	value: unknown,
 	options?: CookieOptions,
@@ -88,7 +88,7 @@ export function setCookie(
 	} catch (error) {
 		console.warn(`Failed to set cookie "${name}":`, error);
 	}
-}
+};
 
 /**
  * Parses a stored c15t cookie value using the same compact format that
@@ -97,7 +97,7 @@ export function setCookie(
  *
  * @internal
  */
-export function parseCookieValue<ReturnType = unknown>(
+export const parseCookieValue = function parseCookieValue<ReturnType = unknown>(
 	cookieValue: string
 ): ReturnType | null {
 	try {
@@ -118,7 +118,7 @@ export function parseCookieValue<ReturnType = unknown>(
 		console.warn('Failed to parse cookie value:', error);
 		return null;
 	}
-}
+};
 
 /**
  * Retrieves a cookie value by name.
@@ -133,7 +133,7 @@ export function parseCookieValue<ReturnType = unknown>(
  *
  * @internal
  */
-export function getCookie<ReturnType = unknown>(
+export const getCookie = function getCookie<ReturnType = unknown>(
 	name: string
 ): ReturnType | null {
 	if (typeof document === 'undefined') {
@@ -161,7 +161,7 @@ export function getCookie<ReturnType = unknown>(
 		console.warn(`Failed to get cookie "${name}":`, error);
 		return null;
 	}
-}
+};
 
 /**
  * Deletes a cookie by name.
@@ -172,7 +172,7 @@ export function getCookie<ReturnType = unknown>(
  *
  * @internal
  */
-export function deleteCookie(
+export const deleteCookie = function deleteCookie(
 	name: string,
 	options?: CookieOptions,
 	config?: StorageConfig
@@ -203,4 +203,4 @@ export function deleteCookie(
 	} catch (error) {
 		console.warn(`Failed to delete cookie "${name}":`, error);
 	}
-}
+};

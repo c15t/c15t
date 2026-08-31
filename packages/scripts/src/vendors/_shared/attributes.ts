@@ -13,7 +13,7 @@
  * booleanDataAttribute(undefined); // undefined
  * ```
  */
-export function booleanDataAttribute(
+export const booleanDataAttribute = function booleanDataAttribute(
 	value: boolean | undefined
 ): string | undefined {
 	if (value === undefined) {
@@ -25,7 +25,7 @@ export function booleanDataAttribute(
 	}
 
 	return 'false';
-}
+};
 
 /**
  * Converts a string or string list into a script `data-*` attribute value.
@@ -45,7 +45,7 @@ export function booleanDataAttribute(
  * listDataAttribute(undefined); // undefined
  * ```
  */
-export function listDataAttribute(
+export const listDataAttribute = function listDataAttribute(
 	value: string[] | string | undefined
 ): string | undefined {
 	if (value === undefined) {
@@ -61,4 +61,4 @@ export function listDataAttribute(
 	}
 
 	return value;
-}
+};

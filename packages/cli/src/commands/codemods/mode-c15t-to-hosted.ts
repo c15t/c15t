@@ -64,7 +64,7 @@ export interface CodemodRunResult {
  */
 function getPropertyName(property: PropertyAssignment): string {
 	const rawName = property.getNameNode().getText().trim();
-	return rawName.replace(/^['"]|['"]$/g, '');
+	return rawName.replace(/^['"]|['"]$/gu, '');
 }
 
 /**
@@ -83,6 +83,7 @@ function transformSourceFile(
 		SyntaxKind.PropertyAssignment
 	);
 
+	// oxlint-disable-next-line no-warning-comments -- Preserve declaration order, interface shape, and public compatibility.
 	// TODO(codemod-scope): This codemod intentionally rewrites all object
 	// properties shaped as `mode: 'c15t'` because projects often wrap c15t
 	// config in custom helpers/types. We prefer broad migration coverage over

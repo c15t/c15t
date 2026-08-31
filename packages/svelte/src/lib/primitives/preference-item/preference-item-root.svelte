@@ -40,15 +40,15 @@
 	const contentId = `c15t-preference-item-content-${componentId}`;
 	const triggerId = `c15t-preference-item-trigger-${componentId}`;
 
-	function setOpen(nextOpen: boolean) {
+	const setOpen = function setOpen(nextOpen: boolean) {
 		open = nextOpen;
-	}
+	};
 
-	function toggle() {
+	const toggle = function toggle() {
 		if (!disabled) {
 			setOpen(togglePreferenceItemValue(open));
 		}
-	}
+	};
 
 	setPreferenceItemContext({
 		get contentId() {
@@ -63,11 +63,11 @@
 		get open() {
 			return open;
 		},
+		setOpen,
+		toggle,
 		get triggerId() {
 			return triggerId;
 		},
-		setOpen,
-		toggle,
 	});
 </script>
 

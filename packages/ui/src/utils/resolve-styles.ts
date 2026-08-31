@@ -15,7 +15,7 @@ import { mergeStyles } from './merge-styles';
  * 2. Theme slot classes (from theme context)
  * 3. Component prop classes (from className prop)
  */
-export function resolveStyles(
+export const resolveStyles = function resolveStyles(
 	themeKey: AllThemeKeys,
 	theme?: Theme,
 	componentStyle?: ThemeValue,
@@ -42,8 +42,8 @@ export function resolveStyles(
 		const merged = mergeStyles(themeStyle || {}, componentStyle || {});
 		return {
 			className: merged.className,
-			style: merged.style,
 			noStyle: true,
+			style: merged.style,
 		};
 	}
 
@@ -64,4 +64,4 @@ export function resolveStyles(
 		className: final.className,
 		style: final.style,
 	};
-}
+};

@@ -60,8 +60,8 @@ describe('Utils', () => {
 			expect(result.className).toContain('theme-class');
 			expect(result.className).toContain('component-class');
 			expect(result.style).toEqual({
-				color: 'blue',
 				backgroundColor: 'red',
+				color: 'blue',
 			});
 		});
 
@@ -92,8 +92,8 @@ describe('Utils', () => {
 				{
 					baseClassName: 'base-class-to-remove',
 					className: 'component-class',
-					style: { backgroundColor: 'red' },
 					noStyle: true,
+					style: { backgroundColor: 'red' },
 				},
 				true
 			);

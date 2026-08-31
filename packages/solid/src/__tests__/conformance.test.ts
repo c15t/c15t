@@ -24,16 +24,16 @@ const MISSING_ADAPTER_SURFACE =
 
 const driver: TestDriver = {
 	framework: 'solid',
-	mount(_opts: MountOptions): Promise<MountResult> {
-		throw new DriverNotImplementedError(
-			'solid',
-			`mount (${MISSING_ADAPTER_SURFACE})`
-		);
-	},
 	getStore() {
 		throw new DriverNotImplementedError(
 			'solid',
 			`getStore (${MISSING_ADAPTER_SURFACE})`
+		);
+	},
+	mount(_opts: MountOptions): Promise<MountResult> {
+		throw new DriverNotImplementedError(
+			'solid',
+			`mount (${MISSING_ADAPTER_SURFACE})`
 		);
 	},
 	serverRender(_opts: MountOptions): Promise<string> {
@@ -46,8 +46,8 @@ const driver: TestDriver = {
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

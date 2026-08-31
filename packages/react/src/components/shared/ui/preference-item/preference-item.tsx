@@ -28,7 +28,7 @@ const PreferenceItemContext = createContext<PreferenceItemContextValue | null>(
 	null
 );
 
-function usePreferenceItemContext() {
+const usePreferenceItemContext = function usePreferenceItemContext() {
 	const context = useContext(PreferenceItemContext);
 
 	if (!context) {
@@ -38,7 +38,7 @@ function usePreferenceItemContext() {
 	}
 
 	return context;
-}
+};
 
 export interface PreferenceItemRootProps
 	extends HTMLAttributes<HTMLDivElement>, PreferenceItemVariantsProps {
@@ -71,7 +71,7 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			onChange: onOpenChange,
 			value: open,
 		});
-		const reactId = useId().replace(/:/g, '');
+		const reactId = useId().replace(/:/gu, '');
 		const finalNoStyle = contextNoStyle || noStyle;
 		const contextValue = useMemo(
 			() => ({
@@ -163,7 +163,7 @@ export interface PreferenceItemSlotProps extends HTMLAttributes<HTMLDivElement> 
 	noStyle?: boolean;
 }
 
-function createSlotComponent(
+const createSlotComponent = function createSlotComponent(
 	displayName: string,
 	slot: (typeof PREFERENCE_ITEM_SLOTS)[keyof typeof PREFERENCE_ITEM_SLOTS],
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
@@ -192,7 +192,7 @@ function createSlotComponent(
 
 	Component.displayName = displayName;
 	return Component;
-}
+};
 
 const PreferenceItemLeading = createSlotComponent(
 	'PreferenceItemLeading',

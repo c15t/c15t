@@ -16,8 +16,8 @@ describe('ConsentManagerProvider Error Handling', () => {
 		// Mock error response
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify({ error: 'API error' }), {
-				status: 500,
 				headers: { 'Content-Type': 'application/json' },
+				status: 500,
 			})
 		);
 	});
@@ -39,8 +39,8 @@ describe('ConsentManagerProvider Error Handling', () => {
 		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'hosted',
 					backendURL: '/api/c15t',
+					mode: 'hosted',
 				}}
 			>
 				<ErrorDetectingComponent />
@@ -50,7 +50,9 @@ describe('ConsentManagerProvider Error Handling', () => {
 		// Verify component renders even with errors
 		await vi.waitFor(() => {
 			const requestState = getByTestId('request-state');
-			expect(requestState).toHaveTextContent(/Manager (Not )?Ready/);
+			expect(requestState).toHaveTextContent(
+				/Manager (?<capture1>Not )?Ready/u
+			);
 		});
 
 		// Verify the fetch was called

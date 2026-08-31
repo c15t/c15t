@@ -31,7 +31,7 @@ export interface PreflightCheck {
 /**
  * Check if a file exists
  */
-async function exists(filePath: string): Promise<boolean> {
+const exists = async function exists(filePath: string): Promise<boolean> {
 	try {
 		const fs = await import('node:fs/promises');
 		await fs.access(filePath);
@@ -39,12 +39,30 @@ async function exists(filePath: string): Promise<boolean> {
 	} catch {
 		return false;
 	}
-}
+};
+
+/**
+ * Get status icon
+ */
+const getStatusIcon = function getStatusIcon(
+	status: PreflightCheck['status']
+): string {
+	switch (status) {
+		case 'pass':
+			return color.green('✓');
+		case 'warn':
+			return color.yellow('⚠');
+		case 'fail':
+			return color.red('✗');
+		default:
+			return ' ';
+	}
+};
 
 /**
  * Run all pre-flight checks
  */
-export async function runPreflightChecks(
+export const runPreflightChecks = async function runPreflightChecks(
 	context: CliContext
 ): Promise<PreflightResult> {
 	const { projectRoot, framework, logger } = context;
@@ -59,33 +77,33 @@ export async function runPreflightChecks(
 	const packageJsonPath = path.join(projectRoot, 'package.json');
 	const hasPackageJson = await exists(packageJsonPath);
 	checks.push({
-		name: 'package.json',
-		status: hasPackageJson ? 'pass' : 'fail',
-		message: hasPackageJson ? 'Found package.json' : 'No package.json found',
 		hint: hasPackageJson
 			? undefined
 			: 'Make sure you are in a JavaScript/TypeScript project',
+		message: hasPackageJson ? 'Found package.json' : 'No package.json found',
+		name: 'package.json',
+		status: hasPackageJson ? 'pass' : 'fail',
 	});
 
 	// Check 2: Framework detected
 	checks.push({
-		name: 'Framework',
-		status: framework.framework ? 'pass' : 'warn',
+		hint: framework.framework ? undefined : 'Will use vanilla JavaScript setup',
 		message: framework.framework
 			? `Detected ${framework.framework}`
 			: 'No framework detected',
-		hint: framework.framework ? undefined : 'Will use vanilla JavaScript setup',
+		name: 'Framework',
+		status: framework.framework ? 'pass' : 'warn',
 	});
 
 	// Check 3: React detected (for React/Next.js packages)
 	if (framework.pkg !== 'c15t') {
 		checks.push({
-			name: 'React',
-			status: framework.hasReact ? 'pass' : 'warn',
+			hint: framework.hasReact ? undefined : 'c15t works best with React',
 			message: framework.hasReact
 				? `Found React ${framework.reactVersion || ''}`
 				: 'React not detected',
-			hint: framework.hasReact ? undefined : 'c15t works best with React',
+			name: 'React',
+			status: framework.hasReact ? 'pass' : 'warn',
 		});
 	}
 
@@ -104,31 +122,15 @@ export async function runPreflightChecks(
 	logger.message('');
 
 	return {
-		passed: !hasFailures,
 		checks,
+		passed: !hasFailures,
 	};
-}
-
-/**
- * Get status icon
- */
-function getStatusIcon(status: PreflightCheck['status']): string {
-	switch (status) {
-		case 'pass':
-			return color.green('✓');
-		case 'warn':
-			return color.yellow('⚠');
-		case 'fail':
-			return color.red('✗');
-		default:
-			return ' ';
-	}
-}
+};
 
 /**
  * Display pre-flight failure message
  */
-export function displayPreflightFailure(
+export const displayPreflightFailure = function displayPreflightFailure(
 	context: CliContext,
 	result: PreflightResult
 ): void {
@@ -147,4 +149,4 @@ export function displayPreflightFailure(
 
 	logger.message('');
 	logger.message('Please fix the issues above and try again.');
-}
+};

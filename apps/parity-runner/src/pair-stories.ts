@@ -24,30 +24,31 @@ export interface PairedStory {
 	entries: Readonly<Record<string, StoryEntry>>;
 }
 
-const FRAMEWORK_SEGMENT = /^components\s*-\s*(react|svelte|vue|solid)\//i;
+const FRAMEWORK_SEGMENT =
+	/^components\s*-\s*(?<capture1>react|svelte|vue|solid)\//iu;
 
 /**
  * Extract the framework code from a Storybook title, or null if the title
  * does not match the expected `COMPONENTS - {FRAMEWORK}/...` pattern.
  */
-export function frameworkOf(title: string): string | null {
+export const frameworkOf = function frameworkOf(title: string): string | null {
 	const match = FRAMEWORK_SEGMENT.exec(title);
 	return match?.[1]?.toLowerCase() ?? null;
-}
+};
 
 /**
  * Compute a framework-neutral key from a story by stripping the framework
  * segment from its title and appending the story name.
  */
-export function storyKey(entry: StoryEntry): string {
+export const storyKey = function storyKey(entry: StoryEntry): string {
 	const stripped = entry.title.replace(FRAMEWORK_SEGMENT, '').trim();
 	return `${stripped}/${entry.name}`;
-}
+};
 
 /**
  * Pair stories across frameworks by their framework-neutral key.
  */
-export function pairStories(
+export const pairStories = function pairStories(
 	entriesByFramework: Readonly<Record<string, readonly StoryEntry[]>>
 ): PairedStory[] {
 	const byKey = new Map<string, Record<string, StoryEntry>>();
@@ -60,6 +61,6 @@ export function pairStories(
 		}
 	}
 	return Array.from(byKey.entries())
-		.map(([key, entries]) => ({ key, entries }))
+		.map(([key, entries]) => ({ entries, key }))
 		.sort((a, b) => a.key.localeCompare(b.key));
-}
+};

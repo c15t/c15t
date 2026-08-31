@@ -108,7 +108,7 @@ export interface YouTubeSrcSource {
 export type YouTubeEmbedProps = YouTubeEmbedBaseProps &
 	(YouTubeVideoIdSource | YouTubeSrcSource);
 
-function buildYouTubeEmbedUrl({
+const buildYouTubeEmbedUrl = function buildYouTubeEmbedUrl({
 	videoId,
 	privacyEnhanced,
 	start,
@@ -123,7 +123,7 @@ function buildYouTubeEmbedUrl({
 
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {
-			if (value != null) {
+			if (value !== null && value !== undefined) {
 				query.set(
 					key,
 					typeof value === 'boolean' ? String(Number(value)) : String(value)
@@ -132,7 +132,7 @@ function buildYouTubeEmbedUrl({
 		}
 	}
 
-	if (start != null) {
+	if (start !== null && start !== undefined) {
 		query.set('start', String(start));
 	}
 
@@ -143,7 +143,7 @@ function buildYouTubeEmbedUrl({
 	const suffix = serializedQuery ? `?${serializedQuery}` : '';
 
 	return `${host}/embed/${encodeURIComponent(videoId)}${suffix}`;
-}
+};
 
 const defaultWrapperStyle: CSSProperties = {
 	aspectRatio: '16 / 9',
@@ -210,10 +210,10 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 			src ??
 			(videoId
 				? buildYouTubeEmbedUrl({
-						videoId,
+						params,
 						privacyEnhanced,
 						start,
-						params,
+						videoId,
 					})
 				: undefined);
 		const [loadState, setLoadState] = useState<{

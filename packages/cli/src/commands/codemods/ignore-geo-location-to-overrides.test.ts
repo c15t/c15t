@@ -8,21 +8,25 @@ import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to
 
 const createdDirs: string[] = [];
 
-async function createTempProject(
+const createTempProject = async function createTempProject(
 	content: string
 ): Promise<{ rootDir: string; filePath: string }> {
 	const rootDir = await mkdtemp(join(tmpdir(), 'c15t-codemod-'));
 	const filePath = join(rootDir, 'app.tsx');
 	await writeFile(filePath, content, 'utf-8');
 	createdDirs.push(rootDir);
-	return { rootDir, filePath };
-}
+	return { filePath, rootDir };
+};
 
 describe('ignore-geo-location-to-overrides codemod', () => {
 	afterEach(async () => {
-		for (const dir of createdDirs.splice(0, createdDirs.length)) {
-			await rm(dir, { recursive: true, force: true });
-		}
+		await Array.from(createdDirs.splice(0, createdDirs.length)).reduce(
+			async (previousIteration, dir) => {
+				await previousIteration;
+				await rm(dir, { force: true, recursive: true });
+			},
+			Promise.resolve()
+		);
 	});
 
 	it('converts ignoreGeoLocation true to overrides.country', async () => {
@@ -35,8 +39,8 @@ const options = {
 		const { rootDir, filePath } = await createTempProject(source);
 
 		const result = await runIgnoreGeoLocationToOverridesCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 		const updated = await readFile(filePath, 'utf-8');
 
@@ -57,8 +61,8 @@ const options = {
 		const { rootDir, filePath } = await createTempProject(source);
 
 		const result = await runIgnoreGeoLocationToOverridesCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 		const updated = await readFile(filePath, 'utf-8');
 
@@ -77,8 +81,8 @@ const options = {
 		const { rootDir, filePath } = await createTempProject(source);
 
 		const result = await runIgnoreGeoLocationToOverridesCodemod({
-			projectRoot: rootDir,
 			dryRun: false,
+			projectRoot: rootDir,
 		});
 		const updated = await readFile(filePath, 'utf-8');
 

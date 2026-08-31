@@ -12,52 +12,52 @@ import type { CliContext } from '~/context/types';
  */
 export const SCRIPT_OPTIONS = [
 	{
-		value: 'gtm',
-		label: 'Google Tag Manager',
+		category: 'analytics',
 		hint: 'GTM with consent mode v2',
-		category: 'analytics',
+		label: 'Google Tag Manager',
+		value: 'gtm',
 	},
 	{
-		value: 'ga4',
-		label: 'Google Analytics',
+		category: 'analytics',
 		hint: 'GA4 integration',
-		category: 'analytics',
+		label: 'Google Analytics',
+		value: 'ga4',
 	},
 	{
-		value: 'posthog',
-		label: 'PostHog',
+		category: 'analytics',
 		hint: 'Product analytics',
-		category: 'analytics',
+		label: 'PostHog',
+		value: 'posthog',
 	},
 	{
-		value: 'meta',
-		label: 'Meta Pixel',
+		category: 'marketing',
 		hint: 'Facebook/Instagram',
-		category: 'marketing',
+		label: 'Meta Pixel',
+		value: 'meta',
 	},
 	{
-		value: 'linkedin',
-		label: 'LinkedIn Insights',
+		category: 'marketing',
 		hint: 'B2B tracking',
-		category: 'marketing',
+		label: 'LinkedIn Insights',
+		value: 'linkedin',
 	},
 	{
-		value: 'hotjar',
-		label: 'Hotjar',
+		category: 'analytics',
 		hint: 'Heatmaps & recordings',
-		category: 'analytics',
+		label: 'Hotjar',
+		value: 'hotjar',
 	},
 	{
-		value: 'microsoft-clarity',
-		label: 'Microsoft Clarity',
+		category: 'analytics',
 		hint: 'Session replay',
-		category: 'analytics',
+		label: 'Microsoft Clarity',
+		value: 'microsoft-clarity',
 	},
 	{
-		value: 'intercom',
-		label: 'Intercom',
-		hint: 'Customer messaging',
 		category: 'functionality',
+		hint: 'Customer messaging',
+		label: 'Intercom',
+		value: 'intercom',
 	},
 ] as const;
 
@@ -66,16 +66,16 @@ export type ScriptId = (typeof SCRIPT_OPTIONS)[number]['value'];
 /**
  * Get script info by ID
  */
-export function getScriptInfo(
+export const getScriptInfo = function getScriptInfo(
 	id: ScriptId
 ): (typeof SCRIPT_OPTIONS)[number] | undefined {
 	return SCRIPT_OPTIONS.find((s) => s.value === id);
-}
+};
 
 /**
  * Prompt user to select scripts to configure
  */
-export async function promptForScripts(
+export const promptForScripts = async function promptForScripts(
 	context: CliContext
 ): Promise<ScriptId[]> {
 	const { logger } = context;
@@ -88,9 +88,9 @@ export async function promptForScripts(
 	const result = await p.multiselect({
 		message: 'Select scripts (space to toggle, enter to confirm):',
 		options: SCRIPT_OPTIONS.map((option) => ({
-			value: option.value,
-			label: option.label,
 			hint: option.hint,
+			label: option.label,
+			value: option.value,
 		})),
 		required: false,
 	});
@@ -101,19 +101,23 @@ export async function promptForScripts(
 	}
 
 	return result as ScriptId[];
-}
+};
 
 /**
  * Check if scripts include Google Consent Mode
  */
-export function hasGoogleConsentMode(scripts: ScriptId[]): boolean {
+export const hasGoogleConsentMode = function hasGoogleConsentMode(
+	scripts: ScriptId[]
+): boolean {
 	return scripts.includes('gtm') || scripts.includes('ga4');
-}
+};
 
 /**
  * Generate script configuration code
  */
-export function generateScriptConfig(scripts: ScriptId[]): string {
+export const generateScriptConfig = function generateScriptConfig(
+	scripts: ScriptId[]
+): string {
 	if (scripts.length === 0) {
 		return '';
 	}
@@ -200,4 +204,4 @@ export function generateScriptConfig(scripts: ScriptId[]): string {
 	});
 
 	return `scripts: [${configs.join(',')}\n\t]`;
-}
+};

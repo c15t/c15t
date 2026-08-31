@@ -134,20 +134,25 @@ function mapCustomVendor(
 	};
 }
 
-function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
-	const processedPurposes: IabProcessedPurpose[] = Object.entries(gvl.purposes)
+function processGvlData(
+	gvlData: GlobalVendorList,
+	customVendorList: NonIABVendor[]
+) {
+	const processedPurposes: IabProcessedPurpose[] = Object.entries(
+		gvlData.purposes
+	)
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
-			const iabVendors = Object.entries(gvl.vendors)
+			const iabVendors = Object.entries(gvlData.vendors)
 				.filter(
 					([, vendor]) =>
 						vendor.purposes?.includes(purposeId) ||
 						vendor.legIntPurposes?.includes(purposeId)
 				)
 				.map(([vendorId, vendor]) =>
-					mapVendor(gvl, vendorId, vendor, purposeId)
+					mapVendor(gvlData, vendorId, vendor, purposeId)
 				);
-			const customForPurpose = customVendors
+			const customForPurpose = customVendorList
 				.filter(
 					(vendor) =>
 						vendor.purposes?.includes(purposeId) ||
@@ -166,42 +171,42 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 		.filter((purpose) => purpose.vendors.length > 0);
 
 	const specialPurposes: IabProcessedPurpose[] = Object.entries(
-		gvl.specialPurposes ?? {}
+		gvlData.specialPurposes ?? {}
 	)
 		.map(([id, purpose]) => ({
 			id: Number(id),
 			name: purpose.name,
 			description: purpose.description,
 			illustrations: purpose.illustrations ?? [],
-			vendors: Object.entries(gvl.vendors)
+			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvl, vendorId, vendor)),
+				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
 		}))
 		.filter((purpose) => purpose.vendors.length > 0);
 
 	const specialFeatures: IabProcessedPurpose[] = Object.entries(
-		gvl.specialFeatures ?? {}
+		gvlData.specialFeatures ?? {}
 	)
 		.map(([id, feature]) => ({
 			id: Number(id),
 			name: feature.name,
 			description: feature.description,
 			illustrations: feature.illustrations ?? [],
-			vendors: Object.entries(gvl.vendors)
+			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvl, vendorId, vendor)),
+				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
 		}))
 		.filter((feature) => feature.vendors.length > 0);
 
-	const features: IabProcessedPurpose[] = Object.entries(gvl.features ?? {})
+	const features: IabProcessedPurpose[] = Object.entries(gvlData.features ?? {})
 		.map(([id, feature]) => ({
 			id: Number(id),
 			name: feature.name,
 			description: feature.description,
 			illustrations: feature.illustrations ?? [],
-			vendors: Object.entries(gvl.vendors)
+			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.features?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvl, vendorId, vendor)),
+				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
 		}))
 		.filter((feature) => feature.vendors.length > 0);
 
@@ -220,7 +225,7 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 		score: number;
 	}[] = [];
 
-	for (const [stackIdStr, stack] of Object.entries(gvl.stacks ?? {})) {
+	for (const [stackIdStr, stack] of Object.entries(gvlData.stacks ?? {})) {
 		const coveredIds = stack.purposes.filter((purposeId) =>
 			otherPurposeIds.has(purposeId)
 		);

@@ -60,7 +60,7 @@
 		actionGroups.map((group, groupIndex) => ({
 			group,
 			groupIndex,
-			key: group.join('-') + '-' + groupIndex,
+			key: `${group.join('-')}-${groupIndex}`,
 		}))
 	);
 </script>

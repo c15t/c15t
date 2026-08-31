@@ -14,38 +14,40 @@ export interface DebugBundlePayload {
 	storeState: Record<string, unknown> | null;
 }
 
-export function createDebugBundle(payload: DebugBundlePayload): string {
+export const createDebugBundle = function createDebugBundle(
+	payload: DebugBundlePayload
+): string {
 	const { namespace, devToolsState, connection, recentEvents, storeState } =
 		payload;
+	const iabState = storeState?.iab as
+		| {
+				purposeConsents?: Record<string, unknown>;
+				tcString?: unknown;
+				vendorConsents?: Record<string, unknown>;
+		  }
+		| undefined;
 	const bundle = {
-		generatedAt: new Date().toISOString(),
-		namespace,
-		devToolsState,
 		connection,
-		recentEvents,
-		storeState,
-		overrides:
-			(storeState?.overrides as Record<string, unknown> | undefined) ?? null,
-		iab: (storeState?.iab as Record<string, unknown> | undefined)
+		devToolsState,
+		generatedAt: new Date().toISOString(),
+		iab: iabState
 			? {
-					tcString:
-						(storeState?.iab as { tcString?: unknown }).tcString ?? null,
-					purposeCount: Object.keys(
-						((storeState?.iab as { purposeConsents?: Record<string, unknown> })
-							.purposeConsents ?? {}) as Record<string, unknown>
-					).length,
-					vendorCount: Object.keys(
-						((storeState?.iab as { vendorConsents?: Record<string, unknown> })
-							.vendorConsents ?? {}) as Record<string, unknown>
-					).length,
+					purposeCount: Object.keys(iabState.purposeConsents ?? {}).length,
+					tcString: iabState.tcString ?? null,
+					vendorCount: Object.keys(iabState.vendorConsents ?? {}).length,
 				}
 			: null,
+		namespace,
+		overrides:
+			(storeState?.overrides as Record<string, unknown> | undefined) ?? null,
+		recentEvents,
+		storeState,
 	};
 
 	return JSON.stringify(bundle, null, 2);
-}
+};
 
-export function sanitizeStoreState(
+export const sanitizeStoreState = function sanitizeStoreState(
 	state: ConsentStoreState | null
 ): Record<string, unknown> | null {
 	if (!state) {
@@ -62,15 +64,17 @@ export function sanitizeStoreState(
 			error: 'Unable to serialize store state',
 		};
 	}
-}
+};
 
-export function downloadDebugBundle(content: string): void {
+export const downloadDebugBundle = function downloadDebugBundle(
+	content: string
+): void {
 	const blob = new Blob([content], { type: 'application/json' });
 	const url = URL.createObjectURL(blob);
-	const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+	const timestamp = new Date().toISOString().replace(/[:.]/gu, '-');
 	const anchor = document.createElement('a');
 	anchor.href = url;
 	anchor.download = `c15t-debug-bundle-${timestamp}.json`;
 	anchor.click();
 	URL.revokeObjectURL(url);
-}
+};

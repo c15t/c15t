@@ -9,10 +9,11 @@ export const consentConfigKey: InjectionKey<
 	MaybeRefOrGetter<Partial<ConsentConfig> | undefined>
 > = Symbol('c15t:config');
 
-export function useConsentConfig(): ComputedRef<ConsentConfig> {
-	const injected = inject(consentConfigKey);
+export const useConsentConfig =
+	function useConsentConfig(): ComputedRef<ConsentConfig> {
+		const injected = inject(consentConfigKey);
 
-	return computed(
-		() => defu(toValue(injected), defaultConsentConfig) as ConsentConfig
-	);
-}
+		return computed(
+			() => defu(toValue(injected), defaultConsentConfig) as ConsentConfig
+		);
+	};
