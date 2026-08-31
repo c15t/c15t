@@ -14,6 +14,7 @@ export default defineConfig({
 		'**/*.md',
 		'**/*.mdx',
 		'packages/c15t/shims/**',
+		'packages/ui/types/**',
 	],
 	jsxSingleQuote: false,
 	printWidth: 80,
