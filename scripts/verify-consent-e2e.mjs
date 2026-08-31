@@ -29,7 +29,7 @@ const apps = [
 		buildOutput: 'benchmarks/nuxt-browser-bench/.output/server/index.mjs',
 		dir: 'benchmarks/nuxt-browser-bench',
 		env: { PORT: '4313' },
-		extraChecks: [verifyNuxtNitroRoutes],
+		extraChecks: [(app) => verifyNuxtNitroRoutes(app)],
 		label: 'Nuxt manifest SSR',
 		path: '/ssr-manifest',
 		port: 4313,

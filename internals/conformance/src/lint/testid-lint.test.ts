@@ -44,7 +44,7 @@ test('rejects unknown literal test-ids', async () => {
 });
 
 test('accepts template literals matching a pattern', async () => {
-	const nameToken = String.raw`\${name}`;
+	const nameToken = `\${name}`;
 	const dir = makeTempProject({
 		'src/foo.svelte': `<div data-testid={\`consent-widget-switch-${nameToken}\`}></div>`,
 	});
@@ -57,7 +57,7 @@ test('accepts template literals matching a pattern', async () => {
 });
 
 test('rejects template literals that no pattern matches', async () => {
-	const nameToken = String.raw`\${name}`;
+	const nameToken = `\${name}`;
 	const dir = makeTempProject({
 		'src/foo.svelte': `<div data-testid={\`totally-fake-prefix-${nameToken}\`}></div>`,
 	});
@@ -71,7 +71,7 @@ test('rejects template literals that no pattern matches', async () => {
 });
 
 test('ignores data-testid inside querySelector strings', async () => {
-	const testIdToken = String.raw`\${testId}`;
+	const testIdToken = `\${testId}`;
 	const dir = makeTempProject({
 		'src/foo.tsx': `const el = container.querySelector(\`[data-testid="${testIdToken}"]\`);`,
 	});
