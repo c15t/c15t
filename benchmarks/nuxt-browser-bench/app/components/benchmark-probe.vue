@@ -269,7 +269,10 @@ watch(
 		if (state && hasConsented && !hadConsented) {
 			state.onConsentSetCount += 1;
 		}
-		void nextTick().then(markRepeatVisitorReady);
+		void (async () => {
+			await nextTick();
+			markRepeatVisitorReady();
+		})();
 	},
 	{ immediate: true }
 );
@@ -292,7 +295,10 @@ watch(
 		if (state) {
 			state.activeUI = normalizeActiveUI(value);
 		}
-		void nextTick().then(watchBannerVisibility);
+		void (async () => {
+			await nextTick();
+			watchBannerVisibility();
+		})();
 	},
 	{ immediate: true }
 );
