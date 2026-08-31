@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
 import { useTranslations } from '~/v3/component-hooks/use-translations';
@@ -14,11 +14,10 @@ import { useConsentDraft } from '~/v3/draft';
  * - Closes dialog after action
  * - Triggers necessary callbacks
  */
-const ConsentWidgetAcceptAllButton = forwardRef<
+const ConsentWidgetAcceptAllButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetAcceptAllButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -38,11 +37,10 @@ const ConsentWidgetAcceptAllButton = forwardRef<
 });
 ConsentWidgetAcceptAllButton.displayName = 'ConsentWidgetAcceptAllButton';
 
-const ConsentWidgetCustomizeButton = forwardRef<
+const ConsentWidgetCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetCustomizeButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -59,11 +57,10 @@ const ConsentWidgetCustomizeButton = forwardRef<
 });
 ConsentWidgetCustomizeButton.displayName = 'ConsentWidgetCustomizeButton';
 
-const ConsentWidgetSaveButton = forwardRef<
+const ConsentWidgetSaveButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetSaveButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	const draft = useConsentDraft();
 	const { onClick, ...buttonProps } = props;
@@ -96,11 +93,10 @@ ConsentWidgetSaveButton.displayName = 'ConsentWidgetSaveButton';
  * - Maintains required consents
  * - Closes dialog after action
  */
-const ConsentWidgetRejectButton = forwardRef<
+const ConsentWidgetRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetRejectButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton

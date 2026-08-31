@@ -4,7 +4,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -51,12 +51,8 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ConsentBannerOverlay(
-		{ className, style, noStyle, asChild: _asChild, ...props },
-		ref
-	) {
+const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
+	({ className, style, noStyle, asChild: _asChild, ...props }, ref) => {
 		const { activeUI } = useConsentManager();
 		const {
 			disableAnimation,

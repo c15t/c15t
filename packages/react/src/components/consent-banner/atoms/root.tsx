@@ -3,7 +3,12 @@
 import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef, useEffect, useMemo, useState } from 'react';
+import {
+	forwardRef as createForwardRef,
+	useEffect,
+	useMemo,
+	useState,
+} from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -185,121 +190,124 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const ConsentBannerRootChildren = forwardRef<
+const ConsentBannerRootChildren = createForwardRef<
 	HTMLDivElement,
 	ConsentBannerRootChildrenProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerRootChildren(
-	{
-		asChild: _asChild,
-		children,
-		className,
-		style,
-		className: forwardedClassName,
-		disableAnimation,
-		noStyle,
-		models = DEFAULT_MODELS,
-		...props
-	}: ConsentBannerRootChildrenProps & {
-		style?: CSSProperties;
-		className?: string;
-	},
-	ref
-) {
-	const { activeUI, translationConfig, model } = useConsentManager();
-	const textDirection = useTextDirection(translationConfig.defaultLanguage);
-	const [isVisible, setIsVisible] = useState(false);
-	const [hasAnimated, setHasAnimated] = useState(false);
-	const isMounted = useIsHydrated();
+>(
+	(
+		{
+			asChild: _asChild,
+			children,
+			className,
+			style,
+			className: forwardedClassName,
+			disableAnimation,
+			noStyle,
+			models = DEFAULT_MODELS,
+			...props
+		}: ConsentBannerRootChildrenProps & {
+			style?: CSSProperties;
+			className?: string;
+		},
+		ref
+	) => {
+		const { activeUI, translationConfig, model } = useConsentManager();
+		const textDirection = useTextDirection(translationConfig.defaultLanguage);
+		const [isVisible, setIsVisible] = useState(false);
+		const [hasAnimated, setHasAnimated] = useState(false);
+		const isMounted = useIsHydrated();
 
-	// ConsentBanner shows when activeUI is 'banner' and the current model matches
-	const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+		// ConsentBanner shows when activeUI is 'banner' and the current model matches
+		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 
-	// Handle animation visibility state
-	useEffect(() => {
-		if (shouldShowBanner) {
-			// If banner is showing but we haven't animated yet, trigger the animation
-			if (hasAnimated) {
-				const frame = requestAnimationFrame(() => setIsVisible(true));
-				return () => cancelAnimationFrame(frame);
+		// Handle animation visibility state
+		useEffect(() => {
+			if (shouldShowBanner) {
+				// If banner is showing but we haven't animated yet, trigger the animation
+				if (hasAnimated) {
+					const frame = requestAnimationFrame(() => setIsVisible(true));
+					return () => cancelAnimationFrame(frame);
+				}
+				// Small delay to ensure the component is mounted and ready for animation
+				const animationTimer = setTimeout(() => {
+					setIsVisible(true);
+					setHasAnimated(true);
+				}, 10);
+				return () => clearTimeout(animationTimer);
 			}
-			// Small delay to ensure the component is mounted and ready for animation
-			const animationTimer = setTimeout(() => {
-				setIsVisible(true);
-				setHasAnimated(true);
-			}, 10);
-			return () => clearTimeout(animationTimer);
-		}
-		// Reset animation state when hiding so it can animate again next time
-		const frame = requestAnimationFrame(() => setHasAnimated(false));
+			// Reset animation state when hiding so it can animate again next time
+			const frame = requestAnimationFrame(() => setHasAnimated(false));
 
-		if (disableAnimation) {
-			const visibilityFrame = requestAnimationFrame(() => setIsVisible(false));
+			if (disableAnimation) {
+				const visibilityFrame = requestAnimationFrame(() =>
+					setIsVisible(false)
+				);
+				return () => {
+					cancelAnimationFrame(frame);
+					cancelAnimationFrame(visibilityFrame);
+				};
+			}
+
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+				// Match CSS animation duration
+			}, animationDurationMs);
 			return () => {
 				cancelAnimationFrame(frame);
-				cancelAnimationFrame(visibilityFrame);
+				clearTimeout(timer);
 			};
+		}, [shouldShowBanner, disableAnimation, hasAnimated]);
+
+		// Apply styles from the ConsentBanner context and merge with local styles.
+		// Uses the 'content' style key for consistent theming.
+		const contentStyle = useStyles('consentBanner', {
+			baseClassName: [
+				styles.root,
+				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
+			],
+			className: className || forwardedClassName,
+			noStyle,
+			style: style as CSSPropertiesWithVars<Record<string, never>>,
+		});
+
+		// Prevent rendering until client-side mount is complete
+		if (!isMounted) {
+			return null;
 		}
 
-		const animationDurationMs = Number.parseInt(
-			getComputedStyle(document.documentElement).getPropertyValue(
-				'--consent-banner-animation-duration'
-			) || '200',
-			10
-		);
-		const timer = setTimeout(() => {
-			setIsVisible(false);
-			// Match CSS animation duration
-		}, animationDurationMs);
-		return () => {
-			cancelAnimationFrame(frame);
-			clearTimeout(timer);
-		};
-	}, [shouldShowBanner, disableAnimation, hasAnimated]);
+		// Create a final class name that respects the noStyle flag
+		const finalClassName = noStyle
+			? contentStyle.className || ''
+			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
 
-	// Apply styles from the ConsentBanner context and merge with local styles.
-	// Uses the 'content' style key for consistent theming.
-	const contentStyle = useStyles('consentBanner', {
-		baseClassName: [
-			styles.root,
-			textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-		],
-		className: className || forwardedClassName,
-		noStyle,
-		style: style as CSSPropertiesWithVars<Record<string, never>>,
-	});
-
-	// Prevent rendering until client-side mount is complete
-	if (!isMounted) {
-		return null;
+		// Only render when the banner should be shown
+		return shouldShowBanner
+			? createPortal(
+					<>
+						<Overlay />
+						<div
+							ref={ref}
+							{...props}
+							{...domStyleProps}
+							className={finalClassName}
+							data-testid="consent-banner-root"
+							dir={textDirection}
+						>
+							{children}
+						</div>
+					</>,
+					document.body
+				)
+			: null;
 	}
-
-	// Create a final class name that respects the noStyle flag
-	const finalClassName = noStyle
-		? contentStyle.className || ''
-		: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
-	const domStyleProps = sanitizeDOMStyleProps(contentStyle);
-
-	// Only render when the banner should be shown
-	return shouldShowBanner
-		? createPortal(
-				<>
-					<Overlay />
-					<div
-						ref={ref}
-						{...props}
-						{...domStyleProps}
-						className={finalClassName}
-						data-testid="consent-banner-root"
-						dir={textDirection}
-					>
-						{children}
-					</div>
-				</>,
-				document.body
-			)
-		: null;
-});
+);
 const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	children,
 	className,

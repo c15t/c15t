@@ -3,7 +3,12 @@
 import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef, useEffect, useMemo, useState } from 'react';
+import {
+	forwardRef as createForwardRef,
+	useEffect,
+	useMemo,
+	useState,
+} from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -37,109 +42,112 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	uiSource?: string;
 }
 
-const IABConsentBannerRootChildren = forwardRef<
+const IABConsentBannerRootChildren = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerRootChildrenProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentBannerRootChildren(
-	{
-		children,
-		className,
-		style,
-		className: forwardedClassName,
-		disableAnimation,
-		noStyle,
-		models = DEFAULT_MODELS,
-		...props
-	}: IABConsentBannerRootChildrenProps & {
-		style?: CSSProperties;
-		className?: string;
-	},
-	ref
-) {
-	const { activeUI, translationConfig, model } = useConsentManager();
-	const textDirection = useTextDirection(translationConfig.defaultLanguage);
-	const [isVisible, setIsVisible] = useState(false);
-	const [hasAnimated, setHasAnimated] = useState(false);
-	const isMounted = useIsHydrated();
+>(
+	(
+		{
+			children,
+			className,
+			style,
+			className: forwardedClassName,
+			disableAnimation,
+			noStyle,
+			models = DEFAULT_MODELS,
+			...props
+		}: IABConsentBannerRootChildrenProps & {
+			style?: CSSProperties;
+			className?: string;
+		},
+		ref
+	) => {
+		const { activeUI, translationConfig, model } = useConsentManager();
+		const textDirection = useTextDirection(translationConfig.defaultLanguage);
+		const [isVisible, setIsVisible] = useState(false);
+		const [hasAnimated, setHasAnimated] = useState(false);
+		const isMounted = useIsHydrated();
 
-	// IAB banner shows when activeUI is 'banner' and the current model matches
-	const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+		// IAB banner shows when activeUI is 'banner' and the current model matches
+		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 
-	useEffect(() => {
-		if (shouldShowBanner) {
-			if (hasAnimated) {
-				const frame = requestAnimationFrame(() => setIsVisible(true));
-				return () => cancelAnimationFrame(frame);
+		useEffect(() => {
+			if (shouldShowBanner) {
+				if (hasAnimated) {
+					const frame = requestAnimationFrame(() => setIsVisible(true));
+					return () => cancelAnimationFrame(frame);
+				}
+				const animationTimer = setTimeout(() => {
+					setIsVisible(true);
+					setHasAnimated(true);
+				}, 10);
+				return () => clearTimeout(animationTimer);
 			}
-			const animationTimer = setTimeout(() => {
-				setIsVisible(true);
-				setHasAnimated(true);
-			}, 10);
-			return () => clearTimeout(animationTimer);
-		}
-		const frame = requestAnimationFrame(() => setHasAnimated(false));
+			const frame = requestAnimationFrame(() => setHasAnimated(false));
 
-		if (disableAnimation) {
-			const visibilityFrame = requestAnimationFrame(() => setIsVisible(false));
+			if (disableAnimation) {
+				const visibilityFrame = requestAnimationFrame(() =>
+					setIsVisible(false)
+				);
+				return () => {
+					cancelAnimationFrame(frame);
+					cancelAnimationFrame(visibilityFrame);
+				};
+			}
+
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, animationDurationMs);
 			return () => {
 				cancelAnimationFrame(frame);
-				cancelAnimationFrame(visibilityFrame);
+				clearTimeout(timer);
 			};
+		}, [shouldShowBanner, disableAnimation, hasAnimated]);
+
+		const contentStyle = useStyles('iabConsentBanner', {
+			baseClassName: [styles.root],
+			className: className || forwardedClassName,
+			noStyle,
+			style: style as CSSPropertiesWithVars<Record<string, never>>,
+		});
+
+		if (!isMounted) {
+			return null;
 		}
 
-		const animationDurationMs = Number.parseInt(
-			getComputedStyle(document.documentElement).getPropertyValue(
-				'--iab-consent-banner-animation-duration'
-			) || '200',
-			10
+		const finalClassName = noStyle
+			? contentStyle.className || ''
+			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
+
+		if (!shouldShowBanner) {
+			return null;
+		}
+
+		return createPortal(
+			<>
+				<IABConsentBannerOverlay />
+				<div
+					ref={ref}
+					{...props}
+					{...domStyleProps}
+					className={finalClassName}
+					data-testid="iab-consent-banner-root"
+					dir={textDirection}
+				>
+					{children}
+				</div>
+			</>,
+			document.body
 		);
-		const timer = setTimeout(() => {
-			setIsVisible(false);
-		}, animationDurationMs);
-		return () => {
-			cancelAnimationFrame(frame);
-			clearTimeout(timer);
-		};
-	}, [shouldShowBanner, disableAnimation, hasAnimated]);
-
-	const contentStyle = useStyles('iabConsentBanner', {
-		baseClassName: [styles.root],
-		className: className || forwardedClassName,
-		noStyle,
-		style: style as CSSPropertiesWithVars<Record<string, never>>,
-	});
-
-	if (!isMounted) {
-		return null;
 	}
-
-	const finalClassName = noStyle
-		? contentStyle.className || ''
-		: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
-	const domStyleProps = sanitizeDOMStyleProps(contentStyle);
-
-	if (!shouldShowBanner) {
-		return null;
-	}
-
-	return createPortal(
-		<>
-			<IABConsentBannerOverlay />
-			<div
-				ref={ref}
-				{...props}
-				{...domStyleProps}
-				className={finalClassName}
-				data-testid="iab-consent-banner-root"
-				dir={textDirection}
-			>
-				{children}
-			</div>
-		</>,
-		document.body
-	);
-});
+);
 const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	children,
 	className,

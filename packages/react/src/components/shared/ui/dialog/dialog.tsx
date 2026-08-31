@@ -4,7 +4,7 @@ import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import {
 	createContext,
-	forwardRef,
+	forwardRef as createForwardRef,
 	useContext,
 	useEffect,
 	useId,
@@ -105,12 +105,8 @@ export interface DialogTriggerProps extends Omit<
 	asChild?: boolean;
 }
 
-const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function DialogTrigger(
-		{ asChild, children, onClick, ...rest },
-		forwardedRef
-	) {
+const DialogTrigger = createForwardRef<HTMLButtonElement, DialogTriggerProps>(
+	({ asChild, children, onClick, ...rest }, forwardedRef) => {
 		const { open, setOpen } = useDialogContext();
 		const Component = asChild ? Slot : 'button';
 
@@ -142,11 +138,10 @@ const DialogPortal = ({ children }: { children: ReactNode }) => {
 	return createPortal(children, document.body);
 };
 
-const DialogOverlay = forwardRef<
+const DialogOverlay = createForwardRef<
 	HTMLButtonElement,
 	HTMLAttributes<HTMLButtonElement>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function DialogOverlay({ children, onClick, ...rest }, forwardedRef) {
+>(({ children, onClick, ...rest }, forwardedRef) => {
 	const { open, setOpen } = useDialogContext();
 	if (!open) {
 		return null;
@@ -178,9 +173,8 @@ export interface DialogContentProps extends HTMLAttributes<HTMLDialogElement> {
 	initialFocusRef?: RefObject<HTMLElement | null>;
 }
 
-const DialogContent = forwardRef<HTMLDialogElement, DialogContentProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function DialogContent(
+const DialogContent = createForwardRef<HTMLDialogElement, DialogContentProps>(
+	(
 		{
 			children,
 			closeOnOutsideClick = true,
@@ -190,7 +184,7 @@ const DialogContent = forwardRef<HTMLDialogElement, DialogContentProps>(
 			...rest
 		},
 		forwardedRef
-	) {
+	) => {
 		const { contentId, descriptionId, open, setOpen, titleId } =
 			useDialogContext();
 		const contentRef = useRef<HTMLDialogElement | null>(null);
@@ -258,11 +252,10 @@ const DialogContent = forwardRef<HTMLDialogElement, DialogContentProps>(
 
 DialogContent.displayName = 'DialogContent';
 
-const DialogTitle = forwardRef<
+const DialogTitle = createForwardRef<
 	HTMLHeadingElement,
 	HTMLAttributes<HTMLHeadingElement>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function DialogTitle({ children, ...props }, forwardedRef) {
+>(({ children, ...props }, forwardedRef) => {
 	const { titleId } = useDialogContext();
 	return (
 		<h2
@@ -278,11 +271,10 @@ const DialogTitle = forwardRef<
 
 DialogTitle.displayName = 'DialogTitle';
 
-const DialogDescription = forwardRef<
+const DialogDescription = createForwardRef<
 	HTMLParagraphElement,
 	HTMLAttributes<HTMLParagraphElement>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function DialogDescription(props, forwardedRef) {
+>((props, forwardedRef) => {
 	const { descriptionId } = useDialogContext();
 	return (
 		<p
@@ -304,12 +296,8 @@ export interface DialogCloseProps extends Omit<
 	disabled?: boolean;
 }
 
-const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function DialogClose(
-		{ asChild, children, disabled, onClick, ...rest },
-		forwardedRef
-	) {
+const DialogClose = createForwardRef<HTMLButtonElement, DialogCloseProps>(
+	({ asChild, children, disabled, onClick, ...rest }, forwardedRef) => {
 		const { open, setOpen } = useDialogContext();
 		const Component = asChild ? Slot : 'button';
 

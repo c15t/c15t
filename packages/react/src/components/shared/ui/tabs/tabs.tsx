@@ -11,7 +11,7 @@ import { tabsVariants } from '@c15t/ui/styles/primitives/tabs';
 import type { TabsVariantsProps } from '@c15t/ui/styles/primitives/tabs';
 import {
 	createContext,
-	forwardRef,
+	forwardRef as createForwardRef,
 	useContext,
 	useId,
 	useMemo,
@@ -58,74 +58,75 @@ export interface TabsRootProps
 	value?: string;
 }
 
-// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(function TabsRoot(
-	{
-		children,
-		className,
-		defaultValue,
-		disabled,
-		loop = true,
-		noStyle,
-		onValueChange,
-		orientation = 'horizontal',
-		value,
-		...rest
-	},
-	forwardedRef
-) {
-	const reactId = useId().replace(/:/gu, '');
-	const { noStyle: contextNoStyle } = useTheme();
-	const variants = tabsVariants({ orientation });
-	const [currentValue, setCurrentValue] = useControllableState({
-		defaultValue: defaultValue ?? '',
-		onChange: onValueChange,
-		value,
-	});
-	const triggerRefs = useRef(new Map<string, HTMLButtonElement | null>());
-	const finalNoStyle = contextNoStyle || noStyle;
-
-	const contextValue = useMemo<TabsContextValue>(
-		() => ({
-			baseId: `c15t-tabs-${reactId}`,
+const TabsRoot = createForwardRef<HTMLDivElement, TabsRootProps>(
+	(
+		{
+			children,
+			className,
+			defaultValue,
 			disabled,
-			loop,
-			noStyle: finalNoStyle,
-			onValueChange: setCurrentValue,
-			orientation,
-			registerTrigger: (triggerValue, node) => {
-				triggerRefs.current.set(triggerValue, node);
-			},
-			value: currentValue,
-		}),
-		[
-			currentValue,
-			disabled,
-			finalNoStyle,
-			loop,
-			orientation,
-			reactId,
-			setCurrentValue,
-		]
-	);
+			loop = true,
+			noStyle,
+			onValueChange,
+			orientation = 'horizontal',
+			value,
+			...rest
+		},
+		forwardedRef
+	) => {
+		const reactId = useId().replace(/:/gu, '');
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = tabsVariants({ orientation });
+		const [currentValue, setCurrentValue] = useControllableState({
+			defaultValue: defaultValue ?? '',
+			onChange: onValueChange,
+			value,
+		});
+		const triggerRefs = useRef(new Map<string, HTMLButtonElement | null>());
+		const finalNoStyle = contextNoStyle || noStyle;
 
-	return (
-		<TabsContext.Provider value={contextValue}>
-			<div
-				ref={forwardedRef}
-				className={
-					finalNoStyle ? className : variants.root({ class: className })
-				}
-				data-disabled={getDataDisabled(disabled)}
-				data-orientation={orientation}
-				data-slot="tabs-root"
-				{...rest}
-			>
-				{children}
-			</div>
-		</TabsContext.Provider>
-	);
-});
+		const contextValue = useMemo<TabsContextValue>(
+			() => ({
+				baseId: `c15t-tabs-${reactId}`,
+				disabled,
+				loop,
+				noStyle: finalNoStyle,
+				onValueChange: setCurrentValue,
+				orientation,
+				registerTrigger: (triggerValue, node) => {
+					triggerRefs.current.set(triggerValue, node);
+				},
+				value: currentValue,
+			}),
+			[
+				currentValue,
+				disabled,
+				finalNoStyle,
+				loop,
+				orientation,
+				reactId,
+				setCurrentValue,
+			]
+		);
+
+		return (
+			<TabsContext.Provider value={contextValue}>
+				<div
+					ref={forwardedRef}
+					className={
+						finalNoStyle ? className : variants.root({ class: className })
+					}
+					data-disabled={getDataDisabled(disabled)}
+					data-orientation={orientation}
+					data-slot="tabs-root"
+					{...rest}
+				>
+					{children}
+				</div>
+			</TabsContext.Provider>
+		);
+	}
+);
 
 TabsRoot.displayName = 'TabsRoot';
 
@@ -136,34 +137,34 @@ export interface TabsListProps
 	noStyle?: boolean;
 }
 
-// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-const TabsList = forwardRef<HTMLDivElement, TabsListProps>(function TabsList(
-	{ className, noStyle, orientation, ...rest },
-	forwardedRef
-) {
-	const { noStyle: contextNoStyle } = useTheme();
-	const {
-		disabled,
-		noStyle: rootNoStyle,
-		orientation: rootOrientation,
-	} = useTabsContext();
-	const finalOrientation = orientation ?? rootOrientation;
-	const variants = tabsVariants({ orientation: finalOrientation });
-	const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+const TabsList = createForwardRef<HTMLDivElement, TabsListProps>(
+	({ className, noStyle, orientation, ...rest }, forwardedRef) => {
+		const { noStyle: contextNoStyle } = useTheme();
+		const {
+			disabled,
+			noStyle: rootNoStyle,
+			orientation: rootOrientation,
+		} = useTabsContext();
+		const finalOrientation = orientation ?? rootOrientation;
+		const variants = tabsVariants({ orientation: finalOrientation });
+		const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
 
-	return (
-		<div
-			ref={forwardedRef}
-			aria-orientation={finalOrientation}
-			className={finalNoStyle ? className : variants.list({ class: className })}
-			data-disabled={getDataDisabled(disabled)}
-			data-orientation={finalOrientation}
-			data-slot="tabs-list"
-			role="tablist"
-			{...rest}
-		/>
-	);
-});
+		return (
+			<div
+				ref={forwardedRef}
+				aria-orientation={finalOrientation}
+				className={
+					finalNoStyle ? className : variants.list({ class: className })
+				}
+				data-disabled={getDataDisabled(disabled)}
+				data-orientation={finalOrientation}
+				data-slot="tabs-list"
+				role="tablist"
+				{...rest}
+			/>
+		);
+	}
+);
 
 TabsList.displayName = 'TabsList';
 
@@ -172,12 +173,11 @@ export interface TabsTriggerProps extends HTMLAttributes<HTMLButtonElement> {
 	value: string;
 }
 
-const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function TabsTrigger(
+const TabsTrigger = createForwardRef<HTMLButtonElement, TabsTriggerProps>(
+	(
 		{ children, className, noStyle, onClick, onKeyDown, value, ...rest },
 		forwardedRef
-	) {
+	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = tabsVariants();
 		const {
@@ -273,12 +273,11 @@ export interface TabsContentProps extends HTMLAttributes<HTMLDivElement> {
 	value: string;
 }
 
-const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function TabsContent(
+const TabsContent = createForwardRef<HTMLDivElement, TabsContentProps>(
+	(
 		{ children, className, forceMount = false, noStyle, value, ...rest },
 		forwardedRef
-	) {
+	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = tabsVariants();
 		const {

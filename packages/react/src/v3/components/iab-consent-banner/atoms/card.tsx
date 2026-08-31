@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
@@ -22,14 +22,10 @@ interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogEleme
  *
  * @public
  */
-const IABConsentBannerCard = forwardRef<
+const IABConsentBannerCard = createForwardRef<
 	HTMLDialogElement,
 	IABConsentBannerCardProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentBannerCard(
-	{ children, className, 'data-testid': dataTestId, ...props },
-	ref
-) {
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { noStyle, trapFocus } = useTheme();
 	const { components } = useUIConfig();
 

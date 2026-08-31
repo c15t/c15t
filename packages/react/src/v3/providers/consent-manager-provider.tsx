@@ -64,7 +64,30 @@ const toKernelBranding = function toKernelBranding(
 		: undefined;
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const resolvePolicyCategories = (
+	offlinePolicy:
+		| NonNullable<
+				ConsentManagerProviderProps['options']['offlinePolicy']
+		  >['policy']
+		| undefined,
+	state: ConsentStoreState
+) => {
+	if (offlinePolicy?.consent?.categories) {
+		return offlinePolicy.consent.categories;
+	}
+	return state.policyCategories?.length
+		? state.policyCategories
+		: state.consentCategories;
+};
+
+const resolveInitialTranslations = (
+	state: ConsentStoreState,
+	language: string
+) =>
+	(state.translationConfig.translations[language] ??
+		state.translationConfig.translations.en ??
+		defaultTranslationConfig.translations.en) as never;
+
 const toKernelBridgeOptions = function toKernelBridgeOptions(
 	options: ConsentManagerProviderProps['options'],
 	state: ConsentStoreState
@@ -92,11 +115,7 @@ const toKernelBridgeOptions = function toKernelBridgeOptions(
 				...offlinePolicy,
 				consent: {
 					...offlinePolicy?.consent,
-					categories:
-						offlinePolicy?.consent?.categories ??
-						(state.policyCategories && state.policyCategories.length > 0
-							? state.policyCategories
-							: state.consentCategories),
+					categories: resolvePolicyCategories(offlinePolicy, state),
 					scopeMode:
 						offlinePolicy?.consent?.scopeMode ??
 						state.policyScopeMode ??
@@ -113,9 +132,7 @@ const toKernelBridgeOptions = function toKernelBridgeOptions(
 			},
 			initialTranslations: {
 				language,
-				translations: (state.translationConfig.translations[language] ??
-					state.translationConfig.translations.en ??
-					defaultTranslationConfig.translations.en) as never,
+				translations: resolveInitialTranslations(state, language),
 			},
 		},
 		scrollLock: options.scrollLock,

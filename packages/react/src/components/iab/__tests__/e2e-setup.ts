@@ -334,22 +334,25 @@ export const getStoredTCString = function getStoredTCString(): string | null {
  * Waits for a localStorage key to be written (consent persistence is
  * debounced, so reads immediately after a UI transition can race the write).
  */
-export const waitForStoredValue = async function waitForStoredValue(
+export const waitForStoredValue = function waitForStoredValue(
 	key: string,
 	timeout = 5000
 ): Promise<string> {
 	const start = Date.now();
-	while (Date.now() - start < timeout) {
+	const poll = async (): Promise<string> => {
 		const value = window.localStorage.getItem(key);
 		if (value !== null) {
 			return value;
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+		if (Date.now() - start >= timeout) {
+			throw new Error(
+				`Timed out after ${timeout}ms waiting for localStorage key "${key}"`
+			);
+		}
 		await createVoidDeferredPromise((resolve) => setTimeout(resolve, 50));
-	}
-	throw new Error(
-		`Timed out after ${timeout}ms waiting for localStorage key "${key}"`
-	);
+		return poll();
+	};
+	return poll();
 };
 
 /**

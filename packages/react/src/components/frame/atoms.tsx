@@ -1,7 +1,7 @@
 import { TEST_IDS } from '@c15t/conformance/contract/test-ids';
 import type { AllConsentNames } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/frame.module.js';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
 import { useTranslations } from '~/hooks/use-translations';
@@ -11,28 +11,24 @@ import type { BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 
-const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function FrameRoot({ children, ...props }, ref) {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.placeholder}
-				data-testid={TEST_IDS.frame.placeholder}
-				themeKey="frame"
-				{...props}
-			>
-				{children}
-			</Box>
-		);
-	}
+const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
+	({ children, ...props }, ref) => (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.placeholder}
+			data-testid={TEST_IDS.frame.placeholder}
+			themeKey="frame"
+			{...props}
+		>
+			{children}
+		</Box>
+	)
 );
 
-const FrameTitle = forwardRef<
+const FrameTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'> & { category?: AllConsentNames }
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function FrameTitle({ children, category, ...props }, ref) {
+>(({ children, category, ...props }, ref) => {
 	const { frame, consentTypes } = useTranslations();
 
 	const defaultTitle =
@@ -56,11 +52,10 @@ const FrameTitle = forwardRef<
 	);
 });
 
-const FrameButton = forwardRef<
+const FrameButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'themeKey'> & { category: AllConsentNames }
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function FrameButton({ children, category, ...props }, ref) {
+>(({ children, category, ...props }, ref) => {
 	const { consentTypes, frame } = useTranslations();
 	const categoryTitle =
 		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;

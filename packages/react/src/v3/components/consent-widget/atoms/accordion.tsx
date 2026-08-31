@@ -2,7 +2,7 @@ import type { AllConsentNames, ConsentType } from '@c15t/core';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
 import {
 	createContext,
-	forwardRef,
+	forwardRef as createForwardRef,
 	useCallback,
 	useContext,
 	useMemo,
@@ -40,20 +40,18 @@ const useConsentWidgetAccordionContext =
 		return context;
 	};
 
-const ConsentWidgetAccordionTrigger = forwardRef<HTMLDivElement, BoxProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ConsentWidgetAccordionTrigger({ children, ...props }, ref) {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={accordionStyles.triggerRow}
-				{...props}
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+const ConsentWidgetAccordionTrigger = createForwardRef<
+	HTMLDivElement,
+	BoxProps
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={accordionStyles.triggerRow}
+		{...props}
+	>
+		{children}
+	</Box>
+));
 ConsentWidgetAccordionTrigger.displayName = 'ConsentWidgetAccordionTrigger';
 
 const ConsentWidgetAccordionTriggerInner = PreferenceItem.Trigger;
@@ -69,6 +67,15 @@ type ConsentWidgetAccordionProps = Omit<BoxProps, 'slotKey'> & {
 	value?: string | string[];
 };
 
+const normalizeAccordionValue = (
+	value: string | string[] | undefined
+): string[] => {
+	if (Array.isArray(value)) {
+		return value;
+	}
+	return value ? [value] : [];
+};
+
 const ConsentWidgetAccordion = ({
 	'data-testid': dataTestId,
 	children,
@@ -82,11 +89,7 @@ const ConsentWidgetAccordion = ({
 }: ConsentWidgetAccordionProps) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const finalNoStyle = noStyle ?? contextNoStyle;
-	const openValues = useMemo(
-		// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-		() => (Array.isArray(value) ? value : value ? [value] : []),
-		[value]
-	);
+	const openValues = useMemo(() => normalizeAccordionValue(value), [value]);
 
 	const onToggleItem = useCallback(
 		(itemValue: string, open: boolean) => {
@@ -239,20 +242,17 @@ const ConsentWidgetAccordionItems = () => {
 	));
 };
 
-const ConsentWidgetAccordionItem = forwardRef<
+const ConsentWidgetAccordionItem = createForwardRef<
 	HTMLDivElement,
 	ComponentPropsWithoutRef<typeof PreferenceItem.Root>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetAccordionItem({ className, ...rest }, forwardedRef) {
-	return (
-		<PreferenceItem.Root
-			ref={forwardedRef}
-			className={[accordionStyles.item, className].filter(Boolean).join(' ')}
-			noStyle
-			{...rest}
-		/>
-	);
-});
+>(({ className, ...rest }, forwardedRef) => (
+	<PreferenceItem.Root
+		ref={forwardedRef}
+		className={[accordionStyles.item, className].filter(Boolean).join(' ')}
+		noStyle
+		{...rest}
+	/>
+));
 ConsentWidgetAccordionItem.displayName = 'ConsentWidgetAccordionItem';
 
 const AccordionTriggerInner = ConsentWidgetAccordionTriggerInner;

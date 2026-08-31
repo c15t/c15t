@@ -2,7 +2,7 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
@@ -26,11 +26,10 @@ interface IABConsentDialogFooterProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const IABConsentDialogFooter = forwardRef<
+const IABConsentDialogFooter = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentDialogFooter({ children, className, ...props }, ref) {
+>(({ children, className, ...props }, ref) => {
 	const { performDialogAction } = useHeadlessIABConsentUI();
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();

@@ -7,7 +7,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { MouseEvent, ReactNode } from 'react';
 
 import type { CornerPosition, TriggerSize } from '../types';
@@ -73,9 +73,11 @@ export interface TriggerButtonProps {
  * </ConsentDialogTrigger.Button>
  * ```
  */
-export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function TriggerButton(
+export const TriggerButton = createForwardRef<
+	HTMLButtonElement,
+	TriggerButtonProps
+>(
+	(
 		{
 			children,
 			size = 'md',
@@ -84,7 +86,7 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			noStyle = false,
 		},
 		ref
-	) {
+	) => {
 		const {
 			corner,
 			isDragging,

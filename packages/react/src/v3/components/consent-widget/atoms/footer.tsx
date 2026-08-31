@@ -1,6 +1,6 @@
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/consent-manager';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -18,11 +18,10 @@ import type { BoxProps } from '../../shared/primitives/box';
  * - Supports customization through theme
  * - Maintains consistent layout
  */
-export const ConsentWidgetFooter = forwardRef<
+export const ConsentWidgetFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetFooter({ children, className, style, ...props }, ref) {
+>(({ children, className, style, ...props }, ref) => {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
 	const actionProps = mergeSlotProps(components?.manager?.actions, {
@@ -46,22 +45,20 @@ export const ConsentWidgetFooter = forwardRef<
 });
 ConsentWidgetFooter.displayName = 'ConsentWidgetFooter';
 
-export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ConsentWidgetFooterSubGroup({ children, ...props }, ref) {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={actionStyles.actionGroup}
-				data-testid="consent-widget-footer-sub-group"
-				{...props}
-				slotKey="manager.actionGroup"
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+export const ConsentWidgetFooterSubGroup = createForwardRef<
+	HTMLDivElement,
+	BoxProps
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={actionStyles.actionGroup}
+		data-testid="consent-widget-footer-sub-group"
+		{...props}
+		slotKey="manager.actionGroup"
+	>
+		{children}
+	</Box>
+));
 ConsentWidgetFooterSubGroup.displayName = 'ConsentWidgetFooterSubGroup';
 
 const Footer = ConsentWidgetFooter;

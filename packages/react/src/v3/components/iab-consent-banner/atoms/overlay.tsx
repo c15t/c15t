@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useActiveUI } from '~/v3/hooks';
@@ -15,12 +15,8 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
 }
 
-const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function IABConsentBannerOverlay(
-		{ className, style, noStyle, ...props },
-		ref
-	) {
+const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
+	({ className, style, noStyle, ...props }, ref) => {
 		const activeUI = useActiveUI();
 		const {
 			disableAnimation,

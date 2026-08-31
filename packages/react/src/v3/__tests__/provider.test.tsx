@@ -143,10 +143,8 @@ describe('v3 ConsentProvider options API', () => {
 			<ConsentProvider
 				options={{
 					endpointHandlers: {
-						// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-						init: async () => ({ data: hostedInitOutput(), ok: true }),
-						// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-						setConsent: async () => ({ data: {}, ok: true }),
+						init: () => Promise.resolve({ data: hostedInitOutput(), ok: true }),
+						setConsent: () => Promise.resolve({ data: {}, ok: true }),
 					},
 					mode: 'custom',
 					persistence: false,

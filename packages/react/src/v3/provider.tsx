@@ -430,9 +430,8 @@ const createStaticOfflineTransport = function createStaticOfflineTransport(
 		return null;
 	}
 	return {
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		async init(ctx) {
-			return {
+		init(ctx) {
+			return Promise.resolve({
 				branding: prefetch.initialBranding ?? 'c15t',
 				location: {
 					countryCode: ctx.overrides.country ?? null,
@@ -449,16 +448,61 @@ const createStaticOfflineTransport = function createStaticOfflineTransport(
 					(ctx.overrides.language
 						? { ...translations, language: ctx.overrides.language }
 						: translations),
-			};
+			});
 		},
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		async save(payload) {
-			return { ok: true, subjectId: payload.subjectId };
+		save(payload) {
+			return Promise.resolve({ ok: true, subjectId: payload.subjectId });
 		},
 	};
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const resolveBaseTransport = function resolveBaseTransport(
+	options: ConsentProviderOptions,
+	mode: ProviderMode,
+	staticOfflineTransport: KernelTransport | null,
+	translations: KernelTranslations
+): KernelTransport {
+	if (options.transport) {
+		return options.transport;
+	}
+	if (mode === 'custom' && options.endpointHandlers) {
+		return createCustomTransport(options.endpointHandlers);
+	}
+	if (mode === 'hosted' || mode === 'c15t') {
+		return createHostedTransport({
+			backendURL: options.backendURL ?? '/api/c15t',
+			domain: options.domain,
+			fetch: options.customFetch,
+			headers: options.headers,
+		});
+	}
+	return (
+		staticOfflineTransport ??
+		createOfflineTransport({
+			policyPacks: getProviderPolicies(options),
+			translations,
+		})
+	);
+};
+
+const resolveInitialPolicy = function resolveInitialPolicy(
+	enabled: boolean | undefined,
+	prefetch: KernelConfig,
+	offlinePolicy: OfflinePolicyConfig | undefined,
+	options: ConsentProviderOptions
+): KernelConfig['initialPolicy'] {
+	if (enabled === false) {
+		return prefetch.initialPolicy ?? buildNoBannerPolicy();
+	}
+	return (
+		prefetch.initialPolicy ??
+		offlinePolicy?.policy ??
+		(buildInlinePolicy(
+			getProviderCategories(options)
+		) as KernelConfig['initialPolicy'])
+	);
+};
+
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
@@ -477,23 +521,12 @@ const createProviderKernel = function createProviderKernel(
 		i18nTranslations
 	);
 
-	const baseTransport =
-		options.transport ??
-		// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-		(mode === 'custom' && options.endpointHandlers
-			? createCustomTransport(options.endpointHandlers)
-			: mode === 'hosted' || mode === 'c15t'
-				? createHostedTransport({
-						backendURL: options.backendURL ?? '/api/c15t',
-						domain: options.domain,
-						fetch: options.customFetch,
-						headers: options.headers,
-					})
-				: (staticOfflineTransport ??
-					createOfflineTransport({
-						policyPacks: getProviderPolicies(options),
-						translations: i18nTranslations,
-					})));
+	const baseTransport = resolveBaseTransport(
+		options,
+		mode,
+		staticOfflineTransport,
+		i18nTranslations
+	);
 
 	const transport = withSSRData(baseTransport, options.ssrData);
 
@@ -510,14 +543,12 @@ const createProviderKernel = function createProviderKernel(
 		},
 		initialUser: normalizeUser(options.user) ?? prefetch.initialUser,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
-		initialPolicy:
-			enabled === false
-				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
-				: (prefetch.initialPolicy ??
-					offlinePolicy?.policy ??
-					(buildInlinePolicy(
-						getProviderCategories(options)
-					) as KernelConfig['initialPolicy'])),
+		initialPolicy: resolveInitialPolicy(
+			enabled,
+			prefetch,
+			offlinePolicy,
+			options
+		),
 		// The synthetic categories fallback is a placeholder for whatever the
 		// transport's init resolves — mark it provisional so no surface renders
 		// copy/actions that init may replace (mid-read copy swap, CLS, consent

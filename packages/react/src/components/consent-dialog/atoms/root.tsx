@@ -32,6 +32,39 @@ import { Overlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
 
+const resolveDialogOptions = (
+	localDisableAnimation: boolean | undefined,
+	globalDisableAnimation: boolean | undefined,
+	localNoStyle: boolean | undefined,
+	globalNoStyle: boolean | undefined,
+	localScrollLock: boolean | undefined,
+	policyScrollLock: boolean | undefined,
+	localTrapFocus: boolean | undefined,
+	globalTrapFocus: boolean | undefined
+) => ({
+	disableAnimation: localDisableAnimation ?? globalDisableAnimation ?? false,
+	noStyle: localNoStyle ?? globalNoStyle ?? false,
+	scrollLock: localScrollLock ?? policyScrollLock ?? true,
+	trapFocus: localTrapFocus ?? globalTrapFocus ?? true,
+});
+
+const getContainerClassName = (
+	noStyle: boolean,
+	disableAnimation: boolean,
+	isVisible: boolean
+): string | undefined => {
+	if (noStyle) {
+		return undefined;
+	}
+	if (disableAnimation) {
+		return styles.container;
+	}
+	return cn(
+		styles.container,
+		isVisible ? styles.contentVisible : styles.contentHidden
+	);
+};
+
 /**
  * Props for the root component of the ConsentDialog.
  *
@@ -104,7 +137,6 @@ export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement
  * </ConsentDialog.Root>
  * ```
  */
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	children,
 	open: openProp,
@@ -122,16 +154,21 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
 
-	const disableAnimation =
-		localDisableAnimation ?? globalTheme.disableAnimation ?? false;
-	const noStyle = localNoStyle ?? globalTheme.noStyle ?? false;
-
 	// Consent manager state
 	const { activeUI, translationConfig, model, policyDialog } =
 		useConsentManager();
 	const { closeUI } = useHeadlessConsentUI();
-	const scrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
-	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
+	const { disableAnimation, noStyle, scrollLock, trapFocus } =
+		resolveDialogOptions(
+			localDisableAnimation,
+			globalTheme.disableAnimation,
+			localNoStyle,
+			globalTheme.noStyle,
+			localScrollLock,
+			policyDialog.scrollLock,
+			localTrapFocus,
+			globalTheme.trapFocus
+		);
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
@@ -244,19 +281,11 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						>
 							<div
 								ref={contentRef}
-								className={
-									noStyle
-										? undefined
-										: cn(
-												styles.container,
-												// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-												disableAnimation
-													? undefined
-													: isVisible
-														? styles.contentVisible
-														: styles.contentHidden
-											)
-								}
+								className={getContainerClassName(
+									noStyle,
+									disableAnimation,
+									isVisible
+								)}
 							>
 								{children}
 							</div>

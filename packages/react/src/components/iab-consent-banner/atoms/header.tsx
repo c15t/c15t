@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useStyles } from '~/hooks/use-styles';
@@ -19,11 +19,10 @@ interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const IABConsentBannerHeader = forwardRef<
+const IABConsentBannerHeader = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerHeaderProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentBannerHeader({ children, className, ...props }, ref) {
+>(({ children, className, ...props }, ref) => {
 	const themedStyle = useStyles('iabConsentBannerHeader', {
 		baseClassName: styles.header,
 		className,

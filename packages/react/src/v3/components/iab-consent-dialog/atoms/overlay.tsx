@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
@@ -15,12 +15,8 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	isOpen: boolean;
 }
 
-const IABConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function IABConsentDialogOverlay(
-		{ className, style, noStyle, isOpen, ...props },
-		ref
-	) {
+const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
+	({ className, style, noStyle, isOpen, ...props }, ref) => {
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,

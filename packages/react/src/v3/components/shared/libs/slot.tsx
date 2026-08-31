@@ -1,4 +1,8 @@
-import { createElement, forwardRef, isValidElement } from 'react';
+import {
+	createElement,
+	forwardRef as createForwardRef,
+	isValidElement,
+} from 'react';
 import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
 
 const composeRefs = function composeRefs<T>(
@@ -40,43 +44,41 @@ type SlotProps = Record<string, unknown> & {
 	children: ReactNode;
 };
 
-// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-export const Slot = forwardRef<HTMLElement, SlotProps>(function Slot(
-	{ children, ...slotProps },
-	forwardedRef
-) {
-	if (!isValidElement(children)) {
-		return null;
-	}
-
-	const child = children as ReactElement<Record<string, unknown>>;
-	const childProps = child.props;
-	const childRef = (child as unknown as { ref?: Ref<HTMLElement> }).ref;
-	const mergedProps: Record<string, unknown> = {
-		...slotProps,
-		...childProps,
-		className: [slotProps.className, childProps.className]
-			.filter(Boolean)
-			.join(' '),
-		ref: composeRefs(forwardedRef, childRef),
-		style: {
-			...(slotProps.style as Record<string, unknown> | undefined),
-			...(childProps.style as Record<string, unknown> | undefined),
-		},
-	};
-
-	for (const [key, value] of Object.entries(slotProps)) {
-		if (!/^on[A-Z]/u.test(key)) {
-			continue;
+export const Slot = createForwardRef<HTMLElement, SlotProps>(
+	({ children, ...slotProps }, forwardedRef) => {
+		if (!isValidElement(children)) {
+			return null;
 		}
 
-		mergedProps[key] = mergeEventHandlers(value, childProps[key]);
-	}
+		const child = children as ReactElement<Record<string, unknown>>;
+		const childProps = child.props;
+		const childRef = (child as unknown as { ref?: Ref<HTMLElement> }).ref;
+		const mergedProps: Record<string, unknown> = {
+			...slotProps,
+			...childProps,
+			className: [slotProps.className, childProps.className]
+				.filter(Boolean)
+				.join(' '),
+			ref: composeRefs(forwardedRef, childRef),
+			style: {
+				...(slotProps.style as Record<string, unknown> | undefined),
+				...(childProps.style as Record<string, unknown> | undefined),
+			},
+		};
 
-	return createElement(child.type, {
-		key: child.key ?? undefined,
-		...mergedProps,
-	});
-});
+		for (const [key, value] of Object.entries(slotProps)) {
+			if (!/^on[A-Z]/u.test(key)) {
+				continue;
+			}
+
+			mergedProps[key] = mergeEventHandlers(value, childProps[key]);
+		}
+
+		return createElement(child.type, {
+			key: child.key ?? undefined,
+			...mergedProps,
+		});
+	}
+);
 
 Slot.displayName = 'Slot';

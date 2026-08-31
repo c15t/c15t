@@ -1,6 +1,6 @@
 import type { AllConsentNames } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/frame';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
 import { useTranslations } from '~/v3/component-hooks/use-translations';
@@ -10,26 +10,22 @@ import type { BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 
-const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function FrameRoot({ children, ...props }, ref) {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.placeholder}
-				{...props}
-			>
-				{children}
-			</Box>
-		);
-	}
+const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
+	({ children, ...props }, ref) => (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={styles.placeholder}
+			{...props}
+		>
+			{children}
+		</Box>
+	)
 );
 
-const FrameTitle = forwardRef<
+const FrameTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function FrameTitle({ children, category, ...props }, ref) {
+>(({ children, category, ...props }, ref) => {
 	const { frame, consentTypes } = useTranslations();
 
 	const defaultTitle =
@@ -52,11 +48,10 @@ const FrameTitle = forwardRef<
 	);
 });
 
-const FrameButton = forwardRef<
+const FrameButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function FrameButton({ children, category, ...props }, ref) {
+>(({ children, category, ...props }, ref) => {
 	const { frame } = useTranslations();
 
 	const defaultText = frame?.actionButton?.replace('{category}', category);

@@ -2,7 +2,7 @@
 
 import type { AllConsentNames, Script } from '@c15t/core';
 import {
-	forwardRef,
+	forwardRef as createForwardRef,
 	useCallback,
 	useEffect,
 	useMemo,
@@ -235,16 +235,46 @@ const subscribeToGoogleMapsAuthFailure =
 		};
 	};
 
+const xorUint32 = function xorUint32(left: number, right: number): number {
+	let result = 0;
+	let place = 1;
+	let leftRemainder = left;
+	let rightRemainder = right;
+	for (let index = 0; index < 32; index += 1) {
+		const leftBit = leftRemainder % 2;
+		const rightBit = rightRemainder % 2;
+		if (leftBit !== rightBit) {
+			result += place;
+		}
+		leftRemainder = Math.floor(leftRemainder / 2);
+		rightRemainder = Math.floor(rightRemainder / 2);
+		place *= 2;
+	}
+	return result;
+};
+
+const toUint32 = (value: number): number =>
+	value < 0 ? value + 2 ** 32 : value;
+
 const hashString = function hashString(value: string): string {
 	let hash = 2_166_136_261;
 	for (let index = 0; index < value.length; index += 1) {
-		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-		hash ^= value.charCodeAt(index);
-		hash = Math.imul(hash, 16_777_619);
+		hash = xorUint32(hash, value.charCodeAt(index));
+		hash = toUint32(Math.imul(hash, 16_777_619));
 	}
 
-	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
-	return (hash >>> 0).toString(36);
+	return hash.toString(36);
+};
+
+const getDisplayStatus = (
+	hasMapConsent: boolean,
+	displayError: unknown,
+	status: ReturnType<typeof useConsentScript>['status']
+) => {
+	if (!hasMapConsent) {
+		return 'blocked';
+	}
+	return displayError ? 'error' : status;
 };
 
 const createCallbackName = function createCallbackName(
@@ -426,9 +456,8 @@ const toGoogleMapsScriptError = function toGoogleMapsScriptError(
 
 	return error;
 };
-export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function GoogleMap(
+export const GoogleMap = createForwardRef<HTMLDivElement, GoogleMapProps>(
+	(
 		{
 			apiKey,
 			center,
@@ -457,7 +486,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			...props
 		},
 		forwardedRef
-	) {
+	) => {
 		const hasApiKey = apiKey.trim().length > 0;
 		const { has } = useConsentManager();
 		const hasMapConsent = has(consentCategory);
@@ -763,12 +792,11 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			mapsScript.status === 'ready' &&
 			authenticationError === null &&
 			initializationError === null;
-		// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-		const displayStatus = hasMapConsent
-			? displayError
-				? 'error'
-				: mapsScript.status
-			: 'blocked';
+		const displayStatus = getDisplayStatus(
+			hasMapConsent,
+			displayError,
+			mapsScript.status
+		);
 
 		return (
 			<div

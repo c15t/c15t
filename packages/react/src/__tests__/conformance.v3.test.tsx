@@ -221,7 +221,6 @@ const isIabComponent = function isIabComponent(
 const activeUIForComponent = function activeUIForComponent(
 	component: MountableComponent
 ): KernelActiveUI {
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
@@ -230,6 +229,8 @@ const activeUIForComponent = function activeUIForComponent(
 		case 'consent-banner':
 		case 'iab-consent-banner':
 			return 'banner';
+		default:
+			throw new Error(`Unsupported component: ${component}`);
 	}
 };
 
@@ -389,10 +390,7 @@ const lifecycleTransportFor = function lifecycleTransportFor(
 		return {
 			resolve: undefined,
 			transport: {
-				// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-				async init() {
-					throw new Error('conformance: init failed');
-				},
+				init: () => Promise.reject(new Error('conformance: init failed')),
 			},
 		};
 	}
@@ -421,7 +419,6 @@ const componentFor = function componentFor(opts: MountOptions): ReactElement {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
 	const trapFocus = provided.trapFocus ?? false;
 
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (opts.component) {
 		case 'consent-banner':
 			return (
@@ -452,6 +449,8 @@ const componentFor = function componentFor(opts: MountOptions): ReactElement {
 			return <IABConsentBanner />;
 		case 'iab-consent-dialog':
 			return <IABConsentDialog />;
+		default:
+			throw new Error(`Unsupported component: ${opts.component}`);
 	}
 };
 
@@ -587,13 +586,14 @@ const driver: TestDriver = {
 			},
 		};
 	},
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	async serverRender(opts: MountOptions): Promise<string> {
+	serverRender(opts: MountOptions): Promise<string> {
 		const options = buildProviderOptions(opts);
-		return renderToString(
-			renderTree(opts, options, () => {
-				// Server render does not expose a live store to the conformance suite.
-			})
+		return Promise.resolve(
+			renderToString(
+				renderTree(opts, options, () => {
+					// Server render does not expose a live store to the conformance suite.
+				})
+			)
 		);
 	},
 };

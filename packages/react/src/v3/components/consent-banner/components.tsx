@@ -6,7 +6,7 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/consent-banner';
-import { forwardRef, useRef } from 'react';
+import { forwardRef as createForwardRef, useRef } from 'react';
 import type { Ref, RefObject } from 'react';
 
 import { useTranslations } from '~/v3/component-hooks/use-translations';
@@ -47,11 +47,10 @@ const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
  * </ConsentBannerTitle>
  * ```
  */
-const ConsentBannerTitle = forwardRef<
+const ConsentBannerTitle = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerTitle({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 	return (
 		<Box
@@ -84,55 +83,59 @@ ConsentBannerTitle.displayName = CONSENT_BANNER_TITLE_NAME;
  * </ConsentBannerDescription>
  * ```
  */
-const ConsentBannerDescription = forwardRef<
+const ConsentBannerDescription = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerDescription(
-	{ children, legalLinks, asChild, className, style, noStyle, ...props },
-	ref
-) {
-	const { cookieBanner: consentBanner } = useTranslations();
-	const { components } = useUIConfig();
-	const { noStyle: contextNoStyle } = useTheme();
-	const context = 'banner';
-	const descriptionProps = mergeSlotProps(components?.description?.[context], {
-		baseClassName: styles.description,
-		className,
-		'data-testid': 'consent-banner-description',
-		noStyle: noStyle ?? contextNoStyle,
-		style,
-		...props,
-	});
+>(
+	(
+		{ children, legalLinks, asChild, className, style, noStyle, ...props },
+		ref
+	) => {
+		const { cookieBanner: consentBanner } = useTranslations();
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const context = 'banner';
+		const descriptionProps = mergeSlotProps(
+			components?.description?.[context],
+			{
+				baseClassName: styles.description,
+				className,
+				'data-testid': 'consent-banner-description',
+				noStyle: noStyle ?? contextNoStyle,
+				style,
+				...props,
+			}
+		);
 
-	if (asChild) {
-		const Comp = Slot;
+		if (asChild) {
+			const Comp = Slot;
+			return (
+				<Comp
+					ref={ref as Ref<HTMLDivElement>}
+					{...descriptionProps}
+				>
+					{children ?? consentBanner.description}
+				</Comp>
+			);
+		}
+
 		return (
-			<Comp
+			<div
 				ref={ref as Ref<HTMLDivElement>}
 				{...descriptionProps}
 			>
 				{children ?? consentBanner.description}
-			</Comp>
+				<InlineLegalLinks
+					links={legalLinks}
+					context="banner"
+					testIdPrefix="consent-banner-legal-link"
+				/>
+			</div>
 		);
 	}
-
-	return (
-		<div
-			ref={ref as Ref<HTMLDivElement>}
-			{...descriptionProps}
-		>
-			{children ?? consentBanner.description}
-			<InlineLegalLinks
-				links={legalLinks}
-				context="banner"
-				testIdPrefix="consent-banner-legal-link"
-			/>
-		</div>
-	);
-});
+);
 
 ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
 
@@ -151,11 +154,10 @@ ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
  * </ConsentBannerFooter>
  * ```
  */
-const ConsentBannerFooter = forwardRef<
+const ConsentBannerFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerFooter({ children, className, style, ...props }, ref) {
+>(({ children, className, style, ...props }, ref) => {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
 	const actionProps = mergeSlotProps(components?.banner?.actions, {
@@ -196,35 +198,35 @@ ConsentBannerFooter.displayName = CONSENT_BANNER_FOOTER_NAME;
  * </ConsentBannerCard>
  * ```
  */
-const ConsentBannerCard = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ConsentBannerCard({ children, ...props }, ref) {
-		const { trapFocus } = useTheme();
-		const { cookieBanner } = useTranslations();
-		const localRef = useRef<HTMLDivElement>(null);
-		const cardRef = (ref || localRef) as RefObject<HTMLElement>;
+const ConsentBannerCard = createForwardRef<
+	HTMLDivElement,
+	Omit<BoxProps, 'slotKey'>
+>(({ children, ...props }, ref) => {
+	const { trapFocus } = useTheme();
+	const { cookieBanner } = useTranslations();
+	const localRef = useRef<HTMLDivElement>(null);
+	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
-		// Call the useFocusTrap hook with the appropriate parameters
-		const shouldTrapFocus = Boolean(trapFocus);
-		useFocusTrap(shouldTrapFocus, cardRef);
+	// Call the useFocusTrap hook with the appropriate parameters
+	const shouldTrapFocus = Boolean(trapFocus);
+	useFocusTrap(shouldTrapFocus, cardRef);
 
-		return (
-			<Box
-				ref={cardRef as Ref<HTMLDivElement>}
-				tabIndex={-1}
-				baseClassName={styles.card}
-				data-testid="consent-banner-card"
-				slotKey="banner.card"
-				aria-label={props['aria-label'] || cookieBanner.title}
-				aria-modal={shouldTrapFocus ? 'true' : undefined}
-				role={shouldTrapFocus ? 'dialog' : undefined}
-				{...props}
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+	return (
+		<Box
+			ref={cardRef as Ref<HTMLDivElement>}
+			tabIndex={-1}
+			baseClassName={styles.card}
+			data-testid="consent-banner-card"
+			slotKey="banner.card"
+			aria-label={props['aria-label'] || cookieBanner.title}
+			aria-modal={shouldTrapFocus ? 'true' : undefined}
+			role={shouldTrapFocus ? 'dialog' : undefined}
+			{...props}
+		>
+			{children}
+		</Box>
+	);
+});
 
 ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
 
@@ -235,23 +237,20 @@ ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
  * Contains the title and description sections.
  * Implements proper spacing and layout for header content.
  */
-const ConsentBannerHeader = forwardRef<
+const ConsentBannerHeader = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerHeader({ children, ...props }, ref) {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.header}
-			data-testid="consent-banner-header"
-			slotKey="banner.header"
-			{...props}
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.header}
+		data-testid="consent-banner-header"
+		slotKey="banner.header"
+		{...props}
+	>
+		{children}
+	</Box>
+));
 
 ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
 
@@ -262,23 +261,20 @@ ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
  * Groups related buttons or controls in the footer.
  * Implements proper spacing and alignment for button groups.
  */
-const ConsentBannerFooterSubGroup = forwardRef<
+const ConsentBannerFooterSubGroup = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerFooterSubGroup({ children, ...props }, ref) {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={actionStyles.actionGroup}
-			data-testid="consent-banner-footer-sub-group"
-			slotKey="banner.actionGroup"
-			{...props}
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={actionStyles.actionGroup}
+		data-testid="consent-banner-footer-sub-group"
+		slotKey="banner.actionGroup"
+		{...props}
+	>
+		{children}
+	</Box>
+));
 
 ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
 
@@ -296,11 +292,10 @@ ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
  * </ConsentBannerRejectButton>
  * ```
  */
-const ConsentBannerRejectButton = forwardRef<
+const ConsentBannerRejectButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerRejectButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -324,11 +319,10 @@ ConsentBannerRejectButton.displayName = CONSENT_BANNER_REJECT_BUTTON_NAME;
  * Opens the detailed consent management interface.
  * Implements proper focus management and keyboard interaction.
  */
-const ConsentBannerCustomizeButton = forwardRef<
+const ConsentBannerCustomizeButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerCustomizeButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -359,11 +353,10 @@ ConsentBannerCustomizeButton.displayName = CONSENT_BANNER_CUSTOMIZE_BUTTON_NAME;
  * </ConsentBannerAcceptButton>
  * ```
  */
-const ConsentBannerAcceptButton = forwardRef<
+const ConsentBannerAcceptButton = createForwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentBannerAcceptButton({ children, ...props }, ref) {
+>(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
 	const { noStyle } = useTheme();
 	return (

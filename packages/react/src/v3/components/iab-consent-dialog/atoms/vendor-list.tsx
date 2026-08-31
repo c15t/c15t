@@ -251,7 +251,6 @@ export const VendorList: FC<VendorListProps> = ({
 		}
 	);
 
-	// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 	const renderVendorItem = function renderVendorItem(vendor: ProcessedVendor) {
 		const vendorKey = String(vendor.id);
 		const vendorPurposes = getVendorPurposes(vendor.id);
@@ -285,6 +284,337 @@ export const VendorList: FC<VendorListProps> = ({
 			}
 		);
 
+		const renderVendorContent = () => (
+			<PreferenceItem.Content
+				innerClassName={noStyle ? undefined : styles.vendorListContent}
+				innerSlotKey="iab-vendor-list.rowContent"
+				noStyle
+			>
+				<div className={styles.vendorLinks}>
+					<a
+						href={vendor.policyUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						className={styles.vendorLink}
+					>
+						<svg
+							className={styles.vendorLinkIcon}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+							<polyline points="15 3 21 3 21 9" />
+							<line
+								x1="10"
+								y1="14"
+								x2="21"
+								y2="3"
+							/>
+						</svg>
+						{iab.preferenceCenter.vendorList.privacyPolicy}
+					</a>
+					{vendor.legitimateInterestUrl && (
+						<a
+							href={vendor.legitimateInterestUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={styles.vendorLink}
+						>
+							<svg
+								className={styles.vendorLinkIcon}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+								<polyline points="15 3 21 3 21 9" />
+								<line
+									x1="10"
+									y1="14"
+									x2="21"
+									y2="3"
+								/>
+							</svg>
+							{iab.preferenceCenter.purposeItem.legitimateInterest}
+						</a>
+					)}
+					{vendor.deviceStorageDisclosureUrl && (
+						<a
+							href={vendor.deviceStorageDisclosureUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className={styles.vendorLink}
+						>
+							<svg
+								className={styles.vendorLinkIcon}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+								<polyline points="15 3 21 3 21 9" />
+								<line
+									x1="10"
+									y1="14"
+									x2="21"
+									y2="3"
+								/>
+							</svg>
+							{iab.preferenceCenter.vendorList.storageDisclosure}
+						</a>
+					)}
+				</div>
+
+				<div className={styles.vendorBadges}>
+					{vendor.usesCookies && (
+						<span className={styles.vendorBadge}>
+							{iab.preferenceCenter.vendorList.usesCookies}
+						</span>
+					)}
+					{vendor.usesNonCookieAccess && (
+						<span className={styles.vendorBadge}>
+							{iab.preferenceCenter.vendorList.nonCookieAccess}
+						</span>
+					)}
+					{maxAgeText && (
+						<span className={styles.vendorBadge}>{maxAgeText}</span>
+					)}
+					{standardRetentionDays && (
+						<span className={styles.vendorBadge}>
+							{iab.preferenceCenter.vendorList.retention.replace(
+								'{days}',
+								String(standardRetentionDays)
+							)}
+						</span>
+					)}
+				</div>
+
+				{vendorPurposes.length > 0 && (
+					<div className={styles.vendorPurposesList}>
+						<h4 className={styles.vendorPurposesTitle}>
+							{iab.preferenceCenter.vendorList.purposes} (
+							{vendorPurposes.length})
+						</h4>
+						<ul className={styles.vendorPurposesItems}>
+							{vendorPurposes.map((purpose) => {
+								let retentionDays: number | undefined;
+								if (vendor.dataRetention?.purposes?.[purpose.id]) {
+									retentionDays = vendor.dataRetention.purposes[purpose.id];
+								} else if (vendor.dataRetention?.stdRetention) {
+									retentionDays = vendor.dataRetention.stdRetention;
+								}
+								return (
+									<li
+										key={purpose.id}
+										className={`${styles.vendorPurposeItem} ${
+											purpose.usesLegitimateInterest
+												? styles.vendorPurposeItemLi
+												: ''
+										}`}
+									>
+										<span>
+											{purpose.name}
+											{retentionDays && (
+												<span className={styles.vendorRetention}>
+													{' '}
+													(Retained: {retentionDays}d)
+												</span>
+											)}
+										</span>
+										{purpose.usesLegitimateInterest && (
+											<span className={styles.vendorListLiBadge}>
+												<svg
+													style={{ height: '0.625rem', width: '0.625rem' }}
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+												>
+													<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+												</svg>
+												{iab.preferenceCenter.vendorList.legitimateInterest}
+											</span>
+										)}
+									</li>
+								);
+							})}
+						</ul>
+					</div>
+				)}
+
+				{/* Legitimate Interest Objection */}
+				{hasLegitimateInterest && onVendorLegitimateInterestToggle && (
+					<div className={styles.vendorLiSection}>
+						<div className={styles.vendorLiSectionHeader}>
+							<h4 className={styles.vendorPurposesTitle}>
+								<svg
+									style={{
+										height: '0.75rem',
+										marginRight: '0.25rem',
+										width: '0.75rem',
+									}}
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+								>
+									<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+								</svg>
+								{iab.preferenceCenter.purposeItem.legitimateInterest}
+							</h4>
+							<button
+								type="button"
+								onClick={() =>
+									onVendorLegitimateInterestToggle(
+										vendor.id,
+										!isLegitimateInterestAllowed
+									)
+								}
+								className={`${styles.objectButton} ${isLegitimateInterestAllowed ? '' : styles.objectButtonActive}`}
+								aria-pressed={!isLegitimateInterestAllowed}
+							>
+								{isLegitimateInterestAllowed
+									? iab.preferenceCenter.purposeItem.objectButton
+									: iab.preferenceCenter.purposeItem.objected}
+							</button>
+						</div>
+						<p className={styles.liExplanation}>
+							{iab.preferenceCenter.purposeItem.rightToObject}
+						</p>
+					</div>
+				)}
+
+				{vendor.dataDeclaration && vendor.dataDeclaration.length > 0 && (
+					<div className={styles.vendorPurposesList}>
+						<h4 className={styles.vendorPurposesTitle}>
+							{iab.preferenceCenter.vendorList.dataCategories} (
+							{vendor.dataDeclaration.length})
+						</h4>
+						<ul className={styles.vendorPurposesItems}>
+							{vendor.dataDeclaration.map((categoryId) => {
+								const category = vendorData?.dataCategories?.[categoryId];
+								return (
+									<li
+										key={categoryId}
+										className={styles.vendorPurposeItem}
+										title={category?.description}
+									>
+										{category?.name || `Data Category ${categoryId}`}
+									</li>
+								);
+							})}
+						</ul>
+					</div>
+				)}
+
+				{vendorSpecialPurposes.length > 0 && (
+					<div className={styles.vendorPurposesList}>
+						<h4 className={styles.vendorPurposesTitle}>
+							<svg
+								aria-hidden="true"
+								focusable="false"
+								style={{
+									height: '0.75rem',
+									marginRight: '0.25rem',
+									width: '0.75rem',
+								}}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<title>{iab.preferenceCenter.vendorList.specialPurposes}</title>
+								<rect
+									x="3"
+									y="11"
+									width="18"
+									height="11"
+									rx="2"
+									ry="2"
+								/>
+								<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+							</svg>
+							{iab.preferenceCenter.vendorList.specialPurposes} (
+							{vendorSpecialPurposes.length})
+						</h4>
+						<ul className={styles.vendorPurposesItems}>
+							{vendorSpecialPurposes.map((sp) => {
+								let retentionDays: number | undefined;
+								if (vendor.dataRetention?.specialPurposes?.[sp.id]) {
+									retentionDays = vendor.dataRetention.specialPurposes[sp.id];
+								} else if (vendor.dataRetention?.stdRetention) {
+									retentionDays = vendor.dataRetention.stdRetention;
+								}
+								return (
+									<li
+										key={sp.id}
+										className={styles.vendorPurposeItem}
+									>
+										<span>
+											{sp.name}
+											{retentionDays && (
+												<span className={styles.vendorRetention}>
+													{' '}
+													(Retained: {retentionDays}d)
+												</span>
+											)}
+										</span>
+									</li>
+								);
+							})}
+						</ul>
+						<p
+							className={styles.vendorListMetaText}
+							style={{ fontStyle: 'italic', marginTop: '0.25rem' }}
+						>
+							{iab.preferenceCenter.vendorList.requiredNotice}
+						</p>
+					</div>
+				)}
+
+				{vendorSpecialFeatures.length > 0 && (
+					<div className={styles.vendorPurposesList}>
+						<h4 className={styles.vendorPurposesTitle}>
+							{iab.preferenceCenter.vendorList.specialFeatures} (
+							{vendorSpecialFeatures.length})
+						</h4>
+						<ul className={styles.vendorPurposesItems}>
+							{vendorSpecialFeatures.map((sf) => (
+								<li
+									key={sf.id}
+									className={styles.vendorPurposeItem}
+								>
+									{sf.name}
+								</li>
+							))}
+						</ul>
+					</div>
+				)}
+
+				{vendorFeatures.length > 0 && (
+					<div className={styles.vendorPurposesList}>
+						<h4 className={styles.vendorPurposesTitle}>
+							{iab.preferenceCenter.vendorList.features} (
+							{vendorFeatures.length})
+						</h4>
+						<ul className={styles.vendorPurposesItems}>
+							{vendorFeatures.map((f) => (
+								<li
+									key={f.id}
+									className={styles.vendorPurposeItem}
+								>
+									{f.name}
+								</li>
+							))}
+						</ul>
+					</div>
+				)}
+			</PreferenceItem.Content>
+		);
 		return (
 			<PreferenceItem.Root
 				key={vendor.id}
@@ -385,337 +715,7 @@ export const VendorList: FC<VendorListProps> = ({
 					</div>
 				</div>
 
-				<PreferenceItem.Content
-					innerClassName={noStyle ? undefined : styles.vendorListContent}
-					innerSlotKey="iab-vendor-list.rowContent"
-					noStyle
-				>
-					<div className={styles.vendorLinks}>
-						<a
-							href={vendor.policyUrl}
-							target="_blank"
-							rel="noopener noreferrer"
-							className={styles.vendorLink}
-						>
-							<svg
-								className={styles.vendorLinkIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-								<polyline points="15 3 21 3 21 9" />
-								<line
-									x1="10"
-									y1="14"
-									x2="21"
-									y2="3"
-								/>
-							</svg>
-							{iab.preferenceCenter.vendorList.privacyPolicy}
-						</a>
-						{vendor.legitimateInterestUrl && (
-							<a
-								href={vendor.legitimateInterestUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={styles.vendorLink}
-							>
-								<svg
-									className={styles.vendorLinkIcon}
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-								>
-									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-									<polyline points="15 3 21 3 21 9" />
-									<line
-										x1="10"
-										y1="14"
-										x2="21"
-										y2="3"
-									/>
-								</svg>
-								{iab.preferenceCenter.purposeItem.legitimateInterest}
-							</a>
-						)}
-						{vendor.deviceStorageDisclosureUrl && (
-							<a
-								href={vendor.deviceStorageDisclosureUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={styles.vendorLink}
-							>
-								<svg
-									className={styles.vendorLinkIcon}
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-								>
-									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-									<polyline points="15 3 21 3 21 9" />
-									<line
-										x1="10"
-										y1="14"
-										x2="21"
-										y2="3"
-									/>
-								</svg>
-								{iab.preferenceCenter.vendorList.storageDisclosure}
-							</a>
-						)}
-					</div>
-
-					<div className={styles.vendorBadges}>
-						{vendor.usesCookies && (
-							<span className={styles.vendorBadge}>
-								{iab.preferenceCenter.vendorList.usesCookies}
-							</span>
-						)}
-						{vendor.usesNonCookieAccess && (
-							<span className={styles.vendorBadge}>
-								{iab.preferenceCenter.vendorList.nonCookieAccess}
-							</span>
-						)}
-						{maxAgeText && (
-							<span className={styles.vendorBadge}>{maxAgeText}</span>
-						)}
-						{standardRetentionDays && (
-							<span className={styles.vendorBadge}>
-								{iab.preferenceCenter.vendorList.retention.replace(
-									'{days}',
-									String(standardRetentionDays)
-								)}
-							</span>
-						)}
-					</div>
-
-					{vendorPurposes.length > 0 && (
-						<div className={styles.vendorPurposesList}>
-							<h4 className={styles.vendorPurposesTitle}>
-								{iab.preferenceCenter.vendorList.purposes} (
-								{vendorPurposes.length})
-							</h4>
-							<ul className={styles.vendorPurposesItems}>
-								{vendorPurposes.map((purpose) => {
-									let retentionDays: number | undefined;
-									if (vendor.dataRetention?.purposes?.[purpose.id]) {
-										retentionDays = vendor.dataRetention.purposes[purpose.id];
-									} else if (vendor.dataRetention?.stdRetention) {
-										retentionDays = vendor.dataRetention.stdRetention;
-									}
-									return (
-										<li
-											key={purpose.id}
-											className={`${styles.vendorPurposeItem} ${
-												purpose.usesLegitimateInterest
-													? styles.vendorPurposeItemLi
-													: ''
-											}`}
-										>
-											<span>
-												{purpose.name}
-												{retentionDays && (
-													<span className={styles.vendorRetention}>
-														{' '}
-														(Retained: {retentionDays}d)
-													</span>
-												)}
-											</span>
-											{purpose.usesLegitimateInterest && (
-												<span className={styles.vendorListLiBadge}>
-													<svg
-														style={{ height: '0.625rem', width: '0.625rem' }}
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														strokeWidth="2"
-													>
-														<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-													</svg>
-													{iab.preferenceCenter.vendorList.legitimateInterest}
-												</span>
-											)}
-										</li>
-									);
-								})}
-							</ul>
-						</div>
-					)}
-
-					{/* Legitimate Interest Objection */}
-					{hasLegitimateInterest && onVendorLegitimateInterestToggle && (
-						<div className={styles.vendorLiSection}>
-							<div className={styles.vendorLiSectionHeader}>
-								<h4 className={styles.vendorPurposesTitle}>
-									<svg
-										style={{
-											height: '0.75rem',
-											marginRight: '0.25rem',
-											width: '0.75rem',
-										}}
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-									>
-										<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-									</svg>
-									{iab.preferenceCenter.purposeItem.legitimateInterest}
-								</h4>
-								<button
-									type="button"
-									onClick={() =>
-										onVendorLegitimateInterestToggle(
-											vendor.id,
-											!isLegitimateInterestAllowed
-										)
-									}
-									className={`${styles.objectButton} ${isLegitimateInterestAllowed ? '' : styles.objectButtonActive}`}
-									aria-pressed={!isLegitimateInterestAllowed}
-								>
-									{isLegitimateInterestAllowed
-										? iab.preferenceCenter.purposeItem.objectButton
-										: iab.preferenceCenter.purposeItem.objected}
-								</button>
-							</div>
-							<p className={styles.liExplanation}>
-								{iab.preferenceCenter.purposeItem.rightToObject}
-							</p>
-						</div>
-					)}
-
-					{vendor.dataDeclaration && vendor.dataDeclaration.length > 0 && (
-						<div className={styles.vendorPurposesList}>
-							<h4 className={styles.vendorPurposesTitle}>
-								{iab.preferenceCenter.vendorList.dataCategories} (
-								{vendor.dataDeclaration.length})
-							</h4>
-							<ul className={styles.vendorPurposesItems}>
-								{vendor.dataDeclaration.map((categoryId) => {
-									const category = vendorData?.dataCategories?.[categoryId];
-									return (
-										<li
-											key={categoryId}
-											className={styles.vendorPurposeItem}
-											title={category?.description}
-										>
-											{category?.name || `Data Category ${categoryId}`}
-										</li>
-									);
-								})}
-							</ul>
-						</div>
-					)}
-
-					{vendorSpecialPurposes.length > 0 && (
-						<div className={styles.vendorPurposesList}>
-							<h4 className={styles.vendorPurposesTitle}>
-								<svg
-									aria-hidden="true"
-									focusable="false"
-									style={{
-										height: '0.75rem',
-										marginRight: '0.25rem',
-										width: '0.75rem',
-									}}
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									strokeWidth="2"
-								>
-									<title>
-										{iab.preferenceCenter.vendorList.specialPurposes}
-									</title>
-									<rect
-										x="3"
-										y="11"
-										width="18"
-										height="11"
-										rx="2"
-										ry="2"
-									/>
-									<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-								</svg>
-								{iab.preferenceCenter.vendorList.specialPurposes} (
-								{vendorSpecialPurposes.length})
-							</h4>
-							<ul className={styles.vendorPurposesItems}>
-								{vendorSpecialPurposes.map((sp) => {
-									let retentionDays: number | undefined;
-									if (vendor.dataRetention?.specialPurposes?.[sp.id]) {
-										retentionDays = vendor.dataRetention.specialPurposes[sp.id];
-									} else if (vendor.dataRetention?.stdRetention) {
-										retentionDays = vendor.dataRetention.stdRetention;
-									}
-									return (
-										<li
-											key={sp.id}
-											className={styles.vendorPurposeItem}
-										>
-											<span>
-												{sp.name}
-												{retentionDays && (
-													<span className={styles.vendorRetention}>
-														{' '}
-														(Retained: {retentionDays}d)
-													</span>
-												)}
-											</span>
-										</li>
-									);
-								})}
-							</ul>
-							<p
-								className={styles.vendorListMetaText}
-								style={{ fontStyle: 'italic', marginTop: '0.25rem' }}
-							>
-								{iab.preferenceCenter.vendorList.requiredNotice}
-							</p>
-						</div>
-					)}
-
-					{vendorSpecialFeatures.length > 0 && (
-						<div className={styles.vendorPurposesList}>
-							<h4 className={styles.vendorPurposesTitle}>
-								{iab.preferenceCenter.vendorList.specialFeatures} (
-								{vendorSpecialFeatures.length})
-							</h4>
-							<ul className={styles.vendorPurposesItems}>
-								{vendorSpecialFeatures.map((sf) => (
-									<li
-										key={sf.id}
-										className={styles.vendorPurposeItem}
-									>
-										{sf.name}
-									</li>
-								))}
-							</ul>
-						</div>
-					)}
-
-					{vendorFeatures.length > 0 && (
-						<div className={styles.vendorPurposesList}>
-							<h4 className={styles.vendorPurposesTitle}>
-								{iab.preferenceCenter.vendorList.features} (
-								{vendorFeatures.length})
-							</h4>
-							<ul className={styles.vendorPurposesItems}>
-								{vendorFeatures.map((f) => (
-									<li
-										key={f.id}
-										className={styles.vendorPurposeItem}
-									>
-										{f.name}
-									</li>
-								))}
-							</ul>
-						</div>
-					)}
-				</PreferenceItem.Content>
+				{renderVendorContent()}
 			</PreferenceItem.Root>
 		);
 	};

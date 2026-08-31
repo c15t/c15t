@@ -1,5 +1,5 @@
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
 import { Box } from '../../shared/primitives/box';
@@ -13,42 +13,37 @@ import type { BoxProps } from '../../shared/primitives/box';
  * - Supports customization through theme
  * - Maintains consistent layout
  */
-export const ConsentWidgetFooter = forwardRef<
+export const ConsentWidgetFooter = createForwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentWidgetFooter({ children, ...props }, ref) {
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.footer}
-			data-testid="consent-widget-footer"
-			{...props}
-			themeKey="consentWidgetFooter"
-		>
-			{children}
-		</Box>
-	);
-});
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.footer}
+		data-testid="consent-widget-footer"
+		{...props}
+		themeKey="consentWidgetFooter"
+	>
+		{children}
+	</Box>
+));
 
 ConsentWidgetFooter.displayName = 'ConsentWidgetFooter';
 
-export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ConsentWidgetFooterSubGroup({ children, ...props }, ref) {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.footerSubGroup}
-				data-testid="consent-widget-footer-sub-group"
-				{...props}
-				themeKey="consentWidgetFooterSubGroup"
-			>
-				{children}
-			</Box>
-		);
-	}
-);
+export const ConsentWidgetFooterSubGroup = createForwardRef<
+	HTMLDivElement,
+	BoxProps
+>(({ children, ...props }, ref) => (
+	<Box
+		ref={ref as Ref<HTMLDivElement>}
+		baseClassName={styles.footerSubGroup}
+		data-testid="consent-widget-footer-sub-group"
+		{...props}
+		themeKey="consentWidgetFooterSubGroup"
+	>
+		{children}
+	</Box>
+));
 
 ConsentWidgetFooterSubGroup.displayName = 'ConsentWidgetFooterSubGroup';
 

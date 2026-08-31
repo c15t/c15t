@@ -1,5 +1,5 @@
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, useCallback } from 'react';
+import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { MouseEvent } from 'react';
 
 import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/v3/hooks';
@@ -89,7 +89,7 @@ const resolveConsentButtonStyle = function resolveConsentButtonStyle(params: {
  *
  * @public
  */
-export const ConsentButton = forwardRef<
+export const ConsentButton = createForwardRef<
 	ConsentButtonElement,
 	ConsentButtonProps &
 		ButtonVariantsProps & {
@@ -106,150 +106,152 @@ export const ConsentButton = forwardRef<
 			closeConsentBanner?: boolean;
 			performDefaultAction?: boolean;
 		}
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentButton(
-	{
-		asChild,
-		className: forwardedClassName,
-		style,
-		noStyle,
-		action,
-		slotKey,
-		baseClassName,
-		variant,
-		mode,
-		size = 'small',
-		consentAction,
-		isPrimary,
-		onClick: forwardedOnClick,
-		closeConsentBanner = false,
-		closeConsentDialog = false,
-		performDefaultAction = true,
-		category,
-		...props
-	},
-	ref
-) {
-	const saveConsents = useSaveConsents();
-	const setActiveUI = useSetActiveUI();
-	const setConsent = useSetConsent();
-	const { noStyle: contextNoStyle, theme } = useTheme();
-	const { components } = useUIConfig();
-	const resolvedButtonStyle = resolveConsentButtonStyle({
-		consentAction,
-		isPrimary,
-		mode,
-		theme,
-		variant,
-	});
-
-	const defaultSlotKey =
-		resolvedButtonStyle.variant === 'primary'
-			? 'button.primary'
-			: 'button.secondary';
-
-	const slotProps = getSlotProps(components, slotKey ?? defaultSlotKey);
-	const buttonStyleProps = mergeSlotProps(slotProps, {
-		baseClassName: [
-			Button.buttonVariants({
-				mode: resolvedButtonStyle.mode,
-				size,
-				variant: resolvedButtonStyle.variant,
-			}).root(),
-			baseClassName,
-		],
-		className: forwardedClassName,
-		noStyle: contextNoStyle || noStyle,
-		style: {
-			...(style as CSSPropertiesWithVars<CSSVariables>),
-		},
-	});
-
-	// Need to know what category to set
-	if (!category && action === 'set-consent') {
-		throw new Error('Category is required for set-consent action');
-	}
-
-	const buttonClick = useCallback(
-		(e: MouseEvent<HTMLButtonElement>) => {
-			const actionSavesConsent =
-				action === 'accept-consent' ||
-				action === 'reject-consent' ||
-				action === 'custom-consent';
-			// Handle UI first - prioritize closing dialogs/banners
-			if ((closeConsentBanner || closeConsentDialog) && !actionSavesConsent) {
-				setActiveUI('none');
-			}
-
-			// Open privacy dialog if needed
-			if (action === 'open-consent-dialog') {
-				setActiveUI('dialog');
-			}
-
-			// Call the user's onClick handler after UI updates
-			if (forwardedOnClick) {
-				forwardedOnClick(e);
-			}
-
-			if (performDefaultAction && action !== 'open-consent-dialog') {
-				switch (action) {
-					case 'accept-consent':
-						saveConsents('all');
-						break;
-					case 'reject-consent':
-						saveConsents('none');
-						break;
-					case 'custom-consent':
-						saveConsents();
-						break;
-					case 'set-consent':
-						if (!category) {
-							throw new Error('Category is required for set-consent action');
-						}
-
-						setConsent({ [category]: true });
-						break;
-					default:
-						break;
-				}
-			}
-		},
-		[
-			closeConsentBanner,
-			closeConsentDialog,
-			forwardedOnClick,
-			saveConsents,
-			setActiveUI,
+>(
+	(
+		{
+			asChild,
+			className: forwardedClassName,
+			style,
+			noStyle,
 			action,
+			slotKey,
+			baseClassName,
+			variant,
+			mode,
+			size = 'small',
+			consentAction,
+			isPrimary,
+			onClick: forwardedOnClick,
+			closeConsentBanner = false,
+			closeConsentDialog = false,
+			performDefaultAction = true,
 			category,
-			setConsent,
-			performDefaultAction,
-		]
-	);
+			...props
+		},
+		ref
+	) => {
+		const saveConsents = useSaveConsents();
+		const setActiveUI = useSetActiveUI();
+		const setConsent = useSetConsent();
+		const { noStyle: contextNoStyle, theme } = useTheme();
+		const { components } = useUIConfig();
+		const resolvedButtonStyle = resolveConsentButtonStyle({
+			consentAction,
+			isPrimary,
+			mode,
+			theme,
+			variant,
+		});
 
-	const Comp = asChild ? Slot : 'button';
+		const defaultSlotKey =
+			resolvedButtonStyle.variant === 'primary'
+				? 'button.primary'
+				: 'button.secondary';
 
-	// Filter out non-DOM props to prevent React warnings
-	const domProps = Object.fromEntries(
-		Object.entries(props).filter(
-			([key]) => !NON_DOM_PROPS.includes(key as (typeof NON_DOM_PROPS)[number])
-		)
-	);
+		const slotProps = getSlotProps(components, slotKey ?? defaultSlotKey);
+		const buttonStyleProps = mergeSlotProps(slotProps, {
+			baseClassName: [
+				Button.buttonVariants({
+					mode: resolvedButtonStyle.mode,
+					size,
+					variant: resolvedButtonStyle.variant,
+				}).root(),
+				baseClassName,
+			],
+			className: forwardedClassName,
+			noStyle: contextNoStyle || noStyle,
+			style: {
+				...(style as CSSPropertiesWithVars<CSSVariables>),
+			},
+		});
 
-	const isStyled = !(contextNoStyle || noStyle);
+		// Need to know what category to set
+		if (!category && action === 'set-consent') {
+			throw new Error('Category is required for set-consent action');
+		}
 
-	return (
-		<Comp
-			ref={ref}
-			type={asChild ? undefined : 'button'}
-			data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
-			data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
-			data-size={isStyled ? size : undefined}
-			{...buttonStyleProps}
-			onClick={buttonClick}
-			{...domProps}
-		/>
-	);
-});
+		const buttonClick = useCallback(
+			(e: MouseEvent<HTMLButtonElement>) => {
+				const actionSavesConsent =
+					action === 'accept-consent' ||
+					action === 'reject-consent' ||
+					action === 'custom-consent';
+				// Handle UI first - prioritize closing dialogs/banners
+				if ((closeConsentBanner || closeConsentDialog) && !actionSavesConsent) {
+					setActiveUI('none');
+				}
+
+				// Open privacy dialog if needed
+				if (action === 'open-consent-dialog') {
+					setActiveUI('dialog');
+				}
+
+				// Call the user's onClick handler after UI updates
+				if (forwardedOnClick) {
+					forwardedOnClick(e);
+				}
+
+				if (performDefaultAction && action !== 'open-consent-dialog') {
+					switch (action) {
+						case 'accept-consent':
+							saveConsents('all');
+							break;
+						case 'reject-consent':
+							saveConsents('none');
+							break;
+						case 'custom-consent':
+							saveConsents();
+							break;
+						case 'set-consent':
+							if (!category) {
+								throw new Error('Category is required for set-consent action');
+							}
+
+							setConsent({ [category]: true });
+							break;
+						default:
+							break;
+					}
+				}
+			},
+			[
+				closeConsentBanner,
+				closeConsentDialog,
+				forwardedOnClick,
+				saveConsents,
+				setActiveUI,
+				action,
+				category,
+				setConsent,
+				performDefaultAction,
+			]
+		);
+
+		const Comp = asChild ? Slot : 'button';
+
+		// Filter out non-DOM props to prevent React warnings
+		const domProps = Object.fromEntries(
+			Object.entries(props).filter(
+				([key]) =>
+					!NON_DOM_PROPS.includes(key as (typeof NON_DOM_PROPS)[number])
+			)
+		);
+
+		const isStyled = !(contextNoStyle || noStyle);
+
+		return (
+			<Comp
+				ref={ref}
+				type={asChild ? undefined : 'button'}
+				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
+				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
+				data-size={isStyled ? size : undefined}
+				{...buttonStyleProps}
+				onClick={buttonClick}
+				{...domProps}
+			/>
+		);
+	}
+);
 
 ConsentButton.displayName = 'ConsentButton';

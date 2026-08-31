@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef, useMemo } from 'react';
+import { forwardRef as createForwardRef, useMemo } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import * as Tabs from '~/v3/components/shared/ui/tabs';
@@ -17,14 +17,10 @@ interface IABConsentDialogTabsProps extends Omit<
 	defaultTab?: 'purposes' | 'vendors';
 }
 
-const IABConsentDialogTabs = forwardRef<
+const IABConsentDialogTabs = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogTabsProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentDialogTabs(
-	{ children, defaultTab = 'purposes', className, ...props },
-	ref
-) {
+>(({ children, defaultTab = 'purposes', className, ...props }, ref) => {
 	const iabTranslations = useIABTranslations();
 	const {
 		purposes,
@@ -95,28 +91,22 @@ interface IABConsentDialogTabButtonProps extends HTMLAttributes<HTMLButtonElemen
 	tab: 'purposes' | 'vendors';
 }
 
-const IABConsentDialogTabButton = forwardRef<
+const IABConsentDialogTabButton = createForwardRef<
 	HTMLButtonElement,
 	IABConsentDialogTabButtonProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentDialogTabButton(
-	{ tab, children, className, ...props },
-	ref
-) {
-	return (
-		<Tabs.Trigger
-			ref={ref}
-			className={
-				className ? `${styles.tabButton} ${className}` : styles.tabButton
-			}
-			noStyle
-			value={tab}
-			{...(props as Omit<IABConsentDialogTabButtonProps, 'tab'>)}
-		>
-			{children}
-		</Tabs.Trigger>
-	);
-});
+>(({ tab, children, className, ...props }, ref) => (
+	<Tabs.Trigger
+		ref={ref}
+		className={
+			className ? `${styles.tabButton} ${className}` : styles.tabButton
+		}
+		noStyle
+		value={tab}
+		{...(props as Omit<IABConsentDialogTabButtonProps, 'tab'>)}
+	>
+		{children}
+	</Tabs.Trigger>
+));
 
 IABConsentDialogTabButton.displayName = 'IABConsentDialogTabButton';
 

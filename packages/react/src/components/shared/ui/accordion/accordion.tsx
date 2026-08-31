@@ -12,7 +12,13 @@ import type {
 	AccordionVariant,
 	AccordionVariantsProps,
 } from '@c15t/ui/styles/primitives/accordion';
-import { createContext, forwardRef, useContext, useId, useMemo } from 'react';
+import {
+	createContext,
+	forwardRef as createForwardRef,
+	useContext,
+	useId,
+	useMemo,
+} from 'react';
 import type { ButtonHTMLAttributes, ElementType, HTMLAttributes } from 'react';
 
 import type { PolymorphicComponentProps } from '~/components/shared/libs/polymorphic';
@@ -94,9 +100,8 @@ export type AccordionRootProps = HTMLAttributes<HTMLDivElement> &
 		value?: string | string[];
 	};
 
-const AccordionRoot = forwardRef<HTMLDivElement, AccordionRootProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function AccordionRoot(
+const AccordionRoot = createForwardRef<HTMLDivElement, AccordionRootProps>(
+	(
 		{
 			children,
 			className,
@@ -111,7 +116,7 @@ const AccordionRoot = forwardRef<HTMLDivElement, AccordionRootProps>(
 			...rest
 		},
 		forwardedRef
-	) {
+	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = accordionVariants({ size, variant });
 		const finalNoStyle = contextNoStyle || noStyle;
@@ -175,12 +180,11 @@ export interface AccordionItemProps extends HTMLAttributes<HTMLDivElement> {
 	value: string;
 }
 
-const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function AccordionItem(
+const AccordionItem = createForwardRef<HTMLDivElement, AccordionItemProps>(
+	(
 		{ children, className, disabled, noStyle, value, ...rest },
 		forwardedRef
-	) {
+	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = accordionVariants();
 		const accordionContext = useAccordionContext();
@@ -228,19 +232,16 @@ AccordionItem.displayName = ACCORDION_ITEM_NAME;
 
 export type AccordionHeaderProps = HTMLAttributes<HTMLDivElement>;
 
-const AccordionHeader = forwardRef<HTMLDivElement, AccordionHeaderProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function AccordionHeader({ children, ...rest }, forwardedRef) {
-		return (
-			<div
-				ref={forwardedRef}
-				data-slot="accordion-header"
-				{...rest}
-			>
-				{children}
-			</div>
-		);
-	}
+const AccordionHeader = createForwardRef<HTMLDivElement, AccordionHeaderProps>(
+	({ children, ...rest }, forwardedRef) => (
+		<div
+			ref={forwardedRef}
+			data-slot="accordion-header"
+			{...rest}
+		>
+			{children}
+		</div>
+	)
 );
 
 AccordionHeader.displayName = ACCORDION_HEADER_NAME;
@@ -252,46 +253,42 @@ export interface AccordionTriggerProps extends Omit<
 	noStyle?: boolean;
 }
 
-const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function AccordionTrigger(
-		{ children, className, noStyle, onClick, ...rest },
-		forwardedRef
-	) {
-		const { noStyle: contextNoStyle } = useTheme();
-		const variants = accordionVariants();
-		const accordionContext = useAccordionContext();
-		const itemContext = useAccordionItemContext();
-		const triggerNoStyle =
-			accordionContext.noStyle || contextNoStyle || noStyle;
-		const triggerClassName = triggerNoStyle
-			? className
-			: variants.trigger({ class: className });
+const AccordionTrigger = createForwardRef<
+	HTMLButtonElement,
+	AccordionTriggerProps
+>(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
+	const { noStyle: contextNoStyle } = useTheme();
+	const variants = accordionVariants();
+	const accordionContext = useAccordionContext();
+	const itemContext = useAccordionItemContext();
+	const triggerNoStyle = accordionContext.noStyle || contextNoStyle || noStyle;
+	const triggerClassName = triggerNoStyle
+		? className
+		: variants.trigger({ class: className });
 
-		return (
-			<button
-				ref={forwardedRef}
-				aria-controls={itemContext.contentId}
-				aria-disabled={itemContext.disabled || undefined}
-				aria-expanded={itemContext.open}
-				className={triggerClassName}
-				data-disabled={getDataDisabled(itemContext.disabled)}
-				data-slot="accordion-trigger"
-				data-state={itemContext.open ? 'open' : 'closed'}
-				disabled={itemContext.disabled}
-				id={itemContext.triggerId}
-				onClick={(event) => {
-					accordionContext.onItemToggle(itemContext.value);
-					onClick?.(event);
-				}}
-				type="button"
-				{...rest}
-			>
-				{children}
-			</button>
-		);
-	}
-);
+	return (
+		<button
+			ref={forwardedRef}
+			aria-controls={itemContext.contentId}
+			aria-disabled={itemContext.disabled || undefined}
+			aria-expanded={itemContext.open}
+			className={triggerClassName}
+			data-disabled={getDataDisabled(itemContext.disabled)}
+			data-slot="accordion-trigger"
+			data-state={itemContext.open ? 'open' : 'closed'}
+			disabled={itemContext.disabled}
+			id={itemContext.triggerId}
+			onClick={(event) => {
+				accordionContext.onItemToggle(itemContext.value);
+				onClick?.(event);
+			}}
+			type="button"
+			{...rest}
+		>
+			{children}
+		</button>
+	);
+});
 
 AccordionTrigger.displayName = ACCORDION_TRIGGER_NAME;
 
@@ -397,12 +394,8 @@ export interface AccordionContentProps extends HTMLAttributes<HTMLElement> {
 	noStyle?: boolean;
 }
 
-const AccordionContent = forwardRef<HTMLElement, AccordionContentProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function AccordionContent(
-		{ children, className, innerClassName, noStyle, ...rest },
-		forwardedRef
-	) {
+const AccordionContent = createForwardRef<HTMLElement, AccordionContentProps>(
+	({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = accordionVariants();
 		const accordionContext = useAccordionContext();

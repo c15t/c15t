@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> {
@@ -13,21 +13,18 @@ interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> 
  *
  * @public
  */
-const IABConsentBannerTitle = forwardRef<
+const IABConsentBannerTitle = createForwardRef<
 	HTMLHeadingElement,
 	IABConsentBannerTitleProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentBannerTitle({ children, className, ...props }, ref) {
-	return (
-		<h2
-			ref={ref}
-			className={className ? `${styles.title} ${className}` : styles.title}
-			{...props}
-		>
-			{children}
-		</h2>
-	);
-});
+>(({ children, className, ...props }, ref) => (
+	<h2
+		ref={ref}
+		className={className ? `${styles.title} ${className}` : styles.title}
+		{...props}
+	>
+		{children}
+	</h2>
+));
 
 IABConsentBannerTitle.displayName = 'IABConsentBannerTitle';
 

@@ -1,5 +1,5 @@
 import styles from '@c15t/ui/styles/v3/button';
-import { forwardRef, useId } from 'react';
+import { forwardRef as createForwardRef, useId } from 'react';
 import type { ButtonHTMLAttributes, ElementType, ReactElement } from 'react';
 
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
@@ -83,9 +83,8 @@ type ButtonRootProps = ButtonSharedProps &
  *
  * @public
  */
-const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ButtonRoot(
+const ButtonRoot = createForwardRef<HTMLButtonElement, ButtonRootProps>(
+	(
 		{
 			children,
 			variant,
@@ -98,7 +97,7 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 			...rest
 		},
 		forwardedRef
-	) {
+	) => {
 		const uniqueId = useId();
 		const Component = asChild ? Slot : 'button';
 

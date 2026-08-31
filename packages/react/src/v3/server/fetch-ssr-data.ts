@@ -57,8 +57,7 @@ const inspectCacheHeaders = function inspectCacheHeaders(headers: Headers): {
 		}
 
 		headerDetail = `${headerName}=${headerValue}`;
-		// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/iu.test(
+		headerIndicatesHit = /\b(?:hit|stale|revalidated|updating)\b/iu.test(
 			headerValue
 		);
 		break;
@@ -77,6 +76,24 @@ const inspectCacheHeaders = function inspectCacheHeaders(headers: Headers): {
 		detail,
 		isHit: headerIndicatesHit || ageIndicatesCache,
 	};
+};
+
+const logRelevantHeaders = function logRelevantHeaders(
+	relevantHeaders: Record<string, string>,
+	debug?: boolean
+): void {
+	if (!debug) {
+		return;
+	}
+	const headerKeys = Object.keys(relevantHeaders);
+	console.log(`[c15t/server] Detected headers: [${headerKeys.join(', ')}]`);
+	const cfCountry = relevantHeaders['cf-ipcountry'];
+	const xCountry = relevantHeaders['x-vercel-ip-country'];
+	if (cfCountry) {
+		console.log(`[c15t/server] Country from cf-ipcountry: ${cfCountry}`);
+	} else if (xCountry) {
+		console.log(`[c15t/server] Country from x-vercel-ip-country: ${xCountry}`);
+	}
 };
 
 /**
@@ -181,7 +198,6 @@ const performInitFetch = async function performInitFetch(
  *
  * @public
  */
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 export const fetchSSRData = async function fetchSSRData(
 	options: FetchSSRDataOptions
 ): Promise<SSRInitialData | undefined> {
@@ -194,21 +210,7 @@ export const fetchSSRData = async function fetchSSRData(
 	// Extract relevant headers from the request
 	const relevantHeaders = extractRelevantHeaders(headers);
 
-	if (debug) {
-		const headerKeys = Object.keys(relevantHeaders);
-		console.log(`[c15t/server] Detected headers: [${headerKeys.join(', ')}]`);
-
-		// Log geo source if available
-		const cfCountry = relevantHeaders['cf-ipcountry'];
-		const xCountry = relevantHeaders['x-vercel-ip-country'];
-		if (cfCountry) {
-			console.log(`[c15t/server] Country from cf-ipcountry: ${cfCountry}`);
-		} else if (xCountry) {
-			console.log(
-				`[c15t/server] Country from x-vercel-ip-country: ${xCountry}`
-			);
-		}
-	}
+	logRelevantHeaders(relevantHeaders, debug);
 
 	// We can't fetch from the server if the headers are not present
 	if (Object.keys(relevantHeaders).length === 0) {

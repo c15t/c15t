@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 interface IABConsentDialogContentProps extends HTMLAttributes<HTMLDivElement> {
@@ -16,11 +16,10 @@ interface IABConsentDialogContentProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const IABConsentDialogContent = forwardRef<
+const IABConsentDialogContent = createForwardRef<
 	HTMLDivElement,
 	IABConsentDialogContentProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentDialogContent({ children, className, ...props }, ref) {
+>(({ children, className, ...props }, ref) => {
 	const contentClassName = className
 		? `${styles.content} ${className}`
 		: styles.content;

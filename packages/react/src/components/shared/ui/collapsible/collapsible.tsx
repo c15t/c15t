@@ -6,7 +6,13 @@ import {
 } from '@c15t/ui/primitives/collapsible';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { collapsibleVariants } from '@c15t/ui/styles/primitives/collapsible';
-import { createContext, forwardRef, useContext, useId, useMemo } from 'react';
+import {
+	createContext,
+	forwardRef as createForwardRef,
+	useContext,
+	useId,
+	useMemo,
+} from 'react';
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
@@ -44,9 +50,8 @@ export interface CollapsibleRootProps extends HTMLAttributes<HTMLDivElement> {
 	open?: boolean;
 }
 
-const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function CollapsibleRoot(
+const CollapsibleRoot = createForwardRef<HTMLDivElement, CollapsibleRootProps>(
+	(
 		{
 			children,
 			className,
@@ -58,7 +63,7 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 			...rest
 		},
 		forwardedRef
-	) {
+	) => {
 		const reactId = useId().replace(/:/gu, '');
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = collapsibleVariants();
@@ -108,14 +113,10 @@ export interface CollapsibleTriggerProps extends Omit<
 	noStyle?: boolean;
 }
 
-const CollapsibleTrigger = forwardRef<
+const CollapsibleTrigger = createForwardRef<
 	HTMLButtonElement,
 	CollapsibleTriggerProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function CollapsibleTrigger(
-	{ children, className, noStyle, onClick, ...rest },
-	forwardedRef
-) {
+>(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = collapsibleVariants();
 	const {
@@ -163,46 +164,43 @@ export interface CollapsibleContentProps extends HTMLAttributes<HTMLDivElement> 
 	noStyle?: boolean;
 }
 
-const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function CollapsibleContent(
-		{ children, className, innerClassName, noStyle, ...rest },
-		forwardedRef
-	) {
-		const { noStyle: contextNoStyle } = useTheme();
-		const variants = collapsibleVariants();
-		const {
-			contentId,
-			noStyle: rootNoStyle,
-			open,
-			triggerId,
-		} = useCollapsibleContext();
-		const _finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+const CollapsibleContent = createForwardRef<
+	HTMLDivElement,
+	CollapsibleContentProps
+>(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
+	const { noStyle: contextNoStyle } = useTheme();
+	const variants = collapsibleVariants();
+	const {
+		contentId,
+		noStyle: rootNoStyle,
+		open,
+		triggerId,
+	} = useCollapsibleContext();
+	const _finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
 
-		return (
+	return (
+		<div
+			ref={forwardedRef}
+			aria-hidden={!open}
+			aria-labelledby={triggerId}
+			className={variants.content({ class: className })}
+			data-slot="collapsible-content"
+			data-state={getCollapsibleState(open)}
+			id={contentId}
+			inert={!open}
+			{...rest}
+		>
 			<div
-				ref={forwardedRef}
-				aria-hidden={!open}
-				aria-labelledby={triggerId}
-				className={variants.content({ class: className })}
-				data-slot="collapsible-content"
-				data-state={getCollapsibleState(open)}
-				id={contentId}
-				inert={!open}
-				{...rest}
+				className={variants.contentViewport({ class: undefined })}
+				data-slot="collapsible-content-viewport"
 			>
-				<div
-					className={variants.contentViewport({ class: undefined })}
-					data-slot="collapsible-content-viewport"
-				>
-					<div className={variants.contentInner({ class: innerClassName })}>
-						{children}
-					</div>
+				<div className={variants.contentInner({ class: innerClassName })}>
+					{children}
 				</div>
 			</div>
-		);
-	}
-);
+		</div>
+	);
+});
 
 CollapsibleContent.displayName = 'CollapsibleContent';
 

@@ -39,14 +39,23 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 	return deferred.promise;
 };
 
-const waitFor = async function waitFor(
+const createConstructorMock = <Instance extends object>(
+	factory: () => Instance
+) =>
+	vi.fn(
+		new Proxy(Object, {
+			construct: () => factory(),
+		})
+	);
+
+const waitFor = function waitFor(
 	assertion: () => undefined | boolean,
 	timeoutMs = 1000
 ) {
 	const start = Date.now();
 	let lastError: unknown;
 
-	while (Date.now() - start < timeoutMs) {
+	const poll = async (): Promise<void> => {
 		try {
 			const result = assertion();
 			if (result !== false) {
@@ -55,14 +64,17 @@ const waitFor = async function waitFor(
 		} catch (error) {
 			lastError = error;
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+		if (Date.now() - start >= timeoutMs) {
+			if (lastError) {
+				throw lastError;
+			}
+			throw new Error('Timed out waiting for assertion');
+		}
 		await createDeferredPromise((resolve) => setTimeout(resolve, 20));
-	}
+		return poll();
+	};
 
-	if (lastError) {
-		throw lastError;
-	}
-	throw new Error('Timed out waiting for assertion');
+	return poll();
 };
 
 const Provider = ({ children }: { children: ReactNode }) => (
@@ -910,10 +922,7 @@ describe('renderable integrations', () => {
 			setZoom: vi.fn(),
 		};
 		let mapsApi: unknown;
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return mapInstance;
-		});
+		const mapConstructor = createConstructorMock(() => mapInstance);
 		const clearInstanceListeners = vi.fn();
 		const onReady = vi.fn();
 		const consents = {
@@ -1025,10 +1034,7 @@ describe('renderable integrations', () => {
 			setOptions: vi.fn(),
 			setZoom: vi.fn(),
 		};
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return mapInstance;
-		});
+		const mapConstructor = createConstructorMock(() => mapInstance);
 		(window as unknown as Record<string, unknown>).google = {
 			maps: {
 				Map: mapConstructor,
@@ -1088,14 +1094,11 @@ describe('renderable integrations', () => {
 	});
 
 	test('shares one Google Maps script across multiple map instances', async () => {
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return {
-				setCenter: vi.fn(),
-				setOptions: vi.fn(),
-				setZoom: vi.fn(),
-			};
-		});
+		const mapConstructor = createConstructorMock(() => ({
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		}));
 		const onFirstReady = vi.fn();
 		const onSecondReady = vi.fn();
 		const setScripts = vi.fn((scripts) => {
@@ -1172,10 +1175,7 @@ describe('renderable integrations', () => {
 			setOptions: vi.fn(),
 			setZoom: vi.fn(),
 		};
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return mapInstance;
-		});
+		const mapConstructor = createConstructorMock(() => mapInstance);
 		(window as unknown as Record<string, unknown>).google = {
 			maps: {
 				Map: mapConstructor,
@@ -1209,14 +1209,11 @@ describe('renderable integrations', () => {
 	});
 
 	test('retains one Google Maps loader across route-style remounts', async () => {
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return {
-				setCenter: vi.fn(),
-				setOptions: vi.fn(),
-				setZoom: vi.fn(),
-			};
-		});
+		const mapConstructor = createConstructorMock(() => ({
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		}));
 		const onReady = vi.fn();
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
@@ -1277,8 +1274,7 @@ describe('renderable integrations', () => {
 
 	test('renders the error fallback when Google Maps construction fails', async () => {
 		const initializationError = new Error('Map constructor failed');
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
+		const mapConstructor = createConstructorMock(() => {
 			throw initializationError;
 		});
 		(window as unknown as Record<string, unknown>).google = {
@@ -1317,14 +1313,11 @@ describe('renderable integrations', () => {
 	});
 
 	test('surfaces Google Maps authentication failures', async () => {
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		const mapConstructor = vi.fn(function GoogleMapConstructor() {
-			return {
-				setCenter: vi.fn(),
-				setOptions: vi.fn(),
-				setZoom: vi.fn(),
-			};
-		});
+		const mapConstructor = createConstructorMock(() => ({
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		}));
 		(window as unknown as Record<string, unknown>).google = {
 			maps: {
 				Map: mapConstructor,

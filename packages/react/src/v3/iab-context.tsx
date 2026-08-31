@@ -105,7 +105,6 @@ export const useIAB = function useIAB(): ReactIABState | null {
 		() => kernel.getServerSnapshot().iab
 	);
 
-	// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 	return useMemo(() => {
 		if (!iab) {
 			return null;
@@ -117,26 +116,35 @@ export const useIAB = function useIAB(): ReactIABState | null {
 		const noopAsync = async () => {
 			// Intentionally empty.
 		};
+		const fallbackTo = <Value,>(
+			value: Value | undefined,
+			fallback: Value
+		): Value => value ?? fallback;
 
 		return {
 			...iab,
-			acceptAll: handle?.acceptAll ?? noop,
+			acceptAll: fallbackTo(handle?.acceptAll, noop),
 			config: {
 				cmpId: iab.cmpId,
 				enabled: iab.enabled && Boolean(handle),
 			},
 			isLoadingGVL: iab.enabled && (!iab.gvl || !handle),
 			nonIABVendors: iab.customVendors,
-			preferenceCenterTab: iabContext?.tab ?? 'purposes',
-			rejectAll: handle?.rejectAll ?? noop,
-			save: handle?.save ?? noopAsync,
-			setPreferenceCenterTab: iabContext?.setTab ?? noop,
-			setPurposeConsent: handle?.setPurposeConsent ?? noop,
-			setPurposeLegitimateInterest:
-				handle?.setPurposeLegitimateInterest ?? noop,
-			setSpecialFeatureOptIn: handle?.setSpecialFeatureOptIn ?? noop,
-			setVendorConsent: handle?.setVendorConsent ?? noop,
-			setVendorLegitimateInterest: handle?.setVendorLegitimateInterest ?? noop,
+			preferenceCenterTab: fallbackTo(iabContext?.tab, 'purposes'),
+			rejectAll: fallbackTo(handle?.rejectAll, noop),
+			save: fallbackTo(handle?.save, noopAsync),
+			setPreferenceCenterTab: fallbackTo(iabContext?.setTab, noop),
+			setPurposeConsent: fallbackTo(handle?.setPurposeConsent, noop),
+			setPurposeLegitimateInterest: fallbackTo(
+				handle?.setPurposeLegitimateInterest,
+				noop
+			),
+			setSpecialFeatureOptIn: fallbackTo(handle?.setSpecialFeatureOptIn, noop),
+			setVendorConsent: fallbackTo(handle?.setVendorConsent, noop),
+			setVendorLegitimateInterest: fallbackTo(
+				handle?.setVendorLegitimateInterest,
+				noop
+			),
 		};
 	}, [iab, iabContext]);
 };

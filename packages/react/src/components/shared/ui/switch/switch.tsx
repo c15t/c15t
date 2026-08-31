@@ -5,7 +5,7 @@ import type {
 	SwitchSize,
 	SwitchVariantsProps,
 } from '@c15t/ui/styles/primitives/switch';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
@@ -32,86 +32,87 @@ export interface SwitchProps
 	themeKey?: AllThemeKeys;
 }
 
-// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch(
-	{
-		checked,
-		className,
-		defaultChecked = false,
-		disabled,
-		noStyle,
-		onCheckedChange,
-		onClick,
-		onKeyDown,
-		size = 'medium',
-		...rest
-	},
-	forwardedRef
-) {
-	const variants = switchVariants({ size });
-	const [isChecked, setIsChecked] = useControllableState({
-		defaultValue: defaultChecked,
-		onChange: onCheckedChange,
-		value: checked,
-	});
+const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
+	(
+		{
+			checked,
+			className,
+			defaultChecked = false,
+			disabled,
+			noStyle,
+			onCheckedChange,
+			onClick,
+			onKeyDown,
+			size = 'medium',
+			...rest
+		},
+		forwardedRef
+	) => {
+		const variants = switchVariants({ size });
+		const [isChecked, setIsChecked] = useControllableState({
+			defaultValue: defaultChecked,
+			onChange: onCheckedChange,
+			value: checked,
+		});
 
-	const rootClassName = noStyle
-		? className
-		: variants.root({ class: className, disabled });
-	const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
-	const trackClassName = noStyle ? undefined : variants.track({ disabled });
-	const dataState = getSwitchState(isChecked);
-	const dataDisabled = getDataDisabled(disabled);
+		const rootClassName = noStyle
+			? className
+			: variants.root({ class: className, disabled });
+		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
+		const trackClassName = noStyle ? undefined : variants.track({ disabled });
+		const dataState = getSwitchState(isChecked);
+		const dataDisabled = getDataDisabled(disabled);
 
-	const toggle = () => {
-		if (disabled) {
-			return;
-		}
+		const toggle = () => {
+			if (disabled) {
+				return;
+			}
 
-		setIsChecked(toggleSwitchValue(isChecked));
-	};
+			setIsChecked(toggleSwitchValue(isChecked));
+		};
 
-	const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
-		toggle();
-		onClick?.(event);
-	};
-
-	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-		if (event.key === 'Enter') {
-			event.preventDefault();
+		const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
 			toggle();
-		}
+			onClick?.(event);
+		};
 
-		onKeyDown?.(event);
-	};
+		const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				toggle();
+			}
 
-	return (
-		<button
-			ref={forwardedRef}
-			aria-checked={isChecked}
-			className={rootClassName}
-			data-disabled={dataDisabled}
-			data-slot="switch"
-			data-state={dataState}
-			disabled={disabled}
-			onClick={handleClick}
-			onKeyDown={handleKeyDown}
-			role="switch"
-			type="button"
-			{...rest}
-		>
-			<span
-				className={trackClassName}
-				data-slot="switch-track"
+			onKeyDown?.(event);
+		};
+
+		return (
+			<button
+				ref={forwardedRef}
+				aria-checked={isChecked}
+				className={rootClassName}
+				data-disabled={dataDisabled}
+				data-slot="switch"
+				data-state={dataState}
+				disabled={disabled}
+				onClick={handleClick}
+				onKeyDown={handleKeyDown}
+				role="switch"
+				type="button"
+				{...rest}
 			>
 				<span
-					className={thumbClassName}
-					data-slot="switch-thumb"
-				/>
-			</span>
-		</button>
-	);
-});
+					className={trackClassName}
+					data-slot="switch-track"
+				>
+					<span
+						className={thumbClassName}
+						data-slot="switch-thumb"
+					/>
+				</span>
+			</button>
+		);
+	}
+);
 
 Switch.displayName = 'SwitchRoot';
 

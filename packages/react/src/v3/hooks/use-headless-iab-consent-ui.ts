@@ -137,7 +137,6 @@ export const useHeadlessIABConsentUI =
 			UseHeadlessIABConsentUIResult['performBannerAction']
 		>(
 			(action) => {
-				// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 				switch (action) {
 					case 'accept':
 						return acceptAll();
@@ -145,6 +144,8 @@ export const useHeadlessIABConsentUI =
 						return rejectAll();
 					case 'customize':
 						return openPurposesDialog();
+					default:
+						return undefined;
 				}
 			},
 			[acceptAll, openPurposesDialog, rejectAll]
@@ -154,7 +155,6 @@ export const useHeadlessIABConsentUI =
 			UseHeadlessIABConsentUIResult['performDialogAction']
 		>(
 			(action) => {
-				// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 				switch (action) {
 					case 'accept':
 						return acceptAll();
@@ -162,6 +162,8 @@ export const useHeadlessIABConsentUI =
 						return rejectAll();
 					case 'customize':
 						return savePreferences();
+					default:
+						return undefined;
 				}
 			},
 			[acceptAll, rejectAll, savePreferences]

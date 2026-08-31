@@ -1,7 +1,7 @@
 'use client';
 
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { Slot } from '~/components/shared/libs/slot';
@@ -53,31 +53,32 @@ export interface BoxProps
  *
  * @public
  */
-// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-export const Box = forwardRef<HTMLDivElement, BoxProps>(function Box(
-	{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
-	ref
-) {
-	/**
-	 * Apply styles from the CookieBanner context and merge with local styles.
-	 * Uses the 'description' style key for consistent theming.
-	 */
-	const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
-		baseClassName,
-		className,
-		noStyle,
-		style,
-	});
-	const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
+export const Box = createForwardRef<HTMLDivElement, BoxProps>(
+	(
+		{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
+		ref
+	) => {
+		/**
+		 * Apply styles from the CookieBanner context and merge with local styles.
+		 * Uses the 'description' style key for consistent theming.
+		 */
+		const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
+			baseClassName,
+			className,
+			noStyle,
+			style,
+		});
+		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 
-	const Comp = asChild ? Slot : 'div';
-	return (
-		<Comp
-			ref={ref}
-			{...props}
-			{...domStyleProps}
-		/>
-	);
-});
+		const Comp = asChild ? Slot : 'div';
+		return (
+			<Comp
+				ref={ref}
+				{...props}
+				{...domStyleProps}
+			/>
+		);
+	}
+);
 
 Box.displayName = 'Box';

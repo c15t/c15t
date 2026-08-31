@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -25,11 +25,10 @@ interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogEleme
  *
  * @public
  */
-const IABConsentDialogCard = forwardRef<
+const IABConsentDialogCard = createForwardRef<
 	HTMLDialogElement,
 	IABConsentDialogCardProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentDialogCard({ children, className, ...props }, ref) {
+>(({ children, className, ...props }, ref) => {
 	const { trapFocus } = useTheme();
 	const { activeUI } = useConsentManager();
 	const iabTranslations = useIABTranslations();

@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { ReactNode, Ref } from 'react';
 
 import { ConsentButton } from '~/v3/components/shared/primitives/button';
@@ -22,22 +22,19 @@ export interface ConsentDialogLinkProps extends Omit<
 	children: ReactNode;
 }
 
-export const ConsentDialogLink = forwardRef<
+export const ConsentDialogLink = createForwardRef<
 	HTMLButtonElement,
 	ConsentDialogLinkProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function ConsentDialogLink({ children, noStyle = true, ...props }, ref) {
-	return (
-		<ConsentButton
-			ref={ref as Ref<HTMLButtonElement>}
-			action="open-consent-dialog"
-			noStyle={noStyle}
-			data-testid="consent-dialog-link"
-			{...props}
-		>
-			{children}
-		</ConsentButton>
-	);
-});
+>(({ children, noStyle = true, ...props }, ref) => (
+	<ConsentButton
+		ref={ref as Ref<HTMLButtonElement>}
+		action="open-consent-dialog"
+		noStyle={noStyle}
+		data-testid="consent-dialog-link"
+		{...props}
+	>
+		{children}
+	</ConsentButton>
+));
 
 ConsentDialogLink.displayName = 'ConsentDialogLink';

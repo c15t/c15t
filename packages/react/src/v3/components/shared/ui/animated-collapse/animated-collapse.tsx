@@ -209,8 +209,7 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 				// Animate to 0
 				animationRef.current = requestAnimationFrame(() => {
 					// Force reflow
-					// oxlint-disable-next-line no-unused-expressions -- Reading layout forces the required reflow.
-					wrapper.offsetHeight;
+					void wrapper.offsetHeight;
 
 					setState({
 						height: 0,

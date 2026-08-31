@@ -1,7 +1,7 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
@@ -29,9 +29,8 @@ const DefaultPlaceholder = ({
 		{policyBlocked ? null : <FrameButton category={category} />}
 	</FrameRoot>
 );
-const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function FrameComponent(
+const FrameComponent = createForwardRef<HTMLDivElement, FrameProps>(
+	(
 		{
 			children,
 			category,
@@ -42,7 +41,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			...props
 		},
 		ref
-	) {
+	) => {
 		const {
 			has,
 			updateConsentCategories,

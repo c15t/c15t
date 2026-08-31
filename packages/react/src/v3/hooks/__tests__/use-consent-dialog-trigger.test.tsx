@@ -29,8 +29,7 @@ const createMockState = function createMockState(
 };
 
 const createWrapper = function createWrapper(state: ConsentStoreState) {
-	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-	return function createWrapper({ children }: { children: React.ReactNode }) {
+	return function Wrapper({ children }: { children: React.ReactNode }) {
 		return (
 			<StableConsentStateProvider
 				value={{

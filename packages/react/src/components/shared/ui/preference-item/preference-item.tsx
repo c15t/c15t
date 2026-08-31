@@ -9,7 +9,13 @@ import {
 } from '@c15t/ui/primitives/preference-item';
 import { preferenceItemVariants } from '@c15t/ui/styles/primitives/preference-item';
 import type { PreferenceItemVariantsProps } from '@c15t/ui/styles/primitives/preference-item';
-import { createContext, forwardRef, useContext, useId, useMemo } from 'react';
+import {
+	createContext,
+	forwardRef as createForwardRef,
+	useContext,
+	useId,
+	useMemo,
+} from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
@@ -50,9 +56,11 @@ export interface PreferenceItemRootProps
 	open?: boolean;
 }
 
-const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function PreferenceItemRoot(
+const PreferenceItemRoot = createForwardRef<
+	HTMLDivElement,
+	PreferenceItemRootProps
+>(
+	(
 		{
 			children,
 			className,
@@ -64,7 +72,7 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			...rest
 		},
 		forwardedRef
-	) {
+	) => {
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = preferenceItemVariants();
 		const [isOpen, setIsOpen] = useControllableState({
@@ -114,14 +122,10 @@ export interface PreferenceItemTriggerProps extends Omit<
 	noStyle?: boolean;
 }
 
-const PreferenceItemTrigger = forwardRef<
+const PreferenceItemTrigger = createForwardRef<
 	HTMLButtonElement,
 	PreferenceItemTriggerProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function PreferenceItemTrigger(
-	{ children, className, noStyle, onClick, ...rest },
-	forwardedRef
-) {
+>(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = preferenceItemVariants();
 	const {
@@ -173,9 +177,8 @@ const createSlotComponent = function createSlotComponent(
 	slot: (typeof PREFERENCE_ITEM_SLOTS)[keyof typeof PREFERENCE_ITEM_SLOTS],
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
 ) {
-	const Component = forwardRef<HTMLDivElement, PreferenceItemSlotProps>(
-		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-		function Component({ className, noStyle, ...rest }, forwardedRef) {
+	const Component = createForwardRef<HTMLDivElement, PreferenceItemSlotProps>(
+		({ className, noStyle, ...rest }, forwardedRef) => {
 			const { noStyle: contextNoStyle } = useTheme();
 			const { noStyle: rootNoStyle } = usePreferenceItemContext();
 			const variants = preferenceItemVariants();
@@ -234,14 +237,10 @@ export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElem
 	noStyle?: boolean;
 }
 
-const PreferenceItemTitle = forwardRef<
+const PreferenceItemTitle = createForwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function PreferenceItemTitle(
-	{ children, className, noStyle, ...rest },
-	forwardedRef
-) {
+>(({ children, className, noStyle, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
 	const variants = preferenceItemVariants();
@@ -268,14 +267,10 @@ export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElemen
 	noStyle?: boolean;
 }
 
-const PreferenceItemContent = forwardRef<
+const PreferenceItemContent = createForwardRef<
 	HTMLDivElement,
 	PreferenceItemContentProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function PreferenceItemContent(
-	{ children, className, innerClassName, noStyle, ...rest },
-	forwardedRef
-) {
+>(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = preferenceItemVariants();
 	const {

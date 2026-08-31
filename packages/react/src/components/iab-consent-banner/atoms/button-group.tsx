@@ -1,7 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
 interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
@@ -16,25 +16,22 @@ interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement
  *
  * @public
  */
-const IABConsentBannerButtonGroup = forwardRef<
+const IABConsentBannerButtonGroup = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerButtonGroupProps
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentBannerButtonGroup({ children, className, ...props }, ref) {
-	return (
-		<div
-			ref={ref}
-			className={
-				className
-					? `${styles.footerButtonGroup} ${className}`
-					: styles.footerButtonGroup
-			}
-			{...props}
-		>
-			{children}
-		</div>
-	);
-});
+>(({ children, className, ...props }, ref) => (
+	<div
+		ref={ref}
+		className={
+			className
+				? `${styles.footerButtonGroup} ${className}`
+				: styles.footerButtonGroup
+		}
+		{...props}
+	>
+		{children}
+	</div>
+));
 
 IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
 
@@ -43,21 +40,18 @@ IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
  *
  * @public
  */
-const IABConsentBannerFooterSpacer = forwardRef<
+const IABConsentBannerFooterSpacer = createForwardRef<
 	HTMLDivElement,
 	HTMLAttributes<HTMLDivElement>
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
->(function IABConsentBannerFooterSpacer({ className, ...props }, ref) {
-	return (
-		<div
-			ref={ref}
-			className={
-				className ? `${styles.footerSpacer} ${className}` : styles.footerSpacer
-			}
-			{...props}
-		/>
-	);
-});
+>(({ className, ...props }, ref) => (
+	<div
+		ref={ref}
+		className={
+			className ? `${styles.footerSpacer} ${className}` : styles.footerSpacer
+		}
+		{...props}
+	/>
+));
 
 IABConsentBannerFooterSpacer.displayName = 'IABConsentBannerFooterSpacer';
 

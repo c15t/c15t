@@ -68,7 +68,6 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 const renderFor = function renderFor(
 	component: MountableComponent
 ): ReactElement {
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (component) {
 		case 'consent-banner':
 			return (
@@ -84,6 +83,8 @@ const renderFor = function renderFor(
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
 			throw new DriverNotImplementedError('react', `mount(${component})`);
+		default:
+			throw new Error(`Unsupported component: ${component}`);
 	}
 };
 
@@ -274,19 +275,22 @@ const driver: TestDriver = {
 			},
 		};
 	},
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	async serverRender(opts: MountOptions): Promise<string> {
+	serverRender(opts: MountOptions): Promise<string> {
 		if (opts.initMode) {
-			throw new DriverNotImplementedError(
-				'react',
-				`request lifecycle initMode (${opts.initMode}) is implemented by the v3 conformance driver only`
+			return Promise.reject(
+				new DriverNotImplementedError(
+					'react',
+					`request lifecycle initMode (${opts.initMode}) is implemented by the v3 conformance driver only`
+				)
 			);
 		}
 		const options = buildProviderOptions(opts);
-		return renderToString(
-			<ConsentManagerProvider options={options}>
-				{renderFor(opts.component)}
-			</ConsentManagerProvider>
+		return Promise.resolve(
+			renderToString(
+				<ConsentManagerProvider options={options}>
+					{renderFor(opts.component)}
+				</ConsentManagerProvider>
+			)
 		);
 	},
 };

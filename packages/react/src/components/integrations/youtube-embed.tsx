@@ -1,7 +1,7 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, useState } from 'react';
+import { forwardRef as createForwardRef, useState } from 'react';
 import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
 
 import { Frame } from '../frame';
@@ -180,9 +180,11 @@ const defaultIframeStyle: CSSProperties = {
  * />
  * ```
  */
-export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function YouTubeEmbed(
+export const YouTubeEmbed = createForwardRef<
+	HTMLIFrameElement,
+	YouTubeEmbedProps
+>(
+	(
 		{
 			videoId,
 			src,
@@ -206,7 +208,7 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 			...iframeProps
 		},
 		forwardedRef
-	) {
+	) => {
 		const embedSrc =
 			src ??
 			(videoId

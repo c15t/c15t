@@ -5,7 +5,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { forwardRef, useEffect, useState } from 'react';
+import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { CSSProperties, HTMLAttributes } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -51,9 +51,8 @@ export interface OverlayProps extends Omit<
 	noStyle?: boolean;
 }
 
-const ConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-	function ConsentDialogOverlay({ className, noStyle, style, ...props }, ref) {
+const ConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
+	({ className, noStyle, style, ...props }, ref) => {
 		const { activeUI } = useConsentManager();
 		const { disableAnimation, noStyle: isThemeNoStyle } = useTheme();
 

@@ -1,7 +1,7 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
 import styles from '@c15t/ui/styles/v3/switch';
-import { forwardRef } from 'react';
+import { forwardRef as createForwardRef } from 'react';
 import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
 
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
@@ -40,99 +40,100 @@ export interface SwitchProps
 	size?: SwitchSize;
 }
 
-// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch(
-	{
-		checked,
-		className,
-		defaultChecked = false,
-		disabled,
-		noStyle,
-		onCheckedChange,
-		onClick,
-		onKeyDown,
-		size = 'medium',
-		type: _type = 'button',
-		...rest
-	},
-	forwardedRef
-) {
-	const { components } = useUIConfig();
-	const { noStyle: contextNoStyle } = useTheme();
-	const variants = switchVariants();
-	const [isChecked, setIsChecked] = useControllableState({
-		defaultValue: defaultChecked,
-		onChange: onCheckedChange,
-		value: checked,
-	});
-	const finalNoStyle = noStyle ?? contextNoStyle;
+const Switch = createForwardRef<HTMLButtonElement, SwitchProps>(
+	(
+		{
+			checked,
+			className,
+			defaultChecked = false,
+			disabled,
+			noStyle,
+			onCheckedChange,
+			onClick,
+			onKeyDown,
+			size = 'medium',
+			type: _type = 'button',
+			...rest
+		},
+		forwardedRef
+	) => {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = switchVariants();
+		const [isChecked, setIsChecked] = useControllableState({
+			defaultValue: defaultChecked,
+			onChange: onCheckedChange,
+			value: checked,
+		});
+		const finalNoStyle = noStyle ?? contextNoStyle;
 
-	const rootProps = mergeSlotProps(components?.switch?.root, {
-		baseClassName: variants.root(),
-		className,
-		noStyle: finalNoStyle,
-		...rest,
-	});
-	const trackProps = mergeSlotProps(components?.switch?.track, {
-		baseClassName: variants.track(),
-		noStyle: finalNoStyle,
-	});
-	const thumbProps = mergeSlotProps(components?.switch?.thumb, {
-		baseClassName: variants.thumb(),
-		noStyle: finalNoStyle,
-	});
-	const dataState = getSwitchState(isChecked);
-	const dataDisabled = getDataDisabled(disabled);
+		const rootProps = mergeSlotProps(components?.switch?.root, {
+			baseClassName: variants.root(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
+		const trackProps = mergeSlotProps(components?.switch?.track, {
+			baseClassName: variants.track(),
+			noStyle: finalNoStyle,
+		});
+		const thumbProps = mergeSlotProps(components?.switch?.thumb, {
+			baseClassName: variants.thumb(),
+			noStyle: finalNoStyle,
+		});
+		const dataState = getSwitchState(isChecked);
+		const dataDisabled = getDataDisabled(disabled);
 
-	const toggle = () => {
-		if (disabled) {
-			return;
-		}
+		const toggle = () => {
+			if (disabled) {
+				return;
+			}
 
-		setIsChecked(toggleSwitchValue(isChecked));
-	};
+			setIsChecked(toggleSwitchValue(isChecked));
+		};
 
-	const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
-		toggle();
-		onClick?.(event);
-	};
-
-	const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-		if (event.key === 'Enter') {
-			event.preventDefault();
+		const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
 			toggle();
-		}
+			onClick?.(event);
+		};
 
-		onKeyDown?.(event);
-	};
+		const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				toggle();
+			}
 
-	return (
-		<button
-			{...rootProps}
-			ref={forwardedRef}
-			aria-checked={isChecked}
-			data-disabled={dataDisabled}
-			data-size={finalNoStyle ? undefined : size}
-			data-slot="switch"
-			data-state={dataState}
-			disabled={disabled}
-			onClick={handleClick}
-			onKeyDown={handleKeyDown}
-			role="switch"
-			type="button"
-		>
-			<span
-				{...trackProps}
-				data-slot="switch-track"
+			onKeyDown?.(event);
+		};
+
+		return (
+			<button
+				{...rootProps}
+				ref={forwardedRef}
+				aria-checked={isChecked}
+				data-disabled={dataDisabled}
+				data-size={finalNoStyle ? undefined : size}
+				data-slot="switch"
+				data-state={dataState}
+				disabled={disabled}
+				onClick={handleClick}
+				onKeyDown={handleKeyDown}
+				role="switch"
+				type="button"
 			>
 				<span
-					{...thumbProps}
-					data-slot="switch-thumb"
-				/>
-			</span>
-		</button>
-	);
-});
+					{...trackProps}
+					data-slot="switch-track"
+				>
+					<span
+						{...thumbProps}
+						data-slot="switch-thumb"
+					/>
+				</span>
+			</button>
+		);
+	}
+);
 
 Switch.displayName = 'SwitchRoot';
 
