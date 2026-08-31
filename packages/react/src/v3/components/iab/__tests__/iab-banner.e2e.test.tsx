@@ -228,8 +228,8 @@ describe('IAB Banner E2E Tests', () => {
 				'[data-testid="iab-consent-banner-card"]'
 			);
 
-			// Should have role dialog
-			expect(banner.getAttribute('role')).toBe('dialog');
+			// Native dialog elements expose the implicit dialog role.
+			expect(banner.tagName).toBe('DIALOG');
 
 			// Should have aria-label
 			expect(banner.getAttribute('aria-label')).toBeTruthy();

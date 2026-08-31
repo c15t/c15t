@@ -246,7 +246,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 					const banner = document.querySelector(
 						'[data-testid="iab-consent-banner-card"]'
 					);
-					expect(banner?.getAttribute('role')).toBe('dialog');
+					expect(banner?.tagName).toBe('DIALOG');
 				},
 				{ timeout: 3000 }
 			);
