@@ -4,7 +4,7 @@ import { ConsentDialogTrigger, useConsentManager } from '@c15t/react';
 
 import { BenchmarkProvider } from '../_bench/provider';
 
-function BenchmarkControls() {
+const BenchmarkControls = () => {
 	const { setActiveUI } = useConsentManager();
 
 	return (
@@ -16,9 +16,9 @@ function BenchmarkControls() {
 			Open Preferences
 		</button>
 	);
-}
+};
 
-export default function FullUIPage() {
+const FullUIPage = () => {
 	return (
 		<BenchmarkProvider scenario="full-ui">
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -29,4 +29,6 @@ export default function FullUIPage() {
 			</main>
 		</BenchmarkProvider>
 	);
-}
+};
+
+export default FullUIPage;

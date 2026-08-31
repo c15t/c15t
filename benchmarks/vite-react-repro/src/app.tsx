@@ -5,7 +5,7 @@ import {
 	ConsentManagerProvider,
 } from '@c15t/react';
 
-export function App() {
+export const App = () => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -28,4 +28,4 @@ export function App() {
 			</main>
 		</ConsentManagerProvider>
 	);
-}
+};

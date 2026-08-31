@@ -61,11 +61,11 @@ export interface TriggerIconProps {
  * <ConsentDialogTrigger.Icon icon={<MyCustomIcon />} />
  * ```
  */
-export function TriggerIcon({
+export const TriggerIcon = ({
 	icon = 'branding',
 	className,
 	noStyle,
-}: TriggerIconProps): ReactNode {
+}: TriggerIconProps): ReactNode => {
 	const { components } = useUIConfig();
 	const { noStyle: contextNoStyle } = useTheme();
 	const { branding } = useTriggerContext();
@@ -109,6 +109,6 @@ export function TriggerIcon({
 			{iconElement}
 		</span>
 	);
-}
+};
 
 TriggerIcon.displayName = 'ConsentDialogTrigger.Icon';

@@ -24,7 +24,7 @@ interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps
->(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
+>(function ({ children, className, 'data-testid': dataTestId, ...props }, ref) {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
 	const themedStyle = mergeSlotProps(components?.['iab-banner']?.footer, {

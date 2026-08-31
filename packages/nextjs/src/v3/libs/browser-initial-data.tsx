@@ -12,10 +12,10 @@ const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
  * Use in `app/layout.tsx` for static routes. Matching prefetched data is
  * consumed automatically by the runtime during first store initialization.
  */
-export function C15tPrefetch({
+export const C15tPrefetch = ({
 	id = DEFAULT_SCRIPT_ID,
 	...options
-}: C15tPrefetchProps) {
+}: C15tPrefetchProps) => {
 	return (
 		<Script
 			id={id}
@@ -24,4 +24,4 @@ export function C15tPrefetch({
 			{buildPrefetchScript(options)}
 		</Script>
 	);
-}
+};

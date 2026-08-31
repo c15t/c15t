@@ -80,7 +80,7 @@ export interface TriggerButtonProps {
  * ```
  */
 export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
-	(
+	function (
 		{
 			children,
 			size = 'md',
@@ -90,7 +90,7 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			noStyle,
 		},
 		ref
-	) => {
+	) {
 		const { components } = useUIConfig();
 		const { noStyle: contextNoStyle } = useTheme();
 		const {

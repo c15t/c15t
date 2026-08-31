@@ -29,7 +29,7 @@ interface IABConsentDialogFooterProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	const { performDialogAction } = useHeadlessIABConsentUI();
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();

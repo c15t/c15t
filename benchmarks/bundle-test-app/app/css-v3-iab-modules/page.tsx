@@ -3,7 +3,7 @@
 import { IABConsentDialog } from '@c15t/react/v3/iab';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 
-export default function CssV3IabModulesPage() {
+const CssV3IabModulesPage = () => {
 	return (
 		<ConsentProvider options={{ mode: 'offline' }}>
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -12,4 +12,6 @@ export default function CssV3IabModulesPage() {
 			<IABConsentDialog />
 		</ConsentProvider>
 	);
-}
+};
+
+export default CssV3IabModulesPage;

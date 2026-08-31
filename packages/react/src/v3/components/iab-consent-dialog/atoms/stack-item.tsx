@@ -13,6 +13,9 @@ import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
 
+const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
+const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
+
 interface StackItemProps {
 	stack: ProcessedStack;
 	consents: Record<number, boolean>;
@@ -43,9 +46,9 @@ export const StackItem: FC<StackItemProps> = ({
 	vendorConsents,
 	onVendorToggle,
 	onVendorClick,
-	vendorLegitimateInterests = {},
+	vendorLegitimateInterests = EMPTY_VENDOR_INTERESTS,
 	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
+	purposeLegitimateInterests = EMPTY_PURPOSE_INTERESTS,
 	onPurposeLegitimateInterestToggle,
 }) => {
 	const { components } = useUIConfig();

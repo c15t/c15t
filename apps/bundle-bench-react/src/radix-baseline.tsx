@@ -4,7 +4,7 @@ import { Slot } from '@radix-ui/react-slot';
 import * as Switch from '@radix-ui/react-switch';
 import { createElement } from 'react';
 
-export function Baseline() {
+export const Baseline = () => {
 	return (
 		<div>
 			<Slot>
@@ -34,6 +34,6 @@ export function Baseline() {
 			</Dialog.Root>
 		</div>
 	);
-}
+};
 
 export default createElement(Baseline);

@@ -73,7 +73,7 @@ describe('withSearchPath', () => {
 suite('schema scoping against real Postgres', () => {
 	const withSchema = async <A>(
 		schema: string,
-		run: (
+		runWith: (
 			runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>
 		) => Promise<A>
 	): Promise<A> => {
@@ -81,7 +81,7 @@ suite('schema scoping against real Postgres', () => {
 			toLayer({ dialect: 'postgres', url: PG_URL ?? '', schema })
 		);
 		try {
-			return await run(runtime);
+			return await runWith(runtime);
 		} finally {
 			await runtime.dispose();
 		}

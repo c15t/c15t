@@ -6,13 +6,13 @@ import '@c15t/react/styles.css';
  *
  * What to do here:
  * - Open DevTools → Network tab.
- * - Click "Accept marketing" — Meta Pixel + FB SDK requests appear.
- * - Click "Revoke marketing" — the <script> tags are removed (filter by
- *   "facebook" or "google-analytics" in the DOM tree).
+ * - Click &quot;Accept marketing&quot; — Meta Pixel + FB SDK requests appear.
+ * - Click &quot;Revoke marketing&quot; — the <script> tags are removed (filter by
+ *   &quot;facebook&quot; or &quot;google-analytics&quot; in the DOM tree).
  * - Toggle measurement — GTM, Hotjar, GA load/unload on their own.
  *
  * Every mutation flows through the v3 kernel → the script-loader
- * module reconciles DOM in <10 µs. Check the "Loaded scripts" panel
+ * module reconciles DOM in <10 µs. Check the &quot;Loaded scripts&quot; panel
  * below for live confirmation.
  */
 import type { Script } from '@c15t/core/v3/modules/script-loader';
@@ -77,7 +77,7 @@ const DEMO_SCRIPTS: Script[] = [
 	},
 ];
 
-export default function V3ReactFullPage() {
+const V3ReactFullPage = () => {
 	return (
 		<ConsentProvider
 			options={{
@@ -125,4 +125,6 @@ export default function V3ReactFullPage() {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
+};
+
+export default V3ReactFullPage;

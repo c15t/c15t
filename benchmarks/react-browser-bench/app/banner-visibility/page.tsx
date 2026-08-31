@@ -3,11 +3,11 @@ import type { BannerVisibilityVersion } from './_components/state';
 import { V2BannerVisibilityPage } from './_components/v2-page';
 import { V3BannerVisibilityPage } from './_components/v3-page';
 
-export default async function BannerVisibilityPage({
+const BannerVisibilityPage = async ({
 	searchParams,
 }: {
 	searchParams?: Promise<{ version?: string | string[] }>;
-}) {
+}) => {
 	const resolvedSearchParams = await searchParams;
 	const version: BannerVisibilityVersion = normalizeVersion(
 		resolvedSearchParams?.version
@@ -18,4 +18,6 @@ export default async function BannerVisibilityPage({
 	) : (
 		<V2BannerVisibilityPage />
 	);
-}
+};
+
+export default BannerVisibilityPage;

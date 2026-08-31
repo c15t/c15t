@@ -13,11 +13,11 @@ interface V3ThemeProviderProps {
 	children: ReactNode;
 }
 
-export function V3ThemeProvider({
+export const V3ThemeProvider = ({
 	themeConfig,
 	uiConfig,
 	children,
-}: V3ThemeProviderProps) {
+}: V3ThemeProviderProps) => {
 	return (
 		<V3UIConfigContext.Provider value={uiConfig}>
 			<GlobalThemeContext.Provider value={themeConfig}>
@@ -25,4 +25,4 @@ export function V3ThemeProvider({
 			</GlobalThemeContext.Provider>
 		</V3UIConfigContext.Provider>
 	);
-}
+};

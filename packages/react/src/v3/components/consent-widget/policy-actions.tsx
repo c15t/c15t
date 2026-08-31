@@ -68,9 +68,9 @@ function renderDefaultAction(
 	}
 }
 
-export function ConsentWidgetPolicyActions({
+export const ConsentWidgetPolicyActions = ({
 	renderAction,
-}: ConsentWidgetPolicyActionsProps) {
+}: ConsentWidgetPolicyActionsProps) => {
 	const { dialog } = useHeadlessConsentUI();
 
 	return (
@@ -83,7 +83,7 @@ export function ConsentWidgetPolicyActions({
 			renderDefaultAction={renderDefaultAction}
 		/>
 	);
-}
+};
 
 const PolicyActions = ConsentWidgetPolicyActions;
 

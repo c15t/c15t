@@ -147,10 +147,10 @@ function toKernelBridgeOptions(
  *
  * @public
  */
-export function ConsentManagerProvider({
+export const ConsentManagerProvider = ({
 	children,
 	options,
-}: ConsentManagerProviderProps) {
+}: ConsentManagerProviderProps) => {
 	// Initialize consent manager and store using shared runtime logic from core
 	const { consentManager, consentStore } = useMemo(() => {
 		return getOrCreateConsentRuntime(options, {
@@ -170,8 +170,10 @@ export function ConsentManagerProvider({
 
 	// Track if we've initialized to avoid redundant state updates during hydration
 	const initializedRef = useRef(false);
+	const optionsOverrides = options.overrides;
+	const optionsCallbacks = options.callbacks;
 	const appliedCallbacksRef = useRef<Callbacks>(
-		pickCallbackProps(options.callbacks)
+		pickCallbackProps(optionsCallbacks)
 	);
 
 	// Set up subscription immediately and separately from initialization
@@ -203,9 +205,6 @@ export function ConsentManagerProvider({
 		return unsubscribe;
 	}, [consentStore]);
 
-	const overrides = options.overrides;
-	const callbacks = options.callbacks;
-
 	// Keep runtime geo/language overrides in sync even when a cached runtime/store is reused.
 	useEffect(() => {
 		if (!consentStore) {
@@ -213,7 +212,7 @@ export function ConsentManagerProvider({
 		}
 
 		const currentOverrides = consentStore.getState().overrides ?? {};
-		const nextOverrides = overrides ?? {};
+		const nextOverrides = optionsOverrides ?? {};
 		const hasDiff =
 			currentOverrides.country !== nextOverrides.country ||
 			currentOverrides.region !== nextOverrides.region ||
@@ -230,14 +229,14 @@ export function ConsentManagerProvider({
 			language: nextOverrides.language,
 			gpc: nextOverrides.gpc,
 		});
-	}, [consentStore, overrides]);
+	}, [consentStore, optionsOverrides]);
 
 	useEffect(() => {
 		if (!consentStore) {
 			return;
 		}
 
-		const nextCallbacks = pickCallbackProps(callbacks);
+		const nextCallbacks = pickCallbackProps(optionsCallbacks);
 		const previousCallbacks = appliedCallbacksRef.current;
 		const hasDiff = CALLBACK_KEYS.some(
 			(key) => previousCallbacks[key] !== nextCallbacks[key]
@@ -254,7 +253,7 @@ export function ConsentManagerProvider({
 			},
 		}));
 		appliedCallbacksRef.current = nextCallbacks;
-	}, [callbacks, consentStore]);
+	}, [consentStore, optionsCallbacks]);
 
 	// Create theme context value
 	const themeContextValue = useMemo(() => {
@@ -325,4 +324,4 @@ export function ConsentManagerProvider({
 			</GlobalThemeContext.Provider>
 		</ConsentStateContext.Provider>
 	);
-}
+};

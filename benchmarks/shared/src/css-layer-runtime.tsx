@@ -19,7 +19,7 @@ function cx(...values: (string | undefined)[]) {
 	return values.filter(Boolean).join(' ');
 }
 
-function ForceSurface({ surface }: { surface: CssLayerSurface }) {
+const ForceSurface = ({ surface }: { surface: CssLayerSurface }) => {
 	const { setActiveUI } = useConsentManager();
 
 	useEffect(() => {
@@ -27,9 +27,9 @@ function ForceSurface({ surface }: { surface: CssLayerSurface }) {
 	}, [setActiveUI, surface]);
 
 	return null;
-}
+};
 
-function ScenarioSurface({ scenario }: { scenario: CssLayerScenario }) {
+const ScenarioSurface = ({ scenario }: { scenario: CssLayerScenario }) => {
 	if (scenario.surface === 'banner') {
 		const bannerProps: ConsentBannerProps = scenario.surfaceProps.banner ?? {};
 		return <ConsentBanner {...bannerProps} />;
@@ -37,9 +37,9 @@ function ScenarioSurface({ scenario }: { scenario: CssLayerScenario }) {
 
 	const dialogProps: ConsentDialogProps = scenario.surfaceProps.dialog ?? {};
 	return <ConsentDialog {...dialogProps} />;
-}
+};
 
-export function CssLayerScenarioRenderer({
+export const CssLayerScenarioRenderer = ({
 	environmentId,
 	environmentLabel,
 	isPreview = false,
@@ -49,7 +49,7 @@ export function CssLayerScenarioRenderer({
 	environmentLabel: string;
 	isPreview?: boolean;
 	scenario: CssLayerScenario;
-}) {
+}) => {
 	const resolvedTheme =
 		scenario.themeByEnvironment?.[environmentId] ?? scenario.theme;
 
@@ -160,4 +160,4 @@ export function CssLayerScenarioRenderer({
 			<ScenarioSurface scenario={scenario} />
 		</ConsentManagerProvider>
 	);
-}
+};

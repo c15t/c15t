@@ -25,11 +25,11 @@ const badgeVariants = cva(
 	}
 );
 
-function Badge({
+const Badge = ({
 	className,
 	variant,
 	...props
-}: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants>) {
+}: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants>) => {
 	return (
 		<span
 			data-slot="badge"
@@ -37,6 +37,6 @@ function Badge({
 			{...props}
 		/>
 	);
-}
+};
 
 export { Badge, badgeVariants };

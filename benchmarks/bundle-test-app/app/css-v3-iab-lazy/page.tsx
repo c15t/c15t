@@ -12,7 +12,7 @@ const LazyIABConsentDialog = dynamic(
 	{ ssr: false }
 );
 
-export default function CssV3IabLazyPage() {
+const CssV3IabLazyPage = () => {
 	const [open, setOpen] = useState(false);
 
 	return (
@@ -30,4 +30,6 @@ export default function CssV3IabLazyPage() {
 			{open ? <LazyIABConsentDialog /> : null}
 		</ConsentProvider>
 	);
-}
+};
+
+export default CssV3IabLazyPage;

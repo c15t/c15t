@@ -6,11 +6,11 @@ import { allScenarioConfigs } from './fixtures';
 import type { ScriptLifecycleScenarioConfig } from './fixtures';
 import { useScriptLifecycleBench } from './provider';
 
-export function ScriptLifecyclePageShell({
+export const ScriptLifecyclePageShell = ({
 	config,
 }: {
 	config: ScriptLifecycleScenarioConfig;
-}) {
+}) => {
 	const { ready, runScenarioAction, state } = useScriptLifecycleBench();
 
 	return (
@@ -53,4 +53,4 @@ export function ScriptLifecyclePageShell({
 			</pre>
 		</main>
 	);
-}
+};

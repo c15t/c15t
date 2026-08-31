@@ -19,7 +19,7 @@ interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement
 const IABConsentBannerButtonGroup = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerButtonGroupProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	return (
 		<div
 			ref={ref}
@@ -46,7 +46,7 @@ IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
 const IABConsentBannerFooterSpacer = forwardRef<
 	HTMLDivElement,
 	HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
+>(function ({ className, ...props }, ref) {
 	return (
 		<div
 			ref={ref}

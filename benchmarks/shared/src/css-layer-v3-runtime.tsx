@@ -83,7 +83,11 @@ const V3_COMPONENTS = {
 	},
 } as const;
 
-function ForceV3Surface({ surface }: { surface: CssLayerSurface | 'widget' }) {
+const ForceV3Surface = ({
+	surface,
+}: {
+	surface: CssLayerSurface | 'widget';
+}) => {
 	const activeUI = useActiveUI();
 	const setActiveUI = useSetActiveUI();
 	const target = surface === 'widget' ? 'dialog' : surface;
@@ -97,9 +101,9 @@ function ForceV3Surface({ surface }: { surface: CssLayerSurface | 'widget' }) {
 	}, [activeUI, setActiveUI, target]);
 
 	return null;
-}
+};
 
-function V3Surface({ surface }: { surface: CssLayerSurface | 'widget' }) {
+const V3Surface = ({ surface }: { surface: CssLayerSurface | 'widget' }) => {
 	if (surface === 'banner') {
 		return (
 			<ConsentBanner
@@ -120,9 +124,9 @@ function V3Surface({ surface }: { surface: CssLayerSurface | 'widget' }) {
 	}
 
 	return <ConsentWidget />;
-}
+};
 
-export function CssLayerV3ScenarioRenderer({
+export const CssLayerV3ScenarioRenderer = ({
 	environmentId,
 	environmentLabel,
 	surface,
@@ -130,7 +134,7 @@ export function CssLayerV3ScenarioRenderer({
 	environmentId: CssLayerEnvironmentId;
 	environmentLabel: string;
 	surface: CssLayerSurface | 'widget';
-}) {
+}) => {
 	return (
 		<ConsentProvider
 			options={{
@@ -214,4 +218,4 @@ export function CssLayerV3ScenarioRenderer({
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
+};

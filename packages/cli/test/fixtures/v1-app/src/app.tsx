@@ -44,7 +44,7 @@ const consentStore = {
 
 const bannerProps: CookieBannerProps = {};
 
-export function App() {
+export const App = () => {
 	const {
 		showPopup,
 		setShowPopup,
@@ -71,4 +71,4 @@ export function App() {
 			<ConsentManagerWidget />
 		</ConsentManagerProvider>
 	);
-}
+};

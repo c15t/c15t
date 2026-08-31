@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { NextjsBenchmarkProvider } from '../_bench/provider';
 
-export default function PrefetchLayout({ children }: { children: ReactNode }) {
+const PrefetchLayout = ({ children }: { children: ReactNode }) => {
 	return (
 		<>
 			<C15tPrefetch backendURL="/api/bench-consent" />
@@ -12,4 +12,6 @@ export default function PrefetchLayout({ children }: { children: ReactNode }) {
 			</NextjsBenchmarkProvider>
 		</>
 	);
-}
+};
+
+export default PrefetchLayout;

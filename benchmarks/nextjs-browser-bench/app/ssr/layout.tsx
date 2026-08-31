@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { NextjsBenchmarkProvider } from '../_bench/provider';
 
-export default function SSRLayout({ children }: { children: ReactNode }) {
+const SSRLayout = ({ children }: { children: ReactNode }) => {
 	const ssrData = fetchInitialData({
 		backendURL: '/api/bench-consent',
 		nextCache: {
@@ -19,4 +19,6 @@ export default function SSRLayout({ children }: { children: ReactNode }) {
 			{children}
 		</NextjsBenchmarkProvider>
 	);
-}
+};
+
+export default SSRLayout;

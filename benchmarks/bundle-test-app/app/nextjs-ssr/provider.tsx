@@ -3,13 +3,13 @@
 import { ConsentManagerProvider, useConsentManager } from '@c15t/nextjs';
 import type { InitialDataPromise } from '@c15t/nextjs';
 
-export function NextjsSSRProvider({
+export const NextjsSSRProvider = ({
 	children,
 	ssrData,
 }: {
 	children: React.ReactNode;
 	ssrData: InitialDataPromise;
-}) {
+}) => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -22,9 +22,9 @@ export function NextjsSSRProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};
 
-function SSRStateProbe() {
+const SSRStateProbe = () => {
 	const { activeUI } = useConsentManager();
 	return <div data-active-ui={activeUI} />;
-}
+};

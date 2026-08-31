@@ -7,14 +7,12 @@ export const metadata: Metadata = {
 	description: 'Verifies @layer components works without any CSS framework',
 };
 
-export default function RootLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<html lang="en">
 			<body>{children}</body>
 		</html>
 	);
-}
+};
+
+export default RootLayout;

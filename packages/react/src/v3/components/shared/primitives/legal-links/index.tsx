@@ -94,11 +94,11 @@ export interface InlineLegalLinksProps {
  * />
  * ```
  */
-export function InlineLegalLinks({
+export const InlineLegalLinks = ({
 	links,
 	context,
 	testIdPrefix,
-}: InlineLegalLinksProps) {
+}: InlineLegalLinksProps) => {
 	const filteredLinks = useFilteredLegalLinks(links);
 	const t = useLegalLinkTranslations();
 	const { components } = useUIConfig();
@@ -142,7 +142,7 @@ export function InlineLegalLinks({
 			})}
 		</span>
 	);
-}
+};
 
 /**
  * Valid link slot contexts for inline legal links.

@@ -26,7 +26,7 @@ interface DiagnosticsProps {
 	scripts: Script[];
 }
 
-export default function Diagnostics({ scripts }: DiagnosticsProps) {
+const Diagnostics = ({ scripts }: DiagnosticsProps) => {
 	return (
 		<>
 			<ModuleMount />
@@ -39,14 +39,14 @@ export default function Diagnostics({ scripts }: DiagnosticsProps) {
 			</div>
 		</>
 	);
-}
+};
 
-function ModuleMount() {
+const ModuleMount = () => {
 	useIframeBlocker();
 	return null;
-}
+};
 
-function ConsentControls() {
+const ConsentControls = () => {
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
 	const hasConsented = useHasConsented();
@@ -129,9 +129,9 @@ function ConsentControls() {
 			</div>
 		</section>
 	);
-}
+};
 
-function ConsentDebug() {
+const ConsentDebug = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
 
@@ -154,9 +154,9 @@ function ConsentDebug() {
 			</div>
 		</section>
 	);
-}
+};
 
-function LoadedScripts({ scripts }: DiagnosticsProps) {
+const LoadedScripts = ({ scripts }: DiagnosticsProps) => {
 	const [loaded, setLoaded] = useState<string[]>([]);
 	const consents = useConsents();
 
@@ -253,9 +253,9 @@ function LoadedScripts({ scripts }: DiagnosticsProps) {
 			) : null}
 		</section>
 	);
-}
+};
 
-function SnapshotDebug() {
+const SnapshotDebug = () => {
 	const marketing = useConsent('marketing');
 	const measurement = useConsent('measurement');
 	const functionality = useConsent('functionality');
@@ -285,7 +285,7 @@ function SnapshotDebug() {
 			</ul>
 		</section>
 	);
-}
+};
 
 const sectionStyle: CSSProperties = {
 	marginTop: '2rem',
@@ -328,3 +328,5 @@ function btnStyle(bg: string): CSSProperties {
 		cursor: 'pointer',
 	};
 }
+
+export default Diagnostics;

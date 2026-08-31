@@ -5,14 +5,12 @@ export const metadata: Metadata = {
 	description: 'Deterministic script lifecycle benchmarks for c15t',
 };
 
-export default function RootLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<html lang="en">
 			<body>{children}</body>
 		</html>
 	);
-}
+};
+
+export default RootLayout;

@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement } from 'react';
+import { createElement, isValidElement } from 'react';
 import type { ComponentType, ReactElement, ReactNode } from 'react';
 
 /**
@@ -19,7 +19,8 @@ export function recursiveCloneChildren(
 	uniqueId: string,
 	asChild?: boolean
 ): ReactNode | ReactNode[] {
-	const mappedChildren = Children.map(children, (child: ReactNode) => {
+	const childrenArray = Array.isArray(children) ? children : [children];
+	const mappedChildren = childrenArray.map((child: ReactNode) => {
 		if (!isValidElement(child)) {
 			return child;
 		}
@@ -28,17 +29,22 @@ export function recursiveCloneChildren(
 		const newProps = displayNames.includes(displayName) ? additionalProps : {};
 
 		const childProps = (child as ReactElement<Record<string, unknown>>).props;
+		const clonedChildren = recursiveCloneChildren(
+			childProps?.children as ReactNode,
+			additionalProps,
+			displayNames,
+			uniqueId,
+			childProps?.asChild as boolean | undefined
+		);
 
-		return cloneElement(
-			child,
-			{ ...newProps, key: `${uniqueId}-${child.key || displayName}` },
-			recursiveCloneChildren(
-				childProps?.children as ReactNode,
-				additionalProps,
-				displayNames,
-				uniqueId,
-				childProps?.asChild as boolean | undefined
-			)
+		return createElement(
+			child.type,
+			{
+				...childProps,
+				...newProps,
+				key: `${uniqueId}-${child.key || displayName}`,
+			},
+			clonedChildren
 		);
 	});
 

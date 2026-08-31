@@ -77,13 +77,13 @@ function createBoundaryOptions(
 	return options;
 }
 
-function BenchmarkContents({
+const BenchmarkContents = ({
 	children,
 	scenario,
 }: {
 	children: ReactNode;
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	return (
 		<>
 			<NextjsV3BenchmarkProbe scenario={scenario} />
@@ -92,29 +92,29 @@ function BenchmarkContents({
 			{children}
 		</>
 	);
-}
+};
 
-export function NextjsV3ClientBenchmarkProvider({
+export const NextjsV3ClientBenchmarkProvider = ({
 	children,
 	scenario,
 }: {
 	children: ReactNode;
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	return (
 		<ConsentProvider options={createOptions(scenario)}>
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 		</ConsentProvider>
 	);
-}
+};
 
-export function NextjsV3ManifestClientBenchmarkProvider({
+export const NextjsV3ManifestClientBenchmarkProvider = ({
 	children,
 	scenario,
 }: {
 	children: ReactNode;
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	const transport = useMemo(
 		() =>
 			createManifestTransport({
@@ -134,9 +134,9 @@ export function NextjsV3ManifestClientBenchmarkProvider({
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 		</ConsentProvider>
 	);
-}
+};
 
-export function NextjsV3PrefetchedBenchmarkProvider({
+export const NextjsV3PrefetchedBenchmarkProvider = ({
 	children,
 	config,
 	scenario,
@@ -146,7 +146,7 @@ export function NextjsV3PrefetchedBenchmarkProvider({
 	config: ConsentBoundaryProps['config'];
 	scenario: NextjsBenchScenario;
 	ssrData: InitialDataPromise;
-}) {
+}) => {
 	// One provider: the boundary forwards the server-prefetched config as
 	// `options.prefetch` (authoritative → banner in first HTML). The old
 	// wiring nested a second ConsentProvider that shadowed the boundary's
@@ -163,9 +163,9 @@ export function NextjsV3PrefetchedBenchmarkProvider({
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 		</ConsentBoundary>
 	);
-}
+};
 
-export function NextjsV3ManifestBenchmarkProvider({
+export const NextjsV3ManifestBenchmarkProvider = ({
 	children,
 	config,
 	scenario,
@@ -180,7 +180,7 @@ export function NextjsV3ManifestBenchmarkProvider({
 	 * Component child instead).
 	 */
 	surfaces?: 'client' | 'none';
-}) {
+}) => {
 	return (
 		<ConsentBoundary
 			config={config}
@@ -196,4 +196,4 @@ export function NextjsV3ManifestBenchmarkProvider({
 			)}
 		</ConsentBoundary>
 	);
-}
+};

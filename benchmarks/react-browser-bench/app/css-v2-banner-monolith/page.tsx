@@ -9,7 +9,7 @@ import { getBenchState } from '../_bench/state';
 
 const scenario = 'css-v2-banner-monolith';
 
-export default function CssV2BannerMonolithPage() {
+const CssV2BannerMonolithPage = () => {
 	const options: ConsentManagerProviderProps['options'] = {
 		mode: 'c15t',
 		backendURL: '/api/bench-consent',
@@ -18,7 +18,9 @@ export default function CssV2BannerMonolithPage() {
 				const state = getBenchState(scenario);
 				if (!state) return;
 				state.onBannerFetchedCount += 1;
-				state.onBannerFetchedMs ??= performance.now();
+				if (state.onBannerFetchedMs === undefined) {
+					state.onBannerFetchedMs = performance.now();
+				}
 			},
 			onConsentSet() {
 				const state = getBenchState(scenario);
@@ -51,4 +53,6 @@ export default function CssV2BannerMonolithPage() {
 			<ConsentBanner disableAnimation />
 		</ConsentManagerProvider>
 	);
-}
+};
+
+export default CssV2BannerMonolithPage;

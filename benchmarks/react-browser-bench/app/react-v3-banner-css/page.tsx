@@ -15,7 +15,7 @@
 import 'bench-css-entry';
 import { ReactV3BenchmarkProvider } from '../_bench/v3-provider';
 
-export default function ReactV3BannerCssPage() {
+const ReactV3BannerCssPage = () => {
 	return (
 		<ReactV3BenchmarkProvider scenario="react-v3-banner-css">
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -24,4 +24,6 @@ export default function ReactV3BannerCssPage() {
 			</main>
 		</ReactV3BenchmarkProvider>
 	);
-}
+};
+
+export default ReactV3BannerCssPage;

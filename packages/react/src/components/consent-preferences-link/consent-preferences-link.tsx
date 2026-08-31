@@ -25,7 +25,7 @@ export interface ConsentDialogLinkProps extends Omit<
 export const ConsentDialogLink = forwardRef<
 	HTMLButtonElement,
 	ConsentDialogLinkProps
->(({ children, noStyle = true, ...props }, ref) => {
+>(function ({ children, noStyle = true, ...props }, ref) {
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}

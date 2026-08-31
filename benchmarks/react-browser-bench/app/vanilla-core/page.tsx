@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { getBenchState } from '../_bench/state';
 
-export default function VanillaCorePage() {
+const VanillaCorePage = () => {
 	const [activeUI, setActiveUI] = useState('none');
 	const storeRef = useRef<ReturnType<typeof createConsentManagerStore> | null>(
 		null
@@ -63,4 +63,6 @@ export default function VanillaCorePage() {
 			</button>
 		</main>
 	);
-}
+};
+
+export default VanillaCorePage;

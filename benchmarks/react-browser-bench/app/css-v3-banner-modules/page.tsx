@@ -16,7 +16,7 @@ const consentCategories = [
 	'marketing',
 ] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
-export default function CssV3BannerModulesPage() {
+const CssV3BannerModulesPage = () => {
 	const options: ConsentProviderOptions = {
 		mode: 'c15t',
 		backendURL: '/api/bench-consent',
@@ -26,7 +26,9 @@ export default function CssV3BannerModulesPage() {
 				const state = getBenchState(scenario);
 				if (!state) return;
 				state.onBannerFetchedCount += 1;
-				state.onBannerFetchedMs ??= performance.now();
+				if (state.onBannerFetchedMs === undefined) {
+					state.onBannerFetchedMs = performance.now();
+				}
 			},
 			onConsentSet() {
 				const state = getBenchState(scenario);
@@ -59,4 +61,6 @@ export default function CssV3BannerModulesPage() {
 			<ConsentBanner disableAnimation />
 		</ConsentProvider>
 	);
-}
+};
+
+export default CssV3BannerModulesPage;

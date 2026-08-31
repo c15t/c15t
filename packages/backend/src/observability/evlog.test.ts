@@ -41,7 +41,7 @@ const collect = () => {
 
 const withApp = async <A>(
 	options: AppOptions,
-	run: (app: ReturnType<typeof createApp>) => Promise<A>
+	runWith: (app: ReturnType<typeof createApp>) => Promise<A>
 ): Promise<A> => {
 	const runtime = ManagedRuntime.make(
 		PgliteClient.layer({}) as unknown as Layer.Layer<SqlClient.SqlClient>
@@ -61,7 +61,7 @@ const withApp = async <A>(
 		})
 	);
 	try {
-		return await run(createApp(runtime, options));
+		return await runWith(createApp(runtime, options));
 	} finally {
 		await runtime.dispose();
 	}

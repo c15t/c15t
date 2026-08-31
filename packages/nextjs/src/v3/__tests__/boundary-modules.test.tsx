@@ -26,7 +26,7 @@ describe('ConsentBoundary module props', () => {
 					},
 				]}
 			>
-				<div>{'boundary rendered'}</div>
+				<div>boundary rendered</div>
 			</ConsentBoundary>
 		);
 
@@ -50,7 +50,7 @@ describe('ConsentBoundary module props', () => {
 				config={{}}
 				persistence={false}
 			>
-				<div>{'plain boundary'}</div>
+				<div>plain boundary</div>
 			</ConsentBoundary>
 		);
 		await expect.element(getByText('plain boundary')).toBeInTheDocument();

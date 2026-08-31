@@ -42,11 +42,11 @@ export interface TriggerTextProps {
  * </ConsentDialogTrigger.Button>
  * ```
  */
-export function TriggerText({
+export const TriggerText = ({
 	children,
 	className,
 	noStyle,
-}: TriggerTextProps): ReactNode {
+}: TriggerTextProps): ReactNode => {
 	const { components } = useUIConfig();
 	const { noStyle: contextNoStyle } = useTheme();
 	const textProps = mergeSlotProps(components?.trigger?.text, {
@@ -56,6 +56,6 @@ export function TriggerText({
 	});
 
 	return <span {...textProps}>{children}</span>;
-}
+};
 
 TriggerText.displayName = 'ConsentDialogTrigger.Text';

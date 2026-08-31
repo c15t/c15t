@@ -8,7 +8,7 @@ import { renderToString } from 'vue/server-renderer';
 import { c15tVue } from '../index';
 import ConsentRoot from '../runtime/components/consent-root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
-import { useHasConsent } from '../runtime/composables/consent';
+import { useHasConsent as getConsentedCategories } from '../runtime/composables/consent';
 import type { ConsentConfig } from '../runtime/config';
 import {
 	createVueConsentKernelContext,
@@ -179,7 +179,7 @@ async function mountRootWithConsentProbe() {
 	const Probe = defineComponent({
 		components: { ConsentRoot },
 		setup() {
-			return { hasConsent: useHasConsent() };
+			return { hasConsent: getConsentedCategories() };
 		},
 		template:
 			'<ConsentRoot /><div data-testid="granted-categories">{{ hasConsent.join(",") }}</div>',

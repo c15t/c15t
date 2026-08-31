@@ -48,14 +48,14 @@ interface PolicyActionsRendererProps<TAction extends string> {
 	) => ReactNode;
 }
 
-export function PolicyActionsRenderer<TAction extends string>({
+export const PolicyActionsRenderer = <TAction extends string>({
 	state,
 	Footer,
 	FooterSubGroup,
 	classNames,
 	renderDefaultAction,
 	renderAction,
-}: PolicyActionsRendererProps<TAction>) {
+}: PolicyActionsRendererProps<TAction>) => {
 	const shouldFillActions = state.shouldFillActions;
 	const isColumn = state.direction === 'column';
 	const isSplit = state.actionGroups.length > 1;
@@ -108,4 +108,4 @@ export function PolicyActionsRenderer<TAction extends string>({
 			))}
 		</Footer>
 	);
-}
+};

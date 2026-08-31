@@ -1,5 +1,5 @@
-import { useNitroApp } from 'nitropack/runtime';
+import { useNitroApp as getNitroApp } from 'nitropack/runtime';
 
 import { createServerFetch } from './server-fetch';
 
-export const serverFetch = createServerFetch(() => useNitroApp());
+export const serverFetch = createServerFetch(() => getNitroApp());

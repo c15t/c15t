@@ -22,7 +22,7 @@ interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	const themedStyle = useStyles('iabConsentBannerFooter', {
 		baseClassName: styles.footer,
 		className,

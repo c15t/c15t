@@ -2,10 +2,12 @@ import { Suspense } from 'react';
 
 import { ConsentDemo } from '../../components/demo/consent-demo';
 
-export default function Home() {
+const Home = () => {
 	return (
 		<Suspense>
 			<ConsentDemo />
 		</Suspense>
 	);
-}
+};
+
+export default Home;

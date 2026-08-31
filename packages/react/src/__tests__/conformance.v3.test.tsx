@@ -385,18 +385,18 @@ async function flushScheduler() {
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
-function KernelCapture({
+const KernelCapture = ({
 	onKernel,
 }: {
 	onKernel: (kernel: ConsentKernel) => void;
-}) {
+}) => {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error('React v3 driver: missing kernel context');
 	}
 	onKernel(kernel);
 	return null;
-}
+};
 
 function componentFor(opts: MountOptions): ReactElement {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
@@ -435,13 +435,13 @@ function componentFor(opts: MountOptions): ReactElement {
 	}
 }
 
-function Harness({
+const Harness = ({
 	opts,
 	onKernel,
 }: {
 	opts: MountOptions;
 	onKernel: (kernel: ConsentKernel) => void;
-}) {
+}) => {
 	return (
 		<div
 			data-testid="react-v3-conformance-root"
@@ -451,14 +451,14 @@ function Harness({
 			{componentFor(opts)}
 		</div>
 	);
-}
+};
 
-function ClientSettled({ onSettled }: { onSettled: () => void }) {
+const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
 	useEffect(() => {
 		onSettled();
 	}, [onSettled]);
 	return null;
-}
+};
 
 function renderTree(
 	opts: MountOptions,

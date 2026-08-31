@@ -16,7 +16,7 @@ import type { BoxProps } from '../../shared/primitives/box';
 export const ConsentWidgetFooter = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -30,8 +30,10 @@ export const ConsentWidgetFooter = forwardRef<
 	);
 });
 
+ConsentWidgetFooter.displayName = 'ConsentWidgetFooter';
+
 export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
-	({ children, ...props }, ref) => {
+	function ({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -45,6 +47,8 @@ export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
 		);
 	}
 );
+
+ConsentWidgetFooterSubGroup.displayName = 'ConsentWidgetFooterSubGroup';
 
 const Footer = ConsentWidgetFooter;
 const FooterSubGroup = ConsentWidgetFooterSubGroup;

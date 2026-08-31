@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import { IntegrationStatesDemo } from '../../../../components/demo/integration-states-demo';
 
-export default function IntegrationStatesPage() {
+const IntegrationStatesPage = () => {
 	return (
 		<main className="bg-background min-h-screen">
 			<div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-12 sm:px-6">
@@ -43,4 +43,6 @@ export default function IntegrationStatesPage() {
 			</div>
 		</main>
 	);
-}
+};
+
+export default IntegrationStatesPage;

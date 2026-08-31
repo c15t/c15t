@@ -21,11 +21,11 @@ export const metadata = {
 		'Interactive demo of c15t consent management: policy scenarios, IAB TCF, theming, and i18n.',
 };
 
-export default function RootLayout({
+const RootLayout = ({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
-}>) {
+}>) => {
 	return (
 		<html
 			lang="en"
@@ -49,4 +49,6 @@ export default function RootLayout({
 			</body>
 		</html>
 	);
-}
+};
+
+export default RootLayout;

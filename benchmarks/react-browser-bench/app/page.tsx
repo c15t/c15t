@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-export default function HomePage() {
+const HomePage = () => {
 	return (
 		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
 			<h1>@c15t/react Browser Bench</h1>
@@ -17,4 +17,6 @@ export default function HomePage() {
 			</ul>
 		</main>
 	);
-}
+};
+
+export default HomePage;

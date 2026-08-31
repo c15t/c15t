@@ -143,11 +143,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	});
 
 	it('should use startTransition for non-blocking state updates during hydration', async () => {
-		// Track if children render before state updates complete
-		let childrenRendered = false;
-
 		const TestComponent = () => {
-			childrenRendered = true;
 			return <div data-testid="hydration-test">Content</div>;
 		};
 
@@ -163,7 +159,6 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 		);
 
 		// Children should render immediately (before timers advance)
-		expect(childrenRendered).toBe(true);
 		expect(getByTestId('hydration-test')).toBeInTheDocument();
 
 		// Advance timers to allow state updates

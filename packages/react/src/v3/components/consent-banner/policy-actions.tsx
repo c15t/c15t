@@ -69,9 +69,9 @@ function renderDefaultAction(
 	}
 }
 
-export function ConsentBannerPolicyActions({
+export const ConsentBannerPolicyActions = ({
 	renderAction,
-}: ConsentBannerPolicyActionsProps) {
+}: ConsentBannerPolicyActionsProps) => {
 	const { banner } = useHeadlessConsentUI();
 
 	return (
@@ -84,7 +84,7 @@ export function ConsentBannerPolicyActions({
 			renderDefaultAction={renderDefaultAction}
 		/>
 	);
-}
+};
 
 const PolicyActions = ConsentBannerPolicyActions;
 

@@ -65,7 +65,7 @@ import type { ConsentDialogTriggerProps } from './types';
  * </ConsentDialogTrigger.Root>
  * ```
  */
-function ConsentDialogTriggerComponent({
+const ConsentDialogTriggerComponent = ({
 	icon = 'branding',
 	defaultPosition = 'bottom-right',
 	persistPosition = true,
@@ -76,7 +76,7 @@ function ConsentDialogTriggerComponent({
 	noStyle,
 	onClick,
 	onPositionChange,
-}: ConsentDialogTriggerProps): ReactNode {
+}: ConsentDialogTriggerProps): ReactNode => {
 	return (
 		<TriggerRoot
 			defaultPosition={defaultPosition}
@@ -98,7 +98,7 @@ function ConsentDialogTriggerComponent({
 			</TriggerButton>
 		</TriggerRoot>
 	);
-}
+};
 
 ConsentDialogTriggerComponent.displayName = 'ConsentDialogTrigger';
 

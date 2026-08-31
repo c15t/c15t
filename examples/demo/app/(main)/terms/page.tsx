@@ -15,7 +15,7 @@ import { getDemoTermsRelease } from '../../../lib/demo-c15t-instance';
  * This route is mounted at `/terms` in the demo app and is intended only as an
  * integration example.
  */
-export default function TermsPage() {
+const TermsPage = () => {
 	const policy = getDemoTermsRelease();
 
 	return (
@@ -30,4 +30,6 @@ export default function TermsPage() {
 			/>
 		</TermsProvider>
 	);
-}
+};
+
+export default TermsPage;

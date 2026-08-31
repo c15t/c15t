@@ -2,7 +2,7 @@ import { buttonRenders } from '@c15t/conformance/play/button';
 import { buttonVariants } from '@c15t/solid';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 
-function Demo() {
+const Demo = () => {
 	const classes = buttonVariants({
 		variant: 'primary',
 		mode: 'filled',
@@ -17,7 +17,7 @@ function Demo() {
 			Open preferences
 		</button>
 	);
-}
+};
 
 const meta = {
 	component: Demo,

@@ -41,11 +41,11 @@ const contentStyle = (open: boolean): React.CSSProperties => ({
 	marginTop: open ? '0.75rem' : 0,
 });
 
-function LeadingIcon({ open }: { open: boolean }) {
+const LeadingIcon = ({ open }: { open: boolean }) => {
 	return <span aria-hidden="true">{open ? '-' : '+'}</span>;
-}
+};
 
-function PreferenceItemCard({
+const PreferenceItemCard = ({
 	defaultChecked = false,
 	defaultOpen = false,
 	description,
@@ -61,7 +61,7 @@ function PreferenceItemCard({
 	meta?: React.ReactNode;
 	title: React.ReactNode;
 	withSwitch?: boolean;
-}) {
+}) => {
 	const [open, setOpen] = useState(defaultOpen);
 	const [checked, setChecked] = useState(defaultChecked);
 
@@ -101,7 +101,7 @@ function PreferenceItemCard({
 			</div>
 		</PreferenceItem.Root>
 	);
-}
+};
 
 export const TriggerOnly: Story = {
 	play: triggerExpandsContent,

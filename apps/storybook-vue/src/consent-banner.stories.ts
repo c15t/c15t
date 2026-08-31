@@ -8,7 +8,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentBanner from '../../../packages/vue/src/runtime/components/consent-banner.vue';
 import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
-import { useStorybookConsent } from './storybook-consent-fixtures';
+import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentBanner,
@@ -26,7 +26,7 @@ export const Default: Story = {
 	render: () => ({
 		components: { ConsentBanner },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner />',
 	}),
@@ -37,7 +37,7 @@ export const BannerContract: Story = {
 	render: () => ({
 		components: { ConsentBanner },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner />',
 	}),
@@ -48,7 +48,7 @@ export const BannerToDialogFlow: Story = {
 	render: () => ({
 		components: { ConsentBanner, ConsentManager },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner /><ConsentManager />',
 	}),
@@ -59,7 +59,7 @@ export const BannerAcceptViaKeyboard: Story = {
 	render: () => ({
 		components: { ConsentBanner },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner />',
 	}),
@@ -70,7 +70,7 @@ export const BannerFocusManagement: Story = {
 	render: () => ({
 		components: { ConsentBanner },
 		setup() {
-			useStorybookConsent('banner');
+			setupStorybookConsent('banner');
 		},
 		template: '<ConsentBanner />',
 	}),

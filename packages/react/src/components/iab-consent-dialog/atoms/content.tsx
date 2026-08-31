@@ -19,7 +19,7 @@ interface IABConsentDialogContentProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentDialogContent = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogContentProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	const contentClassName = className
 		? `${styles.content} ${className}`
 		: styles.content;

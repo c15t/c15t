@@ -16,7 +16,7 @@ interface CollapsibleDemoProps {
 	description: string;
 }
 
-function CollapsibleDemo(props: CollapsibleDemoProps) {
+const CollapsibleDemo = (props: CollapsibleDemoProps) => {
 	const [open, setOpen] = createSignal(props.defaultOpen ?? true);
 	const classes = collapsibleVariants();
 
@@ -59,7 +59,7 @@ function CollapsibleDemo(props: CollapsibleDemoProps) {
 			</div>
 		</div>
 	);
-}
+};
 
 const meta = {
 	component: CollapsibleDemo,

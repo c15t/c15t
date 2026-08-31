@@ -22,7 +22,7 @@ interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerHeader = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerHeaderProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	const themedStyle = useStyles('iabConsentBannerHeader', {
 		baseClassName: styles.header,
 		className,

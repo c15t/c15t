@@ -109,12 +109,12 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const snap = useSnapshot();
 			return (
 				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
-		}
+		};
 
 		try {
 			const { getByTestId } = await render(
@@ -142,10 +142,10 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const allowed = useConsent('marketing');
 			return <div data-testid="probe">{String(allowed)}</div>;
-		}
+		};
 
 		try {
 			const { getByTestId } = await render(
@@ -170,13 +170,13 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const allowed = useConsent('marketing');
 			const snap = useSnapshot();
 			return (
 				<div data-testid="probe">{`${String(allowed)}|${snap.activeUI ?? 'null'}`}</div>
 			);
-		}
+		};
 
 		try {
 			const { getByTestId } = await render(
@@ -217,12 +217,12 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-		function Probe() {
+		const Probe = () => {
 			const snap = useSnapshot();
 			return (
 				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
-		}
+		};
 
 		const config: KernelConfig = {
 			initialPolicy: POLICY as never,

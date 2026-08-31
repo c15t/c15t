@@ -165,7 +165,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('keeps one kernel instance across provider rerenders', async () => {
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			const setConsent = useSetConsent();
 			return (
@@ -180,7 +180,7 @@ describe('v3 ConsentProvider options API', () => {
 					</button>
 				</>
 			);
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
@@ -213,10 +213,10 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('syncs dynamic user option after mount', async () => {
-		function Probe() {
+		const Probe = () => {
 			const user = useUser();
 			return <div data-testid="user">{user?.externalId ?? 'none'}</div>;
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
@@ -253,10 +253,10 @@ describe('v3 ConsentProvider options API', () => {
 			})
 		);
 
-		function Probe() {
+		const Probe = () => {
 			const overrides = useOverrides();
 			return <div data-testid="country">{overrides.country ?? 'none'}</div>;
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
@@ -305,10 +305,10 @@ describe('v3 ConsentProvider options API', () => {
 			})
 		);
 
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return <div data-testid="active-ui">{snapshot.activeUI}</div>;
-		}
+		};
 
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
@@ -358,10 +358,10 @@ describe('v3 ConsentProvider options API', () => {
 			storageConfig: { storageKey: STORAGE_KEY },
 		});
 
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			return <div data-testid="marketing">{String(marketing)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -386,10 +386,10 @@ describe('v3 ConsentProvider options API', () => {
 			storageConfig: { storageKey: STORAGE_KEY },
 		});
 
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			return <div data-testid="marketing">{String(marketing)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -405,7 +405,7 @@ describe('v3 ConsentProvider options API', () => {
 			.spyOn(globalThis, 'fetch')
 			.mockResolvedValue(new Response('{}'));
 
-		function Probe() {
+		const Probe = () => {
 			const marketing = useConsent('marketing');
 			const snapshot = useSnapshot();
 			return (
@@ -413,7 +413,7 @@ describe('v3 ConsentProvider options API', () => {
 					{String(marketing)}|{snapshot.activeUI}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -445,7 +445,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('provides theme and v3 UI config without changing kernel context', async () => {
-		function ThemeProbe() {
+		const ThemeProbe = () => {
 			const theme = useTheme();
 			const uiConfig = useUIConfig();
 			const className = uiConfig.components?.banner?.card?.className ?? '';
@@ -455,12 +455,12 @@ describe('v3 ConsentProvider options API', () => {
 					{String(theme.noStyle)}|{className}
 				</div>
 			);
-		}
+		};
 
-		function KernelProbe() {
+		const KernelProbe = () => {
 			const marketing = useConsent('marketing');
 			return <div data-testid="kernel">{String(marketing)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -548,7 +548,7 @@ describe('v3 ConsentProvider options API', () => {
 			},
 		} satisfies ConsentProviderOptions;
 
-		function Probe() {
+		const Probe = () => {
 			const translations = useTranslations();
 			const policy = usePolicy();
 			return (
@@ -556,7 +556,7 @@ describe('v3 ConsentProvider options API', () => {
 					{translations?.language}|{policy?.id}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider options={options}>
@@ -578,7 +578,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('deep-merges selected i18n messages over the default language base', async () => {
-		function Probe() {
+		const Probe = () => {
 			const translations = useTranslations();
 			const marketing =
 				translations?.translations.consentTypes?.marketing ?? {};
@@ -587,7 +587,7 @@ describe('v3 ConsentProvider options API', () => {
 					{marketing.title}|{marketing.description}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -623,10 +623,10 @@ describe('v3 ConsentProvider options API', () => {
 			.fn()
 			.mockResolvedValue(new Response(JSON.stringify({}), { status: 200 }));
 
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return <div data-testid="active-ui">{snapshot.activeUI}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -664,7 +664,7 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('ssrData bridge preserves rich init fields through the shared mapper', async () => {
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return (
 				<div data-testid="ssr-rich">
@@ -673,7 +673,7 @@ describe('v3 ConsentProvider options API', () => {
 					{snapshot.overrides.language}|{snapshot.activeUI}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -721,10 +721,10 @@ describe('v3 ConsentProvider options API', () => {
 				new Response(JSON.stringify(hostedInitOutput()), { status: 200 })
 			);
 
-		function Probe() {
+		const Probe = () => {
 			const snapshot = useSnapshot();
 			return <div data-testid="active-ui">{snapshot.activeUI}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -762,7 +762,7 @@ describe('v3 ConsentProvider options API', () => {
 			data: { subjectId: 'sub_custom' },
 		});
 
-		function SaveAll() {
+		const SaveAll = () => {
 			const save = useSaveConsents();
 			return (
 				<button
@@ -773,7 +773,7 @@ describe('v3 ConsentProvider options API', () => {
 					save
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -821,7 +821,7 @@ describe('v3 ConsentProvider options API', () => {
 			onError: vi.fn(),
 		};
 
-		function SaveAll() {
+		const SaveAll = () => {
 			const save = useSaveConsents();
 			return (
 				<button
@@ -832,7 +832,7 @@ describe('v3 ConsentProvider options API', () => {
 					save
 				</button>
 			);
-		}
+		};
 
 		const { getByTestId, unmount } = await render(
 			<ConsentProvider

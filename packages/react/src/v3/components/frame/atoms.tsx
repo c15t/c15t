@@ -11,7 +11,7 @@ import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 
 const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
-	({ children, ...props }, ref) => {
+	function ({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -27,7 +27,7 @@ const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
 const FrameTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
->(({ children, category, ...props }, ref) => {
+>(function ({ children, category, ...props }, ref) {
 	const { frame, consentTypes } = useTranslations();
 
 	const defaultTitle =
@@ -53,7 +53,7 @@ const FrameTitle = forwardRef<
 const FrameButton = forwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
->(({ children, category, ...props }, ref) => {
+>(function ({ children, category, ...props }, ref) {
 	const { frame } = useTranslations();
 
 	const defaultText = frame?.actionButton?.replace('{category}', category);

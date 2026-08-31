@@ -43,7 +43,7 @@ const DEFAULT_PREFERENCES: ConsentDialogTriggerToolbarPreferences = {};
  *
  * @returns The toolbar portal, or `null` while hidden or server-rendered.
  */
-export function ConsentDialogTriggerToolbar({
+export const ConsentDialogTriggerToolbar = ({
 	actions = EMPTY_ACTIONS,
 	preferences = DEFAULT_PREFERENCES,
 	orientation = 'horizontal',
@@ -56,7 +56,7 @@ export function ConsentDialogTriggerToolbar({
 	style,
 	noStyle = false,
 	onPositionChange,
-}: ConsentDialogTriggerToolbarProps): ReactNode {
+}: ConsentDialogTriggerToolbarProps): ReactNode => {
 	return (
 		<TriggerRoot
 			defaultPosition={defaultPosition}
@@ -76,6 +76,6 @@ export function ConsentDialogTriggerToolbar({
 			/>
 		</TriggerRoot>
 	);
-}
+};
 
 ConsentDialogTriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

@@ -7,12 +7,12 @@ import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;
 
-function SwitchDemo(props: {
+const SwitchDemo = (props: {
 	defaultChecked?: boolean;
 	disabled?: boolean;
 	size?: 'small' | 'medium';
 	label?: string;
-}) {
+}) => {
 	const [checked, setChecked] = createSignal(props.defaultChecked ?? false);
 	const classes = switchVariants({ size: props.size });
 
@@ -46,7 +46,7 @@ function SwitchDemo(props: {
 			<span>{props.label ?? consentTypes.measurement.title}</span>
 		</label>
 	);
-}
+};
 
 const meta = {
 	component: SwitchDemo,

@@ -22,7 +22,7 @@ const CATEGORIES: AllConsentNames[] = [
 	'experience',
 ];
 
-export default function V3ReactFullAggregatePage() {
+const V3ReactFullAggregatePage = () => {
 	return (
 		<ConsentProvider
 			options={{
@@ -41,9 +41,9 @@ export default function V3ReactFullAggregatePage() {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
+};
 
-function TestComponent() {
+const TestComponent = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
@@ -77,4 +77,6 @@ function TestComponent() {
 			</button>
 		</div>
 	);
-}
+};
+
+export default V3ReactFullAggregatePage;

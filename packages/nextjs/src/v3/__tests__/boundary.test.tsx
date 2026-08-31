@@ -15,10 +15,10 @@ import { ConsentBoundary } from '../boundary';
 
 describe('ConsentBoundary: config is honored', () => {
 	test('initial consents from config reach useConsent', async () => {
-		function MarketingStatus() {
+		const MarketingStatus = () => {
 			const allowed = useConsent('marketing');
 			return <div data-testid="status">{String(allowed)}</div>;
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentBoundary
@@ -36,14 +36,14 @@ describe('ConsentBoundary: config is honored', () => {
 	});
 
 	test('initial overrides from config reach useOverrides', async () => {
-		function CountryLabel() {
+		const CountryLabel = () => {
 			const o = useOverrides();
 			return (
 				<div data-testid="country">
 					{o.country ?? 'none'}/{o.language ?? 'none'}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<ConsentBoundary
@@ -59,14 +59,14 @@ describe('ConsentBoundary: config is honored', () => {
 
 describe('ConsentBoundary: kernel is per-mount', () => {
 	test('two boundaries receive independent kernels', async () => {
-		function MarketingStatus({ label }: { label: string }) {
+		const MarketingStatus = ({ label }: { label: string }) => {
 			const allowed = useConsent('marketing');
 			return (
 				<div data-testid={label}>
 					{label}:{String(allowed)}
 				</div>
 			);
-		}
+		};
 
 		// Two separate ConsentBoundary mounts with different config values.
 		// Each must produce its own kernel; mutating one shouldn't affect

@@ -16,13 +16,13 @@ const consentCategories = [
 	'marketing',
 ] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
-export function ReactV3BenchmarkProvider({
+export const ReactV3BenchmarkProvider = ({
 	children,
 	scenario,
 }: {
 	children: ReactNode;
 	scenario: ReactBenchScenario;
-}) {
+}) => {
 	const options: ConsentProviderOptions = {
 		mode: 'c15t',
 		backendURL: '/api/bench-consent',
@@ -72,4 +72,4 @@ export function ReactV3BenchmarkProvider({
 			{children}
 		</ConsentProvider>
 	);
-}
+};

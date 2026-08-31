@@ -434,7 +434,7 @@ function createBridge(): SnapshotBridge {
 	};
 }
 
-function StoreBridge({ bridge }: { bridge: SnapshotBridge }) {
+const StoreBridge = ({ bridge }: { bridge: SnapshotBridge }) => {
 	const snapshot = useSnapshot();
 	// Assign during render (like the React driver's KernelCapture) so
 	// getState() is correct immediately after mount settles.
@@ -443,11 +443,16 @@ function StoreBridge({ bridge }: { bridge: SnapshotBridge }) {
 		bridge.commit(snapshot);
 	}, [bridge, snapshot]);
 	return null;
-}
+};
 
 function componentFor(opts: MountOptions): ReactElement {
-	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
-	const trapFocus = provided.trapFocus ?? false;
+	const providerOptions = opts.providerOptions;
+	const trapFocus =
+		typeof providerOptions === 'object' &&
+		providerOptions !== null &&
+		'trapFocus' in providerOptions
+			? providerOptions.trapFocus === true
+			: false;
 
 	switch (opts.component) {
 		case 'consent-banner':
@@ -481,7 +486,7 @@ function componentFor(opts: MountOptions): ReactElement {
 	}
 }
 
-function Harness({ opts }: { opts: MountOptions }) {
+const Harness = ({ opts }: { opts: MountOptions }) => {
 	return (
 		<div
 			data-testid="nextjs-conformance-root"
@@ -490,14 +495,14 @@ function Harness({ opts }: { opts: MountOptions }) {
 			{componentFor(opts)}
 		</div>
 	);
-}
+};
 
-function ClientSettled({ onSettled }: { onSettled: () => void }) {
+const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
 	useEffect(() => {
 		onSettled();
 	}, [onSettled]);
 	return null;
-}
+};
 
 function renderTree(
 	opts: MountOptions,

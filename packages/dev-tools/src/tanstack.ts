@@ -164,12 +164,12 @@ function releaseEmbeddedPanel(
 /**
  * React panel component for embedding c15t DevTools inside TanStack Devtools.
  */
-export function C15tTanStackDevtoolsPanel({
+export const C15tTanStackDevtoolsPanel = ({
 	createPanel = createDevToolsPanel,
 	namespace = 'c15tStore',
 	style,
 	...props
-}: C15tTanStackDevtoolsPanelProps): React.JSX.Element {
+}: C15tTanStackDevtoolsPanelProps): React.JSX.Element => {
 	const containerRef = React.useRef<HTMLDivElement | null>(null);
 
 	React.useLayoutEffect(() => {
@@ -197,7 +197,7 @@ export function C15tTanStackDevtoolsPanel({
 			...style,
 		},
 	});
-}
+};
 
 function createC15tDevtoolsPlugin(
 	options: C15tDevtoolsPluginOptions = {}

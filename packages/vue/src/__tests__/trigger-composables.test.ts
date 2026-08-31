@@ -7,7 +7,7 @@ import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref } from 'vue';
 
-import { useDraggable } from '../runtime/composables/use-draggable';
+import { useDraggable as createDraggable } from '../runtime/composables/use-draggable';
 import type {
 	UseDraggableOptions,
 	UseDraggableReturn,
@@ -34,7 +34,7 @@ function mountDraggable(options: UseDraggableOptions = {}) {
 		defineComponent({
 			setup() {
 				const target = ref<HTMLElement | null>(null);
-				result = useDraggable(target, options);
+				result = createDraggable(target, options);
 				return () => h('button', { ref: target, type: 'button' });
 			},
 		}),

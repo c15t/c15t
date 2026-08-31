@@ -7,14 +7,12 @@ export const metadata: Metadata = {
 	description: 'Manual CSS review harness for Tailwind CSS 4 and c15t',
 };
 
-export default function RootLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+const RootLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<html lang="en">
 			<body>{children}</body>
 		</html>
 	);
-}
+};
+
+export default RootLayout;

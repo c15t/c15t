@@ -4,7 +4,7 @@ import * as Dialog from '@c15t/react/primitives/dialog';
 import * as Switch from '@c15t/react/primitives/switch';
 import { createElement } from 'react';
 
-export function PrimitiveBench() {
+export const PrimitiveBench = () => {
 	return (
 		<div>
 			<Button.Root>Button</Button.Root>
@@ -27,6 +27,6 @@ export function PrimitiveBench() {
 			</Dialog.Root>
 		</div>
 	);
-}
+};
 
 export default createElement(PrimitiveBench);

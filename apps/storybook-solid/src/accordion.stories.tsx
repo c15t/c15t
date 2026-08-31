@@ -23,7 +23,7 @@ interface AccordionDemoProps {
 	items: { value: string; title: string; content: string }[];
 }
 
-function AccordionDemo(props: AccordionDemoProps) {
+const AccordionDemo = (props: AccordionDemoProps) => {
 	const [value, setValue] = createSignal<string | string[] | undefined>(
 		props.defaultValue
 	);
@@ -79,7 +79,7 @@ function AccordionDemo(props: AccordionDemoProps) {
 			</For>
 		</div>
 	);
-}
+};
 
 const meta = {
 	component: AccordionDemo,

@@ -2,7 +2,7 @@ import { expandedCategories } from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentWidget from '../../../packages/vue/src/runtime/components/consent-widget.vue';
-import { useStorybookConsent } from './storybook-consent-fixtures';
+import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentWidget,
@@ -20,7 +20,7 @@ export const Default: Story = {
 	render: () => ({
 		components: { ConsentWidget },
 		setup() {
-			useStorybookConsent(null);
+			setupStorybookConsent(null);
 		},
 		template: '<div style="width: 32rem;"><ConsentWidget /></div>',
 	}),
@@ -30,7 +30,7 @@ export const ExpandedCategories: Story = {
 	render: () => ({
 		components: { ConsentWidget },
 		setup() {
-			useStorybookConsent(null);
+			setupStorybookConsent(null);
 		},
 		template: '<div style="width: 32rem;"><ConsentWidget /></div>',
 	}),

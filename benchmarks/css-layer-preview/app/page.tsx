@@ -1,6 +1,6 @@
 import { listCssLayerScenarios } from '@c15t/benchmarking';
 
-export default function Home() {
+const Home = () => {
 	const scenarios = listCssLayerScenarios();
 
 	return (
@@ -34,4 +34,6 @@ export default function Home() {
 			</ul>
 		</main>
 	);
-}
+};
+
+export default Home;

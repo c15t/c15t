@@ -99,7 +99,7 @@ async function runV2(): Promise<Run> {
 	clearConsentRuntimeCache();
 	const counts = new Map<number, number>();
 
-	function V2Child({ index }: { index: number }) {
+	const V2Child = ({ index }: { index: number }) => {
 		// Each child reads the full manager object — same pattern v2
 		// consumers use. Accessing any field pulls in the context snapshot.
 		const manager = useConsentManager();
@@ -117,9 +117,9 @@ async function runV2(): Promise<Run> {
 				</div>
 			</Profiler>
 		);
-	}
+	};
 
-	function Tree({ children }: { children: ReactNode }) {
+	const Tree = ({ children }: { children: ReactNode }) => {
 		return (
 			<ConsentManagerProvider
 				options={{ mode: 'offline', initialConsentCategories: CATEGORIES }}
@@ -127,7 +127,7 @@ async function runV2(): Promise<Run> {
 				{children}
 			</ConsentManagerProvider>
 		);
-	}
+	};
 
 	const { container } = await render(
 		<Tree>
@@ -172,7 +172,7 @@ async function runV2(): Promise<Run> {
 async function runV3(): Promise<Run> {
 	const counts = new Map<number, number>();
 
-	function V3Child({ index }: { index: number }) {
+	const V3Child = ({ index }: { index: number }) => {
 		const category = CATEGORIES[index % CATEGORIES.length] as Category;
 		const allowed = useConsent(category);
 		return (
@@ -187,9 +187,9 @@ async function runV3(): Promise<Run> {
 				</div>
 			</Profiler>
 		);
-	}
+	};
 
-	function V3Mutator() {
+	const V3Mutator = () => {
 		const setConsent = useSetConsent();
 		return (
 			<button
@@ -200,7 +200,7 @@ async function runV3(): Promise<Run> {
 				flip marketing
 			</button>
 		);
-	}
+	};
 
 	const { getByTestId } = await render(
 		<ConsentProvider

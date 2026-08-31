@@ -5,11 +5,11 @@ import Link from 'next/link';
 
 import type { NextjsBenchScenario } from './state';
 
-export function BenchmarkPageShell({
+export const BenchmarkPageShell = ({
 	scenario,
 }: {
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	const { setActiveUI } = useConsentManager();
 
 	return (
@@ -32,4 +32,4 @@ export function BenchmarkPageShell({
 			</button>
 		</main>
 	);
-}
+};

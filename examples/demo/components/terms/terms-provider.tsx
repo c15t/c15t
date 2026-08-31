@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
  * Provider for the /terms dev page. Talks to this app's own self-host
  * backend route, which is configured with the demo legal-document release.
  */
-export function TermsProvider({ children }: { children: ReactNode }) {
+export const TermsProvider = ({ children }: { children: ReactNode }) => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -18,4 +18,4 @@ export function TermsProvider({ children }: { children: ReactNode }) {
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

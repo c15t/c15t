@@ -77,61 +77,57 @@ type ButtonRootProps = ButtonSharedProps &
  *
  * @public
  */
-const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
-	(
-		{
-			children,
-			variant,
-			mode,
-			size,
-			asChild,
-			className,
-			noStyle,
-			type = 'button',
-			...rest
-		},
-		forwardedRef
-	) => {
-		const uniqueId = useId();
-		const Component = asChild ? Slot : 'button';
+const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(function (
+	{
+		children,
+		variant,
+		mode,
+		size,
+		asChild,
+		className,
+		noStyle,
+		type = 'button',
+		...rest
+	},
+	forwardedRef
+) {
+	const uniqueId = useId();
+	const Component = asChild ? Slot : 'button';
 
-		// Only apply button variants if noStyle is false
-		const variantClasses = noStyle
-			? ''
-			: buttonVariants({ variant, mode, size }).root();
+	// Only apply button variants if noStyle is false
+	const variantClasses = noStyle
+		? ''
+		: buttonVariants({ variant, mode, size }).root();
 
-		// Always include custom className
-		const finalClassName = [variantClasses, className]
-			.filter(Boolean)
-			.join(' ');
+	// Always include custom className
+	const finalClassName = [variantClasses, className].filter(Boolean).join(' ');
 
-		// Create shared props object that can be safely passed to recursiveCloneChildren
-		const cloneableProps: RecursiveCloneableProps = {
-			...(variant && { variant }),
-			...(mode && { mode }),
-			...(size && { size }),
-		};
+	// Create shared props object that can be safely passed to recursiveCloneChildren
+	const cloneableProps: RecursiveCloneableProps = {
+		...(variant && { variant }),
+		...(mode && { mode }),
+		...(size && { size }),
+	};
 
-		const extendedChildren = recursiveCloneChildren(
-			children as ReactElement[],
-			cloneableProps,
-			[BUTTON_ICON_NAME],
-			uniqueId,
-			asChild
-		);
+	const extendedChildren = recursiveCloneChildren(
+		children as ReactElement[],
+		cloneableProps,
+		[BUTTON_ICON_NAME],
+		uniqueId,
+		asChild
+	);
 
-		return (
-			<Component
-				ref={forwardedRef}
-				className={finalClassName}
-				type={type}
-				{...rest}
-			>
-				{extendedChildren}
-			</Component>
-		);
-	}
-);
+	return (
+		<Component
+			ref={forwardedRef}
+			className={finalClassName}
+			type={type}
+			{...rest}
+		>
+			{extendedChildren}
+		</Component>
+	);
+});
 ButtonRoot.displayName = BUTTON_ROOT_NAME;
 
 /**
@@ -154,14 +150,14 @@ ButtonRoot.displayName = BUTTON_ROOT_NAME;
  *
  * @public
  */
-function ButtonIcon<T extends ElementType>({
+const ButtonIcon = <T extends ElementType>({
 	variant,
 	mode,
 	size,
 	as,
 	className,
 	...rest
-}: PolymorphicComponentProps<T, ButtonIconProps>) {
+}: PolymorphicComponentProps<T, ButtonIconProps>) => {
 	const Component = as || 'div';
 	const { icon } = buttonVariants({
 		variant: variant as ButtonVariant | undefined,
@@ -175,7 +171,7 @@ function ButtonIcon<T extends ElementType>({
 			{...rest}
 		/>
 	);
-}
+};
 ButtonIcon.displayName = BUTTON_ICON_NAME;
 
 /**

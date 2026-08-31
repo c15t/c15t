@@ -6,7 +6,7 @@ import {
 } from '@c15t/nextjs/headless';
 import { ConsentBanner } from '@c15t/react/components/consent-banner';
 
-export default function NextjsBasicPage() {
+const NextjsBasicPage = () => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -20,9 +20,11 @@ export default function NextjsBasicPage() {
 			<ConsentBanner />
 		</ConsentManagerProvider>
 	);
-}
+};
 
-function BasicState() {
+const BasicState = () => {
 	const { consents } = useConsentManager();
 	return <pre>{JSON.stringify(consents, null, 2)}</pre>;
-}
+};
+
+export default NextjsBasicPage;

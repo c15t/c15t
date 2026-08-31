@@ -60,10 +60,10 @@ export function getBrandingHref(
 		: `https://c15t.com${refParam}`;
 }
 
-export function BrandingFullLogo({
+export const BrandingFullLogo = ({
 	branding,
 	className,
-}: BrandingFullLogoProps) {
+}: BrandingFullLogoProps) => {
 	if (resolveBranding(branding) === 'inth') {
 		return (
 			<span
@@ -86,25 +86,25 @@ export function BrandingFullLogo({
 			<span className={styles.brandingWordmarkLabel}>c15t</span>
 		</span>
 	);
-}
+};
 
-export function BrandingCompactLogo({
+export const BrandingCompactLogo = ({
 	branding,
 	...props
-}: BrandingCompactLogoProps) {
+}: BrandingCompactLogoProps) => {
 	const Logo =
 		resolveBranding(branding) === 'inth' ? InthIconOnly : C15TIconOnly;
 	return <Logo {...props} />;
-}
+};
 
-export function BrandingLink({
+export const BrandingLink = ({
 	hideBranding,
 	variant = 'footer',
 	slotContext,
 	className,
 	style,
 	'data-testid': testId,
-}: BrandingProps) {
+}: BrandingProps) => {
 	const branding = useBranding() ?? 'c15t';
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
@@ -165,4 +165,4 @@ export function BrandingLink({
 			</span>
 		</a>
 	);
-}
+};

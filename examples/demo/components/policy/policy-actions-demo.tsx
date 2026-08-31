@@ -80,7 +80,7 @@ function buildSurfaceSnapshot(
 	};
 }
 
-function DemoSurface({ variant }: { variant: DemoVariant }) {
+const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 	const [openItem, setOpenItem] = React.useState('');
 	const {
 		openDialog,
@@ -260,9 +260,9 @@ function DemoSurface({ variant }: { variant: DemoVariant }) {
 			</ConsentDialog.Root>
 		</>
 	);
-}
+};
 
-function PolicyActionsDemoContent() {
+const PolicyActionsDemoContent = () => {
 	const [variant, setVariant] = React.useState<DemoVariant>('default');
 	const { activeUI, lastBannerFetchData, resetConsents } = useConsentManager();
 	const { banner, dialog, openBanner, openDialog } = useHeadlessConsentUI();
@@ -525,7 +525,7 @@ function PolicyActionsDemoContent() {
 			</div>
 		</main>
 	);
-}
+};
 
 const spainSplitStackPolicy = {
 	id: 'es_split_stack',
@@ -561,7 +561,7 @@ const offlinePolicies = [
 	policyPackPresets.worldNoBanner(),
 ] satisfies PolicyConfig[];
 
-export function PolicyActionsDemo() {
+export const PolicyActionsDemo = () => {
 	const searchParams = useSearchParams();
 	const country = searchParams.get('country')?.toUpperCase() ?? 'DE';
 	const region = searchParams.get('region')?.toUpperCase() ?? undefined;
@@ -592,4 +592,4 @@ export function PolicyActionsDemo() {
 			<PolicyActionsDemoContent />
 		</ConsentManagerProvider>
 	);
-}
+};

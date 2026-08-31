@@ -50,14 +50,14 @@ describe('useConsentDraft — basic staging', () => {
 			},
 		});
 
-		function Probe() {
+		const Probe = () => {
 			const draft = useConsentDraft();
 			return (
 				<div data-testid="vals">
 					{JSON.stringify(draft.values)}|{String(draft.isDirty)}
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -73,7 +73,7 @@ describe('useConsentDraft — basic staging', () => {
 	test('set() mutates draft without touching kernel', async () => {
 		const { Wrapper } = wrap();
 
-		function Probe() {
+		const Probe = () => {
 			const draft = useConsentDraft();
 			const kernelMarketing = useConsent('marketing');
 			return (
@@ -91,7 +91,7 @@ describe('useConsentDraft — basic staging', () => {
 					<span data-testid="kernel">{String(kernelMarketing)}</span>
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -107,7 +107,7 @@ describe('useConsentDraft — basic staging', () => {
 	test('save() commits draft to kernel + clears dirty', async () => {
 		const { Wrapper } = wrap();
 
-		function Probe() {
+		const Probe = () => {
 			const draft = useConsentDraft();
 			const kernelMarketing = useConsent('marketing');
 			const hasConsented = useConsent('necessary');
@@ -132,7 +132,7 @@ describe('useConsentDraft — basic staging', () => {
 					<span data-testid="necessary">{String(hasConsented)}</span>
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -151,7 +151,7 @@ describe('useConsentDraft — basic staging', () => {
 			prefetch: { initialConsents: { marketing: false } },
 		});
 
-		function Probe() {
+		const Probe = () => {
 			const draft = useConsentDraft();
 			return (
 				<div>
@@ -173,7 +173,7 @@ describe('useConsentDraft — basic staging', () => {
 					<span data-testid="d">{String(draft.isDirty)}</span>
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -190,7 +190,7 @@ describe('useConsentDraft — basic staging', () => {
 	test('acceptAll / rejectAll', async () => {
 		const { Wrapper } = wrap();
 
-		function Probe() {
+		const Probe = () => {
 			const draft = useConsentDraft();
 			return (
 				<div>
@@ -212,7 +212,7 @@ describe('useConsentDraft — basic staging', () => {
 					<span data-testid="n">{String(draft.values.necessary)}</span>
 				</div>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -234,7 +234,7 @@ describe('ConsentDraftProvider — shared draft across siblings', () => {
 	test('two components see the same draft state', async () => {
 		const { Wrapper } = wrapWithProvider();
 
-		function Banner() {
+		const Banner = () => {
 			const draft = useConsentDraft();
 			return (
 				<button
@@ -245,14 +245,14 @@ describe('ConsentDraftProvider — shared draft across siblings', () => {
 					set from banner
 				</button>
 			);
-		}
+		};
 
-		function Dialog() {
+		const Dialog = () => {
 			const draft = useConsentDraft();
 			return (
 				<span data-testid="dialog-val">{String(draft.values.marketing)}</span>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>
@@ -271,7 +271,7 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 	test('external kernel mutation reseeds draft when draft is clean', async () => {
 		const { Wrapper } = wrapWithProvider();
 
-		function Probe() {
+		const Probe = () => {
 			const draft = useConsentDraft();
 			const setConsent = useSetConsent();
 			return (
@@ -286,7 +286,7 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 					<span data-testid="m">{String(draft.values.marketing)}</span>
 				</>
 			);
-		}
+		};
 
 		const { getByTestId } = await render(
 			<Wrapper>

@@ -113,7 +113,7 @@ async function renderWidget(
 	);
 }
 
-function PolicyTestProvider({
+const PolicyTestProvider = ({
 	children,
 	state,
 	providerOverrides,
@@ -123,7 +123,7 @@ function PolicyTestProvider({
 	providerOverrides?: Partial<
 		ComponentProps<typeof ConsentProvider>['options']
 	>;
-}) {
+}) => {
 	return (
 		<ConsentProvider
 			options={{
@@ -156,7 +156,7 @@ function PolicyTestProvider({
 			{children}
 		</ConsentProvider>
 	);
-}
+};
 
 describe('ConsentWidget.PolicyActions', () => {
 	test('renders policy group ordering', async () => {

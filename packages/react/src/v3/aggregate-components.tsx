@@ -19,13 +19,13 @@ type AnyComponent = ComponentType<Record<string, unknown>>;
 function withSuspense(
 	Component: LazyExoticComponent<AnyComponent>
 ): AnyComponent {
-	function LazyAggregateComponent(props: Record<string, unknown>) {
+	const LazyAggregateComponent = (props: Record<string, unknown>) => {
 		return (
 			<Suspense fallback={null}>
 				<Component {...props} />
 			</Suspense>
 		);
-	}
+	};
 	return LazyAggregateComponent;
 }
 
@@ -66,7 +66,7 @@ const LazyConsentWidgetComponent = lazyWidgetExport(
 	'ConsentWidget'
 ) as ComponentType<ConsentWidgetProps & { children?: ReactNode }>;
 
-function LazyConsentDialog(props: ConsentDialogProps) {
+const LazyConsentDialog = (props: ConsentDialogProps) => {
 	const activeUI = useActiveUI();
 	const shouldLoadDialog =
 		props.open === true || activeUI === 'dialog' || Boolean(props.showTrigger);
@@ -74,11 +74,11 @@ function LazyConsentDialog(props: ConsentDialogProps) {
 		return null;
 	}
 	return <LazyConsentDialogComponent {...props} />;
-}
+};
 
-function LazyConsentWidget(props: ConsentWidgetProps) {
+const LazyConsentWidget = (props: ConsentWidgetProps) => {
 	return <LazyConsentWidgetComponent {...props} />;
-}
+};
 
 function withLazyProperties<T extends AnyComponent>(
 	component: T,

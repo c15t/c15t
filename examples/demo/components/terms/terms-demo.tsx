@@ -57,7 +57,7 @@ function formatDate(value: string) {
 	}).format(new Date(value));
 }
 
-export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
+export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 	const { consentInfo, identifyUser, unstable_acceptPolicyConsent, user } =
 		useConsentManager();
 	const [form, setForm] = useState({
@@ -474,9 +474,12 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 												);
 
 												if (!result) {
-													throw new Error(
-														'Unable to record the terms acceptance with c15t.'
-													);
+													setFeedback({
+														tone: 'error',
+														message:
+															'Unable to record the terms acceptance with c15t.',
+													});
+													return;
 												}
 
 												setAcceptance({
@@ -561,4 +564,4 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 			</div>
 		</div>
 	);
-}
+};

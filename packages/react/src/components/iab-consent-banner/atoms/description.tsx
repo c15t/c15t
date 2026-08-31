@@ -16,7 +16,7 @@ interface IABConsentBannerDescriptionProps extends HTMLAttributes<HTMLParagraphE
 const IABConsentBannerDescription = forwardRef<
 	HTMLParagraphElement,
 	IABConsentBannerDescriptionProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	return (
 		<p
 			ref={ref}

@@ -21,7 +21,7 @@ import type { BoxProps } from '../../shared/primitives/box';
 export const ConsentWidgetFooter = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'slotKey'>
->(({ children, className, style, ...props }, ref) => {
+>(function ({ children, className, style, ...props }, ref) {
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();
 	const actionProps = mergeSlotProps(components?.manager?.actions, {
@@ -43,9 +43,10 @@ export const ConsentWidgetFooter = forwardRef<
 		</Box>
 	);
 });
+ConsentWidgetFooter.displayName = 'ConsentWidgetFooter';
 
 export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
-	({ children, ...props }, ref) => {
+	function ({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -59,6 +60,7 @@ export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
 		);
 	}
 );
+ConsentWidgetFooterSubGroup.displayName = 'ConsentWidgetFooterSubGroup';
 
 const Footer = ConsentWidgetFooter;
 const FooterSubGroup = ConsentWidgetFooterSubGroup;

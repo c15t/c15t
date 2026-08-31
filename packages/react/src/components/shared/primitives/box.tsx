@@ -53,32 +53,30 @@ export interface BoxProps
  *
  * @public
  */
-export const Box = forwardRef<HTMLDivElement, BoxProps>(
-	(
-		{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
-		ref
-	) => {
-		/**
-		 * Apply styles from the CookieBanner context and merge with local styles.
-		 * Uses the 'description' style key for consistent theming.
-		 */
-		const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
-			baseClassName,
-			className,
-			style,
-			noStyle,
-		});
-		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
+export const Box = forwardRef<HTMLDivElement, BoxProps>(function (
+	{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
+	ref
+) {
+	/**
+	 * Apply styles from the CookieBanner context and merge with local styles.
+	 * Uses the 'description' style key for consistent theming.
+	 */
+	const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
+		baseClassName,
+		className,
+		style,
+		noStyle,
+	});
+	const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 
-		const Comp = asChild ? Slot : 'div';
-		return (
-			<Comp
-				ref={ref}
-				{...props}
-				{...domStyleProps}
-			/>
-		);
-	}
-);
+	const Comp = asChild ? Slot : 'div';
+	return (
+		<Comp
+			ref={ref}
+			{...props}
+			{...domStyleProps}
+		/>
+	);
+});
 
 Box.displayName = 'Box';

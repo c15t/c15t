@@ -49,7 +49,7 @@ const CATEGORIES: AllConsentNames[] = [
 	'experience',
 ];
 
-export default function V3ReactStandardScriptLoaderPage() {
+const V3ReactStandardScriptLoaderPage = () => {
 	return (
 		<ConsentProvider
 			options={{
@@ -72,9 +72,9 @@ export default function V3ReactStandardScriptLoaderPage() {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
+};
 
-function TestComponent() {
+const TestComponent = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
@@ -108,4 +108,6 @@ function TestComponent() {
 			</button>
 		</div>
 	);
-}
+};
+
+export default V3ReactStandardScriptLoaderPage;

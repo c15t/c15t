@@ -38,16 +38,16 @@ export interface TriggerTextProps {
  * </ConsentDialogTrigger.Button>
  * ```
  */
-export function TriggerText({
+export const TriggerText = ({
 	children,
 	className,
 	noStyle = false,
-}: TriggerTextProps): ReactNode {
+}: TriggerTextProps): ReactNode => {
 	const textClasses = noStyle
 		? className
 		: [styles.text, className].filter(Boolean).join(' ');
 
 	return <span className={textClasses}>{children}</span>;
-}
+};
 
 TriggerText.displayName = 'ConsentDialogTrigger.Text';

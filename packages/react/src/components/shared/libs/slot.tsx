@@ -1,4 +1,4 @@
-import { cloneElement, forwardRef, isValidElement } from 'react';
+import { createElement, forwardRef, isValidElement } from 'react';
 import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
 
 function composeRefs<T>(...refs: (Ref<T> | undefined)[]): RefCallback<T> {
@@ -38,38 +38,42 @@ type SlotProps = Record<string, unknown> & {
 	children: ReactNode;
 };
 
-export const Slot = forwardRef<HTMLElement, SlotProps>(
-	({ children, ...slotProps }, forwardedRef) => {
-		if (!isValidElement(children)) {
-			return null;
-		}
-
-		const child = children as ReactElement<Record<string, unknown>>;
-		const childProps = child.props;
-		const childRef = (child as unknown as { ref?: Ref<HTMLElement> }).ref;
-		const mergedProps: Record<string, unknown> = {
-			...slotProps,
-			...childProps,
-			className: [slotProps.className, childProps.className]
-				.filter(Boolean)
-				.join(' '),
-			style: {
-				...(slotProps.style as Record<string, unknown> | undefined),
-				...(childProps.style as Record<string, unknown> | undefined),
-			},
-			ref: composeRefs(forwardedRef, childRef),
-		};
-
-		for (const [key, value] of Object.entries(slotProps)) {
-			if (!/^on[A-Z]/.test(key)) {
-				continue;
-			}
-
-			mergedProps[key] = mergeEventHandlers(value, childProps[key]);
-		}
-
-		return cloneElement(child, mergedProps);
+export const Slot = forwardRef<HTMLElement, SlotProps>(function (
+	{ children, ...slotProps },
+	forwardedRef
+) {
+	if (!isValidElement(children)) {
+		return null;
 	}
-);
+
+	const child = children as ReactElement<Record<string, unknown>>;
+	const childProps = child.props;
+	const childRef = (child as unknown as { ref?: Ref<HTMLElement> }).ref;
+	const mergedProps: Record<string, unknown> = {
+		...slotProps,
+		...childProps,
+		className: [slotProps.className, childProps.className]
+			.filter(Boolean)
+			.join(' '),
+		style: {
+			...(slotProps.style as Record<string, unknown> | undefined),
+			...(childProps.style as Record<string, unknown> | undefined),
+		},
+		ref: composeRefs(forwardedRef, childRef),
+	};
+
+	for (const [key, value] of Object.entries(slotProps)) {
+		if (!/^on[A-Z]/.test(key)) {
+			continue;
+		}
+
+		mergedProps[key] = mergeEventHandlers(value, childProps[key]);
+	}
+
+	return createElement(child.type, {
+		key: child.key ?? undefined,
+		...mergedProps,
+	});
+});
 
 Slot.displayName = 'Slot';

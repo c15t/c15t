@@ -6,13 +6,13 @@ import { cn } from '../lib/utils';
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-export function VideoDemo({
+export const VideoDemo = ({
 	className,
 	inline = false,
 }: {
 	className?: string;
 	inline?: boolean;
-}) {
+}) => {
 	const sectionClassName = inline
 		? 'space-y-5'
 		: 'space-y-6 border-border/80 border-t pt-8';
@@ -104,4 +104,4 @@ export function VideoDemo({
 			</div>
 		</section>
 	);
-}
+};

@@ -3,7 +3,7 @@
 import { ConsentBanner } from '@c15t/react/components/consent-banner';
 import { ConsentManagerProvider } from '@c15t/react/headless';
 
-export default function ReactBannerOnlyPage() {
+const ReactBannerOnlyPage = () => {
 	return (
 		<ConsentManagerProvider options={{ mode: 'offline' }}>
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -13,4 +13,6 @@ export default function ReactBannerOnlyPage() {
 			<ConsentBanner />
 		</ConsentManagerProvider>
 	);
-}
+};
+
+export default ReactBannerOnlyPage;

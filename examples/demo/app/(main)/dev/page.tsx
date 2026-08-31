@@ -31,7 +31,7 @@ const devPages = [
 	},
 ];
 
-export default function DevIndexPage() {
+const DevIndexPage = () => {
 	return (
 		<main className="bg-background min-h-screen">
 			<div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6">
@@ -77,4 +77,6 @@ export default function DevIndexPage() {
 			</div>
 		</main>
 	);
-}
+};
+
+export default DevIndexPage;

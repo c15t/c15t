@@ -12,7 +12,7 @@ import { NextjsBenchmarkProbe } from './probe';
 import { getState } from './state';
 import type { NextjsBenchScenario } from './state';
 
-export function NextjsBenchmarkProvider({
+export const NextjsBenchmarkProvider = ({
 	children,
 	scenario,
 	ssrData,
@@ -20,7 +20,7 @@ export function NextjsBenchmarkProvider({
 	children: ReactNode;
 	scenario: NextjsBenchScenario;
 	ssrData?: InitialDataPromise;
-}) {
+}) => {
 	return (
 		<ConsentManagerProvider
 			options={{
@@ -68,4 +68,4 @@ export function NextjsBenchmarkProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

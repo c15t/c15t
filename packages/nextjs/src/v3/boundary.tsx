@@ -70,7 +70,7 @@ export interface ConsentBoundaryProps {
 	children: ReactNode;
 }
 
-export function ConsentBoundary({
+export const ConsentBoundary = ({
 	config,
 	backendURL,
 	scripts,
@@ -79,7 +79,7 @@ export function ConsentBoundary({
 	persistence,
 	options,
 	children,
-}: ConsentBoundaryProps) {
+}: ConsentBoundaryProps) => {
 	return (
 		<ConsentProvider
 			options={{
@@ -97,4 +97,4 @@ export function ConsentBoundary({
 			{children}
 		</ConsentProvider>
 	);
-}
+};

@@ -13,7 +13,7 @@ import { useEffect } from 'react';
 
 import { getBenchState } from '../_bench/state';
 
-function BaselineProbe() {
+const BaselineProbe = () => {
 	useEffect(() => {
 		const state = getBenchState('baseline');
 		if (!state) {
@@ -32,9 +32,9 @@ function BaselineProbe() {
 		});
 	}, []);
 	return null;
-}
+};
 
-export default function BaselinePage() {
+const BaselinePage = () => {
 	return (
 		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
 			<BaselineProbe />
@@ -48,4 +48,6 @@ export default function BaselinePage() {
 			</button>
 		</main>
 	);
-}
+};
+
+export default BaselinePage;

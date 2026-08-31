@@ -21,7 +21,7 @@ const CATEGORIES: AllConsentNames[] = [
 	'experience',
 ];
 
-export default function V3ReactFullSplitPage() {
+const V3ReactFullSplitPage = () => {
 	return (
 		<ConsentProvider
 			options={{
@@ -40,9 +40,9 @@ export default function V3ReactFullSplitPage() {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
+};
 
-function TestComponent() {
+const TestComponent = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
@@ -76,4 +76,6 @@ function TestComponent() {
 			</button>
 		</div>
 	);
-}
+};
+
+export default V3ReactFullSplitPage;

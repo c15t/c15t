@@ -3,7 +3,7 @@
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 
-export default function CssV3BannerModulesPage() {
+const CssV3BannerModulesPage = () => {
 	return (
 		<ConsentProvider options={{ mode: 'offline' }}>
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -12,4 +12,6 @@ export default function CssV3BannerModulesPage() {
 			<ConsentBanner />
 		</ConsentProvider>
 	);
-}
+};
+
+export default CssV3BannerModulesPage;

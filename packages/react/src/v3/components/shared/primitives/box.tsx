@@ -56,29 +56,27 @@ export interface BoxProps
  *
  * @public
  */
-export const Box = forwardRef<HTMLDivElement, BoxProps>(
-	(
-		{ asChild, className, style, slotKey, baseClassName, noStyle, ...props },
-		ref
-	) => {
-		const { components } = useUIConfig();
-		const { noStyle: contextNoStyle } = useTheme();
-		const slotProps = getSlotProps(components, slotKey);
-		const mergedProps = mergeSlotProps(slotProps, {
-			baseClassName,
-			className,
-			noStyle: noStyle ?? contextNoStyle,
-			style,
-			...props,
-		});
-		const Comp = asChild ? Slot : 'div';
-		return (
-			<Comp
-				ref={ref}
-				{...mergedProps}
-			/>
-		);
-	}
-);
+export const Box = forwardRef<HTMLDivElement, BoxProps>(function (
+	{ asChild, className, style, slotKey, baseClassName, noStyle, ...props },
+	ref
+) {
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
+	const slotProps = getSlotProps(components, slotKey);
+	const mergedProps = mergeSlotProps(slotProps, {
+		baseClassName,
+		className,
+		noStyle: noStyle ?? contextNoStyle,
+		style,
+		...props,
+	});
+	const Comp = asChild ? Slot : 'div';
+	return (
+		<Comp
+			ref={ref}
+			{...mergedProps}
+		/>
+	);
+});
 
 Box.displayName = 'Box';

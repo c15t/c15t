@@ -1,5 +1,7 @@
 import { BenchmarkPageShell } from '../_bench/page-shell';
 
-export default function SSRPage() {
+const SSRPage = () => {
 	return <BenchmarkPageShell scenario="ssr" />;
-}
+};
+
+export default SSRPage;

@@ -102,7 +102,7 @@ function buildSearch(params: DemoParams): string {
 	return search ? `?${search}` : '';
 }
 
-export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
+export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
@@ -393,14 +393,14 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 			</div>
 		</main>
 	);
-}
+};
 
 /**
  * Soft color fields behind the page so the Liquid Glass preset's backdrop
  * blur has something to refract — over a flat background, frosted glass
  * reads as plain gray.
  */
-function GlassBackdrop() {
+const GlassBackdrop = () => {
 	return (
 		<div
 			aria-hidden
@@ -411,9 +411,9 @@ function GlassBackdrop() {
 			<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
 		</div>
 	);
-}
+};
 
-function PillButton({
+const PillButton = ({
 	active,
 	onClick,
 	children,
@@ -421,7 +421,7 @@ function PillButton({
 	active: boolean;
 	onClick: () => void;
 	children: React.ReactNode;
-}) {
+}) => {
 	return (
 		<button
 			type="button"
@@ -437,9 +437,9 @@ function PillButton({
 			{children}
 		</button>
 	);
-}
+};
 
-function ScenarioGroup({
+const ScenarioGroup = ({
 	title,
 	description,
 	group,
@@ -451,7 +451,7 @@ function ScenarioGroup({
 	group: 'preset' | 'custom';
 	activeId: string;
 	onSelect: (id: string) => void;
-}) {
+}) => {
 	const scenarios = demoScenarios.filter(
 		(scenario) => scenario.group === group
 	);
@@ -494,4 +494,4 @@ function ScenarioGroup({
 			</div>
 		</div>
 	);
-}
+};

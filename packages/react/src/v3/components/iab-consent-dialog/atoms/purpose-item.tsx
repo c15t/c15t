@@ -13,6 +13,9 @@ import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
+const EMPTY_VENDOR_INTERESTS: Record<string, boolean> = {};
+const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
+
 interface PurposeItemProps {
 	purpose: ProcessedPurpose;
 	isEnabled: boolean;
@@ -45,9 +48,9 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	onVendorToggle,
 	onVendorClick,
 	isLocked = false,
-	vendorLegitimateInterests = {},
+	vendorLegitimateInterests = EMPTY_VENDOR_INTERESTS,
 	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
+	purposeLegitimateInterests = EMPTY_PURPOSE_INTERESTS,
 	onPurposeLegitimateInterestToggle,
 }) => {
 	const { components } = useUIConfig();

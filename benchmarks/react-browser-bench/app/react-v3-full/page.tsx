@@ -4,7 +4,7 @@ import { useSetActiveUI } from '@c15t/react/v3';
 
 import { ReactV3BenchmarkProvider } from '../_bench/v3-provider';
 
-function BenchmarkControls() {
+const BenchmarkControls = () => {
 	const setActiveUI = useSetActiveUI();
 
 	return (
@@ -16,9 +16,9 @@ function BenchmarkControls() {
 			Open Preferences
 		</button>
 	);
-}
+};
 
-export default function ReactV3FullPage() {
+const ReactV3FullPage = () => {
 	return (
 		<ReactV3BenchmarkProvider scenario="react-v3-full">
 			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
@@ -28,4 +28,6 @@ export default function ReactV3FullPage() {
 			</main>
 		</ReactV3BenchmarkProvider>
 	);
-}
+};
+
+export default ReactV3FullPage;

@@ -74,11 +74,11 @@ export interface InlineLegalLinksProps {
  * />
  * ```
  */
-export function InlineLegalLinks({
+export const InlineLegalLinks = ({
 	links,
 	themeKey,
 	testIdPrefix,
-}: InlineLegalLinksProps) {
+}: InlineLegalLinksProps) => {
 	const filteredLinks = useFilteredLegalLinks(links);
 	const consentState = useContext(ConsentStateContext);
 	const kernel = useContext(KernelContext);
@@ -142,7 +142,7 @@ export function InlineLegalLinks({
 			})}
 		</span>
 	);
-}
+};
 
 /**
  * Valid theme key prefixes for the LegalLinks component.

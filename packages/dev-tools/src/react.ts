@@ -78,12 +78,12 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
  * <DevTools defaultOpen />
  * ```
  */
-export function C15TDevTools({
+export const C15TDevTools = ({
 	namespace = 'c15tStore',
 	position = 'bottom-right',
 	defaultOpen = false,
 	disabled = false,
-}: C15TDevToolsProps): null {
+}: C15TDevToolsProps): null => {
 	const devtoolsRef = useRef<DevToolsInstance | null>(null);
 
 	useEffect(() => {
@@ -113,7 +113,7 @@ export function C15TDevTools({
 
 	// Component renders nothing - devtools injects into document.body
 	return null;
-}
+};
 
 export type { DevToolsPosition, DevToolsTab } from './core/state-manager';
 

@@ -12,7 +12,7 @@ import { ReactBenchmarkProbe } from './probe';
 import { getBenchState } from './state';
 import type { ReactBenchScenario } from './state';
 
-export function BenchmarkProvider({
+export const BenchmarkProvider = ({
 	children,
 	scenario,
 	headless = false,
@@ -20,7 +20,7 @@ export function BenchmarkProvider({
 	children: ReactNode;
 	scenario: ReactBenchScenario;
 	headless?: boolean;
-}) {
+}) => {
 	const options: ConsentManagerProviderProps['options'] = {
 		mode: 'c15t',
 		backendURL: '/api/bench-consent',
@@ -73,4 +73,4 @@ export function BenchmarkProvider({
 			{children}
 		</ConsentManagerProvider>
 	);
-}
+};

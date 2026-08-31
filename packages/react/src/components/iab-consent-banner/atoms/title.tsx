@@ -16,7 +16,7 @@ interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> 
 const IABConsentBannerTitle = forwardRef<
 	HTMLHeadingElement,
 	IABConsentBannerTitleProps
->(({ children, className, ...props }, ref) => {
+>(function ({ children, className, ...props }, ref) {
 	return (
 		<h2
 			ref={ref}

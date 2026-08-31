@@ -17,7 +17,7 @@ import { useConsentDraft } from '~/v3/draft';
 const ConsentWidgetAcceptAllButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -35,11 +35,12 @@ const ConsentWidgetAcceptAllButton = forwardRef<
 		</ConsentButton>
 	);
 });
+ConsentWidgetAcceptAllButton.displayName = 'ConsentWidgetAcceptAllButton';
 
 const ConsentWidgetCustomizeButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -54,11 +55,12 @@ const ConsentWidgetCustomizeButton = forwardRef<
 		</ConsentButton>
 	);
 });
+ConsentWidgetCustomizeButton.displayName = 'ConsentWidgetCustomizeButton';
 
 const ConsentWidgetSaveButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	const draft = useConsentDraft();
 	const { onClick, ...buttonProps } = props;
@@ -81,6 +83,7 @@ const ConsentWidgetSaveButton = forwardRef<
 		</ConsentButton>
 	);
 });
+ConsentWidgetSaveButton.displayName = 'ConsentWidgetSaveButton';
 
 /**
  * Button to reject all non-essential cookies.
@@ -93,7 +96,7 @@ const ConsentWidgetSaveButton = forwardRef<
 const ConsentWidgetRejectButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(({ children, ...props }, ref) => {
+>(function ({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -111,6 +114,7 @@ const ConsentWidgetRejectButton = forwardRef<
 		</ConsentButton>
 	);
 });
+ConsentWidgetRejectButton.displayName = 'ConsentWidgetRejectButton';
 
 const AcceptAllButton = ConsentWidgetAcceptAllButton;
 const CustomizeButton = ConsentWidgetCustomizeButton;

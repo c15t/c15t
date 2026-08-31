@@ -5,11 +5,11 @@ import Link from 'next/link';
 
 import type { NextjsBenchScenario } from './state';
 
-export function V3BenchmarkPageShell({
+export const V3BenchmarkPageShell = ({
 	scenario,
 }: {
 	scenario: NextjsBenchScenario;
-}) {
+}) => {
 	const setActiveUI = useSetActiveUI();
 
 	return (
@@ -32,4 +32,4 @@ export function V3BenchmarkPageShell({
 			</button>
 		</main>
 	);
-}
+};
