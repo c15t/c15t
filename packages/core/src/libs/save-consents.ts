@@ -274,14 +274,12 @@ const resolveConsentSelection = (
 	};
 };
 
-const resolveConsentIdentity = async (
+const resolveConsentIdentity = (
 	state: ConsentStoreState,
 	get: SaveConsentsProps['get'],
-	givenAt: number
+	givenAt: number,
+	materialPolicyFingerprint: ConsentInfo['materialPolicyFingerprint']
 ) => {
-	const materialPolicyFingerprint = state.lastBannerFetchData?.policy
-		? await createMaterialPolicyFingerprint(state.lastBannerFetchData.policy)
-		: undefined;
 	const subjectId = state.consentInfo?.subjectId ?? generateSubjectId();
 	const currentState = get();
 	const storedIdentifiers = sanitizeSubjectIdentifiers({
@@ -419,8 +417,11 @@ export const saveConsents = async function saveConsents({
 		previousConsents,
 		requestPreferences,
 	} = resolveConsentSelection(type, state);
+	const materialPolicyFingerprint = state.lastBannerFetchData?.policy
+		? await createMaterialPolicyFingerprint(state.lastBannerFetchData.policy)
+		: undefined;
 	const { externalId, identityProvider, nextConsentInfo, subjectId } =
-		await resolveConsentIdentity(state, get, givenAt);
+		resolveConsentIdentity(state, get, givenAt, materialPolicyFingerprint);
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
