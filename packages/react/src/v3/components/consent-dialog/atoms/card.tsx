@@ -1,13 +1,11 @@
-import type * as V3ComponentsSharedUiBrandingTypes from '~/v3/components/shared/ui/branding';
-('use client');
+'use client';
 
+import brandingStyles from '@c15t/ui/styles/v3/branding';
 /**
  * @packageDocumentation
  * A collection of components for building privacy consent management dialogs.
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
-
-import brandingStyles from '@c15t/ui/styles/v3/branding';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
 import { forwardRef } from 'react';
 import type { ReactNode, Ref } from 'react';
@@ -20,7 +18,10 @@ import type { BoxProps } from '~/v3/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/v3/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
-import type { BrandingVariant } from '~/v3/components/shared/ui/branding';
+import type {
+	BrandingSlotContext,
+	BrandingVariant,
+} from '~/v3/components/shared/ui/branding';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { ClassNameStyle } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
@@ -231,7 +232,7 @@ const ConsentDialogFooter = forwardRef<
 interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	slotContext?: V3ComponentsSharedUiBrandingTypes.BrandingSlotContext;
+	slotContext?: BrandingSlotContext;
 	className?: string;
 	'data-testid'?: string;
 }

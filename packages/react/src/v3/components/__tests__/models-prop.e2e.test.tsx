@@ -22,14 +22,14 @@ import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(

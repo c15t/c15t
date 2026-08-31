@@ -20,14 +20,14 @@ import {
 } from './policy';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(
@@ -40,6 +40,19 @@ function createDeferredPromise<Value>(
 		Promise as PromiseWithResolversConstructor
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
 }
 
@@ -352,7 +365,7 @@ export async function saveConsents({
 	}
 
 	// Yield to the next task so the UI can paint before running heavier work
-	await createDeferredPromise<void>((resolve) => setTimeout(resolve, 0));
+	await createVoidDeferredPromise((resolve) => setTimeout(resolve, 0));
 
 	// Run after yielding to avoid blocking the click INP
 	updateIframeConsents();

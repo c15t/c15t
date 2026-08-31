@@ -18,14 +18,14 @@ import {
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(

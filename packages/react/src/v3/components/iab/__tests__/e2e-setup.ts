@@ -10,6 +10,10 @@
 import { iab } from '@c15t/iab';
 import { vi } from 'vitest';
 
+import {
+	createDeferredPromise,
+	createVoidDeferredPromise,
+} from '~/__tests__/deferred-promise';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 import { mockGVL } from './fixtures/mock-consent-state';
@@ -82,7 +86,7 @@ export async function waitForCMP(timeout = 5000): Promise<void> {
 			if (!(window as { __tcfapi?: unknown }).__tcfapi) {
 				throw new Error('CMP not ready');
 			}
-			return new Promise<void>((resolve, reject) => {
+			return createVoidDeferredPromise((resolve, reject) => {
 				(window as { __tcfapi: TcfApiTestFunction }).__tcfapi(
 					'ping',
 					2,
@@ -108,7 +112,7 @@ export function tcfApiPromise<T>(
 	version = 2,
 	param?: unknown
 ): Promise<T> {
-	return new Promise((resolve, reject) => {
+	return createDeferredPromise((resolve, reject) => {
 		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
@@ -189,7 +193,7 @@ export function addCMPEventListener(): Promise<{
 	eventStatus: string;
 	tcString: string;
 }> {
-	return new Promise((resolve, reject) => {
+	return createDeferredPromise((resolve, reject) => {
 		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));

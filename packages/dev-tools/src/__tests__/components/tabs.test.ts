@@ -4,14 +4,14 @@ import { createTabs } from '../../components/tabs';
 
 import tabStyles from '../../styles/tabs.module.css';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(
@@ -24,6 +24,19 @@ function createDeferredPromise<Value>(
 		Promise as PromiseWithResolversConstructor
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
 }
 
@@ -89,7 +102,7 @@ describe('tabs component', () => {
 			disabledTabs: [],
 		});
 		document.body.appendChild(tabs.element);
-		await createDeferredPromise<void>((resolve) => {
+		await createVoidDeferredPromise((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 
@@ -116,7 +129,7 @@ describe('tabs component', () => {
 			disabledTabs: [],
 		});
 		document.body.appendChild(tabs.element);
-		await createDeferredPromise<void>((resolve) => {
+		await createVoidDeferredPromise((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 
@@ -144,7 +157,7 @@ describe('tabs component', () => {
 			disabledTabs: ['iab'],
 		});
 		document.body.appendChild(tabs.element);
-		await createDeferredPromise<void>((resolve) => {
+		await createVoidDeferredPromise((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 
@@ -166,7 +179,7 @@ describe('tabs component', () => {
 			disabledTabs: [],
 		});
 		document.body.appendChild(tabs.element);
-		await createDeferredPromise<void>((resolve) => {
+		await createVoidDeferredPromise((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 

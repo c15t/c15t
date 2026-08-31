@@ -1,13 +1,11 @@
-import type * as ComponentsSharedUiBrandingTypes from '~/components/shared/ui/branding';
-('use client');
+'use client';
 
+import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 /**
  * @packageDocumentation
  * A collection of components for building privacy consent management dialogs.
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
-
-import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { forwardRef } from 'react';
 import type { ReactNode, Ref } from 'react';
 
@@ -17,7 +15,10 @@ import type { BoxProps } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';
-import type { BrandingVariant } from '~/components/shared/ui/branding';
+import type {
+	BrandingThemeKey,
+	BrandingVariant,
+} from '~/components/shared/ui/branding';
 import { useTranslations } from '~/hooks/use-translations';
 import type { ClassNameStyle } from '~/types/theme';
 import { cnExt as cn } from '~/utils/cn';
@@ -217,7 +218,7 @@ const ConsentDialogFooter = forwardRef<
 interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	themeKey?: ComponentsSharedUiBrandingTypes.BrandingThemeKey;
+	themeKey?: BrandingThemeKey;
 	className?: string;
 	'data-testid'?: string;
 }

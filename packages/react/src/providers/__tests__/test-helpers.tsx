@@ -12,6 +12,7 @@ import type { Mock } from 'vitest';
 
 import { useConsentManager } from '~/index';
 import type { ConsentManagerOptions } from '~/index';
+
 export type SetConsentRequestBody = PostConsentInput;
 export type SetConsentResponse = PostConsentOutput;
 export type ShowConsentBannerResponse = InitOutput;

@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
+import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/v3/components/consent-dialog-trigger';
@@ -281,7 +282,7 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			// Wait a bit to ensure banner would have shown if it was going to
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'

@@ -1,6 +1,6 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, useEffect, useState } from 'react';

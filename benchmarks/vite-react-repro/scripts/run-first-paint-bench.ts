@@ -8,15 +8,52 @@ import { fileURLToPath } from 'node:url';
 
 import {
 	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking';
+import type { BenchmarkResult } from '@c15t/benchmarking';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+}
+
 // ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
@@ -56,7 +93,7 @@ interface CollectedSample {
 // ---------------------------------------------------------------------------
 
 function pickFreePort(): Promise<number> {
-	return new Promise((resolve, reject) => {
+	return createDeferredPromise((resolve, reject) => {
 		const server = createServer();
 		server.listen(0, '127.0.0.1', () => {
 			const address = server.address();
@@ -88,7 +125,7 @@ async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
 }
 
 async function runCommand(args: string[], label: string): Promise<void> {
-	await new Promise<void>((resolve, reject) => {
+	await createVoidDeferredPromise((resolve, reject) => {
 		const child = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -432,7 +469,9 @@ async function run(): Promise<void> {
 	}
 }
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

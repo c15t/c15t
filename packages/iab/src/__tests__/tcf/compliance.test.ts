@@ -22,7 +22,10 @@ import {
 	isValidTCStringFormat,
 } from '../../tcf/tc-string';
 import type { CMPApi } from '../../tcf/types';
-import { createCallbackPromise } from './promise-helpers';
+import {
+	createCallbackPromise,
+	createVoidCallbackPromise,
+} from './promise-helpers';
 import {
 	cleanupTCFApi,
 	createMockGVL,
@@ -75,7 +78,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 		describe('ping Command', () => {
 			it('should return all required ping data fields', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('ping', 2, (pingData: PingData | null, success) => {
 						expect(success).toBe(true);
 						expect(pingData).toBeDefined();
@@ -97,7 +100,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should return valid cmpStatus values', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 						const validStatuses = ['stub', 'loading', 'loaded', 'error'];
 						expect(validStatuses).toContain(pingData?.cmpStatus);
@@ -107,7 +110,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should return valid displayStatus values', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 						const validStatuses = ['visible', 'hidden', 'disabled'];
 						expect(validStatuses).toContain(pingData?.displayStatus);
@@ -117,7 +120,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should return apiVersion for TCF 2.x', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 						// apiVersion can be "2.2" or "2.3" depending on implementation
 						expect(['2.2', '2.3']).toContain(pingData?.apiVersion);
@@ -129,7 +132,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 		describe('getTCData Command', () => {
 			it('should return all required TCData fields', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(
 						'getTCData',
 						2,
@@ -157,7 +160,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should have purpose object with consents and legitimateInterests', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 						expect(tcData?.purpose).toHaveProperty('consents');
 						expect(tcData?.purpose).toHaveProperty('legitimateInterests');
@@ -169,7 +172,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should have vendor object with consents and legitimateInterests', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 						expect(tcData?.vendor).toHaveProperty('consents');
 						expect(tcData?.vendor).toHaveProperty('legitimateInterests');
@@ -179,7 +182,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should have publisher object with required properties', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 						expect(tcData?.publisher).toHaveProperty('consents');
 						expect(tcData?.publisher).toHaveProperty('legitimateInterests');
@@ -193,7 +196,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 		describe('addEventListener Command', () => {
 			it('should call callback immediately with tcloaded status', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(
 						'addEventListener',
 						2,
@@ -207,7 +210,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should include listenerId in response', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 						expect(tcData?.listenerId).toBeDefined();
 						expect(typeof tcData?.listenerId).toBe('number');
@@ -219,7 +222,7 @@ describe('IAB TCF Spec Compliance', () => {
 			it('should assign unique listener IDs', async () => {
 				const ids: number[] = [];
 
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 						if (tcData?.listenerId !== undefined) {
 							ids.push(tcData.listenerId);
@@ -228,7 +231,7 @@ describe('IAB TCF Spec Compliance', () => {
 					});
 				});
 
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 						if (tcData?.listenerId !== undefined) {
 							ids.push(tcData.listenerId);
@@ -237,7 +240,7 @@ describe('IAB TCF Spec Compliance', () => {
 					});
 				});
 
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 						if (tcData?.listenerId !== undefined) {
 							ids.push(tcData.listenerId);
@@ -256,14 +259,14 @@ describe('IAB TCF Spec Compliance', () => {
 			it('should return success: true for valid listener ID', async () => {
 				let listenerId: number | undefined;
 
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 						listenerId = tcData?.listenerId;
 						resolve();
 					});
 				});
 
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(
 						'removeEventListener',
 						2,
@@ -278,7 +281,7 @@ describe('IAB TCF Spec Compliance', () => {
 			});
 
 			it('should return success: false for invalid listener ID', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(
 						'removeEventListener',
 						2,
@@ -296,7 +299,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 		describe('getVendorList Command', () => {
 			it('should return the GVL', async () => {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(
 						'getVendorList',
 						2,
@@ -316,7 +319,7 @@ describe('IAB TCF Spec Compliance', () => {
 
 	describe('Event Status Compliance', () => {
 		it('should emit tcloaded on initial addEventListener', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					expect(tcData?.eventStatus).toBe('tcloaded');
 					resolve();
@@ -327,7 +330,7 @@ describe('IAB TCF Spec Compliance', () => {
 		it('should emit cmpuishown when display status becomes visible', async () => {
 			let callCount = 0;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (callCount === 2) {
@@ -343,7 +346,7 @@ describe('IAB TCF Spec Compliance', () => {
 		it('should emit useractioncomplete when consent is updated', async () => {
 			let callCount = 0;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (callCount === 2) {

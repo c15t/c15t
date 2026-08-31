@@ -1,6 +1,6 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/consent-banner';
 import { forwardRef, useEffect, useState } from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';

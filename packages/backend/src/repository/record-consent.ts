@@ -28,12 +28,10 @@ import type { SqlError } from 'effect/unstable/sql';
 import { currentTenantId } from '../db/tenant';
 import type { Tenant } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
-import {
-	type ConsentPurposeConflictError,
-	type ConsentSubmission,
-	record,
-} from './consent';
-import { type DecisionInput, recordDecision } from './runtime-policy-decision';
+import { record } from './consent';
+import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
+import { recordDecision } from './runtime-policy-decision';
+import type { DecisionInput } from './runtime-policy-decision';
 import type { SubjectTenantConflictError } from './subject';
 import { findOrCreate } from './subject';
 

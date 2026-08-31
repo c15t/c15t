@@ -4,6 +4,7 @@ import { extname, join } from 'node:path';
 import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
+
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',

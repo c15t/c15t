@@ -9,6 +9,7 @@ import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
 
@@ -67,7 +68,7 @@ describe('ConsentDialogTrigger', () => {
 		});
 
 		// Trigger should NOT appear even after consent
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		await createVoidDeferredPromise((resolve) => setTimeout(resolve, 300));
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);

@@ -1,13 +1,12 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the root component for the Consent Dialog.
  * Implements context provider pattern with theme support, state management,
  * focus trapping, scroll locking and portal rendering.
  */
-
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';

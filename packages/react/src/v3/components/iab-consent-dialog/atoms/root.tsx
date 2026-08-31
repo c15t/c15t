@@ -1,6 +1,6 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { useEffect, useState } from 'react';

@@ -10,14 +10,14 @@ import type { MountResult, TestDriver } from '../driver';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(

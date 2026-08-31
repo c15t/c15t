@@ -18,6 +18,7 @@ import {
 	MANIFEST_DEDUPE_TTL_SECONDS,
 } from '../runtime/server/manifest-mode';
 import manifestRoute from '../runtime/server/manifest.get';
+
 const mocks = vi.hoisted(() => ({
 	useRuntimeConfig: vi.fn(),
 	localFetch: vi.fn(),

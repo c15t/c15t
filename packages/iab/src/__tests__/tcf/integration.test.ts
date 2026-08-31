@@ -15,7 +15,11 @@ import {
 } from '../../tcf/purpose-mapping';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
 import type { CMPApi } from '../../tcf/types';
-import { createCallbackPromise, waitForTimeout } from './promise-helpers';
+import {
+	createCallbackPromise,
+	createVoidCallbackPromise,
+	waitForTimeout,
+} from './promise-helpers';
 import {
 	cleanupTCFApi,
 	createMockGVL,
@@ -74,7 +78,7 @@ describe('IAB TCF Integration', () => {
 			expect(window.__tcfapi).toBeDefined();
 
 			// 3. Verify ping returns correct status
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('ping', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data?.cmpLoaded).toBe(true);
@@ -94,7 +98,7 @@ describe('IAB TCF Integration', () => {
 			expect(cmpApi.getTcString()).toBe(mockTcString);
 
 			// 7. Verify event listeners are notified
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				let notificationReceived = false;
 
 				window.__tcfapi?.('addEventListener', 2, (data) => {
@@ -136,7 +140,7 @@ describe('IAB TCF Integration', () => {
 			expect(cmpApi.getTcString()).toBe(partialConsent);
 
 			// Verify event listeners receive update
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					if (data?.eventStatus === 'tcloaded') {
 						expect(data.tcString).toBe(partialConsent);
@@ -236,7 +240,7 @@ describe('IAB TCF Integration', () => {
 			const listener2Calls: string[] = [];
 
 			// Add first listener and wait for initial callback
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					if (data?.eventStatus) {
 						listener1Calls.push(data.eventStatus);
@@ -248,7 +252,7 @@ describe('IAB TCF Integration', () => {
 			});
 
 			// Add second listener and wait for initial callback
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					if (data?.eventStatus) {
 						listener2Calls.push(data.eventStatus);
@@ -279,7 +283,7 @@ describe('IAB TCF Integration', () => {
 			let listenerId: number | undefined;
 
 			// Add listener and wait for initial callback
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					listenerCalls++;
 					if (data?.listenerId !== undefined) {
@@ -294,7 +298,7 @@ describe('IAB TCF Integration', () => {
 			expect(listenerCalls).toBe(1); // Initial call
 
 			// Remove listener
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -319,7 +323,7 @@ describe('IAB TCF Integration', () => {
 			const commands = ['ping', 'getTCData', 'getVendorList'] as const;
 
 			for (const command of commands) {
-				await createCallbackPromise<void>((resolve) => {
+				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(command, 2, (data, success) => {
 						expect(success).toBe(true);
 						expect(data).toBeDefined();
@@ -333,14 +337,14 @@ describe('IAB TCF Integration', () => {
 			let tcData: unknown;
 			let inAppTcData: unknown;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (data) => {
 					tcData = data;
 					resolve();
 				});
 			});
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('getInAppTCData', 2, (data) => {
 					inAppTcData = data;
 					resolve();

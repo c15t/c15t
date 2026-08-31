@@ -14,11 +14,8 @@ import {
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { browserBudgets } from '@c15t/benchmarking/budgets';
-import {
-	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
-	type MetricBudget,
-} from '@c15t/benchmarking/schema';
+import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -30,6 +27,43 @@ import {
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+}
+
 type NuxtBenchScenario =
 	| 'baseline'
 	| 'baseline-client'
@@ -211,7 +245,7 @@ async function waitForServer() {
 }
 
 async function runCommand(args: string[], label: string) {
-	return await new Promise<void>((resolvePromise, rejectPromise) => {
+	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -752,7 +786,9 @@ async function run() {
 	}
 }
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

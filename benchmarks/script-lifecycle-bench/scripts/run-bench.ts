@@ -16,18 +16,19 @@ import {
 } from '@c15t/benchmarking';
 import type { BenchmarkResult } from '@c15t/benchmarking';
 import { chromium } from 'playwright';
+import type * as PlaywrightTypes from 'playwright';
 
 import { allScenarioConfigs } from '../app/_bench/fixtures';
 import type { ScriptLifecycleScenarioConfig } from '../app/_bench/fixtures';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(
@@ -43,7 +44,19 @@ function createDeferredPromise<Value>(
 	return deferred.promise;
 }
 
-import type * as PlaywrightTypes from 'playwright';
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
+	return deferred.promise;
+}
+
 const HOST = '127.0.0.1';
 const PORT = 4313;
 const BASE_URL = `http://${HOST}:${PORT}`;
@@ -87,7 +100,7 @@ async function waitForServer() {
 }
 
 async function runCommand(args: string[], label: string) {
-	return await createDeferredPromise<void>((resolvePromise, rejectPromise) => {
+	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],

@@ -10,6 +10,7 @@ import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
@@ -173,7 +174,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			render(BannerFixture, { options: defaultOptions });
 
-			await new Promise((resolve) => setTimeout(resolve, 500));
+			await createVoidDeferredPromise((resolve) => setTimeout(resolve, 500));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'

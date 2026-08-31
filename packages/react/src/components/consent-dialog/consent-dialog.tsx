@@ -1,6 +1,6 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Default implementation of the Consent Dialog that ships with c15t.
@@ -9,7 +9,6 @@ import type * as C15tCoreTypes from '@c15t/core';
  * This default export simply composes those primitives so consumers that
  * prefer a one-line `<ConsentDialog />` usage still have it.
  */
-
 import type { FC } from 'react';
 
 import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';

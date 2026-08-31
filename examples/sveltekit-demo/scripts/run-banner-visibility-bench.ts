@@ -8,14 +8,14 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import type { Page } from 'playwright';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(
@@ -28,6 +28,19 @@ function createDeferredPromise<Value>(
 		Promise as PromiseWithResolversConstructor
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
 }
 
@@ -73,7 +86,7 @@ function summarize(samples: number[]): Stats {
 }
 
 async function runCommand(args: string[], label: string) {
-	await createDeferredPromise<void>((resolvePromise, rejectPromise) => {
+	await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],

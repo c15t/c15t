@@ -5,8 +5,8 @@ import { useContext, useMemo } from 'react';
 import {
 	GlobalThemeContext,
 	LocalThemeContext,
-	type ThemeContextValue,
 } from '~/v3/context/theme-context';
+import type { ThemeContextValue } from '~/v3/context/theme-context';
 
 /**
  * Hook to access the current theme context.

@@ -8,6 +8,7 @@ import { userEvent } from '@vitest/browser/context';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import { ConsentProvider } from '~/v3/provider';
@@ -228,7 +229,7 @@ describe('IAB Events E2E Tests', () => {
 			}
 
 			// Wait a bit
-			await new Promise((r) => setTimeout(r, 100));
+			await createVoidDeferredPromise((r) => setTimeout(r, 100));
 
 			// Call count should still be 1 (removed listener doesn't receive)
 			expect(callCount).toBe(1);

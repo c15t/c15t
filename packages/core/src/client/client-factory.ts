@@ -13,6 +13,7 @@ import type { EndpointHandlers } from './custom';
 import { C15tClient } from './hosted';
 import { OfflineClient } from './offline';
 import type { RetryConfig } from './types';
+
 export type { ConsentManagerInterface } from './client-interface';
 export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 

@@ -1,12 +1,11 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the main consent banner component for privacy consent management.
  * Implements an accessible, customizable banner following GDPR requirements.
  */
-
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { shouldFillPolicyActions } from '@c15t/ui/utils';
 import type { PolicyUiAction, PolicyUiActionDirection } from '@c15t/ui/utils';

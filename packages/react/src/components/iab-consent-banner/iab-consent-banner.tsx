@@ -1,12 +1,11 @@
-import type * as C15tCoreTypes from '@c15t/core';
-('use client');
+'use client';
 
+import type * as C15tCoreTypes from '@c15t/core';
 /**
  * @packageDocumentation
  * Provides the IAB TCF 2.3 compliant cookie banner component.
  * Implements an accessible, pre-built banner following IAB requirements.
  */
-
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { useRef } from 'react';
 import type { FC, RefObject } from 'react';

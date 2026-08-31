@@ -4,14 +4,14 @@ import type { ChildProcess } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(
@@ -24,6 +24,19 @@ function createDeferredPromise<Value>(
 		Promise as PromiseWithResolversConstructor
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
 }
 
@@ -161,7 +174,7 @@ function prefixOutput(name: string, stream: NodeJS.ReadableStream) {
 }
 
 function runJob(job: BenchJob, children: Set<ChildProcess>) {
-	return createDeferredPromise<void>((resolvePromise, rejectPromise) => {
+	return createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const child = spawn('bun', job.args, {
 			cwd: job.cwd,
 			env: job.env,

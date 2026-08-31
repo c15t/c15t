@@ -43,14 +43,14 @@ import { IABConsentBanner, IABConsentDialog } from '~/v3/iab';
 import { ConsentBanner, ConsentProvider } from '~/v3/index';
 import type { ConsentProviderOptions } from '~/v3/index';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(
@@ -63,6 +63,19 @@ function createDeferredPromise<Value>(
 		Promise as PromiseWithResolversConstructor
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
+function createVoidDeferredPromise(
+	run: (
+		resolve: () => void,
+		reject: DeferredPromise<undefined>['reject']
+	) => void
+): Promise<void> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<undefined>();
+	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
 }
 
@@ -487,7 +500,7 @@ const driver: TestDriver = {
 		};
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};
-		const settled = createDeferredPromise<void>((resolve) => {
+		const settled = createVoidDeferredPromise((resolve) => {
 			resolveSettled = resolve;
 		});
 

@@ -5,14 +5,14 @@ import { render } from 'vitest-browser-react';
 import { ConsentManagerProvider } from '~/v3/providers/consent-manager-provider';
 import type { Theme, ThemeValue } from '~/v3/types/theme';
 
-type DeferredPromise<Value> = {
+interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
 	reject: (reason?: unknown) => void;
-};
+}
 
 type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
+	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
 function createDeferredPromise<Value>(

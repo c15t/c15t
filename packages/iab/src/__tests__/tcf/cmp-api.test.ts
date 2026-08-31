@@ -10,7 +10,11 @@ import { createCMPApi } from '../../tcf/cmp-api';
 import type { GlobalVendorList } from '../../tcf/iab-tcf-types';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
 import type { CMPApi } from '../../tcf/types';
-import { createCallbackPromise, waitForTimeout } from './promise-helpers';
+import {
+	createCallbackPromise,
+	createVoidCallbackPromise,
+	waitForTimeout,
+} from './promise-helpers';
 import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
 
 // Helper to clear all cookies
@@ -80,7 +84,7 @@ describe('CMP API', () => {
 
 	describe('ping command', () => {
 		it('should return correct ping data', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('ping', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data).toMatchObject({
@@ -101,7 +105,7 @@ describe('CMP API', () => {
 
 	describe('getTCData command', () => {
 		it('should return TC data', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data).toBeDefined();
@@ -116,7 +120,7 @@ describe('CMP API', () => {
 		});
 
 		it('should return empty consent data before user action', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data?.tcString).toBe('');
@@ -128,7 +132,7 @@ describe('CMP API', () => {
 
 	describe('getVendorList command', () => {
 		it('should return the GVL', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('getVendorList', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data).toEqual(mockGVL);
@@ -140,7 +144,7 @@ describe('CMP API', () => {
 
 	describe('addEventListener command', () => {
 		it('should add listener and call immediately', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data, success) => {
 					expect(success).toBe(true);
 					expect(data).toHaveProperty('listenerId');
@@ -153,7 +157,7 @@ describe('CMP API', () => {
 		it('should assign unique listener IDs', async () => {
 			const listenerIds: number[] = [];
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					if (data?.listenerId !== undefined) {
 						listenerIds.push(data.listenerId);
@@ -162,7 +166,7 @@ describe('CMP API', () => {
 				});
 			});
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					if (data?.listenerId !== undefined) {
 						listenerIds.push(data.listenerId);
@@ -180,14 +184,14 @@ describe('CMP API', () => {
 		it('should remove listener and return success', async () => {
 			let listenerId: number | undefined;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					listenerId = data?.listenerId;
 					resolve();
 				});
 			});
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -201,7 +205,7 @@ describe('CMP API', () => {
 		});
 
 		it('should return false for non-existent listener', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -226,7 +230,7 @@ describe('CMP API', () => {
 		it('should notify event listeners with useractioncomplete', async () => {
 			let callCount = 0;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					callCount++;
 					// Second call should be from updateConsent
@@ -245,7 +249,7 @@ describe('CMP API', () => {
 		it('should notify listeners when status becomes visible', async () => {
 			let callCount = 0;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
 					callCount++;
 					// Second call should be from setDisplayStatus
@@ -262,7 +266,7 @@ describe('CMP API', () => {
 		it('should not notify listeners for hidden status', async () => {
 			let callCount = 0;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, () => {
 					callCount++;
 					resolve();
@@ -317,7 +321,7 @@ describe('CMP API', () => {
 		it('should clear event listeners', async () => {
 			let callCount = 0;
 
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, () => {
 					callCount++;
 					resolve();
@@ -334,7 +338,7 @@ describe('CMP API', () => {
 
 	describe('Unknown Command', () => {
 		it('should return false for unknown commands', async () => {
-			await createCallbackPromise<void>((resolve) => {
+			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('unknownCommand' as 'ping', 2, (data, success) => {
 					expect(success).toBe(false);
 					expect(data).toBeNull();

@@ -16,16 +16,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  */
 import { join } from 'node:path';
 
-import {
-	configureConsentManager,
-	createConsentManagerStore,
-	type NetworkBlockerConfig as V2NetworkBlockerConfig,
-} from '@c15t/core';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import type { NetworkBlockerConfig as V2NetworkBlockerConfig } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core/v3';
-import {
-	createNetworkBlocker,
-	type NetworkBlockerRule,
-} from '@c15t/core/v3/modules/network-blocker';
+import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
+import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
 
 import { ensureBenchmarkDom } from './runtime-setup';
 
