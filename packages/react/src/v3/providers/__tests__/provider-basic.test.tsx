@@ -13,10 +13,21 @@ import {
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
+function clearConsentStorage(): void {
+	window.localStorage.clear();
+	for (const cookie of document.cookie.split(';')) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+		}
+	}
+}
+
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		clearConsentRuntimeCache();
+		clearConsentStorage();
 		// Set up fake timers for timer-related tests
 		vi.useFakeTimers();
 
@@ -44,6 +55,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	afterEach(() => {
 		vi.clearAllMocks();
 		clearConsentRuntimeCache();
+		clearConsentStorage();
 		// Restore real timers after each test
 		vi.useRealTimers();
 	});
@@ -253,6 +265,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					reloadOnConsentRevoked: false,
 					callbacks: {
 						onConsentChanged: firstOnConsentChanged,
 					},
@@ -280,6 +293,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					reloadOnConsentRevoked: false,
 					callbacks: {
 						onConsentChanged: secondOnConsentChanged,
 					},
