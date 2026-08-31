@@ -105,7 +105,6 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	// The @c15t/nextjs ESM dist resolves `next/*` subpaths that only exist
 	// inside a bundler.
 	'./next',
-	'./next/v3/server',
 	'./next/v3/middleware',
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
