@@ -399,11 +399,13 @@ describe('@c15t/vue kernel runtime', () => {
 	test('persists consent when accepting all from the dialog', async () => {
 		const { wrapper } = await mountRoot();
 
-		document
-			.querySelector<HTMLButtonElement>(
-				'[data-testid="consent-banner-customize-button"]'
-			)
-			?.click();
+		const customizeButton = document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-banner-customize-button"]'
+		);
+		if (!customizeButton) {
+			throw new Error('Customize button was not rendered');
+		}
+		customizeButton.click();
 		await flushPromises();
 
 		await vi.waitFor(() => {
@@ -413,11 +415,13 @@ describe('@c15t/vue kernel runtime', () => {
 				)
 			).toBeTruthy();
 		});
-		document
-			.querySelector<HTMLButtonElement>(
-				'[data-testid="consent-widget-footer-accept-all-button"]'
-			)
-			?.click();
+		const acceptAllButton = document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-widget-footer-accept-all-button"]'
+		);
+		if (!acceptAllButton) {
+			throw new Error('Dialog accept-all button was not rendered');
+		}
+		acceptAllButton.click();
 		await flushPromises();
 		await Promise.resolve();
 
