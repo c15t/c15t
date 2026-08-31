@@ -19,6 +19,18 @@ const SEARCH_CHANGE_EVENT = 'c15t:search-change';
 const DEFAULT_BACKEND_URL = 'https://test-consent-io.inth.app/';
 const TERMS_BACKEND_URL = '/api/self-host';
 
+const internalAnalyticsVendor = Object.fromEntries([
+	['id', 'internal-analytics'],
+	['name', 'Example Analytics'],
+	['privacyPolicyUrl', 'https://www.google.com'],
+	['purposes', [1, 8]],
+	['dataCategories', [1, 2, 6, 8]],
+	['usesCookies', true],
+	['cookieMaxAgeSeconds', 31_536_000],
+	['usesNonCookieAccess', true],
+	['specialFeatures', [1, 2]],
+]);
+
 /**
  * Props for the ConsentManager component
  */
@@ -206,21 +218,7 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 					'measurement',
 				],
 				iab: iab({
-					customVendors: [
-						// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-						{
-							id: 'internal-analytics',
-							name: 'Example Analytics',
-							privacyPolicyUrl: 'https://www.google.com',
-							purposes: [1, 8],
-							dataCategories: [1, 2, 6, 8],
-							usesCookies: true,
-							cookieMaxAgeSeconds: 31536000,
-							usesNonCookieAccess: true,
-							specialFeatures: [1, 2],
-							// legIntPurposes: [1, 8],
-						},
-					],
+					customVendors: [internalAnalyticsVendor],
 				}),
 				legalLinks: {
 					privacyPolicy: {

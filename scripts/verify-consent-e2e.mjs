@@ -113,18 +113,20 @@ const ensureBuilt = async function ensureBuilt(app) {
 	} else {
 		console.log(`Building ${app.label} because ${app.buildOutput} is missing`);
 	}
-	for (const step of app.prebuild ?? []) {
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+	await (app.prebuild ?? []).reduce(async (previousStep, step) => {
+		await previousStep;
 		await runCommand(step.command, step.args, { cwd: step.cwd });
-	}
+	}, Promise.resolve());
 	await runCommand('bun', ['run', 'build'], { cwd: app.dir });
 };
 
 const waitForServer = async function waitForServer(url, timeoutMs = 30_000) {
 	const startedAt = Date.now();
-	while (Date.now() - startedAt < timeoutMs) {
+	const poll = async () => {
+		if (Date.now() - startedAt >= timeoutMs) {
+			throw new Error(`Timed out waiting for ${url}`);
+		}
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const response = await fetch(url);
 			if (response.ok) {
 				return;
@@ -132,10 +134,10 @@ const waitForServer = async function waitForServer(url, timeoutMs = 30_000) {
 		} catch {
 			// The optional generated file may not exist.
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await delay(250);
-	}
-	throw new Error(`Timed out waiting for ${url}`);
+		return poll();
+	};
+	await poll();
 };
 
 const stopServer = async function stopServer(server) {
@@ -358,13 +360,34 @@ const fetchJsonResponse = async function fetchJsonResponse(
 	return { body: await response.json(), response };
 };
 
+const hasManifestTranslation = function hasManifestTranslation(manifest) {
+	return Boolean(
+		manifest.translations?.i18n?.messages?.default?.translations?.en
+			?.cookieBanner?.title
+	);
+};
+
+const hasInitTranslation = function hasInitTranslation(init) {
+	return Boolean(init.translations?.translations?.cookieBanner?.title);
+};
+
+const hasInitJurisdiction = function hasInitJurisdiction(init) {
+	return typeof init.jurisdiction === 'string' && init.jurisdiction.length > 0;
+};
+
+const hasMarketingCategory = function hasMarketingCategory(init) {
+	return (
+		Array.isArray(init.policy?.consent?.categories) &&
+		init.policy.consent.categories.includes('marketing')
+	);
+};
+
 /**
  * Direct HTTP assertions against the Nitro server routes the @c15t/vue
  * Nuxt module registers (packages/vue/src/module.ts →
  * runtime/server/{init,manifest}.get.ts). Runs against the already-booted
  * Nuxt server — no browser involved.
  */
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 	const base = `http://127.0.0.1:${app.port}`;
 
@@ -398,10 +421,7 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		`${app.label}: nitro manifest resolvedPolicy ui mode`
 	);
 	assert(
-		Boolean(
-			manifest.translations?.i18n?.messages?.default?.translations?.en
-				?.cookieBanner?.title
-		),
+		hasManifestTranslation(manifest),
 		`${app.label}: nitro manifest translations payload`
 	);
 	// Nitro's defineCachedEventHandler wrapper replaces the upstream
@@ -444,14 +464,11 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		`${app.label}: nitro init negotiated translations language`
 	);
 	assert(
-		Boolean(init.translations?.translations?.cookieBanner?.title),
+		hasInitTranslation(init),
 		`${app.label}: nitro init translations payload`
 	);
 	assertEqual(init.branding, 'c15t', `${app.label}: nitro init branding`);
-	assert(
-		typeof init.jurisdiction === 'string' && init.jurisdiction.length > 0,
-		`${app.label}: nitro init jurisdiction`
-	);
+	assert(hasInitJurisdiction(init), `${app.label}: nitro init jurisdiction`);
 	assertEqual(
 		init.location?.countryCode,
 		'FR',
@@ -463,8 +480,7 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		`${app.label}: nitro init resolved policy ui mode`
 	);
 	assert(
-		Array.isArray(init.policy?.consent?.categories) &&
-			init.policy.consent.categories.includes('marketing'),
+		hasMarketingCategory(init),
 		`${app.label}: nitro init resolved policy categories`
 	);
 	assertEqual(
@@ -523,11 +539,10 @@ const verifyApp = async function verifyApp(browser, app) {
 		await verifyGpc(browser, app);
 		await verifyLanguage(browser, app);
 		await verifyNoZombie(browser, app);
-		for (const extraCheck of app.extraChecks ?? []) {
-			// oxlint-disable-next-line no-await-in-loop -- App checks intentionally share one sequential browser session.
+		await (app.extraChecks ?? []).reduce(async (previousCheck, extraCheck) => {
+			await previousCheck;
 			await extraCheck(app);
-		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+		}, Promise.resolve());
 	} catch (error) {
 		if (stderr.length > 0) {
 			console.error(stderr.join(''));
@@ -542,10 +557,10 @@ const main = async function main() {
 	const startedAt = Date.now();
 	const browser = await chromium.launch({ headless: true });
 	try {
-		for (const app of apps) {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+		await apps.reduce(async (previousApp, app) => {
+			await previousApp;
 			await verifyApp(browser, app);
-		}
+		}, Promise.resolve());
 	} finally {
 		await browser.close();
 	}

@@ -1,4 +1,3 @@
-/* oxlint-disable no-nested-ternary -- Component variants form a closed three-state presentation matrix. */
 'use client';
 
 import type { PolicyConfig } from '@c15t/schema/types';
@@ -66,6 +65,16 @@ const renderJson = function renderJson(snapshot: Snapshot) {
 	return JSON.stringify(snapshot, null, 2);
 };
 
+const actionLabel = function actionLabel(
+	action: 'accept' | 'reject' | 'customize',
+	labels: { accept: string; customize: string; reject: string }
+): string {
+	if (action === 'accept') {
+		return labels.accept;
+	}
+	return action === 'reject' ? labels.reject : labels.customize;
+};
+
 const buildSurfaceSnapshot = function buildSurfaceSnapshot(
 	surface: Omit<Snapshot, 'uiProfile'> & { uiProfile?: string }
 ): Snapshot {
@@ -101,9 +110,8 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 							legalLinks={['privacyPolicy', 'termsOfService']}
 						/>
 					</ConsentBanner.Header>
-					{variant === 'default' ? (
-						<ConsentBanner.PolicyActions />
-					) : variant === 'stock' ? (
+					{variant === 'default' && <ConsentBanner.PolicyActions />}
+					{variant === 'stock' && (
 						<ConsentBanner.PolicyActions
 							renderAction={(action, props) => {
 								const { key, ...buttonProps } = props;
@@ -111,7 +119,6 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 									? 'ring-2 ring-emerald-400/60 ring-offset-2'
 									: 'opacity-90';
 
-								// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 								switch (action) {
 									case 'accept':
 										return (
@@ -137,10 +144,13 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 												className={className}
 											/>
 										);
+									default:
+										return null;
 								}
 							}}
 						/>
-					) : (
+					)}
+					{variant === 'custom' && (
 						<ConsentBanner.PolicyActions
 							renderAction={(action, props) => (
 								<Button
@@ -158,11 +168,11 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 										void performBannerAction(action);
 									}}
 								>
-									{action === 'accept'
-										? common.acceptAll
-										: action === 'reject'
-											? common.rejectAll
-											: common.customize}
+									{actionLabel(action, {
+										accept: common.acceptAll,
+										customize: common.customize,
+										reject: common.rejectAll,
+									})}
 								</Button>
 							)}
 						/>
@@ -190,9 +200,8 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 							>
 								<ConsentWidget.AccordionItems />
 							</ConsentWidget.Accordion>
-							{variant === 'default' ? (
-								<ConsentWidget.PolicyActions />
-							) : variant === 'stock' ? (
+							{variant === 'default' && <ConsentWidget.PolicyActions />}
+							{variant === 'stock' && (
 								<ConsentWidget.PolicyActions
 									renderAction={(action, props) => {
 										const { key, ...buttonProps } = props;
@@ -200,7 +209,6 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 											? 'ring-2 ring-sky-400/60 ring-offset-2'
 											: 'opacity-90';
 
-										// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 										switch (action) {
 											case 'accept':
 												return (
@@ -226,10 +234,13 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 														className={className}
 													/>
 												);
+											default:
+												return null;
 										}
 									}}
 								/>
-							) : (
+							)}
+							{variant === 'custom' && (
 								<ConsentWidget.PolicyActions
 									renderAction={(action, props) => (
 										<Button
@@ -247,11 +258,11 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 												void performDialogAction(action);
 											}}
 										>
-											{action === 'accept'
-												? common.acceptAll
-												: action === 'reject'
-													? common.rejectAll
-													: common.save}
+											{actionLabel(action, {
+												accept: common.acceptAll,
+												customize: common.save,
+												reject: common.rejectAll,
+											})}
 										</Button>
 									)}
 								/>

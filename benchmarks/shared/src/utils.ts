@@ -193,18 +193,22 @@ export const measureAsyncLoop = function measureAsyncLoop(
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	const samples: number[] = [];
+	const iterationIndexes = Array.from(
+		{ length: iterations },
+		(_, index) => index
+	);
 
-	return (async () => {
-		for (let index = 0; index < iterations; index += 1) {
+	return iterationIndexes.reduce<Promise<number[]>>(
+		async (previous, _index) => {
+			await previous;
 			const startedAt = performance.now();
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await fn();
 			const finishedAt = performance.now();
 			samples.push((finishedAt - startedAt) * 1000);
-		}
-
-		return samples;
-	})();
+			return samples;
+		},
+		Promise.resolve(samples)
+	);
 };
 
 export const latestMtimeMs = function latestMtimeMs(path: string): number {

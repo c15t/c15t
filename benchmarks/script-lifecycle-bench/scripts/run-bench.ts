@@ -312,97 +312,112 @@ const run = async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 
-		for (const config of allScenarioConfigs) {
-			const durationSamples: number[] = [];
-			const loadedScriptCounts: number[] = [];
-			const unloadedScriptCounts: number[] = [];
-			const retainedDomScriptCounts: number[] = [];
-			const callbackLoadCounts: number[] = [];
-			const callbackConsentChangeCounts: number[] = [];
-			const errorCounts: number[] = [];
+		await allScenarioConfigs.reduce<Promise<void>>(
+			async (previousScenario, config) => {
+				await previousScenario;
+				const durationSamples: number[] = [];
+				const loadedScriptCounts: number[] = [];
+				const unloadedScriptCounts: number[] = [];
+				const retainedDomScriptCounts: number[] = [];
+				const callbackLoadCounts: number[] = [];
+				const callbackConsentChangeCounts: number[] = [];
+				const errorCounts: number[] = [];
 
-			for (let index = 0; index < warmupIterations + iterations; index += 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const context = await browser.newContext({ baseURL: BASE_URL });
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const page = await context.newPage();
+				const iterationIndexes = Array.from(
+					{ length: warmupIterations + iterations },
+					(_, index) => index
+				);
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
 
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const sample = await collectScenarioSample(page, config);
+						const sample = await collectScenarioSample(page, config);
 
-				if (index >= warmupIterations) {
-					durationSamples.push(sample.durationMs);
-					loadedScriptCounts.push(sample.state.loadedIds.length);
-					unloadedScriptCounts.push(
-						config.scriptIds.length - sample.state.loadedIds.length
-					);
-					retainedDomScriptCounts.push(
-						Object.values(sample.state.domPresenceById).filter(Boolean).length
-					);
-					callbackLoadCounts.push(
-						sample.state.loadEventCounts['fixture-callback-only'] ?? 0
-					);
-					callbackConsentChangeCounts.push(
-						sample.state.consentChangeEventCounts['fixture-callback-only'] ?? 0
-					);
-					errorCounts.push(sample.state.errors.length);
-				}
+						if (index >= warmupIterations) {
+							durationSamples.push(sample.durationMs);
+							loadedScriptCounts.push(sample.state.loadedIds.length);
+							unloadedScriptCounts.push(
+								config.scriptIds.length - sample.state.loadedIds.length
+							);
+							retainedDomScriptCounts.push(
+								Object.values(sample.state.domPresenceById).filter(Boolean)
+									.length
+							);
+							callbackLoadCounts.push(
+								sample.state.loadEventCounts['fixture-callback-only'] ?? 0
+							);
+							callbackConsentChangeCounts.push(
+								sample.state.consentChangeEventCounts[
+									'fixture-callback-only'
+								] ?? 0
+							);
+							errorCounts.push(sample.state.errors.length);
+						}
 
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await context.close();
-			}
+						await context.close();
+					},
+					Promise.resolve()
+				);
 
-			const result: BenchmarkResult = {
-				baseSha: safeBaseSha(),
-				budgetDefinitions: scriptLifecycleBudgets.filter((budget) =>
-					[config.metric, 'errorCount'].includes(budget.metric)
-				),
-				budgets: [],
-				commitSha: safeCommitSha(),
-				environment: getEnvironment(browser.version()),
-				fixture: {
-					consentCount: 5,
-					localeCount: 1,
-					name: config.name,
-					notes: [
-						'Local deterministic script routes only.',
-						'Measures consent-driven script lifecycle rather than remote CDN latency.',
+				const result: BenchmarkResult = {
+					baseSha: safeBaseSha(),
+					budgetDefinitions: scriptLifecycleBudgets.filter((budget) =>
+						[config.metric, 'errorCount'].includes(budget.metric)
+					),
+					budgets: [],
+					commitSha: safeCommitSha(),
+					environment: getEnvironment(browser.version()),
+					fixture: {
+						consentCount: 5,
+						localeCount: 1,
+						name: config.name,
+						notes: [
+							'Local deterministic script routes only.',
+							'Measures consent-driven script lifecycle rather than remote CDN latency.',
+						],
+						scriptCount: config.scriptIds.length,
+						themeComplexity: 'minimal',
+					},
+					framework: 'core',
+					metrics: [
+						summarizeMetric(config.metric, 'ms', durationSamples),
+						summarizeMetric('loadedScriptCount', 'count', loadedScriptCounts),
+						summarizeMetric(
+							'unloadedScriptCount',
+							'count',
+							unloadedScriptCounts
+						),
+						summarizeMetric(
+							'retainedDomScriptCount',
+							'count',
+							retainedDomScriptCounts
+						),
+						summarizeMetric('callbackLoadCount', 'count', callbackLoadCounts),
+						summarizeMetric(
+							'callbackConsentChangeCount',
+							'count',
+							callbackConsentChangeCounts
+						),
+						summarizeMetric('errorCount', 'count', errorCounts),
 					],
-					scriptCount: config.scriptIds.length,
-					themeComplexity: 'minimal',
-				},
-				framework: 'core',
-				metrics: [
-					summarizeMetric(config.metric, 'ms', durationSamples),
-					summarizeMetric('loadedScriptCount', 'count', loadedScriptCounts),
-					summarizeMetric('unloadedScriptCount', 'count', unloadedScriptCounts),
-					summarizeMetric(
-						'retainedDomScriptCount',
-						'count',
-						retainedDomScriptCounts
-					),
-					summarizeMetric('callbackLoadCount', 'count', callbackLoadCounts),
-					summarizeMetric(
-						'callbackConsentChangeCount',
-						'count',
-						callbackConsentChangeCounts
-					),
-					summarizeMetric('errorCount', 'count', errorCounts),
-				],
-				notes: [
-					'Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.',
-					'IAB-gated script lifecycle scenarios are intentionally excluded from v1.',
-				],
-				package: '@c15t/script-lifecycle-bench',
-				runtime: 'playwright',
-				scenario: config.name,
-				schemaVersion: BENCHMARK_SCHEMA_VERSION,
-				suite: 'script-lifecycle',
-				timestamp: new Date().toISOString(),
-			};
+					notes: [
+						'Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.',
+						'IAB-gated script lifecycle scenarios are intentionally excluded from v1.',
+					],
+					package: '@c15t/script-lifecycle-bench',
+					runtime: 'playwright',
+					scenario: config.name,
+					schemaVersion: BENCHMARK_SCHEMA_VERSION,
+					suite: 'script-lifecycle',
+					timestamp: new Date().toISOString(),
+				};
 
-			writeJson(join(outputDir, `${config.name}.json`), result);
-		}
+				writeJson(join(outputDir, `${config.name}.json`), result);
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 	} finally {

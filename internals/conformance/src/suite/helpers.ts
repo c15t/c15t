@@ -106,22 +106,23 @@ export const queryByTestId = function queryByTestId(
  * the final predicate result so callers can make one last hard assertion
  * (which surfaces the actual mismatch instead of a generic timeout).
  */
-export const waitForCondition = async function waitForCondition(
+export const waitForCondition = function waitForCondition(
 	predicate: () => boolean,
 	timeoutMs = 2000,
 	intervalMs = 10
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
-	for (;;) {
+	const poll = async (): Promise<boolean> => {
 		if (predicate()) {
 			return true;
 		}
 		if (Date.now() >= deadline) {
 			return predicate();
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await createDeferredPromise((resolve) => setTimeout(resolve, intervalMs));
-	}
+		return poll();
+	};
+	return poll();
 };
 
 /**

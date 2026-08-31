@@ -25,12 +25,9 @@ const ROOT = process.cwd();
 const PACKAGES_DIR = join(ROOT, 'packages');
 
 const distBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
-	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-	{ pattern: /(^|\/)__tests__(\/|$)/u, reason: 'test folder' },
-	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-	{ pattern: /(^|\/)__snapshots__(\/|$)/u, reason: 'snapshot folder' },
-	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-	{ pattern: /(^|\/)__screenshots__(\/|$)/u, reason: 'screenshot folder' },
+	{ pattern: /(?:^|\/)__tests__(?:\/|$)/u, reason: 'test folder' },
+	{ pattern: /(?:^|\/)__snapshots__(?:\/|$)/u, reason: 'snapshot folder' },
+	{ pattern: /(?:^|\/)__screenshots__(?:\/|$)/u, reason: 'screenshot folder' },
 	{ pattern: /\.test\./u, reason: 'test file' },
 	{ pattern: /\.spec\./u, reason: 'spec file' },
 	{ pattern: /\.e2e\./u, reason: 'e2e file' },
@@ -217,8 +214,7 @@ export const getBlockedReason = function getBlockedReason(
 	if (path.startsWith('src/styles/')) {
 		for (const rule of [
 			{
-				// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-				pattern: /(^|\/)__tests__(\/|$)/u,
+				pattern: /(?:^|\/)__tests__(?:\/|$)/u,
 				reason: 'test folder in published styles',
 			},
 			{

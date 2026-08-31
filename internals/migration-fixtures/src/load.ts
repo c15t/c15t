@@ -81,13 +81,10 @@ export const loadFixture = async function loadFixture(
 export const domainTableNames = function domainTableNames(
 	fixture: CapturedSchemaSnapshot
 ): readonly string[] {
-	return (
-		fixture.tables
-			.map((table) => table.name)
-			// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-			.filter((name) => !/(^|_)c15t_settings$/u.test(name))
-			.sort()
-	);
+	return fixture.tables
+		.map((table) => table.name)
+		.filter((name) => !/(?:^|_)c15t_settings$/u.test(name))
+		.sort();
 };
 
 /** Column names for one table in a captured shape, sorted. */

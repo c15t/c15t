@@ -125,9 +125,11 @@ const ensureBuild = async function ensureBuild() {
 };
 
 const waitForServer = async function waitForServer() {
-	for (let attempt = 0; attempt < 120; attempt += 1) {
+	const poll = async (attempt: number): Promise<void> => {
+		if (attempt >= 120) {
+			throw new Error('Timed out waiting for script count benchmark server');
+		}
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const response = await fetch(`${BASE_URL}/script-count`);
 			if (response.ok) {
 				return;
@@ -135,10 +137,10 @@ const waitForServer = async function waitForServer() {
 		} catch {
 			// Ignore transient failures while polling or cleaning up.
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await sleep(500);
-	}
-	throw new Error('Timed out waiting for script count benchmark server');
+		return poll(attempt + 1);
+	};
+	await poll(0);
 };
 
 const readState = async function readState(page: Page): Promise<BenchState> {
@@ -253,25 +255,33 @@ const run = async function run() {
 			playwrightDurationMs: Stats;
 		}[] = [];
 
-		for (const count of counts) {
-			for (const version of ['v2', 'v3'] as const) {
+		const combinations = counts.flatMap((count) =>
+			(['v2', 'v3'] as const).map((version) => ({ count, version }))
+		);
+		await combinations.reduce<Promise<void>>(
+			async (previousCombination, { count, version }) => {
+				await previousCombination;
 				const inPageSamples: number[] = [];
 				const playwrightSamples: number[] = [];
 
-				for (let index = 0; index < warmupIterations + iterations; index += 1) {
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const context = await browser.newContext({ baseURL: BASE_URL });
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const page = await context.newPage();
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const sample = await collectSample(page, version, count);
-					if (index >= warmupIterations) {
-						inPageSamples.push(sample.inPageDurationMs);
-						playwrightSamples.push(sample.playwrightDurationMs);
-					}
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					await context.close();
-				}
+				const iterationIndexes = Array.from(
+					{ length: warmupIterations + iterations },
+					(_, index) => index
+				);
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
+						const sample = await collectSample(page, version, count);
+						if (index >= warmupIterations) {
+							inPageSamples.push(sample.inPageDurationMs);
+							playwrightSamples.push(sample.playwrightDurationMs);
+						}
+						await context.close();
+					},
+					Promise.resolve()
+				);
 
 				results.push({
 					count,
@@ -279,8 +289,9 @@ const run = async function run() {
 					playwrightDurationMs: summarize(playwrightSamples),
 					version,
 				});
-			}
-		}
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 

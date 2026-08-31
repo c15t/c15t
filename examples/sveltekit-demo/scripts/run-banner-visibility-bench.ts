@@ -194,37 +194,45 @@ const run = async function run() {
 			renderCount: Stats;
 		}[] = [];
 
-		for (const version of ['v2', 'v3'] as const) {
-			const readySamples: number[] = [];
-			const visibleSamples: number[] = [];
-			const mountSamples: number[] = [];
-			const renderSamples: number[] = [];
+		await (['v2', 'v3'] as const).reduce<Promise<void>>(
+			async (previousVersion, version) => {
+				await previousVersion;
+				const readySamples: number[] = [];
+				const visibleSamples: number[] = [];
+				const mountSamples: number[] = [];
+				const renderSamples: number[] = [];
 
-			for (let index = 0; index < warmupIterations + iterations; index += 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const context = await browser.newContext({ baseURL: BASE_URL });
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const page = await context.newPage();
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const sample = await collectSample(page, version);
-				if (index >= warmupIterations) {
-					readySamples.push(sample.bannerReadyMs ?? 0);
-					visibleSamples.push(sample.bannerVisibleMs ?? 0);
-					mountSamples.push(sample.mountMs ?? 0);
-					renderSamples.push(sample.renderCount);
-				}
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await context.close();
-			}
+				const iterationIndexes = Array.from(
+					{ length: warmupIterations + iterations },
+					(_, index) => index
+				);
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
+						const sample = await collectSample(page, version);
+						if (index >= warmupIterations) {
+							readySamples.push(sample.bannerReadyMs ?? 0);
+							visibleSamples.push(sample.bannerVisibleMs ?? 0);
+							mountSamples.push(sample.mountMs ?? 0);
+							renderSamples.push(sample.renderCount);
+						}
+						await context.close();
+					},
+					Promise.resolve()
+				);
 
-			results.push({
-				bannerReadyMs: summarize(readySamples),
-				bannerVisibleMs: summarize(visibleSamples),
-				mountMs: summarize(mountSamples),
-				renderCount: summarize(renderSamples),
-				version,
-			});
-		}
+				results.push({
+					bannerReadyMs: summarize(readySamples),
+					bannerVisibleMs: summarize(visibleSamples),
+					mountMs: summarize(mountSamples),
+					renderCount: summarize(renderSamples),
+					version,
+				});
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 

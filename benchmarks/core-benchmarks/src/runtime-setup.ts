@@ -98,13 +98,14 @@ export const ensureBenchmarkDom = function ensureBenchmarkDom(): void {
 	}
 
 	if (typeof globalThis.fetch === 'undefined') {
-		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-		globalThis.fetch = (async () =>
-			new Response(JSON.stringify({ ok: true }), {
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				status: 200,
-			})) as typeof fetch;
+		globalThis.fetch = (() =>
+			Promise.resolve(
+				new Response(JSON.stringify({ ok: true }), {
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					status: 200,
+				})
+			)) as typeof fetch;
 	}
 };

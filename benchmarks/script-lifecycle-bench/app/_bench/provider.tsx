@@ -93,7 +93,35 @@ const markIfReady = function markIfReady(
 	);
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const hasStandardLoads = function hasStandardLoads(state: ScriptBenchState) {
+	return (
+		(state.loadEventCounts['fixture-standard-head'] ?? 0) >= 1 &&
+		(state.loadEventCounts['fixture-standard-body'] ?? 0) >= 1 &&
+		(state.loadEventCounts['fixture-inline'] ?? 0) >= 1
+	);
+};
+
+const hasReloadedTarget = function hasReloadedTarget(
+	state: ScriptBenchState,
+	config: ScriptLifecycleScenarioConfig
+) {
+	return (
+		state.reloadCount >= 1 &&
+		(state.loadEventCounts[config.reloadTargetId ?? 'fixture-standard-head'] ??
+			0) >= 2
+	);
+};
+
+const hasCallbackOnlyCycle = function hasCallbackOnlyCycle(
+	state: ScriptBenchState
+) {
+	return (
+		(state.beforeLoadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
+		(state.loadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
+		(state.domPresenceById['fixture-callback-only'] ?? false) === false
+	);
+};
+
 const evaluateCompletion = function evaluateCompletion(
 	state: ScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
@@ -111,15 +139,9 @@ const evaluateCompletion = function evaluateCompletion(
 
 	const isFinalReady = markIfReady(state, config, 'final');
 
-	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (config.name) {
 		case 'grant-standard': {
-			if (
-				isFinalReady &&
-				(state.loadEventCounts['fixture-standard-head'] ?? 0) >= 1 &&
-				(state.loadEventCounts['fixture-standard-body'] ?? 0) >= 1 &&
-				(state.loadEventCounts['fixture-inline'] ?? 0) >= 1
-			) {
+			if (isFinalReady && hasStandardLoads(state)) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
 			return;
@@ -131,24 +153,13 @@ const evaluateCompletion = function evaluateCompletion(
 			return;
 		}
 		case 'reload-single': {
-			if (
-				isFinalReady &&
-				state.reloadCount >= 1 &&
-				(state.loadEventCounts[
-					config.reloadTargetId ?? 'fixture-standard-head'
-				] ?? 0) >= 2
-			) {
+			if (isFinalReady && hasReloadedTarget(state, config)) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
 			return;
 		}
 		case 'callback-only-toggle': {
-			if (
-				isFinalReady &&
-				(state.beforeLoadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
-				(state.loadEventCounts['fixture-callback-only'] ?? 0) >= 1 &&
-				(state.domPresenceById['fixture-callback-only'] ?? false) === false
-			) {
+			if (isFinalReady && hasCallbackOnlyCycle(state)) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
 			return;
@@ -160,6 +171,8 @@ const evaluateCompletion = function evaluateCompletion(
 			}
 			break;
 		}
+		default:
+			break;
 	}
 };
 
@@ -322,7 +335,6 @@ export const ScriptLifecycleProvider = ({
 				return;
 			}
 
-			// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 			switch (config.name) {
 				case 'grant-standard':
 				case 'callback-only-toggle':
@@ -341,6 +353,8 @@ export const ScriptLifecycleProvider = ({
 						config.reloadTargetId ?? 'fixture-standard-head'
 					);
 					break;
+				default:
+					return;
 			}
 
 			const current = store.getState();

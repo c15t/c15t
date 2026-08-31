@@ -46,8 +46,7 @@ const apps = [
 ];
 
 const assertPortAvailable = function assertPortAvailable(port) {
-	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-	return createDeferredPromise((resolve, reject) => {
+	return createDeferredPromise((fulfill, reject) => {
 		const server = net.createServer();
 
 		server.once('error', (error) => {
@@ -55,7 +54,7 @@ const assertPortAvailable = function assertPortAvailable(port) {
 		});
 
 		server.listen(port, () => {
-			server.close(() => resolve());
+			server.close(() => fulfill());
 		});
 	});
 };

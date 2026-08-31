@@ -83,9 +83,11 @@ const ROUTE_TO_SCENARIO: Record<string, string> = {
 };
 
 const waitForServer = async function waitForServer() {
-	for (let attempt = 0; attempt < 120; attempt += 1) {
+	const poll = async (attempt: number): Promise<void> => {
+		if (attempt >= 120) {
+			throw new Error('Timed out waiting for bundle benchmark server');
+		}
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const response = await fetch(BASE_URL);
 			if (response.ok) {
 				return;
@@ -93,11 +95,10 @@ const waitForServer = async function waitForServer() {
 		} catch {
 			// The temporary artifact may already be absent.
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await sleep(500);
-	}
-
-	throw new Error('Timed out waiting for bundle benchmark server');
+		return poll(attempt + 1);
+	};
+	await poll(0);
 };
 
 const analyzeRouteSizes = async function analyzeRouteSizes() {
@@ -127,50 +128,56 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 	const routes: RouteSize[] = [];
 	let baselineGzip = 0;
 
-	for (const routeName of Object.keys(ROUTE_TO_SCENARIO)) {
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-		const response = await fetch(`${BASE_URL}${routeName}`);
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-		const html = await response.text();
-		const scripts = Array.from(
-			// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-			html.matchAll(/<script[^>]+src="([^"]+)"/gu),
-			(match) => match[1]
-		).filter((scriptPath): scriptPath is string =>
-			Boolean(scriptPath?.startsWith('/_next/'))
-		);
-		const styles = Array.from(
-			// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
-			html.matchAll(/<link[^>]+href="([^"]+\.css[^"]*)"[^>]*>/gu),
-			(match) => match[1]?.split('?')[0]
-		).filter((stylePath): stylePath is string =>
-			Boolean(stylePath?.startsWith('/_next/'))
-		);
+	await Object.keys(ROUTE_TO_SCENARIO).reduce<Promise<void>>(
+		async (previousRoute, routeName) => {
+			await previousRoute;
+			const response = await fetch(`${BASE_URL}${routeName}`);
+			const html = await response.text();
+			const scripts = Array.from(
+				html.matchAll(/<script[^>]+src="(?<source>[^"]+)"/gu),
+				(match) => match.groups?.source
+			).filter((scriptPath): scriptPath is string =>
+				Boolean(scriptPath?.startsWith('/_next/'))
+			);
+			const styles = Array.from(
+				html.matchAll(/<link[^>]+href="(?<source>[^"]+\.css[^"]*)"[^>]*>/gu),
+				(match) => match.groups?.source?.split('?')[0]
+			).filter((stylePath): stylePath is string =>
+				Boolean(stylePath?.startsWith('/_next/'))
+			);
 
-		let jsTotal = 0;
-		for (const scriptPath of new Set(scripts)) {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			jsTotal += await getGzipSize(scriptPath);
-		}
+			let jsTotal = 0;
+			await Array.from(new Set(scripts)).reduce<Promise<void>>(
+				async (previousScript, scriptPath) => {
+					await previousScript;
+					jsTotal += await getGzipSize(scriptPath);
+				},
+				Promise.resolve()
+			);
 
-		let cssTotal = 0;
-		for (const stylePath of new Set(styles)) {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			cssTotal += await getGzipSize(stylePath);
-		}
+			let cssTotal = 0;
+			await Array.from(new Set(styles)).reduce<Promise<void>>(
+				async (previousStyle, stylePath) => {
+					await previousStyle;
+					cssTotal += await getGzipSize(stylePath);
+				},
+				Promise.resolve()
+			);
 
-		if (routeName === '/') {
-			baselineGzip = jsTotal + cssTotal;
-		}
+			if (routeName === '/') {
+				baselineGzip = jsTotal + cssTotal;
+			}
 
-		routes.push({
-			c15tAddition: 0,
-			cssGzip: cssTotal,
-			jsGzip: jsTotal,
-			route: routeName,
-			totalGzip: jsTotal + cssTotal,
-		});
-	}
+			routes.push({
+				c15tAddition: 0,
+				cssGzip: cssTotal,
+				jsGzip: jsTotal,
+				route: routeName,
+				totalGzip: jsTotal + cssTotal,
+			});
+		},
+		Promise.resolve()
+	);
 
 	for (const route of routes) {
 		route.c15tAddition =
@@ -266,9 +273,8 @@ const stopServer = async function stopServer(
 		createDeferredPromise<{
 			code: number | null;
 			signal: NodeJS.Signals | null;
-			// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-		}>((resolve) => {
-			server.once('exit', (code, signal) => resolve({ code, signal }));
+		}>((fulfill) => {
+			server.once('exit', (code, signal) => fulfill({ code, signal }));
 		});
 
 	let result =
@@ -327,6 +333,14 @@ const main = async function main() {
 	const { routes } = await analyzeRouteSizes();
 
 	try {
+		const frameworkForRoute = (
+			route: RouteSize
+		): BenchmarkResult['framework'] => {
+			if (route.route.startsWith('/nextjs')) {
+				return 'nextjs';
+			}
+			return route.route === '/core-only' ? 'core' : 'react';
+		};
 		const bundleResults: BenchmarkResult[] = routes.map((route) => ({
 			baseSha: safeBaseSha(),
 			budgetDefinitions: bundleBudgets.filter(
@@ -336,12 +350,7 @@ const main = async function main() {
 			commitSha: safeCommitSha(),
 			environment: getEnvironment(),
 			fixture: routeFixture(route),
-			// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-			framework: route.route.startsWith('/nextjs')
-				? 'nextjs'
-				: route.route === '/core-only'
-					? 'core'
-					: 'react',
+			framework: frameworkForRoute(route),
 			metrics: [
 				summarizeMetric('gzipSize', 'bytes', [route.totalGzip]),
 				summarizeMetric('jsGzipSize', 'bytes', [route.jsGzip]),

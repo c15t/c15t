@@ -93,8 +93,7 @@ interface CollectedSample {
 // ---------------------------------------------------------------------------
 
 const pickFreePort = function pickFreePort(): Promise<number> {
-	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-	return createDeferredPromise((resolve, reject) => {
+	return createDeferredPromise((fulfill, reject) => {
 		const server = createServer();
 		server.listen(0, '127.0.0.1', () => {
 			const address = server.address();
@@ -103,7 +102,7 @@ const pickFreePort = function pickFreePort(): Promise<number> {
 				return;
 			}
 			const { port } = address;
-			server.close(() => resolve(port));
+			server.close(() => fulfill(port));
 		});
 		server.on('error', reject);
 	});
@@ -114,9 +113,11 @@ const waitForServer = async function waitForServer(
 	timeoutMs = 30_000
 ): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
-	while (Date.now() < deadline) {
+	const poll = async (): Promise<void> => {
+		if (Date.now() >= deadline) {
+			throw new Error(`Timed out waiting for server at ${url}`);
+		}
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const res = await fetch(url);
 			if (res.ok || res.status < 500) {
 				return;
@@ -124,18 +125,17 @@ const waitForServer = async function waitForServer(
 		} catch {
 			// not ready yet
 		}
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await sleep(250);
-	}
-	throw new Error(`Timed out waiting for server at ${url}`);
+		return poll();
+	};
+	await poll();
 };
 
 const runCommand = async function runCommand(
 	args: string[],
 	label: string
 ): Promise<void> {
-	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-	await createVoidDeferredPromise((resolve, reject) => {
+	await createVoidDeferredPromise((fulfill, reject) => {
 		const child = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -151,7 +151,7 @@ const runCommand = async function runCommand(
 
 		child.on('exit', (code) => {
 			if (code === 0) {
-				resolve();
+				fulfill();
 			} else {
 				reject(
 					new Error(
@@ -343,6 +343,7 @@ const run = async function run(): Promise<void> {
 		serverLogs += String(chunk);
 	});
 
+	let runError: unknown;
 	try {
 		await waitForServer(baseUrl);
 		console.log(`Server ready at ${baseUrl}`);
@@ -358,30 +359,34 @@ const run = async function run(): Promise<void> {
 		);
 		console.log(`CPU throttle: ${CPU_THROTTLE_RATE}x`);
 
-		for (let round = 1; round <= ROUNDS; round += 1) {
+		const rounds = Array.from({ length: ROUNDS }, (_, index) => index + 1);
+		await rounds.reduce<Promise<void>>(async (previousRound, round) => {
+			await previousRound;
 			console.log(`\n  Round ${round}/${ROUNDS}`);
 
 			// Warmup runs — results discarded.
 			process.stdout.write(`    Warmup  [${' '.repeat(WARMUP_PER_ROUND)}]\r`);
 			process.stdout.write('    Warmup  [');
-			for (let w = 0; w < WARMUP_PER_ROUND; w += 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+			const warmups = Array.from({ length: WARMUP_PER_ROUND });
+			await warmups.reduce<Promise<void>>(async (previousWarmup) => {
+				await previousWarmup;
 				await collectOneSample(browser, baseUrl);
 				process.stdout.write('.');
-			}
+			}, Promise.resolve());
 			process.stdout.write(']\n');
 
 			// Measured runs.
 			process.stdout.write(`    Measure [${' '.repeat(MEASURED_PER_ROUND)}]\r`);
 			process.stdout.write('    Measure [');
-			for (let m = 0; m < MEASURED_PER_ROUND; m += 1) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+			const measurements = Array.from({ length: MEASURED_PER_ROUND });
+			await measurements.reduce<Promise<void>>(async (previousMeasurement) => {
+				await previousMeasurement;
 				const sample = await collectOneSample(browser, baseUrl);
 				allSamples.push(sample);
 				process.stdout.write('.');
-			}
+			}, Promise.resolve());
 			process.stdout.write(']\n');
-		}
+		}, Promise.resolve());
 
 		const browserVersion = browser.version();
 		await browser.close();
@@ -467,6 +472,8 @@ const run = async function run(): Promise<void> {
 
 		writeJson(join(outputDir, 'first-paint.json'), result);
 		console.log(`Results written to ${join(outputDir, 'first-paint.json')}`);
+	} catch (error) {
+		runError = error;
 	} finally {
 		previewServer.kill('SIGTERM');
 		await sleep(500);
@@ -479,11 +486,13 @@ const run = async function run(): Promise<void> {
 			previewServer.exitCode !== 0 &&
 			previewServer.exitCode !== 143
 		) {
-			// oxlint-disable-next-line no-unsafe-finally -- Preview teardown failures must fail the benchmark after cleanup.
-			throw new Error(
+			runError = new Error(
 				serverLogs || 'vite preview server exited with a non-zero code'
 			);
 		}
+	}
+	if (runError) {
+		throw runError;
 	}
 };
 

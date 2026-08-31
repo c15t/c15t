@@ -490,7 +490,6 @@ const isManifestScenario = function isManifestScenario(
 	return scenario.includes('manifest');
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const run = async function run() {
 	await ensureBuild();
 
@@ -525,259 +524,263 @@ const run = async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 
-		for (const scenario of scenarios) {
-			const samples: NextjsBrowserSample[] = [];
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			await resetFixtureCounts();
-			const effectiveWarmupIterations =
-				coldManifestMode && isManifestScenario(scenario.name)
-					? 0
-					: warmupIterations;
-			for (
-				let index = 0;
-				index < effectiveWarmupIterations + iterations;
-				index += 1
-			) {
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const context = await browser.newContext({ baseURL: BASE_URL });
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const page = await context.newPage();
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await applyPageProfile(context, page);
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const metrics = await collectScenarioMetrics(
-					page,
-					scenario.name,
-					scenario.path
+		await Array.from(scenarios).reduce<Promise<void>>(
+			async (previousScenario, scenario) => {
+				await previousScenario;
+				const samples: NextjsBrowserSample[] = [];
+				await resetFixtureCounts();
+				const effectiveWarmupIterations =
+					coldManifestMode && isManifestScenario(scenario.name)
+						? 0
+						: warmupIterations;
+				const iterationIndexes = Array.from(
+					{ length: effectiveWarmupIterations + iterations },
+					(_, index) => index
 				);
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				const interactionLatencyMs = await measureInteractionLatency(
-					page,
-					scenario.name
+				await iterationIndexes.reduce<Promise<void>>(
+					async (previousIteration, index) => {
+						await previousIteration;
+						const context = await browser.newContext({ baseURL: BASE_URL });
+						const page = await context.newPage();
+						await applyPageProfile(context, page);
+						const metrics = await collectScenarioMetrics(
+							page,
+							scenario.name,
+							scenario.path
+						);
+						const interactionLatencyMs = await measureInteractionLatency(
+							page,
+							scenario.name
+						);
+						if (index >= effectiveWarmupIterations) {
+							const measuredIndex = index - effectiveWarmupIterations;
+							let sampleScenario: string | undefined = metrics.scenario;
+							if (coldManifestMode && isManifestScenario(scenario.name)) {
+								sampleScenario =
+									measuredIndex === 0
+										? `${scenario.name}-cold`
+										: `${scenario.name}-steady`;
+							}
+							samples.push({
+								...metrics,
+								interactionLatencyMs,
+								scenario: sampleScenario,
+							});
+						}
+
+						if (
+							(scenario.name === 'client' ||
+								scenario.name === 'nextjs-v3-client') &&
+							index >= effectiveWarmupIterations
+						) {
+							const repeatContext = await browser.newContext({
+								baseURL: BASE_URL,
+							});
+							const repeatPage = await repeatContext.newPage();
+							await applyPageProfile(repeatContext, repeatPage);
+							const repeatMetrics = await collectScenarioMetrics(
+								repeatPage,
+								scenario.name,
+								scenario.path
+							);
+							const repeatInteractionLatencyMs =
+								await measureInteractionLatency(
+									repeatPage,
+									scenario.name === 'nextjs-v3-client'
+										? 'nextjs-v3-repeat'
+										: 'repeat-visitor'
+								);
+							samples.push({
+								...repeatMetrics,
+								interactionLatencyMs: repeatInteractionLatencyMs,
+								scenario:
+									scenario.name === 'nextjs-v3-client'
+										? 'nextjs-v3-repeat'
+										: 'repeat-visitor',
+							});
+							await repeatContext.close();
+						}
+
+						await context.close();
+					},
+					Promise.resolve()
 				);
-				if (index >= effectiveWarmupIterations) {
-					const measuredIndex = index - effectiveWarmupIterations;
-					samples.push({
-						...metrics,
-						interactionLatencyMs,
-						scenario:
-							// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
-							coldManifestMode &&
-							isManifestScenario(scenario.name) &&
-							measuredIndex === 0
-								? `${scenario.name}-cold`
-								: coldManifestMode && isManifestScenario(scenario.name)
-									? `${scenario.name}-steady`
-									: metrics.scenario,
-					});
+				const fixtureCounts = await readFixtureCounts();
+
+				const grouped = new Map<string, typeof samples>();
+				for (const sample of samples) {
+					const key = sample.scenario ?? scenario.name;
+					const existing = grouped.get(key) ?? [];
+					existing.push(sample);
+					grouped.set(key, existing);
 				}
 
-				if (
-					(scenario.name === 'client' ||
-						scenario.name === 'nextjs-v3-client') &&
-					index >= effectiveWarmupIterations
-				) {
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const repeatContext = await browser.newContext({ baseURL: BASE_URL });
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const repeatPage = await repeatContext.newPage();
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					await applyPageProfile(repeatContext, repeatPage);
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const repeatMetrics = await collectScenarioMetrics(
-						repeatPage,
-						scenario.name,
-						scenario.path
-					);
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					const repeatInteractionLatencyMs = await measureInteractionLatency(
-						repeatPage,
-						scenario.name === 'nextjs-v3-client'
-							? 'nextjs-v3-repeat'
-							: 'repeat-visitor'
-					);
-					samples.push({
-						...repeatMetrics,
-						interactionLatencyMs: repeatInteractionLatencyMs,
-						scenario:
-							scenario.name === 'nextjs-v3-client'
-								? 'nextjs-v3-repeat'
-								: 'repeat-visitor',
-					});
-					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-					await repeatContext.close();
+				for (const [groupScenario, groupedSamples] of grouped) {
+					const outputScenario = resultScenarioName(groupScenario);
+					const result: BenchmarkResult = {
+						baseSha: safeBaseSha(),
+						budgetDefinitions: budgetsForScenario(groupScenario),
+						budgets: [],
+						commitSha: safeCommitSha(),
+						environment: getEnvironment(browser.version()),
+						fixture: {
+							consentCount: 5,
+							localeCount: 1,
+							name: outputScenario,
+							scriptCount: 0,
+							themeComplexity: 'minimal',
+						},
+						framework: 'nextjs',
+						metadata: {
+							bannerInFirstHtml: groupedSamples.every(
+								(sample) => sample.bannerInFirstHtml
+							),
+							bannerPaintMs: nullableMedian(
+								groupedSamples.map((sample) => sample.bannerPaintMs)
+							),
+							cls: Number(
+								median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(
+									4
+								)
+							),
+							coldManifestMode,
+							fixtureInitExecutions: fixtureCounts.init,
+							fixtureManifestExecutions: fixtureCounts.manifest,
+							fixtureSubjectExecutions: fixtureCounts.subjects,
+							initLatencyMs,
+							profile: throttleProfile,
+						},
+						metrics: [
+							summarizeMetric(
+								'bannerReadyMs',
+								'ms',
+								groupedSamples.map((sample) => sample.bannerReadyMs ?? 0)
+							),
+							summarizeMetric(
+								'bannerVisibleMs',
+								'ms',
+								groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
+							),
+							summarizeNullableMetric(
+								'bannerPaintMs',
+								'ms',
+								groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
+							),
+							summarizeMetric(
+								'bannerInFirstHtml',
+								'count',
+								groupedSamples.map((sample) =>
+									sample.bannerInFirstHtml ? 1 : 0
+								)
+							),
+							summarizeMetric(
+								'cls',
+								'ratio',
+								groupedSamples.map((sample) => sample.cls ?? 0)
+							),
+							summarizeMetric(
+								'firstAppScriptStartMs',
+								'ms',
+								groupedSamples.map(
+									(sample) => sample.firstAppScriptStartMs ?? 0
+								)
+							),
+							summarizeMetric(
+								'lastAppScriptEndMs',
+								'ms',
+								groupedSamples.map((sample) => sample.lastAppScriptEndMs ?? 0)
+							),
+							summarizeMetric(
+								'appScriptCount',
+								'count',
+								groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+							),
+							summarizeMetric(
+								'jsBytes',
+								'bytes',
+								groupedSamples.map((sample) => sample.jsBytes ?? 0)
+							),
+							summarizeMetric(
+								'ttfbMs',
+								'ms',
+								groupedSamples.map((sample) => sample.ttfbMs ?? 0)
+							),
+							summarizeMetric(
+								'htmlDoneMs',
+								'ms',
+								groupedSamples.map((sample) => sample.htmlDoneMs ?? 0)
+							),
+							summarizeMetric(
+								'domContentLoadedMs',
+								'ms',
+								groupedSamples.map((sample) => sample.domContentLoadedMs ?? 0)
+							),
+							summarizeMetric(
+								'loadEventMs',
+								'ms',
+								groupedSamples.map((sample) => sample.loadEventMs ?? 0)
+							),
+							summarizeMetric(
+								'initRequestsAfterLoad',
+								'count',
+								groupedSamples.map(
+									(sample) => sample.initRequestsAfterLoad ?? 0
+								)
+							),
+							summarizeMetric(
+								'manifestRequestsAfterLoad',
+								'count',
+								groupedSamples.map(
+									(sample) => sample.manifestRequestsAfterLoad ?? 0
+								)
+							),
+							summarizeMetric(
+								'mountCount',
+								'count',
+								groupedSamples.map((sample) => sample.mountCount ?? 0)
+							),
+							summarizeMetric(
+								'renderCount',
+								'count',
+								groupedSamples.map((sample) => sample.renderCount ?? 0)
+							),
+							summarizeMetric(
+								'longTaskCount',
+								'count',
+								groupedSamples.map((sample) => sample.longTaskCount ?? 0)
+							),
+							summarizeMetric(
+								'longTaskTotalMs',
+								'ms',
+								groupedSamples.map((sample) => sample.longTaskTotalMs ?? 0)
+							),
+							summarizeMetric(
+								'domNodeCount',
+								'count',
+								groupedSamples.map((sample) => sample.domNodeCount ?? 0)
+							),
+							summarizeMetric(
+								'interactionLatencyMs',
+								'ms',
+								groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
+							),
+						],
+						notes: [
+							'Next.js browser bench covers client, SSR, prefetch, and repeat-visitor paths.',
+						],
+						package: '@c15t/nextjs-browser-bench',
+						runtime: 'playwright',
+						scenario: outputScenario,
+						schemaVersion: BENCHMARK_SCHEMA_VERSION,
+						suite: 'browser-runtime',
+						timestamp: new Date().toISOString(),
+					};
+
+					writeJson(join(outputDir, resultFileName(groupScenario)), result);
 				}
-
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-				await context.close();
-			}
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
-			const fixtureCounts = await readFixtureCounts();
-
-			const grouped = new Map<string, typeof samples>();
-			for (const sample of samples) {
-				const key = sample.scenario ?? scenario.name;
-				const existing = grouped.get(key) ?? [];
-				existing.push(sample);
-				grouped.set(key, existing);
-			}
-
-			for (const [groupScenario, groupedSamples] of grouped) {
-				const outputScenario = resultScenarioName(groupScenario);
-				const result: BenchmarkResult = {
-					baseSha: safeBaseSha(),
-					budgetDefinitions: budgetsForScenario(groupScenario),
-					budgets: [],
-					commitSha: safeCommitSha(),
-					environment: getEnvironment(browser.version()),
-					fixture: {
-						consentCount: 5,
-						localeCount: 1,
-						name: outputScenario,
-						scriptCount: 0,
-						themeComplexity: 'minimal',
-					},
-					framework: 'nextjs',
-					metadata: {
-						bannerInFirstHtml: groupedSamples.every(
-							(sample) => sample.bannerInFirstHtml
-						),
-						bannerPaintMs: nullableMedian(
-							groupedSamples.map((sample) => sample.bannerPaintMs)
-						),
-						cls: Number(
-							median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(4)
-						),
-						coldManifestMode,
-						fixtureInitExecutions: fixtureCounts.init,
-						fixtureManifestExecutions: fixtureCounts.manifest,
-						fixtureSubjectExecutions: fixtureCounts.subjects,
-						initLatencyMs,
-						profile: throttleProfile,
-					},
-					metrics: [
-						summarizeMetric(
-							'bannerReadyMs',
-							'ms',
-							groupedSamples.map((sample) => sample.bannerReadyMs ?? 0)
-						),
-						summarizeMetric(
-							'bannerVisibleMs',
-							'ms',
-							groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
-						),
-						summarizeNullableMetric(
-							'bannerPaintMs',
-							'ms',
-							groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
-						),
-						summarizeMetric(
-							'bannerInFirstHtml',
-							'count',
-							groupedSamples.map((sample) => (sample.bannerInFirstHtml ? 1 : 0))
-						),
-						summarizeMetric(
-							'cls',
-							'ratio',
-							groupedSamples.map((sample) => sample.cls ?? 0)
-						),
-						summarizeMetric(
-							'firstAppScriptStartMs',
-							'ms',
-							groupedSamples.map((sample) => sample.firstAppScriptStartMs ?? 0)
-						),
-						summarizeMetric(
-							'lastAppScriptEndMs',
-							'ms',
-							groupedSamples.map((sample) => sample.lastAppScriptEndMs ?? 0)
-						),
-						summarizeMetric(
-							'appScriptCount',
-							'count',
-							groupedSamples.map((sample) => sample.appScriptCount ?? 0)
-						),
-						summarizeMetric(
-							'jsBytes',
-							'bytes',
-							groupedSamples.map((sample) => sample.jsBytes ?? 0)
-						),
-						summarizeMetric(
-							'ttfbMs',
-							'ms',
-							groupedSamples.map((sample) => sample.ttfbMs ?? 0)
-						),
-						summarizeMetric(
-							'htmlDoneMs',
-							'ms',
-							groupedSamples.map((sample) => sample.htmlDoneMs ?? 0)
-						),
-						summarizeMetric(
-							'domContentLoadedMs',
-							'ms',
-							groupedSamples.map((sample) => sample.domContentLoadedMs ?? 0)
-						),
-						summarizeMetric(
-							'loadEventMs',
-							'ms',
-							groupedSamples.map((sample) => sample.loadEventMs ?? 0)
-						),
-						summarizeMetric(
-							'initRequestsAfterLoad',
-							'count',
-							groupedSamples.map((sample) => sample.initRequestsAfterLoad ?? 0)
-						),
-						summarizeMetric(
-							'manifestRequestsAfterLoad',
-							'count',
-							groupedSamples.map(
-								(sample) => sample.manifestRequestsAfterLoad ?? 0
-							)
-						),
-						summarizeMetric(
-							'mountCount',
-							'count',
-							groupedSamples.map((sample) => sample.mountCount ?? 0)
-						),
-						summarizeMetric(
-							'renderCount',
-							'count',
-							groupedSamples.map((sample) => sample.renderCount ?? 0)
-						),
-						summarizeMetric(
-							'longTaskCount',
-							'count',
-							groupedSamples.map((sample) => sample.longTaskCount ?? 0)
-						),
-						summarizeMetric(
-							'longTaskTotalMs',
-							'ms',
-							groupedSamples.map((sample) => sample.longTaskTotalMs ?? 0)
-						),
-						summarizeMetric(
-							'domNodeCount',
-							'count',
-							groupedSamples.map((sample) => sample.domNodeCount ?? 0)
-						),
-						summarizeMetric(
-							'interactionLatencyMs',
-							'ms',
-							groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
-						),
-					],
-					notes: [
-						'Next.js browser bench covers client, SSR, prefetch, and repeat-visitor paths.',
-					],
-					package: '@c15t/nextjs-browser-bench',
-					runtime: 'playwright',
-					scenario: outputScenario,
-					schemaVersion: BENCHMARK_SCHEMA_VERSION,
-					suite: 'browser-runtime',
-					timestamp: new Date().toISOString(),
-				};
-
-				writeJson(join(outputDir, resultFileName(groupScenario)), result);
-			}
-		}
+			},
+			Promise.resolve()
+		);
 
 		await browser.close();
 	} finally {

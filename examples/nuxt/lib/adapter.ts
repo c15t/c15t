@@ -53,9 +53,9 @@ export interface ResolvedAdapter {
  */
 const createEmbeddedDatabase =
 	async function createEmbeddedDatabase(): Promise<DatabaseOption> {
+		const embeddedModule = EMBEDDED_POSTGRES_MODULE;
 		const { PgliteClient } = (await import(
-			// oxlint-disable-next-line no-inline-comments -- Vite requires this directive at the import expression.
-			/* @vite-ignore */ EMBEDDED_POSTGRES_MODULE
+			embeddedModule
 		)) as typeof EffectSqlPgliteTypes;
 
 		// PGlite mkdirs the data directory itself but not its parent.

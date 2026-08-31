@@ -29,31 +29,96 @@ const StatusRow = ({ label, value }: { label: string; value: string }) => (
 	</div>
 );
 
+type ConsentManagerValue = ReturnType<typeof useConsentManager>;
+
+const formatLocation = function formatLocation(
+	location: ConsentManagerValue['locationInfo']
+): string {
+	if (!location?.countryCode) {
+		return '--';
+	}
+	const region = location.regionCode ? `-${location.regionCode}` : '';
+	return `${location.countryCode}${region}`;
+};
+
+const formatBannerMode = function formatBannerMode(
+	policy: NonNullable<ConsentManagerValue['lastBannerFetchData']>['policy']
+): string {
+	if (!policy?.ui || policy.ui.mode === 'none') {
+		return policy?.ui?.mode ?? 'default';
+	}
+	return policy.ui.mode;
+};
+
+const displayModel = function displayModel(state: ConsentManagerValue): string {
+	return MODEL_LABELS[state.model ?? 'none'] ?? (state.model || 'none');
+};
+
+const createDisplay = function createDisplay(
+	mounted: boolean,
+	state: ConsentManagerValue
+) {
+	if (!mounted) {
+		return {
+			banner: '…',
+			categories: [] as string[],
+			copy: '…',
+			hasSavedConsent: false,
+			iabEnabled: false,
+			language: '…',
+			location: '--',
+			model: '…',
+			policyId: '…',
+		};
+	}
+	const policy = state.lastBannerFetchData?.policy;
+	const requestedLanguage = state.overrides?.language;
+	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
+	const resolvedLanguage =
+		state.lastBannerFetchData?.translations.language ??
+		state.translationConfig.defaultLanguage ??
+		'en';
+	return {
+		banner: formatBannerMode(policy),
+		categories: (state.policyCategories ?? []).filter(
+			(category) => category !== '*'
+		),
+		copy:
+			messageProfile === 'default'
+				? 'stock translations'
+				: `custom ("${messageProfile}" profile)`,
+		hasSavedConsent:
+			state.consentInfo !== null && state.consentInfo !== undefined,
+		iabEnabled: state.iab?.config.enabled ?? false,
+		language: `${resolvedLanguage}${
+			requestedLanguage ? ` (requested ${requestedLanguage})` : ' (auto)'
+		}`,
+		location: formatLocation(state.locationInfo),
+		model: displayModel(state),
+		policyId: policy?.id ?? 'none',
+	};
+};
+
 /**
  * Live view of what the consent manager resolved: active policy, model,
  * location, language, plus the current consent decisions. Must be rendered
  * inside a `ConsentManagerProvider`.
  */
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const [mounted, setMounted] = useState(false);
+	const manager = useConsentManager();
 	const {
 		activeUI,
-		consentInfo,
 		consents,
 		iab,
 		initConsentManager,
 		lastBannerFetchData,
-		locationInfo,
-		model,
-		policyCategories,
 		resetConsents,
 		setActiveUI,
 		setLanguage,
 		setOverrides,
 		overrides,
-		translationConfig,
-	} = useConsentManager();
+	} = manager;
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setMounted(true));
@@ -63,51 +128,7 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
 	const requestedLanguage = overrides?.language;
-	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
-	const resolvedLanguage =
-		lastBannerFetchData?.translations.language ??
-		translationConfig.defaultLanguage ??
-		'en';
-
-	const display = mounted
-		? // oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
-			{
-				policyId: policy?.id ?? 'none',
-				model: MODEL_LABELS[model ?? 'none'] ?? (model || 'none'),
-				iabEnabled: iab?.config.enabled ?? false,
-				location: locationInfo?.countryCode
-					? `${locationInfo.countryCode}${
-							locationInfo.regionCode ? `-${locationInfo.regionCode}` : ''
-						}`
-					: '--',
-				language: `${resolvedLanguage}${
-					requestedLanguage ? ` (requested ${requestedLanguage})` : ' (auto)'
-				}`,
-				copy:
-					messageProfile === 'default'
-						? 'stock translations'
-						: `custom ("${messageProfile}" profile)`,
-				banner:
-					policy?.ui?.mode === 'none' || !policy?.ui
-						? (policy?.ui?.mode ?? 'default')
-						: policy.ui.mode,
-				hasSavedConsent: consentInfo !== null && consentInfo !== undefined,
-				// IAB policies use a '*' wildcard — purposes replace categories there.
-				categories: (policyCategories ?? []).filter(
-					(category) => category !== '*'
-				),
-			}
-		: {
-				banner: '…',
-				categories: [] as string[],
-				copy: '…',
-				hasSavedConsent: false,
-				iabEnabled: false,
-				language: '…',
-				location: '--',
-				model: '…',
-				policyId: '…',
-			};
+	const display = createDisplay(mounted, manager);
 
 	const rawState = mounted
 		? {

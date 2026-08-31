@@ -455,138 +455,160 @@ const JsonBlock = ({ label, value }: { label: string; value: unknown }) => (
 // Runtime state panel
 // ---------------------------------------------------------------------------
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+type ConsentManagerValue = ReturnType<typeof useConsentManager>;
+
+const policyActionLayout = function policyActionLayout(
+	manager: ConsentManagerValue
+) {
+	const banner = manager.lastBannerFetchData?.policy?.ui?.banner;
+	return {
+		direction: banner?.direction ?? null,
+		layout: banner?.layout ?? null,
+		uiProfile: banner?.uiProfile ?? null,
+	};
+};
+
+const policyLanguage = function policyLanguage(manager: ConsentManagerValue) {
+	const profile = manager.lastBannerFetchData?.policy?.i18n?.messageProfile;
+	return {
+		allowed: getAllowedLanguagesForProfile(profile),
+		requested: manager.overrides?.language ?? 'auto',
+		resolved:
+			manager.lastBannerFetchData?.translations.language ??
+			manager.translationConfig.defaultLanguage ??
+			'en',
+	};
+};
+
+const policyLocation = function policyLocation(manager: ConsentManagerValue) {
+	return {
+		country: manager.locationInfo?.countryCode ?? null,
+		region: manager.locationInfo?.regionCode ?? null,
+	};
+};
+
+const buildPolicySummary = function buildPolicySummary(
+	manager: ConsentManagerValue,
+	demoMode: DemoMode
+) {
+	const policy = manager.lastBannerFetchData?.policy;
+	const policyDecision = manager.lastBannerFetchData?.policyDecision;
+	return {
+		actionLayout: policyActionLayout(manager),
+		categories: manager.policyCategories ?? [],
+		iabEnabled: manager.iab?.config.enabled ?? false,
+		id: policy?.id ?? null,
+		language: policyLanguage(manager),
+		location: policyLocation(manager),
+		matchedBy: policyDecision?.matchedBy ?? null,
+		messageProfile: policy?.i18n?.messageProfile ?? 'default',
+		mode: demoMode,
+		model: manager.model ?? null,
+		scopeMode: manager.policyScopeMode ?? null,
+		source: manager.initDataSource ?? null,
+		uiMode: policy?.ui?.mode ?? 'none',
+	};
+};
+
+const buildMountedRuntimeDisplay = function buildMountedRuntimeDisplay(
+	manager: ConsentManagerValue,
+	demoMode: DemoMode
+) {
+	const policy = manager.lastBannerFetchData?.policy;
+	const policyDecision = manager.lastBannerFetchData?.policyDecision;
+	const policySummary = buildPolicySummary(manager, demoMode);
+	return {
+		displayAllowedLanguages: policySummary.language.allowed,
+		displayLayoutText: policy?.ui?.banner?.layout
+			? JSON.stringify(policy.ui.banner.layout)
+			: 'default',
+		displayLocationCountry: manager.locationInfo?.countryCode ?? '--',
+		displayLocationRegion: manager.locationInfo?.regionCode ?? '',
+		displayModel: manager.model ?? 'none',
+		displayPolicyId: policy?.id ?? 'no policy',
+		displayPolicySummary: policySummary,
+		displayRequestedLanguage: policySummary.language.requested,
+		displayResolvedLanguage: policySummary.language.resolved,
+		displayRuntimeState: {
+			activeUI: manager.activeUI,
+			consents: manager.consents,
+			hasSavedConsent:
+				manager.consentInfo !== null && manager.consentInfo !== undefined,
+			policyDecision,
+		},
+		displaySource: manager.initDataSource ?? 'unknown',
+	};
+};
+
+const buildPlaceholderRuntimeDisplay = function buildPlaceholderRuntimeDisplay(
+	demoMode: DemoMode
+) {
+	return {
+		displayAllowedLanguages: [] as string[],
+		displayLayoutText: 'default',
+		displayLocationCountry: '--',
+		displayLocationRegion: '',
+		displayModel: 'none',
+		displayPolicyId: 'no policy',
+		displayPolicySummary: {
+			actionLayout: { direction: null, layout: null, uiProfile: null },
+			categories: [],
+			iabEnabled: false,
+			id: null,
+			language: { allowed: [], requested: 'auto', resolved: 'en' },
+			location: { country: null, region: null },
+			matchedBy: null,
+			messageProfile: 'default',
+			mode: demoMode,
+			model: null,
+			scopeMode: null,
+			source: null,
+			uiMode: 'none',
+		},
+		displayRequestedLanguage: 'auto',
+		displayResolvedLanguage: 'en',
+		displayRuntimeState: {
+			activeUI: 'none',
+			consents: null,
+			hasSavedConsent: false,
+			policyDecision: null,
+		},
+		displaySource: 'unknown',
+	};
+};
+
 const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	const [mounted, setMounted] = useState(false);
+	const manager = useConsentManager();
 	const {
-		activeUI,
-		consentInfo,
-		consents,
-		// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-		iab,
 		initConsentManager,
-		lastBannerFetchData,
-		locationInfo,
-		model,
-		policyCategories,
-		policyScopeMode,
 		resetConsents,
 		setActiveUI,
 		setLanguage,
 		setOverrides,
 		overrides,
-		translationConfig,
-		initDataSource,
-	} = useConsentManager();
+	} = manager;
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setMounted(true));
 		return () => cancelAnimationFrame(frame);
 	}, []);
 
-	const policy = lastBannerFetchData?.policy;
-	const policyDecision = lastBannerFetchData?.policyDecision;
-	const bannerUi = policy?.ui?.banner;
-	const activeProfile = policy?.i18n?.messageProfile ?? 'default';
-	const allowedLanguages = getAllowedLanguagesForProfile(
-		policy?.i18n?.messageProfile
-	);
-	const requestedLanguage = overrides?.language ?? 'auto';
-	const resolvedLanguage =
-		lastBannerFetchData?.translations.language ??
-		translationConfig.defaultLanguage ??
-		'en';
-	let layoutText = 'default';
-
-	if (bannerUi?.layout) {
-		layoutText = JSON.stringify(bannerUi.layout);
-	}
-
-	const policySummary = {
-		actionLayout: {
-			direction: bannerUi?.direction ?? null,
-			layout: bannerUi?.layout ?? null,
-			uiProfile: bannerUi?.uiProfile ?? null,
-		},
-		categories: policyCategories ?? [],
-		iabEnabled: iab?.config.enabled ?? false,
-		id: policy?.id ?? null,
-		language: {
-			allowed: allowedLanguages,
-			requested: requestedLanguage,
-			resolved: resolvedLanguage,
-		},
-		location: {
-			country: locationInfo?.countryCode ?? null,
-			region: locationInfo?.regionCode ?? null,
-		},
-		matchedBy: policyDecision?.matchedBy ?? null,
-		messageProfile: activeProfile,
-		mode: demoMode,
-		model: model ?? null,
-		scopeMode: policyScopeMode ?? null,
-		source: initDataSource ?? null,
-		uiMode: policy?.ui?.mode ?? 'none',
-	};
-
-	const runtimeState = {
-		activeUI,
-		consents,
-		hasSavedConsent: consentInfo !== null && consentInfo !== undefined,
-	};
-
-	const displayPolicySummary = mounted
-		? policySummary
-		: {
-				actionLayout: {
-					direction: null,
-					layout: null,
-					uiProfile: null,
-				},
-				categories: [],
-				iabEnabled: false,
-				id: null,
-				language: {
-					allowed: [],
-					requested: 'auto',
-					resolved: 'en',
-				},
-				location: {
-					country: null,
-					region: null,
-				},
-				matchedBy: null,
-				messageProfile: 'default',
-				mode: demoMode,
-				model: null,
-				scopeMode: null,
-				source: null,
-				uiMode: 'none',
-			};
-
-	const displayRuntimeState = mounted
-		? {
-				...runtimeState,
-				policyDecision,
-			}
-		: {
-				activeUI: 'none',
-				consents: null,
-				hasSavedConsent: false,
-				policyDecision: null,
-			};
-
-	const displayPolicyId = mounted ? (policy?.id ?? 'no policy') : 'no policy';
-	const displayModel = mounted ? (model ?? 'none') : 'none';
-	const displayLocationCountry = mounted
-		? (locationInfo?.countryCode ?? '--')
-		: '--';
-	const displayLocationRegion = mounted ? (locationInfo?.regionCode ?? '') : '';
-	const displaySource = mounted ? (initDataSource ?? 'unknown') : 'unknown';
-	const displayResolvedLanguage = mounted ? resolvedLanguage : 'en';
-	const displayRequestedLanguage = mounted ? requestedLanguage : 'auto';
-	const displayLayoutText = mounted ? layoutText : 'default';
-	const displayAllowedLanguages = mounted ? allowedLanguages : [];
+	const {
+		displayAllowedLanguages,
+		displayLayoutText,
+		displayLocationCountry,
+		displayLocationRegion,
+		displayModel,
+		displayPolicyId,
+		displayPolicySummary,
+		displayRequestedLanguage,
+		displayResolvedLanguage,
+		displayRuntimeState,
+		displaySource,
+	} = mounted
+		? buildMountedRuntimeDisplay(manager, demoMode)
+		: buildPlaceholderRuntimeDisplay(demoMode);
 
 	return (
 		<div className="space-y-6">

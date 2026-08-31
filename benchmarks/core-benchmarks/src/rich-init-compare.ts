@@ -89,7 +89,7 @@ const mockFetchV2 = async () =>
 		status: 200,
 	});
 // oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-const mockFetchV3 = async () => new Response('ok');
+const mockFetchV3 = () => Promise.resolve(new Response('ok'));
 
 const _measureSync = function _measureSync(
 	iterations: number,
@@ -109,12 +109,16 @@ const measureAsync = async function measureAsync(
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	const samples: number[] = [];
-	for (let i = 0; i < iterations; i += 1) {
+	const iterationIndexes = Array.from(
+		{ length: iterations },
+		(_, index) => index
+	);
+	await iterationIndexes.reduce<Promise<void>>(async (previous, _index) => {
+		await previous;
 		const start = performance.now();
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await fn();
 		samples.push((performance.now() - start) * 1000);
-	}
+	}, Promise.resolve());
 	return samples;
 };
 
@@ -155,9 +159,8 @@ const v2Samples = await measureAsync(ITERATIONS, async () => {
 globalThis.fetch = mockFetchV3 as unknown as typeof globalThis.fetch;
 
 const richTransport: KernelTransport = {
-	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-	async init() {
-		return FULL_INIT_PAYLOAD;
+	init() {
+		return Promise.resolve(FULL_INIT_PAYLOAD);
 	},
 };
 

@@ -383,10 +383,13 @@ process.stderr.write(
 );
 
 let failures = 0;
-for (const fixture of args.fixtures) {
-	for (const engine of args.engines) {
+const combinations = args.fixtures.flatMap((fixture) =>
+	args.engines.map((engine) => ({ engine, fixture }))
+);
+await combinations.reduce<Promise<void>>(
+	async (previous, { engine, fixture }) => {
+		await previous;
 		try {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await generateOne(fixture, engine, args);
 		} catch (error) {
 			failures += 1;
@@ -394,8 +397,9 @@ for (const fixture of args.fixtures) {
 				`FAILED\n${error instanceof Error ? error.message : String(error)}\n`
 			);
 		}
-	}
-}
+	},
+	Promise.resolve()
+);
 
 if (failures > 0) {
 	process.stderr.write(`\n${failures} combination(s) failed\n`);

@@ -107,86 +107,80 @@ export const findRsdoctorDataFiles = function findRsdoctorDataFiles(
 	return files;
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+type RsdoctorData = ReturnType<typeof JSON.parse>;
+
+const gzipSizeForChunk = function gzipSizeForChunk(
+	assets: RsdoctorData[],
+	assetIds: (string | number)[]
+): number | undefined {
+	for (const assetId of assetIds) {
+		const asset = assets.find(
+			(candidate) => String(candidate.id) === String(assetId)
+		);
+		if (asset?.gzipSize) {
+			return asset.gzipSize;
+		}
+	}
+	return undefined;
+};
+
+const bundlesFromChunks = function bundlesFromChunks(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const assets = data?.data?.chunkGraph?.assets ?? [];
+	const chunks = data?.data?.chunkGraph?.chunks ?? [];
+	return chunks.map((chunk: RsdoctorData) => ({
+		gzipSize: gzipSizeForChunk(assets, chunk.assets ?? []),
+		name: chunk.name || chunk.id || 'unknown',
+		path: jsonPath,
+		size: chunk.size || 0,
+	}));
+};
+
+const bundlesFromAssets = function bundlesFromAssets(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	return (data?.data?.chunkGraph?.assets ?? []).map((asset: RsdoctorData) => ({
+		gzipSize: asset.gzipSize,
+		name: asset.path || asset.id || 'unknown',
+		path: jsonPath,
+		size: asset.size || 0,
+	}));
+};
+
+const bundlesFromModules = function bundlesFromModules(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const chunkMap = new Map<string, BundleStats>();
+	for (const module of data?.data?.modules ?? []) {
+		const size = module.size?.transformedSize || module.size?.sourceSize || 0;
+		for (const chunkName of module.chunks ?? []) {
+			const bundle = chunkMap.get(chunkName) ?? {
+				name: chunkName,
+				path: jsonPath,
+				size: 0,
+			};
+			bundle.size += size;
+			chunkMap.set(chunkName, bundle);
+		}
+	}
+	return Array.from(chunkMap.values());
+};
+
 export const extractBundleSizes = function extractBundleSizes(
 	jsonPath: string
 ): BundleStats[] {
 	try {
-		const content = fileSystem.readFileSync(jsonPath, 'utf-8');
-		const data = JSON.parse(content);
-		const bundles: BundleStats[] = [];
-
-		// Extract bundle information from rsdoctor data structure
-		// Chunks are in data.chunkGraph.chunks
-		if (data?.data?.chunkGraph?.chunks) {
-			for (const chunk of data.data.chunkGraph.chunks || []) {
-				const chunkName = chunk.name || chunk.id || 'unknown';
-				const chunkSize = chunk.size || 0;
-
-				// Try to find corresponding asset for gzip size
-				let gzipSize: number | undefined;
-				if (data?.data?.chunkGraph?.assets && chunk.assets) {
-					for (const assetId of chunk.assets) {
-						const asset = data.data.chunkGraph.assets.find(
-							(a: { id: string | number }) => String(a.id) === String(assetId)
-						);
-						if (asset?.gzipSize) {
-							// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-							gzipSize = asset.gzipSize;
-							break;
-						}
-					}
-				}
-
-				bundles.push({
-					gzipSize,
-					name: chunkName,
-					path: jsonPath,
-					size: chunkSize,
-				});
-			}
+		const data = JSON.parse(fileSystem.readFileSync(jsonPath, 'utf-8'));
+		const chunks = bundlesFromChunks(data, jsonPath);
+		if (chunks.length > 0) {
+			return chunks;
 		}
-
-		// Fallback: extract from assets if chunks not available
-		if (bundles.length === 0 && data?.data?.chunkGraph?.assets) {
-			for (const asset of data.data.chunkGraph.assets || []) {
-				bundles.push({
-					gzipSize: asset.gzipSize,
-					name: asset.path || asset.id || 'unknown',
-					path: jsonPath,
-					size: asset.size || 0,
-				});
-			}
-		}
-
-		// Last resort: try to get from modules
-		if (bundles.length === 0 && data?.data?.modules) {
-			const chunkMap = new Map<string, BundleStats>();
-
-			for (const module of data.data.modules || []) {
-				const chunkNames = module.chunks || [];
-				const size =
-					module.size?.transformedSize || module.size?.sourceSize || 0;
-
-				for (const chunkName of chunkNames) {
-					if (!chunkMap.has(chunkName)) {
-						chunkMap.set(chunkName, {
-							name: chunkName,
-							path: jsonPath,
-							size: 0,
-						});
-					}
-					const bundle = chunkMap.get(chunkName);
-					if (bundle) {
-						bundle.size += size;
-					}
-				}
-			}
-
-			bundles.push(...Array.from(chunkMap.values()));
-		}
-
-		return bundles;
+		const assets = bundlesFromAssets(data, jsonPath);
+		return assets.length > 0 ? assets : bundlesFromModules(data, jsonPath);
 	} catch (error) {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];

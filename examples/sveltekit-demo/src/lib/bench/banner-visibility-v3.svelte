@@ -35,13 +35,12 @@
 		void (async () => {
 			const result = await kernel.commands.init();
 			if (!result.ok) {
-				// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-				const state = getBenchState('v3');
-				if (!state) {
+				const currentState = getBenchState('v3');
+				if (!currentState) {
 					return;
 				}
-				state.errorCount += 1;
-				state.errors.push(
+				currentState.errorCount += 1;
+				currentState.errors.push(
 					String(result.error ?? 'kernel.commands.init() failed')
 				);
 			}

@@ -48,16 +48,14 @@ if (typeof globalThis.document === 'undefined') {
 // Mock MutationObserver for Node.js environment
 if (typeof globalThis.MutationObserver === 'undefined') {
 	globalThis.MutationObserver = class MutationObserver {
-		// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 		observe(_target: Node, _options?: MutationObserverInit) {
-			// Intentionally empty.
+			void this;
 		}
-		// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 		disconnect() {
-			// Intentionally empty.
+			void this;
 		}
-		// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 		takeRecords(): MutationRecord[] {
+			void this;
 			return [];
 		}
 	} as unknown as typeof MutationObserver;

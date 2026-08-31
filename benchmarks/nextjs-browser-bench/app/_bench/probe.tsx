@@ -64,8 +64,9 @@ export const NextjsBenchmarkProbe = ({
 			return;
 		}
 
-		// oxlint-disable-next-line logical-assignment-operators -- The React analyzer does not support logical assignment syntax.
-		current.cls = current.cls ?? 0;
+		if (current.cls === undefined) {
+			current.cls = 0;
+		}
 		try {
 			const observer = new PerformanceObserver((list) => {
 				const latest = getState(scenario);

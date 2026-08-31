@@ -149,8 +149,7 @@ const assertBorderIntact = function assertBorderIntact(styles, selector) {
 	);
 };
 
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-const readStyles = async function readStyles(locator) {
+const readStyles = function readStyles(locator) {
 	return locator.evaluate((element) => {
 		const styles = window.getComputedStyle(element);
 		return {
@@ -315,11 +314,11 @@ const main = async function main() {
 	const browser = await chromium.launch({ headless: true });
 
 	try {
-		for (const app of apps) {
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+		await apps.reduce(async (previous, app) => {
+			await previous;
 			await verifyApp(browser, app);
 			console.log(`✓ ${app.label} v3 CSS compatibility checks passed`);
-		}
+		}, Promise.resolve());
 	} finally {
 		await browser.close();
 	}

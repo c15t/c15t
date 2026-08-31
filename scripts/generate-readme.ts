@@ -404,7 +404,8 @@ const generateReadmes = async function generateReadmes() {
 			fssync.existsSync(path.join(packagesDir, dir, 'readme.json'))
 		);
 
-	for (const packageName of packageDirs) {
+	await packageDirs.reduce<Promise<void>>(async (previous, packageName) => {
+		await previous;
 		try {
 			const readmeConfigPath = path.join(
 				packagesDir,
@@ -417,13 +418,11 @@ const generateReadmes = async function generateReadmes() {
 				'package.json'
 			);
 
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const raw = await fs.readFile(readmeConfigPath, 'utf8');
 			const readmeConfig = JSON.parse(raw) as PackageReadmeConfig;
 
 			// Read package.json to supplement missing details
 			const packageJson = JSON.parse(
-				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await fs.readFile(packageJsonPath, 'utf8')
 			);
 
@@ -438,13 +437,12 @@ const generateReadmes = async function generateReadmes() {
 			const content = baseReadmeTemplate(readmeConfig);
 			const readmePath = path.join(packagesDir, packageName, 'README.md');
 
-			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await fs.writeFile(readmePath, content, 'utf8');
 			console.log(`Generated README for ${packageName}`);
 		} catch (error) {
 			console.error(`Error generating README for ${packageName}:`, error);
 		}
-	}
+	}, Promise.resolve());
 };
 
 try {

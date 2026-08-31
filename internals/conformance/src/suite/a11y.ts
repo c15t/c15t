@@ -163,8 +163,7 @@ const waitForActiveElement = async function waitForActiveElement(
 	return doc.activeElement;
 };
 
-// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
-const mountBanner = async function mountBanner(
+const mountBanner = function mountBanner(
 	driver: TestDriver
 ): Promise<MountResult> {
 	return driver.mount({

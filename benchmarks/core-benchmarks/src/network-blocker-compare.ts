@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-// oxlint-disable-next-line max-classes-per-file -- Benchmark keeps its paired browser API mocks together.
 import { mkdirSync, writeFileSync } from 'node:fs';
 /**
  * Network blocker comparison: v2 vs v3.
@@ -31,29 +30,25 @@ ensureBenchmarkDom();
 class StubXHR {
 	onerror: ((e: unknown) => void) | null = null;
 	listeners = new Map<string, ((e: unknown) => void)[]>();
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	open(_m: string, _u: string) {
-		// Intentionally empty.
+		void this.listeners;
 	}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	send() {
-		// Intentionally empty.
+		void this.listeners;
 	}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	abort() {
-		// Intentionally empty.
+		void this.listeners;
 	}
 	addEventListener(e: string, h: (e: unknown) => void) {
 		const b = this.listeners.get(e) ?? [];
 		b.push(h);
 		this.listeners.set(e, b);
 	}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	removeEventListener() {
-		// Intentionally empty.
+		void this.listeners;
 	}
-	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	dispatchEvent() {
+		void this.listeners;
 		return true;
 	}
 }
@@ -70,11 +65,11 @@ if (
 		.ProgressEvent === 'undefined'
 ) {
 	// oxlint-disable-next-line typescript/no-explicit-any -- minimal stub
-	(globalThis as any).ProgressEvent = class {
-		type: string;
-		constructor(type: string) {
-			this.type = type;
-		}
+	(globalThis as any).ProgressEvent = function ProgressEvent(
+		this: { type: string },
+		type: string
+	) {
+		this.type = type;
 	};
 }
 

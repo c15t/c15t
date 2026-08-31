@@ -113,94 +113,90 @@ const findRsdoctorDataFiles = async function findRsdoctorDataFiles(
 	return files;
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+type RsdoctorData = ReturnType<typeof JSON.parse>;
+
+const gzipSizeForChunk = function gzipSizeForChunk(
+	assets: RsdoctorData[],
+	assetIds: (string | number)[]
+): number | undefined {
+	for (const assetId of assetIds) {
+		const asset = assets.find(
+			(candidate) => String(candidate.id) === String(assetId)
+		);
+		if (asset?.gzipSize) {
+			return asset.gzipSize;
+		}
+	}
+	return undefined;
+};
+
+const bundlesFromChunks = function bundlesFromChunks(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const assets = data?.data?.chunkGraph?.assets ?? [];
+	const chunks = data?.data?.chunkGraph?.chunks ?? [];
+	return chunks.map((chunk: RsdoctorData) => {
+		const chunkFlags: Pick<BundleStats, 'initial' | 'entry'> = {};
+		if (typeof chunk.initial === 'boolean') {
+			chunkFlags.initial = chunk.initial;
+		}
+		if (typeof chunk.entry === 'boolean') {
+			chunkFlags.entry = chunk.entry;
+		}
+		return {
+			gzipSize: gzipSizeForChunk(assets, chunk.assets ?? []),
+			name: chunk.name || chunk.id || 'unknown',
+			path: jsonPath,
+			size: chunk.size || 0,
+			...chunkFlags,
+		};
+	});
+};
+
+const bundlesFromAssets = function bundlesFromAssets(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	return (data?.data?.chunkGraph?.assets ?? []).map((asset: RsdoctorData) => ({
+		gzipSize: asset.gzipSize,
+		name: asset.path || asset.id || 'unknown',
+		path: jsonPath,
+		size: asset.size || 0,
+	}));
+};
+
+const bundlesFromModules = function bundlesFromModules(
+	data: RsdoctorData,
+	jsonPath: string
+): BundleStats[] {
+	const chunkMap = new Map<string, BundleStats>();
+	for (const module of data?.data?.modules ?? []) {
+		const size = module.size?.transformedSize || module.size?.sourceSize || 0;
+		for (const chunkName of module.chunks ?? []) {
+			const bundle = chunkMap.get(chunkName) ?? {
+				name: chunkName,
+				path: jsonPath,
+				size: 0,
+			};
+			bundle.size += size;
+			chunkMap.set(chunkName, bundle);
+		}
+	}
+	return Array.from(chunkMap.values());
+};
+
 export const extractBundleSizes = function extractBundleSizes(
 	jsonPath: string
 ): BundleStats[] {
 	try {
-		const content = fileSystem.readFileSync(jsonPath, 'utf-8');
-		const data = JSON.parse(content);
-		const bundles: BundleStats[] = [];
-
-		// Extract bundle information from rsdoctor data structure
-		if (data?.data?.chunkGraph?.chunks) {
-			for (const chunk of data.data.chunkGraph.chunks || []) {
-				const chunkName = chunk.name || chunk.id || 'unknown';
-				const chunkSize = chunk.size || 0;
-
-				// Try to find corresponding asset for gzip size
-				let gzipSize: number | undefined;
-				if (data?.data?.chunkGraph?.assets && chunk.assets) {
-					for (const assetId of chunk.assets) {
-						const asset = data.data.chunkGraph.assets.find(
-							(a: { id: string | number }) => String(a.id) === String(assetId)
-						);
-						if (asset?.gzipSize) {
-							// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-							gzipSize = asset.gzipSize;
-							break;
-						}
-					}
-				}
-
-				const chunkFlags: Pick<BundleStats, 'initial' | 'entry'> = {};
-				if (typeof chunk.initial === 'boolean') {
-					chunkFlags.initial = chunk.initial;
-				}
-				if (typeof chunk.entry === 'boolean') {
-					chunkFlags.entry = chunk.entry;
-				}
-
-				bundles.push({
-					gzipSize,
-					name: chunkName,
-					path: jsonPath,
-					size: chunkSize,
-					...chunkFlags,
-				});
-			}
+		const data = JSON.parse(fileSystem.readFileSync(jsonPath, 'utf-8'));
+		const chunks = bundlesFromChunks(data, jsonPath);
+		if (chunks.length > 0) {
+			return chunks;
 		}
-
-		// Fallback: extract from assets if chunks not available
-		if (bundles.length === 0 && data?.data?.chunkGraph?.assets) {
-			for (const asset of data.data.chunkGraph.assets || []) {
-				bundles.push({
-					gzipSize: asset.gzipSize,
-					name: asset.path || asset.id || 'unknown',
-					path: jsonPath,
-					size: asset.size || 0,
-				});
-			}
-		}
-
-		// Last resort: try to get from modules
-		if (bundles.length === 0 && data?.data?.modules) {
-			const chunkMap = new Map<string, BundleStats>();
-
-			for (const module of data.data.modules || []) {
-				const chunkNames = module.chunks || [];
-				const size =
-					module.size?.transformedSize || module.size?.sourceSize || 0;
-
-				for (const chunkName of chunkNames) {
-					if (!chunkMap.has(chunkName)) {
-						chunkMap.set(chunkName, {
-							name: chunkName,
-							path: jsonPath,
-							size: 0,
-						});
-					}
-					const bundle = chunkMap.get(chunkName);
-					if (bundle) {
-						bundle.size += size;
-					}
-				}
-			}
-
-			bundles.push(...Array.from(chunkMap.values()));
-		}
-
-		return bundles;
+		const assets = bundlesFromAssets(data, jsonPath);
+		return assets.length > 0 ? assets : bundlesFromModules(data, jsonPath);
 	} catch (error) {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
@@ -547,7 +543,55 @@ export const analyzeTransitiveImpact = function analyzeTransitiveImpact(
 	});
 };
 
-// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const generateBundleChangeDetails = function generateBundleChangeDetails(
+	packages: PackageBundleData[]
+): string {
+	const changedPackages = packages.filter(
+		(pkg) =>
+			pkg.diffs.added.length > 0 ||
+			pkg.diffs.removed.length > 0 ||
+			pkg.diffs.changed.length > 0
+	);
+	if (changedPackages.length === 0) {
+		return '';
+	}
+	let markdown =
+		'\n<details>\n<summary><strong>Bundle-Level Change Details</strong></summary>\n';
+	for (const pkg of changedPackages) {
+		const sign = pkg.totalDiff >= 0 ? '+' : '';
+		const emoji = getChangeEmoji(pkg.totalDiffPercent);
+		const summary = `${emoji} \`${pkg.packageName}\`: ${formatSignedBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
+		markdown += `\n<details>\n<summary><strong>${summary}</strong></summary>\n\n`;
+		if (pkg.diffs.added.length > 0) {
+			markdown += '### ➕ Added Bundles\n\n';
+			for (const bundle of pkg.diffs.added) {
+				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
+			}
+			markdown += '\n';
+		}
+		if (pkg.diffs.removed.length > 0) {
+			markdown += '### ➖ Removed Bundles\n\n';
+			for (const bundle of pkg.diffs.removed) {
+				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
+			}
+			markdown += '\n';
+		}
+		if (pkg.diffs.changed.length > 0) {
+			markdown += '### 📊 Changed Bundles\n\n';
+			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
+			markdown += '|--------|-----------|--------------|--------|----------|\n';
+			for (const change of pkg.diffs.changed) {
+				const changeSign = change.diff >= 0 ? '+' : '';
+				const changeEmoji = getChangeEmoji(change.diffPercent);
+				markdown += `| ${changeEmoji} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${changeSign}${formatBytes(change.diff)} | ${changeSign}${change.diffPercent.toFixed(2)}% |\n`;
+			}
+			markdown += '\n';
+		}
+		markdown += '</details>\n';
+	}
+	return `${markdown}\n</details>\n`;
+};
+
 export const generateMarkdownReport = function generateMarkdownReport(
 	packages: PackageBundleData[],
 	transitive: TransitiveBundleData[] = []
@@ -646,67 +690,7 @@ export const generateMarkdownReport = function generateMarkdownReport(
 	}
 	markdown += '\n</details>\n';
 
-	const packagesWithBundleChanges = packages.filter(
-		(pkg) =>
-			pkg.diffs.added.length > 0 ||
-			pkg.diffs.removed.length > 0 ||
-			pkg.diffs.changed.length > 0
-	);
-
-	if (packagesWithBundleChanges.length > 0) {
-		markdown +=
-			'\n<details>\n<summary><strong>Bundle-Level Change Details</strong></summary>\n';
-	}
-
-	// Detailed bundle-level changes per package (collapsible)
-	for (const pkg of packagesWithBundleChanges) {
-		if (
-			pkg.diffs.added.length === 0 &&
-			pkg.diffs.removed.length === 0 &&
-			pkg.diffs.changed.length === 0
-		) {
-			continue;
-		}
-
-		const sign = pkg.totalDiff >= 0 ? '+' : '';
-		const emoji = getChangeEmoji(pkg.totalDiffPercent);
-		const summaryText = `${emoji} \`${pkg.packageName}\`: ${formatSignedBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
-
-		markdown += `\n<details>\n<summary><strong>${summaryText}</strong></summary>\n\n`;
-
-		if (pkg.diffs.added.length > 0) {
-			markdown += '### ➕ Added Bundles\n\n';
-			for (const bundle of pkg.diffs.added) {
-				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
-			}
-			markdown += '\n';
-		}
-
-		if (pkg.diffs.removed.length > 0) {
-			markdown += '### ➖ Removed Bundles\n\n';
-			for (const bundle of pkg.diffs.removed) {
-				markdown += `- \`${bundle.name}\`: ${formatBytes(bundle.size)}\n`;
-			}
-			markdown += '\n';
-		}
-
-		if (pkg.diffs.changed.length > 0) {
-			markdown += '### 📊 Changed Bundles\n\n';
-			markdown += '| Bundle | Base Size | Current Size | Change | % Change |\n';
-			markdown += '|--------|-----------|--------------|--------|----------|\n';
-			for (const change of pkg.diffs.changed) {
-				const signLocal = change.diff >= 0 ? '+' : '';
-				const emojiLocal = getChangeEmoji(change.diffPercent);
-				markdown += `| ${emojiLocal} \`${change.name}\` | ${formatBytes(change.baseSize)} | ${formatBytes(change.currentSize)} | ${signLocal}${formatBytes(change.diff)} | ${signLocal}${change.diffPercent.toFixed(2)}% |\n`;
-			}
-			markdown += '\n';
-		}
-
-		markdown += '</details>\n';
-	}
-	if (packagesWithBundleChanges.length > 0) {
-		markdown += '\n</details>\n';
-	}
+	markdown += generateBundleChangeDetails(packages);
 
 	markdown +=
 		'\n---\n*This analysis was generated automatically by [rsdoctor](https://rsdoctor.rs/).*';
@@ -735,13 +719,13 @@ export const analyzeBundles = async function analyzeBundles(
 	}
 
 	const results: PackageBundleData[] = [];
-	for (const pkg of packages) {
-		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+	await packages.reduce<Promise<void>>(async (previousPackage, pkg) => {
+		await previousPackage;
 		const result = await analyzePackage(pkg, baseDir, currentDir);
 		if (result && (result.totalBaseSize > 0 || result.totalCurrentSize > 0)) {
 			results.push(result);
 		}
-	}
+	}, Promise.resolve());
 
 	return results;
 };

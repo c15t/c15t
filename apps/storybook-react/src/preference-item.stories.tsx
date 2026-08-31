@@ -50,8 +50,7 @@ const PreferenceItemCard = ({
 	defaultOpen = false,
 	description,
 	disabled = false,
-	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
-	meta,
+	meta: itemMeta,
 	title,
 	withSwitch = false,
 }: {
@@ -80,7 +79,9 @@ const PreferenceItemCard = ({
 						</PreferenceItem.Leading>
 						<PreferenceItem.Header>
 							<PreferenceItem.Title>{title}</PreferenceItem.Title>
-							{meta ? <PreferenceItem.Meta>{meta}</PreferenceItem.Meta> : null}
+							{itemMeta ? (
+								<PreferenceItem.Meta>{itemMeta}</PreferenceItem.Meta>
+							) : null}
 						</PreferenceItem.Header>
 					</PreferenceItem.Trigger>
 					{withSwitch ? (
