@@ -168,4 +168,36 @@ describe('policy panel', () => {
 		expect(text).not.toContain('Banner Actions');
 		expect(text).not.toContain('Dialog Actions');
 	});
+
+	it('hides UI section when surfaces have no configuration', () => {
+		const state = createBaseState({
+			lastBannerFetchData: {
+				branding: 'c15t',
+				jurisdiction: 'GDPR',
+				location: { countryCode: 'DE', regionCode: null },
+				policy: {
+					consent: {},
+					id: 'empty_surfaces',
+					model: 'opt-in',
+					ui: { mode: 'banner' },
+				},
+				policyDecision: {
+					country: 'DE',
+					fingerprint: 'abc',
+					jurisdiction: 'GDPR',
+					matchedBy: 'default',
+					policyId: 'empty_surfaces',
+					region: null,
+				},
+				translations: { language: 'en', translations: {} },
+			} as unknown as ConsentStoreState['lastBannerFetchData'],
+		});
+
+		renderPolicyPanel(container, { getState: () => state });
+
+		const text = container.textContent ?? '';
+		expect(text).not.toContain('Banner Actions');
+		expect(text).not.toContain('Dialog Actions');
+		expect(text).not.toContain('Scroll Lock');
+	});
 });

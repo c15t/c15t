@@ -268,7 +268,8 @@ const buildSurfaceCards = function buildSurfaceCards(
 	const layout = policyLayout ?? storeLayout;
 	const direction = surfaceValue(policySurface, storeSurface, 'direction');
 	const profile = surfaceValue(policySurface, storeSurface, 'uiProfile');
-	const scrollLock = surfaceValue(policySurface, storeSurface, 'scrollLock');
+	const scrollLock =
+		surfaceValue(policySurface, storeSurface, 'scrollLock') ?? null;
 
 	// Skip entirely if nothing is configured
 	if (
