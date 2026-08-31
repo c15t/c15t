@@ -58,12 +58,14 @@ export interface CodemodRunResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
 	return rawName.replace(/^['"]|['"]$/gu, '');
-}
+};
 
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -78,9 +80,9 @@ function getProperty(
 	}
 
 	return undefined;
-}
+};
 
-function transformSourceFile(
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): ReactOptionsResult {
 	let operations = 0;
@@ -123,14 +125,14 @@ function transformSourceFile(
 				continue;
 			}
 
-			if (!getProperty(parentObject, key)) {
+			if (getProperty(parentObject, key)) {
+				summaries.push(`removed duplicate react.${key}`);
+			} else {
 				parentObject.addPropertyAssignment({
-					name: key,
 					initializer: initializerText,
+					name: key,
 				});
 				summaries.push(`react.${key} -> ${key}`);
-			} else {
-				summaries.push(`removed duplicate react.${key}`);
 			}
 
 			nestedProperty.remove();
@@ -149,12 +151,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -166,6 +170,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -181,11 +186,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that flattens legacy `react: { ... }` provider options.
@@ -193,56 +198,58 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runReactOptionsToTopLevelCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runReactOptionsToTopLevelCodemod =
+	async function runReactOptionsToTopLevelCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
+		for (const filePath of filePaths) {
+			try {
+				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+				if (!sourceFile) {
+					continue;
+				}
+
+				const result = transformSourceFile(sourceFile);
+				if (!result.changed) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: result.operations,
+					summaries: result.summaries,
+				});
+
+				if (!options.dryRun) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+					await sourceFile.save();
+				}
+			} catch (error) {
+				errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
 			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
 		}
-	}
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

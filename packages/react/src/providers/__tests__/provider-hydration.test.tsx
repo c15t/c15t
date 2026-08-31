@@ -154,9 +154,7 @@ describe('ConsentManagerProvider Hydration Behavior', () => {
 	});
 
 	it('should use startTransition for non-blocking state updates during hydration', async () => {
-		const TestComponent = () => {
-			return <div data-testid="hydration-test">Content</div>;
-		};
+		const TestComponent = () => <div data-testid="hydration-test">Content</div>;
 
 		const { getByTestId } = await render(
 			<ConsentManagerProvider

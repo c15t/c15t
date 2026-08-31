@@ -31,9 +31,10 @@ import { defaultTheme } from '../utils/theme-utils';
  *
  * @internal
  */
-export function clearConsentRuntimeCache(): void {
-	baseClearCache();
-}
+export const clearConsentRuntimeCache =
+	function clearConsentRuntimeCache(): void {
+		baseClearCache();
+	};
 
 const CALLBACK_KEYS = [
 	'onBannerFetched',
@@ -43,25 +44,28 @@ const CALLBACK_KEYS = [
 	'onBeforeConsentRevocationReload',
 ] as const;
 
-function pickCallbackProps(callbacks?: Callbacks): Callbacks {
+const pickCallbackProps = function pickCallbackProps(
+	callbacks?: Callbacks
+): Callbacks {
 	return {
 		onBannerFetched: callbacks?.onBannerFetched,
-		onConsentSet: callbacks?.onConsentSet,
-		onConsentChanged: callbacks?.onConsentChanged,
-		onError: callbacks?.onError,
 		onBeforeConsentRevocationReload: callbacks?.onBeforeConsentRevocationReload,
+		onConsentChanged: callbacks?.onConsentChanged,
+		onConsentSet: callbacks?.onConsentSet,
+		onError: callbacks?.onError,
 	};
-}
+};
 
-function toKernelBranding(
+const toKernelBranding = function toKernelBranding(
 	branding: ConsentStoreState['branding']
 ): KernelBranding | undefined {
 	return branding === 'c15t' || branding === 'consent' || branding === 'inth'
 		? branding
 		: undefined;
-}
+};
 
-function toKernelBridgeOptions(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const toKernelBridgeOptions = function toKernelBridgeOptions(
 	options: ConsentManagerProviderProps['options'],
 	state: ConsentStoreState
 ): ConsentProviderOptions {
@@ -86,8 +90,6 @@ function toKernelBridgeOptions(
 			initialConsents: state.consents,
 			initialPolicy: {
 				...offlinePolicy,
-				id: offlinePolicy?.id ?? 'legacy-compat-policy',
-				model: policyModel,
 				consent: {
 					...offlinePolicy?.consent,
 					categories:
@@ -100,11 +102,13 @@ function toKernelBridgeOptions(
 						state.policyScopeMode ??
 						'permissive',
 				},
+				id: offlinePolicy?.id ?? 'legacy-compat-policy',
+				model: policyModel,
 				ui: {
 					...offlinePolicy?.ui,
-					mode: policyMode,
 					banner: state.policyBanner,
 					dialog: state.policyDialog,
+					mode: policyMode,
 				},
 			},
 			initialTranslations: {
@@ -118,7 +122,7 @@ function toKernelBridgeOptions(
 		theme: options.theme,
 		trapFocus: options.trapFocus,
 	};
-}
+};
 
 /**
  * Provider component for consent management functionality.
@@ -152,12 +156,14 @@ export const ConsentManagerProvider = ({
 	options,
 }: ConsentManagerProviderProps) => {
 	// Initialize consent manager and store using shared runtime logic from core
-	const { consentManager, consentStore } = useMemo(() => {
-		return getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version,
-		});
-	}, [options]);
+	const { consentManager, consentStore } = useMemo(
+		() =>
+			getOrCreateConsentRuntime(options, {
+				pkg: '@c15t/react',
+				version,
+			}),
+		[options]
+	);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<ConsentStoreState>(() => {
@@ -225,9 +231,9 @@ export const ConsentManagerProvider = ({
 
 		void consentStore.getState().setOverrides({
 			country: nextOverrides.country,
-			region: nextOverrides.region,
-			language: nextOverrides.language,
 			gpc: nextOverrides.gpc,
+			language: nextOverrides.language,
+			region: nextOverrides.region,
 		});
 	}, [consentStore, optionsOverrides]);
 
@@ -268,18 +274,19 @@ export const ConsentManagerProvider = ({
 		const mergedTheme = deepMerge(defaultTheme, theme);
 
 		return {
-			theme: mergedTheme,
-			noStyle,
-			disableAnimation,
-			trapFocus,
 			colorScheme,
+			disableAnimation,
+			noStyle,
+			theme: mergedTheme,
+			trapFocus,
 		};
 	}, [options]);
 
 	// Generate CSS variables for the theme
-	const themeCSS = useMemo(() => {
-		return generateThemeCSS(themeContextValue.theme);
-	}, [themeContextValue.theme]);
+	const themeCSS = useMemo(
+		() => generateThemeCSS(themeContextValue.theme),
+		[themeContextValue.theme]
+	);
 
 	useColorScheme(options.colorScheme);
 
@@ -291,9 +298,9 @@ export const ConsentManagerProvider = ({
 			);
 		}
 		return {
+			manager: consentManager,
 			state,
 			store: consentStore,
-			manager: consentManager,
 		};
 	}, [state, consentStore, consentManager]);
 	const kernelBridgeKey = [

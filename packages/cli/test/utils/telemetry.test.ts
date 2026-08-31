@@ -21,27 +21,27 @@ const getDefined = <Value>(
 	return value;
 };
 
-function createMockLogger(): CliLogger {
+const createMockLogger = function createMockLogger(): CliLogger {
 	return {
 		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
 		error: vi.fn(),
-		message: vi.fn(),
-		note: vi.fn(),
-		success: vi.fn(),
 		failed: vi.fn(() => {
 			throw new Error('failed');
 		}) as unknown as CliLogger['failed'],
+		info: vi.fn(),
+		message: vi.fn(),
+		note: vi.fn(),
 		outro: vi.fn(),
 		step: vi.fn(),
+		success: vi.fn(),
+		warn: vi.fn(),
 	};
-}
+};
 
-async function flushTelemetry(telemetry: Telemetry) {
+const flushTelemetry = async function flushTelemetry(telemetry: Telemetry) {
 	telemetry.flushSync();
 	await telemetry.shutdown();
-}
+};
 
 describe('Telemetry', () => {
 	let telemetry: Telemetry;
@@ -57,6 +57,7 @@ describe('Telemetry', () => {
 		delete process.env.C15T_TELEMETRY_WRITE_KEY;
 		delete process.env.C15T_TELEMETRY_ORG_ID;
 
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
 		storageDir = await fs.mkdtemp(
 			path.join(os.tmpdir(), 'c15t-cli-telemetry-')
@@ -64,17 +65,17 @@ describe('Telemetry', () => {
 		mockLogger = createMockLogger();
 
 		telemetry = new Telemetry({
-			fetch: fetchMock as unknown as typeof fetch,
-			storageDir,
-			logger: mockLogger,
 			drainOptions: {
 				retry: {
-					maxAttempts: 1,
 					backoff: 'fixed',
 					initialDelayMs: 10,
+					maxAttempts: 1,
 					maxDelayMs: 10,
 				},
 			},
+			fetch: fetchMock as unknown as typeof fetch,
+			logger: mockLogger,
+			storageDir,
 		});
 	});
 
@@ -90,7 +91,7 @@ describe('Telemetry', () => {
 		} else {
 			process.env.C15T_TELEMETRY_ORG_ID = originalTelemetryOrgId;
 		}
-		await fs.rm(storageDir, { recursive: true, force: true });
+		await fs.rm(storageDir, { force: true, recursive: true });
 	});
 
 	it('creates a telemetry instance', () => {
@@ -100,8 +101,8 @@ describe('Telemetry', () => {
 	it('creates telemetry with the factory', async () => {
 		const instance = createTelemetry({
 			disabled: true,
-			storageDir,
 			fetch: fetchMock as unknown as typeof fetch,
+			storageDir,
 		});
 
 		expect(instance).toBeInstanceOf(Telemetry);
@@ -111,8 +112,8 @@ describe('Telemetry', () => {
 	it('respects the disabled flag', async () => {
 		const disabledTelemetry = new Telemetry({
 			disabled: true,
-			storageDir,
 			fetch: fetchMock as unknown as typeof fetch,
+			storageDir,
 		});
 
 		disabledTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
@@ -152,8 +153,8 @@ describe('Telemetry', () => {
 
 	it('tracks commands with sanitized args and flags', async () => {
 		telemetry.trackCommand('setup', ['hosted', '/tmp/private'], {
-			logger: 'debug',
 			config: '/tmp/c15t.config.ts',
+			logger: 'debug',
 			'no-telemetry': false,
 		});
 
@@ -167,9 +168,9 @@ describe('Telemetry', () => {
 		const event = getDefined(payload[0]);
 
 		expect(event).toMatchObject({
-			event: TelemetryEventName.COMMAND_EXECUTED,
-			command: 'setup',
 			argsCount: 2,
+			command: 'setup',
+			event: TelemetryEventName.COMMAND_EXECUTED,
 			flagCount: 3,
 		});
 		expect(event.commandRunId).toEqual(expect.any(String));
@@ -202,21 +203,21 @@ describe('Telemetry', () => {
 		expect(event.level).toBe('error');
 		expect(event.command).toBe('setup');
 		expect(event.failure).toMatchObject({
-			name: 'Error',
-			message: 'Test error',
 			code: 'E_TEST',
+			message: 'Test error',
+			name: 'Error',
 			status: 500,
 		});
 	});
 
 	it('redacts sensitive values and strips URL credentials', async () => {
 		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			token: 'super-secret-token',
+			endpoint: 'https://user:pass@example.com/path?q=1#hash',
 			nested: {
 				password: 'secret',
 			},
-			endpoint: 'https://user:pass@example.com/path?q=1#hash',
 			projectPath: '/tmp/private-project',
+			token: 'super-secret-token',
 		});
 
 		await flushTelemetry(telemetry);
@@ -235,6 +236,7 @@ describe('Telemetry', () => {
 	});
 
 	it('queues dropped telemetry batches to disk and replays them later', async () => {
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		fetchMock.mockImplementation(async () => {
 			throw new Error('network down');
 		});
@@ -252,19 +254,20 @@ describe('Telemetry', () => {
 		expect(queued).toHaveLength(1);
 		expect(queued[0]?.event).toBe(TelemetryEventName.CLI_INVOKED);
 
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		const replayFetch = vi.fn(async () => new Response(null, { status: 204 }));
 		const replayTelemetry = new Telemetry({
-			fetch: replayFetch as unknown as typeof fetch,
-			storageDir,
-			logger: mockLogger,
 			drainOptions: {
 				retry: {
-					maxAttempts: 1,
 					backoff: 'fixed',
 					initialDelayMs: 10,
+					maxAttempts: 1,
 					maxDelayMs: 10,
 				},
 			},
+			fetch: replayFetch as unknown as typeof fetch,
+			logger: mockLogger,
+			storageDir,
 		});
 
 		await replayTelemetry.shutdown();
@@ -298,17 +301,17 @@ describe('Telemetry', () => {
 		process.env.C15T_TELEMETRY_ORG_ID = 'axiom-org';
 
 		const axiomTelemetry = new Telemetry({
-			fetch: fetchMock as unknown as typeof fetch,
-			storageDir,
-			logger: mockLogger,
 			drainOptions: {
 				retry: {
-					maxAttempts: 1,
 					backoff: 'fixed',
 					initialDelayMs: 10,
+					maxAttempts: 1,
 					maxDelayMs: 10,
 				},
 			},
+			fetch: fetchMock as unknown as typeof fetch,
+			logger: mockLogger,
+			storageDir,
 		});
 
 		axiomTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
@@ -325,8 +328,8 @@ describe('Telemetry', () => {
 		>[];
 
 		expect(headers).toMatchObject({
-			'Content-Type': 'application/json',
 			Authorization: 'Bearer axiom-token',
+			'Content-Type': 'application/json',
 			'X-Axiom-Org-Id': 'axiom-org',
 		});
 		expect(payload).toHaveLength(1);

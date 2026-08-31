@@ -2,7 +2,6 @@ import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { enTranslations } from '@c15t/translations';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 
-import SwitchControlledDemo from './SwitchControlledDemo.svelte';
 import SwitchDemo from './SwitchDemo.svelte';
 import SwitchSizesDemo from './SwitchSizesDemo.svelte';
 

@@ -83,14 +83,14 @@ export const IABProvider = ({ children, ...options }: IABProviderProps) => {
 	}, [kernel]);
 
 	const value = useMemo<IABContextValue>(
-		() => ({ handle, tab, setTab }),
+		() => ({ handle, setTab, tab }),
 		[handle, tab]
 	);
 
 	return <IABContext.Provider value={value}>{children}</IABContext.Provider>;
 };
 
-export function useIAB(): ReactIABState | null {
+export const useIAB = function useIAB(): ReactIABState | null {
 	const kernel = useContext(KernelContext);
 	const iabContext = useContext(IABContext);
 	if (!kernel) {
@@ -105,33 +105,40 @@ export function useIAB(): ReactIABState | null {
 		() => kernel.getServerSnapshot().iab
 	);
 
+	// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 	return useMemo(() => {
-		if (!iab) return null;
+		if (!iab) {
+			return null;
+		}
 		const handle = iabContext?.handle;
-		const noop = () => {};
-		const noopAsync = async () => {};
+		const noop = () => {
+			// Intentionally empty.
+		};
+		const noopAsync = async () => {
+			// Intentionally empty.
+		};
 
 		return {
 			...iab,
+			acceptAll: handle?.acceptAll ?? noop,
 			config: {
-				enabled: iab.enabled && Boolean(handle),
 				cmpId: iab.cmpId,
+				enabled: iab.enabled && Boolean(handle),
 			},
 			isLoadingGVL: iab.enabled && (!iab.gvl || !handle),
 			nonIABVendors: iab.customVendors,
 			preferenceCenterTab: iabContext?.tab ?? 'purposes',
+			rejectAll: handle?.rejectAll ?? noop,
+			save: handle?.save ?? noopAsync,
 			setPreferenceCenterTab: iabContext?.setTab ?? noop,
-			setVendorConsent: handle?.setVendorConsent ?? noop,
-			setVendorLegitimateInterest: handle?.setVendorLegitimateInterest ?? noop,
 			setPurposeConsent: handle?.setPurposeConsent ?? noop,
 			setPurposeLegitimateInterest:
 				handle?.setPurposeLegitimateInterest ?? noop,
 			setSpecialFeatureOptIn: handle?.setSpecialFeatureOptIn ?? noop,
-			acceptAll: handle?.acceptAll ?? noop,
-			rejectAll: handle?.rejectAll ?? noop,
-			save: handle?.save ?? noopAsync,
+			setVendorConsent: handle?.setVendorConsent ?? noop,
+			setVendorLegitimateInterest: handle?.setVendorLegitimateInterest ?? noop,
 		};
 	}, [iab, iabContext]);
-}
+};
 
 export type { CreateIABOptions, IABHandle };

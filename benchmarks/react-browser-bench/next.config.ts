@@ -44,11 +44,11 @@ if (useStylesCss) {
 const config: NextConfig = {
 	transpilePackages,
 	turbopack: {
-		root: monorepoRoot,
 		resolveAlias: turbopackResolveAlias,
+		root: monorepoRoot,
 	},
 	webpack: (webpackConfig) => {
-		webpackConfig.resolve = webpackConfig.resolve ?? {};
+		webpackConfig.resolve ??= {};
 		const resolveAlias = {
 			...webpackConfig.resolve.alias,
 			'bench-css-entry$': cssEntryAbs,

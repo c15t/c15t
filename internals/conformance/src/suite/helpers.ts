@@ -20,7 +20,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -31,7 +31,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 export type TestFn = (name: string, body: () => void | Promise<void>) => void;
 
@@ -62,7 +62,7 @@ export interface SuiteApi {
  * "not implemented", the test is marked as todo (visible in output)
  * but does not fail the suite.
  */
-export function conformanceTest(
+export const conformanceTest = function conformanceTest(
 	api: SuiteApi,
 	name: string,
 	body: () => void | Promise<void>
@@ -78,7 +78,7 @@ export function conformanceTest(
 			throw err;
 		}
 	});
-}
+};
 
 export interface SuiteContext {
 	driver: TestDriver;
@@ -90,7 +90,7 @@ export interface SuiteContext {
  * Several frameworks portal surfaces (banner/dialog) to `document.body`, so
  * suites must not assume the element lives inside the mount container.
  */
-export function queryByTestId(
+export const queryByTestId = function queryByTestId(
 	root: HTMLElement,
 	testId: string
 ): HTMLElement | null {
@@ -99,25 +99,30 @@ export function queryByTestId(
 		root.querySelector<HTMLElement>(selector) ??
 		root.ownerDocument.body.querySelector<HTMLElement>(selector)
 	);
-}
+};
 
 /**
  * Poll until `predicate` returns true or the deadline passes. Resolves with
  * the final predicate result so callers can make one last hard assertion
  * (which surfaces the actual mismatch instead of a generic timeout).
  */
-export async function waitForCondition(
+export const waitForCondition = async function waitForCondition(
 	predicate: () => boolean,
 	timeoutMs = 2000,
 	intervalMs = 10
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	for (;;) {
-		if (predicate()) return true;
-		if (Date.now() >= deadline) return predicate();
+		if (predicate()) {
+			return true;
+		}
+		if (Date.now() >= deadline) {
+			return predicate();
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await createDeferredPromise((resolve) => setTimeout(resolve, intervalMs));
 	}
-}
+};
 
 /**
  * Clear the browser storage surfaces the consent runtimes persist to
@@ -125,17 +130,20 @@ export async function waitForCondition(
  * exercise persistence call this at the start and end of each test so
  * state cannot leak between tests or drivers sharing a page.
  */
-export function clearBrowserConsentStorage(): void {
-	if (typeof document === 'undefined') return;
-	try {
-		globalThis.localStorage?.clear();
-	} catch {
-		// Storage may be unavailable (SSR-ish env) — nothing to clear.
-	}
-	for (const cookie of document.cookie.split(';')) {
-		const name = cookie.split('=')[0]?.trim();
-		if (name) {
-			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+export const clearBrowserConsentStorage =
+	function clearBrowserConsentStorage(): void {
+		if (typeof document === 'undefined') {
+			return;
 		}
-	}
-}
+		try {
+			globalThis.localStorage?.clear();
+		} catch {
+			// Storage may be unavailable (SSR-ish env) — nothing to clear.
+		}
+		for (const cookie of document.cookie.split(';')) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+			}
+		}
+	};

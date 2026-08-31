@@ -44,7 +44,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -55,7 +55,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 2_000;
@@ -534,6 +534,7 @@ const probeVendorAttempt = async function probeVendorAttempt(
 			};
 
 			for (;;) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				runtime = await page.evaluate<LiveProbeCheckResult, string>(
 					(vendor) => {
 						const harness = (globalThis as unknown as ProbeWindow)
@@ -550,6 +551,7 @@ const probeVendorAttempt = async function probeVendorAttempt(
 					break;
 				}
 
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await page.waitForTimeout(RUNTIME_POLL_MS);
 			}
 
@@ -623,13 +625,16 @@ const probeVendor = async function probeVendor(
 		if (attempt > 1) {
 			// Retries exist to absorb transient third-party failures; give the
 			// vendor endpoint a moment before hitting it again.
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await createDeferredPromise((resolve) =>
 				setTimeout(resolve, RETRY_DELAY_MS)
 			);
 		}
 
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Vendor attempts intentionally run serially in one browser session.
 			lastOutcome = await probeVendorAttempt(
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				browser,
 				baseUrl,
 				config,
@@ -762,6 +767,7 @@ const main = async function main(): Promise<void> {
 				continue;
 			}
 
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const result = await probeVendor(browser, baseUrl, config);
 			results.push(result);
 			console.log(summarizeResult(result));

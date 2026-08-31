@@ -15,15 +15,13 @@
 import 'bench-css-entry';
 import { ReactV3BenchmarkProvider } from '../_bench/v3-provider';
 
-const ReactV3BannerCssPage = () => {
-	return (
-		<ReactV3BenchmarkProvider scenario="react-v3-banner-css">
-			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
-				<h1>React v3 Banner CSS Experiment</h1>
-				<p>CSS system selected at build time via C15T_CSS.</p>
-			</main>
-		</ReactV3BenchmarkProvider>
-	);
-};
+const ReactV3BannerCssPage = () => (
+	<ReactV3BenchmarkProvider scenario="react-v3-banner-css">
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>React v3 Banner CSS Experiment</h1>
+			<p>CSS system selected at build time via C15T_CSS.</p>
+		</main>
+	</ReactV3BenchmarkProvider>
+);
 
 export default ReactV3BannerCssPage;

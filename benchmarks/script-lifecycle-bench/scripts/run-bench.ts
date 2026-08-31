@@ -31,7 +31,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -42,9 +42,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -55,7 +55,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 const HOST = '127.0.0.1';
 const PORT = 4313;
@@ -85,7 +85,7 @@ interface SerializableScriptBenchState {
 	completionMarkers: Record<string, boolean>;
 }
 
-async function waitForServer() {
+const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
@@ -101,9 +101,9 @@ async function waitForServer() {
 	}
 
 	throw new Error('Timed out waiting for script lifecycle bench server');
-}
+};
 
-async function runCommand(args: string[], label: string) {
+const runCommand = async function runCommand(args: string[], label: string) {
 	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
@@ -130,21 +130,21 @@ async function runCommand(args: string[], label: string) {
 		});
 		command.on('error', rejectPromise);
 	});
-}
+};
 
-async function ensureBuild() {
+const ensureBuild = async function ensureBuild() {
 	if (existsSync(buildIdPath)) {
 		return;
 	}
 
 	await runCommand(['run', 'build'], 'script lifecycle benchmark build');
-}
+};
 
-function sortIds(ids: string[]): string[] {
+const sortIds = function sortIds(ids: string[]): string[] {
 	return [...ids].sort((left, right) => left.localeCompare(right));
-}
+};
 
-function assertIds(
+const assertIds = function assertIds(
 	label: string,
 	actual: string[],
 	expected: string[],
@@ -160,9 +160,9 @@ function assertIds(
 			`${scenario}: ${label} mismatch. Expected ${right.join(', ') || '(none)'} but saw ${left.join(', ') || '(none)'}`
 		);
 	}
-}
+};
 
-function assertDomPresence(
+const assertDomPresence = function assertDomPresence(
 	state: SerializableScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
 ) {
@@ -175,9 +175,9 @@ function assertDomPresence(
 			);
 		}
 	}
-}
+};
 
-function assertScenarioInvariants(
+const assertScenarioInvariants = function assertScenarioInvariants(
 	state: SerializableScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
 ) {
@@ -234,9 +234,9 @@ function assertScenarioInvariants(
 			);
 		}
 	}
-}
+};
 
-async function collectScenarioSample(
+const collectScenarioSample = async function collectScenarioSample(
 	page: PlaywrightTypes.Page,
 	config: ScriptLifecycleScenarioConfig
 ) {
@@ -285,9 +285,9 @@ async function collectScenarioSample(
 		durationMs,
 		state: typedState,
 	};
-}
+};
 
-async function run() {
+const run = async function run() {
 	await ensureBuild();
 
 	const server = spawn(
@@ -322,9 +322,12 @@ async function run() {
 			const errorCounts: number[] = [];
 
 			for (let index = 0; index < warmupIterations + iterations; index += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const context = await browser.newContext({ baseURL: BASE_URL });
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const page = await context.newPage();
 
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const sample = await collectScenarioSample(page, config);
 
 				if (index >= warmupIterations) {
@@ -345,31 +348,30 @@ async function run() {
 					errorCounts.push(sample.state.errors.length);
 				}
 
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await context.close();
 			}
 
 			const result: BenchmarkResult = {
-				schemaVersion: BENCHMARK_SCHEMA_VERSION,
-				suite: 'script-lifecycle',
-				package: '@c15t/script-lifecycle-bench',
-				framework: 'core',
-				runtime: 'playwright',
-				scenario: config.name,
-				commitSha: safeCommitSha(),
 				baseSha: safeBaseSha(),
-				timestamp: new Date().toISOString(),
+				budgetDefinitions: scriptLifecycleBudgets.filter((budget) =>
+					[config.metric, 'errorCount'].includes(budget.metric)
+				),
+				budgets: [],
+				commitSha: safeCommitSha(),
 				environment: getEnvironment(browser.version()),
 				fixture: {
-					name: config.name,
 					consentCount: 5,
-					scriptCount: config.scriptIds.length,
 					localeCount: 1,
-					themeComplexity: 'minimal',
+					name: config.name,
 					notes: [
 						'Local deterministic script routes only.',
 						'Measures consent-driven script lifecycle rather than remote CDN latency.',
 					],
+					scriptCount: config.scriptIds.length,
+					themeComplexity: 'minimal',
 				},
+				framework: 'core',
 				metrics: [
 					summarizeMetric(config.metric, 'ms', durationSamples),
 					summarizeMetric('loadedScriptCount', 'count', loadedScriptCounts),
@@ -387,14 +389,16 @@ async function run() {
 					),
 					summarizeMetric('errorCount', 'count', errorCounts),
 				],
-				budgetDefinitions: scriptLifecycleBudgets.filter((budget) =>
-					[config.metric, 'errorCount'].includes(budget.metric)
-				),
-				budgets: [],
 				notes: [
 					'Script lifecycle benchmark uses local fixture scripts and predicate-based completion checks.',
 					'IAB-gated script lifecycle scenarios are intentionally excluded from v1.',
 				],
+				package: '@c15t/script-lifecycle-bench',
+				runtime: 'playwright',
+				scenario: config.name,
+				schemaVersion: BENCHMARK_SCHEMA_VERSION,
+				suite: 'script-lifecycle',
+				timestamp: new Date().toISOString(),
 			};
 
 			writeJson(join(outputDir, `${config.name}.json`), result);
@@ -431,7 +435,7 @@ async function run() {
 	if (serverFailure) {
 		throw serverFailure;
 	}
-}
+};
 
 try {
 	await run();

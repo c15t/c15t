@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
-import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useConsentScript } from '~/hooks/use-consent-script';
 import {
 	ConsentManagerProvider,
@@ -27,7 +26,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -38,9 +37,12 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
+const waitFor = async function waitFor(
+	assertion: () => undefined | boolean,
+	timeoutMs = 1000
+) {
 	const start = Date.now();
 	let lastError: unknown;
 
@@ -53,6 +55,7 @@ async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 		} catch (error) {
 			lastError = error;
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await createDeferredPromise((resolve) => setTimeout(resolve, 20));
 	}
 
@@ -60,23 +63,26 @@ async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 		throw lastError;
 	}
 	throw new Error('Timed out waiting for assertion');
-}
-
-const Provider = ({ children }: { children: ReactNode }) => {
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-				noStyle: true,
-			}}
-		>
-			{children}
-		</ConsentManagerProvider>
-	);
 };
 
-function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
+const Provider = ({ children }: { children: ReactNode }) => (
+	<ConsentManagerProvider
+		options={{
+			mode: 'offline',
+			noStyle: true,
+		}}
+	>
+		{children}
+	</ConsentManagerProvider>
+);
+
+const createMockConsentState = function createMockConsentState(
+	overrides: Partial<ConsentStoreState> = {}
+) {
 	const state = {
+		consentCategories: ['necessary'],
+		consentInfo: null,
+		consentTypes: [],
 		consents: {
 			experience: false,
 			functionality: false,
@@ -84,23 +90,20 @@ function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
 			measurement: false,
 			necessary: true,
 		},
-		consentInfo: null,
-		consentCategories: ['necessary'],
-		consentTypes: [],
+		getDisplayedConsents: () => [],
 		loadedScripts: {},
 		policyCategories: ['*'],
 		policyScopeMode: 'permissive',
-		scripts: [],
-		translationConfig: defaultTranslationConfig,
 		removeScript: vi.fn(),
+		scripts: [],
 		setScripts: vi.fn(),
 		subscribeToConsentChanges: () => () => undefined,
-		getDisplayedConsents: () => [],
+		translationConfig: defaultTranslationConfig,
 		...overrides,
 	} as unknown as ConsentStoreState;
 
 	return state;
-}
+};
 
 const MockConsentProvider = ({
 	children,
@@ -121,9 +124,9 @@ const MockConsentProvider = ({
 	return (
 		<StableConsentStateProvider
 			value={{
+				manager: null,
 				state,
 				store,
-				manager: null,
 			}}
 		>
 			{children}
@@ -156,10 +159,10 @@ const ConsentScriptProbe = ({
 const InlineConsentScriptProbe = ({ onLoad }: { onLoad: () => void }) => {
 	const result = useConsentScript({
 		script: {
-			id: 'inline-script',
-			src: 'https://example.com/inline.js',
 			category: 'necessary',
+			id: 'inline-script',
 			onLoad: () => onLoad(),
+			src: 'https://example.com/inline.js',
 		},
 	});
 
@@ -415,8 +418,8 @@ describe('renderable integrations', () => {
 				measurement: false,
 				necessary: true,
 			},
-			setScripts,
 			removeScript,
+			setScripts,
 		});
 
 		const { container } = await render(
@@ -556,9 +559,9 @@ describe('renderable integrations', () => {
 			<MockConsentProvider state={state}>
 				<ConsentScriptProbe
 					script={{
+						category: 'necessary',
 						id: 'pending-script',
 						src: 'https://example.com/pending.js',
-						category: 'necessary',
 					}}
 				/>
 			</MockConsentProvider>
@@ -573,11 +576,8 @@ describe('renderable integrations', () => {
 	test('does not re-register inline script objects or lifecycle callbacks', async () => {
 		const onLoad = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			script?.onLoad?.({
-				id: script.id,
-				elementId: script.id,
-				hasConsent: true,
 				consents: {
 					experience: false,
 					functionality: false,
@@ -585,6 +585,9 @@ describe('renderable integrations', () => {
 					measurement: false,
 					necessary: true,
 				},
+				elementId: script.id,
+				hasConsent: true,
+				id: script.id,
 			});
 		});
 		const state = createMockConsentState({ setScripts });
@@ -606,9 +609,9 @@ describe('renderable integrations', () => {
 
 	test('adopts but never removes a compatible manager-owned script', async () => {
 		const script = {
+			category: 'necessary' as const,
 			id: 'manager-owned-script',
 			src: 'https://example.com/manager-owned.js',
-			category: 'necessary' as const,
 		};
 		const setScripts = vi.fn();
 		const removeScript = vi.fn();
@@ -642,17 +645,17 @@ describe('renderable integrations', () => {
 				<ConsentScriptProbe
 					script={{
 						attributes: { 'data-tenant': 'first' },
+						category: 'necessary',
 						id: 'shared-script',
 						src: 'https://example.com/shared.js',
-						category: 'necessary',
 					}}
 				/>
 				<ConsentScriptProbe
 					script={{
 						attributes: { 'data-tenant': 'second' },
+						category: 'necessary',
 						id: 'shared-script',
 						src: 'https://example.com/shared.js',
-						category: 'necessary',
 					}}
 				/>
 			</MockConsentProvider>
@@ -675,14 +678,11 @@ describe('renderable integrations', () => {
 		let attempt = 0;
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			attempt += 1;
 
 			setTimeout(() => {
 				const info = {
-					id: script?.id ?? 'retry-script',
-					elementId: script?.id ?? 'retry-script',
-					hasConsent: true,
 					consents: {
 						experience: false,
 						functionality: false,
@@ -690,6 +690,9 @@ describe('renderable integrations', () => {
 						measurement: false,
 						necessary: true,
 					},
+					elementId: script?.id ?? 'retry-script',
+					hasConsent: true,
+					id: script?.id ?? 'retry-script',
 				};
 
 				if (attempt === 1) {
@@ -705,9 +708,9 @@ describe('renderable integrations', () => {
 		});
 		const state = createMockConsentState({ removeScript, setScripts });
 		const script = {
+			category: 'necessary' as const,
 			id: 'retry-script',
 			src: 'https://example.com/retry.js',
-			category: 'necessary' as const,
 		};
 		const rendered = await render(
 			<MockConsentProvider state={state}>
@@ -744,14 +747,11 @@ describe('renderable integrations', () => {
 		let attempt = 0;
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			attempt += 1;
 
 			setTimeout(() => {
 				const info = {
-					id: script?.id ?? 'shared-retry-script',
-					elementId: script?.id ?? 'shared-retry-script',
-					hasConsent: true,
 					consents: {
 						experience: false,
 						functionality: false,
@@ -759,6 +759,9 @@ describe('renderable integrations', () => {
 						measurement: false,
 						necessary: true,
 					},
+					elementId: script?.id ?? 'shared-retry-script',
+					hasConsent: true,
+					id: script?.id ?? 'shared-retry-script',
 				};
 
 				if (attempt === 1) {
@@ -774,9 +777,9 @@ describe('renderable integrations', () => {
 		});
 		const state = createMockConsentState({ removeScript, setScripts });
 		const script = {
+			category: 'necessary' as const,
 			id: 'shared-retry-script',
 			src: 'https://example.com/shared-retry.js',
-			category: 'necessary' as const,
 		};
 		const rendered = await render(
 			<MockConsentProvider state={state}>
@@ -873,18 +876,18 @@ describe('renderable integrations', () => {
 				<MockConsentProvider state={firstState}>
 					<ConsentScriptProbe
 						script={{
+							category: 'necessary',
 							id: 'provider-scoped-script',
 							src: 'https://first.example.com/sdk.js',
-							category: 'necessary',
 						}}
 					/>
 				</MockConsentProvider>
 				<MockConsentProvider state={secondState}>
 					<ConsentScriptProbe
 						script={{
+							category: 'necessary',
 							id: 'provider-scoped-script',
 							src: 'https://second.example.com/sdk.js',
-							category: 'necessary',
 						}}
 					/>
 				</MockConsentProvider>
@@ -907,6 +910,7 @@ describe('renderable integrations', () => {
 			setZoom: vi.fn(),
 		};
 		let mapsApi: unknown;
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return mapInstance;
 		});
@@ -920,7 +924,7 @@ describe('renderable integrations', () => {
 			necessary: true,
 		};
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			let callbackName: string | null = null;
 			if (script?.src) {
 				callbackName = new URL(script.src).searchParams.get('callback');
@@ -947,18 +951,18 @@ describe('renderable integrations', () => {
 				}
 
 				script?.onLoad?.({
-					id: script.id,
+					consents,
 					elementId: script.id,
 					hasConsent: true,
-					consents,
+					id: script.id,
 				});
 			}, 0);
 		});
 		const removeScript = vi.fn();
 		const state = createMockConsentState({
 			consents,
-			setScripts,
 			removeScript,
+			setScripts,
 		});
 
 		const { container } = await render(
@@ -1021,6 +1025,7 @@ describe('renderable integrations', () => {
 			setOptions: vi.fn(),
 			setZoom: vi.fn(),
 		};
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return mapInstance;
 		});
@@ -1083,6 +1088,7 @@ describe('renderable integrations', () => {
 	});
 
 	test('shares one Google Maps script across multiple map instances', async () => {
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return {
 				setCenter: vi.fn(),
@@ -1093,7 +1099,7 @@ describe('renderable integrations', () => {
 		const onFirstReady = vi.fn();
 		const onSecondReady = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			let callbackName: string | null = null;
 			if (script?.src) {
 				callbackName = new URL(script.src).searchParams.get('callback');
@@ -1116,9 +1122,6 @@ describe('renderable integrations', () => {
 				}
 
 				script?.onLoad?.({
-					id: script.id,
-					elementId: script.id,
-					hasConsent: true,
 					consents: {
 						experience: false,
 						functionality: false,
@@ -1126,6 +1129,9 @@ describe('renderable integrations', () => {
 						measurement: false,
 						necessary: true,
 					},
+					elementId: script.id,
+					hasConsent: true,
+					id: script.id,
 				});
 			}, 0);
 		});
@@ -1166,6 +1172,7 @@ describe('renderable integrations', () => {
 			setOptions: vi.fn(),
 			setZoom: vi.fn(),
 		};
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return mapInstance;
 		});
@@ -1202,6 +1209,7 @@ describe('renderable integrations', () => {
 	});
 
 	test('retains one Google Maps loader across route-style remounts', async () => {
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return {
 				setCenter: vi.fn(),
@@ -1212,7 +1220,7 @@ describe('renderable integrations', () => {
 		const onReady = vi.fn();
 		const removeScript = vi.fn();
 		const setScripts = vi.fn((scripts) => {
-			const script = scripts[0];
+			const [script] = scripts;
 			const callbackName = script?.src
 				? new URL(script.src).searchParams.get('callback')
 				: null;
@@ -1269,6 +1277,7 @@ describe('renderable integrations', () => {
 
 	test('renders the error fallback when Google Maps construction fails', async () => {
 		const initializationError = new Error('Map constructor failed');
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			throw initializationError;
 		});
@@ -1308,6 +1317,7 @@ describe('renderable integrations', () => {
 	});
 
 	test('surfaces Google Maps authentication failures', async () => {
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return {
 				setCenter: vi.fn(),

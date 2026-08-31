@@ -8,34 +8,34 @@ export default mergeConfig(
 	defineConfig({
 		resolve: {
 			alias: {
-				'~': resolve(__dirname, './src'),
-				'@c15t/translations/all': resolve(
-					__dirname,
-					'../translations/src/all.ts'
-				),
+				'@c15t/core': resolve(__dirname, '../core/dist/index.js'),
 				'@c15t/translations': resolve(
 					__dirname,
 					'../translations/src/index.ts'
 				),
-				'@c15t/core': resolve(__dirname, '../core/dist/index.js'),
+				'@c15t/translations/all': resolve(
+					__dirname,
+					'../translations/src/all.ts'
+				),
+				'~': resolve(__dirname, './src'),
 			},
 		},
 		test: {
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					branches: 45,
+					functions: 65,
+					lines: 45,
+					statements: 45,
+				},
+			},
 			environment: 'jsdom',
 			include: [
 				'src/**/__tests__/**/*.test.ts',
 				'src/**/__tests__/**/*.test.tsx',
 			],
-			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
-				thresholds: {
-					lines: 45,
-					statements: 45,
-					functions: 65,
-					branches: 45,
-				},
-			},
 		},
 	})
 );

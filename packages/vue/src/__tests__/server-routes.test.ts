@@ -22,15 +22,31 @@ import {
 import { createServerFetch } from '../runtime/server/server-fetch';
 
 const mocks = vi.hoisted(() => ({
-	useRuntimeConfig: vi.fn(),
 	localFetch: vi.fn(),
 	serverFetch: vi.fn(),
+	useRuntimeConfig: vi.fn(),
 }));
 
 const MANIFEST: ConsentManifest = {
-	schemaVersion: 1,
-	revision: 'rev-1',
 	branding: 'c15t',
+	policyPacks: [
+		createConsentManifestPolicyPack({
+			fingerprint: 'fingerprint-eu',
+			policy: {
+				consent: {
+					categories: ['necessary'],
+					expiryDays: 365,
+					model: 'opt-in',
+					scopeMode: 'strict',
+				},
+				id: 'eu-opt-in',
+				match: { countries: ['DE'], fallback: true },
+				ui: { mode: 'banner' },
+			},
+		}),
+	],
+	revision: 'rev-1',
+	schemaVersion: 1,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',
@@ -42,30 +58,16 @@ const MANIFEST: ConsentManifest = {
 			},
 		},
 	},
-	policyPacks: [
-		createConsentManifestPolicyPack({
-			fingerprint: 'fingerprint-eu',
-			policy: {
-				id: 'eu-opt-in',
-				match: { countries: ['DE'], fallback: true },
-				consent: {
-					model: 'opt-in',
-					expiryDays: 365,
-					scopeMode: 'strict',
-					categories: ['necessary'],
-				},
-				ui: { mode: 'banner' },
-			},
-		}),
-	],
 };
 
-function manifestResponse(headers: Record<string, string>) {
+const manifestResponse = function manifestResponse(
+	headers: Record<string, string>
+) {
 	return new Response(JSON.stringify(MANIFEST), {
-		status: 200,
 		headers: { 'content-type': 'application/json', ...headers },
+		status: 200,
 	});
-}
+};
 
 /**
  * Drives the real handler through h3 so we assert on a real Response.
@@ -78,7 +80,7 @@ function manifestResponse(headers: Record<string, string>) {
  */
 type MountRoute = (route: string, handler: unknown) => unknown;
 
-function callRoute(path: string, handler: unknown) {
+const callRoute = function callRoute(path: string, handler: unknown) {
 	return (requestHeaders: Record<string, string> = {}) => {
 		const app = createApp();
 		(app.use as unknown as MountRoute)(path, handler);
@@ -86,7 +88,7 @@ function callRoute(path: string, handler: unknown) {
 			new Request(`http://localhost${path}`, { headers: requestHeaders })
 		);
 	};
-}
+};
 
 const routeDependencies = {
 	defineCachedEventHandler: (handler: unknown) => handler,
@@ -140,8 +142,8 @@ describe('manifest route caching headers', () => {
 		mocks.serverFetch.mockResolvedValue(
 			manifestResponse({
 				'cache-control': 'public, s-maxage=120',
-				vary: 'Origin',
 				etag: '"rev-1"',
+				vary: 'Origin',
 			})
 		);
 
@@ -254,8 +256,8 @@ describe('init route', () => {
 				return new Response('nope', { status: 404 });
 			}
 			return new Response(JSON.stringify({ jurisdiction: 'NONE' }), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			});
 		});
 

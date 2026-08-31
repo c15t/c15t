@@ -49,7 +49,8 @@ interface PackageReadmeConfig {
 	prerequisites?: string[];
 	installation?: string[];
 	manualInstallation?: string[];
-	usage?: string[]; // items may include fenced code blocks as strings beginning with ```
+	// items may include fenced code blocks as strings beginning with ```
+	usage?: string[];
 	commands?: {
 		name: string;
 		description: string;
@@ -81,9 +82,9 @@ const INTH_ICON_LOGO =
 	'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8+PHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg==';
 
 const INTH_BADGE_QUERY = new URLSearchParams({
-	logo: INTH_ICON_LOGO,
 	color: 'ffc803',
 	labelTextColor: '000000',
+	logo: INTH_ICON_LOGO,
 	valueColor: '000000',
 }).toString();
 
@@ -155,7 +156,9 @@ const addSection = (
 	content: string[] | undefined,
 	formatter: (item: string, index?: number) => string = (item) => `- ${item}`
 ) => {
-	if (!content || content.length === 0) return '';
+	if (!content || content.length === 0) {
+		return '';
+	}
 	const body = content.map(formatter).join('\n');
 	return `${header}\n\n\n\n\n${body}\n\n\n\n`
 		.replace(/\n{3,}/gu, '\n\n')
@@ -373,7 +376,8 @@ For further information, guides, and examples visit the [reference documentation
 		.filter((section) => isNonEmpty(section))
 		.join('\n\n')
 		.replace(/\n{3,}/gu, '\n\n')
-		.replace(/\n{2,}$/u, '\n'); // Remove multiple trailing newlines
+		// Remove multiple trailing newlines
+		.replace(/\n{2,}$/u, '\n');
 
 	return `${readmeContent.trim()}\n`;
 };
@@ -384,7 +388,7 @@ For further information, guides, and examples visit the [reference documentation
  * @throws {SyntaxError} If readme.json or package.json contains invalid JSON
  * @throws {Error} If file write operations fail
  */
-async function generateReadmes() {
+const generateReadmes = async function generateReadmes() {
 	const packagesDir = path.resolve(__dirname, '../packages');
 
 	if (!fssync.existsSync(packagesDir)) {
@@ -413,11 +417,13 @@ async function generateReadmes() {
 				'package.json'
 			);
 
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const raw = await fs.readFile(readmeConfigPath, 'utf8');
 			const readmeConfig = JSON.parse(raw) as PackageReadmeConfig;
 
 			// Read package.json to supplement missing details
 			const packageJson = JSON.parse(
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await fs.readFile(packageJsonPath, 'utf8')
 			);
 
@@ -432,13 +438,14 @@ async function generateReadmes() {
 			const content = baseReadmeTemplate(readmeConfig);
 			const readmePath = path.join(packagesDir, packageName, 'README.md');
 
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await fs.writeFile(readmePath, content, 'utf8');
 			console.log(`Generated README for ${packageName}`);
 		} catch (error) {
 			console.error(`Error generating README for ${packageName}:`, error);
 		}
 	}
-}
+};
 
 try {
 	await generateReadmes();

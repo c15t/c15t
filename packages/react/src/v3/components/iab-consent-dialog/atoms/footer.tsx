@@ -29,7 +29,8 @@ interface IABConsentDialogFooterProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentDialogFooter({ children, className, ...props }, ref) {
 	const { performDialogAction } = useHeadlessIABConsentUI();
 	const { components } = useUIConfig();
 	const { noStyle } = useTheme();

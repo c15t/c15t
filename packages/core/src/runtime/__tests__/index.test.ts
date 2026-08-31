@@ -8,10 +8,10 @@ const createConsentManagerStoreMock = vi.fn();
 const getMatchingPrefetchedInitialDataMock = vi.fn();
 const clearClientRegistryMock = vi.fn();
 const runtimeDependencies = {
+	clearClientRegistry: clearClientRegistryMock,
 	configureConsentManager: configureConsentManagerMock,
 	createConsentManagerStore: createConsentManagerStoreMock,
 	getMatchingPrefetchedInitialData: getMatchingPrefetchedInitialDataMock,
-	clearClientRegistry: clearClientRegistryMock,
 };
 
 describe('runtime', () => {
@@ -25,18 +25,20 @@ describe('runtime', () => {
 		clearConsentRuntimeCache(runtimeDependencies);
 		getMatchingPrefetchedInitialDataMock.mockReset();
 
-		configureConsentManagerMock.mockImplementation(() => ({
-			id: `manager-${++managerCount}`,
-		}));
+		configureConsentManagerMock.mockImplementation(() => {
+			managerCount += 1;
+			return { id: `manager-${managerCount}` };
+		});
 		// Minimal stateful store stub: the runtime reads and writes state on
 		// cached stores, so an inert object would not exercise that path.
 		createConsentManagerStoreMock.mockImplementation(
 			(_manager: unknown, storeOptions: unknown) => {
 				let state = { ...(storeOptions as Record<string, unknown>) };
+				storeCount += 1;
 
 				return {
-					id: `store-${++storeCount}`,
 					getState: () => state,
+					id: `store-${storeCount}`,
 					setState: (partial: Record<string, unknown>) => {
 						state = { ...state, ...partial };
 					},
@@ -52,13 +54,15 @@ describe('runtime', () => {
 	describe('nonce resolution', () => {
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 
-		function storeOptionsFor(options: ConsentRuntimeOptions) {
+		const storeOptionsFor = function storeOptionsFor(
+			options: ConsentRuntimeOptions
+		) {
 			getOrCreateConsentRuntime(options, pkgInfo, runtimeDependencies);
 
 			return createConsentManagerStoreMock.mock.calls[0]?.[1] as {
 				nonce?: string;
 			};
-		}
+		};
 
 		it('passes a top-level nonce to the store', () => {
 			const storeOptions = storeOptionsFor({
@@ -186,21 +190,21 @@ describe('runtime', () => {
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				mode: 'hosted',
 				backendURL: '/api/c15t',
+				mode: 'hosted',
 			})
 		);
 		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({
 				config: {
-					pkg: '@c15t/react',
-					version: '2.0.0',
-					mode: 'hosted',
 					meta: {
 						backendURL: '/api/c15t',
 						requestCredentials: 'include',
 					},
+					mode: 'hosted',
+					pkg: '@c15t/react',
+					version: '2.0.0',
 				},
 			})
 		);
@@ -211,12 +215,12 @@ describe('runtime', () => {
 		const iab = { enabled: true };
 		const storageConfig = { storageKey: 'consent' };
 		const options = {
-			mode: 'custom',
-			endpointHandlers,
 			enabled: false,
-			translations: { defaultLanguage: 'de' },
+			endpointHandlers,
 			iab,
+			mode: 'custom',
 			storageConfig,
+			translations: { defaultLanguage: 'de' },
 		} as unknown as ConsentRuntimeOptions;
 
 		getOrCreateConsentRuntime(
@@ -230,15 +234,15 @@ describe('runtime', () => {
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				mode: 'custom',
 				endpointHandlers,
+				mode: 'custom',
 				storageConfig,
 				store: expect.objectContaining({
+					iab,
 					initialTranslationConfig: {
 						defaultLanguage: 'de',
 						translations: {},
 					},
-					iab,
 				}),
 			})
 		);
@@ -246,28 +250,28 @@ describe('runtime', () => {
 			expect.anything(),
 			expect.objectContaining({
 				iab,
-				storageConfig,
 				initialTranslationConfig: {
-					translations: {},
 					defaultLanguage: 'de',
+					translations: {},
 				},
+				storageConfig,
 			})
 		);
 	});
 
 	it('prioritizes i18n over legacy translations config when both are provided', () => {
 		const options = {
+			i18n: {
+				locale: 'fr',
+				messages: {
+					fr: {},
+				},
+			},
 			mode: 'offline',
 			translations: {
 				defaultLanguage: 'en',
 				translations: {
 					en: {},
-				},
-			},
-			i18n: {
-				locale: 'fr',
-				messages: {
-					fr: {},
 				},
 			},
 		} as ConsentRuntimeOptions;
@@ -423,8 +427,8 @@ describe('runtime', () => {
 
 		getOrCreateConsentRuntime(
 			{
-				mode: 'hosted',
 				backendURL: '/api/c15t',
+				mode: 'hosted',
 			} as ConsentRuntimeOptions,
 			{
 				pkg: '@c15t/react',
@@ -435,17 +439,17 @@ describe('runtime', () => {
 
 		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledWith({
 			backendURL: '/api/c15t',
-			overrides: undefined,
 			credentials: 'include',
+			overrides: undefined,
 		});
 		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({
-				ssrData: prefetchedData,
 				__internal: {
 					backendURL: '/api/c15t',
 					requestCredentials: 'include',
 				},
+				ssrData: prefetchedData,
 			})
 		);
 	});
@@ -459,8 +463,8 @@ describe('runtime', () => {
 
 		getOrCreateConsentRuntime(
 			{
-				mode: 'hosted',
 				backendURL: '/api/c15t',
+				mode: 'hosted',
 				ssrData: explicitSSRData,
 			} as ConsentRuntimeOptions,
 			{
@@ -483,8 +487,8 @@ describe('runtime', () => {
 		vi.stubGlobal('window', {} as Window);
 
 		const options = {
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		} as ConsentRuntimeOptions;
 		const pkgInfo = {
 			pkg: '@c15t/react',
@@ -517,9 +521,9 @@ describe('runtime', () => {
 		// Regression: headers used to be dropped on the floor, so options like
 		// `headers: { 'x-tenant': '...' }` silently never reached the backend.
 		const options = {
-			mode: 'c15t',
 			backendURL: '/api/c15t',
 			headers: { 'x-demo-scenario': 'custom-fr-iab' },
+			mode: 'c15t',
 		} as ConsentRuntimeOptions;
 
 		getOrCreateConsentRuntime(
@@ -533,9 +537,9 @@ describe('runtime', () => {
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
-				mode: 'c15t',
 				backendURL: '/api/c15t',
 				headers: { 'x-demo-scenario': 'custom-fr-iab' },
+				mode: 'c15t',
 			})
 		);
 	});
@@ -543,8 +547,8 @@ describe('runtime', () => {
 	it('creates separate runtimes for different headers', () => {
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 		const base = {
-			mode: 'c15t',
 			backendURL: '/api/c15t',
+			mode: 'c15t',
 		} as ConsentRuntimeOptions;
 
 		const first = getOrCreateConsentRuntime(

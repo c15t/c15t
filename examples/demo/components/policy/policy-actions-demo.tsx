@@ -1,3 +1,4 @@
+/* oxlint-disable no-nested-ternary -- Component variants form a closed three-state presentation matrix. */
 'use client';
 
 import type { PolicyConfig } from '@c15t/schema/types';
@@ -40,45 +41,45 @@ interface Snapshot {
 
 const locationPresets = [
 	{
-		label: 'Germany',
-		href: '/policy-actions?country=DE',
 		description: 'Strict opt-in, compact split row',
+		href: '/policy-actions?country=DE',
+		label: 'Germany',
 	},
 	{
-		label: 'Spain',
-		href: '/policy-actions?country=ES',
 		description: 'Column layout with customize on its own row',
+		href: '/policy-actions?country=ES',
+		label: 'Spain',
 	},
 	{
-		label: 'California',
-		href: '/policy-actions?country=US&region=CA',
 		description: 'US California behavior',
+		href: '/policy-actions?country=US&region=CA',
+		label: 'California',
 	},
 	{
-		label: 'World',
-		href: '/policy-actions?country=AU',
 		description: 'No-banner fallback comparison',
+		href: '/policy-actions?country=AU',
+		label: 'World',
 	},
 ];
 
-function renderJson(snapshot: Snapshot) {
+const renderJson = function renderJson(snapshot: Snapshot) {
 	return JSON.stringify(snapshot, null, 2);
-}
+};
 
-function buildSurfaceSnapshot(
+const buildSurfaceSnapshot = function buildSurfaceSnapshot(
 	surface: Omit<Snapshot, 'uiProfile'> & { uiProfile?: string }
 ): Snapshot {
 	return {
-		isVisible: surface.isVisible,
-		allowedActions: surface.allowedActions,
-		orderedActions: surface.orderedActions,
 		actionGroups: surface.actionGroups,
-		primaryActions: surface.primaryActions,
+		allowedActions: surface.allowedActions,
 		direction: surface.direction,
-		uiProfile: surface.uiProfile,
+		isVisible: surface.isVisible,
+		orderedActions: surface.orderedActions,
+		primaryActions: surface.primaryActions,
 		shouldFillActions: surface.shouldFillActions,
+		uiProfile: surface.uiProfile,
 	};
-}
+};
 
 const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 	const [openItem, setOpenItem] = React.useState('');
@@ -110,6 +111,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 									? 'ring-2 ring-emerald-400/60 ring-offset-2'
 									: 'opacity-90';
 
+								// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 								switch (action) {
 									case 'accept':
 										return (
@@ -198,6 +200,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 											? 'ring-2 ring-sky-400/60 ring-offset-2'
 											: 'opacity-90';
 
+										// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 										switch (action) {
 											case 'accept':
 												return (
@@ -291,14 +294,14 @@ const PolicyActionsDemoContent = () => {
 	const bannerSnapshot = React.useMemo(
 		() =>
 			buildSurfaceSnapshot({
-				isVisible: banner.isVisible,
-				allowedActions: banner.allowedActions,
-				orderedActions: banner.orderedActions,
 				actionGroups: banner.actionGroups,
-				primaryActions: banner.primaryActions,
+				allowedActions: banner.allowedActions,
 				direction: banner.direction,
-				uiProfile: banner.uiProfile,
+				isVisible: banner.isVisible,
+				orderedActions: banner.orderedActions,
+				primaryActions: banner.primaryActions,
 				shouldFillActions: banner.shouldFillActions,
+				uiProfile: banner.uiProfile,
 			}),
 		[banner]
 	);
@@ -306,14 +309,14 @@ const PolicyActionsDemoContent = () => {
 	const dialogSnapshot = React.useMemo(
 		() =>
 			buildSurfaceSnapshot({
-				isVisible: dialog.isVisible,
-				allowedActions: dialog.allowedActions,
-				orderedActions: dialog.orderedActions,
 				actionGroups: dialog.actionGroups,
-				primaryActions: dialog.primaryActions,
+				allowedActions: dialog.allowedActions,
 				direction: dialog.direction,
-				uiProfile: dialog.uiProfile,
+				isVisible: dialog.isVisible,
+				orderedActions: dialog.orderedActions,
+				primaryActions: dialog.primaryActions,
 				shouldFillActions: dialog.shouldFillActions,
+				uiProfile: dialog.uiProfile,
 			}),
 		[dialog]
 	);
@@ -528,29 +531,29 @@ const PolicyActionsDemoContent = () => {
 };
 
 const spainSplitStackPolicy = {
+	consent: {
+		categories: ['necessary', 'measurement', 'marketing'],
+		expiryDays: 180,
+		model: 'opt-in' as const,
+	},
 	id: 'es_split_stack',
 	match: { countries: ['ES'] },
-	consent: {
-		model: 'opt-in' as const,
-		expiryDays: 180,
-		categories: ['necessary', 'measurement', 'marketing'],
-	},
 	ui: {
-		mode: 'banner' as const,
 		banner: {
 			allowedActions: ['reject', 'accept', 'customize'],
-			layout: ['customize', ['reject', 'accept']],
 			direction: 'column' as const,
+			layout: ['customize', ['reject', 'accept']],
 			primaryActions: ['accept'],
 			uiProfile: 'balanced' as const,
 		},
 		dialog: {
 			allowedActions: ['reject', 'accept', 'customize'],
-			layout: ['customize', ['reject', 'accept']],
 			direction: 'column' as const,
+			layout: ['customize', ['reject', 'accept']],
 			primaryActions: ['accept'],
 			uiProfile: 'balanced' as const,
 		},
+		mode: 'banner' as const,
 	},
 } satisfies PolicyConfig;
 
@@ -571,10 +574,6 @@ export const PolicyActionsDemo = () => {
 		<ConsentManagerProvider
 			key={providerKey}
 			options={{
-				mode: 'offline',
-				offlinePolicy: {
-					policyPacks: offlinePolicies,
-				},
 				legalLinks: {
 					privacyPolicy: {
 						href: '/legal/privacy-policy',
@@ -582,6 +581,10 @@ export const PolicyActionsDemo = () => {
 					termsOfService: {
 						href: '/legal/terms-of-service',
 					},
+				},
+				mode: 'offline',
+				offlinePolicy: {
+					policyPacks: offlinePolicies,
 				},
 				overrides: {
 					country,

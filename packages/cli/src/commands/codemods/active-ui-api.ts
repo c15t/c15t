@@ -17,13 +17,13 @@ const IGNORED_DIRS = new Set([
 ]);
 
 const BOOLEAN_STATE_PROPERTIES = {
-	showPopup: 'banner',
 	isPrivacyDialogOpen: 'dialog',
+	showPopup: 'banner',
 } as const;
 
 const LEGACY_SETTER_NAMES = {
-	setShowPopup: 'banner',
 	setIsPrivacyDialogOpen: 'dialog',
+	setShowPopup: 'banner',
 } as const;
 
 interface ActiveUiApiResult {
@@ -65,7 +65,7 @@ export interface CodemodRunResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function getBindingPropertyName(
+const getBindingPropertyName = function getBindingPropertyName(
 	element: TsMorphTypes.BindingElement
 ): string | undefined {
 	const propertyNameNode = element.getPropertyNameNode();
@@ -87,9 +87,9 @@ function getBindingPropertyName(
 	}
 
 	return nameNode.getText();
-}
+};
 
-function mapBooleanExpressionToUi(
+const mapBooleanExpressionToUi = function mapBooleanExpressionToUi(
 	expressionText: string | undefined,
 	activeValue: 'banner' | 'dialog'
 ): string {
@@ -103,37 +103,41 @@ function mapBooleanExpressionToUi(
 	}
 
 	return `${trimmed} ? '${activeValue}' : 'none'`;
-}
+};
 
-function mapShowPopupCall(
+const mapShowPopupCall = function mapShowPopupCall(
 	callee: string,
 	args: string[]
 ): { text: string; operations: number } {
 	const uiArgument = mapBooleanExpressionToUi(args[0], 'banner');
 	const forceArg = args[1]?.trim();
 	if (!forceArg || forceArg === 'false' || forceArg === 'undefined') {
-		return { text: `${callee}(${uiArgument})`, operations: 1 };
+		return { operations: 1, text: `${callee}(${uiArgument})` };
 	}
 
 	if (forceArg === 'true') {
 		return {
-			text: `${callee}(${uiArgument}, { force: true })`,
 			operations: 1,
+			text: `${callee}(${uiArgument}, { force: true })`,
 		};
 	}
 
 	return {
-		text: `${callee}(${uiArgument}, ${forceArg} ? { force: true } : undefined)`,
 		operations: 1,
+		text: `${callee}(${uiArgument}, ${forceArg} ? { force: true } : undefined)`,
 	};
-}
+};
 
-function mapPrivacyDialogCall(callee: string, args: string[]): string {
+const mapPrivacyDialogCall = function mapPrivacyDialogCall(
+	callee: string,
+	args: string[]
+): string {
 	const uiArgument = mapBooleanExpressionToUi(args[0], 'dialog');
 	return `${callee}(${uiArgument})`;
-}
+};
 
-function transformSourceFile(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): ActiveUiApiResult {
 	let operations = 0;
@@ -338,12 +342,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -371,11 +377,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates showPopup/isPrivacyDialogOpen APIs to activeUI.
@@ -383,14 +389,14 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runActiveUiApiCodemod(
+export const runActiveUiApiCodemod = async function runActiveUiApiCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
 	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
 		compilerOptions: {
 			allowJs: true,
 		},
+		skipAddingFilesFromTsConfig: true,
 	});
 	const filePaths = await collectSourceFiles(options.projectRoot);
 
@@ -425,15 +431,15 @@ export async function runActiveUiApiCodemod(
 			}
 		} catch (error) {
 			errors.push({
-				filePath,
 				error: error instanceof Error ? error.message : String(error),
+				filePath,
 			});
 		}
 	}
 
 	return {
-		totalFiles: filePaths.length,
 		changedFiles,
 		errors,
+		totalFiles: filePaths.length,
 	};
-}
+};

@@ -28,7 +28,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -39,7 +39,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 const translations: TranslationsResponse = {
 	common: {

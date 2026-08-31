@@ -6,31 +6,57 @@ import { bench, runMicroBenchmarkSuite } from './wrapper';
 // Mock DOM for Node.js environment
 if (typeof globalThis.document === 'undefined') {
 	const mockElement = {
-		setAttribute: () => {},
+		addEventListener: () => {
+			// Intentionally empty.
+		},
+		appendChild: () => {
+			// Intentionally empty.
+		},
 		getAttribute: () => null,
-		appendChild: () => {},
-		removeChild: () => {},
-		addEventListener: () => {},
-		removeEventListener: () => {},
+		removeChild: () => {
+			// Intentionally empty.
+		},
+		removeEventListener: () => {
+			// Intentionally empty.
+		},
+		setAttribute: () => {
+			// Intentionally empty.
+		},
 	};
 
 	globalThis.document = {
+		body: {
+			...mockElement,
+			appendChild: () => {
+				// Intentionally empty.
+			},
+		},
+		cookie: '',
 		createElement: () => ({ ...mockElement }),
-		head: { ...mockElement, appendChild: () => {} },
-		body: { ...mockElement, appendChild: () => {} },
 		getElementById: () => null,
+		head: {
+			...mockElement,
+			appendChild: () => {
+				// Intentionally empty.
+			},
+		},
 		querySelector: () => null,
 		querySelectorAll: () => [],
-		cookie: '',
 	} as unknown as Document;
 }
 
 // Mock MutationObserver for Node.js environment
 if (typeof globalThis.MutationObserver === 'undefined') {
 	globalThis.MutationObserver = class MutationObserver {
-		constructor(_callback: MutationCallback) {}
-		observe(_target: Node, _options?: MutationObserverInit) {}
-		disconnect() {}
+		// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
+		observe(_target: Node, _options?: MutationObserverInit) {
+			// Intentionally empty.
+		}
+		// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
+		disconnect() {
+			// Intentionally empty.
+		}
+		// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 		takeRecords(): MutationRecord[] {
 			return [];
 		}
@@ -45,150 +71,152 @@ if (typeof globalThis.window === 'undefined') {
 if (typeof globalThis.localStorage === 'undefined') {
 	const store: Record<string, string> = {};
 	globalThis.localStorage = {
-		getItem: (key: string) => store[key] || null,
-		setItem: (key: string, value: string) => {
-			store[key] = value;
+		clear: () => {
+			for (const key in store) {
+				if (Object.hasOwn(store, key)) {
+					Reflect.deleteProperty(store, key);
+				}
+			}
 		},
+		getItem: (key: string) => store[key] || null,
+		key: (index: number) => Object.keys(store)[index] || null,
+		length: Object.keys(store).length,
 		removeItem: (key: string) => {
 			Reflect.deleteProperty(store, key);
 		},
-		clear: () => {
-			for (const key in store) {
-				Reflect.deleteProperty(store, key);
-			}
+		setItem: (key: string, value: string) => {
+			store[key] = value;
 		},
-		key: (index: number) => Object.keys(store)[index] || null,
-		length: Object.keys(store).length,
 	} as Storage;
 }
 
 // Sample script configurations (typical setup)
 const simpleScripts: Script[] = [
 	{
+		category: 'measurement',
 		id: 'gtm',
 		src: 'https://www.googletagmanager.com/gtm.js',
-		category: 'measurement',
 	},
 	{
+		category: 'marketing',
 		id: 'fb-pixel',
 		src: 'https://connect.facebook.net/sdk.js',
-		category: 'marketing',
 	},
 	{
+		category: 'measurement',
 		id: 'hotjar',
 		src: 'https://static.hotjar.com/c/hotjar.js',
-		category: 'measurement',
 	},
 ];
 
 const mediumScripts: Script[] = [
 	{
+		category: 'measurement',
 		id: 'gtm',
 		src: 'https://www.googletagmanager.com/gtm.js',
-		category: 'measurement',
 	},
 	{
+		category: 'marketing',
 		id: 'fb-pixel',
 		src: 'https://connect.facebook.net/sdk.js',
-		category: 'marketing',
 	},
 	{
+		category: 'measurement',
 		id: 'hotjar',
 		src: 'https://static.hotjar.com/c/hotjar.js',
-		category: 'measurement',
 	},
 	{
+		category: 'functionality',
 		id: 'intercom',
 		src: 'https://widget.intercom.io/widget.js',
-		category: 'functionality',
 	},
 	{
+		category: 'measurement',
 		id: 'analytics',
 		src: 'https://www.google-analytics.com/analytics.js',
-		category: 'measurement',
 	},
 ];
 
 const complexScripts: Script[] = [
 	{
+		category: 'measurement',
 		id: 'gtm',
 		src: 'https://www.googletagmanager.com/gtm.js',
-		category: 'measurement',
 	},
 	{
+		category: 'marketing',
 		id: 'fb-pixel',
 		src: 'https://connect.facebook.net/sdk.js',
-		category: 'marketing',
 	},
 	{
+		category: 'measurement',
 		id: 'hotjar',
 		src: 'https://static.hotjar.com/c/hotjar.js',
-		category: 'measurement',
 	},
 	{
+		category: 'functionality',
 		id: 'intercom',
 		src: 'https://widget.intercom.io/widget.js',
-		category: 'functionality',
 	},
 	// Complex conditions
 	{
+		category: { and: ['measurement', 'marketing'] },
 		id: 'analytics-marketing',
 		src: 'https://example.com/combined.js',
-		category: { and: ['measurement', 'marketing'] },
 	},
 	{
+		category: { or: ['measurement', 'functionality'] },
 		id: 'optional-tracking',
 		src: 'https://example.com/optional.js',
-		category: { or: ['measurement', 'functionality'] },
 	},
 	{
+		category: { not: 'marketing' },
 		id: 'non-marketing',
 		src: 'https://example.com/non-marketing.js',
-		category: { not: 'marketing' },
 	},
 ];
 
 const manyScripts: Script[] = [
 	...complexScripts,
 	{
+		category: 'marketing',
 		id: 'linkedin',
 		src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'twitter',
 		src: 'https://static.ads-twitter.com/uwt.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'tiktok',
 		src: 'https://analytics.tiktok.com/i18n/pixel/events.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'pinterest',
 		src: 'https://ct.pinterest.com/ct.js',
-		category: 'marketing',
 	},
 	{
+		category: 'marketing',
 		id: 'reddit',
 		src: 'https://www.redditstatic.com/ads/pixel.js',
-		category: 'marketing',
 	},
 	{
+		category: 'measurement',
 		id: 'segment',
 		src: 'https://cdn.segment.com/analytics.js',
-		category: 'measurement',
 	},
 	{
+		category: 'measurement',
 		id: 'mixpanel',
 		src: 'https://cdn.mxpnl.com/libs/mixpanel.js',
-		category: 'measurement',
 	},
 	{
+		category: 'measurement',
 		id: 'amplitude',
 		src: 'https://cdn.amplitude.com/libs/amplitude.js',
-		category: 'measurement',
 	},
 ];
 

@@ -26,7 +26,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -37,7 +37,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 type WindowWithC15t = Window & {
 	c15t?: {
@@ -57,8 +57,8 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 	test('boundary reports Next.js adapter identity on window.c15t', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ policy: POLICY }), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 		const originalFetch = globalThis.fetch;
@@ -78,8 +78,8 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 			await vi.waitFor(() => {
 				expect((window as WindowWithC15t).c15t).toMatchObject({
-					pkg: '@c15t/nextjs',
 					mode: 'hosted',
+					pkg: '@c15t/nextjs',
 				});
 			});
 			expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
@@ -94,15 +94,15 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(
 				JSON.stringify({
+					branding: 'c15t',
 					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
-					translations: { language: 'en', translations: { common: {} } },
-					branding: 'c15t',
 					policy: POLICY,
+					translations: { language: 'en', translations: { common: {} } },
 				}),
 				{
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
@@ -207,8 +207,8 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 				resolveInit = (value: unknown) => {
 					resolve(
 						new Response(JSON.stringify(value), {
-							status: 200,
 							headers: { 'content-type': 'application/json' },
+							status: 200,
 						})
 					);
 				};

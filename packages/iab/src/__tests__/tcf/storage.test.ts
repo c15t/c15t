@@ -6,7 +6,7 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createCMPApi } from '../../tcf/cmp-api';
 import { IAB_STORAGE_KEYS } from '../../tcf/constants';

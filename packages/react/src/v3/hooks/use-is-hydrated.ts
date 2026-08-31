@@ -17,6 +17,6 @@ const getServerSnapshot = () => false;
  *
  * @internal
  */
-export function useIsHydrated(): boolean {
+export const useIsHydrated = function useIsHydrated(): boolean {
 	return useSyncExternalStore(subscribe, getClientSnapshot, getServerSnapshot);
-}
+};

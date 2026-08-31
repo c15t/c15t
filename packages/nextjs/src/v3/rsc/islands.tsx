@@ -55,7 +55,9 @@ export const RscBannerActions = ({
 			<button
 				className={classNames?.rejectButton}
 				data-testid="consent-banner-reject-button"
-				onClick={() => void save('none')}
+				onClick={async () => {
+					await save('none');
+				}}
 				type="button"
 			>
 				{rejectLabel}
@@ -71,7 +73,9 @@ export const RscBannerActions = ({
 			<button
 				className={classNames?.acceptButton}
 				data-testid="consent-banner-accept-button"
-				onClick={() => void save('all')}
+				onClick={async () => {
+					await save('all');
+				}}
 				type="button"
 			>
 				{acceptLabel}

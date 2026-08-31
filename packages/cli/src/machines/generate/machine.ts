@@ -47,7 +47,7 @@ const getDefined = <Value>(
 	return value;
 };
 
-function normalizeSelectedMode(
+const normalizeSelectedMode = function normalizeSelectedMode(
 	mode: StorageMode | null | undefined
 ): GenerateMachineContext['selectedMode'] {
 	if (mode === 'c15t' || mode === 'self-hosted') {
@@ -55,9 +55,9 @@ function normalizeSelectedMode(
 	}
 
 	return mode ?? null;
-}
+};
 
-function getHostedProviderFromMode(
+const getHostedProviderFromMode = function getHostedProviderFromMode(
 	mode: StorageMode | null | undefined
 ): GenerateMachineContext['hostedProvider'] {
 	if (mode === 'self-hosted') {
@@ -68,33 +68,34 @@ function getHostedProviderFromMode(
 	}
 
 	return null;
-}
+};
 
 /**
  * The generate state machine definition
  */
 export const generateMachine = setup({
+	actors: {
+		backendOptions: backendOptionsActor,
+		checkDependencies: checkDependenciesActor,
+		dependencyInstall: dependencyInstallActor,
+		fileGeneration: fileGenerationActor,
+		frontendOptions: frontendOptionsActor,
+		githubStar: githubStarActor,
+		hostedMode: hostedModeActor,
+		installConfirm: installConfirmActor,
+		modeSelection: modeSelectionActor,
+		preflight: preflightActor,
+		rollback: rollbackActor,
+		scriptsOption: scriptsOptionActor,
+		skillsInstall: skillsInstallActor,
+	},
+	guards,
 	types: {
 		context: {} as GenerateMachineContext,
 		events: {} as GenerateMachineEvent,
 		input: {} as { cliContext: CliContext; modeArg?: StorageMode },
 	},
-	guards,
-	actors: {
-		preflight: preflightActor,
-		modeSelection: modeSelectionActor,
-		hostedMode: hostedModeActor,
-		backendOptions: backendOptionsActor,
-		frontendOptions: frontendOptionsActor,
-		scriptsOption: scriptsOptionActor,
-		fileGeneration: fileGenerationActor,
-		checkDependencies: checkDependenciesActor,
-		installConfirm: installConfirmActor,
-		dependencyInstall: dependencyInstallActor,
-		rollback: rollbackActor,
-		skillsInstall: skillsInstallActor,
-		githubStar: githubStarActor,
-	},
+	// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 }).createMachine({
 	id: 'generate',
 	initial: 'idle',
@@ -103,14 +104,334 @@ export const generateMachine = setup({
 	// Global cancel handler - can be triggered from any state
 	on: {
 		CANCEL: {
-			target: '.cancelling',
 			actions: assign({
 				cancelReason: ({ event }) => event.reason ?? 'User cancelled',
 			}),
+			target: '.cancelling',
 		},
 	},
 
 	states: {
+		/**
+		 * Backend options (env file, proxy)
+		 */
+		backendOptions: {
+			invoke: {
+				input: ({ context }) => ({
+					backendURL: getDefined(context.backendURL),
+					cliContext: getDefined(context.cliContext),
+				}),
+				onDone: {
+					actions: assign({
+						proxyNextjs: ({ event }) => event.output.proxyNextjs,
+						useEnvFile: ({ event }) => event.output.useEnvFile,
+					}),
+					target: 'frontendOptions',
+				},
+				onError: {
+					actions: assign({
+						cancelReason: 'Backend options cancelled',
+					}),
+					target: 'cancelling',
+				},
+				src: 'backendOptions',
+			},
+		},
+
+		/**
+		 * Cancellation handling
+		 */
+		cancelling: {
+			always: [
+				// Auto-rollback if there are files to restore
+				{
+					guard: 'hasFilesToRollback',
+					target: 'rollback',
+				},
+				{
+					target: 'exited',
+				},
+			],
+			entry: ({ context }) => {
+				context.cliContext?.logger.info(
+					context.cancelReason ?? 'Configuration cancelled.'
+				);
+			},
+		},
+
+		/**
+		 * Successful completion
+		 */
+		complete: {
+			entry: ({ context }) => {
+				context.cliContext?.logger.success('Setup completed successfully!');
+			},
+			type: 'final',
+		},
+
+		/**
+		 * Custom mode setup (no backend needed)
+		 */
+		customMode: {
+			always: 'frontendOptions',
+		},
+
+		/**
+		 * Check which dependencies are already installed
+		 */
+		dependencyCheck: {
+			invoke: {
+				input: ({ context }) => ({
+					dependencies: context.dependenciesToAdd,
+					projectRoot: getDefined(context.cliContext).projectRoot,
+				}),
+				onDone: {
+					actions: assign({
+						dependenciesToAdd: ({ event }) => event.output.missing,
+					}),
+					target: 'dependencyConfirm',
+				},
+				onError: {
+					target: 'dependencyConfirm',
+				},
+				src: 'checkDependencies',
+			},
+		},
+
+		/**
+		 * Confirm dependency installation
+		 */
+		dependencyConfirm: {
+			always: [
+				// Skip if no dependencies to install
+				{
+					guard: ({ context }) => context.dependenciesToAdd.length === 0,
+					target: 'summary',
+				},
+			],
+			invoke: {
+				input: ({ context }) => ({
+					dependencies: context.dependenciesToAdd,
+					packageManager: context.packageManager?.name ?? 'npm',
+				}),
+				onDone: [
+					{
+						actions: assign({
+							installConfirmed: true,
+						}),
+						guard: ({ event }) => event.output.confirmed,
+						target: 'dependencyInstall',
+					},
+					{
+						actions: assign({
+							installConfirmed: false,
+						}),
+						target: 'summary',
+					},
+				],
+				// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
+				onError: {
+					// Don't cancel on install confirm error, just skip
+					target: 'summary',
+					actions: assign({
+						installConfirmed: false,
+					}),
+				},
+				src: 'installConfirm',
+			},
+		},
+
+		/**
+		 * Install dependencies
+		 */
+		dependencyInstall: {
+			invoke: {
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+					dependencies: context.dependenciesToAdd,
+				}),
+				onDone: {
+					actions: assign({
+						installAttempted: true,
+						installSucceeded: ({ event }) => event.output.success,
+					}),
+					target: 'summary',
+				},
+				onError: {
+					actions: assign({
+						installAttempted: true,
+						installSucceeded: false,
+					}),
+					target: 'summary',
+				},
+				src: 'dependencyInstall',
+			},
+		},
+
+		/**
+		 * Error state
+		 */
+		error: {
+			always: [
+				// Auto-rollback if there are files to restore
+				{
+					guard: 'hasFilesToRollback',
+					target: 'rollback',
+				},
+				{
+					target: 'exited',
+				},
+			],
+			entry: ({ context }) => {
+				const lastError = context.errors[context.errors.length - 1];
+				const error = lastError?.error;
+				const details =
+					error instanceof CliError &&
+					typeof error.context?.details === 'string'
+						? error.context.details
+						: undefined;
+
+				context.cliContext?.logger.error(
+					`Error: ${error?.message ?? 'Unknown error'}${details ? `: ${details}` : ''}`
+				);
+			},
+		},
+
+		/**
+		 * Final exited state (after cancel/error)
+		 */
+		exited: {
+			type: 'final',
+		},
+
+		/**
+		 * File generation
+		 */
+		fileGeneration: {
+			invoke: {
+				input: ({ context }) => ({
+					backendURL: context.backendURL,
+					cliContext: getDefined(context.cliContext),
+					enableDevTools: context.enableDevTools,
+					enableSSR: context.enableSSR,
+					expandedTheme: context.expandedTheme,
+					mode: getDefined(context.selectedMode),
+					proxyNextjs: context.proxyNextjs,
+					selectedScripts: context.selectedScripts,
+					uiStyle: context.uiStyle,
+					useEnvFile: context.useEnvFile,
+				}),
+				onDone: {
+					actions: assign({
+						filesCreated: ({ event }) => event.output.filesCreated,
+						filesModified: ({ event }) => event.output.filesModified,
+					}),
+					target: 'dependencyCheck',
+				},
+				onError: {
+					actions: assign({
+						errors: ({ context, event }) => [
+							...context.errors,
+							{
+								error: event.error as Error,
+								state: 'fileGeneration',
+								timestamp: Date.now(),
+							},
+						],
+					}),
+					target: 'error',
+				},
+				src: 'fileGeneration',
+			},
+		},
+
+		/**
+		 * Frontend UI options (SSR, style, theme)
+		 */
+		frontendOptions: {
+			invoke: {
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+					hasBackend: context.selectedMode === 'hosted',
+				}),
+				onDone: {
+					actions: assign({
+						enableDevTools: ({ event, context }) =>
+							event.output.enableDevTools ?? context.enableDevTools,
+						enableSSR: ({ event, context }) =>
+							event.output.enableSSR ?? context.enableSSR,
+						expandedTheme: ({ event }) => event.output.expandedTheme ?? null,
+						uiStyle: ({ event }) => event.output.uiStyle,
+					}),
+					target: 'scriptsOptions',
+				},
+				onError: {
+					actions: assign({
+						cancelReason: 'Frontend options cancelled',
+					}),
+					target: 'cancelling',
+				},
+				src: 'frontendOptions',
+			},
+		},
+
+		/**
+		 * GitHub star prompt
+		 */
+		githubStar: {
+			invoke: {
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+				}),
+				onDone: 'complete',
+				onError: 'complete',
+				src: 'githubStar',
+			},
+		},
+
+		/**
+		 * c15t (hosted) mode setup
+		 */
+		hostedMode: {
+			invoke: {
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+					initialURL: context.backendURL ?? undefined,
+					preselectedProvider: context.hostedProvider,
+				}),
+				onDone: {
+					actions: assign({
+						backendURL: ({ event }) => event.output.url,
+						hostedProvider: ({ event }) => event.output.provider,
+					}),
+					target: 'backendOptions',
+				},
+				onError: [
+					{
+						actions: assign({
+							cancelReason: 'Hosted setup cancelled',
+						}),
+						guard: ({ event }) => event.error instanceof PromptCancelledError,
+						target: 'cancelling',
+					},
+					{
+						actions: assign({
+							errors: ({ context, event }) => [
+								...context.errors,
+								{
+									error: event.error as Error,
+									state: 'hostedMode',
+									timestamp: Date.now(),
+								},
+							],
+						}),
+						target: 'error',
+					},
+				],
+				src: 'hostedMode',
+			},
+		},
+
 		/**
 		 * Initial idle state - waiting to start
 		 */
@@ -121,25 +442,66 @@ export const generateMachine = setup({
 		},
 
 		/**
+		 * Mode selection - prompt user or use CLI arg
+		 */
+		modeSelection: {
+			always: [
+				// Skip prompt if mode was provided as argument
+				{
+					actions: assign({
+						hostedProvider: ({ context }) =>
+							getHostedProviderFromMode(context.modeArg),
+						selectedMode: ({ context }) =>
+							normalizeSelectedMode(context.modeArg),
+					}),
+					guard: 'hasModeArg',
+					target: 'routeToMode',
+				},
+			],
+			invoke: {
+				input: () => ({}),
+				onDone: {
+					actions: assign({
+						hostedProvider: null,
+						selectedMode: ({ event }) =>
+							normalizeSelectedMode(event.output.mode),
+					}),
+					target: 'routeToMode',
+				},
+				onError: {
+					actions: assign({
+						cancelReason: 'Mode selection cancelled',
+					}),
+					target: 'cancelling',
+				},
+				src: 'modeSelection',
+			},
+		},
+
+		/**
+		 * Offline mode setup (no backend needed)
+		 */
+		offlineMode: {
+			always: 'frontendOptions',
+		},
+
+		/**
 		 * Run preflight checks
 		 */
 		preflight: {
 			invoke: {
-				src: 'preflight',
 				input: ({ context }) => ({
 					cliContext: getDefined(context.cliContext),
 				}),
 				onDone: [
 					{
-						guard: ({ event }) => event.output.passed,
-						target: 'modeSelection',
 						actions: [
 							assign({
-								preflightPassed: ({ event }) => event.output.passed,
-								preflightChecks: ({ event }) => event.output.checks,
-								projectRoot: ({ event }) => event.output.projectRoot,
 								framework: ({ event }) => event.output.framework,
 								packageManager: ({ event }) => event.output.packageManager,
+								preflightChecks: ({ event }) => event.output.checks,
+								preflightPassed: ({ event }) => event.output.passed,
+								projectRoot: ({ event }) => event.output.projectRoot,
 							}),
 							// Display preflight results before transitioning
 							({ context, event }) => {
@@ -151,28 +513,31 @@ export const generateMachine = setup({
 								}
 							},
 						],
+						guard: ({ event }) => event.output.passed,
+						target: 'modeSelection',
 					},
 					{
-						target: 'preflightError',
 						actions: assign({
-							preflightPassed: false,
 							preflightChecks: ({ event }) => event.output.checks,
+							preflightPassed: false,
 						}),
+						target: 'preflightError',
 					},
 				],
 				onError: {
-					target: 'error',
 					actions: assign({
 						errors: ({ context, event }) => [
 							...context.errors,
 							{
-								state: 'preflight',
 								error: event.error as Error,
+								state: 'preflight',
 								timestamp: Date.now(),
 							},
 						],
 					}),
+					target: 'error',
 				},
+				src: 'preflight',
 			},
 		},
 
@@ -180,6 +545,10 @@ export const generateMachine = setup({
 		 * Preflight checks failed
 		 */
 		preflightError: {
+			after: {
+				// Auto-exit after displaying error
+				100: 'exited',
+			},
 			entry: ({ context }) => {
 				if (context.cliContext) {
 					displayPreflightFailure(context.cliContext, context.preflightChecks);
@@ -187,54 +556,40 @@ export const generateMachine = setup({
 			},
 			on: {
 				RETRY: {
-					target: 'preflight',
 					actions: assign({
-						preflightPassed: false,
-						preflightChecks: [],
 						errors: [],
+						preflightChecks: [],
+						preflightPassed: false,
 					}),
+					target: 'preflight',
 				},
-			},
-			after: {
-				// Auto-exit after displaying error
-				100: 'exited',
 			},
 		},
 
 		/**
-		 * Mode selection - prompt user or use CLI arg
+		 * Rollback files
 		 */
-		modeSelection: {
-			always: [
-				// Skip prompt if mode was provided as argument
-				{
-					guard: 'hasModeArg',
-					target: 'routeToMode',
-					actions: assign({
-						selectedMode: ({ context }) =>
-							normalizeSelectedMode(context.modeArg),
-						hostedProvider: ({ context }) =>
-							getHostedProviderFromMode(context.modeArg),
-					}),
-				},
-			],
+		rollback: {
 			invoke: {
-				src: 'modeSelection',
-				input: () => ({}),
+				input: ({ context }) => ({
+					filesCreated: context.filesCreated,
+					filesModified: context.filesModified,
+				}),
 				onDone: {
-					target: 'routeToMode',
 					actions: assign({
-						selectedMode: ({ event }) =>
-							normalizeSelectedMode(event.output.mode),
-						hostedProvider: null,
+						cleanupDone: true,
+						filesCreated: [],
+						filesModified: [],
 					}),
+					target: 'exited',
 				},
 				onError: {
-					target: 'cancelling',
 					actions: assign({
-						cancelReason: 'Mode selection cancelled',
+						cleanupDone: true,
 					}),
+					target: 'exited',
 				},
+				src: 'rollback',
 			},
 		},
 
@@ -252,132 +607,16 @@ export const generateMachine = setup({
 		},
 
 		/**
-		 * c15t (hosted) mode setup
-		 */
-		hostedMode: {
-			invoke: {
-				src: 'hostedMode',
-				input: ({ context }) => ({
-					cliContext: getDefined(context.cliContext),
-					initialURL: context.backendURL ?? undefined,
-					preselectedProvider: context.hostedProvider,
-				}),
-				onDone: {
-					target: 'backendOptions',
-					actions: assign({
-						backendURL: ({ event }) => event.output.url,
-						hostedProvider: ({ event }) => event.output.provider,
-					}),
-				},
-				onError: [
-					{
-						guard: ({ event }) => event.error instanceof PromptCancelledError,
-						target: 'cancelling',
-						actions: assign({
-							cancelReason: 'Hosted setup cancelled',
-						}),
-					},
-					{
-						target: 'error',
-						actions: assign({
-							errors: ({ context, event }) => [
-								...context.errors,
-								{
-									state: 'hostedMode',
-									error: event.error as Error,
-									timestamp: Date.now(),
-								},
-							],
-						}),
-					},
-				],
-			},
-		},
-
-		/**
-		 * Offline mode setup (no backend needed)
-		 */
-		offlineMode: {
-			always: 'frontendOptions',
-		},
-
-		/**
-		 * Custom mode setup (no backend needed)
-		 */
-		customMode: {
-			always: 'frontendOptions',
-		},
-
-		/**
-		 * Backend options (env file, proxy)
-		 */
-		backendOptions: {
-			invoke: {
-				src: 'backendOptions',
-				input: ({ context }) => ({
-					cliContext: getDefined(context.cliContext),
-					backendURL: getDefined(context.backendURL),
-				}),
-				onDone: {
-					target: 'frontendOptions',
-					actions: assign({
-						useEnvFile: ({ event }) => event.output.useEnvFile,
-						proxyNextjs: ({ event }) => event.output.proxyNextjs,
-					}),
-				},
-				onError: {
-					target: 'cancelling',
-					actions: assign({
-						cancelReason: 'Backend options cancelled',
-					}),
-				},
-			},
-		},
-
-		/**
-		 * Frontend UI options (SSR, style, theme)
-		 */
-		frontendOptions: {
-			invoke: {
-				src: 'frontendOptions',
-				input: ({ context }) => ({
-					cliContext: getDefined(context.cliContext),
-					hasBackend: context.selectedMode === 'hosted',
-				}),
-				onDone: {
-					target: 'scriptsOptions',
-					actions: assign({
-						enableSSR: ({ event, context }) =>
-							event.output.enableSSR ?? context.enableSSR,
-						enableDevTools: ({ event, context }) =>
-							event.output.enableDevTools ?? context.enableDevTools,
-						uiStyle: ({ event }) => event.output.uiStyle,
-						expandedTheme: ({ event }) => event.output.expandedTheme ?? null,
-					}),
-				},
-				onError: {
-					target: 'cancelling',
-					actions: assign({
-						cancelReason: 'Frontend options cancelled',
-					}),
-				},
-			},
-		},
-
-		/**
 		 * Scripts option prompt
 		 */
 		scriptsOptions: {
 			invoke: {
-				src: 'scriptsOption',
 				input: ({ context }) => ({
 					cliContext: getDefined(context.cliContext),
 				}),
 				onDone: {
-					target: 'fileGeneration',
 					actions: assign({
 						addScripts: ({ event }) => event.output.addScripts,
-						selectedScripts: ({ event }) => event.output.selectedScripts ?? [],
 						dependenciesToAdd: ({ context, event }) => {
 							// Frontend targets install the c15t umbrella package. The
 							// dependency check treats an existing scoped install
@@ -391,146 +630,36 @@ export const generateMachine = setup({
 							}
 							return deps;
 						},
+						selectedScripts: ({ event }) => event.output.selectedScripts ?? [],
 					}),
+					target: 'fileGeneration',
 				},
 				onError: {
-					target: 'cancelling',
 					actions: assign({
 						cancelReason: 'Scripts option cancelled',
 					}),
+					target: 'cancelling',
 				},
+				src: 'scriptsOption',
 			},
 		},
 
 		/**
-		 * File generation
+		 * Skills install prompt
 		 */
-		fileGeneration: {
+		skillsInstall: {
 			invoke: {
-				src: 'fileGeneration',
 				input: ({ context }) => ({
 					cliContext: getDefined(context.cliContext),
-					mode: getDefined(context.selectedMode),
-					backendURL: context.backendURL,
-					useEnvFile: context.useEnvFile,
-					proxyNextjs: context.proxyNextjs,
-					enableSSR: context.enableSSR,
-					enableDevTools: context.enableDevTools,
-					uiStyle: context.uiStyle,
-					expandedTheme: context.expandedTheme,
-					selectedScripts: context.selectedScripts,
 				}),
 				onDone: {
-					target: 'dependencyCheck',
 					actions: assign({
-						filesCreated: ({ event }) => event.output.filesCreated,
-						filesModified: ({ event }) => event.output.filesModified,
+						skillsInstalled: ({ event }) => event.output.installed,
 					}),
+					target: 'githubStar',
 				},
-				onError: {
-					target: 'error',
-					actions: assign({
-						errors: ({ context, event }) => [
-							...context.errors,
-							{
-								state: 'fileGeneration',
-								error: event.error as Error,
-								timestamp: Date.now(),
-							},
-						],
-					}),
-				},
-			},
-		},
-
-		/**
-		 * Check which dependencies are already installed
-		 */
-		dependencyCheck: {
-			invoke: {
-				src: 'checkDependencies',
-				input: ({ context }) => ({
-					projectRoot: getDefined(context.cliContext).projectRoot,
-					dependencies: context.dependenciesToAdd,
-				}),
-				onDone: {
-					target: 'dependencyConfirm',
-					actions: assign({
-						dependenciesToAdd: ({ event }) => event.output.missing,
-					}),
-				},
-				onError: {
-					target: 'dependencyConfirm',
-				},
-			},
-		},
-
-		/**
-		 * Confirm dependency installation
-		 */
-		dependencyConfirm: {
-			always: [
-				// Skip if no dependencies to install
-				{
-					guard: ({ context }) => context.dependenciesToAdd.length === 0,
-					target: 'summary',
-				},
-			],
-			invoke: {
-				src: 'installConfirm',
-				input: ({ context }) => ({
-					dependencies: context.dependenciesToAdd,
-					packageManager: context.packageManager?.name ?? 'npm',
-				}),
-				onDone: [
-					{
-						guard: ({ event }) => event.output.confirmed,
-						target: 'dependencyInstall',
-						actions: assign({
-							installConfirmed: true,
-						}),
-					},
-					{
-						target: 'summary',
-						actions: assign({
-							installConfirmed: false,
-						}),
-					},
-				],
-				onError: {
-					// Don't cancel on install confirm error, just skip
-					target: 'summary',
-					actions: assign({
-						installConfirmed: false,
-					}),
-				},
-			},
-		},
-
-		/**
-		 * Install dependencies
-		 */
-		dependencyInstall: {
-			invoke: {
-				src: 'dependencyInstall',
-				input: ({ context }) => ({
-					cliContext: getDefined(context.cliContext),
-					dependencies: context.dependenciesToAdd,
-				}),
-				onDone: {
-					target: 'summary',
-					actions: assign({
-						installAttempted: true,
-						installSucceeded: ({ event }) => event.output.success,
-					}),
-				},
-				onError: {
-					target: 'summary',
-					actions: assign({
-						installAttempted: true,
-						installSucceeded: false,
-					}),
-				},
+				onError: 'githubStar',
+				src: 'skillsInstall',
 			},
 		},
 
@@ -538,8 +667,13 @@ export const generateMachine = setup({
 		 * Display summary
 		 */
 		summary: {
+			after: {
+				100: 'skillsInstall',
+			},
 			entry: ({ context }) => {
-				if (!context.cliContext) return;
+				if (!context.cliContext) {
+					return;
+				}
 
 				const { logger, packageManager } = context.cliContext;
 
@@ -572,136 +706,6 @@ export const generateMachine = setup({
 					logger.warn(`Run ${pmCommand} to install required dependencies.`);
 				}
 			},
-			after: {
-				100: 'skillsInstall',
-			},
-		},
-
-		/**
-		 * Skills install prompt
-		 */
-		skillsInstall: {
-			invoke: {
-				src: 'skillsInstall',
-				input: ({ context }) => ({
-					cliContext: getDefined(context.cliContext),
-				}),
-				onDone: {
-					target: 'githubStar',
-					actions: assign({
-						skillsInstalled: ({ event }) => event.output.installed,
-					}),
-				},
-				onError: 'githubStar',
-			},
-		},
-
-		/**
-		 * GitHub star prompt
-		 */
-		githubStar: {
-			invoke: {
-				src: 'githubStar',
-				input: ({ context }) => ({
-					cliContext: getDefined(context.cliContext),
-				}),
-				onDone: 'complete',
-				onError: 'complete',
-			},
-		},
-
-		/**
-		 * Successful completion
-		 */
-		complete: {
-			entry: ({ context }) => {
-				context.cliContext?.logger.success('Setup completed successfully!');
-			},
-			type: 'final',
-		},
-
-		/**
-		 * Error state
-		 */
-		error: {
-			entry: ({ context }) => {
-				const lastError = context.errors[context.errors.length - 1];
-				const error = lastError?.error;
-				const details =
-					error instanceof CliError &&
-					typeof error.context?.details === 'string'
-						? error.context.details
-						: undefined;
-
-				context.cliContext?.logger.error(
-					`Error: ${error?.message ?? 'Unknown error'}${details ? `: ${details}` : ''}`
-				);
-			},
-			always: [
-				// Auto-rollback if there are files to restore
-				{
-					guard: 'hasFilesToRollback',
-					target: 'rollback',
-				},
-				{
-					target: 'exited',
-				},
-			],
-		},
-
-		/**
-		 * Cancellation handling
-		 */
-		cancelling: {
-			entry: ({ context }) => {
-				context.cliContext?.logger.info(
-					context.cancelReason ?? 'Configuration cancelled.'
-				);
-			},
-			always: [
-				// Auto-rollback if there are files to restore
-				{
-					guard: 'hasFilesToRollback',
-					target: 'rollback',
-				},
-				{
-					target: 'exited',
-				},
-			],
-		},
-
-		/**
-		 * Rollback files
-		 */
-		rollback: {
-			invoke: {
-				src: 'rollback',
-				input: ({ context }) => ({
-					filesCreated: context.filesCreated,
-					filesModified: context.filesModified,
-				}),
-				onDone: {
-					target: 'exited',
-					actions: assign({
-						filesCreated: [],
-						filesModified: [],
-						cleanupDone: true,
-					}),
-				},
-				onError: {
-					target: 'exited',
-					actions: assign({
-						cleanupDone: true,
-					}),
-				},
-			},
-		},
-
-		/**
-		 * Final exited state (after cancel/error)
-		 */
-		exited: {
-			type: 'final',
 		},
 	},
 });

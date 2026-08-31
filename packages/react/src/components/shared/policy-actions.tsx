@@ -52,12 +52,12 @@ export const PolicyActionsRenderer = <TAction extends string>({
 	renderDefaultAction,
 	renderAction,
 }: PolicyActionsRendererProps<TAction>) => {
-	const shouldFillActions = state.shouldFillActions;
+	const { shouldFillActions } = state;
 	const isColumn = state.direction === 'column';
 	const actionStyle = shouldFillActions
 		? ({
-				width: '100%',
 				flex: 1,
+				width: '100%',
 			} satisfies CSSPropertiesWithVars<CSSVariables>)
 		: undefined;
 
@@ -79,9 +79,9 @@ export const PolicyActionsRenderer = <TAction extends string>({
 					{group.map((action) => {
 						const itemKey = `action-${action}`;
 						const renderProps: PolicyActionRenderProps<TAction> = {
-							key: itemKey,
 							consentAction: action,
 							isPrimary: state.primaryActions.includes(action),
+							key: itemKey,
 							style: actionStyle,
 						};
 

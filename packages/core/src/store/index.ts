@@ -69,11 +69,11 @@ interface StoredConsent {
 	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
 }
 
-function isLegalDocumentConsentInput(
+const isLegalDocumentConsentInput = function isLegalDocumentConsentInput(
 	input: UnstablePolicyConsentInput
 ): input is UnstableLegalDocumentConsentInput {
 	return isLegalDocumentType(input.type);
-}
+};
 
 /**
  * Retrieves stored consent data from localStorage or cookie.
@@ -192,6 +192,7 @@ export const createConsentManagerStore = (
 	const inFlightConsentSaves = new Map<string, Promise<void>>();
 	const inFlightPolicyConsents = new Map<string, Promise<PostSubjectOutput>>();
 
+	// oxlint-disable-next-line sort-keys -- Store initialization preserves spread and compatibility field order.
 	const store = createStore<ConsentStoreState>((set, get) => ({
 		...initialState,
 		...storeConfigOptions,
@@ -204,17 +205,17 @@ export const createConsentManagerStore = (
 		}),
 		...(storedConsent
 			? {
-					consents: storedConsent.consents,
-					selectedConsents: storedConsent.consents,
+					activeUI: 'none' as const,
 					consentInfo: storedConsent.consentInfo,
+					consents: storedConsent.consents,
+					isLoadingConsentInfo: false,
+					selectedConsents: storedConsent.consents,
 					user: storedConsent.consentInfo?.externalId
 						? {
 								id: storedConsent.consentInfo.externalId,
 								identityProvider: storedConsent.consentInfo.identityProvider,
 							}
 						: undefined,
-					activeUI: 'none' as const,
-					isLoadingConsentInfo: false,
 				}
 			: {
 					activeUI: 'none' as const,
@@ -262,11 +263,6 @@ export const createConsentManagerStore = (
 
 			return coalesceInFlight(inFlightConsentSaves, requestKey, () =>
 				saveConsents({
-					manager,
-					type,
-					get,
-					set,
-					options: optionsLocal,
 					emitConsentChanged: (payload) => {
 						get().callbacks.onConsentChanged?.(payload);
 
@@ -274,6 +270,11 @@ export const createConsentManagerStore = (
 							listener(payload);
 						}
 					},
+					get,
+					manager,
+					options: optionsLocal,
+					set,
+					type,
 				})
 			);
 		},
@@ -305,9 +306,9 @@ export const createConsentManagerStore = (
 				}, {} as ConsentState);
 
 				const resetState = {
+					consentInfo: null,
 					consents,
 					selectedConsents: consents,
-					consentInfo: null,
 				};
 				deleteConsentFromStorage(undefined, options.storageConfig);
 				return resetState;
@@ -388,14 +389,14 @@ export const createConsentManagerStore = (
 
 		initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
 			initializeConsentManager({
-				manager,
-				ssrData: options.ssrData,
 				backendURL: internalOptions.__internal?.backendURL,
-				requestCredentials: internalOptions.__internal?.requestCredentials,
-				initialTranslationConfig: normalizedInitialTranslationConfig,
-				iabConfig: iab as IABConfig | undefined,
 				get,
+				iabConfig: iab as IABConfig | undefined,
+				initialTranslationConfig: normalizedInitialTranslationConfig,
+				manager,
+				requestCredentials: internalOptions.__internal?.requestCredentials,
 				set,
+				ssrData: options.ssrData,
 			}),
 
 		getDisplayedConsents: () => {
@@ -474,9 +475,9 @@ export const createConsentManagerStore = (
 			// Make API call to link the user to the subject
 			await manager.identifyUser({
 				body: {
-					subjectId,
 					externalId: user.id,
 					identityProvider: user.identityProvider,
+					subjectId,
 				},
 			});
 
@@ -484,10 +485,10 @@ export const createConsentManagerStore = (
 			set({
 				consentInfo: {
 					...currentInfo,
-					time: currentInfo?.time || Date.now(),
-					subjectId,
 					externalId: user.id,
 					identityProvider: user.identityProvider,
+					subjectId,
+					time: currentInfo?.time || Date.now(),
 				},
 			});
 		},
@@ -524,9 +525,9 @@ export const createConsentManagerStore = (
 					userIdentifiers.identityProvider;
 				const domain =
 					input.domain ??
-					(typeof window !== 'undefined'
-						? window.location.hostname
-						: 'localhost');
+					(typeof window === 'undefined'
+						? 'localhost'
+						: window.location.hostname);
 				const legalDocumentConsent = isLegalDocumentConsentInput(input);
 				let legalDocumentFields: Record<string, string> = {};
 
@@ -553,10 +554,10 @@ export const createConsentManagerStore = (
 				const givenAt = input.givenAt ?? Date.now();
 
 				const consentBody: PostSubjectInput = {
-					type: input.type,
-					subjectId,
 					domain,
 					givenAt,
+					subjectId,
+					type: input.type,
 					uiSource: input.uiSource ?? 'api',
 					...legalDocumentFields,
 				};
@@ -606,8 +607,8 @@ export const createConsentManagerStore = (
 				const latestInfo = latestState.consentInfo;
 				const nextConsentInfo: ConsentInfo = {
 					...latestInfo,
-					time: consent.givenAt.getTime(),
 					subjectId,
+					time: consent.givenAt.getTime(),
 				};
 				if (externalId) {
 					nextConsentInfo.externalId = externalId;
@@ -630,8 +631,8 @@ export const createConsentManagerStore = (
 
 				saveConsentToStorage(
 					{
-						consents: latestState.consents,
 						consentInfo: nextConsentInfo,
+						consents: latestState.consents,
 					},
 					undefined,
 					latestState.storageConfig
@@ -646,27 +647,29 @@ export const createConsentManagerStore = (
 		): Promise<ConsentBannerResponse | undefined> => {
 			set({ overrides: { ...get().overrides, ...overrides } });
 
-			return await initializeConsentManager({
-				manager,
-				backendURL: internalOptions.__internal?.backendURL,
-				requestCredentials: internalOptions.__internal?.requestCredentials,
-				initialTranslationConfig: normalizedInitialTranslationConfig,
-				// Without the IAB config, re-initialization skips IAB entirely
-				// and the store keeps a stale GVL (e.g. after a language change).
-				iabConfig: iab as IABConfig | undefined,
-				get,
-				set,
-			});
+			return await initializeConsentManager(
+				// oxlint-disable-next-line sort-keys -- Initialization options preserve the compatibility call order.
+				{
+					manager,
+					backendURL: internalOptions.__internal?.backendURL,
+					requestCredentials: internalOptions.__internal?.requestCredentials,
+					initialTranslationConfig: normalizedInitialTranslationConfig,
+					// Without the IAB config, re-initialization skips IAB entirely
+					// and the store keeps a stale GVL (e.g. after a language change).
+					iabConfig: iab as IABConfig | undefined,
+					get,
+					set,
+				}
+			);
 		},
 
 		setLanguage: async (
 			language: string
-		): Promise<ConsentBannerResponse | undefined> => {
-			return await get().setOverrides({
+		): Promise<ConsentBannerResponse | undefined> =>
+			await get().setOverrides({
 				...(get().overrides ?? {}),
 				language,
-			});
-		},
+			}),
 
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),

@@ -206,11 +206,14 @@ export const EEA_COUNTRY_CODES = [
 ] as const;
 export const UK_COUNTRY_CODES = ['GB'] as const;
 
-function normalizeCountry(code: string): string {
+const normalizeCountry = function normalizeCountry(code: string): string {
 	return code.trim().toUpperCase();
-}
+};
 
-function normalizeRegion(input: { country: string; region: string }): {
+const normalizeRegion = function normalizeRegion(input: {
+	country: string;
+	region: string;
+}): {
 	country: string;
 	region: string;
 } {
@@ -218,11 +221,11 @@ function normalizeRegion(input: { country: string; region: string }): {
 		country: normalizeCountry(input.country),
 		region: input.region.trim().toUpperCase(),
 	};
-}
+};
 
 type PolicyRegionMatcher = NonNullable<PolicyMatch['regions']>[number];
 
-function mergeCountries(
+const mergeCountries = function mergeCountries(
 	existing: PolicyMatch['countries'],
 	countries: string[]
 ): PolicyMatch['countries'] {
@@ -232,16 +235,16 @@ function mergeCountries(
 			...countries.map((country) => normalizeCountry(country)),
 		]) ?? []
 	);
-}
+};
 
-function createRegionMatcherKey(
+const createRegionMatcherKey = function createRegionMatcherKey(
 	countryCode: string,
 	regionCode: string
 ): string {
 	return `${countryCode}:${regionCode}`;
-}
+};
 
-function mergeRegions(
+const mergeRegions = function mergeRegions(
 	existing: PolicyMatch['regions'],
 	regions: PolicyRegionMatcher[]
 ): PolicyMatch['regions'] {
@@ -258,9 +261,9 @@ function mergeRegions(
 		seen.add(key);
 		return true;
 	});
-}
+};
 
-function applyPolicyMatchFragment(
+const applyPolicyMatchFragment = function applyPolicyMatchFragment(
 	merged: PolicyMatch,
 	match: PolicyMatch
 ): void {
@@ -276,7 +279,7 @@ function applyPolicyMatchFragment(
 	if (match.regions?.length) {
 		merged.regions = mergeRegions(merged.regions, match.regions);
 	}
-}
+};
 
 /**
  * Matcher helpers for composing {@link PolicyConfig.match} objects.
@@ -288,14 +291,6 @@ function applyPolicyMatchFragment(
  * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
  */
 export const policyMatchers = {
-	default(): PolicyMatch {
-		return { isDefault: true };
-	},
-
-	fallback(): PolicyMatch {
-		return { fallback: true };
-	},
-
 	countries(countries: string[]): PolicyMatch {
 		return {
 			countries:
@@ -305,9 +300,13 @@ export const policyMatchers = {
 		};
 	},
 
-	regions(regions: { country: string; region: string }[]): PolicyMatch {
+	default(): PolicyMatch {
+		return { isDefault: true };
+	},
+
+	eea(): PolicyMatch {
 		return {
-			regions: regions.map((region) => normalizeRegion(region)),
+			countries: [...EEA_COUNTRY_CODES],
 		};
 	},
 
@@ -317,16 +316,8 @@ export const policyMatchers = {
 		};
 	},
 
-	eea(): PolicyMatch {
-		return {
-			countries: [...EEA_COUNTRY_CODES],
-		};
-	},
-
-	uk(): PolicyMatch {
-		return {
-			countries: [...UK_COUNTRY_CODES],
-		};
+	fallback(): PolicyMatch {
+		return { fallback: true };
 	},
 
 	iab(): PolicyMatch {
@@ -341,6 +332,18 @@ export const policyMatchers = {
 		}
 
 		return merged;
+	},
+
+	regions(regions: { country: string; region: string }[]): PolicyMatch {
+		return {
+			regions: regions.map((region) => normalizeRegion(region)),
+		};
+	},
+
+	uk(): PolicyMatch {
+		return {
+			countries: [...UK_COUNTRY_CODES],
+		};
 	},
 };
 
@@ -361,15 +364,19 @@ const compiledPolicyResolverCache = new WeakMap<
 	CompiledPolicyResolver
 >();
 
-function normalizeCountryCode(countryCode: string | null): string | null {
+const normalizeCountryCode = function normalizeCountryCode(
+	countryCode: string | null
+): string | null {
 	if (!countryCode) {
 		return null;
 	}
 
 	return countryCode.toUpperCase();
-}
+};
 
-function normalizeRegionCode(regionCode: string | null): string | null {
+const normalizeRegionCode = function normalizeRegionCode(
+	regionCode: string | null
+): string | null {
 	if (!regionCode) {
 		return null;
 	}
@@ -379,26 +386,32 @@ function normalizeRegionCode(regionCode: string | null): string | null {
 			?.toUpperCase()
 			.trim() ?? null
 	);
-}
+};
 
-function normalizeModel(policy: PolicyConfig): PolicyModel {
+const normalizeModel = function normalizeModel(
+	policy: PolicyConfig
+): PolicyModel {
 	return policy.consent?.model ?? 'opt-in';
-}
+};
 
-function normalizeCategories(policy: PolicyConfig): string[] | undefined {
+const normalizeCategories = function normalizeCategories(
+	policy: PolicyConfig
+): string[] | undefined {
 	const model = normalizeModel(policy);
 	if (model === 'iab') {
 		return [POLICY_PURPOSE_WILDCARD];
 	}
 
 	return dedupeTrimmedStrings(policy.consent?.categories);
-}
+};
 
-function normalizeScopeMode(policy: PolicyConfig): PolicyScopeMode {
+const normalizeScopeMode = function normalizeScopeMode(
+	policy: PolicyConfig
+): PolicyScopeMode {
 	return policy.consent?.scopeMode ?? 'permissive';
-}
+};
 
-function normalizePreselectedCategories(
+const normalizePreselectedCategories = function normalizePreselectedCategories(
 	policy: PolicyConfig
 ): string[] | undefined {
 	const model = normalizeModel(policy);
@@ -424,13 +437,15 @@ function normalizePreselectedCategories(
 	return dedupeTrimmedStrings(
 		preselectedCategories.filter((category) => categories.includes(category))
 	);
-}
+};
 
-function hasUiSurfaceConfig(surface?: PolicyUiSurfaceConfig): boolean {
+const hasUiSurfaceConfig = function hasUiSurfaceConfig(
+	surface?: PolicyUiSurfaceConfig
+): boolean {
 	return hasRealPolicyUiHints(surface);
-}
+};
 
-function hasUiConfig(policy: PolicyConfig): boolean {
+const hasUiConfig = function hasUiConfig(policy: PolicyConfig): boolean {
 	if (!policy.ui) {
 		return false;
 	}
@@ -442,25 +457,31 @@ function hasUiConfig(policy: PolicyConfig): boolean {
 	return (
 		hasUiSurfaceConfig(policy.ui.banner) || hasUiSurfaceConfig(policy.ui.dialog)
 	);
-}
+};
 
-function hasExplicitMatchers(policy: PolicyConfig): boolean {
+const hasExplicitMatchers = function hasExplicitMatchers(
+	policy: PolicyConfig
+): boolean {
 	return (
 		(policy.match.countries?.length ?? 0) > 0 ||
 		(policy.match.regions?.length ?? 0) > 0
 	);
-}
+};
 
-function policyLabel(policy: PolicyConfig, index: number): string {
+const policyLabel = function policyLabel(
+	policy: PolicyConfig,
+	index: number
+): string {
 	const id = policy.id?.trim();
 	if (id) {
 		return `'${id}'`;
 	}
 
 	return `at index ${index}`;
-}
+};
 
-function collectPolicyErrors(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const collectPolicyErrors = function collectPolicyErrors(
 	policies: PolicyConfig[],
 	options?: { iabEnabled?: boolean }
 ): string[] {
@@ -524,7 +545,7 @@ function collectPolicyErrors(
 				}
 			}
 
-			const layout = surface.layout;
+			const { layout } = surface;
 			if (layout) {
 				const seen = new Set<PolicyUiAction>();
 				const effectiveActions = allowed
@@ -576,12 +597,12 @@ function collectPolicyErrors(
 		}
 
 		const previousIndex = idToIndex.get(id);
-		if (previousIndex !== undefined) {
+		if (previousIndex === undefined) {
+			idToIndex.set(id, index);
+		} else {
 			errors.push(
 				`Policy IDs must be unique. Duplicate id '${id}' found at indexes ${previousIndex} and ${index}.`
 			);
-		} else {
-			idToIndex.set(id, index);
 		}
 
 		if (
@@ -596,9 +617,11 @@ function collectPolicyErrors(
 	}
 
 	return errors;
-}
+};
 
-function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
+const collectPolicyWarnings = function collectPolicyWarnings(
+	policies: PolicyConfig[]
+): string[] {
 	if (policies.length === 0) {
 		return [];
 	}
@@ -657,20 +680,20 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 	}
 
 	return [...warnings];
-}
+};
 
-function parsePolicyConfigs(
+const parsePolicyConfigs = function parsePolicyConfigs(
 	policies: unknown
 ): { ok: true; output: PolicyConfig[] } | { ok: false; errors: string[] } {
 	if (!Array.isArray(policies)) {
 		return {
-			ok: false,
 			errors: ['Policy config must be an array of policy objects.'],
+			ok: false,
 		};
 	}
 
 	const errors: string[] = [];
-	for (let i = 0; i < policies.length; i++) {
+	for (let i = 0; i < policies.length; i += 1) {
 		const p = policies[i];
 		if (!p || typeof p !== 'object' || !('match' in p) || !p.match) {
 			errors.push(
@@ -680,16 +703,16 @@ function parsePolicyConfigs(
 	}
 
 	if (errors.length > 0) {
-		return { ok: false, errors };
+		return { errors, ok: false };
 	}
 
 	return {
 		ok: true,
 		output: policies as PolicyConfig[],
 	};
-}
+};
 
-function parseOptionalPolicyConfigs(
+const parseOptionalPolicyConfigs = function parseOptionalPolicyConfigs(
 	policies?: unknown
 ): PolicyConfig[] | undefined {
 	if (policies === undefined) {
@@ -702,14 +725,14 @@ function parseOptionalPolicyConfigs(
 	}
 
 	return parsed.output;
-}
+};
 
 /**
  * Inspects a policy pack and returns both errors and warnings.
  *
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export function inspectPolicies(
+export const inspectPolicies = function inspectPolicies(
 	policies: unknown,
 	options?: { iabEnabled?: boolean }
 ): PolicyValidationResult {
@@ -725,15 +748,15 @@ export function inspectPolicies(
 		errors: collectPolicyErrors(parsedPolicies.output, options),
 		warnings: collectPolicyWarnings(parsedPolicies.output),
 	};
-}
+};
 
-function normalizeAllowedActions(
+const normalizeAllowedActions = function normalizeAllowedActions(
 	surface?: PolicyUiSurfaceConfig
 ): PolicyUiAction[] | undefined {
 	return dedupeDefinedValues(surface?.allowedActions);
-}
+};
 
-function flattenActionGroups(
+const flattenActionGroups = function flattenActionGroups(
 	layout?: PolicyUiAction[][]
 ): PolicyUiAction[] | undefined {
 	if (!layout || layout.length === 0) {
@@ -741,9 +764,9 @@ function flattenActionGroups(
 	}
 
 	return layout.flat();
-}
+};
 
-function normalizeActionGroups(
+const normalizeActionGroups = function normalizeActionGroups(
 	surface: PolicyUiSurfaceConfig | undefined,
 	allowedActions?: PolicyUiAction[]
 ): PolicyUiAction[][] | undefined {
@@ -789,9 +812,9 @@ function normalizeActionGroups(
 	}
 
 	return groups;
-}
+};
 
-function normalizePrimaryActions(
+const normalizePrimaryActions = function normalizePrimaryActions(
 	surface: PolicyUiSurfaceConfig | undefined,
 	allowedActions?: PolicyUiAction[]
 ): PolicyUiAction[] | undefined {
@@ -806,16 +829,16 @@ function normalizePrimaryActions(
 	}
 
 	return primaryActions;
-}
+};
 
-function normalizeDirection(
+const normalizeDirection = function normalizeDirection(
 	surface?: PolicyUiSurfaceConfig
 ): PolicyUiActionDirection | undefined {
 	const direction = surface?.direction;
 	return direction === 'row' || direction === 'column' ? direction : undefined;
-}
+};
 
-function normalizeUiProfile(
+const normalizeUiProfile = function normalizeUiProfile(
 	surface?: PolicyUiSurfaceConfig
 ): PolicyUiProfile | undefined {
 	const uiProfile = surface?.uiProfile;
@@ -824,17 +847,17 @@ function normalizeUiProfile(
 		uiProfile === 'strict'
 		? uiProfile
 		: undefined;
-}
+};
 
-function normalizeScrollLock(
+const normalizeScrollLock = function normalizeScrollLock(
 	surface?: PolicyUiSurfaceConfig
 ): boolean | undefined {
 	return typeof surface?.scrollLock === 'boolean'
 		? surface.scrollLock
 		: undefined;
-}
+};
 
-function normalizeUiSurface(
+const normalizeUiSurface = function normalizeUiSurface(
 	surface?: PolicyUiSurfaceConfig
 ): ResolvedPolicyUiSurface {
 	if (!surface) {
@@ -846,22 +869,22 @@ function normalizeUiSurface(
 	const flattenedActions = flattenActionGroups(layout) ?? allowedActions;
 	const normalized = {
 		allowedActions,
-		primaryActions: normalizePrimaryActions(surface, flattenedActions),
-		layout,
 		direction: normalizeDirection(surface),
-		uiProfile: normalizeUiProfile(surface),
+		layout,
+		primaryActions: normalizePrimaryActions(surface, flattenedActions),
 		scrollLock: normalizeScrollLock(surface),
+		uiProfile: normalizeUiProfile(surface),
 	};
 
 	return compactDefined(normalized);
-}
+};
 
-function compilePolicyResolver(
+const compilePolicyResolver = function compilePolicyResolver(
 	policies: PolicyConfig[]
 ): CompiledPolicyResolver {
 	const compiled: CompiledPolicyResolver = {
-		regions: new Map<string, PolicyConfig>(),
 		countries: new Map<string, PolicyConfig>(),
+		regions: new Map<string, PolicyConfig>(),
 	};
 
 	for (const policy of policies) {
@@ -893,9 +916,9 @@ function compilePolicyResolver(
 	}
 
 	return compiled;
-}
+};
 
-function getCompiledPolicyResolver(
+const getCompiledPolicyResolver = function getCompiledPolicyResolver(
 	policies: PolicyConfig[]
 ): CompiledPolicyResolver {
 	const cached = compiledPolicyResolverCache.get(policies);
@@ -906,9 +929,9 @@ function getCompiledPolicyResolver(
 	const compiled = compilePolicyResolver(policies);
 	compiledPolicyResolverCache.set(policies, compiled);
 	return compiled;
-}
+};
 
-function resolveIndexedPolicyMatch(params: {
+const resolveIndexedPolicyMatch = function resolveIndexedPolicyMatch(params: {
 	compiled: CompiledPolicyResolver;
 	countryCode: string | null;
 	regionCode: string | null;
@@ -920,68 +943,69 @@ function resolveIndexedPolicyMatch(params: {
 			createRegionMatcherKey(countryCode, regionCode)
 		);
 		if (regionPolicy) {
-			return { policy: regionPolicy, matchedBy: 'region' };
+			return { matchedBy: 'region', policy: regionPolicy };
 		}
 	}
 
 	if (countryCode) {
 		const countryPolicy = compiled.countries.get(countryCode);
 		if (countryPolicy) {
-			return { policy: countryPolicy, matchedBy: 'country' };
+			return { matchedBy: 'country', policy: countryPolicy };
 		}
 	}
 
 	// Fallback — only when location is unknown (geo-headers missing)
 	if (!countryCode && compiled.fallbackPolicy) {
-		return { policy: compiled.fallbackPolicy, matchedBy: 'fallback' };
+		return { matchedBy: 'fallback', policy: compiled.fallbackPolicy };
 	}
 
 	// Default catch-all
 	if (compiled.defaultPolicy) {
-		return { policy: compiled.defaultPolicy, matchedBy: 'default' };
+		return { matchedBy: 'default', policy: compiled.defaultPolicy };
 	}
 
 	return undefined;
-}
+};
 
-export function createResolvedPolicyFromConfig(
-	policy: PolicyConfig
-): ResolvedPolicy {
-	const model = normalizeModel(policy);
+export const createResolvedPolicyFromConfig =
+	function createResolvedPolicyFromConfig(
+		policy: PolicyConfig
+	): ResolvedPolicy {
+		const model = normalizeModel(policy);
 
-	return {
-		id: policy.id,
-		model,
-		i18n: policy.i18n,
-		consent: {
-			expiryDays: policy.consent?.expiryDays,
-			scopeMode: normalizeScopeMode(policy),
-			categories: normalizeCategories(policy),
-			preselectedCategories: normalizePreselectedCategories(policy),
-			gpc: policy.consent?.gpc,
-		},
-		ui:
-			model === 'iab'
-				? undefined
-				: {
-						mode: policy.ui?.mode,
-						banner: normalizeUiSurface(policy.ui?.banner),
-						dialog: normalizeUiSurface(policy.ui?.dialog),
-					},
-		proof: {
-			storeIp: policy.proof?.storeIp,
-			storeUserAgent: policy.proof?.storeUserAgent,
-			storeLanguage: policy.proof?.storeLanguage,
-		},
+		return {
+			consent: {
+				categories: normalizeCategories(policy),
+				expiryDays: policy.consent?.expiryDays,
+				gpc: policy.consent?.gpc,
+				preselectedCategories: normalizePreselectedCategories(policy),
+				scopeMode: normalizeScopeMode(policy),
+			},
+			i18n: policy.i18n,
+			id: policy.id,
+			model,
+			proof: {
+				storeIp: policy.proof?.storeIp,
+				storeLanguage: policy.proof?.storeLanguage,
+				storeUserAgent: policy.proof?.storeUserAgent,
+			},
+			ui:
+				model === 'iab'
+					? undefined
+					: {
+							banner: normalizeUiSurface(policy.ui?.banner),
+							dialog: normalizeUiSurface(policy.ui?.dialog),
+							mode: policy.ui?.mode,
+						},
+		};
 	};
-}
 
 /**
  * Validates a policy pack and throws on the first error.
  *
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export function validatePolicies(
+export const validatePolicies = function validatePolicies(
 	policies: unknown,
 	options?: { iabEnabled?: boolean }
 ): void {
@@ -989,7 +1013,7 @@ export function validatePolicies(
 	if (errors.length > 0) {
 		throw new Error(errors[0]);
 	}
-}
+};
 
 /**
  * Resolves the active policy for a single request.
@@ -1002,54 +1026,55 @@ export function validatePolicies(
  * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
-export async function resolvePolicyDecision(params: {
-	policies?: unknown;
-	countryCode: string | null;
-	regionCode: string | null;
-	jurisdiction?: JurisdictionCode;
-	iabEnabled?: boolean;
-}): Promise<ResolvedPolicyDecision | undefined> {
-	let parsedPolicies: PolicyConfig[] | undefined;
-	try {
-		parsedPolicies = parseOptionalPolicyConfigs(params.policies);
-		if (parsedPolicies && parsedPolicies.length > 0) {
-			validatePolicies(
-				parsedPolicies,
-				params.iabEnabled === undefined
-					? undefined
-					: { iabEnabled: params.iabEnabled }
-			);
+export const resolvePolicyDecision =
+	async function resolvePolicyDecision(params: {
+		policies?: unknown;
+		countryCode: string | null;
+		regionCode: string | null;
+		jurisdiction?: JurisdictionCode;
+		iabEnabled?: boolean;
+	}): Promise<ResolvedPolicyDecision | undefined> {
+		let parsedPolicies: PolicyConfig[] | undefined;
+		try {
+			parsedPolicies = parseOptionalPolicyConfigs(params.policies);
+			if (parsedPolicies && parsedPolicies.length > 0) {
+				validatePolicies(
+					parsedPolicies,
+					params.iabEnabled === undefined
+						? undefined
+						: { iabEnabled: params.iabEnabled }
+				);
+			}
+		} catch {
+			return undefined;
 		}
-	} catch {
-		return undefined;
-	}
 
-	if (!parsedPolicies || parsedPolicies.length === 0) {
-		return undefined;
-	}
+		if (!parsedPolicies || parsedPolicies.length === 0) {
+			return undefined;
+		}
 
-	const countryCode = normalizeCountryCode(params.countryCode);
-	const regionCode = normalizeRegionCode(params.regionCode);
+		const countryCode = normalizeCountryCode(params.countryCode);
+		const regionCode = normalizeRegionCode(params.regionCode);
 
-	const matchedPolicy = resolveIndexedPolicyMatch({
-		compiled: getCompiledPolicyResolver(parsedPolicies),
-		countryCode,
-		regionCode,
-	});
+		const matchedPolicy = resolveIndexedPolicyMatch({
+			compiled: getCompiledPolicyResolver(parsedPolicies),
+			countryCode,
+			regionCode,
+		});
 
-	if (!matchedPolicy) {
-		return undefined;
-	}
+		if (!matchedPolicy) {
+			return undefined;
+		}
 
-	const policy = createResolvedPolicyFromConfig(matchedPolicy.policy);
-	const fingerprint = await createPolicyFingerprint(policy);
+		const policy = createResolvedPolicyFromConfig(matchedPolicy.policy);
+		const fingerprint = await createPolicyFingerprint(policy);
 
-	return {
-		policy,
-		matchedBy: matchedPolicy.matchedBy,
-		fingerprint,
+		return {
+			fingerprint,
+			matchedBy: matchedPolicy.matchedBy,
+			policy,
+		};
 	};
-}
 
 /**
  * Synchronous variant of {@link resolvePolicyDecision} that skips fingerprint
@@ -1058,7 +1083,7 @@ export async function resolvePolicyDecision(params: {
  *
  * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
-export function resolvePolicySync(params: {
+export const resolvePolicySync = function resolvePolicySync(params: {
 	policies?: unknown;
 	countryCode: string | null;
 	regionCode: string | null;
@@ -1100,7 +1125,7 @@ export function resolvePolicySync(params: {
 	const policy = createResolvedPolicyFromConfig(matchedPolicy.policy);
 
 	return {
-		policy,
 		matchedBy: matchedPolicy.matchedBy,
+		policy,
 	};
-}
+};

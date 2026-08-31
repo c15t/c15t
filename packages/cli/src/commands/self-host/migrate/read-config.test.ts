@@ -14,20 +14,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readDatabaseConfig } from './read-config';
 
+// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 const loadConfig = vi.fn(async () => ({
 	config: { database: { dialect: 'postgres', url: 'postgres://x/y' } },
 }));
 const dependencies = {
 	loadConfig,
 };
-const NOT_FOUND_RE = /Backend config not found/;
+const NOT_FOUND_RE = /Backend config not found/u;
 
 const createTmpDir = (prefix: string) =>
 	fs.mkdtemp(path.join(os.tmpdir(), `${prefix}-`));
 
 const context = () =>
 	({
-		logger: { info: vi.fn(), debug: vi.fn(), error: vi.fn() },
+		logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn() },
 	}) as unknown as Parameters<typeof readDatabaseConfig>[0];
 
 describe('readDatabaseConfig', () => {
@@ -45,7 +46,7 @@ describe('readDatabaseConfig', () => {
 
 	afterEach(async () => {
 		vi.restoreAllMocks();
-		await fs.rm(cwd, { recursive: true, force: true });
+		await fs.rm(cwd, { force: true, recursive: true });
 	});
 
 	it('throws when the file is missing', async () => {
@@ -77,7 +78,7 @@ describe('readDatabaseConfig', () => {
 		// reason.
 		await expect(
 			readDatabaseConfig(context(), configPath, dependencies)
-		).rejects.toThrow(/adapter/);
+		).rejects.toThrow(/adapter/u);
 	});
 
 	it('passes a caller-supplied layer straight through', async () => {
@@ -98,6 +99,6 @@ describe('readDatabaseConfig', () => {
 
 		await expect(
 			readDatabaseConfig(context(), configPath, dependencies)
-		).rejects.toThrow(/Unknown error loading backend config: boom/);
+		).rejects.toThrow(/Unknown error loading backend config: boom/u);
 	});
 });

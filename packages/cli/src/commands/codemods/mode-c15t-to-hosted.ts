@@ -62,10 +62,12 @@ export interface CodemodRunResult {
  * @param property Property assignment to inspect.
  * @returns Normalized property key without surrounding quotes.
  */
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
 	return rawName.replace(/^['"]|['"]$/gu, '');
-}
+};
 
 /**
  * Rewrites legacy `mode: 'c15t'` string literals to `mode: 'hosted'`.
@@ -73,7 +75,7 @@ function getPropertyName(property: PropertyAssignment): string {
  * @param sourceFile Source file being transformed.
  * @returns Transformation summary for this source file.
  */
-function transformSourceFile(
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): C15tModeToHostedResult {
 	let operations = 0;
@@ -112,12 +114,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -129,6 +133,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -144,12 +149,12 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates mode: 'c15t' to mode: 'hosted'.
@@ -159,56 +164,58 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  *
  * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
-export async function runC15tModeToHostedCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runC15tModeToHostedCodemod =
+	async function runC15tModeToHostedCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
+		for (const filePath of filePaths) {
+			try {
+				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+				if (!sourceFile) {
+					continue;
+				}
+
+				const result = transformSourceFile(sourceFile);
+				if (!result.changed) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: result.operations,
+					summaries: result.summaries,
+				});
+
+				if (!options.dryRun) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+					await sourceFile.save();
+				}
+			} catch (error) {
+				errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
 			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
 		}
-	}
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

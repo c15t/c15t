@@ -34,7 +34,7 @@ const defaultNetworkBlockerDependencies: NetworkBlockerDependencies = {
  *
  * @internal
  */
-export function createNetworkBlockerManager(
+export const createNetworkBlockerManager = function createNetworkBlockerManager(
 	get: GetState,
 	_set: SetState,
 	dependencies: NetworkBlockerDependencies = defaultNetworkBlockerDependencies
@@ -59,8 +59,8 @@ export function createNetworkBlockerManager(
 
 			console.warn('[c15t] Network request blocked by consent manager', {
 				method: info.method,
-				url: info.url,
 				ruleId,
+				url: info.url,
 			});
 		}
 
@@ -135,8 +135,8 @@ export function createNetworkBlockerManager(
 
 			const { shouldBlock, rule } = dependencies.shouldBlockRequest(
 				{
-					url,
 					method,
+					url,
 				},
 				consents,
 				config
@@ -145,8 +145,8 @@ export function createNetworkBlockerManager(
 			if (shouldBlock) {
 				notifyBlockedRequest(config, {
 					method,
-					url,
 					rule,
+					url,
 				});
 
 				const blockedResponse = new Response(null, {
@@ -182,7 +182,7 @@ export function createNetworkBlockerManager(
 		originalXhrOpen = window.XMLHttpRequest.prototype.open;
 		originalXhrSend = window.XMLHttpRequest.prototype.send;
 
-		window.XMLHttpRequest.prototype.open = function (
+		window.XMLHttpRequest.prototype.open = function open(
 			method: string,
 			url: string,
 			async?: boolean,
@@ -211,7 +211,7 @@ export function createNetworkBlockerManager(
 			);
 		};
 
-		window.XMLHttpRequest.prototype.send = function (
+		window.XMLHttpRequest.prototype.send = function send(
 			body?: Document | XMLHttpRequestBodyInit | null
 		) {
 			const state = get();
@@ -232,8 +232,8 @@ export function createNetworkBlockerManager(
 
 				const { shouldBlock, rule } = dependencies.shouldBlockRequest(
 					{
-						url,
 						method,
+						url,
 					},
 					consents,
 					config
@@ -242,8 +242,8 @@ export function createNetworkBlockerManager(
 				if (shouldBlock) {
 					notifyBlockedRequest(config, {
 						method,
-						url,
 						rule,
+						url,
 					});
 
 					try {
@@ -272,6 +272,39 @@ export function createNetworkBlockerManager(
 	};
 
 	return {
+		/**
+		 * Destroys the network blocker and restores the original browser APIs.
+		 *
+		 * @remarks
+		 * Restores the original `fetch` and `XMLHttpRequest` implementations
+		 * and clears the internal consent snapshot. Safe to call multiple
+		 * times and in non-browser environments.
+		 */
+		destroyNetworkBlocker: () => {
+			if (!isInitialized) {
+				return;
+			}
+
+			if (typeof window === 'undefined') {
+				return;
+			}
+
+			if (originalFetch) {
+				window.fetch = originalFetch;
+				originalFetch = null;
+			}
+
+			if (originalXhrOpen && originalXhrSend) {
+				window.XMLHttpRequest.prototype.open = originalXhrOpen;
+				window.XMLHttpRequest.prototype.send = originalXhrSend;
+				originalXhrOpen = null;
+				originalXhrSend = null;
+			}
+
+			blockingConsents = null;
+			isInitialized = false;
+		},
+
 		/**
 		 * Initializes the network blocker by patching global fetch and XHR.
 		 *
@@ -311,19 +344,6 @@ export function createNetworkBlockerManager(
 			patchXmlHttpRequest();
 
 			isInitialized = true;
-		},
-
-		/**
-		 * Updates the consent snapshot used by the network blocker.
-		 * Intended to be called after script teardown has completed so that
-		 * teardown network calls are not blocked.
-		 */
-		updateNetworkBlockerConsents: () => {
-			if (!isInitialized) {
-				return;
-			}
-
-			blockingConsents = get().consents;
 		},
 
 		/**
@@ -377,36 +397,16 @@ export function createNetworkBlockerManager(
 		},
 
 		/**
-		 * Destroys the network blocker and restores the original browser APIs.
-		 *
-		 * @remarks
-		 * Restores the original `fetch` and `XMLHttpRequest` implementations
-		 * and clears the internal consent snapshot. Safe to call multiple
-		 * times and in non-browser environments.
+		 * Updates the consent snapshot used by the network blocker.
+		 * Intended to be called after script teardown has completed so that
+		 * teardown network calls are not blocked.
 		 */
-		destroyNetworkBlocker: () => {
+		updateNetworkBlockerConsents: () => {
 			if (!isInitialized) {
 				return;
 			}
 
-			if (typeof window === 'undefined') {
-				return;
-			}
-
-			if (originalFetch) {
-				window.fetch = originalFetch;
-				originalFetch = null;
-			}
-
-			if (originalXhrOpen && originalXhrSend) {
-				window.XMLHttpRequest.prototype.open = originalXhrOpen;
-				window.XMLHttpRequest.prototype.send = originalXhrSend;
-				originalXhrOpen = null;
-				originalXhrSend = null;
-			}
-
-			blockingConsents = null;
-			isInitialized = false;
+			blockingConsents = get().consents;
 		},
 	};
-}
+};

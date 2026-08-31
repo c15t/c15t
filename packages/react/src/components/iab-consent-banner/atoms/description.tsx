@@ -16,7 +16,8 @@ interface IABConsentBannerDescriptionProps extends HTMLAttributes<HTMLParagraphE
 const IABConsentBannerDescription = forwardRef<
 	HTMLParagraphElement,
 	IABConsentBannerDescriptionProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerDescription({ children, className, ...props }, ref) {
 	return (
 		<p
 			ref={ref}

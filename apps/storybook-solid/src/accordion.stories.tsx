@@ -51,10 +51,10 @@ const AccordionDemo = (props: AccordionDemoProps) => {
 								onClick={() =>
 									setValue(
 										toggleAccordionValue({
+											collapsible: props.collapsible,
+											itemValue: item.value,
 											type: props.type,
 											value: value(),
-											itemValue: item.value,
-											collapsible: props.collapsible,
 										})
 									)
 								}
@@ -102,14 +102,14 @@ export const Single: Story = {
 			defaultValue="purpose-1"
 			items={[
 				{
-					value: 'purpose-1',
-					title: consentTypes.necessary.title,
 					content: consentTypes.necessary.description,
+					title: consentTypes.necessary.title,
+					value: 'purpose-1',
 				},
 				{
-					value: 'purpose-2',
-					title: consentTypes.measurement.title,
 					content: consentTypes.measurement.description,
+					title: consentTypes.measurement.title,
+					value: 'purpose-2',
 				},
 			]}
 		/>
@@ -124,14 +124,14 @@ export const Multiple: Story = {
 			defaultValue={['purpose-1', 'purpose-2']}
 			items={[
 				{
-					value: 'purpose-1',
-					title: consentTypes.marketing.title,
 					content: consentTypes.marketing.description,
+					title: consentTypes.marketing.title,
+					value: 'purpose-1',
 				},
 				{
-					value: 'purpose-2',
-					title: consentTypes.functionality.title,
 					content: consentTypes.functionality.description,
+					title: consentTypes.functionality.title,
+					value: 'purpose-2',
 				},
 			]}
 		/>
@@ -155,14 +155,14 @@ export const WithIntroduction: Story = {
 				defaultValue="purpose-1"
 				items={[
 					{
-						value: 'purpose-1',
-						title: consentTypes.necessary.title,
 						content: consentTypes.necessary.description,
+						title: consentTypes.necessary.title,
+						value: 'purpose-1',
 					},
 					{
-						value: 'purpose-2',
-						title: consentTypes.measurement.title,
 						content: consentTypes.measurement.description,
+						title: consentTypes.measurement.title,
+						value: 'purpose-2',
 					},
 				]}
 			/>

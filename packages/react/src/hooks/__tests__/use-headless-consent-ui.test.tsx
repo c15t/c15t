@@ -3,23 +3,14 @@ import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
-import { ConsentStateContext } from '~/context/consent-manager-context';
 
 import { useHeadlessConsentUI } from '../use-headless-consent-ui';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'none',
-		consents: {
-			necessary: true,
-			functionality: false,
-			experience: false,
-			marketing: false,
-			measurement: false,
-		},
-		consentInfo: null,
 		consentCategories: [
 			'necessary',
 			'functionality',
@@ -27,36 +18,45 @@ function createMockState(
 			'marketing',
 			'measurement',
 		],
+		consentInfo: null,
 		consentTypes: [],
-		policyCategories: null,
-		policyScopeMode: null,
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
 		policyBanner: {},
+		policyCategories: null,
 		policyDialog: {},
+		policyScopeMode: null,
 		saveConsents: vi.fn().mockResolvedValue(undefined),
 		setActiveUI: vi.fn(),
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-function createWrapper(state: ConsentStoreState) {
-	return function ({ children }: { children: React.ReactNode }) {
+const createWrapper = function createWrapper(state: ConsentStoreState) {
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
+	return function createWrapper({ children }: { children: React.ReactNode }) {
 		return (
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				{children}
 			</StableConsentStateProvider>
 		);
 	};
-}
+};
 
 describe('useHeadlessConsentUI', () => {
 	test('resolves policy-driven action state for banner and dialog', async () => {
@@ -64,19 +64,19 @@ describe('useHeadlessConsentUI', () => {
 			activeUI: 'banner',
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
-				primaryActions: ['accept'],
-				layout: [['reject', 'accept']],
 				direction: 'row',
-				uiProfile: 'balanced',
+				layout: [['reject', 'accept']],
+				primaryActions: ['accept'],
 				scrollLock: true,
+				uiProfile: 'balanced',
 			},
 			policyDialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['customize'],
-				layout: ['customize', ['reject', 'accept']],
 				direction: 'row',
-				uiProfile: 'strict',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['customize'],
 				scrollLock: false,
+				uiProfile: 'strict',
 			},
 		});
 
@@ -117,8 +117,8 @@ describe('useHeadlessConsentUI', () => {
 		const saveConsents = vi.fn().mockResolvedValue(undefined);
 		const state = createMockState({
 			activeUI: 'banner',
-			setActiveUI,
 			saveConsents,
+			setActiveUI,
 		});
 
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {

@@ -19,15 +19,17 @@ import {
 	heap,
 } from './vendors/analytics/heap';
 
-function snapshotHeapReadyQueue(win: TestWindow): {
+const snapshotHeapReadyQueue = function snapshotHeapReadyQueue(
+	win: TestWindow
+): {
 	name: string;
 	fnType: string;
 }[] {
 	return (win.heapReadyCb ?? []).map((entry) => ({
-		name: entry.name,
 		fnType: typeof entry.fn,
+		name: entry.name,
 	}));
-}
+};
 
 describe('heap contract', () => {
 	registerVendorContractCleanup();
@@ -63,10 +65,10 @@ describe('heap contract', () => {
 			[
 				{
 					...heap({
-						envId: '123456789',
 						clientConfig: {
 							disableTextCapture: true,
 						},
+						envId: '123456789',
 					}),
 					id: 'heap-contract',
 				},
@@ -90,12 +92,12 @@ describe('heap contract', () => {
 		);
 		expect(queueSnapshot).toEqual([
 			{
-				name: 'track',
 				fnType: 'function',
+				name: 'track',
 			},
 			{
-				name: 'identify',
 				fnType: 'function',
+				name: 'identify',
 			},
 		]);
 	});

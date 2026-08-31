@@ -65,7 +65,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -76,9 +76,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -89,7 +89,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 type BoundaryOptions = NonNullable<ConsentBoundaryProps['options']>;
 
@@ -124,61 +124,62 @@ const DEFAULT_CONSENT_CATEGORIES = [
 const DEFAULT_TRANSLATIONS: TranslationsResponse = {
 	common: {
 		acceptAll: 'Accept all',
-		rejectAll: 'Reject all',
 		customize: 'Customize',
+		rejectAll: 'Reject all',
 		save: 'Save',
 	},
-	cookieBanner: {
-		title: 'We value your privacy',
-		description: 'We use cookies to enhance your experience.',
-	},
 	consentManagerDialog: {
-		title: 'Privacy preferences',
 		description: 'Manage your choices.',
+		title: 'Privacy preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required for the site to function.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics and performance measurement.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
 		},
 	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
 	frame: {
-		title: 'Privacy',
 		actionButton: 'Manage',
+		title: 'Privacy',
 	},
 	legalLinks: {
+		cookiePolicy: 'Cookie policy',
 		privacyPolicy: 'Privacy policy',
 		termsOfService: 'Terms of service',
-		cookiePolicy: 'Cookie policy',
 	},
 };
 
-function mergeTranslations(
+const mergeTranslations = function mergeTranslations(
 	base: TranslationsResponse,
 	override: Partial<TranslationsResponse> | undefined
 ): TranslationsResponse {
-	if (!override || typeof override !== 'object') return base;
+	if (!override || typeof override !== 'object') {
+		return base;
+	}
 	return {
 		...base,
 		...override,
 		common: { ...base.common, ...override.common },
-		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		consentManagerDialog: {
 			...base.consentManagerDialog,
 			...override.consentManagerDialog,
@@ -187,12 +188,16 @@ function mergeTranslations(
 			...base.consentTypes,
 			...override.consentTypes,
 		},
+		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		frame: { ...base.frame, ...override.frame },
 		legalLinks: { ...base.legalLinks, ...override.legalLinks },
 	};
-}
+};
 
-function resolveTranslations(options: ProviderOptions, locale?: string) {
+const resolveTranslations = function resolveTranslations(
+	options: ProviderOptions,
+	locale?: string
+) {
 	const language =
 		locale ??
 		options.i18n?.locale ??
@@ -211,17 +216,20 @@ function resolveTranslations(options: ProviderOptions, locale?: string) {
 		language,
 		translations: mergeTranslations(DEFAULT_TRANSLATIONS, override),
 	};
-}
+};
 
-function consentCategoriesFor(options: ProviderOptions): AllConsentNames[] {
+const consentCategoriesFor = function consentCategoriesFor(
+	options: ProviderOptions
+): AllConsentNames[] {
 	return options.consentCategories?.length === 0
 		? [...DEFAULT_CONSENT_CATEGORIES]
 		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
-}
+};
 
-function activeUIForComponent(
+const activeUIForComponent = function activeUIForComponent(
 	component: MountableComponent
 ): 'banner' | 'dialog' {
+	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
@@ -233,9 +241,9 @@ function activeUIForComponent(
 			// @c15t/nextjs does not re-export the IAB components.
 			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
 	}
-}
+};
 
-function buildPolicy(
+const buildPolicy = function buildPolicy(
 	opts: MountOptions,
 	options: ProviderOptions
 ): ResolvedPolicy {
@@ -252,11 +260,10 @@ function buildPolicy(
 	}
 
 	return {
+		consent,
 		id: 'nextjs_conformance_policy',
 		model: opts.policy?.model ?? 'opt-in',
-		consent,
 		ui: {
-			mode,
 			banner: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				scrollLock: false,
@@ -265,16 +272,17 @@ function buildPolicy(
 				allowedActions: ['reject', 'accept', 'customize'],
 				scrollLock: false,
 			},
+			mode,
 		},
 	};
-}
+};
 
 /**
  * Split the suite-provided provider options into the two channels the
  * nextjs surface exposes: the serializable `config` prop (what a Server
  * Component would produce) and the remaining client provider options.
  */
-function buildBoundaryProps(opts: MountOptions): {
+const buildBoundaryProps = function buildBoundaryProps(opts: MountOptions): {
 	config: KernelConfig;
 	options: BoundaryOptions;
 } {
@@ -308,19 +316,19 @@ function buildBoundaryProps(opts: MountOptions): {
 		initMode === 'authoritative'
 			? {
 					...basePrefetch,
+					initialBranding: 'c15t',
 					initialLocation: {
 						countryCode: 'DE',
 						regionCode: null,
 					},
-					initialBranding: 'c15t',
 					initialPolicy: buildPolicy(opts, provided),
 					initialPolicyDecision: {
-						policyId: 'nextjs_conformance_policy',
-						fingerprint: 'nextjs_conformance_fingerprint',
-						matchedBy: 'default',
 						country: 'DE',
-						region: null,
+						fingerprint: 'nextjs_conformance_fingerprint',
 						jurisdiction: 'GDPR',
+						matchedBy: 'default',
+						policyId: 'nextjs_conformance_policy',
+						region: null,
 					},
 					initialPolicySnapshotToken: 'nextjs_conformance_token',
 				}
@@ -331,48 +339,51 @@ function buildBoundaryProps(opts: MountOptions): {
 		config,
 		options: {
 			...rest,
+			consentCategories: consentCategoriesFor(provided),
 			disableAnimation: true,
 			trapFocus: false,
-			consentCategories: consentCategoriesFor(provided),
 		},
 	};
-}
+};
 
-function createPendingInit() {
+const createPendingInit = function createPendingInit() {
 	let resolve!: () => void;
 	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
-}
+};
 
-function lifecycleTransportFor(opts: MountOptions) {
+const lifecycleTransportFor = function lifecycleTransportFor(
+	opts: MountOptions
+) {
 	if ((opts.initMode ?? 'authoritative') === 'pending') {
 		const deferred = createPendingInit();
 		return {
+			resolve: deferred.resolve,
 			transport: {
 				init: () => deferred.promise,
 			},
-			resolve: deferred.resolve,
 		};
 	}
 	if (opts.initMode === 'failing') {
 		return {
+			resolve: undefined,
 			transport: {
+				// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 				async init() {
 					throw new Error('conformance: init failed');
 				},
 			},
-			resolve: undefined,
 		};
 	}
-	return { transport: undefined, resolve: undefined };
-}
+	return { resolve: undefined, transport: undefined };
+};
 
-async function flushScheduler() {
+const flushScheduler = async function flushScheduler() {
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
-}
+};
 
 /**
  * `ConsentDialog` and `ConsentWidget` on the public surface are lazy
@@ -386,17 +397,22 @@ const LAZY_COMPONENT_ROOTS: Partial<Record<MountableComponent, string>> = {
 	'consent-widget': '[data-testid="consent-widget-root"]',
 };
 
-async function waitForLazyComponent(
+const waitForLazyComponent = async function waitForLazyComponent(
 	component: MountableComponent
 ): Promise<void> {
 	const selector = LAZY_COMPONENT_ROOTS[component];
-	if (!selector) return;
+	if (!selector) {
+		return;
+	}
 	const deadline = Date.now() + 5000;
 	while (Date.now() < deadline) {
-		if (document.querySelector(selector)) return;
+		if (document.querySelector(selector)) {
+			return;
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 	}
-}
+};
 
 /**
  * The nextjs surface does not expose the kernel (no `KernelContext`
@@ -412,7 +428,7 @@ interface SnapshotBridge {
 	subscribe: (listener: () => void) => () => void;
 }
 
-function createBridge(): SnapshotBridge {
+const createBridge = function createBridge(): SnapshotBridge {
 	let currentSnapshot: ConsentSnapshot | null = null;
 	const listeners = new Set<() => void>();
 
@@ -432,7 +448,7 @@ function createBridge(): SnapshotBridge {
 			return () => listeners.delete(listener);
 		},
 	};
-}
+};
 
 const StoreBridge = ({ bridge }: { bridge: SnapshotBridge }) => {
 	const snapshot = useSnapshot();
@@ -445,8 +461,8 @@ const StoreBridge = ({ bridge }: { bridge: SnapshotBridge }) => {
 	return null;
 };
 
-function componentFor(opts: MountOptions): ReactElement {
-	const providerOptions = opts.providerOptions;
+const componentFor = function componentFor(opts: MountOptions): ReactElement {
+	const { providerOptions } = opts;
 	const trapFocus =
 		typeof providerOptions === 'object' &&
 		providerOptions !== null &&
@@ -454,6 +470,7 @@ function componentFor(opts: MountOptions): ReactElement {
 			? providerOptions.trapFocus === true
 			: false;
 
+	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (opts.component) {
 		case 'consent-banner':
 			return (
@@ -484,18 +501,16 @@ function componentFor(opts: MountOptions): ReactElement {
 		case 'iab-consent-dialog':
 			throw new DriverNotImplementedError('nextjs', `mount(${opts.component})`);
 	}
-}
-
-const Harness = ({ opts }: { opts: MountOptions }) => {
-	return (
-		<div
-			data-testid="nextjs-conformance-root"
-			dir={opts.locale === 'ar' ? 'rtl' : undefined}
-		>
-			{componentFor(opts)}
-		</div>
-	);
 };
+
+const Harness = ({ opts }: { opts: MountOptions }) => (
+	<div
+		data-testid="nextjs-conformance-root"
+		dir={opts.locale === 'ar' ? 'rtl' : undefined}
+	>
+		{componentFor(opts)}
+	</div>
+);
 
 const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
 	useEffect(() => {
@@ -504,7 +519,7 @@ const ClientSettled = ({ onSettled }: { onSettled: () => void }) => {
 	return null;
 };
 
-function renderTree(
+const renderTree = function renderTree(
 	opts: MountOptions,
 	config: KernelConfig,
 	options: BoundaryOptions,
@@ -522,28 +537,50 @@ function renderTree(
 			<Harness opts={opts} />
 		</ConsentBoundary>
 	);
-}
+};
 
-function activeUIForStore(activeUI: KernelActiveUI): StoreState['activeUI'] {
-	if (activeUI === 'banner' || activeUI === 'dialog') return activeUI;
+const activeUIForStore = function activeUIForStore(
+	activeUI: KernelActiveUI
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
 	return 'none';
-}
+};
 
-function projectStoreState(snapshot: ConsentSnapshot): StoreState {
+const projectStoreState = function projectStoreState(
+	snapshot: ConsentSnapshot
+): StoreState {
 	const consents = { ...snapshot.consents } as Record<string, boolean>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
-		consents,
-		selectedConsents: { ...consents },
 		activeUI: activeUIForStore(snapshot.activeUI),
 		consentCategories: [...snapshot.policyCategories],
+		consents,
+		selectedConsents: { ...consents },
 	};
-}
+};
 
 let lastBridge: SnapshotBridge | null = null;
 
 const driver: TestDriver = {
 	framework: 'nextjs',
+	getStore() {
+		const bridge = lastBridge;
+		if (!bridge) {
+			throw new Error('Next.js driver: getStore called before mount');
+		}
+		return {
+			getState: () => {
+				const snapshot = bridge.getSnapshot();
+				if (!snapshot) {
+					throw new Error('Next.js driver: no snapshot available');
+				}
+				return projectStoreState(snapshot);
+			},
+			subscribe: bridge.subscribe,
+		};
+	},
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const lifecycle = lifecycleTransportFor(opts);
 		const { config, options: baseOptions } = buildBoundaryProps(opts);
@@ -585,26 +622,13 @@ const driver: TestDriver = {
 				await flushScheduler();
 				container.replaceChildren();
 				container.remove();
-				if (lastBridge === bridge) lastBridge = null;
-			},
-		};
-	},
-	getStore() {
-		const bridge = lastBridge;
-		if (!bridge) {
-			throw new Error('Next.js driver: getStore called before mount');
-		}
-		return {
-			getState: () => {
-				const snapshot = bridge.getSnapshot();
-				if (!snapshot) {
-					throw new Error('Next.js driver: no snapshot available');
+				if (lastBridge === bridge) {
+					lastBridge = null;
 				}
-				return projectStoreState(snapshot);
 			},
-			subscribe: bridge.subscribe,
 		};
 	},
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	async serverRender(opts: MountOptions): Promise<string> {
 		const { config, options } = buildBoundaryProps(opts);
 		// Throwaway bridge: server render does not expose a live store.
@@ -614,8 +638,8 @@ const driver: TestDriver = {
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

@@ -16,7 +16,8 @@ import type { BoxProps } from '../../shared/primitives/box';
 export const ConsentWidgetFooter = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentWidgetFooter({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -33,7 +34,8 @@ export const ConsentWidgetFooter = forwardRef<
 ConsentWidgetFooter.displayName = 'ConsentWidgetFooter';
 
 export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
-	function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function ConsentWidgetFooterSubGroup({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}

@@ -10,11 +10,7 @@ import { createCMPApi } from '../../tcf/cmp-api';
 import type { GlobalVendorList } from '../../tcf/iab-tcf-types';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
 import type { CMPApi } from '../../tcf/types';
-import {
-	createCallbackPromise,
-	createVoidCallbackPromise,
-	waitForTimeout,
-} from './promise-helpers';
+import { createVoidCallbackPromise, waitForTimeout } from './promise-helpers';
 import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
 
 // Helper to clear all cookies

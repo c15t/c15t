@@ -16,7 +16,7 @@ import { V3UIConfigContext } from '~/v3/ui-config-context';
  * @param links - Controls which legal links to display
  * @returns Filtered legal links object or null
  */
-export function useFilteredLegalLinks(
+export const useFilteredLegalLinks = function useFilteredLegalLinks(
 	links?: (keyof LegalLinksType)[] | null
 ): LegalLinksType | null {
 	const consentState = useContext(ConsentStateContext);
@@ -34,7 +34,7 @@ export function useFilteredLegalLinks(
 		links.includes(key as keyof LegalLinksType)
 	);
 	return Object.fromEntries(filtered) as LegalLinksType;
-}
+};
 
 /**
  * Props for the InlineLegalLinks component.
@@ -117,7 +117,9 @@ export const InlineLegalLinks = ({
 					LegalLinksType[keyof LegalLinksType],
 				][]
 			).map(([type, link], index, array) => {
-				if (!link) return null;
+				if (!link) {
+					return null;
+				}
 				return (
 					<span key={String(type)}>
 						<a

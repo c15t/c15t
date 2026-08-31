@@ -60,12 +60,14 @@ export interface CodemodRunResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
 	return rawName.replace(/^['"]|['"]$/gu, '');
-}
+};
 
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -80,9 +82,11 @@ function getProperty(
 	}
 
 	return undefined;
-}
+};
 
-function objectHasCountry(objectLiteral: ObjectLiteralExpression): boolean {
+const objectHasCountry = function objectHasCountry(
+	objectLiteral: ObjectLiteralExpression
+): boolean {
 	for (const property of objectLiteral.getProperties()) {
 		if (!Node.isPropertyAssignment(property)) {
 			continue;
@@ -93,24 +97,25 @@ function objectHasCountry(objectLiteral: ObjectLiteralExpression): boolean {
 	}
 
 	return false;
-}
+};
 
-function mergeCountryIntoOverridesExpression(
-	overridesExpressionText: string,
-	ignoreExpressionText: string
-): string {
-	if (ignoreExpressionText === 'true') {
-		return `{ ...(${overridesExpressionText}), country: (${overridesExpressionText})?.country ?? '${DEFAULT_COUNTRY_CODE}' }`;
-	}
+const mergeCountryIntoOverridesExpression =
+	function mergeCountryIntoOverridesExpression(
+		overridesExpressionText: string,
+		ignoreExpressionText: string
+	): string {
+		if (ignoreExpressionText === 'true') {
+			return `{ ...(${overridesExpressionText}), country: (${overridesExpressionText})?.country ?? '${DEFAULT_COUNTRY_CODE}' }`;
+		}
 
-	if (ignoreExpressionText === 'false') {
-		return overridesExpressionText;
-	}
+		if (ignoreExpressionText === 'false') {
+			return overridesExpressionText;
+		}
 
-	return `${ignoreExpressionText} ? { ...(${overridesExpressionText}), country: (${overridesExpressionText})?.country ?? '${DEFAULT_COUNTRY_CODE}' } : (${overridesExpressionText})`;
-}
+		return `${ignoreExpressionText} ? { ...(${overridesExpressionText}), country: (${overridesExpressionText})?.country ?? '${DEFAULT_COUNTRY_CODE}' } : (${overridesExpressionText})`;
+	};
 
-function transformSourceFile(
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): IgnoreGeoLocationResult {
 	let operations = 0;
@@ -168,15 +173,15 @@ function transformSourceFile(
 			if (!objectHasCountry(overridesObject)) {
 				if (ignoreExpressionText === 'true') {
 					overridesObject.addPropertyAssignment({
-						name: 'country',
 						initializer: `'${DEFAULT_COUNTRY_CODE}'`,
+						name: 'country',
 					});
 					summaries.push('merged ignoreGeoLocation into overrides.country');
 					operations += 1;
 				} else if (ignoreExpressionText !== 'false') {
 					overridesObject.addPropertyAssignment({
-						name: 'country',
 						initializer: `${ignoreExpressionText} ? '${DEFAULT_COUNTRY_CODE}' : undefined`,
+						name: 'country',
 					});
 					summaries.push(
 						'merged ignoreGeoLocation expression into overrides.country'
@@ -208,12 +213,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -225,6 +232,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -240,11 +248,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates ignoreGeoLocation to overrides-based location forcing.
@@ -252,56 +260,58 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runIgnoreGeoLocationToOverridesCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runIgnoreGeoLocationToOverridesCodemod =
+	async function runIgnoreGeoLocationToOverridesCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
+		for (const filePath of filePaths) {
+			try {
+				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+				if (!sourceFile) {
+					continue;
+				}
+
+				const result = transformSourceFile(sourceFile);
+				if (!result.changed) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: result.operations,
+					summaries: result.summaries,
+				});
+
+				if (!options.dryRun) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+					await sourceFile.save();
+				}
+			} catch (error) {
+				errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
 			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
 		}
-	}
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

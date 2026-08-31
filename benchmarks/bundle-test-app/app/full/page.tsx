@@ -7,20 +7,6 @@ import {
 	useConsentManager,
 } from '@c15t/react';
 
-const FullPage = () => {
-	return (
-		<ConsentManagerProvider options={{ mode: 'offline' }}>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>Full Import Test</h1>
-				<p>This page imports all components from @c15t/react.</p>
-				<TestComponent />
-			</main>
-			<ConsentBanner />
-			<ConsentDialog />
-		</ConsentManagerProvider>
-	);
-};
-
 const TestComponent = () => {
 	const { consents, saveConsents } = useConsentManager();
 	return (
@@ -36,5 +22,16 @@ const TestComponent = () => {
 		</div>
 	);
 };
+const FullPage = () => (
+	<ConsentManagerProvider options={{ mode: 'offline' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>Full Import Test</h1>
+			<p>This page imports all components from @c15t/react.</p>
+			<TestComponent />
+		</main>
+		<ConsentBanner />
+		<ConsentDialog />
+	</ConsentManagerProvider>
+);
 
 export default FullPage;

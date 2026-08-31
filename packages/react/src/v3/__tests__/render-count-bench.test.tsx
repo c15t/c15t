@@ -36,7 +36,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -47,7 +47,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 type Category =
 	| 'necessary'
@@ -68,14 +68,14 @@ const CHILDREN = 10;
 const mockFetch = vi.fn().mockResolvedValue(
 	new Response(
 		JSON.stringify({
-			showConsentBanner: true,
 			jurisdiction: { code: 'GDPR' },
+			showConsentBanner: true,
 			translations: {
 				language: 'en',
 				translations: defaultTranslationConfig.translations.en,
 			},
 		}),
-		{ status: 200, headers: { 'Content-Type': 'application/json' } }
+		{ headers: { 'Content-Type': 'application/json' }, status: 200 }
 	)
 );
 
@@ -95,7 +95,7 @@ interface Run {
 	mutationRenders: number;
 }
 
-async function runV2(): Promise<Run> {
+const runV2 = async function runV2(): Promise<Run> {
 	clearConsentRuntimeCache();
 	const counts = new Map<number, number>();
 
@@ -119,15 +119,13 @@ async function runV2(): Promise<Run> {
 		);
 	};
 
-	const Tree = ({ children }: { children: ReactNode }) => {
-		return (
-			<ConsentManagerProvider
-				options={{ mode: 'offline', initialConsentCategories: CATEGORIES }}
-			>
-				{children}
-			</ConsentManagerProvider>
-		);
-	};
+	const Tree = ({ children }: { children: ReactNode }) => (
+		<ConsentManagerProvider
+			options={{ initialConsentCategories: CATEGORIES, mode: 'offline' }}
+		>
+			{children}
+		</ConsentManagerProvider>
+	);
 
 	const { container } = await render(
 		<Tree>
@@ -167,9 +165,9 @@ async function runV2(): Promise<Run> {
 	// Best-effort cleanup so the next test has a clean container.
 	container.remove();
 	return { mountRenders, mutationRenders };
-}
+};
 
-async function runV3(): Promise<Run> {
+const runV3 = async function runV3(): Promise<Run> {
 	const counts = new Map<number, number>();
 
 	const V3Child = ({ index }: { index: number }) => {
@@ -208,11 +206,11 @@ async function runV3(): Promise<Run> {
 				persistence: false,
 				prefetch: {
 					initialConsents: {
-						necessary: true,
+						experience: false,
 						functionality: false,
 						marketing: false,
 						measurement: false,
-						experience: false,
+						necessary: true,
 					},
 				},
 			}}
@@ -237,7 +235,7 @@ async function runV3(): Promise<Run> {
 	const mutationRenders = afterMutation - mountRenders;
 
 	return { mountRenders, mutationRenders };
-}
+};
 
 describe('v3 render-count bench', () => {
 	test('v3 isolates re-renders; v2 fans out', async () => {
@@ -245,15 +243,15 @@ describe('v3 render-count bench', () => {
 		const v2 = await runV2();
 
 		const payload = {
-			suite: 'react-render-counts',
-			generatedAt: new Date().toISOString(),
 			children: CHILDREN,
-			v2,
-			v3,
 			delta: {
 				mountRenders: v3.mountRenders - v2.mountRenders,
 				mutationRenders: v3.mutationRenders - v2.mutationRenders,
 			},
+			generatedAt: new Date().toISOString(),
+			suite: 'react-render-counts',
+			v2,
+			v3,
 		};
 
 		// Stash on window so a test-runner reporter (or adjacent node

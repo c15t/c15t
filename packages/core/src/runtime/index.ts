@@ -24,10 +24,10 @@ interface ConsentRuntimeDependencies {
 }
 
 const defaultConsentRuntimeDependencies: ConsentRuntimeDependencies = {
+	clearClientRegistry,
 	configureConsentManager,
 	createConsentManagerStore,
 	getMatchingPrefetchedInitialData,
-	clearClientRegistry,
 };
 
 const DEFAULT_BACKEND_URL = '/api/c15t';
@@ -37,7 +37,7 @@ const storeCache = new Map<string, ConsentStoreInstance>();
 
 type RuntimeMode = 'hosted' | 'c15t' | 'offline' | 'custom';
 
-function normalizeRuntimeMode(
+const normalizeRuntimeMode = function normalizeRuntimeMode(
 	mode?: RuntimeMode
 ): 'hosted' | 'offline' | 'custom' {
 	if (mode === 'offline' || mode === 'custom') {
@@ -45,7 +45,7 @@ function normalizeRuntimeMode(
 	}
 
 	return 'hosted';
-}
+};
 
 export type ConsentRuntimeOptions = ConsentManagerOptions &
 	Partial<StoreOptions> & {
@@ -75,7 +75,7 @@ export interface ConsentRuntimeResult {
 	cacheKey: string;
 }
 
-function generateRuntimeCacheKey(options: {
+const generateRuntimeCacheKey = function generateRuntimeCacheKey(options: {
 	mode?: ConsentRuntimeOptions['mode'];
 	backendURL?: string;
 	endpointHandlers?: unknown;
@@ -104,13 +104,13 @@ function generateRuntimeCacheKey(options: {
 	];
 
 	return cacheParts.join(':');
-}
+};
 
 /**
  * Stable cache-key fragment for custom HTTP headers, so hosted clients with
  * different headers never share a cached runtime.
  */
-function generateHeadersKey(
+const generateHeadersKey = function generateHeadersKey(
 	headers?: Record<string, string>
 ): string | undefined {
 	if (!headers) {
@@ -126,9 +126,10 @@ function generateHeadersKey(
 	}
 
 	return entries.map(([key, value]) => `${key}=${value}`).join(',');
-}
+};
 
-export function getOrCreateConsentRuntime(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const getOrCreateConsentRuntime = function getOrCreateConsentRuntime(
 	options: ConsentRuntimeOptions,
 	pkgInfo?: ConsentRuntimePkgInfo,
 	dependencies: ConsentRuntimeDependencies = defaultConsentRuntimeDependencies
@@ -209,52 +210,52 @@ export function getOrCreateConsentRuntime(
 	const explicitSSRData = topLevelSSRData ?? storeSSRData;
 
 	const cacheKey = generateRuntimeCacheKey({
-		mode,
 		backendURL,
+		defaultLanguage: normalizedI18nConfig?.locale,
+		enabled: resolvedEnabled,
 		endpointHandlers:
 			'endpointHandlers' in options ? options.endpointHandlers : undefined,
-		storageConfig: resolvedStorageConfig,
-		defaultLanguage: normalizedI18nConfig?.locale,
+		headersKey: generateHeadersKey(headers),
 		languageSetKey:
 			normalizedLanguageSet.length > 0
 				? normalizedLanguageSet.join(',')
 				: undefined,
+		mode,
 		offlinePolicyKey: resolvedOfflinePolicy
 			? JSON.stringify(resolvedOfflinePolicy)
 			: undefined,
-		headersKey: generateHeadersKey(headers),
-		enabled: resolvedEnabled,
+		storageConfig: resolvedStorageConfig,
 	});
 
 	let consentManager = managerCache.get(cacheKey);
 	if (!consentManager) {
 		const normalizedStoreOptions = {
 			...storeWithoutTranslationInputs,
-			initialTranslationConfig: normalizedInitialTranslationConfig,
 			iab: resolvedIab,
+			initialTranslationConfig: normalizedInitialTranslationConfig,
 			offlinePolicy: resolvedOfflinePolicy,
 		};
 
 		if (mode === 'offline') {
 			consentManager = dependencies.configureConsentManager({
 				mode: 'offline',
-				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
+				store: normalizedStoreOptions,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
 			consentManager = dependencies.configureConsentManager({
-				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
-				store: normalizedStoreOptions,
+				mode: 'custom',
 				storageConfig: resolvedStorageConfig,
+				store: normalizedStoreOptions,
 			});
 		} else {
 			consentManager = dependencies.configureConsentManager({
-				mode: mode === 'c15t' ? 'c15t' : 'hosted',
 				backendURL: backendURL || DEFAULT_BACKEND_URL,
 				headers,
-				store: normalizedStoreOptions,
+				mode: mode === 'c15t' ? 'c15t' : 'hosted',
 				storageConfig: resolvedStorageConfig,
+				store: normalizedStoreOptions,
 			});
 		}
 
@@ -274,8 +275,8 @@ export function getOrCreateConsentRuntime(
 			!explicitSSRData
 				? dependencies.getMatchingPrefetchedInitialData({
 						backendURL: resolvedBackendURL,
-						overrides: options.overrides,
 						credentials: 'include',
+						overrides: options.overrides,
 					})
 				: undefined;
 		const resolvedSSRData = explicitSSRData ?? autoPrefetchedSSRData;
@@ -285,13 +286,14 @@ export function getOrCreateConsentRuntime(
 			meta.requestCredentials = 'include';
 		}
 
+		// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 		consentStore = dependencies.createConsentManagerStore(consentManager, {
 			config: {
 				...(userConfig ?? {}),
+				meta,
+				mode: normalizedMode,
 				pkg: pkgInfo?.pkg || 'c15t',
 				version: pkgInfo?.version || version,
-				mode: normalizedMode,
-				meta,
 			},
 			...cleanStoreOptionOverrides,
 			...storeWithoutTranslationInputs,
@@ -324,13 +326,13 @@ export function getOrCreateConsentRuntime(
 	}
 
 	return {
+		cacheKey,
 		consentManager,
 		consentStore,
-		cacheKey,
 	};
-}
+};
 
-export function clearConsentRuntimeCache(
+export const clearConsentRuntimeCache = function clearConsentRuntimeCache(
 	dependencies: Pick<
 		ConsentRuntimeDependencies,
 		'clearClientRegistry'
@@ -339,4 +341,4 @@ export function clearConsentRuntimeCache(
 	managerCache.clear();
 	storeCache.clear();
 	dependencies.clearClientRegistry();
-}
+};

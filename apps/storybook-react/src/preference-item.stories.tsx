@@ -41,15 +41,16 @@ const contentStyle = (open: boolean): React.CSSProperties => ({
 	marginTop: open ? '0.75rem' : 0,
 });
 
-const LeadingIcon = ({ open }: { open: boolean }) => {
-	return <span aria-hidden="true">{open ? '-' : '+'}</span>;
-};
+const LeadingIcon = ({ open }: { open: boolean }) => (
+	<span aria-hidden="true">{open ? '-' : '+'}</span>
+);
 
 const PreferenceItemCard = ({
 	defaultChecked = false,
 	defaultOpen = false,
 	description,
 	disabled = false,
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
 	meta,
 	title,
 	withSwitch = false,

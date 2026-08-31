@@ -31,134 +31,134 @@ const getDefined = <Value>(
 
 // Sample GVL for testing
 const sampleGVL: GlobalVendorList = {
+	dataCategories: {},
+	features: {
+		1: {
+			description: 'Test feature',
+			id: 1,
+			illustrations: [],
+			name: 'Match and combine data',
+		},
+	},
 	gvlSpecificationVersion: 3,
-	vendorListVersion: 142,
-	tcfPolicyVersion: 5,
 	lastUpdated: '2024-01-15T16:00:00Z',
 	purposes: {
 		1: {
-			id: 1,
-			name: 'Store and/or access information',
 			description: 'Test purpose 1',
+			id: 1,
 			illustrations: [],
+			name: 'Store and/or access information',
 		},
 		2: {
-			id: 2,
-			name: 'Use limited data to select advertising',
 			description: 'Test purpose 2',
+			id: 2,
 			illustrations: [],
+			name: 'Use limited data to select advertising',
 		},
 		3: {
-			id: 3,
-			name: 'Create profiles for personalised advertising',
 			description: 'Test purpose 3',
+			id: 3,
 			illustrations: [],
-		},
-	},
-	specialPurposes: {
-		1: {
-			id: 1,
-			name: 'Security',
-			description: 'Test special purpose',
-			illustrations: [],
-		},
-	},
-	features: {
-		1: {
-			id: 1,
-			name: 'Match and combine data',
-			description: 'Test feature',
-			illustrations: [],
+			name: 'Create profiles for personalised advertising',
 		},
 	},
 	specialFeatures: {
 		1: {
-			id: 1,
-			name: 'Use precise geolocation',
 			description: 'Test special feature',
+			id: 1,
 			illustrations: [],
+			name: 'Use precise geolocation',
 		},
 		2: {
-			id: 2,
-			name: 'Actively scan device characteristics',
 			description: 'Test special feature 2',
+			id: 2,
 			illustrations: [],
+			name: 'Actively scan device characteristics',
 		},
 	},
-	vendors: {
+	specialPurposes: {
 		1: {
+			description: 'Test special purpose',
 			id: 1,
-			name: 'Test Vendor 1',
-			purposes: [1, 2],
-			legIntPurposes: [3],
-			specialPurposes: [],
-			features: [],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 31536000,
-			usesCookies: true,
-			cookieRefresh: true,
-			usesNonCookieAccess: false,
-			urls: [],
-		},
-		2: {
-			id: 2,
-			name: 'Test Vendor 2',
-			purposes: [1],
-			legIntPurposes: [],
-			specialPurposes: [],
-			features: [],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 0,
-			usesCookies: false,
-			cookieRefresh: false,
-			usesNonCookieAccess: true,
-			urls: [],
-		},
-		3: {
-			id: 3,
-			name: 'Test Vendor 3 (LI only)',
-			purposes: [],
-			legIntPurposes: [1, 2],
-			specialPurposes: [],
-			features: [],
-			specialFeatures: [],
-			flexiblePurposes: [],
-			cookieMaxAgeSeconds: 0,
-			usesCookies: false,
-			cookieRefresh: false,
-			usesNonCookieAccess: false,
-			urls: [],
+			illustrations: [],
+			name: 'Security',
 		},
 	},
 	stacks: {},
-	dataCategories: {},
+	tcfPolicyVersion: 5,
+	vendorListVersion: 142,
+	vendors: {
+		1: {
+			cookieMaxAgeSeconds: 31536000,
+			cookieRefresh: true,
+			features: [],
+			flexiblePurposes: [],
+			id: 1,
+			legIntPurposes: [3],
+			name: 'Test Vendor 1',
+			purposes: [1, 2],
+			specialFeatures: [],
+			specialPurposes: [],
+			urls: [],
+			usesCookies: true,
+			usesNonCookieAccess: false,
+		},
+		2: {
+			cookieMaxAgeSeconds: 0,
+			cookieRefresh: false,
+			features: [],
+			flexiblePurposes: [],
+			id: 2,
+			legIntPurposes: [],
+			name: 'Test Vendor 2',
+			purposes: [1],
+			specialFeatures: [],
+			specialPurposes: [],
+			urls: [],
+			usesCookies: false,
+			usesNonCookieAccess: true,
+		},
+		3: {
+			cookieMaxAgeSeconds: 0,
+			cookieRefresh: false,
+			features: [],
+			flexiblePurposes: [],
+			id: 3,
+			legIntPurposes: [1, 2],
+			name: 'Test Vendor 3 (LI only)',
+			purposes: [],
+			specialFeatures: [],
+			specialPurposes: [],
+			urls: [],
+			usesCookies: false,
+			usesNonCookieAccess: false,
+		},
+	},
 };
 
 const sampleCustomVendors: NonIABVendor[] = [
 	{
 		id: 'custom-vendor-1',
-		name: 'Custom Vendor 1',
-		purposes: [1, 2],
 		legIntPurposes: [],
+		name: 'Custom Vendor 1',
 		policyUrl: 'https://example.com/privacy',
+		purposes: [1, 2],
 	},
 	{
 		id: 'custom-vendor-2',
-		name: 'Custom Vendor 2',
-		purposes: [],
 		legIntPurposes: [1],
+		name: 'Custom Vendor 2',
 		policyUrl: 'https://example.com/privacy',
+		purposes: [],
 	},
 ];
 
 const defaultIABConfig: IABConfig = {
-	enabled: true,
 	cmpId: 160,
 	cmpVersion: 1,
-	publisherCountryCode: 'GB',
+	enabled: true,
 	isServiceSpecific: true,
+	publisherCountryCode: 'GB',
 };
 
 describe('TCF Store', () => {
@@ -183,11 +183,11 @@ describe('TCF Store', () => {
 
 		it('should preserve config in state', () => {
 			const customConfig: IABConfig = {
-				enabled: true,
 				cmpId: 999,
 				cmpVersion: 2,
-				publisherCountryCode: 'US',
+				enabled: true,
 				isServiceSpecific: false,
+				publisherCountryCode: 'US',
 			};
 
 			const state = createInitialIABState(customConfig);
@@ -204,15 +204,15 @@ describe('TCF Store', () => {
 
 		beforeEach(() => {
 			mockState = {
+				activeUI: 'none',
+				consents: { necessary: true },
 				iab: {
 					...createInitialIABState(defaultIABConfig),
 					gvl: sampleGVL,
 					nonIABVendors: sampleCustomVendors,
 				} as IABState,
-				consents: { necessary: true },
-				selectedConsents: { necessary: true },
-				activeUI: 'none',
 				isReady: true,
+				selectedConsents: { necessary: true },
 			} as ConsentStoreState;
 
 			getState = () => mockState;
@@ -221,10 +221,10 @@ describe('TCF Store', () => {
 			};
 
 			mockManager = {
-				init: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-				setConsent: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-				identifyUser: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-				$fetch: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+				$fetch: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+				identifyUser: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+				init: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+				setConsent: vi.fn().mockResolvedValue({ data: {}, ok: true }),
 			};
 		});
 
@@ -418,10 +418,10 @@ describe('TCF Store', () => {
 			const getState = vi.fn().mockReturnValue({ iab: null });
 			const setState = vi.fn();
 			const mockManager: ConsentManagerInterface = {
-				init: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-				setConsent: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-				identifyUser: vi.fn().mockResolvedValue({ ok: true, data: {} }),
-				$fetch: vi.fn().mockResolvedValue({ ok: true, data: {} }),
+				$fetch: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+				identifyUser: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+				init: vi.fn().mockResolvedValue({ data: {}, ok: true }),
+				setConsent: vi.fn().mockResolvedValue({ data: {}, ok: true }),
 			};
 
 			const manager = createIABManager(

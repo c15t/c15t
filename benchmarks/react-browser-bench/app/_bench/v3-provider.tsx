@@ -24,9 +24,7 @@ export const ReactV3BenchmarkProvider = ({
 	scenario: ReactBenchScenario;
 }) => {
 	const options: ConsentProviderOptions = {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
-		consentCategories,
 		callbacks: {
 			onBannerFetched() {
 				const state = getBenchState(scenario);
@@ -53,6 +51,8 @@ export const ReactV3BenchmarkProvider = ({
 				state.onErrorCount += 1;
 			},
 		},
+		consentCategories,
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {

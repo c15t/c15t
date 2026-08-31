@@ -16,7 +16,8 @@ interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> 
 const IABConsentBannerTitle = forwardRef<
 	HTMLHeadingElement,
 	IABConsentBannerTitleProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerTitle({ children, className, ...props }, ref) {
 	return (
 		<h2
 			ref={ref}

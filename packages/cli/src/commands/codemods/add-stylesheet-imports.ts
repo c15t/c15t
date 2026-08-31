@@ -111,7 +111,7 @@ interface DetectionResult {
 	headlessOnly: boolean;
 }
 
-async function detectTailwindVersion(
+const detectTailwindVersion = async function detectTailwindVersion(
 	projectRoot: string
 ): Promise<string | null> {
 	const packageJsonPath = join(projectRoot, 'package.json');
@@ -134,12 +134,14 @@ async function detectTailwindVersion(
 	} catch {
 		return null;
 	}
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -163,21 +165,21 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 
 	return files;
-}
+};
 
-function matchesAnyPattern(
+const matchesAnyPattern = function matchesAnyPattern(
 	importPath: string,
 	patterns: readonly string[]
 ): boolean {
 	return patterns.some(
 		(pattern) => importPath === pattern || importPath.startsWith(`${pattern}/`)
 	);
-}
+};
 
 /**
  * Scans all project source files to determine:
@@ -186,7 +188,10 @@ function matchesAnyPattern(
  * - Whether IAB UI components are imported
  * - Whether ONLY headless/unstyled APIs are used
  */
-function detectImports(project: Project, filePaths: string[]): DetectionResult {
+const detectImports = function detectImports(
+	project: Project,
+	filePaths: string[]
+): DetectionResult {
 	let usesReact = false;
 	let usesNextjs = false;
 	let usesStyledUi = false;
@@ -265,16 +270,16 @@ function detectImports(project: Project, filePaths: string[]): DetectionResult {
 
 	return {
 		framework,
-		usesStyledUi,
-		usesIabUi,
 		headlessOnly,
+		usesIabUi,
+		usesStyledUi,
 	};
-}
+};
 
 /**
  * Finds the best root entrypoint file that exists in the project.
  */
-function findEntrypoint(
+const findEntrypoint = function findEntrypoint(
 	projectRoot: string,
 	framework: Framework
 ): string | null {
@@ -289,34 +294,35 @@ function findEntrypoint(
 	}
 
 	return null;
-}
+};
 
 const FRAMEWORK_STYLESHEET_IMPORT_RE =
 	/^@c15t\/(?:react|nextjs)(?:\/iab)?\/styles(?:\.tw3)?\.css$/u;
 
-function removeFrameworkStylesheetImports(
-	project: Project,
-	filePath: string
-): string[] {
-	const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-	if (!sourceFile) {
-		return [];
-	}
-
-	const removedImports: string[] = [];
-
-	for (const importDeclaration of sourceFile.getImportDeclarations()) {
-		const moduleSpecifier = importDeclaration.getModuleSpecifierValue();
-		if (!FRAMEWORK_STYLESHEET_IMPORT_RE.test(moduleSpecifier)) {
-			continue;
+const removeFrameworkStylesheetImports =
+	function removeFrameworkStylesheetImports(
+		project: Project,
+		filePath: string
+	): string[] {
+		const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+		if (!sourceFile) {
+			return [];
 		}
 
-		removedImports.push(moduleSpecifier);
-		importDeclaration.remove();
-	}
+		const removedImports: string[] = [];
 
-	return removedImports;
-}
+		for (const importDeclaration of sourceFile.getImportDeclarations()) {
+			const moduleSpecifier = importDeclaration.getModuleSpecifierValue();
+			if (!FRAMEWORK_STYLESHEET_IMPORT_RE.test(moduleSpecifier)) {
+				continue;
+			}
+
+			removedImports.push(moduleSpecifier);
+			importDeclaration.remove();
+		}
+
+		return removedImports;
+	};
 
 /**
  * Runs the add-stylesheet-imports codemod across project source files.
@@ -337,142 +343,144 @@ function removeFrameworkStylesheetImports(
  *
  * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
-export async function runAddStylesheetImportsCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-
-	const filePaths = await collectSourceFiles(options.projectRoot);
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
-
-	// Phase 1: Detect imports across all source files
-	const detection = detectImports(project, filePaths);
-
-	// If no framework detected, nothing to do
-	if (!detection.framework) {
-		return {
-			totalFiles: filePaths.length,
-			changedFiles,
-			errors,
-		};
-	}
-
-	// If the project only uses headless/unstyled APIs, skip
-	if (detection.headlessOnly) {
-		return {
-			totalFiles: filePaths.length,
-			changedFiles,
-			errors,
-		};
-	}
-
-	// If no styled UI and no IAB UI detected, nothing to do
-	if (!detection.usesStyledUi && !detection.usesIabUi) {
-		return {
-			totalFiles: filePaths.length,
-			changedFiles,
-			errors,
-		};
-	}
-
-	// Phase 2: Find the best root entrypoint
-	const entrypoint = findEntrypoint(options.projectRoot, detection.framework);
-
-	if (!entrypoint) {
-		const candidateList =
-			detection.framework === 'nextjs'
-				? NEXTJS_ENTRYPOINTS.join(', ')
-				: REACT_ENTRYPOINTS.join(', ');
-		errors.push({
-			filePath: options.projectRoot,
-			error: `No root entrypoint found. Looked for: ${candidateList}`,
-		});
-		return {
-			totalFiles: filePaths.length,
-			changedFiles,
-			errors,
-		};
-	}
-
-	// Phase 3: Add CSS imports
-	const pkg = detection.framework === 'nextjs' ? '@c15t/nextjs' : '@c15t/react';
-	const tailwindVersion = await detectTailwindVersion(options.projectRoot);
-
-	try {
-		const stylesheetResult = await ensureGlobalCssStylesheetImports({
-			projectRoot: options.projectRoot,
-			packageName: pkg,
-			tailwindVersion,
-			entrypointPath: entrypoint,
-			includeBase: detection.usesStyledUi || detection.usesIabUi,
-			includeIab: detection.usesIabUi,
-			dryRun: options.dryRun,
+export const runAddStylesheetImportsCodemod =
+	async function runAddStylesheetImportsCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
 		});
 
-		if (!stylesheetResult.filePath) {
-			errors.push({
-				filePath: options.projectRoot,
-				error: `No suitable global CSS entrypoint found. Checked: ${formatSearchedCssPaths(
-					options.projectRoot,
-					stylesheetResult.searchedPaths
-				)}`,
-			});
+		const filePaths = await collectSourceFiles(options.projectRoot);
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
+
+		// Phase 1: Detect imports across all source files
+		const detection = detectImports(project, filePaths);
+
+		// If no framework detected, nothing to do
+		if (!detection.framework) {
 			return {
-				totalFiles: filePaths.length,
 				changedFiles,
 				errors,
+				totalFiles: filePaths.length,
 			};
 		}
 
-		if (stylesheetResult.updated) {
-			changedFiles.push({
-				filePath: stylesheetResult.filePath,
-				operations: stylesheetResult.changes.length,
-				summaries: stylesheetResult.changes,
-			});
+		// If the project only uses headless/unstyled APIs, skip
+		if (detection.headlessOnly) {
+			return {
+				changedFiles,
+				errors,
+				totalFiles: filePaths.length,
+			};
 		}
 
-		for (const filePath of filePaths) {
-			const removedImports = removeFrameworkStylesheetImports(
-				project,
-				filePath
-			);
-			if (removedImports.length === 0) {
-				continue;
+		// If no styled UI and no IAB UI detected, nothing to do
+		if (!detection.usesStyledUi && !detection.usesIabUi) {
+			return {
+				changedFiles,
+				errors,
+				totalFiles: filePaths.length,
+			};
+		}
+
+		// Phase 2: Find the best root entrypoint
+		const entrypoint = findEntrypoint(options.projectRoot, detection.framework);
+
+		if (!entrypoint) {
+			const candidateList =
+				detection.framework === 'nextjs'
+					? NEXTJS_ENTRYPOINTS.join(', ')
+					: REACT_ENTRYPOINTS.join(', ');
+			errors.push({
+				error: `No root entrypoint found. Looked for: ${candidateList}`,
+				filePath: options.projectRoot,
+			});
+			return {
+				changedFiles,
+				errors,
+				totalFiles: filePaths.length,
+			};
+		}
+
+		// Phase 3: Add CSS imports
+		const pkg =
+			detection.framework === 'nextjs' ? '@c15t/nextjs' : '@c15t/react';
+		const tailwindVersion = await detectTailwindVersion(options.projectRoot);
+
+		try {
+			const stylesheetResult = await ensureGlobalCssStylesheetImports({
+				dryRun: options.dryRun,
+				entrypointPath: entrypoint,
+				includeBase: detection.usesStyledUi || detection.usesIabUi,
+				includeIab: detection.usesIabUi,
+				packageName: pkg,
+				projectRoot: options.projectRoot,
+				tailwindVersion,
+			});
+
+			if (!stylesheetResult.filePath) {
+				errors.push({
+					error: `No suitable global CSS entrypoint found. Checked: ${formatSearchedCssPaths(
+						options.projectRoot,
+						stylesheetResult.searchedPaths
+					)}`,
+					filePath: options.projectRoot,
+				});
+				return {
+					changedFiles,
+					errors,
+					totalFiles: filePaths.length,
+				};
 			}
 
-			changedFiles.push({
-				filePath,
-				operations: removedImports.length,
-				summaries: removedImports.map(
-					(importPath) => `removed JS import '${importPath}'`
-				),
+			if (stylesheetResult.updated) {
+				changedFiles.push({
+					filePath: stylesheetResult.filePath,
+					operations: stylesheetResult.changes.length,
+					summaries: stylesheetResult.changes,
+				});
+			}
+
+			for (const filePath of filePaths) {
+				const removedImports = removeFrameworkStylesheetImports(
+					project,
+					filePath
+				);
+				if (removedImports.length === 0) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: removedImports.length,
+					summaries: removedImports.map(
+						(importPath) => `removed JS import '${importPath}'`
+					),
+				});
+			}
+
+			if (!options.dryRun) {
+				await project.save();
+			}
+		} catch (error) {
+			errors.push({
+				error: error instanceof Error ? error.message : String(error),
+				filePath: entrypoint,
 			});
 		}
 
-		if (!options.dryRun) {
-			await project.save();
-		}
-	} catch (error) {
-		errors.push({
-			filePath: entrypoint,
-			error: error instanceof Error ? error.message : String(error),
-		});
-	}
-
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

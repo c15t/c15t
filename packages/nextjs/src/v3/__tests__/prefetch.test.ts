@@ -30,15 +30,17 @@ const createHeaders = () => {
 	return headers;
 };
 
-function createInitOutput(overrides: Record<string, unknown> = {}) {
+const createInitOutput = function createInitOutput(
+	overrides: Record<string, unknown> = {}
+) {
 	return {
+		branding: 'c15t',
 		jurisdiction: 'GDPR',
 		location: { countryCode: null, regionCode: null },
 		translations: { language: 'en', translations: { common: {} } },
-		branding: 'c15t',
 		...overrides,
 	};
-}
+};
 
 const request = {
 	cookies: () =>
@@ -72,17 +74,17 @@ describe('prefetchInitialConsent: backend call', () => {
 			new Response(
 				JSON.stringify(
 					createInitOutput({
+						branding: 'c15t',
+						cmpId: 28,
+						customVendors: [],
+						gvl: null,
+						location: { countryCode: 'DE', regionCode: null },
 						policy: POLICY,
 						policySnapshotToken: 'snap-1',
-						location: { countryCode: 'DE', regionCode: null },
 						translations: { language: 'de', translations: {} },
-						branding: 'c15t',
-						gvl: null,
-						customVendors: [],
-						cmpId: 28,
 					})
 				),
-				{ status: 200, headers: { 'content-type': 'application/json' } }
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
 			)
 		);
 
@@ -112,10 +114,10 @@ describe('prefetchInitialConsent: backend call', () => {
 		expect(config.initialTranslations?.language).toBe('de');
 		expect(config.initialBranding).toBe('c15t');
 		expect(config.initialIab).toMatchObject({
+			cmpId: 28,
+			customVendors: [],
 			enabled: false,
 			gvl: null,
-			customVendors: [],
-			cmpId: 28,
 		});
 	});
 
@@ -166,14 +168,14 @@ describe('prefetchInitialConsent: backend call', () => {
 				JSON.stringify(
 					createInitOutput({
 						consents: {
-							marketing: false,
 							functionality: true,
+							marketing: false,
 						},
 					})
 				),
 				{
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
@@ -186,9 +188,9 @@ describe('prefetchInitialConsent: backend call', () => {
 		// /init consent preferences overlay cookie state, and a consent-bearing
 		// init response marks the user as consented for first paint.
 		expect(config.initialConsents).toMatchObject({
+			functionality: true,
 			marketing: false,
 			measurement: false,
-			functionality: true,
 		});
 		expect(config.initialHasConsented).toBe(true);
 	});
@@ -205,7 +207,7 @@ describe('prefetchInitialConsent: backend call', () => {
 						translations: { language: 'de', translations: {} },
 					})
 				),
-				{ status: 200, headers: { 'content-type': 'application/json' } }
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
 			)
 		);
 
@@ -215,8 +217,8 @@ describe('prefetchInitialConsent: backend call', () => {
 		});
 
 		expect(config.initialOverrides).toEqual({
-			language: 'de',
 			country: 'DE',
+			language: 'de',
 			region: 'BE',
 		});
 	});
@@ -254,15 +256,15 @@ describe('prefetchInitialConsent: manifest mode', () => {
 
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			})
 		);
 
 		const config = await prefetchInitialConsent({
 			backendURL: '/api/c15t',
-			manifestURL: '/api/c15t/manifest',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: '/api/c15t/manifest',
 		});
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
@@ -271,8 +273,8 @@ describe('prefetchInitialConsent: manifest mode', () => {
 		expect(String(url)).not.toContain('/init');
 		expect(config.initialPolicy?.id).toBe('eu-opt-in');
 		expect(config.initialPolicyDecision).toMatchObject({
-			policyId: 'eu-opt-in',
 			country: 'DE',
+			policyId: 'eu-opt-in',
 		});
 		expect(config.initialTranslations?.language).toBe('de');
 	});
@@ -285,8 +287,8 @@ describe('prefetchInitialConsent: manifest mode', () => {
 
 		const config = await prefetchInitialConsent({
 			backendURL: 'https://consent.example.com/api/c15t',
-			manifest: MANIFEST_FIXTURE,
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifest: MANIFEST_FIXTURE,
 		});
 
 		expect(fetchSpy).not.toHaveBeenCalled();

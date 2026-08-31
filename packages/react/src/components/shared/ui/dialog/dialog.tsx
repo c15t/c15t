@@ -37,7 +37,7 @@ interface DialogContextValue {
 
 const DialogContext = createContext<DialogContextValue | null>(null);
 
-function useDialogContext() {
+const useDialogContext = function useDialogContext() {
 	const context = useContext(DialogContext);
 
 	if (!context) {
@@ -45,7 +45,7 @@ function useDialogContext() {
 	}
 
 	return context;
-}
+};
 
 export interface DialogRootProps {
 	children: ReactNode;
@@ -60,7 +60,7 @@ const DialogRoot = ({
 	onOpenChange,
 	open,
 }: DialogRootProps) => {
-	const reactId = useId().replace(/:/g, '');
+	const reactId = useId().replace(/:/gu, '');
 	const restoreFocusRef = useRef<HTMLElement | null>(null);
 	const [isOpen, setIsOpen] = useControllableState({
 		defaultValue: defaultOpen,
@@ -106,7 +106,11 @@ export interface DialogTriggerProps extends Omit<
 }
 
 const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
-	function ({ asChild, children, onClick, ...rest }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function DialogTrigger(
+		{ asChild, children, onClick, ...rest },
+		forwardedRef
+	) {
 		const { open, setOpen } = useDialogContext();
 		const Component = asChild ? Slot : 'button';
 
@@ -141,7 +145,8 @@ const DialogPortal = ({ children }: { children: ReactNode }) => {
 const DialogOverlay = forwardRef<
 	HTMLButtonElement,
 	HTMLAttributes<HTMLButtonElement>
->(function ({ children, onClick, ...rest }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function DialogOverlay({ children, onClick, ...rest }, forwardedRef) {
 	const { open, setOpen } = useDialogContext();
 	if (!open) {
 		return null;
@@ -174,7 +179,8 @@ export interface DialogContentProps extends HTMLAttributes<HTMLDialogElement> {
 }
 
 const DialogContent = forwardRef<HTMLDialogElement, DialogContentProps>(
-	function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function DialogContent(
 		{
 			children,
 			closeOnOutsideClick = true,
@@ -255,7 +261,8 @@ DialogContent.displayName = 'DialogContent';
 const DialogTitle = forwardRef<
 	HTMLHeadingElement,
 	HTMLAttributes<HTMLHeadingElement>
->(function ({ children, ...props }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function DialogTitle({ children, ...props }, forwardedRef) {
 	const { titleId } = useDialogContext();
 	return (
 		<h2
@@ -274,7 +281,8 @@ DialogTitle.displayName = 'DialogTitle';
 const DialogDescription = forwardRef<
 	HTMLParagraphElement,
 	HTMLAttributes<HTMLParagraphElement>
->(function (props, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function DialogDescription(props, forwardedRef) {
 	const { descriptionId } = useDialogContext();
 	return (
 		<p
@@ -296,33 +304,36 @@ export interface DialogCloseProps extends Omit<
 	disabled?: boolean;
 }
 
-const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(function (
-	{ asChild, children, disabled, onClick, ...rest },
-	forwardedRef
-) {
-	const { open, setOpen } = useDialogContext();
-	const Component = asChild ? Slot : 'button';
+const DialogClose = forwardRef<HTMLButtonElement, DialogCloseProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function DialogClose(
+		{ asChild, children, disabled, onClick, ...rest },
+		forwardedRef
+	) {
+		const { open, setOpen } = useDialogContext();
+		const Component = asChild ? Slot : 'button';
 
-	return (
-		<Component
-			data-disabled={getDataDisabled(disabled)}
-			data-slot="dialog-close"
-			data-state={getDialogState(open)}
-			disabled={disabled}
-			onClick={(event: MouseEvent<HTMLButtonElement>) => {
-				if (!disabled) {
-					setOpen(false);
-				}
+		return (
+			<Component
+				data-disabled={getDataDisabled(disabled)}
+				data-slot="dialog-close"
+				data-state={getDialogState(open)}
+				disabled={disabled}
+				onClick={(event: MouseEvent<HTMLButtonElement>) => {
+					if (!disabled) {
+						setOpen(false);
+					}
 
-				onClick?.(event as never);
-			}}
-			ref={forwardedRef}
-			{...(asChild ? rest : { type: 'button', ...rest })}
-		>
-			{children}
-		</Component>
-	);
-});
+					onClick?.(event as never);
+				}}
+				ref={forwardedRef}
+				{...(asChild ? rest : { type: 'button', ...rest })}
+			>
+				{children}
+			</Component>
+		);
+	}
+);
 
 DialogClose.displayName = 'DialogClose';
 

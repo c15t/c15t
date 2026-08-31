@@ -14,7 +14,7 @@ interface BenchmarkElementTimingEntry extends PerformanceEntry {
 	loadTime?: number;
 }
 
-function readBannerPaintMs(): number | null {
+const readBannerPaintMs = function readBannerPaintMs(): number | null {
 	const entries = performance
 		.getEntriesByType('element')
 		.filter(
@@ -23,14 +23,16 @@ function readBannerPaintMs(): number | null {
 				BANNER_ELEMENT_TIMING_NAME
 		);
 	const entry = entries.at(-1);
-	if (!entry) return null;
+	if (!entry) {
+		return null;
+	}
 	for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
 		if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
 			return value;
 		}
 	}
 	return null;
-}
+};
 
 export const NextjsBenchmarkProbe = ({
 	scenario,
@@ -62,6 +64,7 @@ export const NextjsBenchmarkProbe = ({
 			return;
 		}
 
+		// oxlint-disable-next-line logical-assignment-operators -- The React analyzer does not support logical assignment syntax.
 		current.cls = current.cls ?? 0;
 		try {
 			const observer = new PerformanceObserver((list) => {
@@ -79,10 +82,10 @@ export const NextjsBenchmarkProbe = ({
 					}
 				}
 			});
-			observer.observe({ type: 'layout-shift', buffered: true });
+			observer.observe({ buffered: true, type: 'layout-shift' });
 			return () => observer.disconnect();
 		} catch {
-			return;
+			// PerformanceObserver is optional in benchmark browsers.
 		}
 	}, [scenario]);
 

@@ -4,11 +4,11 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { chromium } from 'playwright';
 
-function createDeferredPromise(run) {
+const createDeferredPromise = function createDeferredPromise(run) {
 	const deferred = Promise.withResolvers();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 const PORT = 3111;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
@@ -28,7 +28,9 @@ const waitForServer = async function waitForServer(url, timeoutMs = 15_000) {
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// The optional generated file may not exist.
+		}
 
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await delay(250);

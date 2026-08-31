@@ -12,7 +12,7 @@ describe('layout detection', () => {
 	});
 
 	afterEach(async () => {
-		await fs.rm(projectRoot, { recursive: true, force: true });
+		await fs.rm(projectRoot, { force: true, recursive: true });
 	});
 
 	describe('findLayoutFile', () => {
@@ -81,10 +81,10 @@ describe('layout detection', () => {
 		test('should return src/components for src-based layout', async () => {
 			const { getComponentsDirectory } = await import('../../detection/layout');
 			const layout = {
+				appDirectory: 'src/app',
+				hasLocaleSegment: false,
 				path: 'src/app/layout.tsx',
 				type: 'app' as const,
-				hasLocaleSegment: false,
-				appDirectory: 'src/app',
 			};
 
 			const result = getComponentsDirectory('/mock/project', layout);
@@ -95,10 +95,10 @@ describe('layout detection', () => {
 		test('should return components for root-based layout', async () => {
 			const { getComponentsDirectory } = await import('../../detection/layout');
 			const layout = {
+				appDirectory: 'app',
+				hasLocaleSegment: false,
 				path: 'app/layout.tsx',
 				type: 'app' as const,
-				hasLocaleSegment: false,
-				appDirectory: 'app',
 			};
 
 			const result = getComponentsDirectory('/mock/project', layout);

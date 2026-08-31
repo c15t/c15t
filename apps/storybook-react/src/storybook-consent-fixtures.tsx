@@ -17,46 +17,49 @@ interface StorybookProviderProps {
 	tcString?: string | null;
 }
 
-function clearCookies() {
+const clearCookies = function clearCookies() {
 	for (const cookie of document.cookie.split(';')) {
 		const name = cookie.split('=')[0]?.trim();
 		if (name) {
 			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 		}
 	}
-}
+};
 
-export function resetStorybookConsentState() {
-	if (typeof window === 'undefined') {
-		return;
-	}
+export const resetStorybookConsentState =
+	function resetStorybookConsentState() {
+		if (typeof window === 'undefined') {
+			return;
+		}
 
-	clearConsentRuntimeCache();
-	window.localStorage.clear();
-	clearCookies();
-}
+		clearConsentRuntimeCache();
+		window.localStorage.clear();
+		clearCookies();
+	};
 
-export function seedStoredConsent(consents: ConsentRecord) {
+export const seedStoredConsent = function seedStoredConsent(
+	consents: ConsentRecord
+) {
 	window.localStorage.setItem(
 		'c15t',
 		JSON.stringify({
-			consents,
 			consentInfo: {
 				time: Date.now(),
 				type: 'storybook',
 			},
+			consents,
 		})
 	);
-}
+};
 
-export function seedTCString(tcString: string | null) {
+export const seedTCString = function seedTCString(tcString: string | null) {
 	if (!tcString) {
 		window.localStorage.removeItem('euconsent-v2');
 		return;
 	}
 
 	window.localStorage.setItem('euconsent-v2', tcString);
-}
+};
 
 export const defaultConsentOptions: ConsentManagerOptions = {
 	mode: 'offline',
@@ -77,11 +80,11 @@ export const editableConsentOptions: Partial<ConsentManagerOptions> = {
 };
 
 export const editableStoredConsent: ConsentRecord = {
-	necessary: true,
-	measurement: false,
-	marketing: false,
-	functionality: false,
 	experience: false,
+	functionality: false,
+	marketing: false,
+	measurement: false,
+	necessary: true,
 };
 
 export const defaultIABOptions: ConsentManagerOptions = {

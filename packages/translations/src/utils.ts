@@ -15,7 +15,9 @@ type TranslationSection =
 	| 'legalLinks'
 	| 'iab';
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+const isPlainObject = function isPlainObject(
+	value: unknown
+): value is Record<string, unknown> {
 	if (!value) {
 		return false;
 	}
@@ -29,7 +31,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 	}
 
 	return true;
-}
+};
 
 function deepMergeSection<K extends TranslationSection>(
 	baseSection: Translations[K] | undefined,
@@ -84,7 +86,7 @@ function deepMergeSection<TSection extends Record<string, unknown>>(
  * nested overrides (for example, only overriding the title of a consent
  * type) still preserve default values for other keys.
  */
-export function deepMergeTranslations(
+export const deepMergeTranslations = function deepMergeTranslations(
 	base: Translations,
 	override: Partial<Translations>
 ): Translations {
@@ -112,7 +114,7 @@ export function deepMergeTranslations(
 	// All required sections are present on the base translations object,
 	// so after merging we can safely treat the result as complete.
 	return result as Translations;
-}
+};
 
 /**
  * Parses an Accept-Language header into a list of normalized language codes.
@@ -120,7 +122,7 @@ export function deepMergeTranslations(
  * The result is ordered by client preference. Each entry is the primary
  * language subtag in lowercase (e.g. "de" from "de-DE").
  */
-export function parseAcceptLanguage(
+export const parseAcceptLanguage = function parseAcceptLanguage(
 	header: string | null | undefined
 ): string[] {
 	if (!header) {
@@ -152,8 +154,8 @@ export function parseAcceptLanguage(
 
 			return {
 				code: normalizedCode.split('-')[0] ?? normalizedCode,
-				quality,
 				index,
+				quality,
 			};
 		})
 		.filter((candidate): candidate is NonNullable<typeof candidate> =>
@@ -178,7 +180,7 @@ export function parseAcceptLanguage(
 	}
 
 	return normalized;
-}
+};
 
 interface SelectLanguageOptions {
 	header?: string | null;
@@ -193,7 +195,7 @@ interface SelectLanguageOptions {
  * - Matches on primary language code (e.g. "de" for "de-DE").
  * - Falls back to the provided fallback or "en".
  */
-export function selectLanguage(
+export const selectLanguage = function selectLanguage(
 	available: string[],
 	options?: SelectLanguageOptions
 ): string {
@@ -212,7 +214,7 @@ export function selectLanguage(
 	}
 
 	return fallback;
-}
+};
 
 /**
  * Normalizes legacy translation config and v2 i18n config into a canonical shape.
@@ -221,7 +223,7 @@ export function selectLanguage(
  * - `i18n.*` values take priority when present
  * - Legacy translation config is used as fallback
  */
-export function normalizeI18nConfig(
+export const normalizeI18nConfig = function normalizeI18nConfig(
 	config?: TranslationInputConfig
 ): I18nConfig {
 	const detectBrowserLanguageFromLegacy =
@@ -230,26 +232,28 @@ export function normalizeI18nConfig(
 			: !config.disableAutoLanguageSwitch;
 
 	return {
-		messages: config?.i18n?.messages ?? config?.translations ?? {},
-		locale: config?.i18n?.locale ?? config?.defaultLanguage,
 		detectBrowserLanguage:
 			config?.i18n?.detectBrowserLanguage ?? detectBrowserLanguageFromLegacy,
+		locale: config?.i18n?.locale ?? config?.defaultLanguage,
+		messages: config?.i18n?.messages ?? config?.translations ?? {},
 	};
-}
+};
 
 /**
  * Maps canonical i18n config back to the legacy translation config shape.
  */
-export function toTranslationConfig(config: I18nConfig): TranslationConfig {
+export const toTranslationConfig = function toTranslationConfig(
+	config: I18nConfig
+): TranslationConfig {
 	return {
-		translations: config.messages,
 		defaultLanguage: config.locale,
 		disableAutoLanguageSwitch:
 			config.detectBrowserLanguage === undefined
 				? undefined
 				: !config.detectBrowserLanguage,
+		translations: config.messages,
 	};
-}
+};
 
 /**
  * Resolves legacy and v2 i18n inputs into a normalized legacy translation config.
@@ -257,7 +261,7 @@ export function toTranslationConfig(config: I18nConfig): TranslationConfig {
  * @param legacyConfig Legacy translation input.
  * @param i18nConfig Preferred v2 i18n input.
  */
-export function resolveTranslationInput(
+export const resolveTranslationInput = function resolveTranslationInput(
 	legacyConfig?: Partial<TranslationConfig>,
 	i18nConfig?: Partial<I18nConfig>
 ): TranslationConfig | undefined {
@@ -271,12 +275,12 @@ export function resolveTranslationInput(
 	}
 
 	return toTranslationConfig(normalizeI18nConfig(config));
-}
+};
 
 /**
  * Merges custom translations with defaults
  */
-export function mergeTranslationConfigs(
+export const mergeTranslationConfigs = function mergeTranslationConfigs(
 	defaultConfig: TranslationInputConfig,
 	customConfig?: TranslationInputConfig
 ): TranslationConfig {
@@ -312,18 +316,18 @@ export function mergeTranslationConfigs(
 	}
 
 	return toTranslationConfig({
-		messages: translations as Record<string, Partial<Translations>>,
-		locale: normalizedCustom?.locale ?? normalizedDefault.locale,
 		detectBrowserLanguage:
 			normalizedCustom?.detectBrowserLanguage ??
 			normalizedDefault.detectBrowserLanguage,
+		locale: normalizedCustom?.locale ?? normalizedDefault.locale,
+		messages: translations as Record<string, Partial<Translations>>,
 	});
-}
+};
 
 /**
  * Detects browser language and returns appropriate default language
  */
-export function detectBrowserLanguage(
+export const detectBrowserLanguage = function detectBrowserLanguage(
 	translations: Record<string, unknown>,
 	defaultLanguage: string | undefined,
 	disableAutoSwitch = false
@@ -340,12 +344,12 @@ export function detectBrowserLanguage(
 	return browserLang && browserLang in translations
 		? browserLang
 		: defaultLanguage || 'en';
-}
+};
 
 /**
  * Prepares the translation configuration by merging defaults and detecting language
  */
-export function prepareTranslationConfig(
+export const prepareTranslationConfig = function prepareTranslationConfig(
 	defaultConfig: TranslationInputConfig,
 	customConfig?: TranslationInputConfig
 ): TranslationConfig {
@@ -357,4 +361,4 @@ export function prepareTranslationConfig(
 		!detectBrowser
 	);
 	return { ...mergedConfig, defaultLanguage };
-}
+};

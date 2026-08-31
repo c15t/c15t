@@ -10,11 +10,7 @@
 
 import { assert, describe, it } from 'vitest';
 
-import {
-	extractBearerToken,
-	validateApiKey,
-	validateRequestAuth,
-} from './auth';
+import { extractBearerToken, validateApiKey } from './auth';
 
 const KEYS = ['sk_live_correct', 'sk_live_second'];
 

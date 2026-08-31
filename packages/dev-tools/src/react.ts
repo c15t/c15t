@@ -99,9 +99,9 @@ export const C15TDevTools = ({
 
 		// Create devtools instance
 		devtoolsRef.current = createDevTools({
+			defaultOpen,
 			namespace,
 			position,
-			defaultOpen,
 		});
 
 		// Cleanup on unmount

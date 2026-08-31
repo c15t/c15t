@@ -10,82 +10,6 @@ import { useTranslations } from '~/hooks/use-translations';
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
-const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(function (
-	{ children, category, placeholder, noStyle, className, theme, ...props },
-	ref
-) {
-	const {
-		has,
-		updateConsentCategories,
-		consentCategories,
-		policyCategories,
-		policyScopeMode,
-	} = useConsentManager();
-	const { frame } = useTranslations();
-	const isMounted = useIsHydrated();
-	const [isReady, setIsReady] = useState(false);
-
-	const hasConsent = has(category);
-	const hasPolicyScope =
-		Array.isArray(policyCategories) &&
-		policyCategories.length > 0 &&
-		!policyCategories.includes('*');
-	const isOutOfPolicyCategory =
-		hasPolicyScope && !policyCategories.includes(category);
-	const isStrictPolicyBlocked =
-		policyScopeMode === 'strict' && isOutOfPolicyCategory;
-
-	useEffect(() => {
-		if (!consentCategories.includes(category)) {
-			updateConsentCategories([...consentCategories, category]);
-		}
-	}, [category, consentCategories, updateConsentCategories]);
-
-	// Wait for next frame to ensure styles are loaded
-	useEffect(() => {
-		if (isMounted) {
-			requestAnimationFrame(() => {
-				setIsReady(true);
-			});
-		}
-	}, [isMounted]);
-
-	const renderContent = () => {
-		// Before ready, show nothing to prevent FOUC
-		if (!isMounted || !isReady) {
-			return null;
-		}
-
-		// After ready, show children if consent is granted
-		if (hasConsent) {
-			return children;
-		}
-
-		// Otherwise show placeholder
-		return (
-			placeholder || (
-				<DefaultPlaceholder
-					category={category}
-					policyBlocked={isStrictPolicyBlocked}
-					policyBlockedMessage={frame?.policyBlocked}
-				/>
-			)
-		);
-	};
-
-	return (
-		<div
-			ref={ref}
-			className={className}
-			{...props}
-		>
-			{renderContent()}
-		</div>
-	);
-});
-
-FrameComponent.displayName = 'Frame';
-
 const DefaultPlaceholder = ({
 	category,
 	policyBlocked,
@@ -94,18 +18,102 @@ const DefaultPlaceholder = ({
 	category: AllConsentNames;
 	policyBlocked: boolean;
 	policyBlockedMessage?: string;
-}) => {
-	return (
-		<FrameRoot>
-			<FrameTitle category={category}>
-				{policyBlocked
-					? (policyBlockedMessage ??
-						"This content is unavailable under your region's consent policy.")
-					: undefined}
-			</FrameTitle>
-			{!policyBlocked ? <FrameButton category={category} /> : null}
-		</FrameRoot>
-	);
-};
+}) => (
+	<FrameRoot>
+		<FrameTitle category={category}>
+			{policyBlocked
+				? (policyBlockedMessage ??
+					"This content is unavailable under your region's consent policy.")
+				: undefined}
+		</FrameTitle>
+		{policyBlocked ? null : <FrameButton category={category} />}
+	</FrameRoot>
+);
+const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function FrameComponent(
+		{
+			children,
+			category,
+			placeholder,
+			noStyle: _noStyle,
+			className,
+			theme: _theme,
+			...props
+		},
+		ref
+	) {
+		const {
+			has,
+			updateConsentCategories,
+			consentCategories,
+			policyCategories,
+			policyScopeMode,
+		} = useConsentManager();
+		const { frame } = useTranslations();
+		const isMounted = useIsHydrated();
+		const [isReady, setIsReady] = useState(false);
+
+		const hasConsent = has(category);
+		const hasPolicyScope =
+			Array.isArray(policyCategories) &&
+			policyCategories.length > 0 &&
+			!policyCategories.includes('*');
+		const isOutOfPolicyCategory =
+			hasPolicyScope && !policyCategories.includes(category);
+		const isStrictPolicyBlocked =
+			policyScopeMode === 'strict' && isOutOfPolicyCategory;
+
+		useEffect(() => {
+			if (!consentCategories.includes(category)) {
+				updateConsentCategories([...consentCategories, category]);
+			}
+		}, [category, consentCategories, updateConsentCategories]);
+
+		// Wait for next frame to ensure styles are loaded
+		useEffect(() => {
+			if (isMounted) {
+				requestAnimationFrame(() => {
+					setIsReady(true);
+				});
+			}
+		}, [isMounted]);
+
+		const renderContent = () => {
+			// Before ready, show nothing to prevent FOUC
+			if (!isMounted || !isReady) {
+				return null;
+			}
+
+			// After ready, show children if consent is granted
+			if (hasConsent) {
+				return children;
+			}
+
+			// Otherwise show placeholder
+			return (
+				placeholder || (
+					<DefaultPlaceholder
+						category={category}
+						policyBlocked={isStrictPolicyBlocked}
+						policyBlockedMessage={frame?.policyBlocked}
+					/>
+				)
+			);
+		};
+
+		return (
+			<div
+				ref={ref}
+				className={className}
+				{...props}
+			>
+				{renderContent()}
+			</div>
+		);
+	}
+);
+
+FrameComponent.displayName = 'Frame';
 
 export const Frame = FrameComponent;

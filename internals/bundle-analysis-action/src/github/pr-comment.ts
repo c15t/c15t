@@ -49,30 +49,32 @@ const defaultActionCore: ActionCore = {
 
 let actionCore: ActionCore = defaultActionCore;
 
-export function setPrCommentActionCoreForTests(
-	nextCore: ActionCore
-): () => void {
-	actionCore = nextCore;
-	return () => {
-		actionCore = defaultActionCore;
+export const setPrCommentActionCoreForTests =
+	function setPrCommentActionCoreForTests(nextCore: ActionCore): () => void {
+		actionCore = nextCore;
+		return () => {
+			actionCore = defaultActionCore;
+		};
 	};
-}
 
-function autoStart(header: string): string {
+const autoStart = function autoStart(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
 	return `<!-- c15t:${key}:START -->`;
-}
+};
 
-function autoEnd(header: string): string {
+const autoEnd = function autoEnd(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
 	return `<!-- c15t:${key}:END -->`;
-}
+};
 
-function bodyWithHeader(body: string, header: string): string {
+const bodyWithHeader = function bodyWithHeader(
+	body: string,
+	header: string
+): string {
 	return [autoStart(header), body, autoEnd(header)].join('\n');
-}
+};
 
-export async function findPreviousComment(
+export const findPreviousComment = async function findPreviousComment(
 	octokit: CommentOctokit,
 	repo: RepoRef,
 	number: number,
@@ -87,15 +89,15 @@ export async function findPreviousComment(
 		const { data } = await octokit.rest.issues.listComments({
 			...repo,
 			issue_number: number,
-			per_page: perPage,
 			page,
+			per_page: perPage,
 		});
 
 		for (const comment of data) {
 			if (comment.body?.includes(start)) {
 				return {
-					id: comment.id,
 					body: comment.body || '',
+					id: comment.id,
 				};
 			}
 		}
@@ -104,13 +106,13 @@ export async function findPreviousComment(
 			break;
 		}
 
-		page++;
+		page += 1;
 	}
 
 	return undefined;
-}
+};
 
-export async function createComment(
+export const createComment = async function createComment(
 	octokit: CommentOctokit,
 	repo: RepoRef,
 	number: number,
@@ -121,8 +123,8 @@ export async function createComment(
 	try {
 		const { data } = await octokit.rest.issues.createComment({
 			...repo,
-			issue_number: number,
 			body: bodyWithHeaderText,
+			issue_number: number,
 		});
 		return { id: data.id };
 	} catch (error) {
@@ -131,9 +133,9 @@ export async function createComment(
 		}
 		return undefined;
 	}
-}
+};
 
-export async function updateComment(
+export const updateComment = async function updateComment(
 	octokit: CommentOctokit,
 	repo: RepoRef,
 	commentId: number,
@@ -144,17 +146,17 @@ export async function updateComment(
 	try {
 		await octokit.rest.issues.updateComment({
 			...repo,
-			comment_id: commentId,
 			body: bodyWithHeaderText,
+			comment_id: commentId,
 		});
 	} catch (error) {
 		if (error instanceof Error) {
 			actionCore.setFailed(`Failed to update comment: ${error.message}`);
 		}
 	}
-}
+};
 
-export async function ensureComment(
+export const ensureComment = async function ensureComment(
 	octokit: CommentOctokit,
 	repo: RepoRef,
 	number: number,
@@ -172,4 +174,4 @@ export async function ensureComment(
 			actionCore.setOutput('created_comment_id', created.id);
 		}
 	}
-}
+};

@@ -100,11 +100,11 @@ const iabT = computed(
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
-	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 	customize: iabT.value?.common?.saveSettings ?? 'Save settings',
+	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-function mapVendor(
+const mapVendor = function mapVendor(
 	_gvl: GlobalVendorList,
 	vendorId: string,
 	vendor: GlobalVendorList['vendors'][string],
@@ -112,29 +112,29 @@ function mapVendor(
 ): IabProcessedVendor {
 	return {
 		id: Number(vendorId),
+		isCustom: false,
 		name: vendor.name,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		isCustom: false,
 	};
-}
+};
 
-function mapCustomVendor(
+const mapCustomVendor = function mapCustomVendor(
 	vendor: NonIABVendor,
 	purposeId?: number
 ): IabProcessedVendor {
 	return {
 		id: vendor.id,
+		isCustom: true,
 		name: vendor.name,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		isCustom: true,
 	};
-}
+};
 
-function processGvlData(
+const processGvlData = function processGvlData(
 	gvlData: GlobalVendorList,
 	customVendorList: NonIABVendor[]
 ) {
@@ -161,10 +161,10 @@ function processGvlData(
 				.map((vendor) => mapCustomVendor(vendor, purposeId));
 
 			return {
-				id: purposeId,
-				name: purpose.name,
 				description: purpose.description,
+				id: purposeId,
 				illustrations: purpose.illustrations ?? [],
+				name: purpose.name,
 				vendors: [...iabVendors, ...customForPurpose],
 			};
 		})
@@ -174,10 +174,10 @@ function processGvlData(
 		gvlData.specialPurposes ?? {}
 	)
 		.map(([id, purpose]) => ({
-			id: Number(id),
-			name: purpose.name,
 			description: purpose.description,
+			id: Number(id),
 			illustrations: purpose.illustrations ?? [],
+			name: purpose.name,
 			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
 				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
@@ -188,10 +188,10 @@ function processGvlData(
 		gvlData.specialFeatures ?? {}
 	)
 		.map(([id, feature]) => ({
-			id: Number(id),
-			name: feature.name,
 			description: feature.description,
+			id: Number(id),
 			illustrations: feature.illustrations ?? [],
+			name: feature.name,
 			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
 				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
@@ -200,10 +200,10 @@ function processGvlData(
 
 	const features: IabProcessedPurpose[] = Object.entries(gvlData.features ?? {})
 		.map(([id, feature]) => ({
-			id: Number(id),
-			name: feature.name,
 			description: feature.description,
+			id: Number(id),
 			illustrations: feature.illustrations ?? [],
+			name: feature.name,
 			vendors: Object.entries(gvlData.vendors)
 				.filter(([, vendor]) => vendor.features?.includes(Number(id)))
 				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
@@ -231,10 +231,10 @@ function processGvlData(
 		);
 		if (coveredIds.length >= 2) {
 			stackScores.push({
-				stackId: Number(stackIdStr),
-				stack,
 				coveredPurposeIds: coveredIds,
 				score: coveredIds.length,
+				stack,
+				stackId: Number(stackIdStr),
 			});
 		}
 	}
@@ -250,9 +250,9 @@ function processGvlData(
 		);
 		if (unassigned.length >= 2) {
 			stacks.push({
+				description: stack.description,
 				id: stackId,
 				name: stack.name,
-				description: stack.description,
 				purposes: otherPurposes.filter((purpose) =>
 					unassigned.includes(purpose.id)
 				),
@@ -271,22 +271,22 @@ function processGvlData(
 		: uncoveredPurposes;
 
 	return {
-		purposes: processedPurposes,
-		specialPurposes,
-		specialFeatures,
 		features,
+		purposes: processedPurposes,
+		specialFeatures,
+		specialPurposes,
 		stacks,
 		standalonePurposes,
 	};
-}
+};
 
 const processed = computed(() => {
 	if (!gvl.value) {
 		return {
-			purposes: [] as IabProcessedPurpose[],
-			specialPurposes: [] as IabProcessedPurpose[],
-			specialFeatures: [] as IabProcessedPurpose[],
 			features: [] as IabProcessedPurpose[],
+			purposes: [] as IabProcessedPurpose[],
+			specialFeatures: [] as IabProcessedPurpose[],
+			specialPurposes: [] as IabProcessedPurpose[],
 			stacks: [] as IabProcessedStack[],
 			standalonePurposes: [] as IabProcessedPurpose[],
 		};
@@ -325,37 +325,49 @@ const essentialPartnerCount = computed(
 		]).size
 );
 
-function setPurposeConsent(purposeId: number, value: boolean) {
+const setPurposeConsent = function setPurposeConsent(
+	purposeId: number,
+	value: boolean
+) {
 	draftIab.value.purposeConsents = {
 		...draftIab.value.purposeConsents,
 		[purposeId]: value,
 	};
-}
+};
 
-function setPurposeLegitimateInterest(purposeId: number, value: boolean) {
+const setPurposeLegitimateInterest = function setPurposeLegitimateInterest(
+	purposeId: number,
+	value: boolean
+) {
 	draftIab.value.purposeLegitimateInterests = {
 		...draftIab.value.purposeLegitimateInterests,
 		[purposeId]: value,
 	};
-}
+};
 
-function setVendorConsent(vendorId: IabVendorId, value: boolean) {
+const setVendorConsent = function setVendorConsent(
+	vendorId: IabVendorId,
+	value: boolean
+) {
 	draftIab.value.vendorConsents = {
 		...draftIab.value.vendorConsents,
 		[String(vendorId)]: value,
 	};
-}
+};
 
-function setSpecialFeatureOptIn(featureId: number, value: boolean) {
+const setSpecialFeatureOptIn = function setSpecialFeatureOptIn(
+	featureId: number,
+	value: boolean
+) {
 	draftIab.value.specialFeatureOptIns = {
 		...draftIab.value.specialFeatureOptIns,
 		[featureId]: value,
 	};
-}
+};
 
-function syncDraftFromSelection() {
+const syncDraftFromSelection = function syncDraftFromSelection() {
 	draftIab.value = structuredClone(iabSelection.value);
-}
+};
 
 watch(
 	isOpen,
@@ -380,24 +392,24 @@ watch(
 	}
 );
 
-function handleTabChange(tab: 'purposes' | 'vendors') {
+const handleTabChange = function handleTabChange(tab: 'purposes' | 'vendors') {
 	activeTab.value = tab;
 	draftIab.value.preferenceCenterTab = tab;
 	iabSelection.value.preferenceCenterTab = tab;
-}
+};
 
-function closeDialog() {
+const closeDialog = function closeDialog() {
 	activeUI.value = null;
-}
+};
 
-function onDialogKeydown(event: KeyboardEvent) {
+const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 	if (isDialogDismissKey(event.key)) {
 		event.preventDefault();
 		closeDialog();
 	}
-}
+};
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		save(
 			{
@@ -415,12 +427,12 @@ function onAction(action: PolicyUiAction) {
 	if (action === 'reject') {
 		save('none', activeTab.value);
 	}
-}
+};
 
-function handleVendorClick(vendorId: IabVendorId) {
+const handleVendorClick = function handleVendorClick(vendorId: IabVendorId) {
 	selectedVendorId.value = vendorId;
 	handleTabChange('vendors');
-}
+};
 
 const scrollLock = computed(
 	() => initValue.value?.policy?.ui?.dialog?.scrollLock ?? true

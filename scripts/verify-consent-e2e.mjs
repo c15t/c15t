@@ -5,54 +5,53 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { chromium } from 'playwright';
 
-function createDeferredPromise(run) {
+const createDeferredPromise = function createDeferredPromise(run) {
 	const deferred = Promise.withResolvers();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 const bannerSelector = '[data-testid="consent-banner-root"]';
 const acceptSelector = '[data-testid="consent-banner-accept-button"]';
 
 const apps = [
 	{
-		label: 'Next.js manifest SSR',
-		dir: 'benchmarks/nextjs-browser-bench',
-		port: 4312,
-		path: '/v3-manifest-ssr',
-		probeName: '__c15tNextBench',
 		buildOutput: 'benchmarks/nextjs-browser-bench/.next/BUILD_ID',
-		startCommand: ['./node_modules/.bin/next', ['start', '--port', '4312']],
+		dir: 'benchmarks/nextjs-browser-bench',
 		env: { C15T_BENCH_COLD_MANIFEST_TOKEN: String(Date.now()) },
+		label: 'Next.js manifest SSR',
+		path: '/v3-manifest-ssr',
+		port: 4312,
+		probeName: '__c15tNextBench',
+		startCommand: ['./node_modules/.bin/next', ['start', '--port', '4312']],
 	},
 	{
-		label: 'Nuxt manifest SSR',
-		dir: 'benchmarks/nuxt-browser-bench',
-		port: 4313,
-		path: '/ssr-manifest',
-		probeName: '__c15tNuxtBench',
 		buildOutput: 'benchmarks/nuxt-browser-bench/.output/server/index.mjs',
-		startCommand: ['node', ['.output/server/index.mjs']],
+		dir: 'benchmarks/nuxt-browser-bench',
 		env: { PORT: '4313' },
-		prebuild: [
-			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/core' },
-			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/vue' },
-		],
 		extraChecks: [verifyNuxtNitroRoutes],
+		label: 'Nuxt manifest SSR',
+		path: '/ssr-manifest',
+		port: 4313,
+		prebuild: [
+			{ args: ['run', 'build'], command: 'bun', cwd: 'packages/core' },
+			{ args: ['run', 'build'], command: 'bun', cwd: 'packages/vue' },
+		],
+		probeName: '__c15tNuxtBench',
+		startCommand: ['node', ['.output/server/index.mjs']],
 	},
 	{
-		label: 'SvelteKit manifest SSR',
-		dir: 'benchmarks/sveltekit-browser-bench',
-		port: 4314,
-		path: '/ssr-manifest',
-		probeName: '__c15tSvelteBench',
 		buildOutput: 'benchmarks/sveltekit-browser-bench/build/index.js',
-		startCommand: ['node', ['build/index.js']],
+		dir: 'benchmarks/sveltekit-browser-bench',
 		env: { PORT: '4314' },
+		label: 'SvelteKit manifest SSR',
+		path: '/ssr-manifest',
+		port: 4314,
 		prebuild: [
-			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/core' },
-			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/svelte' },
+			{ args: ['run', 'build'], command: 'bun', cwd: 'packages/core' },
+			{ args: ['run', 'build'], command: 'bun', cwd: 'packages/svelte' },
 		],
+		probeName: '__c15tSvelteBench',
 		skips: {
 			// Do not fake a pass: @c15t/svelte's ConsentBanner mounts
 			// client-side only (useBannerVisibility gates rendering on
@@ -62,37 +61,38 @@ const apps = [
 			ssrBannerHtml:
 				'@c15t/svelte does not render banner markup during SSR yet (ConsentBanner gates on onMount); prefetch only seeds the kernel',
 		},
+		startCommand: ['node', ['build/index.js']],
 	},
 ];
 
-function appUrl(app) {
+const appUrl = function appUrl(app) {
 	return `http://127.0.0.1:${app.port}${app.path}`;
-}
+};
 
-function countBannerRoots(html) {
-	return (html.match(/data-testid=["']consent-banner-root["']/g) ?? []).length;
-}
+const countBannerRoots = function countBannerRoots(html) {
+	return (html.match(/data-testid=["']consent-banner-root["']/gu) ?? []).length;
+};
 
-function assertEqual(actual, expected, message) {
+const assertEqual = function assertEqual(actual, expected, message) {
 	if (actual !== expected) {
 		throw new Error(`${message}: expected ${expected}, received ${actual}`);
 	}
-}
+};
 
-function assert(condition, message) {
+const assert = function assert(condition, message) {
 	if (!condition) {
 		throw new Error(message);
 	}
-}
+};
 
-function spawnProcess(command, args, options = {}) {
+const spawnProcess = function spawnProcess(command, args, options = {}) {
 	return spawn(command, args, {
 		...options,
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
-}
+};
 
-async function runCommand(command, args, options = {}) {
+const runCommand = async function runCommand(command, args, options = {}) {
 	const child = spawnProcess(command, args, options);
 	const output = [];
 	child.stdout.on('data', (chunk) => output.push(chunk.toString()));
@@ -105,43 +105,48 @@ async function runCommand(command, args, options = {}) {
 			`${command} ${args.join(' ')} failed with exit ${code}\n${output.join('')}`
 		);
 	}
-}
+};
 
-async function ensureBuilt(app) {
-	if (!existsSync(app.buildOutput)) {
-		console.log(`Building ${app.label} because ${app.buildOutput} is missing`);
-	} else {
+const ensureBuilt = async function ensureBuilt(app) {
+	if (existsSync(app.buildOutput)) {
 		console.log(`Building ${app.label}`);
+	} else {
+		console.log(`Building ${app.label} because ${app.buildOutput} is missing`);
 	}
 	for (const step of app.prebuild ?? []) {
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await runCommand(step.command, step.args, { cwd: step.cwd });
 	}
 	await runCommand('bun', ['run', 'build'], { cwd: app.dir });
-}
+};
 
-async function waitForServer(url, timeoutMs = 30_000) {
+const waitForServer = async function waitForServer(url, timeoutMs = 30_000) {
 	const startedAt = Date.now();
 	while (Date.now() - startedAt < timeoutMs) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const response = await fetch(url);
 			if (response.ok) {
 				return;
 			}
-		} catch {}
+		} catch {
+			// The optional generated file may not exist.
+		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await delay(250);
 	}
 	throw new Error(`Timed out waiting for ${url}`);
-}
+};
 
-async function stopServer(server) {
-	if (server.exitCode != null) {
+const stopServer = async function stopServer(server) {
+	if (server.exitCode !== null && server.exitCode !== undefined) {
 		return;
 	}
 	server.kill('SIGTERM');
 	await createDeferredPromise((resolve) => server.once('exit', resolve));
-}
+};
 
-async function startServer(app) {
+const startServer = async function startServer(app) {
 	const [command, args] = app.startCommand;
 	const server = spawnProcess(command, args, {
 		cwd: app.dir,
@@ -151,12 +156,12 @@ async function startServer(app) {
 	server.stderr.on('data', (chunk) => stderr.push(chunk.toString()));
 	await waitForServer(`http://127.0.0.1:${app.port}`);
 	return { server, stderr };
-}
+};
 
-async function newPage(browser, app, headers = {}) {
+const newPage = async function newPage(browser, app, headers = {}) {
 	const context = await browser.newContext({
 		extraHTTPHeaders: headers,
-		viewport: { width: 1280, height: 900 },
+		viewport: { height: 900, width: 1280 },
 	});
 	await context.addInitScript(() => {
 		window.__c15tLayoutShiftScore = 0;
@@ -168,24 +173,26 @@ async function newPage(browser, app, headers = {}) {
 					}
 				}
 			});
-			observer.observe({ type: 'layout-shift', buffered: true });
-		} catch {}
+			observer.observe({ buffered: true, type: 'layout-shift' });
+		} catch {
+			// PerformanceObserver is optional in test browsers.
+		}
 	});
 	const page = await context.newPage();
 	return { context, page, url: appUrl(app) };
-}
+};
 
-async function fetchHtml(context, url, headers = {}) {
+const fetchHtml = async function fetchHtml(context, url, headers = {}) {
 	const response = await context.request.get(url, { headers });
 	assert(response.ok(), `${url} returned ${response.status()}`);
 	return response.text();
-}
+};
 
-async function gotoSettled(page, url) {
+const gotoSettled = async function gotoSettled(page, url) {
 	await page.goto(url, { waitUntil: 'networkidle' });
-}
+};
 
-async function readProbe(page, app) {
+const readProbe = async function readProbe(page, app) {
 	await page.waitForFunction(
 		(name) => {
 			const probe = window[name];
@@ -195,9 +202,9 @@ async function readProbe(page, app) {
 		{ timeout: 10_000 }
 	);
 	return page.evaluate((name) => window[name], app.probeName);
-}
+};
 
-async function verifyFreshVisit(browser, app) {
+const verifyFreshVisit = async function verifyFreshVisit(browser, app) {
 	const { context, page, url } = await newPage(browser, app);
 	try {
 		if (app.skips?.ssrBannerHtml) {
@@ -223,15 +230,18 @@ async function verifyFreshVisit(browser, app) {
 	} finally {
 		await context.close();
 	}
-}
+};
 
-async function verifyOverrideHeaders(browser, app) {
+const verifyOverrideHeaders = async function verifyOverrideHeaders(
+	browser,
+	app
+) {
 	const { context, page, url } = await newPage(browser, app, {
-		'x-c15t-country': 'FR',
 		'cf-ipcountry': 'US',
-		'x-vercel-ip-country': 'US',
-		'x-c15t-region': 'BRE',
 		'cf-region-code': 'TX',
+		'x-c15t-country': 'FR',
+		'x-c15t-region': 'BRE',
+		'x-vercel-ip-country': 'US',
 	});
 	try {
 		await gotoSettled(page, url);
@@ -250,9 +260,9 @@ async function verifyOverrideHeaders(browser, app) {
 	} finally {
 		await context.close();
 	}
-}
+};
 
-async function verifyGpc(browser, app) {
+const verifyGpc = async function verifyGpc(browser, app) {
 	const { context, page, url } = await newPage(browser, app, {
 		'sec-gpc': '1',
 	});
@@ -264,9 +274,9 @@ async function verifyGpc(browser, app) {
 	} finally {
 		await context.close();
 	}
-}
+};
 
-async function verifyLanguage(browser, app) {
+const verifyLanguage = async function verifyLanguage(browser, app) {
 	const { context, page, url } = await newPage(browser, app, {
 		'accept-language': 'en;q=0.2, de-DE;q=0.9',
 	});
@@ -282,13 +292,13 @@ async function verifyLanguage(browser, app) {
 	} finally {
 		await context.close();
 	}
-}
+};
 
-function cookieHeader(cookies) {
+const cookieHeader = function cookieHeader(cookies) {
 	return cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ');
-}
+};
 
-async function verifyNoZombie(browser, app) {
+const verifyNoZombie = async function verifyNoZombie(browser, app) {
 	const { context, page, url } = await newPage(browser, app);
 	try {
 		await gotoSettled(page, url);
@@ -324,16 +334,20 @@ async function verifyNoZombie(browser, app) {
 	} finally {
 		await context.close();
 	}
-}
+};
 
-function readC15tVersion() {
+const readC15tVersion = function readC15tVersion() {
 	const packageJson = JSON.parse(
 		readFileSync(new URL('../packages/core/package.json', import.meta.url))
 	);
 	return packageJson.version;
-}
+};
 
-async function fetchJsonResponse(app, url, headers = {}) {
+const fetchJsonResponse = async function fetchJsonResponse(
+	app,
+	url,
+	headers = {}
+) {
 	const response = await fetch(url, { headers });
 	assertEqual(response.status, 200, `${app.label}: ${url} status`);
 	const contentType = response.headers.get('content-type') ?? '';
@@ -341,8 +355,8 @@ async function fetchJsonResponse(app, url, headers = {}) {
 		contentType.includes('application/json'),
 		`${app.label}: ${url} content-type was ${contentType || '<empty>'}`
 	);
-	return { response, body: await response.json() };
-}
+	return { body: await response.json(), response };
+};
 
 /**
  * Direct HTTP assertions against the Nitro server routes the @c15t/vue
@@ -350,7 +364,8 @@ async function fetchJsonResponse(app, url, headers = {}) {
  * runtime/server/{init,manifest}.get.ts). Runs against the already-booted
  * Nuxt server — no browser involved.
  */
-async function verifyNuxtNitroRoutes(app) {
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 	const base = `http://127.0.0.1:${app.port}`;
 
 	// --- /api/c15t/manifest: cached proxy of the upstream manifest ---
@@ -417,11 +432,11 @@ async function verifyNuxtNitroRoutes(app) {
 
 	// --- /api/c15t/init: manifest-resolved init, geo/GPC/language aware ---
 	const { body: init } = await fetchJsonResponse(app, `${base}/api/c15t/init`, {
-		'x-c15t-country': 'FR',
-		'cf-ipcountry': 'US',
-		'x-c15t-region': 'BRE',
-		'sec-gpc': '1',
 		'accept-language': 'en;q=0.2, de-DE;q=0.9',
+		'cf-ipcountry': 'US',
+		'sec-gpc': '1',
+		'x-c15t-country': 'FR',
+		'x-c15t-region': 'BRE',
 	});
 	assertEqual(
 		init.translations?.language,
@@ -497,9 +512,9 @@ async function verifyNuxtNitroRoutes(app) {
 	console.log(
 		`✓ ${app.label}: upstream manifest fetch carries x-c15t-version=${expectedVersion}`
 	);
-}
+};
 
-async function verifyApp(browser, app) {
+const verifyApp = async function verifyApp(browser, app) {
 	await ensureBuilt(app);
 	const { server, stderr } = await startServer(app);
 	try {
@@ -509,8 +524,10 @@ async function verifyApp(browser, app) {
 		await verifyLanguage(browser, app);
 		await verifyNoZombie(browser, app);
 		for (const extraCheck of app.extraChecks ?? []) {
+			// oxlint-disable-next-line no-await-in-loop -- App checks intentionally share one sequential browser session.
 			await extraCheck(app);
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 	} catch (error) {
 		if (stderr.length > 0) {
 			console.error(stderr.join(''));
@@ -519,13 +536,14 @@ async function verifyApp(browser, app) {
 	} finally {
 		await stopServer(server);
 	}
-}
+};
 
-async function main() {
+const main = async function main() {
 	const startedAt = Date.now();
 	const browser = await chromium.launch({ headless: true });
 	try {
 		for (const app of apps) {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await verifyApp(browser, app);
 		}
 	} finally {
@@ -534,7 +552,7 @@ async function main() {
 	console.log(
 		`Total e2e wall time: ${((Date.now() - startedAt) / 1000).toFixed(1)}s`
 	);
-}
+};
 
 try {
 	await main();

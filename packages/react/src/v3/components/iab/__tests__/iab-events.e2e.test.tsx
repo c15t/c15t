@@ -5,7 +5,7 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
@@ -22,7 +22,6 @@ import {
 	removeCMPEventListener,
 	waitForCMP,
 	waitForElement,
-	waitForElementRemoved,
 } from './e2e-setup';
 
 describe('IAB Events E2E Tests', () => {

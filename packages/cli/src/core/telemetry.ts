@@ -8,6 +8,6 @@ export {
 	type TelemetryOptions,
 } from '../utils/telemetry';
 
-export function createDisabledTelemetry() {
+export const createDisabledTelemetry = function createDisabledTelemetry() {
 	return createTelemetry({ disabled: true });
-}
+};

@@ -13,7 +13,7 @@ import { handleOfflineResponse } from './utils';
  * @remarks
  * v2.0: The body must include a client-generated subjectId.
  */
-export async function setConsent(
+export const setConsent = async function setConsent(
 	storageConfig: LibsCookieTypes.StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
@@ -26,10 +26,10 @@ export async function setConsent(
 			saveConsentToStorage(
 				{
 					consentInfo: {
-						time: Date.now(),
-						subjectId,
 						externalId: options?.body?.externalSubjectId,
 						identityProvider: options?.body?.identityProvider,
+						subjectId,
+						time: Date.now(),
 					},
 					consents: options?.body?.preferences || {},
 				},
@@ -43,4 +43,4 @@ export async function setConsent(
 	}
 
 	return await handleOfflineResponse<SetConsentResponse>(options);
-}
+};

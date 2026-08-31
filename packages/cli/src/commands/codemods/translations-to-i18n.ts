@@ -56,12 +56,14 @@ export interface CodemodRunResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
 	return rawName.replace(/^['"]|['"]$/gu, '');
-}
+};
 
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -76,59 +78,65 @@ function getProperty(
 	}
 
 	return undefined;
-}
+};
 
-function hasProperty(
+const hasProperty = function hasProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): boolean {
 	return Boolean(getProperty(objectLiteral, name));
-}
+};
 
-function renameProperty(property: PropertyAssignment, nextName: string): void {
+const renameProperty = function renameProperty(
+	property: PropertyAssignment,
+	nextName: string
+): void {
 	property.getNameNode().replaceWithText(nextName);
-}
+};
 
-function isLegacyTranslationConfigObject(
-	objectLiteral: ObjectLiteralExpression
-): boolean {
-	// Heuristic: treat objects as legacy translation config when they include
-	// defaultLanguage/disableAutoLanguageSwitch, or a bare "translations" map
-	// without sibling "language", "i18n", "messages", or "locale" keys.
-	// Limitation: unrelated objects using these property names can be false positives.
-	const hasDefaultLanguage = hasProperty(objectLiteral, 'defaultLanguage');
-	const hasDisableAutoLanguageSwitch = hasProperty(
-		objectLiteral,
-		'disableAutoLanguageSwitch'
-	);
-	const hasTranslations = hasProperty(objectLiteral, 'translations');
-	const hasLanguage = hasProperty(objectLiteral, 'language');
-	const hasI18n = hasProperty(objectLiteral, 'i18n');
-	const hasMessages = hasProperty(objectLiteral, 'messages');
-	const hasLocale = hasProperty(objectLiteral, 'locale');
+const isLegacyTranslationConfigObject =
+	function isLegacyTranslationConfigObject(
+		objectLiteral: ObjectLiteralExpression
+	): boolean {
+		// Heuristic: treat objects as legacy translation config when they include
+		// defaultLanguage/disableAutoLanguageSwitch, or a bare "translations" map
+		// without sibling "language", "i18n", "messages", or "locale" keys.
+		// Limitation: unrelated objects using these property names can be false positives.
+		const hasDefaultLanguage = hasProperty(objectLiteral, 'defaultLanguage');
+		const hasDisableAutoLanguageSwitch = hasProperty(
+			objectLiteral,
+			'disableAutoLanguageSwitch'
+		);
+		const hasTranslations = hasProperty(objectLiteral, 'translations');
+		const hasLanguage = hasProperty(objectLiteral, 'language');
+		const hasI18n = hasProperty(objectLiteral, 'i18n');
+		const hasMessages = hasProperty(objectLiteral, 'messages');
+		const hasLocale = hasProperty(objectLiteral, 'locale');
 
-	if (hasDefaultLanguage || hasDisableAutoLanguageSwitch) {
-		return true;
-	}
+		if (hasDefaultLanguage || hasDisableAutoLanguageSwitch) {
+			return true;
+		}
 
-	// This catches minimal legacy configs like:
-	// { translations: { de: { ... } } }
-	// while avoiding init response objects like:
-	// { language: 'de', translations: { ... } }
-	if (
-		hasTranslations &&
-		!hasLanguage &&
-		!hasI18n &&
-		!hasMessages &&
-		!hasLocale
-	) {
-		return true;
-	}
+		// This catches minimal legacy configs like:
+		// { translations: { de: { ... } } }
+		// while avoiding init response objects like:
+		// { language: 'de', translations: { ... } }
+		if (
+			hasTranslations &&
+			!hasLanguage &&
+			!hasI18n &&
+			!hasMessages &&
+			!hasLocale
+		) {
+			return true;
+		}
 
-	return false;
-}
+		return false;
+	};
 
-function invertExpression(expressionText: string): string {
+const invertExpression = function invertExpression(
+	expressionText: string
+): string {
 	const trimmed = expressionText.trim();
 
 	if (trimmed === 'true') {
@@ -144,9 +152,9 @@ function invertExpression(expressionText: string): string {
 	}
 
 	return `!(${trimmed})`;
-}
+};
 
-function transformLegacyConfigObject(
+const transformLegacyConfigObject = function transformLegacyConfigObject(
 	objectLiteral: ObjectLiteralExpression
 ): TranslationsToI18nResult {
 	let operations = 0;
@@ -191,9 +199,9 @@ function transformLegacyConfigObject(
 		operations,
 		summaries,
 	};
-}
+};
 
-function transformSourceFile(
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): TranslationsToI18nResult {
 	let operations = 0;
@@ -242,12 +250,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -255,6 +265,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -270,12 +281,12 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 
 	return files;
-}
+};
 
 /**
  * Runs the legacy translations-to-i18n codemod across project source files.
@@ -293,56 +304,58 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  *
  * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
-export async function runTranslationsToI18nCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runTranslationsToI18nCodemod =
+	async function runTranslationsToI18nCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
+		for (const filePath of filePaths) {
+			try {
+				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+				if (!sourceFile) {
+					continue;
+				}
+
+				const result = transformSourceFile(sourceFile);
+				if (!result.changed) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: result.operations,
+					summaries: result.summaries,
+				});
+
+				if (!options.dryRun) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+					await sourceFile.save();
+				}
+			} catch (error) {
+				errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
 			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
 		}
-	}
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

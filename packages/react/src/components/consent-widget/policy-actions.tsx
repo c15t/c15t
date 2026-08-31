@@ -28,7 +28,7 @@ export interface ConsentWidgetPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentDialogAction,
 	props: ConsentWidgetPolicyActionRenderProps
 ) {
@@ -67,7 +67,7 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent widget action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
 export const ConsentWidgetPolicyActions = ({
 	renderAction,
@@ -80,10 +80,10 @@ export const ConsentWidgetPolicyActions = ({
 			Footer={ConsentWidgetFooter}
 			FooterSubGroup={ConsentWidgetFooterSubGroup}
 			classNames={{
-				footerFill: styles.footerFill,
 				footerColumn: styles.footerColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
+				footerFill: styles.footerFill,
 				footerSubGroupColumn: styles.footerSubGroupColumn,
+				footerSubGroupFill: styles.footerSubGroupFill,
 			}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}

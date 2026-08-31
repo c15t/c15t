@@ -51,7 +51,8 @@ export interface PreferenceItemRootProps
 }
 
 const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
-	function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function PreferenceItemRoot(
 		{
 			children,
 			className,
@@ -116,7 +117,11 @@ export interface PreferenceItemTriggerProps extends Omit<
 const PreferenceItemTrigger = forwardRef<
 	HTMLButtonElement,
 	PreferenceItemTriggerProps
->(function ({ children, className, noStyle, onClick, ...rest }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function PreferenceItemTrigger(
+	{ children, className, noStyle, onClick, ...rest },
+	forwardedRef
+) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = preferenceItemVariants();
 	const {
@@ -169,7 +174,8 @@ const createSlotComponent = function createSlotComponent(
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
 ) {
 	const Component = forwardRef<HTMLDivElement, PreferenceItemSlotProps>(
-		function ({ className, noStyle, ...rest }, forwardedRef) {
+		// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+		function Component({ className, noStyle, ...rest }, forwardedRef) {
 			const { noStyle: contextNoStyle } = useTheme();
 			const { noStyle: rootNoStyle } = usePreferenceItemContext();
 			const variants = preferenceItemVariants();
@@ -231,7 +237,11 @@ export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElem
 const PreferenceItemTitle = forwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
->(function ({ children, className, noStyle, ...rest }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function PreferenceItemTitle(
+	{ children, className, noStyle, ...rest },
+	forwardedRef
+) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
 	const variants = preferenceItemVariants();
@@ -261,7 +271,8 @@ export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElemen
 const PreferenceItemContent = forwardRef<
 	HTMLDivElement,
 	PreferenceItemContentProps
->(function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function PreferenceItemContent(
 	{ children, className, innerClassName, noStyle, ...rest },
 	forwardedRef
 ) {

@@ -16,26 +16,25 @@ const LANGUAGE_OPTIONS = [
 ] as const;
 
 const MODEL_LABELS: Record<string, string> = {
-	'opt-in': 'Opt-in',
-	'opt-out': 'Opt-out',
 	iab: 'IAB TCF 2.3',
 	none: 'No banner',
+	'opt-in': 'Opt-in',
+	'opt-out': 'Opt-out',
 };
 
-const StatusRow = ({ label, value }: { label: string; value: string }) => {
-	return (
-		<div className="border-border/70 border-b pb-2">
-			<p className="label-pixel text-muted-foreground">{label}</p>
-			<p className="mt-1 font-mono text-xs">{value}</p>
-		</div>
-	);
-};
+const StatusRow = ({ label, value }: { label: string; value: string }) => (
+	<div className="border-border/70 border-b pb-2">
+		<p className="label-pixel text-muted-foreground">{label}</p>
+		<p className="mt-1 font-mono text-xs">{value}</p>
+	</div>
+);
 
 /**
  * Live view of what the consent manager resolved: active policy, model,
  * location, language, plus the current consent decisions. Must be rendered
  * inside a `ConsentManagerProvider`.
  */
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const [mounted, setMounted] = useState(false);
 	const {
@@ -71,7 +70,8 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 		'en';
 
 	const display = mounted
-		? {
+		? // oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
+			{
 				policyId: policy?.id ?? 'none',
 				model: MODEL_LABELS[model ?? 'none'] ?? (model || 'none'),
 				iabEnabled: iab?.config.enabled ?? false,
@@ -91,33 +91,33 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 					policy?.ui?.mode === 'none' || !policy?.ui
 						? (policy?.ui?.mode ?? 'default')
 						: policy.ui.mode,
-				hasSavedConsent: consentInfo != null,
+				hasSavedConsent: consentInfo !== null && consentInfo !== undefined,
 				// IAB policies use a '*' wildcard — purposes replace categories there.
 				categories: (policyCategories ?? []).filter(
 					(category) => category !== '*'
 				),
 			}
 		: {
-				policyId: '…',
-				model: '…',
-				iabEnabled: false,
-				location: '--',
-				language: '…',
-				copy: '…',
 				banner: '…',
-				hasSavedConsent: false,
 				categories: [] as string[],
+				copy: '…',
+				hasSavedConsent: false,
+				iabEnabled: false,
+				language: '…',
+				location: '--',
+				model: '…',
+				policyId: '…',
 			};
 
 	const rawState = mounted
 		? {
-				mode,
-				policy: policy ?? null,
-				policyDecision: policyDecision ?? null,
 				activeUI,
 				consents,
 				iabEnabled: iab?.config.enabled ?? false,
+				mode,
 				overrides: overrides ?? null,
+				policy: policy ?? null,
+				policyDecision: policyDecision ?? null,
 			}
 		: null;
 

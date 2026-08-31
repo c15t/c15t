@@ -13,8 +13,7 @@ import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay'
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
 
 const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}

@@ -62,10 +62,10 @@ describe('Store setOverrides IAB re-initialization', () => {
 		} as unknown as IABConfig;
 
 		const store = createConsentManagerStore(createMockConsentManager(), {
-			iab: iabConfig,
 			__internal: {
 				initConsentManager,
 			},
+			iab: iabConfig,
 		} as Parameters<typeof createConsentManagerStore>[1]);
 
 		await store.getState().setOverrides({ language: 'fr' });

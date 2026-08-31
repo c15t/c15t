@@ -10,8 +10,7 @@ import {
 	StableConsentStateProvider,
 	StableGlobalThemeProvider,
 } from '~/__tests__/stable-context-providers';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
 
 import { ConsentDialogTrigger, ConsentDialogTriggerToolbar } from '../index';
 

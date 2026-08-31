@@ -5,18 +5,24 @@ import { TelemetryEventName } from '~/utils/telemetry';
 import { selfHost } from './index';
 
 const prompts = {
-	select: vi.fn(),
 	isCancel: vi.fn((value: unknown) => value === Symbol.for('CANCEL')),
+	select: vi.fn(),
 };
+// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 const migrate = vi.fn(async () => undefined);
 const dependencies = {
 	...prompts,
 	migrate,
 };
 
-function createMockContext(commandArgs: string[] = []) {
+const createMockContext = function createMockContext(
+	commandArgs: string[] = []
+) {
 	return {
 		commandArgs,
+		error: {
+			handleCancel: vi.fn(),
+		},
 		logger: {
 			debug: vi.fn(),
 			error: vi.fn(),
@@ -26,11 +32,8 @@ function createMockContext(commandArgs: string[] = []) {
 		telemetry: {
 			trackEvent: vi.fn(),
 		},
-		error: {
-			handleCancel: vi.fn(),
-		},
 	} as unknown as Parameters<typeof selfHost>[0];
-}
+};
 
 describe('selfHost command', () => {
 	beforeEach(() => {
@@ -63,8 +66,8 @@ describe('selfHost command', () => {
 		expect(context.telemetry.trackEvent).toHaveBeenCalledWith(
 			TelemetryEventName.SELF_HOST_COMPLETED,
 			{
-				success: false,
 				reason: 'unknown_subcommand',
+				success: false,
 			}
 		);
 	});

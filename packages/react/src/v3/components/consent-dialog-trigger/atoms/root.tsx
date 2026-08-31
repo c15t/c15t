@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -49,15 +49,16 @@ const TriggerContext = createContext<TriggerContextValue | null>(null);
  * Hook to access the trigger context.
  * Must be used within a ConsentDialogTrigger.Root component.
  */
-export function useTriggerContext(): TriggerContextValue {
-	const context = useContext(TriggerContext);
-	if (!context) {
-		throw new Error(
-			'ConsentDialogTrigger components must be used within a ConsentDialogTrigger.Root'
-		);
-	}
-	return context;
-}
+export const useTriggerContext =
+	function useTriggerContext(): TriggerContextValue {
+		const context = useContext(TriggerContext);
+		if (!context) {
+			throw new Error(
+				'ConsentDialogTrigger components must be used within a ConsentDialogTrigger.Root'
+			);
+		}
+		return context;
+	};
 
 /**
  * Props for the Root component.
@@ -116,30 +117,30 @@ export const TriggerRoot = ({
 }: TriggerRootProps): ReactNode => {
 	const { branding } = useConsentManager();
 	const { isVisible, openDialog } = useConsentDialogTrigger({
-		showWhen,
 		onClick,
+		showWhen,
 	});
 
 	const { corner, isDragging, isSnapping, wasDragged, handlers, dragStyle } =
 		useDraggable({
 			defaultPosition,
-			persistPosition: shouldPersist,
 			onPositionChange,
+			persistPosition: shouldPersist,
 		});
 
 	const mounted = useIsHydrated();
 
 	const contextValue = useMemo<TriggerContextValue>(
 		() => ({
+			branding,
 			corner,
+			dragStyle,
+			handlers,
 			isDragging,
 			isSnapping,
-			wasDragged,
-			handlers,
-			dragStyle,
-			branding,
-			openDialog,
 			isVisible,
+			openDialog,
+			wasDragged,
 		}),
 		[
 			branding,

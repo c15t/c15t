@@ -48,7 +48,7 @@ export const AccordionTrigger = defineComponent({
 			item?.toggle();
 		};
 
-		return function () {
+		return function setup() {
 			const child = firstElementVNode(slots.default?.());
 			if (!child) {
 				return null;

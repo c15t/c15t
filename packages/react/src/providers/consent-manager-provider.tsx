@@ -27,9 +27,10 @@ import { version } from '../version';
  *
  * @internal
  */
-export function clearConsentRuntimeCache(): void {
-	baseClearCache();
-}
+export const clearConsentRuntimeCache =
+	function clearConsentRuntimeCache(): void {
+		baseClearCache();
+	};
 
 const CALLBACK_KEYS = [
 	'onBannerFetched',
@@ -39,15 +40,17 @@ const CALLBACK_KEYS = [
 	'onBeforeConsentRevocationReload',
 ] as const;
 
-function pickCallbackProps(callbacks?: Callbacks): Callbacks {
+const pickCallbackProps = function pickCallbackProps(
+	callbacks?: Callbacks
+): Callbacks {
 	return {
 		onBannerFetched: callbacks?.onBannerFetched,
-		onConsentSet: callbacks?.onConsentSet,
-		onConsentChanged: callbacks?.onConsentChanged,
-		onError: callbacks?.onError,
 		onBeforeConsentRevocationReload: callbacks?.onBeforeConsentRevocationReload,
+		onConsentChanged: callbacks?.onConsentChanged,
+		onConsentSet: callbacks?.onConsentSet,
+		onError: callbacks?.onError,
 	};
-}
+};
 
 /**
  * Provider component for consent management functionality.
@@ -81,12 +84,14 @@ export const ConsentManagerProvider = ({
 	options,
 }: ConsentManagerProviderProps) => {
 	// Initialize consent manager and store using shared runtime logic from core
-	const { consentManager, consentStore } = useMemo(() => {
-		return getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version,
-		});
-	}, [options]);
+	const { consentManager, consentStore } = useMemo(
+		() =>
+			getOrCreateConsentRuntime(options, {
+				pkg: '@c15t/react',
+				version,
+			}),
+		[options]
+	);
 
 	// Initialize state with the current state from the consent manager store
 	const [state, setState] = useState<ConsentStoreState>(() => {
@@ -154,9 +159,9 @@ export const ConsentManagerProvider = ({
 
 		void consentStore.getState().setOverrides({
 			country: nextOverrides.country,
-			region: nextOverrides.region,
-			language: nextOverrides.language,
 			gpc: nextOverrides.gpc,
+			language: nextOverrides.language,
+			region: nextOverrides.region,
 		});
 	}, [consentStore, optionsOverrides]);
 
@@ -197,18 +202,19 @@ export const ConsentManagerProvider = ({
 		const mergedTheme = deepMerge(defaultTheme, theme);
 
 		return {
-			theme: mergedTheme,
-			noStyle,
-			disableAnimation,
-			trapFocus,
 			colorScheme,
+			disableAnimation,
+			noStyle,
+			theme: mergedTheme,
+			trapFocus,
 		};
 	}, [options]);
 
 	// Generate CSS variables for the theme
-	const themeCSS = useMemo(() => {
-		return generateThemeCSS(themeContextValue.theme);
-	}, [themeContextValue.theme]);
+	const themeCSS = useMemo(
+		() => generateThemeCSS(themeContextValue.theme),
+		[themeContextValue.theme]
+	);
 
 	// `nonce` is accepted at the top level and via the `store` escape hatch.
 	// Resolve it with the same precedence the core runtime uses, so the theme
@@ -225,9 +231,9 @@ export const ConsentManagerProvider = ({
 			);
 		}
 		return {
+			manager: consentManager,
 			state,
 			store: consentStore,
-			manager: consentManager,
 		};
 	}, [state, consentStore, consentManager]);
 

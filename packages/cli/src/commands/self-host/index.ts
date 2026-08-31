@@ -9,10 +9,10 @@ import { migrate } from './migrate';
 // Define self-host subcommands
 const subcommands = [
 	{
-		name: 'migrate',
-		label: 'Migrate database',
-		hint: 'Run latest database migrations',
 		action: migrate,
+		hint: 'Run latest database migrations',
+		label: 'Migrate database',
+		name: 'migrate',
 	},
 ];
 
@@ -31,7 +31,7 @@ const defaultSelfHostDependencies: SelfHostDependencies = {
 /**
  * Self-host command - parent command for self-hosting related functionality
  */
-export async function selfHost(
+export const selfHost = async function selfHost(
 	context: CliContext,
 	dependencies: SelfHostDependencies = defaultSelfHostDependencies
 ) {
@@ -54,8 +54,8 @@ export async function selfHost(
 				logger.info('Available subcommands: migrate');
 				logger.info('Usage: c15t self-host <migrate>');
 				telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-					success: false,
 					reason: 'unknown_subcommand',
+					success: false,
 				});
 				return;
 		}
@@ -69,15 +69,15 @@ export async function selfHost(
 	});
 
 	const promptOptions = subcommands.map((cmd) => ({
-		value: cmd.name,
-		label: cmd.label,
 		hint: cmd.hint,
+		label: cmd.label,
+		value: cmd.name,
 	}));
 
 	promptOptions.push({
-		value: 'exit',
-		label: 'Exit',
 		hint: 'Close the CLI',
+		label: 'Exit',
+		value: 'exit',
 	});
 
 	const selectedSubcommandName = await dependencies.select({
@@ -121,8 +121,8 @@ export async function selfHost(
 	} else {
 		logger.error(`Unknown subcommand: ${selectedSubcommandName}`);
 		telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
-			success: false,
 			reason: 'invalid_selection',
+			success: false,
 		});
 		return;
 	}
@@ -130,4 +130,4 @@ export async function selfHost(
 	telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
 		success: true,
 	});
-}
+};

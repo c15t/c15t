@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 
-function getBenchManifestURL() {
+const getBenchManifestURL = function getBenchManifestURL() {
 	const token = process.env.C15T_BENCH_COLD_MANIFEST_TOKEN;
 	const base =
 		process.env.C15T_BENCH_MANIFEST_URL ??
@@ -8,7 +8,7 @@ function getBenchManifestURL() {
 	return token
 		? `${base}${base.includes('?') ? '&' : '?'}cold=${encodeURIComponent(token)}`
 		: base;
-}
+};
 
 /**
  * Zero-consent baseline build: C15T_BENCH_BASELINE=1 omits the @c15t/vue
@@ -19,18 +19,21 @@ const baselineBuild = process.env.C15T_BENCH_BASELINE === '1';
 const config = {
 	compatibilityDate: '2026-07-04',
 	modules: baselineBuild ? [] : ['@c15t/vue'],
+	routeRules: {
+		'/baseline-client': { ssr: false },
+		'/client': { ssr: false },
+		'/client-manifest': { ssr: false },
+	},
 	runtimeConfig: {
 		public: {
+			benchBaseline: baselineBuild,
 			c15t: {
 				manifest: false,
 			},
-			benchBaseline: baselineBuild,
 		},
 	},
-	routeRules: {
-		'/client': { ssr: false },
-		'/client-manifest': { ssr: false },
-		'/baseline-client': { ssr: false },
+	typescript: {
+		strict: true,
 	},
 	vite: {
 		resolve: {
@@ -53,9 +56,6 @@ const config = {
 			},
 		},
 	},
-	typescript: {
-		strict: true,
-	},
 };
 
 if (baselineBuild) {
@@ -74,8 +74,6 @@ if (baselineBuild) {
 	Object.assign(config, {
 		c15t: {
 			backendURL: '/api/bench-consent',
-			manifest: true,
-			manifestURL: getBenchManifestURL(),
 			consentCategories: [
 				'necessary',
 				'functionality',
@@ -84,6 +82,8 @@ if (baselineBuild) {
 				'marketing',
 			],
 			disableAnimation: true,
+			manifest: true,
+			manifestURL: getBenchManifestURL(),
 			trapFocus: false,
 		},
 	});

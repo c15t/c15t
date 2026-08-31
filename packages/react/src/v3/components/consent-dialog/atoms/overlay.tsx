@@ -63,7 +63,7 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	const {
 		disableAnimation,
 		noStyle: isThemeNoStyle,
-		scrollLock = true,
+		scrollLock: _scrollLock = true,
 	} = useTheme();
 
 	const showDialog = activeUI === 'dialog';
@@ -89,7 +89,8 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 		);
 		const timer = setTimeout(() => {
 			setIsVisible(false);
-		}, animationDurationMs); // Match CSS animation duration
+			// Match CSS animation duration
+		}, animationDurationMs);
 		return () => clearTimeout(timer);
 	}, [showDialog, disableAnimation]);
 

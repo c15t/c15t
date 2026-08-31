@@ -33,7 +33,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -44,9 +44,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -57,7 +57,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 /**
  * Storage key for pending consent sync after page reload.
@@ -104,7 +104,7 @@ interface SaveConsentsProps {
  * - User is declining consent for the first time (no prior consent)
  * - User is only adding consent (no revocations)
  */
-function shouldReloadOnConsentChange(
+const shouldReloadOnConsentChange = function shouldReloadOnConsentChange(
 	previousConsents: ConsentState,
 	newConsents: ConsentState,
 	previousConsentInfo: ConsentInfo | null,
@@ -138,9 +138,9 @@ function shouldReloadOnConsentChange(
 	);
 
 	return wasAnyConsentRevoked;
-}
+};
 
-function haveConsentsChanged(
+const haveConsentsChanged = function haveConsentsChanged(
 	previousConsents: ConsentState,
 	nextConsents: ConsentState,
 	consentTypes: ConsentType[]
@@ -149,9 +149,9 @@ function haveConsentsChanged(
 		(consentType) =>
 			previousConsents[consentType.name] !== nextConsents[consentType.name]
 	);
-}
+};
 
-function getConsentCategoryLists(
+const getConsentCategoryLists = function getConsentCategoryLists(
 	consents: ConsentState,
 	consentCategories: ConsentStoreState['consentCategories'],
 	consentTypes: ConsentType[]
@@ -176,9 +176,10 @@ function getConsentCategoryLists(
 		allowedCategories,
 		deniedCategories,
 	};
-}
+};
 
-export async function saveConsents({
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const saveConsents = async function saveConsents({
 	manager,
 	type,
 	get,
@@ -256,13 +257,13 @@ export async function saveConsents({
 	);
 	const consentChangedPayload: OnConsentChangedPayload | null = didChange
 		? {
-				preferences: effectiveConsents,
-				previousPreferences: previousConsents,
 				allowedCategories: nextConsentCategoryLists.allowedCategories,
 				deniedCategories: nextConsentCategoryLists.deniedCategories,
+				preferences: effectiveConsents,
 				previousAllowedCategories:
 					previousConsentCategoryLists.allowedCategories,
 				previousDeniedCategories: previousConsentCategoryLists.deniedCategories,
+				previousPreferences: previousConsents,
 			}
 		: null;
 	const materialPolicyFingerprint = lastBannerFetchData?.policy
@@ -289,9 +290,9 @@ export async function saveConsents({
 	const identityProvider =
 		storedIdentifiers.identityProvider ?? userIdentifiers.identityProvider;
 	const nextConsentInfo: ConsentInfo = {
-		time: givenAt,
-		subjectId,
 		materialPolicyFingerprint,
+		subjectId,
+		time: givenAt,
 	};
 	if (externalId) {
 		nextConsentInfo.externalId = externalId;
@@ -313,16 +314,16 @@ export async function saveConsents({
 	// This makes the interface feel more responsive
 	// This also persists the consent to localStorage/cookies
 	set({
-		consents: effectiveConsents,
-		selectedConsents: effectiveConsents,
 		activeUI: 'none' as const,
 		consentInfo: nextConsentInfo,
+		consents: effectiveConsents,
+		selectedConsents: effectiveConsents,
 	});
 
 	saveConsentToStorage(
 		{
-			consents: effectiveConsents,
 			consentInfo: nextConsentInfo,
+			consents: effectiveConsents,
 		},
 		undefined,
 		get().storageConfig
@@ -332,15 +333,15 @@ export async function saveConsents({
 	if (needsReload) {
 		// Store pending sync data for API call after reload
 		const pendingSync: PendingConsentSync = {
-			type,
-			subjectId,
-			preferences: requestPreferences,
+			domain: window.location.hostname,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
-			domain: window.location.hostname,
-			uiSource: options?.uiSource ?? 'api',
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+			preferences: requestPreferences,
+			subjectId,
+			type,
+			uiSource: options?.uiSource ?? 'api',
 		};
 		if (externalId) {
 			pendingSync.externalId = externalId;
@@ -392,16 +393,16 @@ export async function saveConsents({
 
 	// Send consent to API in the background - the UI is already updated
 	const consentBody: SetConsentRequestBody = {
-		type: 'cookie_banner' as const,
-		domain: typeof window !== 'undefined' ? window.location.hostname : '',
-		preferences: requestPreferences,
-		subjectId,
+		consentAction: type,
+		domain: typeof window === 'undefined' ? '' : window.location.hostname,
+		givenAt,
 		jurisdiction: locationInfo?.jurisdiction ?? undefined,
 		jurisdictionModel: model ?? undefined,
-		givenAt,
-		uiSource: options?.uiSource ?? 'api',
-		consentAction: type,
 		policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+		preferences: requestPreferences,
+		subjectId,
+		type: 'cookie_banner' as const,
+		uiSource: options?.uiSource ?? 'api',
 	};
 	if (externalId) {
 		consentBody.externalSubjectId = externalId;
@@ -425,4 +426,4 @@ export async function saveConsents({
 			console.error(errorMsg);
 		}
 	}
-}
+};

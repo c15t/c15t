@@ -21,21 +21,21 @@ interface Tab {
 
 const defaultTabs: Tab[] = [
 	{
-		value: 'overview',
-		label: 'Overview',
 		content:
 			'Use tabs for grouped content that shares a single disclosure region.',
+		label: 'Overview',
+		value: 'overview',
 	},
 	{
-		value: 'vendors',
-		label: 'Vendors',
 		content:
 			'The IAB dialog uses this pattern for purposes and vendor disclosures.',
+		label: 'Vendors',
+		value: 'vendors',
 	},
 	{
-		value: 'storage',
-		label: 'Storage',
 		content: 'Keyboard navigation supports arrow keys, Home, and End.',
+		label: 'Storage',
+		value: 'storage',
 	},
 ];
 
@@ -44,7 +44,7 @@ const TabsDemo = (props: { tabs?: Tab[] }) => {
 	const [active, setActive] = createSignal('overview');
 	const classes = tabsVariants();
 
-	function handleKeyDown(e: KeyboardEvent) {
+	const handleKeyDown = function handleKeyDown(e: KeyboardEvent) {
 		const tabValues = tabs().map((t) => t.value);
 		const currentIndex = tabValues.indexOf(active());
 
@@ -74,7 +74,7 @@ const TabsDemo = (props: { tabs?: Tab[] }) => {
 			) as HTMLElement | null;
 			nextTab?.focus();
 		}
-	}
+	};
 
 	return (
 		<div class={classes.root()}>
@@ -153,7 +153,7 @@ export const Controlled: Story = {
 		const [value, setValue] = createSignal('vendors');
 		const classes = tabsVariants();
 
-		function handleKeyDown(e: KeyboardEvent) {
+		const handleKeyDown = function handleKeyDown(e: KeyboardEvent) {
 			const tabValues = ['overview', 'vendors'];
 			const currentIndex = tabValues.indexOf(value());
 
@@ -183,7 +183,7 @@ export const Controlled: Story = {
 				) as HTMLElement | null;
 				nextTab?.focus();
 			}
-		}
+		};
 
 		return (
 			<div class={classes.root()}>

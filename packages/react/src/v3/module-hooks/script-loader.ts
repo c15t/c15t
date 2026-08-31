@@ -16,7 +16,7 @@ export interface UseScriptLoaderOptions {
 	onDebug?: (event: ScriptLoaderDebugEvent) => void;
 }
 
-export function useScriptLoader(
+export const useScriptLoader = function useScriptLoader(
 	scripts: Script[],
 	options: UseScriptLoaderOptions = {}
 ): ScriptLoaderHandle {
@@ -30,12 +30,12 @@ export function useScriptLoader(
 			handleRef.current?.dispose();
 			handleRef.current = null;
 		},
+		getLoadedScriptIds() {
+			return handleRef.current?.getLoadedScriptIds() ?? [];
+		},
 		updateScripts(next) {
 			latestScriptsRef.current = next;
 			handleRef.current?.updateScripts(next);
-		},
-		getLoadedScriptIds() {
-			return handleRef.current?.getLoadedScriptIds() ?? [];
 		},
 	}));
 	void setHandle;
@@ -58,11 +58,13 @@ export function useScriptLoader(
 		let disposed = false;
 		void (async () => {
 			const { createScriptLoader } = await loadScriptLoaderModule();
-			if (disposed) return;
+			if (disposed) {
+				return;
+			}
 			const created = createScriptLoader({
 				kernel,
-				scripts: latestScriptsRef.current,
 				onDebug: latestOptionsRef.current.onDebug,
+				scripts: latestScriptsRef.current,
 			});
 			handleRef.current = created;
 		})();
@@ -75,6 +77,6 @@ export function useScriptLoader(
 	}, [kernel]);
 
 	return handle;
-}
+};
 
 export type { Script, ScriptLoaderDebugEvent, ScriptLoaderHandle };

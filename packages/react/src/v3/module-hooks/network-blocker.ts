@@ -19,7 +19,7 @@ export interface UseNetworkBlockerOptions {
 	onRequestBlocked?: (info: BlockedRequestInfo) => void;
 }
 
-export function useNetworkBlocker(
+export const useNetworkBlocker = function useNetworkBlocker(
 	options: UseNetworkBlockerOptions
 ): NetworkBlockerHandle {
 	const kernel = useRequiredKernel();
@@ -32,13 +32,13 @@ export function useNetworkBlocker(
 			handleRef.current?.dispose();
 			handleRef.current = null;
 		},
-		updateRules(next) {
-			latestRulesRef.current = next;
-			handleRef.current?.updateRules(next);
-		},
 		setEnabled(enabled) {
 			latestEnabledRef.current = enabled;
 			handleRef.current?.setEnabled(enabled);
+		},
+		updateRules(next) {
+			latestRulesRef.current = next;
+			handleRef.current?.updateRules(next);
 		},
 	}));
 	void setHandle;
@@ -67,13 +67,15 @@ export function useNetworkBlocker(
 		let disposed = false;
 		void (async () => {
 			const { createNetworkBlocker } = await loadNetworkBlockerModule();
-			if (disposed) return;
+			if (disposed) {
+				return;
+			}
 			const created = createNetworkBlocker({
-				kernel,
-				rules: latestRulesRef.current,
 				enabled: latestEnabledRef.current,
+				kernel,
 				logBlockedRequests: options.logBlockedRequests,
 				onRequestBlocked: options.onRequestBlocked,
+				rules: latestRulesRef.current,
 			});
 			handleRef.current = created;
 		})();
@@ -86,6 +88,6 @@ export function useNetworkBlocker(
 	}, [kernel, options.logBlockedRequests, options.onRequestBlocked]);
 
 	return handle;
-}
+};
 
 export type { BlockedRequestInfo, NetworkBlockerHandle, NetworkBlockerRule };

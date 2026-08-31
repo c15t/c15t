@@ -49,52 +49,54 @@ type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
  * 4. `theme.consentActions.default`
  * 5. `params.fallback`, or the hardcoded fallback based on `isPrimary`
  */
-export function resolveConsentButtonStyle(params: {
-	consentAction?: ConsentActionThemeKey;
-	isPrimary?: boolean;
-	theme?: ReturnType<typeof useTheme>['theme'];
-	variant?: ButtonVariantsProps['variant'];
-	mode?: ButtonVariantsProps['mode'];
-	fallback?: {
-		variant: NonNullable<ButtonVariantsProps['variant']>;
-		mode: NonNullable<ButtonVariantsProps['mode']>;
-	};
-}) {
-	if (params.variant || params.mode) {
-		return {
-			variant: params.variant ?? 'neutral',
-			mode: params.mode ?? 'stroke',
+export const resolveConsentButtonStyle =
+	// oxlint-disable-next-line complexity -- Theme precedence is a single policy matrix and is kept together.
+	function resolveConsentButtonStyle(params: {
+		consentAction?: ConsentActionThemeKey;
+		isPrimary?: boolean;
+		theme?: ReturnType<typeof useTheme>['theme'];
+		variant?: ButtonVariantsProps['variant'];
+		mode?: ButtonVariantsProps['mode'];
+		fallback?: {
+			variant: NonNullable<ButtonVariantsProps['variant']>;
+			mode: NonNullable<ButtonVariantsProps['mode']>;
 		};
-	}
+	}) {
+		if (params.variant || params.mode) {
+			return {
+				mode: params.mode ?? 'stroke',
+				variant: params.variant ?? 'neutral',
+			};
+		}
 
-	const defaultStyle =
-		params.fallback ??
-		(params.isPrimary
-			? { variant: 'primary' as const, mode: 'stroke' as const }
-			: { variant: 'neutral' as const, mode: 'stroke' as const });
-	const themedDefault = params.theme?.consentActions?.default ?? {};
-	// The policy decides which action is primary; the theme decides how a
-	// primary action looks.
-	const themedPrimary = params.isPrimary
-		? (params.theme?.consentActions?.primary ?? {})
-		: {};
-	const themedAction = params.consentAction
-		? params.theme?.consentActions?.[params.consentAction]
-		: undefined;
+		const defaultStyle =
+			params.fallback ??
+			(params.isPrimary
+				? { mode: 'stroke' as const, variant: 'primary' as const }
+				: { mode: 'stroke' as const, variant: 'neutral' as const });
+		const themedDefault = params.theme?.consentActions?.default ?? {};
+		// The policy decides which action is primary; the theme decides how a
+		// primary action looks.
+		const themedPrimary = params.isPrimary
+			? (params.theme?.consentActions?.primary ?? {})
+			: {};
+		const themedAction = params.consentAction
+			? params.theme?.consentActions?.[params.consentAction]
+			: undefined;
 
-	return {
-		variant:
-			themedAction?.variant ??
-			themedPrimary.variant ??
-			themedDefault.variant ??
-			defaultStyle.variant,
-		mode:
-			themedAction?.mode ??
-			themedPrimary.mode ??
-			themedDefault.mode ??
-			defaultStyle.mode,
+		return {
+			mode:
+				themedAction?.mode ??
+				themedPrimary.mode ??
+				themedDefault.mode ??
+				defaultStyle.mode,
+			variant:
+				themedAction?.variant ??
+				themedPrimary.variant ??
+				themedDefault.variant ??
+				defaultStyle.variant,
+		};
 	};
-}
 
 /**
  * Button component that allows users to reject non-essential cookies.
@@ -127,7 +129,8 @@ export const ConsentButton = forwardRef<
 			closeConsentDialog?: boolean;
 			closeConsentBanner?: boolean;
 		}
->(function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentButton(
 	{
 		asChild,
 		className: forwardedClassName,
@@ -135,7 +138,7 @@ export const ConsentButton = forwardRef<
 		noStyle,
 		action,
 		themeKey,
-		baseClassName,
+		baseClassName: _baseClassName,
 		variant,
 		mode,
 		size = 'small',
@@ -155,9 +158,9 @@ export const ConsentButton = forwardRef<
 	const resolvedButtonStyle = resolveConsentButtonStyle({
 		consentAction,
 		isPrimary,
+		mode,
 		theme,
 		variant,
-		mode,
 	});
 
 	const defaultThemeKey =
@@ -169,16 +172,16 @@ export const ConsentButton = forwardRef<
 		baseClassName: [
 			!(contextNoStyle || noStyle) &&
 				Button.buttonVariants({
-					variant: resolvedButtonStyle.variant,
 					mode: resolvedButtonStyle.mode,
 					size,
+					variant: resolvedButtonStyle.variant,
 				}).root(),
 		],
+		className: forwardedClassName,
+		noStyle: contextNoStyle || noStyle,
 		style: {
 			...(style as CSSPropertiesWithVars<CSSVariables>),
 		},
-		className: forwardedClassName,
-		noStyle: contextNoStyle || noStyle,
 	});
 	const { noStyle: _resolvedNoStyle, ...buttonStyleProps } = buttonStyle;
 

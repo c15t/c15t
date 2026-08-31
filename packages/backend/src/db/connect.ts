@@ -205,6 +205,7 @@ const fromConfig = (
 	// nothing useful with the distinction between "bad config" and "cannot
 	// connect" at layer-construction time.
 ): Layer.Layer<SqlClient.SqlClient, unknown> => {
+	// oxlint-disable-next-line default-case -- DatabaseConfig is a closed dialect union.
 	switch (config.dialect) {
 		case 'postgres':
 			return Layer.unwrap(

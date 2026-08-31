@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+// oxlint-disable-next-line max-classes-per-file -- Benchmark keeps its paired browser API mocks together.
 import { mkdirSync, writeFileSync } from 'node:fs';
 /**
  * Network blocker comparison: v2 vs v3.
@@ -30,15 +31,28 @@ ensureBenchmarkDom();
 class StubXHR {
 	onerror: ((e: unknown) => void) | null = null;
 	listeners = new Map<string, ((e: unknown) => void)[]>();
-	open(_m: string, _u: string) {}
-	send() {}
-	abort() {}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
+	open(_m: string, _u: string) {
+		// Intentionally empty.
+	}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
+	send() {
+		// Intentionally empty.
+	}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
+	abort() {
+		// Intentionally empty.
+	}
 	addEventListener(e: string, h: (e: unknown) => void) {
 		const b = this.listeners.get(e) ?? [];
 		b.push(h);
 		this.listeners.set(e, b);
 	}
-	removeEventListener() {}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
+	removeEventListener() {
+		// Intentionally empty.
+	}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	dispatchEvent() {
 		return true;
 	}
@@ -65,9 +79,9 @@ if (
 }
 
 const RULES: NetworkBlockerRule[] = [
-	{ domain: 'google-analytics.com', category: 'marketing' },
-	{ domain: 'facebook.net', category: 'marketing' },
-	{ domain: 'hotjar.com', category: 'measurement' },
+	{ category: 'marketing', domain: 'google-analytics.com' },
+	{ category: 'marketing', domain: 'facebook.net' },
+	{ category: 'measurement', domain: 'hotjar.com' },
 ];
 
 // Target URLs: 1 in 3 hits a blocked rule (marketing declined).
@@ -80,7 +94,10 @@ const URLS = [
 	'https://hotjar.com/trace',
 ];
 
-function measureSync(iterations: number, fn: () => void): number[] {
+const measureSync = function measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -88,38 +105,38 @@ function measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '1000');
 
-function pct(v2: number, v3: number): string {
+const pct = function pct(v2: number, v3: number): string {
 	const d = ((v3 - v2) / v2) * 100;
 	const sign = d >= 0 ? '+' : '';
 	return `${sign}${d.toFixed(1)}%`;
-}
+};
 
 // ---- v2: createConsentManagerStore installs blocker via networkBlocker config
 
-function runV2Fetch(): number[] {
+const runV2Fetch = function runV2Fetch(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
 	const networkBlocker = {
 		enabled: true,
-		rules: RULES,
 		logBlockedRequests: false,
+		rules: RULES,
 	} satisfies V2NetworkBlockerConfig;
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
@@ -127,16 +144,18 @@ function runV2Fetch(): number[] {
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
-		void window.fetch(URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		void window.fetch(url);
 	});
-}
+};
 
-function runV2XHR(): number[] {
+const runV2XHR = function runV2XHR(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
 	const networkBlocker = {
 		enabled: true,
-		rules: RULES,
 		logBlockedRequests: false,
+		rules: RULES,
 	} satisfies V2NetworkBlockerConfig;
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
@@ -145,56 +164,62 @@ function runV2XHR(): number[] {
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
 		const xhr = new XMLHttpRequest();
-		xhr.open('GET', URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		xhr.open('GET', url);
 		xhr.send();
 	});
-}
+};
 
 // ---- v3: createNetworkBlocker hook-style
 
-function runV3Fetch(): number[] {
+const runV3Fetch = function runV3Fetch(): number[] {
 	const kernel = createConsentKernel({
 		initialConsents: {
-			necessary: true,
+			experience: false,
 			functionality: true,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		},
 	});
 	createNetworkBlocker({
 		kernel,
-		rules: RULES,
 		logBlockedRequests: false,
+		rules: RULES,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
-		void window.fetch(URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		void window.fetch(url);
 	});
-}
+};
 
-function runV3XHR(): number[] {
+const runV3XHR = function runV3XHR(): number[] {
 	const kernel = createConsentKernel({
 		initialConsents: {
-			necessary: true,
+			experience: false,
 			functionality: true,
 			marketing: false,
 			measurement: false,
-			experience: false,
+			necessary: true,
 		},
 	});
 	createNetworkBlocker({
 		kernel,
-		rules: RULES,
 		logBlockedRequests: false,
+		rules: RULES,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
 		const xhr = new XMLHttpRequest();
-		xhr.open('GET', URLS[i++ % URLS.length] as string);
+		const url = URLS[i % URLS.length] as string;
+		i += 1;
+		xhr.open('GET', url);
 		xhr.send();
 	});
-}
+};
 
 const v2Fetch = summarize(runV2Fetch());
 const v3Fetch = summarize(runV3Fetch());
@@ -227,9 +252,9 @@ writeFileSync(
 	join(outputDir, 'network-blocker-compare.json'),
 	`${JSON.stringify(
 		{
-			suite: 'network-blocker-compare',
 			generatedAt: new Date().toISOString(),
 			iterations: ITERATIONS,
+			suite: 'network-blocker-compare',
 			v2: { fetch: v2Fetch, xhr: v2Xhr },
 			v3: { fetch: v3Fetch, xhr: v3Xhr },
 		},

@@ -1,7 +1,5 @@
 import { BenchmarkPageShell } from '../_bench/page-shell';
 
-const PrefetchPage = () => {
-	return <BenchmarkPageShell scenario="prefetch" />;
-};
+const PrefetchPage = () => <BenchmarkPageShell scenario="prefetch" />;
 
 export default PrefetchPage;

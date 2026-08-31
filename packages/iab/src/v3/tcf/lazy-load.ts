@@ -60,7 +60,8 @@ export const getTCFCore = function getTCFCore(): Promise<TCFCoreModule> {
 			loadingPromise = null;
 			throw new Error(
 				`Failed to load @iabtechlabtcf/core: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
-					'Make sure it is installed as a dependency.'
+					'Make sure it is installed as a dependency.',
+				{ cause: error }
 			);
 		}
 	})();

@@ -33,9 +33,9 @@ describe('bundle-analysis', () => {
 		vi.clearAllMocks();
 		setBundleAnalysisFileSystemForTests({
 			existsSync,
+			readFileSync,
 			readdir: fs.readdir,
 			readdirSync,
-			readFileSync,
 			statSync,
 			writeFileSync,
 		});
@@ -46,23 +46,23 @@ describe('bundle-analysis', () => {
 			const mockData = {
 				data: {
 					chunkGraph: {
-						chunks: [
-							{
-								name: 'main.js',
-								id: 'chunk-1',
-								size: 1024,
-								assets: ['asset-1'],
-							},
-							{
-								name: 'vendor.js',
-								id: 'chunk-2',
-								size: 2048,
-							},
-						],
 						assets: [
 							{
-								id: 'asset-1',
 								gzipSize: 512,
+								id: 'asset-1',
+							},
+						],
+						chunks: [
+							{
+								assets: ['asset-1'],
+								id: 'chunk-1',
+								name: 'main.js',
+								size: 1024,
+							},
+							{
+								id: 'chunk-2',
+								name: 'vendor.js',
+								size: 2048,
 							},
 						],
 					},
@@ -75,16 +75,16 @@ describe('bundle-analysis', () => {
 
 			expect(result).toHaveLength(2);
 			expect(result[0]).toEqual({
+				gzipSize: 512,
 				name: 'main.js',
 				path: '/test/rsdoctor-data.json',
 				size: 1024,
-				gzipSize: 512,
 			});
 			expect(result[1]).toEqual({
+				gzipSize: undefined,
 				name: 'vendor.js',
 				path: '/test/rsdoctor-data.json',
 				size: 2048,
-				gzipSize: undefined,
 			});
 		});
 
@@ -94,16 +94,16 @@ describe('bundle-analysis', () => {
 					chunkGraph: {
 						chunks: [
 							{
+								entry: true,
+								initial: true,
 								name: 'index',
 								size: 1024,
-								initial: true,
-								entry: true,
 							},
 							{
+								entry: false,
+								initial: false,
 								name: 'lazy.js',
 								size: 512,
-								initial: false,
-								entry: false,
 							},
 						],
 					},
@@ -116,16 +116,16 @@ describe('bundle-analysis', () => {
 
 			expect(result).toHaveLength(2);
 			expect(result[0]).toMatchObject({
+				entry: true,
+				initial: true,
 				name: 'index',
 				size: 1024,
-				initial: true,
-				entry: true,
 			});
 			expect(result[1]).toMatchObject({
+				entry: false,
+				initial: false,
 				name: 'lazy.js',
 				size: 512,
-				initial: false,
-				entry: false,
 			});
 		});
 
@@ -135,10 +135,10 @@ describe('bundle-analysis', () => {
 					chunkGraph: {
 						assets: [
 							{
+								gzipSize: 512,
 								id: 'asset-1',
 								path: 'main.js',
 								size: 1024,
-								gzipSize: 512,
 							},
 						],
 					},
@@ -151,10 +151,10 @@ describe('bundle-analysis', () => {
 
 			expect(result).toHaveLength(1);
 			expect(result[0]).toEqual({
+				gzipSize: 512,
 				name: 'main.js',
 				path: '/test/rsdoctor-data.json',
 				size: 1024,
-				gzipSize: 512,
 			});
 		});
 
@@ -192,12 +192,14 @@ describe('bundle-analysis', () => {
 			expect(result.find((b) => b.name === 'chunk-1')).toEqual({
 				name: 'chunk-1',
 				path: '/test/rsdoctor-data.json',
-				size: 768, // 512 + 256
+				// 512 + 256
+				size: 768,
 			});
 			expect(result.find((b) => b.name === 'chunk-2')).toEqual({
 				name: 'chunk-2',
 				path: '/test/rsdoctor-data.json',
-				size: 384, // 256 + 128
+				// 256 + 128
+				size: 384,
 			});
 		});
 
@@ -227,9 +229,12 @@ describe('bundle-analysis', () => {
 		];
 
 		const currentBundles: BundleStats[] = [
-			{ name: 'main.js', path: '/current', size: 1100 }, // changed
-			{ name: 'vendor.js', path: '/current', size: 2000 }, // unchanged
-			{ name: 'new.js', path: '/current', size: 300 }, // added
+			// changed
+			{ name: 'main.js', path: '/current', size: 1100 },
+			// unchanged
+			{ name: 'vendor.js', path: '/current', size: 2000 },
+			// added
+			{ name: 'new.js', path: '/current', size: 300 },
 		];
 
 		it('should identify added bundles', () => {
@@ -248,11 +253,11 @@ describe('bundle-analysis', () => {
 			const result = compareBundles(baseBundles, currentBundles);
 			expect(result.changed).toHaveLength(1);
 			expect(result.changed[0]).toEqual({
-				name: 'main.js',
 				baseSize: 1000,
 				currentSize: 1100,
 				diff: 100,
 				diffPercent: 10,
+				name: 'main.js',
 			});
 		});
 
@@ -320,14 +325,14 @@ describe('bundle-analysis', () => {
 		it('should generate compact overview and collapsed details', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 1024,
 					totalCurrentSize: 1100,
 					totalDiff: 100,
@@ -353,14 +358,14 @@ describe('bundle-analysis', () => {
 		it('should include added bundles section', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [{ name: 'new.js', path: '/test', size: 500 }],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 0,
 					totalCurrentSize: 500,
 					totalDiff: 500,
@@ -377,14 +382,14 @@ describe('bundle-analysis', () => {
 		it('should include removed bundles section', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [{ name: 'old.js', path: '/test', size: 300 }],
 						changed: [],
+						removed: [{ name: 'old.js', path: '/test', size: 300 }],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 300,
 					totalCurrentSize: 0,
 					totalDiff: -300,
@@ -401,12 +406,10 @@ describe('bundle-analysis', () => {
 		it('should include changed bundles section', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [
 							{
 								baseSize: 1024,
@@ -416,7 +419,9 @@ describe('bundle-analysis', () => {
 								name: 'main.js',
 							},
 						],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 1024,
 					totalCurrentSize: 1200,
 					totalDiff: 200,
@@ -434,10 +439,10 @@ describe('bundle-analysis', () => {
 		it('should include transitive impact section when provided', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'core',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'core',
 					totalBaseSize: 1024,
 					totalCurrentSize: 2048,
 					totalDiff: 1024,
@@ -446,8 +451,8 @@ describe('bundle-analysis', () => {
 			];
 			const transitive: TransitiveBundleData[] = [
 				{
-					rootPackage: 'c15t',
 					includedPackageDirs: ['backend', 'core', 'translations'],
+					rootPackage: 'c15t',
 					totalBaseSize: 3072,
 					totalCurrentSize: 4096,
 					totalDiff: 1024,
@@ -467,28 +472,28 @@ describe('bundle-analysis', () => {
 		it('should skip packages with no changes', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'no-changes',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'no-changes',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1000,
 					totalDiff: 0,
 					totalDiffPercent: 0,
 				},
 				{
-					packageName: 'with-changes',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [{ name: 'new.js', path: '/test', size: 500 }],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'with-changes',
 					totalBaseSize: 0,
 					totalCurrentSize: 500,
 					totalDiff: 500,
@@ -497,13 +502,16 @@ describe('bundle-analysis', () => {
 			];
 
 			const result = generateMarkdownReport(packages);
-			expect(result).toContain('no-changes'); // Should appear in summary
+			// Should appear in summary
+			expect(result).toContain('no-changes');
 			// no-changes package should not have a bundle-level package details section
 			expect(result).not.toContain('`no-changes`:');
 			// with-changes package should have bundle-level details
 			expect(result).toContain('`with-changes`:');
-			expect(result).toContain('<details>'); // Should have details section for with-changes
-			expect(result).toContain('with-changes'); // Should appear in details
+			// Should have details section for with-changes
+			expect(result).toContain('<details>');
+			// Should appear in details
+			expect(result).toContain('with-changes');
 		});
 	});
 
@@ -531,9 +539,10 @@ describe('bundle-analysis', () => {
 				},
 			};
 
-			vi.mocked(existsSync).mockImplementation((path: PathLike) => {
-				return String(path) === 'packages' || String(path).includes('dist');
-			});
+			vi.mocked(existsSync).mockImplementation(
+				(path: PathLike) =>
+					String(path) === 'packages' || String(path).includes('dist')
+			);
 
 			vi.mocked(readdirSync).mockReturnValue([
 				'package1',
@@ -549,10 +558,10 @@ describe('bundle-analysis', () => {
 				if (String(path).includes('dist')) {
 					return [
 						{
-							name: 'rsdoctor-data.json',
 							isDirectory: () => false,
-							isSymbolicLink: () => false,
 							isFile: () => true,
+							isSymbolicLink: () => false,
+							name: 'rsdoctor-data.json',
 						},
 					] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
 				}
@@ -580,8 +589,8 @@ describe('bundle-analysis', () => {
 				data: {
 					chunkGraph: {
 						chunks: [
-							{ name: 'index', size: 1000, initial: true, entry: true },
-							{ name: 'lazy.js', size: 500, initial: false, entry: false },
+							{ entry: true, initial: true, name: 'index', size: 1000 },
+							{ entry: false, initial: false, name: 'lazy.js', size: 500 },
 						],
 					},
 				},
@@ -591,16 +600,17 @@ describe('bundle-analysis', () => {
 				data: {
 					chunkGraph: {
 						chunks: [
-							{ name: 'index', size: 1100, initial: true, entry: true },
-							{ name: 'lazy.js', size: 900, initial: false, entry: false },
+							{ entry: true, initial: true, name: 'index', size: 1100 },
+							{ entry: false, initial: false, name: 'lazy.js', size: 900 },
 						],
 					},
 				},
 			};
 
-			vi.mocked(existsSync).mockImplementation((path: PathLike) => {
-				return String(path) === 'packages' || String(path).includes('dist');
-			});
+			vi.mocked(existsSync).mockImplementation(
+				(path: PathLike) =>
+					String(path) === 'packages' || String(path).includes('dist')
+			);
 
 			vi.mocked(readdirSync).mockReturnValue([
 				'package1',
@@ -615,10 +625,10 @@ describe('bundle-analysis', () => {
 				if (String(path).includes('dist')) {
 					return [
 						{
-							name: 'rsdoctor-data.json',
 							isDirectory: () => false,
-							isSymbolicLink: () => false,
 							isFile: () => true,
+							isSymbolicLink: () => false,
+							name: 'rsdoctor-data.json',
 						},
 					] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
 				}
@@ -689,19 +699,19 @@ describe('bundle-analysis', () => {
 					const pathStr = String(path);
 					if (pathStr.endsWith('/packages/core/package.json')) {
 						return JSON.stringify({
-							name: 'c15t',
 							dependencies: {
 								'@c15t/backend': 'workspace:*',
 								'@c15t/translations': 'workspace:*',
 							},
+							name: 'c15t',
 						});
 					}
 					if (pathStr.endsWith('/packages/react/package.json')) {
 						return JSON.stringify({
-							name: '@c15t/react',
 							dependencies: {
 								c15t: 'workspace:*',
 							},
+							name: '@c15t/react',
 						});
 					}
 					if (pathStr.endsWith('/packages/backend/package.json')) {
@@ -720,40 +730,40 @@ describe('bundle-analysis', () => {
 
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'core',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'core',
 					totalBaseSize: 100,
 					totalCurrentSize: 140,
 					totalDiff: 40,
 					totalDiffPercent: 40,
 				},
 				{
-					packageName: 'react',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'react',
 					totalBaseSize: 200,
 					totalCurrentSize: 260,
 					totalDiff: 60,
 					totalDiffPercent: 30,
 				},
 				{
-					packageName: 'backend',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'backend',
 					totalBaseSize: 300,
 					totalCurrentSize: 330,
 					totalDiff: 30,
 					totalDiffPercent: 10,
 				},
 				{
-					packageName: 'translations',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'translations',
 					totalBaseSize: 50,
 					totalCurrentSize: 60,
 					totalDiff: 10,
@@ -768,15 +778,15 @@ describe('bundle-analysis', () => {
 
 			expect(result).toHaveLength(2);
 			expect(result[0]).toMatchObject({
-				rootPackage: '@c15t/react',
 				includedPackageDirs: ['backend', 'core', 'react', 'translations'],
+				rootPackage: '@c15t/react',
 				totalBaseSize: 650,
 				totalCurrentSize: 790,
 				totalDiff: 140,
 			});
 			expect(result[1]).toMatchObject({
-				rootPackage: 'c15t',
 				includedPackageDirs: ['backend', 'core', 'translations'],
+				rootPackage: 'c15t',
 				totalBaseSize: 450,
 				totalCurrentSize: 530,
 				totalDiff: 80,
@@ -805,21 +815,21 @@ describe('bundle-analysis', () => {
 					if (pathStr.includes('/base/')) {
 						if (pathStr.endsWith('/packages/core/package.json')) {
 							return JSON.stringify({
-								name: 'c15t',
 								dependencies: {
 									'@c15t/backend': 'workspace:*',
 									'@c15t/schema': 'workspace:*',
 								},
+								name: 'c15t',
 							});
 						}
 					}
 					if (pathStr.includes('/current/')) {
 						if (pathStr.endsWith('/packages/core/package.json')) {
 							return JSON.stringify({
-								name: 'c15t',
 								dependencies: {
 									'@c15t/backend': 'workspace:*',
 								},
+								name: 'c15t',
 							});
 						}
 					}
@@ -835,30 +845,30 @@ describe('bundle-analysis', () => {
 
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'core',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'core',
 					totalBaseSize: 100,
 					totalCurrentSize: 110,
 					totalDiff: 10,
 					totalDiffPercent: 10,
 				},
 				{
-					packageName: 'backend',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'backend',
 					totalBaseSize: 80,
 					totalCurrentSize: 90,
 					totalDiff: 10,
 					totalDiffPercent: 12.5,
 				},
 				{
-					packageName: 'schema',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'schema',
 					totalBaseSize: 60,
 					totalCurrentSize: 0,
 					totalDiff: -60,
@@ -876,8 +886,8 @@ describe('bundle-analysis', () => {
 
 			expect(result).toHaveLength(1);
 			expect(result[0]).toMatchObject({
-				rootPackage: 'c15t',
 				includedPackageDirs: ['backend', 'core', 'schema'],
+				rootPackage: 'c15t',
 				totalBaseSize: 240,
 				totalCurrentSize: 200,
 				totalDiff: -40,
@@ -889,14 +899,14 @@ describe('bundle-analysis', () => {
 		it('should write report to file', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'test-package',
 					baseBundles: [],
 					currentBundles: [],
 					diffs: {
 						added: [],
-						removed: [],
 						changed: [],
+						removed: [],
 					},
+					packageName: 'test-package',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1100,
 					totalDiff: 100,
@@ -934,20 +944,20 @@ describe('bundle-analysis', () => {
 		it('should calculate total diff percent correctly', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'pkg1',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'pkg1',
 					totalBaseSize: 1000,
 					totalCurrentSize: 1100,
 					totalDiff: 100,
 					totalDiffPercent: 10,
 				},
 				{
-					packageName: 'pkg2',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'pkg2',
 					totalBaseSize: 2000,
 					totalCurrentSize: 2200,
 					totalDiff: 200,
@@ -962,10 +972,10 @@ describe('bundle-analysis', () => {
 		it('should handle zero base size', () => {
 			const packages: PackageBundleData[] = [
 				{
-					packageName: 'pkg1',
 					baseBundles: [],
 					currentBundles: [],
-					diffs: { added: [], removed: [], changed: [] },
+					diffs: { added: [], changed: [], removed: [] },
+					packageName: 'pkg1',
 					totalBaseSize: 0,
 					totalCurrentSize: 1000,
 					totalDiff: 1000,

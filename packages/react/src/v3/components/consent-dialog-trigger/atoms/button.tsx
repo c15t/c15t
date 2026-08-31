@@ -80,7 +80,8 @@ export interface TriggerButtonProps {
  * ```
  */
 export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
-	function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function TriggerButton(
 		{
 			children,
 			size = 'md',

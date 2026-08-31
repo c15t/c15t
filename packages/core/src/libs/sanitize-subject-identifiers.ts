@@ -8,7 +8,9 @@ interface SanitizedSubjectIdentifiers {
 	identityProvider?: string;
 }
 
-function sanitizeIdentifier(value: unknown): string | undefined {
+const sanitizeIdentifier = function sanitizeIdentifier(
+	value: unknown
+): string | undefined {
 	if (typeof value !== 'string') {
 		return undefined;
 	}
@@ -24,7 +26,7 @@ function sanitizeIdentifier(value: unknown): string | undefined {
 	}
 
 	return normalized;
-}
+};
 
 /**
  * Sanitizes optional subject identifiers loaded from storage or request state.
@@ -32,7 +34,7 @@ function sanitizeIdentifier(value: unknown): string | undefined {
  * Treats nullish values, empty strings, and serialized sentinel strings from
  * previous buggy writes as absent fields.
  */
-export function sanitizeSubjectIdentifiers(
+export const sanitizeSubjectIdentifiers = function sanitizeSubjectIdentifiers(
 	identifiers: SubjectIdentifiers
 ): SanitizedSubjectIdentifiers {
 	const externalId = sanitizeIdentifier(identifiers.externalId);
@@ -47,4 +49,4 @@ export function sanitizeSubjectIdentifiers(
 	}
 
 	return sanitized;
-}
+};

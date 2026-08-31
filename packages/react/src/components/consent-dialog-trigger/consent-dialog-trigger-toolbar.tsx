@@ -56,26 +56,24 @@ export const ConsentDialogTriggerToolbar = ({
 	style,
 	noStyle = false,
 	onPositionChange,
-}: ConsentDialogTriggerToolbarProps): ReactNode => {
-	return (
-		<TriggerRoot
-			defaultPosition={defaultPosition}
-			onPositionChange={onPositionChange}
-			persistPosition={persistPosition}
-			showWhen={showWhen}
-		>
-			<TriggerToolbar
-				actions={actions}
-				ariaLabel={ariaLabel}
-				className={className}
-				noStyle={noStyle}
-				orientation={orientation}
-				preferences={preferences}
-				size={size}
-				style={style}
-			/>
-		</TriggerRoot>
-	);
-};
+}: ConsentDialogTriggerToolbarProps): ReactNode => (
+	<TriggerRoot
+		defaultPosition={defaultPosition}
+		onPositionChange={onPositionChange}
+		persistPosition={persistPosition}
+		showWhen={showWhen}
+	>
+		<TriggerToolbar
+			actions={actions}
+			ariaLabel={ariaLabel}
+			className={className}
+			noStyle={noStyle}
+			orientation={orientation}
+			preferences={preferences}
+			size={size}
+			style={style}
+		/>
+	</TriggerRoot>
+);
 
 ConsentDialogTriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

@@ -26,27 +26,27 @@ declare global {
  */
 export const crispManifest = {
 	...vendorManifestContract,
-	vendor: 'crisp',
 	category: 'functionality',
 	install: [
 		{
-			type: 'setGlobal',
+			ifUndefined: false,
 			name: '$crisp',
-			value: [],
-			ifUndefined: false,
-		},
-		{
 			type: 'setGlobal',
-			name: 'CRISP_WEBSITE_ID',
-			value: '{{websiteId}}',
-			ifUndefined: false,
+			value: [],
 		},
 		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			ifUndefined: false,
+			name: 'CRISP_WEBSITE_ID',
+			type: 'setGlobal',
+			value: '{{websiteId}}',
+		},
+		{
 			async: true,
+			src: '{{scriptSrc}}',
+			type: 'loadScript',
 		},
 	],
+	vendor: 'crisp',
 } as const satisfies VendorManifest;
 
 export interface CrispOptions {
@@ -75,19 +75,21 @@ export interface CrispOptions {
 	scriptSrc?: string;
 }
 
-function createCrispManifest(options: CrispOptions): VendorManifest {
+const createCrispManifest = function createCrispManifest(
+	options: CrispOptions
+): VendorManifest {
 	const install: VendorManifest['install'] = [
 		{
-			type: 'setGlobal',
-			name: '$crisp',
-			value: [],
 			ifUndefined: false,
+			name: '$crisp',
+			type: 'setGlobal',
+			value: [],
 		},
 		{
-			type: 'setGlobal',
-			name: 'CRISP_WEBSITE_ID',
-			value: '{{websiteId}}',
 			ifUndefined: false,
+			name: 'CRISP_WEBSITE_ID',
+			type: 'setGlobal',
+			value: '{{websiteId}}',
 		},
 	];
 
@@ -101,59 +103,59 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
 		}
 
 		install.push({
-			type: 'setGlobal',
-			name: 'CRISP_RUNTIME_CONFIG',
-			value,
 			ifUndefined: false,
+			name: 'CRISP_RUNTIME_CONFIG',
+			type: 'setGlobal',
+			value,
 		});
 	}
 
 	if (options.cookieDomain) {
 		install.push({
-			type: 'setGlobal',
-			name: 'CRISP_COOKIE_DOMAIN',
-			value: '{{cookieDomain}}',
 			ifUndefined: false,
+			name: 'CRISP_COOKIE_DOMAIN',
+			type: 'setGlobal',
+			value: '{{cookieDomain}}',
 		});
 	}
 
 	if (options.cookieExpiry !== undefined) {
 		install.push({
-			type: 'setGlobal',
-			name: 'CRISP_COOKIE_EXPIRE',
-			value: '{{cookieExpiry}}',
 			ifUndefined: false,
+			name: 'CRISP_COOKIE_EXPIRE',
+			type: 'setGlobal',
+			value: '{{cookieExpiry}}',
 		});
 	}
 
 	if (options.tokenId) {
 		install.push({
-			type: 'setGlobal',
-			name: 'CRISP_TOKEN_ID',
-			value: '{{tokenId}}',
 			ifUndefined: false,
+			name: 'CRISP_TOKEN_ID',
+			type: 'setGlobal',
+			value: '{{tokenId}}',
 		});
 	}
 
 	if (options.safeMode) {
 		install.push({
-			type: 'pushToQueue',
 			queue: '$crisp',
+			type: 'pushToQueue',
 			value: ['safe', true],
 		});
 	}
 
 	install.push({
-		type: 'loadScript',
-		src: '{{scriptSrc}}',
 		async: true,
+		src: '{{scriptSrc}}',
+		type: 'loadScript',
 	});
 
 	return {
 		...crispManifest,
 		install,
 	};
-}
+};
 
 /**
  * Creates a Crisp chat script.
@@ -173,14 +175,14 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
  *
  * @see {@link https://help.crisp.chat/en/article/how-do-i-install-crisp-live-chat-on-my-website-10wcj3l/} Crisp installation documentation.
  */
-export function crisp(options: CrispOptions): Script {
+export const crisp = function crisp(options: CrispOptions): Script {
 	return resolveManifest(createCrispManifest(options), {
-		websiteId: options.websiteId,
-		locale: options.locale,
 		cookieDomain: options.cookieDomain,
 		cookieExpiry: options.cookieExpiry,
-		tokenId: options.tokenId,
-		sessionMerge: options.sessionMerge,
+		locale: options.locale,
 		scriptSrc: options.scriptSrc ?? 'https://client.crisp.chat/l.js',
+		sessionMerge: options.sessionMerge,
+		tokenId: options.tokenId,
+		websiteId: options.websiteId,
 	});
-}
+};

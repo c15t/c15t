@@ -22,10 +22,7 @@ import {
 	isValidTCStringFormat,
 } from '../../tcf/tc-string';
 import type { CMPApi } from '../../tcf/types';
-import {
-	createCallbackPromise,
-	createVoidCallbackPromise,
-} from './promise-helpers';
+import { createVoidCallbackPromise } from './promise-helpers';
 import {
 	cleanupTCFApi,
 	createMockGVL,

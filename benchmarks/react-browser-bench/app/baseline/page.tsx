@@ -34,20 +34,18 @@ const BaselineProbe = () => {
 	return null;
 };
 
-const BaselinePage = () => {
-	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-			<BaselineProbe />
-			<h1>Zero-consent baseline</h1>
-			<p>Identical app shell, no consent library. Measures the page floor.</p>
-			<button
-				id="baseline-noop"
-				type="button"
-			>
-				No-op interaction target
-			</button>
-		</main>
-	);
-};
+const BaselinePage = () => (
+	<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+		<BaselineProbe />
+		<h1>Zero-consent baseline</h1>
+		<p>Identical app shell, no consent library. Measures the page floor.</p>
+		<button
+			id="baseline-noop"
+			type="button"
+		>
+			No-op interaction target
+		</button>
+	</main>
+);
 
 export default BaselinePage;

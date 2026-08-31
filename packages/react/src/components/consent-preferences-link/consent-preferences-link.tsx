@@ -25,7 +25,8 @@ export interface ConsentDialogLinkProps extends Omit<
 export const ConsentDialogLink = forwardRef<
 	HTMLButtonElement,
 	ConsentDialogLinkProps
->(function ({ children, noStyle = true, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentDialogLink({ children, noStyle = true, ...props }, ref) {
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}

@@ -31,10 +31,10 @@ const layeredCss = `
 }
 `;
 
-async function processCss(from: string) {
+const processCss = async function processCss(from: string) {
 	const result = await postcss([tailwind3Plugin]).process(layeredCss, { from });
 	return result.css;
-}
+};
 
 describe('@c15t/ui/postcss-tailwind3', () => {
 	test('unwraps @layer blocks for built @c15t/ui stylesheets in node_modules', async () => {

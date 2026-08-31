@@ -13,16 +13,16 @@ import { useControllableState } from '~/v3/components/shared/libs/use-controllab
 import { useTheme } from '~/v3/hooks/use-theme';
 
 export const collapsibleVariants = () => ({
+	content: (options?: { class?: string }) =>
+		[styles.content, options?.class].filter(Boolean).join(' '),
+	contentInner: (options?: { class?: string }) =>
+		[styles.contentInner, options?.class].filter(Boolean).join(' '),
+	contentViewport: (options?: { class?: string }) =>
+		[styles.contentViewport, options?.class].filter(Boolean).join(' '),
 	root: (options?: { class?: string }) =>
 		[styles.root, options?.class].filter(Boolean).join(' '),
 	trigger: (options?: { class?: string }) =>
 		[styles.trigger, options?.class].filter(Boolean).join(' '),
-	content: (options?: { class?: string }) =>
-		[styles.content, options?.class].filter(Boolean).join(' '),
-	contentViewport: (options?: { class?: string }) =>
-		[styles.contentViewport, options?.class].filter(Boolean).join(' '),
-	contentInner: (options?: { class?: string }) =>
-		[styles.contentInner, options?.class].filter(Boolean).join(' '),
 });
 
 interface CollapsibleContextValue {
@@ -36,7 +36,7 @@ interface CollapsibleContextValue {
 
 const CollapsibleContext = createContext<CollapsibleContextValue | null>(null);
 
-function useCollapsibleContext() {
+const useCollapsibleContext = function useCollapsibleContext() {
 	const context = useContext(CollapsibleContext);
 
 	if (!context) {
@@ -46,7 +46,7 @@ function useCollapsibleContext() {
 	}
 
 	return context;
-}
+};
 
 export interface CollapsibleRootProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
@@ -58,7 +58,8 @@ export interface CollapsibleRootProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
-	function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function CollapsibleRoot(
 		{
 			children,
 			className,
@@ -71,7 +72,7 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 		},
 		forwardedRef
 	) {
-		const reactId = useId().replace(/:/g, '');
+		const reactId = useId().replace(/:/gu, '');
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = collapsibleVariants();
 		const [isOpen, setIsOpen] = useControllableState({
@@ -123,7 +124,11 @@ export interface CollapsibleTriggerProps extends Omit<
 const CollapsibleTrigger = forwardRef<
 	HTMLButtonElement,
 	CollapsibleTriggerProps
->(function ({ children, className, noStyle, onClick, ...rest }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function CollapsibleTrigger(
+	{ children, className, noStyle, onClick, ...rest },
+	forwardedRef
+) {
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = collapsibleVariants();
 	const {
@@ -172,7 +177,8 @@ export interface CollapsibleContentProps extends HTMLAttributes<HTMLDivElement> 
 }
 
 const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
-	function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function CollapsibleContent(
 		{ children, className, innerClassName, noStyle, ...rest },
 		forwardedRef
 	) {
@@ -184,7 +190,7 @@ const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
 			open,
 			triggerId,
 		} = useCollapsibleContext();
-		const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+		const _finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
 
 		return (
 			<div

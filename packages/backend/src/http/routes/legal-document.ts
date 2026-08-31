@@ -10,10 +10,7 @@
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
 
-import {
-	LegalDocumentConflictError,
-	syncCurrent,
-} from '../../repository/legal-document';
+import { syncCurrent } from '../../repository/legal-document';
 import { validateRequestAuth } from '../auth';
 import type { RouteContext } from '../context';
 import { BadRequestError } from '../errors';

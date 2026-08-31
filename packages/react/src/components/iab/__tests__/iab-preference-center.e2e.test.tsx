@@ -5,7 +5,7 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
@@ -17,9 +17,7 @@ import {
 import {
 	clearConsentState,
 	defaultIABOptions,
-	getStoredConsent,
 	waitForElement,
-	waitForElementRemoved,
 } from './e2e-setup';
 
 interface DeferredPromise<Value> {
@@ -32,7 +30,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -43,7 +41,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 describe('IAB Preference Center E2E Tests', () => {
 	beforeEach(() => {
@@ -105,8 +103,8 @@ describe('IAB Preference Center E2E Tests', () => {
 						() =>
 							resolve(
 								new Response(JSON.stringify({}), {
-									status: 200,
 									headers: { 'Content-Type': 'application/json' },
+									status: 200,
 								})
 							),
 						1000

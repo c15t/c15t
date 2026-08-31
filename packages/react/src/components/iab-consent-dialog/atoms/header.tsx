@@ -43,7 +43,8 @@ interface IABConsentDialogHeaderProps {
 const IABConsentDialogHeader = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogHeaderProps
->(function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentDialogHeader(
 	{ children, headerTitle, description, showCloseButton = true, className },
 	ref
 ) {
@@ -86,7 +87,7 @@ const IABConsentDialogHeader = forwardRef<
 							aria-label={common.close}
 						>
 							<svg
-								style={{ width: '1rem', height: '1rem' }}
+								style={{ height: '1rem', width: '1rem' }}
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"

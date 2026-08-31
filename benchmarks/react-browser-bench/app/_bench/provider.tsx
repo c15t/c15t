@@ -22,7 +22,6 @@ export const BenchmarkProvider = ({
 	headless?: boolean;
 }) => {
 	const options: ConsentManagerProviderProps['options'] = {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
 		callbacks: {
 			onBannerFetched() {
@@ -50,6 +49,7 @@ export const BenchmarkProvider = ({
 				state.onErrorCount += 1;
 			},
 		},
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {
@@ -64,12 +64,12 @@ export const BenchmarkProvider = ({
 	return (
 		<ConsentManagerProvider options={options}>
 			<ReactBenchmarkProbe scenario={scenario} />
-			{!headless ? (
+			{headless ? null : (
 				<>
 					<ConsentBanner disableAnimation />
 					<ConsentDialog disableAnimation />
 				</>
-			) : null}
+			)}
 			{children}
 		</ConsentManagerProvider>
 	);

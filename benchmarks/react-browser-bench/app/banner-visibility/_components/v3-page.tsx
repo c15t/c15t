@@ -8,12 +8,12 @@ import { useEffect, useRef } from 'react';
 import { getBenchState, observeBannerVisibility } from './state';
 
 const BENCHMARK_POLICY = {
-	id: 'banner-visibility-benchmark',
-	model: 'opt-in' as const,
 	consent: {
 		categories: ['necessary', 'measurement', 'marketing'],
 		scopeMode: 'permissive' as const,
 	},
+	id: 'banner-visibility-benchmark',
+	model: 'opt-in' as const,
 	ui: {
 		mode: 'banner' as const,
 	},
@@ -38,38 +38,37 @@ const V3Probe = () => {
 		}
 	}, []);
 
-	useEffect(() => {
-		return observeBannerVisibility('v3', activeUI ?? 'none');
-	}, [activeUI]);
+	useEffect(
+		() => observeBannerVisibility('v3', activeUI ?? 'none'),
+		[activeUI]
+	);
 
 	return null;
 };
 
-export const V3BannerVisibilityPage = () => {
-	return (
-		<ConsentProvider
-			options={{
-				mode: 'offline',
-				offlinePolicy: {
-					policy: BENCHMARK_POLICY,
-				},
-				persistence: false,
-				theme: {
-					motion: {
-						duration: {
-							fast: '1ms',
-							normal: '1ms',
-							slow: '1ms',
-						},
+export const V3BannerVisibilityPage = () => (
+	<ConsentProvider
+		options={{
+			mode: 'offline',
+			offlinePolicy: {
+				policy: BENCHMARK_POLICY,
+			},
+			persistence: false,
+			theme: {
+				motion: {
+					duration: {
+						fast: '1ms',
+						normal: '1ms',
+						slow: '1ms',
 					},
 				},
-			}}
-		>
-			<V3Probe />
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>v3 banner visibility benchmark</h1>
-			</main>
-			<ConsentBanner disableAnimation />
-		</ConsentProvider>
-	);
-};
+			},
+		}}
+	>
+		<V3Probe />
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>v3 banner visibility benchmark</h1>
+		</main>
+		<ConsentBanner disableAnimation />
+	</ConsentProvider>
+);

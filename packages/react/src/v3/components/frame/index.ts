@@ -1,7 +1,5 @@
 'use client';
 
-import type { AllConsentNames } from '@c15t/core';
-
 import * as atoms from './atoms';
 import { Frame as FrameComponent } from './frame';
 import type { FrameCompoundComponent } from './types';

@@ -28,7 +28,8 @@ interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogEleme
 const IABConsentDialogCard = forwardRef<
 	HTMLDialogElement,
 	IABConsentDialogCardProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentDialogCard({ children, className, ...props }, ref) {
 	const { trapFocus } = useTheme();
 	const { activeUI } = useConsentManager();
 	const iabTranslations = useIABTranslations();

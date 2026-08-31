@@ -15,9 +15,9 @@ import type {
 	CssLayerSurface,
 } from './css-layer-types';
 
-function cx(...values: (string | undefined)[]) {
+const cx = function cx(...values: (string | undefined)[]) {
 	return values.filter(Boolean).join(' ');
-}
+};
 
 const ForceSurface = ({ surface }: { surface: CssLayerSurface }) => {
 	const { setActiveUI } = useConsentManager();

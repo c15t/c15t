@@ -111,14 +111,9 @@ export interface MigrateReport {
  * `migrate` creates the ledger part-way through, so it is precisely the code
  * that would trip over this.
  */
-const ledgerExists = Effect.gen(function* () {
+const ledgerExists = Effect.gen(function* ledgerExists() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
-		sqlite: () =>
-			sql<{ name: string }>`
-				select name from sqlite_master
-				where type = 'table' and name = ${LEDGER_TABLE}
-			`,
 		mysql: () =>
 			sql<{ name: string }>`
 				select table_name as name from information_schema.tables
@@ -129,12 +124,17 @@ const ledgerExists = Effect.gen(function* () {
 				select table_name as name from information_schema.tables
 				where table_schema = current_schema() and table_name = ${LEDGER_TABLE}
 			`,
+		sqlite: () =>
+			sql<{ name: string }>`
+				select name from sqlite_master
+				where type = 'table' and name = ${LEDGER_TABLE}
+			`,
 	});
 	return rows.length > 0;
 });
 
 /** Migration ids already recorded in the ledger. */
-const appliedIds = Effect.gen(function* () {
+const appliedIds = Effect.gen(function* appliedIds() {
 	if (!(yield* ledgerExists)) {
 		// The state of every database that has not been adopted yet.
 		return new Set<number>();
@@ -147,14 +147,14 @@ const appliedIds = Effect.gen(function* () {
 	return new Set(rows.map((row) => Number(row.id)));
 });
 
-const stamp = Effect.fn('migrate.stamp')(function* (migration: Migration) {
+const stamp = Effect.fn('migrate.stamp')(function* stamp(migration: Migration) {
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`
 		insert into ${sql(LEDGER_TABLE)} ${sql.insert(
 			encodeRow(yield* encoder, {
+				appliedAt: new Date(),
 				id: migration.id,
 				name: migration.name,
-				appliedAt: new Date(),
 			})
 		)}
 	`;
@@ -172,12 +172,13 @@ const stamp = Effect.fn('migrate.stamp')(function* (migration: Migration) {
  * Postgres only: MySQL scopes by database and SQLite by file, neither of
  * which a migrator should be creating behind the operator's back.
  */
-const ensureSchema = Effect.gen(function* () {
+const ensureSchema = Effect.gen(function* ensureSchema() {
 	const sql = yield* SqlClient.SqlClient;
 
 	yield* sql.onDialectOrElse({
+		orElse: () => Effect.void,
 		pg: () =>
-			Effect.gen(function* () {
+			Effect.gen(function* pg() {
 				const rows = yield* sql<{ schema: string | null }>`
 					select current_schema() as ${sql('schema')}
 				`;
@@ -198,7 +199,6 @@ const ensureSchema = Effect.gen(function* () {
 				}
 				yield* sql.unsafe(`create schema if not exists "${head}"`);
 			}),
-		orElse: () => Effect.void,
 	});
 });
 
@@ -217,7 +217,7 @@ const ensureSchema = Effect.gen(function* () {
  * }
  * ```
  */
-export const migrate = Effect.fn('db.migrate')(function* (
+export const migrate = Effect.fn('db.migrate')(function* migrate(
 	options: MigrateOptions = {}
 ) {
 	yield* ensureSchema;
@@ -231,6 +231,7 @@ export const migrate = Effect.fn('db.migrate')(function* (
 	const skippable =
 		adoption.orphans.length > 0 && options.skipForeignKeys === true;
 	if (adoption.blocked !== undefined && !skippable) {
+		// oxlint-disable-next-line sort-keys -- Computed classification key leads the migration report contract.
 		return {
 			[DATABASE_CLASSIFICATION_KEY]: classification,
 			adoption: [],
@@ -252,6 +253,7 @@ export const migrate = Effect.fn('db.migrate')(function* (
 	const adoptionSteps = adoption.steps.map((step) => step.description);
 
 	if (options.dryRun === true) {
+		// oxlint-disable-next-line sort-keys -- Computed classification key leads the migration report contract.
 		return {
 			[DATABASE_CLASSIFICATION_KEY]: classification,
 			adoption: adoptionSteps,
@@ -271,6 +273,7 @@ export const migrate = Effect.fn('db.migrate')(function* (
 		yield* stamp(migration);
 	}
 
+	// oxlint-disable-next-line sort-keys -- Computed classification key leads the migration report contract.
 	return {
 		[DATABASE_CLASSIFICATION_KEY]: classification,
 		adoption: adoptionSteps,

@@ -60,6 +60,6 @@ export const EVENT_ORDERING: readonly {
 	before: EventName;
 	after: EventName;
 }[] = [
-	{ before: 'onBannerFetched', after: 'onConsentChanged' },
-	{ before: 'onConsentChanged', after: 'onConsentSet' },
+	{ after: 'onConsentChanged', before: 'onBannerFetched' },
+	{ after: 'onConsentSet', before: 'onConsentChanged' },
 ];

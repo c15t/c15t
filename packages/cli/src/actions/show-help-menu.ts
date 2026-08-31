@@ -1,6 +1,7 @@
 import color from 'picocolors';
 
-import type { CliCommand, CliContext, CliFlag } from '~/context/types'; // Import both types
+// Import both types
+import type { CliCommand, CliContext, CliFlag } from '~/context/types';
 
 /**
  * Displays the CLI help menu, generating commands and options dynamically.
@@ -10,7 +11,7 @@ import type { CliCommand, CliContext, CliFlag } from '~/context/types'; // Impor
  * @param commands The array of available CLI commands.
  * @param flags The array of available global CLI flags.
  */
-export function showHelpMenu(
+export const showHelpMenu = function showHelpMenu(
 	context: CliContext,
 	version: string,
 	commands: CliCommand[],
@@ -58,4 +59,4 @@ For more help, visit: https://c15t.com`;
 
 	logger.debug('Help menu content generated.');
 	logger.note(helpContent, 'Usage');
-}
+};

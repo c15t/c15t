@@ -5,18 +5,6 @@ import {
 	useConsentManager,
 } from '@c15t/react/headless';
 
-const HeadlessPage = () => {
-	return (
-		<ConsentManagerProvider options={{ mode: 'offline' }}>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>Headless Only Test</h1>
-				<p>This page uses headless mode for custom UI implementations.</p>
-				<TestComponent />
-			</main>
-		</ConsentManagerProvider>
-	);
-};
-
 const TestComponent = () => {
 	const { consents, has, saveConsents } = useConsentManager();
 	return (
@@ -48,5 +36,14 @@ const TestComponent = () => {
 		</div>
 	);
 };
+const HeadlessPage = () => (
+	<ConsentManagerProvider options={{ mode: 'offline' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>Headless Only Test</h1>
+			<p>This page uses headless mode for custom UI implementations.</p>
+			<TestComponent />
+		</main>
+	</ConsentManagerProvider>
+);
 
 export default HeadlessPage;

@@ -7,12 +7,10 @@ import { ConsentDemo } from '../../../components/demo/consent-demo';
  * /api/self-host backend route instead of the consent.io demo instance.
  * Intentionally not linked from the main page — see /dev for the index.
  */
-const SelfHostPage = () => {
-	return (
-		<Suspense>
-			<ConsentDemo backend="self-host" />
-		</Suspense>
-	);
-};
+const SelfHostPage = () => (
+	<Suspense>
+		<ConsentDemo backend="self-host" />
+	</Suspense>
+);
 
 export default SelfHostPage;

@@ -28,15 +28,17 @@ const DEPTH = 28;
 const CURVE = 2.4;
 
 /** Signed distance to a rounded rectangle centered in the map (negative inside). */
-function roundedRectSDF(x: number, y: number): number {
+const roundedRectSDF = function roundedRectSDF(x: number, y: number): number {
 	const qx = Math.abs(x - MAP_W / 2) - (MAP_W / 2 - RADIUS);
 	const qy = Math.abs(y - MAP_H / 2) - (MAP_H / 2 - RADIUS);
 	const ax = Math.max(qx, 0);
 	const ay = Math.max(qy, 0);
 	return Math.min(Math.max(qx, qy), 0) + Math.hypot(ax, ay) - RADIUS;
-}
+};
 
-function generateDisplacementMap(): string | null {
+const generateDisplacementMap = function generateDisplacementMap():
+	| string
+	| null {
 	const canvas = document.createElement('canvas');
 	canvas.width = MAP_W;
 	canvas.height = MAP_H;
@@ -46,10 +48,10 @@ function generateDisplacementMap(): string | null {
 	}
 
 	const image = ctx.createImageData(MAP_W, MAP_H);
-	const data = image.data;
+	const { data } = image;
 
-	for (let y = 0; y < MAP_H; y++) {
-		for (let x = 0; x < MAP_W; x++) {
+	for (let y = 0; y < MAP_H; y += 1) {
+		for (let x = 0; x < MAP_W; x += 1) {
 			const inside = -roundedRectSDF(x + 0.5, y + 0.5);
 			let dx = 0;
 			let dy = 0;
@@ -78,19 +80,20 @@ function generateDisplacementMap(): string | null {
 
 	ctx.putImageData(image, 0, 0);
 	return canvas.toDataURL('image/png');
-}
+};
 
-function supportsBackdropRefraction(): boolean {
-	if (
-		typeof CSS === 'undefined' ||
-		!CSS.supports('backdrop-filter', 'url(#f) blur(1px)')
-	) {
-		return false;
-	}
-	// Safari parses url() in backdrop-filter but renders nothing; gate on
-	// Chromium where SVG-referenced backdrop filters actually work.
-	return 'chrome' in window;
-}
+const supportsBackdropRefraction =
+	function supportsBackdropRefraction(): boolean {
+		if (
+			typeof CSS === 'undefined' ||
+			!CSS.supports('backdrop-filter', 'url(#f) blur(1px)')
+		) {
+			return false;
+		}
+		// Safari parses url() in backdrop-filter but renders nothing; gate on
+		// Chromium where SVG-referenced backdrop filters actually work.
+		return 'chrome' in window;
+	};
 
 export const LiquidGlassFilter = () => {
 	const mapUri = useMemo<string | null>(

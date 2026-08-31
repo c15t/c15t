@@ -27,7 +27,7 @@ export interface ConsentWidgetPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentDialogAction,
 	props: ConsentWidgetPolicyActionRenderProps
 ) {
@@ -66,7 +66,7 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent widget action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
 export const ConsentWidgetPolicyActions = ({
 	renderAction,

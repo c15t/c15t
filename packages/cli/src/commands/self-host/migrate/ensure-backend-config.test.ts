@@ -26,14 +26,14 @@ import {
 import type { Dialect } from './ensure-backend-config';
 
 const prompts = {
-	select: vi.fn(),
 	isCancel: (value: unknown) => value === Symbol.for('CANCEL'),
+	select: vi.fn(),
 };
 
 const createMockContext = (cwd: string) => ({
 	cwd,
-	logger: { debug: vi.fn(), success: vi.fn(), note: vi.fn() },
 	error: { handleCancel: vi.fn(() => null) },
+	logger: { debug: vi.fn(), note: vi.fn(), success: vi.fn() },
 });
 
 const makeTmpDir = (prefix: string) =>

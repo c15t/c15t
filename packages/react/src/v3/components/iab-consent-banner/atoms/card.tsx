@@ -25,7 +25,11 @@ interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogEleme
 const IABConsentBannerCard = forwardRef<
 	HTMLDialogElement,
 	IABConsentBannerCardProps
->(function ({ children, className, 'data-testid': dataTestId, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerCard(
+	{ children, className, 'data-testid': dataTestId, ...props },
+	ref
+) {
 	const { noStyle, trapFocus } = useTheme();
 	const { components } = useUIConfig();
 

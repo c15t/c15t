@@ -19,12 +19,12 @@ const IGNORED_DIRS = new Set([
 const C15T_REACT_PACKAGES = new Set(['@c15t/react', '@c15t/nextjs']);
 
 const RENAME_MAP = {
-	CookieBanner: 'ConsentBanner',
 	ConsentManagerDialog: 'ConsentDialog',
-	ConsentManagerWidget: 'ConsentWidget',
-	CookieBannerProps: 'ConsentBannerProps',
 	ConsentManagerDialogProps: 'ConsentDialogProps',
+	ConsentManagerWidget: 'ConsentWidget',
 	ConsentManagerWidgetProps: 'ConsentWidgetProps',
+	CookieBanner: 'ConsentBanner',
+	CookieBannerProps: 'ConsentBannerProps',
 } as const;
 
 interface ComponentRenamesResult {
@@ -66,7 +66,7 @@ export interface CodemodRunResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function hasLegacyC15tComponentImport(
+const hasLegacyC15tComponentImport = function hasLegacyC15tComponentImport(
 	sourceFile: TsMorphTypes.SourceFile
 ): boolean {
 	for (const importDeclaration of sourceFile.getImportDeclarations()) {
@@ -84,9 +84,9 @@ function hasLegacyC15tComponentImport(
 	}
 
 	return false;
-}
+};
 
-function transformSourceFile(
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): ComponentRenamesResult {
 	if (!hasLegacyC15tComponentImport(sourceFile)) {
@@ -144,12 +144,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -161,6 +163,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -176,11 +179,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that renames legacy React/Next.js component exports to v2 names.
@@ -188,56 +191,58 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runComponentRenamesCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runComponentRenamesCodemod =
+	async function runComponentRenamesCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
+		for (const filePath of filePaths) {
+			try {
+				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+				if (!sourceFile) {
+					continue;
+				}
+
+				const result = transformSourceFile(sourceFile);
+				if (!result.changed) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: result.operations,
+					summaries: result.summaries,
+				});
+
+				if (!options.dryRun) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+					await sourceFile.save();
+				}
+			} catch (error) {
+				errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
 			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
 		}
-	}
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

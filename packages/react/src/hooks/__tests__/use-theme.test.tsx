@@ -5,7 +5,6 @@ import {
 	StableGlobalThemeProvider,
 	StableLocalThemeProvider,
 } from '~/__tests__/stable-context-providers';
-import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
 
 import { useTheme } from '../use-theme';

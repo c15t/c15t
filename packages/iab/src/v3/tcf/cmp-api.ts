@@ -25,19 +25,23 @@ import { decodeTCString } from './tc-string';
 /**
  * Sets a cookie value.
  */
-function setCookie(name: string, value: string, maxAgeDays: number): void {
+const setCookie = function setCookie(
+	name: string,
+	value: string,
+	maxAgeDays: number
+): void {
 	if (typeof document === 'undefined') {
 		return;
 	}
 
 	const maxAge = maxAgeDays * 24 * 60 * 60;
 	document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; SameSite=Lax`;
-}
+};
 
 /**
  * Gets a cookie value.
  */
-function getCookie(name: string): string | null {
+const getCookie = function getCookie(name: string): string | null {
 	if (typeof document === 'undefined') {
 		return null;
 	}
@@ -47,7 +51,7 @@ function getCookie(name: string): string | null {
 		return decodeURIComponent(match[2]);
 	}
 	return null;
-}
+};
 
 /**
  * Creates a CMP API instance using functional composition.
@@ -76,7 +80,9 @@ function getCookie(name: string): string | null {
  *
  * @public
  */
-export function createCMPApi(config: CMPApiConfig): CMPApi {
+export const createCMPApi = function createCMPApi(
+	config: CMPApiConfig
+): CMPApi {
 	const {
 		cmpId = CMP_ID,
 		cmpVersion = CMP_VERSION,
@@ -96,7 +102,7 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 	/**
 	 * Builds TC Data from current state.
 	 */
-	async function buildTCData(
+	const buildTCData = async function buildTCData(
 		eventStatus?: EventStatus,
 		listenerId?: number
 	): Promise<TCData> {
@@ -143,35 +149,35 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 				? cmpVersion
 				: Number.parseInt(String(cmpVersion), 10) || 1;
 		const tcData: TCData = {
-			tcString,
-			tcfPolicyVersion: gvl.tcfPolicyVersion,
 			cmpId,
-			cmpVersion: cmpVersionNum,
-			gdprApplies,
-			listenerId,
-			eventStatus,
 			cmpStatus,
+			cmpVersion: cmpVersionNum,
+			eventStatus,
+			gdprApplies,
 			isServiceSpecific: true,
-			useNonStandardTexts: false,
-			publisherCC: 'US',
-			purposeOneTreatment: false,
-			purpose: {
-				consents: purposeConsents,
-				legitimateInterests: purposeLegitInterests,
-			},
-			vendor: {
-				consents: vendorConsents,
-				legitimateInterests: vendorLegitInterests,
-			},
-			specialFeatureOptins,
+			listenerId,
 			publisher: {
 				consents: {},
-				legitimateInterests: {},
 				customPurpose: {
 					consents: {},
 					legitimateInterests: {},
 				},
+				legitimateInterests: {},
 				restrictions: {},
+			},
+			publisherCC: 'US',
+			purpose: {
+				consents: purposeConsents,
+				legitimateInterests: purposeLegitInterests,
+			},
+			purposeOneTreatment: false,
+			specialFeatureOptins,
+			tcString,
+			tcfPolicyVersion: gvl.tcfPolicyVersion,
+			useNonStandardTexts: false,
+			vendor: {
+				consents: vendorConsents,
+				legitimateInterests: vendorLegitInterests,
 			},
 		};
 
@@ -181,95 +187,102 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		}
 
 		return tcData;
-	}
+	};
 
 	/**
 	 * Handles the 'ping' command.
 	 */
-	function handlePing(handler: TCFApiCallback<PingData>): void {
+	const handlePing = function handlePing(
+		handler: TCFApiCallback<PingData>
+	): void {
 		const pingData: PingData = {
-			gdprApplies,
+			apiVersion: '2.3',
+			cmpId,
 			cmpLoaded: cmpStatus === 'loaded',
 			cmpStatus,
-			displayStatus,
-			apiVersion: '2.3',
 			cmpVersion:
 				typeof cmpVersion === 'string' ? cmpVersion : String(cmpVersion),
-			cmpId,
+			displayStatus,
+			gdprApplies,
 			gvlVersion: gvl.vendorListVersion,
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 		};
 
 		handler(pingData, true);
-	}
+	};
 
 	/**
 	 * Handles the 'getTCData' command.
 	 */
-	async function handleGetTCData(
+	const handleGetTCData = async function handleGetTCData(
 		handler: TCFApiCallback<TCData>,
 		_vendorIds?: number[]
 	): Promise<void> {
 		const tcData = await buildTCData();
 		handler(tcData, true);
-	}
+	};
 
 	/**
 	 * Handles the 'getInAppTCData' command (alias for getTCData).
 	 */
-	async function handleGetInAppTCData(
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
+	const handleGetInAppTCData = async function handleGetInAppTCData(
 		handler: TCFApiCallback<TCData>
 	): Promise<void> {
 		return handleGetTCData(handler);
-	}
+	};
 
 	/**
 	 * Handles the 'getVendorList' command.
 	 */
-	function handleGetVendorList(
+	const handleGetVendorList = function handleGetVendorList(
 		handler: TCFApiCallback<GlobalVendorList>,
 		_vendorListVersion?: number
 	): void {
 		handler(gvl, true);
-	}
+	};
 
 	/**
 	 * Handles the 'addEventListener' command.
 	 */
-	async function handleAddEventListener(
+	const handleAddEventListener = async function handleAddEventListener(
 		handler: TCFApiCallback<TCData>
 	): Promise<void> {
-		const listenerId = nextListenerId++;
+		nextListenerId += 1;
+		const listenerId = nextListenerId;
 		eventListeners.set(listenerId, handler);
 
 		// Immediately call with current state
 		const tcData = await buildTCData('tcloaded', listenerId);
 		handler(tcData, true);
-	}
+	};
 
 	/**
 	 * Handles the 'removeEventListener' command.
 	 */
-	function handleRemoveEventListener(
+	const handleRemoveEventListener = function handleRemoveEventListener(
 		handler: TCFApiCallback<boolean>,
 		listenerId: number
 	): void {
 		const existed = eventListeners.has(listenerId);
 		eventListeners.delete(listenerId);
 		handler(existed, true);
-	}
+	};
 
 	/**
 	 * Notifies all event listeners of a state change.
 	 */
-	async function notifyEventListeners(eventStatus: EventStatus): Promise<void> {
+	const notifyEventListeners = async function notifyEventListeners(
+		eventStatus: EventStatus
+	): Promise<void> {
 		for (const [listenerId, listener] of eventListeners) {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const tcData = await buildTCData(eventStatus, listenerId);
 			listener(tcData, true);
 		}
-	}
+	};
 
-	function initializeAPI(): void {
+	const initializeAPI = function initializeAPI(): void {
 		if (typeof window === 'undefined') {
 			return;
 		}
@@ -327,26 +340,22 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 
 		// Mark as loaded
 		cmpStatus = 'loaded';
-	}
+	};
 
 	// Initialize on creation
 	initializeAPI();
 
 	return {
-		updateConsent: (newTcString: string, consentData?: TCFConsentData) => {
-			tcString = newTcString;
-			currentConsentData = consentData ?? currentConsentData;
-			cachedTCData = null; // Invalidate cache
-			cmpStatus = 'loaded';
-			notifyEventListeners('useractioncomplete');
-		},
+		destroy: () => {
+			eventListeners.clear();
+			cachedTCData = null;
 
-		setDisplayStatus: (status: DisplayStatus) => {
-			displayStatus = status;
-			if (status === 'visible') {
-				notifyEventListeners('cmpuishown');
+			if (typeof window !== 'undefined') {
+				delete (window as { __tcfapi?: unknown }).__tcfapi;
 			}
 		},
+
+		getTcString: () => tcString,
 
 		loadFromStorage: (): string | null => {
 			// Try cookie first (per TCF spec)
@@ -392,15 +401,20 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			}
 		},
 
-		getTcString: () => tcString,
-
-		destroy: () => {
-			eventListeners.clear();
-			cachedTCData = null;
-
-			if (typeof window !== 'undefined') {
-				delete (window as { __tcfapi?: unknown }).__tcfapi;
+		setDisplayStatus: (status: DisplayStatus) => {
+			displayStatus = status;
+			if (status === 'visible') {
+				notifyEventListeners('cmpuishown');
 			}
 		},
+
+		updateConsent: (newTcString: string, consentData?: TCFConsentData) => {
+			tcString = newTcString;
+			currentConsentData = consentData ?? currentConsentData;
+			// Invalidate cache
+			cachedTCData = null;
+			cmpStatus = 'loaded';
+			notifyEventListeners('useractioncomplete');
+		},
 	};
-}
+};

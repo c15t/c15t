@@ -175,8 +175,8 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
-		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
+		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
@@ -192,10 +192,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	} = useMemo(() => {
 		if (!gvlData) {
 			return {
-				purposes: [],
-				specialPurposes: [],
-				specialFeatures: [],
 				features: [],
+				purposes: [],
+				specialFeatures: [],
+				specialPurposes: [],
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
@@ -210,26 +210,26 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			vendor: (typeof gvl.vendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
-			id: Number(vendorId),
-			name: vendor.name,
-			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-			usesNonCookieAccess: vendor.usesNonCookieAccess,
-			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-			usesCookies: vendor.usesCookies,
 			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 			cookieRefresh: vendor.cookieRefresh,
+			dataRetention: vendor.dataRetention,
+			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+			features: vendor.features || [],
+			id: Number(vendorId),
+			isCustom: false,
+			legIntPurposes: vendor.legIntPurposes || [],
 			legitimateInterestUrl:
 				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-			specialPurposes: vendor.specialPurposes || [],
-			specialFeatures: vendor.specialFeatures || [],
-			features: vendor.features || [],
+			name: vendor.name,
+			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 			purposes: vendor.purposes || [],
-			legIntPurposes: vendor.legIntPurposes || [],
+			specialFeatures: vendor.specialFeatures || [],
+			specialPurposes: vendor.specialPurposes || [],
+			usesCookies: vendor.usesCookies,
 			usesLegitimateInterest: purposeId
 				? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
-			dataRetention: vendor.dataRetention,
-			isCustom: false,
+			usesNonCookieAccess: vendor.usesNonCookieAccess,
 		});
 
 		// Helper to map custom vendor to ProcessedVendor
@@ -237,25 +237,25 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			cv: (typeof customVendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
-			id: cv.id,
-			name: cv.name,
-			policyUrl: cv.privacyPolicyUrl,
-			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-			deviceStorageDisclosureUrl: null,
-			usesCookies: cv.usesCookies ?? false,
 			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 			cookieRefresh: undefined,
-			legitimateInterestUrl: null,
-			specialPurposes: [],
-			specialFeatures: cv.specialFeatures || [],
+			dataRetention: undefined,
+			deviceStorageDisclosureUrl: null,
 			features: cv.features || [],
-			purposes: cv.purposes || [],
+			id: cv.id,
+			isCustom: true,
 			legIntPurposes: cv.legIntPurposes || [],
+			legitimateInterestUrl: null,
+			name: cv.name,
+			policyUrl: cv.privacyPolicyUrl,
+			purposes: cv.purposes || [],
+			specialFeatures: cv.specialFeatures || [],
+			specialPurposes: [],
+			usesCookies: cv.usesCookies ?? false,
 			usesLegitimateInterest: purposeId
 				? (cv.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
-			dataRetention: undefined,
-			isCustom: true,
+			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 		});
 
 		// Process purposes
@@ -265,30 +265,28 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				const iabVendorsForPurpose: ProcessedVendor[] = Object.entries(
 					gvl.vendors
 				)
-					.filter(([, vendor]) => {
-						return (
+					.filter(
+						([, vendor]) =>
 							vendor.purposes?.includes(Number(id)) ||
 							vendor.legIntPurposes?.includes(Number(id))
-						);
-					})
+					)
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor, Number(id)));
 
 				// Get custom vendors for this purpose
 				const customVendorsForPurpose: ProcessedVendor[] = customVendors
-					.filter((cv) => {
-						return (
+					.filter(
+						(cv) =>
 							cv.purposes?.includes(Number(id)) ||
 							cv.legIntPurposes?.includes(Number(id))
-						);
-					})
+					)
 					.map((cv) => mapCustomVendor(cv, Number(id)));
 
 				return {
-					id: Number(id),
-					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
+					id: Number(id),
 					illustrations: purpose.illustrations || [],
+					name: purpose.name,
 					vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
 				};
 			})
@@ -300,19 +298,17 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		)
 			.map(([id, purpose]) => {
 				const vendorsForPurpose: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialPurposes?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
+					id: Number(id),
 					illustrations: purpose.illustrations || [],
-					vendors: vendorsForPurpose,
 					isSpecialPurpose: true,
+					name: purpose.name,
+					vendors: vendorsForPurpose,
 				};
 			})
 			.filter((sp) => sp.vendors.length > 0);
@@ -323,17 +319,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialFeatures?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
+					id: Number(id),
 					illustrations: feature.illustrations || [],
+					name: feature.name,
 					vendors: vendorsForFeature,
 				};
 			})
@@ -345,17 +339,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.features?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.features?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
+					id: Number(id),
 					illustrations: feature.illustrations || [],
+					name: feature.name,
 					vendors: vendorsForFeature,
 				};
 			})
@@ -390,10 +382,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			if (coveredIds.length >= 2) {
 				// Only consider stacks that cover 2+ purposes
 				stackScores.push({
-					stackId,
-					stack,
 					coveredPurposeIds: coveredIds,
 					score: coveredIds.length,
+					stack,
+					stackId,
 				});
 			}
 		}
@@ -416,9 +408,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					unassignedInStack.includes(p.id)
 				);
 				processedStacks.push({
+					description: stack.description,
 					id: stackId,
 					name: stack.name,
-					description: stack.description,
 					purposes: stackPurposes,
 				});
 				for (const pid of unassignedInStack) {
@@ -437,10 +429,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			: uncoveredPurposes;
 
 		return {
-			purposes: processedPurposes,
-			specialPurposes: processedSpecialPurposes,
-			specialFeatures: processedSpecialFeatures,
 			features: processedFeatures,
+			purposes: processedPurposes,
+			specialFeatures: processedSpecialFeatures,
+			specialPurposes: processedSpecialPurposes,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
@@ -601,10 +593,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		content.style.transition = 'none';
 
 		// Use double-RAF to ensure browser has laid out new content
-		let rafId1: number;
 		let rafId2: number;
 
-		rafId1 = requestAnimationFrame(() => {
+		const rafId1 = requestAnimationFrame(() => {
 			rafId2 = requestAnimationFrame(() => {
 				if (!content) {
 					return;
@@ -710,7 +701,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						>
 							<svg
 								aria-hidden="true"
-								style={{ width: '1rem', height: '1rem' }}
+								style={{ height: '1rem', width: '1rem' }}
 								viewBox="0 0 24 24"
 								fill="none"
 								stroke="currentColor"
@@ -849,10 +840,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											<PurposeItem
 												key={`feature-${feature.id}`}
 												purpose={{
-													id: feature.id,
-													name: feature.name,
 													description: feature.description,
+													id: feature.id,
 													illustrations: feature.illustrations,
+													name: feature.name,
 													vendors: feature.vendors,
 												}}
 												isEnabled={
@@ -996,10 +987,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 															<PurposeItem
 																key={`feature-${feature.id}`}
 																purpose={{
-																	id: feature.id,
-																	name: feature.name,
 																	description: feature.description,
+																	id: feature.id,
 																	illustrations: feature.illustrations,
+																	name: feature.name,
 																	vendors: feature.vendors,
 																}}
 																isEnabled={true}
@@ -1099,11 +1090,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	// Resolve trigger props
 	const triggerProps: ConsentDialogTriggerProps | null =
 		// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
-		showTrigger === true
-			? {} // Use defaults
-			: showTrigger === false
-				? null
-				: showTrigger;
+		showTrigger === true ? {} : showTrigger === false ? null : showTrigger;
 
 	// Render trigger even when dialog is closed
 	const triggerElement = triggerProps ? (

@@ -14,7 +14,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -25,9 +25,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -38,7 +38,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -56,7 +56,7 @@ interface BenchJob {
 	env: NodeJS.ProcessEnv;
 }
 
-function readValue(
+const readValue = function readValue(
 	args: string[],
 	index: number,
 	name: string
@@ -64,22 +64,25 @@ function readValue(
 	const inlinePrefix = `${name}=`;
 	const arg = args[index];
 	if (arg.startsWith(inlinePrefix)) {
-		return { value: arg.slice(inlinePrefix.length), nextIndex: index };
+		return { nextIndex: index, value: arg.slice(inlinePrefix.length) };
 	}
 	const value = args[index + 1];
 	if (!value || value.startsWith('-')) {
 		throw new Error(`Missing value for ${name}`);
 	}
-	return { value, nextIndex: index + 1 };
-}
+	return { nextIndex: index + 1, value };
+};
 
-function assertPositiveInteger(value: string, label: string) {
+const assertPositiveInteger = function assertPositiveInteger(
+	value: string,
+	label: string
+) {
 	if (!/^[1-9]\d*$/u.test(value)) {
 		throw new Error(`${label} must be a positive integer`);
 	}
-}
+};
 
-function assertCounts(value: string) {
+const assertCounts = function assertCounts(value: string) {
 	const counts = value.split(',').map((count) => count.trim());
 	if (
 		counts.length === 0 ||
@@ -89,9 +92,9 @@ function assertCounts(value: string) {
 			'--script-counts must be a comma-separated list of integers'
 		);
 	}
-}
+};
 
-function parseArgs(args: string[]): Options {
+const parseArgs = function parseArgs(args: string[]): Options {
 	const options: Options = { help: false };
 
 	for (let index = 0; index < args.length; index += 1) {
@@ -134,9 +137,9 @@ function parseArgs(args: string[]): Options {
 	}
 
 	return options;
-}
+};
 
-function printHelp() {
+const printHelp = function printHelp() {
 	console.log(`Run the important React v2/v3 browser benchmarks in parallel.
 
 Usage:
@@ -149,9 +152,12 @@ Options:
       --script-counts <list> Script-count cases, for example 5,10,25,50.
   -h, --help                 Show this help.
 `);
-}
+};
 
-function prefixOutput(name: string, stream: NodeJS.ReadableStream) {
+const prefixOutput = function prefixOutput(
+	name: string,
+	stream: NodeJS.ReadableStream
+) {
 	let buffer = '';
 
 	stream.on('data', (chunk) => {
@@ -171,9 +177,9 @@ function prefixOutput(name: string, stream: NodeJS.ReadableStream) {
 			buffer = '';
 		}
 	});
-}
+};
 
-function runJob(job: BenchJob, children: Set<ChildProcess>) {
+const runJob = function runJob(job: BenchJob, children: Set<ChildProcess>) {
 	return createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const child = spawn('bun', job.args, {
 			cwd: job.cwd,
@@ -207,17 +213,17 @@ function runJob(job: BenchJob, children: Set<ChildProcess>) {
 			);
 		});
 	});
-}
+};
 
-function stopChildren(children: Set<ChildProcess>) {
+const stopChildren = function stopChildren(children: Set<ChildProcess>) {
 	for (const child of children) {
 		if (child.exitCode === null && child.signalCode === null) {
 			child.kill('SIGTERM');
 		}
 	}
-}
+};
 
-async function run() {
+const run = async function run() {
 	const options = parseArgs(process.argv.slice(2));
 	if (options.help) {
 		printHelp();
@@ -236,21 +242,21 @@ async function run() {
 
 	const jobs: BenchJob[] = [
 		{
-			name: 'banner',
-			cwd: resolve(repoRoot, 'benchmarks/react-browser-bench'),
 			args: ['run', 'bench:banner-visibility'],
+			cwd: resolve(repoRoot, 'benchmarks/react-browser-bench'),
 			env: sharedEnv,
+			name: 'banner',
 		},
 		{
-			name: 'scripts',
-			cwd: resolve(repoRoot, 'benchmarks/script-lifecycle-bench'),
 			args: ['run', 'bench:script-count'],
+			cwd: resolve(repoRoot, 'benchmarks/script-lifecycle-bench'),
 			env: {
 				...sharedEnv,
 				...(options.scriptCounts
 					? { SCRIPT_COUNTS: options.scriptCounts }
 					: undefined),
 			},
+			name: 'scripts',
 		},
 	];
 
@@ -281,7 +287,7 @@ async function run() {
 		process.off('SIGINT', stop);
 		process.off('SIGTERM', stop);
 	}
-}
+};
 
 try {
 	await run();

@@ -34,15 +34,15 @@ interface BannerCopy {
 }
 
 const FALLBACK_COPY: BannerCopy = {
-	title: 'We value your privacy',
+	acceptLabel: 'Accept All',
+	customizeLabel: 'Customize',
 	description:
 		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
-	acceptLabel: 'Accept All',
 	rejectLabel: 'Reject All',
-	customizeLabel: 'Customize',
+	title: 'We value your privacy',
 };
 
-function readCopy(config: KernelConfig): BannerCopy {
+const readCopy = function readCopy(config: KernelConfig): BannerCopy {
 	const bundle = (
 		config.initialTranslations as
 			| {
@@ -59,17 +59,19 @@ function readCopy(config: KernelConfig): BannerCopy {
 	)?.translations;
 
 	return {
-		title: bundle?.cookieBanner?.title ?? FALLBACK_COPY.title,
-		description: bundle?.cookieBanner?.description ?? FALLBACK_COPY.description,
 		acceptLabel: bundle?.common?.acceptAll ?? FALLBACK_COPY.acceptLabel,
-		rejectLabel: bundle?.common?.rejectAll ?? FALLBACK_COPY.rejectLabel,
 		customizeLabel: bundle?.common?.customize ?? FALLBACK_COPY.customizeLabel,
+		description: bundle?.cookieBanner?.description ?? FALLBACK_COPY.description,
+		rejectLabel: bundle?.common?.rejectAll ?? FALLBACK_COPY.rejectLabel,
+		title: bundle?.cookieBanner?.title ?? FALLBACK_COPY.title,
 	};
-}
+};
 
-function shouldRenderBanner(config: KernelConfig): boolean {
+const shouldRenderBanner = function shouldRenderBanner(
+	config: KernelConfig
+): boolean {
 	return config.initialHasConsented !== true;
-}
+};
 
 export interface RscConsentBannerProps {
 	/** The prefetched kernel config (from `prefetchInitialConsent`). */
@@ -113,7 +115,7 @@ export const RscConsentBanner = ({
 				style={
 					classNames?.root
 						? undefined
-						: { position: 'fixed', bottom: 0, left: 0, zIndex: 999 }
+						: { bottom: 0, left: 0, position: 'fixed', zIndex: 999 }
 				}
 			>
 				<div
@@ -136,10 +138,10 @@ export const RscConsentBanner = ({
 					<RscBannerActions
 						acceptLabel={copy.acceptLabel}
 						classNames={{
-							footer: classNames?.footer,
 							acceptButton: classNames?.acceptButton,
-							rejectButton: classNames?.rejectButton,
 							customizeButton: classNames?.customizeButton,
+							footer: classNames?.footer,
+							rejectButton: classNames?.rejectButton,
 						}}
 						customizeLabel={copy.customizeLabel}
 						rejectLabel={copy.rejectLabel}

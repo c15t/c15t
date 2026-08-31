@@ -33,7 +33,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -44,16 +44,16 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function withProvider(options = {}) {
+const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider options={{ persistence: false, ...options }}>
 			{children}
 		</ConsentProvider>
 	);
 	return { Wrapper };
-}
+};
 
 describe('v3 react: selector hook basics', () => {
 	test('useConsent returns current state and updates on mutation', async () => {
@@ -144,7 +144,9 @@ describe('v3 react: selector hook basics', () => {
 				<button
 					type="button"
 					data-testid="save"
-					onClick={() => void save('all')}
+					onClick={async () => {
+						await save('all');
+					}}
 				>
 					save
 				</button>
@@ -356,18 +358,18 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 			</StrictMode>
 		);
 
-		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
+		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/u);
 
 		await getByTestId('on').click();
-		await expect.element(getByTestId('value')).toHaveTextContent(/^on\|/);
+		await expect.element(getByTestId('value')).toHaveTextContent(/^on\|/u);
 
 		await getByTestId('off').click();
-		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
+		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/u);
 	});
 });
 
 describe('v3 react: network blocker lifecycle', () => {
-	function installFetchStub() {
+	const installFetchStub = function installFetchStub() {
 		const originalFetch = window.fetch;
 		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 		const fetchStub = vi.fn(async () => new Response('ok', { status: 200 }));
@@ -379,18 +381,18 @@ describe('v3 react: network blocker lifecycle', () => {
 				window.fetch = originalFetch;
 			},
 		};
-	}
+	};
 
 	test('abandoned render does not patch fetch', async () => {
 		const fetch = installFetchStub();
 
-		function ThrowsAfterHook() {
+		const ThrowsAfterHook = function ThrowsAfterHook() {
 			useNetworkBlocker({
-				rules: [{ domain: 'example.com', category: 'marketing' }],
 				logBlockedRequests: false,
+				rules: [{ category: 'marketing', domain: 'example.com' }],
 			});
 			throw new Error('render failed before commit');
-		}
+		};
 
 		try {
 			await expect(
@@ -415,11 +417,11 @@ describe('v3 react: network blocker lifecycle', () => {
 				<StrictMode>
 					<ConsentProvider
 						options={{
-							persistence: false,
 							networkBlocker: {
-								rules: [{ domain: 'example.com', category: 'marketing' }],
 								logBlockedRequests: false,
+								rules: [{ category: 'marketing', domain: 'example.com' }],
 							},
+							persistence: false,
 						}}
 					>
 						<div>mounted</div>
@@ -445,11 +447,11 @@ describe('v3 react: network blocker lifecycle', () => {
 			const { rerender } = await render(
 				<ConsentProvider
 					options={{
-						persistence: false,
 						networkBlocker: {
-							rules: [{ domain: 'first.example.com', category: 'marketing' }],
 							logBlockedRequests: false,
+							rules: [{ category: 'marketing', domain: 'first.example.com' }],
 						},
+						persistence: false,
 					}}
 				>
 					<div>mounted</div>
@@ -469,11 +471,11 @@ describe('v3 react: network blocker lifecycle', () => {
 			await rerender(
 				<ConsentProvider
 					options={{
-						persistence: false,
 						networkBlocker: {
-							rules: [{ domain: 'second.example.com', category: 'marketing' }],
 							logBlockedRequests: false,
+							rules: [{ category: 'marketing', domain: 'second.example.com' }],
 						},
+						persistence: false,
 					}}
 				>
 					<div>mounted</div>
@@ -498,12 +500,12 @@ describe('v3 react: network blocker lifecycle', () => {
 			await render(
 				<ConsentProvider
 					options={{
-						persistence: false,
 						networkBlocker: {
-							rules: [{ domain: 'example.com', category: 'marketing' }],
 							enabled: false,
 							logBlockedRequests: false,
+							rules: [{ category: 'marketing', domain: 'example.com' }],
 						},
+						persistence: false,
 					}}
 				>
 					<div>mounted</div>

@@ -39,36 +39,53 @@ declare global {
 	}
 }
 
-export const IntegrationStatesDemo = () => {
-	return (
-		<ConsentManagerProvider options={providerOptions}>
-			<Tabs
-				defaultValue="loading"
-				className="gap-6"
-			>
-				<TabsList
-					aria-label="Integration state to inspect"
-					className="h-auto max-w-full flex-wrap justify-start"
+const StateIntroduction = ({
+	children,
+	description,
+	status,
+	title,
+}: {
+	children?: React.ReactNode;
+	description: string;
+	status: string;
+	title: string;
+}) => (
+	<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+		<div className="max-w-2xl">
+			<div className="flex flex-wrap items-center gap-2">
+				<h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+				<span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 font-mono text-xs">
+					{status}
+				</span>
+			</div>
+			<p className="text-muted-foreground mt-2 text-sm leading-6">
+				{description}
+			</p>
+		</div>
+		{children}
+	</div>
+);
+const CheckList = ({ items }: { items: string[] }) => (
+	<div className="border-border/80 border-t pt-4">
+		<p className="text-sm font-medium">What to verify</p>
+		<ul className="text-muted-foreground mt-2 space-y-1 text-sm leading-6">
+			{items.map((item) => (
+				<li
+					key={item}
+					className="flex gap-2"
 				>
-					<TabsTrigger value="loading">Loading</TabsTrigger>
-					<TabsTrigger value="error">Error</TabsTrigger>
-					<TabsTrigger value="retry">Retry</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="loading">
-					<LoadingState />
-				</TabsContent>
-				<TabsContent value="error">
-					<ErrorState />
-				</TabsContent>
-				<TabsContent value="retry">
-					<RetryState />
-				</TabsContent>
-			</Tabs>
-		</ConsentManagerProvider>
-	);
-};
-
+					<span
+						aria-hidden
+						className="text-foreground"
+					>
+						✓
+					</span>
+					<span>{item}</span>
+				</li>
+			))}
+		</ul>
+	</div>
+);
 const LoadingState = () => {
 	const [attempt, setAttempt] = useState(0);
 
@@ -106,54 +123,93 @@ const LoadingState = () => {
 		</section>
 	);
 };
+const ErrorState = () => (
+	<section className="space-y-6">
+		<StateIntroduction
+			title="Default integration errors"
+			description="These are real component error paths: a dynamic YouTube configuration with no source, and a Google Map with no browser key. TypeScript prevents the YouTube mistake in typed applications, but the runtime fallback still protects JavaScript and API-driven data."
+			status="Error"
+		/>
 
-const ErrorState = () => {
-	return (
-		<section className="space-y-6">
-			<StateIntroduction
-				title="Default integration errors"
-				description="These are real component error paths: a dynamic YouTube configuration with no source, and a Google Map with no browser key. TypeScript prevents the YouTube mistake in typed applications, but the runtime fallback still protects JavaScript and API-driven data."
-				status="Error"
-			/>
-
-			<div className="grid gap-6 lg:grid-cols-2">
-				<div className="space-y-3">
-					<div>
-						<h3 className="text-base font-medium">YouTube configuration</h3>
-						<p className="text-muted-foreground text-sm">
-							Missing both <code className="font-mono">videoId</code> and{' '}
-							<code className="font-mono">src</code>.
-						</p>
-					</div>
-					<YouTubeEmbed {...missingYouTubeSource} />
+		<div className="grid gap-6 lg:grid-cols-2">
+			<div className="space-y-3">
+				<div>
+					<h3 className="text-base font-medium">YouTube configuration</h3>
+					<p className="text-muted-foreground text-sm">
+						Missing both <code className="font-mono">videoId</code> and{' '}
+						<code className="font-mono">src</code>.
+					</p>
 				</div>
-
-				<div className="space-y-3">
-					<div>
-						<h3 className="text-base font-medium">Google Maps configuration</h3>
-						<p className="text-muted-foreground text-sm">
-							Empty browser API key; no Google request is made.
-						</p>
-					</div>
-					<GoogleMap
-						apiKey=""
-						center={{ lat: 40.7128, lng: -74.006 }}
-						consentCategory="necessary"
-					/>
-				</div>
+				<YouTubeEmbed {...missingYouTubeSource} />
 			</div>
 
-			<CheckList
-				items={[
-					'Both fallbacks use the active c15t error translation.',
-					'Each message is exposed as an assertive role="alert".',
-					'Neither broken integration mounts a third-party resource.',
-				]}
-			/>
-		</section>
-	);
-};
+			<div className="space-y-3">
+				<div>
+					<h3 className="text-base font-medium">Google Maps configuration</h3>
+					<p className="text-muted-foreground text-sm">
+						Empty browser API key; no Google request is made.
+					</p>
+				</div>
+				<GoogleMap
+					apiKey=""
+					center={{ lat: 40.7128, lng: -74.006 }}
+					consentCategory="necessary"
+				/>
+			</div>
+		</div>
 
+		<CheckList
+			items={[
+				'Both fallbacks use the active c15t error translation.',
+				'Each message is exposed as an assertive role="alert".',
+				'Neither broken integration mounts a third-party resource.',
+			]}
+		/>
+	</section>
+);
+const getRetryAnnouncement = function getRetryAnnouncement(
+	status: string,
+	retryKey: number
+) {
+	switch (status) {
+		case 'error':
+			return retryKey === 0
+				? 'Initial request failed as designed. Retry is available.'
+				: 'The retry request failed. Retry is available again.';
+		case 'ready':
+			return 'Retry succeeded. The fixture SDK is ready.';
+		case 'blocked':
+			return 'The retry fixture is blocked by consent.';
+		case 'idle':
+			return 'Preparing an isolated retry test session.';
+		default:
+			return retryKey === 0
+				? 'Sending the initial request.'
+				: 'Retrying the request.';
+	}
+};
+const getRetryFrameTitle = function getRetryFrameTitle(
+	status: string,
+	hasRetried: boolean,
+	attempt?: number
+) {
+	switch (status) {
+		case 'error':
+			return hasRetried
+				? 'The retry could not be completed.'
+				: 'The first request failed as expected.';
+		case 'ready':
+			return `The fixture script loaded successfully on request ${attempt ?? 2}.`;
+		case 'blocked':
+			return 'Consent is required to load this script.';
+		case 'idle':
+			return 'Preparing the fixture script…';
+		default:
+			return hasRetried
+				? 'Retrying the fixture script…'
+				: 'Loading the fixture script…';
+	}
+};
 const RetryState = () => {
 	const [session, setSession] = useState('');
 	const [retryKey, setRetryKey] = useState(0);
@@ -167,13 +223,13 @@ const RetryState = () => {
 
 	const result = useConsentScript<{ attempt: number; session: string }>({
 		enabled: Boolean(session),
+		resolveReady: () => window.__c15tIntegrationFixtures?.[session] ?? false,
+		retryKey,
 		script: {
 			category: 'necessary',
 			id: `integration-retry-${session || 'pending'}`,
 			src: `/api/integration-fixture?fixture=retry-script&session=${encodeURIComponent(session)}`,
 		},
-		resolveReady: () => window.__c15tIntegrationFixtures?.[session] ?? false,
-		retryKey,
 		timeoutMs: 5_000,
 	});
 
@@ -258,98 +314,30 @@ const RetryState = () => {
 		</section>
 	);
 };
+export const IntegrationStatesDemo = () => (
+	<ConsentManagerProvider options={providerOptions}>
+		<Tabs
+			defaultValue="loading"
+			className="gap-6"
+		>
+			<TabsList
+				aria-label="Integration state to inspect"
+				className="h-auto max-w-full flex-wrap justify-start"
+			>
+				<TabsTrigger value="loading">Loading</TabsTrigger>
+				<TabsTrigger value="error">Error</TabsTrigger>
+				<TabsTrigger value="retry">Retry</TabsTrigger>
+			</TabsList>
 
-const StateIntroduction = ({
-	children,
-	description,
-	status,
-	title,
-}: {
-	children?: React.ReactNode;
-	description: string;
-	status: string;
-	title: string;
-}) => {
-	return (
-		<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-			<div className="max-w-2xl">
-				<div className="flex flex-wrap items-center gap-2">
-					<h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-					<span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 font-mono text-xs">
-						{status}
-					</span>
-				</div>
-				<p className="text-muted-foreground mt-2 text-sm leading-6">
-					{description}
-				</p>
-			</div>
-			{children}
-		</div>
-	);
-};
-
-const CheckList = ({ items }: { items: string[] }) => {
-	return (
-		<div className="border-border/80 border-t pt-4">
-			<p className="text-sm font-medium">What to verify</p>
-			<ul className="text-muted-foreground mt-2 space-y-1 text-sm leading-6">
-				{items.map((item) => (
-					<li
-						key={item}
-						className="flex gap-2"
-					>
-						<span
-							aria-hidden
-							className="text-foreground"
-						>
-							✓
-						</span>
-						<span>{item}</span>
-					</li>
-				))}
-			</ul>
-		</div>
-	);
-};
-
-function getRetryFrameTitle(
-	status: string,
-	hasRetried: boolean,
-	attempt?: number
-) {
-	switch (status) {
-		case 'error':
-			return hasRetried
-				? 'The retry could not be completed.'
-				: 'The first request failed as expected.';
-		case 'ready':
-			return `The fixture script loaded successfully on request ${attempt ?? 2}.`;
-		case 'blocked':
-			return 'Consent is required to load this script.';
-		case 'idle':
-			return 'Preparing the fixture script…';
-		default:
-			return hasRetried
-				? 'Retrying the fixture script…'
-				: 'Loading the fixture script…';
-	}
-}
-
-function getRetryAnnouncement(status: string, retryKey: number) {
-	switch (status) {
-		case 'error':
-			return retryKey === 0
-				? 'Initial request failed as designed. Retry is available.'
-				: 'The retry request failed. Retry is available again.';
-		case 'ready':
-			return 'Retry succeeded. The fixture SDK is ready.';
-		case 'blocked':
-			return 'The retry fixture is blocked by consent.';
-		case 'idle':
-			return 'Preparing an isolated retry test session.';
-		default:
-			return retryKey === 0
-				? 'Sending the initial request.'
-				: 'Retrying the request.';
-	}
-}
+			<TabsContent value="loading">
+				<LoadingState />
+			</TabsContent>
+			<TabsContent value="error">
+				<ErrorState />
+			</TabsContent>
+			<TabsContent value="retry">
+				<RetryState />
+			</TabsContent>
+		</Tabs>
+	</ConsentManagerProvider>
+);

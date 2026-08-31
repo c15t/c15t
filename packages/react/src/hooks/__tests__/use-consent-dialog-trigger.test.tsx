@@ -3,51 +3,51 @@ import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import { StableConsentStateProvider } from '~/__tests__/stable-context-providers';
-import { ConsentStateContext } from '~/context/consent-manager-context';
 
 import { useConsentDialogTrigger } from '../use-consent-dialog-trigger';
 
-function createMockState(
+const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
 ): ConsentStoreState {
 	return {
 		activeUI: 'none',
+		consentCategories: ['necessary', 'measurement'],
+		consentInfo: null,
+		consentTypes: [],
 		consents: {
-			necessary: true,
-			functionality: false,
 			experience: false,
+			functionality: false,
 			marketing: false,
 			measurement: false,
+			necessary: true,
 		},
-		consentInfo: null,
-		consentCategories: ['necessary', 'measurement'],
-		consentTypes: [],
 		policyCategories: null,
 		policyScopeMode: null,
 		setActiveUI: vi.fn(),
 		...overrides,
 	} as unknown as ConsentStoreState;
-}
+};
 
-function createWrapper(state: ConsentStoreState) {
-	return function ({ children }: { children: React.ReactNode }) {
+const createWrapper = function createWrapper(state: ConsentStoreState) {
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
+	return function createWrapper({ children }: { children: React.ReactNode }) {
 		return (
 			<StableConsentStateProvider
 				value={{
+					manager: null,
 					state,
 					store: {
 						getState: () => state,
-						subscribe: () => () => undefined,
 						setState: () => undefined,
+						subscribe: () => () => undefined,
 					},
-					manager: null,
 				}}
 			>
 				{children}
 			</StableConsentStateProvider>
 		);
 	};
-}
+};
 
 describe('useConsentDialogTrigger', () => {
 	test('hides trigger when showWhen is after-consent and no consent exists', async () => {
@@ -108,8 +108,8 @@ describe('useConsentDialogTrigger', () => {
 		const { result } = await renderHook(
 			() =>
 				useConsentDialogTrigger({
-					showWhen: 'always',
 					onClick,
+					showWhen: 'always',
 				}),
 			{
 				wrapper: createWrapper(state),

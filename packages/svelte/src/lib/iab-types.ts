@@ -108,7 +108,7 @@ export interface ProcessedGVLData {
  * Process raw GVL data into UI-friendly format.
  * Shared between IABConsentBanner and IABConsentDialog.
  */
-export function processGVLData(
+export const processGVLData = function processGVLData(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[] = []
 ): ProcessedGVLData {
@@ -118,26 +118,26 @@ export function processGVLData(
 		vendor: (typeof gvl.vendors)[number],
 		purposeId?: number
 	): ProcessedVendor => ({
-		id: Number(vendorId),
-		name: vendor.name,
-		policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-		usesNonCookieAccess: vendor.usesNonCookieAccess,
-		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-		usesCookies: vendor.usesCookies,
 		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 		cookieRefresh: vendor.cookieRefresh,
+		dataRetention: vendor.dataRetention,
+		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+		features: vendor.features || [],
+		id: Number(vendorId),
+		isCustom: false,
+		legIntPurposes: vendor.legIntPurposes || [],
 		legitimateInterestUrl:
 			vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-		specialPurposes: vendor.specialPurposes || [],
-		specialFeatures: vendor.specialFeatures || [],
-		features: vendor.features || [],
+		name: vendor.name,
+		policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 		purposes: vendor.purposes || [],
-		legIntPurposes: vendor.legIntPurposes || [],
+		specialFeatures: vendor.specialFeatures || [],
+		specialPurposes: vendor.specialPurposes || [],
+		usesCookies: vendor.usesCookies,
 		usesLegitimateInterest: purposeId
 			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		dataRetention: vendor.dataRetention,
-		isCustom: false,
+		usesNonCookieAccess: vendor.usesNonCookieAccess,
 	});
 
 	// Helper to map custom vendor to ProcessedVendor
@@ -145,25 +145,25 @@ export function processGVLData(
 		cv: NonIABVendor,
 		purposeId?: number
 	): ProcessedVendor => ({
-		id: cv.id,
-		name: cv.name,
-		policyUrl: cv.privacyPolicyUrl,
-		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-		deviceStorageDisclosureUrl: null,
-		usesCookies: cv.usesCookies ?? false,
 		cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 		cookieRefresh: undefined,
-		legitimateInterestUrl: null,
-		specialPurposes: [],
-		specialFeatures: cv.specialFeatures || [],
+		dataRetention: undefined,
+		deviceStorageDisclosureUrl: null,
 		features: cv.features || [],
-		purposes: cv.purposes || [],
+		id: cv.id,
+		isCustom: true,
 		legIntPurposes: cv.legIntPurposes || [],
+		legitimateInterestUrl: null,
+		name: cv.name,
+		policyUrl: cv.privacyPolicyUrl,
+		purposes: cv.purposes || [],
+		specialFeatures: cv.specialFeatures || [],
+		specialPurposes: [],
+		usesCookies: cv.usesCookies ?? false,
 		usesLegitimateInterest: purposeId
 			? (cv.legIntPurposes?.includes(purposeId) ?? false)
 			: false,
-		dataRetention: undefined,
-		isCustom: true,
+		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 	});
 
 	// Process purposes
@@ -186,11 +186,11 @@ export function processGVLData(
 				.map((cv) => mapCustomVendor(cv, Number(id)));
 
 			return {
-				id: Number(id),
-				name: purpose.name,
 				description: purpose.description,
 				descriptionLegal: purpose.descriptionLegal,
+				id: Number(id),
 				illustrations: purpose.illustrations || [],
+				name: purpose.name,
 				vendors: [...iabVendors, ...customVendorsForPurpose],
 			};
 		})
@@ -206,13 +206,13 @@ export function processGVLData(
 				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 			return {
-				id: Number(id),
-				name: purpose.name,
 				description: purpose.description,
 				descriptionLegal: purpose.descriptionLegal,
+				id: Number(id),
 				illustrations: purpose.illustrations || [],
-				vendors,
 				isSpecialPurpose: true,
+				name: purpose.name,
+				vendors,
 			};
 		})
 		.filter((sp) => sp.vendors.length > 0);
@@ -227,11 +227,11 @@ export function processGVLData(
 				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 			return {
-				id: Number(id),
-				name: feature.name,
 				description: feature.description,
 				descriptionLegal: feature.descriptionLegal,
+				id: Number(id),
 				illustrations: feature.illustrations || [],
+				name: feature.name,
 				vendors,
 			};
 		})
@@ -247,11 +247,11 @@ export function processGVLData(
 				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 			return {
-				id: Number(id),
-				name: feature.name,
 				description: feature.description,
 				descriptionLegal: feature.descriptionLegal,
+				id: Number(id),
 				illustrations: feature.illustrations || [],
+				name: feature.name,
 				vendors,
 			};
 		})
@@ -281,10 +281,10 @@ export function processGVLData(
 		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));
 		if (coveredIds.length >= 2) {
 			stackScores.push({
-				stackId: Number(stackIdStr),
-				stack,
 				coveredPurposeIds: coveredIds,
 				score: coveredIds.length,
+				stack,
+				stackId: Number(stackIdStr),
 			});
 		}
 	}
@@ -304,9 +304,9 @@ export function processGVLData(
 				unassignedInStack.includes(p.id)
 			);
 			processedStacks.push({
+				description: stack.description,
 				id: stackId,
 				name: stack.name,
-				description: stack.description,
 				purposes: stackPurposes,
 			});
 			for (const pid of unassignedInStack) {
@@ -325,21 +325,21 @@ export function processGVLData(
 		: uncoveredPurposes;
 
 	return {
-		purposes: processedPurposes,
-		specialPurposes: processedSpecialPurposes,
-		specialFeatures: processedSpecialFeatures,
 		features: processedFeatures,
+		purposes: processedPurposes,
+		specialFeatures: processedSpecialFeatures,
+		specialPurposes: processedSpecialPurposes,
 		stacks: processedStacks,
 		standalonePurposes: finalStandalonePurposes,
 	};
-}
+};
 
 /**
  * Compute display items for the IAB consent banner.
  * Uses a greedy set-cover approach to group purposes into stacks,
  * then lists remaining standalone purposes and special features.
  */
-export function getIABBannerDisplayItems(
+export const getIABBannerDisplayItems = function getIABBannerDisplayItems(
 	gvl: GlobalVendorList,
 	maxItems = 5
 ): { displayed: string[]; remainingCount: number } {
@@ -375,8 +375,8 @@ export function getIABBannerDisplayItems(
 		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));
 		if (coveredIds.length >= 2) {
 			stackScores.push({
-				name: stack.name,
 				coveredPurposeIds: coveredIds,
+				name: stack.name,
 				score: coveredIds.length,
 			});
 		}
@@ -416,13 +416,21 @@ export function getIABBannerDisplayItems(
 
 	// Build final list
 	const items: string[] = [];
-	if (standalonePurpose) items.push(standalonePurpose.name);
-	for (const stackName of selectedStacks) items.push(stackName);
-	for (const purpose of uncoveredPurposes) items.push(purpose.name);
-	for (const featureName of specialFeaturesWithVendors) items.push(featureName);
+	if (standalonePurpose) {
+		items.push(standalonePurpose.name);
+	}
+	for (const stackName of selectedStacks) {
+		items.push(stackName);
+	}
+	for (const purpose of uncoveredPurposes) {
+		items.push(purpose.name);
+	}
+	for (const featureName of specialFeaturesWithVendors) {
+		items.push(featureName);
+	}
 
 	const displayed = items.slice(0, maxItems);
 	const remainingCount = Math.max(0, items.length - maxItems);
 
 	return { displayed, remainingCount };
-}
+};

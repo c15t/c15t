@@ -11,7 +11,7 @@ import {
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { createDemoScripts } from '../../lib/demo-scripts';
 import {
@@ -59,7 +59,7 @@ interface PolicyOverrides {
 
 const policyOverridesCache = new Map<string, PolicyOverrides>();
 
-function createPolicyOverrides(
+const createPolicyOverrides = function createPolicyOverrides(
 	normalizedCountry: string,
 	normalizedRegion: string
 ): PolicyOverrides {
@@ -85,7 +85,7 @@ function createPolicyOverrides(
 
 	policyOverridesCache.set(cacheKey, overrides);
 	return overrides;
-}
+};
 
 // ---------------------------------------------------------------------------
 // Location presets
@@ -93,85 +93,85 @@ function createPolicyOverrides(
 
 const locationPresetSections: LocationPresetSection[] = [
 	{
-		label: 'Built-in Presets',
 		description: 'The defaults that ship with policy packs.',
+		label: 'Built-in Presets',
 		presets: [
 			{
-				id: 'preset-europe-opt-in',
-				label: 'Europe Opt-In',
 				country: 'GB',
 				description: 'Shipped preset for Europe + UK opt-in banners',
+				id: 'preset-europe-opt-in',
+				label: 'Europe Opt-In',
 			},
 			{
-				id: 'preset-europe-iab',
-				label: 'Europe IAB',
 				country: 'FR',
 				description: 'Shipped preset for IAB TCF in Europe',
+				id: 'preset-europe-iab',
+				label: 'Europe IAB',
 			},
 			{
+				country: 'US',
+				description: 'Shipped preset for a compact California opt-in banner',
 				id: 'preset-california-opt-in',
 				label: 'California Opt-In',
-				country: 'US',
 				region: 'CA',
-				description: 'Shipped preset for a compact California opt-in banner',
 			},
 			{
+				country: 'US',
+				description: 'Shipped preset for California opt-out with no banner',
 				id: 'preset-california-opt-out',
 				label: 'California Opt-Out',
-				country: 'US',
 				region: 'CA',
-				description: 'Shipped preset for California opt-out with no banner',
 			},
 			{
+				country: 'CA',
+				description: 'Shipped preset for Quebec opt-in requirements',
 				id: 'preset-quebec-opt-in',
 				label: 'Quebec Opt-In',
-				country: 'CA',
 				region: 'QC',
-				description: 'Shipped preset for Quebec opt-in requirements',
 			},
 			{
-				id: 'preset-world-no-banner',
-				label: 'World No Banner',
 				country: 'AU',
 				description: 'Shipped preset for no-banner rest-of-world fallback',
+				id: 'preset-world-no-banner',
+				label: 'World No Banner',
 			},
 		],
 	},
 	{
-		label: 'Custom Examples',
 		description: 'Overrides that show how much policy packs can be shaped.',
+		label: 'Custom Examples',
 		presets: [
 			{
-				id: 'custom-de-strict',
-				label: 'Germany',
 				country: 'DE',
 				description: 'Strict opt-in with compact split-row actions',
+				id: 'custom-de-strict',
+				label: 'Germany',
 			},
 			{
-				id: 'custom-fr-iab',
-				label: 'France',
 				country: 'FR',
 				description: 'Country-specific IAB TCF policy',
+				id: 'custom-fr-iab',
+				label: 'France',
 			},
 			{
-				id: 'custom-es-split-stack',
-				label: 'Spain',
 				country: 'ES',
 				description: 'Split-stack layout with customize on its own row',
+				id: 'custom-es-split-stack',
+				label: 'Spain',
 			},
 			{
-				id: 'custom-br-growth',
-				label: 'Brazil',
 				country: 'BR',
 				description: 'Custom opt-out flow with accept + customize only',
+				id: 'custom-br-growth',
+				label: 'Brazil',
 			},
 			{
-				id: 'custom-ca-do-not-sell',
-				label: 'California CTA',
 				country: 'US',
-				region: 'CA',
 				description:
 					'Primary Accept All with a Do not sell/share opt-out and no customize',
+				id: 'custom-ca-do-not-sell',
+				label: 'California CTA',
+				region: 'CA',
 			},
 		],
 	},
@@ -191,195 +191,183 @@ const demoLanguageOptions: DemoLanguageOption[] = [
 	{ label: 'Chinese', value: 'zh' },
 ];
 
-function getAllowedLanguagesForProfile(profile?: string): string[] {
+const getAllowedLanguagesForProfile = function getAllowedLanguagesForProfile(
+	profile?: string
+): string[] {
 	const activeProfile = profile ?? 'default';
 	return Object.keys(
 		demoI18nMessages[activeProfile]?.translations ?? {}
 	).sort();
-}
+};
 
 // ---------------------------------------------------------------------------
 // Offline policy pack (same shape as the backend config in lib/policies.ts)
 // ---------------------------------------------------------------------------
 
 const offlinePoliciesByExample = {
-	'custom-fr-iab': [
-		{
-			id: 'fr_iab',
-			match: { countries: ['FR'] },
-			i18n: { messageProfile: 'fr' },
-			consent: { model: 'iab' as const, expiryDays: 180, categories: ['*'] },
-			proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
-		},
-		policyPackPresets.worldNoBanner(),
-	],
-	'custom-de-strict': [
-		{
-			id: 'de_strict',
-			match: { countries: ['DE'] },
-			i18n: { messageProfile: 'eu' },
-			consent: {
-				model: 'opt-in' as const,
-				expiryDays: 365,
-				scopeMode: 'strict' as const,
-				categories: ['necessary', 'functionality', 'measurement'],
-			},
-			ui: {
-				mode: 'banner' as const,
-				banner: {
-					allowedActions: [
-						'reject' as const,
-						'accept' as const,
-						'customize' as const,
-					],
-					layout: [
-						['reject' as const, 'accept' as const],
-						'customize' as const,
-					],
-					direction: 'row' as const,
-					primaryActions: ['accept' as const, 'customize' as const],
-					uiProfile: 'compact' as const,
-				},
-				dialog: {
-					allowedActions: [
-						'reject' as const,
-						'accept' as const,
-						'customize' as const,
-					],
-					layout: [
-						['reject' as const, 'accept' as const],
-						'customize' as const,
-					],
-					direction: 'row' as const,
-					primaryActions: ['accept' as const, 'customize' as const],
-					uiProfile: 'compact' as const,
-				},
-			},
-			proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
-		},
-		policyPackPresets.worldNoBanner(),
-	],
-	'custom-es-split-stack': [
-		{
-			id: 'es_split_stack',
-			match: { countries: ['ES'] },
-			i18n: { messageProfile: 'default' },
-			consent: {
-				model: 'opt-in' as const,
-				expiryDays: 180,
-				categories: ['necessary', 'measurement', 'marketing'],
-			},
-			ui: {
-				mode: 'banner' as const,
-				banner: {
-					allowedActions: [
-						'reject' as const,
-						'accept' as const,
-						'customize' as const,
-					],
-					layout: [
-						'customize' as const,
-						['reject' as const, 'accept' as const],
-					],
-					direction: 'column' as const,
-					primaryActions: ['accept' as const],
-					uiProfile: 'balanced' as const,
-				},
-				dialog: {
-					allowedActions: [
-						'reject' as const,
-						'accept' as const,
-						'customize' as const,
-					],
-					layout: [
-						'customize' as const,
-						['reject' as const, 'accept' as const],
-					],
-					direction: 'column' as const,
-					primaryActions: ['accept' as const],
-					uiProfile: 'balanced' as const,
-				},
-			},
-			proof: { storeIp: false, storeUserAgent: true, storeLanguage: true },
-		},
-		policyPackPresets.worldNoBanner(),
-	],
 	'custom-br-growth': [
 		{
+			consent: {
+				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
+				expiryDays: 120,
+				model: 'opt-out' as const,
+				scopeMode: 'permissive' as const,
+			},
+			i18n: { messageProfile: 'default' },
 			id: 'br_growth',
 			match: { countries: ['BR'] },
-			i18n: { messageProfile: 'default' },
-			consent: {
-				model: 'opt-out' as const,
-				expiryDays: 120,
-				scopeMode: 'permissive' as const,
-				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
-			},
+			proof: { storeIp: false, storeLanguage: true, storeUserAgent: false },
 			ui: {
-				mode: 'banner' as const,
 				banner: {
 					allowedActions: ['accept' as const, 'customize' as const],
-					layout: [['accept' as const], 'customize' as const],
 					direction: 'row' as const,
+					layout: [['accept' as const], 'customize' as const],
 					primaryActions: ['accept' as const],
 					uiProfile: 'balanced' as const,
 				},
 				dialog: {
 					allowedActions: ['accept' as const, 'customize' as const],
-					layout: [['accept' as const], 'customize' as const],
 					direction: 'row' as const,
+					layout: [['accept' as const], 'customize' as const],
 					primaryActions: ['accept' as const],
 					uiProfile: 'balanced' as const,
 				},
+				mode: 'banner' as const,
 			},
-			proof: { storeIp: false, storeUserAgent: false, storeLanguage: true },
 		},
 		policyPackPresets.worldNoBanner(),
 	],
 	'custom-ca-do-not-sell': [
 		{
-			id: 'ca_do_not_sell',
-			match: { regions: [{ country: 'US', region: 'CA' }] },
-			i18n: { messageProfile: 'caSales' },
 			consent: {
-				model: 'opt-in' as const,
+				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 				expiryDays: 365,
 				gpc: true,
+				model: 'opt-in' as const,
 				scopeMode: 'permissive' as const,
-				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 			},
+			i18n: { messageProfile: 'caSales' },
+			id: 'ca_do_not_sell',
+			match: { regions: [{ country: 'US', region: 'CA' }] },
+			proof: { storeIp: true, storeLanguage: true, storeUserAgent: true },
 			ui: {
-				mode: 'banner' as const,
 				banner: {
 					allowedActions: ['accept' as const, 'reject' as const],
-					layout: ['accept' as const, 'reject' as const],
 					direction: 'column' as const,
+					layout: ['accept' as const, 'reject' as const],
 					primaryActions: ['accept' as const],
 					uiProfile: 'compact' as const,
 				},
 				dialog: {
 					allowedActions: ['accept' as const, 'reject' as const],
-					layout: ['accept' as const, 'reject' as const],
 					direction: 'column' as const,
+					layout: ['accept' as const, 'reject' as const],
 					primaryActions: ['accept' as const],
 					uiProfile: 'compact' as const,
 				},
+				mode: 'banner' as const,
 			},
-			proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
 		},
 		policyPackPresets.worldNoBanner(),
 	],
-	'preset-europe-opt-in': [
+	'custom-de-strict': [
 		{
-			...policyPackPresets.europeOptIn(),
+			consent: {
+				categories: ['necessary', 'functionality', 'measurement'],
+				expiryDays: 365,
+				model: 'opt-in' as const,
+				scopeMode: 'strict' as const,
+			},
 			i18n: { messageProfile: 'eu' },
+			id: 'de_strict',
+			match: { countries: ['DE'] },
+			proof: { storeIp: true, storeLanguage: true, storeUserAgent: true },
+			ui: {
+				banner: {
+					allowedActions: [
+						'reject' as const,
+						'accept' as const,
+						'customize' as const,
+					],
+					direction: 'row' as const,
+					layout: [
+						['reject' as const, 'accept' as const],
+						'customize' as const,
+					],
+					primaryActions: ['accept' as const, 'customize' as const],
+					uiProfile: 'compact' as const,
+				},
+				dialog: {
+					allowedActions: [
+						'reject' as const,
+						'accept' as const,
+						'customize' as const,
+					],
+					direction: 'row' as const,
+					layout: [
+						['reject' as const, 'accept' as const],
+						'customize' as const,
+					],
+					primaryActions: ['accept' as const, 'customize' as const],
+					uiProfile: 'compact' as const,
+				},
+				mode: 'banner' as const,
+			},
 		},
 		policyPackPresets.worldNoBanner(),
 	],
-	'preset-europe-iab': [
+	'custom-es-split-stack': [
 		{
-			...policyPackPresets.europeIab(),
+			consent: {
+				categories: ['necessary', 'measurement', 'marketing'],
+				expiryDays: 180,
+				model: 'opt-in' as const,
+			},
+			i18n: { messageProfile: 'default' },
+			id: 'es_split_stack',
+			match: { countries: ['ES'] },
+			proof: { storeIp: false, storeLanguage: true, storeUserAgent: true },
+			ui: {
+				banner: {
+					allowedActions: [
+						'reject' as const,
+						'accept' as const,
+						'customize' as const,
+					],
+					direction: 'column' as const,
+					layout: [
+						'customize' as const,
+						['reject' as const, 'accept' as const],
+					],
+					primaryActions: ['accept' as const],
+					uiProfile: 'balanced' as const,
+				},
+				dialog: {
+					allowedActions: [
+						'reject' as const,
+						'accept' as const,
+						'customize' as const,
+					],
+					direction: 'column' as const,
+					layout: [
+						'customize' as const,
+						['reject' as const, 'accept' as const],
+					],
+					primaryActions: ['accept' as const],
+					uiProfile: 'balanced' as const,
+				},
+				mode: 'banner' as const,
+			},
+		},
+		policyPackPresets.worldNoBanner(),
+	],
+	'custom-fr-iab': [
+		{
+			consent: { categories: ['*'], expiryDays: 180, model: 'iab' as const },
 			i18n: { messageProfile: 'fr' },
+			id: 'fr_iab',
+			match: { countries: ['FR'] },
+			proof: { storeIp: true, storeLanguage: true, storeUserAgent: true },
 		},
 		policyPackPresets.worldNoBanner(),
 	],
@@ -389,6 +377,20 @@ const offlinePoliciesByExample = {
 	],
 	'preset-california-opt-out': [
 		policyPackPresets.californiaOptOut(),
+		policyPackPresets.worldNoBanner(),
+	],
+	'preset-europe-iab': [
+		{
+			...policyPackPresets.europeIab(),
+			i18n: { messageProfile: 'fr' },
+		},
+		policyPackPresets.worldNoBanner(),
+	],
+	'preset-europe-opt-in': [
+		{
+			...policyPackPresets.europeOptIn(),
+			i18n: { messageProfile: 'eu' },
+		},
 		policyPackPresets.worldNoBanner(),
 	],
 	'preset-quebec-opt-in': [
@@ -402,7 +404,9 @@ const offlinePoliciesByExample = {
 // Search param helpers
 // ---------------------------------------------------------------------------
 
-function parseSearchParams(searchParams: URLSearchParams): {
+const parseSearchParams = function parseSearchParams(
+	searchParams: URLSearchParams
+): {
 	example: string;
 	mode: DemoMode;
 	country: string;
@@ -412,10 +416,10 @@ function parseSearchParams(searchParams: URLSearchParams): {
 	const mode = searchParams.get('mode') === 'hosted' ? 'hosted' : 'offline';
 	const country = (searchParams.get('country') ?? 'GB').toUpperCase();
 	const region = (searchParams.get('region') ?? '').toUpperCase();
-	return { example, mode, country, region };
-}
+	return { country, example, mode, region };
+};
 
-function buildSearchString(
+const buildSearchString = function buildSearchString(
 	example: string,
 	mode: DemoMode,
 	country: string,
@@ -425,34 +429,40 @@ function buildSearchString(
 	if (example && example !== DEFAULT_DEMO_POLICY_EXAMPLE) {
 		params.set('example', example);
 	}
-	if (mode !== 'offline') params.set('mode', mode);
-	if (country) params.set('country', country);
-	if (region) params.set('region', region);
+	if (mode !== 'offline') {
+		params.set('mode', mode);
+	}
+	if (country) {
+		params.set('country', country);
+	}
+	if (region) {
+		params.set('region', region);
+	}
 	const str = params.toString();
 	return str ? `?${str}` : '';
-}
-
-const JsonBlock = ({ label, value }: { label: string; value: unknown }) => {
-	return (
-		<div className="space-y-2">
-			<p className="label-pixel text-muted-foreground">{label}</p>
-			<pre className="border-border/80 bg-muted/20 text-foreground/90 overflow-x-auto rounded-xl border p-3 font-mono text-[12px] leading-5">
-				{JSON.stringify(value ?? null, null, 2)}
-			</pre>
-		</div>
-	);
 };
+
+const JsonBlock = ({ label, value }: { label: string; value: unknown }) => (
+	<div className="space-y-2">
+		<p className="label-pixel text-muted-foreground">{label}</p>
+		<pre className="border-border/80 bg-muted/20 text-foreground/90 overflow-x-auto rounded-xl border p-3 font-mono text-[12px] leading-5">
+			{JSON.stringify(value ?? null, null, 2)}
+		</pre>
+	</div>
+);
 
 // ---------------------------------------------------------------------------
 // Runtime state panel
 // ---------------------------------------------------------------------------
 
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	const [mounted, setMounted] = useState(false);
 	const {
 		activeUI,
 		consentInfo,
 		consents,
+		// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
 		iab,
 		initConsentManager,
 		lastBannerFetchData,
@@ -493,65 +503,65 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	}
 
 	const policySummary = {
-		id: policy?.id ?? null,
-		model: model ?? null,
-		mode: demoMode,
-		matchedBy: policyDecision?.matchedBy ?? null,
-		uiMode: policy?.ui?.mode ?? 'none',
+		actionLayout: {
+			direction: bannerUi?.direction ?? null,
+			layout: bannerUi?.layout ?? null,
+			uiProfile: bannerUi?.uiProfile ?? null,
+		},
+		categories: policyCategories ?? [],
 		iabEnabled: iab?.config.enabled ?? false,
-		source: initDataSource ?? null,
+		id: policy?.id ?? null,
+		language: {
+			allowed: allowedLanguages,
+			requested: requestedLanguage,
+			resolved: resolvedLanguage,
+		},
 		location: {
 			country: locationInfo?.countryCode ?? null,
 			region: locationInfo?.regionCode ?? null,
 		},
-		scopeMode: policyScopeMode ?? null,
-		categories: policyCategories ?? [],
+		matchedBy: policyDecision?.matchedBy ?? null,
 		messageProfile: activeProfile,
-		language: {
-			resolved: resolvedLanguage,
-			requested: requestedLanguage,
-			allowed: allowedLanguages,
-		},
-		actionLayout: {
-			layout: bannerUi?.layout ?? null,
-			direction: bannerUi?.direction ?? null,
-			uiProfile: bannerUi?.uiProfile ?? null,
-		},
+		mode: demoMode,
+		model: model ?? null,
+		scopeMode: policyScopeMode ?? null,
+		source: initDataSource ?? null,
+		uiMode: policy?.ui?.mode ?? 'none',
 	};
 
 	const runtimeState = {
 		activeUI,
-		hasSavedConsent: consentInfo != null,
 		consents,
+		hasSavedConsent: consentInfo !== null && consentInfo !== undefined,
 	};
 
 	const displayPolicySummary = mounted
 		? policySummary
 		: {
-				id: null,
-				model: null,
-				mode: demoMode,
-				matchedBy: null,
-				uiMode: 'none',
+				actionLayout: {
+					direction: null,
+					layout: null,
+					uiProfile: null,
+				},
+				categories: [],
 				iabEnabled: false,
-				source: null,
+				id: null,
+				language: {
+					allowed: [],
+					requested: 'auto',
+					resolved: 'en',
+				},
 				location: {
 					country: null,
 					region: null,
 				},
-				scopeMode: null,
-				categories: [],
+				matchedBy: null,
 				messageProfile: 'default',
-				language: {
-					resolved: 'en',
-					requested: 'auto',
-					allowed: [],
-				},
-				actionLayout: {
-					layout: null,
-					direction: null,
-					uiProfile: null,
-				},
+				mode: demoMode,
+				model: null,
+				scopeMode: null,
+				source: null,
+				uiMode: 'none',
 			};
 
 	const displayRuntimeState = mounted
@@ -561,8 +571,8 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 			}
 		: {
 				activeUI: 'none',
-				hasSavedConsent: false,
 				consents: null,
+				hasSavedConsent: false,
 				policyDecision: null,
 			};
 
@@ -604,9 +614,9 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 					<p className="label-pixel text-muted-foreground">Language</p>
 					<p className="mt-1 font-mono text-xs">
 						{displayResolvedLanguage}
-						{displayRequestedLanguage !== 'auto'
-							? ` / requested ${displayRequestedLanguage}`
-							: ' / auto'}
+						{displayRequestedLanguage === 'auto'
+							? ' / auto'
+							: ` / requested ${displayRequestedLanguage}`}
 					</p>
 				</div>
 				<div className="border-border/70 border-b pb-2">
@@ -774,13 +784,13 @@ export const PolicyDemo = () => {
 	const iabConfig = iab({
 		customVendors: [
 			{
+				cookieMaxAgeSeconds: 31536000,
+				dataCategories: [1, 2],
 				id: 'demo-analytics',
 				name: 'Demo Analytics',
 				privacyPolicyUrl: 'https://example.com/privacy',
 				purposes: [1, 8],
-				dataCategories: [1, 2],
 				usesCookies: true,
-				cookieMaxAgeSeconds: 31536000,
 				usesNonCookieAccess: false,
 			},
 		],
@@ -830,15 +840,17 @@ export const PolicyDemo = () => {
 					options={
 						demoMode === 'hosted'
 							? {
-									mode: 'c15t',
 									backendURL: `/api/self-host?example=${resolvedExample}`,
 									consentCategories: categories,
 									iab: iabConfig,
+									mode: 'c15t',
 									overrides,
 									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,
 								}
 							: {
+									consentCategories: categories,
+									iab: iabConfig,
 									mode: 'offline',
 									offlinePolicy: {
 										i18n: {
@@ -847,8 +859,6 @@ export const PolicyDemo = () => {
 										},
 										policyPacks: offlinePoliciesByExample[resolvedExample],
 									},
-									consentCategories: categories,
-									iab: iabConfig,
 									overrides,
 									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,

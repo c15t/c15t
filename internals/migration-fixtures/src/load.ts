@@ -28,7 +28,9 @@ export interface UnsupportedSchemaSnapshot {
 	readonly unsupported: string;
 }
 
-async function readJson<T>(path: string): Promise<T | undefined> {
+const readJson = async function readJson<T>(
+	path: string
+): Promise<T | undefined> {
 	try {
 		return JSON.parse(await readFile(path, 'utf8')) as T;
 	} catch (error) {
@@ -37,7 +39,7 @@ async function readJson<T>(path: string): Promise<T | undefined> {
 		}
 		throw error;
 	}
-}
+};
 
 /**
  * Loads one fixture.
@@ -47,7 +49,7 @@ async function readJson<T>(path: string): Promise<T | undefined> {
  * fumadb cannot migrate at all. Callers must handle that case rather than
  * treating a missing fixture as a failure; the absence is a finding.
  */
-export async function loadFixture(
+export const loadFixture = async function loadFixture(
 	fixture: string,
 	engine: EngineName
 ): Promise<
@@ -72,21 +74,24 @@ export async function loadFixture(
 				'Regenerate with: bun run --cwd internals/migration-fixtures generate'
 		);
 	}
-	return { kind: 'captured', fixture: captured };
-}
+	return { fixture: captured, kind: 'captured' };
+};
 
 /** Table names in a captured shape, excluding fumadb's own marker table. */
-export function domainTableNames(
+export const domainTableNames = function domainTableNames(
 	fixture: CapturedSchemaSnapshot
 ): readonly string[] {
-	return fixture.tables
-		.map((table) => table.name)
-		.filter((name) => !/(^|_)c15t_settings$/u.test(name))
-		.sort();
-}
+	return (
+		fixture.tables
+			.map((table) => table.name)
+			// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
+			.filter((name) => !/(^|_)c15t_settings$/u.test(name))
+			.sort()
+	);
+};
 
 /** Column names for one table in a captured shape, sorted. */
-export function columnNames(
+export const columnNames = function columnNames(
 	fixture: CapturedSchemaSnapshot,
 	table: string
 ): readonly string[] {
@@ -98,4 +103,4 @@ export function columnNames(
 		);
 	}
 	return found.columns.map((column) => column.name).sort();
-}
+};

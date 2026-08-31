@@ -19,7 +19,8 @@ interface IABConsentDialogContentProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentDialogContent = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogContentProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentDialogContent({ children, className, ...props }, ref) {
 	const contentClassName = className
 		? `${styles.content} ${className}`
 		: styles.content;

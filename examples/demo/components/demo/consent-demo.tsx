@@ -60,10 +60,13 @@ interface DemoParams {
 	region: string;
 }
 
-function parseParams(searchParams: URLSearchParams): DemoParams {
+const parseParams = function parseParams(
+	searchParams: URLSearchParams
+): DemoParams {
 	const scenarioId =
 		searchParams.get('scenario') ??
-		searchParams.get('example') ?? // legacy links
+		// legacy links
+		searchParams.get('example') ??
 		DEFAULT_SCENARIO_ID;
 	const scenario = getScenarioById(scenarioId);
 	const mode: DemoMode =
@@ -77,10 +80,10 @@ function parseParams(searchParams: URLSearchParams): DemoParams {
 		''
 	).toUpperCase();
 
-	return { scenarioId: scenario.id, mode, country, region };
-}
+	return { country, mode, region, scenarioId: scenario.id };
+};
 
-function buildSearch(params: DemoParams): string {
+const buildSearch = function buildSearch(params: DemoParams): string {
 	const next = new URLSearchParams();
 	const scenario = getScenarioById(params.scenarioId);
 
@@ -100,8 +103,102 @@ function buildSearch(params: DemoParams): string {
 
 	const search = next.toString();
 	return search ? `?${search}` : '';
-}
+};
 
+/**
+ * Soft color fields behind the page so the Liquid Glass preset's backdrop
+ * blur has something to refract — over a flat background, frosted glass
+ * reads as plain gray.
+ */
+const GlassBackdrop = () => (
+	<div
+		aria-hidden
+		className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+	>
+		<div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-gradient-to-br from-indigo-400/40 via-sky-300/30 to-transparent blur-3xl dark:from-indigo-500/25 dark:via-sky-500/15" />
+		<div className="absolute top-1/3 -right-40 size-[32rem] rounded-full bg-gradient-to-bl from-pink-400/35 via-violet-300/25 to-transparent blur-3xl dark:from-pink-500/20 dark:via-violet-500/15" />
+		<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
+	</div>
+);
+const PillButton = ({
+	active,
+	onClick,
+	children,
+}: {
+	active: boolean;
+	onClick: () => void;
+	children: React.ReactNode;
+}) => (
+	<button
+		type="button"
+		onClick={onClick}
+		aria-pressed={active}
+		className={cn(
+			'rounded-full border px-4 py-2 text-left text-sm transition',
+			active
+				? 'border-foreground bg-foreground text-background'
+				: 'border-border text-foreground hover:border-foreground/40'
+		)}
+	>
+		{children}
+	</button>
+);
+const ScenarioGroup = ({
+	title,
+	description,
+	group,
+	activeId,
+	onSelect,
+}: {
+	title: string;
+	description: string;
+	group: 'preset' | 'custom';
+	activeId: string;
+	onSelect: (id: string) => void;
+}) => {
+	const scenarios = demoScenarios.filter(
+		(scenario) => scenario.group === group
+	);
+
+	return (
+		<div className="space-y-3">
+			<div>
+				<p className="text-sm font-medium">{title}</p>
+				<p className="text-muted-foreground text-xs">{description}</p>
+			</div>
+			<div className="flex flex-wrap gap-2">
+				{scenarios.map((scenario) => {
+					const isActive = scenario.id === activeId;
+					return (
+						<button
+							key={scenario.id}
+							type="button"
+							onClick={() => onSelect(scenario.id)}
+							aria-pressed={isActive}
+							className={cn(
+								'rounded-full border px-4 py-2 text-left text-sm transition',
+								isActive
+									? 'border-foreground bg-foreground text-background'
+									: 'border-border text-foreground hover:border-foreground/40'
+							)}
+						>
+							<span>{scenario.label}</span>
+							<span
+								className={cn(
+									'ml-2 font-mono text-[11px]',
+									isActive ? 'text-background/70' : 'text-muted-foreground'
+								)}
+							>
+								{scenario.country}
+								{scenario.region ? `-${scenario.region}` : ''}
+							</span>
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+};
 export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
@@ -129,9 +226,9 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 		(id: string) => {
 			const nextScenario = getScenarioById(id);
 			navigate({
-				scenarioId: nextScenario.id,
 				country: nextScenario.country,
 				region: nextScenario.region ?? '',
+				scenarioId: nextScenario.id,
 			});
 		},
 		[navigate]
@@ -198,8 +295,8 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 		params.mode === 'hosted'
 			? (() => {
 					const hostedOptions = {
-						mode: 'c15t' as const,
 						backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
+						mode: 'c15t' as const,
 					};
 					if (isSelfHost) {
 						Object.assign(hostedOptions, {
@@ -396,106 +493,5 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 				</ConsentManagerProvider>
 			</div>
 		</main>
-	);
-};
-
-/**
- * Soft color fields behind the page so the Liquid Glass preset's backdrop
- * blur has something to refract — over a flat background, frosted glass
- * reads as plain gray.
- */
-const GlassBackdrop = () => {
-	return (
-		<div
-			aria-hidden
-			className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
-		>
-			<div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-gradient-to-br from-indigo-400/40 via-sky-300/30 to-transparent blur-3xl dark:from-indigo-500/25 dark:via-sky-500/15" />
-			<div className="absolute top-1/3 -right-40 size-[32rem] rounded-full bg-gradient-to-bl from-pink-400/35 via-violet-300/25 to-transparent blur-3xl dark:from-pink-500/20 dark:via-violet-500/15" />
-			<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
-		</div>
-	);
-};
-
-const PillButton = ({
-	active,
-	onClick,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	children: React.ReactNode;
-}) => {
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			aria-pressed={active}
-			className={cn(
-				'rounded-full border px-4 py-2 text-left text-sm transition',
-				active
-					? 'border-foreground bg-foreground text-background'
-					: 'border-border text-foreground hover:border-foreground/40'
-			)}
-		>
-			{children}
-		</button>
-	);
-};
-
-const ScenarioGroup = ({
-	title,
-	description,
-	group,
-	activeId,
-	onSelect,
-}: {
-	title: string;
-	description: string;
-	group: 'preset' | 'custom';
-	activeId: string;
-	onSelect: (id: string) => void;
-}) => {
-	const scenarios = demoScenarios.filter(
-		(scenario) => scenario.group === group
-	);
-
-	return (
-		<div className="space-y-3">
-			<div>
-				<p className="text-sm font-medium">{title}</p>
-				<p className="text-muted-foreground text-xs">{description}</p>
-			</div>
-			<div className="flex flex-wrap gap-2">
-				{scenarios.map((scenario) => {
-					const isActive = scenario.id === activeId;
-					return (
-						<button
-							key={scenario.id}
-							type="button"
-							onClick={() => onSelect(scenario.id)}
-							aria-pressed={isActive}
-							className={cn(
-								'rounded-full border px-4 py-2 text-left text-sm transition',
-								isActive
-									? 'border-foreground bg-foreground text-background'
-									: 'border-border text-foreground hover:border-foreground/40'
-							)}
-						>
-							<span>{scenario.label}</span>
-							<span
-								className={cn(
-									'ml-2 font-mono text-[11px]',
-									isActive ? 'text-background/70' : 'text-muted-foreground'
-								)}
-							>
-								{scenario.country}
-								{scenario.region ? `-${scenario.region}` : ''}
-							</span>
-						</button>
-					);
-				})}
-			</div>
-		</div>
 	);
 };

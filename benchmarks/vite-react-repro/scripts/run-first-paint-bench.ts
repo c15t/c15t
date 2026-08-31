@@ -28,7 +28,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -39,9 +39,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -52,7 +52,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -92,7 +92,8 @@ interface CollectedSample {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function pickFreePort(): Promise<number> {
+const pickFreePort = function pickFreePort(): Promise<number> {
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
 	return createDeferredPromise((resolve, reject) => {
 		const server = createServer();
 		server.listen(0, '127.0.0.1', () => {
@@ -106,12 +107,16 @@ function pickFreePort(): Promise<number> {
 		});
 		server.on('error', reject);
 	});
-}
+};
 
-async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
+const waitForServer = async function waitForServer(
+	url: string,
+	timeoutMs = 30_000
+): Promise<void> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const res = await fetch(url);
 			if (res.ok || res.status < 500) {
 				return;
@@ -119,12 +124,17 @@ async function waitForServer(url: string, timeoutMs = 30_000): Promise<void> {
 		} catch {
 			// not ready yet
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await sleep(250);
 	}
 	throw new Error(`Timed out waiting for server at ${url}`);
-}
+};
 
-async function runCommand(args: string[], label: string): Promise<void> {
+const runCommand = async function runCommand(
+	args: string[],
+	label: string
+): Promise<void> {
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
 	await createVoidDeferredPromise((resolve, reject) => {
 		const child = spawn('bun', args, {
 			cwd: appDir,
@@ -152,9 +162,9 @@ async function runCommand(args: string[], label: string): Promise<void> {
 		});
 		child.on('error', reject);
 	});
-}
+};
 
-async function ensureBuild(): Promise<void> {
+const ensureBuild = async function ensureBuild(): Promise<void> {
 	if (existsSync(distDir)) {
 		console.log('dist/ already exists — skipping build.');
 		return;
@@ -162,17 +172,20 @@ async function ensureBuild(): Promise<void> {
 	console.log('dist/ not found — running vite build…');
 	await runCommand(['run', 'build'], 'vite-react-repro build');
 	console.log('Build complete.');
-}
+};
 
-function extractMetricValue(metrics: CdpMetric[], name: string): number {
+const extractMetricValue = function extractMetricValue(
+	metrics: CdpMetric[],
+	name: string
+): number {
 	return metrics.find((m) => m.name === name)?.value ?? 0;
-}
+};
 
 // ---------------------------------------------------------------------------
 // Core iteration logic
 // ---------------------------------------------------------------------------
 
-async function collectOneSample(
+const collectOneSample = async function collectOneSample(
 	browser: PlaywrightTypes.Browser,
 	url: string
 ): Promise<CollectedSample> {
@@ -209,60 +222,62 @@ async function collectOneSample(
 		const jsHeapUsedSize = extractMetricValue(metrics, 'JSHeapUsedSize');
 
 		return {
-			ScriptDuration: scriptDurationMs,
-			RecalcStyleDuration: recalcStyleDurationMs,
-			LayoutDuration: layoutDurationMs,
-			TaskDuration: taskDurationMs,
 			JSHeapUsedSize: jsHeapUsedSize,
+			LayoutDuration: layoutDurationMs,
+			RecalcStyleDuration: recalcStyleDurationMs,
+			ScriptDuration: scriptDurationMs,
+			TaskDuration: taskDurationMs,
 		};
 	} finally {
 		await context.close();
 	}
-}
+};
 
 // ---------------------------------------------------------------------------
 // Statistics helpers (min/max/stddev beyond what summarizeMetric provides)
 // ---------------------------------------------------------------------------
 
-function stddev(values: number[]): number {
-	if (values.length < 2) return 0;
+const stddev = function stddev(values: number[]): number {
+	if (values.length < 2) {
+		return 0;
+	}
 	const avg = values.reduce((a, b) => a + b, 0) / values.length;
 	const variance =
 		values.reduce((sum, v) => sum + (v - avg) ** 2, 0) / (values.length - 1);
 	return Math.sqrt(variance);
-}
+};
 
-function min(values: number[]): number {
+const min = function min(values: number[]): number {
 	return values.reduce((a, b) => Math.min(a, b), Number.POSITIVE_INFINITY);
-}
+};
 
-function max(values: number[]): number {
+const max = function max(values: number[]): number {
 	return values.reduce((a, b) => Math.max(a, b), Number.NEGATIVE_INFINITY);
-}
+};
 
-function median(values: number[]): number {
+const median = function median(values: number[]): number {
 	const sorted = [...values].sort((a, b) => a - b);
 	const mid = Math.floor(sorted.length / 2);
 	return sorted.length % 2 === 0
 		? ((sorted[mid - 1] ?? 0) + (sorted[mid] ?? 0)) / 2
 		: (sorted[mid] ?? 0);
-}
+};
 
 // ---------------------------------------------------------------------------
 // Table formatting
 // ---------------------------------------------------------------------------
 
-function pad(s: string, width: number, right = false): string {
+const pad = function pad(s: string, width: number, right = false): string {
 	return right ? s.padStart(width) : s.padEnd(width);
-}
+};
 
-function fmtMs(value: number): string {
+const fmtMs = function fmtMs(value: number): string {
 	return `${value.toFixed(2)} ms`;
-}
+};
 
-function fmtBytes(value: number): string {
+const fmtBytes = function fmtBytes(value: number): string {
 	return `${(value / 1024).toFixed(1)} kB`;
-}
+};
 
 interface MetricStats {
 	name: string;
@@ -270,7 +285,7 @@ interface MetricStats {
 	samples: number[];
 }
 
-function printTable(metrics: MetricStats[]): void {
+const printTable = function printTable(metrics: MetricStats[]): void {
 	const header = ['Metric', 'Mean', 'Median', 'Stddev', 'Min', 'Max'];
 	const colWidths = [28, 14, 14, 14, 14, 14];
 
@@ -298,13 +313,13 @@ function printTable(metrics: MetricStats[]): void {
 	}
 
 	console.log('');
-}
+};
 
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 
-async function run(): Promise<void> {
+const run = async function run(): Promise<void> {
 	await ensureBuild();
 
 	const port = await pickFreePort();
@@ -350,6 +365,7 @@ async function run(): Promise<void> {
 			process.stdout.write(`    Warmup  [${' '.repeat(WARMUP_PER_ROUND)}]\r`);
 			process.stdout.write('    Warmup  [');
 			for (let w = 0; w < WARMUP_PER_ROUND; w += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await collectOneSample(browser, baseUrl);
 				process.stdout.write('.');
 			}
@@ -359,6 +375,7 @@ async function run(): Promise<void> {
 			process.stdout.write(`    Measure [${' '.repeat(MEASURED_PER_ROUND)}]\r`);
 			process.stdout.write('    Measure [');
 			for (let m = 0; m < MEASURED_PER_ROUND; m += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const sample = await collectOneSample(browser, baseUrl);
 				allSamples.push(sample);
 				process.stdout.write('.');
@@ -391,17 +408,17 @@ async function run(): Promise<void> {
 		printTable([
 			{
 				name: 'Total → first paint (Task)',
-				unit: 'ms',
 				samples: taskDurations,
+				unit: 'ms',
 			},
-			{ name: 'JS evaluation (Script)', unit: 'ms', samples: scriptDurations },
+			{ name: 'JS evaluation (Script)', samples: scriptDurations, unit: 'ms' },
 			{
 				name: 'Style recalc',
-				unit: 'ms',
 				samples: recalcStyleDurations,
+				unit: 'ms',
 			},
-			{ name: 'Layout', unit: 'ms', samples: layoutDurations },
-			{ name: 'JS heap used', unit: 'bytes', samples: jsHeapSizes },
+			{ name: 'Layout', samples: layoutDurations, unit: 'ms' },
+			{ name: 'JS heap used', samples: jsHeapSizes, unit: 'bytes' },
 		]);
 
 		// ---------------------------------------------------------------------------
@@ -409,29 +426,25 @@ async function run(): Promise<void> {
 		// ---------------------------------------------------------------------------
 
 		const result: BenchmarkResult = {
-			schemaVersion: BENCHMARK_SCHEMA_VERSION,
-			suite: 'browser-runtime',
-			package: '@c15t/vite-react-repro',
-			framework: 'react',
-			runtime: 'playwright',
-			scenario: 'first-paint',
-			commitSha: safeCommitSha(),
 			baseSha: safeBaseSha(),
-			timestamp: new Date().toISOString(),
+			budgetDefinitions: [],
+			budgets: [],
+			commitSha: safeCommitSha(),
 			environment: getEnvironment(browserVersion),
 			fixture: {
-				name: 'vite-react-repro',
 				consentCount: 0,
-				scriptCount: 0,
 				localeCount: 1,
-				themeComplexity: 'minimal',
+				name: 'vite-react-repro',
 				notes: [
 					`CPU throttle: ${CPU_THROTTLE_RATE}x via CDP Emulation.setCPUThrottlingRate`,
 					`${ROUNDS} rounds × ${MEASURED_PER_ROUND} measured + ${WARMUP_PER_ROUND} warmup per round`,
 					'Metrics collected via CDP Performance.getMetrics() after load event.',
 					'Timing values (ScriptDuration, RecalcStyleDuration, LayoutDuration, TaskDuration) converted from seconds to milliseconds.',
 				],
+				scriptCount: 0,
+				themeComplexity: 'minimal',
 			},
+			framework: 'react',
 			metrics: [
 				summarizeMetric('taskDuration', 'ms', taskDurations),
 				summarizeMetric('scriptDuration', 'ms', scriptDurations),
@@ -439,13 +452,17 @@ async function run(): Promise<void> {
 				summarizeMetric('layoutDuration', 'ms', layoutDurations),
 				summarizeMetric('jsHeapUsedSize', 'bytes', jsHeapSizes),
 			],
-			budgetDefinitions: [],
-			budgets: [],
 			notes: [
 				'Vite + React SPA first-paint benchmark via Chrome DevTools Protocol.',
 				'TaskDuration approximates total main-thread work to first paint.',
 				'ScriptDuration captures JS evaluation time specifically.',
 			],
+			package: '@c15t/vite-react-repro',
+			runtime: 'playwright',
+			scenario: 'first-paint',
+			schemaVersion: BENCHMARK_SCHEMA_VERSION,
+			suite: 'browser-runtime',
+			timestamp: new Date().toISOString(),
 		};
 
 		writeJson(join(outputDir, 'first-paint.json'), result);
@@ -462,12 +479,13 @@ async function run(): Promise<void> {
 			previewServer.exitCode !== 0 &&
 			previewServer.exitCode !== 143
 		) {
+			// oxlint-disable-next-line no-unsafe-finally -- Preview teardown failures must fail the benchmark after cleanup.
 			throw new Error(
 				serverLogs || 'vite preview server exited with a non-zero code'
 			);
 		}
 	}
-}
+};
 
 try {
 	await run();

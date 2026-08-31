@@ -35,11 +35,16 @@ import type { ThemeContextValue } from '~/context/theme-context';
 /**
  * Deep merges two objects recursively
  */
-function isIndexableObject(value: unknown): value is Record<string, unknown> {
+const isIndexableObject = function isIndexableObject(
+	value: unknown
+): value is Record<string, unknown> {
 	return value !== null && typeof value === 'object';
-}
+};
 
-function deepMerge<T extends object>(target: T, source?: Partial<T> | null): T {
+const deepMerge = function deepMerge<T extends object>(
+	target: T,
+	source?: Partial<T> | null
+): T {
 	if (!source) {
 		return target;
 	}
@@ -67,7 +72,7 @@ function deepMerge<T extends object>(target: T, source?: Partial<T> | null): T {
 	}
 
 	return result;
-}
+};
 
 export const useTheme = (): ThemeContextValue => {
 	const globalContext = useContext(GlobalThemeContext);

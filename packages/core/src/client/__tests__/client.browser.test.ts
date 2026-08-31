@@ -30,8 +30,8 @@ describe('c15t Client Browser Tests', () => {
 		// Default mock for fetch
 		fetchSpy.mockResolvedValue(
 			new Response(JSON.stringify({ success: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 	});
@@ -41,25 +41,25 @@ describe('c15t Client Browser Tests', () => {
 		fetchSpy.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
+					branding: 'c15t',
 					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
 					translations: {
 						language: 'en',
 						translations: {},
 					},
-					branding: 'c15t',
 				}),
 				{
-					status: 200,
 					headers: { 'Content-Type': 'application/json' },
+					status: 200,
 				}
 			)
 		);
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 		}) as C15tClient;
 
 		// Call the API
@@ -73,13 +73,13 @@ describe('c15t Client Browser Tests', () => {
 		);
 		expect(response.ok).toBe(true);
 		expect(response.data).toEqual({
+			branding: 'c15t',
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			translations: {
 				language: 'en',
 				translations: {},
 			},
-			branding: 'c15t',
 		});
 	});
 
@@ -95,18 +95,18 @@ describe('c15t Client Browser Tests', () => {
 		// Mock successful response
 		fetchSpyLocal.mockResolvedValueOnce(
 			new Response(JSON.stringify({ success: true }), {
-				status: 200,
 				headers: { 'Content-Type': 'application/json' },
+				status: 200,
 			})
 		);
 
 		// Create test data
 		const consentData = {
-			type: 'cookie_banner' as const,
 			domain: 'example.com',
 			preferences: {
 				analytics: true,
 			},
+			type: 'cookie_banner' as const,
 		};
 
 		// Call API
@@ -119,10 +119,10 @@ describe('c15t Client Browser Tests', () => {
 		expect(fetchSpyLocal).toHaveBeenCalledWith(
 			expect.stringContaining('/api/c15t/subjects'),
 			expect.objectContaining({
-				method: 'POST',
 				headers: expect.objectContaining({
 					'Content-Type': 'application/json',
 				}),
+				method: 'POST',
 			})
 		);
 	});
@@ -130,16 +130,17 @@ describe('c15t Client Browser Tests', () => {
 	it('should handle network errors in browser', async () => {
 		// Reset the default mock and set up network error
 		fetchSpy.mockReset();
-		fetchSpy.mockImplementation(() => {
-			return Promise.reject(new TypeError('Failed to fetch'));
-		});
+		fetchSpy.mockImplementation(() =>
+			Promise.reject(new TypeError('Failed to fetch'))
+		);
 
 		// Configure the client with retry disabled to avoid multiple calls
 		const client = configureConsentManager({
-			mode: 'hosted',
 			backendURL: '/api/c15t',
+			mode: 'hosted',
 			retryConfig: {
-				maxRetries: 0, // Disable retries for this test
+				// Disable retries for this test
+				maxRetries: 0,
 			},
 		}) as C15tClient;
 
@@ -180,12 +181,12 @@ describe('Offline Client Browser Tests', () => {
 		// Set consent data
 		const response = await client.setConsent({
 			body: {
-				type: 'cookie_banner',
 				domain: 'example.com',
 				preferences: {
 					analytics: true,
 					marketing: false,
 				},
+				type: 'cookie_banner',
 			},
 		});
 
@@ -238,18 +239,26 @@ describe('Offline Client Browser Tests', () => {
 describe('Custom Client Browser Tests', () => {
 	// Real implementations for required handlers
 	const handlers = {
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
+		identifyUser: async () => ({
+			data: { success: true },
+			error: null,
+			ok: true,
+			response: null,
+		}),
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		init: async () => ({
 			data: {
+				branding: 'c15t',
 				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				translations: {
 					language: 'en',
 					translations: {},
 				},
-				branding: 'c15t',
 			},
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		}),
 		setConsent: (options) => {
@@ -257,8 +266,8 @@ describe('Custom Client Browser Tests', () => {
 			try {
 				const key = 'custom-handler-consent';
 				const data = {
-					timestamp: new Date().toISOString(),
 					preferences: options?.body?.preferences || {},
+					timestamp: new Date().toISOString(),
 				};
 				localStorage.setItem(key, JSON.stringify(data));
 			} catch {
@@ -267,21 +276,16 @@ describe('Custom Client Browser Tests', () => {
 
 			return {
 				data: { success: true },
-				ok: true,
 				error: null,
+				ok: true,
 				response: null,
 			};
 		},
-		identifyUser: async () => ({
-			data: { success: true },
-			ok: true,
-			error: null,
-			response: null,
-		}),
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		verifyConsent: async () => ({
 			data: { valid: true },
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		}),
 	};
@@ -297,6 +301,7 @@ describe('Custom Client Browser Tests', () => {
 
 	it('should use custom handlers in browser environment', async () => {
 		// Configure the client
+		// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 		const client = configureConsentManager({
 			mode: 'custom',
 			// @ts-expect-error Tests inject custom endpoint handlers.
@@ -314,6 +319,7 @@ describe('Custom Client Browser Tests', () => {
 
 	it('should handle custom storage in browser', async () => {
 		// Configure the client
+		// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 		const client = configureConsentManager({
 			mode: 'custom',
 			// @ts-expect-error Tests inject custom endpoint handlers.
@@ -323,12 +329,12 @@ describe('Custom Client Browser Tests', () => {
 		// Set consent data with custom handler
 		await client.setConsent({
 			body: {
-				type: 'cookie_banner',
 				domain: 'example.com',
 				preferences: {
 					analytics: true,
 					marketing: false,
 				},
+				type: 'cookie_banner',
 			},
 		});
 
@@ -355,10 +361,11 @@ describe('Custom Client Browser Tests', () => {
 		});
 
 		// Define a dynamic handler
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		const dynamicHandler = vi.fn().mockImplementation(async () => ({
 			data: { custom: true },
-			ok: true,
 			error: null,
+			ok: true,
 			response: null,
 		}));
 

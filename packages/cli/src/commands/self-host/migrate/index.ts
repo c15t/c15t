@@ -51,7 +51,7 @@ const defaultMigrateDependencies: MigrateDependencies = {
 	readDatabaseConfig,
 };
 
-export async function migrate(
+export const migrate = async function migrate(
 	context: CliContext,
 	dependencies: MigrateDependencies = defaultMigrateDependencies
 ) {
@@ -66,9 +66,9 @@ export async function migrate(
 
 	if (configResult.dependencies.length > 0) {
 		await dependencies.installDependencies({
+			autoInstall: true,
 			context,
 			dependenciesToAdd: configResult.dependencies,
-			autoInstall: true,
 		});
 	}
 
@@ -125,4 +125,4 @@ export async function migrate(
 	} finally {
 		await migrator.dispose();
 	}
-}
+};

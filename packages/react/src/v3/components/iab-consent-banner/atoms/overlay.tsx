@@ -16,7 +16,11 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	function ({ className, style, noStyle, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function IABConsentBannerOverlay(
+		{ className, style, noStyle, ...props },
+		ref
+	) {
 		const activeUI = useActiveUI();
 		const {
 			disableAnimation,

@@ -22,7 +22,8 @@ interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerHeader = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerHeaderProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerHeader({ children, className, ...props }, ref) {
 	const themedStyle = useStyles('iabConsentBannerHeader', {
 		baseClassName: styles.header,
 		className,

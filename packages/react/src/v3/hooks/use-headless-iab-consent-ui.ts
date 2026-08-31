@@ -55,140 +55,143 @@ export interface UseHeadlessIABConsentUIResult {
 	) => Promise<void> | void;
 }
 
-export function useHeadlessIABConsentUI(): UseHeadlessIABConsentUIResult {
-	const {
-		activeUI,
-		model,
-		iab,
-		policyBanner: { scrollLock: policyBannerScrollLock },
-		policyDialog: { scrollLock: policyDialogScrollLock },
-		setActiveUI,
-	} = useIABConsentManager();
-	const isIABEnabled = Boolean(iab?.config.enabled);
+export const useHeadlessIABConsentUI =
+	function useHeadlessIABConsentUI(): UseHeadlessIABConsentUIResult {
+		const {
+			activeUI,
+			model,
+			iab,
+			policyBanner: { scrollLock: policyBannerScrollLock },
+			policyDialog: { scrollLock: policyDialogScrollLock },
+			setActiveUI,
+		} = useIABConsentManager();
+		const isIABEnabled = Boolean(iab?.config.enabled);
 
-	const bannerSummary = useMemo(() => resolveIABBannerSummary(iab), [iab]);
+		const bannerSummary = useMemo(() => resolveIABBannerSummary(iab), [iab]);
 
-	const openBanner = useCallback<UseHeadlessIABConsentUIResult['openBanner']>(
-		(options) => {
-			setActiveUI('banner', options);
-		},
-		[setActiveUI]
-	);
+		const openBanner = useCallback<UseHeadlessIABConsentUIResult['openBanner']>(
+			(options) => {
+				setActiveUI('banner', options);
+			},
+			[setActiveUI]
+		);
 
-	const openDialog = useCallback<UseHeadlessIABConsentUIResult['openDialog']>(
-		(options) => {
-			if (options?.tab) {
-				iab?.setPreferenceCenterTab(options.tab);
+		const openDialog = useCallback<UseHeadlessIABConsentUIResult['openDialog']>(
+			(options) => {
+				if (options?.tab) {
+					iab?.setPreferenceCenterTab(options.tab);
+				}
+				setActiveUI('dialog');
+			},
+			[iab, setActiveUI]
+		);
+
+		const openPurposesDialog = useCallback(() => {
+			openDialog({ tab: 'purposes' });
+		}, [openDialog]);
+
+		const openVendorsDialog = useCallback(() => {
+			openDialog({ tab: 'vendors' });
+		}, [openDialog]);
+
+		const closeUI = useCallback(() => {
+			setActiveUI('none');
+		}, [setActiveUI]);
+
+		const acceptAll = useCallback<
+			UseHeadlessIABConsentUIResult['acceptAll']
+		>(() => {
+			if (!iab) {
+				return;
 			}
-			setActiveUI('dialog');
-		},
-		[iab, setActiveUI]
-	);
+			iab.acceptAll();
+			const savePromise = iab.save();
+			setActiveUI('none');
+			return savePromise;
+		}, [iab, setActiveUI]);
 
-	const openPurposesDialog = useCallback(() => {
-		openDialog({ tab: 'purposes' });
-	}, [openDialog]);
-
-	const openVendorsDialog = useCallback(() => {
-		openDialog({ tab: 'vendors' });
-	}, [openDialog]);
-
-	const closeUI = useCallback(() => {
-		setActiveUI('none');
-	}, [setActiveUI]);
-
-	const acceptAll = useCallback<
-		UseHeadlessIABConsentUIResult['acceptAll']
-	>(() => {
-		if (!iab) {
-			return;
-		}
-		iab.acceptAll();
-		const savePromise = iab.save();
-		setActiveUI('none');
-		return savePromise;
-	}, [iab, setActiveUI]);
-
-	const rejectAll = useCallback<
-		UseHeadlessIABConsentUIResult['rejectAll']
-	>(() => {
-		if (!iab) {
-			return;
-		}
-		iab.rejectAll();
-		const savePromise = iab.save();
-		setActiveUI('none');
-		return savePromise;
-	}, [iab, setActiveUI]);
-
-	const savePreferences = useCallback<
-		UseHeadlessIABConsentUIResult['savePreferences']
-	>(() => {
-		if (!iab) {
-			return;
-		}
-		const savePromise = iab.save();
-		setActiveUI('none');
-		return savePromise;
-	}, [iab, setActiveUI]);
-
-	const performBannerAction = useCallback<
-		UseHeadlessIABConsentUIResult['performBannerAction']
-	>(
-		(action) => {
-			switch (action) {
-				case 'accept':
-					return acceptAll();
-				case 'reject':
-					return rejectAll();
-				case 'customize':
-					return openPurposesDialog();
+		const rejectAll = useCallback<
+			UseHeadlessIABConsentUIResult['rejectAll']
+		>(() => {
+			if (!iab) {
+				return;
 			}
-		},
-		[acceptAll, openPurposesDialog, rejectAll]
-	);
+			iab.rejectAll();
+			const savePromise = iab.save();
+			setActiveUI('none');
+			return savePromise;
+		}, [iab, setActiveUI]);
 
-	const performDialogAction = useCallback<
-		UseHeadlessIABConsentUIResult['performDialogAction']
-	>(
-		(action) => {
-			switch (action) {
-				case 'accept':
-					return acceptAll();
-				case 'reject':
-					return rejectAll();
-				case 'customize':
-					return savePreferences();
+		const savePreferences = useCallback<
+			UseHeadlessIABConsentUIResult['savePreferences']
+		>(() => {
+			if (!iab) {
+				return;
 			}
-		},
-		[acceptAll, rejectAll, savePreferences]
-	);
+			const savePromise = iab.save();
+			setActiveUI('none');
+			return savePromise;
+		}, [iab, setActiveUI]);
 
-	return {
-		activeUI,
-		model,
-		iab,
-		isIABEnabled,
-		banner: {
-			...bannerSummary,
-			isVisible: activeUI === 'banner' && model === 'iab' && isIABEnabled,
-			scrollLock: policyBannerScrollLock,
-		},
-		dialog: {
-			isVisible: activeUI === 'dialog' && model === 'iab' && isIABEnabled,
-			isLoading: Boolean(iab?.isLoadingGVL || !iab?.gvl),
-			activeTab: iab?.preferenceCenterTab ?? 'purposes',
-			scrollLock: policyDialogScrollLock,
-		},
-		openBanner,
-		openDialog,
-		openPurposesDialog,
-		openVendorsDialog,
-		closeUI,
-		acceptAll,
-		rejectAll,
-		savePreferences,
-		performBannerAction,
-		performDialogAction,
+		const performBannerAction = useCallback<
+			UseHeadlessIABConsentUIResult['performBannerAction']
+		>(
+			(action) => {
+				// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
+				switch (action) {
+					case 'accept':
+						return acceptAll();
+					case 'reject':
+						return rejectAll();
+					case 'customize':
+						return openPurposesDialog();
+				}
+			},
+			[acceptAll, openPurposesDialog, rejectAll]
+		);
+
+		const performDialogAction = useCallback<
+			UseHeadlessIABConsentUIResult['performDialogAction']
+		>(
+			(action) => {
+				// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
+				switch (action) {
+					case 'accept':
+						return acceptAll();
+					case 'reject':
+						return rejectAll();
+					case 'customize':
+						return savePreferences();
+				}
+			},
+			[acceptAll, rejectAll, savePreferences]
+		);
+
+		return {
+			acceptAll,
+			activeUI,
+			banner: {
+				...bannerSummary,
+				isVisible: activeUI === 'banner' && model === 'iab' && isIABEnabled,
+				scrollLock: policyBannerScrollLock,
+			},
+			closeUI,
+			dialog: {
+				activeTab: iab?.preferenceCenterTab ?? 'purposes',
+				isLoading: Boolean(iab?.isLoadingGVL || !iab?.gvl),
+				isVisible: activeUI === 'dialog' && model === 'iab' && isIABEnabled,
+				scrollLock: policyDialogScrollLock,
+			},
+			iab,
+			isIABEnabled,
+			model,
+			openBanner,
+			openDialog,
+			openPurposesDialog,
+			openVendorsDialog,
+			performBannerAction,
+			performDialogAction,
+			rejectAll,
+			savePreferences,
+		};
 	};
-}

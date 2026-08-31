@@ -12,7 +12,7 @@ interface SSRFetchResult {
 	metadata?: SSRInitialData['metadata'];
 }
 
-function buildRequestContext(options: {
+const buildRequestContext = function buildRequestContext(options: {
 	backendURL: string;
 	headers: Record<string, string>;
 	overrides?: FetchSSRDataOptions['overrides'];
@@ -21,15 +21,15 @@ function buildRequestContext(options: {
 		backendURL: options.backendURL,
 		country:
 			options.overrides?.country ?? options.headers['x-c15t-country'] ?? null,
-		region:
-			options.overrides?.region ?? options.headers['x-c15t-region'] ?? null,
+		gpc: options.headers['sec-gpc'] === '1',
 		language:
 			options.overrides?.language ?? options.headers['accept-language'] ?? null,
-		gpc: options.headers['sec-gpc'] === '1',
+		region:
+			options.overrides?.region ?? options.headers['x-c15t-region'] ?? null,
 	};
-}
+};
 
-function getNowMs(): number {
+const getNowMs = function getNowMs(): number {
 	if (
 		typeof performance !== 'undefined' &&
 		typeof performance.now === 'function'
@@ -37,9 +37,9 @@ function getNowMs(): number {
 		return performance.now();
 	}
 	return Date.now();
-}
+};
 
-function inspectCacheHeaders(headers: Headers): {
+const inspectCacheHeaders = function inspectCacheHeaders(headers: Headers): {
 	isHit: boolean;
 	detail: string | null;
 } {
@@ -60,6 +60,7 @@ function inspectCacheHeaders(headers: Headers): {
 		}
 
 		headerDetail = `${headerName}=${headerValue}`;
+		// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
 		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/iu.test(
 			headerValue
 		);
@@ -76,17 +77,17 @@ function inspectCacheHeaders(headers: Headers): {
 			: (headerDetail ?? ageDetail);
 
 	return {
-		isHit: headerIndicatesHit || ageIndicatesCache,
 		detail,
+		isHit: headerIndicatesHit || ageIndicatesCache,
 	};
-}
+};
 
 /**
  * Performs the init fetch request.
  * All async work (header resolution) should be done before calling this.
  * GVL is now included in the init response when server has it configured.
  */
-async function performInitFetch(
+const performInitFetch = async function performInitFetch(
 	normalizedURL: string,
 	relevantHeaders: Record<string, string>,
 	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'],
@@ -96,16 +97,16 @@ async function performInitFetch(
 
 	try {
 		const response = await fetch(`${normalizedURL}/init`, {
-			method: 'GET',
 			cache: 'no-store',
 			headers: relevantHeaders,
+			method: 'GET',
 		});
 		const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
 		const cache = inspectCacheHeaders(response.headers);
 		const metadata: SSRInitialData['metadata'] = {
+			cache,
 			requestContext,
 			requestDurationMs,
-			cache,
 		};
 
 		if (response.ok) {
@@ -142,7 +143,7 @@ async function performInitFetch(
 		}
 		return {};
 	}
-}
+};
 
 /**
  * Fetches initial consent data on the server for SSR hydration.
@@ -183,7 +184,8 @@ async function performInitFetch(
  *
  * @public
  */
-export async function fetchSSRData(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const fetchSSRData = async function fetchSSRData(
 	options: FetchSSRDataOptions
 ): Promise<SSRInitialData | undefined> {
 	const { backendURL, headers, overrides, debug } = options;
@@ -269,7 +271,7 @@ export async function fetchSSRData(
 		}),
 		debug
 	);
-	const init = initResult.init;
+	const { init } = initResult;
 
 	if (!init) {
 		if (debug) {
@@ -279,5 +281,5 @@ export async function fetchSSRData(
 	}
 
 	// GVL is now part of the init response
-	return { init, gvl: init.gvl, metadata: initResult.metadata };
-}
+	return { gvl: init.gvl, init, metadata: initResult.metadata };
+};

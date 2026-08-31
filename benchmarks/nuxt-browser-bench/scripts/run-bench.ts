@@ -38,7 +38,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -49,9 +49,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -62,7 +62,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 type NuxtBenchScenario =
 	| 'baseline'
@@ -123,7 +123,7 @@ const repeatVisitorCookieValue = [
 	'i.sid:sub_2VZxR7YmNpKq3WfLs8TgHd',
 ].join(',');
 
-function readCliFlag(name: string): string | undefined {
+const readCliFlag = function readCliFlag(name: string): string | undefined {
 	const index = process.argv.indexOf(name);
 	if (index >= 0) {
 		return process.argv[index + 1];
@@ -132,7 +132,7 @@ function readCliFlag(name: string): string | undefined {
 	const prefix = `${name}=`;
 	const match = process.argv.find((arg) => arg.startsWith(prefix));
 	return match?.slice(prefix.length);
-}
+};
 
 const iterations = Number(
 	readCliFlag('--iterations') ??
@@ -185,7 +185,7 @@ if (scenarioFilter && scenarios.length === 0) {
 	);
 }
 
-async function measureInteractionLatency(
+const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
 	scenario: NuxtBenchScenario
 ) {
@@ -228,9 +228,9 @@ async function measureInteractionLatency(
 		{ timeout: 30_000 }
 	);
 	return performance.now() - startedAt;
-}
+};
 
-async function waitForServer() {
+const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
@@ -246,9 +246,9 @@ async function waitForServer() {
 	}
 
 	throw new Error('Timed out waiting for nuxt browser bench server');
-}
+};
 
-async function runCommand(args: string[], label: string) {
+const runCommand = async function runCommand(args: string[], label: string) {
 	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
@@ -275,17 +275,17 @@ async function runCommand(args: string[], label: string) {
 		});
 		command.on('error', rejectPromise);
 	});
-}
+};
 
-async function ensureBuild() {
+const ensureBuild = async function ensureBuild() {
 	if (existsSync(serverEntryPath)) {
 		return;
 	}
 
 	await runCommand(['run', 'build'], 'nuxt browser benchmark build');
-}
+};
 
-async function applyPageProfile(
+const applyPageProfile = async function applyPageProfile(
 	context: PlaywrightTypes.BrowserContext,
 	page: PlaywrightTypes.Page
 ) {
@@ -295,46 +295,50 @@ async function applyPageProfile(
 		bannerElementTimingName,
 		bannerRootTestId,
 	});
-}
+};
 
-async function seedRepeatVisitorCookie(
+const seedRepeatVisitorCookie = async function seedRepeatVisitorCookie(
 	context: PlaywrightTypes.BrowserContext
 ) {
 	await context.addCookies([
 		{
-			name: 'c15t',
-			value: repeatVisitorCookieValue,
 			domain: HOST,
-			path: '/',
-			httpOnly: false,
-			secure: false,
-			sameSite: 'Lax',
 			expires: Math.floor(Date.now() / 1000) + 60 * 60,
+			httpOnly: false,
+			name: 'c15t',
+			path: '/',
+			sameSite: 'Lax',
+			secure: false,
+			value: repeatVisitorCookieValue,
 		},
 	]);
-}
+};
 
-function resultScenarioName(scenario: string): string {
+const resultScenarioName = function resultScenarioName(
+	scenario: string
+): string {
 	if (throttleProfile === 'none' && initLatencyMs === 0) {
 		return scenario;
 	}
 
 	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
-}
+};
 
-function resultFileName(scenario: string): string {
+const resultFileName = function resultFileName(scenario: string): string {
 	return `${resultScenarioName(scenario).replaceAll(':', '-')}.json`;
-}
+};
 
-function nullableMedian(values: (number | null | undefined)[]): number | null {
+const nullableMedian = function nullableMedian(
+	values: (number | null | undefined)[]
+): number | null {
 	const numbers = values.filter(
 		(value): value is number =>
 			typeof value === 'number' && Number.isFinite(value)
 	);
 	return numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null;
-}
+};
 
-async function collectScenarioMetrics(
+const collectScenarioMetrics = async function collectScenarioMetrics(
 	page: PlaywrightTypes.Page,
 	scenario: NuxtBenchScenario,
 	path: string
@@ -393,19 +397,19 @@ async function collectScenarioMetrics(
 		}
 		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
 		return {
+			appScriptCount: ordered.length,
 			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
 			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-			appScriptCount: ordered.length,
 		};
 	});
 	const performanceObserverInfo = await page.evaluate(() => {
 		const metrics = window.__c15tBenchPerfMetrics;
 		return {
+			bannerPaintMs: metrics?.bannerPaintMs ?? null,
 			cls: metrics?.cls ?? 0,
+			domNodeCount: document.querySelectorAll('*').length,
 			longTaskCount: metrics?.longTaskCount ?? 0,
 			longTaskTotalMs: metrics?.longTaskTotalMs ?? 0,
-			bannerPaintMs: metrics?.bannerPaintMs ?? null,
-			domNodeCount: document.querySelectorAll('*').length,
 		};
 	});
 
@@ -414,14 +418,14 @@ async function collectScenarioMetrics(
 		...navEntry,
 		...scriptEntry,
 		...performanceObserverInfo,
+		bannerInFirstHtml,
 		bannerPaintMs:
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
-		bannerInFirstHtml,
 		initRequestsAfterLoad: initRequests,
-		sameOriginInitRequestsAfterLoad: sameOriginInitRequests,
 		manifestRequestsAfterLoad: manifestRequests,
+		sameOriginInitRequestsAfterLoad: sameOriginInitRequests,
 	};
-}
+};
 
 type NuxtBrowserSample = Omit<
 	Awaited<ReturnType<typeof collectScenarioMetrics>>,
@@ -431,7 +435,9 @@ type NuxtBrowserSample = Omit<
 	interactionLatencyMs?: number;
 };
 
-function budgetsForScenario(scenario: string): MetricBudget[] {
+const budgetsForScenario = function budgetsForScenario(
+	scenario: string
+): MetricBudget[] {
 	const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
 	const shared = browserBudgets.filter((budget) =>
 		[
@@ -450,11 +456,11 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		return [
 			...shared,
 			{
-				metric: 'initRequestsAfterLoad',
 				comparator: 'count-eq',
-				threshold: 0,
 				description:
 					'SSR and repeat-visitor routes should not trigger browser-observed init requests.',
+				metric: 'initRequestsAfterLoad',
+				threshold: 0,
 			},
 		];
 	}
@@ -463,18 +469,18 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		return [
 			...shared,
 			{
-				metric: 'initRequestsAfterLoad',
 				comparator: 'count-eq',
-				threshold: 0,
 				description:
 					'Nuxt client manifest mode resolves from the browser manifest transport without any init request.',
+				metric: 'initRequestsAfterLoad',
+				threshold: 0,
 			},
 			{
-				metric: 'sameOriginInitRequestsAfterLoad',
 				comparator: 'count-eq',
-				threshold: 0,
 				description:
 					'Nuxt client manifest mode must not call a same-origin init endpoint.',
+				metric: 'sameOriginInitRequestsAfterLoad',
+				threshold: 0,
 			},
 		];
 	}
@@ -482,14 +488,14 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 	return [
 		...shared,
 		{
-			metric: 'initRequestsAfterLoad',
 			comparator: 'count-eq',
-			threshold: 1,
 			description:
 				'Client SPA flow should make exactly one init request on cold load.',
+			metric: 'initRequestsAfterLoad',
+			threshold: 1,
 		},
 	];
-}
+};
 
 interface BenchConsentFixtureCounts {
 	init: number;
@@ -497,34 +503,38 @@ interface BenchConsentFixtureCounts {
 	subjects: number;
 }
 
-async function resetFixtureCounts(): Promise<void> {
+const resetFixtureCounts = async function resetFixtureCounts(): Promise<void> {
 	await fetch(`${BASE_URL}/api/bench-consent/stats`, {
+		cache: 'no-store',
 		method: 'POST',
-		cache: 'no-store',
 	});
-}
+};
 
-async function readFixtureCounts(): Promise<BenchConsentFixtureCounts> {
-	const response = await fetch(`${BASE_URL}/api/bench-consent/stats`, {
-		cache: 'no-store',
-	});
-	return (await response.json()) as BenchConsentFixtureCounts;
-}
+const readFixtureCounts =
+	async function readFixtureCounts(): Promise<BenchConsentFixtureCounts> {
+		const response = await fetch(`${BASE_URL}/api/bench-consent/stats`, {
+			cache: 'no-store',
+		});
+		return (await response.json()) as BenchConsentFixtureCounts;
+	};
 
-function isManifestScenario(scenario: string): boolean {
+const isManifestScenario = function isManifestScenario(
+	scenario: string
+): boolean {
 	return scenario.includes('manifest');
-}
+};
 
-async function run() {
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const run = async function run() {
 	await ensureBuild();
 
 	const env = {
 		...process.env,
 		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
 		HOST,
-		PORT: `${PORT}`,
 		NITRO_HOST: HOST,
 		NITRO_PORT: `${PORT}`,
+		PORT: `${PORT}`,
 	};
 	if (coldManifestMode) {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
@@ -551,6 +561,7 @@ async function run() {
 
 		for (const scenario of scenarios) {
 			const samples: NuxtBrowserSample[] = [];
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await resetFixtureCounts();
 			const effectiveWarmupIterations =
 				coldManifestMode && isManifestScenario(scenario.name)
@@ -561,17 +572,23 @@ async function run() {
 				index < effectiveWarmupIterations + iterations;
 				index += 1
 			) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const context = await browser.newContext({ baseURL: BASE_URL });
 				if (scenario.name === 'repeat-visitor') {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					await seedRepeatVisitorCookie(context);
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const page = await context.newPage();
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await applyPageProfile(context, page);
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const metrics = await collectScenarioMetrics(
 					page,
 					scenario.name,
 					scenario.path
 				);
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const interactionLatencyMs = await measureInteractionLatency(
 					page,
 					scenario.name
@@ -580,7 +597,9 @@ async function run() {
 					const measuredIndex = index - effectiveWarmupIterations;
 					samples.push({
 						...metrics,
+						interactionLatencyMs,
 						scenario:
+							// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
 							coldManifestMode &&
 							isManifestScenario(scenario.name) &&
 							measuredIndex === 0
@@ -588,11 +607,12 @@ async function run() {
 								: coldManifestMode && isManifestScenario(scenario.name)
 									? `${scenario.name}-steady`
 									: metrics.scenario,
-						interactionLatencyMs,
 					});
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await context.close();
 			}
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const fixtureCounts = await readFixtureCounts();
 
 			const grouped = new Map<string, typeof samples>();
@@ -606,30 +626,20 @@ async function run() {
 			for (const [groupScenario, groupedSamples] of grouped) {
 				const outputScenario = resultScenarioName(groupScenario);
 				const result: BenchmarkResult = {
-					schemaVersion: BENCHMARK_SCHEMA_VERSION,
-					suite: 'browser-runtime',
-					package: '@c15t/vue',
-					framework: 'vue',
-					runtime: 'playwright',
-					scenario: outputScenario,
-					commitSha: safeCommitSha(),
 					baseSha: safeBaseSha(),
-					timestamp: new Date().toISOString(),
+					budgetDefinitions: budgetsForScenario(groupScenario),
+					budgets: [],
+					commitSha: safeCommitSha(),
 					environment: getEnvironment(browser.version()),
 					fixture: {
-						name: outputScenario,
 						consentCount: 5,
-						scriptCount: 0,
 						localeCount: 1,
+						name: outputScenario,
+						scriptCount: 0,
 						themeComplexity: 'minimal',
 					},
+					framework: 'vue',
 					metadata: {
-						profile: throttleProfile,
-						initLatencyMs,
-						coldManifestMode,
-						fixtureInitExecutions: fixtureCounts.init,
-						fixtureManifestExecutions: fixtureCounts.manifest,
-						fixtureSubjectExecutions: fixtureCounts.subjects,
 						bannerInFirstHtml: groupedSamples.every(
 							(sample) => sample.bannerInFirstHtml
 						),
@@ -639,6 +649,12 @@ async function run() {
 						cls: Number(
 							median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(4)
 						),
+						coldManifestMode,
+						fixtureInitExecutions: fixtureCounts.init,
+						fixtureManifestExecutions: fixtureCounts.manifest,
+						fixtureSubjectExecutions: fixtureCounts.subjects,
+						initLatencyMs,
+						profile: throttleProfile,
 					},
 					metrics: [
 						summarizeMetric(
@@ -751,11 +767,15 @@ async function run() {
 							groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
 						),
 					],
-					budgetDefinitions: budgetsForScenario(groupScenario),
-					budgets: [],
 					notes: [
 						'Nuxt browser bench covers SSR, client SPA, and pre-seeded repeat-visitor paths with local deterministic Nitro endpoints.',
 					],
+					package: '@c15t/vue',
+					runtime: 'playwright',
+					scenario: outputScenario,
+					schemaVersion: BENCHMARK_SCHEMA_VERSION,
+					suite: 'browser-runtime',
+					timestamp: new Date().toISOString(),
 				};
 
 				writeJson(join(outputDir, resultFileName(groupScenario)), result);
@@ -793,7 +813,7 @@ async function run() {
 	if (serverFailure) {
 		throw serverFailure;
 	}
-}
+};
 
 try {
 	await run();

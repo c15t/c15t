@@ -17,20 +17,24 @@ import { migrate } from './index';
 
 const plan = vi.fn();
 const apply = vi.fn();
+// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 const dispose = vi.fn(async () => undefined);
 const confirmApply = vi.fn();
 
 const dependencies = {
 	confirmApply,
-	createMigrator: vi.fn(() => ({ plan, apply, dispose })),
+	createMigrator: vi.fn(() => ({ apply, dispose, plan })),
 	describePlan: vi.fn(),
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	ensureBackendConfig: vi.fn(async () => ({
-		path: '/abs/c15t-backend.config.ts',
 		dependencies: [],
+		path: '/abs/c15t-backend.config.ts',
 	})),
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	installDependencies: vi.fn(async () => undefined),
 	isUpToDate: (report: { adoption: unknown[]; pending: unknown[] }) =>
 		report.adoption.length === 0 && report.pending.length === 0,
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	readDatabaseConfig: vi.fn(async () => ({
 		dialect: 'postgres',
 		url: 'postgres://localhost/c15t',
@@ -39,6 +43,7 @@ const dependencies = {
 
 const DATABASE_CLASSIFICATION_KEY = 'shape';
 
+// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 const report = (over: Record<string, unknown> = {}) => ({
 	[DATABASE_CLASSIFICATION_KEY]: { _tag: 'Empty' },
 	adoption: ['Create "subject"'],
@@ -49,20 +54,20 @@ const report = (over: Record<string, unknown> = {}) => ({
 	...over,
 });
 
-function createMockContext() {
+const createMockContext = function createMockContext() {
 	return {
 		cwd: '/tmp/project',
 		logger: {
-			info: vi.fn(),
-			error: vi.fn(),
-			success: vi.fn(),
 			debug: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
 			message: vi.fn(),
 			note: vi.fn(),
+			success: vi.fn(),
 		},
 		telemetry: { trackEvent: vi.fn() },
 	} as unknown as Parameters<typeof migrate>[0];
-}
+};
 
 describe('migrate command', () => {
 	beforeEach(() => {

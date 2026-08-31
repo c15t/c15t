@@ -181,7 +181,8 @@ const defaultIframeStyle: CSSProperties = {
  * ```
  */
 export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
-	function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function YouTubeEmbed(
 		{
 			videoId,
 			src,

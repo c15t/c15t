@@ -25,7 +25,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -36,7 +36,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 /**
  * Device flow endpoints
@@ -51,14 +51,16 @@ interface DeviceFlowEndpoints {
 /**
  * Get the device flow endpoints for a base URL
  */
-function getEndpoints(baseUrl: string): DeviceFlowEndpoints {
+const getEndpoints = function getEndpoints(
+	baseUrl: string
+): DeviceFlowEndpoints {
 	return {
+		deviceAuthorizationEndpoint: `${baseUrl}/oauth/device/code`,
 		deviceCodeV1Endpoint: `${baseUrl}/api/v1/auth/device/code`,
 		deviceTokenV1Endpoint: `${baseUrl}/api/v1/auth/device/token`,
-		deviceAuthorizationEndpoint: `${baseUrl}/oauth/device/code`,
 		tokenEndpoint: `${baseUrl}/oauth/token`,
 	};
-}
+};
 
 interface ApiErrorPayload {
 	success: false;
@@ -91,7 +93,7 @@ interface TokenResponseV1 {
 	scope?: string;
 }
 
-function isApiSuccessPayload<T>(
+const isApiSuccessPayload = function isApiSuccessPayload<T>(
 	payload: unknown
 ): payload is ApiSuccessPayload<T> {
 	return (
@@ -101,9 +103,11 @@ function isApiSuccessPayload<T>(
 		(payload as { success?: unknown }).success === true &&
 		'data' in payload
 	);
-}
+};
 
-function normalizeDeviceCodeResponse(payload: unknown): DeviceCodeResponse {
+const normalizeDeviceCodeResponse = function normalizeDeviceCodeResponse(
+	payload: unknown
+): DeviceCodeResponse {
 	if (
 		payload &&
 		typeof payload === 'object' &&
@@ -124,20 +128,22 @@ function normalizeDeviceCodeResponse(payload: unknown): DeviceCodeResponse {
 		const v1 = payload as DeviceCodeResponseV1;
 		return {
 			device_code: v1.deviceCode,
+			expires_in: v1.expiresIn,
+			interval: v1.interval,
 			user_code: v1.userCode,
 			verification_uri: v1.verificationUri,
 			verification_uri_complete: v1.verificationUriComplete,
-			expires_in: v1.expiresIn,
-			interval: v1.interval,
 		};
 	}
 
 	throw new CliError('AUTH_FAILED', {
 		details: 'Invalid device code response',
 	});
-}
+};
 
-function normalizeTokenResponse(payload: unknown): TokenResponse {
+const normalizeTokenResponse = function normalizeTokenResponse(
+	payload: unknown
+): TokenResponse {
 	if (
 		payload &&
 		typeof payload === 'object' &&
@@ -156,27 +162,30 @@ function normalizeTokenResponse(payload: unknown): TokenResponse {
 		const v1 = payload as TokenResponseV1;
 		return {
 			access_token: v1.accessToken,
-			token_type: v1.tokenType,
 			expires_in: v1.expiresIn,
 			refresh_token: v1.refreshToken,
 			scope: v1.scope,
+			token_type: v1.tokenType,
 		};
 	}
 
 	throw new CliError('AUTH_FAILED', {
 		details: 'Invalid token response',
 	});
-}
+};
 
-async function parseJsonSafe(response: Response): Promise<unknown> {
+const parseJsonSafe = async function parseJsonSafe(
+	response: Response
+): Promise<unknown> {
 	try {
 		return await response.json();
 	} catch {
 		return null;
 	}
-}
+};
 
-function toDeviceFlowErrorFromV1(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const toDeviceFlowErrorFromV1 = function toDeviceFlowErrorFromV1(
 	response: Response,
 	payload: unknown
 ): DeviceFlowError | null {
@@ -230,14 +239,14 @@ function toDeviceFlowErrorFromV1(
 	}
 
 	return null;
-}
+};
 
 /**
  * Initiate the device authorization flow
  *
  * Requests a device code and user code from the authorization server.
  */
-export async function initiateDeviceFlow(
+export const initiateDeviceFlow = async function initiateDeviceFlow(
 	baseUrl: string = URLS.CONSENT_IO
 ): Promise<DeviceCodeResponse> {
 	const endpoints = getEndpoints(baseUrl);
@@ -245,11 +254,11 @@ export async function initiateDeviceFlow(
 	// Prefer v1 control-plane endpoints used in local dashboard/dev branches.
 	{
 		const v1Response = await fetch(endpoints.deviceCodeV1Endpoint, {
-			method: 'POST',
+			body: '{}',
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: '{}',
+			method: 'POST',
 		});
 
 		if (v1Response.ok) {
@@ -278,14 +287,14 @@ export async function initiateDeviceFlow(
 
 	// Fallback to legacy OAuth device endpoint.
 	const response = await fetch(endpoints.deviceAuthorizationEndpoint, {
-		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
-		},
 		body: new URLSearchParams({
 			client_id: 'c15t-cli',
 			scope: 'instances:read instances:write',
 		}),
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
+		method: 'POST',
 	});
 
 	if (!response.ok) {
@@ -306,7 +315,7 @@ export async function initiateDeviceFlow(
 	}
 
 	return data;
-}
+};
 
 /**
  * Poll for the token
@@ -314,7 +323,14 @@ export async function initiateDeviceFlow(
  * Polls the token endpoint until the user authorizes the device,
  * the request expires, or is denied.
  */
-export async function pollForToken(
+/**
+ * Sleep for a specified duration
+ */
+const sleep = function sleep(ms: number): Promise<void> {
+	return createDeferredPromise((resolve) => setTimeout(resolve, ms));
+};
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const pollForToken = async function pollForToken(
 	baseUrl: string,
 	deviceCode: string,
 	interval: number = TIMEOUTS.DEVICE_FLOW_POLL_INTERVAL,
@@ -323,7 +339,8 @@ export async function pollForToken(
 	const endpoints = getEndpoints(baseUrl);
 	const startTime = Date.now();
 	const expiryTime = startTime + expiresIn * 1000;
-	let currentInterval = interval * 1000; // Convert to ms
+	// Convert to ms
+	let currentInterval = interval * 1000;
 	let useLegacyOAuthEndpoints = false;
 
 	while (Date.now() < expiryTime) {
@@ -336,11 +353,11 @@ export async function pollForToken(
 			if (!useLegacyOAuthEndpoints) {
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const v1Response = await fetch(endpoints.deviceTokenV1Endpoint, {
-					method: 'POST',
+					body: JSON.stringify({ deviceCode }),
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({ deviceCode }),
+					method: 'POST',
 				});
 
 				if (v1Response.ok) {
@@ -360,6 +377,7 @@ export async function pollForToken(
 					const mappedError = toDeviceFlowErrorFromV1(v1Response, payload);
 
 					if (mappedError) {
+						// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 						switch (mappedError.error) {
 							case 'authorization_pending':
 								continue;
@@ -390,15 +408,15 @@ export async function pollForToken(
 
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(endpoints.tokenEndpoint, {
-				method: 'POST',
+				body: new URLSearchParams({
+					client_id: 'c15t-cli',
+					device_code: deviceCode,
+					grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+				}),
 				headers: {
 					'Content-Type': 'application/x-www-form-urlencoded',
 				},
-				body: new URLSearchParams({
-					grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
-					device_code: deviceCode,
-					client_id: 'c15t-cli',
-				}),
+				method: 'POST',
 			});
 
 			if (response.ok) {
@@ -446,14 +464,14 @@ export async function pollForToken(
 	}
 
 	throw new CliError('DEVICE_FLOW_TIMEOUT');
-}
+};
 
 /**
  * Run the complete device flow
  *
  * Returns a state object that can be used to track the flow progress.
  */
-export async function runDeviceFlow(
+export const runDeviceFlow = async function runDeviceFlow(
 	baseUrl: string = URLS.CONSENT_IO,
 	callbacks?: {
 		onDeviceCode?: (response: DeviceCodeResponse) => void;
@@ -494,12 +512,14 @@ export async function runDeviceFlow(
 		);
 		return state;
 	}
-}
+};
 
 /**
  * Format the user code for display (e.g., "ABCD-EFGH")
  */
-export function formatUserCode(userCode: string): string {
+export const formatUserCode = function formatUserCode(
+	userCode: string
+): string {
 	// If it's already formatted, return as-is
 	if (userCode.includes('-')) {
 		return userCode;
@@ -508,12 +528,14 @@ export function formatUserCode(userCode: string): string {
 	// Split into groups of 4
 	const midpoint = Math.ceil(userCode.length / 2);
 	return `${userCode.slice(0, midpoint)}-${userCode.slice(midpoint)}`;
-}
+};
 
 /**
  * Get the complete verification URL with user code
  */
-export function getVerificationUrl(response: DeviceCodeResponse): string {
+export const getVerificationUrl = function getVerificationUrl(
+	response: DeviceCodeResponse
+): string {
 	if (response.verification_uri_complete) {
 		return response.verification_uri_complete;
 	}
@@ -522,11 +544,4 @@ export function getVerificationUrl(response: DeviceCodeResponse): string {
 	const url = new URL(response.verification_uri);
 	url.searchParams.set('user_code', response.user_code);
 	return url.toString();
-}
-
-/**
- * Sleep for a specified duration
- */
-function sleep(ms: number): Promise<void> {
-	return createDeferredPromise((resolve) => setTimeout(resolve, ms));
-}
+};

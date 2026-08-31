@@ -53,7 +53,9 @@ const PASSTHROUGH_HEADERS = [
 	'content-language',
 ] as const;
 
-function readConsentConfig(runtimeConfig: unknown): ConsentConfig {
+const readConsentConfig = function readConsentConfig(
+	runtimeConfig: unknown
+): ConsentConfig {
 	const config =
 		typeof runtimeConfig === 'object' && runtimeConfig !== null
 			? (runtimeConfig as C15TNitroRuntimeConfig)
@@ -62,11 +64,13 @@ function readConsentConfig(runtimeConfig: unknown): ConsentConfig {
 		...(config.public?.c15t ?? {}),
 		...(config.c15t ?? {}),
 	} as ConsentConfig;
-}
+};
 
 // A plain handler — NOT defineCachedEventHandler. The manifest is geo- and
 // language-independent, so the backend cache headers can be forwarded verbatim.
-export function createManifestRoute(dependencies: RouteDependencies) {
+export const createManifestRoute = function createManifestRoute(
+	dependencies: RouteDependencies
+) {
 	return defineEventHandler(async (event) => {
 		const runtimeConfig = dependencies.useRuntimeConfig(event);
 		const config = readConsentConfig(runtimeConfig);
@@ -85,7 +89,7 @@ export function createManifestRoute(dependencies: RouteDependencies) {
 			}
 		}
 
-		const etag = manifest.headers.etag;
+		const { etag } = manifest.headers;
 		if (etag && getRequestHeader(event, 'if-none-match') === etag) {
 			setResponseStatus(event, 304);
 			return sendNoContent(event, 304);
@@ -93,9 +97,11 @@ export function createManifestRoute(dependencies: RouteDependencies) {
 
 		return manifest.manifest;
 	});
-}
+};
 
-export function createInitRoute(dependencies: InitRouteDependencies) {
+export const createInitRoute = function createInitRoute(
+	dependencies: InitRouteDependencies
+) {
 	return dependencies.defineCachedEventHandler(
 		async (event) => {
 			const runtimeConfig = dependencies.useRuntimeConfig(event);
@@ -109,8 +115,8 @@ export function createInitRoute(dependencies: InitRouteDependencies) {
 					fetch: dependencies.fetch,
 				});
 				return resolveManifestInit({
-					manifest: manifest.manifest,
 					headers,
+					manifest: manifest.manifest,
 				});
 			} catch (cause) {
 				// Older backends may not expose /manifest; fall back to GET /init
@@ -147,8 +153,8 @@ export function createInitRoute(dependencies: InitRouteDependencies) {
 			}
 		},
 		{
-			name: 'c15t-nuxt-init',
 			maxAge: 0,
+			name: 'c15t-nuxt-init',
 			shouldBypassCache: () => true,
 			varies: [
 				'accept-language',
@@ -164,4 +170,4 @@ export function createInitRoute(dependencies: InitRouteDependencies) {
 			],
 		}
 	);
-}
+};

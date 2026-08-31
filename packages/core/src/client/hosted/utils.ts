@@ -10,7 +10,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -21,7 +21,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 /**
  * Helper function to introduce a delay
@@ -36,21 +36,23 @@ export const delay = (ms: number): Promise<void> =>
  * Resolves the subject identifier used by identify-user requests.
  * Supports the canonical `subjectId` field and the deprecated `id` alias.
  */
-export function getIdentifySubjectId(
+export const getIdentifySubjectId = function getIdentifySubjectId(
 	submission?: IdentifyUserRequestBody
 ): string | undefined {
 	return submission?.subjectId || submission?.id;
-}
+};
 
 /**
  * Generates a UUID v4 for request identification
  *
  * @returns A randomly generated UUID string
  */
-export function generateUUID(): string {
-	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+export const generateUUID = function generateUUID(): string {
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/gu, (c) => {
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		const r = (Math.random() * 16) | 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		const v = c === 'x' ? r : (r & 0x3) | 0x8;
 		return v.toString(16);
 	});
-}
+};

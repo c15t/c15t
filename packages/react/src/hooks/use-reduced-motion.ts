@@ -49,10 +49,10 @@ const getServerSnapshot = () => false;
  *
  * @public
  */
-export function useReducedMotion(): boolean {
+export const useReducedMotion = function useReducedMotion(): boolean {
 	return useSyncExternalStore(
 		subscribeToReducedMotion,
 		getReducedMotionSnapshot,
 		getServerSnapshot
 	);
-}
+};

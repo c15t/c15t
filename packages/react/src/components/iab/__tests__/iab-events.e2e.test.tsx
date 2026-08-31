@@ -5,7 +5,7 @@
  */
 
 import { userEvent } from '@vitest/browser/context';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { IABConsentBanner } from '~/components/iab-consent-banner';
@@ -23,7 +23,6 @@ import {
 	removeCMPEventListener,
 	waitForCMP,
 	waitForElement,
-	waitForElementRemoved,
 } from './e2e-setup';
 
 interface DeferredPromise<Value> {
@@ -36,7 +35,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -47,7 +46,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 describe('IAB Events E2E Tests', () => {
 	beforeEach(() => {

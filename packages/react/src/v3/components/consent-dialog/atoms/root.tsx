@@ -104,6 +104,7 @@ export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement
  * </ConsentDialog.Root>
  * ```
  */
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
 const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	children,
 	open: openProp,
@@ -199,8 +200,8 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const themedStyle = mergeSlotProps(components?.dialog?.root, {
 		baseClassName: rootClasses,
 		className,
-		style: style as CSSPropertiesWithVars<Record<string, never>>,
 		noStyle,
+		style: style as CSSPropertiesWithVars<Record<string, never>>,
 		...rest,
 	});
 	const containerStyle = mergeSlotProps(components?.dialog?.container, {
@@ -216,8 +217,8 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 			disableAnimation,
 			noStyle,
 			scrollLock,
-			trapFocus,
 			theme: globalTheme.theme,
+			trapFocus,
 		}),
 		[disableAnimation, globalTheme.theme, noStyle, scrollLock, trapFocus]
 	);

@@ -46,7 +46,8 @@ const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
 const ConsentBannerTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerTitle({ children, ...props }, ref) {
 	const { cookieBanner: consentBanner } = useTranslations();
 	return (
 		<Box
@@ -84,7 +85,11 @@ const ConsentBannerDescription = forwardRef<
 	Omit<BoxProps, 'themeKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
->(function ({ children, legalLinks, asChild, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerDescription(
+	{ children, legalLinks, asChild, ...props },
+	ref
+) {
 	const { cookieBanner: consentBanner } = useTranslations();
 
 	if (asChild) {
@@ -141,7 +146,8 @@ ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
 const ConsentBannerFooter = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerFooter({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -176,7 +182,8 @@ ConsentBannerFooter.displayName = CONSENT_BANNER_FOOTER_NAME;
 const ConsentBannerCard = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerCard({ children, ...props }, ref) {
 	const { trapFocus } = useTheme();
 	const { cookieBanner } = useTranslations();
 	const localRef = useRef<HTMLDivElement>(null);
@@ -215,7 +222,8 @@ ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
 const ConsentBannerHeader = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerHeader({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -241,7 +249,8 @@ ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
 const ConsentBannerFooterSubGroup = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerFooterSubGroup({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -274,7 +283,8 @@ ConsentBannerFooterSubGroup.displayName = CONSENT_BANNER_FOOTER_SUB_GROUP_NAME;
 const ConsentBannerRejectButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerRejectButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -301,7 +311,8 @@ ConsentBannerRejectButton.displayName = CONSENT_BANNER_REJECT_BUTTON_NAME;
 const ConsentBannerCustomizeButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerCustomizeButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -335,7 +346,8 @@ ConsentBannerCustomizeButton.displayName = CONSENT_BANNER_CUSTOMIZE_BUTTON_NAME;
 const ConsentBannerAcceptButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentBannerAcceptButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	const { noStyle } = useTheme();
 	return (

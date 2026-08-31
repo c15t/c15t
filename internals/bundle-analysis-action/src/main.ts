@@ -39,35 +39,38 @@ interface MainDependencies {
 	writeReport: typeof writeReport;
 }
 
-async function loadDefaultMainDependencies(): Promise<MainDependencies> {
-	const inputs = await import('./config/inputs');
+const loadDefaultMainDependencies =
+	async function loadDefaultMainDependencies(): Promise<MainDependencies> {
+		const inputs = await import('./config/inputs');
 
-	return {
-		actionCore: core,
-		analyzeBundles,
-		analyzeTransitiveImpact,
-		calculateTotalDiffPercent,
-		ensureComment,
-		getOctokit: github.getOctokit,
-		inputs: {
-			baseDir: inputs.baseDir,
-			currentDir: inputs.currentDir,
-			failOnIncrease: inputs.failOnIncrease,
-			githubToken: inputs.githubToken,
-			header: inputs.header,
-			packagesDir: inputs.packagesDir,
-			prNumber: inputs.prNumber,
-			repo: inputs.repo,
-			skipComment: inputs.skipComment,
-			threshold: inputs.threshold,
-			transitiveRoots: inputs.transitiveRoots,
-		},
-		readFileSync,
-		writeReport,
+		return {
+			actionCore: core,
+			analyzeBundles,
+			analyzeTransitiveImpact,
+			calculateTotalDiffPercent,
+			ensureComment,
+			getOctokit: github.getOctokit,
+			inputs: {
+				baseDir: inputs.baseDir,
+				currentDir: inputs.currentDir,
+				failOnIncrease: inputs.failOnIncrease,
+				githubToken: inputs.githubToken,
+				header: inputs.header,
+				packagesDir: inputs.packagesDir,
+				prNumber: inputs.prNumber,
+				repo: inputs.repo,
+				skipComment: inputs.skipComment,
+				threshold: inputs.threshold,
+				transitiveRoots: inputs.transitiveRoots,
+			},
+			readFileSync,
+			writeReport,
+		};
 	};
-}
 
-export async function run(dependencies?: MainDependencies): Promise<void> {
+export const run = async function run(
+	dependencies?: MainDependencies
+): Promise<void> {
 	const resolvedDependencies =
 		dependencies ?? (await loadDefaultMainDependencies());
 	const {
@@ -156,7 +159,7 @@ export async function run(dependencies?: MainDependencies): Promise<void> {
 			actionCore.setFailed('Unknown error occurred');
 		}
 	}
-}
+};
 
 if (process.env.NODE_ENV !== 'test') {
 	void run();

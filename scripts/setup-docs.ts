@@ -7,8 +7,8 @@ import { join, resolve } from 'node:path';
 import { exit } from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const log = console.log;
-const error = console.error;
+const { log } = console;
+const { error } = console;
 
 /**
  * Unified Documentation Fetcher for C15t
@@ -158,10 +158,10 @@ class FetchScriptError extends Error {
  * Immutable configuration constants for the fetch process
  */
 const FETCH_CONFIG: FetchConfiguration = {
-	TEMP_DOCS_DIR: join(tmpdir(), 'c15t-docs'),
+	DEFAULT_BRANCH: 'main',
 	DOCS_APP_DIR: '.docs',
 	DOCS_REPO_URL: 'https://github.com/consentdotio/c15t-docs.git',
-	DEFAULT_BRANCH: 'main',
+	TEMP_DOCS_DIR: join(tmpdir(), 'c15t-docs'),
 } as const;
 
 /**
@@ -184,7 +184,7 @@ const FETCH_CONFIG: FetchConfiguration = {
  * // { isProduction: true, mode: 'production', branch: 'canary' }
  * ```
  */
-function parseFetchOptions(): FetchOptions {
+const parseFetchOptions = function parseFetchOptions(): FetchOptions {
 	const isProduction = process.argv.includes('--vercel');
 
 	// Parse branch flag: --branch=canary or --branch canary
@@ -206,6 +206,7 @@ function parseFetchOptions(): FetchOptions {
 	}
 
 	return {
+		branch: branch || FETCH_CONFIG.DEFAULT_BRANCH,
 		isProduction,
 		mode: (() => {
 			if (isProduction) {
@@ -213,9 +214,8 @@ function parseFetchOptions(): FetchOptions {
 			}
 			return 'development';
 		})(),
-		branch: branch || FETCH_CONFIG.DEFAULT_BRANCH,
 	};
-}
+};
 
 /**
  * Validates and retrieves GitHub authentication token based on build mode
@@ -243,7 +243,7 @@ function parseFetchOptions(): FetchOptions {
  * @see {@link https://nodejs.org/api/process.html#processloadenvfilepath | Node.js loadEnvFile Documentation}
  * @see {@link https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens | GitHub Personal Access Tokens}
  */
-function validateGitHubToken(
+const validateGitHubToken = function validateGitHubToken(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): GitHubToken {
@@ -281,7 +281,7 @@ function validateGitHubToken(
 		`✅ GitHub token found, proceeding with ${buildMode} build (${branch} branch)...`
 	);
 	return token;
-}
+};
 
 /**
  * Safely removes a directory if it exists, preventing build conflicts
@@ -305,7 +305,7 @@ function validateGitHubToken(
  *
  * @see {@link https://nodejs.org/api/fs.html#fsrmsyncpath-options | Node.js rmSync Documentation}
  */
-function cleanupDirectory(
+const cleanupDirectory = function cleanupDirectory(
 	directoryPath: FileSystemPath,
 	description: OperationDescription,
 	buildMode: BuildMode,
@@ -315,7 +315,7 @@ function cleanupDirectory(
 		log(`🧹 Cleaning up existing ${description} at ${directoryPath}`);
 
 		try {
-			rmSync(directoryPath, { recursive: true, force: true });
+			rmSync(directoryPath, { force: true, recursive: true });
 		} catch {
 			throw new FetchScriptError(
 				`Failed to clean up directory: ${directoryPath}`,
@@ -326,7 +326,7 @@ function cleanupDirectory(
 			);
 		}
 	}
-}
+};
 
 /**
  * Executes a shell command with comprehensive error handling and logging
@@ -356,7 +356,7 @@ function cleanupDirectory(
  *
  * @see {@link https://nodejs.org/api/child_process.html#child_processexecsynccommand-options | Node.js execSync Documentation}
  */
-function executeCommand(
+const executeCommand = function executeCommand(
 	command: ShellCommand,
 	description: OperationDescription,
 	buildMode: BuildMode,
@@ -390,7 +390,7 @@ function executeCommand(
 			sanitized
 		);
 	}
-}
+};
 
 /**
  * Clones the private documentation template repository to temporary storage
@@ -426,7 +426,7 @@ function executeCommand(
  *
  * @internal
  */
-function cloneDocumentationRepository(
+const cloneDocumentationRepository = function cloneDocumentationRepository(
 	authenticationToken: GitHubToken,
 	buildMode: BuildMode,
 	branch: GitBranch
@@ -459,7 +459,7 @@ function cloneDocumentationRepository(
 	//   buildMode,
 	//   branch
 	// );
-}
+};
 
 /**
  * Installs the fetched documentation template into the workspace
@@ -491,7 +491,7 @@ function cloneDocumentationRepository(
  *
  * @see {@link https://rsync.samba.org/documentation.html | Rsync Documentation}
  */
-function installDocumentationTemplate(
+const installDocumentationTemplate = function installDocumentationTemplate(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
@@ -524,7 +524,7 @@ function installDocumentationTemplate(
 			branch
 		);
 	}
-}
+};
 
 /**
  * Processes MDX content using fumadocs-mdx after dependencies are installed
@@ -550,7 +550,10 @@ function installDocumentationTemplate(
  *
  * @see {@link https://fumadocs.vercel.app/docs/mdx | Fumadocs MDX Documentation}
  */
-function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
+const processMDXContent = function processMDXContent(
+	buildMode: BuildMode,
+	branch: GitBranch
+): void {
 	executeCommand(
 		`cd ${FETCH_CONFIG.DOCS_APP_DIR} && pnpm copy-content`,
 		'Copying MDX content with copy-content',
@@ -563,7 +566,7 @@ function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
 		buildMode,
 		branch
 	);
-}
+};
 
 /**
  * Installs documentation application dependencies in complete isolation
@@ -589,7 +592,7 @@ function processMDXContent(buildMode: BuildMode, branch: GitBranch): void {
  * @see {@link https://pnpm.io/cli/install | PNPM Install Documentation}
  * @see {@link https://pnpm.io/workspaces | PNPM Workspace Documentation}
  */
-function installDocsAppDependencies(
+const installDocsAppDependencies = function installDocsAppDependencies(
 	buildMode: BuildMode,
 	branch: GitBranch
 ): void {
@@ -599,7 +602,7 @@ function installDocsAppDependencies(
 		buildMode,
 		branch
 	);
-}
+};
 
 /**
  * Builds the documentation application for production deployment (production mode only)
@@ -666,7 +669,7 @@ function installDocsAppDependencies(
  *
  * @see {@link https://vercel.com/docs/deployments/build-step | Vercel Build Step Documentation}
  */
-function main(fetchOptions: FetchOptions): void {
+const main = function main(fetchOptions: FetchOptions): void {
 	let modeEmoji: string;
 	let modeText: string;
 	if (fetchOptions.isProduction) {
@@ -731,7 +734,7 @@ function main(fetchOptions: FetchOptions): void {
 
 		exit(1);
 	}
-}
+};
 
 // Execute the main function if this script is run directly
 if (

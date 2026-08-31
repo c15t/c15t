@@ -45,19 +45,23 @@ export interface FileGenerationOutput {
 /**
  * Read file contents for backup
  */
-async function readFileForBackup(filePath: string): Promise<string | null> {
+const readFileForBackup = async function readFileForBackup(
+	filePath: string
+): Promise<string | null> {
 	const fs = await import('node:fs/promises');
 	try {
 		return await fs.readFile(filePath, 'utf-8');
 	} catch {
 		return null;
 	}
-}
+};
 
 /**
  * Check if file exists
  */
-async function fileExists(filePath: string): Promise<boolean> {
+const fileExists = async function fileExists(
+	filePath: string
+): Promise<boolean> {
 	const fs = await import('node:fs/promises');
 	try {
 		await fs.access(filePath);
@@ -65,13 +69,13 @@ async function fileExists(filePath: string): Promise<boolean> {
 	} catch {
 		return false;
 	}
-}
+};
 
 /**
  * Try to format generated files using the project's formatter (prettier or biome).
  * Silently skips if no formatter is found.
  */
-async function formatGeneratedFiles(
+const formatGeneratedFiles = async function formatGeneratedFiles(
 	projectRoot: string,
 	files: string[],
 	logger: { debug: (msg: string) => void }
@@ -88,17 +92,19 @@ async function formatGeneratedFiles(
 			f.endsWith('.js') ||
 			f.endsWith('.jsx')
 	);
-	if (codeFiles.length === 0) return;
+	if (codeFiles.length === 0) {
+		return;
+	}
 
 	// Check for formatters in node_modules/.bin
 	const formatters = [
 		{
-			bin: path.join(projectRoot, 'node_modules', '.bin', 'prettier'),
 			args: ['--write'],
+			bin: path.join(projectRoot, 'node_modules', '.bin', 'prettier'),
 		},
 		{
-			bin: path.join(projectRoot, 'node_modules', '.bin', 'biome'),
 			args: ['format', '--write'],
+			bin: path.join(projectRoot, 'node_modules', '.bin', 'biome'),
 		},
 	];
 
@@ -118,7 +124,7 @@ async function formatGeneratedFiles(
 	}
 
 	logger.debug('No formatter found, skipping formatting');
-}
+};
 
 /**
  * File generation actor
@@ -145,12 +151,12 @@ export const fileGenerationActor = fromPromise<
 	const filesCreated: string[] = [];
 	const filesModified: FileModification[] = [];
 	const result: FileGenerationOutput = {
+		configPath: null,
+		envPath: null,
 		filesCreated: [],
 		filesModified: [],
-		configPath: null,
 		layoutPath: null,
 		nextConfigPath: null,
-		envPath: null,
 	};
 
 	const { projectRoot, logger } = cliContext;
@@ -162,9 +168,9 @@ export const fileGenerationActor = fromPromise<
 
 	// Create a spinner mock that doesn't do anything (we handle UI separately)
 	const spinnerMock = {
+		message: (msg: string) => logger.debug(`[spinner] ${msg}`),
 		start: (msg: string) => logger.debug(`[spinner] ${msg}`),
 		stop: (msg: string) => logger.debug(`[spinner] ${msg}`),
-		message: (msg: string) => logger.debug(`[spinner] ${msg}`),
 	};
 
 	try {
@@ -180,13 +186,15 @@ export const fileGenerationActor = fromPromise<
 
 		// Backup existing files
 		for (const filePath of potentialFiles) {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const exists = await fileExists(filePath);
 			if (exists) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const backup = await readFileForBackup(filePath);
 				if (backup !== null) {
 					filesModified.push({
-						path: filePath,
 						backup,
+						path: filePath,
 						type: 'modified',
 					});
 				}
@@ -195,17 +203,17 @@ export const fileGenerationActor = fromPromise<
 
 		// Generate files using existing utility
 		const generateResult = await generateFiles({
-			context: cliContext,
-			mode,
-			spinner: spinnerMock as ReturnType<typeof ClackPromptsTypes.spinner>,
 			backendURL: backendURL ?? undefined,
-			useEnvFile,
-			proxyNextjs,
-			enableSSR,
+			context: cliContext,
 			enableDevTools,
-			uiStyle,
+			enableSSR,
 			expandedTheme: expandedTheme ?? undefined,
+			mode,
+			proxyNextjs,
 			selectedScripts,
+			spinner: spinnerMock as ReturnType<typeof ClackPromptsTypes.spinner>,
+			uiStyle,
+			useEnvFile,
 		});
 
 		// Record paths
@@ -292,6 +300,7 @@ export const rollbackActor = fromPromise<RollbackOutput, RollbackInput>(
 		// Delete created files
 		for (const filePath of filesCreated) {
 			try {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await fs.unlink(filePath);
 			} catch (error) {
 				errors.push(
@@ -303,6 +312,7 @@ export const rollbackActor = fromPromise<RollbackOutput, RollbackInput>(
 		// Restore modified files
 		for (const mod of filesModified) {
 			try {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await fs.writeFile(mod.path, mod.backup, 'utf-8');
 			} catch (error) {
 				errors.push(
@@ -312,8 +322,8 @@ export const rollbackActor = fromPromise<RollbackOutput, RollbackInput>(
 		}
 
 		return {
-			success: errors.length === 0,
 			errors,
+			success: errors.length === 0,
 		};
 	}
 );

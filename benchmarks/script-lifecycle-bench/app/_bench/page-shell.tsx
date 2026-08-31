@@ -14,11 +14,11 @@ export const ScriptLifecyclePageShell = ({
 	const { ready, runScenarioAction, state } = useScriptLifecycleBench();
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>c15t Script Lifecycle Benchmark</h1>
 			<p>Scenario: {config.name}</p>
 			<p>Ready: {ready ? 'yes' : 'no'}</p>
-			<div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
 				{allScenarioConfigs.map((scenario) => (
 					<Link
 						key={scenario.name}
@@ -42,11 +42,11 @@ export const ScriptLifecyclePageShell = ({
 			<pre
 				id="script-bench-state"
 				style={{
-					marginTop: '1rem',
-					padding: '1rem',
 					background: '#f5f5f5',
 					borderRadius: '0.5rem',
+					marginTop: '1rem',
 					overflowX: 'auto',
+					padding: '1rem',
 				}}
 			>
 				{JSON.stringify(state, null, 2)}

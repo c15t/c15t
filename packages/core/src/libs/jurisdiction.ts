@@ -18,11 +18,17 @@ const getDefined = <Value>(
  * jurisdiction code. Banner visibility is derived elsewhere using
  * `jurisdiction !== 'NONE'`.
  */
-export function checkJurisdiction(
+export const checkJurisdiction = function checkJurisdiction(
 	countryCode: string | null,
 	regionCode?: string | null
 ): JurisdictionCode {
 	const jurisdictions = {
+		AU: new Set(['AU']),
+		BR: new Set(['BR']),
+		CA: new Set(['CA']),
+		CA_QC_REGIONS: new Set(['QC']),
+		CH: new Set(['CH']),
+		EEA: new Set(['IS', 'NO', 'LI']),
 		EU: new Set([
 			'AT',
 			'BE',
@@ -52,15 +58,9 @@ export function checkJurisdiction(
 			'ES',
 			'SE',
 		]),
-		EEA: new Set(['IS', 'NO', 'LI']),
-		UK: new Set(['GB']),
-		CH: new Set(['CH']),
-		BR: new Set(['BR']),
-		CA: new Set(['CA']),
-		AU: new Set(['AU']),
 		JP: new Set(['JP']),
 		KR: new Set(['KR']),
-		CA_QC_REGIONS: new Set(['QC']),
+		UK: new Set(['GB']),
 	};
 
 	// Default to no jurisdiction
@@ -95,15 +95,15 @@ export function checkJurisdiction(
 			code: JurisdictionCode;
 		}[] = [
 			{
-				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
 				code: 'GDPR',
+				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
 			},
-			{ sets: [jurisdictions.CH], code: 'CH' },
-			{ sets: [jurisdictions.BR], code: 'BR' },
-			{ sets: [jurisdictions.CA], code: 'PIPEDA' },
-			{ sets: [jurisdictions.AU], code: 'AU' },
-			{ sets: [jurisdictions.JP], code: 'APPI' },
-			{ sets: [jurisdictions.KR], code: 'PIPA' },
+			{ code: 'CH', sets: [jurisdictions.CH] },
+			{ code: 'BR', sets: [jurisdictions.BR] },
+			{ code: 'PIPEDA', sets: [jurisdictions.CA] },
+			{ code: 'AU', sets: [jurisdictions.AU] },
+			{ code: 'APPI', sets: [jurisdictions.JP] },
+			{ code: 'PIPA', sets: [jurisdictions.KR] },
 		];
 
 		// Find matching jurisdiction
@@ -116,4 +116,4 @@ export function checkJurisdiction(
 	}
 
 	return jurisdictionCode;
-}
+};

@@ -26,7 +26,7 @@ export interface ConsentBannerPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentBannerAction,
 	props: ConsentBannerPolicyActionRenderProps
 ) {
@@ -67,7 +67,7 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
 export const ConsentBannerPolicyActions = ({
 	renderAction,

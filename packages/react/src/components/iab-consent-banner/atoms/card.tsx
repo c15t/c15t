@@ -24,7 +24,8 @@ interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogEleme
 const IABConsentBannerCard = forwardRef<
 	HTMLDialogElement,
 	IABConsentBannerCardProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerCard({ children, className, ...props }, ref) {
 	const { trapFocus } = useTheme();
 
 	useFocusTrap(Boolean(trapFocus), ref as RefObject<HTMLElement>);

@@ -51,70 +51,79 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  *
  * @public
  */
-const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(function (
-	{ className, style, noStyle, asChild, ...props },
-	ref
-) {
-	const { activeUI } = useConsentManager();
-	const { disableAnimation, noStyle: contextNoStyle, scrollLock } = useTheme();
+const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function ConsentBannerOverlay(
+		{ className, style, noStyle, asChild: _asChild, ...props },
+		ref
+	) {
+		const { activeUI } = useConsentManager();
+		const {
+			disableAnimation,
+			noStyle: contextNoStyle,
+			scrollLock,
+		} = useTheme();
 
-	const showBanner = activeUI === 'banner';
-	const [isVisible, setIsVisible] = useState(false);
+		const showBanner = activeUI === 'banner';
+		const [isVisible, setIsVisible] = useState(false);
 
-	// Handle animation visibility state
-	useEffect(() => {
-		if (showBanner) {
-			const frame = requestAnimationFrame(() => setIsVisible(true));
-			return () => cancelAnimationFrame(frame);
-		} else if (disableAnimation) {
-			const frame = requestAnimationFrame(() => setIsVisible(false));
-			return () => cancelAnimationFrame(frame);
+		// Handle animation visibility state
+		useEffect(() => {
+			if (showBanner) {
+				const frame = requestAnimationFrame(() => setIsVisible(true));
+				return () => cancelAnimationFrame(frame);
+			} else if (disableAnimation) {
+				const frame = requestAnimationFrame(() => setIsVisible(false));
+				return () => cancelAnimationFrame(frame);
+			}
+			const animationDurationMs = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+				// Match CSS animation duration
+			}, animationDurationMs);
+			return () => clearTimeout(timer);
+		}, [showBanner, disableAnimation]);
+
+		// Apply theme styles
+		const theme = useStyles('consentBannerOverlay', {
+			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+			// Always pass custom className
+			className,
+			noStyle: contextNoStyle || noStyle,
+		});
+
+		// Animations are handled with CSS classes
+		const shouldApplyAnimation =
+			!(contextNoStyle || noStyle) && !disableAnimation;
+
+		let animationClass: string | undefined;
+		if (shouldApplyAnimation) {
+			animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
+		} else {
+			animationClass = undefined;
 		}
-		const animationDurationMs = Number.parseInt(
-			getComputedStyle(document.documentElement).getPropertyValue(
-				'--consent-banner-animation-duration'
-			) || '200',
-			10
-		);
-		const timer = setTimeout(() => {
-			setIsVisible(false);
-		}, animationDurationMs); // Match CSS animation duration
-		return () => clearTimeout(timer);
-	}, [showBanner, disableAnimation]);
 
-	// Apply theme styles
-	const theme = useStyles('consentBannerOverlay', {
-		baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
-		className, // Always pass custom className
-		noStyle: contextNoStyle || noStyle,
-	});
+		// Combine theme className with animation class if needed
+		const finalClassName = cn(theme.className, animationClass);
 
-	// Animations are handled with CSS classes
-	const shouldApplyAnimation =
-		!(contextNoStyle || noStyle) && !disableAnimation;
+		useScrollLock(!!(showBanner && scrollLock));
 
-	let animationClass: string | undefined;
-	if (shouldApplyAnimation) {
-		animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
-	} else {
-		animationClass = undefined;
+		return showBanner && scrollLock ? (
+			<div
+				ref={ref}
+				{...props}
+				className={finalClassName}
+				style={{ ...theme.style, ...style }}
+				data-testid="consent-banner-overlay"
+			/>
+		) : null;
 	}
-
-	// Combine theme className with animation class if needed
-	const finalClassName = cn(theme.className, animationClass);
-
-	useScrollLock(!!(showBanner && scrollLock));
-
-	return showBanner && scrollLock ? (
-		<div
-			ref={ref}
-			{...props}
-			className={finalClassName}
-			style={{ ...theme.style, ...style }}
-			data-testid="consent-banner-overlay"
-		/>
-	) : null;
-});
+);
 
 ConsentBannerOverlay.displayName = 'ConsentBannerOverlay';
 

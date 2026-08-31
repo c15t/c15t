@@ -25,20 +25,22 @@ interface ConsentWidgetAccordionContextValue {
 const ConsentWidgetAccordionContext =
 	createContext<ConsentWidgetAccordionContextValue | null>(null);
 
-function useConsentWidgetAccordionContext() {
-	const context = useContext(ConsentWidgetAccordionContext);
+const useConsentWidgetAccordionContext =
+	function useConsentWidgetAccordionContext() {
+		const context = useContext(ConsentWidgetAccordionContext);
 
-	if (!context) {
-		throw new Error(
-			'ConsentWidgetAccordion components must be used within ConsentWidgetAccordion'
-		);
-	}
+		if (!context) {
+			throw new Error(
+				'ConsentWidgetAccordion components must be used within ConsentWidgetAccordion'
+			);
+		}
 
-	return context;
-}
+		return context;
+	};
 
 const ConsentWidgetAccordionTrigger = forwardRef<HTMLDivElement, BoxProps>(
-	function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function ConsentWidgetAccordionTrigger({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -77,6 +79,7 @@ const ConsentWidgetAccordion = ({
 	...props
 }: ConsentWidgetAccordionProps) => {
 	const openValues = useMemo(
+		// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
 		() => (Array.isArray(value) ? value : value ? [value] : []),
 		[value]
 	);
@@ -129,11 +132,11 @@ const ConsentWidgetAccordionItems = () => {
 		[setSelectedConsent]
 	);
 
-	function formatConsentName(name: AllConsentNames) {
+	const formatConsentName = function formatConsentName(name: AllConsentNames) {
 		return name
-			.replace(/_/g, ' ')
-			.replace(/\b\w/g, (c: string) => c.toUpperCase());
-	}
+			.replace(/_/gu, ' ')
+			.replace(/\b\w/gu, (c: string) => c.toUpperCase());
+	};
 
 	const { consentTypes } = useTranslations();
 
@@ -218,7 +221,8 @@ const ConsentWidgetAccordionItems = () => {
 const ConsentWidgetAccordionItem = forwardRef<
 	HTMLDivElement,
 	ComponentPropsWithoutRef<typeof PreferenceItem.Root>
->(function ({ className, ...rest }, forwardedRef) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentWidgetAccordionItem({ className, ...rest }, forwardedRef) {
 	return (
 		<PreferenceItem.Root
 			ref={forwardedRef}

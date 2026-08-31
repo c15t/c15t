@@ -29,32 +29,40 @@ const getDefined = <Value>(
 	return value;
 };
 
-function formatInstanceLabel(instance: Instance): string {
+const formatInstanceLabel = function formatInstanceLabel(
+	instance: Instance
+): string {
 	if (instance.organizationSlug) {
 		return `${instance.organizationSlug}/${instance.name}`;
 	}
 	return instance.name;
-}
+};
 
-function formatInstanceRegion(instance: Instance): string {
+const formatInstanceRegion = function formatInstanceRegion(
+	instance: Instance
+): string {
 	return `(${instance.region ?? 'unknown'})`;
-}
+};
 
 /**
  * Ensure user is logged in
  */
-async function requireAuth(context: CliContext): Promise<void> {
+const requireAuth = async function requireAuth(
+	context: CliContext
+): Promise<void> {
 	if (!(await isLoggedIn())) {
 		context.logger.error('You must be logged in to manage projects');
 		context.logger.message(`Run ${color.cyan('c15t login')} to authenticate`);
 		throw new CliError('AUTH_NOT_LOGGED_IN');
 	}
-}
+};
 
 /**
  * Get colored status string
  */
-function getStatusColor(status: Instance['status']): string {
+const getStatusColor = function getStatusColor(
+	status: Instance['status']
+): string {
 	switch (status) {
 		case 'active':
 			return color.green('active');
@@ -65,12 +73,14 @@ function getStatusColor(status: Instance['status']): string {
 		default:
 			return status;
 	}
-}
+};
 
 /**
  * List projects command
  */
-async function listAction(context: CliContext): Promise<void> {
+const listAction = async function listAction(
+	context: CliContext
+): Promise<void> {
 	const { logger, telemetry } = context;
 	const baseUrl = getControlPlaneBaseUrl();
 
@@ -132,12 +142,14 @@ async function listAction(context: CliContext): Promise<void> {
 		spinner.stop();
 		throw error;
 	}
-}
+};
 
 /**
  * Select project command
  */
-async function selectAction(context: CliContext): Promise<void> {
+const selectAction = async function selectAction(
+	context: CliContext
+): Promise<void> {
 	const { logger, telemetry, commandArgs } = context;
 	const baseUrl = getControlPlaneBaseUrl();
 
@@ -188,12 +200,12 @@ async function selectAction(context: CliContext): Promise<void> {
 			const result = await p.select({
 				message: 'Select a project:',
 				options: instances.map((instance) => ({
-					value: instance.id,
-					label: formatInstanceLabel(instance),
 					hint:
 						instance.id === currentId
 							? `(currently selected) • ${formatInstanceRegion(instance)}`
 							: formatInstanceRegion(instance),
+					label: formatInstanceLabel(instance),
+					value: instance.id,
 				})),
 			});
 
@@ -219,12 +231,14 @@ async function selectAction(context: CliContext): Promise<void> {
 		spinner.stop();
 		throw error;
 	}
-}
+};
 
 /**
  * Create project command
  */
-async function createAction(context: CliContext): Promise<void> {
+const createAction = async function createAction(
+	context: CliContext
+): Promise<void> {
 	const { logger, telemetry, commandArgs } = context;
 	const baseUrl = getControlPlaneBaseUrl();
 
@@ -303,13 +317,13 @@ async function createAction(context: CliContext): Promise<void> {
 		}
 
 		const orgSelection = await p.select<string | symbol>({
+			initialValue: organizations[0]?.organizationSlug,
 			message: 'Select organization:',
 			options: organizations.map((org) => ({
-				value: org.organizationSlug,
-				label: org.organizationName,
 				hint: `${org.organizationSlug} • ${org.role}`,
+				label: org.organizationName,
+				value: org.organizationSlug,
 			})),
-			initialValue: organizations[0]?.organizationSlug,
 		});
 
 		if (p.isCancel(orgSelection)) {
@@ -325,13 +339,13 @@ async function createAction(context: CliContext): Promise<void> {
 		}
 
 		const regionSelection = await p.select<string | symbol>({
+			initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
 			message: 'Select V2 region:',
 			options: v2Regions.map((region) => ({
-				value: region.id,
-				label: region.id,
 				hint: region.label,
+				label: region.id,
+				value: region.id,
 			})),
-			initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
 		});
 
 		if (p.isCancel(regionSelection)) {
@@ -344,11 +358,11 @@ async function createAction(context: CliContext): Promise<void> {
 		let instance: Instance;
 		try {
 			instance = await client.createInstance({
-				name,
 				config: {
 					organizationSlug: orgSelection,
 					region: regionSelection,
 				},
+				name,
 			});
 			spinner.success('Project created');
 		} catch (error) {
@@ -371,8 +385,8 @@ async function createAction(context: CliContext): Promise<void> {
 
 		// Ask if user wants to select this project
 		const shouldSelect = await p.confirm({
-			message: 'Would you like to use this project for your project?',
 			initialValue: true,
+			message: 'Would you like to use this project for your project?',
 		});
 
 		if (shouldSelect && !p.isCancel(shouldSelect)) {
@@ -382,12 +396,15 @@ async function createAction(context: CliContext): Promise<void> {
 	} finally {
 		await client.close();
 	}
-}
+};
 
 /**
  * Main projects command (defaults to list)
  */
-async function projectsAction(context: CliContext): Promise<void> {
+// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
+const projectsAction = async function projectsAction(
+	context: CliContext
+): Promise<void> {
 	const { commandArgs } = context;
 
 	// Check for subcommand
@@ -408,48 +425,48 @@ async function projectsAction(context: CliContext): Promise<void> {
 			// Default to list
 			return listAction(context);
 	}
-}
+};
 
 /**
  * Projects command definition
  */
 export const projectsCommand: CliCommand = {
-	name: 'projects',
-	label: 'Projects',
-	hint: 'Manage your c15t projects',
-	description: 'List, select, and create c15t projects',
 	action: projectsAction,
+	description: 'List, select, and create c15t projects',
+	hint: 'Manage your c15t projects',
+	label: 'Projects',
+	name: 'projects',
 	subcommands: [
 		{
-			name: 'list',
-			label: 'List',
-			hint: 'List all projects',
-			description: 'List all c15t projects for your account',
 			action: listAction,
+			description: 'List all c15t projects for your account',
+			hint: 'List all projects',
+			label: 'List',
+			name: 'list',
 		},
 		{
-			name: 'select',
-			label: 'Select',
-			hint: 'Select a project',
-			description: 'Select a project for your local project',
 			action: selectAction,
+			description: 'Select a project for your local project',
+			hint: 'Select a project',
+			label: 'Select',
+			name: 'select',
 		},
 		{
-			name: 'create',
-			label: 'Create',
-			hint: 'Create a new project',
-			description: 'Create a new c15t project',
 			action: createAction,
+			description: 'Create a new c15t project',
+			hint: 'Create a new project',
+			label: 'Create',
+			name: 'create',
 		},
 	],
 };
 
 export const instancesAliasCommand: CliCommand = {
 	...projectsCommand,
-	name: 'instances',
-	label: 'Instances',
 	description: 'Alias for `c15t projects`',
 	hidden: true,
+	label: 'Instances',
+	name: 'instances',
 };
 
 export { createAction, listAction, projectsAction, selectAction };

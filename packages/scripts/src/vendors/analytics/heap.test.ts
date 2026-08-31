@@ -19,7 +19,7 @@ type HeapStub = unknown[] &
 		identify?: (identity: string) => void;
 	};
 
-function snapshotHeapReadyQueue(): {
+const snapshotHeapReadyQueue = function snapshotHeapReadyQueue(): {
 	name: string;
 	fnType: string;
 }[] {
@@ -28,10 +28,10 @@ function snapshotHeapReadyQueue(): {
 	};
 
 	return (globalRef.heapReadyCb ?? []).map((entry) => ({
-		name: entry.name,
 		fnType: typeof entry.fn,
+		name: entry.name,
 	}));
-}
+};
 
 describe('heap', () => {
 	setupScriptHelperTest();
@@ -54,18 +54,18 @@ describe('heap', () => {
 			heapReadyCb?: HeapReadyCallback[];
 		};
 		const script = heap({
-			envId: ' 123456789 ',
 			clientConfig: {
 				disableTextCapture: true,
 				metadataStorage: 'localstorage',
 			},
+			envId: ' 123456789 ',
 		});
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -105,9 +105,9 @@ describe('heap', () => {
 
 		script.onBeforeLoad?.(
 			createCallbackInfo({
-				id: script.id,
 				consents: grantedMeasurementConsentState,
 				hasConsent: true,
+				id: script.id,
 			})
 		);
 
@@ -118,21 +118,21 @@ describe('heap', () => {
 
 		expect(snapshotHeapReadyQueue()).toEqual([
 			{
-				name: 'track',
 				fnType: 'function',
+				name: 'track',
 			},
 			{
-				name: 'identify',
 				fnType: 'function',
+				name: 'identify',
 			},
 		]);
 
 		globalRef.heap = {
-			track: (...args: unknown[]) => {
-				calls.push(['track', ...args]);
-			},
 			identify: (...args: unknown[]) => {
 				calls.push(['identify', ...args]);
+			},
+			track: (...args: unknown[]) => {
+				calls.push(['track', ...args]);
 			},
 		};
 
@@ -171,19 +171,19 @@ describe('heap', () => {
 	it('throws for non-JSON client config values', () => {
 		expect(() =>
 			heap({
-				envId: '123456789',
 				clientConfig: {
 					createdAt: new Date(),
 				},
+				envId: '123456789',
 			})
 		).toThrowError('heap: clientConfig.createdAt must be JSON-serializable');
 
 		expect(() =>
 			heap({
-				envId: '123456789',
 				clientConfig: {
 					sampleRate: Number.NaN,
 				},
+				envId: '123456789',
 			})
 		).toThrowError('heap: clientConfig.sampleRate must be a finite number');
 	});

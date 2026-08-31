@@ -28,7 +28,7 @@ import type {
  * @returns An object containing merged className and style properties
  * @public
  */
-export function useStyles(
+export const useStyles = function useStyles(
 	themeKey: AllThemeKeys,
 	componentStyle?: ThemeValue,
 	themeOverride?: Theme
@@ -38,12 +38,14 @@ export function useStyles(
 	// Use override if provided, otherwise fallback to context theme
 	const theme = themeOverride ?? contextTheme;
 
-	return useMemo(() => {
-		return resolveStyles(
-			themeKey,
-			theme,
-			componentStyle,
-			contextNoStyle
-		) as ClassNameStyle;
-	}, [themeKey, theme, componentStyle, contextNoStyle]);
-}
+	return useMemo(
+		() =>
+			resolveStyles(
+				themeKey,
+				theme,
+				componentStyle,
+				contextNoStyle
+			) as ClassNameStyle,
+		[themeKey, theme, componentStyle, contextNoStyle]
+	);
+};

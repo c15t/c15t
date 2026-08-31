@@ -15,7 +15,11 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 const IABConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
-	function ({ className, style, noStyle, isOpen, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function IABConsentDialogOverlay(
+		{ className, style, noStyle, isOpen, ...props },
+		ref
+	) {
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,

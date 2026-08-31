@@ -42,7 +42,7 @@ const HeadlessBenchmarkUI = () => {
 	}, [activeUI]);
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>React v3 Headless Benchmark</h1>
 			<p data-testid="headless-status">
 				Measurement consent: {hasMeasurement ? 'yes' : 'no'}
@@ -83,42 +83,40 @@ const HeadlessBenchmarkUI = () => {
 	);
 };
 
-const ReactV3HeadlessPage = () => {
-	return (
-		<ConsentProvider
-			options={{
-				mode: 'c15t',
-				backendURL: '/api/bench-consent',
-				consentCategories,
-				callbacks: {
-					onBannerFetched() {
-						const state = getBenchState(scenario);
-						if (!state) {
-							return;
-						}
-						state.onBannerFetchedCount += 1;
-						if (state.onBannerFetchedMs === undefined) {
-							state.onBannerFetchedMs = performance.now();
-						}
-					},
-					onConsentSet() {
-						const state = getBenchState(scenario);
-						if (state) {
-							state.onConsentSetCount += 1;
-						}
-					},
-					onError() {
-						const state = getBenchState(scenario);
-						if (state) {
-							state.onErrorCount += 1;
-						}
-					},
+const ReactV3HeadlessPage = () => (
+	<ConsentProvider
+		options={{
+			backendURL: '/api/bench-consent',
+			callbacks: {
+				onBannerFetched() {
+					const state = getBenchState(scenario);
+					if (!state) {
+						return;
+					}
+					state.onBannerFetchedCount += 1;
+					if (state.onBannerFetchedMs === undefined) {
+						state.onBannerFetchedMs = performance.now();
+					}
 				},
-			}}
-		>
-			<HeadlessBenchmarkUI />
-		</ConsentProvider>
-	);
-};
+				onConsentSet() {
+					const state = getBenchState(scenario);
+					if (state) {
+						state.onConsentSetCount += 1;
+					}
+				},
+				onError() {
+					const state = getBenchState(scenario);
+					if (state) {
+						state.onErrorCount += 1;
+					}
+				},
+			},
+			consentCategories,
+			mode: 'c15t',
+		}}
+	>
+		<HeadlessBenchmarkUI />
+	</ConsentProvider>
+);
 
 export default ReactV3HeadlessPage;

@@ -5,7 +5,6 @@ import {
 import { enTranslations } from '@c15t/translations';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 
-import AccordionMultipleDemo from './AccordionMultipleDemo.svelte';
 import AccordionSingleDemo from './AccordionSingleDemo.svelte';
 import AccordionWithIntroDemo from './AccordionWithIntroDemo.svelte';
 

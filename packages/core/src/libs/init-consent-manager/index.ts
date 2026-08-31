@@ -34,7 +34,7 @@ interface InitSourceMetadata {
 	initDataSourceDetail: string | null;
 }
 
-function shouldReuseSSRData(
+const shouldReuseSSRData = function shouldReuseSSRData(
 	config: InitConsentManagerConfig,
 	data: SSRInitialData
 ): boolean {
@@ -45,17 +45,19 @@ function shouldReuseSSRData(
 
 	const matcher = createRuntimeRequestContextMatcher({
 		backendURL: config.backendURL,
-		overrides: config.get().overrides,
 		credentials: config.requestCredentials,
+		overrides: config.get().overrides,
 	});
 	if (!matcher) {
 		return true;
 	}
 
 	return matchesStoredRequestContext(requestContext, matcher);
-}
+};
 
-function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
+const inferSSRInitSourceMetadata = function inferSSRInitSourceMetadata(
+	data: SSRInitialData
+): InitSourceMetadata {
 	const cache = data.metadata?.cache;
 	const requestDurationMs = data.metadata?.requestDurationMs;
 	const detailParts: string[] = ['via=ssr'];
@@ -92,7 +94,7 @@ function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
 		initDataSource: 'ssr',
 		initDataSourceDetail: detail,
 	};
-}
+};
 
 /**
  * Attempts to use SSR-prefetched data if available.
@@ -100,7 +102,7 @@ function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
  * @param config - Init configuration
  * @returns The init data if SSR data was used, undefined otherwise
  */
-async function tryUseSSRData(
+const tryUseSSRData = async function tryUseSSRData(
 	config: InitConsentManagerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { ssrData, set } = config;
@@ -129,9 +131,9 @@ async function tryUseSSRData(
 
 	set({ ssrDataUsed: false, ssrSkippedReason: 'fetch_failed' });
 	return undefined;
-}
+};
 
-function inferInitSourceMetadata(
+const inferInitSourceMetadata = function inferInitSourceMetadata(
 	initContext: Pick<ResponseContext<ConsentBannerResponse>, 'response'> | null,
 	mode: string
 ): InitSourceMetadata {
@@ -161,7 +163,7 @@ function inferInitSourceMetadata(
 	}
 
 	return { initDataSource: 'backend', initDataSourceDetail: null };
-}
+};
 
 /**
  * Fetches consent data from the API.
@@ -172,7 +174,7 @@ function inferInitSourceMetadata(
  * @param callbacks - Store callbacks
  * @returns The consent banner response or undefined on error
  */
-async function fetchFromAPI(
+const fetchFromAPI = async function fetchFromAPI(
 	config: InitConsentManagerConfig,
 	hasLocalStorageAccess: boolean,
 	manager: InitConsentManagerConfig['manager'],
@@ -223,7 +225,7 @@ async function fetchFromAPI(
 	} catch (error) {
 		console.error('Error fetching consent banner information:', error);
 
-		set({ isLoadingConsentInfo: false, activeUI: 'none' as const });
+		set({ activeUI: 'none' as const, isLoadingConsentInfo: false });
 
 		const errorMessage =
 			error instanceof Error
@@ -233,7 +235,7 @@ async function fetchFromAPI(
 
 		return undefined;
 	}
-}
+};
 
 /**
  * Processes any pending consent sync from a previous page reload.
@@ -245,7 +247,7 @@ async function fetchFromAPI(
  * @param manager - Consent manager client
  * @param callbacks - Store callbacks for error handling
  */
-function processPendingConsentSync(
+const processPendingConsentSync = function processPendingConsentSync(
 	manager: InitConsentManagerConfig['manager'],
 	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
 ): void {
@@ -266,15 +268,15 @@ function processPendingConsentSync(
 			});
 
 		const consentBody: SetConsentRequestBody = {
-			type: 'cookie_banner',
 			domain: data.domain,
-			preferences: data.preferences,
-			subjectId: data.subjectId,
+			givenAt: data.givenAt,
 			jurisdiction: data.jurisdiction,
 			jurisdictionModel: data.jurisdictionModel ?? undefined,
-			givenAt: data.givenAt,
-			uiSource: data.uiSource ?? 'api',
 			policySnapshotToken: data.policySnapshotToken,
+			preferences: data.preferences,
+			subjectId: data.subjectId,
+			type: 'cookie_banner',
+			uiSource: data.uiSource ?? 'api',
 		};
 		if (externalSubjectId) {
 			consentBody.externalSubjectId = externalSubjectId;
@@ -312,7 +314,7 @@ function processPendingConsentSync(
 		// localStorage might be unavailable or data might be corrupted
 		// Silently ignore - consent is already persisted locally
 	}
-}
+};
 
 inspectBackendCache = (
 	headers: Headers
@@ -337,6 +339,7 @@ inspectBackendCache = (
 		}
 
 		headerDetail = `${headerName}=${headerValue}`;
+		// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
 		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/iu.test(
 			headerValue
 		);
@@ -354,8 +357,8 @@ inspectBackendCache = (
 			: (headerDetail ?? ageDetail);
 
 	return {
-		isCacheHit: headerIndicatesHit || ageIndicatesCache,
 		detail,
+		isCacheHit: headerIndicatesHit || ageIndicatesCache,
 	};
 };
 
@@ -383,7 +386,7 @@ inspectBackendCache = (
  * });
  * ```
  */
-export async function initConsentManager(
+export const initConsentManager = async function initConsentManager(
 	config: InitConsentManagerConfig
 ): Promise<ConsentBannerResponse | undefined> {
 	const { get, set, manager } = config;
@@ -415,4 +418,4 @@ export async function initConsentManager(
 
 	// Fall back to client-side API fetch
 	return fetchFromAPI(config, hasLocalStorageAccess, manager, callbacks);
-}
+};

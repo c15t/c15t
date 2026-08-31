@@ -16,11 +16,26 @@ export interface TaskSpinner {
 /**
  * Create a spinner for long-running operations
  */
-export function createTaskSpinner(initialMessage?: string): TaskSpinner {
+export const createTaskSpinner = function createTaskSpinner(
+	initialMessage?: string
+): TaskSpinner {
 	const spinner = p.spinner();
 	let isRunning = false;
 
 	return {
+		error(message: string): void {
+			if (isRunning) {
+				spinner.stop(`${color.red('✗')} ${message}`);
+				isRunning = false;
+			}
+		},
+
+		message(message: string): void {
+			if (isRunning) {
+				spinner.message(message);
+			}
+		},
+
 		start(message?: string): void {
 			if (!isRunning) {
 				spinner.start(message || initialMessage || 'Processing...');
@@ -35,32 +50,19 @@ export function createTaskSpinner(initialMessage?: string): TaskSpinner {
 			}
 		},
 
-		message(message: string): void {
-			if (isRunning) {
-				spinner.message(message);
-			}
-		},
-
 		success(message: string): void {
 			if (isRunning) {
-				spinner.stop(color.green('✓') + ' ' + message);
-				isRunning = false;
-			}
-		},
-
-		error(message: string): void {
-			if (isRunning) {
-				spinner.stop(color.red('✗') + ' ' + message);
+				spinner.stop(`${color.green('✓')} ${message}`);
 				isRunning = false;
 			}
 		},
 	};
-}
+};
 
 /**
  * Run an async task with a spinner
  */
-export async function withTaskSpinner<T>(
+export const withTaskSpinner = async function withTaskSpinner<T>(
 	message: string,
 	task: () => Promise<T>,
 	options?: {
@@ -87,7 +89,7 @@ export async function withTaskSpinner<T>(
 		spinner.error(errorMsg);
 		throw error;
 	}
-}
+};
 
 /**
  * Progress bar for multi-step operations
@@ -100,8 +102,11 @@ export interface ProgressBar {
 /**
  * Create a progress bar
  */
-export function createProgressBar(total: number, label?: string): ProgressBar {
-	function render(current: number, message?: string): string {
+export const createProgressBar = function createProgressBar(
+	total: number,
+	label?: string
+): ProgressBar {
+	const render = function render(current: number, message?: string): string {
 		const percentage = Math.round((current / total) * 100);
 		const filled = Math.round((current / total) * 20);
 		const empty = 20 - filled;
@@ -111,18 +116,18 @@ export function createProgressBar(total: number, label?: string): ProgressBar {
 		const msg = message || label || '';
 
 		return `[${bar}] ${progress} (${percentage}%) ${msg}`;
-	}
+	};
 
 	return {
-		update(current: number, message?: string): void {
-			p.log.step(render(current, message));
-		},
-
 		complete(message?: string): void {
 			p.log.step(render(total, message || 'Complete'));
 		},
+
+		update(current: number, message?: string): void {
+			p.log.step(render(current, message));
+		},
 	};
-}
+};
 
 /**
  * Step indicator for multi-step workflows
@@ -137,34 +142,34 @@ export interface StepIndicator {
 /**
  * Create a step indicator
  */
-export function createStepIndicator(steps: string[]): StepIndicator {
+export const createStepIndicator = function createStepIndicator(
+	steps: string[]
+): StepIndicator {
 	let current = 0;
 	const total = steps.length;
 
-	function render(step: number, label: string): void {
+	const render = function render(step: number, label: string): void {
 		const filled = color.green('█'.repeat(step));
 		const empty = color.dim('░'.repeat(total - step));
 		p.log.step(`[${filled}${empty}] Step ${step}/${total}: ${label}`);
-	}
+	};
 
 	return {
+		complete(): void {
+			p.log.step(color.green(`✓ All ${total} steps completed`));
+		},
 		get current() {
 			return current;
+		},
+		next(label: string): void {
+			current += 1;
+			render(current, label);
 		},
 		get total() {
 			return total;
 		},
-
-		next(label: string): void {
-			current++;
-			render(current, label);
-		},
-
-		complete(): void {
-			p.log.step(color.green(`✓ All ${total} steps completed`));
-		},
 	};
-}
+};
 
 /**
  * Task group for running multiple tasks
@@ -177,7 +182,7 @@ export interface TaskGroup {
 /**
  * Create a task group
  */
-export function createTaskGroup(): TaskGroup {
+export const createTaskGroup = function createTaskGroup(): TaskGroup {
 	const tasks: { name: string; task: () => Promise<void> }[] = [];
 
 	return {
@@ -194,6 +199,7 @@ export function createTaskGroup(): TaskGroup {
 				spinner.start();
 
 				try {
+					// oxlint-disable-next-line no-await-in-loop -- Tasks intentionally run serially to preserve output order.
 					await task();
 					spinner.success(name);
 					success.push(name);
@@ -203,7 +209,7 @@ export function createTaskGroup(): TaskGroup {
 				}
 			}
 
-			return { success, failed };
+			return { failed, success };
 		},
 	};
-}
+};

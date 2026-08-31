@@ -11,15 +11,17 @@ const getDefined = <Value>(
 	return value;
 };
 
-function getAccordionItem(trigger: HTMLElement | null) {
+const getAccordionItem = function getAccordionItem(
+	trigger: HTMLElement | null
+) {
 	return trigger?.closest('[data-slot="accordion-item"]');
-}
+};
 
-function getAccordionContent(item: Element | null) {
+const getAccordionContent = function getAccordionContent(item: Element | null) {
 	return item?.querySelector('[data-slot="accordion-content"]');
-}
+};
 
-function assertMountedAccordionContent(
+const assertMountedAccordionContent = function assertMountedAccordionContent(
 	canvasElement: HTMLElement,
 	count: number
 ) {
@@ -33,7 +35,7 @@ function assertMountedAccordionContent(
 			content.querySelector('[data-slot="accordion-content-viewport"]')
 		).toBeTruthy();
 	}
-}
+};
 
 /**
  * Verifies single-mode accordion: clicking a trigger opens it and closes the

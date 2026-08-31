@@ -26,26 +26,29 @@ interface DiagnosticsProps {
 	scripts: Script[];
 }
 
-const Diagnostics = ({ scripts }: DiagnosticsProps) => {
-	return (
-		<>
-			<ModuleMount />
-			<ConsentControls />
-			<ConsentDebug />
-			<LoadedScripts scripts={scripts} />
-			<SnapshotDebug />
-			<div style={{ marginTop: '2rem', color: '#64748b', fontSize: 13 }}>
-				<ConsentDialogLink>Change your privacy preferences</ConsentDialogLink>
-			</div>
-		</>
-	);
-};
-
 const ModuleMount = () => {
 	useIframeBlocker();
 	return null;
 };
-
+const sectionStyle: CSSProperties = {
+	background: '#fff',
+	border: '1px solid #e2e8f0',
+	borderRadius: 8,
+	marginTop: '2rem',
+	padding: '1.5rem',
+};
+const btnStyle = function btnStyle(bg: string): CSSProperties {
+	return {
+		background: bg,
+		border: 'none',
+		borderRadius: 6,
+		color: 'white',
+		cursor: 'pointer',
+		fontSize: 14,
+		fontWeight: 500,
+		padding: '10px 14px',
+	};
+};
 const ConsentControls = () => {
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
@@ -73,14 +76,14 @@ const ConsentControls = () => {
 					<label
 						key={category}
 						style={{
-							display: 'flex',
 							alignItems: 'center',
-							gap: 8,
-							padding: 10,
 							background: '#f8fafc',
 							borderRadius: 6,
 							cursor: category === 'necessary' ? 'not-allowed' : 'pointer',
+							display: 'flex',
+							gap: 8,
 							opacity: category === 'necessary' ? 0.6 : 1,
+							padding: 10,
 						}}
 					>
 						<input
@@ -94,10 +97,12 @@ const ConsentControls = () => {
 				))}
 			</div>
 
-			<div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+			<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
 				<button
 					type="button"
-					onClick={() => void draft.save()}
+					onClick={async () => {
+						await draft.save();
+					}}
 					disabled={!draft.isDirty}
 					style={btnStyle(draft.isDirty ? '#16a34a' : '#94a3b8')}
 				>
@@ -114,14 +119,18 @@ const ConsentControls = () => {
 				<span style={{ flex: 1 }} />
 				<button
 					type="button"
-					onClick={() => void saveConsents('all')}
+					onClick={async () => {
+						await saveConsents('all');
+					}}
 					style={btnStyle('#2563eb')}
 				>
 					Accept All (commit)
 				</button>
 				<button
 					type="button"
-					onClick={() => void saveConsents('none')}
+					onClick={async () => {
+						await saveConsents('none');
+					}}
 					style={btnStyle('#dc2626')}
 				>
 					Reject All (commit)
@@ -130,7 +139,14 @@ const ConsentControls = () => {
 		</section>
 	);
 };
-
+const preStyle: CSSProperties = {
+	background: '#f8fafc',
+	borderRadius: 6,
+	fontSize: 13,
+	margin: 0,
+	overflow: 'auto',
+	padding: 12,
+};
 const ConsentDebug = () => {
 	const consents = useConsents();
 	const draft = useConsentDraft();
@@ -138,15 +154,15 @@ const ConsentDebug = () => {
 	return (
 		<section style={sectionStyle}>
 			<h2 style={{ marginTop: 0 }}>Consent state</h2>
-			<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+			<div style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr 1fr' }}>
 				<div>
-					<h3 style={{ margin: '0 0 6px 0', fontSize: 14 }}>
+					<h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>
 						Committed (kernel - gates scripts)
 					</h3>
 					<pre style={preStyle}>{JSON.stringify(consents, null, 2)}</pre>
 				</div>
 				<div>
-					<h3 style={{ margin: '0 0 6px 0', fontSize: 14 }}>
+					<h3 style={{ fontSize: 14, margin: '0 0 6px 0' }}>
 						Draft (UI - not yet saved)
 					</h3>
 					<pre style={preStyle}>{JSON.stringify(draft.values, null, 2)}</pre>
@@ -155,7 +171,16 @@ const ConsentDebug = () => {
 		</section>
 	);
 };
-
+const cellHead: CSSProperties = {
+	fontSize: 13,
+	fontWeight: 600,
+	padding: 8,
+	textAlign: 'left',
+};
+const cellBody: CSSProperties = {
+	fontSize: 13,
+	padding: 8,
+};
 const LoadedScripts = ({ scripts }: DiagnosticsProps) => {
 	const [loaded, setLoaded] = useState<string[]>([]);
 	const consents = useConsents();
@@ -191,10 +216,10 @@ const LoadedScripts = ({ scripts }: DiagnosticsProps) => {
 	const expected = scripts.map((script) => {
 		const active = consents[script.category as AllConsentNames] ?? false;
 		return {
+			active,
+			category: script.category,
 			id: script.id,
 			src: script.src,
-			category: script.category,
-			active,
 		};
 	});
 
@@ -206,7 +231,7 @@ const LoadedScripts = ({ scripts }: DiagnosticsProps) => {
 				consent and mounted.
 			</p>
 			<table
-				style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}
+				style={{ borderCollapse: 'collapse', fontSize: 14, width: '100%' }}
 			>
 				<thead>
 					<tr style={{ background: '#f1f5f9' }}>
@@ -254,7 +279,6 @@ const LoadedScripts = ({ scripts }: DiagnosticsProps) => {
 		</section>
 	);
 };
-
 const SnapshotDebug = () => {
 	const marketing = useConsent('marketing');
 	const measurement = useConsent('measurement');
@@ -286,47 +310,17 @@ const SnapshotDebug = () => {
 		</section>
 	);
 };
-
-const sectionStyle: CSSProperties = {
-	marginTop: '2rem',
-	padding: '1.5rem',
-	border: '1px solid #e2e8f0',
-	borderRadius: 8,
-	background: '#fff',
-};
-
-const preStyle: CSSProperties = {
-	background: '#f8fafc',
-	padding: 12,
-	borderRadius: 6,
-	margin: 0,
-	fontSize: 13,
-	overflow: 'auto',
-};
-
-const cellHead: CSSProperties = {
-	textAlign: 'left',
-	padding: 8,
-	fontWeight: 600,
-	fontSize: 13,
-};
-
-const cellBody: CSSProperties = {
-	padding: 8,
-	fontSize: 13,
-};
-
-function btnStyle(bg: string): CSSProperties {
-	return {
-		padding: '10px 14px',
-		borderRadius: 6,
-		border: 'none',
-		color: 'white',
-		background: bg,
-		fontSize: 14,
-		fontWeight: 500,
-		cursor: 'pointer',
-	};
-}
+const Diagnostics = ({ scripts }: DiagnosticsProps) => (
+	<>
+		<ModuleMount />
+		<ConsentControls />
+		<ConsentDebug />
+		<LoadedScripts scripts={scripts} />
+		<SnapshotDebug />
+		<div style={{ color: '#64748b', fontSize: 13, marginTop: '2rem' }}>
+			<ConsentDialogLink>Change your privacy preferences</ConsentDialogLink>
+		</div>
+	</>
+);
 
 export default Diagnostics;

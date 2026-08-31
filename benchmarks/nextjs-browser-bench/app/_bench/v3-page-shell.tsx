@@ -13,7 +13,7 @@ export const V3BenchmarkPageShell = ({
 	const setActiveUI = useSetActiveUI();
 
 	return (
-		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>Next.js v3 Benchmark: {scenario}</h1>
 			<p>
 				<Link

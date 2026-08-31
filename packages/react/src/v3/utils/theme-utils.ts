@@ -20,13 +20,18 @@ export const defaultTheme = baseDefaultTheme as Required<Omit<Theme, 'slots'>>;
 /**
  * Maps theme tokens to CSS variables.
  */
-export function themeToVars(theme: Theme, isDark = false): ThemeCSSVariables {
+export const themeToVars = function themeToVars(
+	theme: Theme,
+	isDark = false
+): ThemeCSSVariables {
 	return baseThemeToVars(theme, isDark);
-}
+};
 
 /**
  * Generates a CSS string for the theme variables.
  */
-export function generateThemeCSS(theme: Theme): string {
+export const generateThemeCSS = function generateThemeCSS(
+	theme: Theme
+): string {
 	return baseGenerateThemeCSS(theme);
-}
+};

@@ -17,7 +17,8 @@ import { useConsentDraft } from '~/v3/draft';
 const ConsentWidgetAcceptAllButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentWidgetAcceptAllButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -40,7 +41,8 @@ ConsentWidgetAcceptAllButton.displayName = 'ConsentWidgetAcceptAllButton';
 const ConsentWidgetCustomizeButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentWidgetCustomizeButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton
@@ -60,7 +62,8 @@ ConsentWidgetCustomizeButton.displayName = 'ConsentWidgetCustomizeButton';
 const ConsentWidgetSaveButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentWidgetSaveButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	const draft = useConsentDraft();
 	const { onClick, ...buttonProps } = props;
@@ -96,7 +99,8 @@ ConsentWidgetSaveButton.displayName = 'ConsentWidgetSaveButton';
 const ConsentWidgetRejectButton = forwardRef<
 	HTMLButtonElement,
 	ConsentButtonProps
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentWidgetRejectButton({ children, ...props }, ref) {
 	const { common } = useTranslations();
 	return (
 		<ConsentButton

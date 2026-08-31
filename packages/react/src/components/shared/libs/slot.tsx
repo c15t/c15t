@@ -1,7 +1,9 @@
 import { createElement, forwardRef, isValidElement } from 'react';
 import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
 
-function composeRefs<T>(...refs: (Ref<T> | undefined)[]): RefCallback<T> {
+const composeRefs = function composeRefs<T>(
+	...refs: (Ref<T> | undefined)[]
+): RefCallback<T> {
 	return (node) => {
 		for (const ref of refs) {
 			if (typeof ref === 'function') {
@@ -14,9 +16,9 @@ function composeRefs<T>(...refs: (Ref<T> | undefined)[]): RefCallback<T> {
 			}
 		}
 	};
-}
+};
 
-function mergeEventHandlers(
+const mergeEventHandlers = function mergeEventHandlers(
 	slotHandler: unknown,
 	childHandler: unknown
 ): unknown {
@@ -32,13 +34,14 @@ function mergeEventHandlers(
 		(childHandler as (event: Event) => void)(event);
 		(slotHandler as (event: Event) => void)(event);
 	};
-}
+};
 
 type SlotProps = Record<string, unknown> & {
 	children: ReactNode;
 };
 
-export const Slot = forwardRef<HTMLElement, SlotProps>(function (
+// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+export const Slot = forwardRef<HTMLElement, SlotProps>(function Slot(
 	{ children, ...slotProps },
 	forwardedRef
 ) {
@@ -55,15 +58,15 @@ export const Slot = forwardRef<HTMLElement, SlotProps>(function (
 		className: [slotProps.className, childProps.className]
 			.filter(Boolean)
 			.join(' '),
+		ref: composeRefs(forwardedRef, childRef),
 		style: {
 			...(slotProps.style as Record<string, unknown> | undefined),
 			...(childProps.style as Record<string, unknown> | undefined),
 		},
-		ref: composeRefs(forwardedRef, childRef),
 	};
 
 	for (const [key, value] of Object.entries(slotProps)) {
-		if (!/^on[A-Z]/.test(key)) {
+		if (!/^on[A-Z]/u.test(key)) {
 			continue;
 		}
 

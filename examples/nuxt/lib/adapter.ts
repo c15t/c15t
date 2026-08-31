@@ -51,37 +51,40 @@ export interface ResolvedAdapter {
  * compiled to WASM with no URL to point at — it is constructed, not dialled.
  * Handing c15t the client directly is the escape hatch working as intended.
  */
-async function createEmbeddedDatabase(): Promise<DatabaseOption> {
-	const { PgliteClient } = (await import(
-		/* @vite-ignore */ EMBEDDED_POSTGRES_MODULE
-	)) as typeof EffectSqlPgliteTypes;
+const createEmbeddedDatabase =
+	async function createEmbeddedDatabase(): Promise<DatabaseOption> {
+		const { PgliteClient } = (await import(
+			// oxlint-disable-next-line no-inline-comments -- Vite requires this directive at the import expression.
+			/* @vite-ignore */ EMBEDDED_POSTGRES_MODULE
+		)) as typeof EffectSqlPgliteTypes;
 
-	// PGlite mkdirs the data directory itself but not its parent.
-	mkdirSync(LOCAL_DATA_DIR, { recursive: true });
-	return PgliteClient.layer({ dataDir: resolve(LOCAL_DATA_DIR, 'db') });
-}
+		// PGlite mkdirs the data directory itself but not its parent.
+		mkdirSync(LOCAL_DATA_DIR, { recursive: true });
+		return PgliteClient.layer({ dataDir: resolve(LOCAL_DATA_DIR, 'db') });
+	};
 
-export async function createAdapter(): Promise<ResolvedAdapter> {
-	const connectionString = process.env.DATABASE_URL;
-	if (connectionString) {
-		// SSL negotiation and pooling move behind the driver, so the demo no
-		// longer has to construct either.
-		return {
-			database: { dialect: 'postgres', url: connectionString },
-			mode: 'postgres',
-		};
-	}
+export const createAdapter =
+	async function createAdapter(): Promise<ResolvedAdapter> {
+		const connectionString = process.env.DATABASE_URL;
+		if (connectionString) {
+			// SSL negotiation and pooling move behind the driver, so the demo no
+			// longer has to construct either.
+			return {
+				database: { dialect: 'postgres', url: connectionString },
+				mode: 'postgres',
+			};
+		}
 
-	// PGlite only works under `nuxt dev`: a production Nitro bundle doesn't
-	// trace its WASM assets, and a serverless filesystem is read-only anyway.
-	// Fail with something actionable instead.
-	if (process.env.NODE_ENV === 'production') {
-		throw new Error(
-			'DATABASE_URL is required for a production build of this example. The ' +
-				'embedded PGlite database is `nuxt dev` only — provision a Postgres ' +
-				'database, set DATABASE_URL, and run `bun run db:migrate`.'
-		);
-	}
+		// PGlite only works under `nuxt dev`: a production Nitro bundle doesn't
+		// trace its WASM assets, and a serverless filesystem is read-only anyway.
+		// Fail with something actionable instead.
+		if (process.env.NODE_ENV === 'production') {
+			throw new Error(
+				'DATABASE_URL is required for a production build of this example. The ' +
+					'embedded PGlite database is `nuxt dev` only — provision a Postgres ' +
+					'database, set DATABASE_URL, and run `bun run db:migrate`.'
+			);
+		}
 
-	return { database: await createEmbeddedDatabase(), mode: 'embedded' };
-}
+		return { database: await createEmbeddedDatabase(), mode: 'embedded' };
+	};

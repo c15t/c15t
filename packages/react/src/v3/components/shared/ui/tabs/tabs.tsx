@@ -16,12 +16,7 @@ import {
 	useMemo,
 	useRef,
 } from 'react';
-import type {
-	HTMLAttributes,
-	KeyboardEvent,
-	ReactNode,
-	RefObject,
-} from 'react';
+import type { HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
 
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -77,7 +72,8 @@ export interface TabsRootProps
 	value?: string;
 }
 
-const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(function (
+// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(function TabsRoot(
 	{
 		children,
 		className,
@@ -92,7 +88,7 @@ const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(function (
 	},
 	forwardedRef
 ) {
-	const reactId = useId().replace(/:/g, '');
+	const reactId = useId().replace(/:/gu, '');
 	const { noStyle: contextNoStyle } = useTheme();
 	const variants = tabsVariants();
 	const [currentValue, setCurrentValue] = useControllableState({
@@ -154,7 +150,8 @@ export interface TabsListProps
 	noStyle?: boolean;
 }
 
-const TabsList = forwardRef<HTMLDivElement, TabsListProps>(function (
+// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+const TabsList = forwardRef<HTMLDivElement, TabsListProps>(function TabsList(
 	{ className, noStyle, orientation, ...rest },
 	forwardedRef
 ) {
@@ -189,95 +186,98 @@ export interface TabsTriggerProps extends HTMLAttributes<HTMLButtonElement> {
 	value: string;
 }
 
-const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(function (
-	{ children, className, noStyle, onClick, onKeyDown, value, ...rest },
-	forwardedRef
-) {
-	const { noStyle: contextNoStyle } = useTheme();
-	const variants = tabsVariants();
-	const {
-		baseId,
-		disabled,
-		loop,
-		noStyle: rootNoStyle,
-		onValueChange,
-		orientation,
-		registerTrigger,
-		value: selectedValue,
-	} = useTabsContext();
-	const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
-	const isSelected = selectedValue === value;
-	const localRef = useRef<HTMLButtonElement | null>(null);
+const TabsTrigger = forwardRef<HTMLButtonElement, TabsTriggerProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function TabsTrigger(
+		{ children, className, noStyle, onClick, onKeyDown, value, ...rest },
+		forwardedRef
+	) {
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = tabsVariants();
+		const {
+			baseId,
+			disabled,
+			loop,
+			noStyle: rootNoStyle,
+			onValueChange,
+			orientation,
+			registerTrigger,
+			value: selectedValue,
+		} = useTabsContext();
+		const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+		const isSelected = selectedValue === value;
+		const localRef = useRef<HTMLButtonElement | null>(null);
 
-	const setRefs = (node: HTMLButtonElement | null) => {
-		localRef.current = node;
-		registerTrigger(value, node);
-		if (typeof forwardedRef === 'function') {
-			forwardedRef(node);
-		} else if (forwardedRef) {
-			forwardedRef.current = node;
-		}
-	};
-
-	const moveFocus = (nextValue: string) => {
-		onValueChange(nextValue);
-		const nextButton =
-			document.getElementById(`${baseId}-trigger-${nextValue}`) ?? null;
-		if (nextButton instanceof HTMLButtonElement) {
-			nextButton.focus();
-		}
-	};
-
-	return (
-		<button
-			ref={setRefs}
-			aria-controls={`${baseId}-content-${value}`}
-			aria-selected={isSelected}
-			className={
-				finalNoStyle ? className : variants.trigger({ class: className })
+		const setRefs = (node: HTMLButtonElement | null) => {
+			localRef.current = node;
+			registerTrigger(value, node);
+			if (typeof forwardedRef === 'function') {
+				forwardedRef(node);
+			} else if (forwardedRef) {
+				forwardedRef.current = node;
 			}
-			data-disabled={getDataDisabled(disabled)}
-			data-slot="tabs-trigger"
-			data-state={getTabState(isSelected)}
-			disabled={disabled}
-			id={`${baseId}-trigger-${value}`}
-			onClick={(event) => {
-				onValueChange(value);
-				onClick?.(event as never);
-			}}
-			onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
-				const nextValue = getNextTabValue({
-					currentValue: value,
-					key: event.key,
-					loop,
-					orientation,
-					triggerValues: Array.from(
-						document.querySelectorAll<HTMLButtonElement>(
-							`[data-slot="tabs-trigger"][id^="${baseId}-trigger-"]`
-						)
-					).map((button) => button.id.replace(`${baseId}-trigger-`, '')),
-				});
+		};
 
-				if (
-					nextValue !== value ||
-					event.key === 'Home' ||
-					event.key === 'End'
-				) {
-					event.preventDefault();
-					moveFocus(nextValue);
+		const moveFocus = (nextValue: string) => {
+			onValueChange(nextValue);
+			const nextButton =
+				document.getElementById(`${baseId}-trigger-${nextValue}`) ?? null;
+			if (nextButton instanceof HTMLButtonElement) {
+				nextButton.focus();
+			}
+		};
+
+		return (
+			<button
+				ref={setRefs}
+				aria-controls={`${baseId}-content-${value}`}
+				aria-selected={isSelected}
+				className={
+					finalNoStyle ? className : variants.trigger({ class: className })
 				}
+				data-disabled={getDataDisabled(disabled)}
+				data-slot="tabs-trigger"
+				data-state={getTabState(isSelected)}
+				disabled={disabled}
+				id={`${baseId}-trigger-${value}`}
+				onClick={(event) => {
+					onValueChange(value);
+					onClick?.(event as never);
+				}}
+				onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
+					const nextValue = getNextTabValue({
+						currentValue: value,
+						key: event.key,
+						loop,
+						orientation,
+						triggerValues: Array.from(
+							document.querySelectorAll<HTMLButtonElement>(
+								`[data-slot="tabs-trigger"][id^="${baseId}-trigger-"]`
+							)
+						).map((button) => button.id.replace(`${baseId}-trigger-`, '')),
+					});
 
-				onKeyDown?.(event);
-			}}
-			role="tab"
-			tabIndex={isSelected ? 0 : -1}
-			type="button"
-			{...rest}
-		>
-			{children}
-		</button>
-	);
-});
+					if (
+						nextValue !== value ||
+						event.key === 'Home' ||
+						event.key === 'End'
+					) {
+						event.preventDefault();
+						moveFocus(nextValue);
+					}
+
+					onKeyDown?.(event);
+				}}
+				role="tab"
+				tabIndex={isSelected ? 0 : -1}
+				type="button"
+				{...rest}
+			>
+				{children}
+			</button>
+		);
+	}
+);
 
 TabsTrigger.displayName = 'TabsTrigger';
 
@@ -287,43 +287,46 @@ export interface TabsContentProps extends HTMLAttributes<HTMLDivElement> {
 	value: string;
 }
 
-const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(function (
-	{ children, className, forceMount = false, noStyle, value, ...rest },
-	forwardedRef
-) {
-	const { noStyle: contextNoStyle } = useTheme();
-	const variants = tabsVariants();
-	const {
-		baseId,
-		noStyle: rootNoStyle,
-		value: selectedValue,
-	} = useTabsContext();
-	const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
-	const isSelected = selectedValue === value;
+const TabsContent = forwardRef<HTMLDivElement, TabsContentProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function TabsContent(
+		{ children, className, forceMount = false, noStyle, value, ...rest },
+		forwardedRef
+	) {
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = tabsVariants();
+		const {
+			baseId,
+			noStyle: rootNoStyle,
+			value: selectedValue,
+		} = useTabsContext();
+		const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+		const isSelected = selectedValue === value;
 
-	if (!forceMount && !isSelected) {
-		return null;
+		if (!forceMount && !isSelected) {
+			return null;
+		}
+
+		return (
+			<div
+				ref={forwardedRef}
+				aria-labelledby={`${baseId}-trigger-${value}`}
+				className={
+					finalNoStyle ? className : variants.content({ class: className })
+				}
+				data-slot="tabs-content"
+				data-state={getTabPanelState(isSelected)}
+				hidden={!isSelected}
+				id={`${baseId}-content-${value}`}
+				role="tabpanel"
+				tabIndex={0}
+				{...rest}
+			>
+				{children}
+			</div>
+		);
 	}
-
-	return (
-		<div
-			ref={forwardedRef}
-			aria-labelledby={`${baseId}-trigger-${value}`}
-			className={
-				finalNoStyle ? className : variants.content({ class: className })
-			}
-			data-slot="tabs-content"
-			data-state={getTabPanelState(isSelected)}
-			hidden={!isSelected}
-			id={`${baseId}-content-${value}`}
-			role="tabpanel"
-			tabIndex={0}
-			{...rest}
-		>
-			{children}
-		</div>
-	);
-});
+);
 
 TabsContent.displayName = 'TabsContent';
 

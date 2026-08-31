@@ -63,23 +63,20 @@ interface DraftStore {
 	overwrite: (next: ConsentState) => void;
 }
 
-function createDraftStore(initial: ConsentState): DraftStore {
+const createDraftStore = function createDraftStore(
+	initial: ConsentState
+): DraftStore {
 	let current: ConsentState = { ...initial };
 	const listeners = new Set<() => void>();
-	function notify(): void {
-		for (const l of listeners) l();
-	}
+	const notify = function notify(): void {
+		for (const l of listeners) {
+			l();
+		}
+	};
 	return {
 		getSnapshot: () => current,
-		subscribe(listener) {
-			listeners.add(listener);
-			return () => {
-				listeners.delete(listener);
-			};
-		},
-		setCategory(category, value) {
-			if (current[category] === value) return;
-			current = { ...current, [category]: value };
+		overwrite(next) {
+			current = { ...next };
 			notify();
 		},
 		replace(patch) {
@@ -92,16 +89,27 @@ function createDraftStore(initial: ConsentState): DraftStore {
 					changed = true;
 				}
 			}
-			if (!changed) return;
+			if (!changed) {
+				return;
+			}
 			current = next;
 			notify();
 		},
-		overwrite(next) {
-			current = { ...next };
+		setCategory(category, value) {
+			if (current[category] === value) {
+				return;
+			}
+			current = { ...current, [category]: value };
 			notify();
 		},
+		subscribe(listener) {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
 	};
-}
+};
 
 /**
  * Context for a shared draft store. When provided, sibling components
@@ -148,11 +156,15 @@ export const ConsentDraftProvider = ({
 	// every external kernel change would look "dirty" simply because the
 	// kernel moved on.
 	useEffect(() => {
-		if (shouldUseParentStore) return;
+		if (shouldUseParentStore) {
+			return;
+		}
 		let lastKernelConsents = kernel.getSnapshot().consents as ConsentState;
 		return kernel.subscribe((snap) => {
 			const nextKernelConsents = snap.consents as ConsentState;
-			if (nextKernelConsents === lastKernelConsents) return;
+			if (nextKernelConsents === lastKernelConsents) {
+				return;
+			}
 			const drafts = store.getSnapshot();
 			let dirty = false;
 			for (const key of Object.keys(drafts) as AllConsentNames[]) {
@@ -162,7 +174,9 @@ export const ConsentDraftProvider = ({
 				}
 			}
 			lastKernelConsents = nextKernelConsents;
-			if (!dirty) store.overwrite(nextKernelConsents);
+			if (!dirty) {
+				store.overwrite(nextKernelConsents);
+			}
 		});
 	}, [kernel, shouldUseParentStore, store]);
 
@@ -175,7 +189,7 @@ export const ConsentDraftProvider = ({
 	);
 };
 
-function useKernelOrThrow() {
+const useKernelOrThrow = function useKernelOrThrow() {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
@@ -183,14 +197,14 @@ function useKernelOrThrow() {
 		);
 	}
 	return kernel;
-}
+};
 
 /**
  * Read + mutate the current consent draft. When used inside a
  * `<ConsentDraftProvider>`, draft state is shared across siblings.
  * Without a provider, a fresh local draft is created per hook call.
  */
-export function useConsentDraft(): ConsentDraftHandle {
+export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
 	const kernel = useKernelOrThrow();
 	const shared = useContext(DraftContext);
 
@@ -216,7 +230,9 @@ export function useConsentDraft(): ConsentDraftHandle {
 
 	const isDirty = useMemo(() => {
 		for (const key of Object.keys(values) as AllConsentNames[]) {
-			if (values[key] !== kernelConsents[key]) return true;
+			if (values[key] !== kernelConsents[key]) {
+				return true;
+			}
 		}
 		return false;
 	}, [values, kernelConsents]);
@@ -263,13 +279,13 @@ export function useConsentDraft(): ConsentDraftHandle {
 	}, [kernel, store]);
 
 	return {
-		values,
+		acceptAll,
 		isDirty,
+		rejectAll,
+		reset,
+		save,
 		set,
 		update,
-		acceptAll,
-		rejectAll,
-		save,
-		reset,
+		values,
 	};
-}
+};

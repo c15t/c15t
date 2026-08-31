@@ -25,47 +25,33 @@ const ROOT = process.cwd();
 const PACKAGES_DIR = join(ROOT, 'packages');
 
 const distBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
-	{ reason: 'test folder', pattern: /(^|\/)__tests__(\/|$)/ },
-	{ reason: 'snapshot folder', pattern: /(^|\/)__snapshots__(\/|$)/ },
-	{ reason: 'screenshot folder', pattern: /(^|\/)__screenshots__(\/|$)/ },
-	{ reason: 'test file', pattern: /\.test\./ },
-	{ reason: 'spec file', pattern: /\.spec\./ },
-	{ reason: 'e2e file', pattern: /\.e2e\./ },
+	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
+	{ pattern: /(^|\/)__tests__(\/|$)/u, reason: 'test folder' },
+	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
+	{ pattern: /(^|\/)__snapshots__(\/|$)/u, reason: 'snapshot folder' },
+	// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
+	{ pattern: /(^|\/)__screenshots__(\/|$)/u, reason: 'screenshot folder' },
+	{ pattern: /\.test\./u, reason: 'test file' },
+	{ pattern: /\.spec\./u, reason: 'spec file' },
+	{ pattern: /\.e2e\./u, reason: 'e2e file' },
 	{
+		pattern: /(?:^|\/)mockServiceWorker\.js$/u,
 		reason: 'msw mock service worker',
-		pattern: /(^|\/)mockServiceWorker\.js$/,
 	},
-	{ reason: 'playwright screenshot output', pattern: /(^|\/)static\/image\// },
-	{ reason: 'rsdoctor report artifact', pattern: /(^|\/)rsdoctor-data\.json$/ },
+	{
+		pattern: /(?:^|\/)static\/image\//u,
+		reason: 'playwright screenshot output',
+	},
+	{
+		pattern: /(?:^|\/)rsdoctor-data\.json$/u,
+		reason: 'rsdoctor report artifact',
+	},
 ];
 
 const requiredPackedFilesByPackage: Record<string, string[]> = {
-	c15t: ['AGENTS.md'],
+	'@c15t/backend': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/cli': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/core': ['AGENTS.md', 'docs/README.md'],
-	'@c15t/ui': [
-		'styles.css',
-		'styles.tw3.css',
-		'iab/styles.css',
-		'iab/styles.tw3.css',
-		'dist/styles.css',
-		'dist/styles.tw3.css',
-		'dist/iab/styles.css',
-		'dist/iab/styles.tw3.css',
-	],
-	'@c15t/react': [
-		'AGENTS.md',
-		'docs/README.md',
-		'styles.css',
-		'styles.tw3.css',
-		'iab/styles.css',
-		'iab/styles.tw3.css',
-		'dist/styles.css',
-		'dist/styles.tw3.css',
-		'dist/iab/styles.css',
-		'dist/iab/styles.tw3.css',
-		'src/styles.tw3.css',
-		'src/iab/styles.tw3.css',
-	],
 	'@c15t/nextjs': [
 		'AGENTS.md',
 		'docs/README.md',
@@ -82,9 +68,32 @@ const requiredPackedFilesByPackage: Record<string, string[]> = {
 		'src/iab/styles.css',
 		'src/iab/styles.tw3.css',
 	],
-	'@c15t/backend': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/react': [
+		'AGENTS.md',
+		'docs/README.md',
+		'styles.css',
+		'styles.tw3.css',
+		'iab/styles.css',
+		'iab/styles.tw3.css',
+		'dist/styles.css',
+		'dist/styles.tw3.css',
+		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
+		'src/styles.tw3.css',
+		'src/iab/styles.tw3.css',
+	],
 	'@c15t/scripts': ['AGENTS.md', 'docs/README.md'],
-	'@c15t/cli': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/ui': [
+		'styles.css',
+		'styles.tw3.css',
+		'iab/styles.css',
+		'iab/styles.tw3.css',
+		'dist/styles.css',
+		'dist/styles.tw3.css',
+		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
+	],
+	c15t: ['AGENTS.md'],
 };
 
 const styleEntrypointPackages = new Set([
@@ -94,11 +103,11 @@ const styleEntrypointPackages = new Set([
 ]);
 
 const rootTw3ProxyContents: Record<string, string> = {
-	'styles.tw3.css': '@import "./dist/styles.tw3.css";',
 	'iab/styles.tw3.css': '@import "../dist/iab/styles.tw3.css";',
+	'styles.tw3.css': '@import "./dist/styles.tw3.css";',
 };
 
-function scanPackedManifestTargets(
+const scanPackedManifestTargets = function scanPackedManifestTargets(
 	manifest: PackageManifest,
 	packedFilePaths: Set<string>
 ): { path: string; size: number; reason: string }[] {
@@ -115,16 +124,16 @@ function scanPackedManifestTargets(
 		})
 		.map(({ source, target }) => ({
 			path: target,
-			size: 0,
 			reason: `manifest target missing from packed files (${source})`,
+			size: 0,
 		}));
-}
+};
 
-function runPack(packageDir: string): PackResult {
+const runPack = function runPack(packageDir: string): PackResult {
 	const proc = Bun.spawnSync(['npm', 'pack', '--json', '--dry-run'], {
 		cwd: packageDir,
-		stdout: 'pipe',
 		stderr: 'pipe',
+		stdout: 'pipe',
 	});
 
 	if (proc.exitCode !== 0) {
@@ -156,9 +165,9 @@ function runPack(packageDir: string): PackResult {
 	}
 
 	return firstPack;
-}
+};
 
-export function getBlockedReason(
+export const getBlockedReason = function getBlockedReason(
 	packageName: string,
 	path: string
 ): string | null {
@@ -176,7 +185,7 @@ export function getBlockedReason(
 		if (path.endsWith('.d.ts')) {
 			if (
 				packageName === '@c15t/ui' &&
-				/^dist\/styles\/v3\/[^/]+\.d\.ts$/.test(path)
+				/^dist\/styles\/v3\/[^/]+\.d\.ts$/u.test(path)
 			) {
 				return null;
 			}
@@ -208,12 +217,13 @@ export function getBlockedReason(
 	if (path.startsWith('src/styles/')) {
 		for (const rule of [
 			{
+				// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
+				pattern: /(^|\/)__tests__(\/|$)/u,
 				reason: 'test folder in published styles',
-				pattern: /(^|\/)__tests__(\/|$)/,
 			},
 			{
+				pattern: /\.test\./u,
 				reason: 'test file in published styles',
-				pattern: /\.test\./,
 			},
 		]) {
 			if (rule.pattern.test(path)) {
@@ -223,9 +233,9 @@ export function getBlockedReason(
 	}
 
 	return null;
-}
+};
 
-function scanStyleEntrypointsContent(
+const scanStyleEntrypointsContent = function scanStyleEntrypointsContent(
 	packageDir: string,
 	packageName: string,
 	packedFilePaths: Set<string>
@@ -246,8 +256,8 @@ function scanStyleEntrypointsContent(
 		if (content.trim() !== expectedContent) {
 			issues.push({
 				path,
-				size: content.length,
 				reason: 'Tailwind v3 root proxy must point at the dist entrypoint',
+				size: content.length,
 			});
 		}
 	}
@@ -259,26 +269,26 @@ function scanStyleEntrypointsContent(
 
 		const filePath = join(packageDir, path);
 		const content = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-		if (/^\s*@import\b/m.test(content)) {
+		if (/^\s*@import\b/mu.test(content)) {
 			issues.push({
 				path,
-				size: content.length,
 				reason: 'Tailwind v3 dist CSS must inline rules, not nested imports',
+				size: content.length,
 			});
 		}
 		if (!content.includes('c15t-ui-')) {
 			issues.push({
 				path,
-				size: content.length,
 				reason: 'Tailwind v3 dist CSS must contain generated c15t UI rules',
+				size: content.length,
 			});
 		}
 	}
 
 	return issues;
-}
+};
 
-function scanUiV3StyleArtifacts(
+const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
 	packageDir: string,
 	packageName: string,
 	packedFilePaths: Set<string>
@@ -300,8 +310,8 @@ function scanUiV3StyleArtifacts(
 			if (!packedFilePaths.has(path)) {
 				issues.push({
 					path,
-					size: 0,
 					reason: 'required v3 style artifact missing',
+					size: 0,
 				});
 			}
 		}
@@ -316,8 +326,8 @@ function scanUiV3StyleArtifacts(
 			if (packedFilePaths.has(stalePath)) {
 				issues.push({
 					path: stalePath,
-					size: 0,
 					reason: 'stale v3 rslib artifact must not be published',
+					size: 0,
 				});
 			}
 		}
@@ -328,18 +338,18 @@ function scanUiV3StyleArtifacts(
 			const content = existsSync(filePath)
 				? readFileSync(filePath, 'utf8')
 				: '';
-			if (/^\s*@import\s+["']\.\/animations\//m.test(content)) {
+			if (/^\s*@import\s+["']\.\/animations\//mu.test(content)) {
 				issues.push({
 					path: cssPath,
-					size: content.length,
 					reason: 'v3 CSS must inline local animation imports',
+					size: content.length,
 				});
 			}
 			if (!content.includes('c15t-ui-')) {
 				issues.push({
 					path: cssPath,
-					size: content.length,
 					reason: 'v3 CSS must contain generated c15t UI class names',
+					size: content.length,
 				});
 			}
 		}
@@ -353,8 +363,8 @@ function scanUiV3StyleArtifacts(
 			if (!content.includes(`./${name}.css`)) {
 				issues.push({
 					path: jsPath,
-					size: content.length,
 					reason: 'v3 ESM class map must import its CSS side effect',
+					size: content.length,
 				});
 			}
 		}
@@ -368,18 +378,18 @@ function scanUiV3StyleArtifacts(
 			if (!content.includes('export default styles')) {
 				issues.push({
 					path: declarationPath,
-					size: content.length,
 					reason:
 						'v3 style declaration must describe the default class map export',
+					size: content.length,
 				});
 			}
 		}
 	}
 
 	return issues;
-}
+};
 
-function main(): void {
+const main = function main(): void {
 	const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
 		.map((entry) => join(PACKAGES_DIR, entry.name))
@@ -405,7 +415,9 @@ function main(): void {
 		const blockedFiles = packed.files
 			.map((file) => {
 				const reason = getBlockedReason(packed.name, file.path);
-				if (!reason) return null;
+				if (!reason) {
+					return null;
+				}
 				return { ...file, reason };
 			})
 			.filter((file) => file !== null);
@@ -416,8 +428,8 @@ function main(): void {
 			if (!packedFilePaths.has(path)) {
 				blockedFiles.push({
 					path,
-					size: 0,
 					reason: 'required published file missing',
+					size: 0,
 				});
 			}
 		}
@@ -431,9 +443,9 @@ function main(): void {
 
 		if (blockedFiles.length > 0) {
 			offenders.push({
+				files: blockedFiles,
 				packageName: packed.name,
 				version: packed.version,
-				files: blockedFiles,
 			});
 		}
 	}
@@ -454,7 +466,7 @@ function main(): void {
 	}
 
 	process.exit(1);
-}
+};
 
 if (import.meta.main) {
 	main();

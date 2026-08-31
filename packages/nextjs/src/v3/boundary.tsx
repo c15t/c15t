@@ -79,22 +79,20 @@ export const ConsentBoundary = ({
 	persistence,
 	options,
 	children,
-}: ConsentBoundaryProps) => {
-	return (
-		<ConsentProvider
-			options={{
-				...options,
-				mode: backendURL ? 'hosted' : 'offline',
-				backendURL,
-				prefetch: config,
-				scripts,
-				scriptLoader,
-				networkBlocker,
-				persistence,
-				__debugPkg: '@c15t/nextjs',
-			}}
-		>
-			{children}
-		</ConsentProvider>
-	);
-};
+}: ConsentBoundaryProps) => (
+	<ConsentProvider
+		options={{
+			...options,
+			__debugPkg: '@c15t/nextjs',
+			backendURL,
+			mode: backendURL ? 'hosted' : 'offline',
+			networkBlocker,
+			persistence,
+			prefetch: config,
+			scriptLoader,
+			scripts,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);

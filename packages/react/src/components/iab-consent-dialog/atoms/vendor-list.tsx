@@ -66,49 +66,49 @@ export const VendorList: FC<VendorListProps> = ({
 	// Map IAB vendors
 	const iabVendors: ProcessedVendor[] = vendorData
 		? Object.entries(vendorData.vendors).map(([id, vendor]) => ({
-				id: Number(id),
-				name: vendor.name,
-				policyUrl:
-					(vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-				usesNonCookieAccess: vendor.usesNonCookieAccess,
-				deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-				usesCookies: vendor.usesCookies,
 				cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 				cookieRefresh: vendor.cookieRefresh,
-				specialPurposes: vendor.specialPurposes || [],
-				specialFeatures: vendor.specialFeatures || [],
-				features: vendor.features || [],
-				purposes: vendor.purposes || [],
-				legIntPurposes: vendor.legIntPurposes || [],
-				isCustom: false,
-				legitimateInterestUrl:
-					vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-				dataRetention: vendor.dataRetention,
 				dataDeclaration:
 					(vendor as unknown as { dataDeclaration?: number[] })
 						.dataDeclaration || [],
+				dataRetention: vendor.dataRetention,
+				deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+				features: vendor.features || [],
+				id: Number(id),
+				isCustom: false,
+				legIntPurposes: vendor.legIntPurposes || [],
+				legitimateInterestUrl:
+					vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+				name: vendor.name,
+				policyUrl:
+					(vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
+				purposes: vendor.purposes || [],
+				specialFeatures: vendor.specialFeatures || [],
+				specialPurposes: vendor.specialPurposes || [],
+				usesCookies: vendor.usesCookies,
+				usesNonCookieAccess: vendor.usesNonCookieAccess,
 			}))
 		: [];
 
 	// Map custom/non-IAB vendors
 	const mappedCustomVendors: ProcessedVendor[] = customVendors.map((cv) => ({
-		id: cv.id,
-		name: cv.name,
-		policyUrl: cv.privacyPolicyUrl,
-		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-		deviceStorageDisclosureUrl: null,
-		usesCookies: cv.usesCookies ?? false,
 		cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
 		cookieRefresh: undefined,
-		specialPurposes: [],
-		specialFeatures: cv.specialFeatures || [],
-		features: cv.features || [],
-		purposes: cv.purposes || [],
-		legIntPurposes: cv.legIntPurposes || [],
-		isCustom: true,
-		legitimateInterestUrl: null,
-		dataRetention: undefined,
 		dataDeclaration: cv.dataCategories || [],
+		dataRetention: undefined,
+		deviceStorageDisclosureUrl: null,
+		features: cv.features || [],
+		id: cv.id,
+		isCustom: true,
+		legIntPurposes: cv.legIntPurposes || [],
+		legitimateInterestUrl: null,
+		name: cv.name,
+		policyUrl: cv.privacyPolicyUrl,
+		purposes: cv.purposes || [],
+		specialFeatures: cv.specialFeatures || [],
+		specialPurposes: [],
+		usesCookies: cv.usesCookies ?? false,
+		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 	}));
 
 	// Combine and sort all vendors
@@ -138,11 +138,11 @@ export const VendorList: FC<VendorListProps> = ({
 	}, [selectedVendorId]);
 
 	const filteredVendors =
-		selectedVendorId !== null
-			? vendors.filter((v) => String(v.id) === String(selectedVendorId))
-			: vendors.filter((vendor) =>
+		selectedVendorId === null
+			? vendors.filter((vendor) =>
 					vendor.name.toLowerCase().includes(searchTerm.toLowerCase())
-				);
+				)
+			: vendors.filter((v) => String(v.id) === String(selectedVendorId));
 
 	// Separate IAB and custom vendors for display
 	const filteredIABVendors = filteredVendors.filter((v) => !v.isCustom);
@@ -184,11 +184,13 @@ export const VendorList: FC<VendorListProps> = ({
 
 		return vendor.specialPurposes
 			.map((id) => vendorData.specialPurposes[id])
-			.filter((sp): sp is NonNullable<typeof sp> => sp != null)
+			.filter(
+				(sp): sp is NonNullable<typeof sp> => sp !== null && sp !== undefined
+			)
 			.map((sp) => ({
+				description: sp.description,
 				id: sp.id,
 				name: sp.name,
-				description: sp.description,
 			}));
 	};
 
@@ -200,11 +202,13 @@ export const VendorList: FC<VendorListProps> = ({
 
 		return vendor.specialFeatures
 			.map((id) => vendorData.specialFeatures[id])
-			.filter((sf): sf is NonNullable<typeof sf> => sf != null)
+			.filter(
+				(sf): sf is NonNullable<typeof sf> => sf !== null && sf !== undefined
+			)
 			.map((sf) => ({
+				description: sf.description,
 				id: sf.id,
 				name: sf.name,
-				description: sf.description,
 			}));
 	};
 
@@ -216,165 +220,16 @@ export const VendorList: FC<VendorListProps> = ({
 
 		return (vendor.features || [])
 			.map((id) => vendorData.features[id])
-			.filter((f): f is NonNullable<typeof f> => f != null)
+			.filter((f): f is NonNullable<typeof f> => f !== null && f !== undefined)
 			.map((f) => ({
+				description: f.description,
 				id: f.id,
 				name: f.name,
-				description: f.description,
 			}));
 	};
 
-	const vendorListContent = (
-		<div>
-			{selectedVendorId !== null ? (
-				<div className={styles.selectedVendorBanner}>
-					<p className={styles.selectedVendorText}>
-						{iab.common.showingSelectedVendor}
-					</p>
-					<button
-						type="button"
-						onClick={onClearSelection}
-						className={styles.clearSelectionButton}
-					>
-						<svg
-							className={styles.clearIcon}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-						>
-							<line
-								x1="18"
-								y1="6"
-								x2="6"
-								y2="18"
-							/>
-							<line
-								x1="6"
-								y1="6"
-								x2="18"
-								y2="18"
-							/>
-						</svg>
-						{iab.common.clearSelection}
-					</button>
-				</div>
-			) : (
-				<div className={styles.vendorListHeader}>
-					<div className={styles.searchContainer}>
-						<svg
-							className={styles.searchIcon}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-						>
-							<circle
-								cx="11"
-								cy="11"
-								r="8"
-							/>
-							<line
-								x1="21"
-								y1="21"
-								x2="16.65"
-								y2="16.65"
-							/>
-						</svg>
-						<input
-							type="text"
-							placeholder={iab.preferenceCenter.vendorList.search}
-							value={searchTerm}
-							onChange={(e) => setSearchTerm(e.target.value)}
-							className={styles.searchInput}
-						/>
-					</div>
-					<p className={styles.vendorCount}>
-						{iab.preferenceCenter.vendorList.showingCount
-							.replace('{filtered}', String(filteredVendors.length))
-							.replace('{total}', String(vendors.length))}
-					</p>
-				</div>
-			)}
-
-			{/* IAB Registered Vendors */}
-			{filteredIABVendors.length > 0 && (
-				<div className={styles.vendorSection}>
-					<div className={styles.iabVendorSectionHeader}>
-						<h3 className={styles.vendorSectionHeading}>
-							<svg
-								className={styles.vendorSectionIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M12 2L2 7l10 5 10-5-10-5z" />
-								<path d="M2 17l10 5 10-5" />
-								<path d="M2 12l10 5 10-5" />
-							</svg>
-							{iab.preferenceCenter.vendorList.iabVendorsHeading} (
-							{filteredIABVendors.length})
-						</h3>
-						<p className={styles.iabVendorNotice}>
-							{iab.preferenceCenter.vendorList.iabVendorsNotice}
-						</p>
-					</div>
-					<div>
-						{filteredIABVendors.map((vendor) => renderVendorItem(vendor))}
-					</div>
-				</div>
-			)}
-
-			{/* Custom/Non-IAB Vendors */}
-			{filteredCustomVendors.length > 0 && (
-				<div className={styles.vendorSection}>
-					<div className={styles.customVendorSectionHeader}>
-						<h3 className={styles.vendorSectionHeading}>
-							<svg
-								className={styles.vendorSectionIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<circle
-									cx="12"
-									cy="12"
-									r="10"
-								/>
-								<line
-									x1="2"
-									y1="12"
-									x2="22"
-									y2="12"
-								/>
-								<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-							</svg>
-							{iab.preferenceCenter.vendorList.customVendorsHeading} (
-							{filteredCustomVendors.length})
-						</h3>
-						<p className={styles.customVendorNotice}>
-							{iab.preferenceCenter.vendorList.customVendorsNotice}
-						</p>
-					</div>
-					<div>
-						{filteredCustomVendors.map((vendor) => renderVendorItem(vendor))}
-					</div>
-				</div>
-			)}
-
-			{filteredVendors.length === 0 && (
-				<div className={styles.emptyState}>
-					<p className={styles.emptyStateText}>
-						No vendors found matching &quot;{searchTerm}&quot;
-					</p>
-				</div>
-			)}
-		</div>
-	);
-
-	function renderVendorItem(vendor: ProcessedVendor) {
+	// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+	const renderVendorItem = function renderVendorItem(vendor: ProcessedVendor) {
 		const vendorKey = String(vendor.id);
 		const vendorPurposes = getVendorPurposes(vendor.id);
 		const vendorSpecialPurposes = getVendorSpecialPurposes(vendor.id);
@@ -444,18 +299,18 @@ export const VendorList: FC<VendorListProps> = ({
 							<div className={styles.vendorListMeta}>
 								<span className={styles.vendorListMetaText}>
 									{vendorPurposes.length} purpose
-									{vendorPurposes.length !== 1 ? 's' : ''}
+									{vendorPurposes.length === 1 ? '' : 's'}
 									{vendorSpecialPurposes.length > 0 &&
 										`, ${vendorSpecialPurposes.length} special`}
 									{vendorSpecialFeatures.length > 0 &&
 										`, ${vendorSpecialFeatures.length} feature${
-											vendorSpecialFeatures.length !== 1 ? 's' : ''
+											vendorSpecialFeatures.length === 1 ? '' : 's'
 										}`}
 								</span>
 								{legIntCount > 0 && (
 									<span className={styles.vendorListLiBadge}>
 										<svg
-											style={{ width: '0.625rem', height: '0.625rem' }}
+											style={{ height: '0.625rem', width: '0.625rem' }}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
@@ -635,7 +490,7 @@ export const VendorList: FC<VendorListProps> = ({
 											{purpose.usesLegitimateInterest && (
 												<span className={styles.vendorListLiBadge}>
 													<svg
-														style={{ width: '0.625rem', height: '0.625rem' }}
+														style={{ height: '0.625rem', width: '0.625rem' }}
 														viewBox="0 0 24 24"
 														fill="none"
 														stroke="currentColor"
@@ -660,9 +515,9 @@ export const VendorList: FC<VendorListProps> = ({
 								<h4 className={styles.vendorPurposesTitle}>
 									<svg
 										style={{
-											width: '0.75rem',
 											height: '0.75rem',
 											marginRight: '0.25rem',
+											width: '0.75rem',
 										}}
 										viewBox="0 0 24 24"
 										fill="none"
@@ -681,7 +536,7 @@ export const VendorList: FC<VendorListProps> = ({
 											!isLegitimateInterestAllowed
 										)
 									}
-									className={`${styles.objectButton} ${!isLegitimateInterestAllowed ? styles.objectButtonActive : ''}`}
+									className={`${styles.objectButton} ${isLegitimateInterestAllowed ? '' : styles.objectButtonActive}`}
 									aria-pressed={!isLegitimateInterestAllowed}
 								>
 									{isLegitimateInterestAllowed
@@ -725,9 +580,9 @@ export const VendorList: FC<VendorListProps> = ({
 									aria-hidden="true"
 									focusable="false"
 									style={{
-										width: '0.75rem',
 										height: '0.75rem',
 										marginRight: '0.25rem',
+										width: '0.75rem',
 									}}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -825,7 +680,156 @@ export const VendorList: FC<VendorListProps> = ({
 				</PreferenceItem.Content>
 			</PreferenceItem.Root>
 		);
-	}
+	};
+	const vendorListContent = (
+		<div>
+			{selectedVendorId === null ? (
+				<div className={styles.vendorListHeader}>
+					<div className={styles.searchContainer}>
+						<svg
+							className={styles.searchIcon}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<circle
+								cx="11"
+								cy="11"
+								r="8"
+							/>
+							<line
+								x1="21"
+								y1="21"
+								x2="16.65"
+								y2="16.65"
+							/>
+						</svg>
+						<input
+							type="text"
+							placeholder={iab.preferenceCenter.vendorList.search}
+							value={searchTerm}
+							onChange={(e) => setSearchTerm(e.target.value)}
+							className={styles.searchInput}
+						/>
+					</div>
+					<p className={styles.vendorCount}>
+						{iab.preferenceCenter.vendorList.showingCount
+							.replace('{filtered}', String(filteredVendors.length))
+							.replace('{total}', String(vendors.length))}
+					</p>
+				</div>
+			) : (
+				<div className={styles.selectedVendorBanner}>
+					<p className={styles.selectedVendorText}>
+						{iab.common.showingSelectedVendor}
+					</p>
+					<button
+						type="button"
+						onClick={onClearSelection}
+						className={styles.clearSelectionButton}
+					>
+						<svg
+							className={styles.clearIcon}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<line
+								x1="18"
+								y1="6"
+								x2="6"
+								y2="18"
+							/>
+							<line
+								x1="6"
+								y1="6"
+								x2="18"
+								y2="18"
+							/>
+						</svg>
+						{iab.common.clearSelection}
+					</button>
+				</div>
+			)}
+
+			{/* IAB Registered Vendors */}
+			{filteredIABVendors.length > 0 && (
+				<div className={styles.vendorSection}>
+					<div className={styles.iabVendorSectionHeader}>
+						<h3 className={styles.vendorSectionHeading}>
+							<svg
+								className={styles.vendorSectionIcon}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<path d="M12 2L2 7l10 5 10-5-10-5z" />
+								<path d="M2 17l10 5 10-5" />
+								<path d="M2 12l10 5 10-5" />
+							</svg>
+							{iab.preferenceCenter.vendorList.iabVendorsHeading} (
+							{filteredIABVendors.length})
+						</h3>
+						<p className={styles.iabVendorNotice}>
+							{iab.preferenceCenter.vendorList.iabVendorsNotice}
+						</p>
+					</div>
+					<div>
+						{filteredIABVendors.map((vendor) => renderVendorItem(vendor))}
+					</div>
+				</div>
+			)}
+
+			{/* Custom/Non-IAB Vendors */}
+			{filteredCustomVendors.length > 0 && (
+				<div className={styles.vendorSection}>
+					<div className={styles.customVendorSectionHeader}>
+						<h3 className={styles.vendorSectionHeading}>
+							<svg
+								className={styles.vendorSectionIcon}
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
+								<circle
+									cx="12"
+									cy="12"
+									r="10"
+								/>
+								<line
+									x1="2"
+									y1="12"
+									x2="22"
+									y2="12"
+								/>
+								<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+							</svg>
+							{iab.preferenceCenter.vendorList.customVendorsHeading} (
+							{filteredCustomVendors.length})
+						</h3>
+						<p className={styles.customVendorNotice}>
+							{iab.preferenceCenter.vendorList.customVendorsNotice}
+						</p>
+					</div>
+					<div>
+						{filteredCustomVendors.map((vendor) => renderVendorItem(vendor))}
+					</div>
+				</div>
+			)}
+
+			{filteredVendors.length === 0 && (
+				<div className={styles.emptyState}>
+					<p className={styles.emptyStateText}>
+						No vendors found matching &quot;{searchTerm}&quot;
+					</p>
+				</div>
+			)}
+		</div>
+	);
 
 	return vendorListContent;
 };

@@ -16,7 +16,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -27,7 +27,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 describe('Timeout Configuration', () => {
 	let originalFetch: typeof globalThis.fetch;
@@ -55,14 +55,14 @@ describe('Timeout Configuration', () => {
 			// Mock a slow response that exceeds the timeout
 			const mockFetch = vi
 				.fn()
-				.mockImplementation((url: string, options: RequestInit) => {
-					return createDeferredPromise((resolve, reject) => {
+				.mockImplementation((url: string, options: RequestInit) =>
+					createDeferredPromise((resolve, reject) => {
 						// Simulate slow response
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ version: '1.0.0' }), {
-									status: 200,
 									headers: { 'content-type': 'application/json' },
+									status: 200,
 								})
 							);
 						}, 100);
@@ -74,14 +74,15 @@ describe('Timeout Configuration', () => {
 							error.name = 'AbortError';
 							reject(error);
 						});
-					});
-				});
+					})
+				);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
 				baseUrl: 'https://api.example.com',
-				timeout: 50, // 50ms timeout, slower than 100ms response
 				retryConfig: { maxRetries: 0 },
+				// 50ms timeout, slower than 100ms response,
+				timeout: 50,
 			});
 
 			const result = await client.status();
@@ -94,15 +95,16 @@ describe('Timeout Configuration', () => {
 		it('should succeed when response is faster than timeout', async () => {
 			const mockFetch = vi.fn().mockResolvedValueOnce(
 				new Response(JSON.stringify({ version: '1.0.0' }), {
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				})
 			);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
 				baseUrl: 'https://api.example.com',
-				timeout: 5000, // 5 second timeout
+				// 5 second timeout
+				timeout: 5000,
 			});
 
 			const result = await client.status();
@@ -116,13 +118,13 @@ describe('Timeout Configuration', () => {
 			// Mock a slow response
 			const mockFetch = vi
 				.fn()
-				.mockImplementation((url: string, options: RequestInit) => {
-					return createDeferredPromise((resolve, reject) => {
+				.mockImplementation((url: string, options: RequestInit) =>
+					createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ id: 'sub_123' }), {
-									status: 200,
 									headers: { 'content-type': 'application/json' },
+									status: 200,
 								})
 							);
 						}, 100);
@@ -133,14 +135,15 @@ describe('Timeout Configuration', () => {
 							error.name = 'AbortError';
 							reject(error);
 						});
-					});
-				});
+					})
+				);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
 				baseUrl: 'https://api.example.com',
-				timeout: 5000, // Global timeout is 5 seconds
 				retryConfig: { maxRetries: 0 },
+				// Global timeout is 5 seconds,
+				timeout: 5000,
 			});
 
 			// Use per-request timeout of 50ms (shorter than 100ms response)
@@ -155,13 +158,13 @@ describe('Timeout Configuration', () => {
 		it('should use global timeout when per-request not specified', async () => {
 			const mockFetch = vi
 				.fn()
-				.mockImplementation((url: string, options: RequestInit) => {
-					return createDeferredPromise((resolve, reject) => {
+				.mockImplementation((url: string, options: RequestInit) =>
+					createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ id: 'sub_123' }), {
-									status: 200,
 									headers: { 'content-type': 'application/json' },
+									status: 200,
 								})
 							);
 						}, 100);
@@ -172,14 +175,15 @@ describe('Timeout Configuration', () => {
 							error.name = 'AbortError';
 							reject(error);
 						});
-					});
-				});
+					})
+				);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
 				baseUrl: 'https://api.example.com',
-				timeout: 50, // Global timeout is 50ms (shorter than 100ms response)
 				retryConfig: { maxRetries: 0 },
+				// Global timeout is 50ms (shorter than 100ms response),
+				timeout: 50,
 			});
 
 			// No per-request timeout, should use global
@@ -194,13 +198,13 @@ describe('Timeout Configuration', () => {
 		it('should return TIMEOUT error code on abort', async () => {
 			const mockFetch = vi
 				.fn()
-				.mockImplementation((url: string, options: RequestInit) => {
-					return createDeferredPromise((resolve, reject) => {
+				.mockImplementation((url: string, options: RequestInit) =>
+					createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({}), {
-									status: 200,
 									headers: { 'content-type': 'application/json' },
+									status: 200,
 								})
 							);
 						}, 100);
@@ -211,14 +215,14 @@ describe('Timeout Configuration', () => {
 							error.name = 'AbortError';
 							reject(error);
 						});
-					});
-				});
+					})
+				);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
 				baseUrl: 'https://api.example.com',
-				timeout: 10,
 				retryConfig: { maxRetries: 0 },
+				timeout: 10,
 			});
 
 			const result = await client.status();
@@ -231,13 +235,13 @@ describe('Timeout Configuration', () => {
 		it('should include timeout duration in error message', async () => {
 			const mockFetch = vi
 				.fn()
-				.mockImplementation((url: string, options: RequestInit) => {
-					return createDeferredPromise((resolve, reject) => {
+				.mockImplementation((url: string, options: RequestInit) =>
+					createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({}), {
-									status: 200,
 									headers: { 'content-type': 'application/json' },
+									status: 200,
 								})
 							);
 						}, 100);
@@ -248,14 +252,14 @@ describe('Timeout Configuration', () => {
 							error.name = 'AbortError';
 							reject(error);
 						});
-					});
-				});
+					})
+				);
 			globalThis.fetch = mockFetch;
 
 			const client = c15tClient({
 				baseUrl: 'https://api.example.com',
-				timeout: 25,
 				retryConfig: { maxRetries: 0 },
+				timeout: 25,
 			});
 
 			const result = await client.status();

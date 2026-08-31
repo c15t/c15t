@@ -6,14 +6,14 @@ import { run } from './main';
 describe('main', () => {
 	const mockPackages: PackageBundleData[] = [
 		{
-			packageName: 'test-package',
 			baseBundles: [],
 			currentBundles: [],
 			diffs: {
 				added: [],
-				removed: [],
 				changed: [],
+				removed: [],
 			},
+			packageName: 'test-package',
 			totalBaseSize: 1000,
 			totalCurrentSize: 1100,
 			totalDiff: 100,
@@ -24,8 +24,8 @@ describe('main', () => {
 	const mockOctokit = {
 		rest: {
 			issues: {
-				listComments: vi.fn(),
 				createComment: vi.fn(),
+				listComments: vi.fn(),
 				updateComment: vi.fn(),
 			},
 		},
@@ -45,13 +45,13 @@ describe('main', () => {
 		inputs: {
 			baseDir: '.bundle-base',
 			currentDir: '.',
+			failOnIncrease: false,
 			githubToken: 'test-token',
 			header: 'bundle-analysis',
 			packagesDir: 'packages',
 			prNumber: 123 as number | undefined,
 			repo: { owner: 'test', repo: 'test-repo' },
 			skipComment: false,
-			failOnIncrease: false,
 			threshold: 10,
 			transitiveRoots: ['c15t', '@c15t/react'],
 		},

@@ -19,7 +19,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -30,7 +30,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 describe('useTranslations', () => {
 	beforeEach(() => {
@@ -82,22 +82,22 @@ describe('useTranslations', () => {
 								de: {
 									common: {
 										acceptAll: 'German Accept All',
-										rejectAll: 'German Reject All',
 										customize: 'German Customize',
+										rejectAll: 'German Reject All',
 										save: 'German Save',
-									},
-									cookieBanner: {
-										title: 'German Title',
-										description: 'German Description',
 									},
 									consentManagerDialog: {
 										title: 'German Dialog Title',
 									},
 									consentTypes: {
 										necessary: {
-											title: 'German Necessary',
 											description: 'German Necessary Description',
+											title: 'German Necessary',
 										},
+									},
+									cookieBanner: {
+										description: 'German Description',
+										title: 'German Title',
 									},
 								},
 							},
@@ -130,8 +130,8 @@ describe('useTranslations', () => {
 			translations: {
 				en: {
 					cookieBanner: {
-						title: 'Custom Cookie Settings',
 						description: 'Custom Description',
+						title: 'Custom Cookie Settings',
 					},
 				} as Partial<Translations>,
 			},
@@ -173,7 +173,8 @@ describe('useTranslations', () => {
 						mode: 'offline',
 						noStyle: false,
 						translations: {
-							defaultLanguage: 'fr', // Language that doesn't exist
+							// Language that doesn't exist
+							defaultLanguage: 'fr',
 						},
 					}}
 				>
@@ -210,22 +211,22 @@ describe('useTranslations', () => {
 								en: {
 									common: {
 										acceptAll: 'Custom English Accept All',
-										rejectAll: 'Custom English Reject All',
 										customize: 'Custom English Customize',
+										rejectAll: 'Custom English Reject All',
 										save: 'Custom English Save',
-									},
-									cookieBanner: {
-										title: 'Custom English Title',
-										description: 'Custom English Description',
 									},
 									consentManagerDialog: {
 										title: 'Custom English Dialog Title',
 									},
 									consentTypes: {
 										necessary: {
-											title: 'Custom English Necessary',
 											description: 'Custom English Necessary Description',
+											title: 'Custom English Necessary',
 										},
+									},
+									cookieBanner: {
+										description: 'Custom English Description',
+										title: 'Custom English Title',
 									},
 								},
 							},
@@ -260,22 +261,22 @@ describe('useTranslations', () => {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
-						mode: 'offline',
-						noStyle: false,
 						i18n: {
-							locale: 'de',
 							detectBrowserLanguage: false,
+							locale: 'de',
 							messages: {
 								de: {
-									cookieBanner: {
-										title: 'Neuer Titel',
-									},
 									common: {
 										acceptAll: 'Alles',
+									},
+									cookieBanner: {
+										title: 'Neuer Titel',
 									},
 								},
 							},
 						},
+						mode: 'offline',
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -289,46 +290,43 @@ describe('useTranslations', () => {
 		expect(result.current.common.acceptAll).toBe('Alles');
 	});
 
-	test(
-		'prefers i18n over legacy translations ' + 'when both are provided',
-		async () => {
-			const { result } = await renderHook(() => useTranslations(), {
-				wrapper: ({ children }) => (
-					<ConsentManagerProvider
-						options={{
-							mode: 'offline',
-							noStyle: false,
+	test('prefers i18n over legacy translations when both are provided', async () => {
+		const { result } = await renderHook(() => useTranslations(), {
+			wrapper: ({ children }) => (
+				<ConsentManagerProvider
+					options={{
+						i18n: {
+							detectBrowserLanguage: false,
+							locale: 'fr',
+							messages: {
+								fr: {
+									cookieBanner: {
+										title: 'Nouveau Titre',
+									},
+								},
+							},
+						},
+						mode: 'offline',
+						noStyle: false,
+						translations: {
+							defaultLanguage: 'en',
 							translations: {
-								defaultLanguage: 'en',
-								translations: {
-									en: {
-										cookieBanner: {
-											title: 'Legacy Title',
-										},
+								en: {
+									cookieBanner: {
+										title: 'Legacy Title',
 									},
 								},
 							},
-							i18n: {
-								locale: 'fr',
-								detectBrowserLanguage: false,
-								messages: {
-									fr: {
-										cookieBanner: {
-											title: 'Nouveau Titre',
-										},
-									},
-								},
-							},
-						}}
-					>
-						{children}
-					</ConsentManagerProvider>
-				),
-			});
+						},
+					}}
+				>
+					{children}
+				</ConsentManagerProvider>
+			),
+		});
 
-			await createDeferredPromise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
-			expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
-		}
-	);
+		expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
+	});
 });

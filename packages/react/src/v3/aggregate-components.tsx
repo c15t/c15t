@@ -16,20 +16,18 @@ import { useActiveUI } from './hooks';
 
 type AnyComponent = ComponentType<Record<string, unknown>>;
 
-function withSuspense(
+const withSuspense = function withSuspense(
 	Component: LazyExoticComponent<AnyComponent>
 ): AnyComponent {
-	const LazyAggregateComponent = (props: Record<string, unknown>) => {
-		return (
-			<Suspense fallback={null}>
-				<Component {...props} />
-			</Suspense>
-		);
-	};
+	const LazyAggregateComponent = (props: Record<string, unknown>) => (
+		<Suspense fallback={null}>
+			<Component {...props} />
+		</Suspense>
+	);
 	return LazyAggregateComponent;
-}
+};
 
-function lazyDialogExport(name: string) {
+const lazyDialogExport = function lazyDialogExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/consent-dialog');
@@ -39,7 +37,7 @@ function lazyDialogExport(name: string) {
 			};
 		})
 	);
-}
+};
 
 // Warm the dialog chunk on user intent (customize-button hover/focus) so the
 // first open never pays network+parse on the click path.
@@ -47,7 +45,7 @@ registerDialogChunkWarmer(() => {
 	void import('./components/consent-dialog');
 });
 
-function lazyWidgetExport(name: string) {
+const lazyWidgetExport = function lazyWidgetExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/consent-widget');
@@ -57,7 +55,7 @@ function lazyWidgetExport(name: string) {
 			};
 		})
 	);
-}
+};
 
 const LazyConsentDialogComponent = lazyDialogExport(
 	'ConsentDialog'
@@ -76,11 +74,11 @@ const LazyConsentDialog = (props: ConsentDialogProps) => {
 	return <LazyConsentDialogComponent {...props} />;
 };
 
-const LazyConsentWidget = (props: ConsentWidgetProps) => {
-	return <LazyConsentWidgetComponent {...props} />;
-};
+const LazyConsentWidget = (props: ConsentWidgetProps) => (
+	<LazyConsentWidgetComponent {...props} />
+);
 
-function withLazyProperties<T extends AnyComponent>(
+const withLazyProperties = function withLazyProperties<T extends AnyComponent>(
 	component: T,
 	names: readonly string[],
 	factory: (name: string) => AnyComponent
@@ -97,7 +95,7 @@ function withLazyProperties<T extends AnyComponent>(
 		});
 	}
 	return component;
-}
+};
 
 export const ConsentDialog = withLazyProperties(
 	LazyConsentDialog,

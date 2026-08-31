@@ -344,6 +344,7 @@ export const waitForStoredValue = async function waitForStoredValue(
 		if (value !== null) {
 			return value;
 		}
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await createVoidDeferredPromise((resolve) => setTimeout(resolve, 50));
 	}
 	throw new Error(

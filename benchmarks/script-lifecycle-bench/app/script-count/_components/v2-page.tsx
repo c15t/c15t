@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createInitialBenchState, listDomIds, makeScripts } from './fixtures';
 import type { ScriptCountBenchState } from './fixtures';
 
-function publish(
+const publish = function publish(
 	state: ScriptCountBenchState,
 	patch: Partial<Omit<ScriptCountBenchState, 'recordScriptExecution'>>
 ) {
@@ -15,7 +15,7 @@ function publish(
 	(
 		window as unknown as { __c15tScriptBench?: ScriptCountBenchState }
 	).__c15tScriptBench = state;
-}
+};
 
 const V2Probe = ({ count }: { count: number }) => {
 	const consent = useConsentManager();
@@ -34,10 +34,10 @@ const V2Probe = ({ count }: { count: number }) => {
 		window.__c15tGetScriptCountBenchState = () => {
 			publish(bench, {
 				activeUI: consent.activeUI,
+				domIds: listDomIds(count),
 				loadedIds: consent
 					.getLoadedScriptIds()
 					.sort((left, right) => left.localeCompare(right)),
-				domIds: listDomIds(count),
 			});
 			return bench;
 		};
@@ -56,8 +56,8 @@ const V2Probe = ({ count }: { count: number }) => {
 				onClick={() => {
 					publish(bench, {
 						actionStartedAtMs: performance.now(),
-						completedAtMs: null,
 						complete: false,
+						completedAtMs: null,
 					});
 					void consent.saveConsents('all');
 				}}
@@ -83,7 +83,7 @@ export const V2ScriptCountPage = ({ count }: { count: number }) => {
 				},
 			}}
 		>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
+			<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 				<h1>v2 @c15t/react script count benchmark</h1>
 				<p>Scripts: {count}</p>
 				<V2Probe count={count} />

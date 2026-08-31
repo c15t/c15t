@@ -8,7 +8,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-export function createCallbackPromise<Value>(
+export const createCallbackPromise = function createCallbackPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -19,9 +19,9 @@ export function createCallbackPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-export function createVoidCallbackPromise(
+export const createVoidCallbackPromise = function createVoidCallbackPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -32,10 +32,12 @@ export function createVoidCallbackPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
-export async function waitForTimeout(milliseconds: number): Promise<void> {
+export const waitForTimeout = async function waitForTimeout(
+	milliseconds: number
+): Promise<void> {
 	await createVoidCallbackPromise((resolve) => {
 		setTimeout(resolve, milliseconds);
 	});
-}
+};

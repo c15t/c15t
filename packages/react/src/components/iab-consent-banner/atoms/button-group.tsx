@@ -19,7 +19,8 @@ interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement
 const IABConsentBannerButtonGroup = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerButtonGroupProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerButtonGroup({ children, className, ...props }, ref) {
 	return (
 		<div
 			ref={ref}
@@ -45,7 +46,8 @@ IABConsentBannerButtonGroup.displayName = 'IABConsentBannerButtonGroup';
 const IABConsentBannerFooterSpacer = forwardRef<
 	HTMLDivElement,
 	HTMLAttributes<HTMLDivElement>
->(function ({ className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerFooterSpacer({ className, ...props }, ref) {
 	return (
 		<div
 			ref={ref}

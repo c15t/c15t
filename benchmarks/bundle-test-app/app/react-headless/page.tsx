@@ -5,18 +5,6 @@ import {
 	useConsentManager,
 } from '@c15t/react/headless';
 
-const ReactHeadlessPage = () => {
-	return (
-		<ConsentManagerProvider options={{ mode: 'offline' }}>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>React Headless Benchmark</h1>
-				<p>This route measures the tree-shaken headless React runtime.</p>
-				<TestComponent />
-			</main>
-		</ConsentManagerProvider>
-	);
-};
-
 const TestComponent = () => {
 	const { consents, has, saveConsents } = useConsentManager();
 	return (
@@ -44,5 +32,14 @@ const TestComponent = () => {
 		</div>
 	);
 };
+const ReactHeadlessPage = () => (
+	<ConsentManagerProvider options={{ mode: 'offline' }}>
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>React Headless Benchmark</h1>
+			<p>This route measures the tree-shaken headless React runtime.</p>
+			<TestComponent />
+		</main>
+	</ConsentManagerProvider>
+);
 
 export default ReactHeadlessPage;

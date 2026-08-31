@@ -8,17 +8,20 @@ import { policyMatchers } from './policy-runtime';
  */
 export type EuropePolicyMode = 'opt-in' | 'iab';
 
-function createSplitRowUiProfile(): PolicyUiSurfaceConfig {
-	return {
-		allowedActions: ['accept', 'reject', 'customize'],
-		layout: [['reject', 'accept'], 'customize'],
-		direction: 'row',
-		primaryActions: ['customize'],
-		uiProfile: 'compact',
+const createSplitRowUiProfile =
+	function createSplitRowUiProfile(): PolicyUiSurfaceConfig {
+		return {
+			allowedActions: ['accept', 'reject', 'customize'],
+			direction: 'row',
+			layout: [['reject', 'accept'], 'customize'],
+			primaryActions: ['customize'],
+			uiProfile: 'compact',
+		};
 	};
-}
 
-function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
+const californiaPolicy = function californiaPolicy(
+	mode: 'opt-in' | 'opt-out'
+): PolicyConfig {
 	const isOptOut = mode === 'opt-out';
 	let ui: PolicyConfig['ui'];
 
@@ -26,99 +29,101 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 		ui = { mode: 'none' };
 	} else {
 		ui = {
-			mode: 'banner',
 			banner: createSplitRowUiProfile(),
 			dialog: createSplitRowUiProfile(),
+			mode: 'banner',
 		};
 	}
 
 	return {
-		id: isOptOut ? 'california_opt_out' : 'california_opt_in',
-		match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
 		consent: {
-			model: mode,
 			expiryDays: 365,
 			gpc: true,
+			model: mode,
 		},
-		ui,
+		id: isOptOut ? 'california_opt_out' : 'california_opt_in',
+		match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
 		proof: {
 			storeIp: true,
-			storeUserAgent: true,
 			storeLanguage: true,
+			storeUserAgent: true,
 		},
+		ui,
 	};
-}
+};
 
-function europePolicy(mode: EuropePolicyMode): PolicyConfig {
+const europePolicy = function europePolicy(
+	mode: EuropePolicyMode
+): PolicyConfig {
 	const isIab = mode === 'iab';
 	const policy: PolicyConfig = {
-		id: isIab ? 'europe_iab' : 'europe_opt_in',
-		match: policyMatchers.merge(
-			policyMatchers.iab(),
-			policyMatchers.fallback()
-		),
 		consent: (() => {
 			const consent: PolicyConfig['consent'] = {
-				model: mode,
 				expiryDays: 365,
+				model: mode,
 			};
 			if (isIab) {
 				consent.categories = ['*'];
 			}
 			return consent;
 		})(),
+		id: isIab ? 'europe_iab' : 'europe_opt_in',
+		match: policyMatchers.merge(
+			policyMatchers.iab(),
+			policyMatchers.fallback()
+		),
 		proof: {
 			storeIp: true,
-			storeUserAgent: true,
 			storeLanguage: true,
+			storeUserAgent: true,
 		},
 	};
 
 	if (!isIab) {
 		policy.ui = {
-			mode: 'banner',
 			banner: createSplitRowUiProfile(),
 			dialog: createSplitRowUiProfile(),
+			mode: 'banner',
 		};
 	}
 
 	return policy;
-}
+};
 
-function worldNoBannerPolicy(): PolicyConfig {
+const worldNoBannerPolicy = function worldNoBannerPolicy(): PolicyConfig {
 	return {
+		consent: { model: 'none' },
 		id: 'world_no_banner',
 		match: policyMatchers.default(),
-		consent: { model: 'none' },
-		ui: { mode: 'none' },
 		proof: {
 			storeIp: false,
-			storeUserAgent: true,
 			storeLanguage: false,
+			storeUserAgent: true,
 		},
+		ui: { mode: 'none' },
 	};
-}
+};
 
-function quebecPolicy(): PolicyConfig {
+const quebecPolicy = function quebecPolicy(): PolicyConfig {
 	return {
+		consent: {
+			expiryDays: 365,
+			model: 'opt-in',
+		},
 		id: 'quebec_opt_in',
 		match: policyMatchers.regions([{ country: 'CA', region: 'QC' }]),
-		consent: {
-			model: 'opt-in',
-			expiryDays: 365,
-		},
-		ui: {
-			mode: 'banner',
-			banner: createSplitRowUiProfile(),
-			dialog: createSplitRowUiProfile(),
-		},
 		proof: {
 			storeIp: true,
-			storeUserAgent: true,
 			storeLanguage: true,
+			storeUserAgent: true,
+		},
+		ui: {
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
+			mode: 'banner',
 		},
 	};
-}
+};
 
 export interface PolicyPackPresets {
 	/**
@@ -170,10 +175,10 @@ export interface PolicyPackPresets {
  * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export const policyPackPresets: PolicyPackPresets = {
-	europeOptIn: () => europePolicy('opt-in'),
-	europeIab: () => europePolicy('iab'),
-	worldNoBanner: () => worldNoBannerPolicy(),
 	californiaOptIn: () => californiaPolicy('opt-in'),
 	californiaOptOut: () => californiaPolicy('opt-out'),
+	europeIab: () => europePolicy('iab'),
+	europeOptIn: () => europePolicy('opt-in'),
 	quebecOptIn: () => quebecPolicy(),
+	worldNoBanner: () => worldNoBannerPolicy(),
 };

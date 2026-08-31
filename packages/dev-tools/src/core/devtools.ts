@@ -36,18 +36,19 @@ const PANEL_HEIGHT_TRANSITION =
 const PANEL_HEIGHT_TRANSITION_MS = 200;
 const PANEL_HEIGHT_TRANSITION_BUFFER_MS = 80;
 
-function normalizeOverridesForPersistence(
-	overrides: ConsentStoreState['overrides'] | undefined
-): PersistedDevToolsOverrides {
-	return {
-		country: overrides?.country?.trim() || undefined,
-		region: overrides?.region?.trim() || undefined,
-		language: overrides?.language?.trim() || undefined,
-		gpc: overrides?.gpc,
+const normalizeOverridesForPersistence =
+	function normalizeOverridesForPersistence(
+		overrides: ConsentStoreState['overrides'] | undefined
+	): PersistedDevToolsOverrides {
+		return {
+			country: overrides?.country?.trim() || undefined,
+			gpc: overrides?.gpc,
+			language: overrides?.language?.trim() || undefined,
+			region: overrides?.region?.trim() || undefined,
+		};
 	};
-}
 
-function persistedOverridesEqual(
+const persistedOverridesEqual = function persistedOverridesEqual(
 	a: PersistedDevToolsOverrides,
 	b: PersistedDevToolsOverrides
 ): boolean {
@@ -57,123 +58,129 @@ function persistedOverridesEqual(
 		a.language === b.language &&
 		a.gpc === b.gpc
 	);
-}
+};
 
 interface PanelHeightAnimator {
 	animate: (panel: HTMLElement, previousHeight: number) => void;
 	destroy: () => void;
 }
 
-function prefersReducedMotion(): boolean {
+const prefersReducedMotion = function prefersReducedMotion(): boolean {
 	return (
 		typeof window !== 'undefined' &&
 		typeof window.matchMedia === 'function' &&
 		window.matchMedia('(prefers-reduced-motion: reduce)').matches
 	);
-}
+};
 
-function createPanelHeightAnimator(): PanelHeightAnimator {
-	let activePanel: HTMLElement | null = null;
-	let frameId: number | null = null;
-	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-	let removeTransitionListener: (() => void) | null = null;
+const createPanelHeightAnimator =
+	function createPanelHeightAnimator(): PanelHeightAnimator {
+		let activePanel: HTMLElement | null = null;
+		let frameId: number | null = null;
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+		let removeTransitionListener: (() => void) | null = null;
 
-	function clearAnimationState(): void {
-		if (frameId !== null) {
-			window.cancelAnimationFrame(frameId);
-			frameId = null;
-		}
+		const clearAnimationState = function clearAnimationState(): void {
+			if (frameId !== null) {
+				window.cancelAnimationFrame(frameId);
+				frameId = null;
+			}
 
-		if (timeoutId !== null) {
-			clearTimeout(timeoutId);
-			timeoutId = null;
-		}
+			if (timeoutId !== null) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
 
-		if (removeTransitionListener) {
-			removeTransitionListener();
-			removeTransitionListener = null;
-		}
+			if (removeTransitionListener) {
+				removeTransitionListener();
+				removeTransitionListener = null;
+			}
 
-		if (activePanel) {
-			activePanel.style.height = '';
-			activePanel.style.transition = '';
-			activePanel.style.willChange = '';
-			activePanel = null;
-		}
-	}
+			if (activePanel) {
+				activePanel.style.height = '';
+				activePanel.style.transition = '';
+				activePanel.style.willChange = '';
+				activePanel = null;
+			}
+		};
 
-	function animate(panel: HTMLElement, previousHeight: number): void {
-		if (!Number.isFinite(previousHeight) || prefersReducedMotion()) {
-			return;
-		}
+		const animate = function animate(
+			panel: HTMLElement,
+			previousHeight: number
+		): void {
+			if (!Number.isFinite(previousHeight) || prefersReducedMotion()) {
+				return;
+			}
 
-		const nextHeight = panel.getBoundingClientRect().height;
+			const nextHeight = panel.getBoundingClientRect().height;
 
-		if (
-			!Number.isFinite(nextHeight) ||
-			Math.abs(nextHeight - previousHeight) < 1
-		) {
-			return;
-		}
-
-		clearAnimationState();
-		activePanel = panel;
-		panel.style.height = `${previousHeight}px`;
-		panel.style.willChange = 'height';
-
-		// Force layout before transitioning to the new panel height.
-		panel.getBoundingClientRect();
-
-		const handleTransitionEnd = (event: Event): void => {
-			const transitionEvent = event as TransitionEvent;
 			if (
-				typeof transitionEvent.propertyName === 'string' &&
-				transitionEvent.propertyName &&
-				transitionEvent.propertyName !== 'height'
+				!Number.isFinite(nextHeight) ||
+				Math.abs(nextHeight - previousHeight) < 1
 			) {
 				return;
 			}
 
 			clearAnimationState();
+			activePanel = panel;
+			panel.style.height = `${previousHeight}px`;
+			panel.style.willChange = 'height';
+
+			// Force layout before transitioning to the new panel height.
+			panel.getBoundingClientRect();
+
+			const handleTransitionEnd = (event: Event): void => {
+				const transitionEvent = event as TransitionEvent;
+				if (
+					typeof transitionEvent.propertyName === 'string' &&
+					transitionEvent.propertyName &&
+					transitionEvent.propertyName !== 'height'
+				) {
+					return;
+				}
+
+				clearAnimationState();
+			};
+
+			panel.addEventListener('transitionend', handleTransitionEnd);
+			removeTransitionListener = () => {
+				panel.removeEventListener('transitionend', handleTransitionEnd);
+			};
+
+			frameId = window.requestAnimationFrame(() => {
+				frameId = null;
+				panel.style.transition = PANEL_HEIGHT_TRANSITION;
+				panel.style.height = `${nextHeight}px`;
+			});
+
+			// Fallback cleanup for interrupted transitions.
+			timeoutId = setTimeout(() => {
+				clearAnimationState();
+			}, PANEL_HEIGHT_TRANSITION_MS + PANEL_HEIGHT_TRANSITION_BUFFER_MS);
 		};
 
-		panel.addEventListener('transitionend', handleTransitionEnd);
-		removeTransitionListener = () => {
-			panel.removeEventListener('transitionend', handleTransitionEnd);
+		return {
+			animate,
+			destroy: clearAnimationState,
 		};
-
-		frameId = window.requestAnimationFrame(() => {
-			frameId = null;
-			panel.style.transition = PANEL_HEIGHT_TRANSITION;
-			panel.style.height = `${nextHeight}px`;
-		});
-
-		// Fallback cleanup for interrupted transitions.
-		timeoutId = setTimeout(() => {
-			clearAnimationState();
-		}, PANEL_HEIGHT_TRANSITION_MS + PANEL_HEIGHT_TRANSITION_BUFFER_MS);
-	}
-
-	return {
-		animate,
-		destroy: clearAnimationState,
 	};
-}
 
-function createStateCopy(state: ConsentStoreState): Record<string, unknown> {
+const createStateCopy = function createStateCopy(
+	state: ConsentStoreState
+): Record<string, unknown> {
 	return {
-		consents: state.consents,
-		selectedConsents: state.selectedConsents,
 		consentInfo: state.consentInfo,
+		consents: state.consents,
+		loadedScripts: state.loadedScripts,
 		locationInfo: state.locationInfo,
 		model: state.model,
 		overrides: state.overrides,
 		scripts: state.scripts?.map((script: { id: string }) => ({
 			id: script.id,
 		})),
-		loadedScripts: state.loadedScripts,
+		selectedConsents: state.selectedConsents,
 	};
-}
+};
 
 interface EmbeddedTabsInstance {
 	element: HTMLElement;
@@ -192,57 +199,57 @@ const EMBEDDED_TABS: { id: DevToolsTab; label: string }[] = [
 ];
 
 const EMBEDDED_THEME_VARIABLES: Record<string, string> = {
-	'--c15t-surface': '#1f222b',
-	'--c15t-surface-hover': '#272b35',
-	'--c15t-surface-muted': '#252933',
 	'--c15t-border': 'rgba(255, 255, 255, 0.08)',
 	'--c15t-border-hover': 'rgba(255, 255, 255, 0.16)',
-	'--c15t-text': '#eef2ff',
-	'--c15t-text-muted': '#99a2b3',
-	'--c15t-primary': '#8b5cf6',
-	'--c15t-primary-hover': '#7c3aed',
-	'--c15t-text-on-primary': '#f7f3ff',
-	'--c15t-shadow-sm': 'none',
-	'--c15t-shadow-md': 'none',
+	'--c15t-devtools-accent-soft': 'rgba(139, 92, 246, 0.18)',
+	'--c15t-devtools-badge-error-bg': 'rgba(248, 113, 113, 0.18)',
+	'--c15t-devtools-badge-info-bg': 'rgba(96, 165, 250, 0.18)',
+	'--c15t-devtools-badge-neutral-bg': 'rgba(148, 163, 184, 0.16)',
+	'--c15t-devtools-badge-success-bg': 'rgba(16, 185, 129, 0.16)',
+	'--c15t-devtools-badge-warning-bg': 'rgba(251, 191, 36, 0.18)',
+	'--c15t-devtools-border-strong': 'rgba(255, 255, 255, 0.08)',
+	'--c15t-devtools-code-surface': '#15181f',
+	'--c15t-devtools-embedded-tab-active-border': 'rgba(139, 92, 246, 0.55)',
+	'--c15t-devtools-focus-ring': '#8b5cf6',
 	'--c15t-devtools-surface-elevated': '#1f222b',
 	'--c15t-devtools-surface-muted': '#272b35',
 	'--c15t-devtools-surface-subtle': '#181b22',
-	'--c15t-devtools-border-strong': 'rgba(255, 255, 255, 0.08)',
-	'--c15t-devtools-code-surface': '#15181f',
-	'--c15t-devtools-accent-soft': 'rgba(139, 92, 246, 0.18)',
-	'--c15t-devtools-focus-ring': '#8b5cf6',
-	'--c15t-devtools-badge-success-bg': 'rgba(16, 185, 129, 0.16)',
-	'--c15t-devtools-badge-error-bg': 'rgba(248, 113, 113, 0.18)',
-	'--c15t-devtools-badge-warning-bg': 'rgba(251, 191, 36, 0.18)',
-	'--c15t-devtools-badge-info-bg': 'rgba(96, 165, 250, 0.18)',
-	'--c15t-devtools-badge-neutral-bg': 'rgba(148, 163, 184, 0.16)',
-	'--c15t-devtools-embedded-tab-active-border': 'rgba(139, 92, 246, 0.55)',
+	'--c15t-primary': '#8b5cf6',
+	'--c15t-primary-hover': '#7c3aed',
+	'--c15t-shadow-md': 'none',
+	'--c15t-shadow-sm': 'none',
+	'--c15t-surface': '#1f222b',
+	'--c15t-surface-hover': '#272b35',
+	'--c15t-surface-muted': '#252933',
+	'--c15t-text': '#eef2ff',
+	'--c15t-text-muted': '#99a2b3',
+	'--c15t-text-on-primary': '#f7f3ff',
 };
 
-function createEmbeddedTabs(options: {
+const createEmbeddedTabs = function createEmbeddedTabs(options: {
 	activeTab: DevToolsTab;
 	onTabChange: (tab: DevToolsTab) => void;
 	disabledTabs?: DevToolsTab[];
 }): EmbeddedTabsInstance {
 	const { onTabChange, disabledTabs = [] } = options;
-	let activeTab = options.activeTab;
+	let { activeTab } = options;
 	const buttons = new Map<DevToolsTab, HTMLButtonElement>();
 
 	const tabList = div({
-		role: 'tablist',
 		ariaLabel: 'DevTools tabs',
+		role: 'tablist',
 		style: {
+			alignItems: 'center',
+			borderBottom:
+				'1px solid var(--c15t-devtools-border-strong, rgba(255, 255, 255, 0.08))',
 			display: 'flex',
 			flexWrap: 'wrap',
 			gap: '0.5rem',
-			alignItems: 'center',
 			paddingBottom: '0.25rem',
-			borderBottom:
-				'1px solid var(--c15t-devtools-border-strong, rgba(255, 255, 255, 0.08))',
 		},
 	});
 
-	function applyButtonState(
+	const applyButtonState = function applyButtonState(
 		tab: DevToolsTab,
 		buttonElement: HTMLButtonElement
 	): void {
@@ -265,7 +272,7 @@ function createEmbeddedTabs(options: {
 		buttonElement.style.boxShadow = isActive
 			? 'inset 0 0 0 1px var(--c15t-devtools-embedded-tab-active-border, rgba(139, 92, 246, 0.55))'
 			: 'none';
-	}
+	};
 
 	const createEmbeddedTabClickHandler = (selectedTabId: DevToolsTab) => () => {
 		if (disabledTabs.includes(selectedTabId)) {
@@ -282,25 +289,25 @@ function createEmbeddedTabs(options: {
 		const tabId = tab.id;
 		const tabLabel = tab.label;
 		const buttonElement = button({
-			role: 'tab',
-			text: tabLabel,
 			onClick: createEmbeddedTabClickHandler(tabId),
+			role: 'tab',
 			style: {
-				display: 'inline-flex',
 				alignItems: 'center',
-				justifyContent: 'center',
-				minHeight: '1.875rem',
-				padding: '0.3125rem 0.75rem',
+				backgroundColor: 'transparent',
 				border: '1px solid transparent',
 				borderRadius: '999px',
-				backgroundColor: 'transparent',
+				display: 'inline-flex',
 				fontFamily: 'inherit',
 				fontSize: 'var(--c15t-devtools-font-size-xs, 0.75rem)',
 				fontWeight: '500',
+				justifyContent: 'center',
 				lineHeight: '1.25',
+				minHeight: '1.875rem',
+				padding: '0.3125rem 0.75rem',
 				transition:
 					'background-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)), border-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)), box-shadow var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)), color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1))',
 			},
+			text: tabLabel,
 		});
 
 		if (tab.id === 'iab') {
@@ -313,6 +320,9 @@ function createEmbeddedTabs(options: {
 	}
 
 	return {
+		destroy: () => {
+			buttons.clear();
+		},
 		element: tabList,
 		setActiveTab: (tab) => {
 			activeTab = tab;
@@ -320,35 +330,34 @@ function createEmbeddedTabs(options: {
 				applyButtonState(tabId, tabButton);
 			}
 		},
-		destroy: () => {
-			buttons.clear();
-		},
 	};
-}
+};
 
-function scriptDebugEventToLogEntry(event: ScriptDebugEvent): {
+const scriptDebugEventToLogEntry = function scriptDebugEventToLogEntry(
+	event: ScriptDebugEvent
+): {
 	type: 'script';
 	message: string;
 	data: Record<string, unknown>;
 } {
 	return {
-		type: 'script',
-		message: event.message,
 		data: {
 			...(event.data ?? {}),
-			source: event.source,
-			scope: event.scope,
 			action: event.action,
-			scriptId: event.scriptId,
+			callback: event.callback,
 			elementId: event.elementId,
 			hasConsent: event.hasConsent,
-			callback: event.callback,
 			phase: event.phase,
-			stepType: event.stepType,
+			scope: event.scope,
+			scriptId: event.scriptId,
+			source: event.source,
 			stepIndex: event.stepIndex,
+			stepType: event.stepType,
 		},
+		message: event.message,
+		type: 'script',
 	};
-}
+};
 
 /**
  * DevTools configuration options
@@ -396,7 +405,7 @@ export interface DevToolsInstance {
 /**
  * Creates a DevTools instance
  */
-export function createDevTools(
+export const createDevTools = function createDevTools(
 	options: DevToolsOptions = {}
 ): DevToolsInstance {
 	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
@@ -410,8 +419,8 @@ export function createDevTools(
 
 	// Create state manager
 	const stateManager = createStateManager({
-		position,
 		isOpen: defaultOpen,
+		position,
 	});
 	let detachInstrumentation: (() => void) | null = null;
 	let detachScriptDebug: (() => void) | null = null;
@@ -423,10 +432,10 @@ export function createDevTools(
 			detachInstrumentation?.();
 			detachInstrumentation = registerStoreInstrumentation({
 				namespace,
-				store,
 				onEvent: (event) => {
 					stateManager.addEvent(event);
 				},
+				store,
 			});
 			detachScriptDebug?.();
 			detachScriptDebug = subscribeToScriptDebugEvents((event) => {
@@ -435,8 +444,8 @@ export function createDevTools(
 
 			stateManager.setConnected(true);
 			stateManager.addEvent({
-				type: 'info',
 				message: 'Connected to c15tStore',
+				type: 'info',
 			});
 
 			const persistedOverrides = loadPersistedOverrides();
@@ -450,24 +459,24 @@ export function createDevTools(
 						try {
 							await store.getState().setOverrides({
 								country: persistedOverrides.country,
-								region: persistedOverrides.region,
-								language: persistedOverrides.language,
 								gpc: persistedOverrides.gpc,
+								language: persistedOverrides.language,
+								region: persistedOverrides.region,
 							});
 							stateManager.addEvent({
-								type: 'info',
-								message: 'Applied persisted devtools overrides',
 								data: {
 									country: persistedOverrides.country,
-									region: persistedOverrides.region,
-									language: persistedOverrides.language,
 									gpc: persistedOverrides.gpc,
+									language: persistedOverrides.language,
+									region: persistedOverrides.region,
 								},
+								message: 'Applied persisted devtools overrides',
+								type: 'info',
 							});
 						} catch {
 							stateManager.addEvent({
-								type: 'error',
 								message: 'Failed to apply persisted devtools overrides',
+								type: 'error',
 							});
 						}
 					})();
@@ -481,8 +490,8 @@ export function createDevTools(
 			detachScriptDebug?.();
 			detachScriptDebug = null;
 			stateManager.addEvent({
-				type: 'error',
 				message: 'Disconnected from c15tStore',
+				type: 'error',
 			});
 		},
 		onStateChange: () => {
@@ -490,10 +499,7 @@ export function createDevTools(
 		},
 	});
 	const panelRenderer = createPanelRenderer({
-		storeConnector,
-		stateManager,
 		enableEventLogging: true,
-		onPersistOverrides: persistOverrides,
 		onClearPersistedOverrides: clearPersistedOverrides,
 		onCopyState: async (state) => {
 			try {
@@ -507,14 +513,17 @@ export function createDevTools(
 		},
 		onExportDebugBundle: () => {
 			const bundle = createDebugBundle({
-				namespace,
-				devToolsState: stateManager.getState(),
 				connection: storeConnector.getDiagnostics(),
+				devToolsState: stateManager.getState(),
+				namespace,
 				recentEvents: stateManager.getState().eventLog.slice(0, 100),
 				storeState: sanitizeStoreState(storeConnector.getState()),
 			});
 			downloadDebugBundle(bundle);
 		},
+		onPersistOverrides: persistOverrides,
+		stateManager,
+		storeConnector,
 	});
 
 	// Create tabs instance
@@ -523,12 +532,12 @@ export function createDevTools(
 
 	// Create panel
 	const panelInstance: PanelInstance = createPanel({
-		stateManager,
-		storeConnector,
 		namespace,
 		onRenderContent: (container) => {
 			renderContent(container);
 		},
+		stateManager,
+		storeConnector,
 	});
 
 	/**
@@ -560,10 +569,10 @@ export function createDevTools(
 		}
 		tabsInstance = createTabs({
 			activeTab: currentActiveTab,
+			disabledTabs,
 			onTabChange: (tab) => {
 				stateManager.setActiveTab(tab);
 			},
-			disabledTabs,
 		});
 
 		container.appendChild(tabsInstance.element);
@@ -590,17 +599,7 @@ export function createDevTools(
 
 	// Create the instance
 	const instance: DevToolsInstance = {
-		open: () => stateManager.setOpen(true),
 		close: () => stateManager.setOpen(false),
-		toggle: () => stateManager.toggle(),
-		getState: () => {
-			const state = stateManager.getState();
-			return {
-				isOpen: state.isOpen,
-				activeTab: state.activeTab,
-				isConnected: state.isConnected,
-			};
-		},
 		destroy: () => {
 			detachInstrumentation?.();
 			detachInstrumentation = null;
@@ -618,6 +617,16 @@ export function createDevTools(
 				delete (window as unknown as Record<string, unknown>).__c15tDevTools;
 			}
 		},
+		getState: () => {
+			const state = stateManager.getState();
+			return {
+				activeTab: state.activeTab,
+				isConnected: state.isConnected,
+				isOpen: state.isOpen,
+			};
+		},
+		open: () => stateManager.setOpen(true),
+		toggle: () => stateManager.toggle(),
 	};
 
 	// Expose on window for console access
@@ -626,12 +635,12 @@ export function createDevTools(
 	}
 
 	return instance;
-}
+};
 
 /**
  * Creates a DevTools panel for embedding (used by TanStack plugin)
  */
-export function createDevToolsPanel(options: {
+export const createDevToolsPanel = function createDevToolsPanel(options: {
 	namespace?: string;
 	mode?: 'standalone' | 'embedded';
 }): {
@@ -652,7 +661,8 @@ export function createDevToolsPanel(options: {
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
-		isOpen: true, // Always open in embedded mode
+		// Always open in embedded mode
+		isOpen: true,
 	});
 
 	// Create store connector
@@ -662,8 +672,8 @@ export function createDevToolsPanel(options: {
 			detachInstrumentation?.();
 			detachInstrumentation = registerStoreInstrumentation({
 				namespace,
-				store,
 				onEvent: (event) => stateManager.addEvent(event),
+				store,
 			});
 			detachScriptDebug?.();
 			detachScriptDebug = subscribeToScriptDebugEvents((event) => {
@@ -679,9 +689,9 @@ export function createDevToolsPanel(options: {
 				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
 					void store.getState().setOverrides({
 						country: persistedOverrides.country,
-						region: persistedOverrides.region,
-						language: persistedOverrides.language,
 						gpc: persistedOverrides.gpc,
+						language: persistedOverrides.language,
+						region: persistedOverrides.region,
 					});
 				}
 			}
@@ -697,10 +707,7 @@ export function createDevToolsPanel(options: {
 		},
 	});
 	const panelRenderer = createPanelRenderer({
-		storeConnector,
-		stateManager,
 		enableEventLogging: false,
-		onPersistOverrides: persistOverrides,
 		onClearPersistedOverrides: clearPersistedOverrides,
 		onCopyState: async (state) => {
 			try {
@@ -714,28 +721,31 @@ export function createDevToolsPanel(options: {
 		},
 		onExportDebugBundle: () => {
 			const bundle = createDebugBundle({
-				namespace,
-				devToolsState: stateManager.getState(),
 				connection: storeConnector.getDiagnostics(),
+				devToolsState: stateManager.getState(),
+				namespace,
 				recentEvents: stateManager.getState().eventLog.slice(0, 100),
 				storeState: sanitizeStoreState(storeConnector.getState()),
 			});
 			downloadDebugBundle(bundle);
 		},
+		onPersistOverrides: persistOverrides,
+		stateManager,
+		storeConnector,
 	});
 
 	const containerStyle: Partial<CSSStyleDeclaration> = {
+		backgroundColor: 'transparent',
+		boxSizing: 'border-box',
+		color: isEmbedded ? 'var(--c15t-text, #eef2ff)' : 'inherit',
+		colorScheme: isEmbedded ? 'dark' : undefined,
 		display: 'flex',
 		flexDirection: 'column',
-		height: '100%',
-		boxSizing: 'border-box',
-		gap: '0.75rem',
-		padding: '0.75rem',
 		fontFamily: 'inherit',
 		fontSize: 'var(--c15t-devtools-font-size-sm)',
-		color: isEmbedded ? 'var(--c15t-text, #eef2ff)' : 'inherit',
-		backgroundColor: 'transparent',
-		colorScheme: isEmbedded ? 'dark' : undefined,
+		gap: '0.75rem',
+		height: '100%',
+		padding: '0.75rem',
 	};
 	if (isEmbedded) {
 		Object.assign(containerStyle, EMBEDDED_THEME_VARIABLES);
@@ -749,11 +759,11 @@ export function createDevToolsPanel(options: {
 	// Create content area (before tabs so we can pass render function)
 	contentArea = div({
 		style: {
+			backgroundColor: 'transparent',
 			flex: '1',
 			minHeight: '0',
 			overflowY: 'auto',
 			overscrollBehavior: 'contain',
-			backgroundColor: 'transparent',
 		},
 	});
 
@@ -769,19 +779,19 @@ export function createDevToolsPanel(options: {
 	let tabsInstance: EmbeddedTabsInstance | null = null;
 	let disabledTabsKey = '';
 
-	function getDisabledTabs(): DevToolsTab[] {
+	const getDisabledTabs = function getDisabledTabs(): DevToolsTab[] {
 		const disabledTabs: DevToolsTab[] = [];
 		const storeState = storeConnector.getState();
 		if (!storeState || storeState.model !== 'iab') {
 			disabledTabs.push('iab');
 		}
 		return disabledTabs;
-	}
+	};
 
 	syncTabs = (): DevToolsTab => {
 		const disabledTabs = getDisabledTabs();
 		const nextDisabledTabsKey = disabledTabs.join('|');
-		let activeTab = stateManager.getState().activeTab;
+		let { activeTab } = stateManager.getState();
 		if (disabledTabs.includes(activeTab)) {
 			activeTab = 'consents';
 			stateManager.setActiveTab(activeTab);
@@ -791,11 +801,11 @@ export function createDevToolsPanel(options: {
 			tabsInstance?.destroy();
 			tabsInstance = createEmbeddedTabs({
 				activeTab,
+				disabledTabs,
 				onTabChange: (tab) => {
 					stateManager.setActiveTab(tab);
 					renderActivePanel();
 				},
-				disabledTabs,
 			});
 			disabledTabsKey = nextDisabledTabsKey;
 			if (!tabsInstance.element.parentElement) {
@@ -824,7 +834,6 @@ export function createDevToolsPanel(options: {
 	});
 
 	return {
-		element: container,
 		destroy: () => {
 			detachInstrumentation?.();
 			detachInstrumentation = null;
@@ -836,5 +845,6 @@ export function createDevToolsPanel(options: {
 			storeConnector.destroy();
 			stateManager.destroy();
 		},
+		element: container,
 	};
-}
+};

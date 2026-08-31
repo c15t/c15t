@@ -25,16 +25,16 @@ import { TriggerIcon } from './icon';
 import { useTriggerContext } from './root';
 
 const cornerClassMap = {
-	'bottom-right': styles.bottomRight,
 	'bottom-left': styles.bottomLeft,
-	'top-right': styles.topRight,
+	'bottom-right': styles.bottomRight,
 	'top-left': styles.topLeft,
+	'top-right': styles.topRight,
 } as const satisfies Record<CornerPosition, string | undefined>;
 
 const sizeClassMap = {
-	sm: styles.sm,
-	md: styles.md,
 	lg: styles.lg,
+	md: styles.md,
+	sm: styles.sm,
 } as const;
 
 interface ToolbarItemBase {
@@ -60,7 +60,7 @@ interface ToolbarCustomItem extends ToolbarItemBase {
 
 type ToolbarItem = ToolbarPreferencesItem | ToolbarCustomItem;
 
-function createToolbarItems(
+const createToolbarItems = function createToolbarItems(
 	actions: readonly ConsentDialogTriggerToolbarAction[],
 	preferences: ConsentDialogTriggerToolbarPreferences
 ): readonly ToolbarItem[] {
@@ -83,9 +83,9 @@ function createToolbarItems(
 			style: preferences.style,
 		},
 	];
-}
+};
 
-function orderItemsForCorner(
+const orderItemsForCorner = function orderItemsForCorner(
 	items: readonly ToolbarItem[],
 	orientation: TriggerOrientation,
 	corner: CornerPosition
@@ -104,7 +104,7 @@ function orderItemsForCorner(
 	return cornerFacesStart
 		? [preferencesItem, ...customItems]
 		: [...customItems, preferencesItem];
-}
+};
 
 export interface TriggerToolbarProps extends Omit<
 	ClassNameStyle,
@@ -170,8 +170,8 @@ export const TriggerToolbar = ({
 			isSnapping && styles.snapping,
 		],
 		className,
-		style,
 		noStyle,
+		style,
 	});
 	const toolbarDOMStyle = sanitizeDOMStyleProps(toolbarStyle);
 	const itemStyle = useStyles('consentDialogTriggerToolbarItem', {

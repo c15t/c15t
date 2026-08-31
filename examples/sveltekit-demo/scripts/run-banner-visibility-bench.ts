@@ -18,7 +18,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -29,9 +29,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -42,7 +42,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 const HOST = '127.0.0.1';
 const PORT = 4176;
@@ -74,18 +74,18 @@ interface Stats {
 	max: number;
 }
 
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((left, right) => left - right);
 	return {
 		avg: samples.reduce((acc, value) => acc + value, 0) / samples.length,
-		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
-		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
-		min: sorted[0] ?? 0,
 		max: sorted[sorted.length - 1] ?? 0,
+		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
+		min: sorted[0] ?? 0,
+		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
-async function runCommand(args: string[], label: string) {
+const runCommand = async function runCommand(args: string[], label: string) {
 	await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
@@ -108,18 +108,20 @@ async function runCommand(args: string[], label: string) {
 		});
 		command.on('error', rejectPromise);
 	});
-}
+};
 
-async function ensureBuild() {
+const ensureBuild = async function ensureBuild() {
 	await runCommand(['run', 'build'], 'svelte banner benchmark build');
-}
+};
 
-async function waitForServer() {
+const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const response = await fetch(`${BASE_URL}/bench/banner-visibility`);
-			if (response.ok) return;
+			if (response.ok) {
+				return;
+			}
 		} catch {
 			// Ignore transient failures while polling or cleaning up.
 		}
@@ -128,9 +130,9 @@ async function waitForServer() {
 	}
 
 	throw new Error('Timed out waiting for Svelte banner benchmark server');
-}
+};
 
-async function collectSample(
+const collectSample = async function collectSample(
 	page: Page,
 	version: Version
 ): Promise<BenchState> {
@@ -151,15 +153,17 @@ async function collectSample(
 	const state = await page.evaluate(() =>
 		JSON.parse(JSON.stringify(window.__c15tBannerVisibilityBench ?? null))
 	);
-	if (!state) throw new Error(`${version}: missing benchmark state`);
+	if (!state) {
+		throw new Error(`${version}: missing benchmark state`);
+	}
 	const typed = state as BenchState;
 	if (typed.errorCount > 0) {
 		throw new Error(`${version}: ${typed.errors.join('; ')}`);
 	}
 	return typed;
-}
+};
 
-async function run() {
+const run = async function run() {
 	await ensureBuild();
 	const server = spawn(
 		'bun',
@@ -197,8 +201,11 @@ async function run() {
 			const renderSamples: number[] = [];
 
 			for (let index = 0; index < warmupIterations + iterations; index += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const context = await browser.newContext({ baseURL: BASE_URL });
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const page = await context.newPage();
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const sample = await collectSample(page, version);
 				if (index >= warmupIterations) {
 					readySamples.push(sample.bannerReadyMs ?? 0);
@@ -206,15 +213,16 @@ async function run() {
 					mountSamples.push(sample.mountMs ?? 0);
 					renderSamples.push(sample.renderCount);
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await context.close();
 			}
 
 			results.push({
-				version,
 				bannerReadyMs: summarize(readySamples),
 				bannerVisibleMs: summarize(visibleSamples),
 				mountMs: summarize(mountSamples),
 				renderCount: summarize(renderSamples),
+				version,
 			});
 		}
 
@@ -225,11 +233,11 @@ async function run() {
 			join(outputDir, 'svelte-v2-v3-banner-visibility.json'),
 			`${JSON.stringify(
 				{
-					suite: 'svelte-banner-visibility',
 					generatedAt: new Date().toISOString(),
 					iterations,
-					warmupIterations,
 					results,
+					suite: 'svelte-banner-visibility',
+					warmupIterations,
 				},
 				null,
 				2
@@ -276,7 +284,7 @@ async function run() {
 	if (cleanupError) {
 		throw cleanupError;
 	}
-}
+};
 
 try {
 	await run();

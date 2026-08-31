@@ -3,7 +3,9 @@ import type { ResolvedPolicy } from '~/api/init';
 /** @deprecated Strategy selection removed — uses crypto.subtle (async) or pure-JS (sync) */
 export type FingerprintHashStrategy = 'auto' | 'node' | 'webcrypto' | 'pure-js';
 
-export function stableStringify(value: unknown): string {
+export const stableStringify = function stableStringify(
+	value: unknown
+): string {
 	if (value === null || typeof value !== 'object') {
 		return JSON.stringify(value);
 	}
@@ -22,9 +24,9 @@ export function stableStringify(value: unknown): string {
 				`${JSON.stringify(key)}:${stableStringify(entryValue)}`
 		)
 		.join(',')}}`;
-}
+};
 
-function sha256HexPureJs(input: string): string {
+const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 	const data = new TextEncoder().encode(input);
 
 	// SHA-256 constants
@@ -43,12 +45,14 @@ function sha256HexPureJs(input: string): string {
 	]);
 
 	const bitLen = data.length * 8;
+	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 	const padLen = (((data.length + 9 + 63) >> 6) << 6) >>> 0;
 	const padded = new Uint8Array(padLen);
 	padded.set(data);
 	padded[data.length] = 0x80;
 	const view = new DataView(padded.buffer);
 	view.setUint32(padLen - 8, Math.floor(bitLen / 2 ** 32), false);
+	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 	view.setUint32(padLen - 4, bitLen >>> 0, false);
 
 	const H = new Uint32Array([
@@ -56,6 +60,7 @@ function sha256HexPureJs(input: string): string {
 		0x1f83d9ab, 0x5be0cd19,
 	]);
 	const W = new Uint32Array(64);
+	// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 	const r = (v: number, s: number) => (v >>> s) | (v << (32 - s));
 	const word = (array: Uint32Array, index: number) => {
 		const value = array[index];
@@ -66,12 +71,17 @@ function sha256HexPureJs(input: string): string {
 	};
 
 	for (let off = 0; off < padLen; off += 64) {
-		for (let i = 0; i < 16; i++) W[i] = view.getUint32(off + i * 4, false);
-		for (let i = 16; i < 64; i++) {
+		for (let i = 0; i < 16; i += 1) {
+			W[i] = view.getUint32(off + i * 4, false);
+		}
+		for (let i = 16; i < 64; i += 1) {
 			const w15 = word(W, i - 15);
 			const w2 = word(W, i - 2);
+			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 			const s0 = r(w15, 7) ^ r(w15, 18) ^ (w15 >>> 3);
+			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 			const s1 = r(w2, 17) ^ r(w2, 19) ^ (w2 >>> 10);
+			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 			W[i] = (word(W, i - 16) + s0 + word(W, i - 7) + s1) >>> 0;
 		}
 		let a = word(H, 0);
@@ -82,41 +92,57 @@ function sha256HexPureJs(input: string): string {
 		let f = word(H, 5);
 		let g = word(H, 6);
 		let h = word(H, 7);
-		for (let i = 0; i < 64; i++) {
+		for (let i = 0; i < 64; i += 1) {
 			const t1 =
+				// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 				(h +
+					// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 					(r(e, 6) ^ r(e, 11) ^ r(e, 25)) +
+					// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 					((e & f) ^ (~e & g)) +
 					word(K, i) +
 					word(W, i)) >>>
 				0;
 			const t2 =
+				// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 				((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
 			h = g;
 			g = f;
 			f = e;
+			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 			e = (d + t1) >>> 0;
 			d = c;
 			c = b;
 			b = a;
+			// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 			a = (t1 + t2) >>> 0;
 		}
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[0] = (word(H, 0) + a) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[1] = (word(H, 1) + b) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[2] = (word(H, 2) + c) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[3] = (word(H, 3) + d) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[4] = (word(H, 4) + e) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[5] = (word(H, 5) + f) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[6] = (word(H, 6) + g) >>> 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		H[7] = (word(H, 7) + h) >>> 0;
 	}
 
 	return Array.from(H)
 		.map((w) => w.toString(16).padStart(8, '0'))
 		.join('');
-}
+};
 
-export async function hashSha256Hex(input: string): Promise<string> {
+export const hashSha256Hex = async function hashSha256Hex(
+	input: string
+): Promise<string> {
 	const subtle = globalThis.crypto?.subtle;
 	if (subtle) {
 		const data = new TextEncoder().encode(input);
@@ -126,71 +152,78 @@ export async function hashSha256Hex(input: string): Promise<string> {
 			.join('');
 	}
 	return sha256HexPureJs(input);
-}
+};
 
-export function createDeterministicFingerprintSync(value: unknown): string {
-	return sha256HexPureJs(stableStringify(value));
-}
+export const createDeterministicFingerprintSync =
+	function createDeterministicFingerprintSync(value: unknown): string {
+		return sha256HexPureJs(stableStringify(value));
+	};
 
-export async function createDeterministicFingerprint(
-	value: unknown
-): Promise<string> {
-	return hashSha256Hex(stableStringify(value));
-}
+export const createDeterministicFingerprint =
+	// oxlint-disable-next-line require-await -- Async signature preserves the public hashing contract.
+	async function createDeterministicFingerprint(
+		value: unknown
+	): Promise<string> {
+		return hashSha256Hex(stableStringify(value));
+	};
 
-export async function createPolicyFingerprint(
+// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
+export const createPolicyFingerprint = async function createPolicyFingerprint(
 	policy: ResolvedPolicy
 ): Promise<string> {
 	return createDeterministicFingerprint(policy);
-}
+};
 
-function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
-	return {
-		model: policy.model,
-		consent: policy.consent
-			? {
-					expiryDays: policy.consent.expiryDays,
-					scopeMode: policy.consent.scopeMode,
-					categories: policy.consent.categories,
-					preselectedCategories: policy.consent.preselectedCategories,
-					gpc: policy.consent.gpc,
-				}
-			: undefined,
-		ui: policy.ui
-			? {
-					mode: policy.ui.mode,
-					banner: policy.ui.banner
-						? {
-								allowedActions: policy.ui.banner.allowedActions,
-								primaryActions: policy.ui.banner.primaryActions,
-								layout: policy.ui.banner.layout,
-								direction: policy.ui.banner.direction,
-							}
-						: undefined,
-					dialog: policy.ui.dialog
-						? {
-								allowedActions: policy.ui.dialog.allowedActions,
-								primaryActions: policy.ui.dialog.primaryActions,
-								layout: policy.ui.dialog.layout,
-								direction: policy.ui.dialog.direction,
-							}
-						: undefined,
-				}
-			: undefined,
-		proof: policy.proof
-			? {
-					storeIp: policy.proof.storeIp,
-					storeUserAgent: policy.proof.storeUserAgent,
-					storeLanguage: policy.proof.storeLanguage,
-				}
-			: undefined,
+const createMaterialPolicyFingerprintInput =
+	function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
+		return {
+			consent: policy.consent
+				? {
+						categories: policy.consent.categories,
+						expiryDays: policy.consent.expiryDays,
+						gpc: policy.consent.gpc,
+						preselectedCategories: policy.consent.preselectedCategories,
+						scopeMode: policy.consent.scopeMode,
+					}
+				: undefined,
+			model: policy.model,
+			proof: policy.proof
+				? {
+						storeIp: policy.proof.storeIp,
+						storeLanguage: policy.proof.storeLanguage,
+						storeUserAgent: policy.proof.storeUserAgent,
+					}
+				: undefined,
+			ui: policy.ui
+				? {
+						banner: policy.ui.banner
+							? {
+									allowedActions: policy.ui.banner.allowedActions,
+									direction: policy.ui.banner.direction,
+									layout: policy.ui.banner.layout,
+									primaryActions: policy.ui.banner.primaryActions,
+								}
+							: undefined,
+						dialog: policy.ui.dialog
+							? {
+									allowedActions: policy.ui.dialog.allowedActions,
+									direction: policy.ui.dialog.direction,
+									layout: policy.ui.dialog.layout,
+									primaryActions: policy.ui.dialog.primaryActions,
+								}
+							: undefined,
+						mode: policy.ui.mode,
+					}
+				: undefined,
+		};
 	};
-}
 
-export async function createMaterialPolicyFingerprint(
-	policy: ResolvedPolicy
-): Promise<string> {
-	return createDeterministicFingerprint(
-		createMaterialPolicyFingerprintInput(policy)
-	);
-}
+export const createMaterialPolicyFingerprint =
+	// oxlint-disable-next-line require-await -- Async signature preserves the public hashing contract.
+	async function createMaterialPolicyFingerprint(
+		policy: ResolvedPolicy
+	): Promise<string> {
+		return createDeterministicFingerprint(
+			createMaterialPolicyFingerprintInput(policy)
+		);
+	};

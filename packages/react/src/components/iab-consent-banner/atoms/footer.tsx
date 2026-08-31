@@ -22,7 +22,8 @@ interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps
->(function ({ children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentBannerFooter({ children, className, ...props }, ref) {
 	const themedStyle = useStyles('iabConsentBannerFooter', {
 		baseClassName: styles.footer,
 		className,

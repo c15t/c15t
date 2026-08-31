@@ -26,7 +26,7 @@ export interface ConsentBannerPolicyActionsProps {
 	) => ReactNode;
 }
 
-function renderDefaultAction(
+const renderDefaultAction = function renderDefaultAction(
 	action: HeadlessConsentBannerAction,
 	props: ConsentBannerPolicyActionRenderProps
 ) {
@@ -65,7 +65,7 @@ function renderDefaultAction(
 			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);
 		}
 	}
-}
+};
 
 export const ConsentBannerPolicyActions = ({
 	renderAction,
@@ -78,10 +78,10 @@ export const ConsentBannerPolicyActions = ({
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
 			classNames={{
-				footerFill: styles.footerFill,
 				footerColumn: styles.footerColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
+				footerFill: styles.footerFill,
 				footerSubGroupColumn: styles.footerSubGroupColumn,
+				footerSubGroupFill: styles.footerSubGroupFill,
 			}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}

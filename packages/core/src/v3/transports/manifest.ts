@@ -103,11 +103,13 @@ interface LastDecisionInputs {
 	gpc?: boolean;
 }
 
-function trimSlash(url: string): string {
+const trimSlash = function trimSlash(url: string): string {
 	return url.endsWith('/') ? url.slice(0, -1) : url;
-}
+};
 
-function deriveBackendURL(options: ManifestTransportOptions): string {
+const deriveBackendURL = function deriveBackendURL(
+	options: ManifestTransportOptions
+): string {
 	if (options.backendURL) {
 		return trimSlash(options.backendURL);
 	}
@@ -121,13 +123,15 @@ function deriveBackendURL(options: ManifestTransportOptions): string {
 	return trimmed.endsWith('/manifest')
 		? trimmed.slice(0, -'/manifest'.length)
 		: trimmed;
-}
+};
 
-function resolveDomain(
+const resolveDomain = function resolveDomain(
 	backendURL: string,
 	explicit: string | undefined
 ): string {
-	if (explicit) return explicit;
+	if (explicit) {
+		return explicit;
+	}
 	if (typeof window !== 'undefined' && window.location?.hostname) {
 		return window.location.hostname;
 	}
@@ -136,9 +140,9 @@ function resolveDomain(
 	} catch {
 		return 'localhost';
 	}
-}
+};
 
-function toHeadersFromInputs(
+const toHeadersFromInputs = function toHeadersFromInputs(
 	inputs: ResolveInitFromManifestInputs
 ): Record<string, string> {
 	const headers: Record<string, string> = {};
@@ -148,22 +152,22 @@ function toHeadersFromInputs(
 		headers['sec-gpc'] = '0';
 	}
 	return headers;
-}
+};
 
-function mergeInputs(
+const mergeInputs = function mergeInputs(
 	optionsInputs: ResolveInitFromManifestInputs | undefined,
 	overrides: Readonly<KernelOverrides>
 ): ResolveInitFromManifestInputs {
 	return {
 		...optionsInputs,
 		country: overrides.country ?? optionsInputs?.country ?? null,
-		region: overrides.region ?? optionsInputs?.region ?? null,
-		language: overrides.language ?? optionsInputs?.language ?? 'en',
 		gpc: overrides.gpc ?? optionsInputs?.gpc,
+		language: overrides.language ?? optionsInputs?.language ?? 'en',
+		region: overrides.region ?? optionsInputs?.region ?? null,
 	};
-}
+};
 
-function shouldFetchGvl(
+const shouldFetchGvl = function shouldFetchGvl(
 	manifest: ConsentManifest,
 	payload: InitOutput
 ): boolean {
@@ -172,19 +176,19 @@ function shouldFetchGvl(
 		manifest.iab.gvl !== undefined &&
 		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
 	);
-}
+};
 
-async function defaultFetchGvl(input: {
+const defaultFetchGvl = async function defaultFetchGvl(input: {
 	reference: ConsentManifestGVLReference;
 	language: string;
 	fetch: typeof globalThis.fetch;
 }): Promise<GlobalVendorList | null> {
 	const response = await input.fetch(input.reference.url, {
-		method: 'GET',
 		headers: {
 			'accept-language': input.language,
 			...c15tVersionHeaders,
 		},
+		method: 'GET',
 	});
 
 	if (response.status === 204) {
@@ -197,23 +201,23 @@ async function defaultFetchGvl(input: {
 	}
 
 	return (await response.json()) as GlobalVendorList;
-}
+};
 
-function rememberDecision(
+const rememberDecision = function rememberDecision(
 	payload: InitOutput,
 	inputs?: ResolveInitFromManifestInputs
 ): LastDecisionInputs {
 	return {
-		policyId: payload.policyDecision?.policyId,
-		fingerprint: payload.policyDecision?.fingerprint,
 		country: payload.location.countryCode,
-		region: payload.location.regionCode,
-		language: payload.translations.language,
+		fingerprint: payload.policyDecision?.fingerprint,
 		gpc: inputs?.gpc,
+		language: payload.translations.language,
+		policyId: payload.policyDecision?.policyId,
+		region: payload.location.regionCode,
 	};
-}
+};
 
-export function createManifestTransport(
+export const createManifestTransport = function createManifestTransport(
 	options: ManifestTransportOptions
 ): KernelTransport {
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
@@ -236,20 +240,21 @@ export function createManifestTransport(
 		? rememberDecision(options.initialInit, options.inputs)
 		: undefined;
 
-	async function getManifest(): Promise<ConsentManifest> {
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
+	const getManifest = async function getManifest(): Promise<ConsentManifest> {
 		if (options.manifest) {
 			return options.manifest;
 		}
 		if (!manifestPromise) {
 			manifestPromise = (async () => {
 				const response = await fetchImpl(getDefined(options.manifestURL), {
-					method: 'GET',
 					credentials,
 					headers: {
 						accept: 'application/json',
 						...c15tVersionHeaders,
 						...options.headers,
 					},
+					method: 'GET',
 				});
 
 				if (!response.ok) {
@@ -262,7 +267,7 @@ export function createManifestTransport(
 			})();
 		}
 		return manifestPromise;
-	}
+	};
 
 	return {
 		async init(ctx: InitContext): Promise<InitResponse> {
@@ -273,9 +278,9 @@ export function createManifestTransport(
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';
 				payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
-					reference: manifest.iab.gvl,
-					language,
 					fetch: fetchImpl,
+					language,
+					reference: manifest.iab.gvl,
 				});
 			}
 
@@ -298,13 +303,6 @@ export function createManifestTransport(
 				!payload.policySnapshotToken &&
 				Boolean(lastDecisionInputs?.policyId && lastDecisionInputs.fingerprint);
 			const response = await fetchImpl(`${backendURL}/subjects`, {
-				method: 'POST',
-				credentials,
-				headers: {
-					'content-type': 'application/json',
-					accept: 'application/json',
-					...c15tVersionHeaders,
-				},
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
 					...(shouldAssertDecisionInputs && {
@@ -316,6 +314,13 @@ export function createManifestTransport(
 						region: lastDecisionInputs?.region,
 					}),
 				}),
+				credentials,
+				headers: {
+					accept: 'application/json',
+					'content-type': 'application/json',
+					...c15tVersionHeaders,
+				},
+				method: 'POST',
 			});
 
 			if (!response.ok) {
@@ -327,4 +332,4 @@ export function createManifestTransport(
 			return (await response.json()) as SaveResult;
 		},
 	};
-}
+};

@@ -29,7 +29,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -40,7 +40,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 describe('Script Loader Core', () => {
 	// Setup test hooks
@@ -904,7 +904,7 @@ fbq('track', 'PageView');
 	describe('clearAllScripts', () => {
 		it('should remove all loaded scripts including callback-only scripts', () => {
 			// Load some scripts including a callback-only script
-			const loadedIds = loadScripts(
+			const _loadedIds = loadScripts(
 				[scripts[0], scripts[2], scripts[3], scripts[7]],
 				sampleConsents
 			);
@@ -1544,7 +1544,7 @@ fbq('track', 'PageView');
 
 			// Should not have created a new script element
 			// The mock results should still have the same number of elements
-			const totalElementsCreated = mockCreateElement.mock.results.length;
+			const _totalElementsCreated = mockCreateElement.mock.results.length;
 
 			// Clear the mock to track new calls
 			vi.clearAllMocks();

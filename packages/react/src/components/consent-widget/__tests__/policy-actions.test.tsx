@@ -8,8 +8,7 @@ import {
 	StableGlobalThemeProvider,
 } from '~/__tests__/stable-context-providers';
 import { ConsentWidget } from '~/components/consent-widget';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
 
 const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}

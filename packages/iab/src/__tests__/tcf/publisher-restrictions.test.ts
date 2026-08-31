@@ -8,18 +8,16 @@
 
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { GlobalVendorList, TCFConsentData } from '../../tcf/iab-tcf-types';
-import { decodeTCString, generateTCString } from '../../tcf/tc-string';
+import type { GlobalVendorList } from '../../tcf/iab-tcf-types';
 import {
 	createMockGVL,
 	createMockPublisherRestriction,
 	createMockPublisherRestrictions,
-	createMockTCFConsentAllGranted,
 	RestrictionType,
 } from './test-setup';
 
 describe('Publisher Restrictions - IAB TCF 2.3', () => {
-	let mockGVL: GlobalVendorList;
+	let _mockGVL: GlobalVendorList;
 
 	beforeEach(() => {
 		mockGVL = createMockGVL();

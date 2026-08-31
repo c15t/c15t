@@ -31,7 +31,7 @@ for (const engine of ENGINES) {
 	beforeEach(async () => {
 		runtime = ManagedRuntime.make(engine.client);
 		await runtime.runPromise(
-			Effect.gen(function* () {
+			Effect.gen(function* appTestEffect() {
 				yield* resetDatabase;
 				yield* baseline;
 				yield* indexes;
@@ -49,7 +49,8 @@ for (const engine of ENGINES) {
 
 	const seed = () =>
 		runtime.runPromise(
-			Effect.gen(function* () {
+			// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
+			Effect.gen(function* seed() {
 				const sql = yield* SqlClient.SqlClient;
 				// Through the encoder, quoted by the dialect: SQLite binds neither a
 				// Date nor a boolean, and MySQL rejects double-quoted identifiers.
@@ -58,38 +59,38 @@ for (const engine of ENGINES) {
 
 				yield* sql`insert into ${sql('domain')} ${sql.insert(
 					encodeRow(encode, {
+						createdAt: now,
 						id: 'dom_1',
 						name: 'example.com',
-						createdAt: now,
 						updatedAt: now,
 					})
 				)}`;
 				yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
 					encodeRow(encode, {
-						id: 'pol_1',
-						version: '1.0',
-						type: 'cookie',
-						effectiveDate: now,
-						isActive: true,
 						createdAt: now,
+						effectiveDate: now,
+						id: 'pol_1',
+						isActive: true,
+						type: 'cookie',
+						version: '1.0',
 					})
 				)}`;
 				yield* sql`insert into ${sql('subject')} ${sql.insert(
 					encodeRow(encode, {
-						id: 'sub_1',
-						externalId: 'ext_1',
 						createdAt: now,
+						externalId: 'ext_1',
+						id: 'sub_1',
 						updatedAt: now,
 					})
 				)}`;
 				yield* sql`insert into ${sql('consent')} ${sql.insert(
 					encodeRow(encode, {
-						id: 'cns_1',
-						subjectId: 'sub_1',
 						domainId: 'dom_1',
+						givenAt: now,
+						id: 'cns_1',
 						policyId: 'pol_1',
 						purposeIds: '[]',
-						givenAt: now,
+						subjectId: 'sub_1',
 					})
 				)}`;
 			})
@@ -110,9 +111,12 @@ for (const engine of ENGINES) {
 			// field silently fails the assertion for the wrong reason.
 			const ISO = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/u;
 			const revive = (value: unknown): unknown => {
-				if (typeof value === 'string')
+				if (typeof value === 'string') {
 					return ISO.test(value) ? new Date(value) : value;
-				if (Array.isArray(value)) return value.map(revive);
+				}
+				if (Array.isArray(value)) {
+					return value.map(revive);
+				}
 				if (value !== null && typeof value === 'object') {
 					return Object.fromEntries(
 						Object.entries(value).map(([key, nested]) => [key, revive(nested)])
@@ -134,8 +138,8 @@ for (const engine of ENGINES) {
 
 			assert.strictEqual(response.status, 400);
 			assert.deepStrictEqual(await response.json(), {
-				message: 'externalId query parameter is required',
 				cause: { code: 'EXTERNAL_ID_REQUIRED' },
+				message: 'externalId query parameter is required',
 			});
 		});
 
@@ -160,20 +164,20 @@ for (const engine of ENGINES) {
 		it('does not leak database detail when a query fails', async () => {
 			// Drop the table out from under the handler to force a SqlError.
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* appTestEffect() {
 					const sql = yield* SqlClient.SqlClient;
 					const q = Dialect.escaperFor(yield* Dialect.current);
 					// Foreign keys point at this table, so they have to go first
 					// on the engines with no `cascade`.
 					yield* sql.onDialectOrElse({
-						pg: () => sql.unsafe(`drop table ${q('consent')} cascade`),
 						mysql: () =>
-							Effect.gen(function* () {
+							Effect.gen(function* mysql() {
 								yield* sql`set foreign_key_checks = 0`;
 								yield* sql.unsafe(`drop table ${q('consent')}`);
 								yield* sql`set foreign_key_checks = 1`;
 							}),
 						orElse: () => sql.unsafe(`drop table ${q('consent')}`),
+						pg: () => sql.unsafe(`drop table ${q('consent')} cascade`),
 					});
 				})
 			);
@@ -185,8 +189,8 @@ for (const engine of ENGINES) {
 			// Table and column names in an error body are information disclosure,
 			// and more so on a consent platform. Detail belongs in the wide event.
 			assert.deepStrictEqual(body, {
-				message: 'Internal server error',
 				cause: { code: 'DATABASE_ERROR' },
+				message: 'Internal server error',
 			});
 			assert.notInclude(JSON.stringify(body), 'consent');
 		});
@@ -200,8 +204,8 @@ for (const engine of ENGINES) {
 			// would imply the person has no consents.
 			assert.strictEqual(response.status, 401);
 			assert.deepStrictEqual(await response.json(), {
-				message: 'Unauthorized',
 				cause: { code: 'UNAUTHORIZED' },
+				message: 'Unauthorized',
 			});
 		});
 
@@ -246,18 +250,18 @@ for (const engine of ENGINES) {
 
 		it('reports 503 rather than 500 when the database is unreachable', async () => {
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* appTestEffect() {
 					const sql = yield* SqlClient.SqlClient;
 					const q = Dialect.escaperFor(yield* Dialect.current);
 					yield* sql.onDialectOrElse({
-						pg: () => sql.unsafe(`drop table ${q('subject')} cascade`),
 						mysql: () =>
-							Effect.gen(function* () {
+							Effect.gen(function* mysql() {
 								yield* sql`set foreign_key_checks = 0`;
 								yield* sql.unsafe(`drop table ${q('subject')}`);
 								yield* sql`set foreign_key_checks = 1`;
 							}),
 						orElse: () => sql.unsafe(`drop table ${q('subject')}`),
+						pg: () => sql.unsafe(`drop table ${q('subject')} cascade`),
 					});
 				})
 			);
@@ -268,8 +272,8 @@ for (const engine of ENGINES) {
 			// unreachable database is the former.
 			assert.strictEqual(response.status, 503);
 			assert.deepStrictEqual(await response.json(), {
-				message: 'Database health check failed',
 				cause: { code: 'SERVICE_UNAVAILABLE' },
+				message: 'Database health check failed',
 			});
 		});
 	});
@@ -292,8 +296,8 @@ for (const engine of ENGINES) {
 			// subject exists and has consented to nothing.
 			assert.strictEqual(response.status, 404);
 			assert.deepStrictEqual(await response.json(), {
-				message: 'Subject not found',
 				cause: { code: 'NOT_FOUND' },
+				message: 'Subject not found',
 			});
 		});
 
@@ -332,18 +336,18 @@ for (const engine of ENGINES) {
 		it('does not count consent given against a superseded policy', async () => {
 			await seed();
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* appTestEffect() {
 					const sql = yield* SqlClient.SqlClient;
 					// A newer active policy of the same type supersedes pol_1.
 					const encode = yield* encoder;
 					yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
 						encodeRow(encode, {
-							id: 'pol_2',
-							version: '2.0',
-							type: 'cookie',
-							effectiveDate: new Date(1_800_086_400_000),
-							isActive: true,
 							createdAt: new Date(1_800_000_000_000),
+							effectiveDate: new Date(1_800_086_400_000),
+							id: 'pol_2',
+							isActive: true,
+							type: 'cookie',
+							version: '2.0',
 						})
 					)}`;
 				})
@@ -381,16 +385,16 @@ for (const engine of ENGINES) {
 		it('separates having consent from it being current', async () => {
 			await seed();
 			await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* appTestEffect() {
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
 						encodeRow(yield* encoder, {
-							id: 'pol_2',
-							version: '2.0',
-							type: 'cookie',
-							effectiveDate: new Date(1_800_086_400_000),
-							isActive: true,
 							createdAt: new Date(1_800_000_000_000),
+							effectiveDate: new Date(1_800_086_400_000),
+							id: 'pol_2',
+							isActive: true,
+							type: 'cookie',
+							version: '2.0',
 						})
 					)}`;
 				})
@@ -467,11 +471,11 @@ for (const engine of ENGINES) {
 
 		it('answers a preflight without reaching a route', async () => {
 			const response = await app.request('/subjects', {
-				method: 'OPTIONS',
 				headers: {
-					Origin: 'https://app.example.com',
 					'Access-Control-Request-Method': 'GET',
+					Origin: 'https://app.example.com',
 				},
+				method: 'OPTIONS',
 			});
 
 			// 204 and not 401: the preflight carries no credentials by design, so
@@ -486,13 +490,13 @@ for (const engine of ENGINES) {
 
 	describe('PUT /legal-documents/:type/current', () => {
 		const release = {
-			version: '1.0',
-			hash: 'sha256-abc',
 			effectiveDate: new Date(1_800_000_000_000).toISOString(),
+			hash: 'sha256-abc',
+			version: '1.0',
 		};
 		const put = (body: unknown, auth = true) =>
 			app.request('/legal-documents/privacy_policy/current', {
-				method: 'PUT',
+				body: JSON.stringify(body),
 				headers: (() => {
 					const headers: Record<string, string> = {
 						'Content-Type': 'application/json',
@@ -502,7 +506,7 @@ for (const engine of ENGINES) {
 					}
 					return headers;
 				})(),
-				body: JSON.stringify(body),
+				method: 'PUT',
 			});
 
 		it('requires an API key', async () => {
@@ -525,7 +529,7 @@ for (const engine of ENGINES) {
 			assert.strictEqual(second.policy.id, first.policy.id);
 
 			const rows = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* rows() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{
 						total: string;
@@ -537,10 +541,10 @@ for (const engine of ENGINES) {
 
 		it('leaves exactly one active policy per type', async () => {
 			await put(release);
-			await put({ ...release, version: '2.0', hash: 'sha256-def' });
+			await put({ ...release, hash: 'sha256-def', version: '2.0' });
 
 			const active = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* active() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{ version: string }>`
 						select ${sql('version')} from ${sql('consentPolicy')}
@@ -575,12 +579,12 @@ for (const engine of ENGINES) {
 	describe('PATCH /subjects/:id', () => {
 		const patch = (id: string, body: unknown) =>
 			app.request(`/subjects/${id}`, {
-				method: 'PATCH',
+				body: JSON.stringify(body),
 				headers: {
 					'Content-Type': 'application/json',
 					'x-forwarded-for': '203.0.113.42',
 				},
-				body: JSON.stringify(body),
+				method: 'PATCH',
 			});
 
 		it('links a subject to an external identity', async () => {
@@ -600,7 +604,7 @@ for (const engine of ENGINES) {
 			});
 
 			const entries = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* entries() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{
 						actionType: string;
@@ -641,7 +645,7 @@ for (const engine of ENGINES) {
 		it('writes no audit entry when the subject is missing', async () => {
 			await patch('sub_absent', { externalId: 'ext_new' });
 			const entries = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* entries() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{
 						total: string;
@@ -656,20 +660,20 @@ for (const engine of ENGINES) {
 	describe('POST /subjects', () => {
 		const post = (body: unknown) =>
 			app.request('/subjects', {
-				method: 'POST',
+				body: JSON.stringify(body),
 				headers: {
 					'Content-Type': 'application/json',
 					'x-forwarded-for': '203.0.113.42',
 				},
-				body: JSON.stringify(body),
+				method: 'POST',
 			});
 
 		const submission = {
-			subjectId: 'sub_client',
 			domainId: 'dom_1',
+			givenAt: new Date(1_800_000_000_000).toISOString(),
 			policyId: 'pol_1',
 			purposeIds: ['analytics'],
-			givenAt: new Date(1_800_000_000_000).toISOString(),
+			subjectId: 'sub_client',
 		};
 
 		it('records a consent', async () => {
@@ -699,7 +703,7 @@ for (const engine of ENGINES) {
 			// Scoped to this submission: seed() already inserted an unrelated
 			// consent, so a bare count would measure the fixture, not the replay.
 			const rows = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* rows() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{ total: string }>`
 						select count(*) as total from ${sql('consent')}
@@ -715,7 +719,7 @@ for (const engine of ENGINES) {
 			const { consentId } = await (await post(submission)).json();
 
 			const rows = await runtime.runPromise(
-				Effect.gen(function* () {
+				Effect.gen(function* rows() {
 					const sql = yield* SqlClient.SqlClient;
 					return yield* sql<{ ipAddress: string | null }>`
 						select ${sql('ipAddress')} from ${sql('consent')}
@@ -765,8 +769,8 @@ for (const engine of ENGINES) {
 		it('declares the bearer scheme the authenticated routes use', async () => {
 			const spec = await (await app.request('/spec.json')).json();
 			assert.deepStrictEqual(spec.components.securitySchemes.bearerAuth, {
-				type: 'http',
 				scheme: 'bearer',
+				type: 'http',
 			});
 		});
 

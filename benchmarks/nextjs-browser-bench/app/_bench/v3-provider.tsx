@@ -27,11 +27,11 @@ const consentCategories = [
 	'marketing',
 ] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
-function createOptions(scenario: NextjsBenchScenario): ConsentProviderOptions {
+const createOptions = function createOptions(
+	scenario: NextjsBenchScenario
+): ConsentProviderOptions {
 	return {
-		mode: 'c15t',
 		backendURL: '/api/bench-consent',
-		consentCategories,
 		callbacks: {
 			onBannerFetched() {
 				const state = getState(scenario);
@@ -56,6 +56,8 @@ function createOptions(scenario: NextjsBenchScenario): ConsentProviderOptions {
 				}
 			},
 		},
+		consentCategories,
+		mode: 'c15t',
 		theme: {
 			motion: {
 				duration: {
@@ -66,16 +68,16 @@ function createOptions(scenario: NextjsBenchScenario): ConsentProviderOptions {
 			},
 		},
 	};
-}
+};
 
-function createBoundaryOptions(
+const createBoundaryOptions = function createBoundaryOptions(
 	scenario: NextjsBenchScenario
 ): ConsentBoundaryProps['options'] {
 	const { backendURL, mode, ...options } = createOptions(scenario);
 	void backendURL;
 	void mode;
 	return options;
-}
+};
 
 const BenchmarkContents = ({
 	children,
@@ -83,16 +85,14 @@ const BenchmarkContents = ({
 }: {
 	children: ReactNode;
 	scenario: NextjsBenchScenario;
-}) => {
-	return (
-		<>
-			<NextjsV3BenchmarkProbe scenario={scenario} />
-			<ConsentBanner disableAnimation />
-			<ConsentDialog disableAnimation />
-			{children}
-		</>
-	);
-};
+}) => (
+	<>
+		<NextjsV3BenchmarkProbe scenario={scenario} />
+		<ConsentBanner disableAnimation />
+		<ConsentDialog disableAnimation />
+		{children}
+	</>
+);
 
 export const NextjsV3ClientBenchmarkProvider = ({
 	children,
@@ -100,13 +100,11 @@ export const NextjsV3ClientBenchmarkProvider = ({
 }: {
 	children: ReactNode;
 	scenario: NextjsBenchScenario;
-}) => {
-	return (
-		<ConsentProvider options={createOptions(scenario)}>
-			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-		</ConsentProvider>
-	);
-};
+}) => (
+	<ConsentProvider options={createOptions(scenario)}>
+		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
+	</ConsentProvider>
+);
 
 export const NextjsV3ManifestClientBenchmarkProvider = ({
 	children,
@@ -146,7 +144,7 @@ export const NextjsV3PrefetchedBenchmarkProvider = ({
 	config: ConsentBoundaryProps['config'];
 	scenario: NextjsBenchScenario;
 	ssrData: InitialDataPromise;
-}) => {
+}) => (
 	// One provider: the boundary forwards the server-prefetched config as
 	// `options.prefetch` (authoritative → banner in first HTML). The old
 	// wiring nested a second ConsentProvider that shadowed the boundary's
@@ -154,16 +152,14 @@ export const NextjsV3PrefetchedBenchmarkProvider = ({
 	// policy, which authoritative-only rendering correctly suppresses.
 	// backendURL keeps direct-init semantics (client refresh via hosted
 	// init); ssrData feeds that first client init without a second fetch.
-	return (
-		<ConsentBoundary
-			backendURL="/api/bench-consent"
-			config={config}
-			options={{ ...createBoundaryOptions(scenario), ssrData }}
-		>
-			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-		</ConsentBoundary>
-	);
-};
+	<ConsentBoundary
+		backendURL="/api/bench-consent"
+		config={config}
+		options={{ ...createBoundaryOptions(scenario), ssrData }}
+	>
+		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
+	</ConsentBoundary>
+);
 
 export const NextjsV3ManifestBenchmarkProvider = ({
 	children,
@@ -180,20 +176,18 @@ export const NextjsV3ManifestBenchmarkProvider = ({
 	 * Component child instead).
 	 */
 	surfaces?: 'client' | 'none';
-}) => {
-	return (
-		<ConsentBoundary
-			config={config}
-			options={createBoundaryOptions(scenario)}
-		>
-			{surfaces === 'client' ? (
-				<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-			) : (
-				<>
-					<NextjsV3BenchmarkProbe scenario={scenario} />
-					{children}
-				</>
-			)}
-		</ConsentBoundary>
-	);
-};
+}) => (
+	<ConsentBoundary
+		config={config}
+		options={createBoundaryOptions(scenario)}
+	>
+		{surfaces === 'client' ? (
+			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
+		) : (
+			<>
+				<NextjsV3BenchmarkProbe scenario={scenario} />
+				{children}
+			</>
+		)}
+	</ConsentBoundary>
+);

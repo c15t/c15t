@@ -87,9 +87,10 @@ interface Existing {
 
 const fkKey = (table: string, column: string) => `${table}.${column}`;
 
-const observeExisting = Effect.fn('adopt.observe')(function* () {
+const observeExisting = Effect.fn('adopt.observe')(function* observeExisting() {
 	const sql = yield* SqlClient.SqlClient;
 
+	// oxlint-disable-next-line sort-keys -- Dialect order follows the compatibility report contract.
 	const columnRows = yield* sql.onDialectOrElse({
 		sqlite: () =>
 			sql<{ table_name: string; column_name: string }>`
@@ -125,29 +126,32 @@ const observeExisting = Effect.fn('adopt.observe')(function* () {
 
 	// SQLite cannot add a foreign key to an existing table at all, so knowing
 	// which already exist matters for more than tidiness there.
+	// oxlint-disable-next-line sort-keys -- Dialect order follows the compatibility report contract.
 	const fkRows = yield* sql
-		.onDialectOrElse({
-			sqlite: () =>
-				sql<{ table_name: string; column_name: string }>`
+		.onDialectOrElse(
+			// oxlint-disable-next-line sort-keys -- Dialect order follows the compatibility report contract.
+			{
+				sqlite: () =>
+					sql<{ table_name: string; column_name: string }>`
 					select m.name as table_name, f."from" as column_name
 					from sqlite_master m join pragma_foreign_key_list(m.name) f
 					where m.type = 'table'
 				`,
-			mysql: () =>
-				sql<{ table_name: string; column_name: string }>`
+				mysql: () =>
+					sql<{ table_name: string; column_name: string }>`
 					select table_name as table_name, column_name as column_name
 					from information_schema.key_column_usage
 					where table_schema = database()
 						and referenced_table_name is not null
 				`,
-			// Scoped to the current schema. `pg_constraint` is database-wide, so
-			// without the namespace join a second c15t installation in another
-			// schema of the same database — which `database.schema` now makes a
-			// supported configuration — would look like foreign keys already
-			// present here. Adoption would then skip adding them *and* skip the
-			// orphan check that guards them.
-			orElse: () =>
-				sql<{ table_name: string; column_name: string }>`
+				// Scoped to the current schema. `pg_constraint` is database-wide, so
+				// without the namespace join a second c15t installation in another
+				// schema of the same database — which `database.schema` now makes a
+				// supported configuration — would look like foreign keys already
+				// present here. Adoption would then skip adding them *and* skip the
+				// orphan check that guards them.
+				orElse: () =>
+					sql<{ table_name: string; column_name: string }>`
 					select cl.relname as table_name, att.attname as column_name
 					from pg_constraint con
 					join pg_class cl on cl.oid = con.conrelid
@@ -156,20 +160,21 @@ const observeExisting = Effect.fn('adopt.observe')(function* () {
 					join pg_attribute att on att.attrelid = con.conrelid and att.attnum = k.attnum
 					where con.contype = 'f' and ns.nspname = current_schema()
 				`,
-		})
+			}
+		)
 		.pipe(Effect.orElseSucceed(() => []));
 
 	return {
-		tables: new Set(columns.keys()),
 		columns,
 		foreignKeys: new Set(
 			fkRows.map((row) => fkKey(row.table_name, row.column_name))
 		),
+		tables: new Set(columns.keys()),
 	} satisfies Existing;
 });
 
 /** Counts rows that would violate a foreign key before it is added. */
-const countOrphans = Effect.fn('adopt.countOrphans')(function* (
+const countOrphans = Effect.fn('adopt.countOrphans')(function* countOrphans(
 	table: TableSpec,
 	fk: ForeignKeySpec
 ) {
@@ -192,17 +197,16 @@ const countOrphans = Effect.fn('adopt.countOrphans')(function* (
  * case. It will be created empty, so every non-null value in the child column
  * is an orphan by definition.
  */
-const countUnmatchable = Effect.fn('adopt.countUnmatchable')(function* (
-	table: TableSpec,
-	fk: ForeignKeySpec
-) {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ orphans: number | string }>`
+const countUnmatchable = Effect.fn('adopt.countUnmatchable')(
+	function* countUnmatchable(table: TableSpec, fk: ForeignKeySpec) {
+		const sql = yield* SqlClient.SqlClient;
+		const rows = yield* sql<{ orphans: number | string }>`
 		select count(*) as orphans from ${sql(table.name)}
 		where ${sql(fk.column)} is not null
 	`;
-	return Number(rows[0]?.orphans ?? 0);
-});
+		return Number(rows[0]?.orphans ?? 0);
+	}
+);
 
 /**
  * Works out what adoption would do, without doing any of it.
@@ -210,7 +214,8 @@ const countUnmatchable = Effect.fn('adopt.countUnmatchable')(function* (
  * Safe against production, and intended to be exactly what `--dry-run` prints.
  */
 export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
-	Effect.gen(function* () {
+	// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+	Effect.gen(function* plan() {
 		const classification = yield* classify;
 		const dialect = yield* Dialect.current.pipe(
 			Effect.orElseSucceed(() => 'postgres' as const)
@@ -221,21 +226,21 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 
 		if (classification._tag === 'Unknown') {
 			return {
-				classification,
-				steps: [],
-				retained: [],
-				orphans: [],
 				blocked: `Refusing to migrate an unrecognised database. ${classification.why}`,
+				classification,
+				orphans: [],
+				retained: [],
+				steps: [],
 			};
 		}
 
 		if (classification._tag === 'Baseline') {
 			return {
-				classification,
-				steps: [],
-				retained: [],
-				orphans: [],
 				blocked: undefined,
+				classification,
+				orphans: [],
+				retained: [],
+				steps: [],
 			};
 		}
 
@@ -250,8 +255,8 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		for (const table of TABLES) {
 			if (!existing.tables.has(table.name)) {
 				steps.push({
-					kind: 'create-table',
 					description: `Create "${table.name}"`,
+					kind: 'create-table',
 					sql: createTableSql(table, types, quote),
 				});
 				continue;
@@ -259,10 +264,12 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 
 			const present = existing.columns.get(table.name) ?? new Set<string>();
 			for (const column of table.columns) {
-				if (present.has(column.name)) continue;
+				if (present.has(column.name)) {
+					continue;
+				}
 				steps.push({
-					kind: 'add-column',
 					description: `Add "${table.name}"."${column.name}"`,
+					kind: 'add-column',
 					sql: addColumnSql(table.name, column, types, quote),
 				});
 			}
@@ -270,7 +277,9 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 			// Only an already-existing table needs an ALTER for its foreign keys;
 			// a freshly created one carries them inline.
 			for (const fk of table.foreignKeys) {
-				if (existing.foreignKeys.has(fkKey(table.name, fk.column))) continue;
+				if (existing.foreignKeys.has(fkKey(table.name, fk.column))) {
+					continue;
+				}
 
 				// A column or referenced table this plan is about to create counts
 				// as present: both loops above run before these steps do. Skipping
@@ -284,7 +293,9 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				const referenceKnown =
 					existing.tables.has(fk.referencesTable) ||
 					TABLES.some((spec) => spec.name === fk.referencesTable);
-				if (!columnKnown || !referenceKnown) continue;
+				if (!columnKnown || !referenceKnown) {
+					continue;
+				}
 
 				const countEffect = (() => {
 					if (!present.has(fk.column)) {
@@ -304,17 +315,17 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				const count = yield* countEffect.pipe(Effect.orElseSucceed(() => 0));
 				if (count > 0) {
 					orphans.push({
-						table: table.name,
 						column: fk.column,
-						referencesTable: fk.referencesTable,
 						count,
+						referencesTable: fk.referencesTable,
+						table: table.name,
 					});
 					continue;
 				}
 
 				foreignKeySteps.push({
-					kind: 'add-foreign-key',
 					description: `Add foreign key "${table.name}"."${fk.column}" -> "${fk.referencesTable}"`,
+					kind: 'add-foreign-key',
 					sql: `alter table ${quote(table.name)} add foreign key (${quote(
 						fk.column
 					)}) references ${quote(fk.referencesTable)}(${quote(
@@ -329,8 +340,8 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		steps.push(...foreignKeySteps);
 
 		steps.push({
-			kind: 'stamp',
 			description: 'Record the baseline in the migration ledger',
+			kind: 'stamp',
 			sql: `create table if not exists ${quote(LEDGER_TABLE)} (${quote(
 				'id'
 			)} integer primary key, ${quote('name')} ${types.text} not null, ${quote(
@@ -364,10 +375,6 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		}
 
 		return {
-			classification,
-			steps,
-			retained: retained.sort(),
-			orphans,
 			blocked:
 				orphans.length > 0
 					? `Refusing to add foreign keys: ${orphans
@@ -377,6 +384,10 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 							)
 							.join('; ')}. Clean the data, or re-run with skipForeignKeys.`
 					: undefined,
+			classification,
+			orphans,
+			retained: retained.sort(),
+			steps,
 		};
 	});
 
@@ -402,10 +413,11 @@ export interface ApplyOptions {
  * Word boundaries matter: a column legitimately named `dropdown` must not trip
  * it, and does not.
  */
-const DESTRUCTIVE = /\b(drop|truncate)\b|\bdelete\s+from\b/i;
+// oxlint-disable-next-line prefer-named-capture-group -- Capture indexes are part of the compatibility matcher contract.
+const DESTRUCTIVE = /\b(drop|truncate)\b|\bdelete\s+from\b/iu;
 
 /** Applies a plan. Refuses a blocked one unless the blocker is opted out of. */
-export const apply = Effect.fn('adopt.apply')(function* (
+export const apply = Effect.fn('adopt.apply')(function* apply(
 	adoption: Plan,
 	options: ApplyOptions = {}
 ) {
@@ -417,8 +429,9 @@ export const apply = Effect.fn('adopt.apply')(function* (
 	if (destructive.length > 0) {
 		return yield* Effect.die(
 			new Error(
-				'Adoption is add-only and must never delete. Refusing to run: ' +
-					destructive.map((step) => step.description).join('; ')
+				`Adoption is add-only and must never delete. Refusing to run: ${destructive
+					.map((step) => step.description)
+					.join('; ')}`
 			)
 		);
 	}
@@ -440,9 +453,9 @@ export const apply = Effect.fn('adopt.apply')(function* (
 	yield* sql`
 		insert into ${sql(LEDGER_TABLE)} ${sql.insert(
 			encodeRow(yield* encoder, {
+				appliedAt: new Date(),
 				id: 1,
 				name: '1-baseline',
-				appliedAt: new Date(),
 			})
 		)}
 	`.pipe(

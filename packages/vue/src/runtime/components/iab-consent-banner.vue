@@ -30,8 +30,8 @@ const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 /** Canonical contract test-ids (parity with the React/Svelte IAB banners). */
 const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {
 	accept: 'iab-consent-banner-accept-button',
-	reject: 'iab-consent-banner-reject-button',
 	customize: 'iab-consent-banner-customize-button',
+	reject: 'iab-consent-banner-reject-button',
 };
 
 const props = withDefaults(
@@ -94,11 +94,11 @@ const iabT = computed(() => {
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
-	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 	customize: iabT.value?.common?.customize ?? 'Customize',
+	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-function resolveBannerSummary(
+const resolveBannerSummary = function resolveBannerSummary(
 	gvlData: GlobalVendorList,
 	vendors: NonIABVendor[]
 ) {
@@ -134,8 +134,8 @@ function resolveBannerSummary(
 		);
 		if (coveredPurposeIds.length >= 2) {
 			stackScores.push({
-				name: stack.name,
 				coveredPurposeIds,
+				name: stack.name,
 				score: coveredPurposeIds.length,
 			});
 		}
@@ -184,20 +184,20 @@ function resolveBannerSummary(
 	}
 
 	return {
-		vendorCount,
 		displayItems: items.slice(0, MAX_DISPLAY_ITEMS),
-		remainingCount: Math.max(0, items.length - MAX_DISPLAY_ITEMS),
 		isReady: true,
+		remainingCount: Math.max(0, items.length - MAX_DISPLAY_ITEMS),
+		vendorCount,
 	};
-}
+};
 
 const bannerSummary = computed(() => {
 	if (!gvl.value) {
 		return {
-			isReady: false,
-			vendorCount: 0,
 			displayItems: [] as string[],
+			isReady: false,
 			remainingCount: 0,
+			vendorCount: 0,
 		};
 	}
 
@@ -226,14 +226,14 @@ const descriptionParts = computed(() => {
 	const text = descriptionText.value;
 	const link = partnersLinkText.value;
 	if (!link || !text.includes(link)) {
-		return { before: text, after: '' };
+		return { after: '', before: text };
 	}
 
 	const [before, after] = text.split(link);
-	return { before: before ?? text, after: after ?? '' };
+	return { after: after ?? '', before: before ?? text };
 });
 
-function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		iabSelection.value.preferenceCenterTab = 'purposes';
 		activeUI.value = 'manager';
@@ -246,12 +246,12 @@ function onAction(action: PolicyUiAction) {
 	if (action === 'reject') {
 		save('none');
 	}
-}
+};
 
-function openVendors() {
+const openVendors = function openVendors() {
 	iabSelection.value.preferenceCenterTab = 'vendors';
 	activeUI.value = 'manager';
-}
+};
 
 const scrollLock = computed(
 	() => initValue.value?.policy?.ui?.banner?.scrollLock ?? true

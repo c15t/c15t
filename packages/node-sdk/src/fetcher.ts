@@ -12,7 +12,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -23,18 +23,18 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 /**
  * Default retry configuration
  */
 export const DEFAULT_RETRY_CONFIG: RetryConfig = {
-	maxRetries: 3,
-	initialDelayMs: 100,
 	backoffFactor: 2,
-	retryableStatusCodes: [500, 502, 503, 504],
+	initialDelayMs: 100,
+	maxRetries: 3,
 	nonRetryableStatusCodes: [400, 401, 403, 404],
 	retryOnNetworkError: true,
+	retryableStatusCodes: [500, 502, 503, 504],
 };
 
 /**
@@ -56,7 +56,7 @@ export interface FetcherContext {
 /**
  * Logger for debug mode
  */
-function debugLog(
+const debugLog = function debugLog(
 	debug: boolean,
 	method: string,
 	path: string,
@@ -70,7 +70,7 @@ function debugLog(
 	console.log(
 		`[c15t] ${timestamp} ${method} ${path} (${durationMs}ms) -> ${status}`
 	);
-}
+};
 
 /**
  * Delay utility for retry backoff
@@ -81,18 +81,20 @@ const delay = (ms: number): Promise<void> =>
 /**
  * Generates a UUID v4 for request identification
  */
-function generateUUID(): string {
-	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+const generateUUID = function generateUUID(): string {
+	return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/gu, (c) => {
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		const r = (Math.random() * 16) | 0;
+		// oxlint-disable-next-line no-bitwise -- Bitwise arithmetic is required by the wire or hash compatibility algorithm.
 		const v = c === 'x' ? r : (r & 0x3) | 0x8;
 		return v.toString(16);
 	});
-}
+};
 
 /**
  * Creates a response context object with Result-like helper methods
  */
-export function createResponseContext<T>(
+export const createResponseContext = function createResponseContext<T>(
 	isSuccess: boolean,
 	data: T | null = null,
 	error: {
@@ -107,51 +109,21 @@ export function createResponseContext<T>(
 	return {
 		data,
 		error,
-		ok: isSuccess,
-		response,
-
-		/**
-		 * Unwraps the response data, throwing a C15TError if the request failed.
-		 */
-		unwrap(): T {
-			if (!isSuccess || data === null) {
-				throw new C15TError({
-					message: error?.message || 'Request failed',
-					status: error?.status || 0,
-					code: error?.code,
-					details: error?.details,
-					cause: error?.cause,
-				});
-			}
-			return data;
-		},
-
-		/**
-		 * Unwraps the response data, returning a default value if the request failed.
-		 */
-		unwrapOr(defaultValue: T): T {
-			if (!isSuccess || data === null) {
-				return defaultValue;
-			}
-			return data;
-		},
-
 		/**
 		 * Unwraps the response data, throwing a C15TError with custom message if the request failed.
 		 */
 		expect(message: string): T {
 			if (!isSuccess || data === null) {
 				throw new C15TError({
-					message,
-					status: error?.status || 0,
+					cause: error?.cause,
 					code: error?.code,
 					details: error?.details,
-					cause: error?.cause,
+					message,
+					status: error?.status || 0,
 				});
 			}
 			return data;
 		},
-
 		/**
 		 * Maps the response data to a new value if successful.
 		 */
@@ -161,24 +133,54 @@ export function createResponseContext<T>(
 			}
 			return createResponseContext<U>(true, fn(data), null, response);
 		},
+		ok: isSuccess,
+		response,
+		/**
+		 * Unwraps the response data, throwing a C15TError if the request failed.
+		 */
+		unwrap(): T {
+			if (!isSuccess || data === null) {
+				throw new C15TError({
+					cause: error?.cause,
+					code: error?.code,
+					details: error?.details,
+					message: error?.message || 'Request failed',
+					status: error?.status || 0,
+				});
+			}
+			return data;
+		},
+		/**
+		 * Unwraps the response data, returning a default value if the request failed.
+		 */
+		unwrapOr(defaultValue: T): T {
+			if (!isSuccess || data === null) {
+				return defaultValue;
+			}
+			return data;
+		},
 	};
-}
+};
 
 /**
  * Resolves a URL path against the base URL
  */
-export function resolveUrl(baseUrl: string, path: string): string {
+export const resolveUrl = function resolveUrl(
+	baseUrl: string,
+	path: string
+): string {
 	// Remove trailing slash from base URL
 	const cleanBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 	// Remove leading slash from path
 	const cleanPath = path.startsWith('/') ? path.slice(1) : path;
 	return `${cleanBase}/${cleanPath}`;
-}
+};
 
 /**
  * Makes an HTTP request with retry logic
  */
-export async function fetcher<
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const fetcher = async function fetcher<
 	ResponseType,
 	BodyType = unknown,
 	QueryType = unknown,
@@ -234,7 +236,6 @@ export async function fetcher<
 		}
 
 		const requestOptions: RequestInit = {
-			method: options?.method || 'GET',
 			headers: {
 				'Content-Type': 'application/json',
 				...C15T_VERSION_HEADERS,
@@ -242,6 +243,7 @@ export async function fetcher<
 				'X-Request-ID': requestId,
 				...options?.headers,
 			},
+			method: options?.method || 'GET',
 			signal: controller.signal,
 		};
 
@@ -252,6 +254,7 @@ export async function fetcher<
 		const startTime = Date.now();
 
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const response = await fetch(url.toString(), requestOptions);
 
 			// Clear timeout on successful response
@@ -271,6 +274,7 @@ export async function fetcher<
 					response.status !== 204 &&
 					response.headers.get('content-length') !== '0'
 				) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					data = await response.json();
 				} else if (response.status === 204) {
 					data = null;
@@ -285,10 +289,10 @@ export async function fetcher<
 					false,
 					null,
 					{
+						cause: parseError,
+						code: 'PARSE_ERROR',
 						message: 'Failed to parse response',
 						status: response.status,
-						code: 'PARSE_ERROR',
-						cause: parseError,
 					},
 					response
 				);
@@ -335,12 +339,12 @@ export async function fetcher<
 				false,
 				null,
 				{
+					code: errorData?.code || 'API_ERROR',
+					details: errorData?.details || null,
 					message:
 						errorData?.message ||
 						`Request failed with status ${response.status}`,
 					status: response.status,
-					code: errorData?.code || 'API_ERROR',
-					details: errorData?.details || null,
 				},
 				response
 			);
@@ -374,9 +378,10 @@ export async function fetcher<
 				return errorResponse;
 			}
 
-			attemptsMade++;
+			attemptsMade += 1;
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await delay(currentDelay);
-			currentDelay = currentDelay * backoffFactor;
+			currentDelay *= backoffFactor;
 		} catch (fetchError) {
 			// Clear timeout on error
 			if (timeoutId) {
@@ -401,14 +406,15 @@ export async function fetcher<
 				false,
 				null,
 				{
+					cause: fetchError,
+					code: isAbortError ? 'TIMEOUT' : 'NETWORK_ERROR',
+					// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
 					message: isAbortError
 						? `Request timed out after ${timeoutMs}ms`
 						: fetchError instanceof Error
 							? fetchError.message
 							: String(fetchError),
 					status: 0,
-					code: isAbortError ? 'TIMEOUT' : 'NETWORK_ERROR',
-					cause: fetchError,
 				},
 				null
 			);
@@ -434,9 +440,10 @@ export async function fetcher<
 				return errorResponse;
 			}
 
-			attemptsMade++;
+			attemptsMade += 1;
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await delay(currentDelay);
-			currentDelay = currentDelay * backoffFactor;
+			currentDelay *= backoffFactor;
 		}
 	}
 
@@ -447,9 +454,9 @@ export async function fetcher<
 			false,
 			null,
 			{
+				code: 'MAX_RETRIES_EXCEEDED',
 				message: `Request failed after ${maxRetries} retries`,
 				status: 0,
-				code: 'MAX_RETRIES_EXCEEDED',
 			},
 			null
 		);
@@ -461,4 +468,4 @@ export async function fetcher<
 	}
 
 	return maxRetriesErrorResponse;
-}
+};

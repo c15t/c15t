@@ -18,10 +18,10 @@ export interface ButtonVariantsProps {
 
 // Re-export the helper function
 export const buttonVariants = (_props: ButtonVariantsProps = {}) => ({
-	root: (options?: { class?: string }) =>
-		[styles.button, options?.class].filter(Boolean).join(' '),
 	icon: (options?: { class?: string }) =>
 		[styles.buttonIcon, options?.class].filter(Boolean).join(' '),
+	root: (options?: { class?: string }) =>
+		[styles.button, options?.class].filter(Boolean).join(' '),
 });
 
 /**
@@ -83,60 +83,65 @@ type ButtonRootProps = ButtonSharedProps &
  *
  * @public
  */
-const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(function (
-	{
-		children,
-		variant,
-		mode,
-		size,
-		asChild,
-		className,
-		noStyle,
-		type = 'button',
-		...rest
-	},
-	forwardedRef
-) {
-	const uniqueId = useId();
-	const Component = asChild ? Slot : 'button';
+const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function ButtonRoot(
+		{
+			children,
+			variant,
+			mode,
+			size,
+			asChild,
+			className,
+			noStyle,
+			type = 'button',
+			...rest
+		},
+		forwardedRef
+	) {
+		const uniqueId = useId();
+		const Component = asChild ? Slot : 'button';
 
-	// Only apply button variants if noStyle is false
-	const variantClasses = noStyle
-		? ''
-		: buttonVariants({ variant, mode, size }).root();
+		// Only apply button variants if noStyle is false
+		const variantClasses = noStyle
+			? ''
+			: buttonVariants({ mode, size, variant }).root();
 
-	// Always include custom className
-	const finalClassName = [variantClasses, className].filter(Boolean).join(' ');
+		// Always include custom className
+		const finalClassName = [variantClasses, className]
+			.filter(Boolean)
+			.join(' ');
 
-	// Create shared props object that can be safely passed to recursiveCloneChildren
-	const cloneableProps: RecursiveCloneableProps = {
-		...(variant && { variant }),
-		...(mode && { mode }),
-		...(size && { size }),
-	};
+		// Create shared props object that can be safely passed to recursiveCloneChildren
+		const cloneableProps: RecursiveCloneableProps = {
+			...(variant && { variant }),
+			...(mode && { mode }),
+			...(size && { size }),
+		};
 
-	const extendedChildren = recursiveCloneChildren(
-		children as ReactElement[],
-		cloneableProps,
-		[BUTTON_ICON_NAME],
-		uniqueId,
-		asChild
-	);
+		const extendedChildren = recursiveCloneChildren(
+			children as ReactElement[],
+			cloneableProps,
+			[BUTTON_ICON_NAME],
+			uniqueId,
+			asChild
+		);
 
-	return (
-		<Component
-			ref={forwardedRef}
-			className={finalClassName}
-			data-mode={variantClasses ? (mode ?? 'filled') : undefined}
-			data-size={variantClasses ? (size ?? 'medium') : undefined}
-			data-variant={variantClasses ? (variant ?? 'primary') : undefined}
-			type={type}
-			{...rest}
-		>
-			{extendedChildren}
-		</Component>
-	);
-});
+		return (
+			<Component
+				ref={forwardedRef}
+				className={finalClassName}
+				data-mode={variantClasses ? (mode ?? 'filled') : undefined}
+				data-size={variantClasses ? (size ?? 'medium') : undefined}
+				data-variant={variantClasses ? (variant ?? 'primary') : undefined}
+				type={type}
+				{...rest}
+			>
+				{extendedChildren}
+			</Component>
+		);
+	}
+);
 ButtonRoot.displayName = BUTTON_ROOT_NAME;
 
 /**
@@ -169,9 +174,9 @@ const ButtonIcon = <T extends ElementType>({
 }: PolymorphicComponentProps<T, ButtonIconProps>) => {
 	const Component = as || 'div';
 	const { icon } = buttonVariants({
-		variant: variant as ButtonVariant | undefined,
 		mode: mode as ButtonMode | undefined,
 		size: size as ButtonSize | undefined,
+		variant: variant as ButtonVariant | undefined,
 	});
 
 	return (

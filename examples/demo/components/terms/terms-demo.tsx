@@ -478,9 +478,9 @@ export const TermsDemo = ({ policy }: { policy: TermsPolicySummary }) => {
 
 												if (!result) {
 													setFeedback({
-														tone: 'error',
 														message:
 															'Unable to record the terms acceptance with c15t.',
+														tone: 'error',
 													});
 													return;
 												}

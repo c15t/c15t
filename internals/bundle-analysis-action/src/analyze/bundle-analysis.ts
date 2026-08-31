@@ -60,31 +60,34 @@ interface BundleAnalysisFileSystem {
 
 const defaultFileSystem: BundleAnalysisFileSystem = {
 	existsSync: nodeFs.existsSync,
+	readFileSync: nodeFs.readFileSync,
 	readdir: nodeFs.promises.readdir,
 	readdirSync: nodeFs.readdirSync,
-	readFileSync: nodeFs.readFileSync,
 	statSync: nodeFs.statSync,
 	writeFileSync: nodeFs.writeFileSync,
 };
 
 let fileSystem: BundleAnalysisFileSystem = defaultFileSystem;
 
-export function setBundleAnalysisFileSystemForTests(
-	nextFileSystem: BundleAnalysisFileSystem
-): () => void {
-	fileSystem = nextFileSystem;
-	return () => {
-		fileSystem = defaultFileSystem;
+export const setBundleAnalysisFileSystemForTests =
+	function setBundleAnalysisFileSystemForTests(
+		nextFileSystem: BundleAnalysisFileSystem
+	): () => void {
+		fileSystem = nextFileSystem;
+		return () => {
+			fileSystem = defaultFileSystem;
+		};
 	};
-}
 
-async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
+const findRsdoctorDataFiles = async function findRsdoctorDataFiles(
+	dir: string
+): Promise<string[]> {
 	const files: string[] = [];
 	if (!fileSystem.existsSync(dir)) {
 		return files;
 	}
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await fileSystem.readdir(currentDir, {
 			withFileTypes: true,
 		});
@@ -104,13 +107,16 @@ async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 		}
 
 		await Promise.all(promises);
-	}
+	};
 
 	await walk(dir);
 	return files;
-}
+};
 
-export function extractBundleSizes(jsonPath: string): BundleStats[] {
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const extractBundleSizes = function extractBundleSizes(
+	jsonPath: string
+): BundleStats[] {
 	try {
 		const content = fileSystem.readFileSync(jsonPath, 'utf-8');
 		const data = JSON.parse(content);
@@ -146,10 +152,10 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 				}
 
 				bundles.push({
+					gzipSize,
 					name: chunkName,
 					path: jsonPath,
 					size: chunkSize,
-					gzipSize,
 					...chunkFlags,
 				});
 			}
@@ -159,10 +165,10 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 		if (bundles.length === 0 && data?.data?.chunkGraph?.assets) {
 			for (const asset of data.data.chunkGraph.assets || []) {
 				bundles.push({
+					gzipSize: asset.gzipSize,
 					name: asset.path || asset.id || 'unknown',
 					path: jsonPath,
 					size: asset.size || 0,
-					gzipSize: asset.gzipSize,
 				});
 			}
 		}
@@ -199,9 +205,11 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
 	}
-}
+};
 
-function selectBundlesForTotals(bundles: BundleStats[]): BundleStats[] {
+const selectBundlesForTotals = function selectBundlesForTotals(
+	bundles: BundleStats[]
+): BundleStats[] {
 	// Prefer initial chunks when rsdoctor provides that metadata.
 	// This avoids counting lazy-loaded chunks in top-level package totals.
 	const hasInitialMetadata = bundles.some(
@@ -213,9 +221,9 @@ function selectBundlesForTotals(bundles: BundleStats[]): BundleStats[] {
 
 	const initialBundles = bundles.filter((bundle) => bundle.initial === true);
 	return initialBundles.length > 0 ? initialBundles : bundles;
-}
+};
 
-export function compareBundles(
+export const compareBundles = function compareBundles(
 	baseBundles: BundleStats[],
 	currentBundles: BundleStats[]
 ): PackageBundleData['diffs'] {
@@ -254,19 +262,19 @@ export function compareBundles(
 			const diffPercent =
 				baseBundle.size > 0 ? (diff / baseBundle.size) * 100 : null;
 			changed.push({
-				name,
 				baseSize: baseBundle.size,
 				currentSize: currentBundle.size,
 				diff,
 				diffPercent: diffPercent ?? 0,
+				name,
 			});
 		}
 	}
 
-	return { added, removed, changed };
-}
+	return { added, changed, removed };
+};
 
-async function analyzePackage(
+const analyzePackage = async function analyzePackage(
 	packageDir: string,
 	baseDir: string,
 	currentDir: string
@@ -307,46 +315,56 @@ async function analyzePackage(
 		totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
 
 	return {
-		packageName,
 		baseBundles,
 		currentBundles,
 		diffs,
+		packageName,
 		totalBaseSize,
 		totalCurrentSize,
 		totalDiff,
 		totalDiffPercent,
 	};
-}
+};
 
-export function formatBytes(bytes: number): string {
-	if (bytes === 0) return '0 B';
+export const formatBytes = function formatBytes(bytes: number): string {
+	if (bytes === 0) {
+		return '0 B';
+	}
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
 	const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
 	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
-}
+};
 
-function getChangeEmoji(diffPercent: number): string {
-	if (diffPercent > 5) return '🔴';
-	if (diffPercent > 0) return '🟡';
-	if (diffPercent < -5) return '🟢';
+const getChangeEmoji = function getChangeEmoji(diffPercent: number): string {
+	if (diffPercent > 5) {
+		return '🔴';
+	}
+	if (diffPercent > 0) {
+		return '🟡';
+	}
+	if (diffPercent < -5) {
+		return '🟢';
+	}
 	return '⚪';
-}
+};
 
-function sortByAbsoluteChange(
+const sortByAbsoluteChange = function sortByAbsoluteChange(
 	packages: PackageBundleData[]
 ): PackageBundleData[] {
 	return [...packages].sort(
 		(a, b) => Math.abs(b.totalDiff) - Math.abs(a.totalDiff)
 	);
-}
+};
 
-function formatSignedBytes(bytes: number): string {
+const formatSignedBytes = function formatSignedBytes(bytes: number): string {
 	const sign = bytes >= 0 ? '+' : '';
 	return `${sign}${formatBytes(bytes)}`;
-}
+};
 
-function parseWorkspaceDependencyName(version: string): string | undefined {
+const parseWorkspaceDependencyName = function parseWorkspaceDependencyName(
+	version: string
+): string | undefined {
 	if (!version.startsWith('workspace:')) {
 		return undefined;
 	}
@@ -375,9 +393,9 @@ function parseWorkspaceDependencyName(version: string): string | undefined {
 	}
 
 	return match[1];
-}
+};
 
-function buildWorkspaceGraph(
+const buildWorkspaceGraph = function buildWorkspaceGraph(
 	repoDir: string,
 	packagesDir: string
 ): Map<string, WorkspacePackageNode> {
@@ -426,8 +444,8 @@ function buildWorkspaceGraph(
 			}
 
 			graph.set(manifest.name, {
-				dirName: folder,
 				dependencies: workspaceDeps,
+				dirName: folder,
 			});
 		} catch (error) {
 			console.error(`Failed to parse ${manifestPath}:`, error);
@@ -435,9 +453,9 @@ function buildWorkspaceGraph(
 	}
 
 	return graph;
-}
+};
 
-function collectTransitivePackageDirs(
+const collectTransitivePackageDirs = function collectTransitivePackageDirs(
 	graph: Map<string, WorkspacePackageNode>,
 	rootPackage: string
 ): string[] {
@@ -470,7 +488,7 @@ function collectTransitivePackageDirs(
 	}
 
 	return Array.from(dirNames).sort((a, b) => a.localeCompare(b));
-}
+};
 
 /**
  * Analyze effective bundle impact including transitive workspace dependencies.
@@ -479,7 +497,7 @@ function collectTransitivePackageDirs(
  * If both `baseDir` and `currentDir` are provided, closure is computed from the union of both
  * graphs so dependency adds/removals are reflected in totals.
  */
-export function analyzeTransitiveImpact(
+export const analyzeTransitiveImpact = function analyzeTransitiveImpact(
 	packages: PackageBundleData[],
 	currentDir: string,
 	packagesDir = 'packages',
@@ -519,17 +537,18 @@ export function analyzeTransitiveImpact(
 			totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
 
 		return {
-			rootPackage,
 			includedPackageDirs,
+			rootPackage,
 			totalBaseSize,
 			totalCurrentSize,
 			totalDiff,
 			totalDiffPercent,
 		};
 	});
-}
+};
 
-export function generateMarkdownReport(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const generateMarkdownReport = function generateMarkdownReport(
 	packages: PackageBundleData[],
 	transitive: TransitiveBundleData[] = []
 ): string {
@@ -693,12 +712,12 @@ export function generateMarkdownReport(
 		'\n---\n*This analysis was generated automatically by [rsdoctor](https://rsdoctor.rs/).*';
 
 	return markdown;
-}
+};
 
 /**
  * Analyzes bundle differences between base and current branches.
  */
-export async function analyzeBundles(
+export const analyzeBundles = async function analyzeBundles(
 	baseDir: string,
 	currentDir: string,
 	packagesDir = 'packages'
@@ -717,6 +736,7 @@ export async function analyzeBundles(
 
 	const results: PackageBundleData[] = [];
 	for (const pkg of packages) {
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		const result = await analyzePackage(pkg, baseDir, currentDir);
 		if (result && (result.totalBaseSize > 0 || result.totalCurrentSize > 0)) {
 			results.push(result);
@@ -724,12 +744,12 @@ export async function analyzeBundles(
 	}
 
 	return results;
-}
+};
 
 /**
  * Writes the bundle analysis report to a file.
  */
-export function writeReport(
+export const writeReport = function writeReport(
 	packages: PackageBundleData[],
 	outputPath: string,
 	transitive: TransitiveBundleData[] = []
@@ -746,17 +766,19 @@ export function writeReport(
 			{ cause: error }
 		);
 	}
-}
+};
 
 /**
  * Calculates total bundle size change percentage across all packages.
  */
-export function calculateTotalDiffPercent(
+export const calculateTotalDiffPercent = function calculateTotalDiffPercent(
 	packages: PackageBundleData[]
 ): number {
-	if (packages.length === 0) return 0;
+	if (packages.length === 0) {
+		return 0;
+	}
 	const totalBase = packages.reduce((sum, p) => sum + p.totalBaseSize, 0);
 	const totalCurrent = packages.reduce((sum, p) => sum + p.totalCurrentSize, 0);
 	const totalDiff = totalCurrent - totalBase;
 	return totalBase > 0 ? (totalDiff / totalBase) * 100 : 0;
-}
+};

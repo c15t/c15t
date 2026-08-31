@@ -43,7 +43,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -54,7 +54,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 beforeEach(() => {
 	vi.stubGlobal(
@@ -71,6 +71,12 @@ beforeEach(() => {
 		} as typeof MutationObserver
 	);
 	vi.stubGlobal('document', {
+		addEventListener: vi.fn(),
+		body: { appendChild: vi.fn(), removeChild: vi.fn() },
+		cookie: '',
+		createDocumentFragment: vi.fn(() => ({
+			appendChild: vi.fn(),
+		})),
 		createElement: vi.fn(() => ({
 			addEventListener: vi.fn(),
 			appendChild: vi.fn(),
@@ -81,18 +87,12 @@ beforeEach(() => {
 			removeEventListener: vi.fn(),
 			setAttribute: vi.fn(),
 		})),
-		createDocumentFragment: vi.fn(() => ({
-			appendChild: vi.fn(),
-		})),
 		dispatchEvent: vi.fn(),
-		addEventListener: vi.fn(),
-		removeEventListener: vi.fn(),
+		getElementById: vi.fn(() => null),
+		head: { appendChild: vi.fn(), removeChild: vi.fn() },
 		querySelector: vi.fn(() => null),
 		querySelectorAll: vi.fn(() => []),
-		getElementById: vi.fn(() => null),
-		body: { appendChild: vi.fn(), removeChild: vi.fn() },
-		head: { appendChild: vi.fn(), removeChild: vi.fn() },
-		cookie: '',
+		removeEventListener: vi.fn(),
 	});
 });
 
@@ -110,9 +110,9 @@ afterEach(() => {
 	deleteConsentFromStorage();
 });
 
-async function flushDebounce(): Promise<void> {
+const flushDebounce = async function flushDebounce(): Promise<void> {
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
-}
+};
 
 describe('parity: consent save & persist', () => {
 	test('v2 and v3 both write the same consent state to storage', async () => {
@@ -162,19 +162,19 @@ describe('parity: script-loader reconcile', () => {
 		// differ per run — only that the same logical IDs loaded.
 		const scripts = [
 			{
+				category: 'measurement' as const,
 				id: 'gtm',
 				src: 'https://example.com/gtm.js',
-				category: 'measurement' as const,
 			},
 			{
+				category: 'marketing' as const,
 				id: 'fb',
 				src: 'https://example.com/fb.js',
-				category: 'marketing' as const,
 			},
 			{
+				category: 'measurement' as const,
 				id: 'hotjar',
 				src: 'https://example.com/hj.js',
-				category: 'measurement' as const,
 			},
 		];
 
@@ -196,17 +196,17 @@ describe('parity: script-loader reconcile', () => {
 		// --- v3 path: build a kernel with measurement=true, mount loader
 		const kernel = createConsentKernel({
 			initialConsents: {
-				necessary: true,
-				measurement: true,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		const loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts,
-			emitToV2DebugListeners: false,
 		});
 		const v3Loaded = new Set(loader.getLoadedScriptIds());
 
@@ -224,11 +224,11 @@ describe('parity: consent category filtering', () => {
 	test('AND/OR/NOT conditions evaluate the same', () => {
 		const scripts = [
 			{
-				id: 'combo',
-				src: 'https://example.com/c.js',
 				category: {
 					and: ['measurement', { or: ['marketing', 'functionality'] }],
 				} as never,
+				id: 'combo',
+				src: 'https://example.com/c.js',
 			},
 		];
 
@@ -245,17 +245,17 @@ describe('parity: consent category filtering', () => {
 		// v3
 		const kernel = createConsentKernel({
 			initialConsents: {
-				necessary: true,
-				measurement: true,
-				marketing: true,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			},
 		});
 		const loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts,
-			emitToV2DebugListeners: false,
 		});
 
 		// Both should load the combo script.

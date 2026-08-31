@@ -38,7 +38,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -49,9 +49,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -62,7 +62,7 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
 const HOST = '127.0.0.1';
 const PORT = 4311;
@@ -76,7 +76,7 @@ const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 const bannerRootTestId = 'consent-banner-root';
 const bannerElementTimingName = 'c15t-consent-banner';
 
-function readCliFlag(name: string): string | undefined {
+const readCliFlag = function readCliFlag(name: string): string | undefined {
 	const index = process.argv.indexOf(name);
 	if (index >= 0) {
 		return process.argv[index + 1];
@@ -85,7 +85,7 @@ function readCliFlag(name: string): string | undefined {
 	const prefix = `${name}=`;
 	const match = process.argv.find((arg) => arg.startsWith(prefix));
 	return match?.slice(prefix.length);
-}
+};
 
 const iterations = Number(
 	readCliFlag('--iterations') ??
@@ -134,7 +134,7 @@ if (scenarioFilter && scenarios.length === 0) {
 	);
 }
 
-async function measureInteractionLatency(
+const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
 	scenario:
 		| (typeof allScenarios)[number]['name']
@@ -279,9 +279,9 @@ async function measureInteractionLatency(
 			return performance.now() - startedAt;
 		}
 	}
-}
+};
 
-async function waitForServer() {
+const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
@@ -297,9 +297,9 @@ async function waitForServer() {
 	}
 
 	throw new Error('Timed out waiting for react browser bench server');
-}
+};
 
-async function runCommand(args: string[], label: string) {
+const runCommand = async function runCommand(args: string[], label: string) {
 	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
@@ -326,17 +326,17 @@ async function runCommand(args: string[], label: string) {
 		});
 		command.on('error', rejectPromise);
 	});
-}
+};
 
-async function ensureBuild() {
+const ensureBuild = async function ensureBuild() {
 	if (existsSync(buildIdPath)) {
 		return;
 	}
 
 	await runCommand(['run', 'build'], 'react browser benchmark build');
-}
+};
 
-async function applyPageProfile(
+const applyPageProfile = async function applyPageProfile(
 	context: PlaywrightTypes.BrowserContext,
 	page: PlaywrightTypes.Page
 ) {
@@ -346,38 +346,44 @@ async function applyPageProfile(
 		bannerElementTimingName,
 		bannerRootTestId,
 	});
-}
+};
 
-async function getBannerInFirstHtml(path: string): Promise<boolean> {
+const getBannerInFirstHtml = async function getBannerInFirstHtml(
+	path: string
+): Promise<boolean> {
 	const response = await fetch(`${BASE_URL}${path}`);
 	const html = await response.text();
 	return (
 		html.includes(`data-testid="${bannerRootTestId}"`) ||
 		html.includes(`data-testid='${bannerRootTestId}'`)
 	);
-}
+};
 
-function resultScenarioName(scenario: string): string {
+const resultScenarioName = function resultScenarioName(
+	scenario: string
+): string {
 	if (throttleProfile === 'none' && initLatencyMs === 0) {
 		return scenario;
 	}
 
 	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
-}
+};
 
-function resultFileName(scenario: string): string {
+const resultFileName = function resultFileName(scenario: string): string {
 	return `${resultScenarioName(scenario).replaceAll(':', '-')}.json`;
-}
+};
 
-function nullableMedian(values: (number | null | undefined)[]): number | null {
+const nullableMedian = function nullableMedian(
+	values: (number | null | undefined)[]
+): number | null {
 	const numbers = values.filter(
 		(value): value is number =>
 			typeof value === 'number' && Number.isFinite(value)
 	);
 	return numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null;
-}
+};
 
-async function collectPageMetrics(
+const collectPageMetrics = async function collectPageMetrics(
 	page: PlaywrightTypes.Page,
 	scenario: string,
 	bannerInFirstHtml: boolean
@@ -415,9 +421,9 @@ async function collectPageMetrics(
 		}
 		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
 		return {
+			appScriptCount: ordered.length,
 			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
 			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-			appScriptCount: ordered.length,
 		};
 	});
 	const cssEntry = await page.evaluate(() => {
@@ -430,11 +436,11 @@ async function collectPageMetrics(
 					entry.name.includes('.css')
 			);
 		return {
-			cssRequestCount: entries.length,
 			cssBytes: entries.reduce(
 				(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
 				0
 			),
+			cssRequestCount: entries.length,
 		};
 	});
 	const performanceObserverInfo = await page.evaluate(() => {
@@ -449,11 +455,11 @@ async function collectPageMetrics(
 			}
 		).__c15tBenchPerfMetrics;
 		return {
+			bannerPaintMs: metrics?.bannerPaintMs ?? null,
 			cls: metrics?.cls ?? 0,
+			domNodeCount: document.querySelectorAll('*').length,
 			longTaskCount: metrics?.longTaskCount ?? 0,
 			longTaskTotalMs: metrics?.longTaskTotalMs ?? 0,
-			bannerPaintMs: metrics?.bannerPaintMs ?? null,
-			domNodeCount: document.querySelectorAll('*').length,
 		};
 	});
 
@@ -463,17 +469,18 @@ async function collectPageMetrics(
 		...scriptEntry,
 		...cssEntry,
 		...performanceObserverInfo,
+		bannerInFirstHtml,
 		bannerPaintMs:
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
-		bannerInFirstHtml,
 	};
-}
+};
 
 type ReactBrowserSample = Awaited<ReturnType<typeof collectPageMetrics>> & {
 	interactionLatencyMs?: number;
 };
 
-async function run() {
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const run = async function run() {
 	await ensureBuild();
 
 	const server = spawn(
@@ -504,17 +511,24 @@ async function run() {
 
 		for (const scenario of scenarios) {
 			const samples: ReactBrowserSample[] = [];
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			const bannerInFirstHtml = await getBannerInFirstHtml(scenario.path);
 			for (let index = 0; index < warmupIterations + iterations; index += 1) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const context = await browser.newContext({ baseURL: BASE_URL });
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const page = await context.newPage();
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await applyPageProfile(context, page);
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await page.goto(scenario.path);
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const metrics = await collectPageMetrics(
 					page,
 					scenario.name,
 					bannerInFirstHtml
 				);
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				const interactionLatencyMs = await measureInteractionLatency(
 					page,
 					scenario.name
@@ -524,15 +538,21 @@ async function run() {
 					(scenario.name === 'full-ui' || scenario.name === 'react-v3-full') &&
 					index >= warmupIterations
 				) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					const repeatContext = await browser.newContext({ baseURL: BASE_URL });
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					const repeatPage = await repeatContext.newPage();
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					await applyPageProfile(repeatContext, repeatPage);
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					await repeatPage.goto(scenario.path);
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					const repeatMetrics = await collectPageMetrics(
 						repeatPage,
 						scenario.name,
 						bannerInFirstHtml
 					);
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					const repeatInteractionLatencyMs = await measureInteractionLatency(
 						repeatPage,
 						scenario.name === 'react-v3-full'
@@ -541,12 +561,13 @@ async function run() {
 					);
 					samples.push({
 						...repeatMetrics,
+						interactionLatencyMs: repeatInteractionLatencyMs,
 						scenario:
 							scenario.name === 'react-v3-full'
 								? 'react-v3-repeat'
 								: 'repeat-visitor',
-						interactionLatencyMs: repeatInteractionLatencyMs,
 					});
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 					await repeatContext.close();
 				}
 
@@ -556,6 +577,7 @@ async function run() {
 						interactionLatencyMs,
 					});
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await context.close();
 			}
 
@@ -570,26 +592,27 @@ async function run() {
 			for (const [groupScenario, groupedSamples] of grouped) {
 				const outputScenario = resultScenarioName(groupScenario);
 				const result: BenchmarkResult = {
-					schemaVersion: BENCHMARK_SCHEMA_VERSION,
-					suite: 'browser-runtime',
-					package: '@c15t/react-browser-bench',
-					framework: groupScenario === 'vanilla-core' ? 'core' : 'react',
-					runtime: 'playwright',
-					scenario: outputScenario,
-					commitSha: safeCommitSha(),
 					baseSha: safeBaseSha(),
-					timestamp: new Date().toISOString(),
+					budgetDefinitions: browserBudgets.filter((budget) =>
+						[
+							'bannerReadyMs',
+							'lastAppScriptEndMs',
+							'interactionLatencyMs',
+							'longTaskTotalMs',
+						].includes(budget.metric)
+					),
+					budgets: [],
+					commitSha: safeCommitSha(),
 					environment: getEnvironment(browser.version()),
 					fixture: {
-						name: outputScenario,
 						consentCount: 5,
-						scriptCount: 0,
 						localeCount: 1,
+						name: outputScenario,
+						scriptCount: 0,
 						themeComplexity: 'minimal',
 					},
+					framework: groupScenario === 'vanilla-core' ? 'core' : 'react',
 					metadata: {
-						profile: throttleProfile,
-						initLatencyMs,
 						bannerInFirstHtml: groupedSamples.every(
 							(sample) => sample.bannerInFirstHtml
 						),
@@ -599,6 +622,8 @@ async function run() {
 						cls: Number(
 							median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(4)
 						),
+						initLatencyMs,
+						profile: throttleProfile,
 					},
 					metrics: [
 						summarizeMetric(
@@ -702,18 +727,15 @@ async function run() {
 							groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
 						),
 					],
-					budgetDefinitions: browserBudgets.filter((budget) =>
-						[
-							'bannerReadyMs',
-							'lastAppScriptEndMs',
-							'interactionLatencyMs',
-							'longTaskTotalMs',
-						].includes(budget.metric)
-					),
-					budgets: [],
 					notes: [
 						'React browser bench runs with local deterministic init and subject endpoints.',
 					],
+					package: '@c15t/react-browser-bench',
+					runtime: 'playwright',
+					scenario: outputScenario,
+					schemaVersion: BENCHMARK_SCHEMA_VERSION,
+					suite: 'browser-runtime',
+					timestamp: new Date().toISOString(),
 				};
 
 				writeJson(join(outputDir, resultFileName(groupScenario)), result);
@@ -751,7 +773,7 @@ async function run() {
 	if (serverFailure) {
 		throw serverFailure;
 	}
-}
+};
 
 try {
 	await run();

@@ -4,9 +4,9 @@ import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 
 const Demo = () => {
 	const classes = buttonVariants({
-		variant: 'primary',
 		mode: 'filled',
 		size: 'medium',
+		variant: 'primary',
 	});
 
 	return (
@@ -38,9 +38,9 @@ export const Playground: Story = {
 export const WithIcon: Story = {
 	render: () => {
 		const classes = buttonVariants({
-			variant: 'primary',
 			mode: 'filled',
 			size: 'medium',
+			variant: 'primary',
 		});
 
 		return (
@@ -58,9 +58,9 @@ export const WithIcon: Story = {
 export const NeutralGhost: Story = {
 	render: () => {
 		const classes = buttonVariants({
-			variant: 'neutral',
 			mode: 'ghost',
 			size: 'medium',
+			variant: 'neutral',
 		});
 
 		return (
@@ -77,34 +77,34 @@ export const NeutralGhost: Story = {
 export const AllModes: Story = {
 	render: () => {
 		const primaryFilled = buttonVariants({
-			variant: 'primary',
 			mode: 'filled',
 			size: 'medium',
+			variant: 'primary',
 		});
 		const neutralFilled = buttonVariants({
-			variant: 'neutral',
 			mode: 'filled',
 			size: 'medium',
+			variant: 'neutral',
 		});
 		const primaryStroke = buttonVariants({
-			variant: 'primary',
 			mode: 'stroke',
 			size: 'medium',
+			variant: 'primary',
 		});
 		const neutralStroke = buttonVariants({
-			variant: 'neutral',
 			mode: 'stroke',
 			size: 'medium',
+			variant: 'neutral',
 		});
 		const primaryLighter = buttonVariants({
-			variant: 'primary',
 			mode: 'lighter',
 			size: 'medium',
+			variant: 'primary',
 		});
 		const neutralGhost = buttonVariants({
-			variant: 'neutral',
 			mode: 'ghost',
 			size: 'medium',
+			variant: 'neutral',
 		});
 
 		return (

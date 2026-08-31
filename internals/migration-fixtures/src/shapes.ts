@@ -56,44 +56,46 @@ const FUMADB_MYSQL_FAILURE =
 
 export const DATABASE_FIXTURES: readonly DatabaseFixture[] = [
 	{
-		name: 'legacy-fresh-1.0',
-		versions: ['1.0.0'],
 		era: 'legacy',
+		name: 'legacy-fresh-1.0',
 		rationale:
 			'Earliest published release. The floor of what a legacy database can look like.',
+		versions: ['1.0.0'],
 	},
 	{
-		name: 'legacy-fresh-1.8',
-		versions: ['1.8.6'],
 		era: 'legacy',
+		name: 'legacy-fresh-1.8',
 		rationale:
 			'Last legacy release, installed fresh. Contrast with legacy-upgraded to expose drift.',
+		versions: ['1.8.6'],
 	},
 	{
-		name: 'legacy-upgraded',
-		versions: ['1.0.0', '1.4.2', '1.8.6'],
 		era: 'legacy',
+		name: 'legacy-upgraded',
 		rationale:
 			'A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns (RFC §3.2), so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.',
+		versions: ['1.0.0', '1.4.2', '1.8.6'],
 	},
 	{
-		name: 'fumadb-1.0.0',
-		versions: ['1.8.6'],
 		era: 'fumadb-v2-subpath',
+		name: 'fumadb-1.0.0',
 		rationale:
 			'The opt-in /v2 path shipped inside 1.8.x. Writes c15t_settings = 1.0.0.',
 		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
+		versions: ['1.8.6'],
 	},
 	{
-		name: 'fumadb-2.0.0',
-		versions: ['2.1.0'],
 		era: 'fumadb-root',
+		name: 'fumadb-2.0.0',
 		rationale: 'Current shipping shape. Writes c15t_settings = 2.0.0.',
 		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
+		versions: ['2.1.0'],
 	},
 ] as const;
 
-export function fixtureByName(name: string): DatabaseFixture {
+export const fixtureByName = function fixtureByName(
+	name: string
+): DatabaseFixture {
 	const fixture = DATABASE_FIXTURES.find(
 		(candidate) => candidate.name === name
 	);
@@ -104,4 +106,4 @@ export function fixtureByName(name: string): DatabaseFixture {
 		throw new Error(`Unknown fixture "${name}". Known fixtures: ${known}`);
 	}
 	return fixture;
-}
+};

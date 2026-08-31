@@ -14,71 +14,64 @@ let _preset: ThemePresetName = 'none';
 let _initialized = false;
 const _listeners = new Set<() => void>();
 
-function _subscribe(listener: () => void) {
+const _subscribe = function _subscribe(listener: () => void) {
 	_listeners.add(listener);
 	return () => {
 		_listeners.delete(listener);
 	};
-}
+};
 
-function _getSnapshot() {
+const _getSnapshot = function _getSnapshot() {
 	return _preset;
-}
+};
 
-function _setPreset(name: ThemePresetName) {
+const _setPreset = function _setPreset(name: ThemePresetName) {
 	disableTransitionsTemporarily();
 	_preset = name;
 	localStorage.setItem('c15t-theme-preset', name);
-	for (const l of _listeners) l();
-}
-
-const colorModes = [
-	{ value: 'light', label: 'Light', icon: Sun },
-	{ value: 'dark', label: 'Dark', icon: Moon },
-	{ value: 'system', label: 'System', icon: Monitor },
-] as const;
-
-export const ThemeSwitcherButton = () => {
-	const [open, setOpen] = useState(false);
-	const ref = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		function handleClickOutside(e: MouseEvent) {
-			if (ref.current && !ref.current.contains(e.target as Node)) {
-				setOpen(false);
-			}
-		}
-		if (open) {
-			document.addEventListener('mousedown', handleClickOutside);
-		}
-		return () => document.removeEventListener('mousedown', handleClickOutside);
-	}, [open]);
-
-	return (
-		<div
-			ref={ref}
-			className="relative"
-		>
-			<Button
-				size="sm"
-				variant="outline"
-				className="border-border/80 text-foreground h-9 rounded-full px-3 shadow-none"
-				aria-expanded={open}
-				aria-label="Theme settings"
-				aria-haspopup="menu"
-				onClick={() => setOpen((prev) => !prev)}
-			>
-				<Palette className="size-4" />
-				<span className="text-sm font-medium">Theme</span>
-				<ChevronDown
-					className={cn('size-4 transition-transform', open && 'rotate-180')}
-				/>
-			</Button>
-			{open && <ThemeSwitcherPanel />}
-		</div>
-	);
+	for (const l of _listeners) {
+		l();
+	}
 };
 
+const colorModes = [
+	{ icon: Sun, label: 'Light', value: 'light' },
+	{ icon: Moon, label: 'Dark', value: 'dark' },
+	{ icon: Monitor, label: 'System', value: 'system' },
+] as const;
+
+export const useThemePreset = function useThemePreset() {
+	const [mounted, setMounted] = useState(false);
+	const preset = useSyncExternalStore(
+		_subscribe,
+		_getSnapshot,
+		() => 'none' as ThemePresetName
+	);
+
+	useEffect(() => {
+		if (!_initialized) {
+			_initialized = true;
+			const saved = localStorage.getItem(
+				'c15t-theme-preset'
+			) as ThemePresetName;
+			if (saved && themePresets[saved]) {
+				_preset = saved;
+				for (const l of _listeners) {
+					l();
+				}
+			}
+		}
+		const frame = requestAnimationFrame(() => setMounted(true));
+		return () => cancelAnimationFrame(frame);
+	}, []);
+
+	return {
+		mounted,
+		preset,
+		setThemePreset: _setPreset,
+		theme: themePresets[preset].theme,
+	};
+};
 const ThemeSwitcherPanel = () => {
 	const { preset, setThemePreset } = useThemePreset();
 	const { theme: colorMode, setTheme: setColorMode } = useTheme();
@@ -165,34 +158,43 @@ const ThemeSwitcherPanel = () => {
 		</div>
 	);
 };
-
-export function useThemePreset() {
-	const [mounted, setMounted] = useState(false);
-	const preset = useSyncExternalStore(
-		_subscribe,
-		_getSnapshot,
-		() => 'none' as ThemePresetName
-	);
+export const ThemeSwitcherButton = () => {
+	const [open, setOpen] = useState(false);
+	const ref = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (!_initialized) {
-			_initialized = true;
-			const saved = localStorage.getItem(
-				'c15t-theme-preset'
-			) as ThemePresetName;
-			if (saved && themePresets[saved]) {
-				_preset = saved;
-				for (const l of _listeners) l();
+		const handleClickOutside = function handleClickOutside(e: MouseEvent) {
+			if (ref.current && !ref.current.contains(e.target as Node)) {
+				setOpen(false);
 			}
+		};
+		if (open) {
+			document.addEventListener('mousedown', handleClickOutside);
 		}
-		const frame = requestAnimationFrame(() => setMounted(true));
-		return () => cancelAnimationFrame(frame);
-	}, []);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [open]);
 
-	return {
-		preset,
-		setThemePreset: _setPreset,
-		theme: themePresets[preset].theme,
-		mounted,
-	};
-}
+	return (
+		<div
+			ref={ref}
+			className="relative"
+		>
+			<Button
+				size="sm"
+				variant="outline"
+				className="border-border/80 text-foreground h-9 rounded-full px-3 shadow-none"
+				aria-expanded={open}
+				aria-label="Theme settings"
+				aria-haspopup="menu"
+				onClick={() => setOpen((prev) => !prev)}
+			>
+				<Palette className="size-4" />
+				<span className="text-sm font-medium">Theme</span>
+				<ChevronDown
+					className={cn('size-4 transition-transform', open && 'rotate-180')}
+				/>
+			</Button>
+			{open && <ThemeSwitcherPanel />}
+		</div>
+	);
+};

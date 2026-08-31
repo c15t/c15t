@@ -45,20 +45,26 @@ interface ScriptLifecycleContextValue {
 const ScriptLifecycleContext =
 	createContext<ScriptLifecycleContextValue | null>(null);
 
-function sameIds(actual: string[], expected: string[]): boolean {
+const sameIds = function sameIds(
+	actual: string[],
+	expected: string[]
+): boolean {
 	const left = normalizeIds(actual);
 	const right = normalizeIds(expected);
 	return (
 		left.length === right.length &&
 		left.every((value, index) => value === right[index])
 	);
-}
+};
 
-function updateDomPresence(state: ScriptBenchState, scriptIds: string[]): void {
+const updateDomPresence = function updateDomPresence(
+	state: ScriptBenchState,
+	scriptIds: string[]
+): void {
 	state.domPresenceById = listDomPresence(scriptIds);
-}
+};
 
-function markIfReady(
+const markIfReady = function markIfReady(
 	state: ScriptBenchState,
 	config: ScriptLifecycleScenarioConfig,
 	phase: 'initial' | 'final'
@@ -85,9 +91,10 @@ function markIfReady(
 			(id) => (state.domPresenceById[id] ?? false) === expectedDom.includes(id)
 		)
 	);
-}
+};
 
-function evaluateCompletion(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const evaluateCompletion = function evaluateCompletion(
 	state: ScriptBenchState,
 	config: ScriptLifecycleScenarioConfig
 ): void {
@@ -104,6 +111,7 @@ function evaluateCompletion(
 
 	const isFinalReady = markIfReady(state, config, 'final');
 
+	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (config.name) {
 		case 'grant-standard': {
 			if (
@@ -150,12 +158,12 @@ function evaluateCompletion(
 			if (isFinalReady) {
 				state.completionMarkers[config.completionMarker] = true;
 			}
-			return;
+			break;
 		}
 	}
-}
+};
 
-function augmentScripts(
+const augmentScripts = function augmentScripts(
 	config: ScriptLifecycleScenarioConfig,
 	onStateChange: () => void
 ): Script[] {
@@ -169,14 +177,6 @@ function augmentScripts(
 			incrementCounter(state.beforeLoadEventCounts, info.id);
 			onStateChange();
 		},
-		onLoad(info) {
-			const state = getBenchState(config.name);
-			if (!state) {
-				return;
-			}
-			incrementCounter(state.loadEventCounts, info.id);
-			onStateChange();
-		},
 		onConsentChange(info) {
 			const state = getBenchState(config.name);
 			if (!state) {
@@ -185,8 +185,16 @@ function augmentScripts(
 			incrementCounter(state.consentChangeEventCounts, info.id);
 			onStateChange();
 		},
+		onLoad(info) {
+			const state = getBenchState(config.name);
+			if (!state) {
+				return;
+			}
+			incrementCounter(state.loadEventCounts, info.id);
+			onStateChange();
+		},
 	}));
-}
+};
 
 export const ScriptLifecycleProvider = ({
 	children,
@@ -225,7 +233,9 @@ export const ScriptLifecycleProvider = ({
 			try {
 				window.localStorage.clear();
 				window.sessionStorage.clear();
-			} catch {}
+			} catch {
+				// Storage may be unavailable in the benchmark browser.
+			}
 
 			const state = getBenchState(config.name);
 			if (!state) {
@@ -241,33 +251,25 @@ export const ScriptLifecycleProvider = ({
 
 			if (config.initialConsent === 'all') {
 				saveConsentToStorage({
+					consentInfo: {
+						subjectId: generateSubjectId(),
+						time: Date.now(),
+					},
 					consents: {
-						necessary: true,
-						functionality: true,
 						experience: true,
+						functionality: true,
 						marketing: true,
 						measurement: true,
-					},
-					consentInfo: {
-						time: Date.now(),
-						subjectId: generateSubjectId(),
+						necessary: true,
 					},
 				});
 			}
 
 			const manager = configureConsentManager({
-				mode: 'c15t',
 				backendURL: '/api/bench-consent',
+				mode: 'c15t',
 			});
 			const store = createConsentManagerStore(manager, {
-				reloadOnConsentRevoked: false,
-				initialConsentCategories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
 				callbacks: {
 					onError(info) {
 						const latest = getBenchState(config.name);
@@ -282,6 +284,14 @@ export const ScriptLifecycleProvider = ({
 						setCurrentState({ ...latest });
 					},
 				},
+				initialConsentCategories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				reloadOnConsentRevoked: false,
 			});
 			storeRef.current = store;
 
@@ -312,6 +322,7 @@ export const ScriptLifecycleProvider = ({
 				return;
 			}
 
+			// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 			switch (config.name) {
 				case 'grant-standard':
 				case 'callback-only-toggle':
@@ -343,8 +354,8 @@ export const ScriptLifecycleProvider = ({
 		return {
 			config,
 			ready,
-			state: currentState,
 			runScenarioAction,
+			state: currentState,
 		};
 	}, [config, currentState, ready]);
 
@@ -355,12 +366,13 @@ export const ScriptLifecycleProvider = ({
 	);
 };
 
-export function useScriptLifecycleBench(): ScriptLifecycleContextValue {
-	const value = useContext(ScriptLifecycleContext);
-	if (!value) {
-		throw new Error(
-			'useScriptLifecycleBench must be used within ScriptLifecycleProvider'
-		);
-	}
-	return value;
-}
+export const useScriptLifecycleBench =
+	function useScriptLifecycleBench(): ScriptLifecycleContextValue {
+		const value = useContext(ScriptLifecycleContext);
+		if (!value) {
+			throw new Error(
+				'useScriptLifecycleBench must be used within ScriptLifecycleProvider'
+			);
+		}
+		return value;
+	};

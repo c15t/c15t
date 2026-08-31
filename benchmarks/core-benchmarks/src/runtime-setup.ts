@@ -1,37 +1,37 @@
-function createMockElement() {
+const createMockElement = function createMockElement() {
 	return {
-		setAttribute: () => {
+		addEventListener: () => {
 			/* empty */
 		},
-		getAttribute: () => null,
 		appendChild: () => {
+			/* empty */
+		},
+		async: true,
+		cloneNode: () => createMockElement(),
+		dispatchEvent: () => true,
+		getAttribute: () => null,
+		parentNode: null,
+		querySelector: () => null,
+		querySelectorAll: () => [],
+		remove: () => {
 			/* empty */
 		},
 		removeChild: () => {
 			/* empty */
 		},
-		remove: () => {
-			/* empty */
-		},
-		cloneNode: () => createMockElement(),
-		addEventListener: () => {
-			/* empty */
-		},
 		removeEventListener: () => {
 			/* empty */
 		},
-		dispatchEvent: () => true,
-		querySelector: () => null,
-		querySelectorAll: () => [],
-		parentNode: null,
-		textContent: '',
+		setAttribute: () => {
+			/* empty */
+		},
 		src: '',
-		async: true,
 		style: {},
+		textContent: '',
 	} as unknown as HTMLElement;
-}
+};
 
-export function ensureBenchmarkDom(): void {
+export const ensureBenchmarkDom = function ensureBenchmarkDom(): void {
 	if (typeof globalThis.window === 'undefined') {
 		globalThis.window = globalThis as unknown as Window & typeof globalThis;
 	}
@@ -39,34 +39,34 @@ export function ensureBenchmarkDom(): void {
 	if (typeof globalThis.document === 'undefined') {
 		const element = createMockElement();
 		globalThis.document = {
-			createElement: () => createMockElement(),
-			head: element,
 			body: element,
+			cookie: '',
+			createElement: () => createMockElement(),
 			getElementById: () => null,
+			head: element,
 			querySelector: () => null,
 			querySelectorAll: () => [],
-			cookie: '',
 		} as unknown as Document;
 	}
 
 	if (typeof globalThis.localStorage === 'undefined') {
 		const store: Record<string, string> = {};
 		globalThis.localStorage = {
-			getItem: (key: string) => store[key] ?? null,
-			setItem: (key: string, value: string) => {
-				store[key] = value;
-			},
-			removeItem: (key: string) => {
-				Reflect.deleteProperty(store, key);
-			},
 			clear: () => {
 				for (const key of Object.keys(store)) {
 					Reflect.deleteProperty(store, key);
 				}
 			},
+			getItem: (key: string) => store[key] ?? null,
 			key: (index: number) => Object.keys(store)[index] ?? null,
 			get length() {
 				return Object.keys(store).length;
+			},
+			removeItem: (key: string) => {
+				Reflect.deleteProperty(store, key);
+			},
+			setItem: (key: string, value: string) => {
+				store[key] = value;
 			},
 		} as Storage;
 	}
@@ -98,12 +98,13 @@ export function ensureBenchmarkDom(): void {
 	}
 
 	if (typeof globalThis.fetch === 'undefined') {
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		globalThis.fetch = (async () =>
 			new Response(JSON.stringify({ ok: true }), {
-				status: 200,
 				headers: {
 					'Content-Type': 'application/json',
 				},
+				status: 200,
 			})) as typeof fetch;
 	}
-}
+};

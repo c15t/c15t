@@ -88,7 +88,7 @@ export type RuntimeConsentConfig = ConsentConfig & {
 	iframeBlocker?: Omit<IframeBlockerOptions, 'kernel'> | false;
 };
 
-export function pickAllowedInitHeaders(
+export const pickAllowedInitHeaders = function pickAllowedInitHeaders(
 	headers: Record<string, string | undefined>
 ): Record<string, string> {
 	const allowed: Record<string, string> = {};
@@ -99,41 +99,55 @@ export function pickAllowedInitHeaders(
 		}
 	}
 	return allowed;
-}
+};
 
-function toKernelActiveUI(ui: ConsentActiveUI): KernelActiveUI {
-	if (ui === 'manager') return 'dialog';
-	if (ui === null) return 'none';
+const toKernelActiveUI = function toKernelActiveUI(
+	ui: ConsentActiveUI
+): KernelActiveUI {
+	if (ui === 'manager') {
+		return 'dialog';
+	}
+	if (ui === null) {
+		return 'none';
+	}
 	return ui;
-}
+};
 
-function toVueActiveUI(ui: KernelActiveUI): ConsentActiveUI {
-	if (ui === 'dialog') return 'manager';
-	if (ui === 'none') return null;
+const toVueActiveUI = function toVueActiveUI(
+	ui: KernelActiveUI
+): ConsentActiveUI {
+	if (ui === 'dialog') {
+		return 'manager';
+	}
+	if (ui === 'none') {
+		return null;
+	}
 	return ui;
-}
+};
 
-function snapshotToInitOutput(
+const snapshotToInitOutput = function snapshotToInitOutput(
 	snapshot: ConsentSnapshot
 ): InitOutput | undefined {
 	if (!snapshot.location || !snapshot.translations) {
 		return undefined;
 	}
 	return {
+		branding: snapshot.branding ?? 'c15t',
+		cmpId: snapshot.iab?.cmpId ?? undefined,
+		customVendors: snapshot.iab?.customVendors,
+		gvl: snapshot.iab?.gvl ?? undefined,
 		jurisdiction: snapshot.policyDecision?.jurisdiction ?? 'NONE',
 		location: snapshot.location,
-		translations: snapshot.translations,
-		branding: snapshot.branding ?? 'c15t',
-		gvl: snapshot.iab?.gvl ?? undefined,
-		customVendors: snapshot.iab?.customVendors,
-		cmpId: snapshot.iab?.cmpId ?? undefined,
 		policy: snapshot.policy ?? undefined,
 		policyDecision: snapshot.policyDecision ?? undefined,
 		policySnapshotToken: snapshot.policySnapshotToken ?? undefined,
+		translations: snapshot.translations,
 	} as InitOutput;
-}
+};
 
-function snapshotToStoredConsent(snapshot: ConsentSnapshot): Consent {
+const snapshotToStoredConsent = function snapshotToStoredConsent(
+	snapshot: ConsentSnapshot
+): Consent {
 	const categories: Consent['categories'] = {};
 	if (snapshot.hasConsented) {
 		for (const [category, enabled] of Object.entries(snapshot.consents)) {
@@ -151,13 +165,15 @@ function snapshotToStoredConsent(snapshot: ConsentSnapshot): Consent {
 			timestamp: Date.now().toString(),
 		};
 	}
-	return { policies, categories };
-}
+	return { categories, policies };
+};
 
-function storedPayloadToKernelConfig(
+const storedPayloadToKernelConfig = function storedPayloadToKernelConfig(
 	stored: StoredPayload | null | undefined
 ): KernelConfig {
-	if (!stored || typeof stored !== 'object') return {};
+	if (!stored || typeof stored !== 'object') {
+		return {};
+	}
 
 	const config: KernelConfig = {};
 	if (stored.consents) {
@@ -173,9 +189,11 @@ function storedPayloadToKernelConfig(
 	}
 
 	return config;
-}
+};
 
-export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>):
+export const getNuxtInitFetchTarget = function getNuxtInitFetchTarget(
+	config: Partial<RuntimeConsentConfig>
+):
 	| {
 			url: string;
 			baseURL?: string;
@@ -190,28 +208,28 @@ export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>):
 		};
 	}
 	return {
-		url: '/init',
 		baseURL: config.backendURL,
+		url: '/init',
 	};
-}
+};
 
-function getBrowserLanguage(): string | undefined {
+const getBrowserLanguage = function getBrowserLanguage(): string | undefined {
 	if (typeof navigator === 'undefined') {
 		return undefined;
 	}
 	return navigator.language || navigator.languages?.[0];
-}
+};
 
-function getBrowserGpc(): boolean | undefined {
+const getBrowserGpc = function getBrowserGpc(): boolean | undefined {
 	if (typeof navigator === 'undefined') {
 		return undefined;
 	}
 	const value = (navigator as Navigator & { globalPrivacyControl?: boolean })
 		.globalPrivacyControl;
 	return typeof value === 'boolean' ? value : undefined;
-}
+};
 
-function getManifestInputs(
+const getManifestInputs = function getManifestInputs(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>
 ) {
@@ -225,22 +243,22 @@ function getManifestInputs(
 		const inputs = extractConsentRequestInputs(contextualHeaders);
 		return {
 			country: null,
-			region: null,
-			language: inputs.language ?? 'en',
 			gpc: getBrowserGpc() ?? inputs.gpc,
+			language: inputs.language ?? 'en',
+			region: null,
 		};
 	}
 
 	const inputs = extractConsentRequestInputs(headers);
 	return {
 		country: inputs.country ?? null,
-		region: inputs.region ?? null,
-		language: inputs.language ?? 'en',
 		gpc: inputs.gpc,
+		language: inputs.language ?? 'en',
+		region: inputs.region ?? null,
 	};
-}
+};
 
-function createVueHostedTransport(
+const createVueHostedTransport = function createVueHostedTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>
 ): KernelTransport {
@@ -253,6 +271,8 @@ function createVueHostedTransport(
 	});
 
 	return {
+		identify: baseTransport.identify,
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		async init(ctx) {
 			const initHeaders = { ...headers };
 			if (ctx.overrides.language) {
@@ -279,11 +299,10 @@ function createVueHostedTransport(
 			);
 		},
 		save: baseTransport.save,
-		identify: baseTransport.identify,
 	};
-}
+};
 
-function createVueManifestTransport(
+const createVueManifestTransport = function createVueManifestTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>,
 	prefetch: InitOutput | undefined
@@ -291,71 +310,74 @@ function createVueManifestTransport(
 	const backendURL = config.backendURL ?? '/api/c15t';
 	return createManifestTransport({
 		backendURL,
-		manifestURL: isClientManifestModeEnabled(config)
-			? resolveClientManifestURL(config)
-			: resolveNuxtManifestRoute(config),
 		domain: config.domain,
 		fetch: config.customFetch,
 		headers,
-		inputs: getManifestInputs(config, headers),
 		initialInit: prefetch,
+		inputs: getManifestInputs(config, headers),
+		manifestURL: isClientManifestModeEnabled(config)
+			? resolveClientManifestURL(config)
+			: resolveNuxtManifestRoute(config),
 	});
-}
+};
 
-export function createVueConsentKernelContext(options: {
-	config: RuntimeConsentConfig;
-	headers?: Record<string, string | undefined>;
-	prefetch?: InitOutput;
-	initialStoredConsent?: StoredPayload | null;
-}): VueConsentKernelContext {
-	const headers = pickAllowedInitHeaders(options.headers ?? {});
-	const transport =
-		isClientManifestModeEnabled(options.config) ||
-		isServerManifestModeEnabled(options.config)
-			? createVueManifestTransport(options.config, headers, options.prefetch)
-			: createVueHostedTransport(options.config, headers);
-	const kernel = createConsentKernel({
-		...initOutputToKernelConfig(options.prefetch, headers),
-		...storedPayloadToKernelConfig(options.initialStoredConsent),
-		transport,
-	});
+export const createVueConsentKernelContext =
+	function createVueConsentKernelContext(options: {
+		config: RuntimeConsentConfig;
+		headers?: Record<string, string | undefined>;
+		prefetch?: InitOutput;
+		initialStoredConsent?: StoredPayload | null;
+	}): VueConsentKernelContext {
+		const headers = pickAllowedInitHeaders(options.headers ?? {});
+		const transport =
+			isClientManifestModeEnabled(options.config) ||
+			isServerManifestModeEnabled(options.config)
+				? createVueManifestTransport(options.config, headers, options.prefetch)
+				: createVueHostedTransport(options.config, headers);
+		const kernel = createConsentKernel({
+			...initOutputToKernelConfig(options.prefetch, headers),
+			...storedPayloadToKernelConfig(options.initialStoredConsent),
+			transport,
+		});
 
-	const snapshot = shallowRef(kernel.getSnapshot());
-	const unsubscribe = kernel.subscribe((next) => {
-		snapshot.value = next;
-	});
+		const snapshot = shallowRef(kernel.getSnapshot());
+		const unsubscribe = kernel.subscribe((next) => {
+			snapshot.value = next;
+		});
 
-	const init = computed(() => snapshotToInitOutput(snapshot.value));
-	const activeUI = computed<ConsentActiveUI>({
-		get: () => toVueActiveUI(snapshot.value.activeUI),
-		set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
-	});
-	const storedConsent = computed<Consent>({
-		get: () => snapshotToStoredConsent(snapshot.value),
-		set: (value) => {
-			kernel.set.consent(value.categories);
-		},
-	});
+		const init = computed(() => snapshotToInitOutput(snapshot.value));
+		const activeUI = computed<ConsentActiveUI>({
+			get: () => toVueActiveUI(snapshot.value.activeUI),
+			set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
+		});
+		const storedConsent = computed<Consent>({
+			get: () => snapshotToStoredConsent(snapshot.value),
+			set: (value) => {
+				kernel.set.consent(value.categories);
+			},
+		});
 
-	return {
-		kernel,
-		snapshot,
-		init,
-		activeUI,
-		storedConsent,
-		dispose() {
-			unsubscribe();
-		},
+		return {
+			activeUI,
+			dispose() {
+				unsubscribe();
+			},
+			init,
+			kernel,
+			snapshot,
+			storedConsent,
+		};
 	};
-}
 
-function normalizeGeoValue(value: unknown): string | undefined {
+const normalizeGeoValue = function normalizeGeoValue(
+	value: unknown
+): string | undefined {
 	return typeof value === 'string' && value.trim()
 		? value.trim().toUpperCase()
 		: undefined;
-}
+};
 
-async function refreshClientGeo(
+const refreshClientGeo = async function refreshClientGeo(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig
 ): Promise<void> {
@@ -374,9 +396,9 @@ async function refreshClientGeo(
 
 	try {
 		const response = await fetchImpl(config.geoURL, {
-			method: 'GET',
 			credentials: 'same-origin',
 			headers: { accept: 'application/json' },
+			method: 'GET',
 		});
 		if (!response.ok) {
 			return;
@@ -403,9 +425,9 @@ async function refreshClientGeo(
 		// Keep the strict unknown-geo manifest result when the optional geo
 		// microfetch is unavailable.
 	}
-}
+};
 
-export function startVueConsentRuntime(
+export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
 	options: { runInit?: boolean } = {}
@@ -414,12 +436,12 @@ export function startVueConsentRuntime(
 
 	if (typeof document !== 'undefined') {
 		const windowDebug = createWindowDebug({
-			pkg: '@c15t/vue',
 			mode:
 				isClientManifestModeEnabled(config) ||
 				isServerManifestModeEnabled(config)
 					? 'manifest'
 					: 'hosted',
+			pkg: '@c15t/vue',
 		});
 		disposers.push(() => windowDebug.dispose());
 	}
@@ -427,8 +449,8 @@ export function startVueConsentRuntime(
 	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
 		const persistence = createPersistence({
 			kernel: context.kernel,
-			storageConfig: config.storageConfig,
 			skipHydration: true,
+			storageConfig: config.storageConfig,
 		});
 		persistence.hydrate();
 		disposers.push(() => persistence.dispose());
@@ -444,11 +466,11 @@ export function startVueConsentRuntime(
 
 	if (typeof document !== 'undefined' && config.networkBlocker) {
 		const networkBlocker = createNetworkBlocker({
-			kernel: context.kernel,
-			rules: config.networkBlocker.rules,
 			enabled: config.networkBlocker.enabled,
+			kernel: context.kernel,
 			logBlockedRequests: config.networkBlocker.logBlockedRequests,
 			onRequestBlocked: config.networkBlocker.onRequestBlocked,
+			rules: config.networkBlocker.rules,
 		});
 		disposers.push(() => networkBlocker.dispose());
 	}
@@ -474,4 +496,4 @@ export function startVueConsentRuntime(
 		}
 		context.dispose();
 	};
-}
+};

@@ -36,7 +36,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -47,9 +47,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function getSetupTrigger(
+const getSetupTrigger = function getSetupTrigger(
 	modeArg: StorageMode | undefined,
 	resumed: boolean
 ): 'resume' | 'arg' | 'interactive' {
@@ -62,9 +62,9 @@ function getSetupTrigger(
 	}
 
 	return 'interactive';
-}
+};
 
-function normalizeSetupReason(
+const normalizeSetupReason = function normalizeSetupReason(
 	finalState: string,
 	finalContext: GenerateMachineContext
 ): string | undefined {
@@ -121,7 +121,7 @@ function normalizeSetupReason(
 	}
 
 	return 'machine_error';
-}
+};
 
 /**
  * Options for running the generate machine
@@ -145,7 +145,7 @@ export interface RunGenerateOptions {
  * @param options - Options for running the machine
  * @returns Promise that resolves when the machine completes
  */
-export async function runGenerateMachine(
+export const runGenerateMachine = async function runGenerateMachine(
 	options: RunGenerateOptions
 ): Promise<MachineExecutionResult<GenerateMachineContext>> {
 	const {
@@ -188,9 +188,10 @@ export async function runGenerateMachine(
 	// Telemetry subscriber
 	subscribers.push(
 		createTelemetrySubscriber({
-			telemetry,
 			machineId,
-			skipStates: ['routeToMode'], // Transient state
+			// Transient state
+			skipStates: ['routeToMode'],
+			telemetry,
 		}) as (snapshot: unknown) => void
 	);
 
@@ -217,13 +218,14 @@ export async function runGenerateMachine(
 			context?: unknown;
 		}) => void)[])
 	);
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
 	actor.subscribe((snapshot) => combinedSubscriber(snapshot));
 
 	// Track start
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_STARTED, {
+		requestedMode: modeArg ?? undefined,
 		resumed: resume && snapshot !== undefined,
 		trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
-		requestedMode: modeArg ?? undefined,
 	});
 	telemetry.flushSync();
 
@@ -248,7 +250,9 @@ export async function runGenerateMachine(
 				void (async () => {
 					try {
 						await clearSnapshot(persistPath);
-					} catch {}
+					} catch {
+						// Snapshot cleanup is best effort after a failed run.
+					}
 				})();
 
 				// Only the explicit "complete" state is a successful outcome.
@@ -264,49 +268,49 @@ export async function runGenerateMachine(
 						: 'failed';
 
 				telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
-					success,
-					result,
-					reason,
-					trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
-					resumed: resume && snapshot !== undefined,
-					selectedMode: finalContext.selectedMode ?? undefined,
-					hostedProvider: finalContext.hostedProvider ?? undefined,
-					installDependencies: finalContext.installSucceeded,
-					installConfirmed: finalContext.installConfirmed,
-					installAttempted: finalContext.installAttempted,
-					installSucceeded: finalContext.installSucceeded,
-					dependencyCount: finalContext.dependenciesToAdd.length,
-					filesCreatedCount: finalContext.filesCreated.length,
-					filesModifiedCount: finalContext.filesModified.length,
-					errorsCount: finalContext.errors.length,
 					cancelReason: finalContext.cancelReason ?? undefined,
+					dependencyCount: finalContext.dependenciesToAdd.length,
 					duration,
 					durationMs,
+					errorsCount: finalContext.errors.length,
+					filesCreatedCount: finalContext.filesCreated.length,
+					filesModifiedCount: finalContext.filesModified.length,
 					finalState,
+					hostedProvider: finalContext.hostedProvider ?? undefined,
+					installAttempted: finalContext.installAttempted,
+					installConfirmed: finalContext.installConfirmed,
+					installDependencies: finalContext.installSucceeded,
+					installSucceeded: finalContext.installSucceeded,
+					reason,
+					result,
+					resumed: resume && snapshot !== undefined,
+					selectedMode: finalContext.selectedMode ?? undefined,
+					success,
+					trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
 				});
 
 				resolve({
-					success,
 					context: finalContext,
-					finalState,
 					duration,
 					errors: finalContext.errors,
+					finalState,
+					success,
 				});
 			},
 		});
 	});
-}
+};
 
 /**
  * Cancel signal handler for graceful shutdown
  *
  * @param actor - The running actor to cancel
  */
-export function setupCancelHandler(
+export const setupCancelHandler = function setupCancelHandler(
 	actor: ReturnType<typeof createActor<typeof generateMachine>>
 ): void {
 	const handleSignal = () => {
-		actor.send({ type: 'CANCEL', reason: 'Interrupted by signal' });
+		actor.send({ reason: 'Interrupted by signal', type: 'CANCEL' });
 	};
 
 	process.on('SIGINT', handleSignal);
@@ -319,4 +323,4 @@ export function setupCancelHandler(
 			process.off('SIGTERM', handleSignal);
 		},
 	});
-}
+};

@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import { StableConsentStateProvider } from '~/v3/__tests__/stable-context-providers';
-import { ConsentStateContext } from '~/v3/context/consent-manager-context';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
@@ -84,33 +83,33 @@ describe('useConsentManager', () => {
 
 	test('applies policy scope mode in has()', async () => {
 		const state = {
+			consentCategories: ['necessary', 'measurement'],
+			consentInfo: null,
+			consentTypes: [],
 			consents: {
-				necessary: true,
-				functionality: false,
 				experience: true,
+				functionality: false,
 				marketing: false,
 				measurement: false,
+				necessary: true,
 			},
-			consentInfo: null,
-			consentCategories: ['necessary', 'measurement'],
-			consentTypes: [],
-			policyCategories: ['necessary', 'measurement'],
-			policyScopeMode: 'permissive',
 			policyBanner: {},
+			policyCategories: ['necessary', 'measurement'],
 			policyDialog: {},
+			policyScopeMode: 'permissive',
 		} as unknown as ConsentStoreState;
 
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: ({ children }) => (
 				<StableConsentStateProvider
 					value={{
+						manager: null,
 						state,
 						store: {
 							getState: () => state,
-							subscribe: () => () => undefined,
 							setState: () => undefined,
+							subscribe: () => () => undefined,
 						},
-						manager: null,
 					}}
 				>
 					{children}

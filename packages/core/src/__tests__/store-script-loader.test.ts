@@ -8,15 +8,15 @@ import type { ConsentState } from '../types/compliance';
 
 // Mock document.createElement and other DOM methods
 const mockScriptElement = {
-	id: '',
-	src: '',
-	fetchPriority: undefined as 'high' | 'low' | 'auto' | undefined,
+	addEventListener: vi.fn(),
 	async: false,
 	defer: false,
+	fetchPriority: undefined as 'high' | 'low' | 'auto' | undefined,
+	id: '',
 	nonce: '',
-	addEventListener: vi.fn(),
-	setAttribute: vi.fn(),
 	remove: vi.fn(),
+	setAttribute: vi.fn(),
+	src: '',
 };
 
 const mockHead = {
@@ -26,15 +26,15 @@ const mockHead = {
 // Mock consent manager
 const mockConsentManager = {
 	fetchConsentBannerInfo: vi.fn().mockResolvedValue({
-		showConsentBanner: true,
+		branding: 'c15t',
 		jurisdiction: { code: 'GDPR', message: 'GDPR applies' },
 		location: {
 			countryCode: 'DE',
-			regionCode: null,
 			jurisdiction: 'GDPR',
 			jurisdictionMessage: 'GDPR applies',
+			regionCode: null,
 		},
-		branding: 'c15t',
+		showConsentBanner: true,
 	}),
 	saveConsents: vi.fn().mockResolvedValue({ success: true }),
 	setConsent: vi.fn().mockResolvedValue({ success: true }),
@@ -44,32 +44,32 @@ describe('Store Script Loader Integration', () => {
 	// Setup mocks before each test
 	beforeEach(() => {
 		// Mock document.createElement
-		vi.spyOn(document, 'createElement').mockImplementation(() => {
-			return { ...mockScriptElement } as unknown as HTMLScriptElement;
-		});
+		vi.spyOn(document, 'createElement').mockImplementation(
+			() => ({ ...mockScriptElement }) as unknown as HTMLScriptElement
+		);
 
 		// Mock document.head
 		Object.defineProperty(document, 'head', {
+			configurable: true,
 			value: mockHead,
 			writable: true,
-			configurable: true,
 		});
 
 		// Mock document.querySelectorAll for iframe blocker
 		Object.defineProperty(document, 'querySelectorAll', {
+			configurable: true,
 			value: vi.fn().mockReturnValue([]),
 			writable: true,
-			configurable: true,
 		});
 
 		// Mock document.body for mutation observer
 		Object.defineProperty(document, 'body', {
+			configurable: true,
 			value: {
 				appendChild: vi.fn(),
 				removeChild: vi.fn(),
 			},
 			writable: true,
-			configurable: true,
 		});
 
 		// Mock MutationObserver as a constructor class
@@ -99,36 +99,38 @@ describe('Store Script Loader Integration', () => {
 	// Sample scripts for testing
 	const scripts: Script[] = [
 		{
+			category: 'necessary',
 			id: 'necessary-script',
 			src: 'https://example.com/necessary.js',
-			category: 'necessary',
 		},
 		{
+			category: 'marketing',
 			id: 'marketing-script',
 			src: 'https://example.com/marketing.js',
-			category: 'marketing',
 		},
 		{
+			category: 'measurement',
 			id: 'analytics-script',
 			src: 'https://example.com/analytics.js',
-			category: 'measurement',
 		},
 		{
+			alwaysLoad: true,
+			category: 'measurement',
 			id: 'gtm-script',
 			src: 'https://www.googletagmanager.com/gtm.js?id=GTM-XXXX',
-			category: 'measurement',
-			alwaysLoad: true,
 		},
 	];
 
 	// Helper function to create a store with initial consents
-	function createTestStore(initialConsents?: Partial<ConsentState>) {
+	const createTestStore = function createTestStore(
+		initialConsents?: Partial<ConsentState>
+	) {
 		// Create store with mock consent manager
 		const store = createConsentManagerStore(mockConsentManager, {
 			config: {
+				mode: 'test',
 				pkg: 'test',
 				version: '1.0.0',
-				mode: 'test',
 			},
 		});
 
@@ -148,7 +150,7 @@ describe('Store Script Loader Integration', () => {
 		}
 
 		return store;
-	}
+	};
 
 	describe('Script Management in Store', () => {
 		it('should add scripts to the store', () => {
@@ -184,7 +186,8 @@ describe('Store Script Loader Integration', () => {
 			store.getState().removeScript('marketing-script');
 
 			// Check that script was removed
-			expect(store.getState().scripts).toHaveLength(3); // Updated: now includes gtm-script
+			// Updated: now includes gtm-script
+			expect(store.getState().scripts).toHaveLength(3);
 			expect(store.getState().scripts.map((s) => s.id)).not.toContain(
 				'marketing-script'
 			);
@@ -192,11 +195,11 @@ describe('Store Script Loader Integration', () => {
 
 		it('should update scripts based on consent changes', () => {
 			const store = createTestStore({
-				necessary: true,
-				measurement: true,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			});
 
 			// Add scripts
@@ -221,11 +224,11 @@ describe('Store Script Loader Integration', () => {
 
 		it('should check if scripts are loaded', () => {
 			const store = createTestStore({
-				necessary: true,
-				marketing: false,
-				functionality: false,
-				measurement: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			});
 
 			// Add scripts
@@ -266,11 +269,11 @@ describe('Store Script Loader Integration', () => {
 
 		it('should respect denied out-of-policy category scripts in permissive scope', () => {
 			const store = createTestStore({
-				necessary: true,
-				marketing: false,
-				functionality: false,
-				measurement: true,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			});
 
 			store.setState({
@@ -289,11 +292,11 @@ describe('Store Script Loader Integration', () => {
 	describe('Script Loading with Consent Changes', () => {
 		it('should load and unload scripts when consent changes', () => {
 			const store = createTestStore({
-				necessary: true,
-				measurement: false,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
 			});
 
 			// Add scripts
@@ -418,23 +421,23 @@ describe('Store Script Loader Integration', () => {
 			// Directly set all consents to true
 			store.setState((state) => ({
 				...state,
-				consents: {
-					necessary: true,
-					marketing: true,
-					measurement: true,
-					functionality: true,
-					experience: true,
-				},
-				selectedConsents: {
-					necessary: true,
-					marketing: true,
-					measurement: true,
-					functionality: true,
-					experience: true,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'all',
+				},
+				consents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
+				},
+				selectedConsents: {
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					necessary: true,
 				},
 			}));
 
@@ -469,23 +472,23 @@ describe('Store Script Loader Integration', () => {
 			// Directly set only necessary consent to true
 			store.setState((stateLocal) => ({
 				...stateLocal,
-				consents: {
-					necessary: true,
-					marketing: false,
-					measurement: false,
-					functionality: false,
-					experience: false,
-				},
-				selectedConsents: {
-					necessary: true,
-					marketing: false,
-					measurement: false,
-					functionality: false,
-					experience: false,
-				},
 				consentInfo: {
 					time: Date.now(),
 					type: 'necessary',
+				},
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+					necessary: true,
+				},
+				selectedConsents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+					necessary: true,
 				},
 			}));
 
@@ -522,11 +525,12 @@ describe('Store Script Loader Integration', () => {
 	describe('Always Load Scripts', () => {
 		it('should load scripts with alwaysLoad=true regardless of consent', () => {
 			const store = createTestStore({
-				necessary: true,
-				measurement: false, // GTM script requires measurement but has alwaysLoad
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				// GTM script requires measurement but has alwaysLoad
+				measurement: false,
+				necessary: true,
 			});
 
 			// Add scripts including GTM with alwaysLoad
@@ -563,11 +567,11 @@ describe('Store Script Loader Integration', () => {
 
 		it('should never unload scripts with alwaysLoad=true when consent is revoked', () => {
 			const store = createTestStore({
-				necessary: true,
-				measurement: true,
-				marketing: false,
-				functionality: false,
 				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: true,
+				necessary: true,
 			});
 
 			// Add scripts
@@ -634,9 +638,9 @@ describe('Store Script Loader Integration', () => {
 	});
 
 	describe('CSP nonce', () => {
-		function createStoreWithNonce(nonce?: string) {
+		const createStoreWithNonce = function createStoreWithNonce(nonce?: string) {
 			const store = createConsentManagerStore(mockConsentManager, {
-				config: { pkg: 'test', version: '1.0.0', mode: 'test' },
+				config: { mode: 'test', pkg: 'test', version: '1.0.0' },
 				nonce,
 			});
 
@@ -647,16 +651,16 @@ describe('Store Script Loader Integration', () => {
 			}));
 
 			return store;
-		}
+		};
 
-		function lastCreatedScriptElement() {
+		const lastCreatedScriptElement = function lastCreatedScriptElement() {
 			const mockCreateElement = document.createElement as unknown as {
 				mock: { results: { value: HTMLScriptElement }[] };
 			};
-			const results = mockCreateElement.mock.results;
+			const { results } = mockCreateElement.mock;
 
 			return results[results.length - 1]?.value;
-		}
+		};
 
 		it('applies the store-level nonce to injected script elements', () => {
 			const store = createStoreWithNonce('store-nonce');

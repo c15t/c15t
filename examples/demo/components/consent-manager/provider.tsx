@@ -26,7 +26,7 @@ interface ConsentManagerProps {
 	children: ReactNode;
 }
 
-function resolveGeoOverrides(
+const resolveGeoOverrides = function resolveGeoOverrides(
 	search: string
 ): { country?: string; region?: string } | undefined {
 	const searchParams = new URLSearchParams(search);
@@ -46,7 +46,7 @@ function resolveGeoOverrides(
 	}
 
 	return overrides;
-}
+};
 
 /**
  * Server-side rendered consent management wrapper for Next.js App Router
@@ -170,8 +170,8 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 					consentBannerTitle: 'text-red-500',
 					iabBanner: {
 						style: {
-							inset: 0,
 							alignItems: 'center',
+							inset: 0,
 							justifyContent: 'end',
 						},
 					},
@@ -197,7 +197,6 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 	return (
 		<ConsentManagerProvider
 			options={{
-				mode: 'c15t',
 				backendURL,
 				consentCategories: [
 					'necessary',
@@ -208,6 +207,7 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 				],
 				iab: iab({
 					customVendors: [
+						// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 						{
 							id: 'internal-analytics',
 							name: 'Example Analytics',
@@ -222,11 +222,6 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 						},
 					],
 				}),
-				scripts: createDemoScripts('internal-analytics'),
-				storageConfig: {
-					crossSubdomain: true,
-				},
-				theme: centeredIabTheme,
 				legalLinks: {
 					privacyPolicy: {
 						href: '/legal/privacy-policy',
@@ -235,11 +230,17 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 						href: '/legal/terms-of-service',
 					},
 				},
+				mode: 'c15t',
+				overrides: geoOverrides,
+				scripts: createDemoScripts('internal-analytics'),
+				storageConfig: {
+					crossSubdomain: true,
+				},
+				theme: centeredIabTheme,
 				user: {
 					id: '123',
 					identityProvider: 'custom',
 				},
-				overrides: geoOverrides,
 			}}
 		>
 			{!isPolicyDemo && !isPolicyActionsDemo ? (

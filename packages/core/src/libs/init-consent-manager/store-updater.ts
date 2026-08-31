@@ -35,7 +35,7 @@ interface InitSourceMetadata {
  * @param hasGpcSignal - Whether Global Privacy Control signal is present
  * @returns Auto-granted consents or null if not applicable
  */
-function calculateAutoGrantedConsents(
+const calculateAutoGrantedConsents = function calculateAutoGrantedConsents(
 	shouldAutoGrant: boolean,
 	hasGpcSignal: boolean
 ): ConsentState | null {
@@ -46,13 +46,13 @@ function calculateAutoGrantedConsents(
 	// When a GPC signal is present, treat it as an opt-out for
 	// marketing and measurement under CCPA-style rules.
 	return {
-		necessary: true,
-		functionality: true,
 		experience: true,
+		functionality: true,
 		marketing: !hasGpcSignal,
 		measurement: !hasGpcSignal,
+		necessary: true,
 	};
-}
+};
 
 /**
  * Computes auto-grant information based on jurisdiction and current state.
@@ -63,7 +63,7 @@ function calculateAutoGrantedConsents(
  * @param gpcOverride - Optional override for the GPC signal (true/false to force, undefined to use browser)
  * @returns Object containing consent model and auto-granted consents
  */
-function computeAutoGrantInfo(
+const computeAutoGrantInfo = function computeAutoGrantInfo(
 	jurisdiction: JurisdictionCode | null,
 	iabEnabled: boolean | undefined,
 	consentInfo: ConsentStoreState['consentInfo'],
@@ -79,11 +79,12 @@ function computeAutoGrantInfo(
 	// When a policy is active, defer to its `respectGpc` flag.
 	// When no policy is configured (policyGpc is undefined),
 	// fall back to the legacy behaviour which always checks the signal.
-	const shouldCheckGpc = policyGpc !== undefined ? policyGpc : true;
+	const shouldCheckGpc = policyGpc === undefined ? true : policyGpc;
+	// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
 	const hasGpcSignal = shouldCheckGpc
-		? gpcOverride !== undefined
-			? gpcOverride
-			: hasGlobalPrivacyControlSignal()
+		? gpcOverride === undefined
+			? hasGlobalPrivacyControlSignal()
+			: gpcOverride
 		: false;
 
 	// Auto-grant only when no regulation applies and no existing consent
@@ -96,8 +97,8 @@ function computeAutoGrantInfo(
 		hasGpcSignal
 	);
 
-	return { consentModel, autoGrantedConsents };
-}
+	return { autoGrantedConsents, consentModel };
+};
 
 /**
  * Builds the store update object from banner response data.
@@ -107,7 +108,8 @@ function computeAutoGrantInfo(
  * @param effectiveIABEnabled - Whether IAB is effectively enabled (considering server override)
  * @returns Partial store state to merge
  */
-function buildStoreUpdate(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const buildStoreUpdate = function buildStoreUpdate(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
 	effectiveIABEnabled: boolean | undefined,
@@ -130,36 +132,36 @@ function buildStoreUpdate(
 
 	// Build base update
 	const update: Partial<ConsentStoreState> = {
-		model: consentModel,
-		isLoadingConsentInfo: false,
 		branding: data.branding ?? 'c15t',
 		hasFetchedBanner: true,
+		initDataSource: initSourceMetadata?.initDataSource ?? null,
+		initDataSourceDetail: initSourceMetadata?.initDataSourceDetail ?? null,
+		isLoadingConsentInfo: false,
 		lastBannerFetchData: data,
 		locationInfo: {
 			countryCode: location?.countryCode ?? null,
-			regionCode: location?.regionCode ?? null,
 			jurisdiction: data.jurisdiction ?? null,
+			regionCode: location?.regionCode ?? null,
 		},
+		model: consentModel,
 		policyBanner: {
 			allowedActions: data.policy?.ui?.banner?.allowedActions,
-			primaryActions: data.policy?.ui?.banner?.primaryActions,
-			layout: data.policy?.ui?.banner?.layout,
 			direction: data.policy?.ui?.banner?.direction,
-			uiProfile: data.policy?.ui?.banner?.uiProfile,
+			layout: data.policy?.ui?.banner?.layout,
+			primaryActions: data.policy?.ui?.banner?.primaryActions,
 			scrollLock: data.policy?.ui?.banner?.scrollLock,
-		},
-		policyDialog: {
-			allowedActions: data.policy?.ui?.dialog?.allowedActions,
-			primaryActions: data.policy?.ui?.dialog?.primaryActions,
-			layout: data.policy?.ui?.dialog?.layout,
-			direction: data.policy?.ui?.dialog?.direction,
-			uiProfile: data.policy?.ui?.dialog?.uiProfile,
-			scrollLock: data.policy?.ui?.dialog?.scrollLock,
+			uiProfile: data.policy?.ui?.banner?.uiProfile,
 		},
 		policyCategories: data.policy?.consent?.categories ?? null,
+		policyDialog: {
+			allowedActions: data.policy?.ui?.dialog?.allowedActions,
+			direction: data.policy?.ui?.dialog?.direction,
+			layout: data.policy?.ui?.dialog?.layout,
+			primaryActions: data.policy?.ui?.dialog?.primaryActions,
+			scrollLock: data.policy?.ui?.dialog?.scrollLock,
+			uiProfile: data.policy?.ui?.dialog?.uiProfile,
+		},
 		policyScopeMode: data.policy?.consent?.scopeMode ?? null,
-		initDataSource: initSourceMetadata?.initDataSource ?? null,
-		initDataSourceDetail: initSourceMetadata?.initDataSourceDetail ?? null,
 	};
 
 	// Show banner if no existing consent and regulation applies
@@ -252,18 +254,18 @@ function buildStoreUpdate(
 
 		update.translationConfig = prepareTranslationConfig(
 			{
+				defaultLanguage: translations.language,
+				disableAutoLanguageSwitch: true,
 				translations: {
 					[translations.language]: translations.translations,
 				},
-				disableAutoLanguageSwitch: true,
-				defaultLanguage: translations.language,
 			},
 			customMessages
 		);
 	}
 
 	return update;
-}
+};
 
 /**
  * Triggers callbacks after store update.
@@ -272,7 +274,7 @@ function buildStoreUpdate(
  * @param config - Init configuration
  * @param autoGrantedConsents - Auto-granted consents if applicable
  */
-function triggerCallbacks(
+const triggerCallbacks = function triggerCallbacks(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
 	autoGrantedConsents: ConsentState | null
@@ -299,16 +301,16 @@ function triggerCallbacks(
 			},
 		});
 	}
-}
+};
 
-function getDefaultConsents(
+const getDefaultConsents = function getDefaultConsents(
 	consentTypes: ConsentStoreState['consentTypes']
 ): ConsentState {
 	return consentTypes.reduce((acc, consent) => {
 		acc[consent.name] = consent.defaultValue;
 		return acc;
 	}, {} as ConsentState);
-}
+};
 
 /**
  * Updates the store with consent banner data.
@@ -328,7 +330,8 @@ function getDefaultConsents(
  * @param _hasLocalStorageAccess - Whether localStorage is accessible
  * @param prefetchedGVL - Optional prefetched GVL from SSR or init response
  */
-export async function updateStore(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const updateStore = async function updateStore(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
 	_hasLocalStorageAccess: boolean,
@@ -352,9 +355,9 @@ export async function updateStore(
 			const resetConsents = getDefaultConsents(initialState.consentTypes);
 			deleteConsentFromStorage(undefined, initialState.storageConfig);
 			set({
+				consentInfo: null,
 				consents: resetConsents,
 				selectedConsents: resetConsents,
-				consentInfo: null,
 			});
 		} else if (!storedPolicyFingerprint) {
 			const updatedConsentInfo = {
@@ -363,8 +366,8 @@ export async function updateStore(
 			};
 			saveConsentToStorage(
 				{
-					consents: initialState.consents,
 					consentInfo: updatedConsentInfo,
+					consents: initialState.consents,
 				},
 				undefined,
 				initialState.storageConfig
@@ -377,16 +380,10 @@ export async function updateStore(
 
 	// Lazily create the IAB manager when iabConfig is provided.
 	// The _module is injected by @c15t/iab's iab() factory — core never imports IAB runtime.
-	let iab = get().iab;
+	let { iab } = get();
 	if (config.iabConfig && !iab) {
 		const iabModule = config.iabConfig._module;
-		if (!iabModule) {
-			console.error(
-				'[c15t] IAB config provided without IAB module. ' +
-					'Install @c15t/iab and use the iab() wrapper: ' +
-					'`import { iab } from "@c15t/iab"; iab({ cmpId: ... })`'
-			);
-		} else {
+		if (iabModule) {
 			iab = iabModule.createIABManager(
 				config.iabConfig,
 				get,
@@ -394,6 +391,12 @@ export async function updateStore(
 				config.manager
 			);
 			set({ iab });
+		} else {
+			console.error(
+				'[c15t] IAB config provided without IAB module. ' +
+					'Install @c15t/iab and use the iab() wrapper: ' +
+					'`import { iab } from "@c15t/iab"; iab({ cmpId: ... })`'
+			);
 		}
 	}
 
@@ -484,7 +487,7 @@ export async function updateStore(
 				try {
 					await iabModule.initializeIABMode(
 						mergedConfig,
-						{ set, get },
+						{ get, set },
 						prefetchedGVL
 					);
 				} catch (err) {
@@ -493,4 +496,4 @@ export async function updateStore(
 			})();
 		}
 	}
-}
+};

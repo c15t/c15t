@@ -22,8 +22,8 @@ export type GVLData = HeadlessIABDialogData;
  * @returns Processed GVL data ready for UI rendering
  * @public
  */
-export function useGVLData(): GVLData {
+export const useGVLData = function useGVLData(): GVLData {
 	const iabState = useIAB();
 
 	return useMemo(() => processGVLForDialog(iabState), [iabState]);
-}
+};

@@ -20,7 +20,11 @@ interface IABConsentDialogTabsProps extends Omit<
 const IABConsentDialogTabs = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogTabsProps
->(function ({ children, defaultTab = 'purposes', className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentDialogTabs(
+	{ children, defaultTab = 'purposes', className, ...props },
+	ref
+) {
 	const iabTranslations = useIABTranslations();
 	const {
 		purposes,
@@ -94,7 +98,11 @@ interface IABConsentDialogTabButtonProps extends HTMLAttributes<HTMLButtonElemen
 const IABConsentDialogTabButton = forwardRef<
 	HTMLButtonElement,
 	IABConsentDialogTabButtonProps
->(function ({ tab, children, className, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function IABConsentDialogTabButton(
+	{ tab, children, className, ...props },
+	ref
+) {
 	return (
 		<Tabs.Trigger
 			ref={ref}

@@ -12,7 +12,7 @@ export interface UseIframeBlockerOptions {
 	disableAutomaticBlocking?: boolean;
 }
 
-export function useIframeBlocker(
+export const useIframeBlocker = function useIframeBlocker(
 	options: UseIframeBlockerOptions = {}
 ): IframeBlockerHandle {
 	const kernel = useRequiredKernel();
@@ -33,10 +33,12 @@ export function useIframeBlocker(
 		let disposed = false;
 		void (async () => {
 			const { createIframeBlocker } = await loadIframeBlockerModule();
-			if (disposed) return;
+			if (disposed) {
+				return;
+			}
 			const created = createIframeBlocker({
-				kernel,
 				disableAutomaticBlocking: options.disableAutomaticBlocking,
+				kernel,
 			});
 			handleRef.current = created;
 		})();
@@ -49,6 +51,6 @@ export function useIframeBlocker(
 	}, [kernel, options.disableAutomaticBlocking]);
 
 	return handle;
-}
+};
 
 export type { IframeBlockerHandle };

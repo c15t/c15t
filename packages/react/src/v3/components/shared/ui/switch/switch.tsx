@@ -40,7 +40,8 @@ export interface SwitchProps
 	size?: SwitchSize;
 }
 
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function (
+// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch(
 	{
 		checked,
 		className,
@@ -51,7 +52,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function (
 		onClick,
 		onKeyDown,
 		size = 'medium',
-		type = 'button',
+		type: _type = 'button',
 		...rest
 	},
 	forwardedRef

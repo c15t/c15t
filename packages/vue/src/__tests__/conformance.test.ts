@@ -73,7 +73,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -84,7 +84,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 type ProviderOptions = Partial<ConsentConfig> & {
 	callbacks?: Record<string, (...args: unknown[]) => void>;
@@ -116,61 +116,62 @@ const DEFAULT_CONSENT_CATEGORIES = [
 const DEFAULT_TRANSLATIONS: TranslationsResponse = {
 	common: {
 		acceptAll: 'Accept all',
-		rejectAll: 'Reject all',
 		customize: 'Customize',
+		rejectAll: 'Reject all',
 		save: 'Save',
 	},
-	cookieBanner: {
-		title: 'We value your privacy',
-		description: 'We use cookies to enhance your experience.',
-	},
 	consentManagerDialog: {
-		title: 'Privacy preferences',
 		description: 'Manage your choices.',
+		title: 'Privacy preferences',
 	},
 	consentTypes: {
-		necessary: {
-			title: 'Necessary',
-			description: 'Required for the site to function.',
+		experience: {
+			description: 'Experience cookies.',
+			title: 'Experience',
 		},
 		functionality: {
-			title: 'Functionality',
 			description: 'Feature cookies.',
-		},
-		experience: {
-			title: 'Experience',
-			description: 'Experience cookies.',
-		},
-		measurement: {
-			title: 'Measurement',
-			description: 'Analytics and performance measurement.',
+			title: 'Functionality',
 		},
 		marketing: {
-			title: 'Marketing',
 			description: 'Targeted advertising.',
+			title: 'Marketing',
+		},
+		measurement: {
+			description: 'Analytics and performance measurement.',
+			title: 'Measurement',
+		},
+		necessary: {
+			description: 'Required for the site to function.',
+			title: 'Necessary',
 		},
 	},
+	cookieBanner: {
+		description: 'We use cookies to enhance your experience.',
+		title: 'We value your privacy',
+	},
 	frame: {
-		title: 'Privacy',
 		actionButton: 'Manage',
+		title: 'Privacy',
 	},
 	legalLinks: {
+		cookiePolicy: 'Cookie policy',
 		privacyPolicy: 'Privacy policy',
 		termsOfService: 'Terms of service',
-		cookiePolicy: 'Cookie policy',
 	},
 };
 
-function mergeTranslations(
+const mergeTranslations = function mergeTranslations(
 	base: TranslationsResponse,
 	override: Partial<TranslationsResponse> | undefined
 ): TranslationsResponse {
-	if (!override || typeof override !== 'object') return base;
+	if (!override || typeof override !== 'object') {
+		return base;
+	}
 	return {
 		...base,
 		...override,
 		common: { ...base.common, ...override.common },
-		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		consentManagerDialog: {
 			...base.consentManagerDialog,
 			...override.consentManagerDialog,
@@ -179,12 +180,16 @@ function mergeTranslations(
 			...base.consentTypes,
 			...override.consentTypes,
 		},
+		cookieBanner: { ...base.cookieBanner, ...override.cookieBanner },
 		frame: { ...base.frame, ...override.frame },
 		legalLinks: { ...base.legalLinks, ...override.legalLinks },
 	};
-}
+};
 
-function resolveTranslations(options: ProviderOptions, locale?: string) {
+const resolveTranslations = function resolveTranslations(
+	options: ProviderOptions,
+	locale?: string
+) {
 	const language =
 		locale ??
 		options.i18n?.locale ??
@@ -203,20 +208,26 @@ function resolveTranslations(options: ProviderOptions, locale?: string) {
 		language,
 		translations: mergeTranslations(DEFAULT_TRANSLATIONS, override),
 	};
-}
+};
 
-function isIabComponent(component: MountableComponent): boolean {
+const isIabComponent = function isIabComponent(
+	component: MountableComponent
+): boolean {
 	return (
 		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
 	);
-}
+};
 
-function policyModelFor(opts: MountOptions): 'opt-in' | 'opt-out' | 'iab' {
-	if (isIabComponent(opts.component)) return 'iab';
+const policyModelFor = function policyModelFor(
+	opts: MountOptions
+): 'opt-in' | 'opt-out' | 'iab' {
+	if (isIabComponent(opts.component)) {
+		return 'iab';
+	}
 	return opts.policy?.model ?? 'opt-in';
-}
+};
 
-function buildInitOutput(
+const buildInitOutput = function buildInitOutput(
 	opts: MountOptions,
 	options: ProviderOptions
 ): InitOutput {
@@ -233,19 +244,17 @@ function buildInitOutput(
 	}
 
 	return {
+		branding: 'c15t',
 		jurisdiction: 'GDPR',
 		location: {
 			countryCode: 'DE',
 			regionCode: null,
 		},
-		translations: resolveTranslations(options, opts.locale),
-		branding: 'c15t',
 		policy: {
+			consent,
 			id: 'vue_conformance_policy',
 			model: policyModelFor(opts),
-			consent,
 			ui: {
-				mode: 'banner',
 				banner: {
 					allowedActions: ['reject', 'accept', 'customize'],
 					scrollLock: false,
@@ -254,21 +263,23 @@ function buildInitOutput(
 					allowedActions: ['reject', 'accept', 'customize'],
 					scrollLock: false,
 				},
+				mode: 'banner',
 			},
 		},
 		policyDecision: {
-			policyId: 'vue_conformance_policy',
-			fingerprint: 'vue_conformance_fingerprint',
-			matchedBy: 'default',
 			country: 'DE',
-			region: null,
+			fingerprint: 'vue_conformance_fingerprint',
 			jurisdiction: 'GDPR',
+			matchedBy: 'default',
+			policyId: 'vue_conformance_policy',
+			region: null,
 		},
 		policySnapshotToken: 'vue_conformance_token',
+		translations: resolveTranslations(options, opts.locale),
 	};
-}
+};
 
-function buildKernelConfig(
+const buildKernelConfig = function buildKernelConfig(
 	opts: MountOptions,
 	options: ProviderOptions,
 	transport: KernelTransport
@@ -291,27 +302,27 @@ function buildKernelConfig(
 	}
 	if (isIabComponent(opts.component)) {
 		base.initialIab = {
+			cmpId: IAB_FIXTURE_CMP_ID,
 			enabled: true,
 			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
-			cmpId: IAB_FIXTURE_CMP_ID,
 		};
 	}
 	if (initMode === 'authoritative') {
 		return {
 			...base,
+			initialBranding: 'c15t',
 			initialLocation: {
 				countryCode: 'DE',
 				regionCode: null,
 			},
-			initialBranding: 'c15t',
 			initialPolicy: buildInitOutput(opts, options).policy,
 			initialPolicyDecision: {
-				policyId: 'vue_conformance_policy',
-				fingerprint: 'vue_conformance_fingerprint',
-				matchedBy: 'default',
 				country: 'DE',
-				region: null,
+				fingerprint: 'vue_conformance_fingerprint',
 				jurisdiction: 'GDPR',
+				matchedBy: 'default',
+				policyId: 'vue_conformance_policy',
+				region: null,
 			},
 			initialPolicySnapshotToken: 'vue_conformance_token',
 		};
@@ -321,49 +332,52 @@ function buildKernelConfig(
 		initialPolicy: buildInitOutput(opts, options).policy,
 		initialPolicyProvisional: true,
 	};
-}
+};
 
-function snapshotToInitOutputForTest(
+const snapshotToInitOutputForTest = function snapshotToInitOutputForTest(
 	snapshot: ConsentSnapshot
 ): InitOutput | undefined {
 	if (!(snapshot.translations || snapshot.policy || snapshot.location)) {
 		return undefined;
 	}
 	return {
+		branding: snapshot.branding ?? 'c15t',
+		cmpId: snapshot.iab?.cmpId ?? undefined,
+		customVendors: snapshot.iab?.customVendors,
+		gvl: snapshot.iab?.gvl ?? undefined,
 		jurisdiction: snapshot.policyDecision?.jurisdiction ?? 'NONE',
 		location: snapshot.location ?? {
 			countryCode: null,
 			regionCode: null,
 		},
-		translations:
-			snapshot.translations ?? resolveTranslations({} as ProviderOptions),
-		branding: snapshot.branding ?? 'c15t',
-		gvl: snapshot.iab?.gvl ?? undefined,
-		customVendors: snapshot.iab?.customVendors,
-		cmpId: snapshot.iab?.cmpId ?? undefined,
 		policy: snapshot.policy ?? undefined,
 		policyDecision: snapshot.policyDecision ?? undefined,
 		policySnapshotToken: snapshot.policySnapshotToken ?? undefined,
+		translations:
+			snapshot.translations ?? resolveTranslations({} as ProviderOptions),
 	} as InitOutput;
-}
+};
 
-function snapshotToStoredConsentForTest(snapshot: ConsentSnapshot) {
+const snapshotToStoredConsentForTest = function snapshotToStoredConsentForTest(
+	snapshot: ConsentSnapshot
+) {
 	const categories: Record<string, boolean> = {};
 	if (snapshot.hasConsented) {
 		for (const [category, enabled] of Object.entries(snapshot.consents)) {
 			categories[category] = enabled;
 		}
 	}
-	return { policies: {}, categories };
-}
+	return { categories, policies: {} };
+};
 
-function mockFetch(init: InitOutput): typeof fetch {
+const mockFetch = function mockFetch(init: InitOutput): typeof fetch {
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	return vi.fn(async (input: RequestInfo | URL, request?: RequestInit) => {
 		const url = String(input);
 		if (url.endsWith('/init')) {
 			return new Response(JSON.stringify(init), {
-				status: 200,
 				headers: { 'content-type': 'application/json' },
+				status: 200,
 			});
 		}
 		if (url.endsWith('/subjects')) {
@@ -373,32 +387,35 @@ function mockFetch(init: InitOutput): typeof fetch {
 			return new Response(
 				JSON.stringify({ ok: true, subjectId: body.subjectId }),
 				{
-					status: 200,
 					headers: { 'content-type': 'application/json' },
+					status: 200,
 				}
 			);
 		}
 		return new Response('not found', { status: 404 });
 	}) as unknown as typeof fetch;
-}
+};
 
-function buildConfig(opts: MountOptions, init: InitOutput): ConsentConfig {
+const buildConfig = function buildConfig(
+	opts: MountOptions,
+	init: InitOutput
+): ConsentConfig {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
 	return {
 		...provided,
 		backendURL: 'https://consent.example',
-		domain: 'consent.example',
 		consentCategories: provided.consentCategories ?? [
 			...DEFAULT_CONSENT_CATEGORIES,
 		],
 		customFetch: mockFetch(init),
 		disableAnimation: true,
-		trapFocus: provided.trapFocus ?? false,
+		domain: 'consent.example',
 		hideBranding: true,
+		trapFocus: provided.trapFocus ?? false,
 	} as ConsentConfig;
-}
+};
 
-function provideContext(
+const provideContext = function provideContext(
 	app: App,
 	context: VueConsentKernelContext,
 	config: ConsentConfig
@@ -410,9 +427,9 @@ function provideContext(
 	app.provide(symbolInit, context.init);
 	app.provide(symbolActiveUI, context.activeUI);
 	app.provide(symbolConsent, context.storedConsent);
-}
+};
 
-function componentFor(component: MountableComponent) {
+const componentFor = function componentFor(component: MountableComponent) {
 	switch (component) {
 		case 'consent-banner':
 			return defineComponent({
@@ -432,9 +449,9 @@ function componentFor(component: MountableComponent) {
 		default:
 			throw new DriverNotImplementedError('vue', `mount(${component})`);
 	}
-}
+};
 
-function createHarness(
+const createHarness = function createHarness(
 	opts: MountOptions,
 	_options: ProviderOptions,
 	context: VueConsentKernelContext
@@ -463,11 +480,15 @@ function createHarness(
 			hasConsented?: boolean;
 			activeUI?: 'none' | 'banner' | 'dialog';
 		};
-		if (state.consents) context.kernel.set.consent(state.consents);
+		if (state.consents) {
+			context.kernel.set.consent(state.consents);
+		}
 		if (state.hasConsented !== undefined) {
 			context.kernel.set.hasConsented(state.hasConsented);
 		}
-		if (state.activeUI) context.kernel.set.activeUI(state.activeUI);
+		if (state.activeUI) {
+			context.kernel.set.activeUI(state.activeUI);
+		}
 	}
 
 	return defineComponent({
@@ -484,9 +505,9 @@ function createHarness(
 				);
 		},
 	});
-}
+};
 
-function createContext(opts: MountOptions) {
+const createContext = function createContext(opts: MountOptions) {
 	const options = (opts.providerOptions ?? {}) as ProviderOptions;
 	if ((opts.initMode ?? 'authoritative') !== 'authoritative') {
 		throw new DriverNotImplementedError(
@@ -502,38 +523,41 @@ function createContext(opts: MountOptions) {
 	});
 
 	return {
-		context,
 		config,
+		context,
 		options,
 	};
-}
+};
 
-function createPendingInit() {
+const createPendingInit = function createPendingInit() {
 	let resolve!: () => void;
 	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
-}
+};
 
-function createLifecycleTransport(opts: MountOptions) {
+const createLifecycleTransport = function createLifecycleTransport(
+	opts: MountOptions
+) {
 	if ((opts.initMode ?? 'authoritative') === 'pending') {
 		const deferred = createPendingInit();
 		return {
+			resolve: deferred.resolve,
 			transport: {
 				init: () => deferred.promise,
 			},
-			resolve: deferred.resolve,
 		};
 	}
 	if (opts.initMode === 'failing') {
 		return {
+			resolve: undefined,
 			transport: {
+				// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 				async init() {
 					throw new Error('conformance: init failed');
 				},
 			},
-			resolve: undefined,
 		};
 	}
 	const init = buildInitOutput(
@@ -541,8 +565,11 @@ function createLifecycleTransport(opts: MountOptions) {
 		(opts.providerOptions ?? {}) as ProviderOptions
 	);
 	return {
+		resolve: undefined,
 		transport: {
+			// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 			async init() {
+				// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 				return {
 					location: init.location,
 					translations: init.translations,
@@ -554,11 +581,12 @@ function createLifecycleTransport(opts: MountOptions) {
 				};
 			},
 		},
-		resolve: undefined,
 	};
-}
+};
 
-function createControlledContext(opts: MountOptions) {
+const createControlledContext = function createControlledContext(
+	opts: MountOptions
+) {
 	const options = (opts.providerOptions ?? {}) as ProviderOptions;
 	const lifecycle = createLifecycleTransport(opts);
 	const config = buildConfig(opts, buildInitOutput(opts, options));
@@ -570,67 +598,93 @@ function createControlledContext(opts: MountOptions) {
 		snapshot.value = next;
 	});
 	const context: VueConsentKernelContext = {
-		kernel,
-		snapshot,
-		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
 		activeUI: computed({
 			get: () => {
-				const activeUI = snapshot.value.activeUI;
-				if (activeUI === 'dialog') return 'manager';
-				if (activeUI === 'none') return null;
+				const { activeUI } = snapshot.value;
+				if (activeUI === 'dialog') {
+					return 'manager';
+				}
+				if (activeUI === 'none') {
+					return null;
+				}
 				return activeUI;
 			},
 			set: (value) => {
-				if (value === 'manager') kernel.set.activeUI('dialog');
-				else if (value === null) kernel.set.activeUI('none');
-				else kernel.set.activeUI(value);
+				if (value === 'manager') {
+					kernel.set.activeUI('dialog');
+				} else if (value === null) {
+					kernel.set.activeUI('none');
+				} else {
+					kernel.set.activeUI(value);
+				}
 			},
 		}),
+		dispose() {
+			unsubscribe();
+		},
+		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
+		kernel,
+		snapshot,
 		storedConsent: computed({
 			get: () => snapshotToStoredConsentForTest(snapshot.value),
 			set: (value) => {
 				kernel.set.consent(value.categories);
 			},
 		}),
-		dispose() {
-			unsubscribe();
-		},
 	};
 	return {
-		context,
 		config,
+		context,
 		options,
 		resolveInit: lifecycle.resolve,
 	};
-}
+};
 
-function activeUIForStore(activeUI: string | null): StoreState['activeUI'] {
-	if (activeUI === 'banner' || activeUI === 'dialog') return activeUI;
+const activeUIForStore = function activeUIForStore(
+	activeUI: string | null
+): StoreState['activeUI'] {
+	if (activeUI === 'banner' || activeUI === 'dialog') {
+		return activeUI;
+	}
 	return 'none';
-}
+};
 
-function projectStoreState(context: VueConsentKernelContext): StoreState {
+const projectStoreState = function projectStoreState(
+	context: VueConsentKernelContext
+): StoreState {
 	const snapshot = context.kernel.getSnapshot();
 	const consents = { ...snapshot.consents } as Record<string, boolean>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
-		consents,
-		selectedConsents: { ...consents },
 		activeUI: activeUIForStore(snapshot.activeUI),
 		consentCategories: [...snapshot.policyCategories],
+		consents,
+		selectedConsents: { ...consents },
 	};
-}
+};
 
-async function flushScheduler() {
+const flushScheduler = async function flushScheduler() {
 	await flushPromises();
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
-}
+};
 
 let lastContext: VueConsentKernelContext | null = null;
 
 const driver: TestDriver = {
 	framework: 'vue',
+	getStore() {
+		if (!lastContext) {
+			throw new Error('Vue driver: getStore called before mount');
+		}
+		return {
+			getState: () => projectStoreState(lastContext as VueConsentKernelContext),
+			subscribe: (listener: () => void) =>
+				(lastContext as VueConsentKernelContext).kernel.subscribe(() => {
+					listener();
+				}),
+		};
+	},
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const { context, config, options, resolveInit } =
 			createControlledContext(opts);
@@ -656,13 +710,13 @@ const driver: TestDriver = {
 		}
 
 		return {
-			root: container,
 			resolveInit: resolveInit
 				? async () => {
 						resolveInit();
 						await flushScheduler();
 					}
 				: undefined,
+			root: container,
 			unmount: async () => {
 				app.unmount();
 				await flushScheduler();
@@ -677,20 +731,10 @@ const driver: TestDriver = {
 					});
 				persistence?.dispose();
 				context.dispose();
-				if (lastContext === context) lastContext = null;
+				if (lastContext === context) {
+					lastContext = null;
+				}
 			},
-		};
-	},
-	getStore() {
-		if (!lastContext) {
-			throw new Error('Vue driver: getStore called before mount');
-		}
-		return {
-			getState: () => projectStoreState(lastContext as VueConsentKernelContext),
-			subscribe: (listener: () => void) =>
-				(lastContext as VueConsentKernelContext).kernel.subscribe(() => {
-					listener();
-				}),
 		};
 	},
 	async serverRender(opts: MountOptions): Promise<string> {
@@ -710,8 +754,8 @@ const driver: TestDriver = {
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

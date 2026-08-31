@@ -113,13 +113,15 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	'./vue/consent-widget',
 ]);
 
-function describeResult(result: LoadResult): string {
+const describeResult = function describeResult(result: LoadResult): string {
 	return result.ok
 		? `ok (${result.keys.length} keys)`
 		: `${result.name ?? 'Error'}${result.code ? ` [${result.code}]` : ''}: ${result.message}`;
-}
+};
 
-function normalizeFailureMessage(result: LoadFailure): string {
+const normalizeFailureMessage = function normalizeFailureMessage(
+	result: LoadFailure
+): string {
 	if (result.code !== 'ERR_UNKNOWN_FILE_EXTENSION') {
 		return result.message;
 	}
@@ -127,9 +129,9 @@ function normalizeFailureMessage(result: LoadFailure): string {
 	// A barrel can reach any of its CSS imports first. The specific stylesheet
 	// is not part of facade parity; Node rejecting the same file type is.
 	return result.message.replace(/for .*\.css$/u, 'for <css module>');
-}
+};
 
-function assertParity(
+const assertParity = function assertParity(
 	subpath: string,
 	pair: LoadPair,
 	expectedFailures: Set<string>
@@ -177,15 +179,15 @@ function assertParity(
 			`${subpath}: a default export must be forwarded iff the scoped entry has one`
 		).toBe(pair.scoped.hasDefault);
 	}
-}
+};
 
 describe('umbrella facade parity', () => {
 	it('ignores nondeterministic CSS traversal order in expected failures', () => {
 		const failure = (file: string): LoadFailure => ({
-			ok: false,
 			code: 'ERR_UNKNOWN_FILE_EXTENSION',
-			name: 'TypeError',
 			message: `Unknown file extension ".css" for /styles/${file}.css`,
+			name: 'TypeError',
+			ok: false,
 		});
 
 		expect(normalizeFailureMessage(failure('accordion'))).toBe(
@@ -232,7 +234,9 @@ describe('umbrella facade parity', () => {
 });
 
 /** Mirrors the prefix mapping in `parity-runner.mjs` for file subpaths. */
-function rowsScopedSpecifier(subpath: string): string {
+const rowsScopedSpecifier = function rowsScopedSpecifier(
+	subpath: string
+): string {
 	const segment = subpath.slice(2);
 	const prefixes: [string, string][] = [
 		['react', '@c15t/react'],
@@ -248,9 +252,9 @@ function rowsScopedSpecifier(subpath: string): string {
 		}
 	}
 	return `@c15t/core/${segment}`;
-}
+};
 
-function listFiles(directory: string, prefix = ''): string[] {
+const listFiles = function listFiles(directory: string, prefix = ''): string[] {
 	const files: string[] = [];
 	for (const entry of readdirSync(directory, { withFileTypes: true })) {
 		const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
@@ -261,7 +265,7 @@ function listFiles(directory: string, prefix = ''): string[] {
 		}
 	}
 	return files;
-}
+};
 
 describe('umbrella file subpaths', () => {
 	const fileSubpaths = Object.entries(manifest.exports).filter(

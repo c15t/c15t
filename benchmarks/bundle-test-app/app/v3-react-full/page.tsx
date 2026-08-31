@@ -77,54 +77,52 @@ const DEMO_SCRIPTS: Script[] = [
 	},
 ];
 
-const V3ReactFullPage = () => {
-	return (
-		<ConsentProvider
-			options={{
-				mode: 'offline',
-				networkBlocker: {
-					logBlockedRequests: false,
-					rules: [
-						{ category: 'measurement', domain: 'google-analytics.com' },
-						{ category: 'marketing', domain: 'facebook.net' },
-						{ category: 'measurement', domain: 'hotjar.com' },
-					],
-				},
-				scripts: DEMO_SCRIPTS,
-			}}
-		>
-			<ConsentDraftProvider>
-				<main
-					style={{
-						fontFamily: 'system-ui, -apple-system, sans-serif',
-						margin: '0 auto',
-						maxWidth: 960,
-						padding: '2rem',
-					}}
-				>
-					<h1 style={{ marginTop: 0 }}>c15t v3 — live test harness</h1>
-					<p style={{ color: '#555', lineHeight: 1.5 }}>
-						Check/uncheck a category to stage your choice. Click{' '}
-						<strong>Save</strong> to commit to the kernel — only then do scripts
-						actually load/unload. <strong>Reset</strong> discards the draft.
-						This is the &quot;preference center&quot; UX pattern; the banner
-						buttons (Accept All / Reject All) commit immediately.
-					</p>
+const V3ReactFullPage = () => (
+	<ConsentProvider
+		options={{
+			mode: 'offline',
+			networkBlocker: {
+				logBlockedRequests: false,
+				rules: [
+					{ category: 'measurement', domain: 'google-analytics.com' },
+					{ category: 'marketing', domain: 'facebook.net' },
+					{ category: 'measurement', domain: 'hotjar.com' },
+				],
+			},
+			scripts: DEMO_SCRIPTS,
+		}}
+	>
+		<ConsentDraftProvider>
+			<main
+				style={{
+					fontFamily: 'system-ui, -apple-system, sans-serif',
+					margin: '0 auto',
+					maxWidth: 960,
+					padding: '2rem',
+				}}
+			>
+				<h1 style={{ marginTop: 0 }}>c15t v3 — live test harness</h1>
+				<p style={{ color: '#555', lineHeight: 1.5 }}>
+					Check/uncheck a category to stage your choice. Click{' '}
+					<strong>Save</strong> to commit to the kernel — only then do scripts
+					actually load/unload. <strong>Reset</strong> discards the draft. This
+					is the &quot;preference center&quot; UX pattern; the banner buttons
+					(Accept All / Reject All) commit immediately.
+				</p>
 
-					<Suspense fallback={null}>
-						<Diagnostics scripts={DEMO_SCRIPTS} />
-					</Suspense>
-				</main>
-				{/* v3 UI components — styled stock surfaces. */}
-				<ConsentBanner
-					title="We value your privacy (v3 ConsentBanner)"
-					description="Click a button below to commit immediately, or Customize to open the preference dialog."
-				/>
-				<ConsentDialog />
-				<ConsentWidget />
-			</ConsentDraftProvider>
-		</ConsentProvider>
-	);
-};
+				<Suspense fallback={null}>
+					<Diagnostics scripts={DEMO_SCRIPTS} />
+				</Suspense>
+			</main>
+			{/* v3 UI components — styled stock surfaces. */}
+			<ConsentBanner
+				title="We value your privacy (v3 ConsentBanner)"
+				description="Click a button below to commit immediately, or Customize to open the preference dialog."
+			/>
+			<ConsentDialog />
+			<ConsentWidget />
+		</ConsentDraftProvider>
+	</ConsentProvider>
+);
 
 export default V3ReactFullPage;

@@ -33,7 +33,8 @@ type ConsentDialogCardProps = {
 } & ClassNameStyle;
 
 const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
-	function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+	function ConsentDialogCard({ children, ...props }, ref) {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
@@ -62,7 +63,8 @@ ConsentDialogCard.displayName = 'ConsentDialogCard';
 const ConsentDialogHeader = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentDialogHeader({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -90,7 +92,8 @@ ConsentDialogHeader.displayName = 'ConsentDialogHeader';
 const ConsentDialogHeaderTitle = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentDialogHeaderTitle({ children, ...props }, ref) {
 	const { consentManagerDialog: consentDialog } = useTranslations();
 	return (
 		<Box
@@ -124,7 +127,11 @@ const ConsentDialogHeaderDescription = forwardRef<
 	Omit<BoxProps, 'themeKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
->(function ({ children, legalLinks, asChild, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentDialogHeaderDescription(
+	{ children, legalLinks, asChild, ...props },
+	ref
+) {
 	const { consentManagerDialog: consentDialog } = useTranslations();
 	if (asChild) {
 		return (
@@ -172,7 +179,8 @@ ConsentDialogHeaderDescription.displayName = 'ConsentDialogHeaderDescription';
 const ConsentDialogContent = forwardRef<
 	HTMLDivElement,
 	Omit<BoxProps, 'themeKey'>
->(function ({ children, ...props }, ref) {
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentDialogContent({ children, ...props }, ref) {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
@@ -192,10 +200,12 @@ ConsentDialogContent.displayName = 'ConsentDialogContent';
  * The footer section of the consent dialog.
  * This contains the branding but can be overidden with a custom footer.
  */
+export const Branding = (props: BrandingProps) => <BrandingLink {...props} />;
 const ConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	BoxProps & { hideBranding?: boolean; 'data-testid'?: string }
->(function (
+	// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+>(function ConsentDialogFooter(
 	{ children, themeKey, hideBranding, 'data-testid': testId, ...props },
 	ref
 ) {
@@ -204,7 +214,9 @@ const ConsentDialogFooter = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={cn(
 				styles.footer,
-				children == null && !hideBranding && styles.brandingFooter
+				(children === null || children === undefined) &&
+					!hideBranding &&
+					styles.brandingFooter
 			)}
 			data-testid={testId ?? 'consent-dialog-footer'}
 			{...props}
@@ -231,10 +243,6 @@ interface BrandingProps {
 	className?: string;
 	'data-testid'?: string;
 }
-
-export const Branding = (props: BrandingProps) => {
-	return <BrandingLink {...props} />;
-};
 
 /**
  * A pre-configured privacy settings card.
@@ -267,29 +275,27 @@ const ConsentCustomizationCard = ({
 	noStyle?: boolean;
 	legalLinks?: InlineLegalLinksProps['links'];
 	hideBranding?: boolean;
-}) => {
-	return (
-		<ConsentDialogCard>
-			<ConsentDialogHeader>
-				<ConsentDialogHeaderTitle />
-				<ConsentDialogHeaderDescription legalLinks={legalLinks} />
-			</ConsentDialogHeader>
-			<ConsentDialogContent>
-				<ConsentWidget
-					hideBranding
-					noStyle={noStyle}
-					useProvider={true}
-				/>
-			</ConsentDialogContent>
-			<Branding
-				hideBranding={hideBranding ?? false}
-				variant="dialog-tag"
-				themeKey="consentDialogTag"
-				data-testid="consent-dialog-branding"
+}) => (
+	<ConsentDialogCard>
+		<ConsentDialogHeader>
+			<ConsentDialogHeaderTitle />
+			<ConsentDialogHeaderDescription legalLinks={legalLinks} />
+		</ConsentDialogHeader>
+		<ConsentDialogContent>
+			<ConsentWidget
+				hideBranding
+				noStyle={noStyle}
+				useProvider={true}
 			/>
-		</ConsentDialogCard>
-	);
-};
+		</ConsentDialogContent>
+		<Branding
+			hideBranding={hideBranding ?? false}
+			variant="dialog-tag"
+			themeKey="consentDialogTag"
+			data-testid="consent-dialog-branding"
+		/>
+	</ConsentDialogCard>
+);
 
 const Card = ConsentDialogCard;
 const Header = ConsentDialogHeader;

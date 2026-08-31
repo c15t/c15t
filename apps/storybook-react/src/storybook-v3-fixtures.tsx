@@ -26,7 +26,6 @@ interface StorybookV3ProviderProps {
 }
 
 export const defaultV3ConsentOptions: ConsentProviderOptions = {
-	mode: 'offline',
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -34,10 +33,9 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
 		'experience',
 		'marketing',
 	],
+	mode: 'offline',
 	offlinePolicy: {
 		policy: {
-			id: 'storybook_v3',
-			model: 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -48,6 +46,8 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'storybook_v3',
+			model: 'opt-in',
 			ui: {
 				mode: 'banner',
 			},
@@ -100,12 +100,12 @@ interface StorybookV3IABProviderProps {
 }
 
 export const defaultV3IABOptions: ConsentManagerOptions = {
-	mode: 'offline',
 	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
 	}),
+	mode: 'offline',
 	offlinePolicy: {
 		policy: { id: 'storybook_iab_v3', model: 'iab' },
 	},

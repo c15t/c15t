@@ -76,29 +76,27 @@ const ConsentDialogTriggerComponent = ({
 	noStyle,
 	onClick,
 	onPositionChange,
-}: ConsentDialogTriggerProps): ReactNode => {
-	return (
-		<TriggerRoot
-			defaultPosition={defaultPosition}
-			persistPosition={persistPosition}
-			showWhen={showWhen}
-			onClick={onClick}
-			onPositionChange={onPositionChange}
+}: ConsentDialogTriggerProps): ReactNode => (
+	<TriggerRoot
+		defaultPosition={defaultPosition}
+		persistPosition={persistPosition}
+		showWhen={showWhen}
+		onClick={onClick}
+		onPositionChange={onPositionChange}
+	>
+		<TriggerButton
+			size={size}
+			ariaLabel={ariaLabel}
+			className={className}
+			noStyle={noStyle}
 		>
-			<TriggerButton
-				size={size}
-				ariaLabel={ariaLabel}
-				className={className}
+			<TriggerIcon
+				icon={icon}
 				noStyle={noStyle}
-			>
-				<TriggerIcon
-					icon={icon}
-					noStyle={noStyle}
-				/>
-			</TriggerButton>
-		</TriggerRoot>
-	);
-};
+			/>
+		</TriggerButton>
+	</TriggerRoot>
+);
 
 ConsentDialogTriggerComponent.displayName = 'ConsentDialogTrigger';
 
@@ -141,9 +139,9 @@ export interface ConsentDialogTriggerCompound extends FC<ConsentDialogTriggerPro
 export const ConsentDialogTrigger = Object.assign(
 	ConsentDialogTriggerComponent,
 	{
-		Root: TriggerRoot,
 		Button: TriggerButton,
 		Icon: TriggerIcon,
+		Root: TriggerRoot,
 		Text: TriggerText,
 	}
 ) as ConsentDialogTriggerCompound;

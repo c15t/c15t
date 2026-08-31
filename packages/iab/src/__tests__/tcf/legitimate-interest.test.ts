@@ -11,18 +11,15 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { GlobalVendorList, TCFConsentData } from '../../tcf/iab-tcf-types';
 import { decodeTCString, generateTCString } from '../../tcf/tc-string';
 import {
 	assertTCStringHasLIObjection,
-	createMockGVL,
 	createMockGVLWithLIVendors,
 	createMockLegitimateInterestState,
-	createMockTCFConsent,
 	createMockTCFConsentAllGranted,
-	createMockVendor,
 	simulateUserObjection,
 } from './test-setup';
 
@@ -398,7 +395,7 @@ describe('Legitimate Interest Handling', () => {
 
 			// Should throw - vendor 1 has LI granted
 			expect(() => assertTCStringHasLIObjection(decoded, 1)).toThrow(
-				/Expected vendor 1 to have LI objection/
+				/Expected vendor 1 to have LI objection/u
 			);
 		});
 	});

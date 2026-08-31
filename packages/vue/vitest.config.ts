@@ -9,6 +9,7 @@ export default mergeConfig(
 	defineConfig({
 		plugins: [vue()],
 		resolve: {
+			// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 			alias: {
 				'~/libs/determine-model': resolve(
 					__dirname,
@@ -75,8 +76,6 @@ export default mergeConfig(
 			},
 		},
 		test: {
-			environment: 'jsdom',
-			include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
 			coverage: {
 				exclude: ['playground/**'],
 				// Coverage ratchet: floors below current coverage so regressions
@@ -88,6 +87,8 @@ export default mergeConfig(
 					lines: 45,
 				},
 			},
+			environment: 'jsdom',
+			include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
 		},
 	})
 );

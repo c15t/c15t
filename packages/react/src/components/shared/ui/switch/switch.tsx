@@ -32,7 +32,8 @@ export interface SwitchProps
 	themeKey?: AllThemeKeys;
 }
 
-const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function (
+// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch(
 	{
 		checked,
 		className,

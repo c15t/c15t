@@ -16,11 +16,14 @@ interface StoreSnapshot {
 	activeUI: 'none' | 'banner' | 'dialog';
 }
 
-function readState(driver: TestDriver): StoreSnapshot {
+const readState = function readState(driver: TestDriver): StoreSnapshot {
 	return driver.getStore().getState() as unknown as StoreSnapshot;
-}
+};
 
-export function runStoreConformance(driver: TestDriver, api: SuiteApi): void {
+export const runStoreConformance = function runStoreConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
 	api.describe(`[${driver.framework}] store`, () => {
 		conformanceTest(
 			api,
@@ -68,4 +71,4 @@ export function runStoreConformance(driver: TestDriver, api: SuiteApi): void {
 			}
 		);
 	});
-}
+};

@@ -38,7 +38,7 @@ export interface GVLData {
  * @returns Processed GVL data ready for UI rendering
  * @public
  */
-export function useGVLData(): GVLData {
+export const useGVLData = function useGVLData(): GVLData {
 	const { iab: iabState } = useConsentManager();
 
 	// Process GVL data into UI-friendly format
@@ -52,16 +52,16 @@ export function useGVLData(): GVLData {
 	} = useMemo(() => {
 		if (!iabState?.gvl) {
 			return {
-				purposes: [],
-				specialPurposes: [],
-				specialFeatures: [],
 				features: [],
+				purposes: [],
+				specialFeatures: [],
+				specialPurposes: [],
 				stacks: [] as ProcessedStack[],
 				standalonePurposes: [],
 			};
 		}
 
-		const gvl = iabState.gvl;
+		const { gvl } = iabState;
 		const customVendors = iabState.nonIABVendors || [];
 
 		// Helper to map GVL vendor to ProcessedVendor
@@ -70,22 +70,22 @@ export function useGVLData(): GVLData {
 			vendor: (typeof gvl.vendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
+			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
+			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
+			features: vendor.features || [],
 			id: Number(vendorId),
+			isCustom: false,
+			legIntPurposes: vendor.legIntPurposes || [],
 			name: vendor.name,
 			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-			usesNonCookieAccess: vendor.usesNonCookieAccess,
-			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-			usesCookies: vendor.usesCookies,
-			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
-			specialPurposes: vendor.specialPurposes || [],
-			specialFeatures: vendor.specialFeatures || [],
-			features: vendor.features || [],
 			purposes: vendor.purposes || [],
-			legIntPurposes: vendor.legIntPurposes || [],
+			specialFeatures: vendor.specialFeatures || [],
+			specialPurposes: vendor.specialPurposes || [],
+			usesCookies: vendor.usesCookies,
 			usesLegitimateInterest: purposeId
 				? (vendor.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
-			isCustom: false,
+			usesNonCookieAccess: vendor.usesNonCookieAccess,
 		});
 
 		// Helper to map custom vendor to ProcessedVendor
@@ -93,22 +93,22 @@ export function useGVLData(): GVLData {
 			cv: (typeof customVendors)[number],
 			purposeId?: number
 		): ProcessedVendor => ({
+			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
+			deviceStorageDisclosureUrl: null,
+			features: cv.features || [],
 			id: cv.id,
+			isCustom: true,
+			legIntPurposes: cv.legIntPurposes || [],
 			name: cv.name,
 			policyUrl: cv.privacyPolicyUrl,
-			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-			deviceStorageDisclosureUrl: null,
-			usesCookies: cv.usesCookies ?? false,
-			cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
-			specialPurposes: [],
-			specialFeatures: cv.specialFeatures || [],
-			features: cv.features || [],
 			purposes: cv.purposes || [],
-			legIntPurposes: cv.legIntPurposes || [],
+			specialFeatures: cv.specialFeatures || [],
+			specialPurposes: [],
+			usesCookies: cv.usesCookies ?? false,
 			usesLegitimateInterest: purposeId
 				? (cv.legIntPurposes?.includes(purposeId) ?? false)
 				: false,
-			isCustom: true,
+			usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
 		});
 
 		// Process purposes
@@ -118,30 +118,28 @@ export function useGVLData(): GVLData {
 				const iabVendorsForPurpose: ProcessedVendor[] = Object.entries(
 					gvl.vendors
 				)
-					.filter(([, vendor]) => {
-						return (
+					.filter(
+						([, vendor]) =>
 							vendor.purposes?.includes(Number(id)) ||
 							vendor.legIntPurposes?.includes(Number(id))
-						);
-					})
+					)
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor, Number(id)));
 
 				// Get custom vendors for this purpose
 				const customVendorsForPurpose: ProcessedVendor[] = customVendors
-					.filter((cv) => {
-						return (
+					.filter(
+						(cv) =>
 							cv.purposes?.includes(Number(id)) ||
 							cv.legIntPurposes?.includes(Number(id))
-						);
-					})
+					)
 					.map((cv) => mapCustomVendor(cv, Number(id)));
 
 				return {
-					id: Number(id),
-					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
+					id: Number(id),
 					illustrations: purpose.illustrations || [],
+					name: purpose.name,
 					vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
 				};
 			})
@@ -153,19 +151,17 @@ export function useGVLData(): GVLData {
 		)
 			.map(([id, purpose]) => {
 				const vendorsForPurpose: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialPurposes?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
+					id: Number(id),
 					illustrations: purpose.illustrations || [],
-					vendors: vendorsForPurpose,
 					isSpecialPurpose: true,
+					name: purpose.name,
+					vendors: vendorsForPurpose,
 				};
 			})
 			.filter((sp) => sp.vendors.length > 0);
@@ -176,17 +172,15 @@ export function useGVLData(): GVLData {
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialFeatures?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
+					id: Number(id),
 					illustrations: feature.illustrations || [],
+					name: feature.name,
 					vendors: vendorsForFeature,
 				};
 			})
@@ -198,17 +192,15 @@ export function useGVLData(): GVLData {
 		)
 			.map(([id, feature]) => {
 				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.features?.includes(Number(id));
-					})
+					.filter(([, vendor]) => vendor.features?.includes(Number(id)))
 					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
 
 				return {
-					id: Number(id),
-					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
+					id: Number(id),
 					illustrations: feature.illustrations || [],
+					name: feature.name,
 					vendors: vendorsForFeature,
 				};
 			})
@@ -243,10 +235,10 @@ export function useGVLData(): GVLData {
 			if (coveredIds.length >= 2) {
 				// Only consider stacks that cover 2+ purposes
 				stackScores.push({
-					stackId,
-					stack,
 					coveredPurposeIds: coveredIds,
 					score: coveredIds.length,
+					stack,
+					stackId,
 				});
 			}
 		}
@@ -269,9 +261,9 @@ export function useGVLData(): GVLData {
 					unassignedInStack.includes(p.id)
 				);
 				processedStacks.push({
+					description: stack.description,
 					id: stackId,
 					name: stack.name,
-					description: stack.description,
 					purposes: stackPurposes,
 				});
 				for (const pid of unassignedInStack) {
@@ -290,10 +282,10 @@ export function useGVLData(): GVLData {
 			: uncoveredPurposes;
 
 		return {
-			purposes: processedPurposes,
-			specialPurposes: processedSpecialPurposes,
-			specialFeatures: processedSpecialFeatures,
 			features: processedFeatures,
+			purposes: processedPurposes,
+			specialFeatures: processedSpecialFeatures,
+			specialPurposes: processedSpecialPurposes,
 			stacks: processedStacks,
 			standalonePurposes: finalStandalonePurposes,
 		};
@@ -312,13 +304,13 @@ export function useGVLData(): GVLData {
 	const isLoading = iabState?.isLoadingGVL || !iabState?.gvl;
 
 	return {
-		purposes,
-		specialPurposes,
-		specialFeatures,
 		features,
+		isLoading: Boolean(isLoading),
+		purposes,
+		specialFeatures,
+		specialPurposes,
 		stacks,
 		standalonePurposes,
 		totalVendors,
-		isLoading: Boolean(isLoading),
 	};
-}
+};

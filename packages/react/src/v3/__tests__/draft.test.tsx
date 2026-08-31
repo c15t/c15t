@@ -19,23 +19,23 @@ import { ConsentDraftProvider, useConsentDraft } from '../draft';
 import { useConsent, useSetConsent } from '../hooks';
 import { ConsentProvider } from '../provider';
 
-function wrap(options = {}) {
+const wrap = function wrap(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider options={{ persistence: false, ...options }}>
 			{children}
 		</ConsentProvider>
 	);
 	return { Wrapper };
-}
+};
 
-function wrapWithProvider(options = {}) {
+const wrapWithProvider = function wrapWithProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider options={{ persistence: false, ...options }}>
 			<ConsentDraftProvider>{children}</ConsentDraftProvider>
 		</ConsentProvider>
 	);
 	return { Wrapper };
-}
+};
 
 describe('useConsentDraft — basic staging', () => {
 	test('initial values match kernel.consents', async () => {
@@ -123,7 +123,9 @@ describe('useConsentDraft — basic staging', () => {
 					<button
 						type="button"
 						data-testid="save"
-						onClick={() => void draft.save()}
+						onClick={async () => {
+							await draft.save();
+						}}
 					>
 						save
 					</button>

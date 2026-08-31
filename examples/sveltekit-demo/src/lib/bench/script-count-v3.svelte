@@ -33,35 +33,41 @@
 			}),
 		});
 		loader = createScriptLoader({
+			emitToV2DebugListeners: false,
 			kernel,
 			scripts: makeV3Scripts(count),
-			emitToV2DebugListeners: false,
 		});
 		benchState = createInitialBenchState('v3', count);
 		activeUI = kernel.getSnapshot().activeUI ?? 'none';
 		publishScriptBenchState(benchState, { activeUI });
 
 		window.__c15tGetScriptCountBenchState = () => {
-			if (!benchState) return null;
+			if (!benchState) {
+				return null;
+			}
 			publishScriptBenchState(benchState, {
 				activeUI,
+				domIds: listDomIds(count),
 				loadedIds: [...(loader?.getLoadedScriptIds() ?? [])].sort(
 					(left: string, right: string) => left.localeCompare(right)
 				),
-				domIds: listDomIds(count),
 			});
 			return benchState;
 		};
 
 		const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
 			activeUI = snapshot.activeUI ?? 'none';
-			if (!benchState) return;
+			if (!benchState) {
+				return;
+			}
 			publishScriptBenchState(benchState, { activeUI });
 		});
 
 		void (async () => {
 			const result = await kernel.commands.init();
-			if (!benchState) return;
+			if (!benchState) {
+				return;
+			}
 			if (!result.ok) {
 				benchState.errors.push(
 					String(result.error ?? 'kernel.commands.init() failed')
@@ -82,15 +88,17 @@
 		};
 	});
 
-	function run() {
-		if (!benchState || !kernel) return;
+	const run = function run() {
+		if (!benchState || !kernel) {
+			return;
+		}
 		publishScriptBenchState(benchState, {
 			actionStartedAtMs: performance.now(),
-			completedAtMs: null,
 			complete: false,
+			completedAtMs: null,
 		});
 		void kernel.commands.save('all');
-	}
+	};
 </script>
 
 <main

@@ -52,7 +52,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -63,9 +63,12 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function renderFor(component: MountableComponent): ReactElement {
+const renderFor = function renderFor(
+	component: MountableComponent
+): ReactElement {
+	// oxlint-disable-next-line default-case -- Switch is exhaustive over its closed union.
 	switch (component) {
 		case 'consent-banner':
 			return (
@@ -82,18 +85,16 @@ function renderFor(component: MountableComponent): ReactElement {
 		case 'iab-consent-dialog':
 			throw new DriverNotImplementedError('react', `mount(${component})`);
 	}
-}
+};
 
 /**
  * Offline policy fixture used when a mount shapes the policy (GPC suite)
  * or exercises persistence. `ui.mode: 'banner'` makes the surface follow
  * the real lifecycle instead of the driver's forced `setActiveUI`.
  */
-function buildOfflinePolicy(opts: MountOptions) {
+const buildOfflinePolicy = function buildOfflinePolicy(opts: MountOptions) {
 	const offlinePolicy = {
 		policy: {
-			id: 'react_v2_conformance_policy',
-			model: opts.policy?.model ?? 'opt-in',
 			consent: {
 				categories: [
 					'necessary',
@@ -104,6 +105,8 @@ function buildOfflinePolicy(opts: MountOptions) {
 				],
 				scopeMode: 'permissive',
 			},
+			id: 'react_v2_conformance_policy',
+			model: opts.policy?.model ?? 'opt-in',
 			ui: {
 				mode: 'banner',
 			},
@@ -114,13 +117,17 @@ function buildOfflinePolicy(opts: MountOptions) {
 	}
 
 	return offlinePolicy;
-}
+};
 
-function usesPolicyLifecycle(opts: MountOptions): boolean {
+const usesPolicyLifecycle = function usesPolicyLifecycle(
+	opts: MountOptions
+): boolean {
 	return Boolean(opts.policy || opts.persistence || opts.gpc !== undefined);
-}
+};
 
-function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
+const buildProviderOptions = function buildProviderOptions(
+	opts: MountOptions
+): ConsentManagerOptions {
 	if (opts.initMode) {
 		throw new DriverNotImplementedError(
 			'react',
@@ -148,39 +155,41 @@ function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
 	Object.assign(options, provided);
 
 	return options;
-}
+};
 
 /**
  * Stub `navigator.globalPrivacyControl` — the v2 runtime reads the browser
  * signal directly via `hasGlobalPrivacyControlSignal()`. Returns a restore
  * function.
  */
-function stubGpcSignal(value: boolean): () => void {
+const stubGpcSignal = function stubGpcSignal(value: boolean): () => void {
 	const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
 	const hadOwn = Object.hasOwn(nav, 'globalPrivacyControl');
 	const previous = nav.globalPrivacyControl;
 	Object.defineProperty(nav, 'globalPrivacyControl', {
-		value,
 		configurable: true,
+		value,
 	});
 	return () => {
 		if (hadOwn) {
 			Object.defineProperty(nav, 'globalPrivacyControl', {
-				value: previous,
 				configurable: true,
+				value: previous,
 			});
 		} else {
 			delete nav.globalPrivacyControl;
 		}
 	};
-}
+};
 
 /**
  * Seed the v2 storage payload for `initialState` mounts. This is the same
  * `c15t` localStorage entry the runtime writes via `saveConsentToStorage`,
  * so the store hydrates it through its real read path.
  */
-function seedStoredConsent(opts: MountOptions): () => void {
+const seedStoredConsent = function seedStoredConsent(
+	opts: MountOptions
+): () => void {
 	const state = opts.initialState as
 		| { consents?: Record<string, boolean>; hasConsented?: boolean }
 		| undefined;
@@ -190,19 +199,33 @@ function seedStoredConsent(opts: MountOptions): () => void {
 	localStorage.setItem(
 		'c15t',
 		JSON.stringify({
-			consents: state.consents,
 			consentInfo: { time: Date.now(), type: 'all' },
+			consents: state.consents,
 		})
 	);
 	return () => {
 		localStorage.removeItem('c15t');
 	};
-}
+};
 
 let lastOptions: ConsentManagerOptions | null = null;
 
 const driver: TestDriver = {
 	framework: 'react',
+	getStore() {
+		if (!lastOptions) {
+			throw new Error('React driver: getStore called before mount');
+		}
+		const { consentStore } = getOrCreateConsentRuntime(lastOptions, {
+			pkg: '@c15t/react',
+			version,
+		});
+		return {
+			getState: () =>
+				consentStore.getState() as unknown as Record<string, unknown>,
+			subscribe: (listener) => consentStore.subscribe(listener),
+		};
+	},
 	async mount(opts: MountOptions): Promise<MountResult> {
 		clearConsentRuntimeCache();
 		const restoreGpc = opts.gpc === undefined ? null : stubGpcSignal(opts.gpc);
@@ -251,20 +274,7 @@ const driver: TestDriver = {
 			},
 		};
 	},
-	getStore() {
-		if (!lastOptions) {
-			throw new Error('React driver: getStore called before mount');
-		}
-		const { consentStore } = getOrCreateConsentRuntime(lastOptions, {
-			pkg: '@c15t/react',
-			version,
-		});
-		return {
-			getState: () =>
-				consentStore.getState() as unknown as Record<string, unknown>,
-			subscribe: (listener) => consentStore.subscribe(listener),
-		};
-	},
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	async serverRender(opts: MountOptions): Promise<string> {
 		if (opts.initMode) {
 			throw new DriverNotImplementedError(
@@ -283,8 +293,8 @@ const driver: TestDriver = {
 
 const api: SuiteApi = {
 	describe,
-	test,
 	expect: expect as unknown as SuiteApi['expect'],
+	test,
 };
 
 runConformanceSuite(driver, api);

@@ -25,30 +25,28 @@ const RootLayout = ({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
-}>) => {
-	return (
-		<html
-			lang="en"
-			suppressHydrationWarning
+}>) => (
+	<html
+		lang="en"
+		suppressHydrationWarning
+	>
+		<body
+			className={`${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable} ${GeistPixelCircle.variable} ${GeistPixelTriangle.variable} ${GeistPixelLine.variable} font-sans antialiased`}
 		>
-			<body
-				className={`${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable} ${GeistPixelCircle.variable} ${GeistPixelTriangle.variable} ${GeistPixelLine.variable} font-sans antialiased`}
+			<ThemeProvider
+				defaultTheme="light"
+				enableSystem
 			>
-				<ThemeProvider
-					defaultTheme="light"
-					enableSystem
-				>
-					<ConsentManager>
-						{children}
-						{/* Always on, including production — this demo exists to show
+				<ConsentManager>
+					{children}
+					{/* Always on, including production — this demo exists to show
 						    what the consent manager is doing under the hood. */}
-						<DevTools position="bottom-right" />
-						<Analytics />
-					</ConsentManager>
-				</ThemeProvider>
-			</body>
-		</html>
-	);
-};
+					<DevTools position="bottom-right" />
+					<Analytics />
+				</ConsentManager>
+			</ThemeProvider>
+		</body>
+	</html>
+);
 
 export default RootLayout;

@@ -15,13 +15,11 @@ const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
 export const C15tPrefetch = ({
 	id = DEFAULT_SCRIPT_ID,
 	...options
-}: C15tPrefetchProps) => {
-	return (
-		<Script
-			id={id}
-			strategy="beforeInteractive"
-		>
-			{buildPrefetchScript(options)}
-		</Script>
-	);
-};
+}: C15tPrefetchProps) => (
+	<Script
+		id={id}
+		strategy="beforeInteractive"
+	>
+		{buildPrefetchScript(options)}
+	</Script>
+);

@@ -11,12 +11,20 @@ import { fileURLToPath } from 'node:url';
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const ROOT_DIR = join(__dirname, '..');
 
-export function getSizeChangeEmoji(diffPercent: number): string {
-	if (diffPercent > 5) return '🔴';
-	if (diffPercent > 0) return '🟡';
-	if (diffPercent < -5) return '🟢';
+export const getSizeChangeEmoji = function getSizeChangeEmoji(
+	diffPercent: number
+): string {
+	if (diffPercent > 5) {
+		return '🔴';
+	}
+	if (diffPercent > 0) {
+		return '🟡';
+	}
+	if (diffPercent < -5) {
+		return '🟢';
+	}
 	return '⚪';
-}
+};
 
 export interface BundleStats {
 	name: string;
@@ -56,30 +64,33 @@ interface BundleDiffFileSystem {
 
 const defaultFileSystem: BundleDiffFileSystem = {
 	existsSync: nodeFs.existsSync,
-	readdirSync: nodeFs.readdirSync,
 	readFileSync: nodeFs.readFileSync,
+	readdirSync: nodeFs.readdirSync,
 	statSync: nodeFs.statSync,
 	writeFileSync: nodeFs.writeFileSync,
 };
 
 let fileSystem: BundleDiffFileSystem = defaultFileSystem;
 
-export function setBundleDiffFileSystemForTests(
-	nextFileSystem: BundleDiffFileSystem
-): () => void {
-	fileSystem = nextFileSystem;
-	return () => {
-		fileSystem = defaultFileSystem;
+export const setBundleDiffFileSystemForTests =
+	function setBundleDiffFileSystemForTests(
+		nextFileSystem: BundleDiffFileSystem
+	): () => void {
+		fileSystem = nextFileSystem;
+		return () => {
+			fileSystem = defaultFileSystem;
+		};
 	};
-}
 
-export function findRsdoctorDataFiles(dir: string): string[] {
+export const findRsdoctorDataFiles = function findRsdoctorDataFiles(
+	dir: string
+): string[] {
 	const files: string[] = [];
 	if (!fileSystem.existsSync(dir)) {
 		return files;
 	}
 
-	function walk(currentDir: string) {
+	const walk = function walk(currentDir: string) {
 		const entries = fileSystem.readdirSync(currentDir);
 		for (const entry of entries) {
 			const fullPath = join(currentDir, entry);
@@ -90,13 +101,16 @@ export function findRsdoctorDataFiles(dir: string): string[] {
 				files.push(fullPath);
 			}
 		}
-	}
+	};
 
 	walk(dir);
 	return files;
-}
+};
 
-export function extractBundleSizes(jsonPath: string): BundleStats[] {
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const extractBundleSizes = function extractBundleSizes(
+	jsonPath: string
+): BundleStats[] {
 	try {
 		const content = fileSystem.readFileSync(jsonPath, 'utf-8');
 		const data = JSON.parse(content);
@@ -125,10 +139,10 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 				}
 
 				bundles.push({
+					gzipSize,
 					name: chunkName,
 					path: jsonPath,
 					size: chunkSize,
-					gzipSize,
 				});
 			}
 		}
@@ -137,10 +151,10 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 		if (bundles.length === 0 && data?.data?.chunkGraph?.assets) {
 			for (const asset of data.data.chunkGraph.assets || []) {
 				bundles.push({
+					gzipSize: asset.gzipSize,
 					name: asset.path || asset.id || 'unknown',
 					path: jsonPath,
 					size: asset.size || 0,
-					gzipSize: asset.gzipSize,
 				});
 			}
 		}
@@ -177,9 +191,9 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
 	}
-}
+};
 
-export function compareBundles(
+export const compareBundles = function compareBundles(
 	baseBundles: BundleStats[],
 	currentBundles: BundleStats[]
 ): PackageBundleData['diffs'] {
@@ -218,19 +232,19 @@ export function compareBundles(
 			const diffPercent =
 				baseBundle.size > 0 ? (diff / baseBundle.size) * 100 : null;
 			changed.push({
-				name,
 				baseSize: baseBundle.size,
 				currentSize: currentBundle.size,
 				diff,
 				diffPercent: diffPercent ?? 0,
+				name,
 			});
 		}
 	}
 
-	return { added, removed, changed };
-}
+	return { added, changed, removed };
+};
 
-export function analyzePackage(
+export const analyzePackage = function analyzePackage(
 	packageDir: string,
 	baseDir: string,
 	currentDir: string
@@ -265,26 +279,30 @@ export function analyzePackage(
 		totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
 
 	return {
-		packageName,
 		baseBundles,
 		currentBundles,
 		diffs,
+		packageName,
 		totalBaseSize,
 		totalCurrentSize,
 		totalDiff,
 		totalDiffPercent,
 	};
-}
+};
 
-export function formatBytes(bytes: number): string {
-	if (bytes === 0) return '0 B';
+export const formatBytes = function formatBytes(bytes: number): string {
+	if (bytes === 0) {
+		return '0 B';
+	}
 	const k = 1024;
 	const sizes = ['B', 'KB', 'MB', 'GB'];
 	const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
 	return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`;
-}
+};
 
-export function generateMarkdownReport(packages: PackageBundleData[]): string {
+export const generateMarkdownReport = function generateMarkdownReport(
+	packages: PackageBundleData[]
+): string {
 	let markdown = '# 📦 Bundle Size Analysis\n\n';
 
 	if (packages.length === 0) {
@@ -351,9 +369,9 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 	}
 
 	return markdown;
-}
+};
 
-function main() {
+const main = function main() {
 	const baseDir = process.env.BASE_DIR || join(ROOT_DIR, '.bundle-base');
 	const currentDir = process.env.CURRENT_DIR || ROOT_DIR;
 	const outputFile =
@@ -394,7 +412,7 @@ function main() {
 	if (hasSignificantIncrease) {
 		process.exit(1);
 	}
-}
+};
 
 try {
 	main();

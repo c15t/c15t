@@ -17,12 +17,10 @@ export const V3ThemeProvider = ({
 	themeConfig,
 	uiConfig,
 	children,
-}: V3ThemeProviderProps) => {
-	return (
-		<V3UIConfigContext.Provider value={uiConfig}>
-			<GlobalThemeContext.Provider value={themeConfig}>
-				{children}
-			</GlobalThemeContext.Provider>
-		</V3UIConfigContext.Provider>
-	);
-};
+}: V3ThemeProviderProps) => (
+	<V3UIConfigContext.Provider value={uiConfig}>
+		<GlobalThemeContext.Provider value={themeConfig}>
+			{children}
+		</GlobalThemeContext.Provider>
+	</V3UIConfigContext.Provider>
+);

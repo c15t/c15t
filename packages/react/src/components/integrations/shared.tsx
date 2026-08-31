@@ -16,14 +16,12 @@ export const IntegrationPlaceholder = ({
 	category: AllConsentNames;
 	children?: ReactNode;
 	showButton?: boolean;
-} & Omit<ComponentPropsWithoutRef<typeof FrameRoot>, 'children'>) => {
-	return (
-		<FrameRoot {...props}>
-			<FrameTitle category={category}>{children}</FrameTitle>
-			{showButton && <FrameButton category={category} />}
-		</FrameRoot>
-	);
-};
+} & Omit<ComponentPropsWithoutRef<typeof FrameRoot>, 'children'>) => (
+	<FrameRoot {...props}>
+		<FrameTitle category={category}>{children}</FrameTitle>
+		{showButton && <FrameButton category={category} />}
+	</FrameRoot>
+);
 
 export const IntegrationStatus = ({
 	category,

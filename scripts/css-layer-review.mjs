@@ -3,11 +3,11 @@ import { rmSync } from 'node:fs';
 import net from 'node:net';
 import { resolve } from 'node:path';
 
-function createDeferredPromise(run) {
+const createDeferredPromise = function createDeferredPromise(run) {
 	const deferred = Promise.withResolvers();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 const routes = [
 	'/matrix/banner/baseline',
@@ -20,32 +20,33 @@ const routes = [
 
 const apps = [
 	{
+		dir: 'benchmarks/css-layer-preview',
 		label: 'Preview shell',
 		port: 3120,
 		url: 'http://localhost:3120',
-		dir: 'benchmarks/css-layer-preview',
 	},
 	{
+		dir: 'benchmarks/tw3-test',
 		label: 'Tailwind 3',
 		port: 3121,
 		url: 'http://localhost:3121',
-		dir: 'benchmarks/tw3-test',
 	},
 	{
+		dir: 'benchmarks/tw4-test',
 		label: 'Tailwind 4',
 		port: 3122,
 		url: 'http://localhost:3122',
-		dir: 'benchmarks/tw4-test',
 	},
 	{
+		dir: 'benchmarks/no-tw-test',
 		label: 'Plain CSS',
 		port: 3123,
 		url: 'http://localhost:3123',
-		dir: 'benchmarks/no-tw-test',
 	},
 ];
 
-function assertPortAvailable(port) {
+const assertPortAvailable = function assertPortAvailable(port) {
+	// oxlint-disable-next-line no-shadow -- Local fixture name matches the framework callback contract.
 	return createDeferredPromise((resolve, reject) => {
 		const server = net.createServer();
 
@@ -57,7 +58,7 @@ function assertPortAvailable(port) {
 			server.close(() => resolve());
 		});
 	});
-}
+};
 
 console.log('c15t CSS layer review');
 console.log('');

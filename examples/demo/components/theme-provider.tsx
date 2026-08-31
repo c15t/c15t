@@ -24,7 +24,7 @@ const TRANSITION_STYLE_ID = 'c15t-disable-transitions';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function getSystemTheme(): ResolvedTheme {
+const getSystemTheme = function getSystemTheme(): ResolvedTheme {
 	if (typeof window === 'undefined') {
 		return 'light';
 	}
@@ -32,40 +32,41 @@ function getSystemTheme(): ResolvedTheme {
 	return window.matchMedia('(prefers-color-scheme: dark)').matches
 		? 'dark'
 		: 'light';
-}
+};
 
-function applyTheme(theme: ResolvedTheme) {
+const applyTheme = function applyTheme(theme: ResolvedTheme) {
 	document.documentElement.classList.toggle('dark', theme === 'dark');
 	document.documentElement.style.colorScheme = theme;
-}
+};
 
-export function disableTransitionsTemporarily() {
-	if (typeof window === 'undefined') {
-		return;
-	}
+export const disableTransitionsTemporarily =
+	function disableTransitionsTemporarily() {
+		if (typeof window === 'undefined') {
+			return;
+		}
 
-	const existingStyle = document.getElementById(TRANSITION_STYLE_ID);
+		const existingStyle = document.getElementById(TRANSITION_STYLE_ID);
 
-	if (existingStyle) {
-		existingStyle.remove();
-	}
+		if (existingStyle) {
+			existingStyle.remove();
+		}
 
-	const style = document.createElement('style');
-	style.id = TRANSITION_STYLE_ID;
-	style.textContent =
-		'* , *::before, *::after { transition: none !important; animation: none !important; }';
-	document.head.appendChild(style);
+		const style = document.createElement('style');
+		style.id = TRANSITION_STYLE_ID;
+		style.textContent =
+			'* , *::before, *::after { transition: none !important; animation: none !important; }';
+		document.head.appendChild(style);
 
-	void window.getComputedStyle(document.body).opacity;
+		void window.getComputedStyle(document.body).opacity;
 
-	window.requestAnimationFrame(() => {
 		window.requestAnimationFrame(() => {
-			style.remove();
+			window.requestAnimationFrame(() => {
+				style.remove();
+			});
 		});
-	});
-}
+	};
 
-function resolveInitialTheme(
+const resolveInitialTheme = function resolveInitialTheme(
 	defaultTheme: ThemeMode,
 	enableSystem: boolean
 ): ThemeMode {
@@ -83,9 +84,9 @@ function resolveInitialTheme(
 	}
 
 	return defaultTheme;
-}
+};
 
-function resolveThemeMode(
+const resolveThemeMode = function resolveThemeMode(
 	theme: ThemeMode,
 	enableSystem: boolean
 ): ResolvedTheme {
@@ -94,7 +95,7 @@ function resolveThemeMode(
 	}
 
 	return theme === 'dark' ? 'dark' : 'light';
-}
+};
 
 interface ThemeProviderProps {
 	children: ReactNode;
@@ -149,7 +150,6 @@ export const ThemeProvider = ({
 
 	const value = useMemo<ThemeContextValue>(
 		() => ({
-			theme,
 			resolvedTheme,
 			setTheme: (nextTheme) => {
 				disableTransitionsTemporarily();
@@ -157,6 +157,7 @@ export const ThemeProvider = ({
 				setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
 				window.localStorage.setItem(STORAGE_KEY, nextTheme);
 			},
+			theme,
 		}),
 		[enableSystem, resolvedTheme, theme]
 	);
@@ -166,7 +167,7 @@ export const ThemeProvider = ({
 	);
 };
 
-export function useTheme() {
+export const useTheme = function useTheme() {
 	const context = useContext(ThemeContext);
 
 	if (!context) {
@@ -174,4 +175,4 @@ export function useTheme() {
 	}
 
 	return context;
-}
+};

@@ -62,12 +62,14 @@ export interface CodemodRunResult {
 	errors: { filePath: string; error: string }[];
 }
 
-function getPropertyName(property: PropertyAssignment): string {
+const getPropertyName = function getPropertyName(
+	property: PropertyAssignment
+): string {
 	const rawName = property.getNameNode().getText().trim();
 	return rawName.replace(/^['"]|['"]$/gu, '');
-}
+};
 
-function getProperty(
+const getProperty = function getProperty(
 	objectLiteral: ObjectLiteralExpression,
 	name: string
 ): PropertyAssignment | undefined {
@@ -80,9 +82,11 @@ function getProperty(
 		}
 	}
 	return undefined;
-}
+};
 
-function invertExpression(expressionText: string): string {
+const invertExpression = function invertExpression(
+	expressionText: string
+): string {
 	const trimmed = expressionText.trim();
 	if (trimmed === 'true') {
 		return 'false';
@@ -94,9 +98,9 @@ function invertExpression(expressionText: string): string {
 		return trimmed.slice(1).trim();
 	}
 	return `!(${trimmed})`;
-}
+};
 
-function getObjectPropertyKeyText(
+const getObjectPropertyKeyText = function getObjectPropertyKeyText(
 	property: TsMorphTypes.ObjectLiteralElementLike
 ): string | undefined {
 	if (!Node.isPropertyAssignment(property)) {
@@ -113,9 +117,9 @@ function getObjectPropertyKeyText(
 
 	const raw = nameNode.getText();
 	return raw.replace(/^['"]|['"]$/gu, '');
-}
+};
 
-function buildRulesExpression(
+const buildRulesExpression = function buildRulesExpression(
 	domainConsentMapInitializer: TsMorphTypes.Expression
 ): string {
 	const domainMapObject = domainConsentMapInitializer.asKind(
@@ -146,9 +150,9 @@ function buildRulesExpression(
 	}
 
 	return `[${entries.join(', ')}]`;
-}
+};
 
-function migrateTrackingBlockerObject(
+const migrateTrackingBlockerObject = function migrateTrackingBlockerObject(
 	trackingObject: ObjectLiteralExpression
 ): string {
 	const disableAutomaticBlockingProperty = getProperty(
@@ -178,9 +182,9 @@ function migrateTrackingBlockerObject(
 	return `{
 		${lines.join('\n\t\t')}
 	}`;
-}
+};
 
-function getBindingPropertyName(
+const getBindingPropertyName = function getBindingPropertyName(
 	element: TsMorphTypes.BindingElement
 ): string | undefined {
 	const propertyNameNode = element.getPropertyNameNode();
@@ -199,9 +203,10 @@ function getBindingPropertyName(
 		return undefined;
 	}
 	return nameNode.getText();
-}
+};
 
-function transformSourceFile(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): TrackingBlockerResult {
 	let operations = 0;
@@ -360,12 +365,14 @@ function transformSourceFile(
 		operations,
 		summaries: [...new Set(summaries)],
 	};
-}
+};
 
-async function collectSourceFiles(rootDir: string): Promise<string[]> {
+const collectSourceFiles = async function collectSourceFiles(
+	rootDir: string
+): Promise<string[]> {
 	const files: string[] = [];
 
-	async function walk(currentDir: string): Promise<void> {
+	const walk = async function walk(currentDir: string): Promise<void> {
 		const entries = await readdir(currentDir, { withFileTypes: true });
 
 		for (const entry of entries) {
@@ -377,6 +384,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 				if (IGNORED_DIRS.has(entry.name)) {
 					continue;
 				}
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await walk(join(currentDir, entry.name));
 				continue;
 			}
@@ -392,11 +400,11 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
 
 			files.push(join(currentDir, entry.name));
 		}
-	}
+	};
 
 	await walk(rootDir);
 	return files;
-}
+};
 
 /**
  * Runs a codemod that migrates trackingBlockerConfig to networkBlocker config.
@@ -404,56 +412,58 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  */
-export async function runTrackingBlockerToNetworkBlockerCodemod(
-	options: CodemodRunOptions
-): Promise<CodemodRunResult> {
-	const project = new Project({
-		skipAddingFilesFromTsConfig: true,
-		compilerOptions: {
-			allowJs: true,
-		},
-	});
-	const filePaths = await collectSourceFiles(options.projectRoot);
+export const runTrackingBlockerToNetworkBlockerCodemod =
+	async function runTrackingBlockerToNetworkBlockerCodemod(
+		options: CodemodRunOptions
+	): Promise<CodemodRunResult> {
+		const project = new Project({
+			compilerOptions: {
+				allowJs: true,
+			},
+			skipAddingFilesFromTsConfig: true,
+		});
+		const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: {
-		filePath: string;
-		operations: number;
-		summaries: string[];
-	}[] = [];
-	const errors: { filePath: string; error: string }[] = [];
+		const changedFiles: {
+			filePath: string;
+			operations: number;
+			summaries: string[];
+		}[] = [];
+		const errors: { filePath: string; error: string }[] = [];
 
-	for (const filePath of filePaths) {
-		try {
-			const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-			if (!sourceFile) {
-				continue;
+		for (const filePath of filePaths) {
+			try {
+				const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+				if (!sourceFile) {
+					continue;
+				}
+
+				const result = transformSourceFile(sourceFile);
+				if (!result.changed) {
+					continue;
+				}
+
+				changedFiles.push({
+					filePath,
+					operations: result.operations,
+					summaries: result.summaries,
+				});
+
+				if (!options.dryRun) {
+					// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
+					await sourceFile.save();
+				}
+			} catch (error) {
+				errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
 			}
-
-			const result = transformSourceFile(sourceFile);
-			if (!result.changed) {
-				continue;
-			}
-
-			changedFiles.push({
-				filePath,
-				operations: result.operations,
-				summaries: result.summaries,
-			});
-
-			if (!options.dryRun) {
-				await sourceFile.save();
-			}
-		} catch (error) {
-			errors.push({
-				filePath,
-				error: error instanceof Error ? error.message : String(error),
-			});
 		}
-	}
 
-	return {
-		totalFiles: filePaths.length,
-		changedFiles,
-		errors,
+		return {
+			changedFiles,
+			errors,
+			totalFiles: filePaths.length,
+		};
 	};
-}

@@ -8,7 +8,6 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
-		plugins: [react()],
 		optimizeDeps: {
 			exclude: [
 				'@rsdoctor/rspack-plugin',
@@ -17,7 +16,9 @@ export default mergeConfig(
 				'@rspack/resolver-binding-wasm32-wasi',
 			],
 		},
+		plugins: [react()],
 		resolve: {
+			// oxlint-disable-next-line sort-keys -- Key order matches the external protocol or snapshot contract.
 			alias: {
 				'~': resolve(__dirname, './src'),
 				// Resolve core package to source so Vite can handle its dynamic
@@ -104,6 +105,22 @@ export default mergeConfig(
 			},
 		},
 		test: {
+			browser: {
+				enabled: true,
+				instances: [{ browser: 'chromium' }],
+				provider: playwright(),
+			},
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				exclude: ['src/providers/__tests__/test-helpers.tsx'],
+				thresholds: {
+					branches: 50,
+					functions: 60,
+					lines: 65,
+					statements: 60,
+				},
+			},
 			include: [
 				'src/**/*.test.tsx',
 				'src/**/*.test.ts',
@@ -111,29 +128,11 @@ export default mergeConfig(
 				'src/**/*.spec.ts',
 				'src/**/*.e2e.test.tsx',
 			],
-			coverage: {
-				exclude: ['src/providers/__tests__/test-helpers.tsx'],
-			},
-			browser: {
-				enabled: true,
-				provider: playwright(),
-				instances: [{ browser: 'chromium' }],
-			},
+			retry: 2,
 			setupFiles: [
 				'./src/test-setup.browser.ts',
 				'./src/v3/test-setup.browser.ts',
 			],
-			retry: 2,
-			coverage: {
-				// Coverage ratchet: floors below current coverage so regressions
-				// fail CI. Raise as coverage improves; never lower.
-				thresholds: {
-					lines: 65,
-					statements: 60,
-					functions: 60,
-					branches: 50,
-				},
-			},
 		},
 	})
 );

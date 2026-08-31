@@ -10,20 +10,20 @@ import type { CookieBannerProps, TrackingBlockerConfig } from '@c15t/react';
 const trackingBlockerConfig: TrackingBlockerConfig = {
 	disableAutomaticBlocking: true,
 	domainConsentMap: {
-		'google-analytics.com': 'measurement',
 		'facebook.com': 'marketing',
+		'google-analytics.com': 'measurement',
 	},
 };
 
 const options = {
-	mode: 'c15t',
+	gdprTypes: ['necessary', 'marketing'],
 	ignoreGeoLocation: true,
+	mode: 'c15t',
 	react: {
-		theme: theme,
 		colorScheme: 'dark',
 		disableAnimation: true,
+		theme,
 	},
-	gdprTypes: ['necessary', 'marketing'],
 	trackingBlockerConfig,
 	translations: {
 		defaultLanguage: 'en',

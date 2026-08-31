@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createCMPApi } from '../../tcf/cmp-api';
 import { clearGVLCache, fetchGVL } from '../../tcf/fetch-gvl';
@@ -15,15 +15,10 @@ import {
 } from '../../tcf/purpose-mapping';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
 import type { CMPApi } from '../../tcf/types';
-import {
-	createCallbackPromise,
-	createVoidCallbackPromise,
-	waitForTimeout,
-} from './promise-helpers';
+import { createVoidCallbackPromise, waitForTimeout } from './promise-helpers';
 import {
 	cleanupTCFApi,
 	createMockGVL,
-	createMockTCFConsentAllGranted,
 	setupFetchMock,
 	setupStorageMock,
 } from './test-setup';
@@ -54,8 +49,8 @@ describe('IAB TCF Integration', () => {
 		cmpApi = createCMPApi({
 			cmpId: 28,
 			cmpVersion: 1,
-			gvl,
 			gdprApplies: true,
+			gvl,
 		});
 	});
 
@@ -111,6 +106,7 @@ describe('IAB TCF Integration', () => {
 			});
 		});
 
+		// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 		it('should restore consent from storage on page reload', async () => {
 			// Save consent
 			const savedTcString = 'saved-tc-string-for-reload';
@@ -154,18 +150,18 @@ describe('IAB TCF Integration', () => {
 	describe('Consent Mapping Integration', () => {
 		it('should convert c15t consents to IAB purposes and back', () => {
 			const c15tConsents = {
-				necessary: true,
-				marketing: true,
 				experience: true,
-				measurement: true,
 				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
 			};
 
 			// Convert to IAB purposes
 			const iabPurposes = c15tConsentsToIabPurposes(c15tConsents);
 
 			// All purposes should be true
-			for (let i = 1; i <= 11; i++) {
+			for (let i = 1; i <= 11; i += 1) {
 				expect(iabPurposes[i]).toBe(true);
 			}
 
@@ -177,11 +173,13 @@ describe('IAB TCF Integration', () => {
 
 		it('should handle partial consent correctly', () => {
 			const c15tConsents = {
-				necessary: true,
-				marketing: false, // Reject marketing
 				experience: true,
+				// Reject functionality
+				functionality: false,
+				// Reject marketing
+				marketing: false,
 				measurement: true,
-				functionality: false, // Reject functionality
+				necessary: true,
 			};
 
 			const iabPurposes = c15tConsentsToIabPurposes(c15tConsents);
@@ -285,7 +283,7 @@ describe('IAB TCF Integration', () => {
 			// Add listener and wait for initial callback
 			await createVoidCallbackPromise((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (data) => {
-					listenerCalls++;
+					listenerCalls += 1;
 					if (data?.listenerId !== undefined) {
 						// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 						listenerId = data.listenerId;
@@ -296,7 +294,8 @@ describe('IAB TCF Integration', () => {
 				});
 			});
 
-			expect(listenerCalls).toBe(1); // Initial call
+			// Initial call
+			expect(listenerCalls).toBe(1);
 
 			// Remove listener
 			await createVoidCallbackPromise((resolve) => {
@@ -324,6 +323,7 @@ describe('IAB TCF Integration', () => {
 			const commands = ['ping', 'getTCData', 'getVendorList'] as const;
 
 			for (const command of commands) {
+				// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 				await createVoidCallbackPromise((resolve) => {
 					window.__tcfapi?.(command, 2, (data, success) => {
 						expect(success).toBe(true);

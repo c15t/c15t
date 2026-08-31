@@ -33,44 +33,48 @@ interface MachineSnapshot {
 }
 
 const GENERATE_STAGE_NAMES: Record<string, string> = {
-	preflight: 'preflight',
-	preflightError: 'preflight',
-	modeSelection: 'mode_selection',
-	hostedMode: 'hosted_mode',
-	offlineMode: 'offline_mode',
-	customMode: 'custom_mode',
 	backendOptions: 'backend_options',
-	frontendOptions: 'frontend_options',
-	scriptsOptions: 'scripts_options',
-	fileGeneration: 'file_generation',
-	dependencyCheck: 'dependency_check',
-	dependencyConfirm: 'dependency_confirm',
-	dependencyInstall: 'dependency_install',
-	summary: 'summary',
-	skillsInstall: 'skills_install',
-	githubStar: 'github_star',
+	cancelled: 'cancelled',
 	cancelling: 'cancelling',
 	cleanup: 'cleanup',
 	complete: 'complete',
+	customMode: 'custom_mode',
+	dependencyCheck: 'dependency_check',
+	dependencyConfirm: 'dependency_confirm',
+	dependencyInstall: 'dependency_install',
 	error: 'error',
 	exited: 'exited',
-	cancelled: 'cancelled',
+	fileGeneration: 'file_generation',
+	frontendOptions: 'frontend_options',
+	githubStar: 'github_star',
+	hostedMode: 'hosted_mode',
+	modeSelection: 'mode_selection',
+	offlineMode: 'offline_mode',
+	preflight: 'preflight',
+	preflightError: 'preflight',
+	scriptsOptions: 'scripts_options',
+	skillsInstall: 'skills_install',
+	summary: 'summary',
 };
 
-function normalizeGenerateStageName(state: string): string {
+const normalizeGenerateStageName = function normalizeGenerateStageName(
+	state: string
+): string {
 	return (
 		GENERATE_STAGE_NAMES[state] ??
 		state.replace(/[A-Z]/gu, (char) => `_${char.toLowerCase()}`)
 	);
-}
+};
 
-function getGenerateContext(
+const getGenerateContext = function getGenerateContext(
 	snapshot: MachineSnapshot
 ): Partial<GenerateMachineContext> | undefined {
 	return snapshot.context as Partial<GenerateMachineContext> | undefined;
-}
+};
 
-function normalizeCancelReason(reason?: string | null): string {
+const normalizeCancelReason = function normalizeCancelReason(
+	reason?: string | null
+): string {
 	if (!reason) {
 		return 'user_cancelled';
 	}
@@ -107,9 +111,9 @@ function normalizeCancelReason(reason?: string | null): string {
 	}
 
 	return 'user_cancelled';
-}
+};
 
-function getStageReason(
+const getStageReason = function getStageReason(
 	fromState: string,
 	toState: string,
 	context?: Partial<GenerateMachineContext>
@@ -152,9 +156,9 @@ function getStageReason(
 	}
 
 	return undefined;
-}
+};
 
-function getStageResult(
+const getStageResult = function getStageResult(
 	fromState: string,
 	toState: string,
 	context?: Partial<GenerateMachineContext>
@@ -179,9 +183,10 @@ function getStageResult(
 	}
 
 	return 'completed';
-}
+};
 
-function buildGenerateStageTelemetry(
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const buildGenerateStageTelemetry = function buildGenerateStageTelemetry(
 	fromState: string,
 	toState: string,
 	durationMs: number,
@@ -190,22 +195,22 @@ function buildGenerateStageTelemetry(
 	const context = getGenerateContext(snapshot);
 
 	return {
-		stage: normalizeGenerateStageName(fromState),
-		nextStage: normalizeGenerateStageName(toState),
-		durationMs,
-		result: getStageResult(fromState, toState, context),
-		reason: getStageReason(fromState, toState, context),
-		selectedMode: context?.selectedMode ?? undefined,
-		hostedProvider: context?.hostedProvider ?? undefined,
 		dependencyCount: context?.dependenciesToAdd?.length ?? 0,
+		durationMs,
+		errorsCount: context?.errors?.length ?? 0,
 		filesCreatedCount: context?.filesCreated?.length ?? 0,
 		filesModifiedCount: context?.filesModified?.length ?? 0,
-		installConfirmed: context?.installConfirmed ?? undefined,
+		hostedProvider: context?.hostedProvider ?? undefined,
 		installAttempted: context?.installAttempted ?? undefined,
+		installConfirmed: context?.installConfirmed ?? undefined,
 		installSucceeded: context?.installSucceeded ?? undefined,
-		errorsCount: context?.errors?.length ?? 0,
+		nextStage: normalizeGenerateStageName(toState),
+		reason: getStageReason(fromState, toState, context),
+		result: getStageResult(fromState, toState, context),
+		selectedMode: context?.selectedMode ?? undefined,
+		stage: normalizeGenerateStageName(fromState),
 	};
-}
+};
 
 /**
  * Creates a telemetry subscriber for a state machine
@@ -216,7 +221,9 @@ function buildGenerateStageTelemetry(
  * - Error states
  * - Cancellation
  */
-export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
+export const createTelemetrySubscriber = function createTelemetrySubscriber(
+	config: TelemetryPluginConfig
+) {
 	const { telemetry, machineId, skipStates = [] } = config;
 
 	let lastState: string | null = null;
@@ -242,10 +249,10 @@ export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
 			const duration = now - lastStateTime;
 
 			telemetry.trackEvent(TelemetryEventName.CLI_STATE_TRANSITION, {
-				machineId,
-				fromState: lastState,
-				toState: currentState,
 				duration,
+				fromState: lastState,
+				machineId,
+				toState: currentState,
 			});
 
 			if (machineId === 'generate') {
@@ -276,17 +283,17 @@ export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
 			const lastError = errors?.[errors.length - 1];
 
 			telemetry.trackEvent(TelemetryEventName.CLI_STATE_ERROR, {
+				error: lastError?.error?.message ?? 'Unknown error',
 				machineId,
 				state: currentState,
-				error: lastError?.error?.message ?? 'Unknown error',
 				stateHistory: stateHistory.map((e) => e.state).join(','),
 			});
 		}
 
 		if (currentState === 'exited' || currentState === 'cancelled') {
 			telemetry.trackEvent(TelemetryEventName.CLI_STATE_CANCELLED, {
-				machineId,
 				lastState: lastState ?? 'unknown',
+				machineId,
 				stateHistory: stateHistory.map((e) => e.state).join(','),
 			});
 		}
@@ -296,33 +303,33 @@ export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
 
 			telemetry.trackEvent(TelemetryEventName.CLI_STATE_COMPLETE, {
 				machineId,
-				totalDuration,
-				statesVisited: stateHistory.length,
 				stateHistory: stateHistory.map((e) => e.state).join(','),
+				statesVisited: stateHistory.length,
+				totalDuration,
 			});
 		}
 
 		lastState = currentState;
 		lastStateTime = now;
 	};
-}
+};
 
 /**
  * Gets the state history from a subscriber
  * Useful for debugging and error reporting
  */
-export function getStateHistory(
+export const getStateHistory = function getStateHistory(
 	_subscriber: ReturnType<typeof createTelemetrySubscriber>
 ): StateHistoryEntry[] {
 	// The history is captured in closure, this is a placeholder
 	// for accessing it through context if needed
 	return [];
-}
+};
 
 /**
  * Creates a combined subscriber that handles both telemetry and custom callbacks
  */
-export function combineSubscribers(
+export const combineSubscribers = function combineSubscribers(
 	...subscribers: ((snapshot: MachineSnapshot) => void)[]
 ) {
 	return (snapshot: MachineSnapshot) => {
@@ -335,12 +342,12 @@ export function combineSubscribers(
 			}
 		}
 	};
-}
+};
 
 /**
  * Utility to create a simple state logger for debugging
  */
-export function createDebugSubscriber(
+export const createDebugSubscriber = function createDebugSubscriber(
 	machineId: string,
 	logger?: { debug: (msg: string, ...args: unknown[]) => void }
 ) {
@@ -355,4 +362,4 @@ export function createDebugSubscriber(
 			lastState = currentState;
 		}
 	};
-}
+};

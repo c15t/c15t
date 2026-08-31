@@ -18,80 +18,83 @@ import { ensureBenchmarkDom } from './runtime-setup';
 ensureBenchmarkDom();
 
 const FULL_INIT_PAYLOAD: InitResponse = {
+	branding: 'c15t',
 	jurisdiction: 'GDPR',
-	showConsentBanner: true,
 	location: { countryCode: 'DE', regionCode: 'BE' },
+	policy: {
+		consent: {
+			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
+			model: 'opt-in',
+			preselectedCategories: ['necessary'],
+			scopeMode: 'permissive',
+		},
+		id: 'gdpr-default',
+		model: 'opt-in',
+		ui: {
+			banner: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				direction: 'row',
+				primaryActions: ['accept', 'reject'],
+				scrollLock: false,
+				uiProfile: 'balanced',
+			},
+			dialog: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				direction: 'column',
+				primaryActions: ['accept'],
+				scrollLock: true,
+				uiProfile: 'balanced',
+			},
+			mode: 'banner',
+		},
+	} as InitResponse['policy'],
+	policyDecision: {
+		fingerprint: 'abc123',
+		matchedBy: 'region',
+	} as InitResponse['policyDecision'],
+	policySnapshotToken: 'sig-abc123',
+	showConsentBanner: true,
 	translations: {
 		language: 'de',
 		translations: {
 			common: {
 				acceptAll: 'Alle akzeptieren',
-				rejectAll: 'Alle ablehnen',
 				customize: 'Anpassen',
+				rejectAll: 'Alle ablehnen',
 				save: 'Speichern',
 			},
 			cookieBanner: {
-				title: 'Wir verwenden Cookies',
 				description: 'Diese Website verwendet Cookies...',
+				title: 'Wir verwenden Cookies',
 			},
 		} as InitResponse['translations']['translations'],
 	},
-	branding: 'c15t',
-	policy: {
-		id: 'gdpr-default',
-		model: 'opt-in',
-		consent: {
-			model: 'opt-in',
-			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
-			preselectedCategories: ['necessary'],
-			scopeMode: 'permissive',
-		},
-		ui: {
-			mode: 'banner',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryActions: ['accept', 'reject'],
-				direction: 'row',
-				uiProfile: 'balanced',
-				scrollLock: false,
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryActions: ['accept'],
-				direction: 'column',
-				uiProfile: 'balanced',
-				scrollLock: true,
-			},
-		},
-	} as InitResponse['policy'],
-	policyDecision: {
-		matchedBy: 'region',
-		fingerprint: 'abc123',
-	} as InitResponse['policyDecision'],
-	policySnapshotToken: 'sig-abc123',
 };
 
 const V2_API_PAYLOAD = {
-	showConsentBanner: true,
+	branding: 'c15t',
 	jurisdiction: { code: 'GDPR' },
 	location: { countryCode: 'DE', regionCode: 'BE' },
-	translations: FULL_INIT_PAYLOAD.translations,
-	branding: 'c15t',
 	policy: FULL_INIT_PAYLOAD.policy,
 	policyDecision: FULL_INIT_PAYLOAD.policyDecision,
 	policySnapshotToken: FULL_INIT_PAYLOAD.policySnapshotToken,
+	showConsentBanner: true,
+	translations: FULL_INIT_PAYLOAD.translations,
 };
 
 // oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const mockFetchV2 = async () =>
 	new Response(JSON.stringify(V2_API_PAYLOAD), {
-		status: 200,
 		headers: { 'content-type': 'application/json' },
+		status: 200,
 	});
 // oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
 const mockFetchV3 = async () => new Response('ok');
 
-function _measureSync(iterations: number, fn: () => void): number[] {
+const _measureSync = function _measureSync(
+	iterations: number,
+	fn: () => void
+): number[] {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
@@ -99,39 +102,40 @@ function _measureSync(iterations: number, fn: () => void): number[] {
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
-async function measureAsync(
+const measureAsync = async function measureAsync(
 	iterations: number,
 	fn: () => Promise<void>
 ): Promise<number[]> {
 	const samples: number[] = [];
 	for (let i = 0; i < iterations; i += 1) {
 		const start = performance.now();
+		// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 		await fn();
 		samples.push((performance.now() - start) * 1000);
 	}
 	return samples;
-}
+};
 
 interface Stats {
 	avg: number;
 	median: number;
 	p95: number;
 }
-function summarize(samples: number[]): Stats {
+const summarize = function summarize(samples: number[]): Stats {
 	const sorted = [...samples].sort((a, b) => a - b);
 	return {
 		avg: samples.reduce((a, b) => a + b, 0) / samples.length,
 		median: sorted[Math.floor(sorted.length / 2)] ?? 0,
 		p95: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
 	};
-}
+};
 
-function pct(a: number, b: number): string {
+const pct = function pct(a: number, b: number): string {
 	const d = ((b - a) / a) * 100;
-	return (d >= 0 ? '+' : '') + d.toFixed(1) + '%';
-}
+	return `${(d >= 0 ? '+' : '') + d.toFixed(1)}%`;
+};
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '50');
 
@@ -151,6 +155,7 @@ const v2Samples = await measureAsync(ITERATIONS, async () => {
 globalThis.fetch = mockFetchV3 as unknown as typeof globalThis.fetch;
 
 const richTransport: KernelTransport = {
+	// oxlint-disable-next-line require-await -- Async signature preserves the callback or public contract.
 	async init() {
 		return FULL_INIT_PAYLOAD;
 	},
@@ -183,5 +188,5 @@ const outputDir =
 mkdirSync(outputDir, { recursive: true });
 writeFileSync(
 	join(outputDir, 'rich-init-compare.json'),
-	`${JSON.stringify({ suite: 'rich-init-compare', generatedAt: new Date().toISOString(), iterations: ITERATIONS, v2, v3 }, null, 2)}\n`
+	`${JSON.stringify({ generatedAt: new Date().toISOString(), iterations: ITERATIONS, suite: 'rich-init-compare', v2, v3 }, null, 2)}\n`
 );

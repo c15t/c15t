@@ -23,22 +23,23 @@ export interface ConsentIabSelection {
 
 export type IabConsentSaveInput = 'all' | 'none' | ConsentIabSelection;
 
-function setVueRefValue<T>(target: Ref<T>, value: T) {
+const setVueRefValue = function setVueRefValue<T>(target: Ref<T>, value: T) {
 	target.value = value;
-}
+};
 
-export function createDefaultIabSelection(): ConsentIabSelection {
-	return {
-		purposeConsents: {},
-		purposeLegitimateInterests: {},
-		vendorConsents: {},
-		vendorLegitimateInterests: {},
-		specialFeatureOptIns: {},
-		preferenceCenterTab: 'purposes',
+export const createDefaultIabSelection =
+	function createDefaultIabSelection(): ConsentIabSelection {
+		return {
+			preferenceCenterTab: 'purposes',
+			purposeConsents: {},
+			purposeLegitimateInterests: {},
+			specialFeatureOptIns: {},
+			vendorConsents: {},
+			vendorLegitimateInterests: {},
+		};
 	};
-}
 
-export function useConsentIabStore() {
+export const useConsentIabStore = function useConsentIabStore() {
 	const context = useConsentKernelContext();
 	const tab = createVueState<IabPreferenceTab>(
 		'c15t:iab-preference-tab',
@@ -47,18 +48,18 @@ export function useConsentIabStore() {
 
 	return computed<ConsentIabSelection>({
 		get: () => {
-			const iab = context.snapshot.value.iab;
+			const { iab } = context.snapshot.value;
 			return {
+				preferenceCenterTab: tab.value,
 				purposeConsents: { ...(iab?.purposeConsents ?? {}) },
 				purposeLegitimateInterests: {
 					...(iab?.purposeLegitimateInterests ?? {}),
 				},
+				specialFeatureOptIns: { ...(iab?.specialFeatureOptIns ?? {}) },
 				vendorConsents: { ...(iab?.vendorConsents ?? {}) },
 				vendorLegitimateInterests: {
 					...(iab?.vendorLegitimateInterests ?? {}),
 				},
-				specialFeatureOptIns: { ...(iab?.specialFeatureOptIns ?? {}) },
-				preferenceCenterTab: tab.value,
 			};
 		},
 		set: (value) => {
@@ -67,26 +68,27 @@ export function useConsentIabStore() {
 				enabled: true,
 				purposeConsents: value.purposeConsents,
 				purposeLegitimateInterests: value.purposeLegitimateInterests,
+				specialFeatureOptIns: value.specialFeatureOptIns,
 				vendorConsents: value.vendorConsents,
 				vendorLegitimateInterests: value.vendorLegitimateInterests,
-				specialFeatureOptIns: value.specialFeatureOptIns,
 			});
 		},
 	});
-}
+};
 
-export function useConsentIabSelection(): Ref<ConsentIabSelection> {
-	const stored = useConsentIabStore();
+export const useConsentIabSelection =
+	function useConsentIabSelection(): Ref<ConsentIabSelection> {
+		const stored = useConsentIabStore();
 
-	return computed({
-		get: () => stored.value ?? createDefaultIabSelection(),
-		set: (value) => {
-			setVueRefValue(stored, value);
-		},
-	});
-}
+		return computed({
+			get: () => stored.value ?? createDefaultIabSelection(),
+			set: (value) => {
+				setVueRefValue(stored, value);
+			},
+		});
+	};
 
-export function buildAcceptAllIab(
+export const buildAcceptAllIab = function buildAcceptAllIab(
 	gvlData: GlobalVendorList,
 	vendors: NonIABVendor[],
 	tab: IabPreferenceTab
@@ -125,16 +127,16 @@ export function buildAcceptAllIab(
 	}
 
 	return {
+		preferenceCenterTab: tab,
 		purposeConsents,
 		purposeLegitimateInterests,
+		specialFeatureOptIns,
 		vendorConsents,
 		vendorLegitimateInterests,
-		specialFeatureOptIns,
-		preferenceCenterTab: tab,
 	};
-}
+};
 
-export function buildRejectAllIab(
+export const buildRejectAllIab = function buildRejectAllIab(
 	gvlData: GlobalVendorList,
 	vendors: NonIABVendor[],
 	tab: IabPreferenceTab
@@ -175,16 +177,16 @@ export function buildRejectAllIab(
 	}
 
 	return {
+		preferenceCenterTab: tab,
 		purposeConsents,
 		purposeLegitimateInterests,
+		specialFeatureOptIns,
 		vendorConsents,
 		vendorLegitimateInterests,
-		specialFeatureOptIns,
-		preferenceCenterTab: tab,
 	};
-}
+};
 
-export function useConsentIabSave() {
+export const useConsentIabSave = function useConsentIabSave() {
 	const init = useConsentInit();
 	const kernel = useConsentKernel();
 	const selection = useConsentIabSelection();
@@ -216,4 +218,4 @@ export function useConsentIabSave() {
 		}
 		void kernel.commands.save();
 	};
-}
+};

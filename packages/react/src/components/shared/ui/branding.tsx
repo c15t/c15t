@@ -49,7 +49,9 @@ type BrandingCompactLogoProps = SVGProps<SVGSVGElement> & {
 	branding: Branding | string;
 };
 
-export function resolveBranding(branding: Branding | string): ResolvedBranding {
+export const resolveBranding = function resolveBranding(
+	branding: Branding | string
+): ResolvedBranding {
 	if (branding === 'none') {
 		return 'none';
 	}
@@ -59,16 +61,16 @@ export function resolveBranding(branding: Branding | string): ResolvedBranding {
 	}
 
 	return 'c15t';
-}
+};
 
-export function getBrandingHref(
+export const getBrandingHref = function getBrandingHref(
 	branding: Branding | string,
 	refParam = ''
 ): string {
 	return resolveBranding(branding) === 'inth'
 		? `https://inth.com${refParam}`
 		: `https://c15t.com${refParam}`;
-}
+};
 
 export const BrandingFullLogo = ({
 	branding,
@@ -139,7 +141,7 @@ export const BrandingLink = ({
 		consentState?.state.branding ?? kernel?.getSnapshot().branding ?? 'c15t';
 	const resolvedBranding = resolveBranding(branding);
 	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+		typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
 	const brandingStyle = useMemo(() => {
 		const componentStyle: ClassNameStyle = {
 			baseClassName: cn(

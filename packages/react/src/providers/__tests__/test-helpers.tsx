@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 
 const mockFetch = vi.fn();
 
-export function setupMocks(): {
+export const setupMocks = function setupMocks(): {
 	mockFetch: Mock;
 } {
 	window.fetch = mockFetch;
@@ -13,4 +13,4 @@ export function setupMocks(): {
 	});
 
 	return { mockFetch };
-}
+};

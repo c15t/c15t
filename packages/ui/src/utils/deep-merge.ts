@@ -1,17 +1,24 @@
 /**
  * Deep merges two objects recursively.
  */
-function isIndexableObject(value: unknown): value is Record<string, unknown> {
+const isIndexableObject = function isIndexableObject(
+	value: unknown
+): value is Record<string, unknown> {
 	return value !== null && typeof value === 'object';
-}
+};
 
-export function deepMerge<T extends Record<string, unknown>>(
+export const deepMerge = function deepMerge<T extends Record<string, unknown>>(
 	target: T,
 	source: unknown
 ): T {
-	if (!isIndexableObject(source)) return target;
+	if (!isIndexableObject(source)) {
+		return target;
+	}
 	const result: Record<string, unknown> = { ...target };
 	for (const key in source) {
+		if (!Object.hasOwn(source, key)) {
+			continue;
+		}
 		const sourceValue = source[key];
 		if (isIndexableObject(sourceValue) && !Array.isArray(sourceValue)) {
 			const targetValue = result[key];
@@ -26,4 +33,4 @@ export function deepMerge<T extends Record<string, unknown>>(
 		}
 	}
 	return { ...target, ...result };
-}
+};

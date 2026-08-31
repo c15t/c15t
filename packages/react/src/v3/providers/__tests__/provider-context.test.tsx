@@ -44,7 +44,6 @@ describe('ConsentManagerProvider Context Values', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					storageConfig: { storageKey: 'provider-context-v3' },
 					offlinePolicy: {
 						policy: {
 							model: 'opt-in',
@@ -53,6 +52,7 @@ describe('ConsentManagerProvider Context Values', () => {
 							},
 						},
 					},
+					storageConfig: { storageKey: 'provider-context-v3' },
 					theme: { colors: { primary: '#000000' } },
 				}}
 			>

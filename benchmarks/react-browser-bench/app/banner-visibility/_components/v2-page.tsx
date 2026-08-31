@@ -10,12 +10,12 @@ import { useEffect, useRef } from 'react';
 import { getBenchState, observeBannerVisibility } from './state';
 
 const BENCHMARK_POLICY = {
-	id: 'banner-visibility-benchmark',
-	model: 'opt-in' as const,
 	consent: {
 		categories: ['necessary', 'measurement', 'marketing'],
 		scopeMode: 'permissive' as const,
 	},
+	id: 'banner-visibility-benchmark',
+	model: 'opt-in' as const,
 	ui: {
 		mode: 'banner' as const,
 	},
@@ -40,45 +40,43 @@ const V2Probe = () => {
 		}
 	}, []);
 
-	useEffect(() => {
-		return observeBannerVisibility('v2', activeUI);
-	}, [activeUI]);
+	useEffect(() => observeBannerVisibility('v2', activeUI), [activeUI]);
 
 	return null;
 };
 
-export const V2BannerVisibilityPage = () => {
-	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-				offlinePolicy: {
-					policy: BENCHMARK_POLICY,
+export const V2BannerVisibilityPage = () => (
+	<ConsentManagerProvider
+		options={{
+			callbacks: {
+				onError(error) {
+					const state = getBenchState('v2');
+					if (!state) {
+						return;
+					}
+					state.errorCount += 1;
+					state.errors.push(String(error));
 				},
-				theme: {
-					motion: {
-						duration: {
-							fast: '1ms',
-							normal: '1ms',
-							slow: '1ms',
-						},
+			},
+			mode: 'offline',
+			offlinePolicy: {
+				policy: BENCHMARK_POLICY,
+			},
+			theme: {
+				motion: {
+					duration: {
+						fast: '1ms',
+						normal: '1ms',
+						slow: '1ms',
 					},
 				},
-				callbacks: {
-					onError(error) {
-						const state = getBenchState('v2');
-						if (!state) return;
-						state.errorCount += 1;
-						state.errors.push(String(error));
-					},
-				},
-			}}
-		>
-			<V2Probe />
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>v2 banner visibility benchmark</h1>
-			</main>
-			<ConsentBanner disableAnimation />
-		</ConsentManagerProvider>
-	);
-};
+			},
+		}}
+	>
+		<V2Probe />
+		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
+			<h1>v2 banner visibility benchmark</h1>
+		</main>
+		<ConsentBanner disableAnimation />
+	</ConsentManagerProvider>
+);

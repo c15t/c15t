@@ -25,7 +25,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const createDeferredPromise = function createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -36,7 +36,7 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
 // localStorage + document.cookie are stubbed by packages/core/vitest.setup.ts
 // Let's just flush between tests.
@@ -52,9 +52,9 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-async function flushDebounce(): Promise<void> {
+const flushDebounce = async function flushDebounce(): Promise<void> {
 	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
-}
+};
 
 describe('persistence: hydration', () => {
 	test('does nothing when nothing is stored', () => {
@@ -79,7 +79,7 @@ describe('persistence: hydration', () => {
 		createPersistence({ kernel });
 		expect(kernel.getSnapshot().consents.marketing).toBe(true);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
-		expect(kernel.getSnapshot().subjectId).toMatch(/^sub_/);
+		expect(kernel.getSnapshot().subjectId).toMatch(/^sub_/u);
 	});
 
 	test('hydration does not call transport.save', async () => {
@@ -148,11 +148,11 @@ describe('persistence: write path', () => {
 		deleteConsentFromStorage();
 		localStorage.clear();
 		await kernel.commands.save({
-			necessary: true,
-			functionality: true,
 			experience: true,
-			measurement: true,
+			functionality: true,
 			marketing: true,
+			measurement: true,
+			necessary: true,
 		});
 		await flushDebounce();
 

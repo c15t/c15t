@@ -14,12 +14,14 @@ import {
 	createMockStoreState,
 } from './test-setup';
 
-function setGlobalPrivacyControlSignal(value: boolean | string | undefined) {
+const setGlobalPrivacyControlSignal = function setGlobalPrivacyControlSignal(
+	value: boolean | string | undefined
+) {
 	Object.defineProperty(window.navigator, 'globalPrivacyControl', {
 		configurable: true,
 		value,
 	});
-}
+};
 
 describe('updateStore - cmpId merging', () => {
 	let mockGet: ReturnType<typeof vi.fn>;

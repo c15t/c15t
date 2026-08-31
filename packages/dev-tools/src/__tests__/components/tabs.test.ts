@@ -14,7 +14,7 @@ type PromiseWithResolversConstructor = PromiseConstructor & {
 	withResolvers: <Value>() => DeferredPromise<Value>;
 };
 
-function createDeferredPromise<Value>(
+const _createDeferredPromise = function _createDeferredPromise<Value>(
 	run: (
 		resolve: DeferredPromise<Value>['resolve'],
 		reject: DeferredPromise<Value>['reject']
@@ -25,9 +25,9 @@ function createDeferredPromise<Value>(
 	).withResolvers<Value>();
 	run(deferred.resolve, deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createVoidDeferredPromise(
+const createVoidDeferredPromise = function createVoidDeferredPromise(
 	run: (
 		resolve: () => void,
 		reject: DeferredPromise<undefined>['reject']
@@ -38,23 +38,26 @@ function createVoidDeferredPromise(
 	).withResolvers<undefined>();
 	run(() => deferred.resolve(undefined), deferred.reject);
 	return deferred.promise;
-}
+};
 
-function createRect(width: number, height = 32): DOMRect {
+const createRect = function createRect(width: number, height = 32): DOMRect {
 	return {
-		x: 0,
-		y: 0,
-		width,
+		bottom: height,
 		height,
-		top: 0,
 		left: 0,
 		right: width,
-		bottom: height,
 		toJSON: () => ({}),
+		top: 0,
+		width,
+		x: 0,
+		y: 0,
 	} as DOMRect;
-}
+};
 
-function getTab(root: HTMLElement, label: string): HTMLButtonElement {
+const getTab = function getTab(
+	root: HTMLElement,
+	label: string
+): HTMLButtonElement {
 	const tab = [
 		...root.querySelectorAll<HTMLButtonElement>('[role="tab"]'),
 	].find((element) => element.textContent?.includes(label));
@@ -62,9 +65,12 @@ function getTab(root: HTMLElement, label: string): HTMLButtonElement {
 		throw new Error(`Missing tab: ${label}`);
 	}
 	return tab;
-}
+};
 
-function getOverflowItem(root: HTMLElement, label: string): HTMLButtonElement {
+const getOverflowItem = function getOverflowItem(
+	root: HTMLElement,
+	label: string
+): HTMLButtonElement {
 	const item = [
 		...root.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]'),
 	].find((element) => element.textContent?.includes(label));
@@ -72,7 +78,7 @@ function getOverflowItem(root: HTMLElement, label: string): HTMLButtonElement {
 		throw new Error(`Missing overflow item: ${label}`);
 	}
 	return item;
-}
+};
 
 describe('tabs component', () => {
 	beforeEach(() => {
@@ -98,8 +104,8 @@ describe('tabs component', () => {
 	it('keeps active consents visible in strip when IAB mode is enabled', async () => {
 		const tabs = createTabs({
 			activeTab: 'consents',
-			onTabChange: vi.fn(),
 			disabledTabs: [],
+			onTabChange: vi.fn(),
 		});
 		document.body.appendChild(tabs.element);
 		await createVoidDeferredPromise((resolve) => {
@@ -125,8 +131,8 @@ describe('tabs component', () => {
 	it('keeps active IAB in strip and sends Consents to overflow by default', async () => {
 		const tabs = createTabs({
 			activeTab: 'iab',
-			onTabChange: vi.fn(),
 			disabledTabs: [],
+			onTabChange: vi.fn(),
 		});
 		document.body.appendChild(tabs.element);
 		await createVoidDeferredPromise((resolve) => {
@@ -153,8 +159,8 @@ describe('tabs component', () => {
 		const onTabChange = vi.fn();
 		const tabs = createTabs({
 			activeTab: 'location',
-			onTabChange,
 			disabledTabs: ['iab'],
+			onTabChange,
 		});
 		document.body.appendChild(tabs.element);
 		await createVoidDeferredPromise((resolve) => {
@@ -163,7 +169,7 @@ describe('tabs component', () => {
 
 		const locationTab = getTab(tabs.element, 'Location');
 		locationTab.dispatchEvent(
-			new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+			new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })
 		);
 
 		expect(onTabChange).toHaveBeenCalledWith('policy');
@@ -175,8 +181,8 @@ describe('tabs component', () => {
 	it('opens overflow menu with keyboard and focuses first enabled hidden tab', async () => {
 		const tabs = createTabs({
 			activeTab: 'location',
-			onTabChange: vi.fn(),
 			disabledTabs: [],
+			onTabChange: vi.fn(),
 		});
 		document.body.appendChild(tabs.element);
 		await createVoidDeferredPromise((resolve) => {
@@ -190,7 +196,7 @@ describe('tabs component', () => {
 			throw new Error('Missing overflow button');
 		}
 		overflowButton.dispatchEvent(
-			new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+			new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowDown' })
 		);
 
 		const hiddenItems = [

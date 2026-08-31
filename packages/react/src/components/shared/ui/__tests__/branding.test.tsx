@@ -9,8 +9,7 @@ import {
 	StableGlobalThemeProvider,
 } from '~/__tests__/stable-context-providers';
 import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
 
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 

@@ -40,7 +40,7 @@ interface Args {
 	keepWorkspace: boolean;
 }
 
-function parseArgs(argv: readonly string[]): Args {
+const parseArgs = function parseArgs(argv: readonly string[]): Args {
 	const flag = (name: string): string | undefined => {
 		const index = argv.indexOf(`--${name}`);
 		return index === -1 ? undefined : argv[index + 1];
@@ -61,13 +61,13 @@ function parseArgs(argv: readonly string[]): Args {
 			ENGINES.filter((engine) => !engine.needsDocker);
 
 	return {
-		fixtures: fixtureName ? [fixtureByName(fixtureName)] : DATABASE_FIXTURES,
-		engines,
-		mysqlUrl,
 		allowAnyDatabase,
+		engines,
+		fixtures: fixtureName ? [fixtureByName(fixtureName)] : DATABASE_FIXTURES,
 		keepWorkspace: argv.includes('--keep-workspace'),
+		mysqlUrl,
 	};
-}
+};
 
 /**
  * The kysely range a published release declares. 2.x declares none (it reaches
@@ -89,19 +89,23 @@ function parseArgs(argv: readonly string[]): Args {
  * expect to review the fixture diff that comes with it.
  */
 const DRIVER_VERSIONS: Record<string, string> = {
-	'better-sqlite3': '13.0.2',
 	'@electric-sql/pglite': '0.5.4',
+	'better-sqlite3': '13.0.2',
 	'kysely-pglite': '0.6.1',
 	mysql2: '3.23.2',
 };
 
 const KYSELY_FALLBACK = '^0.28.15';
 
-async function kyselyRangeFor(version: string): Promise<string> {
+const kyselyRangeFor = async function kyselyRangeFor(
+	version: string
+): Promise<string> {
 	const response = await fetch(
 		`https://registry.npmjs.org/@c15t%2Fbackend/${version}`
 	);
-	if (!response.ok) return KYSELY_FALLBACK;
+	if (!response.ok) {
+		return KYSELY_FALLBACK;
+	}
 	const manifest = (await response.json()) as {
 		dependencies?: Record<string, string>;
 		peerDependencies?: Record<string, string>;
@@ -111,15 +115,15 @@ async function kyselyRangeFor(version: string): Promise<string> {
 		manifest.peerDependencies?.kysely ??
 		KYSELY_FALLBACK
 	);
-}
+};
 
 /** npm alias for a release, safe to use as a JS identifier prefix. */
-function aliasFor(version: string): string {
+const aliasFor = function aliasFor(version: string): string {
 	return `c15t_${version.replaceAll('.', '_')}`;
-}
+};
 
 /** Subpaths each era exposes, relative to the aliased package. */
-function eraSubpaths(era: DatabaseFixture['era']): {
+const eraSubpaths = function eraSubpaths(era: DatabaseFixture['era']): {
 	migrator: string;
 	schema?: string;
 	adapter?: string;
@@ -130,20 +134,23 @@ function eraSubpaths(era: DatabaseFixture['era']): {
 			return { migrator: 'pkgs/migrations' };
 		case 'fumadb-v2-subpath':
 			return {
+				adapter: 'v2/db/adapters/kysely',
 				migrator: 'v2/db/migrator',
 				schema: 'v2/db/schema',
-				adapter: 'v2/db/adapters/kysely',
 			};
 		case 'fumadb-root':
 			return {
+				adapter: 'db/adapters/kysely',
 				migrator: 'db/migrator',
 				schema: 'db/schema',
-				adapter: 'db/adapters/kysely',
 			};
 	}
-}
+};
 
-function driverSource(fixture: DatabaseFixture, engine: Engine): string {
+const driverSource = function driverSource(
+	fixture: DatabaseFixture,
+	engine: Engine
+): string {
 	const imports: string[] = [];
 	const steps: string[] = [];
 
@@ -226,9 +233,9 @@ ${steps.join('\n')}
   await teardown();
 }
 `;
-}
+};
 
-async function generateOne(
+const generateOne = async function generateOne(
 	fixture: DatabaseFixture,
 	engine: Engine,
 	args: Args
@@ -243,9 +250,9 @@ async function generateOne(
 		mkdirSync(outDir, { recursive: true });
 		const unsupportedSnapshot: Record<string, unknown> = {
 			engine: engine.name,
-			versions: fixture.versions,
 			era: fixture.era,
 			unsupported: blocker,
+			versions: fixture.versions,
 		};
 		unsupportedSnapshot['shape'] = fixture.name;
 		await writeFile(
@@ -298,10 +305,10 @@ async function generateOne(
 			join(workspace, 'package.json'),
 			`${JSON.stringify(
 				{
+					dependencies,
 					name: 'fixture-workspace',
 					private: true,
 					type: 'module',
-					dependencies,
 				},
 				null,
 				2
@@ -344,9 +351,9 @@ async function generateOne(
 		);
 		const capturedFixture = {
 			engine: engine.name,
-			versions: fixture.versions,
 			era: fixture.era,
 			rationale: fixture.rationale,
+			versions: fixture.versions,
 			...captured,
 		};
 		capturedFixture['shape'] = fixture.name;
@@ -365,10 +372,10 @@ async function generateOne(
 		if (args.keepWorkspace) {
 			process.stderr.write(`    workspace kept at ${workspace}\n`);
 		} else {
-			await rm(workspace, { recursive: true, force: true });
+			await rm(workspace, { force: true, recursive: true });
 		}
 	}
-}
+};
 
 const args = parseArgs(process.argv.slice(2));
 process.stderr.write(
@@ -379,6 +386,7 @@ let failures = 0;
 for (const fixture of args.fixtures) {
 	for (const engine of args.engines) {
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- Operations are intentionally serial to preserve order and limit concurrency.
 			await generateOne(fixture, engine, args);
 		} catch (error) {
 			failures += 1;

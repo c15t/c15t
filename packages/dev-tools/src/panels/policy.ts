@@ -18,153 +18,214 @@ export interface PolicyPanelOptions {
 /**
  * Renders the policy panel content
  */
-export function renderPolicyPanel(
-	container: HTMLElement,
-	options: PolicyPanelOptions
-): void {
-	const { getState } = options;
-	clearElement(container);
-
-	const state = getState();
-	if (!state) {
-		container.appendChild(createDisconnectedState());
-		return;
+const buildTraceEntries = function buildTraceEntries(
+	decision:
+		| {
+				policyId: string;
+				matchedBy: 'region' | 'country' | 'default' | 'fallback';
+				country: string | null;
+				region: string | null;
+		  }
+		| undefined,
+	policyId: string | undefined
+): { step: string; result: string }[] {
+	if (!decision) {
+		return [{ result: 'UNAVAILABLE', step: 'decision metadata' }];
 	}
 
-	const initData = state.lastBannerFetchData;
-	const activePolicy = initData?.policy;
-	const policyDecision = initData?.policyDecision;
-	const initSource = formatInitSource(
-		state.initDataSource,
-		state.initDataSourceDetail
-	);
+	const country = decision.country ?? 'n/a';
+	const regionKey =
+		decision.country && decision.region
+			? `${decision.country}-${decision.region}`
+			: 'n/a';
+	const resolved = policyId ?? decision.policyId ?? 'unknown';
+	const matched = decision.matchedBy;
 
-	// Match trace — always shown
-	container.appendChild(
-		createMatchTraceSection({
-			policyDecision,
-			policyId: activePolicy?.id ?? policyDecision?.policyId,
-		})
-	);
+	return [
+		{
+			result: matched === 'region' ? `MATCH → ${resolved}` : 'MISS',
+			step: `region(${regionKey})`,
+		},
+		{
+			result:
+				// oxlint-disable-next-line no-nested-ternary -- Branches mirror a closed three-state presentation matrix.
+				matched === 'country'
+					? `MATCH → ${resolved}`
+					: matched === 'region'
+						? 'SKIPPED'
+						: 'MISS',
+			step: `country(${country})`,
+		},
+		{
+			result: matched === 'fallback' ? `MATCH → ${resolved}` : 'SKIPPED',
+			step: 'fallback(geo-fail)',
+		},
+		{
+			result: matched === 'default' ? `MATCH → ${resolved}` : 'SKIPPED',
+			step: 'default(catch-all)',
+		},
+	];
+};
+const createHint = function createHint(text: string): HTMLElement {
+	return span({
+		className: componentStyles.overrideHint,
+		text,
+	});
+};
+const createMatchTraceSection = function createMatchTraceSection(options: {
+	policyDecision:
+		| {
+				policyId: string;
+				matchedBy: 'region' | 'country' | 'default' | 'fallback';
+				country: string | null;
+				region: string | null;
+		  }
+		| undefined;
+	policyId: string | undefined;
+}): HTMLElement {
+	const { policyDecision, policyId } = options;
+	const entries = buildTraceEntries(policyDecision, policyId);
 
-	if (!activePolicy && !policyDecision) {
-		container.appendChild(
-			createSection({
-				title: 'Policy',
-				children: [
+	return createSection({
+		children: [
+			div({
+				children: entries.map((entry) =>
 					div({
+						children: [
+							span({
+								style: {
+									color: 'var(--c15t-text-muted)',
+									fontFamily: 'ui-monospace, monospace',
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
+								},
+								text: entry.step,
+							}),
+							span({
+								style: {
+									fontFamily: 'ui-monospace, monospace',
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
+								},
+								text: entry.result,
+							}),
+						],
+						className: componentStyles.gridCard ?? '',
 						style: {
-							padding: '10px 12px',
-							fontSize: 'var(--c15t-devtools-font-size-sm)',
-							color: 'var(--c15t-text-muted)',
+							alignItems: 'center',
+							display: 'flex',
+							gap: '10px',
+							justifyContent: 'space-between',
+							padding: '6px 10px',
 						},
-						text: 'No active policy matched for this request.',
-					}),
-					createHint(`Init Source: ${initSource}`),
-				],
-			})
-		);
-		return;
-	}
-
-	// Core policy identity
-	container.appendChild(
-		createSection({
-			title: 'Policy',
-			children: [
-				createGrid(3, [
-					createCard('ID', activePolicy?.id ?? policyDecision?.policyId ?? '—'),
-					createCard('Model', getModelLabel(activePolicy?.model)),
-					createCard(
-						'Scope',
-						getScopeModeLabel(
-							activePolicy?.consent?.scopeMode ?? state.policyScopeMode
-						)
-					),
-					createCard(
-						'Categories',
-						formatList(
-							state.policyCategories ?? activePolicy?.consent?.categories
-						)
-					),
-					createCard(
-						'Preselected',
-						formatList(activePolicy?.consent?.preselectedCategories)
-					),
-					createCard(
-						'Expiry',
-						typeof activePolicy?.consent?.expiryDays === 'number'
-							? `${activePolicy.consent.expiryDays}d`
-							: '—'
-					),
-				]),
-				createHint(
-					`${initSource} · ${formatFingerprint(policyDecision?.fingerprint)}`
+					})
 				),
-			],
-		})
-	);
-
-	// UI surfaces — only if there's a UI mode set
-	const uiMode = activePolicy?.ui?.mode;
-	if (uiMode && uiMode !== 'none') {
-		const bannerCards = buildSurfaceCards(
-			'Banner',
-			activePolicy?.ui?.banner,
-			state.policyBanner
-		);
-		const dialogCards = buildSurfaceCards(
-			'Dialog',
-			activePolicy?.ui?.dialog,
-			state.policyDialog
-		);
-
-		if (bannerCards.length > 0 || dialogCards.length > 0) {
-			container.appendChild(
-				createSection({
-					title: `UI · ${uiMode}`,
-					children: [createGrid(3, [...bannerCards, ...dialogCards])],
-				})
-			);
-		}
+				style: {
+					display: 'grid',
+					gap: '4px',
+					gridTemplateColumns: '1fr',
+				},
+			}),
+			createHint(
+				'region → country → default · fallback on geo failure · Simulate via Location tab'
+			),
+		],
+		title: 'Match Trace',
+	});
+};
+const createGrid = function createGrid(
+	columns: number,
+	children: HTMLElement[]
+): HTMLElement {
+	return div({
+		children,
+		style: {
+			display: 'grid',
+			gap: 'var(--c15t-space-sm, 0.5rem)',
+			gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+		},
+	});
+};
+const createCard = function createCard(
+	label: string,
+	value: string
+): HTMLElement {
+	return div({
+		children: [
+			span({
+				style: {
+					color: 'var(--c15t-text-muted)',
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+				},
+				text: label,
+			}),
+			span({
+				style: {
+					fontFamily: 'ui-monospace, monospace',
+					fontSize: 'var(--c15t-font-size-sm)',
+					fontWeight: '500',
+				},
+				text: value,
+			}),
+		],
+		className: componentStyles.gridCard ?? '',
+		style: {
+			alignItems: 'flex-start',
+			flexDirection: 'column',
+			gap: '2px',
+			minHeight: 'auto',
+			padding: '8px 10px',
+		},
+	});
+};
+const getModelLabel = function getModelLabel(
+	model: string | undefined
+): string {
+	switch (model) {
+		case 'opt-in':
+			return 'Opt-In';
+		case 'opt-out':
+			return 'Opt-Out';
+		case 'iab':
+			return 'IAB TCF';
+		default:
+			return 'None';
 	}
-
-	// Proof & snapshot — compact row
-	const proofLabel = formatProofSummary(activePolicy?.proof);
-	const snapshotLabel = initData?.policySnapshotToken ? 'present' : 'missing';
-	container.appendChild(
-		createSection({
-			title: 'Proof & Snapshot',
-			children: [
-				createGrid(3, [
-					createCard('Proof', proofLabel),
-					createCard('Snapshot', snapshotLabel),
-					createCard(
-						'I18n',
-						activePolicy?.i18n?.messageProfile ??
-							activePolicy?.i18n?.language ??
-							'—'
-					),
-				]),
-			],
-		})
-	);
-}
-
-// ---------------------------------------------------------------------------
-// UI surface helpers
-// ---------------------------------------------------------------------------
-
-interface SurfaceState {
-	allowedActions?: string[] | null;
-	primaryActions?: string[] | null;
-	layout?: (string | string[])[] | null;
-	direction?: string | null;
-	uiProfile?: string | null;
-	scrollLock?: boolean | null;
-}
-
-function buildSurfaceCards(
+};
+const getScopeModeLabel = function getScopeModeLabel(
+	mode: string | null | undefined
+): string {
+	switch (mode) {
+		case 'strict':
+			return 'Strict';
+		case 'permissive':
+			return 'Permissive';
+		default:
+			return '—';
+	}
+};
+const formatList = function formatList(
+	items: string[] | null | undefined
+): string {
+	if (!items || items.length === 0) {
+		return '—';
+	}
+	if (items.includes('*')) {
+		return '* (all)';
+	}
+	return items.join(', ');
+};
+const formatFingerprint = function formatFingerprint(
+	fingerprint: string | undefined
+): string {
+	if (!fingerprint) {
+		return 'no fingerprint';
+	}
+	if (fingerprint.length <= 12) {
+		return fingerprint;
+	}
+	return `${fingerprint.slice(0, 8)}…${fingerprint.slice(-4)}`;
+};
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+const buildSurfaceCards = function buildSurfaceCards(
 	prefix: string,
 	policySurface: SurfaceState | undefined,
 	storeSurface: SurfaceState
@@ -230,159 +291,8 @@ function buildSurfaceCards(
 	}
 
 	return cards;
-}
-
-// ---------------------------------------------------------------------------
-// Match trace
-// ---------------------------------------------------------------------------
-
-function createMatchTraceSection(options: {
-	policyDecision:
-		| {
-				policyId: string;
-				matchedBy: 'region' | 'country' | 'default' | 'fallback';
-				country: string | null;
-				region: string | null;
-		  }
-		| undefined;
-	policyId: string | undefined;
-}): HTMLElement {
-	const { policyDecision, policyId } = options;
-	const entries = buildTraceEntries(policyDecision, policyId);
-
-	return createSection({
-		title: 'Match Trace',
-		children: [
-			div({
-				style: {
-					display: 'grid',
-					gridTemplateColumns: '1fr',
-					gap: '4px',
-				},
-				children: entries.map((entry) =>
-					div({
-						className: componentStyles.gridCard ?? '',
-						style: {
-							padding: '6px 10px',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'space-between',
-							gap: '10px',
-						},
-						children: [
-							span({
-								style: {
-									fontSize: 'var(--c15t-devtools-font-size-xs)',
-									color: 'var(--c15t-text-muted)',
-									fontFamily: 'ui-monospace, monospace',
-								},
-								text: entry.step,
-							}),
-							span({
-								style: {
-									fontSize: 'var(--c15t-devtools-font-size-xs)',
-									fontFamily: 'ui-monospace, monospace',
-								},
-								text: entry.result,
-							}),
-						],
-					})
-				),
-			}),
-			createHint(
-				'region → country → default · fallback on geo failure · Simulate via Location tab'
-			),
-		],
-	});
-}
-
-function buildTraceEntries(
-	decision:
-		| {
-				policyId: string;
-				matchedBy: 'region' | 'country' | 'default' | 'fallback';
-				country: string | null;
-				region: string | null;
-		  }
-		| undefined,
-	policyId: string | undefined
-): { step: string; result: string }[] {
-	if (!decision) {
-		return [{ step: 'decision metadata', result: 'UNAVAILABLE' }];
-	}
-
-	const country = decision.country ?? 'n/a';
-	const regionKey =
-		decision.country && decision.region
-			? `${decision.country}-${decision.region}`
-			: 'n/a';
-	const resolved = policyId ?? decision.policyId ?? 'unknown';
-	const matched = decision.matchedBy;
-
-	return [
-		{
-			step: `region(${regionKey})`,
-			result: matched === 'region' ? `MATCH → ${resolved}` : 'MISS',
-		},
-		{
-			step: `country(${country})`,
-			result:
-				matched === 'country'
-					? `MATCH → ${resolved}`
-					: matched === 'region'
-						? 'SKIPPED'
-						: 'MISS',
-		},
-		{
-			step: 'fallback(geo-fail)',
-			result: matched === 'fallback' ? `MATCH → ${resolved}` : 'SKIPPED',
-		},
-		{
-			step: 'default(catch-all)',
-			result: matched === 'default' ? `MATCH → ${resolved}` : 'SKIPPED',
-		},
-	];
-}
-
-// ---------------------------------------------------------------------------
-// Formatters
-// ---------------------------------------------------------------------------
-
-function getModelLabel(model: string | undefined): string {
-	switch (model) {
-		case 'opt-in':
-			return 'Opt-In';
-		case 'opt-out':
-			return 'Opt-Out';
-		case 'iab':
-			return 'IAB TCF';
-		default:
-			return 'None';
-	}
-}
-
-function getScopeModeLabel(mode: string | null | undefined): string {
-	switch (mode) {
-		case 'strict':
-			return 'Strict';
-		case 'permissive':
-			return 'Permissive';
-		default:
-			return '—';
-	}
-}
-
-function formatList(items: string[] | null | undefined): string {
-	if (!items || items.length === 0) {
-		return '—';
-	}
-	if (items.includes('*')) {
-		return '* (all)';
-	}
-	return items.join(', ');
-}
-
-function formatProofSummary(
+};
+const formatProofSummary = function formatProofSummary(
 	proof:
 		| {
 				storeIp?: boolean;
@@ -395,70 +305,172 @@ function formatProofSummary(
 		return '—';
 	}
 	const parts: string[] = [];
-	if (proof.storeIp) parts.push('IP');
-	if (proof.storeUserAgent) parts.push('UA');
-	if (proof.storeLanguage) parts.push('Lang');
+	if (proof.storeIp) {
+		parts.push('IP');
+	}
+	if (proof.storeUserAgent) {
+		parts.push('UA');
+	}
+	if (proof.storeLanguage) {
+		parts.push('Lang');
+	}
 	return parts.length > 0 ? parts.join(', ') : 'none';
+};
+// oxlint-disable-next-line complexity -- Control flow mirrors the protocol or state matrix and is kept together.
+export const renderPolicyPanel = function renderPolicyPanel(
+	container: HTMLElement,
+	options: PolicyPanelOptions
+): void {
+	const { getState } = options;
+	clearElement(container);
+
+	const state = getState();
+	if (!state) {
+		container.appendChild(createDisconnectedState());
+		return;
+	}
+
+	const initData = state.lastBannerFetchData;
+	const activePolicy = initData?.policy;
+	const policyDecision = initData?.policyDecision;
+	const initSource = formatInitSource(
+		state.initDataSource,
+		state.initDataSourceDetail
+	);
+
+	// Match trace — always shown
+	container.appendChild(
+		createMatchTraceSection({
+			policyDecision,
+			policyId: activePolicy?.id ?? policyDecision?.policyId,
+		})
+	);
+
+	if (!activePolicy && !policyDecision) {
+		container.appendChild(
+			createSection({
+				children: [
+					div({
+						style: {
+							color: 'var(--c15t-text-muted)',
+							fontSize: 'var(--c15t-devtools-font-size-sm)',
+							padding: '10px 12px',
+						},
+						text: 'No active policy matched for this request.',
+					}),
+					createHint(`Init Source: ${initSource}`),
+				],
+				title: 'Policy',
+			})
+		);
+		return;
+	}
+
+	// Core policy identity
+	container.appendChild(
+		createSection({
+			children: [
+				createGrid(3, [
+					createCard('ID', activePolicy?.id ?? policyDecision?.policyId ?? '—'),
+					createCard('Model', getModelLabel(activePolicy?.model)),
+					createCard(
+						'Scope',
+						getScopeModeLabel(
+							activePolicy?.consent?.scopeMode ?? state.policyScopeMode
+						)
+					),
+					createCard(
+						'Categories',
+						formatList(
+							state.policyCategories ?? activePolicy?.consent?.categories
+						)
+					),
+					createCard(
+						'Preselected',
+						formatList(activePolicy?.consent?.preselectedCategories)
+					),
+					createCard(
+						'Expiry',
+						typeof activePolicy?.consent?.expiryDays === 'number'
+							? `${activePolicy.consent.expiryDays}d`
+							: '—'
+					),
+				]),
+				createHint(
+					`${initSource} · ${formatFingerprint(policyDecision?.fingerprint)}`
+				),
+			],
+			title: 'Policy',
+		})
+	);
+
+	// UI surfaces — only if there's a UI mode set
+	const uiMode = activePolicy?.ui?.mode;
+	if (uiMode && uiMode !== 'none') {
+		const bannerCards = buildSurfaceCards(
+			'Banner',
+			activePolicy?.ui?.banner,
+			state.policyBanner
+		);
+		const dialogCards = buildSurfaceCards(
+			'Dialog',
+			activePolicy?.ui?.dialog,
+			state.policyDialog
+		);
+
+		if (bannerCards.length > 0 || dialogCards.length > 0) {
+			container.appendChild(
+				createSection({
+					children: [createGrid(3, [...bannerCards, ...dialogCards])],
+					title: `UI · ${uiMode}`,
+				})
+			);
+		}
+	}
+
+	// Proof & snapshot — compact row
+	const proofLabel = formatProofSummary(activePolicy?.proof);
+	const snapshotLabel = initData?.policySnapshotToken ? 'present' : 'missing';
+	container.appendChild(
+		createSection({
+			children: [
+				createGrid(3, [
+					createCard('Proof', proofLabel),
+					createCard('Snapshot', snapshotLabel),
+					createCard(
+						'I18n',
+						activePolicy?.i18n?.messageProfile ??
+							activePolicy?.i18n?.language ??
+							'—'
+					),
+				]),
+			],
+			title: 'Proof & Snapshot',
+		})
+	);
+};
+
+// ---------------------------------------------------------------------------
+// UI surface helpers
+// ---------------------------------------------------------------------------
+
+interface SurfaceState {
+	allowedActions?: string[] | null;
+	primaryActions?: string[] | null;
+	layout?: (string | string[])[] | null;
+	direction?: string | null;
+	uiProfile?: string | null;
+	scrollLock?: boolean | null;
 }
 
-function formatFingerprint(fingerprint: string | undefined): string {
-	if (!fingerprint) {
-		return 'no fingerprint';
-	}
-	if (fingerprint.length <= 12) {
-		return fingerprint;
-	}
-	return `${fingerprint.slice(0, 8)}…${fingerprint.slice(-4)}`;
-}
+// ---------------------------------------------------------------------------
+// Match trace
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Formatters
+// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Shared UI primitives
 // ---------------------------------------------------------------------------
-
-function createCard(label: string, value: string): HTMLElement {
-	return div({
-		className: componentStyles.gridCard ?? '',
-		style: {
-			padding: '8px 10px',
-			minHeight: 'auto',
-			flexDirection: 'column',
-			alignItems: 'flex-start',
-			gap: '2px',
-		},
-		children: [
-			span({
-				style: {
-					fontSize: 'var(--c15t-devtools-font-size-xs)',
-					color: 'var(--c15t-text-muted)',
-				},
-				text: label,
-			}),
-			span({
-				style: {
-					fontSize: 'var(--c15t-font-size-sm)',
-					fontWeight: '500',
-					fontFamily: 'ui-monospace, monospace',
-				},
-				text: value,
-			}),
-		],
-	});
-}
-
-function createGrid(columns: number, children: HTMLElement[]): HTMLElement {
-	return div({
-		style: {
-			display: 'grid',
-			gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-			gap: 'var(--c15t-space-sm, 0.5rem)',
-		},
-		children,
-	});
-}
-
-function createHint(text: string): HTMLElement {
-	return span({
-		className: componentStyles.overrideHint,
-		text,
-	});
-}

@@ -53,7 +53,8 @@ export interface BoxProps
  *
  * @public
  */
-export const Box = forwardRef<HTMLDivElement, BoxProps>(function (
+// oxlint-disable-next-line prefer-arrow-callback -- React component definitions require function expressions.
+export const Box = forwardRef<HTMLDivElement, BoxProps>(function Box(
 	{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
 	ref
 ) {
@@ -64,8 +65,8 @@ export const Box = forwardRef<HTMLDivElement, BoxProps>(function (
 	const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
 		baseClassName,
 		className,
-		style,
 		noStyle,
+		style,
 	});
 	const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 

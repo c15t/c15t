@@ -23,14 +23,18 @@ let fetchCalls: { input: RequestInfo | URL; init?: RequestInit }[] = [];
 class StubXMLHttpRequest {
 	onerror: ((e: unknown) => void) | null = null;
 	listeners = new Map<string, ((e: unknown) => void)[]>();
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	open(_method: string, _url: string) {}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	send(_body?: unknown) {}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	abort() {}
 	addEventListener(event: string, handler: (e: unknown) => void) {
 		const bucket = this.listeners.get(event) ?? [];
 		bucket.push(handler);
 		this.listeners.set(event, bucket);
 	}
+	// oxlint-disable-next-line class-methods-use-this -- Mock method implements the required instance API.
 	removeEventListener() {}
 	dispatchEvent(event: unknown) {
 		const type = (event as { type?: string })?.type;
@@ -151,6 +155,7 @@ describe('network-blocker: rule matching', () => {
 		createNetworkBlocker({
 			kernel,
 			rules: [
+				// oxlint-disable-next-line sort-keys -- Fixture preserves the v2 compatibility field order.
 				{
 					category: 'marketing',
 					domain: 'example.com',
@@ -308,6 +313,7 @@ describe('network-blocker: IAB evaluation when model="iab"', () => {
 			kernel,
 			logBlockedRequests: false,
 			rules: [
+				// oxlint-disable-next-line sort-keys -- Fixture preserves the v2 compatibility field order.
 				{
 					// @ts-expect-error: v2 NetworkBlockerRule doesn't currently
 					// expose vendorId directly; evaluateConsent handles it

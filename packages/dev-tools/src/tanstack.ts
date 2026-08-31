@@ -82,8 +82,8 @@ export interface C15tDevtoolsPluginOptions extends C15tTanStackDevtoolsPanelProp
 
 const embeddedPanelStyle: CSSProperties = {
 	height: '100%',
-	width: '100%',
 	minHeight: 0,
+	width: '100%',
 };
 
 const EMBEDDED_PANEL_RELEASE_DELAY_MS = 60_000;
@@ -96,14 +96,14 @@ interface SharedEmbeddedPanelEntry {
 
 const sharedEmbeddedPanels = new Map<string, SharedEmbeddedPanelEntry>();
 
-function getEmbeddedPanelKey(
+const getEmbeddedPanelKey = function getEmbeddedPanelKey(
 	namespace: string,
 	createPanel: typeof createDevToolsPanel
 ): string {
 	return `${namespace}:${createPanel === createDevToolsPanel ? 'default' : 'custom'}`;
-}
+};
 
-function acquireEmbeddedPanel(
+const acquireEmbeddedPanel = function acquireEmbeddedPanel(
 	namespace: string,
 	createPanel: typeof createDevToolsPanel
 ): SharedEmbeddedPanelEntry {
@@ -120,8 +120,8 @@ function acquireEmbeddedPanel(
 	}
 
 	const panel = createPanel({
-		namespace,
 		mode: 'embedded',
+		namespace,
 	});
 	const entry: SharedEmbeddedPanelEntry = {
 		panel,
@@ -130,9 +130,9 @@ function acquireEmbeddedPanel(
 	};
 	sharedEmbeddedPanels.set(panelKey, entry);
 	return entry;
-}
+};
 
-function releaseEmbeddedPanel(
+const releaseEmbeddedPanel = function releaseEmbeddedPanel(
 	namespace: string,
 	createPanel: typeof createDevToolsPanel
 ): void {
@@ -159,7 +159,7 @@ function releaseEmbeddedPanel(
 		currentEntry.panel.destroy();
 		sharedEmbeddedPanels.delete(panelKey);
 	}, EMBEDDED_PANEL_RELEASE_DELAY_MS);
-}
+};
 
 /**
  * React panel component for embedding c15t DevTools inside TanStack Devtools.
@@ -199,7 +199,7 @@ export const C15tTanStackDevtoolsPanel = ({
 	});
 };
 
-function createC15tDevtoolsPlugin(
+const createC15tDevtoolsPlugin = function createC15tDevtoolsPlugin(
 	options: C15tDevtoolsPluginOptions = {}
 ): TanStackDevtoolsPlugin {
 	const {
@@ -211,24 +211,24 @@ function createC15tDevtoolsPlugin(
 	} = options;
 
 	return {
+		defaultOpen,
 		id,
 		name,
-		defaultOpen,
 		render: React.createElement(C15tTanStackDevtoolsPanel, {
 			...panelProps,
 			namespace,
 		}),
 	};
-}
+};
 
 /**
  * Creates a c15t plugin config for TanStack Devtools.
  */
-export function c15tDevtools(
+export const c15tDevtools = function c15tDevtools(
 	options: C15tDevtoolsPluginOptions = {}
 ): TanStackDevtoolsPlugin {
 	return createC15tDevtoolsPlugin(options);
-}
+};
 
 /**
  * Backward-compatible alias for the TanStack Devtools plugin factory.
