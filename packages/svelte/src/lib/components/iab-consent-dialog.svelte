@@ -206,14 +206,10 @@
 						class={noStyle ? '' : styles.closeButton || ''}
 						aria-label={coreTranslations.common.close}
 					>
-						<!--
-							Intentionally not aria-hidden: the React implementation exposes
-							this decorative close glyph as an `img` node in the a11y tree,
-							and cross-framework parity keys on identical ARIA snapshots.
-						-->
 						<CloseIcon
 							width="16"
 							height="16"
+							aria-hidden={true}
 						/>
 					</Dialog.CloseTrigger>
 				</div>
@@ -342,7 +338,7 @@
 												<Collapsible.Indicator
 													class={noStyle ? '' : styles.purposeArrow || ''}
 												>
-													<ChevronRightIcon />
+													<ChevronRightIcon aria-hidden={true} />
 												</Collapsible.Indicator>
 												<div class={noStyle ? '' : styles.purposeInfo || ''}>
 													<h3
@@ -353,6 +349,7 @@
 														{iabT.preferenceCenter.specialPurposes.title}
 														<LockIcon
 															class={noStyle ? '' : styles.lockIcon || ''}
+															aria-hidden={true}
 														/>
 													</h3>
 													<p class={noStyle ? '' : styles.purposeMeta || ''}>

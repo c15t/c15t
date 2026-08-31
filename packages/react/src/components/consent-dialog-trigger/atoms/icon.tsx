@@ -68,7 +68,14 @@ export function TriggerIcon({
 
 	// Render custom ReactNode
 	if (isValidElement(icon)) {
-		return <span className={iconClasses}>{icon}</span>;
+		return (
+			<span
+				aria-hidden="true"
+				className={iconClasses}
+			>
+				{icon}
+			</span>
+		);
 	}
 
 	// Render built-in icons
@@ -85,7 +92,14 @@ export function TriggerIcon({
 			iconElement = <BrandingCompactLogo branding={branding} />;
 	}
 
-	return <span className={iconClasses}>{iconElement}</span>;
+	return (
+		<span
+			aria-hidden="true"
+			className={iconClasses}
+		>
+			{iconElement}
+		</span>
+	);
 }
 
 TriggerIcon.displayName = 'ConsentDialogTrigger.Icon';

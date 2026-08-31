@@ -225,7 +225,10 @@
 			onpointercancel={handlePointerCancel}
 			data-testid="consent-dialog-trigger"
 		>
-			<span class={noStyle ? '' : styles.icon || ''}>
+			<span
+				class={noStyle ? '' : styles.icon || ''}
+				aria-hidden="true"
+			>
 				{#if branding === 'consent'}
 					<ConsentIconOnly />
 				{:else}

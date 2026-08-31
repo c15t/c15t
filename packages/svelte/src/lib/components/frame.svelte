@@ -52,7 +52,7 @@
 	const frameActionButton = $derived(
 		(translations.frame?.actionButton ?? 'Enable {category} consent').replace(
 			'{category}',
-			category as string
+			translations.consentTypes?.[category]?.title ?? (category as string)
 		)
 	);
 
