@@ -119,6 +119,16 @@ function describeResult(result: LoadResult): string {
 		: `${result.name ?? 'Error'}${result.code ? ` [${result.code}]` : ''}: ${result.message}`;
 }
 
+function normalizeFailureMessage(result: LoadFailure): string {
+	if (result.code !== 'ERR_UNKNOWN_FILE_EXTENSION') {
+		return result.message;
+	}
+
+	// A barrel can reach any of its CSS imports first. The specific stylesheet
+	// is not part of facade parity; Node rejecting the same file type is.
+	return result.message.replace(/for .*\.css$/u, 'for <css module>');
+}
+
 function assertParity(
 	subpath: string,
 	pair: LoadPair,
@@ -140,7 +150,9 @@ function assertParity(
 		// package and failed there, rather than failing to resolve at all.
 		expect(pair.umbrella.code, subpath).toBe(pair.scoped.code);
 		expect(pair.umbrella.name, subpath).toBe(pair.scoped.name);
-		expect(pair.umbrella.message, subpath).toBe(pair.scoped.message);
+		expect(normalizeFailureMessage(pair.umbrella), subpath).toBe(
+			normalizeFailureMessage(pair.scoped)
+		);
 		return;
 	}
 
@@ -168,6 +180,19 @@ function assertParity(
 }
 
 describe('umbrella facade parity', () => {
+	it('ignores nondeterministic CSS traversal order in expected failures', () => {
+		const failure = (file: string): LoadFailure => ({
+			ok: false,
+			code: 'ERR_UNKNOWN_FILE_EXTENSION',
+			name: 'TypeError',
+			message: `Unknown file extension ".css" for /styles/${file}.css`,
+		});
+
+		expect(normalizeFailureMessage(failure('accordion'))).toBe(
+			normalizeFailureMessage(failure('button'))
+		);
+	});
+
 	it('probes every conditional subpath of the committed exports map', () => {
 		const probed = new Set(rows.map((row) => row.subpath));
 		for (const [subpath, value] of Object.entries(manifest.exports)) {
