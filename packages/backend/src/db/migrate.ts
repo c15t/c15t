@@ -42,6 +42,8 @@ import { up as baselineUp } from './migrations/1-baseline';
 import { up as indexesUp } from './migrations/2-hot-path-indexes';
 import { encodeRow, encoder } from './values';
 
+const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
+
 export interface Migration {
 	/** Ledger id. Ordered, and never reused once shipped. */
 	readonly id: number;
@@ -82,7 +84,7 @@ export interface MigrateOptions extends ApplyOptions {
 
 export interface MigrateReport {
 	/** What the database looked like before anything ran. */
-	readonly classification: DatabaseClassification;
+	readonly [DATABASE_CLASSIFICATION_KEY]: DatabaseClassification;
 	/** Adoption steps applied, or that would be, reaching the baseline. */
 	readonly adoption: readonly string[];
 	/** Numbered migrations applied, or that would be, after the baseline. */
@@ -230,7 +232,7 @@ export const migrate = Effect.fn('db.migrate')(function* (
 		adoption.orphans.length > 0 && options.skipForeignKeys === true;
 	if (adoption.blocked !== undefined && !skippable) {
 		return {
-			classification,
+			[DATABASE_CLASSIFICATION_KEY]: classification,
 			adoption: [],
 			pending: [],
 			retained: adoption.retained,
@@ -251,7 +253,7 @@ export const migrate = Effect.fn('db.migrate')(function* (
 
 	if (options.dryRun === true) {
 		return {
-			classification,
+			[DATABASE_CLASSIFICATION_KEY]: classification,
 			adoption: adoptionSteps,
 			pending: pending.map((migration) => migration.name),
 			retained: adoption.retained,
@@ -270,7 +272,7 @@ export const migrate = Effect.fn('db.migrate')(function* (
 	}
 
 	return {
-		classification,
+		[DATABASE_CLASSIFICATION_KEY]: classification,
 		adoption: adoptionSteps,
 		pending: pending.map((migration) => migration.name),
 		retained: adoption.retained,

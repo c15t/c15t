@@ -75,7 +75,7 @@ for (const engine of ENGINES) {
 
 					const report = yield* migrate();
 
-					assert.strictEqual(report.classification._tag, 'Empty');
+					assert.strictEqual(report['shape']._tag, 'Empty');
 					assert.isTrue(report.applied);
 					assert.isUndefined(report.blocked);
 					// Every migration is recorded, not just the baseline. Before this
@@ -101,7 +101,7 @@ for (const engine of ENGINES) {
 					// Re-running is a normal operational event — a redeploy, a
 					// restart, a retried job — and must not be an error or a
 					// duplicate.
-					assert.strictEqual(again.classification._tag, 'Baseline');
+					assert.strictEqual(again['shape']._tag, 'Baseline');
 					assert.deepStrictEqual(again.adoption, []);
 					assert.deepStrictEqual(again.pending, []);
 					assert.deepStrictEqual(

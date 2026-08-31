@@ -37,8 +37,10 @@ const dependencies = {
 	})),
 };
 
+const DATABASE_CLASSIFICATION_KEY = 'shape';
+
 const report = (over: Record<string, unknown> = {}) => ({
-	classification: { _tag: 'Empty' },
+	[DATABASE_CLASSIFICATION_KEY]: { _tag: 'Empty' },
 	adoption: ['Create "subject"'],
 	pending: ['2-hot-path-indexes'],
 	retained: [],

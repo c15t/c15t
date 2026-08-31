@@ -61,6 +61,10 @@ export {
 	UK_COUNTRY_CODES,
 } from '@c15t/schema';
 export type { DatabaseClassification } from './db/classify';
+// oxlint-disable anti-slop/no-shape-in-symbol-names -- Preserve the published v3 type alias while callers migrate.
+/** @deprecated Use `DatabaseClassification` instead. */
+export type { DatabaseClassification as Shape } from './db/classify';
+// oxlint-enable anti-slop/no-shape-in-symbol-names
 export { classify } from './db/classify';
 export type { DatabaseConfig, DatabaseOption } from './db/connect';
 export {
