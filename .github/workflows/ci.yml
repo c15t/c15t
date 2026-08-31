@@ -294,9 +294,9 @@ jobs:
           # Warm Bun's executable cache before starting concurrent servers.
           # Concurrent cold `bunx` installs can race and leave one server absent.
           bunx http-server --version
-          bunx http-server apps/storybook-react/storybook-static --port 6006 --silent &
-          bunx http-server apps/storybook-svelte/storybook-static --port 6007 --silent &
-          bunx http-server apps/storybook-vue/storybook-static --port 6008 --silent &
+          bunx --no-install http-server apps/storybook-react/storybook-static --port 6006 --silent &
+          bunx --no-install http-server apps/storybook-svelte/storybook-static --port 6007 --silent &
+          bunx --no-install http-server apps/storybook-vue/storybook-static --port 6008 --silent &
           # Wait for all to be reachable before continuing.
           for port in 6006 6007 6008; do
             ready=false
