@@ -49,12 +49,20 @@ const INLINE_NORMALIZER = /* js */ `
 		out.sort();
 		return out.join(' ');
 	}
-	function normAttr(name, value){
+	function canonicalStyle(style){
+		return Array.from(style).sort().map((name) => {
+			const value = style.getPropertyValue(name).trim();
+			const priority = style.getPropertyPriority(name);
+			return name+':'+value+(priority?' !'+priority:'');
+		}).join(';');
+	}
+	function normAttr(el, name, value){
 		if (name==='id'||name==='aria-labelledby'||name==='aria-describedby'||name==='aria-controls'||name==='for') {
 			if (AUTO_ID.test(value)) return '__AUTO__';
 			return value.replace(AUTO_ID_SUFFIX, '-__AUTO__');
 		}
 		if (name==='class') return stripClasses(value);
+		if (name==='style' && 'style' in el) return canonicalStyle(el.style);
 		return value;
 	}
 	function canonicalize(el){
@@ -62,7 +70,7 @@ const INLINE_NORMALIZER = /* js */ `
 		const attrs = [];
 		for (const a of Array.from(el.attributes)){
 			if (STRIP.has(a.name)) continue;
-			const v = normAttr(a.name, a.value);
+			const v = normAttr(el, a.name, a.value);
 			if (a.name==='class' && v==='') continue;
 			attrs.push(a.name+'="'+v+'"');
 		}
