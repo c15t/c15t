@@ -7,18 +7,21 @@ export default mergeConfig(
 	baseConfig,
 	defineConfig({
 		resolve: {
-			alias: {
-				'@c15t/core': resolve(__dirname, '../core/dist/index.js'),
-				'@c15t/translations': resolve(
-					__dirname,
-					'../translations/src/index.ts'
-				),
-				'@c15t/translations/all': resolve(
-					__dirname,
-					'../translations/src/all.ts'
-				),
-				'~': resolve(__dirname, './src'),
-			},
+			alias: [
+				{
+					find: '@c15t/translations/all',
+					replacement: resolve(__dirname, '../translations/src/all.ts'),
+				},
+				{
+					find: '@c15t/translations',
+					replacement: resolve(__dirname, '../translations/src/index.ts'),
+				},
+				{
+					find: '@c15t/core',
+					replacement: resolve(__dirname, '../core/dist/index.js'),
+				},
+				{ find: '~', replacement: resolve(__dirname, './src') },
+			],
 		},
 		test: {
 			coverage: {
