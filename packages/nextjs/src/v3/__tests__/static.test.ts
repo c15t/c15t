@@ -18,6 +18,23 @@ describe('@c15t/nextjs/v3/static', () => {
 		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
 	});
 
+	test('uses the browser language when no language is configured', () => {
+		const languagesSpy = vi
+			.spyOn(navigator, 'languages', 'get')
+			.mockReturnValue(['de-DE']);
+
+		try {
+			const resolution = createStaticConsentResolver({
+				gpc: false,
+				manifest: MANIFEST_FIXTURE,
+			});
+
+			expect(resolution.initial.translations.language).toBe('de');
+		} finally {
+			languagesSpy.mockRestore();
+		}
+	});
+
 	test('geo microfetch resolves the geo-specific policy after initial strict default', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
