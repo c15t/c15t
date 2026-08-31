@@ -134,14 +134,15 @@ const analyzeRouteSizes = async function analyzeRouteSizes() {
 			const response = await fetch(`${BASE_URL}${routeName}`);
 			const html = await response.text();
 			const scripts = Array.from(
-				html.matchAll(/<script[^>]+src="(?<source>[^"]+)"/gu),
-				(match) => match.groups?.source
+				html.matchAll(/<script[^>]+src="[^"]+"/gu),
+				(match) => match[0].slice(match[0].lastIndexOf('src="') + 5, -1)
 			).filter((scriptPath): scriptPath is string =>
 				Boolean(scriptPath?.startsWith('/_next/'))
 			);
 			const styles = Array.from(
-				html.matchAll(/<link[^>]+href="(?<source>[^"]+\.css[^"]*)"[^>]*>/gu),
-				(match) => match.groups?.source?.split('?')[0]
+				html.matchAll(/<link[^>]+href="[^"]+\.css[^"]*"/gu),
+				(match) =>
+					match[0].slice(match[0].lastIndexOf('href="') + 6, -1).split('?')[0]
 			).filter((stylePath): stylePath is string =>
 				Boolean(stylePath?.startsWith('/_next/'))
 			);
