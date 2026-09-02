@@ -304,6 +304,20 @@ const createVueHostedTransport = function createVueHostedTransport(
 	};
 };
 
+type Settled<Value> =
+	| { ok: true; value: Value }
+	| { ok: false; error: unknown };
+
+const settle = async function settle<Value>(
+	promise: Promise<Value>
+): Promise<Settled<Value>> {
+	try {
+		return { ok: true, value: await promise };
+	} catch (error) {
+		return { error, ok: false };
+	}
+};
+
 const createVueManifestTransport = function createVueManifestTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>,
@@ -318,39 +332,43 @@ const createVueManifestTransport = function createVueManifestTransport(
 		headers,
 	});
 	let manifestTransport: KernelTransport | undefined;
+	// Settled, never rejecting: a failed eager load must not surface as an
+	// unhandled rejection before `init()` awaits it. `init()` rethrows.
 	const clientResourcesPromise =
 		typeof window === 'undefined'
 			? undefined
-			: Promise.all([
-					import('@c15t/core/v3/transports/manifest'),
-					import('@c15t/translations/all'),
-					(async (): Promise<ConsentManifest> => {
-						const fetchImpl =
-							config.customFetch ?? globalThis.fetch?.bind(globalThis);
-						if (!fetchImpl) {
-							throw new Error(
-								'createManifestTransport: no fetch available. Pass `fetch` in options.'
-							);
-						}
+			: settle(
+					Promise.all([
+						import('@c15t/core/v3/transports/manifest'),
+						import('@c15t/translations/all'),
+						(async (): Promise<ConsentManifest> => {
+							const fetchImpl =
+								config.customFetch ?? globalThis.fetch?.bind(globalThis);
+							if (!fetchImpl) {
+								throw new Error(
+									'createManifestTransport: no fetch available. Pass `fetch` in options.'
+								);
+							}
 
-						const response = await fetchImpl(manifestURL, {
-							credentials: 'include',
-							headers: {
-								accept: 'application/json',
-								...c15tVersionHeaders,
-								...headers,
-							},
-							method: 'GET',
-						});
-						if (!response.ok) {
-							throw new Error(
-								`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
-							);
-						}
+							const response = await fetchImpl(manifestURL, {
+								credentials: 'include',
+								headers: {
+									accept: 'application/json',
+									...c15tVersionHeaders,
+									...headers,
+								},
+								method: 'GET',
+							});
+							if (!response.ok) {
+								throw new Error(
+									`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+								);
+							}
 
-						return response.json();
-					})(),
-				]);
+							return response.json();
+						})(),
+					])
+				);
 
 	return {
 		async init(ctx) {
@@ -358,8 +376,12 @@ const createVueManifestTransport = function createVueManifestTransport(
 				return {};
 			}
 
+			const loaded = await clientResourcesPromise;
+			if (!loaded.ok) {
+				throw loaded.error;
+			}
 			const [{ createManifestTransport }, { baseTranslations }, manifest] =
-				await clientResourcesPromise;
+				loaded.value;
 			manifestTransport ??= createManifestTransport({
 				backendURL,
 				baseTranslations,
