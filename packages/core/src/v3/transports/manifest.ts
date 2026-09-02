@@ -14,6 +14,8 @@ import type {
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
 import { resolveInitFromManifest } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
+import type { BaseTranslations } from '@c15t/translations/all';
 
 import type {
 	InitContext,
@@ -38,6 +40,12 @@ const getDefined = <Value>(
 };
 
 export interface ManifestTransportOptions {
+	/**
+	 * Base translations used for local manifest resolution. Defaults to every
+	 * language bundled by `@c15t/translations`.
+	 */
+	baseTranslations?: BaseTranslations;
+
 	/**
 	 * URL for `GET /manifest`. Either `manifestURL` or `manifest` is required.
 	 */
@@ -275,7 +283,9 @@ export const createManifestTransport = function createManifestTransport(
 		async init(ctx: InitContext): Promise<InitResponse> {
 			const manifest = await getManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			const payload: InitOutput = resolveInitFromManifest(manifest, inputs);
+			const payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
+				baseTranslations: options.baseTranslations ?? baseTranslations,
+			});
 
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';

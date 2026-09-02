@@ -319,10 +319,14 @@ const createVueManifestTransport = function createVueManifestTransport(
 
 	return {
 		async init(ctx) {
-			const { createManifestTransport } =
-				await import('@c15t/core/v3/transports/manifest');
+			const [{ createManifestTransport }, { baseTranslations }] =
+				await Promise.all([
+					import('@c15t/core/v3/transports/manifest'),
+					import('@c15t/translations/all'),
+				]);
 			manifestTransport ??= createManifestTransport({
 				backendURL,
+				baseTranslations,
 				domain: config.domain,
 				fetch: config.customFetch,
 				headers,

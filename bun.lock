@@ -552,6 +552,7 @@
       "version": "2.2.0-canary-20260731105620",
       "dependencies": {
         "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
         "effect": "4.0.0-beta.102",
         "evlog": "2.22.4",
         "hono": "4.12.27",
@@ -893,6 +894,7 @@
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",
         "@nuxt/kit": "^3.0.0 || ^4.0.0",
         "defu": "^6.1.4",

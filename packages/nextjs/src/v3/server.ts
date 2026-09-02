@@ -30,6 +30,7 @@ import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
 import { createManifestTransport } from '@c15t/core/v3/transports/manifest';
 import { resolveBackendURL } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 
 import {
 	consentInputsToOverrides,
@@ -306,6 +307,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		);
 		const transport = createManifestTransport({
 			backendURL: absoluteBackend,
+			baseTranslations,
 			fetch: options.fetch,
 			headers: forward,
 			inputs: manifestInputs,

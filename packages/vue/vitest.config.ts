@@ -86,6 +86,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'@c15t/translations/en': resolve(
+						__dirname,
+						'../translations/src/translations/en.ts'
+					),
+				},
+				{
 					'@c15t/translations': resolve(
 						__dirname,
 						'../translations/src/index.ts'

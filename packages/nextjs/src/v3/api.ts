@@ -6,6 +6,7 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 
 import { extractConsentRequestInputs } from './headers';
 
@@ -264,7 +265,9 @@ export const createNextConsentRouteHandlers =
 			async GET(request: Request): Promise<Response> {
 				const { manifest } = await fetchCachedManifest(request, options);
 				const inputs = extractConsentRequestInputs(request.headers);
-				const payload = resolveInitFromManifest(manifest, inputs);
+				const payload = resolveInitFromManifest(manifest, inputs, {
+					baseTranslations,
+				});
 
 				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 					const language = payload.translations.language.split('-')[0] || 'en';

@@ -14,6 +14,7 @@ import {
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type { ConsentManifestConfig } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
 
@@ -68,12 +69,16 @@ describe('init and manifest parity', () => {
 		// What a host would do: fetch /manifest once, then resolve locally for
 		// each visitor without touching the backend again.
 		const manifest = await buildConsentManifestFromConfig(config);
-		const fromHost = resolveInitFromManifest(manifest, {
-			country: null,
-			gpc: true,
-			language: 'de-DE',
-			region: null,
-		});
+		const fromHost = resolveInitFromManifest(
+			manifest,
+			{
+				country: null,
+				gpc: true,
+				language: 'de-DE',
+				region: null,
+			},
+			{ baseTranslations }
+		);
 
 		assert.deepStrictEqual(fromBackend.body, fromHost);
 	});
