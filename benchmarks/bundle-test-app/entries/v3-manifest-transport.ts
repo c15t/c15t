@@ -1,1 +1,1 @@
-export { createManifestTransport } from '@c15t/core/v3';
+export { createManifestTransport } from '@c15t/core/v3/transports/manifest';

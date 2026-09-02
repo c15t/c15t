@@ -1,14 +1,15 @@
 'use client';
 
 import '@c15t/react/styles.css';
-import { createManifestTransport } from '@c15t/core/v3';
 import type { Script } from '@c15t/core/v3/modules/script-loader';
+import { createManifestTransport } from '@c15t/core/v3/transports/manifest';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDraftProvider,
 	ConsentProvider,
 	ConsentWidget,
+	custom,
 } from '@c15t/react/v3';
 import { lazy, Suspense, useMemo } from 'react';
 
@@ -72,7 +73,7 @@ const V3ReactManifestClientPage = () => {
 	return (
 		<ConsentProvider
 			options={{
-				mode: 'offline',
+				mode: custom(transport),
 				networkBlocker: {
 					logBlockedRequests: false,
 					rules: [
@@ -82,7 +83,6 @@ const V3ReactManifestClientPage = () => {
 					],
 				},
 				scripts: DEMO_SCRIPTS,
-				transport,
 			}}
 		>
 			<ConsentDraftProvider>
