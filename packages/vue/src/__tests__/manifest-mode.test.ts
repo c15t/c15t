@@ -225,7 +225,22 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		).toBeUndefined();
 	});
 
-	test('client manifest mode fetches the manifest in the browser and resolves init locally', async () => {
+	test('client manifest mode stays idle when the context is created during SSR', () => {
+		vi.stubGlobal('window', undefined);
+		const fetchMock = vi.fn();
+		const context = createVueConsentKernelContext({
+			config: {
+				customFetch: fetchMock as unknown as typeof fetch,
+				manifest: 'client',
+				manifestURL: 'https://cdn.example/manifest',
+			} as ConsentConfig,
+		});
+
+		expect(fetchMock).not.toHaveBeenCalled();
+		context.dispose();
+	});
+
+	test('client manifest mode starts its resolver and manifest fetch before init', async () => {
 		Object.defineProperty(window.navigator, 'language', {
 			configurable: true,
 			value: 'de-DE',
@@ -251,6 +266,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			} as ConsentConfig,
 		});
 
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 		await context.kernel.commands.init();
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);

@@ -1,4 +1,5 @@
 import {
+	c15tVersionHeaders,
 	createConsentKernel,
 	createHostedTransport,
 	initOutputToKernelConfig,
@@ -33,7 +34,7 @@ import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
-import type { InitOutput } from '@c15t/schema/types';
+import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { Ref } from 'vue';
 
@@ -309,6 +310,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 	prefetch: InitOutput | undefined
 ): KernelTransport {
 	const backendURL = config.backendURL ?? '/api/c15t';
+	const manifestURL = resolveClientManifestURL(config);
 	const hostedTransport = createHostedTransport({
 		backendURL,
 		domain: config.domain,
@@ -316,14 +318,48 @@ const createVueManifestTransport = function createVueManifestTransport(
 		headers,
 	});
 	let manifestTransport: KernelTransport | undefined;
+	const clientResourcesPromise =
+		typeof window === 'undefined'
+			? undefined
+			: Promise.all([
+					import('@c15t/core/v3/transports/manifest'),
+					import('@c15t/translations/all'),
+					(async (): Promise<ConsentManifest> => {
+						const fetchImpl =
+							config.customFetch ?? globalThis.fetch?.bind(globalThis);
+						if (!fetchImpl) {
+							throw new Error(
+								'createManifestTransport: no fetch available. Pass `fetch` in options.'
+							);
+						}
+
+						const response = await fetchImpl(manifestURL, {
+							credentials: 'include',
+							headers: {
+								accept: 'application/json',
+								...c15tVersionHeaders,
+								...headers,
+							},
+							method: 'GET',
+						});
+						if (!response.ok) {
+							throw new Error(
+								`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+							);
+						}
+
+						return response.json();
+					})(),
+				]);
 
 	return {
 		async init(ctx) {
-			const [{ createManifestTransport }, { baseTranslations }] =
-				await Promise.all([
-					import('@c15t/core/v3/transports/manifest'),
-					import('@c15t/translations/all'),
-				]);
+			if (!clientResourcesPromise) {
+				return {};
+			}
+
+			const [{ createManifestTransport }, { baseTranslations }, manifest] =
+				await clientResourcesPromise;
 			manifestTransport ??= createManifestTransport({
 				backendURL,
 				baseTranslations,
@@ -332,7 +368,8 @@ const createVueManifestTransport = function createVueManifestTransport(
 				headers,
 				initialInit: prefetch,
 				inputs: getManifestInputs(config, headers),
-				manifestURL: resolveClientManifestURL(config),
+				manifest,
+				manifestURL,
 			});
 			return manifestTransport.init?.(ctx) ?? {};
 		},
