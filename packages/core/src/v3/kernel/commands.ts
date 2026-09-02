@@ -474,6 +474,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		},
 
 		init(): Promise<InitResult> {
+			// An explicit init re-arms a disposed kernel. React StrictMode runs
+			// effect cleanup (which disposes) and then re-mounts with the same
+			// memoized kernel and calls init again; retries must work after that.
+			disposed = false;
 			clearRetryTimer();
 			pendingRetryAttempt = null;
 			removeVisibilityListener();

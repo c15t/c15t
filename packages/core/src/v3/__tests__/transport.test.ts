@@ -602,6 +602,26 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(initSpy).toHaveBeenCalledTimes(1);
 	});
 
+	test('init after dispose re-arms background retries', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.spyOn(Math, 'random').mockReturnValue(1);
+		const initSpy = vi.fn().mockRejectedValue(new Error('offline'));
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 100, maxAttempts: 3 },
+			transport: { init: initSpy },
+		});
+
+		await kernel.commands.init();
+		kernel.dispose();
+		// StrictMode-style remount: same kernel, init called again.
+		await kernel.commands.init();
+		await vi.advanceTimersByTimeAsync(1000);
+
+		// 1 (first mount) + 1 (remount) + 2 retries after the remount.
+		expect(initSpy).toHaveBeenCalledTimes(4);
+	});
+
 	test('online retries init immediately', async () => {
 		vi.useFakeTimers();
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
