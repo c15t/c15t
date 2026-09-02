@@ -63,6 +63,9 @@ const HOST = '127.0.0.1';
 const PORT = 4309;
 const BASE_URL = `http://${HOST}:${PORT}`;
 
+// Turbopack hoists modules used by two or more routes into shared chunks. Route
+// deltas under-report code when another route imports the same module. Use the
+// entry benchmarks for transport-level comparisons.
 const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/': 'baseline',
 	'/core-only': 'core-only',
@@ -79,6 +82,7 @@ const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/v3-react-full': 'v3-react-full',
 	'/v3-react-full-aggregate': 'v3-react-full-aggregate',
 	'/v3-react-full-split': 'v3-react-full-split',
+	'/v3-react-manifest-client': 'v3-react-manifest-client',
 	'/v3-react-standard-script-loader': 'v3-react-standard-script-loader',
 };
 
