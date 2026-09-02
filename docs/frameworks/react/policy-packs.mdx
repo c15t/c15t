@@ -1,6 +1,6 @@
 ---
 title: Policy Packs
-description: Configure regional consent policies in React — hosted mode, presets, and offline fallback.
+description: Configure regional consent policies in React with hosted or offline policy resolution.
 group: frameworks
 ---
 
@@ -35,9 +35,9 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-## Offline / Fallback
+## Offline mode
 
-For local development, previews, automated tests, or when the backend is temporarily unreachable, pass policies directly:
+For local development, previews, or automated tests, select offline mode and pass policies directly:
 
 ```tsx
 import type { ReactNode } from 'react';

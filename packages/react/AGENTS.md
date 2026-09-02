@@ -45,7 +45,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Internationalization](./docs/frameworks/react/internationalization.md): Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
 - [Network Blocker](./docs/frameworks/react/network-blocker.md): Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
 - [Optimization](./docs/frameworks/react/optimization.md): Improve c15t startup performance in React with prefetching, proxy rewrites, and rendering tradeoffs.
-- [Policy Packs](./docs/frameworks/react/policy-packs.md): Configure regional consent policies in React — hosted mode, presets, and offline fallback.
+- [Policy Packs](./docs/frameworks/react/policy-packs.md): Configure regional consent policies in React with hosted or offline policy resolution.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Add consent management to your React app in under 5 minutes.
 - [Script Loader](./docs/frameworks/react/script-loader.md): Gate third-party scripts behind consent in React — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Server-Side Utilities](./docs/frameworks/react/server-side.md): Fetch consent data on the server for SSR hydration — eliminate the loading flash and improve performance.

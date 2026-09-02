@@ -24,9 +24,8 @@
  *   snapshot (with structural sharing where possible) and notify
  *   subscribers in insertion order. Notification cost is O(n) in
  *   subscribers.
- * - `commands.*` are async but still do not touch browser globals.
- *   Network calls, DOM mutations, and localStorage live in opt-in
- *   boot modules under `c15t/v3/modules/*`.
+ * - `commands.*` are async I/O boundaries. Retry listeners and failed-save
+ *   storage are installed lazily after a command runs, never at construction.
  */
 import type {
 	ConsentKernel,
@@ -44,8 +43,8 @@ import { buildInitialSnapshot } from './snapshot';
  * Create a fresh consent kernel.
  *
  * Pure: takes plain config, returns a kernel handle. No I/O. The handle
- * exposes `getSnapshot()`, `subscribe()`, `set.*`, `commands.*`, and
- * `events.*`. See the file-level invariants above for guarantees.
+ * exposes `getSnapshot()`, `subscribe()`, `set.*`, `commands.*`, `events.*`,
+ * and `dispose()`. See the file-level invariants above for guarantees.
  */
 export const createConsentKernel = function createConsentKernel(
 	config: KernelConfig = {}
@@ -81,15 +80,17 @@ export const createConsentKernel = function createConsentKernel(
 	};
 
 	const set = buildSetters({ advance, emit: eventBus.emit, getSnapshot });
-	const commands = buildCommands({
+	const commandHandle = buildCommands({
 		advance,
 		emit: eventBus.emit,
 		getSnapshot,
+		initRetry: config.initRetry,
 		transport,
 	});
 
 	return {
-		commands,
+		commands: commandHandle.commands,
+		dispose: commandHandle.dispose,
 		events: {
 			emit: eventBus.emit,
 			on: eventBus.on,

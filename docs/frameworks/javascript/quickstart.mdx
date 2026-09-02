@@ -25,7 +25,7 @@ const { consentManager, consentStore } = getOrCreateConsentRuntime({
 ```
 
 <Callout type="info">
-  Hosted mode is the recommended production setup because the backend resolves jurisdiction and translations, stores consent decisions outside the current browser, and can re-sync after temporary outages.
+  Hosted mode is the recommended production setup because the backend resolves jurisdiction and translations, stores consent decisions outside the current browser, and replays failed consent saves after temporary outages.
 </Callout>
 
 <Callout type="warn">

@@ -9,8 +9,8 @@ group: reference
 <section id="overview">
   c15t supports three client modes that determine how consent data is stored and synchronized. Choose the mode that matches your infrastructure:
 
-  - **Hosted mode** - Recommended for production. Backend-backed consent with geolocation, centralized policy resolution, audit history, and offline fallback.
-  - **Offline mode** - Browser-only storage with no network requests. Best for local development, demos, static deployments, or controlled fallback scenarios.
+  - **Hosted mode** - Recommended for production. Backend-backed consent with geolocation, centralized policy resolution, audit history, and automatic retry.
+  - **Offline mode** - Browser-only storage with no network requests. Best for local development, demos, static deployments, or deployments without a backend.
   - **Custom mode** - Bring your own backend with custom endpoint handlers
 
   <Callout type="warn">
@@ -33,7 +33,7 @@ group: reference
 
   1. On page load, the client calls `/init` to fetch geolocation, jurisdiction, localized translation strings
   2. When the user grants or changes consent, it is saved locally before being synced to the backend.
-  3. If the backend is unreachable, it falls back to Offline mode and re-syncs with the backend when it's available
+  3. If init fails, the banner stays hidden and gated resources stay blocked while c15t retries. Failed consent saves are queued and replayed later.
 
   **Configuration:**
 
@@ -44,7 +44,7 @@ group: reference
   - The backend stays the source of truth for policy, translations, and jurisdiction logic
   - Consent decisions can be stored beyond the current browser session for audit and support workflows
   - Server-side systems can preload consent-aware behavior instead of waiting for client-only storage
-  - If the backend is temporarily unavailable, c15t can fall back locally and re-sync later
+  - If the backend is temporarily unavailable, c15t fails closed until it can load the authoritative policy
 
   **Best for:** Production apps that need geolocation-based jurisdiction detection, consent record storage, and compliance audit trails.
 </section>
@@ -83,7 +83,7 @@ group: reference
   - No server-side visibility before client initialization
   - Works without any backend infrastructure
 
-  **Best for:** Local development, Storybook/static demos, resilience fallback, or simpler sites that explicitly accept browser-only consent storage.
+  **Best for:** Local development, Storybook or static demos, deployments without a backend, or simpler sites that explicitly accept browser-only consent storage.
 </section>
 
 <section id="custom-mode">
@@ -95,7 +95,7 @@ group: reference
 
   1. On page load, the client calls your endpoint handler to fetch geolocation, jurisdiction, localized translation strings
   2. When the user grants or changes consent, it is saved locally before being synced to the backend.
-  3. If one of your handlers fails, c15t returns a handler error and keeps local consent state, but automatic offline fallback and retry queue behavior is not provided for custom handlers by default
+  3. If one of your handlers fails, c15t keeps local consent state and uses the same init retry and failed-save replay behavior as the hosted transport
 
   This lets you integrate c15t with any existing API - your CRM, your own consent database, or a third-party compliance service.
 

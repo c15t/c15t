@@ -174,9 +174,9 @@ export interface ConsentSnapshot {
 	 * transport's init resolution (e.g. the React provider's synthetic
 	 * categories policy in hosted mode). While provisional, `activeUI`
 	 * stays `'none'` — surfaces must not render from copy or actions that
-	 * an in-flight `/init` may replace. Cleared when init completes
-	 * (applied, empty, or failed — a failed init makes the placeholder the
-	 * best available policy and the UI shows it as a compliance fallback).
+	 * an in-flight `/init` may replace. Cleared only after init succeeds or
+	 * when the transport has no init method. A failed backend init leaves the
+	 * policy provisional and the UI withheld while the kernel retries.
 	 */
 	readonly policyProvisional: boolean;
 	/** Category allowlist from `policy.consent.categories`. Empty array means "all categories allowed". */
@@ -224,6 +224,22 @@ export interface KernelConfig {
 	 * authoritative and renders immediately.
 	 */
 	initialPolicyProvisional?: boolean;
+	/**
+	 * Retry policy for failed transport initialization. The first call is
+	 * attempt 1. Defaults to 5 total attempts, a 1,000 ms base delay, and a
+	 * 30,000 ms cap with exponential backoff and jitter. Set to `false` to
+	 * disable background retries.
+	 */
+	initRetry?:
+		| {
+				/** Total attempts including the initial call. Defaults to 5. */
+				maxAttempts?: number;
+				/** Initial backoff delay in milliseconds. Defaults to 1,000. */
+				baseDelayMs?: number;
+				/** Maximum backoff delay in milliseconds. Defaults to 30,000. */
+				maxDelayMs?: number;
+		  }
+		| false;
 	/** Initial policy decision. */
 	initialPolicyDecision?: PolicyDecision;
 	/** Initial policy snapshot token. */
@@ -332,6 +348,24 @@ export type KernelEvent =
 	| { type: 'user:identified'; snapshot: ConsentSnapshot }
 	| { type: 'iab:set'; snapshot: ConsentSnapshot }
 	| { type: 'init:applied'; snapshot: ConsentSnapshot }
+	| {
+			/** Transport initialization failed and the provisional UI stayed hidden. */
+			type: 'init:failed';
+			/** Error thrown by the transport. */
+			error: unknown;
+			/** One-based attempt number. */
+			attempt: number;
+			/** Scheduled retry delay, or `null` when no retry remains. */
+			nextRetryMs: number | null;
+	  }
+	| {
+			/** A queued consent save was attempted again. */
+			type: 'save:replayed';
+			/** Subject whose queued payload was replayed. */
+			subjectId: string;
+			/** Whether the transport accepted the replay. */
+			ok: boolean;
+	  }
 	| { type: 'command:init:started' }
 	| { type: 'command:init:completed'; result: InitResult }
 	| { type: 'command:save:started' }
@@ -370,6 +404,11 @@ export interface SaveResult {
  * boot modules see. Intentionally narrow.
  */
 export interface ConsentKernel {
+	/**
+	 * Cancel background retries and remove browser event listeners.
+	 * Idempotent. Snapshot reads and explicit commands remain available.
+	 */
+	dispose: () => void;
 	/** Returns the current snapshot. Cheap, non-allocating. */
 	getSnapshot: () => ConsentSnapshot;
 
