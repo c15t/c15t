@@ -5,13 +5,10 @@ import type {
 	InitResponse,
 	KernelConfig,
 	KernelTransport,
-} from '@c15t/core/v3';
-import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
-
-import type {
 	ProviderTransportContext,
 	ProviderTransportFactory,
-} from './types';
+} from '@c15t/core/v3';
+import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
 
 /** Options for {@link offline}. */
 export interface OfflineModeOptions {

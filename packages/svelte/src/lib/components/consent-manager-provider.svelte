@@ -16,6 +16,8 @@
 		KernelOverrides,
 		KernelTranslations,
 		KernelUser,
+		ProviderTransportContext,
+		ProviderTransportFactory,
 		TranslationsResponse,
 	} from '@c15t/core/v3';
 	import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
@@ -35,10 +37,6 @@
 
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
-	import type {
-		ProviderTransportContext,
-		ProviderTransportFactory,
-	} from '../transports/types';
 	import type {
 		ConsentManagerOptions,
 		ProviderIABOptions,
@@ -491,6 +489,7 @@
 
 	onMount(() => {
 		const disposers: (() => void)[] = [];
+		disposers.push(() => kernel.dispose());
 		const enabled = getEnabled(options);
 		const persistenceOptions = normalizePersistenceOptions();
 

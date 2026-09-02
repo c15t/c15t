@@ -448,6 +448,7 @@ export const createVueConsentKernelContext =
 			activeUI,
 			dispose() {
 				unsubscribe();
+				kernel.dispose();
 			},
 			init,
 			kernel,

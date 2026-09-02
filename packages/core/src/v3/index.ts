@@ -62,6 +62,13 @@ export {
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
 } from './transports/init-output';
+export type {
+	HostedModeOptions,
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
+} from './transports/mode';
+export { custom, hosted } from './transports/mode';
 export type { OfflineTransportOptions } from './transports/offline';
 export { createOfflineTransport } from './transports/offline';
 export { buildSubjectPostBody } from './transports/subject-body';

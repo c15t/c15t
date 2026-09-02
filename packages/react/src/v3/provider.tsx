@@ -29,6 +29,8 @@ import type {
 	KernelTranslations,
 	KernelTransport,
 	KernelUser,
+	ProviderTransportContext,
+	ProviderTransportFactory,
 	TranslationsResponse,
 } from '@c15t/core/v3';
 import type { Script } from '@c15t/core/v3/modules/script-loader';
@@ -62,10 +64,6 @@ import type {
 } from './module-hooks';
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
-import type {
-	ProviderTransportContext,
-	ProviderTransportFactory,
-} from './transports/types';
 import type { ConsentManagerOptions } from './types/consent-manager';
 import type { ReactComponentSlots } from './types/slots';
 import type { Theme } from './types/theme';
@@ -968,6 +966,7 @@ export const ConsentProvider = ({
 		reloadOnConsentRevoked
 	);
 	useProviderOptionSync(kernel, options, enabled);
+	useEffect(() => () => kernel.dispose(), [kernel]);
 
 	const userTheme = options.theme;
 

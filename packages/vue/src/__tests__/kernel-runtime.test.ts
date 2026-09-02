@@ -266,6 +266,19 @@ afterEach(() => {
 });
 
 describe('@c15t/vue kernel runtime', () => {
+	test('disposes the kernel with its Vue context', () => {
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.example',
+				customFetch: vi.fn() as unknown as typeof fetch,
+			},
+		});
+		const dispose = vi.spyOn(context.kernel, 'dispose');
+
+		context.dispose();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+
 	test('installs window.c15t with Vue hosted identity', async () => {
 		const { wrapper } = await mountRoot();
 

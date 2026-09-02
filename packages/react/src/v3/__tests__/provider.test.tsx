@@ -1,9 +1,12 @@
 import type { InitOutput } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core/v3';
 import type { ReactNode } from 'react';
+import { useContext, useEffect } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { InlineLegalLinks } from '../components/shared/primitives/legal-links';
+import { KernelContext } from '../context';
 import { useTheme } from '../hooks/use-theme';
 import {
 	ConsentProvider,
@@ -228,6 +231,40 @@ describe('v3 ConsentProvider options API', () => {
 		);
 
 		await expect.element(getByTestId('marketing')).toHaveTextContent('true');
+	});
+
+	test('disposes the kernel on unmount but not on rerender', async () => {
+		let mountedKernel: ConsentKernel | null = null;
+		const KernelCapture = () => {
+			const contextKernel = useContext(KernelContext);
+			useEffect(() => {
+				mountedKernel = contextKernel;
+			}, [contextKernel]);
+			return null;
+		};
+		const options = { mode: offline(), persistence: false };
+		const result = await render(
+			<ConsentProvider options={options}>
+				<KernelCapture />
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => expect(mountedKernel).not.toBeNull());
+		const kernel = mountedKernel;
+		if (!kernel) {
+			throw new Error('Expected the provider to expose its kernel');
+		}
+		const dispose = vi.spyOn(kernel, 'dispose');
+
+		await result.rerender(
+			<ConsentProvider options={options}>
+				<KernelCapture />
+			</ConsentProvider>
+		);
+		expect(dispose).not.toHaveBeenCalled();
+
+		result.unmount();
+		expect(dispose).toHaveBeenCalledOnce();
 	});
 
 	test('syncs dynamic user option after mount', async () => {

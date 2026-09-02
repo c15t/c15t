@@ -44,21 +44,17 @@ export type {
 	KernelTransport,
 	KernelUser,
 	Listener,
+	HostedModeOptions,
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
 	SavePayload,
 	SaveResult,
 	Unsubscribe,
 } from '@c15t/core/v3';
-export { createConsentKernel } from '@c15t/core/v3';
-export { custom } from './transports/custom';
-export type { HostedModeOptions } from './transports/hosted';
-export { hosted } from './transports/hosted';
+export { createConsentKernel, custom, hosted } from '@c15t/core/v3';
 export type { OfflineModeOptions } from './transports/offline';
 export { offline } from './transports/offline';
-export type {
-	ProviderTransportContext,
-	ProviderTransportFactory,
-	ProviderTransportKind,
-} from './transports/types';
 export { ConsentDialog, ConsentWidget } from './aggregate-components';
 export type {
 	ConsentBannerButton,

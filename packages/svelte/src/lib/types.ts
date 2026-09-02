@@ -10,7 +10,12 @@ import type {
 	StorageConfig,
 	User,
 } from '@c15t/core';
-import type { KernelConfig, KernelOverrides, KernelUser } from '@c15t/core/v3';
+import type {
+	KernelConfig,
+	KernelOverrides,
+	KernelUser,
+	ProviderTransportFactory,
+} from '@c15t/core/v3';
 import type { IframeBlockerOptions } from '@c15t/core/v3/modules/iframe-blocker';
 import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
 import type { PersistenceOptions } from '@c15t/core/v3/modules/persistence';
@@ -20,8 +25,6 @@ import type {
 } from '@c15t/core/v3/modules/script-loader';
 import type { CreateIABOptions } from '@c15t/iab/v3';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
-
-import type { ProviderTransportFactory } from './transports/types';
 
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &

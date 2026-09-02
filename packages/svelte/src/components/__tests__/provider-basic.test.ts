@@ -5,14 +5,14 @@
  */
 
 import { clearConsentRuntimeCache } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core/v3';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
-import { custom } from '../../lib/transports/custom';
-import { hosted } from '../../lib/transports/hosted';
+import { custom, hosted } from '../../lib/index';
 import { offline } from '../../lib/transports/offline';
 
 interface DeferredPromise<Value> {
@@ -91,6 +91,26 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		result.unmount();
 		expect((window as WindowWithC15t).c15t).toBeUndefined();
+	});
+
+	test('disposes the kernel when the provider unmounts', () => {
+		let mountedKernel: ConsentKernel | null = null;
+		const result = render(ProviderOnlyFixture, {
+			onKernel: (kernel: ConsentKernel) => {
+				mountedKernel = kernel;
+			},
+			options: {
+				mode: offline(),
+			},
+		});
+
+		if (!mountedKernel) {
+			throw new Error('Expected the provider to expose its kernel');
+		}
+		const dispose = vi.spyOn(mountedKernel, 'dispose');
+
+		result.unmount();
+		expect(dispose).toHaveBeenCalledOnce();
 	});
 
 	test('hosted() reports hosted mode and calls the configured init URL', async () => {
