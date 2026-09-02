@@ -1,6 +1,9 @@
 /**
- * Manifest transport — fetches or accepts a consent manifest and resolves
- * `/init` locally with @c15t/schema's shared resolver.
+ * Server-oriented manifest transport.
+ *
+ * This module resolves `/init` locally with `@c15t/schema` and imports every
+ * translation language. Import it from `@c15t/core/v3/transports/manifest`
+ * only in server code, or load it lazily for static client-only hosts.
  */
 
 import type {

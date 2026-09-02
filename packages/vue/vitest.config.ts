@@ -71,6 +71,12 @@ export default mergeConfig(
 						'../core/src/v3/consent-record/index.ts'
 					),
 				},
+				{
+					'@c15t/core/v3/transports/manifest': resolve(
+						__dirname,
+						'../core/src/v3/transports/manifest.ts'
+					),
+				},
 				{ '@c15t/core/v3': resolve(__dirname, '../core/src/v3/index.ts') },
 				{ '@c15t/core': resolve(__dirname, '../core/src/index.ts') },
 				{

@@ -1,7 +1,6 @@
 import {
 	createConsentKernel,
 	createHostedTransport,
-	createManifestTransport,
 	initOutputToKernelConfig,
 	isValidSubjectId,
 } from '@c15t/core/v3';
@@ -43,7 +42,6 @@ import {
 	isClientManifestModeEnabled,
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
-	resolveNuxtManifestRoute,
 } from './manifest';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
@@ -261,7 +259,8 @@ const getManifestInputs = function getManifestInputs(
 
 const createVueHostedTransport = function createVueHostedTransport(
 	config: RuntimeConsentConfig,
-	headers: Record<string, string>
+	headers: Record<string, string>,
+	initURL?: string
 ): KernelTransport {
 	const backendURL = config.backendURL ?? '/api/c15t';
 	const baseTransport = createHostedTransport({
@@ -269,6 +268,7 @@ const createVueHostedTransport = function createVueHostedTransport(
 		domain: config.domain,
 		fetch: config.customFetch,
 		headers,
+		initURL,
 	});
 
 	return {
@@ -295,6 +295,7 @@ const createVueHostedTransport = function createVueHostedTransport(
 					domain: config.domain,
 					fetch: config.customFetch,
 					headers: contextualHeaders,
+					initURL,
 				}).init?.(ctx) ?? Promise.resolve<InitResponse>({})
 			);
 		},
@@ -308,17 +309,36 @@ const createVueManifestTransport = function createVueManifestTransport(
 	prefetch: InitOutput | undefined
 ): KernelTransport {
 	const backendURL = config.backendURL ?? '/api/c15t';
-	return createManifestTransport({
+	const hostedTransport = createHostedTransport({
 		backendURL,
 		domain: config.domain,
 		fetch: config.customFetch,
 		headers,
-		initialInit: prefetch,
-		inputs: getManifestInputs(config, headers),
-		manifestURL: isClientManifestModeEnabled(config)
-			? resolveClientManifestURL(config)
-			: resolveNuxtManifestRoute(config),
 	});
+	let manifestTransport: KernelTransport | undefined;
+
+	return {
+		async init(ctx) {
+			const { createManifestTransport } =
+				await import('@c15t/core/v3/transports/manifest');
+			manifestTransport ??= createManifestTransport({
+				backendURL,
+				domain: config.domain,
+				fetch: config.customFetch,
+				headers,
+				initialInit: prefetch,
+				inputs: getManifestInputs(config, headers),
+				manifestURL: resolveClientManifestURL(config),
+			});
+			return manifestTransport.init?.(ctx) ?? {};
+		},
+		async save(payload) {
+			return (
+				(await manifestTransport?.save?.(payload)) ??
+				(await hostedTransport.save?.(payload)) ?? { ok: true }
+			);
+		},
+	};
 };
 
 export const createVueConsentKernelContext =
@@ -329,11 +349,15 @@ export const createVueConsentKernelContext =
 		initialStoredConsent?: StoredPayload | null;
 	}): VueConsentKernelContext {
 		const headers = pickAllowedInitHeaders(options.headers ?? {});
-		const transport =
-			isClientManifestModeEnabled(options.config) ||
-			isServerManifestModeEnabled(options.config)
-				? createVueManifestTransport(options.config, headers, options.prefetch)
-				: createVueHostedTransport(options.config, headers);
+		const transport = isClientManifestModeEnabled(options.config)
+			? createVueManifestTransport(options.config, headers, options.prefetch)
+			: createVueHostedTransport(
+					options.config,
+					headers,
+					isServerManifestModeEnabled(options.config)
+						? getNuxtInitFetchTarget(options.config)?.url
+						: undefined
+				);
 		const kernel = createConsentKernel({
 			...initOutputToKernelConfig(options.prefetch, headers),
 			...storedPayloadToKernelConfig(options.initialStoredConsent),

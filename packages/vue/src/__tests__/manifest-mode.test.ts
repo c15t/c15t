@@ -331,7 +331,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		expect((window as WindowWithC15t).c15t).toBeUndefined();
 	});
 
-	test('prefetched manifest init seeds decision inputs for save', async () => {
+	test('server manifest mode initializes through Nuxt and saves to the backend', async () => {
 		const init = resolveManifestInit({
 			headers: {
 				'accept-language': 'de',
@@ -340,50 +340,41 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			},
 			manifest: createManifestFixture(),
 		}) satisfies InitOutput;
-		const subjectBodies: Record<string, unknown>[] = [];
-		const fetchMock = vi.fn(
-			(input: RequestInfo | URL, initLocal?: RequestInit) => {
-				const url = String(input);
-				if (url.endsWith('/subjects')) {
-					const body = JSON.parse(String(initLocal?.body ?? '{}')) as Record<
-						string,
-						unknown
-					>;
-					subjectBodies.push(body);
-					return new Response(
-						JSON.stringify({ ok: true, subjectId: 'sub-1' }),
-						{
-							headers: { 'content-type': 'application/json' },
-							status: 200,
-						}
-					);
-				}
-				return new Response('not found', { status: 404 });
+		const fetchMock = vi.fn((input: RequestInfo | URL, _init?: RequestInit) => {
+			const url = String(input);
+			if (url === '/internal/consent/init') {
+				return new Response(JSON.stringify(init), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				});
 			}
-		);
+			if (url.endsWith('/subjects')) {
+				return new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				});
+			}
+			return new Response('not found', { status: 404 });
+		});
 
 		const context = createVueConsentKernelContext({
 			config: {
 				backendURL: 'https://backend.example',
 				customFetch: fetchMock as unknown as typeof fetch,
 				domain: 'example.com',
+				initRoute: '/internal/consent/init',
 				manifest: true,
 			} as ConsentConfig,
-			prefetch: init,
 		});
 
+		await context.kernel.commands.init();
 		await context.kernel.commands.save('all');
 
-		expect(subjectBodies).toHaveLength(1);
-		expect(subjectBodies[0]).toMatchObject({
-			country: 'DE',
-			domain: 'example.com',
-			fingerprint: 'fingerprint-eu',
-			language: 'de',
-			policyId: 'eu-opt-in',
-			region: 'BE',
-		});
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+			'/internal/consent/init',
+			'https://backend.example/subjects',
+		]);
+		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' });
 		context.dispose();
 	});
 });

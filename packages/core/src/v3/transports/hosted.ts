@@ -43,6 +43,14 @@ export interface HostedTransportOptions {
 	backendURL: string;
 
 	/**
+	 * URL used for `GET /init`. Defaults to `${backendURL}/init`.
+	 *
+	 * Use this to point initialization at a same-origin server route while
+	 * keeping consent saves on `${backendURL}/subjects`.
+	 */
+	initURL?: string;
+
+	/**
 	 * Fetch implementation. Defaults to `globalThis.fetch`.
 	 * Inject for tests, or to wire Cloudflare Worker bindings.
 	 */
@@ -130,6 +138,7 @@ export const createHostedTransport = function createHostedTransport(
 	options: HostedTransportOptions
 ): KernelTransport {
 	const base = trimSlash(options.backendURL);
+	const initURL = options.initURL ?? `${base}/init`;
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
 	if (!fetchImpl) {
 		throw new Error(
@@ -142,7 +151,7 @@ export const createHostedTransport = function createHostedTransport(
 
 	return {
 		async init(_ctx: InitContext): Promise<InitResponse> {
-			const response = await fetchImpl(`${base}/init`, {
+			const response = await fetchImpl(initURL, {
 				credentials,
 				headers: {
 					accept: 'application/json',

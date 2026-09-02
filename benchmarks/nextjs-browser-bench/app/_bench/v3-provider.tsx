@@ -1,6 +1,6 @@
 'use client';
 
-import { createManifestTransport } from '@c15t/core/v3';
+import { createManifestTransport } from '@c15t/core/v3/transports/manifest';
 import {
 	ConsentBanner,
 	ConsentBoundary,

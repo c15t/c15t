@@ -8,13 +8,10 @@
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-	createConsentKernel,
-	createHostedTransport,
-	createManifestTransport,
-} from '../index';
+import { createConsentKernel, createHostedTransport } from '../index';
 import type { InitResponse, KernelTransport, SaveResult } from '../index';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
+import { createManifestTransport } from '../transports/manifest';
 
 const fallbackStorageValues = new Map<string, string>();
 const fallbackLocalStorage: Storage = {
@@ -1128,6 +1125,45 @@ describe('createHostedTransport: request shape', () => {
 		expect(url).toBe('https://api.example.com/c15t/init');
 		expect((init as RequestInit).method).toBe('GET');
 		expect((init as RequestInit).body).toBeUndefined();
+	});
+
+	test('initURL overrides init without changing the save endpoint', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/api/c15t/init',
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		await transport.save?.({
+			consentAction: 'all',
+			consents: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: 'snap-1',
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+			'/api/c15t/init',
+			'https://api.example.com/c15t/subjects',
+		]);
 	});
 
 	test(`save POSTs to \`${backendURLToken}/subjects\` with backend body`, async () => {

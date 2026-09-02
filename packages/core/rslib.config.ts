@@ -31,6 +31,7 @@ export default defineConfig({
 			'v3-network-blocker': ['./src/v3/modules/network-blocker/index.ts'],
 			'v3-persistence': ['./src/v3/modules/persistence/index.ts'],
 			'v3-script-loader': ['./src/v3/modules/script-loader/index.ts'],
+			'v3-transport-manifest': ['./src/v3/transports/manifest.ts'],
 			'v3-transports': ['./src/v3/transports/index.ts'],
 			'v3-window-debug': ['./src/v3/modules/window-debug/index.ts'],
 		},

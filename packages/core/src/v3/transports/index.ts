@@ -24,8 +24,6 @@ export {
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
 } from './init-output';
-export type { ManifestTransportOptions } from './manifest';
-export { createManifestTransport } from './manifest';
 export type { OfflineTransportOptions } from './offline';
 export { createOfflineTransport } from './offline';
 export { buildSubjectPostBody } from './subject-body';

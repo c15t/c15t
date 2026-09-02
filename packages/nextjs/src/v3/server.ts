@@ -22,12 +22,12 @@
  */
 
 import {
-	createManifestTransport,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core/v3';
 import type { KernelConfig, KernelOverrides } from '@c15t/core/v3';
 import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
+import { createManifestTransport } from '@c15t/core/v3/transports/manifest';
 import { resolveBackendURL } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
