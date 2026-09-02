@@ -15,7 +15,7 @@ import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provide
 
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	getStoredConsent,
 	getStoredTCString,
 	waitForCMP,
@@ -33,7 +33,7 @@ describe('IAB Storage E2E Tests', () => {
 	describe('localStorage Storage', () => {
 		test('should store consent to localStorage', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -64,7 +64,7 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('should store TC string in localStorage', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -92,7 +92,7 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('TC string should be valid base64url format', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -125,7 +125,7 @@ describe('IAB Storage E2E Tests', () => {
 	describe('Storage Update on Consent Change', () => {
 		test('should update storage when Accept All clicked', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -153,7 +153,7 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('should update storage when Reject All clicked', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -184,7 +184,7 @@ describe('IAB Storage E2E Tests', () => {
 	describe('Storage Content', () => {
 		test('should store consent info with timestamp', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -219,7 +219,7 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('should store consent info with subjectId', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -247,7 +247,7 @@ describe('IAB Storage E2E Tests', () => {
 	describe('c15t Storage Key', () => {
 		test('should use "c15t" key in localStorage', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -272,7 +272,7 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('should use "euconsent-v2" key for TC string', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>

@@ -1,5 +1,6 @@
 'use client';
 
+import { hosted } from '@c15t/react/v3';
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import type { ConsentProviderOptions } from '@c15t/react/v3/provider';
@@ -18,7 +19,6 @@ const consentCategories = [
 
 const CssV3BannerModulesPage = () => {
 	const options: ConsentProviderOptions = {
-		backendURL: '/api/bench-consent',
 		callbacks: {
 			onBannerFetched() {
 				const state = getBenchState(scenario);
@@ -46,7 +46,7 @@ const CssV3BannerModulesPage = () => {
 			},
 		},
 		consentCategories,
-		mode: 'c15t',
+		mode: hosted({ url: '/api/bench-consent' }),
 		theme: {
 			motion: {
 				duration: {

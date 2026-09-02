@@ -2,6 +2,7 @@
 
 import {
 	ConsentProvider,
+	hosted,
 	useActiveUI,
 	useConsent,
 	useSaveConsents,
@@ -86,7 +87,6 @@ const HeadlessBenchmarkUI = () => {
 const ReactV3HeadlessPage = () => (
 	<ConsentProvider
 		options={{
-			backendURL: '/api/bench-consent',
 			callbacks: {
 				onBannerFetched() {
 					const state = getBenchState(scenario);
@@ -112,7 +112,7 @@ const ReactV3HeadlessPage = () => (
 				},
 			},
 			consentCategories,
-			mode: 'c15t',
+			mode: hosted({ url: '/api/bench-consent' }),
 		}}
 	>
 		<HeadlessBenchmarkUI />

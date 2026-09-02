@@ -8,7 +8,7 @@
  *
  *   function App({ children }) {
  *     return (
- *       <ConsentProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+ *       <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
  *         {children}
  *       </ConsentProvider>
  *     );
@@ -29,7 +29,7 @@
  *   module wiring around a single per-mount kernel.
  */
 
-// Re-export kernel types + factories so v3 consumers need only one import.
+// Re-export kernel types so v3 consumers need only one import.
 export type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -48,11 +48,17 @@ export type {
 	SaveResult,
 	Unsubscribe,
 } from '@c15t/core/v3';
-export {
-	createConsentKernel,
-	createHostedTransport,
-	createOfflineTransport,
-} from '@c15t/core/v3';
+export { createConsentKernel } from '@c15t/core/v3';
+export { custom } from './transports/custom';
+export type { HostedModeOptions } from './transports/hosted';
+export { hosted } from './transports/hosted';
+export type { OfflineModeOptions } from './transports/offline';
+export { offline } from './transports/offline';
+export type {
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
+} from './transports/types';
 export { ConsentDialog, ConsentWidget } from './aggregate-components';
 export type {
 	ConsentBannerButton,

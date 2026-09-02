@@ -6,6 +6,7 @@
 		ConsentManagerProvider,
 		IABConsentBanner,
 		IABConsentDialog,
+		offline,
 	} from '@c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
 
@@ -14,7 +15,7 @@
 
 <ConsentManagerProvider
 	options={{
-		mode: 'offline',
+		mode: offline(),
 		consentCategories: ['necessary', 'marketing', 'measurement'],
 		iab: {
 			enabled: false,

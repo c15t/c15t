@@ -21,20 +21,10 @@ afterEach(() => {
 });
 
 describe('resolveWindowDebugMode', () => {
-	test('maps provider options to the reported transport kind', () => {
-		expect(resolveWindowDebugMode({})).toBe('offline');
-		expect(resolveWindowDebugMode({ backendURL: '/api/c15t' })).toBe('hosted');
-		expect(resolveWindowDebugMode({ mode: 'hosted' })).toBe('hosted');
-		expect(resolveWindowDebugMode({ mode: 'c15t' })).toBe('hosted');
-		expect(
-			resolveWindowDebugMode({ backendURL: '/api/c15t', mode: 'offline' })
-		).toBe('offline');
-		expect(resolveWindowDebugMode({ transport: {} })).toBe('custom');
-		expect(
-			resolveWindowDebugMode({ endpointHandlers: {}, mode: 'custom' })
-		).toBe('custom');
-		// `mode: 'custom'` without handlers falls back to the offline transport.
-		expect(resolveWindowDebugMode({ mode: 'custom' })).toBe('offline');
+	test('uses the kind declared by the provider transport factory', () => {
+		expect(resolveWindowDebugMode({ kind: 'offline' })).toBe('offline');
+		expect(resolveWindowDebugMode({ kind: 'hosted' })).toBe('hosted');
+		expect(resolveWindowDebugMode({ kind: 'custom' })).toBe('custom');
 	});
 });
 

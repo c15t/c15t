@@ -1,5 +1,6 @@
 'use client';
 
+import { offline } from '@c15t/react/v3';
 import { ConsentDraftProvider } from '@c15t/react/v3/draft';
 import { useSaveConsents } from '@c15t/react/v3/hooks';
 import { useScriptLoader } from '@c15t/react/v3/module-hooks/script-loader';
@@ -77,7 +78,7 @@ const V3Probe = ({ count }: { count: number }) => {
 export const V3ScriptCountPage = ({ count }: { count: number }) => (
 	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 			persistence: false,
 		}}
 	>

@@ -24,7 +24,7 @@ import {
 	clearConsentRuntimeCache,
 } from '~/v3/providers/consent-manager-provider';
 
-import { ConsentProvider, useConsent, useSetConsent } from '../index';
+import { ConsentProvider, offline, useConsent, useSetConsent } from '../index';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -203,6 +203,7 @@ const runV3 = async function runV3(): Promise<Run> {
 	const { getByTestId } = await render(
 		<ConsentProvider
 			options={{
+				mode: offline(),
 				persistence: false,
 				prefetch: {
 					initialConsents: {

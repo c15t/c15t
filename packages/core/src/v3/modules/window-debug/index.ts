@@ -41,28 +41,19 @@ export type {
 
 /**
  * Resolves the {@link WindowDebugMode} to report for a provider-style
- * adapter (React, Svelte, Next.js). Shared so adapters cannot drift:
- * an explicit transport (or `mode: 'custom'` with endpoint handlers)
- * reports `custom`; `'c15t'` is the hosted platform alias; a
- * `backendURL` with no explicit mode implies hosted.
+ * adapter (React, Svelte, Next.js). Shared so adapters cannot drift from
+ * the transport factory's declared kind.
  *
  * Vue resolves its own mode (`manifest` vs `hosted`) — its config has
  * no provider-mode concept.
  *
- * @param input - The adapter's provider options (structural subset).
+ * @param mode - The adapter's provider transport factory metadata.
  * @returns The transport kind to report on `window.c15t`.
  */
 export const resolveWindowDebugMode = function resolveWindowDebugMode(
-	input: WindowDebugModeInput
+	mode: WindowDebugModeInput
 ): WindowDebugMode {
-	const mode = input.mode ?? (input.backendURL ? 'hosted' : 'offline');
-	if (input.transport || (mode === 'custom' && input.endpointHandlers)) {
-		return 'custom';
-	}
-	if (mode === 'hosted' || mode === 'c15t') {
-		return 'hosted';
-	}
-	return 'offline';
+	return mode.kind;
 };
 
 type WindowWithC15tDebug = Window & {

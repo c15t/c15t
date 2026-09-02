@@ -1,5 +1,6 @@
 import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
+import { offline } from '../../../packages/svelte/src/lib/transports/offline';
 import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
 import { enTranslations } from '../../../packages/translations/src/index';
 
@@ -51,7 +52,7 @@ export const seedTCString = function seedTCString(tcString: string | null) {
 };
 
 export const defaultConsentOptions: ConsentManagerOptions = {
-	mode: 'offline',
+	mode: offline(),
 	translations: {
 		language: 'en',
 		translations: enTranslations,

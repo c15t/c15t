@@ -7,6 +7,9 @@ import { InlineLegalLinks } from '../components/shared/primitives/legal-links';
 import { useTheme } from '../hooks/use-theme';
 import {
 	ConsentProvider,
+	custom,
+	hosted,
+	offline,
 	useConsent,
 	useOverrides,
 	usePolicy,
@@ -81,7 +84,9 @@ const clearCookies = function clearCookies() {
 
 const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider options={{ ...options }}>{children}</ConsentProvider>
+		<ConsentProvider options={{ mode: offline(), ...options }}>
+			{children}
+		</ConsentProvider>
 	);
 	return { Wrapper };
 };
@@ -98,8 +103,7 @@ describe('v3 ConsentProvider options API', () => {
 		const { unmount } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					mode: 'c15t',
+					mode: hosted({ url: '/api/c15t' }),
 					persistence: false,
 				}}
 			>
@@ -121,9 +125,9 @@ describe('v3 ConsentProvider options API', () => {
 		});
 	});
 
-	test('reports offline mode when no backend is configured', async () => {
+	test('offline() works without a backend', async () => {
 		const { unmount } = await render(
-			<ConsentProvider options={{ persistence: false }}>
+			<ConsentProvider options={{ mode: offline(), persistence: false }}>
 				<div data-testid="child">ready</div>
 			</ConsentProvider>
 		);
@@ -138,15 +142,14 @@ describe('v3 ConsentProvider options API', () => {
 		unmount();
 	});
 
-	test('reports custom mode when endpointHandlers select the custom transport', async () => {
+	test('custom() reports custom mode for endpoint handlers', async () => {
 		const { unmount } = await render(
 			<ConsentProvider
 				options={{
-					endpointHandlers: {
+					mode: custom({
 						init: () => Promise.resolve({ data: hostedInitOutput(), ok: true }),
 						setConsent: () => Promise.resolve({ data: {}, ok: true }),
-					},
-					mode: 'custom',
+					}),
 					persistence: false,
 				}}
 			>
@@ -162,6 +165,19 @@ describe('v3 ConsentProvider options API', () => {
 		});
 
 		unmount();
+	});
+
+	test('throws when mode is missing', async () => {
+		await expect(
+			render(
+				<ConsentProvider
+					// @ts-expect-error Verify the runtime guard for untyped callers.
+					options={{ persistence: false }}
+				>
+					<div>missing mode</div>
+				</ConsentProvider>
+			)
+		).rejects.toThrow('Use hosted(), offline(), or custom().');
 	});
 
 	test('keeps one kernel instance across provider rerenders', async () => {
@@ -185,6 +201,7 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
 				options={{
+					mode: offline(),
 					persistence: false,
 					prefetch: { initialConsents: { marketing: false } },
 				}}
@@ -201,6 +218,7 @@ describe('v3 ConsentProvider options API', () => {
 			<ConsentProvider
 				options={{
 					components: { banner: { card: { className: 'updated' } } },
+					mode: offline(),
 					persistence: false,
 					prefetch: { initialConsents: { marketing: false } },
 				}}
@@ -221,6 +239,7 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
 				options={{
+					mode: offline(),
 					persistence: false,
 					user: { externalId: 'user-1' },
 				}}
@@ -234,6 +253,7 @@ describe('v3 ConsentProvider options API', () => {
 		rerender(
 			<ConsentProvider
 				options={{
+					mode: offline(),
 					persistence: false,
 					user: { externalId: 'user-2' },
 				}}
@@ -261,9 +281,7 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					customFetch: fetchSpy,
-					mode: 'hosted',
+					mode: hosted({ fetch: fetchSpy, url: '/api/c15t' }),
 					overrides: { country: 'US' },
 					persistence: false,
 				}}
@@ -278,9 +296,7 @@ describe('v3 ConsentProvider options API', () => {
 		rerender(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					customFetch: fetchSpy,
-					mode: 'hosted',
+					mode: hosted({ fetch: fetchSpy, url: '/api/c15t' }),
 					overrides: { country: 'DE' },
 					persistence: false,
 				}}
@@ -313,10 +329,8 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId, rerender } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					customFetch: fetchSpy,
 					enabled: false,
-					mode: 'hosted',
+					mode: hosted({ fetch: fetchSpy, url: '/api/c15t' }),
 					persistence: false,
 				}}
 			>
@@ -330,10 +344,8 @@ describe('v3 ConsentProvider options API', () => {
 		rerender(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					customFetch: fetchSpy,
 					enabled: true,
-					mode: 'hosted',
+					mode: hosted({ fetch: fetchSpy, url: '/api/c15t' }),
 					persistence: false,
 				}}
 			>
@@ -418,9 +430,8 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
 					enabled: false,
-					mode: 'hosted',
+					mode: hosted({ url: '/api/c15t' }),
 					scripts: [
 						{
 							category: 'marketing',
@@ -478,6 +489,7 @@ describe('v3 ConsentProvider options API', () => {
 							label: 'Privacy',
 						},
 					},
+					mode: offline(),
 					noStyle: true,
 					persistence: false,
 					prefetch: {
@@ -510,7 +522,7 @@ describe('v3 ConsentProvider options API', () => {
 
 	test('accepts deprecated v2-shaped options as migration fallbacks', async () => {
 		const options = {
-			mode: 'offline',
+			mode: offline(),
 			offlinePolicy: {
 				policy: {
 					consent: {
@@ -604,6 +616,7 @@ describe('v3 ConsentProvider options API', () => {
 							},
 						},
 					},
+					mode: offline(),
 					persistence: false,
 				}}
 			>
@@ -631,9 +644,7 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					customFetch: fetchSpy,
-					mode: 'hosted',
+					mode: hosted({ fetch: fetchSpy, url: '/api/c15t' }),
 					persistence: false,
 					ssrData: Promise.resolve({
 						init: {
@@ -678,9 +689,7 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
-					customFetch: vi.fn(),
-					mode: 'hosted',
+					mode: hosted({ fetch: vi.fn(), url: '/api/c15t' }),
 					persistence: false,
 					ssrData: Promise.resolve({
 						init: {
@@ -729,10 +738,11 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/custom-c15t',
-					customFetch: fetchSpy,
-					headers: { 'accept-language': 'de', 'x-test': 'yes' },
-					mode: 'c15t',
+					mode: hosted({
+						fetch: fetchSpy,
+						headers: { 'accept-language': 'de', 'x-test': 'yes' },
+						url: '/custom-c15t',
+					}),
 					persistence: false,
 					retryConfig: { maxRetries: 2 },
 				}}
@@ -780,14 +790,13 @@ describe('v3 ConsentProvider options API', () => {
 		const { getByTestId } = await render(
 			<ConsentProvider
 				options={{
-					endpointHandlers: {
+					mode: custom({
 						init: vi.fn().mockResolvedValue({
 							data: hostedInitOutput(),
 							ok: true,
 						}),
 						setConsent,
-					},
-					mode: 'custom',
+					}),
 					persistence: false,
 					user: {
 						externalId: 'user-1',
@@ -842,6 +851,7 @@ describe('v3 ConsentProvider options API', () => {
 			<ConsentProvider
 				options={{
 					callbacks,
+					mode: offline(),
 					persistence: false,
 					reloadOnConsentRevoked: false,
 				}}
@@ -864,9 +874,8 @@ describe('v3 ConsentProvider options API', () => {
 		await render(
 			<ConsentProvider
 				options={{
-					backendURL: '/api/c15t',
 					callbacks,
-					mode: 'hosted',
+					mode: hosted({ url: '/api/c15t' }),
 					persistence: false,
 				}}
 			>

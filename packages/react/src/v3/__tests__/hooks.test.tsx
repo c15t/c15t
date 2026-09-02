@@ -13,6 +13,7 @@ import { render } from 'vitest-browser-react';
 
 import {
 	ConsentProvider,
+	offline,
 	useConsent,
 	useConsents,
 	useHasConsented,
@@ -48,7 +49,9 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 
 const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider options={{ persistence: false, ...options }}>
+		<ConsentProvider
+			options={{ mode: offline(), persistence: false, ...options }}
+		>
 			{children}
 		</ConsentProvider>
 	);
@@ -397,7 +400,7 @@ describe('v3 react: network blocker lifecycle', () => {
 		try {
 			await expect(
 				render(
-					<ConsentProvider options={{ persistence: false }}>
+					<ConsentProvider options={{ mode: offline(), persistence: false }}>
 						<ThrowsAfterHook />
 					</ConsentProvider>
 				)
@@ -417,6 +420,7 @@ describe('v3 react: network blocker lifecycle', () => {
 				<StrictMode>
 					<ConsentProvider
 						options={{
+							mode: offline(),
 							networkBlocker: {
 								logBlockedRequests: false,
 								rules: [{ category: 'marketing', domain: 'example.com' }],
@@ -447,6 +451,7 @@ describe('v3 react: network blocker lifecycle', () => {
 			const { rerender } = await render(
 				<ConsentProvider
 					options={{
+						mode: offline(),
 						networkBlocker: {
 							logBlockedRequests: false,
 							rules: [{ category: 'marketing', domain: 'first.example.com' }],
@@ -471,6 +476,7 @@ describe('v3 react: network blocker lifecycle', () => {
 			await rerender(
 				<ConsentProvider
 					options={{
+						mode: offline(),
 						networkBlocker: {
 							logBlockedRequests: false,
 							rules: [{ category: 'marketing', domain: 'second.example.com' }],
@@ -500,6 +506,7 @@ describe('v3 react: network blocker lifecycle', () => {
 			await render(
 				<ConsentProvider
 					options={{
+						mode: offline(),
 						networkBlocker: {
 							enabled: false,
 							logBlockedRequests: false,

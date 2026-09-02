@@ -2,6 +2,7 @@
 
 import '@c15t/react/styles.css';
 import type { AllConsentNames } from '@c15t/core';
+import { offline } from '@c15t/react/v3';
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { ConsentDialog } from '@c15t/react/v3/consent-dialog';
 import { ConsentWidget } from '@c15t/react/v3/consent-widget';
@@ -59,7 +60,7 @@ const TestComponent = () => {
 const V3ReactFullSplitPage = () => (
 	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 		}}
 	>
 		<ConsentDraftProvider>

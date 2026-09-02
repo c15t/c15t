@@ -39,6 +39,7 @@ import type { GlobalVendorList } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
 
+import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
@@ -197,7 +198,7 @@ const buildProviderOptions = function buildProviderOptions(
 		...provided,
 		consentCategories: consentCategoriesFor(provided),
 		disableAnimation: provided.disableAnimation ?? true,
-		mode: provided.mode ?? 'offline',
+		mode: provided.mode ?? offline(),
 		persistence: opts.persistence ?? provided.persistence ?? false,
 		prefetch,
 		trapFocus: provided.trapFocus ?? false,

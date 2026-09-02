@@ -27,17 +27,19 @@ const DEFAULT_REVALIDATE_SECONDS = 1;
  *
  * @example
  * ```tsx
+ * import { ConsentProvider, hosted } from '@c15t/react/v3';
+ *
  * // Server Component (layout.tsx)
  * const initialData = fetchInitialData({
  *   backendURL: '/api/consent',
  *   debug: process.env.NODE_ENV === 'development'
  * });
  * return (
- *   <ConsentManagerProvider
- *     options={{ mode: 'hosted', backendURL: '/api/consent', ssrData: initialData }}
+ *   <ConsentProvider
+ *     options={{ mode: hosted({ url: '/api/consent' }), ssrData: initialData }}
  *   >
  *     {children}
- *   </ConsentManagerProvider>
+ *   </ConsentProvider>
  * )
  * ```
  */

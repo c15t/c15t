@@ -7,6 +7,7 @@ import {
 	ConsentDialog,
 	ConsentDraftProvider,
 	ConsentProvider,
+	offline,
 	ConsentWidget,
 	useConsentDraft,
 	useConsents,
@@ -60,7 +61,7 @@ const TestComponent = () => {
 const V3ReactFullAggregatePage = () => (
 	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 		}}
 	>
 		<ConsentDraftProvider>

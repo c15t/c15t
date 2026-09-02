@@ -4,14 +4,9 @@
 		AllConsentNames,
 		Callbacks,
 		I18nConfig,
-		OfflinePolicyConfig,
 		User,
 	} from '@c15t/core';
-	import {
-		createConsentKernel,
-		createHostedTransport,
-		createOfflineTransport,
-	} from '@c15t/core/v3';
+	import { createConsentKernel } from '@c15t/core/v3';
 	import type {
 		ConsentKernel,
 		ConsentSnapshot,
@@ -20,7 +15,6 @@
 		KernelEvent,
 		KernelOverrides,
 		KernelTranslations,
-		KernelTransport,
 		KernelUser,
 		TranslationsResponse,
 	} from '@c15t/core/v3';
@@ -34,7 +28,6 @@
 	} from '@c15t/core/v3/modules/window-debug';
 	import { createIAB } from '@c15t/iab/v3';
 	import type { IABHandle } from '@c15t/iab/v3';
-	import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
@@ -43,9 +36,12 @@
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import type {
+		ProviderTransportContext,
+		ProviderTransportFactory,
+	} from '../transports/types';
+	import type {
 		ConsentManagerOptions,
 		ProviderIABOptions,
-		ProviderMode,
 		UsePersistenceOptions,
 	} from '../types';
 	import { defaultTheme } from '../utils';
@@ -63,17 +59,26 @@
 		translations: defaultTranslationConfig.translations.en as never,
 	};
 
-	type ConsentManagerProviderProps = ConsentManagerOptions & {
-		children?: Snippet;
-		options?: ConsentManagerOptions;
+	type ProviderOptionsInput = Omit<ConsentManagerOptions, 'mode'> & {
+		mode?: ConsentManagerOptions['mode'];
 	};
+
+	type ConsentManagerProviderProps =
+		| (ConsentManagerOptions & {
+				children?: Snippet;
+				options?: ProviderOptionsInput;
+		  })
+		| (ProviderOptionsInput & {
+				children?: Snippet;
+				options: ConsentManagerOptions;
+		  });
 
 	let props: ConsentManagerProviderProps = $props();
 
 	const mergeDefinedOptions = function mergeDefinedOptions(
-		base: ConsentManagerOptions,
-		overrides: ConsentManagerOptions
-	): ConsentManagerOptions {
+		base: ProviderOptionsInput,
+		overrides: ProviderOptionsInput
+	): ProviderOptionsInput {
 		const merged = { ...base };
 		for (const [key, value] of Object.entries(overrides) as [
 			keyof ConsentManagerOptions,
@@ -90,7 +95,7 @@
 		children: _children,
 		options: nestedOptions = {},
 		...topLevelOptions
-	}: ConsentManagerProviderProps): ConsentManagerOptions {
+	}: ConsentManagerProviderProps): ProviderOptionsInput {
 		return mergeDefinedOptions(nestedOptions, topLevelOptions);
 	};
 
@@ -136,13 +141,24 @@
 	};
 
 	const getEnabled = function getEnabled(
-		providerOptions: ConsentManagerOptions
+		providerOptions: ProviderOptionsInput
 	): boolean {
 		return providerOptions.enabled ?? true;
 	};
 
+	const getProviderMode = function getProviderMode(
+		providerOptions: ProviderOptionsInput
+	): ProviderTransportFactory {
+		if (typeof providerOptions.mode !== 'function') {
+			throw new Error(
+				'c15t v3 ConsentManagerProvider: `mode` is required. Use hosted(), offline(), or custom().'
+			);
+		}
+		return providerOptions.mode;
+	};
+
 	const getStorageConfig = function getStorageConfig(
-		providerOptions: ConsentManagerOptions
+		providerOptions: ProviderOptionsInput
 	) {
 		return providerOptions.storageConfig;
 	};
@@ -165,40 +181,15 @@
 	};
 
 	const getProviderCallbacks = function getProviderCallbacks(
-		providerOptions: ConsentManagerOptions
+		providerOptions: ProviderOptionsInput
 	): Callbacks | undefined {
 		return providerOptions.callbacks;
 	};
 
-	const getProviderPolicies = function getProviderPolicies(
-		providerOptions: ConsentManagerOptions
-	) {
-		return providerOptions.policies;
-	};
-
 	const getProviderIab = function getProviderIab(
-		providerOptions: ConsentManagerOptions
+		providerOptions: ProviderOptionsInput
 	): ProviderIABOptions | undefined {
 		return providerOptions.iab;
-	};
-
-	const buildInlinePolicy = function buildInlinePolicy(
-		categories: AllConsentNames[] | undefined
-	): KernelConfig['initialPolicy'] {
-		// Match the React runtime's offline fallback (`offlineOptInBanner`), which
-		// ships compact banner/dialog UI profiles (button layout, primary actions).
-		// Without these surface hints the widget/dialog footers render every
-		// action in a single group, diverging from React's grouped layout.
-		const fallback = policyDefaults.offlineOptInBanner();
-		const inline = buildDefaultOptInPolicy(categories);
-		return {
-			...inline,
-			consent: {
-				...fallback.consent,
-				...inline.consent,
-			},
-			ui: fallback.ui,
-		};
 	};
 
 	const buildNoBannerPolicy =
@@ -212,85 +203,24 @@
 			};
 		};
 
-	const createStaticOfflineTransport = function createStaticOfflineTransport(
-		prefetch: KernelConfig,
-		translations: KernelTranslations,
-		categories: AllConsentNames[] | undefined,
-		useInlineFallback: boolean,
-		offlinePolicy: OfflinePolicyConfig | undefined
-	): KernelTransport | null {
-		const policy =
-			prefetch.initialPolicy ??
-			offlinePolicy?.policy ??
-			(useInlineFallback ? buildInlinePolicy(categories) : undefined);
-		if (!policy) {
-			return null;
-		}
-		return {
-			init(ctx) {
-				return Promise.resolve({
-					branding: prefetch.initialBranding ?? 'c15t',
-					location: {
-						countryCode: ctx.overrides.country ?? null,
-						regionCode: ctx.overrides.region ?? null,
-					},
-					policy,
-					policyDecision:
-						prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-					policySnapshotToken:
-						prefetch.initialPolicySnapshotToken ??
-						offlinePolicy?.policySnapshotToken,
-					translations:
-						prefetch.initialTranslations ??
-						(ctx.overrides.language
-							? { ...translations, language: ctx.overrides.language }
-							: translations),
-				});
-			},
-			save(payload) {
-				return Promise.resolve({ ok: true, subjectId: payload.subjectId });
-			},
-		};
-	};
-
 	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 	const createProviderKernel = function createProviderKernel(
-		providerOptions: ConsentManagerOptions
+		providerOptions: ProviderOptionsInput
 	): ConsentKernel {
 		const enabled = getEnabled(providerOptions);
-		const mode: ProviderMode =
-			providerOptions.mode ??
-			(providerOptions.backendURL ? 'hosted' : 'offline');
 		const prefetch = providerOptions.prefetch ?? {};
-		const offlinePolicy =
-			mode === 'hosted' || mode === 'c15t'
-				? undefined
-				: providerOptions.offlinePolicy;
-		const policyPacks =
-			getProviderPolicies(providerOptions) ?? offlinePolicy?.policyPacks;
+		const { offlinePolicy } = providerOptions;
 		const i18nTranslations =
 			resolveI18nTranslations(providerOptions.i18n) ?? DEFAULT_TRANSLATIONS;
 
-		const baseTransport =
-			providerOptions.transport ??
-			(mode === 'hosted' || mode === 'c15t'
-				? createHostedTransport({
-						backendURL: providerOptions.backendURL ?? '/api/c15t',
-						domain: providerOptions.domain,
-						fetch: providerOptions.customFetch,
-						headers: providerOptions.headers,
-					})
-				: (createStaticOfflineTransport(
-						prefetch,
-						i18nTranslations,
-						providerOptions.consentCategories,
-						policyPacks === undefined,
-						offlinePolicy
-					) ??
-					createOfflineTransport({
-						policyPacks,
-						translations: i18nTranslations,
-					})));
+		const transportContext: ProviderTransportContext = {
+			consentCategories: providerOptions.consentCategories,
+			offlinePolicy,
+			policies: providerOptions.policies,
+			prefetch,
+			translations: i18nTranslations,
+		};
+		const baseTransport = getProviderMode(providerOptions)(transportContext);
 
 		return createConsentKernel({
 			...prefetch,
@@ -304,11 +234,7 @@
 			initialPolicy:
 				enabled === false
 					? (prefetch.initialPolicy ?? buildNoBannerPolicy())
-					: (prefetch.initialPolicy ??
-						offlinePolicy?.policy ??
-						(policyPacks === undefined
-							? buildInlinePolicy(providerOptions.consentCategories)
-							: undefined)),
+					: (prefetch.initialPolicy ?? offlinePolicy?.policy),
 			initialPolicyDecision:
 				prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
 			initialPolicySnapshotToken:
@@ -569,7 +495,7 @@
 		const persistenceOptions = normalizePersistenceOptions();
 
 		const windowDebug = createWindowDebug({
-			mode: resolveWindowDebugMode(options),
+			mode: resolveWindowDebugMode(getProviderMode(options)),
 			pkg: '@c15t/svelte',
 		});
 		disposers.push(() => windowDebug.dispose());

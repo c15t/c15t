@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createVoidDeferredPromise } from '../../__tests__/deferred-promise';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 import type { ConsentManagerOptions } from '../../lib/types';
 
 const getDefined = <Value>(
@@ -24,7 +25,7 @@ const getDefined = <Value>(
 };
 
 const defaultOptions: ConsentManagerOptions = {
-	mode: 'offline',
+	mode: offline(),
 };
 
 describe('ConsentDialogTrigger', () => {

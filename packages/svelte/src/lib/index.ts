@@ -86,9 +86,18 @@ export {
 export type {
 	ConsentManagerOptions,
 	ProviderIABOptions,
-	ProviderMode,
 	SvelteUIOptions,
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './types';
+export { custom } from './transports/custom';
+export type { HostedModeOptions } from './transports/hosted';
+export { hosted } from './transports/hosted';
+export type { OfflineModeOptions } from './transports/offline';
+export { offline } from './transports/offline';
+export type {
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
+} from './transports/types';

@@ -10,12 +10,7 @@ import type {
 	StorageConfig,
 	User,
 } from '@c15t/core';
-import type {
-	KernelConfig,
-	KernelOverrides,
-	KernelTransport,
-	KernelUser,
-} from '@c15t/core/v3';
+import type { KernelConfig, KernelOverrides, KernelUser } from '@c15t/core/v3';
 import type { IframeBlockerOptions } from '@c15t/core/v3/modules/iframe-blocker';
 import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
 import type { PersistenceOptions } from '@c15t/core/v3/modules/persistence';
@@ -26,7 +21,7 @@ import type {
 import type { CreateIABOptions } from '@c15t/iab/v3';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 
-export type ProviderMode = 'hosted' | 'offline' | 'c15t';
+import type { ProviderTransportFactory } from './transports/types';
 
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &
@@ -52,12 +47,7 @@ export interface ConsentManagerOptions extends Pick<
 	'colorScheme' | 'disableAnimation' | 'noStyle' | 'scrollLock' | 'trapFocus'
 > {
 	enabled?: boolean;
-	mode?: ProviderMode;
-	backendURL?: string;
-	domain?: string;
-	headers?: Record<string, string>;
-	customFetch?: typeof fetch;
-	transport?: KernelTransport;
+	mode: ProviderTransportFactory;
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
@@ -75,7 +65,7 @@ export interface ConsentManagerOptions extends Pick<
 	 * Offline policy preview configuration.
 	 *
 	 * @remarks
-	 * Mirrors the React provider's `offlinePolicy` option: in `mode: 'offline'`
+	 * Mirrors the React provider's `offlinePolicy` option: with `offline()`
 	 * it lets you inject a synthetic resolved policy (`policy`,
 	 * `policyDecision`, `policySnapshotToken`) or backend-compatible
 	 * `policyPacks` without a live `/init` endpoint.
