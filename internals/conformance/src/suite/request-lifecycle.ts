@@ -3,7 +3,7 @@
  *
  * Verifies the consolidated v3 kernel/adapter rule that UI surfaces render
  * only from authoritative policy data. Provisional fallback policies may exist
- * in the store, but they must not produce banner DOM until init completes.
+ * in the store, but they must not produce banner DOM until init succeeds.
  */
 
 import type { TestDriver } from '../driver';
@@ -88,15 +88,15 @@ export const runRequestLifecycleConformance =
 				}
 			);
 
-			conformanceTest(api, 'failed init falls back to defaults', async () => {
+			conformanceTest(api, 'failed init withholds the banner', async () => {
 				const mounted = await driver.mount({
 					component: 'consent-banner',
 					initMode: 'failing',
 				});
 				try {
-					api.expect(hasBanner(mounted.root)).toBe(true);
-					const state = driver.getStore().getState();
-					api.expect(state.model).toBe('opt-in');
+					// Fail closed: a failed init must not promote the provisional
+					// policy into a banner. The kernel retries in the background.
+					api.expect(hasBanner(mounted.root)).toBe(false);
 				} finally {
 					await mounted.unmount();
 				}
