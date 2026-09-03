@@ -73,6 +73,10 @@ type ProviderIABOptions =
 			Partial<Pick<IABConfig, 'enabled' | 'cmpId' | 'cmpVersion' | 'vendors'>>)
 	| false;
 
+type NormalizedIABOptions = Omit<IABProviderProps, 'children' | 'cmpId'> & {
+	cmpId?: number;
+};
+
 export interface ConsentProviderOptions extends Pick<
 	ReactUIOptions,
 	| 'colorScheme'
@@ -829,26 +833,37 @@ const IABGate = ({
 	enabled: boolean;
 	initialModel?: string | null;
 	kernel: ConsentKernel;
-	options: Omit<IABProviderProps, 'children'> | null;
+	options: NormalizedIABOptions | null;
 	children: ReactNode;
 }) => {
-	const model = useSyncExternalStore(
+	const snapshot = useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
-		() => kernel.getSnapshot().model,
-		() => kernel.getServerSnapshot().model
+		() => kernel.getSnapshot(),
+		() => kernel.getServerSnapshot()
 	);
+	const { model } = snapshot;
 	const shouldLoadIAB =
 		model === 'iab' ||
 		model === null ||
 		(model === undefined && initialModel === 'iab');
+	const cmpId = options?.cmpId ?? snapshot.iab?.cmpId;
 
-	if (!enabled || !options || !shouldLoadIAB) {
+	if (!enabled || !options || !shouldLoadIAB || typeof cmpId !== 'number') {
 		return children;
 	}
+	const gvl = options.gvl === undefined ? snapshot.iab?.gvl : options.gvl;
+	const customVendors = options.customVendors ?? snapshot.iab?.customVendors;
 
 	return (
 		<Suspense fallback={children}>
-			<LazyIABProvider {...options}>{children}</LazyIABProvider>
+			<LazyIABProvider
+				{...options}
+				cmpId={cmpId}
+				customVendors={customVendors}
+				gvl={gvl}
+			>
+				{children}
+			</LazyIABProvider>
 		</Suspense>
 	);
 };
@@ -871,17 +886,12 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 
 const normalizeIabOptions = function normalizeIabOptions(
 	iab: ProviderIABOptions | undefined
-): Omit<IABProviderProps, 'children'> | null {
+): NormalizedIABOptions | null {
 	if (iab === false || !iab || iab.enabled === false) {
-		return null;
-	}
-	const { cmpId } = iab;
-	if (typeof cmpId !== 'number') {
 		return null;
 	}
 	return {
 		...iab,
-		cmpId,
 		cmpVersion:
 			typeof iab.cmpVersion === 'string'
 				? Number(iab.cmpVersion)

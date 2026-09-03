@@ -1,9 +1,11 @@
 import type { ConsentKernel, InitOutput } from '@c15t/core';
+import { iab as configureIAB } from '@c15t/iab';
 import type { ReactNode } from 'react';
 import { useContext, useEffect } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { mockGVL } from '../components/iab/__tests__/fixtures/mock-consent-state';
 import { InlineLegalLinks } from '../components/shared/primitives/legal-links';
 import { KernelContext } from '../context';
 import { useTheme } from '../hooks/use-theme';
@@ -56,6 +58,7 @@ type WindowWithC15t = Window & {
 		mode: string;
 	};
 	c15tKernel?: ConsentKernel;
+	__tcfapi?: unknown;
 };
 
 const hostedInitOutput = function hostedInitOutput(
@@ -97,6 +100,7 @@ const withProvider = function withProvider(options = {}) {
 beforeEach(() => {
 	delete (window as WindowWithC15t).c15t;
 	delete (window as WindowWithC15t).c15tKernel;
+	delete (window as WindowWithC15t).__tcfapi;
 	localStorage.clear();
 	clearCookies();
 	vi.restoreAllMocks();
@@ -146,6 +150,49 @@ describe('v3 ConsentProvider options API', () => {
 				mode: 'offline',
 				pkg: '@c15t/react',
 			});
+		});
+
+		unmount();
+	});
+
+	test('mounts IAB with the CMP ID returned by hosted init', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					...hostedInitOutput({
+						id: 'iab',
+						model: 'iab',
+						ui: { mode: 'banner' },
+					}),
+					cmpId: 160,
+					gvl: mockGVL,
+				}),
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
+			)
+		);
+
+		const Probe = () => {
+			const snapshot = useSnapshot();
+			return (
+				<div data-testid="iab-cmp-id">{snapshot.iab?.cmpId ?? 'none'}</div>
+			);
+		};
+
+		const { getByTestId, unmount } = await render(
+			<ConsentProvider
+				options={{
+					iab: configureIAB({ vendors: [755] }),
+					mode: hosted({ fetch: fetchSpy, url: '/api/c15t' }),
+					persistence: false,
+				}}
+			>
+				<Probe />
+			</ConsentProvider>
+		);
+
+		await expect.element(getByTestId('iab-cmp-id')).toHaveTextContent('160');
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).__tcfapi).toEqual(expect.any(Function));
 		});
 
 		unmount();

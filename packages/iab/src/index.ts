@@ -74,7 +74,13 @@ export interface CreateIABOptions {
  * The framework provider supplies the consent kernel when it mounts the
  * runtime module.
  */
-export type IABUserConfig = Omit<CreateIABOptions, 'kernel'>;
+export type IABUserConfig = Omit<CreateIABOptions, 'cmpId' | 'kernel'> & {
+	/**
+	 * IAB-registered CMP ID. Hosted providers can omit this when the backend
+	 * returns the ID during initialization.
+	 */
+	cmpId?: number;
+};
 
 /** Configuration returned by {@link iab} for framework providers. */
 export interface IABProviderConfig extends IABUserConfig {

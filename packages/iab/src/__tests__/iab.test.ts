@@ -70,6 +70,10 @@ describe('iab', () => {
 			enabled: true,
 			vendors: [1, 2, 755],
 		});
+		expect(createIABConfig({ vendors: [755] })).toEqual({
+			enabled: true,
+			vendors: [755],
+		});
 	});
 });
 
