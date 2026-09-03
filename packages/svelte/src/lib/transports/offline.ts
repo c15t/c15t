@@ -86,6 +86,16 @@ const createStaticOfflineTransport = function createStaticOfflineTransport(
  *
  * @param options - Offline policy resolution options.
  * @returns An offline provider transport factory.
+ * @example
+ * ```ts
+ * import { offline } from '@c15t/svelte';
+ *
+ * // Resolve the provider's `policies` locally, no backend involved.
+ * const mode = offline();
+ *
+ * // Or pin a specific set of policy packs for this provider.
+ * const previewMode = offline({ policyPacks });
+ * ```
  */
 export const offline = function offline(
 	options: OfflineModeOptions = {}

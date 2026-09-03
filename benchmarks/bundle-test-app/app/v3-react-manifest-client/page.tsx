@@ -60,6 +60,10 @@ const DEMO_SCRIPTS: Script[] = [
 	},
 ];
 
+const BANNER_DESCRIPTION =
+	'Click a button below to commit immediately, or Customize to open the ' +
+	'preference dialog.';
+
 const V3ReactManifestClientPage = () => {
 	const transport = useMemo(
 		() =>
@@ -109,7 +113,7 @@ const V3ReactManifestClientPage = () => {
 				</main>
 				<ConsentBanner
 					title="We value your privacy (v3 ConsentBanner)"
-					description="Click a button below to commit immediately, or Customize to open the preference dialog."
+					description={BANNER_DESCRIPTION}
 				/>
 				<ConsentDialog />
 				<ConsentWidget />

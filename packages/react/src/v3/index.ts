@@ -4,7 +4,12 @@
  * Unstable. API may change before v3.0 stable.
  *
  * Pattern:
- *   import { ConsentProvider, useConsent, useSaveConsents } from '@c15t/react/v3';
+ *   import {
+ *     ConsentProvider,
+ *     hosted,
+ *     useConsent,
+ *     useSaveConsents,
+ *   } from '@c15t/react/v3';
  *
  *   function App({ children }) {
  *     return (

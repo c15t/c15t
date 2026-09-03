@@ -113,7 +113,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect(dispose).toHaveBeenCalledOnce();
 	});
 
-	test('hosted() reports hosted mode and calls the configured init URL', async () => {
+	test('hosted() reports hosted mode and calls the init URL', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
 				mode: hosted({ url: '/api/c15t' }),
