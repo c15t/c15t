@@ -15,8 +15,10 @@ export const captureDomSnapshot = function captureDomSnapshot(
 	return page.locator(selector).evaluate((target) => {
 		const SVELTE = /\bsvelte-[a-z0-9]+\b/gu;
 		const S_SCOPED = /\bs-[a-z0-9]{6,}\b/gu;
-		const CSS_MODULE = /^_(?<name>[^_]+)_[^_]+_\d+$/u;
-		const SVELTE_CSS_MODULE = /^c15t-ui-(?<name>.+)-[A-Za-z0-9]+$/u;
+		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
+		const CSS_MODULE = /^_([^_]+)_[^_]+_\d+$/u;
+		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
+		const SVELTE_CSS_MODULE = /^c15t-ui-(.+)-[A-Za-z0-9]+$/u;
 		const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
 		const AUTO_ID_SUFFIX =
 			/-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/u;
@@ -44,8 +46,8 @@ export const captureDomSnapshot = function captureDomSnapshot(
 					continue;
 				}
 				const normalized =
-					token.match(CSS_MODULE)?.groups?.name ??
-					token.match(SVELTE_CSS_MODULE)?.groups?.name ??
+					token.match(CSS_MODULE)?.[1] ??
+					token.match(SVELTE_CSS_MODULE)?.[1] ??
 					token;
 				if (seen.has(normalized)) {
 					continue;
