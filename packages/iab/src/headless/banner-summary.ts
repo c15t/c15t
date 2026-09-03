@@ -7,9 +7,7 @@
  * @packageDocumentation
  */
 
-import type { IABManager } from '@c15t/core';
-
-import type { HeadlessIABBannerState } from './types';
+import type { HeadlessIABBannerState, HeadlessIABStateInput } from './types';
 
 const MAX_BANNER_DISPLAY_ITEMS = 5;
 const STANDALONE_PURPOSE_ID = 1;
@@ -21,7 +19,7 @@ const STANDALONE_PURPOSE_ID = 1;
  * wraps this in its own reactive primitive (useMemo, $derived, computed, etc.).
  */
 export const resolveIABBannerSummary = function resolveIABBannerSummary(
-	iab: IABManager | null
+	iab: HeadlessIABStateInput | null
 ): HeadlessIABBannerState {
 	if (!iab?.gvl) {
 		return {
@@ -33,8 +31,8 @@ export const resolveIABBannerSummary = function resolveIABBannerSummary(
 	}
 
 	const { gvl } = iab;
-	const vendorCount =
-		Object.keys(gvl.vendors).length + (iab.nonIABVendors?.length ?? 0);
+	const customVendors = iab.nonIABVendors ?? iab.customVendors ?? [];
+	const vendorCount = Object.keys(gvl.vendors).length + customVendors.length;
 
 	const purposesWithVendors = Object.entries(gvl.purposes)
 		.filter(([id]) =>

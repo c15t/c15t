@@ -23,12 +23,6 @@ const devPages = [
 		href: '/policy-actions',
 		title: 'Policy actions',
 	},
-	{
-		description:
-			'Legal document consent flow: identify a user and record acceptance of a terms release (requires DATABASE_URL).',
-		href: '/terms',
-		title: 'Terms acceptance',
-	},
 ];
 
 const DevIndexPage = () => (

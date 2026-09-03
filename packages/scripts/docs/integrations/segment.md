@@ -12,22 +12,21 @@ Segment lets you collect analytics events in one place and forward them to downs
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { hosted, ConsentProvider } from 'c15t/react';
 import { segment } from '@c15t/scripts/segment';
 
 const scripts = [segment({ writeKey: 'abc123xyz456' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -38,22 +37,21 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { segment } from '@c15t/scripts/segment';
 
 const scripts = [segment({ writeKey: 'abc123xyz456' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -61,14 +59,20 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createScriptLoader } from 'c15t/modules/script-loader';
 import { segment } from '@c15t/scripts/segment';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  scripts: [segment({ writeKey: 'abc123xyz456' })],
+const kernel = createConsentKernel({
+transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
 });
+
+createScriptLoader({
+kernel,
+scripts: [segment({ writeKey: 'abc123xyz456' })],
+});
+
+void kernel.commands.init();
 ```
 
 ## How c15t loads it
@@ -116,11 +120,11 @@ function SignupExample() {
 From plain JavaScript:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { has } from 'c15t';
+import { kernel } from './consent';
 
-const { consentStore } = getOrCreateConsentRuntime();
 
-if (consentStore.getState().has('measurement')) {
+if (has('measurement', kernel.getSnapshot().consents)) {
   window.analytics?.track('Signup Completed', { plan: 'pro' });
 }
 ```

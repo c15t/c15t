@@ -8,16 +8,23 @@ group: frameworks
 
 ## Configuration
 
-Add `networkBlocker` to your runtime options:
+Create the blocker after initializing the kernel:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createNetworkBlocker } from 'c15t/modules/network-blocker';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  networkBlocker: {
-    rules: [
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
+});
+
+await kernel.commands.init();
+
+const networkBlocker = createNetworkBlocker({
+  kernel,
+  rules: [
       {
         id: 'google-analytics',
         domain: 'google-analytics.com',
@@ -35,8 +42,7 @@ const { consentStore } = getOrCreateConsentRuntime({
         methods: ['POST'],
         category: 'measurement',
       },
-    ],
-  },
+  ],
 });
 ```
 
@@ -47,17 +53,16 @@ const { consentStore } = getOrCreateConsentRuntime({
 Update the network blocker configuration at runtime:
 
 ```ts
-const state = consentStore.getState();
-
-state.setNetworkBlocker({
-  rules: [
+networkBlocker.updateRules([
     {
       id: 'new-tracker',
       domain: 'tracker.example.com',
       category: 'marketing',
     },
-  ],
-});
+]);
+
+// Restore fetch and XMLHttpRequest during teardown
+networkBlocker.dispose();
 ```
 
 <import src="../../shared/react/guides/network-blocker.mdx#api-reference" />

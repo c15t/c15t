@@ -3,15 +3,16 @@
  * Provides the overlay backdrop component for the ConsentBanner.
  */
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import styles from '@c15t/ui/styles/components/consent-banner';
 import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { HTMLAttributes } from 'react';
 
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useActiveUI } from '~/hooks';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 /**
  * Props for the Overlay component.
@@ -53,12 +54,13 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
  */
 const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, asChild: _asChild, ...props }, ref) => {
-		const { activeUI } = useConsentManager();
+		const activeUI = useActiveUI();
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,
 			scrollLock,
 		} = useTheme();
+		const { components } = useUIConfig();
 
 		const showBanner = activeUI === 'banner';
 		const [isVisible, setIsVisible] = useState(false);
@@ -68,10 +70,13 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			if (showBanner) {
 				const frame = requestAnimationFrame(() => setIsVisible(true));
 				return () => cancelAnimationFrame(frame);
-			} else if (disableAnimation) {
+			}
+
+			if (disableAnimation) {
 				const frame = requestAnimationFrame(() => setIsVisible(false));
 				return () => cancelAnimationFrame(frame);
 			}
+
 			const animationDurationMs = Number.parseInt(
 				getComputedStyle(document.documentElement).getPropertyValue(
 					'--consent-banner-animation-duration'
@@ -85,12 +90,13 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			return () => clearTimeout(timer);
 		}, [showBanner, disableAnimation]);
 
-		// Apply theme styles
-		const theme = useStyles('consentBannerOverlay', {
-			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+		const theme = mergeSlotProps(components?.banner?.overlay, {
+			baseClassName: styles.overlay,
 			// Always pass custom className
 			className,
 			noStyle: contextNoStyle || noStyle,
+			style,
+			...props,
 		});
 
 		// Animations are handled with CSS classes
@@ -112,9 +118,8 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		return showBanner && scrollLock ? (
 			<div
 				ref={ref}
-				{...props}
+				{...theme}
 				className={finalClassName}
-				style={{ ...theme.style, ...style }}
 				data-testid="consent-banner-overlay"
 			/>
 		) : null;

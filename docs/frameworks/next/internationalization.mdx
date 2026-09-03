@@ -12,14 +12,13 @@ Pass custom translations via the `i18n` option:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         i18n: {
           locale: 'en',
           messages: {
@@ -40,7 +39,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -94,5 +93,3 @@ function LanguageSwitcher() {
 `setLanguage()` re-fetches the consent banner to get server-resolved translations for the new language.
 
 <import src="../../shared/react/guides/internationalization.mdx#auto-detection" />
-
-<import src="../../shared/react/guides/internationalization.mdx#legacy-compat" />

@@ -115,26 +115,26 @@
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
-		"./styles/v3/*.css": "./dist/styles/v3/*.css",
-		"./styles/v3/*": {
-			"types": "./dist/styles/v3/*.d.ts",
-			"style": "./dist/styles/v3/*.css",
-			"import": "./dist/styles/v3/*.js",
-			"default": "./dist/styles/v3/*.js"
+		"./styles/components/*.css": "./dist/styles/components/*.css",
+		"./styles/components/*": {
+			"types": "./dist/styles/components/*.d.ts",
+			"style": "./dist/styles/components/*.css",
+			"import": "./dist/styles/components/*.js",
+			"default": "./dist/styles/components/*.js"
 		},
-		"./styles/v3/*.module.css": {
-			"types": "./dist/styles/v3/*.d.ts",
-			"style": "./dist/styles/v3/*.css",
-			"import": "./dist/styles/v3/*.js",
-			"default": "./dist/styles/v3/*.js"
+		"./styles/components/*.module.css": {
+			"types": "./dist/styles/components/*.d.ts",
+			"style": "./dist/styles/components/*.css",
+			"import": "./dist/styles/components/*.js",
+			"default": "./dist/styles/components/*.js"
 		}
 	},
 	"publishConfig": {
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && tcm src/styles/components -p \"*.module.css\" -o types/styles/components --camelCase && bun scripts/generate-style-artifacts.ts && bun scripts/generate-css-entrypoints.ts",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && tcm src/styles/components -p \"*.module.css\" -o types/styles/components --camelCase && bun scripts/generate-style-artifacts.ts && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
 		"test": "vitest run"

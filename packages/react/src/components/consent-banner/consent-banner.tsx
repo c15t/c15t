@@ -6,19 +6,20 @@ import type * as C15tCoreTypes from '@c15t/core';
  * Provides the main consent banner component for privacy consent management.
  * Implements an accessible, customizable banner following GDPR requirements.
  */
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import styles from '@c15t/ui/styles/components/consent-banner';
 import { shouldFillPolicyActions } from '@c15t/ui/utils';
 import type { PolicyUiAction, PolicyUiActionDirection } from '@c15t/ui/utils';
 import { Fragment } from 'react';
 import type { FC, ReactNode } from 'react';
 
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
+import { useTranslations } from '~/component-hooks/use-translations';
+import { Box } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';
+import { usePolicyBanner } from '~/hooks';
 import { useComponentConfig } from '~/hooks/use-component-config';
-import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
-import { useTranslations } from '~/hooks/use-translations';
-import { cnExt as cn } from '~/utils/cn';
 
 import { ConsentBannerRoot } from './atoms/root';
 import {
@@ -147,7 +148,7 @@ export interface ConsentBannerProps {
 	 * ```
 	 *
 	 * @remarks
-	 * You must set the legal links in the ConsentManagerProvider options.
+	 * You must set the legal links in the ConsentProvider options.
 	 */
 	legalLinks?: InlineLegalLinksProps['links'];
 
@@ -212,9 +213,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 	const { banner } = useHeadlessConsentUI();
-	const { policyBanner } = useConsentManager();
+	const policyBanner = usePolicyBanner();
 	const resolvedScrollLock =
-		localScrollLock ?? policyBanner.scrollLock ?? false;
+		localScrollLock ?? policyBanner?.scrollLock ?? false;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -266,6 +267,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						consentAction="reject"
 						isPrimary={isPrimary}
 						className={className}
+						data-action="reject"
 						data-testid="consent-banner-reject-button"
 					>
 						{rejectButtonText}
@@ -277,6 +279,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						consentAction="accept"
 						isPrimary={isPrimary}
 						className={className}
+						data-action="accept"
 						data-testid="consent-banner-accept-button"
 					>
 						{acceptButtonText}
@@ -288,6 +291,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						consentAction="customize"
 						isPrimary={isPrimary}
 						className={className}
+						data-action="customize"
 						data-testid="consent-banner-customize-button"
 					>
 						{customizeButtonText}
@@ -309,11 +313,14 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				models={models}
 				uiSource={uiSource}
 			>
-				<div className={styles.cardShell}>
+				<Box
+					baseClassName={styles.cardShell}
+					slotKey="banner.cardShell"
+				>
 					<BrandingLink
 						hideBranding={hideBranding}
 						variant="banner-tag"
-						themeKey="consentBannerTag"
+						slotContext="banner"
 						data-testid="consent-banner-branding"
 					/>
 					<ConsentBannerCard aria-label={consentBanner.title}>
@@ -324,10 +331,14 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 							</ConsentBannerDescription>
 						</ConsentBannerHeader>
 						<ConsentBannerFooter
-							className={cn(
-								shouldFillActions && styles.footerFill,
-								resolvedDirection === 'column' && styles.footerColumn
-							)}
+							className={actionStyles.actionRoot}
+							data-direction={resolvedDirection}
+							data-fill={shouldFillActions ? true : undefined}
+							data-split={
+								resolvedLayout.length > 1 && !shouldFillActions
+									? true
+									: undefined
+							}
 						>
 							{resolvedLayout.map((item, index) => {
 								if (Array.isArray(item)) {
@@ -341,20 +352,13 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 									return (
 										<ConsentBannerFooterSubGroup
 											key={groupKey ? `group-${groupKey}` : `group-${index}`}
-											className={cn(
-												shouldFillActions && styles.footerSubGroupFill,
-												resolvedDirection === 'column' &&
-													styles.footerSubGroupColumn
-											)}
+											className={actionStyles.actionGroup}
+											data-direction={resolvedDirection}
+											data-fill={shouldFillActions ? true : undefined}
 										>
 											{filteredItems.map((subItem) => (
 												<Fragment key={subItem}>
-													{renderButton(
-														subItem,
-														shouldFillActions
-															? styles.actionButtonFill
-															: undefined
-													)}
+													{renderButton(subItem)}
 												</Fragment>
 											))}
 										</ConsentBannerFooterSubGroup>
@@ -363,18 +367,11 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 								if (!allowedActions.has(item)) {
 									return null;
 								}
-								return (
-									<Fragment key={item}>
-										{renderButton(
-											item,
-											shouldFillActions ? styles.actionButtonFill : undefined
-										)}
-									</Fragment>
-								);
+								return <Fragment key={item}>{renderButton(item)}</Fragment>;
 							})}
 						</ConsentBannerFooter>
 					</ConsentBannerCard>
-				</div>
+				</Box>
 			</ConsentBannerRoot>
 		</ErrorBoundary>
 	);

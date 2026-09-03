@@ -1,13 +1,15 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
+import { useHeadlessIABConsentUI } from '~/component-hooks/use-headless-iab-consent-ui';
 import * as Button from '~/components/shared/ui/button';
-import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
-import { useStyles } from '~/hooks/use-styles';
+import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
@@ -29,6 +31,8 @@ const IABConsentDialogFooter = createForwardRef<
 	IABConsentDialogFooterProps
 >(({ children, className, ...props }, ref) => {
 	const { performDialogAction } = useHeadlessIABConsentUI();
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const iabTranslations = useIABTranslations();
 	const { isLoading } = useGVLData();
 
@@ -44,29 +48,33 @@ const IABConsentDialogFooter = createForwardRef<
 		void performDialogAction('customize');
 	};
 
-	const themedStyle = useStyles('iabConsentDialogFooter', {
-		baseClassName: styles.footer,
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.footer, {
+		baseClassName: [styles.footer, actionStyles.actionRoot],
 		className,
+		noStyle,
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...domStyleProps}
-			{...props}
+			{...themedStyle}
 		>
 			{children ? (
 				children
 			) : (
 				<>
-					<div className={styles.footerButtons}>
+					<div
+						className={actionStyles.actionGroup}
+						data-direction="row"
+					>
 						<Button.Root
 							variant="neutral"
 							mode="stroke"
 							size="small"
 							onClick={handleRejectAll}
 							disabled={isLoading}
+							data-action="reject"
 						>
 							{iabTranslations.common.rejectAll}
 						</Button.Root>
@@ -76,17 +84,18 @@ const IABConsentDialogFooter = createForwardRef<
 							size="small"
 							onClick={handleAcceptAll}
 							disabled={isLoading}
+							data-action="accept"
 						>
 							{iabTranslations.common.acceptAll}
 						</Button.Root>
 					</div>
-					<div className={styles.footerSpacer} />
 					<Button.Root
 						variant="primary"
 						mode="filled"
 						size="small"
 						onClick={handleSave}
 						disabled={isLoading}
+						data-action="customize"
 					>
 						{iabTranslations.common.saveSettings}
 					</Button.Root>

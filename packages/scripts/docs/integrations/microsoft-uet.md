@@ -25,22 +25,21 @@ effectiveness, and enables remarketing campaigns.
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { hosted, ConsentProvider } from 'c15t/react';
 import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
 const scripts = [microsoftUet({ id: '123456789012345' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -51,22 +50,21 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
 const scripts = [microsoftUet({ id: '123456789012345' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -74,14 +72,20 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createScriptLoader } from 'c15t/modules/script-loader';
 import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  scripts: [microsoftUet({ id: '123456789012345' })],
+const kernel = createConsentKernel({
+transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
 });
+
+createScriptLoader({
+kernel,
+scripts: [microsoftUet({ id: '123456789012345' })],
+});
+
+void kernel.commands.init();
 ```
 
 ## How c15t loads it

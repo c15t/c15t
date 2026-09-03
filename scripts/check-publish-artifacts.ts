@@ -100,8 +100,8 @@ const styleEntrypointPackages = new Set([
 ]);
 
 const rootTw3ProxyContents: Record<string, string> = {
-	'iab/styles.tw3.css': '@import "../dist/iab/styles.tw3.css";',
-	'styles.tw3.css': '@import "./dist/styles.tw3.css";',
+	'iab/styles.tw3.css': "@import '../dist/iab/styles.tw3.css';",
+	'styles.tw3.css': "@import './dist/styles.tw3.css';",
 };
 
 const scanPackedManifestTargets = function scanPackedManifestTargets(
@@ -182,7 +182,7 @@ export const getBlockedReason = function getBlockedReason(
 		if (path.endsWith('.d.ts')) {
 			if (
 				packageName === '@c15t/ui' &&
-				/^dist\/styles\/v3\/[^/]+\.d\.ts$/u.test(path)
+				/^dist\/styles\/components\/[^/]+\.d\.ts$/u.test(path)
 			) {
 				return null;
 			}
@@ -284,7 +284,7 @@ const scanStyleEntrypointsContent = function scanStyleEntrypointsContent(
 	return issues;
 };
 
-const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
+const scanUiComponentStyleArtifacts = function scanUiComponentStyleArtifacts(
 	packageDir: string,
 	packageName: string,
 	packedFilePaths: Set<string>
@@ -293,7 +293,7 @@ const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
 		return [];
 	}
 
-	const sourceDir = join(packageDir, 'src/styles/v3');
+	const sourceDir = join(packageDir, 'src/styles/components');
 	const styleNames = readdirSync(sourceDir)
 		.filter((file) => file.endsWith('.module.css'))
 		.map((file) => file.replace('.module.css', ''))
@@ -302,33 +302,33 @@ const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
 
 	for (const name of styleNames) {
 		for (const extension of ['css', 'js', 'd.ts']) {
-			const path = `dist/styles/v3/${name}.${extension}`;
+			const path = `dist/styles/components/${name}.${extension}`;
 			if (!packedFilePaths.has(path)) {
 				issues.push({
 					path,
-					reason: 'required v3 style artifact missing',
+					reason: 'required component style artifact missing',
 					size: 0,
 				});
 			}
 		}
 
 		for (const stalePath of [
-			`dist/styles/v3/${name}_module.css`,
-			`dist/styles/v3/${name}.module.css`,
-			`dist/styles/v3/${name}.module.js`,
-			`dist/styles/v3/${name}.module.cjs`,
-			`dist/styles/v3/${name}.cjs`,
+			`dist/styles/components/${name}_module.css`,
+			`dist/styles/components/${name}.module.css`,
+			`dist/styles/components/${name}.module.js`,
+			`dist/styles/components/${name}.module.cjs`,
+			`dist/styles/components/${name}.cjs`,
 		]) {
 			if (packedFilePaths.has(stalePath)) {
 				issues.push({
 					path: stalePath,
-					reason: 'stale v3 rslib artifact must not be published',
+					reason: 'stale rslib CSS Module artifact must not be published',
 					size: 0,
 				});
 			}
 		}
 
-		const cssPath = `dist/styles/v3/${name}.css`;
+		const cssPath = `dist/styles/components/${name}.css`;
 		if (packedFilePaths.has(cssPath)) {
 			const filePath = join(packageDir, cssPath);
 			const content = existsSync(filePath)
@@ -337,20 +337,20 @@ const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
 			if (/^\s*@import\s+["']\.\/animations\//mu.test(content)) {
 				issues.push({
 					path: cssPath,
-					reason: 'v3 CSS must inline local animation imports',
+					reason: 'component CSS must inline local animation imports',
 					size: content.length,
 				});
 			}
 			if (!content.includes('c15t-ui-')) {
 				issues.push({
 					path: cssPath,
-					reason: 'v3 CSS must contain generated c15t UI class names',
+					reason: 'component CSS must contain generated c15t UI class names',
 					size: content.length,
 				});
 			}
 		}
 
-		const jsPath = `dist/styles/v3/${name}.js`;
+		const jsPath = `dist/styles/components/${name}.js`;
 		if (packedFilePaths.has(jsPath)) {
 			const filePath = join(packageDir, jsPath);
 			const content = existsSync(filePath)
@@ -359,13 +359,13 @@ const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
 			if (!content.includes(`./${name}.css`)) {
 				issues.push({
 					path: jsPath,
-					reason: 'v3 ESM class map must import its CSS side effect',
+					reason: 'component ESM class map must import its CSS side effect',
 					size: content.length,
 				});
 			}
 		}
 
-		const declarationPath = `dist/styles/v3/${name}.d.ts`;
+		const declarationPath = `dist/styles/components/${name}.d.ts`;
 		if (packedFilePaths.has(declarationPath)) {
 			const filePath = join(packageDir, declarationPath);
 			const content = existsSync(filePath)
@@ -375,7 +375,7 @@ const scanUiV3StyleArtifacts = function scanUiV3StyleArtifacts(
 				issues.push({
 					path: declarationPath,
 					reason:
-						'v3 style declaration must describe the default class map export',
+						'component style declaration must describe the default class map export',
 					size: content.length,
 				});
 			}
@@ -434,7 +434,7 @@ const main = function main(): void {
 			...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
 		);
 		blockedFiles.push(
-			...scanUiV3StyleArtifacts(packageDir, packed.name, packedFilePaths)
+			...scanUiComponentStyleArtifacts(packageDir, packed.name, packedFilePaths)
 		);
 
 		if (blockedFiles.length > 0) {

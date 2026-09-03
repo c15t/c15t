@@ -7,10 +7,10 @@ const projectDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = resolve(projectDir, '../..');
 
 /**
- * CSS experiment toggle (see app/react-v3-banner-css):
+ * CSS experiment toggle (see app/banner-css):
  * - default build: `bench-css-entry` -> the @c15t/ui monolith stylesheet
  * - C15T_CSS=styles build: `bench-css-entry` -> empty; the consent-banner
- *   style-map is aliased to the @c15t/ui/styles/v3 CSS Modules shim.
+ *   style-map is aliased to the @c15t/ui/styles/components CSS Modules shim.
  * Aliases are defined for webpack AND turbopack so the experiment is
  * bundler-agnostic. JS is byte-identical between builds apart from these
  * two module resolutions.
@@ -37,7 +37,7 @@ const turbopackResolveAlias: Record<string, string> = {
 	'bench-css-entry': cssEntryRel,
 };
 if (useStylesCss) {
-	turbopackResolveAlias['@c15t/ui/styles/components/consent-banner.module.js'] =
+	turbopackResolveAlias['@c15t/ui/styles/components/consent-banner'] =
 		bannerShimRel;
 }
 
@@ -54,7 +54,7 @@ const config: NextConfig = {
 			'bench-css-entry$': cssEntryAbs,
 		};
 		if (useStylesCss) {
-			resolveAlias['@c15t/ui/styles/components/consent-banner.module.js$'] =
+			resolveAlias['@c15t/ui/styles/components/consent-banner$'] =
 				bannerShimAbs;
 		}
 		webpackConfig.resolve.alias = resolveAlias;

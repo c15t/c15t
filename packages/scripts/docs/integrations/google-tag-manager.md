@@ -22,22 +22,21 @@ Use your GTM container ID, which begins with `GTM-`.
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { hosted, ConsentProvider } from 'c15t/react';
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
 const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -48,22 +47,21 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
 const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -71,14 +69,20 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createScriptLoader } from 'c15t/modules/script-loader';
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  scripts: [googleTagManager({ id: 'GTM-XXXXXXX' })],
+const kernel = createConsentKernel({
+transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
 });
+
+createScriptLoader({
+kernel,
+scripts: [googleTagManager({ id: 'GTM-XXXXXXX' })],
+});
+
+void kernel.commands.init();
 ```
 
 ## How c15t loads it

@@ -13,15 +13,14 @@ Pair it with `IABConsentBanner` inside the provider:
 ```tsx
 import { type ReactNode } from 'react';
 import { iab } from '@c15t/iab';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         iab: iab({
           vendors: [1, 2, 10, 25],
           // cmpId is automatically provided by the backend when using Inth.
@@ -33,7 +32,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       <IABConsentBanner />
       <IABConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

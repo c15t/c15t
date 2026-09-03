@@ -8,13 +8,15 @@
  *
  * @example
  * ```tsx
- * import { iab } from '@c15t/iab';
+ * import { ConsentProvider, hosted } from '@c15t/react';
  * import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
  *
- * <ConsentManagerProvider options={{ mode: 'hosted', iab: iab({ cmpId: 28 }) }}>
+ * <ConsentProvider
+ *   options={{ mode: hosted({ url: '/api/c15t' }), iab: { cmpId: 28 } }}
+ * >
  *   <IABConsentBanner />
  *   <IABConsentDialog />
- * </ConsentManagerProvider>
+ * </ConsentProvider>
  * ```
  *
  * @packageDocumentation

@@ -6,8 +6,10 @@
  * production `c15t` script loader and runs the probe checks defined in
  * `../vendors`.
  */
-import { loadScripts } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
 import type { ConsentState } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import type { ScriptLoaderHandle } from '@c15t/core/modules/script-loader';
 
 import type {
 	LiveProbeCheckResult,
@@ -59,6 +61,12 @@ const runCheck = function runCheck(
  * merely still existing.
  */
 const capturedStubRefs = new Map<string, Map<string, unknown>>();
+
+/**
+ * Loader handles per vendor. Each probe gets its own kernel seeded with the
+ * requested consent state so the loader reconciles exactly once, on mount.
+ */
+const loaders = new Map<string, ScriptLoaderHandle>();
 
 const windowRecord = function windowRecord(): Record<string, unknown> {
 	return window as unknown as Record<string, unknown>;
@@ -165,8 +173,11 @@ const harness: LiveVendorProbeHarness = {
 			if (granted) {
 				consents = grantedConsents;
 			}
-			const loadedIds = loadScripts([script], consents);
-			const requested = loadedIds.includes(script.id);
+			loaders.get(vendor)?.dispose();
+			const kernel = createConsentKernel({ initialConsents: consents });
+			const loader = createScriptLoader({ kernel, scripts: [script] });
+			loaders.set(vendor, loader);
+			const requested = loader.getLoadedScriptIds().includes(script.id);
 
 			// Snapshot stub identities so the runtime phase can prove the real
 			// SDK replaced them (a stub passing `typeof x === 'function'` is not

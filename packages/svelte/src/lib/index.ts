@@ -1,19 +1,18 @@
+export {
+	custom,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	hosted,
+	mergeTranslationConfigs,
+	policyPackPresets,
+	prepareTranslationConfig,
+} from '@c15t/core';
 export type {
 	AllConsentNames,
 	ConsentType,
 	I18nConfig,
 	LegalLinks,
 	Translations,
-} from '@c15t/core';
-export {
-	configureConsentManager,
-	defaultTranslationConfig,
-	detectBrowserLanguage,
-	mergeTranslationConfigs,
-	policyPackPresets,
-	prepareTranslationConfig,
-} from '@c15t/core';
-export type {
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
@@ -42,7 +41,7 @@ export type {
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,
-} from '@c15t/core/v3';
+} from '@c15t/core';
 export * from '@c15t/ui/primitives';
 export * from '@c15t/ui/styles/primitives';
 export type {
@@ -95,6 +94,5 @@ export type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './types';
-export { custom, hosted } from '@c15t/core/v3';
 export type { OfflineModeOptions } from './transports/offline';
 export { offline } from './transports/offline';

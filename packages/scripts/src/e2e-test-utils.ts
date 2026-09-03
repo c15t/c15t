@@ -1,10 +1,13 @@
+import { createConsentKernel } from '@c15t/core';
+import type {
+	ConsentKernel,
+	ConsentState,
+	Script,
+	ScriptUpdateResult,
+} from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import type { ScriptLoaderHandle } from '@c15t/core/modules/script-loader';
 import { afterEach, vi } from 'vitest';
-
-import {
-	clearAllScripts,
-	loadScripts,
-	updateScripts,
-} from '../../core/src/libs/script-loader';
 
 export interface GoogleTagDataState {
 	ics: {
@@ -166,7 +169,83 @@ export type TestWindow = Window &
 		vaq?: unknown[][];
 	};
 
-export { loadScripts, updateScripts };
+/**
+ * Imperative shim over the v3 script loader for vendor contract tests.
+ *
+ * The loader is bound to a kernel whose subscription is muted, so the DOM is
+ * only reconciled on these explicit calls. That mirrors the v2 loader these
+ * tests were written against: `loadScripts(scripts, consents)` mounts every
+ * eligible script (firing `onConsentChange` for ones already mounted) and
+ * `updateScripts` additionally reports what was unmounted.
+ */
+let kernel: ConsentKernel = createConsentKernel();
+let loader: ScriptLoaderHandle | null = null;
+
+const muteSubscription = function muteSubscription(
+	source: ConsentKernel
+): ConsentKernel {
+	return {
+		...source,
+		subscribe: () => () => {
+			/* reconciliation happens on explicit calls only */
+		},
+	};
+};
+
+const reconcileScripts = function reconcileScripts(
+	scripts: Script[],
+	consents: ConsentState
+): ScriptUpdateResult {
+	const before = loader ? loader.getLoadedScriptIds() : [];
+	kernel.set.consent(consents);
+
+	if (loader) {
+		loader.updateScripts(scripts);
+	} else {
+		loader = createScriptLoader({
+			kernel: muteSubscription(kernel),
+			scripts,
+		});
+	}
+
+	const after = loader.getLoadedScriptIds();
+	return {
+		loaded: after.filter((id) => !before.includes(id)),
+		unloaded: before.filter((id) => !after.includes(id)),
+	};
+};
+
+/**
+ * Loads every script that passes its consent gate and returns the IDs that
+ * were newly mounted by this call.
+ */
+export const loadScripts = function loadScripts(
+	scripts: Script[],
+	consents: ConsentState
+): string[] {
+	return reconcileScripts(scripts, consents).loaded;
+};
+
+/**
+ * Reconciles the given scripts against `consents`, mounting newly eligible
+ * scripts and unmounting ones that lost consent.
+ */
+export const updateScripts = function updateScripts(
+	scripts: Script[],
+	consents: ConsentState
+): ScriptUpdateResult {
+	return reconcileScripts(scripts, consents);
+};
+
+/**
+ * Removes every script mounted through this shim and starts a fresh kernel.
+ */
+export const clearAllScripts = function clearAllScripts(): void {
+	loader?.dispose();
+	loader = null;
+	kernel.dispose();
+	kernel = createConsentKernel();
+};
 
 export const deniedConsents = {
 	experience: false,

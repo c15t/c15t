@@ -4,8 +4,7 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
-import type { ConsentKernel } from '@c15t/core/v3';
+import type { ConsentKernel } from '@c15t/core';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -53,7 +52,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		delete (window as WindowWithC15t).c15t;
 		vi.resetAllMocks();
-		clearConsentRuntimeCache();
 
 		mockFetch.mockResolvedValue(
 			new Response(

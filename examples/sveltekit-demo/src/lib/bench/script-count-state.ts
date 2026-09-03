@@ -1,11 +1,7 @@
-import type { Script as V2Script } from 'c15t';
-
-import type { Script as V3Script } from '../../../../../packages/core/src/v3/modules/script-loader';
-
-export type ScriptCountVersion = 'v2' | 'v3';
+import type { Script } from '../../../../../packages/core/src/modules/script-loader';
 
 export interface ScriptCountBenchState {
-	version: ScriptCountVersion;
+	version: 'current';
 	count: number;
 	actionStartedAtMs: number | null;
 	completedAtMs: number | null;
@@ -35,12 +31,6 @@ const categories = [
 	'experience',
 ] as const;
 
-export const normalizeScriptCountVersion = function normalizeScriptCountVersion(
-	value: string | null | undefined
-): ScriptCountVersion {
-	return value === 'v3' ? 'v3' : 'v2';
-};
-
 export const normalizeCount = function normalizeCount(
 	value: string | null | undefined
 ): number {
@@ -51,7 +41,7 @@ export const normalizeCount = function normalizeCount(
 	return Math.max(1, Math.min(100, Math.trunc(parsed)));
 };
 
-export const makeScripts = function makeScripts(count: number): V2Script[] {
+export const makeScripts = function makeScripts(count: number): Script[] {
 	return Array.from({ length: count }, (_, index) => {
 		const id = `script-count-${index + 1}`;
 		return {
@@ -67,12 +57,7 @@ export const makeScripts = function makeScripts(count: number): V2Script[] {
 	});
 };
 
-export const makeV3Scripts = function makeV3Scripts(count: number): V3Script[] {
-	return makeScripts(count) as V3Script[];
-};
-
 export const createInitialBenchState = function createInitialBenchState(
-	version: ScriptCountVersion,
 	count: number
 ): ScriptCountBenchState {
 	const executed = new Set<string>();
@@ -100,7 +85,7 @@ export const createInitialBenchState = function createInitialBenchState(
 			}
 		},
 		scriptEvents: {},
-		version,
+		version: 'current',
 	};
 
 	return state;

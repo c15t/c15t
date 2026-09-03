@@ -1,18 +1,20 @@
 'use client';
 
-import {
-	ConsentManagerProvider,
-	useConsentManager,
-} from '@c15t/react/headless';
+import { offline } from '@c15t/react';
+import { useConsent, useConsents, useSaveConsents } from '@c15t/react/hooks';
+import { ConsentProvider } from '@c15t/react/provider';
 
 const TestComponent = () => {
-	const { consents, has, saveConsents } = useConsentManager();
+	const consents = useConsents();
+	const hasMeasurement = useConsent('measurement');
+	const hasMarketing = useConsent('marketing');
+	const saveConsents = useSaveConsents();
 	return (
 		<div>
 			<h2>Consent Status</h2>
 			<ul>
-				<li>Measurement: {has('measurement') ? 'yes' : 'no'}</li>
-				<li>Marketing: {has('marketing') ? 'yes' : 'no'}</li>
+				<li>Measurement: {hasMeasurement ? 'yes' : 'no'}</li>
+				<li>Marketing: {hasMarketing ? 'yes' : 'no'}</li>
 			</ul>
 			<pre>{JSON.stringify(consents, null, 2)}</pre>
 			<div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
@@ -24,7 +26,7 @@ const TestComponent = () => {
 				</button>
 				<button
 					type="button"
-					onClick={() => saveConsents('necessary')}
+					onClick={() => saveConsents('none')}
 				>
 					Necessary Only
 				</button>
@@ -33,13 +35,13 @@ const TestComponent = () => {
 	);
 };
 const ReactHeadlessPage = () => (
-	<ConsentManagerProvider options={{ mode: 'offline' }}>
+	<ConsentProvider options={{ mode: offline() }}>
 		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>React Headless Benchmark</h1>
 			<p>This route measures the tree-shaken headless React runtime.</p>
 			<TestComponent />
 		</main>
-	</ConsentManagerProvider>
+	</ConsentProvider>
 );
 
 export default ReactHeadlessPage;

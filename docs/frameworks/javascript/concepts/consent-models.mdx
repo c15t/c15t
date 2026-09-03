@@ -6,26 +6,31 @@ group: frameworks
 
 <import src="../../../shared/concepts/consent-models.mdx#overview" />
 
-Read the current consent model from the store:
+Read the current consent model from the kernel snapshot:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
 });
 
-const { model, policy } = consentStore.getState();
+await kernel.commands.init();
+
+const { model, policy } = kernel.getSnapshot();
 console.log('Current consent model:', model ?? 'detecting...');
 if (policy) {
   console.log('From policy:', policy.id);
 }
 
 // React to model changes
-consentStore.subscribe((state, prevState) => {
-  if (state.model !== prevState.model) {
-    console.log('Model resolved:', state.model);
+let previousModel = model;
+kernel.subscribe((snapshot) => {
+  if (snapshot.model !== previousModel) {
+    console.log('Model resolved:', snapshot.model);
+    previousModel = snapshot.model;
   }
 });
 ```
@@ -37,13 +42,13 @@ consentStore.subscribe((state, prevState) => {
 Override the detected jurisdiction for testing:
 
 ```ts
-const state = consentStore.getState();
-
 // Test as EU visitor
-await state.setOverrides({ country: 'DE' });
+kernel.set.overrides({ country: 'DE' });
+await kernel.commands.init();
 
 // Test as California visitor
-await state.setOverrides({ country: 'US', region: 'CA' });
+kernel.set.overrides({ country: 'US', region: 'CA' });
+await kernel.commands.init();
 ```
 
 <Callout type="info">

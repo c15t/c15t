@@ -12,7 +12,7 @@ Use the `Theme` type for TypeScript autocomplete and validation:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { type Theme, ConsentManagerProvider } from 'c15t/react';
+import { hosted, type Theme, ConsentProvider } from 'c15t/react';
 
 const theme = {
   colors: {
@@ -33,15 +33,14 @@ const theme = {
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         theme,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

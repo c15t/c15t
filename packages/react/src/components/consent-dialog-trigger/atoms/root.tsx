@@ -11,8 +11,8 @@ import { createContext, useContext, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useConsentDialogTrigger } from '~/hooks/use-consent-dialog-trigger';
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useConsentDialogTrigger } from '~/component-hooks/use-consent-dialog-trigger';
+import { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 
 import type { CornerPosition, TriggerVisibility } from '../types';
@@ -128,7 +128,9 @@ export const TriggerRoot = ({
 			persistPosition: shouldPersist,
 		});
 
-	const contextValue: TriggerContextValue = useMemo(
+	const mounted = useIsHydrated();
+
+	const contextValue = useMemo<TriggerContextValue>(
 		() => ({
 			branding,
 			corner,
@@ -152,7 +154,6 @@ export const TriggerRoot = ({
 			wasDragged,
 		]
 	);
-	const mounted = useIsHydrated();
 
 	// Don't render on server or when not visible
 	if (!mounted || !isVisible) {

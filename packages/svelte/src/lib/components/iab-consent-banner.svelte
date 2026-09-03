@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Model } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+	import actionStyles from '@c15t/ui/styles/components/consent-actions';
+	import styles from '@c15t/ui/styles/components/iab-consent-banner';
+	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { getTextDirection } from '@c15t/ui/utils';
 
 	import { focusTrap } from '../actions/focus-trap';
@@ -115,16 +117,24 @@
 		return button === primaryButton;
 	};
 
+	const actionButtonClass = function actionButtonClass(
+		button: 'reject' | 'accept' | 'customize'
+	): string {
+		const primary = isPrimary(button);
+		return buttonVariants({
+			mode: primary && button !== 'reject' ? 'filled' : 'stroke',
+			size: 'small',
+			variant: primary ? 'primary' : 'neutral',
+		}).root();
+	};
+
 	// Styling
 	const rootStyle = $derived(
 		resolveComponentStyles(
 			'iabConsentBanner',
 			theme.theme,
 			{
-				baseClassName: [
-					styles.root,
-					textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-				],
+				baseClassName: styles.root,
 				className,
 				noStyle,
 			},
@@ -160,6 +170,7 @@
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
 			dir={textDirection}
+			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="iab-consent-banner-root"
 			use:focusTrap={shouldTrapFocus}
 			use:scrollLock={shouldScrollLock}
@@ -216,38 +227,39 @@
 
 					<!-- Footer with buttons -->
 					<div
-						class={noStyle ? '' : styles.footer}
+						class={noStyle ? '' : `${styles.footer} ${actionStyles.actionRoot}`}
 						data-testid="iab-consent-banner-footer"
+						data-direction="row"
+						data-split
 					>
-						<div class={noStyle ? '' : styles.footerButtonGroup}>
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
+						>
 							<button
 								type="button"
-								class={noStyle
-									? ''
-									: `${styles.rejectButton || ''} ${isPrimary('reject') ? styles.primaryButton || '' : ''}`}
+								class={noStyle ? '' : actionButtonClass('reject')}
 								onclick={handleRejectAll}
+								data-action="reject"
 								data-testid="iab-consent-banner-reject-button"
 							>
 								{iabT.common.rejectAll}
 							</button>
 							<button
 								type="button"
-								class={noStyle
-									? ''
-									: `${styles.acceptButton || ''} ${isPrimary('accept') ? styles.primaryButton || '' : ''}`}
+								class={noStyle ? '' : actionButtonClass('accept')}
 								onclick={handleAcceptAll}
+								data-action="accept"
 								data-testid="iab-consent-banner-accept-button"
 							>
 								{iabT.common.acceptAll}
 							</button>
 						</div>
-						<div class={noStyle ? '' : styles.footerSpacer}></div>
 						<button
 							type="button"
-							class={noStyle
-								? ''
-								: `${styles.customizeButton || ''} ${isPrimary('customize') ? styles.primaryButton || '' : ''}`}
+							class={noStyle ? '' : actionButtonClass('customize')}
 							onclick={handleCustomize}
+							data-action="customize"
 							data-testid="iab-consent-banner-customize-button"
 						>
 							{iabT.common.customize}

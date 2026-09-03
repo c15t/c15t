@@ -16,7 +16,7 @@ Apply the optimizations in this order:
 | Banner speed matters on cold loads | `buildPrefetchScript()` | Starts `/init` before your app hydrates | Still a browser-side fetch, not SSR |
 | Your app navigates client-side | Keep the provider mounted at the app root | Avoids remounting and re-running init work | Requires provider placement discipline |
 | You cannot proxy and must stay cross-origin | `<link rel="preconnect">` | Starts DNS/TLS work earlier | Smaller gain than same-origin proxying |
-| You are using Next.js and want SSR or static-route-specific guidance | Next.js optimization docs | Covers `C15tPrefetch`, `fetchInitialData()`, and rendering tradeoffs | Next-specific |
+| You are using Next.js and want SSR or static-route-specific guidance | Next.js optimization docs | Covers `C15tPrefetch`, `prefetchInitialConsent()`, and rendering tradeoffs | Next-specific |
 
 <Callout type="info">
   Treat same-origin proxying as the baseline optimization. The others are situational layers you add when startup timing or route behavior justifies them.
@@ -31,7 +31,7 @@ How you configure this depends on your framework — Vite has `server.proxy`, Re
 Then use:
 
 ```tsx
-<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+<ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
 ```
 
 <import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
@@ -68,24 +68,23 @@ const prefetchScript = buildPrefetchScript({
 Then initialize your provider normally. Matching prefetched data is consumed automatically by the runtime during first store initialization:
 
 ```tsx
-import {
-  ConsentManagerProvider,
+import { hosted,
+  ConsentProvider,
   ConsentBanner,
   ConsentDialog,
 } from 'c15t/react';
 
 export default function App({ children }: { children: React.ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -96,7 +95,7 @@ export default function App({ children }: { children: React.ReactNode }) {
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
 
-Mount `ConsentManagerProvider` as high in the tree as possible so route transitions do not recreate it.
+Mount `ConsentProvider` as high in the tree as possible so route transitions do not recreate it.
 
 <import src="../../shared/react/guides/optimization.mdx#animation" />
 
@@ -119,4 +118,4 @@ If your browser must call a cross-origin backend URL directly, add `preconnect` 
 This page is intentionally React-generic. If you are using Next.js and need SSR or static-route-specific guidance:
 
 - See [Next.js Optimization](/docs/frameworks/next/optimization) for the static-vs-dynamic decision guide
-- See [Next.js Server-Side Data Fetching](/docs/frameworks/next/server-side) for `fetchInitialData()`
+- See [Next.js Server-Side Data Fetching](/docs/frameworks/next/server-side) for `prefetchInitialConsent()`

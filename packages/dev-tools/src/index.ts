@@ -21,11 +21,20 @@ export type {
 	DevToolsTab,
 } from './core/state-manager';
 
-// Store connector utilities
+// Script registry types
+export type {
+	DevToolsScriptRecord,
+	ManagedScript,
+	ScriptRegistry,
+} from './core/script-registry';
+
+// Kernel connector utilities
 export {
 	createStoreConnector,
-	getC15tStore,
-	isC15tStoreAvailable,
+	DEFAULT_KERNEL_NAMESPACE,
+	getC15tKernel,
+	isC15tKernelAvailable,
+	isConsentKernel,
 	type StoreConnector,
 	type StoreConnectorOptions,
 } from './core/store-connector';

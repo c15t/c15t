@@ -4,7 +4,11 @@
  */
 
 import { subscribeToScriptDebugEvents } from '@c15t/core';
-import type { ConsentStoreState, ScriptDebugEvent } from '@c15t/core';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	ScriptDebugEvent,
+} from '@c15t/core';
 
 import { createPanel } from '../components/panel';
 import type { PanelInstance } from '../components/panel';
@@ -23,10 +27,14 @@ import {
 import type { PersistedDevToolsOverrides } from './override-storage';
 import { createPanelRenderer } from './panel-renderer';
 import { button, clearElement, div } from './renderer';
+import { createScriptRegistry } from './script-registry';
 import { createStateManager } from './state-manager';
 import type { DevToolsPosition, DevToolsTab } from './state-manager';
-import { createStoreConnector } from './store-connector';
-import { registerStoreInstrumentation } from './store-instrumentation';
+import {
+	createStoreConnector,
+	DEFAULT_KERNEL_NAMESPACE,
+} from './store-connector';
+import { registerKernelInstrumentation } from './store-instrumentation';
 
 // Import styles to ensure they're bundled
 import '../styles/tokens.css';
@@ -38,7 +46,7 @@ const PANEL_HEIGHT_TRANSITION_BUFFER_MS = 80;
 
 const normalizeOverridesForPersistence =
 	function normalizeOverridesForPersistence(
-		overrides: ConsentStoreState['overrides'] | undefined
+		overrides: ConsentSnapshot['overrides'] | undefined
 	): PersistedDevToolsOverrides {
 		return {
 			country: overrides?.country?.trim() || undefined,
@@ -166,19 +174,18 @@ const createPanelHeightAnimator =
 	};
 
 const createStateCopy = function createStateCopy(
-	state: ConsentStoreState
+	state: ConsentSnapshot
 ): Record<string, unknown> {
 	return {
-		consentInfo: state.consentInfo,
+		activeUI: state.activeUI,
 		consents: state.consents,
-		loadedScripts: state.loadedScripts,
-		locationInfo: state.locationInfo,
+		hasConsented: state.hasConsented,
+		iab: state.iab,
+		location: state.location,
 		model: state.model,
 		overrides: state.overrides,
-		scripts: state.scripts?.map((script: { id: string }) => ({
-			id: script.id,
-		})),
-		selectedConsents: state.selectedConsents,
+		policy: state.policy,
+		user: state.user,
 	};
 };
 
@@ -364,8 +371,13 @@ const scriptDebugEventToLogEntry = function scriptDebugEventToLogEntry(
  */
 export interface DevToolsOptions {
 	/**
-	 * Namespace for the c15tStore on window
-	 * @default 'c15tStore'
+	 * Kernel handle to connect to directly. Skips window polling.
+	 */
+	kernel?: ConsentKernel;
+
+	/**
+	 * Namespace for the consent kernel on window
+	 * @default 'c15tKernel'
 	 */
 	namespace?: string;
 
@@ -412,7 +424,8 @@ export const createDevTools = function createDevTools(
 	let renderContent: (container: HTMLElement) => void;
 
 	const {
-		namespace = 'c15tStore',
+		kernel,
+		namespace = DEFAULT_KERNEL_NAMESPACE,
 		position = 'bottom-right',
 		defaultOpen = false,
 	} = options;
@@ -424,45 +437,49 @@ export const createDevTools = function createDevTools(
 	});
 	let detachInstrumentation: (() => void) | null = null;
 	let detachScriptDebug: (() => void) | null = null;
+	const scriptRegistry = createScriptRegistry();
 
 	// Create store connector
 	const storeConnector = createStoreConnector({
+		kernel,
 		namespace,
-		onConnect: (_state, store) => {
+		onConnect: (_state, connectedKernel) => {
 			detachInstrumentation?.();
-			detachInstrumentation = registerStoreInstrumentation({
+			detachInstrumentation = registerKernelInstrumentation({
+				kernel: connectedKernel,
 				namespace,
 				onEvent: (event) => {
 					stateManager.addEvent(event);
 				},
-				store,
 			});
 			detachScriptDebug?.();
 			detachScriptDebug = subscribeToScriptDebugEvents((event) => {
+				scriptRegistry.record(event);
 				stateManager.addEvent(scriptDebugEventToLogEntry(event));
 			});
 
 			stateManager.setConnected(true);
 			stateManager.addEvent({
-				message: 'Connected to c15tStore',
+				message: 'Connected to consent kernel',
 				type: 'info',
 			});
 
 			const persistedOverrides = loadPersistedOverrides();
 			if (persistedOverrides) {
 				const currentOverrides = normalizeOverridesForPersistence(
-					store.getState().overrides
+					connectedKernel.getSnapshot().overrides
 				);
 
 				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
 					void (async () => {
 						try {
-							await store.getState().setOverrides({
+							connectedKernel.set.overrides({
 								country: persistedOverrides.country,
 								gpc: persistedOverrides.gpc,
 								language: persistedOverrides.language,
 								region: persistedOverrides.region,
 							});
+							await connectedKernel.commands.init();
 							stateManager.addEvent({
 								data: {
 									country: persistedOverrides.country,
@@ -484,13 +501,14 @@ export const createDevTools = function createDevTools(
 			}
 		},
 		onDisconnect: () => {
+			scriptRegistry.clear();
 			stateManager.setConnected(false);
 			detachInstrumentation?.();
 			detachInstrumentation = null;
 			detachScriptDebug?.();
 			detachScriptDebug = null;
 			stateManager.addEvent({
-				message: 'Disconnected from c15tStore',
+				message: 'Disconnected from consent kernel',
 				type: 'error',
 			});
 		},
@@ -500,6 +518,7 @@ export const createDevTools = function createDevTools(
 	});
 	const panelRenderer = createPanelRenderer({
 		enableEventLogging: true,
+		namespace,
 		onClearPersistedOverrides: clearPersistedOverrides,
 		onCopyState: async (state) => {
 			try {
@@ -522,6 +541,7 @@ export const createDevTools = function createDevTools(
 			downloadDebugBundle(bundle);
 		},
 		onPersistOverrides: persistOverrides,
+		scriptRegistry,
 		stateManager,
 		storeConnector,
 	});
@@ -605,6 +625,7 @@ export const createDevTools = function createDevTools(
 			detachInstrumentation = null;
 			detachScriptDebug?.();
 			detachScriptDebug = null;
+			scriptRegistry.clear();
 
 			panelHeightAnimator.destroy();
 			tabsInstance?.destroy();
@@ -641,6 +662,7 @@ export const createDevTools = function createDevTools(
  * Creates a DevTools panel for embedding (used by TanStack plugin)
  */
 export const createDevToolsPanel = function createDevToolsPanel(options: {
+	kernel?: ConsentKernel;
 	namespace?: string;
 	mode?: 'standalone' | 'embedded';
 }): {
@@ -653,11 +675,16 @@ export const createDevToolsPanel = function createDevToolsPanel(options: {
 	// oxlint-disable-next-line prefer-const -- Preserve declaration order, interface shape, and public compatibility.
 	let renderActivePanel: () => void;
 
-	const { namespace = 'c15tStore', mode = 'standalone' } = options;
+	const {
+		kernel,
+		namespace = DEFAULT_KERNEL_NAMESPACE,
+		mode = 'standalone',
+	} = options;
 	const isEmbedded = mode === 'embedded';
 	let detachInstrumentation: (() => void) | null = null;
 	let detachScriptDebug: (() => void) | null = null;
 	let contentArea: HTMLDivElement | null = null;
+	const scriptRegistry = createScriptRegistry();
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
@@ -667,16 +694,18 @@ export const createDevToolsPanel = function createDevToolsPanel(options: {
 
 	// Create store connector
 	const storeConnector = createStoreConnector({
+		kernel,
 		namespace,
-		onConnect: (state, store) => {
+		onConnect: (state, connectedKernel) => {
 			detachInstrumentation?.();
-			detachInstrumentation = registerStoreInstrumentation({
+			detachInstrumentation = registerKernelInstrumentation({
+				kernel: connectedKernel,
 				namespace,
 				onEvent: (event) => stateManager.addEvent(event),
-				store,
 			});
 			detachScriptDebug?.();
 			detachScriptDebug = subscribeToScriptDebugEvents((event) => {
+				scriptRegistry.record(event);
 				stateManager.addEvent(scriptDebugEventToLogEntry(event));
 			});
 			stateManager.setConnected(true);
@@ -687,17 +716,19 @@ export const createDevToolsPanel = function createDevToolsPanel(options: {
 					state.overrides
 				);
 				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
-					void store.getState().setOverrides({
+					connectedKernel.set.overrides({
 						country: persistedOverrides.country,
 						gpc: persistedOverrides.gpc,
 						language: persistedOverrides.language,
 						region: persistedOverrides.region,
 					});
+					void connectedKernel.commands.init();
 				}
 			}
 			renderActivePanel();
 		},
 		onDisconnect: () => {
+			scriptRegistry.clear();
 			stateManager.setConnected(false);
 			detachInstrumentation?.();
 			detachInstrumentation = null;
@@ -708,6 +739,7 @@ export const createDevToolsPanel = function createDevToolsPanel(options: {
 	});
 	const panelRenderer = createPanelRenderer({
 		enableEventLogging: false,
+		namespace,
 		onClearPersistedOverrides: clearPersistedOverrides,
 		onCopyState: async (state) => {
 			try {
@@ -730,6 +762,7 @@ export const createDevToolsPanel = function createDevToolsPanel(options: {
 			downloadDebugBundle(bundle);
 		},
 		onPersistOverrides: persistOverrides,
+		scriptRegistry,
 		stateManager,
 		storeConnector,
 	});
@@ -839,6 +872,7 @@ export const createDevToolsPanel = function createDevToolsPanel(options: {
 			detachInstrumentation = null;
 			detachScriptDebug?.();
 			detachScriptDebug = null;
+			scriptRegistry.clear();
 
 			unsubscribe();
 			tabsInstance?.destroy();

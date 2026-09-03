@@ -1,141 +1,134 @@
-// Core exports
-export type {
-	AllConsentNames,
-	ConsentManagerInterface,
-	ConsentStoreState,
-	ConsentType,
-	EuropePolicyMode,
-	Overrides,
-	PolicyPackPresets,
-	Translations,
-} from '@c15t/core';
+/**
+ * `@c15t/react` — React adapter for the c15t consent kernel.
+ *
+ * Pattern:
+ *   import {
+ *     ConsentProvider,
+ *     hosted,
+ *     useConsent,
+ *     useSaveConsents,
+ *   } from '@c15t/react';
+ *
+ *   function App({ children }) {
+ *     return (
+ *       <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+ *         {children}
+ *       </ConsentProvider>
+ *     );
+ *   }
+ *
+ *   function MarketingScripts() {
+ *     const allowed = useConsent('marketing');
+ *     return allowed ? <GoogleTagManager /> : null;
+ *   }
+ *
+ * Design notes:
+ * - Selector hooks subscribe via `useSyncExternalStore` so re-renders
+ *   stay scoped to the exact slice each hook reads.
+ * - Action hooks return stable kernel methods — no `useCallback` dance
+ *   required at the consumer site.
+ * - No provider-level useEffect syncing state into React state. No
+ *   cache patching. No method rewriting. Provider boot work is explicit
+ *   module wiring around a single per-mount kernel.
+ */
 
-export {
-	configureConsentManager,
-	defaultTranslationConfig,
-	detectBrowserLanguage,
-	mergeTranslationConfigs,
-	policyPackPresets,
-	prepareTranslationConfig,
+// Re-export kernel types so consumers need only one import.
+export type {
+	ConsentKernel,
+	ConsentSnapshot,
+	ConsentState,
+	HostedTransportOptions,
+	InitContext,
+	InitResponse,
+	InitResult,
+	KernelConfig,
+	KernelEvent,
+	KernelOverrides,
+	KernelTransport,
+	KernelUser,
+	Listener,
+	HostedModeOptions,
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
+	SavePayload,
+	SaveResult,
+	Unsubscribe,
 } from '@c15t/core';
+export { createConsentKernel, custom, hosted } from '@c15t/core';
+export type { OfflineModeOptions } from './transports/offline';
+export { offline } from './transports/offline';
+export { ConsentDialog, ConsentWidget } from './aggregate-components';
+export type {
+	ConsentBannerButton,
+	ConsentBannerLayout,
+	ConsentBannerProps,
+} from './components/consent-banner';
+// -- UI components ----------------------------------------------------------
 export {
 	ConsentBanner,
-	type ConsentBannerProps,
+	type ConsentBannerCompoundComponent,
 } from './components/consent-banner';
-export * from './components/consent-banner/components';
-// Components
-export {
-	ConsentDialog,
-	type ConsentDialogProps,
+export type {
+	ConsentDialogCompoundComponent,
+	ConsentDialogProps,
 } from './components/consent-dialog';
-export {
-	ConsentDialogLink,
-	type ConsentDialogLinkProps,
-} from './components/consent-dialog-link';
-// Consent Dialog Trigger (floating button for resurfacing consent dialogs)
-export {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerCompound,
-	type ConsentDialogTriggerProps,
-	ConsentDialogTriggerToolbar,
-	type ConsentDialogTriggerToolbarAction,
-	type ConsentDialogTriggerToolbarPreferences,
-	type ConsentDialogTriggerToolbarProps,
-	TriggerButton,
-	type TriggerButtonProps,
-	TriggerIcon,
-	type TriggerIconProps,
-	type TriggerIconType,
-	type TriggerOrientation,
-	// Atom components for direct usage
-	TriggerRoot,
-	type TriggerRootProps,
-	type TriggerSize,
-	TriggerText,
-	type TriggerTextProps,
-	type TriggerVisibility,
-	type UseDraggableOptions,
-	type UseDraggableReturn,
-	// Hook and types
-	useDraggable,
-	useTriggerContext,
-} from './components/consent-dialog-trigger';
-export {
-	ConsentWidget,
-	type ConsentWidgetProps,
+export type { ConsentDialogLinkProps } from './components/consent-dialog-link';
+export { ConsentDialogLink } from './components/consent-dialog-link';
+export type { ConsentDialogTriggerProps } from './components/consent-dialog-trigger';
+export { ConsentDialogTrigger } from './components/consent-dialog-trigger';
+export type {
+	ConsentWidgetCompoundComponent,
+	ConsentWidgetProps,
 } from './components/consent-widget';
-export { Frame, type FrameProps } from './components/frame';
+export type { FrameProps } from './components/frame';
+export { Frame } from './components/frame';
+export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
+export { ConsentDraftProvider, useConsentDraft } from './draft';
 export {
-	GoogleMap,
-	type GoogleMapCoordinates,
-	type GoogleMapInstance,
-	type GoogleMapOptions,
-	type GoogleMapProps,
-	type GoogleMapsApi,
-	type GoogleMapsLibrary,
-	YouTubeEmbed,
-	type YouTubeEmbedParams,
-	type YouTubeEmbedProps,
-	type YouTubeSrcSource,
-	type YouTubeVideoIdSource,
-} from './components/integrations';
-// IAB TCF 2.3 Components — moved to @c15t/react/iab subpath.
-// Import from '@c15t/react/iab' instead of '@c15t/react'.
-
-export { ConsentButton } from './components/shared/primitives/button';
-
-// Hooks
-export { useColorScheme } from './hooks/use-color-scheme';
-export {
-	type ConsentDialogTriggerVisibility,
-	type UseConsentDialogTriggerOptions,
-	type UseConsentDialogTriggerResult,
-	useConsentDialogTrigger,
-} from './hooks/use-consent-dialog-trigger';
-export { useConsentManager } from './hooks/use-consent-manager';
-export {
-	ConsentScriptConflictError,
-	type ConsentScriptReadyControls,
-	type ConsentScriptStatus,
-	type ConsentScriptUnmountBehavior,
-	type UseConsentScriptOptions,
-	type UseConsentScriptResult,
-	useConsentScript,
-} from './hooks/use-consent-script';
-export { useFocusTrap } from './hooks/use-focus-trap';
-export {
-	type HeadlessConsentBannerAction,
-	type HeadlessConsentBannerState,
-	type HeadlessConsentDialogAction,
-	type HeadlessConsentDialogState,
-	type HeadlessConsentSurface,
-	type HeadlessConsentSurfaceAction,
-	type HeadlessConsentSurfaceState,
-	type HeadlessConsentWriteAction,
-	type UseHeadlessConsentUIResult,
-	useHeadlessConsentUI,
-} from './hooks/use-headless-consent-ui';
-// IAB headless hook — moved to @c15t/react/iab subpath.
-// Import from '@c15t/react/iab' instead of '@c15t/react'.
-export { useSSRStatus } from './hooks/use-ssr-status';
-export { useTranslations } from './hooks/use-translations';
-
-// Providers
-export { ConsentManagerProvider } from './providers/consent-manager-provider';
+	useActiveUI,
+	useBranding,
+	useConsent,
+	useConsents,
+	useHasConsented,
+	useIABEnabled,
+	useIABSnapshot,
+	useIdentify,
+	useInit,
+	useLocation,
+	useModel,
+	useOverrides,
+	usePolicy,
+	usePolicyBanner,
+	usePolicyCategories,
+	usePolicyDecision,
+	usePolicyDialog,
+	usePolicyScopeMode,
+	usePurposeConsent,
+	useSaveConsents,
+	useSetActiveUI,
+	useSetConsent,
+	useSetLanguage,
+	useSetOverrides,
+	useSnapshot,
+	useSpecialFeatureOptIn,
+	useTCString,
+	useTranslations,
+	useUser,
+	useVendorConsent,
+} from './hooks';
 export type {
-	ConsentManagerOptions,
-	ConsentManagerProviderProps,
-} from './types/consent-manager';
-
-// Theme types
-export type {
-	ColorTokens,
-	ComponentSlots,
-	MotionTokens,
-	RadiusTokens,
-	ShadowTokens,
-	SlotStyle,
-	SpacingTokens,
-	Theme,
-	TypographyTokens,
-} from './types/theme';
+	UseIframeBlockerOptions,
+	UseNetworkBlockerOptions,
+	UsePersistenceOptions,
+	UseScriptLoaderOptions,
+} from './module-hooks';
+export {
+	useIframeBlocker,
+	useNetworkBlocker,
+	usePersistence,
+	useScriptLoader,
+} from './module-hooks';
+export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
+export { ConsentProvider } from './provider';
+export type { ReactUIOptions } from './types/consent-manager';

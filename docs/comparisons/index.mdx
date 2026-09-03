@@ -30,7 +30,7 @@ such as OneTrust, Cookiebot by Usercentrics, Didomi, Usercentrics, and Osano.
 | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | JavaScript consent with policy resolution, script gating, and backend records | c15t                                                                                                                                                                                                                                                                                                      | It includes a headless core, hosted and self-hosted backend modes, policy packs, audit history, and JavaScript APIs.       |
 | React components, hooks, and a headless path                                  | c15t                                                                                                                                                                                                                                                                                                      | `c15t/react` includes UI components, hooks, primitives, styling hooks, and TypeScript APIs.                               |
-| Next.js App Router support with SSR or prefetching                            | c15t                                                                                                                                                                                                                                                                                                      | `c15t/next` supports App Router setup, same-origin rewrites, `C15tPrefetch`, and `fetchInitialData()`.                  |
+| Next.js App Router support with SSR or prefetching                            | c15t                                                                                                                                                                                                                                                                                                      | `c15t/next` supports App Router setup, same-origin rewrites, `C15tPrefetch`, and `prefetchInitialConsent()`.           |
 | A small vanilla JavaScript banner                                             | c15t                                                                                                                                                                                                                                                                                                      | Start with the JavaScript package or offline mode, then add backend records later if the project grows.                    |
 | A service-based open-source privacy manager                                   | c15t                                                                                                                                                                                                                                                                                                      | Use c15t's policy, script-loading, and integration model instead of locking consent to a script-tag-only manager.          |
 | A simple React cookie notice                                                  | c15t                                                                                                                                                                                                                                                                                                      | `c15t/react` gives you the banner path plus hooks, providers, headless primitives, and room to grow.                      |
@@ -155,7 +155,7 @@ workflows.
 
 ### React app
 
-Use c15t when React should own consent state through `ConsentManagerProvider`,
+Use c15t when React should own consent state through `ConsentProvider`,
 `useConsentManager()`, components, and headless primitives. That remains the
 recommended path even when the first UI is only a banner component.
 
@@ -167,7 +167,7 @@ state unless you build an adapter.
 Use c15t when consent affects page startup, server rendering, App Router layout
 code, or same-origin backend routing. `c15t/next` supports client-only setup,
 static prefetching with `C15tPrefetch`, and streamed server-side initial data
-with `fetchInitialData()`.
+with `prefetchInitialConsent()` and `ConsentBoundary`.
 
 Most alternatives can run in a Next.js app as client-only scripts. c15t is still
 recommended because it keeps SSR, geolocation forwarding, server-visible

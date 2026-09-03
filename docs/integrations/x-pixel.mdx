@@ -17,22 +17,21 @@ X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience buildin
   <Tab value="React">
     ```tsx
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from 'c15t/react';
+    import { hosted, ConsentProvider } from 'c15t/react';
     import { xPixel } from '@c15t/scripts/x-pixel';
 
     const scripts = [xPixel({ pixelId: '123456789012345' })];
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
+    export function ConsentManager({ children }: { children: ReactNode }) {
       return (
-        <ConsentManagerProvider
+        <ConsentProvider
           options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
+            mode: hosted({ url: 'https://your-instance.c15t.dev' }),
             scripts,
           }}
         >
           {children}
-        </ConsentManagerProvider>
+        </ConsentProvider>
       );
     }
     ```
@@ -43,22 +42,21 @@ X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience buildin
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from 'c15t/next';
+    import { hosted, ConsentProvider } from 'c15t/next';
     import { xPixel } from '@c15t/scripts/x-pixel';
 
     const scripts = [xPixel({ pixelId: '123456789012345' })];
 
-    export function ConsentProvider({ children }: { children: ReactNode }) {
+    export function ConsentManager({ children }: { children: ReactNode }) {
       return (
-        <ConsentManagerProvider
+        <ConsentProvider
           options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
+            mode: hosted({ url: '/api/c15t' }),
             scripts,
           }}
         >
           {children}
-        </ConsentManagerProvider>
+        </ConsentProvider>
       );
     }
     ```
@@ -66,14 +64,20 @@ X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience buildin
 
   <Tab value="JavaScript">
     ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
+    import { createConsentKernel, createHostedTransport } from 'c15t';
+    import { createScriptLoader } from 'c15t/modules/script-loader';
     import { xPixel } from '@c15t/scripts/x-pixel';
 
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [xPixel({ pixelId: '123456789012345' })],
+    const kernel = createConsentKernel({
+    transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
     });
+
+    createScriptLoader({
+    kernel,
+    scripts: [xPixel({ pixelId: '123456789012345' })],
+    });
+
+    void kernel.commands.init();
     ```
   </Tab>
 </Tabs>

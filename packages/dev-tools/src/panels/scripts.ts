@@ -3,7 +3,7 @@
  * Displays script loading status and configuration
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
 
 import {
 	createBadge,
@@ -14,6 +14,10 @@ import {
 	createSection,
 } from '../components/ui';
 import { button, clearElement, div, span } from '../core/renderer';
+import type {
+	DevToolsScriptRecord,
+	ManagedScript,
+} from '../core/script-registry';
 import type { EventLogEntry } from '../core/state-manager';
 import { createDomScannerSection } from './dom-scanner';
 
@@ -24,7 +28,11 @@ const CODE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" f
 </svg>`;
 
 export interface ScriptsPanelOptions {
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
+	/** Scripts the loader has reported through debug events */
+	getScripts: () => DevToolsScriptRecord[];
+	/** Managed scripts with their mounted `src`, for the DOM scanner */
+	getManagedScripts?: () => ManagedScript[];
 	getEvents?: () => EventLogEntry[];
 }
 
@@ -72,34 +80,6 @@ const getScriptActivityEvents = function getScriptActivityEvents(
 			return data?.scope === 'lifecycle' || data?.scope === 'phase';
 		})
 		.sort((left, right) => left.timestamp - right.timestamp);
-};
-/**
- * Checks if consent is granted for a script category
- * Simplified check - for complex conditions, just assume pending
- */
-const checkScriptConsent = function checkScriptConsent(
-	state: ConsentStoreState,
-	category: unknown
-): boolean {
-	if (!category) {
-		return true;
-	}
-
-	if (typeof state.has === 'function') {
-		try {
-			return state.has(category as Parameters<ConsentStoreState['has']>[0]);
-		} catch {
-			// Fall through to simple checks for malformed conditions.
-		}
-	}
-
-	// Simple string category fallback
-	if (typeof category === 'string') {
-		const consents = state.consents || {};
-		return (consents as Record<string, boolean>)[category] === true;
-	}
-
-	return false;
 };
 const createAccordionToggle = function createAccordionToggle(options: {
 	scriptId: string;
@@ -390,7 +370,7 @@ export const renderScriptsPanel = function renderScriptsPanel(
 	container: HTMLElement,
 	options: ScriptsPanelOptions
 ): void {
-	const { getState, getEvents } = options;
+	const { getState, getScripts, getManagedScripts, getEvents } = options;
 
 	clearElement(container);
 
@@ -401,20 +381,16 @@ export const renderScriptsPanel = function renderScriptsPanel(
 		return;
 	}
 
-	const scripts = state.scripts || [];
-	const loadedScripts = state.loadedScripts || {};
-	const { networkBlocker } = state;
+	const scripts = getScripts();
 	const events = getEvents?.() ?? [];
 	const searchQuery = scriptsSearchByContainer.get(container) ?? '';
 	const filteredScripts = scripts.filter((script) => {
 		if (!searchQuery) {
 			return true;
 		}
-		const category =
-			typeof script.category === 'string'
-				? script.category
-				: JSON.stringify(script.category);
-		return `${script.id} ${category}`.toLowerCase().includes(searchQuery);
+		return `${script.id} ${script.elementId ?? ''}`
+			.toLowerCase()
+			.includes(searchQuery);
 	});
 
 	if (scripts.length > 4) {
@@ -447,10 +423,10 @@ export const renderScriptsPanel = function renderScriptsPanel(
 			children: [
 				createEmptyState({
 					icon: CODE_ICON,
-					text: 'No scripts configured',
+					text: 'No scripts reported by the loader yet',
 				}),
 			],
-			title: 'Configured Scripts',
+			title: 'Known Scripts',
 		});
 	} else {
 		const scriptsList = div({
@@ -477,34 +453,26 @@ export const renderScriptsPanel = function renderScriptsPanel(
 
 		filteredScripts.forEach((script) => {
 			const scriptId = script.id;
-			const isLoaded = loadedScripts[scriptId] === true;
+			const isLoaded = script.loaded;
 			const scriptEvents = getScriptActivityEvents(events, scriptId);
 			const latestActivity = scriptEvents[scriptEvents.length - 1];
 			const expandedScripts = getExpandedScripts(container);
 			const isExpanded = expandedScripts.has(scriptId);
+			const elementDisplay = script.elementId ?? '—';
 
-			// Get the category - can be a string or a complex condition object
-			const { category } = script;
-			const categoryDisplay =
-				typeof category === 'string' ? category : JSON.stringify(category);
-
-			// Determine status
+			// Determine status from the loader's last report
 			let status: 'loaded' | 'pending' | 'blocked' = 'pending';
 			let statusVariant: 'success' | 'warning' | 'neutral' = 'neutral';
 
 			if (isLoaded) {
 				status = 'loaded';
 				statusVariant = 'success';
+			} else if (script.hasConsent === true) {
+				status = 'pending';
+				statusVariant = 'warning';
 			} else {
-				// Check if consent is granted
-				const hasConsent = checkScriptConsent(state, category);
-				if (hasConsent) {
-					status = 'pending';
-					statusVariant = 'warning';
-				} else {
-					status = 'blocked';
-					statusVariant = 'neutral';
-				}
+				status = 'blocked';
+				statusVariant = 'neutral';
 			}
 
 			const badge = createBadge({
@@ -535,7 +503,7 @@ export const renderScriptsPanel = function renderScriptsPanel(
 									textOverflow: 'ellipsis',
 									whiteSpace: 'nowrap',
 								},
-								text: `Category: ${categoryDisplay}`,
+								text: `Element: ${elementDisplay}`,
 							}),
 							...(latestActivity && scriptEvents.length > 0
 								? [
@@ -623,37 +591,10 @@ export const renderScriptsPanel = function renderScriptsPanel(
 
 		scriptsSection = createSection({
 			children: [scriptsList],
-			title: `Configured Scripts (${filteredScripts.length}/${scripts.length})`,
+			title: `Known Scripts (${filteredScripts.length}/${scripts.length})`,
 		});
 	}
 	container.appendChild(scriptsSection);
-
-	// Network blocker section
-	const networkSection = createSection({
-		children: networkBlocker
-			? [
-					createInfoRow({
-						label: 'Status',
-						value: 'Active',
-					}),
-					createInfoRow({
-						label: 'Blocked Domains',
-						value: String(networkBlocker.rules?.length || 0),
-					}),
-				]
-			: [
-					div({
-						style: {
-							color: 'var(--c15t-devtools-text-muted)',
-							fontSize: 'var(--c15t-devtools-font-size-xs)',
-						},
-						text: 'Network blocker not configured',
-					}),
-				],
-		title: 'Network Blocker',
-	});
-
-	container.appendChild(networkSection);
 
 	const blockedRequestEvents = events.filter(
 		(event) => event.type === 'network'
@@ -676,7 +617,7 @@ export const renderScriptsPanel = function renderScriptsPanel(
 	container.appendChild(networkEventsSection);
 
 	// Loaded scripts summary
-	const loadedCount = Object.values(loadedScripts).filter(Boolean).length;
+	const loadedCount = scripts.filter((script) => script.loaded).length;
 	const totalCount = scripts.length;
 
 	const summarySection = createSection({
@@ -700,6 +641,8 @@ export const renderScriptsPanel = function renderScriptsPanel(
 	container.appendChild(summarySection);
 
 	// DOM Scanner section
-	const scannerSection = createDomScannerSection(state);
+	const scannerSection = createDomScannerSection({
+		scripts: getManagedScripts?.() ?? [],
+	});
 	container.appendChild(scannerSection);
 };

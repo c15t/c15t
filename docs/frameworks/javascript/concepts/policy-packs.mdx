@@ -12,16 +12,19 @@ group: frameworks
 
 <import src="../../../shared/concepts/policy-packs.mdx#resolution-flow" />
 
-Inspect the resolved policy directly from the store:
+Inspect the resolved policy directly from the kernel snapshot:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
 });
 
-const state = consentStore.getState();
+await kernel.commands.init();
+const state = kernel.getSnapshot();
 console.log({
   policyId: state.policy?.id,
   matchedBy: state.policyDecision?.matchedBy,

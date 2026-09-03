@@ -1,6 +1,6 @@
 ---
-title: ConsentManagerProvider
-description: The root provider component that initializes the consent system and makes consent state available to all child components.
+title: ConsentProvider
+description: The root React provider for the c15t consent kernel.
 group: frameworks
 ---
 
@@ -9,50 +9,25 @@ group: frameworks
 ## Basic Usage
 
 ```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
+import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/react';
 
-export default function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: React.ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
 
 <import src="../../../shared/react/components/consent-manager-provider.mdx#options-reference" />
-
-## Mode: hosted vs offline
-
-```tsx
-// Hosted mode — persists to hosted backend
-<ConsentManagerProvider
-  options={{
-    mode: 'hosted',
-    backendURL: 'https://your-instance.c15t.dev',
-  }}
->
-
-// Offline mode — local cookie storage only
-<ConsentManagerProvider
-  options={{
-    mode: 'offline',
-  }}
->
-```
-
-See [Client Modes](/docs/frameworks/react/concepts/client-modes) for a detailed comparison.
-
-<import src="../../../shared/react/components/consent-manager-provider.mdx#csp-nonce" />
 
 <import src="../../../shared/react/components/consent-manager-provider.mdx#legal-links" />
 

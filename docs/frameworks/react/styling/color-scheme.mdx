@@ -12,14 +12,13 @@ Set the color scheme on the provider:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { hosted, ConsentProvider } from 'c15t/react';
 
 function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         colorScheme: 'system', // 'light' | 'dark' | 'system'
         theme: {
           colors: {
@@ -36,7 +35,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

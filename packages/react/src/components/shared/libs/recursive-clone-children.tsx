@@ -19,11 +19,8 @@ export const recursiveCloneChildren = function recursiveCloneChildren(
 	uniqueId: string,
 	asChild?: boolean
 ): ReactNode | ReactNode[] {
-	const mapChild = (child: ReactNode): ReactNode => {
-		if (Array.isArray(child)) {
-			return child.map(mapChild);
-		}
-
+	const childrenArray = Array.isArray(children) ? children : [children];
+	const mappedChildren = childrenArray.map((child: ReactNode) => {
 		if (!isValidElement(child)) {
 			return child;
 		}
@@ -32,6 +29,13 @@ export const recursiveCloneChildren = function recursiveCloneChildren(
 		const newProps = displayNames.includes(displayName) ? additionalProps : {};
 
 		const childProps = (child as ReactElement<Record<string, unknown>>).props;
+		const clonedChildren = recursiveCloneChildren(
+			childProps?.children as ReactNode,
+			additionalProps,
+			displayNames,
+			uniqueId,
+			childProps?.asChild as boolean | undefined
+		);
 
 		return createElement(
 			child.type,
@@ -40,19 +44,9 @@ export const recursiveCloneChildren = function recursiveCloneChildren(
 				...newProps,
 				key: `${uniqueId}-${child.key || displayName}`,
 			},
-			recursiveCloneChildren(
-				childProps?.children as ReactNode,
-				additionalProps,
-				displayNames,
-				uniqueId,
-				childProps?.asChild as boolean | undefined
-			)
+			clonedChildren
 		);
-	};
+	});
 
-	const mappedChildren = mapChild(children);
-
-	return asChild && Array.isArray(mappedChildren)
-		? mappedChildren[0]
-		: mappedChildren;
+	return asChild ? mappedChildren?.[0] : mappedChildren;
 };

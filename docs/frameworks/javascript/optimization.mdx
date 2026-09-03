@@ -11,9 +11,10 @@ group: frameworks
 Proxy c15t requests through your app server so the browser calls your own origin instead of a third-party domain.
 
 ```ts
-const store = createConsentManagerStore({
-  mode: 'hosted',
-  backendURL: '/api/c15t', // same-origin proxy path
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: '/api/c15t', // same-origin proxy path
+  }),
 });
 ```
 
@@ -36,17 +37,17 @@ const script = buildPrefetchScript({
 // Inject `script` into a <script> tag in your HTML <head>
 ```
 
-Then create the store normally. Matching prefetched data is consumed automatically by the runtime during first store initialization:
+Then create and initialize the kernel normally. Matching prefetched data is
+consumed automatically by the hosted transport:
 
 ```ts
-import {
-  createConsentManagerStore,
-} from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
 
-const store = createConsentManagerStore({
-  mode: 'hosted',
-  backendURL: '/api/c15t',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({ backendURL: '/api/c15t' }),
 });
+
+await kernel.commands.init();
 ```
 
 <Callout type="info">

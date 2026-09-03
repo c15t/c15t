@@ -1,20 +1,21 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
 
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useActiveUI } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
 	children: ReactNode;
+	'data-testid'?: string;
 }
 
 /**
@@ -28,9 +29,10 @@ interface IABConsentDialogCardProps extends DialogHTMLAttributes<HTMLDialogEleme
 const IABConsentDialogCard = createForwardRef<
 	HTMLDialogElement,
 	IABConsentDialogCardProps
->(({ children, className, ...props }, ref) => {
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { trapFocus } = useTheme();
-	const { activeUI } = useConsentManager();
+	const { components } = useUIConfig();
+	const activeUI = useActiveUI();
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
 	const showDialog = activeUI === 'dialog';
@@ -48,25 +50,24 @@ const IABConsentDialogCard = createForwardRef<
 		return () => clearTimeout(timer);
 	}, [showDialog]);
 
-	const themedStyle = useStyles('iabConsentDialogCard', {
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.card, {
 		baseClassName: cn(
 			styles.card,
 			isVisible ? styles.contentVisible : styles.contentHidden
 		),
 		className,
+		'data-testid': dataTestId ?? 'iab-consent-dialog-card',
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<dialog
 			ref={ref}
-			{...domStyleProps}
+			{...themedStyle}
 			open
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}
 			tabIndex={-1}
-			data-testid="iab-consent-dialog-card"
-			{...props}
 		>
 			{children}
 		</dialog>

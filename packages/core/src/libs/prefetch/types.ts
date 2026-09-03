@@ -1,4 +1,4 @@
-import type { Overrides } from '../../types';
+import type { Overrides } from '../../options/overrides';
 
 export interface PrefetchOptions {
 	/**

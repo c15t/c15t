@@ -2,7 +2,7 @@
  * Build step for the `c15t` umbrella package.
  *
  * An exports target cannot point into another package, so the umbrella's CSS
- * subpaths (`c15t/react/styles.css`, `c15t/next/v3/iab/styles.css`, …) must
+ * subpaths (`c15t/react/styles.css`, `c15t/next/iab/styles.css`, …) must
  * be real files. This copies them from the scoped packages' built `dist/`
  * into `packages/c15t/dist/`, mirroring the copy list the generator derives
  * from the scoped exports maps — so the copied set always matches the
@@ -20,7 +20,7 @@
  * file's package and accept no hoisting fallback.
  */
 
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 import {
@@ -34,6 +34,8 @@ const packagesRoot = join(packageRoot, '..');
 const { cssCopies } = deriveUmbrellaArtifacts(
 	createSourcePackages(packagesRoot)
 );
+
+rmSync(join(packageRoot, 'dist'), { force: true, recursive: true });
 
 for (const { target, sourceDirectory, sourcePath } of cssCopies) {
 	const source = join(packagesRoot, sourceDirectory, sourcePath);

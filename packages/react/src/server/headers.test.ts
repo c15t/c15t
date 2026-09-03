@@ -15,7 +15,6 @@ describe('extractRelevantHeaders', () => {
 		headers.set('user-agent', 'Mozilla/5.0');
 		headers.set('x-forwarded-host', 'example.com');
 		headers.set('x-forwarded-for', '127.0.0.1');
-		headers.set('x-c15t-version', '2.1.0');
 		headers.set('purpose', 'prefetch');
 		headers.set('sec-purpose', 'prefetch');
 		headers.set('next-router-prefetch', '1');
@@ -33,7 +32,6 @@ describe('extractRelevantHeaders', () => {
 			'x-amz-cf-ipcountry': 'DE',
 			'x-c15t-country': 'US',
 			'x-c15t-region': 'CA-ON',
-			'x-c15t-version': '2.1.0',
 			'x-country-code': 'FR',
 			'x-forwarded-for': '127.0.0.1',
 			'x-forwarded-host': 'example.com',
@@ -154,6 +152,21 @@ describe('extractRelevantHeaders', () => {
 		const resultOneRegion = extractRelevantHeaders(headersWithOneRegion);
 		expect(resultOneRegion).toMatchObject({
 			'x-c15t-region': 'WEST',
+		});
+	});
+
+	it('should preserve explicit x-c15t override headers over infra headers', () => {
+		const headers = new Headers();
+		headers.set('x-c15t-country', 'NL');
+		headers.set('cf-ipcountry', 'US');
+		headers.set('x-c15t-region', 'NH');
+		headers.set('cf-region-code', 'CA');
+
+		const result = extractRelevantHeaders(headers);
+
+		expect(result).toMatchObject({
+			'x-c15t-country': 'NL',
+			'x-c15t-region': 'NH',
 		});
 	});
 });

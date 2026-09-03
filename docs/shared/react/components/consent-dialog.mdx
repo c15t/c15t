@@ -45,7 +45,7 @@ group: reference
   </Callout>
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
       theme: {
         colors: {
@@ -68,10 +68,10 @@ group: reference
     }}
   >
     <ConsentDialog />
-  </ConsentManagerProvider>
+  </ConsentProvider>
   ```
 
-  Dialog copy should be changed through `ConsentManagerProvider.options.i18n`, not by rebuilding the dialog structure.
+  Dialog copy should be changed through `ConsentProvider.options.i18n`, not by rebuilding the dialog structure.
 
   ## Advanced: Compound Components
 

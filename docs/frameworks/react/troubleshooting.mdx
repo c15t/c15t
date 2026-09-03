@@ -23,22 +23,15 @@ group: frameworks
 1. **Missing `ssrData`** — Ensure you're passing the SSR data Promise to the provider:
 
 ```tsx
-<ConsentManagerProvider
+<ConsentProvider
   options={{
-    mode: 'hosted',
-    backendURL: '...',
+    mode: hosted({ url: '...' }),
     ssrData: fetchSSRData({ backendURL: '...', headers }),
   }}
 >
 ```
 
 2. **Stale cache** — If using a CDN or caching layer, ensure the SSR data is fresh per-request and not shared across users.
-
-3. **Debug with `useSSRStatus`** — Check if SSR data was actually consumed:
-
-```tsx
-const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
-```
 
 See [Server-Side Utilities](/docs/frameworks/react/server-side) for full SSR setup.
 
@@ -48,7 +41,7 @@ See [Server-Side Utilities](/docs/frameworks/react/server-side) for full SSR set
 
 ```tsx
 // Components and hooks — main entry point
-import { ConsentManagerProvider, useConsentManager } from 'c15t/react';
+import { ConsentProvider, useConsentManager } from 'c15t/react';
 
 // Server utilities — separate entry point
 import { fetchSSRData } from 'c15t/react/server';

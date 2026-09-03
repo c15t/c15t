@@ -1,18 +1,13 @@
-import type { ConsentStoreState } from '@c15t/core';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ConsentSnapshot } from '@c15t/core';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { renderScriptsPanel } from '../../panels/scripts';
+import { createConsentSnapshot } from '../helpers/kernel';
 
 const createBaseState = function createBaseState(
-	overrides: Partial<ConsentStoreState>
-): ConsentStoreState {
-	return {
-		consents: {},
-		has: vi.fn(() => false),
-		loadedScripts: {},
-		scripts: [],
-		...overrides,
-	} as unknown as ConsentStoreState;
+	overrides: Partial<ConsentSnapshot> = {}
+): ConsentSnapshot {
+	return createConsentSnapshot(overrides);
 };
 
 describe('scripts panel', () => {
@@ -22,44 +17,22 @@ describe('scripts panel', () => {
 		container = document.createElement('div');
 	});
 
-	it('evaluates complex HasCondition values via store.has()', () => {
-		const has = vi.fn(() => true);
-		const condition = {
-			and: ['measurement', 'marketing'],
-		} as unknown as ConsentStoreState['scripts'][number]['category'];
-		const state = createBaseState({
-			has,
-			scripts: [
-				{
-					category: condition,
-					id: 'analytics',
-				},
-			],
-		});
+	it('shows a consented script as pending until it loads', () => {
+		const state = createBaseState();
 
 		renderScriptsPanel(container, {
+			getScripts: () => [{ hasConsent: true, id: 'analytics', loaded: false }],
 			getState: () => state,
 		});
 
-		expect(has).toHaveBeenCalledWith(condition);
 		expect(container.textContent).toContain('Pending');
 	});
 
-	it('shows blocked when complex condition does not pass', () => {
-		const has = vi.fn(() => false);
-		const state = createBaseState({
-			has,
-			scripts: [
-				{
-					category: {
-						or: ['measurement', 'marketing'],
-					} as unknown as ConsentStoreState['scripts'][number]['category'],
-					id: 'analytics',
-				},
-			],
-		});
+	it('shows blocked when the loader reports no consent', () => {
+		const state = createBaseState();
 
 		renderScriptsPanel(container, {
+			getScripts: () => [{ hasConsent: false, id: 'analytics', loaded: false }],
 			getState: () => state,
 		});
 
@@ -67,9 +40,7 @@ describe('scripts panel', () => {
 	});
 
 	it('renders blocked request stats from network events', () => {
-		const state = createBaseState({
-			scripts: [],
-		});
+		const state = createBaseState();
 
 		renderScriptsPanel(container, {
 			getEvents: () =>
@@ -88,6 +59,7 @@ describe('scripts panel', () => {
 						type: 'network',
 					},
 				] as const,
+			getScripts: () => [],
 			getState: () => state,
 		});
 
@@ -96,14 +68,7 @@ describe('scripts panel', () => {
 	});
 
 	it('renders expandable script activity details for each script', () => {
-		const state = createBaseState({
-			scripts: [
-				{
-					category: 'measurement',
-					id: 'analytics',
-				},
-			],
-		});
+		const state = createBaseState();
 
 		renderScriptsPanel(container, {
 			getEvents: () => [
@@ -134,6 +99,7 @@ describe('scripts panel', () => {
 					type: 'script',
 				},
 			],
+			getScripts: () => [{ id: 'analytics', loaded: false }],
 			getState: () => state,
 		});
 
@@ -155,18 +121,7 @@ describe('scripts panel', () => {
 	});
 
 	it('orders grouped activity as timeline phases, oldest to newest', () => {
-		const state = createBaseState({
-			loadedScripts: {
-				'google-tag-manager': true,
-			},
-			scripts: [
-				{
-					category: 'necessary',
-
-					id: 'google-tag-manager',
-				},
-			],
-		});
+		const state = createBaseState();
 
 		renderScriptsPanel(container, {
 			getEvents: () => [
@@ -250,6 +205,7 @@ describe('scripts panel', () => {
 					type: 'script',
 				},
 			],
+			getScripts: () => [{ id: 'google-tag-manager', loaded: true }],
 			getState: () => state,
 		});
 
@@ -269,14 +225,7 @@ describe('scripts panel', () => {
 	});
 
 	it('shows the most recent eight activity events in the accordion', () => {
-		const state = createBaseState({
-			scripts: [
-				{
-					category: 'measurement',
-					id: 'analytics',
-				},
-			],
-		});
+		const state = createBaseState();
 
 		renderScriptsPanel(container, {
 			getEvents: () =>
@@ -293,6 +242,7 @@ describe('scripts panel', () => {
 					timestamp: index + 1,
 					type: 'script' as const,
 				})),
+			getScripts: () => [{ id: 'analytics', loaded: false }],
 			getState: () => state,
 		});
 

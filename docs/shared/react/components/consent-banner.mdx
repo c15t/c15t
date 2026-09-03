@@ -48,7 +48,7 @@ group: reference
   Use the provider `theme` prop to control how stock consent actions look:
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
       theme: {
         consentActions: {
@@ -60,7 +60,7 @@ group: reference
     }}
   >
     <ConsentBanner />
-  </ConsentManagerProvider>
+  </ConsentProvider>
   ```
 
   Policy packs control grouping, ordering, and direction. The theme controls button appearance.
@@ -78,7 +78,7 @@ group: reference
   - Card, footer, and title tweaks -> `components.banner.card`, `components.banner.footer`, and `components.banner.title`
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
       theme: {
         colors: {
@@ -96,7 +96,7 @@ group: reference
     }}
   >
     <ConsentBanner />
-  </ConsentManagerProvider>
+  </ConsentProvider>
   ```
 
   ### Primary Button
@@ -127,7 +127,7 @@ group: reference
   ```
 
   <Callout type="info">
-    Legal link URLs are configured in the `ConsentManagerProvider` options via the `legalLinks` prop, not on the banner itself.
+    Legal link URLs are configured in the `ConsentProvider` options via the `legalLinks` prop, not on the banner itself.
   </Callout>
 
   ## Customizing Copy
@@ -135,7 +135,7 @@ group: reference
   Prefer provider `i18n` when you want to rename the stock banner content:
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
       i18n: {
         locale: 'en',
@@ -156,7 +156,7 @@ group: reference
     }}
   >
     <ConsentBanner />
-  </ConsentManagerProvider>
+  </ConsentProvider>
   ```
 
   Direct text props such as `title`, `description`, and `acceptButtonText` are still supported for one-off overrides, but `i18n` is the preferred path for copy changes.

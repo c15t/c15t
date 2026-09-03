@@ -5,7 +5,6 @@
  * and aria attributes.
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -39,7 +38,6 @@ describe('ConsentDialogTrigger', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('showWhen="never" does not render trigger', async () => {

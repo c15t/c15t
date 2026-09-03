@@ -1,4 +1,4 @@
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
 
 import type { DevToolsState, EventLogEntry } from './state-manager';
 import type { ConnectionDiagnostics } from './store-connector';
@@ -48,7 +48,7 @@ export const createDebugBundle = function createDebugBundle(
 };
 
 export const sanitizeStoreState = function sanitizeStoreState(
-	state: ConsentStoreState | null
+	state: ConsentSnapshot | null
 ): Record<string, unknown> | null {
 	if (!state) {
 		return null;
@@ -61,7 +61,7 @@ export const sanitizeStoreState = function sanitizeStoreState(
 		) as Record<string, unknown>;
 	} catch {
 		return {
-			error: 'Unable to serialize store state',
+			error: 'Unable to serialize kernel snapshot',
 		};
 	}
 };

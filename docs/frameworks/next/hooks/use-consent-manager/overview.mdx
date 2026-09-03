@@ -33,7 +33,7 @@ You can link a consent subject to your own internal user ID or a non-secret anon
 When using Clerk, prefer the Clerk `userId` whenever the visitor is signed in. Before sign-in, you can fall back to a non-secret visitor ID stored in a first-party cookie:
 
 <Callout type="warn">
-  `ConsentManagerProvider` runs on the client. Values passed through
+  `ConsentProvider` runs on the client. Values passed through
   `options.user` are therefore available to client-side JavaScript, even when
   they were read from an HttpOnly cookie on the server. Pass only a non-secret
   identifier, such as a Clerk `userId` or an opaque visitor ID. Never pass a
@@ -50,9 +50,9 @@ When using Clerk, prefer the Clerk `userId` whenever the visitor is signed in. B
 
 ```tsx
 // app/layout.tsx
-import { ClerkProvider } from '@clerk/nextjs';
+import { hosted, ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { cookies } from 'next/headers';
 import { ClerkConsentSync } from './clerk-consent-sync';
 
@@ -70,17 +70,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body>
         <ClerkProvider>
-          <ConsentManagerProvider
+          <ConsentProvider
             options={{
-              mode: 'hosted',
-              backendURL: '/api/c15t',
+              mode: hosted({ url: '/api/c15t' }),
               consentCategories: ['necessary', 'measurement', 'marketing'],
               user: consentUser,
             }}
           >
             <ClerkConsentSync />
             {children}
-          </ConsentManagerProvider>
+          </ConsentProvider>
         </ClerkProvider>
       </body>
     </html>
@@ -90,7 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 ### 2. Synchronizing Clerk Sign-ins
 
-Clerk can complete a sign-in without reloading the page. Add a client component inside `ConsentManagerProvider` to update the current consent subject as soon as Clerk exposes the authenticated `userId`:
+Clerk can complete a sign-in without reloading the page. Add a client component inside `ConsentProvider` to update the current consent subject as soon as Clerk exposes the authenticated `userId`:
 
 ```tsx
 // app/clerk-consent-sync.tsx
@@ -126,7 +125,7 @@ export function ClerkConsentSync() {
 `identifyUser()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, stop supplying the former visitor ID. The example clears its client-readable cookie only after `identifyUser()` succeeds so a later render cannot change the subject back to the anonymous ID.
 
 <Callout type="info">
-  Backend subject identification requires hosted mode (`mode: 'hosted'`). In
+  Backend subject identification requires hosted mode (`mode: hosted({ url })`). In
   offline mode, `identifyUser()` cannot update a backend subject. Identifiers
   supplied through `options.user` can still be held in client state and
   persisted with locally stored consent, so do not place sensitive values

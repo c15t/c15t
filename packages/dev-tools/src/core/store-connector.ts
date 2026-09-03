@@ -1,36 +1,44 @@
 /**
- * Store Connector
- * Connects to the c15tStore exposed on the window object
+ * Kernel Connector
+ * Connects to a `ConsentKernel`, either handed in directly or exposed on
+ * the window object under a namespace.
  */
 
-import type { ConsentStoreState } from '@c15t/core';
-import type { StoreApi } from 'zustand/vanilla';
+import type { ConsentKernel, ConsentSnapshot } from '@c15t/core';
 
 /**
- * Options for creating a store connector
+ * Window property the connector polls for a kernel when none is passed in.
+ * Apps expose their kernel with `window.c15tKernel = kernel`.
+ */
+export const DEFAULT_KERNEL_NAMESPACE = 'c15tKernel';
+
+/**
+ * Options for creating a kernel connector
  */
 export interface StoreConnectorOptions {
 	/**
-	 * The namespace used to access the store on the window object
-	 * @default 'c15tStore'
+	 * The namespace used to look the kernel up on the window object
+	 * @default 'c15tKernel'
 	 */
 	namespace?: string;
 
 	/**
-	 * Callback when the store becomes available
+	 * Kernel handle to connect to directly. Skips window polling.
 	 */
-	onConnect?: (
-		state: ConsentStoreState,
-		store: StoreApi<ConsentStoreState>
-	) => void;
+	kernel?: ConsentKernel;
 
 	/**
-	 * Callback when store state changes
+	 * Callback when the kernel becomes available
 	 */
-	onStateChange?: (state: ConsentStoreState) => void;
+	onConnect?: (snapshot: ConsentSnapshot, kernel: ConsentKernel) => void;
 
 	/**
-	 * Callback when the store connection is lost or not found
+	 * Callback when the kernel snapshot changes
+	 */
+	onStateChange?: (snapshot: ConsentSnapshot) => void;
+
+	/**
+	 * Callback when the kernel could not be found after several attempts
 	 */
 	onDisconnect?: () => void;
 }
@@ -45,31 +53,31 @@ export interface ConnectionDiagnostics {
 }
 
 /**
- * Store connector instance interface
+ * Kernel connector instance interface
  */
 export interface StoreConnector {
 	/**
-	 * Get the current store state
-	 * Returns null if store is not connected
+	 * Get the current kernel snapshot
+	 * Returns null if no kernel is connected
 	 */
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
 
 	/**
-	 * Get the raw store API
-	 * Returns null if store is not connected
+	 * Get the connected kernel
+	 * Returns null if no kernel is connected
 	 */
-	getStore: () => StoreApi<ConsentStoreState> | null;
+	getKernel: () => ConsentKernel | null;
 
 	/**
-	 * Check if the store is connected
+	 * Check if a kernel is connected
 	 */
 	isConnected: () => boolean;
 
 	/**
-	 * Subscribe to store state changes
+	 * Subscribe to snapshot changes
 	 * Returns unsubscribe function
 	 */
-	subscribe: (listener: (state: ConsentStoreState) => void) => () => void;
+	subscribe: (listener: (snapshot: ConsentSnapshot) => void) => () => void;
 
 	/**
 	 * Gets connection diagnostics for disconnected-state troubleshooting.
@@ -89,30 +97,62 @@ export interface StoreConnector {
 	retryConnection: () => void;
 
 	/**
-	 * Disconnect from the store and cleanup
+	 * Disconnect from the kernel and cleanup
 	 */
 	destroy: () => void;
 }
 
 /**
- * Creates a connector to the c15tStore
+ * Structural check for a kernel handle. Only the members the devtools
+ * call are verified so a compatible test double also passes.
+ */
+export const isConsentKernel = function isConsentKernel(
+	value: unknown
+): value is ConsentKernel {
+	if (!value || typeof value !== 'object') {
+		return false;
+	}
+	const candidate = value as Record<string, unknown>;
+	return (
+		typeof candidate.getSnapshot === 'function' &&
+		typeof candidate.subscribe === 'function' &&
+		typeof candidate.set === 'object' &&
+		candidate.set !== null &&
+		typeof candidate.commands === 'object' &&
+		candidate.commands !== null
+	);
+};
+
+const readWindowKernel = function readWindowKernel(
+	namespace: string
+): ConsentKernel | null {
+	if (typeof window === 'undefined') {
+		return null;
+	}
+	const candidate = (window as unknown as Record<string, unknown>)[namespace];
+	return isConsentKernel(candidate) ? candidate : null;
+};
+
+/**
+ * Creates a connector to a consent kernel
  */
 export const createStoreConnector = function createStoreConnector(
 	options: StoreConnectorOptions = {}
 ): StoreConnector {
 	const {
-		namespace = 'c15tStore',
+		namespace = DEFAULT_KERNEL_NAMESPACE,
+		kernel: providedKernel,
 		onConnect,
 		onStateChange,
 		onDisconnect,
 	} = options;
 
-	let store: StoreApi<ConsentStoreState> | null = null;
+	let kernel: ConsentKernel | null = null;
 	let unsubscribe: (() => void) | null = null;
 	let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 	let reconnectAttempts = 0;
 	let hasNotifiedDisconnect = false;
-	const listeners = new Set<(state: ConsentStoreState) => void>();
+	const listeners = new Set<(snapshot: ConsentSnapshot) => void>();
 	const diagnosticsListeners = new Set<
 		(diagnostics: ConnectionDiagnostics) => void
 	>();
@@ -173,19 +213,13 @@ export const createStoreConnector = function createStoreConnector(
 	};
 
 	/**
-	 * Try to connect to the store
+	 * Try to connect to the kernel
 	 */
 	const tryConnect = function tryConnect(): boolean {
-		if (typeof window === 'undefined') {
-			return false;
-		}
+		const candidate = providedKernel ?? readWindowKernel(namespace);
 
-		const storeInstance = (window as unknown as Record<string, unknown>)[
-			namespace
-		] as StoreApi<ConsentStoreState> | undefined;
-
-		if (storeInstance && typeof storeInstance.getState === 'function') {
-			if (store === storeInstance && unsubscribe) {
+		if (candidate) {
+			if (kernel === candidate && unsubscribe) {
 				return true;
 			}
 
@@ -194,19 +228,16 @@ export const createStoreConnector = function createStoreConnector(
 				unsubscribe = null;
 			}
 
-			store = storeInstance;
+			kernel = candidate;
 
-			// Subscribe to store changes
-			unsubscribe = store.subscribe((state) => {
-				onStateChange?.(state);
+			unsubscribe = kernel.subscribe((snapshot) => {
+				onStateChange?.(snapshot);
 				for (const listener of listeners) {
-					listener(state);
+					listener(snapshot);
 				}
 			});
 
-			// Notify connection
-			const currentState = store.getState();
-			onConnect?.(currentState, store);
+			onConnect?.(kernel.getSnapshot(), kernel);
 
 			clearReconnectTimer();
 			resetReconnectState();
@@ -218,18 +249,21 @@ export const createStoreConnector = function createStoreConnector(
 		}
 
 		updateDiagnostics({
-			lastError: `Store "${namespace}" not found on window`,
+			lastError:
+				typeof window === 'undefined'
+					? 'No window available to look the kernel up on'
+					: `Kernel "${namespace}" not found on window`,
 		});
 		return false;
 	};
 
 	/**
-	 * Start polling for store availability
+	 * Start polling for kernel availability
 	 */
 	const scheduleReconnect = function scheduleReconnect(
 		immediate = false
 	): void {
-		if (store || reconnectTimeout) {
+		if (kernel || reconnectTimeout) {
 			return;
 		}
 
@@ -282,21 +316,21 @@ export const createStoreConnector = function createStoreConnector(
 				unsubscribe = null;
 			}
 
-			store = null;
+			kernel = null;
 			listeners.clear();
 			diagnosticsListeners.clear();
 		},
 
 		getDiagnostics: () => diagnostics,
 
-		getState: () => store?.getState() ?? null,
+		getKernel: () => kernel,
 
-		getStore: () => store,
+		getState: () => kernel?.getSnapshot() ?? null,
 
-		isConnected: () => store !== null,
+		isConnected: () => kernel !== null,
 
 		retryConnection: () => {
-			if (store) {
+			if (kernel) {
 				return;
 			}
 			resetReconnectState();
@@ -306,9 +340,9 @@ export const createStoreConnector = function createStoreConnector(
 		subscribe: (listener) => {
 			listeners.add(listener);
 
-			// If already connected, call with current state
-			if (store) {
-				listener(store.getState());
+			// If already connected, call with current snapshot
+			if (kernel) {
+				listener(kernel.getSnapshot());
 			}
 
 			return () => {
@@ -327,31 +361,19 @@ export const createStoreConnector = function createStoreConnector(
 };
 
 /**
- * Get the store directly from the window object (one-time access)
+ * Get the kernel directly from the window object (one-time access)
  */
-export const getC15tStore = function getC15tStore(
-	namespace = 'c15tStore'
-): StoreApi<ConsentStoreState> | null {
-	if (typeof window === 'undefined') {
-		return null;
-	}
-
-	const store = (window as unknown as Record<string, unknown>)[namespace] as
-		| StoreApi<ConsentStoreState>
-		| undefined;
-
-	if (store && typeof store.getState === 'function') {
-		return store;
-	}
-
-	return null;
+export const getC15tKernel = function getC15tKernel(
+	namespace = DEFAULT_KERNEL_NAMESPACE
+): ConsentKernel | null {
+	return readWindowKernel(namespace);
 };
 
 /**
- * Check if the c15t store is available
+ * Check if a c15t kernel is exposed on the window
  */
-export const isC15tStoreAvailable = function isC15tStoreAvailable(
-	namespace = 'c15tStore'
+export const isC15tKernelAvailable = function isC15tKernelAvailable(
+	namespace = DEFAULT_KERNEL_NAMESPACE
 ): boolean {
-	return getC15tStore(namespace) !== null;
+	return getC15tKernel(namespace) !== null;
 };

@@ -1,19 +1,20 @@
 'use client';
 
 import {
-	ConsentManagerProvider,
-	useConsentManager,
-} from '@c15t/nextjs/headless';
-import { ConsentBanner } from '@c15t/react/components/consent-banner';
+	ConsentBanner,
+	ConsentProvider,
+	offline,
+	useConsents,
+} from '@c15t/nextjs';
 
 const BasicState = () => {
-	const { consents } = useConsentManager();
+	const consents = useConsents();
 	return <pre>{JSON.stringify(consents, null, 2)}</pre>;
 };
 const NextjsBasicPage = () => (
-	<ConsentManagerProvider
+	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 		}}
 	>
 		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
@@ -21,7 +22,7 @@ const NextjsBasicPage = () => (
 			<BasicState />
 		</main>
 		<ConsentBanner />
-	</ConsentManagerProvider>
+	</ConsentProvider>
 );
 
 export default NextjsBasicPage;

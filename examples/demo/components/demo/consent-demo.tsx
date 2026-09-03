@@ -1,10 +1,11 @@
 'use client';
 
-import { iab } from '@c15t/iab';
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
+	ConsentProvider,
+	hosted,
+	offline,
 } from 'c15t/react';
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -237,7 +238,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 	const iabConfig = useMemo(
 		() =>
 			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-			iab({
+			({
 				// Offline mode has no server to supply a CMP ID, so the client
 				// config must provide one. Matches the self-host backend.
 				cmpId: DEMO_CMP_ID,
@@ -293,29 +294,24 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 	const providerOptions =
 		params.mode === 'hosted'
-			? (() => {
-					const hostedOptions = {
-						backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
-						mode: 'c15t' as const,
-					};
-					if (isSelfHost) {
-						Object.assign(hostedOptions, {
-							headers: { [DEMO_SCENARIO_HEADER]: params.scenarioId },
-						});
-					}
-					return {
-						...hostedOptions,
-						...sharedOptions,
-					};
-				})()
+			? {
+					...sharedOptions,
+					mode: hosted({
+						headers: isSelfHost
+							? { [DEMO_SCENARIO_HEADER]: params.scenarioId }
+							: undefined,
+						url: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
+					}),
+				}
 			: {
-					mode: 'offline' as const,
+					mode: offline({
+						policyPacks: getScenarioPolicyPacks(params.scenarioId),
+					}),
 					offlinePolicy: {
 						i18n: {
 							defaultProfile: 'default',
 							messages: demoI18nMessages,
 						},
-						policyPacks: getScenarioPolicyPacks(params.scenarioId),
 					},
 					...sharedOptions,
 				};
@@ -353,7 +349,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 					</div>
 				</header>
 
-				<ConsentManagerProvider
+				<ConsentProvider
 					key={providerKey}
 					options={providerOptions}
 				>
@@ -490,7 +486,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 						scrollLock={false}
 					/>
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			</div>
 		</main>
 	);

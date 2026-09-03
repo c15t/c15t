@@ -7,7 +7,6 @@
  * Mirrors: packages/react/src/components/__tests__/active-ui-transitions.e2e.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -43,7 +42,6 @@ describe('activeUI Transitions E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('banner shows on first visit (activeUI becomes banner)', async () => {

@@ -6,7 +6,6 @@
  * Mirrors: packages/react/src/components/__tests__/ui-source-tracking.e2e.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -42,7 +41,6 @@ describe('UI Source Tracking E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('Banner uiSource', () => {

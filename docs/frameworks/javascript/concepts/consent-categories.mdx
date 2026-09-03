@@ -6,42 +6,43 @@ group: frameworks
 
 <import src="../../../shared/concepts/consent-categories.mdx#overview" />
 
-Configure which categories your app supports in the runtime options:
+The resolved policy determines which categories are active. Hosted mode loads
+that policy from your backend:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport, has } from 'c15t';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  consentCategories: ['necessary', 'measurement', 'marketing'],
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
 });
+
+await kernel.commands.init();
 ```
 
 <import src="../../../shared/concepts/consent-categories.mdx#categories-table" />
 
-Check if a specific category has consent using the `has()` method:
+Check a category or condition with `has()`:
 
 ```ts
-const state = consentStore.getState();
+const { consents } = kernel.getSnapshot();
 
-if (state.has('measurement')) {
+if (has('measurement', consents)) {
   // Safe to load analytics scripts
 }
 
 // Complex conditions
-if (state.has({ and: ['measurement', 'marketing'] })) {
+if (has({ and: ['measurement', 'marketing'] }, consents)) {
   // Both measurement and marketing are granted
 }
 ```
 
 <import src="../../../shared/concepts/consent-categories.mdx#configuration" />
 
-You can dynamically update which categories are active:
+Read the current policy scope from the snapshot:
 
 ```ts
-const state = consentStore.getState();
-
-// Add a new category
-state.setConsentCategories([...state.consentCategories, 'experience']);
+const { policyCategories, policyScopeMode } = kernel.getSnapshot();
+console.log(policyCategories, policyScopeMode);
 ```

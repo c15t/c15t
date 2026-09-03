@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import type { PolicyUiAction } from '@c15t/schema/types';
-import accordionStyles from '@c15t/ui/styles/v3/accordion';
-import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
-import managerStyles from '@c15t/ui/styles/v3/consent-manager';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+import managerStyles from '@c15t/ui/styles/components/consent-manager';
 import { computed, nextTick, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 

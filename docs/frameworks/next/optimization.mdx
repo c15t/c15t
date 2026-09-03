@@ -14,7 +14,7 @@ Apply the optimizations in this order:
 |-----------|-----|-----|
 | Any production Next.js app | Same-origin `/api/c15t` rewrite | Lowers browser startup overhead and keeps the backend origin out of client config |
 | Static route, but banner speed matters | `C15tPrefetch` | Starts `/init` before hydration without making the route dynamic |
-| Dynamic route, or you want the fastest first banner | `fetchInitialData()` | Starts `/init` on the server and streams the result into the provider |
+| Dynamic route, or you want the fastest first banner | `prefetchInitialConsent()` | Resolves `/init` on the server and hydrates `ConsentBoundary` |
 | You want the simplest setup | Client-only init | No extra moving parts, but the banner appears later on cold loads |
 
 <Callout type="info">
@@ -51,7 +51,7 @@ export default config;
 Then use:
 
 ```tsx
-<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+<ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
 ```
 
 <import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
@@ -61,7 +61,7 @@ Then use:
 </Callout>
 
 <Callout type="warn">
-  Use rewrites for browser-side calls (`ConsentManagerProvider`, `C15tPrefetch`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-project.inth.app`) to avoid an extra server proxy hop.
+  Use rewrites for browser-side calls (`ConsentProvider`, `C15tPrefetch`). For server-side `prefetchInitialConsent()`, prefer a direct backend URL (for example `https://your-project.inth.app`) to avoid an extra server proxy hop.
 </Callout>
 
 ## 2) Choose A Startup Strategy
@@ -74,69 +74,38 @@ Keep the default provider setup when you want the least complexity. This works o
 
 ### Dynamic Routes: Fetch On The Server And Stream
 
-Use `fetchInitialData()` when the route is already dynamic, or when you are willing to make it dynamic in exchange for the fastest first banner.
+Use `prefetchInitialConsent()` when the route is already dynamic, or when you are willing to make it dynamic in exchange for the fastest first banner.
 
 Because it depends on `next/headers`, this opts the route into dynamic rendering.
 
 ```tsx title="app/layout.tsx"
-import { fetchInitialData } from 'c15t/next';
-import ConsentManager from '@/components/consent-manager';
+import { ConsentBoundary } from 'c15t/next';
+import { prefetchInitialConsent } from 'c15t/next/server';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const ssrData = fetchInitialData({
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const config = await prefetchInitialConsent({
     backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
   });
 
   return (
     <html lang="en">
       <body>
-        <ConsentManager ssrData={ssrData}>{children}</ConsentManager>
+        <ConsentBoundary backendURL="/api/c15t" config={config}>
+          {children}
+        </ConsentBoundary>
       </body>
     </html>
   );
 }
 ```
 
-```tsx title="components/consent-manager/provider.tsx"
-'use client';
-
-import { type ReactNode } from 'react';
-import {
-  ConsentManagerProvider,
-  ConsentBanner,
-  ConsentDialog,
-  type InitialDataPromise,
-} from 'c15t/next';
-
-export default function ConsentManager({
-  children,
-  ssrData,
-}: {
-  children: ReactNode;
-  ssrData?: InitialDataPromise;
-}) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
-        ssrData,
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
-
 <Callout type="warn">
-  Do not `await` `fetchInitialData()`. Pass the unresolved Promise to the provider so Next.js can stream the route while `/init` runs in parallel.
+  The server helper uses `next/headers`, so this route is dynamic. Keep static
+  routes on `C15tPrefetch` instead.
 </Callout>
 
 <Callout type="info">
-  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-project.inth.app` instead of a rewrite to avoid an extra server-side proxy hop. See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for the full flow.
+  For `prefetchInitialConsent()`, prefer a direct backend URL such as `https://your-project.inth.app` instead of a rewrite to avoid an extra server-side proxy hop. See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for the full flow.
 </Callout>
 
 ### Static Routes: Start Fetch Early In The Browser
@@ -167,25 +136,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```tsx title="components/consent-manager/provider.tsx"
 'use client';
 
-import {
-  ConsentManagerProvider,
+import { hosted,
+  ConsentProvider,
   ConsentBanner,
   ConsentDialog,
 } from 'c15t/next';
 
 export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         overrides: { country: 'DE', region: 'BE', language: 'de' },
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

@@ -11,7 +11,7 @@ kernel wiring, and it is intentionally excluded from the published packages.
 A real Solid adapter must reach behavioral parity with the other kernel-based
 integrations (`@c15t/react`, `@c15t/svelte`, `@c15t/vue`):
 
-- A provider wiring the shared v3 kernel (`c15t/v3`) with script-loader,
+- A provider wiring the shared kernel (`c15t`) with script-loader,
   network-blocker, iframe-blocker, and persistence modules
 - `ConsentBanner`, `ConsentDialog`, `ConsentWidget`, IAB components matching
   the shared DOM/ARIA contract (`@c15t/conformance/contract`)

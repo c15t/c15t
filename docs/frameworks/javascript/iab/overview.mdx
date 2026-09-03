@@ -8,41 +8,46 @@ group: frameworks
 
 ## Quick Setup
 
-Enable IAB TCF in the runtime options:
+Bind the IAB module to an initialized kernel:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-import { iab } from '@c15t/iab';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createIAB } from '@c15t/iab';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  iab: iab({
-    vendors: [1, 2, 10, 25],  // IAB vendor IDs you work with
-    // cmpId is automatically provided by the backend (inth.com).
-    // Only set this if you have your own CMP registration with IAB Europe.
-    // cmpId: 123,
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
   }),
+});
+
+await kernel.commands.init();
+
+const iab = createIAB({
+  kernel,
+  cmpId: 123,
+  vendors: [1, 2, 10, 25],
 });
 ```
 
 ## Accessing IAB State
 
-The IAB manager is available on the store state when IAB is enabled:
+IAB state is available on the kernel snapshot when IAB is enabled:
 
 ```ts
-const { iab } = consentStore.getState();
+const { iab: iabState } = kernel.getSnapshot();
 
-if (iab) {
-  console.log('GVL:', iab.gvl);
-  console.log('Vendor consents:', iab.vendorConsents);
-  console.log('Purpose consents:', iab.purposeConsents);
+if (iabState) {
+  console.log('GVL:', iabState.gvl);
+  console.log('Vendor consents:', iabState.vendorConsents);
+  console.log('Purpose consents:', iabState.purposeConsents);
 }
 
 // Subscribe to IAB state changes
-consentStore.subscribe((state, prevState) => {
-  if (state.iab !== prevState.iab && state.iab) {
-    console.log('IAB state updated:', state.iab);
+let previousIab = iabState;
+kernel.subscribe((snapshot) => {
+  if (snapshot.iab !== previousIab && snapshot.iab) {
+    console.log('IAB state updated:', snapshot.iab);
+    previousIab = snapshot.iab;
   }
 });
 ```
@@ -64,5 +69,5 @@ window.__tcfapi('getTCData', 2, (tcData, success) => {
 <import src="../../../shared/react/iab/overview.mdx#config-and-concepts" />
 
 <Callout type="info">
-  The `c15t` core package handles all IAB logic (TC string generation, `__tcfapi` registration, GVL fetching) without any framework-specific components. Build your own IAB consent UI using the store state, or use [`c15t/react`](/docs/frameworks/react/iab/overview) for pre-built IAB components.
+  The `@c15t/iab` package handles TC string generation, `__tcfapi` registration, and GVL fetching without framework-specific components. Build your own IAB consent UI from the kernel snapshot, or use [`c15t/react`](/docs/frameworks/react/iab/overview) for pre-built IAB components.
 </Callout>

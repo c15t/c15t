@@ -33,7 +33,7 @@
 		"clear-cache": "bun scripts/clear-rslib-cache.ts",
 		"compat:styles:build": "turbo run build --filter=@c15t/css-layer-preview --filter=@c15t/tw3-css-test --filter=@c15t/tw4-css-test --filter=@c15t/no-tw-css-test",
 		"compat:styles:review": "node scripts/css-layer-review.mjs",
-		"compat:styles:verify": "node scripts/verify-css-layer-v3.mjs",
+		"compat:styles:verify": "node scripts/verify-css-layer.mjs",
 		"dev": "turbo run dev --filter=@c15t/example-demo",
 		"dev:bench:nextjs": "turbo run dev --filter=@c15t/nextjs-browser-bench",
 		"e2e:consent": "node scripts/verify-consent-e2e.mjs",

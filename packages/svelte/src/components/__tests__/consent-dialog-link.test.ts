@@ -5,7 +5,6 @@
  * with action="open-consent-dialog" and noStyle=true by default.
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -31,7 +30,6 @@ describe('ConsentDialogLink', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('renders with default data-testid', async () => {

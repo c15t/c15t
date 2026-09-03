@@ -10,22 +10,25 @@ group: frameworks
 
 <import src="../../../shared/concepts/cookie-management.mdx#why-reload" />
 
-Configure reload behavior in the runtime options:
+The promoted kernel does not reload the page automatically. If your app needs a
+reload after revocation, compare snapshots and apply that policy explicitly:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, has } from 'c15t';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  reloadOnConsentRevoked: true, // default: true
-  callbacks: {
-    onBeforeConsentRevocationReload: ({ preferences }) => {
-      // Run cleanup before the page reloads
-      // e.g., flush pending analytics events
-      console.log('Reloading due to consent revocation:', preferences);
-    },
-  },
+const kernel = createConsentKernel();
+let previous = kernel.getSnapshot();
+
+kernel.subscribe((snapshot) => {
+  const revokedMeasurement =
+    has('measurement', previous.consents) &&
+    !has('measurement', snapshot.consents);
+
+  previous = snapshot;
+  if (revokedMeasurement) {
+    analytics.flush();
+    window.location.reload();
+  }
 });
 ```
 
@@ -34,7 +37,7 @@ const { consentStore } = getOrCreateConsentRuntime({
 </Callout>
 
 <Callout type="warn">
-  Setting `reloadOnConsentRevoked: false` means previously-loaded scripts will continue running after consent is revoked. Only disable this if you have a specific strategy for handling script cleanup.
+  The script loader removes scripts after consent is revoked unless a script uses `persistAfterConsentRevoked`. A reload may still be needed when a third-party SDK cannot be shut down cleanly.
 </Callout>
 
 <import src="../../../shared/concepts/cookie-management.mdx#revocation-flow" />

@@ -6,7 +6,6 @@
  * Mirrors: packages/react/src/components/__tests__/consent-flow.e2e.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -43,7 +42,6 @@ describe('Consent Flow E2E Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('First Visit Flow', () => {

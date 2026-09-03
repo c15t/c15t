@@ -11,7 +11,13 @@ const HomePage = () => (
 				<Link href="/headless">/headless</Link>
 			</li>
 			<li>
-				<Link href="/vanilla-core">/vanilla-core</Link>
+				<Link href="/banner-css">/banner-css</Link>
+			</li>
+			<li>
+				<Link href="/css-banner-modules">/css-banner-modules</Link>
+			</li>
+			<li>
+				<Link href="/banner-visibility">/banner-visibility</Link>
 			</li>
 		</ul>
 	</main>

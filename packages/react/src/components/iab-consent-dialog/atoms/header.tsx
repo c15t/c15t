@@ -1,13 +1,13 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef } from 'react';
 import type { ReactNode } from 'react';
 
-import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useStyles } from '~/hooks/use-styles';
-import { useTranslations } from '~/hooks/use-translations';
+import { useTranslations } from '~/component-hooks/use-translations';
+import { useSetActiveUI } from '~/hooks';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { useIABTranslations } from '../use-iab-translations';
 
@@ -48,7 +48,8 @@ const IABConsentDialogHeader = createForwardRef<
 		{ children, headerTitle, description, showCloseButton = true, className },
 		ref
 	) => {
-		const { setActiveUI } = useConsentManager();
+		const setActiveUI = useSetActiveUI();
+		const { components } = useUIConfig();
 		const iabTranslations = useIABTranslations();
 		const { common } = useTranslations();
 
@@ -56,16 +57,15 @@ const IABConsentDialogHeader = createForwardRef<
 			setActiveUI('none');
 		};
 
-		const themedStyle = useStyles('iabConsentDialogHeader', {
+		const themedStyle = mergeSlotProps(components?.['iab-dialog']?.header, {
 			baseClassName: styles.header,
 			className,
 		});
-		const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 		return (
 			<div
 				ref={ref}
-				{...domStyleProps}
+				{...themedStyle}
 			>
 				{children ? (
 					children

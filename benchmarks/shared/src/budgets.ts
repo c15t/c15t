@@ -1,7 +1,7 @@
 import type { MetricBudget } from './schema';
 
 /**
- * v3 budget constants — apply to `c15t/v3`, `@c15t/react/v3`, `@c15t/nextjs/v3`.
+ * v3 budget constants for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
  *
  * These use `percent-lte` with NEGATIVE thresholds, meaning the v3 measurement
  * must IMPROVE by at least |threshold|% against the base branch. The base

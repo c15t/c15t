@@ -2,14 +2,15 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogTrigger,
-	ConsentManagerProvider,
+	ConsentProvider,
+	offline,
 } from '@c15t/react';
 
 export const App = () => (
-	<ConsentManagerProvider
+	<ConsentProvider
 		options={{
 			disableAnimation: true,
-			mode: 'offline',
+			mode: offline(),
 		}}
 	>
 		<main className="app-shell">
@@ -25,5 +26,5 @@ export const App = () => (
 			<ConsentDialog />
 			<ConsentDialogTrigger />
 		</main>
-	</ConsentManagerProvider>
+	</ConsentProvider>
 );

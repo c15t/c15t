@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { defaultTranslationConfig } from '@c15t/core';
 	import type { Model } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import actionStyles from '@c15t/ui/styles/components/consent-actions';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
+	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
@@ -183,6 +185,17 @@
 		activeTab = 'vendors';
 		iabState?.setPreferenceCenterTab('vendors');
 	};
+
+	const secondaryButtonClass = buttonVariants({
+		mode: 'stroke',
+		size: 'small',
+		variant: 'neutral',
+	}).root();
+	const primaryButtonClass = buttonVariants({
+		mode: 'filled',
+		size: 'small',
+		variant: 'primary',
+	}).root();
 </script>
 
 <Dialog.Root
@@ -463,33 +476,40 @@
 				</Tabs.Root>
 
 				<!-- Footer -->
-				<div class={noStyle ? '' : styles.footer || ''}>
-					<div class={noStyle ? '' : styles.footerButtons || ''}>
+				<div
+					class={noStyle ? '' : `${styles.footer} ${actionStyles.actionRoot}`}
+					data-direction="row"
+					data-split
+				>
+					<div
+						class={noStyle ? '' : actionStyles.actionGroup}
+						data-direction="row"
+					>
 						<button
 							type="button"
-							class={noStyle ? '' : styles.footerButton || ''}
+							class={noStyle ? '' : secondaryButtonClass}
 							onclick={handleRejectAll}
 							disabled={isLoading}
+							data-action="reject"
 						>
 							{iabT.common.rejectAll}
 						</button>
 						<button
 							type="button"
-							class={noStyle ? '' : styles.footerButton || ''}
+							class={noStyle ? '' : secondaryButtonClass}
 							onclick={handleAcceptAll}
 							disabled={isLoading}
+							data-action="accept"
 						>
 							{iabT.common.acceptAll}
 						</button>
 					</div>
-					<div class={noStyle ? '' : styles.footerSpacer || ''}></div>
 					<button
 						type="button"
-						class={noStyle
-							? ''
-							: `${styles.footerButton || ''} ${styles.footerButtonPrimary || ''}`}
+						class={noStyle ? '' : primaryButtonClass}
 						onclick={handleSave}
 						disabled={isLoading}
+						data-action="customize"
 					>
 						{iabT.common.saveSettings}
 					</button>

@@ -1,6 +1,13 @@
 'use client';
 
-import { useConsentManager } from 'c15t/react';
+import {
+	useInit,
+	useSetActiveUI,
+	useSetConsent,
+	useSetLanguage,
+	useSetOverrides,
+	useSnapshot,
+} from 'c15t/react';
 import { useEffect, useState } from 'react';
 
 import { Badge } from '../ui/badge';
@@ -29,116 +36,42 @@ const StatusRow = ({ label, value }: { label: string; value: string }) => (
 	</div>
 );
 
-type ConsentManagerValue = ReturnType<typeof useConsentManager>;
-
-const formatLocation = function formatLocation(
-	location: ConsentManagerValue['locationInfo']
-): string {
-	if (!location?.countryCode) {
-		return '--';
-	}
-	const region = location.regionCode ? `-${location.regionCode}` : '';
-	return `${location.countryCode}${region}`;
-};
-
-const formatBannerMode = function formatBannerMode(
-	policy: NonNullable<ConsentManagerValue['lastBannerFetchData']>['policy']
-): string {
-	if (!policy?.ui || policy.ui.mode === 'none') {
-		return policy?.ui?.mode ?? 'default';
-	}
-	return policy.ui.mode;
-};
-
-const displayModel = function displayModel(state: ConsentManagerValue): string {
-	return MODEL_LABELS[state.model ?? 'none'] ?? (state.model || 'none');
-};
-
-const createDisplay = function createDisplay(
-	mounted: boolean,
-	state: ConsentManagerValue
-) {
-	if (!mounted) {
-		return {
-			banner: '…',
-			categories: [] as string[],
-			copy: '…',
-			hasSavedConsent: false,
-			iabEnabled: false,
-			language: '…',
-			location: '--',
-			model: '…',
-			policyId: '…',
-		};
-	}
-	const policy = state.lastBannerFetchData?.policy;
-	const requestedLanguage = state.overrides?.language;
-	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
-	const resolvedLanguage =
-		state.lastBannerFetchData?.translations.language ??
-		state.translationConfig.defaultLanguage ??
-		'en';
-	return {
-		banner: formatBannerMode(policy),
-		categories: (state.policyCategories ?? []).filter(
-			(category) => category !== '*'
-		),
-		copy:
-			messageProfile === 'default'
-				? 'stock translations'
-				: `custom ("${messageProfile}" profile)`,
-		hasSavedConsent:
-			state.consentInfo !== null && state.consentInfo !== undefined,
-		iabEnabled: state.iab?.config.enabled ?? false,
-		language: `${resolvedLanguage}${
-			requestedLanguage ? ` (requested ${requestedLanguage})` : ' (auto)'
-		}`,
-		location: formatLocation(state.locationInfo),
-		model: displayModel(state),
-		policyId: policy?.id ?? 'none',
-	};
-};
-
-/**
- * Live view of what the consent manager resolved: active policy, model,
- * location, language, plus the current consent decisions. Must be rendered
- * inside a `ConsentManagerProvider`.
- */
+/** Shows the policy and consent state resolved by the current kernel. */
+// oxlint-disable-next-line complexity -- This demo renders a compact matrix of every kernel status field.
 export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const [mounted, setMounted] = useState(false);
-	const manager = useConsentManager();
-	const {
-		activeUI,
-		consents,
-		iab,
-		initConsentManager,
-		lastBannerFetchData,
-		resetConsents,
-		setActiveUI,
-		setLanguage,
-		setOverrides,
-		overrides,
-	} = manager;
+	const snapshot = useSnapshot();
+	const init = useInit();
+	const setActiveUI = useSetActiveUI();
+	const setConsent = useSetConsent();
+	const setLanguage = useSetLanguage();
+	const setOverrides = useSetOverrides();
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setMounted(true));
 		return () => cancelAnimationFrame(frame);
 	}, []);
 
-	const policy = lastBannerFetchData?.policy;
-	const policyDecision = lastBannerFetchData?.policyDecision;
-	const requestedLanguage = overrides?.language;
-	const display = createDisplay(mounted, manager);
+	const policy = mounted ? snapshot.policy : null;
+	const categories = mounted ? snapshot.policyCategories : [];
+	const requestedLanguage = snapshot.overrides.language;
+	const resolvedLanguage = snapshot.translations?.language ?? 'en';
+	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
+	const location = snapshot.location?.countryCode
+		? `${snapshot.location.countryCode}${
+				snapshot.location.regionCode ? `-${snapshot.location.regionCode}` : ''
+			}`
+		: '--';
 
 	const rawState = mounted
 		? {
-				activeUI,
-				consents,
-				iabEnabled: iab?.config.enabled ?? false,
+				activeUI: snapshot.activeUI,
+				consents: snapshot.consents,
+				iabEnabled: snapshot.iab?.enabled ?? false,
 				mode,
-				overrides: overrides ?? null,
-				policy: policy ?? null,
-				policyDecision: policyDecision ?? null,
+				overrides: snapshot.overrides,
+				policy,
+				policyDecision: snapshot.policyDecision,
 			}
 		: null;
 
@@ -147,42 +80,58 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 			<div className="grid gap-3 text-sm sm:grid-cols-2">
 				<StatusRow
 					label="Policy"
-					value={display.policyId}
+					value={mounted ? (policy?.id ?? 'none') : '…'}
 				/>
 				<StatusRow
 					label="Model"
-					value={display.model}
+					value={
+						mounted
+							? (MODEL_LABELS[snapshot.model ?? 'none'] ??
+								snapshot.model ??
+								'none')
+							: '…'
+					}
 				/>
 				<StatusRow
 					label="Location"
-					value={display.location}
+					value={mounted ? location : '--'}
 				/>
 				<StatusRow
 					label="Language"
-					value={display.language}
+					value={
+						mounted
+							? `${resolvedLanguage}${
+									requestedLanguage
+										? ` (requested ${requestedLanguage})`
+										: ' (auto)'
+								}`
+							: '…'
+					}
 				/>
 				<StatusRow
 					label="Copy"
-					value={display.copy}
+					value={
+						messageProfile === 'default'
+							? 'stock translations'
+							: `custom ("${messageProfile}" profile)`
+					}
 				/>
 				<StatusRow
 					label="IAB TCF"
-					value={display.iabEnabled ? 'enabled' : 'off'}
+					value={snapshot.iab?.enabled ? 'enabled' : 'off'}
 				/>
 				<StatusRow
 					label="Consent"
-					value={display.hasSavedConsent ? 'saved' : 'not saved yet'}
+					value={snapshot.hasConsented ? 'saved' : 'not saved yet'}
 				/>
 			</div>
 
-			{display.categories.length > 0 && (
+			{categories.length > 0 && (
 				<div className="space-y-2">
 					<p className="label-pixel text-muted-foreground">Categories</p>
 					<div className="flex flex-wrap gap-1.5">
-						{display.categories.map((category) => {
-							const granted = Boolean(
-								consents?.[category as keyof typeof consents]
-							);
+						{categories.map((category) => {
+							const granted = snapshot.consents[category];
 							return (
 								<Badge
 									key={category}
@@ -208,17 +157,21 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 						return (
 							<Button
 								key={option.label}
-								variant={isActive ? 'default' : 'outline'}
-								size="sm"
 								aria-pressed={isActive}
 								className="rounded-full"
 								onClick={() => {
-									if (!option.value) {
-										void setOverrides({ language: undefined });
-										return;
+									if (option.value) {
+										setLanguage(option.value);
+									} else {
+										setOverrides({
+											...snapshot.overrides,
+											language: undefined,
+										});
 									}
-									void setLanguage(option.value);
+									void init();
 								}}
+								size="sm"
+								variant={isActive ? 'default' : 'outline'}
 							>
 								{option.label}
 							</Button>
@@ -229,29 +182,34 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 
 			<div className="flex flex-wrap gap-2">
 				<Button
-					variant="outline"
-					size="sm"
 					className="rounded-full"
-					onClick={() => setActiveUI('banner', { force: true })}
+					onClick={() => setActiveUI('banner')}
+					size="sm"
+					variant="outline"
 				>
 					Show banner
 				</Button>
 				<Button
-					variant="outline"
-					size="sm"
 					className="rounded-full"
-					onClick={() => setActiveUI('dialog', { force: true })}
+					onClick={() => setActiveUI('dialog')}
+					size="sm"
+					variant="outline"
 				>
 					Open preferences
 				</Button>
 				<Button
-					variant="ghost"
-					size="sm"
 					className="rounded-full"
 					onClick={() => {
-						resetConsents();
-						void initConsentManager();
+						setConsent({
+							experience: false,
+							functionality: false,
+							marketing: false,
+							measurement: false,
+						});
+						void init();
 					}}
+					size="sm"
+					variant="ghost"
 				>
 					Reset consent
 				</Button>

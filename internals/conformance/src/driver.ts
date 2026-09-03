@@ -76,9 +76,10 @@ export interface MountOptions {
 	/** Policy fixture shaping. See {@link MountPolicyOptions}. */
 	policy?: MountPolicyOptions;
 	/**
-	 * Options passed to the framework provider. The shape mirrors
-	 * `ConsentManagerOptions` from `@c15t/core` — we reference it loosely
-	 * (`unknown`) so this package stays zero-import on runtime framework code.
+	 * Options passed to the framework provider. The shape mirrors each
+	 * framework's provider options (built on `KernelConfig` from
+	 * `@c15t/core`) — we reference it loosely (`unknown`) so this package
+	 * stays zero-import on runtime framework code.
 	 */
 	providerOptions?: unknown;
 	/** Optional initial store state for test isolation. */
@@ -100,9 +101,10 @@ export interface MountResult {
 }
 
 /**
- * Minimal store surface the suites rely on. Drivers proxy this to the
- * underlying Zustand store; we intentionally don't expose `setState` so
- * suites mutate only through user-facing actions.
+ * Minimal store surface the suites rely on. Drivers project the kernel
+ * snapshot (`kernel.getSnapshot()`) into this shape and forward
+ * `kernel.subscribe`; nothing mutable is exposed so suites mutate only
+ * through user-facing actions.
  */
 export interface DriverStore {
 	getState: () => Record<string, unknown>;

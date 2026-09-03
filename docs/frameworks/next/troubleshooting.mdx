@@ -20,21 +20,22 @@ group: frameworks
 
 **Fixes:**
 
-1. **Missing `ssrData`** — Ensure you're passing the SSR data Promise to the provider. Do **not** `await` `fetchInitialData()` in Server Components:
+1. **Missing request config** — Read the request-scoped configuration in the
+   Server Component and pass it to `ConsentBoundary`:
 
 ```tsx title="app/layout.tsx"
-import { fetchInitialData } from 'c15t/next';
-import ConsentManager from '@/components/consent-manager';
+import { ConsentBoundary } from 'c15t/next';
+import { readInitialConsentConfig } from 'c15t/next/server';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const ssrData = fetchInitialData({ backendURL: '/api/c15t' });
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const config = await readInitialConsentConfig();
 
   return (
     <html lang="en">
       <body>
-        <ConsentManager ssrData={ssrData}>
+        <ConsentBoundary backendURL="/api/c15t" config={config}>
           {children}
-        </ConsentManager>
+        </ConsentBoundary>
       </body>
     </html>
   );
@@ -42,12 +43,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```
 
 2. **Stale cache** — If using a CDN or caching layer, ensure the SSR data is fresh per-request and not shared across users.
-
-3. **Debug with `useSSRStatus`** — Check if SSR data was actually consumed:
-
-```tsx
-const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
-```
 
 See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for full SSR setup.
 
@@ -57,10 +52,10 @@ See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for full SSR 
 
 ```tsx
 // Components and hooks — main entry point
-import { ConsentManagerProvider, useConsentManager } from 'c15t/next';
+import { ConsentProvider, useConsentManager } from 'c15t/next';
 
-// Server-side data fetching
-import { fetchInitialData } from 'c15t/next';
+// Server-side request configuration
+import { readInitialConsentConfig } from 'c15t/next/server';
 
 // Headless (hooks only, no components)
 import { useConsentManager } from 'c15t/next/headless';

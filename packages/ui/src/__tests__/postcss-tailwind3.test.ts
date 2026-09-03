@@ -39,7 +39,7 @@ const processCss = async function processCss(from: string) {
 describe('@c15t/ui/postcss-tailwind3', () => {
 	test('unwraps @layer blocks for built @c15t/ui stylesheets in node_modules', async () => {
 		const css = await processCss(
-			'/app/node_modules/@c15t/ui/dist/styles/v3/button.css'
+			'/app/node_modules/@c15t/ui/dist/styles/components/button.css'
 		);
 
 		expect(css).toContain('.c15t-ui-button-a1b2c');
@@ -48,7 +48,9 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('unwraps @layer blocks for built @c15t/ui stylesheets in the monorepo', async () => {
-		const css = await processCss('/repo/packages/ui/dist/styles/v3/button.css');
+		const css = await processCss(
+			'/repo/packages/ui/dist/styles/components/button.css'
+		);
 
 		expect(css).toContain('.c15t-ui-button-a1b2c');
 		expect(css).not.toMatch(/@layer\b/u);
@@ -65,7 +67,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	test('removes bare @layer order statements for scoped c15t files', async () => {
 		const css = await postcss([tailwind3Plugin]).process(
 			'@layer theme, base, components, utilities;',
-			{ from: '/app/node_modules/@c15t/ui/dist/styles/v3/button.css' }
+			{ from: '/app/node_modules/@c15t/ui/dist/styles/components/button.css' }
 		);
 
 		expect(css.css.trim()).toBe('');
@@ -78,7 +80,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		const result = await postcss([
 			pluginModule as unknown as AcceptedPlugin,
 		]).process(layeredCss, {
-			from: '/app/node_modules/@c15t/ui/dist/styles/v3/button.css',
+			from: '/app/node_modules/@c15t/ui/dist/styles/components/button.css',
 		});
 
 		expect(result.css).toContain('.c15t-ui-button-a1b2c');
@@ -97,7 +99,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			[
 				join(TEST_DIR, 'postcss-require-probe.mjs'),
 				layeredCss,
-				'/app/node_modules/@c15t/ui/dist/styles/v3/button.css',
+				'/app/node_modules/@c15t/ui/dist/styles/components/button.css',
 			],
 			{ encoding: 'utf8' }
 		);
@@ -111,14 +113,16 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	test('matches realistic package paths only', () => {
 		expect(
 			isC15tUiStylesheetPath(
-				'/app/node_modules/@c15t/ui/dist/styles/v3/button.css'
+				'/app/node_modules/@c15t/ui/dist/styles/components/button.css'
 			)
 		).toBe(true);
 		expect(
-			isC15tUiStylesheetPath('/repo/packages/ui/dist/styles/v3/button.css')
+			isC15tUiStylesheetPath(
+				'/repo/packages/ui/dist/styles/components/button.css'
+			)
 		).toBe(true);
-		expect(isC15tUiStylesheetPath('/app/dist/styles/v3/button.css')).toBe(
-			false
-		);
+		expect(
+			isC15tUiStylesheetPath('/app/dist/styles/components/button.css')
+		).toBe(false);
 	});
 });

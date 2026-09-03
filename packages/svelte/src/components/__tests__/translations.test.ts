@@ -5,7 +5,6 @@
  */
 
 import type { Translations } from '@c15t/core';
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
@@ -14,7 +13,6 @@ import { offline } from '../../lib/transports/offline';
 
 describe('Translations', () => {
 	beforeEach(() => {
-		clearConsentRuntimeCache();
 		window.localStorage.clear();
 	});
 

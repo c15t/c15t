@@ -5,7 +5,7 @@ import type {
 	PolicyUiAction,
 } from '@c15t/schema/types';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
-import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
+import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
 
 import {

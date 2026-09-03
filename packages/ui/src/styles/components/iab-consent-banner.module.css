@@ -1,3 +1,5 @@
+@import url('./animations/iab-consent-banner.css');
+
 :root {
 	/* Typography */
 	--iab-consent-banner-font-family: var(--c15t-font-family);
@@ -13,10 +15,12 @@
 	/* Animation variables */
 	--iab-consent-banner-animation-duration: var(--c15t-duration-fast);
 	--iab-consent-banner-animation-timing: var(--c15t-easing);
-	--iab-consent-banner-entry-animation: iabConsentBannerEnter
-		var(--c15t-duration-fast) var(--c15t-easing);
-	--iab-consent-banner-exit-animation: iabConsentBannerExit
-		var(--c15t-duration-fast) var(--c15t-easing);
+	--iab-consent-banner-entry-animation: var(
+		--c15t-iab-consent-banner-enter-animation
+	);
+	--iab-consent-banner-exit-animation: var(
+		--c15t-iab-consent-banner-exit-animation
+	);
 
 	/* Border */
 	--iab-consent-banner-border-width: 1px;
@@ -106,14 +110,11 @@
 	.card {
 		position: relative;
 		width: 100%;
-		margin: 0;
-		padding: 0;
 		border-radius: var(--iab-consent-banner-border-radius);
 		border-width: var(--iab-consent-banner-border-width);
 		border-style: solid;
 		border-color: var(--iab-consent-banner-border-color);
 		background-color: var(--iab-consent-banner-background-color);
-		color: inherit;
 		box-shadow: var(--iab-consent-banner-shadow);
 		overflow: hidden;
 	}
@@ -144,33 +145,12 @@
 		border-color: var(--iab-consent-banner-border-color-dark);
 	}
 
-	/* Focus styles */
-	.card:focus {
+	/* Focus styles: the card is tabindex="-1" — it only receives
+	   programmatic focus (the trap moves focus here on open so screen
+	   readers announce the surface) and is never a keyboard tab stop, so it
+	   renders no ring. Interactive children carry the focus indicators. */
+	.card:not(:global(.headless)):focus {
 		outline: none;
-		outline-offset: 2px;
-	}
-
-	/* Animation keyframes */
-	@keyframes iabConsentBannerEnter {
-		from {
-			opacity: 0;
-			transform: scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: scale(1);
-		}
-	}
-
-	@keyframes iabConsentBannerExit {
-		from {
-			opacity: 1;
-			transform: scale(1);
-		}
-		to {
-			opacity: 0;
-			transform: scale(0.95);
-		}
 	}
 
 	.header {
@@ -249,6 +229,12 @@
 		margin-bottom: 0.25rem;
 	}
 
+	.purposeMore {
+		font-style: italic;
+		opacity: 0.8;
+		list-style-type: none;
+	}
+
 	:global(.c15t-dark) .purposeList {
 		color: var(--iab-consent-banner-description-color-dark);
 	}
@@ -299,30 +285,6 @@
 		.footer {
 			flex-direction: row;
 			padding: 1rem;
-		}
-	}
-
-	.footerButtonGroup {
-		display: flex;
-		flex-direction: row;
-		gap: 0.5rem;
-	}
-
-	.footerSpacer {
-		flex: 1;
-	}
-
-	.rejectButton,
-	.acceptButton,
-	.customizeButton {
-		flex: 1;
-	}
-
-	@media (min-width: 640px) {
-		.rejectButton,
-		.acceptButton,
-		.customizeButton {
-			flex: none;
 		}
 	}
 

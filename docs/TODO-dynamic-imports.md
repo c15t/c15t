@@ -49,8 +49,8 @@ After `/init` resolves and we know the consent model, preload the appropriate co
 
 ### What NOT to change
 
-- Don't await `fetchInitialData` on the server
-- Don't add Suspense around `ConsentManagerProvider`
+- Don't await `prefetchInitialConsent` on the server
+- Don't add Suspense around `ConsentProvider`
 - Don't lazy-load `ConsentBanner` (it's the first UI shown, needs to render immediately)
 
 ## Files to modify

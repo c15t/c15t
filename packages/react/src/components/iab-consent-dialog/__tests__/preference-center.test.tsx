@@ -4,15 +4,12 @@
  * Tests for IAB Consent Dialog component display and behavior.
  */
 
-import { iab } from '@c15t/iab';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
 
@@ -28,7 +25,7 @@ const localStorageMock = (() => {
 			Reflect.deleteProperty(store, key);
 		},
 		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+			store[key] = value;
 		},
 	};
 })();
@@ -208,13 +205,13 @@ globalThis.fetch = vi.fn(() =>
 	)
 ) as typeof fetch;
 
-const defaultIABOptions: ConsentManagerOptions = {
-	iab: iab({
+const defaultIABOptions: ConsentProviderOptions = {
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	}),
-	mode: 'offline',
+	},
+	mode: offline(),
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},
@@ -232,16 +229,15 @@ describe('IAB Consent Dialog Unit Tests', () => {
 			}
 		}
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	describe('Component Rendering', () => {
 		test('should render when open=true', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -257,9 +253,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should render card container', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -277,9 +273,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	describe('Tab Navigation', () => {
 		test('should display tab buttons', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -295,9 +291,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should have purposes tab', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -313,9 +309,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should have vendors tab', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -333,9 +329,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	describe('Accessibility', () => {
 		test('should render as a native dialog', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -352,9 +348,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should have aria-label', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -372,9 +368,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	describe('Action Buttons', () => {
 		test('should display Accept All button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -395,9 +391,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should display Reject All button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -418,9 +414,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should display Save button', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -445,9 +441,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	describe('Content Loading', () => {
 		test('should display purposes after GVL loads', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -466,9 +462,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	describe('Props', () => {
 		test('should render branding tag by default', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -484,12 +480,12 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should accept hideBranding prop', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog
 						open
 						hideBranding
 					/>
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -505,9 +501,9 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 		test('should accept showTrigger prop', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog showTrigger />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Trigger should eventually appear

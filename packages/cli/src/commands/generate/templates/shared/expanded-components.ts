@@ -33,23 +33,17 @@ export const generateExpandedProviderTemplate =
 		optionsText,
 		framework,
 	}: GenerateExpandedProviderOptions): string {
-		const useConsentManagerProps = enableSSR && framework.hasSSRProps;
-
 		let propsInterface: string;
 		let propsDestructure: string;
 		let typeImports: string;
 
-		if (useConsentManagerProps) {
-			propsInterface = '';
-			propsDestructure = '{ children, ssrData }: ConsentManagerProps';
-			typeImports = `import type { ConsentManagerProps } from '${framework.importSource}';`;
-		} else if (enableSSR) {
+		if (enableSSR) {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
-	ssrData?: InitialDataPromise;
+	config: KernelConfig;
 }\n`;
-			propsDestructure = '{ children, ssrData }: Props';
-			typeImports = `import type { InitialDataPromise } from '${framework.importSource}';`;
+			propsDestructure = '{ children, config }: Props';
+			typeImports = `import type { KernelConfig } from '${framework.importSource}';`;
 		} else {
 			propsInterface = `\ninterface Props {
 	children: ReactNode;
@@ -58,17 +52,18 @@ export const generateExpandedProviderTemplate =
 			typeImports = '';
 		}
 
-		const ssrDataOption = enableSSR ? '\n\t\t\t\tssrData,' : '';
+		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: config,' : '';
 		const devToolsImport = enableDevTools
 			? "import { DevTools } from '@c15t/dev-tools/react';\n"
 			: '';
-		const reactNodeImport = useConsentManagerProps
-			? ''
-			: "import type { ReactNode } from 'react';\n";
+		const reactNodeImport = "import type { ReactNode } from 'react';\n";
+		const modeImport = ['custom', 'hosted', 'offline'].find((name) =>
+			optionsText.includes(`${name}(`)
+		);
 
 		return `'use client';
 
-${reactNodeImport}import { ConsentManagerProvider } from '${framework.importSource}';
+${reactNodeImport}import { ConsentProvider${modeImport ? `, ${modeImport}` : ''} } from '${framework.importSource}';
 ${typeImports}
 ${devToolsImport}import ConsentBanner from './consent-banner';
 import ConsentDialog from './consent-dialog';
@@ -80,7 +75,7 @@ ${propsInterface}
  */
 export default function ConsentManagerClient(${propsDestructure}) {
 	return (
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
 				${optionsText}${ssrDataOption}
 				theme,
@@ -94,7 +89,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 			<ConsentDialog />
 			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 }
 `;

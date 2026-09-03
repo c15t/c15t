@@ -15,8 +15,8 @@ import {
 	span,
 } from '../core/renderer';
 import type { DevToolsPosition, StateManager } from '../core/state-manager';
+import { DEFAULT_KERNEL_NAMESPACE } from '../core/store-connector';
 import type { StoreConnector } from '../core/store-connector';
-import { formatInitSource } from '../utils/init-source';
 import {
 	detectPreferenceTrigger,
 	getPreferenceCenterOpener,
@@ -118,7 +118,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		stateManager,
 		storeConnector,
 		onRenderContent,
-		namespace = 'c15tStore',
+		namespace = DEFAULT_KERNEL_NAMESPACE,
 		enableUnifiedMode = true,
 	} = options;
 
@@ -361,12 +361,9 @@ export function createPanel(options: PanelOptions): PanelInstance {
 
 		const isConnected = storeConnector.isConnected();
 		const storeState = storeConnector.getState();
-		const isLoading = storeState?.isLoadingConsentInfo ?? false;
+		const isLoading = storeState?.policyProvisional ?? false;
 		const diagnostics = storeConnector.getDiagnostics();
-		const initSource = formatInitSource(
-			storeState?.initDataSource ?? null,
-			storeState?.initDataSourceDetail ?? null
-		);
+		const policyLabel = storeState?.policy?.id ?? 'none';
 
 		const statusChildren: HTMLElement[] = [
 			span({
@@ -396,7 +393,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			statusChildren.push(
 				span({
 					className: panelStyles.footerMeta,
-					text: `· Init: ${initSource}`,
+					text: `· Policy: ${policyLabel}`,
 				})
 			);
 		}
@@ -441,11 +438,11 @@ export function createPanel(options: PanelOptions): PanelInstance {
 				})(),
 				div({
 					className: panelStyles.errorTitle,
-					text: 'Store Not Found',
+					text: 'Kernel Not Found',
 				}),
 				div({
 					className: panelStyles.errorMessage,
-					text: 'c15t consent manager is not initialized. Make sure you have set up the ConsentManagerProvider in your app.',
+					text: `No consent kernel found. Pass \`kernel\` to the devtools or expose it on window.${namespace}.`,
 				}),
 				div({
 					className: panelStyles.errorMessage,

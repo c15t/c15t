@@ -54,14 +54,13 @@ group: frameworks
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
+    import { hosted, ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
 
     export default function ConsentManagerClient({ children }: { children: ReactNode }) {
       return (
-        <ConsentManagerProvider
+        <ConsentProvider
           options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
+            mode: hosted({ url: 'https://your-instance.c15t.dev' }),
             consentCategories: ['necessary', 'measurement', 'marketing'],
             // Shows banner during development. Remove for production.
             overrides: { country: 'DE' },
@@ -70,17 +69,17 @@ group: frameworks
           <ConsentBanner />
           <ConsentDialog />
           {children}
-        </ConsentManagerProvider>
+        </ConsentProvider>
       );
     }
     ```
 
     ```tsx title="components/consent-manager/index.tsx"
     import type { ReactNode } from 'react';
-    import ConsentManagerProvider from './provider';
+    import ConsentProvider from './provider';
 
     export function ConsentManager({ children }: { children: ReactNode }) {
-      return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
+      return <ConsentProvider>{children}</ConsentProvider>;
     }
     ```
 
@@ -89,7 +88,7 @@ group: frameworks
     </Callout>
 
     <Callout type="warn">
-      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
+      Don't have a backend yet? You can use `mode: offline()` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
   </Step>
 
@@ -140,12 +139,12 @@ import { DevTools } from '@c15t/dev-tools/react';
 
 // ...
 
-<ConsentManagerProvider options={...}>
+<ConsentProvider options={...}>
   <ConsentBanner />
   <ConsentDialog />
   {process.env.NODE_ENV !== 'production' && <DevTools />}
   {children}
-</ConsentManagerProvider>
+</ConsentProvider>
 ```
 
 <Callout type="info">

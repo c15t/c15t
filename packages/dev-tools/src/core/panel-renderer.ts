@@ -3,7 +3,12 @@
  * Shared logic for rendering DevTools panels
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	ConsentState,
+	KernelIABState,
+} from '@c15t/core';
 
 import { renderActionsPanel } from '../panels/actions';
 import { renderConsentsPanel } from '../panels/consents';
@@ -14,6 +19,7 @@ import { renderPolicyPanel } from '../panels/policy';
 import { renderScriptsPanel } from '../panels/scripts';
 import type { PersistedDevToolsOverrides } from './override-storage';
 import { resetAllConsents } from './reset-consents';
+import type { ScriptRegistry } from './script-registry';
 import type { DevToolsTab, StateManager } from './state-manager';
 import type { StoreConnector } from './store-connector';
 
@@ -23,6 +29,11 @@ import type { StoreConnector } from './store-connector';
 export interface PanelRendererConfig {
 	storeConnector: StoreConnector;
 	stateManager: StateManager;
+	scriptRegistry: ScriptRegistry;
+	/**
+	 * Window namespace shown in the console API hints
+	 */
+	namespace?: string;
 	/**
 	 * Enable event logging for actions
 	 * @default true
@@ -30,7 +41,7 @@ export interface PanelRendererConfig {
 	enableEventLogging?: boolean;
 	onPersistOverrides?: (overrides: PersistedDevToolsOverrides) => void;
 	onClearPersistedOverrides?: () => void;
-	onCopyState?: (state: ConsentStoreState) => boolean | Promise<boolean>;
+	onCopyState?: (state: ConsentSnapshot) => boolean | Promise<boolean>;
 	onExportDebugBundle?: () => void;
 }
 
@@ -44,15 +55,58 @@ export interface PanelRenderer {
 	renderPanel: (container: HTMLElement, tab: DevToolsTab) => void;
 
 	/**
-	 * Gets the current store state
+	 * Gets the current kernel snapshot
 	 */
-	getStoreState: () => ConsentStoreState | null;
+	getStoreState: () => ConsentSnapshot | null;
 
 	/**
 	 * Resets all consents
 	 */
 	resetConsents: () => Promise<void>;
 }
+
+const readIab = function readIab(
+	kernel: ConsentKernel
+): Readonly<KernelIABState> | null {
+	return kernel.getSnapshot().iab;
+};
+
+const buildFlags = function buildFlags(
+	ids: Iterable<string | number>,
+	value: boolean
+): Record<string, boolean> {
+	const flags: Record<string, boolean> = {};
+	for (const id of ids) {
+		flags[String(id)] = value;
+	}
+	return flags;
+};
+
+/**
+ * Flips every purpose, special feature, and vendor known to the GVL (plus
+ * custom vendors) to `value`.
+ */
+const setAllIabConsents = function setAllIabConsents(
+	kernel: ConsentKernel,
+	value: boolean
+): boolean {
+	const iab = readIab(kernel);
+	if (!iab) {
+		return false;
+	}
+	const purposeIds = Object.keys(iab.gvl?.purposes ?? {});
+	const featureIds = Object.keys(iab.gvl?.specialFeatures ?? {});
+	const vendorIds = [
+		...Object.keys(iab.gvl?.vendors ?? {}),
+		...iab.customVendors.map((vendor) => String(vendor.id)),
+	];
+	kernel.set.iab({
+		purposeConsents: buildFlags(purposeIds, value),
+		specialFeatureOptIns: buildFlags(featureIds, value),
+		vendorConsents: buildFlags(vendorIds, value),
+	});
+	return true;
+};
 
 /**
  * Creates a panel renderer with shared logic for rendering DevTools panels
@@ -63,6 +117,8 @@ export const createPanelRenderer = function createPanelRenderer(
 	const {
 		storeConnector,
 		stateManager,
+		scriptRegistry,
+		namespace,
 		enableEventLogging = true,
 		onPersistOverrides,
 		onClearPersistedOverrides,
@@ -70,8 +126,14 @@ export const createPanelRenderer = function createPanelRenderer(
 		onExportDebugBundle,
 	} = config;
 
-	const getStoreState = (): ConsentStoreState | null =>
-		storeConnector.getState();
+	/**
+	 * Consent toggles the user flipped in the Consents panel but has not
+	 * saved yet. The kernel has no notion of a pending selection, so the
+	 * devtools hold the draft until Save / Accept / Reject / Reset.
+	 */
+	const draftConsents = new Map<string, boolean>();
+
+	const getStoreState = (): ConsentSnapshot | null => storeConnector.getState();
 
 	const logEvent = (
 		type:
@@ -90,14 +152,44 @@ export const createPanelRenderer = function createPanelRenderer(
 		}
 	};
 
+	const runCommand = (
+		run: () => Promise<unknown>,
+		successMessage: string,
+		failureMessage: string,
+		type: 'consent_save' | 'info' | 'iab' = 'info'
+	): void => {
+		void (async () => {
+			try {
+				await run();
+				logEvent(type, successMessage);
+			} catch (error) {
+				logEvent('error', `${failureMessage}: ${String(error)}`);
+			}
+		})();
+	};
+
 	const resetConsents = async (): Promise<void> => {
-		const store = storeConnector.getStore();
-		if (store) {
+		const kernel = storeConnector.getKernel();
+		if (kernel) {
+			draftConsents.clear();
 			await resetAllConsents(
-				store,
+				kernel,
 				enableEventLogging ? stateManager : undefined
 			);
 		}
+	};
+
+	const applyOverrides = async (
+		kernel: ConsentKernel,
+		overrides: PersistedDevToolsOverrides
+	): Promise<void> => {
+		kernel.set.overrides({
+			country: overrides.country,
+			gpc: overrides.gpc,
+			language: overrides.language,
+			region: overrides.region,
+		});
+		await kernel.commands.init();
 	};
 
 	const renderPanel = (container: HTMLElement, tab: DevToolsTab): void => {
@@ -105,44 +197,56 @@ export const createPanelRenderer = function createPanelRenderer(
 		switch (tab) {
 			case 'consents':
 				renderConsentsPanel(container, {
+					getDraftConsents: () => Object.fromEntries(draftConsents),
 					getState: getStoreState,
 					onAcceptAll: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('all');
-							logEvent('consent_save', 'Accepted all consents');
-						}
-					},
-					onConsentChange: (name, value) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							const consentName = String(name) as Parameters<
-								ConsentStoreState['setSelectedConsent']
-							>[0];
-							store.getState().setSelectedConsent(consentName, value);
-							logEvent(
-								'info',
-								`${consentName} toggled to ${value} (not saved)`,
-								{
-									name: consentName,
-									value,
-								}
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							draftConsents.clear();
+							runCommand(
+								() => kernel.commands.save('all'),
+								'Accepted all consents',
+								'Failed to accept all consents',
+								'consent_save'
 							);
 						}
 					},
+					onConsentChange: (name, value) => {
+						if (!storeConnector.getKernel()) {
+							return;
+						}
+						draftConsents.set(name, value);
+						logEvent('info', `${name} toggled to ${value} (not saved)`, {
+							name,
+							value,
+						});
+					},
 					onRejectAll: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('necessary');
-							logEvent('consent_save', 'Rejected all optional consents');
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							draftConsents.clear();
+							runCommand(
+								() => kernel.commands.save('none'),
+								'Rejected all optional consents',
+								'Failed to reject optional consents',
+								'consent_save'
+							);
 						}
 					},
 					onReset: resetConsents,
 					onSave: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().saveConsents('custom');
-							logEvent('consent_save', 'Saved consent preferences');
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							const draft = Object.fromEntries(
+								draftConsents
+							) as Partial<ConsentState>;
+							draftConsents.clear();
+							runCommand(
+								() => kernel.commands.save(draft),
+								'Saved consent preferences',
+								'Failed to save consent preferences',
+								'consent_save'
+							);
 						}
 					},
 				});
@@ -152,14 +256,9 @@ export const createPanelRenderer = function createPanelRenderer(
 				renderLocationPanel(container, {
 					getState: getStoreState,
 					onApplyOverrides: async (overrides) => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().setOverrides({
-								country: overrides.country,
-								gpc: overrides.gpc,
-								language: overrides.language,
-								region: overrides.region,
-							});
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							await applyOverrides(kernel, overrides);
 							logEvent('info', 'Overrides updated', {
 								country: overrides.country,
 								gpc: overrides.gpc,
@@ -175,14 +274,9 @@ export const createPanelRenderer = function createPanelRenderer(
 						}
 					},
 					onClearOverrides: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().setOverrides({
-								country: undefined,
-								gpc: undefined,
-								language: undefined,
-								region: undefined,
-							});
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							await applyOverrides(kernel, {});
 							logEvent('info', 'Overrides cleared');
 							onClearPersistedOverrides?.();
 						}
@@ -199,6 +293,8 @@ export const createPanelRenderer = function createPanelRenderer(
 			case 'scripts':
 				renderScriptsPanel(container, {
 					getEvents: () => stateManager.getState().eventLog,
+					getManagedScripts: () => scriptRegistry.getManagedScripts(),
+					getScripts: () => scriptRegistry.getScripts(),
 					getState: getStoreState,
 				});
 				break;
@@ -207,61 +303,69 @@ export const createPanelRenderer = function createPanelRenderer(
 				renderIabPanel(container, {
 					getState: getStoreState,
 					onAcceptAll: () => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
+						const kernel = storeConnector.getKernel();
+						if (kernel && setAllIabConsents(kernel, true)) {
+							logEvent('iab', 'IAB accept all selected');
 						}
-						iab.acceptAll();
-						logEvent('iab', 'IAB accept all selected');
 					},
 					onRejectAll: () => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
-							return;
+						const kernel = storeConnector.getKernel();
+						if (kernel && setAllIabConsents(kernel, false)) {
+							logEvent('iab', 'IAB reject all selected');
 						}
-						iab.rejectAll();
-						logEvent('iab', 'IAB reject all selected');
 					},
 					onReset: resetConsents,
 					onSave: () => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
+						const kernel = storeConnector.getKernel();
+						if (!kernel || !readIab(kernel)) {
 							return;
 						}
-						void (async () => {
-							try {
-								await iab.save();
-								logEvent('iab', 'IAB preferences saved');
-							} catch (error) {
-								logEvent(
-									'error',
-									`Failed to save IAB preferences: ${String(error)}`
-								);
-							}
-						})();
+						// The TC string is encoded by the `@c15t/iab` module bound to
+						// the kernel; this saves the vendor/purpose flags as they are.
+						runCommand(
+							() => kernel.commands.save(),
+							'IAB preferences saved',
+							'Failed to save IAB preferences',
+							'iab'
+						);
 					},
 					onSetPurposeConsent: (purposeId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
+						const kernel = storeConnector.getKernel();
+						const iab = kernel ? readIab(kernel) : null;
+						if (!kernel || !iab) {
 							return;
 						}
-						iab.setPurposeConsent(purposeId, value);
+						kernel.set.iab({
+							purposeConsents: { ...iab.purposeConsents, [purposeId]: value },
+						});
 						logEvent('iab', `IAB purpose ${purposeId} set to ${value}`);
 					},
 					onSetSpecialFeatureOptIn: (featureId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
+						const kernel = storeConnector.getKernel();
+						const iab = kernel ? readIab(kernel) : null;
+						if (!kernel || !iab) {
 							return;
 						}
-						iab.setSpecialFeatureOptIn(featureId, value);
+						kernel.set.iab({
+							specialFeatureOptIns: {
+								...iab.specialFeatureOptIns,
+								[featureId]: value,
+							},
+						});
 						logEvent('iab', `IAB feature ${featureId} set to ${value}`);
 					},
 					onSetVendorConsent: (vendorId, value) => {
-						const iab = storeConnector.getStore()?.getState().iab;
-						if (!iab) {
+						const kernel = storeConnector.getKernel();
+						const iab = kernel ? readIab(kernel) : null;
+						if (!kernel || !iab) {
 							return;
 						}
-						iab.setVendorConsent(vendorId, value);
+						kernel.set.iab({
+							vendorConsents: {
+								...iab.vendorConsents,
+								[String(vendorId)]: value,
+							},
+						});
 						logEvent('iab', `IAB vendor ${vendorId} set to ${value}`);
 					},
 				});
@@ -280,6 +384,7 @@ export const createPanelRenderer = function createPanelRenderer(
 			case 'actions':
 				renderActionsPanel(container, {
 					getState: getStoreState,
+					namespace,
 					onCopyState: () => {
 						const state = getStoreState();
 						if (state) {
@@ -332,24 +437,24 @@ export const createPanelRenderer = function createPanelRenderer(
 							}
 						: undefined,
 					onOpenPreferences: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().setActiveUI('dialog');
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							kernel.set.activeUI('dialog');
 							logEvent('info', 'Preferences dialog opened');
 						}
 					},
 					onRefetchBanner: async () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							await store.getState().initConsentManager();
-							logEvent('info', 'Banner data refetched');
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							await kernel.commands.init();
+							logEvent('info', 'Init re-run');
 						}
 					},
 					onResetConsents: resetConsents,
 					onShowBanner: () => {
-						const store = storeConnector.getStore();
-						if (store) {
-							store.getState().setActiveUI('banner', { force: true });
+						const kernel = storeConnector.getKernel();
+						if (kernel) {
+							kernel.set.activeUI('banner');
 							logEvent('info', 'Banner shown');
 						}
 					},

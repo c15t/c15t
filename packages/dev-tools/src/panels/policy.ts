@@ -3,16 +3,19 @@
  * Displays detailed runtime policy-pack diagnostics from /init
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type {
+	ConsentSnapshot,
+	PolicyDecision,
+	ResolvedPolicy,
+} from '@c15t/core';
 
 import { createDisconnectedState, createSection } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
-import { formatInitSource } from '../utils/init-source';
 
 import componentStyles from '../styles/components.module.css';
 
 export interface PolicyPanelOptions {
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
 }
 
 /**
@@ -341,24 +344,25 @@ const formatProofSummary = function formatProofSummary(
 	return parts.length > 0 ? parts.join(', ') : 'none';
 };
 
-type PolicyInitData = NonNullable<ConsentStoreState['lastBannerFetchData']>;
-
 const firstDefined = <Value>(
 	primary: Value | undefined,
 	fallback: Value
 ): Value => primary ?? fallback;
 
+// oxlint-disable-next-line complexity -- Optional policy fields are flattened into one display model.
 const getPolicyPanelValues = (
-	activePolicy: PolicyInitData['policy'],
-	policyDecision: PolicyInitData['policyDecision'],
-	state: ConsentStoreState
+	activePolicy: ResolvedPolicy | undefined,
+	policyDecision: PolicyDecision | undefined,
+	state: ConsentSnapshot
 ) => {
 	const consent = activePolicy?.consent;
 	const i18n = activePolicy?.i18n;
 	const ui = activePolicy?.ui;
+	const snapshotCategories =
+		state.policyCategories.length > 0 ? [...state.policyCategories] : undefined;
 	return {
 		banner: ui?.banner,
-		categories: firstDefined(state.policyCategories, consent?.categories),
+		categories: firstDefined(snapshotCategories, consent?.categories),
 		dialog: ui?.dialog,
 		expiryDays: consent?.expiryDays,
 		fingerprint: policyDecision?.fingerprint,
@@ -379,7 +383,7 @@ const getPolicyPanelValues = (
 const appendPolicySurfaceSection = (
 	container: HTMLElement,
 	values: ReturnType<typeof getPolicyPanelValues>,
-	state: ConsentStoreState
+	state: ConsentSnapshot
 ): void => {
 	const { uiMode } = values;
 	if (!uiMode || uiMode === 'none') {
@@ -388,12 +392,12 @@ const appendPolicySurfaceSection = (
 	const bannerCards = buildSurfaceCards(
 		'Banner',
 		values.banner,
-		state.policyBanner
+		state.policyBanner ?? {}
 	);
 	const dialogCards = buildSurfaceCards(
 		'Dialog',
 		values.dialog,
-		state.policyDialog
+		state.policyDialog ?? {}
 	);
 	if (bannerCards.length === 0 && dialogCards.length === 0) {
 		return;
@@ -418,14 +422,12 @@ export const renderPolicyPanel = function renderPolicyPanel(
 		return;
 	}
 
-	const initData = state.lastBannerFetchData;
-	const activePolicy = initData?.policy;
-	const policyDecision = initData?.policyDecision;
+	const activePolicy = state.policy ?? undefined;
+	const policyDecision = state.policyDecision ?? undefined;
 	const values = getPolicyPanelValues(activePolicy, policyDecision, state);
-	const initSource = formatInitSource(
-		state.initDataSource,
-		state.initDataSourceDetail
-	);
+	const policyStatus = state.policyProvisional
+		? 'Provisional (init pending)'
+		: 'Resolved';
 
 	// Match trace — always shown
 	container.appendChild(
@@ -447,7 +449,7 @@ export const renderPolicyPanel = function renderPolicyPanel(
 						},
 						text: 'No active policy matched for this request.',
 					}),
-					createHint(`Init Source: ${initSource}`),
+					createHint(`Policy: ${policyStatus}`),
 				],
 				title: 'Policy',
 			})
@@ -472,7 +474,9 @@ export const renderPolicyPanel = function renderPolicyPanel(
 							: '—'
 					),
 				]),
-				createHint(`${initSource} · ${formatFingerprint(values.fingerprint)}`),
+				createHint(
+					`${policyStatus} · ${formatFingerprint(values.fingerprint)}`
+				),
 			],
 			title: 'Policy',
 		})
@@ -483,7 +487,7 @@ export const renderPolicyPanel = function renderPolicyPanel(
 
 	// Proof & snapshot — compact row
 	const proofLabel = formatProofSummary(values.proof);
-	const snapshotLabel = initData?.policySnapshotToken ? 'present' : 'missing';
+	const snapshotLabel = state.policySnapshotToken ? 'present' : 'missing';
 	container.appendChild(
 		createSection({
 			children: [

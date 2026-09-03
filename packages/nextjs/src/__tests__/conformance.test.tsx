@@ -3,18 +3,18 @@
  *
  * This driver targets the exported @c15t/nextjs surface: the nextjs-specific
  * `ConsentBoundary` (which forwards a server-produced `KernelConfig` to the
- * React v3 provider) plus the UI components and hooks the package re-exports
- * from `@c15t/react/v3`. Running the shared suite here validates both the
+ * React provider) plus the UI components and hooks the package re-exports
+ * from `@c15t/react`. Running the shared suite here validates both the
  * re-export and the nextjs-specific wrapping.
  *
- * Deliberate differences from the React v3 driver:
+ * Deliberate differences from the React driver:
  * - The provider layer is `ConsentBoundary`, not `ConsentProvider`, so the
  *   nextjs `config` -> `options.prefetch` plumbing is on the tested path.
  * - `KernelContext` is not part of the public surface, so the store is
  *   observed through the public `useSnapshot` hook via a bridge component
  *   instead of reading the kernel directly.
- * - We import from `~/v3/boundary` and `@c15t/react/v3` (the exact module
- *   `@c15t/nextjs/v3` re-exports with `export *`) rather than `~/v3/index`,
+ * - We import from `~/boundary` and `@c15t/react` (the exact module
+ *   `@c15t/nextjs` re-exports with `export *`) rather than `~/index`,
  *   because the barrel also pulls in `next/headers`/`next/cache` which need
  *   a real Next.js server context. Existing nextjs tests follow the same
  *   convention.
@@ -31,21 +31,21 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import type { AllConsentNames } from '@c15t/core';
 import type {
+	AllConsentNames,
 	KernelActiveUI,
 	KernelConfig,
 	ResolvedPolicy,
 	TranslationsResponse,
-} from '@c15t/core/v3';
+} from '@c15t/core';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentWidget,
 	custom,
 	useSnapshot,
-} from '@c15t/react/v3';
-import type { ConsentSnapshot } from '@c15t/react/v3';
+} from '@c15t/react';
+import type { ConsentSnapshot } from '@c15t/react';
 import { useEffect } from 'react';
 import type { ReactElement } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -53,8 +53,8 @@ import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
-import { ConsentBoundary } from '~/v3/boundary';
-import type { ConsentBoundaryProps } from '~/v3/boundary';
+import { ConsentBoundary } from '~/boundary';
+import type { ConsentBoundaryProps } from '~/boundary';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;

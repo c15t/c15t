@@ -13,7 +13,7 @@ icon: heap
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { hosted, ConsentProvider } from 'c15t/react';
 import { heap } from '@c15t/scripts/heap';
 
 const scripts = [
@@ -25,17 +25,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -46,7 +45,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { heap } from '@c15t/scripts/heap';
 
 const scripts = [
@@ -58,17 +57,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -76,13 +74,17 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createScriptLoader } from 'c15t/modules/script-loader';
 import { heap } from '@c15t/scripts/heap';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  scripts: [
+const kernel = createConsentKernel({
+transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
+});
+
+createScriptLoader({
+kernel,
+scripts: [
     heap({
       envId: 'YOUR_APP_ID',
       clientConfig: {
@@ -91,6 +93,8 @@ getOrCreateConsentRuntime({
     }),
   ],
 });
+
+void kernel.commands.init();
 ```
 
 ## How c15t loads it
@@ -189,11 +193,11 @@ function SignupExample() {
 From plain JavaScript:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { has } from 'c15t';
+import { kernel } from './consent';
 
-const { consentStore } = getOrCreateConsentRuntime();
 
-if (consentStore.getState().has('measurement')) {
+if (has('measurement', kernel.getSnapshot().consents)) {
   window.heap?.track('Signup Completed', { plan: 'pro' });
 }
 ```

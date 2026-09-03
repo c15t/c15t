@@ -1,9 +1,9 @@
 import {
 	createHostedTransport,
 	mergeInitResponseIntoKernelConfig,
-} from '@c15t/core/v3';
-import type { KernelConfig } from '@c15t/core/v3';
-import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
+} from '@c15t/core';
+import type { KernelConfig } from '@c15t/core';
+import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
@@ -104,7 +104,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 	}
 };
 
-export type { KernelConfig } from '@c15t/core/v3';
+export type { KernelConfig } from '@c15t/core';
 export type { PrefetchInitialConsentOptions, ReadInitialConsentConfigOptions };
-export { custom, hosted } from '@c15t/core/v3';
+export { custom, hosted } from '@c15t/core';
 export { offline } from '../transports/offline';

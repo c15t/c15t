@@ -13,51 +13,43 @@ export default mergeConfig(
 			// oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
 			alias: {
 				'~': resolve(__dirname, './src'),
-				'@c15t/core/v3/modules/script-loader': resolve(
+				'@c15t/core/modules/script-loader': resolve(
 					__dirname,
-					'../core/src/v3/modules/script-loader/index.ts'
+					'../core/src/modules/script-loader/index.ts'
 				),
-				'@c15t/core/v3/modules/network-blocker': resolve(
+				'@c15t/core/modules/network-blocker': resolve(
 					__dirname,
-					'../core/src/v3/modules/network-blocker/index.ts'
+					'../core/src/modules/network-blocker/index.ts'
 				),
-				'@c15t/core/v3/modules/iframe-blocker': resolve(
+				'@c15t/core/modules/iframe-blocker': resolve(
 					__dirname,
-					'../core/src/v3/modules/iframe-blocker/index.ts'
+					'../core/src/modules/iframe-blocker/index.ts'
 				),
-				'@c15t/core/v3/modules/persistence': resolve(
+				'@c15t/core/modules/persistence': resolve(
 					__dirname,
-					'../core/src/v3/modules/persistence/index.ts'
+					'../core/src/modules/persistence/index.ts'
 				),
-				'@c15t/core/v3/modules/window-debug': resolve(
+				'@c15t/core/modules/window-debug': resolve(
 					__dirname,
-					'../core/src/v3/modules/window-debug/index.ts'
+					'../core/src/modules/window-debug/index.ts'
 				),
-				'@c15t/core/v3/transports/manifest': resolve(
+				'@c15t/core/transports/manifest': resolve(
 					__dirname,
-					'../core/src/v3/transports/manifest.ts'
+					'../core/src/transports/manifest.ts'
 				),
-				'@c15t/core/v3': resolve(__dirname, '../core/src/v3/index.ts'),
 				'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
-				'@c15t/react/v3/provider': resolve(
+				'@c15t/react/provider': resolve(__dirname, '../react/dist/provider.js'),
+				'@c15t/react/hooks': resolve(__dirname, '../react/dist/hooks.js'),
+				'@c15t/react/module-hooks': resolve(
 					__dirname,
-					'../react/dist/v3/provider.js'
+					'../react/dist/module-hooks.js'
 				),
-				'@c15t/react/v3/hooks': resolve(__dirname, '../react/dist/v3/hooks.js'),
-				'@c15t/react/v3/module-hooks': resolve(
+				'@c15t/react/server': resolve(
 					__dirname,
-					'../react/dist/v3/module-hooks.js'
+					'../react/dist/server/index.js'
 				),
-				'@c15t/react/v3/server': resolve(
-					__dirname,
-					'../react/dist/v3/server/index.js'
-				),
-				'@c15t/react/v3/headless': resolve(
-					__dirname,
-					'../react/dist/v3/headless.js'
-				),
-				'@c15t/react/v3': resolve(__dirname, '../react/dist/v3/index.js'),
 				'@c15t/react/headless': resolve(__dirname, '../react/dist/headless.js'),
+				'@c15t/react': resolve(__dirname, '../react/dist/index.js'),
 				'@c15t/translations/all': resolve(
 					__dirname,
 					'../translations/src/all.ts'

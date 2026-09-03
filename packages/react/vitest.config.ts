@@ -24,26 +24,25 @@ export default mergeConfig(
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.
 				[
-					'@c15t/core/v3/modules/script-loader',
-					resolve(__dirname, '../core/src/v3/modules/script-loader/index.ts'),
+					'@c15t/core/modules/script-loader',
+					resolve(__dirname, '../core/src/modules/script-loader/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/network-blocker',
-					resolve(__dirname, '../core/src/v3/modules/network-blocker/index.ts'),
+					'@c15t/core/modules/network-blocker',
+					resolve(__dirname, '../core/src/modules/network-blocker/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/iframe-blocker',
-					resolve(__dirname, '../core/src/v3/modules/iframe-blocker/index.ts'),
+					'@c15t/core/modules/iframe-blocker',
+					resolve(__dirname, '../core/src/modules/iframe-blocker/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/persistence',
-					resolve(__dirname, '../core/src/v3/modules/persistence/index.ts'),
+					'@c15t/core/modules/persistence',
+					resolve(__dirname, '../core/src/modules/persistence/index.ts'),
 				],
 				[
-					'@c15t/core/v3/modules/window-debug',
-					resolve(__dirname, '../core/src/v3/modules/window-debug/index.ts'),
+					'@c15t/core/modules/window-debug',
+					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
 				],
-				['@c15t/core/v3', resolve(__dirname, '../core/src/v3/index.ts')],
 				['@c15t/core', resolve(__dirname, '../core/src/index.ts')],
 				['@c15t/schema/types', resolve(__dirname, '../schema/src/types.ts')],
 				[
@@ -93,11 +92,7 @@ export default mergeConfig(
 					'@iabtechlabtcf/core',
 					resolve(__dirname, '../iab/node_modules/@iabtechlabtcf/core'),
 				],
-				[
-					'@c15t/iab/v3/headless',
-					resolve(__dirname, '../iab/src/v3/headless.ts'),
-				],
-				['@c15t/iab/v3', resolve(__dirname, '../iab/src/v3/index.ts')],
+				['@c15t/iab/headless', resolve(__dirname, '../iab/src/headless.ts')],
 				['@c15t/iab', resolve(__dirname, '../iab/src/index.ts')],
 				['react', resolve(__dirname, './node_modules/react')],
 				['react-dom', resolve(__dirname, './node_modules/react-dom')],
@@ -112,7 +107,7 @@ export default mergeConfig(
 			coverage: {
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
-				exclude: ['src/providers/__tests__/test-helpers.tsx'],
+				exclude: ['src/utils/test-helpers.tsx'],
 				thresholds: {
 					branches: 50,
 					functions: 60,
@@ -128,10 +123,7 @@ export default mergeConfig(
 				'src/**/*.e2e.test.tsx',
 			],
 			retry: 2,
-			setupFiles: [
-				'./src/test-setup.browser.ts',
-				'./src/v3/test-setup.browser.ts',
-			],
+			setupFiles: ['./src/test-setup.browser.ts'],
 		},
 	})
 );

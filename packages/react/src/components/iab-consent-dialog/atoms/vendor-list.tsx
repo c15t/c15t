@@ -1,12 +1,15 @@
 'use client';
 
 import type { GlobalVendorList } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useState } from 'react';
 import type { FC } from 'react';
 
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
+import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
@@ -57,6 +60,8 @@ export const VendorList: FC<VendorListProps> = ({
 	vendorLegitimateInterests = EMPTY_VENDOR_INTERESTS,
 	onVendorLegitimateInterestToggle,
 }) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const [searchTerm, setSearchTerm] = useState('');
 	const [expandedVendors, setExpandedVendors] = useState<Set<VendorId>>(
 		new Set()
@@ -227,6 +232,24 @@ export const VendorList: FC<VendorListProps> = ({
 				name: f.name,
 			}));
 	};
+	const rootProps = mergeSlotProps(components?.['iab-vendor-list']?.root, {
+		noStyle,
+	});
+	const headerProps = mergeSlotProps(components?.['iab-vendor-list']?.header, {
+		baseClassName: styles.vendorListHeader,
+		noStyle,
+	});
+	const searchProps = mergeSlotProps(components?.['iab-vendor-list']?.search, {
+		baseClassName: styles.searchContainer,
+		noStyle,
+	});
+	const selectedVendorProps = mergeSlotProps(
+		components?.['iab-vendor-list']?.selectedVendor,
+		{
+			baseClassName: styles.selectedVendorBanner,
+			noStyle,
+		}
+	);
 
 	const renderVendorItem = function renderVendorItem(vendor: ProcessedVendor) {
 		const vendorKey = String(vendor.id);
@@ -253,10 +276,18 @@ export const VendorList: FC<VendorListProps> = ({
 				maxAgeText = `${maxAgeText} (refreshes)`;
 			}
 		}
+		const rowHeaderProps = mergeSlotProps(
+			components?.['iab-vendor-list']?.rowHeader,
+			{
+				baseClassName: styles.vendorListItemHeader,
+				noStyle,
+			}
+		);
 
 		const renderVendorContent = () => (
 			<PreferenceItem.Content
-				innerClassName={styles.vendorListContent}
+				innerClassName={noStyle ? undefined : styles.vendorListContent}
+				innerSlotKey="iab-vendor-list.rowContent"
 				noStyle
 			>
 				<div className={styles.vendorLinks}>
@@ -381,7 +412,7 @@ export const VendorList: FC<VendorListProps> = ({
 										key={purpose.id}
 										className={`${styles.vendorPurposeItem} ${
 											purpose.usesLegitimateInterest
-												? styles.vendorPurposeItemLI
+												? styles.vendorPurposeItemLi
 												: ''
 										}`}
 									>
@@ -588,12 +619,19 @@ export const VendorList: FC<VendorListProps> = ({
 			<PreferenceItem.Root
 				key={vendor.id}
 				id={`vendor-${vendorKey}`}
-				className={`${styles.vendorListItem} ${vendor.isCustom ? styles.customVendorItem : ''}`}
+				className={
+					noStyle
+						? undefined
+						: `${styles.vendorListItem} ${
+								vendor.isCustom ? styles.customVendorItem : ''
+							}`
+				}
 				noStyle
 				onOpenChange={() => toggleVendor(vendor.id)}
 				open={isExpanded}
+				slotKey="iab-vendor-list.row"
 			>
-				<div className={styles.vendorListItemHeader}>
+				<div {...rowHeaderProps}>
 					<PreferenceItem.Trigger
 						className={styles.vendorListTrigger}
 						noStyle
@@ -682,10 +720,10 @@ export const VendorList: FC<VendorListProps> = ({
 		);
 	};
 	const vendorListContent = (
-		<div>
+		<div {...rootProps}>
 			{selectedVendorId === null ? (
-				<div className={styles.vendorListHeader}>
-					<div className={styles.searchContainer}>
+				<div {...headerProps}>
+					<div {...searchProps}>
 						<svg
 							className={styles.searchIcon}
 							viewBox="0 0 24 24"
@@ -720,7 +758,7 @@ export const VendorList: FC<VendorListProps> = ({
 					</p>
 				</div>
 			) : (
-				<div className={styles.selectedVendorBanner}>
+				<div {...selectedVendorProps}>
 					<p className={styles.selectedVendorText}>
 						{iab.common.showingSelectedVendor}
 					</p>

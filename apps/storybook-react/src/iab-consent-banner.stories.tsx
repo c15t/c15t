@@ -1,4 +1,3 @@
-import { customizeFlow } from '@c15t/conformance/play/iab-consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
@@ -12,7 +11,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'COMPONENTS - REACT/IAB/IAB Consent Banner',
+	title: 'COMPONENTS - REACT/IAB Consent Banner',
 } satisfies Meta<typeof IABConsentBanner>;
 
 export default meta;
@@ -27,8 +26,7 @@ export const Default: Story = {
 	),
 };
 
-export const CustomizeFlow: Story = {
-	play: customizeFlow,
+export const WithDialog: Story = {
 	render: () => (
 		<StorybookIABProvider>
 			<IABConsentBanner />

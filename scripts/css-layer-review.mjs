@@ -9,14 +9,7 @@ const createDeferredPromise = function createDeferredPromise(run) {
 	return deferred.promise;
 };
 
-const routes = [
-	'/matrix/banner/baseline',
-	'/matrix/banner/relay',
-	'/matrix/dialog/relay',
-	'/v3-matrix/banner',
-	'/v3-matrix/dialog',
-	'/v3-matrix/widget',
-];
+const routes = ['/matrix/banner', '/matrix/dialog', '/matrix/widget'];
 
 const apps = [
 	{

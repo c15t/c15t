@@ -4,16 +4,13 @@
  * Tests for the purposes tab in IAB Consent Dialog.
  */
 
-import { iab } from '@c15t/iab';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
 
@@ -39,7 +36,7 @@ const localStorageMock = (() => {
 			Reflect.deleteProperty(store, key);
 		},
 		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+			store[key] = value;
 		},
 	};
 })();
@@ -229,13 +226,13 @@ globalThis.fetch = vi.fn(() =>
 	)
 ) as typeof fetch;
 
-const defaultIABOptions: ConsentManagerOptions = {
-	iab: iab({
+const defaultIABOptions: ConsentProviderOptions = {
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	}),
-	mode: 'offline',
+	},
+	mode: offline(),
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},
@@ -245,15 +242,14 @@ describe('Purposes Tab - Consent', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('Purpose 1 should be displayed', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -270,9 +266,9 @@ describe('Purposes Tab - Consent', () => {
 
 	test('should display multiple purposes', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -289,9 +285,9 @@ describe('Purposes Tab - Consent', () => {
 
 	test('should keep purpose details collapsed until expanded', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		const purposeTrigger = await vi.waitFor(
@@ -328,15 +324,14 @@ describe('Purposes Tab - Legitimate Interest', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('should display LI section for purposes with LI vendors', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -356,15 +351,14 @@ describe('Purposes Tab - Special Purposes', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('special purposes section should exist when expanded', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -383,15 +377,14 @@ describe('Purposes Tab - Special Features', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('should display special features section', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -408,9 +401,9 @@ describe('Purposes Tab - Special Features', () => {
 
 	test('special feature toggles should exist', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -429,15 +422,14 @@ describe('Purposes Tab - Stacks', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('should group purposes into stacks from GVL', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(

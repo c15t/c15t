@@ -102,13 +102,13 @@ const config: StorybookConfig = {
 					},
 					{
 						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-						find: /^@c15t\/ui\/styles\/v3\/(.+)\.module\.css$/u,
-						replacement: ui('styles', 'v3', '$1.module.css'),
+						find: /^@c15t\/ui\/styles\/components\/(.+)\.module\.css$/u,
+						replacement: ui('styles', 'components', '$1.module.css'),
 					},
 					{
 						// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-						find: /^@c15t\/ui\/styles\/v3\/(.+)$/u,
-						replacement: ui('styles', 'v3', '$1.module.css'),
+						find: /^@c15t\/ui\/styles\/components\/(.+)$/u,
+						replacement: ui('styles', 'components', '$1.module.css'),
 					},
 					{
 						find: /^@c15t\/ui\/theme$/u,

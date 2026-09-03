@@ -1,3 +1,5 @@
+@import url('./animations/enter-exit.css');
+
 :root {
 	/* Typography */
 	--consent-banner-font-family: var(--c15t-font-family);
@@ -14,10 +16,8 @@
 	/* Animation variables */
 	--consent-banner-animation-duration: var(--c15t-duration-fast);
 	--consent-banner-animation-timing: var(--c15t-easing);
-	--consent-banner-entry-animation: enter var(--c15t-duration-fast)
-		var(--c15t-easing);
-	--consent-banner-exit-animation: exit var(--c15t-duration-fast)
-		var(--c15t-easing);
+	--consent-banner-entry-animation: var(--c15t-enter-animation);
+	--consent-banner-exit-animation: var(--c15t-exit-animation);
 
 	/* Border */
 	--consent-banner-border-width: 1px;
@@ -52,7 +52,7 @@
 }
 
 @layer components {
-	.root {
+	.root:not(:global(.headless)) {
 		box-sizing: border-box;
 		padding: 1rem;
 		flex-direction: column;
@@ -67,8 +67,37 @@
 		tab-size: var(--consent-banner-tab-size);
 	}
 
-	/* Banner animation classes */
-	.bannerVisible {
+	/* Banner — Vue <Transition> enter/leave classes */
+	.bannerEnterActive:not(:global(.headless)) {
+		transition:
+			opacity var(--consent-banner-animation-duration)
+				var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+				cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.bannerLeaveActive:not(:global(.headless)) {
+		transition:
+			opacity var(--consent-banner-animation-duration)
+				var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+				var(--consent-banner-animation-timing);
+	}
+
+	.bannerEnterFrom:not(:global(.headless)),
+	.bannerLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+		transform: translateY(50px);
+	}
+
+	.bannerEnterTo:not(:global(.headless)),
+	.bannerLeaveFrom:not(:global(.headless)) {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	/* Legacy/compat class toggles */
+	.bannerVisible:not(:global(.headless)) {
 		opacity: 1;
 		transform: translateY(0);
 		transition:
@@ -78,7 +107,7 @@
 				cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
-	.bannerHidden {
+	.bannerHidden:not(:global(.headless)) {
 		opacity: 0;
 		transform: translateY(50px);
 		transition:
@@ -89,34 +118,34 @@
 	}
 
 	@media (min-width: 640px) {
-		.root {
+		.root:not(:global(.headless)) {
 			padding: 1.5rem;
 			width: auto;
 		}
 	}
 
-	.bottomLeft {
-		left: 0px;
-		bottom: 0px;
+	.root[data-position='bottom-left']:not(:global(.headless)) {
+		left: 0;
+		bottom: 0;
 	}
 
-	.bottomRight {
-		right: 0px;
-		bottom: 0px;
+	.root[data-position='bottom-right']:not(:global(.headless)) {
+		right: 0;
+		bottom: 0;
 	}
 
-	.topLeft {
-		left: 0px;
-		top: 0px;
+	.root[data-position='top-left']:not(:global(.headless)) {
+		left: 0;
+		top: 0;
 	}
 
-	.topRight {
-		right: 0px;
-		top: 0px;
+	.root[data-position='top-right']:not(:global(.headless)) {
+		right: 0;
+		top: 0;
 	}
 
 	/* Card styles */
-	.card {
+	.card:not(:global(.headless)) {
 		position: relative;
 		width: 100%;
 		border-radius: var(--consent-banner-border-radius);
@@ -129,110 +158,80 @@
 		overflow: hidden;
 	}
 
-	.cardShell {
+	.cardShell:not(:global(.headless)) {
 		display: flex;
 		flex-direction: column;
-		width: min(100%, var(--consent-banner-max-width));
+		width: min(calc(100vw - 2rem), var(--consent-banner-max-width));
 	}
 
-	:global(.c15t-dark) .card {
+	@media (min-width: 640px) {
+		.cardShell:not(:global(.headless)) {
+			width: min(calc(100vw - 3rem), var(--consent-banner-max-width));
+		}
+	}
+
+	:global(.c15t-dark) .card:not(:global(.headless)) {
 		background-color: var(--consent-banner-background-color-dark);
 		border-color: var(--consent-banner-border-color-dark);
 		box-shadow: var(--consent-banner-shadow-dark);
 	}
 
 	/* Animation states */
-	.card[data-state='open'] {
+	.card:not(:global(.headless))[data-state='open'] {
 		animation: var(--consent-banner-entry-animation);
 	}
 
-	.card[data-state='closed'] {
+	.card:not(:global(.headless))[data-state='closed'] {
 		animation: var(--consent-banner-exit-animation);
 	}
 
 	/* Divider between sections */
-	.card > :not([hidden]) ~ :not([hidden]) {
+	.card:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
 		border-top-width: var(--consent-banner-border-width);
+		/* Top only: never rely on Tailwind preflight's border reset. */
+		border-top-style: solid;
 		border-color: var(--consent-banner-border-color);
 	}
 
-	:global(.c15t-dark) .card > :not([hidden]) ~ :not([hidden]) {
+	:global(.c15t-dark)
+		.card:not(:global(.headless))
+		> :not([hidden])
+		~ :not([hidden]) {
 		border-color: var(--consent-banner-border-color-dark);
 	}
 
-	/* Focus styles */
-	.card:focus {
+	/* Focus styles: the card is tabindex="-1" — it only receives
+	   programmatic focus (the trap moves focus here on open so screen
+	   readers announce the surface) and is never a keyboard tab stop, so it
+	   renders no ring. Interactive children carry the focus indicators. */
+	.card:not(:global(.headless)):focus {
 		outline: none;
-		outline-offset: 2px;
 	}
 
-	/* Animation keyframes */
-	@keyframes enter {
-		from {
-			opacity: 0;
-			transform: scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: scale(1);
-		}
-	}
-
-	@keyframes exit {
-		from {
-			opacity: 1;
-			transform: scale(1);
-		}
-		to {
-			opacity: 0;
-			transform: scale(0.95);
-		}
-	}
-
-	.rejectButton {
-		width: 100%;
-	}
-
-	.acceptButton {
-		width: 100%;
-	}
-
-	.customizeButton {
-		width: 100%;
-	}
-
-	@media (min-width: 640px) {
-		.rejectButton,
-		.acceptButton,
-		.customizeButton {
-			width: auto;
-		}
-	}
-
-	.header {
+	.header:not(:global(.headless)) {
 		display: flex;
 		flex-direction: column;
 		padding: 1rem;
 		color: var(--consent-banner-text-color);
 	}
 
-	:global(.c15t-dark) .header {
+	:global(.c15t-dark) .header:not(:global(.headless)) {
 		color: var(--consent-banner-text-color-dark);
 	}
 
 	@media (min-width: 640px) {
-		.header {
+		.header:not(:global(.headless)) {
 			padding: 1.5rem;
 		}
 	}
 
-	.header > :not([hidden]) ~ :not([hidden]) {
+	.header:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
 		--consent-banner-space-y-reverse: 0;
 		margin-top: calc(0.5rem * calc(1 - var(--consent-banner-space-y-reverse)));
 		margin-bottom: calc(0.5rem * var(--consent-banner-space-y-reverse));
 	}
 
-	.footer {
+	.footer:not(:global(.headless)) {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
@@ -244,48 +243,17 @@
 		background-color: var(--consent-banner-footer-background-color);
 	}
 
-	:global(.c15t-dark) .footer {
+	:global(.c15t-dark) .footer:not(:global(.headless)) {
 		background-color: var(--consent-banner-footer-background-color-dark);
 	}
 
 	@media (min-width: 640px) {
-		.footer {
+		.footer:not(:global(.headless)) {
 			flex-direction: row;
 		}
 	}
 
-	.footerSubGroup {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		gap: 1rem;
-	}
-
-	.footerSubGroup button {
-		flex-grow: 1;
-	}
-
-	.footerFill {
-		flex-direction: column;
-	}
-
-	.footerColumn {
-		flex-direction: column;
-	}
-
-	.footerSubGroupFill {
-		width: 100%;
-	}
-
-	.footerSubGroupColumn {
-		width: 100%;
-	}
-
-	.actionButtonFill {
-		width: 100%;
-	}
-
-	.description {
+	.description:not(:global(.headless)) {
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		letter-spacing: -0.006em;
@@ -293,11 +261,45 @@
 		color: var(--consent-banner-description-color);
 	}
 
-	:global(.c15t-dark) .description {
+	:global(.c15t-dark) .description:not(:global(.headless)) {
 		color: var(--consent-banner-description-color-dark);
 	}
 
-	.title {
+	.description[data-context='banner']:not(:global(.headless)) {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context='banner']:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	.description[data-context='dialog']:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color);
+		font-size: var(--consent-dialog-description-font-size);
+		font-weight: var(--consent-dialog-description-font-weight);
+		line-height: var(--consent-dialog-description-line-height);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context='dialog']:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color-dark);
+	}
+
+	.description[data-context='manager']:not(:global(.headless)) {
+		color: var(--consent-manager-text-muted-color);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context='manager']:not(:global(.headless)) {
+		color: var(--consent-manager-text-muted-color-dark);
+	}
+
+	.title:not(:global(.headless)) {
 		font-size: 1rem;
 		line-height: 1.5rem;
 		letter-spacing: -0.011em;
@@ -305,45 +307,71 @@
 		color: var(--consent-banner-title-color);
 	}
 
-	:global(.c15t-dark) .title {
+	:global(.c15t-dark) .title:not(:global(.headless)) {
 		color: var(--consent-banner-title-color-dark);
 	}
 
-	.overlay {
+	.overlay:not(:global(.headless)) {
 		position: fixed;
 		inset: 0px;
 		background-color: var(--consent-banner-overlay-background-color);
 		z-index: 999999997;
 	}
 
-	/* Animation classes for overlay */
-	.overlayVisible {
+	/* Overlay — Vue <Transition> enter/leave classes */
+	.overlayEnterActive:not(:global(.headless)),
+	.overlayLeaveActive:not(:global(.headless)) {
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.overlayEnterFrom:not(:global(.headless)),
+	.overlayLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	.overlayEnterTo:not(:global(.headless)),
+	.overlayLeaveFrom:not(:global(.headless)) {
+		opacity: 1;
+	}
+
+	/* Legacy/compat class toggles */
+	.overlayVisible:not(:global(.headless)) {
 		opacity: 1;
 		transition: opacity var(--consent-banner-animation-duration)
 			var(--consent-banner-animation-timing);
 	}
 
-	.overlayHidden {
+	.overlayHidden:not(:global(.headless)) {
 		opacity: 0;
 		transition: opacity var(--consent-banner-animation-duration)
 			var(--consent-banner-animation-timing);
 	}
 
-	:global(.c15t-dark) .overlay {
+	:global(.c15t-dark) .overlay:not(:global(.headless)) {
 		background-color: var(--consent-banner-overlay-background-color-dark);
 	}
 
-	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
+		.bannerEnterActive,
+		.bannerLeaveActive,
+		.bannerEnterFrom,
+		.bannerEnterTo,
+		.bannerLeaveFrom,
+		.bannerLeaveTo,
+		.overlayEnterActive,
+		.overlayLeaveActive,
+		.overlayEnterFrom,
+		.overlayEnterTo,
+		.overlayLeaveFrom,
+		.overlayLeaveTo,
 		.bannerVisible,
 		.bannerHidden,
 		.overlayVisible,
-		.overlayHidden {
+		.overlayHidden:not(:global(.headless)),
+		.card:not(:global(.headless))[data-state='open'],
+		.card:not(:global(.headless))[data-state='closed'] {
 			transition: none;
-		}
-
-		.card[data-state='open'],
-		.card[data-state='closed'] {
 			animation: none;
 		}
 	}

@@ -8,25 +8,25 @@ import type * as C15tCoreTypes from '@c15t/core';
  * focus trapping, scroll locking and portal rendering.
  */
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
-import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/consent-dialog';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useConsentManager } from '~/component-hooks/use-consent-manager';
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
-import { useTextDirection } from '~/hooks';
-import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
+import { useTextDirection } from '~/hooks/use-text-direction';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Overlay } from './overlay';
 
@@ -48,20 +48,28 @@ const resolveDialogOptions = (
 	trapFocus: localTrapFocus ?? globalTrapFocus ?? true,
 });
 
-const getContainerClassName = (
-	noStyle: boolean,
+const resolveDialogOpen = (
+	models: C15tCoreTypes.Model[],
+	model: C15tCoreTypes.Model,
+	open: boolean | undefined,
+	activeUI: string
+): boolean => {
+	if (!models.includes(model)) {
+		return false;
+	}
+	return open ?? activeUI === 'dialog';
+};
+
+const getRootClasses = (
 	disableAnimation: boolean,
 	isVisible: boolean
-): string | undefined => {
-	if (noStyle) {
-		return undefined;
-	}
+): string => {
 	if (disableAnimation) {
-		return styles.container;
+		return styles.root;
 	}
 	return cn(
-		styles.container,
-		isVisible ? styles.contentVisible : styles.contentHidden
+		styles.root,
+		isVisible ? styles.dialogVisible : styles.dialogHidden
 	);
 };
 
@@ -153,6 +161,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 }) => {
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
+	const { components } = useUIConfig();
 
 	// Consent manager state
 	const { activeUI, translationConfig, model, policyDialog } =
@@ -172,7 +181,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	// Final open state (controlled or managed by consent manager)
-	const isOpen = models.includes(model) && (openProp ?? activeUI === 'dialog');
+	const isOpen = resolveDialogOpen(models, model, openProp, activeUI);
 
 	// Animation visibility flag – mirrors logic in original component
 	const [isVisible, setIsVisible] = useState(false);
@@ -227,23 +236,23 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Lock scroll when required
 	useScrollLock(isOpen && scrollLock);
 
-	// Compose class names
-	const rootClasses = cn(
-		styles.root,
-		!disableAnimation &&
-			(isVisible ? styles.dialogVisible : styles.dialogHidden),
-		className
-	);
+	const rootClasses = getRootClasses(disableAnimation, isVisible);
 
-	// Styles (using theme util)
-	const themedStyle = useStyles('consentDialog', {
-		baseClassName: undefined,
-		className: rootClasses,
+	const themedStyle = mergeSlotProps(components?.dialog?.root, {
+		baseClassName: rootClasses,
+		className,
 		noStyle,
 		style: style as CSSPropertiesWithVars<Record<string, never>>,
+		...rest,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
-
+	const containerStyle = mergeSlotProps(components?.dialog?.container, {
+		baseClassName: cn(
+			styles.container,
+			!disableAnimation &&
+				(isVisible ? styles.contentVisible : styles.contentHidden)
+		),
+		noStyle,
+	});
 	const contextValue = useMemo<ThemeContextValue>(
 		() => ({
 			disableAnimation,
@@ -269,8 +278,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 						<dialog
 							ref={dialogRef}
-							{...rest}
-							{...domStyleProps}
+							{...themedStyle}
 							className={themedStyle.className}
 							aria-labelledby="consent-dialog-title"
 							aria-modal={trapFocus ? 'true' : undefined}
@@ -281,11 +289,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						>
 							<div
 								ref={contentRef}
-								className={getContainerClassName(
-									noStyle,
-									disableAnimation,
-									isVisible
-								)}
+								{...containerStyle}
 							>
 								{children}
 							</div>

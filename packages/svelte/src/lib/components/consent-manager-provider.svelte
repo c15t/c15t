@@ -1,16 +1,12 @@
 <script lang="ts">
-	import { defaultTranslationConfig } from '@c15t/core';
+	import { createConsentKernel, defaultTranslationConfig } from '@c15t/core';
 	import type {
 		AllConsentNames,
 		Callbacks,
-		I18nConfig,
-		User,
-	} from '@c15t/core';
-	import { createConsentKernel } from '@c15t/core/v3';
-	import type {
 		ConsentKernel,
 		ConsentSnapshot,
 		ConsentState,
+		I18nConfig,
 		KernelConfig,
 		KernelEvent,
 		KernelOverrides,
@@ -19,17 +15,18 @@
 		ProviderTransportContext,
 		ProviderTransportFactory,
 		TranslationsResponse,
-	} from '@c15t/core/v3';
-	import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
-	import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
-	import { createPersistence } from '@c15t/core/v3/modules/persistence';
-	import { createScriptLoader } from '@c15t/core/v3/modules/script-loader';
+		User,
+	} from '@c15t/core';
+	import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
+	import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
+	import { createPersistence } from '@c15t/core/modules/persistence';
+	import { createScriptLoader } from '@c15t/core/modules/script-loader';
 	import {
 		createWindowDebug,
 		resolveWindowDebugMode,
-	} from '@c15t/core/v3/modules/window-debug';
-	import { createIAB } from '@c15t/iab/v3';
-	import type { IABHandle } from '@c15t/iab/v3';
+	} from '@c15t/core/modules/window-debug';
+	import { createIAB } from '@c15t/iab';
+	import type { IABHandle } from '@c15t/iab';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';

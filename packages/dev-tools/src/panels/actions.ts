@@ -3,7 +3,7 @@
  * Quick actions for developers
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
 
 import {
 	createButton,
@@ -11,6 +11,7 @@ import {
 	createGrid,
 } from '../components/ui';
 import { clearElement, createSvgElement, div, span } from '../core/renderer';
+import { DEFAULT_KERNEL_NAMESPACE } from '../core/store-connector';
 
 import componentStyles from '../styles/components.module.css';
 
@@ -49,7 +50,12 @@ const TERMINAL_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 2
 </svg>`;
 
 export interface ActionsPanelOptions {
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
+	/**
+	 * Window namespace the kernel is exposed under, shown in the console hints
+	 * @default 'c15tKernel'
+	 */
+	namespace?: string;
 	onResetConsents: () => void;
 	onRefetchBanner: () => void;
 	onShowBanner: () => void;
@@ -130,13 +136,6 @@ const createActionCard = function createActionCard(options: {
 };
 
 /**
- * Gets the namespace from the store config
- */
-const getNamespace = function getNamespace(state: ConsentStoreState): string {
-	return (state.config?.meta?.namespace as string) || 'c15tStore';
-};
-
-/**
  * Renders the actions panel content
  */
 // oxlint-disable-next-line func-style -- Preserve declaration order, interface shape, and public compatibility.
@@ -146,6 +145,7 @@ export function renderActionsPanel(
 ): void {
 	const {
 		getState,
+		namespace = DEFAULT_KERNEL_NAMESPACE,
 		onResetConsents,
 		onRefetchBanner,
 		onShowBanner,
@@ -245,7 +245,7 @@ export function renderActionsPanel(
 			}),
 			div({
 				children: [
-					span({ text: `window.${getNamespace(state)}.getState()` }),
+					span({ text: `window.${namespace}.getSnapshot()` }),
 					span({ text: 'window.__c15tDevTools.open()' }),
 				],
 

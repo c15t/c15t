@@ -3,7 +3,7 @@
  * Displays and manages consent state
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
 
 import {
 	createButton,
@@ -15,7 +15,12 @@ import {
 import { clearElement, div, span } from '../core/renderer';
 
 export interface ConsentsPanelOptions {
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
+	/**
+	 * Consent toggles flipped in the panel but not saved yet. The kernel has
+	 * no pending selection, so the devtools carry the draft.
+	 */
+	getDraftConsents?: () => Record<string, boolean>;
 	onConsentChange: (name: string, value: boolean) => void;
 	onSave: () => void;
 	onAcceptAll: () => void;
@@ -39,6 +44,7 @@ export const renderConsentsPanel = function renderConsentsPanel(
 ): void {
 	const {
 		getState,
+		getDraftConsents,
 		onConsentChange,
 		onSave,
 		onAcceptAll,
@@ -58,12 +64,9 @@ export const renderConsentsPanel = function renderConsentsPanel(
 	// Check if we're in IAB mode - consents are managed differently
 	const isIabMode = state.model === 'iab';
 
-	// Get consent values - use savedConsents as the base, with selectedConsents for pending changes
-	const savedConsents = (state.consents || {}) as Record<string, boolean>;
-	const selectedConsents = (state.selectedConsents || {}) as Record<
-		string,
-		boolean
-	>;
+	// Get consent values - the kernel snapshot is the base, the devtools draft overlays pending changes
+	const savedConsents = state.consents as Record<string, boolean>;
+	const selectedConsents = getDraftConsents?.() ?? {};
 
 	// Merge consents: start with saved, overlay with selected
 	// This ensures we show current values even if selectedConsents is empty
@@ -78,20 +81,6 @@ export const renderConsentsPanel = function renderConsentsPanel(
 		Object.entries(displayConsents).some(
 			([key, value]) => savedConsents[key] !== value
 		);
-
-	// Consent items - use displayConsents for current toggle state
-	const consentTypes = state.consentTypes || [];
-
-	// Create a map for looking up consent type info
-	const consentTypeMap = new Map<
-		string,
-		{ name: string; description?: string }
-	>(
-		consentTypes.map((ct: { name: string; description?: string }) => [
-			ct.name,
-			ct,
-		])
-	);
 
 	// Consent grid - show displayConsents (merged state with pending changes)
 	const consentEntries = Object.entries(displayConsents);
@@ -129,9 +118,8 @@ export const renderConsentsPanel = function renderConsentsPanel(
 		const gridCards: HTMLElement[] = [];
 
 		for (const [name, value] of consentEntries) {
-			const consentType = consentTypeMap.get(name);
 			const isNecessary = name === 'necessary';
-			const displayName = consentType?.name || name;
+			const displayName = name;
 			// Check if this consent has unsaved changes
 			const isSaved = savedConsents[name] === value;
 

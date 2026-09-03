@@ -8,15 +8,23 @@ group: frameworks
 
 ## Basic Usage
 
-Pass an array of `Script` objects to the runtime options:
+Create the loader after the kernel has initialized:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
+import { createScriptLoader } from 'c15t/modules/script-loader';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
+});
+
+await kernel.commands.init();
+
+const scriptLoader = createScriptLoader({
+  kernel,
   scripts: [
     metaPixel({ pixelId: '123456' }),
     {
@@ -32,24 +40,21 @@ const { consentStore } = getOrCreateConsentRuntime({
 
 ## Dynamic Script Management
 
-Add, remove, or check scripts at runtime via the store:
+Replace the configured scripts or inspect loaded script IDs through the loader
+handle:
 
 ```ts
-const state = consentStore.getState();
-
-// Add scripts dynamically
-state.setScripts([
+scriptLoader.updateScripts([
+  // Keep existing entries that should remain active
+  metaPixel({ pixelId: '123456' }),
   { id: 'dynamic', src: 'https://cdn.example.com/widget.js', category: 'measurement' },
 ]);
 
-// Remove a script
-state.removeScript('dynamic');
-
-// Check if a script is loaded
-const loaded = state.isScriptLoaded('custom-analytics');
-
 // Get all loaded script IDs
-const allLoaded = state.getLoadedScriptIds();
+const allLoaded = scriptLoader.getLoadedScriptIds();
+
+// Remove mounted scripts and stop listening during teardown
+scriptLoader.dispose();
 ```
 
 <import src="../../shared/react/guides/script-loader.mdx#api-reference" />

@@ -1,13 +1,13 @@
-import type { PolicyConfig } from '@c15t/core';
-import { createOfflineTransport } from '@c15t/core/v3';
+import { createOfflineTransport } from '@c15t/core';
 import type {
 	InitContext,
 	InitResponse,
 	KernelConfig,
 	KernelTransport,
+	PolicyConfig,
 	ProviderTransportContext,
 	ProviderTransportFactory,
-} from '@c15t/core/v3';
+} from '@c15t/core';
 import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
 
 /** Options for {@link offline}. */

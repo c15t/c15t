@@ -1,9 +1,9 @@
-import type { ConsentStoreState } from '@c15t/core';
+import type { KernelOverrides } from '@c15t/core';
 
 const DEVTOOLS_OVERRIDES_STORAGE_KEY = 'c15t-devtools-overrides';
 
 export type PersistedDevToolsOverrides = Pick<
-	NonNullable<ConsentStoreState['overrides']>,
+	KernelOverrides,
 	'country' | 'region' | 'language' | 'gpc'
 >;
 

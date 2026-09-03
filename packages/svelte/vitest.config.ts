@@ -14,43 +14,43 @@ export default mergeConfig(
 		resolve: {
 			alias: [
 				{
-					find: '@c15t/core/v3/modules/iframe-blocker',
+					find: '@c15t/core/modules/iframe-blocker',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/iframe-blocker/index.ts'
+						'../core/src/modules/iframe-blocker/index.ts'
 					),
 				},
 				{
-					find: '@c15t/core/v3/modules/network-blocker',
+					find: '@c15t/core/modules/network-blocker',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/network-blocker/index.ts'
+						'../core/src/modules/network-blocker/index.ts'
 					),
 				},
 				{
-					find: '@c15t/core/v3/modules/persistence',
+					find: '@c15t/core/modules/persistence',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/persistence/index.ts'
+						'../core/src/modules/persistence/index.ts'
 					),
 				},
 				{
-					find: '@c15t/core/v3/modules/script-loader',
+					find: '@c15t/core/modules/script-loader',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/script-loader/index.ts'
+						'../core/src/modules/script-loader/index.ts'
 					),
 				},
 				{
-					find: '@c15t/core/v3/modules/window-debug',
+					find: '@c15t/core/modules/window-debug',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/window-debug/index.ts'
+						'../core/src/modules/window-debug/index.ts'
 					),
 				},
 				{
-					find: '@c15t/iab/v3',
-					replacement: resolve(__dirname, '../iab/src/v3/index.ts'),
+					find: '@c15t/iab',
+					replacement: resolve(__dirname, '../iab/src/index.ts'),
 				},
 				{
 					find: '@c15t/schema/types',
@@ -65,8 +65,8 @@ export default mergeConfig(
 					replacement: resolve(__dirname, '../schema/src/index.ts'),
 				},
 				{
-					find: '@c15t/core/v3',
-					replacement: resolve(__dirname, '../core/src/v3/index.ts'),
+					find: '@c15t/core',
+					replacement: resolve(__dirname, '../core/src/index.ts'),
 				},
 				{
 					find: '~',

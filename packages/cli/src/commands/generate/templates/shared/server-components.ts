@@ -18,8 +18,8 @@ interface GenerateServerComponentOptions {
 /**
  * Generates the server-side consent-manager index.tsx component template
  *
- * When SSR is enabled, the component calls fetchInitialData() to pre-fetch
- * consent data on the server and passes the promise to the client component.
+ * When SSR is enabled, the component reads a serializable kernel config on
+ * the server and passes it to the client component.
  * When SSR is disabled, it simply wraps children with the client component.
  *
  * @param options - Template generation options
@@ -30,34 +30,32 @@ interface GenerateServerComponentOptions {
  */
 export const generateServerComponent = function generateServerComponent({
 	enableSSR,
-	backendURLValue,
+	backendURLValue: _backendURLValue,
 	framework,
 }: GenerateServerComponentOptions): string {
 	if (enableSSR) {
-		return `import { fetchInitialData } from '${framework.importSource}';
+		return `import { readInitialConsentConfig } from '${framework.importSource}/server';
 import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
+import ConsentManagerClient from './provider';
 
 /**
  * Server-side consent management wrapper with SSR data prefetching.
  * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
-export function ConsentManager({ children }: { children: ReactNode }) {
-	const ssrData = fetchInitialData({
-		backendURL: ${backendURLValue},
-	});
+export async function ConsentManager({ children }: { children: ReactNode }) {
+	const config = await readInitialConsentConfig();
 
 	return (
-		<ConsentManagerProvider ssrData={ssrData}>
+		<ConsentManagerClient config={config}>
 			{children}
-		</ConsentManagerProvider>
+		</ConsentManagerClient>
 	);
 }
 `;
 	}
 
 	return `import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
+import ConsentManagerClient from './provider';
 
 /**
  * Consent management wrapper.
@@ -65,9 +63,9 @@ import ConsentManagerProvider from './provider';
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentManagerProvider>
+		<ConsentManagerClient>
 			{children}
-		</ConsentManagerProvider>
+		</ConsentManagerClient>
 	);
 }
 `;
@@ -86,14 +84,14 @@ export const generateSimpleWrapperComponent =
 		docsSlug: string
 	): string {
 		return `import type { ReactNode } from 'react';
-import ConsentManagerProvider from './provider';
+import ConsentManagerClient from './provider';
 
 /**
  * Consent management wrapper.
  * @see https://c15t.com/docs/frameworks/${docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
-	return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
+	return <ConsentManagerClient>{children}</ConsentManagerClient>;
 }
 `;
 	};

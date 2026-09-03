@@ -1,5 +1,5 @@
-import type { SSRInitRequestContext } from '../store/type';
-import type { Overrides } from '../types';
+import type { Overrides } from '../options/overrides';
+import type { SSRInitRequestContext } from '../options/ssr';
 import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 
 const ABSOLUTE_URL_REGEX = /^https?:\/\//u;

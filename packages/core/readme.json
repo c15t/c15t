@@ -22,12 +22,11 @@
 		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup)."
 	],
 	"usage": [
-		"Import the c15t core library",
-		"Configure your consent preferences",
-		"Manage user consent across your application",
-		"Customize consent banners and preference centers",
+		"Create a kernel with a transport for your deployment mode",
+		"Mount the side-effect modules you need (persistence, script loader, blockers)",
+		"Read consent through `getSnapshot()` / `subscribe()` and write through `set.*` / `commands.*`",
 		"For full implementation details, see the [JavaScript quickstart docs](https://c15t.com/docs/frameworks/javascript/quickstart)",
-		"```typescript\n// Example usage\nimport { ConsentManager } from '@c15t/core'\n\nconst consentManager = new ConsentManager({\n  // Your configuration\n})\n```"
+		"```typescript\nimport { createConsentKernel, hosted } from '@c15t/core'\nimport { createPersistence } from '@c15t/core/modules/persistence'\n\nconst kernel = createConsentKernel({\n  transport: hosted({ url: 'https://your-instance.c15t.dev' })(),\n})\n\nconst persistence = createPersistence({ kernel })\nawait kernel.commands.init()\n\nkernel.subscribe((snapshot) => {\n  console.log(snapshot.consents)\n})\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/quickstart",

@@ -1,7 +1,7 @@
 /**
  * Request lifecycle conformance suite.
  *
- * Verifies the consolidated v3 kernel/adapter rule that UI surfaces render
+ * Verifies the consolidated kernel/adapter rule that UI surfaces render
  * only from authoritative policy data. Provisional fallback policies may exist
  * in the store, but they must not produce banner DOM until init succeeds.
  */

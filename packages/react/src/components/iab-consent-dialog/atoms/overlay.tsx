@@ -1,13 +1,14 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef, useEffect, useState } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
@@ -21,6 +22,7 @@ const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			noStyle: contextNoStyle,
 			scrollLock,
 		} = useTheme();
+		const { components } = useUIConfig();
 
 		const [isVisible, setIsVisible] = useState(false);
 
@@ -28,10 +30,13 @@ const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			if (isOpen) {
 				const frame = requestAnimationFrame(() => setIsVisible(true));
 				return () => cancelAnimationFrame(frame);
-			} else if (disableAnimation) {
+			}
+
+			if (disableAnimation) {
 				const frame = requestAnimationFrame(() => setIsVisible(false));
 				return () => cancelAnimationFrame(frame);
 			}
+
 			const animationDurationMs = Number.parseInt(
 				getComputedStyle(document.documentElement).getPropertyValue(
 					'--iab-cd-animation-duration'
@@ -44,10 +49,12 @@ const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			return () => clearTimeout(timer);
 		}, [isOpen, disableAnimation]);
 
-		const theme = useStyles('iabConsentDialogOverlay', {
-			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+		const theme = mergeSlotProps(components?.['iab-dialog']?.overlay, {
+			baseClassName: styles.overlay,
 			className,
 			noStyle: contextNoStyle || noStyle,
+			style,
+			...props,
 		});
 
 		const shouldApplyAnimation =
@@ -69,9 +76,8 @@ const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		return (
 			<div
 				ref={ref}
-				{...props}
+				{...theme}
 				className={finalClassName}
-				style={{ ...theme.style, ...style }}
 				data-testid="iab-consent-dialog-overlay"
 			/>
 		);

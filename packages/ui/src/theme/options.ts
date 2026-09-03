@@ -1,12 +1,13 @@
 import type {
 	AllConsentNames,
 	Callbacks,
-	ConsentManagerOptions as CoreOptions,
 	I18nConfig,
 	IABConfig,
 	LegalLinks,
 	NetworkBlockerConfig,
+	OfflinePolicyConfig,
 	Overrides,
+	ProviderTransportFactory,
 	Script,
 	SSRInitialData,
 	StorageConfig,
@@ -15,6 +16,36 @@ import type {
 } from '@c15t/core';
 
 import type { UIOptions } from '../theme/types';
+
+/**
+ * Transport and policy options shared by every framework provider.
+ */
+export interface CommonTransportOptions {
+	/**
+	 * Transport factory the provider builds its kernel with.
+	 *
+	 * @remarks
+	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * policies locally with no network, or `custom()` to supply your own
+	 * kernel transport. Framework providers require this; it is optional
+	 * here so the base type can also describe partial option fragments.
+	 *
+	 * @see {@link ProviderTransportFactory}
+	 */
+	mode?: ProviderTransportFactory;
+
+	/**
+	 * Offline policy preview configuration.
+	 *
+	 * @remarks
+	 * With `offline()` this injects a synthetic resolved policy or
+	 * backend-compatible policy packs without a live `/init` endpoint.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/policy-packs
+	 * @see {@link OfflinePolicyConfig} for available options
+	 */
+	offlinePolicy?: OfflinePolicyConfig;
+}
 
 /**
  * Store-related options that are common across UI implementations.
@@ -134,7 +165,7 @@ export interface CommonInlineStoreOptions {
  */
 export interface ConsentManagerContentOptions {
 	/**
-	 * Preferred i18n configuration in c15t v2.
+	 * Preferred i18n configuration.
 	 *
 	 * @remarks
 	 * If both `i18n` and legacy `translations` are provided, `i18n` takes precedence.
@@ -162,8 +193,11 @@ export interface ConsentManagerContentOptions {
 
 /**
  * Base configuration options for framework-agnostic consent managers.
+ *
+ * @remarks
+ * Framework packages extend this with their own UI and adapter options.
  */
-export type BaseConsentManagerOptions = CoreOptions &
+export type BaseConsentManagerOptions = CommonTransportOptions &
 	CommonInlineStoreOptions &
 	UIOptions &
 	ConsentManagerContentOptions;

@@ -1,6 +1,6 @@
 ---
 title: Checking Consent
-description: Read consent state from the store — check individual categories, logical conditions, and the full consent object.
+description: Read consent state from the kernel — check individual categories, logical conditions, and the full consent object.
 group: frameworks
 ---
 
@@ -11,9 +11,11 @@ Check if a consent condition is met. Accepts a simple category name or a logical
 ### Simple Category Check
 
 ```ts
-const state = consentStore.getState();
+import { has } from 'c15t';
 
-if (state.has('measurement')) {
+const { consents } = kernel.getSnapshot();
+
+if (has('measurement', consents)) {
   // Measurement consent is granted
   loadAnalytics();
 }
@@ -24,7 +26,7 @@ if (state.has('measurement')) {
 Require multiple categories to all be granted:
 
 ```ts
-if (state.has({ and: ['measurement', 'marketing'] })) {
+if (has({ and: ['measurement', 'marketing'] }, consents)) {
   // Both measurement AND marketing are granted
   loadCrossTrackingPixel();
 }
@@ -35,7 +37,7 @@ if (state.has({ and: ['measurement', 'marketing'] })) {
 Require at least one category to be granted:
 
 ```ts
-if (state.has({ or: ['measurement', 'marketing'] })) {
+if (has({ or: ['measurement', 'marketing'] }, consents)) {
   // At least one of measurement OR marketing is granted
   loadBasicTracking();
 }
@@ -46,7 +48,7 @@ if (state.has({ or: ['measurement', 'marketing'] })) {
 Check that a category is NOT granted:
 
 ```ts
-if (state.has({ not: 'marketing' })) {
+if (has({ not: 'marketing' }, consents)) {
   // Marketing is NOT granted — show non-personalized content
   showGenericAds();
 }
@@ -57,38 +59,37 @@ if (state.has({ not: 'marketing' })) {
 Combine conditions for complex logic:
 
 ```ts
-if (state.has({ and: ['measurement', { not: 'marketing' }] })) {
+if (has({ and: ['measurement', { not: 'marketing' }] }, consents)) {
   // Has measurement but NOT marketing
   loadPrivacyFriendlyAnalytics();
 }
 ```
 
-## `hasConsented()`
+## `hasConsented`
 
 Check if the user has made any consent decision at all (accepted or declined). Returns `false` if the user hasn't interacted with the consent UI yet.
 
 ```ts
-const state = consentStore.getState();
+const snapshot = kernel.getSnapshot();
 
-if (state.hasConsented()) {
+if (snapshot.hasConsented) {
   // User has made a consent decision
-  console.log('Consents:', state.consents);
+  console.log('Consents:', snapshot.consents);
 } else {
   // No consent decision yet — show banner
   console.log('Waiting for user consent...');
 }
 ```
 
-## `getDisplayedConsents()`
+## `policyCategories`
 
-Get the list of consent categories that should be displayed in the UI. This returns the full `ConsentType` objects including `name`, `title`, and `description`.
+Read the category names allowed by the resolved policy:
 
 ```ts
-const state = consentStore.getState();
-const displayed = state.getDisplayedConsents();
+const snapshot = kernel.getSnapshot();
 
-displayed.forEach((type) => {
-  console.log(`${type.name}: ${state.consents[type.name]}`);
+snapshot.policyCategories.forEach((name) => {
+  console.log(`${name}: ${snapshot.consents[name]}`);
 });
 ```
 
@@ -97,7 +98,7 @@ displayed.forEach((type) => {
 The raw consent state object — a `Record<string, boolean>` mapping category names to their consent status.
 
 ```ts
-const { consents } = consentStore.getState();
+const { consents } = kernel.getSnapshot();
 
 console.log(consents);
 // { necessary: true, measurement: false, marketing: false }
@@ -108,17 +109,22 @@ console.log(consents);
 React to consent changes in real time:
 
 ```ts
-consentStore.subscribe((state, prevState) => {
+let previous = kernel.getSnapshot();
+
+kernel.subscribe((snapshot) => {
   // React when consents change
-  if (state.consents !== prevState.consents) {
-    if (state.consents.measurement) {
+  if (snapshot.consents !== previous.consents) {
+    if (snapshot.consents.measurement) {
       loadAnalytics();
     }
   }
 
   // React when a specific check changes
-  if (state.has('measurement') !== prevState.has('measurement')) {
-    console.log('Measurement consent:', state.has('measurement'));
+  const hasMeasurement = has('measurement', snapshot.consents);
+  if (hasMeasurement !== has('measurement', previous.consents)) {
+    console.log('Measurement consent:', hasMeasurement);
   }
+
+  previous = snapshot;
 });
 ```

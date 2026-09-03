@@ -52,7 +52,7 @@ Pass the result as a Promise to the provider's `ssrData` option:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
+import { hosted, ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
 import { fetchSSRData } from 'c15t/react/server';
 
 // Server component or page loader
@@ -71,17 +71,16 @@ export default function ConsentManager({
   ssrData: Promise<any>;
 }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         ssrData,
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -137,19 +136,4 @@ validateBackendURL('https://api.example.com/');
 
 validateBackendURL('/api/consent/');
 // → { isAbsolute: false, normalizedURL: '/api/consent' }
-```
-
-## Debugging SSR
-
-Use the [useSSRStatus](/docs/frameworks/react/hooks/use-ssr-status) hook on the client to verify SSR data was consumed:
-
-```tsx
-import { useSSRStatus } from 'c15t/react';
-
-function DebugSSR() {
-  const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
-
-  if (ssrDataUsed) return <span>SSR hydration successful</span>;
-  return <span>SSR skipped: {ssrSkippedReason ?? 'unknown'}</span>;
-}
 ```

@@ -26,7 +26,8 @@ group: reference
   The default mode. Connects to a c15t backend for full consent lifecycle management. We recommend using [inth.com](https://inth.com) for a fully managed experience, but you can [self-host](/docs/self-host) as well.
 
   <Callout type="info">
-    `mode: 'hosted'` is the preferred value. The legacy alias `mode: 'c15t'` is still supported for backward compatibility.
+    Use `hosted({ url })` for backend-backed consent. The legacy string modes
+    were removed in v3.
   </Callout>
 
   **What happens:**

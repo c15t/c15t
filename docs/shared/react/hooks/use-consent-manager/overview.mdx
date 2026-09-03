@@ -8,18 +8,17 @@ group: reference
 
 <section id="callout">
   <Callout type="warn">
-    Must be used within a `ConsentManagerProvider`. Throws an error if used outside the provider.
+    Must be used within a `ConsentProvider`. Throws an error if used outside the provider.
   </Callout>
 </section>
 
 <section id="state-and-actions">
-  ## State Properties
+  ## Kernel Snapshot
 
-  <AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreRuntimeState" />
+  <AutoTypeTable path="./packages/core/src/types.ts" name="ConsentSnapshot" />
 
-  ## Action Methods
-
-  <AutoTypeTable path="./packages/core/src/store/type.ts" name="StoreActions" />
+  Use the narrow action hooks such as `useSetConsent`, `useSaveConsents`,
+  `useSetOverrides`, and `useIdentify` to update the kernel.
 </section>
 
 <section id="key-types">

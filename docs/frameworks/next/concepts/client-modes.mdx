@@ -10,19 +10,18 @@ group: frameworks
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner } from 'c15t/next';
+import { hosted, ConsentProvider, ConsentBanner } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
       }}
     >
       <ConsentBanner />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -31,13 +30,13 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner } from 'c15t/next';
+import { offline, ConsentProvider, ConsentBanner } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'offline',
+        mode: offline(),
         overrides: {
           country: 'DE', // Override country to trigger GDPR jurisdiction
         },
@@ -45,7 +44,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
     >
       <ConsentBanner />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -54,18 +53,17 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner } from 'c15t/next';
+import { custom, ConsentProvider, ConsentBanner } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'custom',
-        endpointHandlers: {
+        mode: custom({
           async init() {
             const res = await fetch('/my-api/consent/init');
             const data = await res.json();
-            return { data, response: res, error: null };
+            return { data, ok: res.ok };
           },
           async setConsent(options) {
             const res = await fetch('/my-api/consent', {
@@ -73,14 +71,14 @@ export function ConsentManager({ children }: { children: ReactNode }) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(options?.body),
             });
-            return { data: await res.json(), response: res, error: null };
+            return { data: await res.json(), ok: res.ok };
           },
-        },
+        }),
       }}
     >
       <ConsentBanner />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

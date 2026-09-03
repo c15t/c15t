@@ -44,7 +44,7 @@ group: reference
   @tailwind utilities;
   ```
 
-  If you use the c15t v3 styles system (`@c15t/ui/styles/v3/*.css`) with Tailwind 3, add the `@c15t/ui` compatibility plugin before `tailwindcss` in your PostCSS config:
+  If you import c15t component styles (`@c15t/ui/styles/components/*.css`) with Tailwind 3, add the `@c15t/ui` compatibility plugin before `tailwindcss` in your PostCSS config:
 
   ```js title="postcss.config.mjs"
   export default {
@@ -61,7 +61,7 @@ group: reference
   Combine Tailwind's dark mode with c15t's `dark` tokens and component slots:
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
       theme: {
         colors: {

@@ -10,15 +10,15 @@ group: frameworks
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { hosted, ConsentProvider } from 'c15t/next';
 import { DevTools } from '@c15t/dev-tools/react';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+    <ConsentProvider options={{ mode: hosted({ url: '/api/c15t'  })}}>
       {children}
       {process.env.NODE_ENV === 'development' && <DevTools />}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

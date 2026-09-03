@@ -1,3 +1,4 @@
+// oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * as Accordion from './components/shared/ui/accordion';
 export * as Button from './components/shared/ui/button';
 export * as Collapsible from './components/shared/ui/collapsible';

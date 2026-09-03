@@ -31,7 +31,7 @@ export type ResolvedComponentConfig = Required<ComponentConfig>;
  *
  * @remarks
  * Provides a consistent way to handle configuration props that can be set
- * globally via the ConsentManagerProvider or overridden locally on individual
+ * globally via the ConsentProvider or overridden locally on individual
  * components. Local values take precedence over global values.
  *
  * The configuration props are defined in UIOptions from @c15t/ui/theme,

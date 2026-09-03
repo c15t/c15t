@@ -14,7 +14,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): A modal dialog where users can toggle individual consent categories.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): An inline trigger for opening the consent dialog from footers, legal pages, and account settings.
 - [ConsentDialogTrigger](./docs/frameworks/react/components/consent-dialog-trigger.md): A floating, draggable button that lets users re-open the consent dialog at any time.
-- [ConsentManagerProvider](./docs/frameworks/react/components/consent-manager-provider.md): The root provider component that initializes the consent system and makes consent state available to all child components.
+- [ConsentProvider](./docs/frameworks/react/components/consent-manager-provider.md): The root React provider for the c15t consent kernel.
 - [ConsentWidget](./docs/frameworks/react/components/consent-widget.md): An inline consent management widget for embedding in settings or privacy pages. Shows category toggles with accordion layout.
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Frame](./docs/frameworks/react/components/frame.md): A consent-gated content wrapper - children only mount when the required consent category is granted.
@@ -34,7 +34,6 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [useDraggable](./docs/frameworks/react/hooks/use-draggable.md): Make an element draggable between viewport corners with snapping, persistence, and animation support.
 - [useFocusTrap](./docs/frameworks/react/hooks/use-focus-trap.md): Trap keyboard focus within a container for accessible modal dialogs.
 - [useReducedMotion](./docs/frameworks/react/hooks/use-reduced-motion.md): Detect the user's prefers-reduced-motion OS setting and reactively disable animations.
-- [useSSRStatus](./docs/frameworks/react/hooks/use-ssr-status.md): Check whether server-side rendered consent data was used during initialization.
 - [useTextDirection](./docs/frameworks/react/hooks/use-text-direction.md): Manage RTL/LTR text direction based on the active language for consent UI.
 - [useTranslations](./docs/frameworks/react/hooks/use-translations.md): Access the current language's translations for building custom consent UI.
 - [IABConsentBanner](./docs/frameworks/react/iab/consent-banner.md): An IAB TCF 2.3 compliant consent banner that displays partner count, purpose summaries, and legitimate interest notices.
@@ -71,7 +70,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Crisp](./docs/integrations/crisp.md): Load Crisp live chat with website ID, runtime, cookie, and session options.
 - [Databuddy](./docs/integrations/databuddy.md): Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
-- [Google Maps](./docs/integrations/google-maps.md): Render Google Maps only after consent with one shared Maps JavaScript API loader and independently managed map instances.
 - [GA4 + Google Ads (gtag.js)](./docs/integrations/google-tag.md): Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Deploy and manage marketing tags centrally with automatic consent state synchronization.
 - [Heap](./docs/integrations/heap.md): Load Heap with c15t and gate autocapture product analytics behind measurement consent.
@@ -99,7 +97,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Umami Analytics](./docs/integrations/umami-analytics.md): Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 - [Vercel Analytics](./docs/integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./docs/integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
-- [YouTube](./docs/integrations/youtube.md): Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
 
 ## Reference
 
@@ -116,7 +113,7 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Consent Dialog](./docs/shared/react/components/consent-dialog.md): Reference page for consent dialog.
 - [Consent Dialog Link](./docs/shared/react/components/consent-dialog-link.md): Reference page for consent dialog link.
 - [Consent Dialog Trigger](./docs/shared/react/components/consent-dialog-trigger.md): Reference page for consent dialog trigger.
-- [Consent Manager Provider](./docs/shared/react/components/consent-manager-provider.md): Reference page for consent manager provider.
+- [Consent Provider](./docs/shared/react/components/consent-manager-provider.md): Reference page for the React consent provider.
 - [Consent Widget](./docs/shared/react/components/consent-widget.md): Reference page for consent widget.
 - [Dev Tools](./docs/shared/react/components/dev-tools.md): Reference page for dev tools.
 - [Frame](./docs/shared/react/components/frame.md): Reference page for frame.
@@ -137,7 +134,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Use Draggable](./docs/shared/react/hooks/use-draggable.md): Reference page for use draggable.
 - [Use Focus Trap](./docs/shared/react/hooks/use-focus-trap.md): Reference page for use focus trap.
 - [Use Reduced Motion](./docs/shared/react/hooks/use-reduced-motion.md): Reference page for use reduced motion.
-- [Use SSR Status](./docs/shared/react/hooks/use-ssr-status.md): Reference page for use ssr status.
 - [Use Text Direction](./docs/shared/react/hooks/use-text-direction.md): Reference page for use text direction.
 - [Use Translations](./docs/shared/react/hooks/use-translations.md): Reference page for use translations.
 - [Consent Banner](./docs/shared/react/iab/consent-banner.md): Reference page for consent banner.

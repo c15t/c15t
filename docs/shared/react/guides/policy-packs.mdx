@@ -9,7 +9,7 @@ group: reference
 <section id="intro">
   Policy packs configure how c15t handles regional consent — which model (opt-in, opt-out, none), which categories, and what UI to show. The backend resolves the right policy automatically based on the visitor's location.
 
-  **For most apps, you just need a `ConsentManagerProvider` pointing at your backend with presets configured there.** The frontend receives the resolved policy via the `/init` response — no client-side policy config required.
+  **For most apps, you just need a `ConsentProvider` pointing at your backend with presets configured there.** The frontend receives the resolved policy via the `/init` response — no client-side policy config required.
 
   For local development, static previews, Storybook, automated tests, or a deployment that deliberately has no backend, select offline mode and pass policies through `offlinePolicy.policyPacks`.
 
@@ -24,7 +24,7 @@ group: reference
   When using inth.com or a self-hosted backend, the provider connects automatically. No policy configuration is needed on the frontend:
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
       backendURL: 'https://your-instance.c15t.dev',
     }}
@@ -32,7 +32,7 @@ group: reference
     <ConsentBanner />
     <ConsentDialog />
     {children}
-  </ConsentManagerProvider>
+  </ConsentProvider>
   ```
 
   The backend resolves the correct policy based on the visitor's geo data and returns it in the `/init` response. Configure your presets on the backend side.
@@ -92,9 +92,9 @@ group: reference
   when you want local previews or offline behavior to mirror hosted policy-profile language behavior:
 
   ```tsx
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
-      mode: 'offline',
+      mode: offline(),
       offlinePolicy: {
         i18n: {
           defaultProfile: 'default',
@@ -168,7 +168,7 @@ group: reference
 
   ```tsx
   options={{
-    mode: 'offline',
+    mode: offline(),
     offlinePolicy: {
       policyPacks: [
         policyPackPresets.europeOptIn(),

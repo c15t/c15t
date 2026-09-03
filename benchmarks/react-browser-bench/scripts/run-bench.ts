@@ -111,15 +111,11 @@ const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 
 const allScenarios = [
+	{ name: 'banner-css', path: '/banner-css' },
 	{ name: 'baseline', path: '/baseline' },
-	{ name: 'css-v2-banner-monolith', path: '/css-v2-banner-monolith' },
-	{ name: 'css-v3-banner-modules', path: '/css-v3-banner-modules' },
+	{ name: 'css-banner-modules', path: '/css-banner-modules' },
 	{ name: 'full-ui', path: '/full-ui' },
 	{ name: 'headless', path: '/headless' },
-	{ name: 'react-v3-full', path: '/react-v3-full' },
-	{ name: 'react-v3-banner-css', path: '/react-v3-banner-css' },
-	{ name: 'react-v3-headless', path: '/react-v3-headless' },
-	{ name: 'vanilla-core', path: '/vanilla-core' },
 ] as const;
 
 const scenarios = scenarioFilter
@@ -136,10 +132,7 @@ if (scenarioFilter && scenarios.length === 0) {
 
 const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
-	scenario:
-		| (typeof allScenarios)[number]['name']
-		| 'repeat-visitor'
-		| 'react-v3-repeat'
+	scenario: (typeof allScenarios)[number]['name'] | 'repeat-visitor'
 ) {
 	// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
 	switch (scenario) {
@@ -169,10 +162,8 @@ const measureInteractionLatency = async function measureInteractionLatency(
 			);
 			return performance.now() - startedAt;
 		}
-		case 'css-v2-banner-monolith':
-		case 'react-v3-full':
-		case 'css-v3-banner-modules':
-		case 'react-v3-banner-css': {
+		case 'banner-css':
+		case 'css-banner-modules': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0
 			);
@@ -212,62 +203,9 @@ const measureInteractionLatency = async function measureInteractionLatency(
 			);
 			return performance.now() - startedAt;
 		}
-		case 'react-v3-headless': {
-			const before = await page.evaluate(
-				() => window.__c15tReactBench?.onConsentSetCount ?? 0
-			);
-			const startedAt = performance.now();
-			await page.click('#react-v3-headless-accept');
-			await page.waitForFunction(
-				(expected) => {
-					const state = window.__c15tReactBench;
-					return (
-						!!state &&
-						state.onConsentSetCount > expected &&
-						state.activeUI === 'none'
-					);
-				},
-				before,
-				{ timeout: 30_000 }
-			);
-			return performance.now() - startedAt;
-		}
-		case 'vanilla-core': {
-			const before = await page.evaluate(
-				() => window.__c15tReactBench?.onConsentSetCount ?? 0
-			);
-			const startedAt = performance.now();
-			await page.click('#vanilla-core-accept');
-			await page.waitForFunction(
-				(expected) => {
-					const state = window.__c15tReactBench;
-					return (
-						!!state &&
-						state.onConsentSetCount > expected &&
-						state.activeUI === 'none'
-					);
-				},
-				before,
-				{ timeout: 30_000 }
-			);
-			return performance.now() - startedAt;
-		}
 		case 'repeat-visitor': {
 			const startedAt = performance.now();
 			await page.click('#full-ui-open-preferences');
-			await page.waitForFunction(
-				() => {
-					const state = window.__c15tReactBench;
-					return !!state && state.activeUI === 'dialog';
-				},
-				undefined,
-				{ timeout: 30_000 }
-			);
-			return performance.now() - startedAt;
-		}
-		case 'react-v3-repeat': {
-			const startedAt = performance.now();
-			await page.click('#react-v3-full-open-preferences');
 			await page.waitForFunction(
 				() => {
 					const state = window.__c15tReactBench;
@@ -534,11 +472,7 @@ const run = async function run() {
 							scenario.name
 						);
 
-						if (
-							(scenario.name === 'full-ui' ||
-								scenario.name === 'react-v3-full') &&
-							index >= warmupIterations
-						) {
+						if (scenario.name === 'full-ui' && index >= warmupIterations) {
 							const repeatContext = await browser.newContext({
 								baseURL: BASE_URL,
 							});
@@ -551,19 +485,11 @@ const run = async function run() {
 								bannerInFirstHtml
 							);
 							const repeatInteractionLatencyMs =
-								await measureInteractionLatency(
-									repeatPage,
-									scenario.name === 'react-v3-full'
-										? 'react-v3-repeat'
-										: 'repeat-visitor'
-								);
+								await measureInteractionLatency(repeatPage, 'repeat-visitor');
 							samples.push({
 								...repeatMetrics,
 								interactionLatencyMs: repeatInteractionLatencyMs,
-								scenario:
-									scenario.name === 'react-v3-full'
-										? 'react-v3-repeat'
-										: 'repeat-visitor',
+								scenario: 'repeat-visitor',
 							});
 							await repeatContext.close();
 						}
@@ -609,7 +535,7 @@ const run = async function run() {
 							scriptCount: 0,
 							themeComplexity: 'minimal',
 						},
-						framework: groupScenario === 'vanilla-core' ? 'core' : 'react',
+						framework: 'react',
 						metadata: {
 							bannerInFirstHtml: groupedSamples.every(
 								(sample) => sample.bannerInFirstHtml

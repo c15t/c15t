@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
+import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { computed, ref, toValue } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';

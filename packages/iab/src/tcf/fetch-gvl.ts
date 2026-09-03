@@ -1,7 +1,7 @@
 /**
  * GVL (Global Vendor List) Fetcher
  *
- * Fetches the IAB TCF Global Vendor List from the https://gvl.inth.app endpoint.
+ * Fetches the IAB TCF Global Vendor List from the consent.io endpoint.
  * Relies on HTTP Cache-Control headers for caching.
  *
  * @packageDocumentation

@@ -44,7 +44,7 @@ retry before a failure is reported:
    the vendor's collection endpoints and no vendor cookies/localStorage
    (per-vendor violation lists in `vendors.ts`; consent-safe traffic like
    Google Consent Mode pings and opt-out markers is excluded by design).
-2. **bootstrap** — immediately after `loadScripts()` with granted consent,
+2. **bootstrap** — immediately after the script loader mounts the script with granted consent,
    the manifest's queue stubs/globals must exist (before the network answers).
 3. **load** — the real vendor loader must respond. `full` tier requires a
    2xx JavaScript response; `loader-only` accepts any HTTP answer, including

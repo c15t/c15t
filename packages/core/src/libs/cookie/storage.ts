@@ -7,13 +7,18 @@
  * persisting to both localStorage and cookies for maximum reliability.
  */
 
-import type { ConsentState } from '../..';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store/initial-state';
-import { allConsentNames } from '../../types/consent-types';
-import type { ConsentInfo } from '../../types/consent-types';
+import type { ConsentState } from '../../consent/compliance';
+import { allConsentNames } from '../../consent/consent-types';
+import type { ConsentInfo } from '../../consent/consent-types';
 import { getDebugLogger } from '../debug';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
-import { deleteCookie, getCookie, setCookie } from './operations';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../storage-keys';
+import {
+	deleteCookie,
+	getCookie,
+	parseCookieValue,
+	setCookie,
+} from './operations';
 import type { CookieOptions, StorageConfig } from './types';
 
 const sanitizeConsentInfo = function sanitizeConsentInfo(
@@ -162,6 +167,34 @@ const normalizeConsentData = function normalizeConsentData<
 		...data,
 		consents: normalizedConsents as ConsentState,
 	};
+};
+
+const normalizeStoredConsentData = function normalizeStoredConsentData<
+	ReturnType = unknown,
+>(data: ReturnType): ReturnType {
+	if (data && typeof data === 'object') {
+		const normalizedData = normalizeConsentData(data as never) as
+			| (ReturnType & { consentInfo?: ConsentInfo | null })
+			| ReturnType;
+
+		if (
+			typeof normalizedData === 'object' &&
+			normalizedData !== null &&
+			'consentInfo' in normalizedData
+		) {
+			const dataWithConsentInfo = normalizedData as ReturnType & {
+				consentInfo?: ConsentInfo | null;
+			};
+			dataWithConsentInfo.consentInfo = sanitizeConsentInfo(
+				dataWithConsentInfo.consentInfo
+			);
+			return dataWithConsentInfo;
+		}
+
+		return normalizedData;
+	}
+
+	return data;
 };
 
 /**
@@ -388,29 +421,7 @@ export const getConsentFromStorage = function getConsentFromStorage<
 	}
 
 	// Normalize consent data to ensure all values are explicit booleans
-	if (chosenData && typeof chosenData === 'object') {
-		const normalizedData = normalizeConsentData(chosenData as never) as
-			| (ReturnType & { consentInfo?: ConsentInfo | null })
-			| ReturnType;
-
-		if (
-			typeof normalizedData === 'object' &&
-			normalizedData !== null &&
-			'consentInfo' in normalizedData
-		) {
-			const dataWithConsentInfo = normalizedData as ReturnType & {
-				consentInfo?: ConsentInfo | null;
-			};
-			dataWithConsentInfo.consentInfo = sanitizeConsentInfo(
-				dataWithConsentInfo.consentInfo
-			);
-			return dataWithConsentInfo;
-		}
-
-		return normalizedData;
-	}
-
-	return chosenData;
+	return chosenData ? normalizeStoredConsentData(chosenData) : chosenData;
 };
 
 /**
@@ -508,4 +519,60 @@ export const saveConsentToStorage = function saveConsentToStorage(
 	if (!localStorageSuccess && !cookieSuccess) {
 		throw new Error('Failed to save consent to any storage method');
 	}
+};
+
+const decodeCookieValue = function decodeCookieValue(value: string): string {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+};
+
+const readCookieValueFromHeader = function readCookieValueFromHeader(
+	cookieHeader: string | undefined,
+	name: string
+): string | undefined {
+	if (!cookieHeader) {
+		return undefined;
+	}
+
+	const nameEQ = `${name}=`;
+	for (const cookie of cookieHeader.split(';')) {
+		const trimmed = cookie.trim();
+		if (trimmed.startsWith(nameEQ)) {
+			return trimmed.substring(nameEQ.length);
+		}
+	}
+
+	return undefined;
+};
+
+/**
+ * Retrieves consent data from a request cookie header or browser cookie
+ * string without touching localStorage or mutating cookies.
+ *
+ * @typeParam ReturnType - The expected type of the consent data
+ *
+ * @param cookieHeader - Raw `Cookie` header value, or `document.cookie`.
+ * @param config - Storage configuration
+ * @returns Consent data or null if not found
+ *
+ * @public
+ */
+export const getConsentFromCookieHeader = function getConsentFromCookieHeader<
+	ReturnType = unknown,
+>(cookieHeader: string | undefined, config?: StorageConfig): ReturnType | null {
+	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+	const rawValue = readCookieValueFromHeader(cookieHeader, storageKey);
+	if (!rawValue) {
+		return null;
+	}
+
+	const parsed = parseCookieValue<ReturnType>(decodeCookieValue(rawValue));
+	if (!parsed) {
+		return null;
+	}
+
+	return normalizeStoredConsentData(parsed);
 };

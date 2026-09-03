@@ -1,19 +1,22 @@
 <script lang="ts">
 	import type { PolicyUiActionDirection } from '@c15t/core';
+	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import type { Snippet } from 'svelte';
 
+	/**
+	 * Renders policy-driven action groups using the shared `consent-actions`
+	 * contract: layout (fill, column, split) is expressed through data
+	 * attributes that the component CSS reads, so every framework adapter
+	 * produces the same DOM.
+	 */
 	let {
 		actionGroups = [],
 		primaryActions = [],
 		shouldFillActions = false,
 		direction = 'row',
+		noStyle = false,
 		footerClassName,
-		footerFillClassName,
-		footerColumnClassName,
 		footerSubGroupClassName,
-		footerSubGroupFillClassName,
-		footerSubGroupColumnClassName,
-		actionButtonFillClassName,
 		footerTestId,
 		footerSubGroupTestId,
 		renderAction,
@@ -22,39 +25,24 @@
 		primaryActions?: string[];
 		shouldFillActions?: boolean;
 		direction?: PolicyUiActionDirection;
+		noStyle?: boolean;
 		footerClassName?: string;
-		footerFillClassName?: string;
-		footerColumnClassName?: string;
 		footerSubGroupClassName?: string;
-		footerSubGroupFillClassName?: string;
-		footerSubGroupColumnClassName?: string;
-		actionButtonFillClassName?: string;
 		footerTestId?: string;
 		footerSubGroupTestId?: string;
-		renderAction?: Snippet<[string, boolean, string | undefined]>;
+		renderAction?: Snippet<[string, boolean]>;
 	} = $props();
 
-	const isColumn = $derived(direction === 'column');
+	const isSplit = $derived(actionGroups.length > 1);
 	const resolvedFooterClassName = $derived(
-		[
-			footerClassName,
-			shouldFillActions ? footerFillClassName : '',
-			isColumn ? footerColumnClassName : '',
-		]
+		[noStyle ? '' : actionStyles.actionRoot, footerClassName]
 			.filter(Boolean)
 			.join(' ')
 	);
 	const resolvedFooterSubGroupClassName = $derived(
-		[
-			footerSubGroupClassName,
-			shouldFillActions ? footerSubGroupFillClassName : '',
-			isColumn ? footerSubGroupColumnClassName : '',
-		]
+		[noStyle ? '' : actionStyles.actionGroup, footerSubGroupClassName]
 			.filter(Boolean)
 			.join(' ')
-	);
-	const actionClassName = $derived(
-		shouldFillActions ? actionButtonFillClassName : undefined
 	);
 	const keyedActionGroups = $derived(
 		actionGroups.map((group, groupIndex) => ({
@@ -68,18 +56,19 @@
 <div
 	class={resolvedFooterClassName}
 	data-testid={footerTestId}
+	data-direction={direction}
+	data-fill={shouldFillActions ? true : undefined}
+	data-split={isSplit && !shouldFillActions ? true : undefined}
 >
 	{#each keyedActionGroups as actionGroup (actionGroup.key)}
 		<div
 			class={resolvedFooterSubGroupClassName}
 			data-testid={footerSubGroupTestId}
+			data-direction={direction}
+			data-fill={shouldFillActions ? true : undefined}
 		>
 			{#each actionGroup.group as action (actionGroup.groupIndex + '-' + action)}
-				{@render renderAction?.(
-					action,
-					primaryActions.includes(action),
-					actionClassName
-				)}
+				{@render renderAction?.(action, primaryActions.includes(action))}
 			{/each}
 		</div>
 	{/each}

@@ -7,19 +7,17 @@ import {
 import type {
 	ActiveUI,
 	AllConsentNames,
-	ConsentType,
-	HasCondition,
-	Model,
-	TranslationConfig,
-} from '@c15t/core';
-import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
+	ConsentType,
+	HasCondition,
 	KernelActiveUI,
 	KernelIABState,
+	Model,
 	PolicyUiSurfaceConfig,
-} from '@c15t/core/v3';
+	TranslationConfig,
+} from '@c15t/core';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
 

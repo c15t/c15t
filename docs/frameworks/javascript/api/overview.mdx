@@ -1,212 +1,90 @@
 ---
-title: Store API Overview
-description: Core API entry points for JavaScript consent management — runtime creation, store access, and subscription patterns.
+title: Kernel API Overview
+description: Core API entry points for framework-neutral JavaScript consent management.
 group: frameworks
 ---
 
-## Entry Points
+## Create a Kernel
 
-### `getOrCreateConsentRuntime(options)`
-
-The recommended entry point. Creates both a consent client and a Zustand vanilla store in one call, with built-in caching — calling it again with the same options returns the same instance.
+`createConsentKernel()` creates one isolated consent state container. Kernel
+construction has no network, storage, DOM, or global side effects.
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
 
-const { consentManager, consentStore, cacheKey } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  consentCategories: ['necessary', 'measurement', 'marketing'],
-  scripts: [
-    { id: 'analytics', src: 'https://cdn.example.com/analytics.js', category: 'measurement' },
-  ],
-  callbacks: {
-    onConsentChanged: ({ allowedCategories, deniedCategories }) => {
-      console.log('Allowed:', allowedCategories);
-      console.log('Denied:', deniedCategories);
-    },
-  },
-  debug: true,
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
 });
+
+await kernel.commands.init();
 ```
 
-**Returns:** `{ consentManager, consentStore, cacheKey }`
-
-- `consentManager` — The low-level client instance
-- `consentStore` — Zustand vanilla store with all state and actions
-- `cacheKey` — Cache key for this runtime instance
-
-### `configureConsentManager(options)`
-
-Lower-level API that creates only the client (no store). Use this when you need full control over store creation.
+For a browser-only setup, use the offline transport:
 
 ```ts
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
+import { createConsentKernel, createOfflineTransport } from 'c15t';
 
-const manager = configureConsentManager({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  initialOverrides: { country: 'DE' },
+  transport: createOfflineTransport(),
 });
 
-const store = createConsentManagerStore(manager, {
-  initialConsentCategories: ['necessary', 'measurement'],
-  scripts: [{ id: 'analytics', src: '...', category: 'measurement' }],
-  callbacks: {
-    onConsentChanged: ({ allowedCategories }) => console.log(allowedCategories),
-  },
-});
+await kernel.commands.init();
 ```
 
-### `createConsentManagerStore(manager, options)`
+## Read and Subscribe
 
-Creates a Zustand vanilla store from a client instance. Accepts all store configuration options.
-
-```ts
-import { createConsentManagerStore } from 'c15t';
-
-const store = createConsentManagerStore(manager, {
-  initialConsentCategories: ['necessary', 'measurement', 'marketing'],
-  debug: true,
-  reloadOnConsentRevoked: true,
-});
-```
-
-## Legal Links
-
-Configure legal policy URLs in store options via `legalLinks`:
+`getSnapshot()` returns an immutable snapshot. `subscribe()` runs whenever the
+snapshot changes and returns an unsubscribe function.
 
 ```ts
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'offline',
-  legalLinks: {
-    privacyPolicy: {
-      href: '/privacy',
-      target: '_self',
-    },
-    cookiePolicy: {
-      href: '/cookies',
-      target: '_self',
-    },
-    termsOfService: {
-      href: 'https://example.com/terms',
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      label: 'Terms of Service',
-    },
-  },
-});
-```
+const snapshot = kernel.getSnapshot();
+console.log(snapshot.consents.measurement);
+console.log(snapshot.policy?.id);
 
-Notes:
-
-- Omitting a key (for example `termsOfService`) hides that link.
-- `label` overrides the translated text for that single link.
-- Use `_self` for internal pages and `_blank` + `rel="noopener noreferrer"` for external pages.
-- The `c15t` package is headless; these links are used by your UI layer (custom UI or `@c15t/ui`-based integrations).
-
-## Overrides
-
-Set initial `overrides` to force location/language signals during runtime initialization:
-
-```ts
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'offline',
-  overrides: {
-    country: 'DE',
-    region: 'BY',
-    language: 'de-DE',
-  },
-});
-```
-
-You can also force Global Privacy Control behavior for testing:
-
-```ts
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'offline',
-  overrides: {
-    gpc: true,
-  },
-});
-```
-
-For runtime updates after initialization, call [`setOverrides()`](/docs/frameworks/javascript/api/location-info#setoverridesoverrides).
-
-<Callout type="warning">
-  Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
-</Callout>
-
-## Store Patterns
-
-### Reading State
-
-```ts
-const state = consentStore.getState();
-
-// Consent state
-state.consents          // { necessary: true, measurement: false, ... }
-state.has('measurement') // false
-state.hasConsented()     // false (no consent given yet)
-state.model              // 'opt-in' | 'opt-out' | 'iab' | null
-
-// UI state
-state.activeUI           // 'banner' | 'dialog' | 'none'
-state.consentTypes       // [{ name: 'necessary', ... }, ...]
-
-// Location and info
-state.locationInfo       // { countryCode: 'DE', regionCode: 'BY' }
-state.hasFetchedBanner   // true (init complete)
-```
-
-### Subscribing to Changes
-
-Use `subscribe()` for UI state and other broad store updates:
-
-```ts
-// Subscribe to all state changes
-const unsubscribe = consentStore.subscribe((state, prevState) => {
-  console.log('State changed:', state);
+const unsubscribe = kernel.subscribe((next) => {
+  console.log(next.consents);
 });
 
-// React to specific changes by comparing with previous state
-consentStore.subscribe((state, prevState) => {
-  if (state.activeUI !== prevState.activeUI) {
-    console.log('Visible UI changed:', state.activeUI);
-  }
-});
-
-// Unsubscribe when done
 unsubscribe();
 ```
 
-Use `subscribeToConsentChanges()` when you only want real saved preference changes:
+## Update and Save Consent
+
+Synchronous setters update local state. Commands perform transport work.
 
 ```ts
-const unsubscribeConsentChanges = consentStore
-  .getState()
-  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
-    analytics.syncConsent({ allowedCategories, deniedCategories });
-  });
+kernel.set.consent({ measurement: true, marketing: false });
+kernel.set.overrides({ country: 'DE', language: 'de' });
 
-unsubscribeConsentChanges();
+const result = await kernel.commands.save('custom');
+if (!result.ok) {
+  console.error('Consent could not be saved');
+}
 ```
 
-<Callout type="info">
-  Prefer `subscribeToConsentChanges()` or `onConsentChanged` for analytics SDKs and consent-mode integrations. Raw `consentStore.subscribe()` fires for every store update, including UI-only changes.
-</Callout>
-
-### Window Namespace
-
-The store is also exposed on the window object for debugging and direct access:
+Use `kernel.commands.identify()` when an authenticated identity becomes
+available:
 
 ```ts
-// Access from anywhere (e.g., browser console)
-const state = window.c15tStore?.getState();
-console.log(state?.consents);
+await kernel.commands.identify({
+  externalId: user.id,
+  identityProvider: 'auth0',
+});
 ```
 
-The namespace defaults to `c15tStore` and can be configured via the `namespace` store option.
+## Optional Browser Modules
 
-## Options Reference
+Persistence, script loading, iframe blocking, network blocking, and window
+debugging are separate opt-in modules. This keeps the kernel safe to construct
+in server and edge runtimes.
 
-<AutoTypeTable path="./packages/core/src/runtime/index.ts" name="ConsentRuntimeOptions" />
+## API Reference
+
+<AutoTypeTable path="./packages/core/src/types.ts" name="ConsentKernel" />
+
+<AutoTypeTable path="./packages/core/src/types.ts" name="ConsentSnapshot" />
+
+<AutoTypeTable path="./packages/core/src/types.ts" name="KernelConfig" />

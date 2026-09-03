@@ -20,15 +20,14 @@ Configure callbacks in the provider to log lifecycle events, and add DevTools fo
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
+import { hosted, ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
 import { DevTools } from '@c15t/dev-tools/react';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         callbacks: {
           onBannerFetched: ({ jurisdiction, location }) => {
             console.log('Init complete:', { jurisdiction, location });
@@ -55,7 +54,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       <ConsentDialog />
       {process.env.NODE_ENV !== 'production' && <DevTools />}
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

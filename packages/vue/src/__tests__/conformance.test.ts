@@ -19,14 +19,14 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import { createConsentKernel } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	KernelConfig,
 	KernelTransport,
-} from '@c15t/core/v3';
-import { createPersistence } from '@c15t/core/v3/modules/persistence';
+} from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import type {
 	GlobalVendorList,
 	InitOutput,

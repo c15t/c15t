@@ -1,5 +1,5 @@
 <script lang="ts">
-	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
 
 	import type { IABTranslations } from '../iab-translations';
@@ -173,9 +173,9 @@
 
 		<!-- Purpose-level Legitimate Interest Objection -->
 		{#if legIntVendors.length > 0 && onPurposeLegitimateInterestToggle}
-			<div class={noStyle ? '' : styles.purposeLISection || ''}>
-				<div class={noStyle ? '' : styles.purposeLISectionHeader || ''}>
-					<div class={noStyle ? '' : styles.purposeLIInfo || ''}>
+			<div class={noStyle ? '' : styles.purposeLiSection || ''}>
+				<div class={noStyle ? '' : styles.purposeLiSectionHeader || ''}>
+					<div class={noStyle ? '' : styles.purposeLiInfo || ''}>
 						<LegitimateInterestIcon
 							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 						/>
@@ -311,7 +311,7 @@
 						<h5
 							class={noStyle
 								? ''
-								: `${styles.vendorSectionTitle || ''} ${styles.vendorSectionTitleLI || ''}`}
+								: `${styles.vendorSectionTitle || ''} ${styles.vendorSectionTitleLi || ''}`}
 						>
 							<LegitimateInterestIcon
 								class={noStyle ? '' : styles.legitimateInterestIcon || ''}
@@ -329,7 +329,7 @@
 							<div
 								class={noStyle
 									? ''
-									: `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
+									: `${styles.vendorRow || ''} ${styles.vendorRowLi || ''}`}
 							>
 								<div class={noStyle ? '' : styles.vendorInfo || ''}>
 									<button
@@ -343,7 +343,7 @@
 										<span
 											class={noStyle
 												? ''
-												: `${styles.vendorDetail || ''} ${styles.vendorDetailLI || ''}`}
+												: `${styles.vendorDetail || ''} ${styles.vendorDetailLi || ''}`}
 										>
 											{iabT.preferenceCenter.purposeItem.legitimateInterest}
 										</span>
@@ -430,7 +430,7 @@
 								<div
 									class={noStyle
 										? ''
-										: `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
+										: `${styles.vendorRow || ''} ${styles.vendorRowLi || ''}`}
 								>
 									<div class={noStyle ? '' : styles.vendorInfo || ''}>
 										<button

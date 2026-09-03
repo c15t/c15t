@@ -1,25 +1,29 @@
 ---
 title: Building UI
-description: Build your own consent UI on top of the headless c15t store — with vanilla DOM, any framework, or the @c15t/ui theme system.
+description: Build your own consent UI on top of the headless c15t kernel — with vanilla DOM, any framework, or the @c15t/ui theme system.
 group: frameworks
 ---
 
 ## Headless by Design
 
-The `c15t` core package provides no pre-built UI components. It gives you a Zustand vanilla store with all the consent state and actions you need — you bring the rendering layer. This makes it the foundation for building consent UI in any framework: vanilla JS, Vue, Svelte, Solid, or anything else.
+The `c15t` core package provides no pre-built UI components. It gives you a
+framework-neutral kernel with immutable snapshots, subscriptions, setters, and
+async commands. You bring the rendering layer.
 
 ## Vanilla DOM Example
 
 Here's a complete consent banner built with plain JavaScript and DOM APIs:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from 'c15t';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  consentCategories: ['necessary', 'measurement', 'marketing'],
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://your-instance.c15t.dev',
+  }),
 });
+
+await kernel.commands.init();
 
 // Create banner element
 function createBanner() {
@@ -38,15 +42,15 @@ function createBanner() {
   document.body.appendChild(banner);
 
   banner.querySelector('#consent-accept')?.addEventListener('click', () => {
-    consentStore.getState().saveConsents('all');
+    void kernel.commands.save('all');
   });
 
   banner.querySelector('#consent-reject')?.addEventListener('click', () => {
-    consentStore.getState().saveConsents('necessary');
+    void kernel.commands.save('none');
   });
 
   banner.querySelector('#consent-customize')?.addEventListener('click', () => {
-    consentStore.getState().setActiveUI('dialog');
+    kernel.set.activeUI('dialog');
   });
 
   return banner;
@@ -55,37 +59,43 @@ function createBanner() {
 // Mount and subscribe
 const banner = createBanner();
 
-consentStore.subscribe((state) => {
-  banner.style.display = state.activeUI === 'banner' ? 'block' : 'none';
+kernel.subscribe((snapshot) => {
+  banner.style.display = snapshot.activeUI === 'banner' ? 'block' : 'none';
 });
 ```
 
 ## Reactive State Subscriptions
 
-The store fires on every state change. Compare with the previous state to react only to specific UI changes:
+The kernel publishes every snapshot change. Keep the previous value when a
+binding only needs one field:
 
 ```ts
-consentStore.subscribe((state, prevState) => {
+let previous = kernel.getSnapshot();
+
+kernel.subscribe((snapshot) => {
   // React to activeUI changes (banner / dialog / none)
-  if (state.activeUI !== prevState.activeUI) {
+  if (snapshot.activeUI !== previous.activeUI) {
     document.getElementById('consent-banner')!.style.display =
-      state.activeUI === 'banner' ? 'block' : 'none';
+      snapshot.activeUI === 'banner' ? 'block' : 'none';
     document.getElementById('consent-dialog')!.style.display =
-      state.activeUI === 'dialog' ? 'block' : 'none';
+      snapshot.activeUI === 'dialog' ? 'block' : 'none';
   }
 
-  // React to other UI-level state changes here
+  previous = snapshot;
 });
 ```
 
-For analytics SDKs or consent-mode integrations, use `subscribeToConsentChanges()` instead of diffing `consentStore.subscribe()` manually:
+Analytics SDKs can compare the consent record by reference:
 
 ```ts
-consentStore
-  .getState()
-  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
-    analytics.syncConsent({ allowedCategories, deniedCategories });
-  });
+let previousConsents = kernel.getSnapshot().consents;
+
+kernel.subscribe((snapshot) => {
+  if (snapshot.consents !== previousConsents) {
+    analytics.syncConsent(snapshot.consents);
+    previousConsents = snapshot.consents;
+  }
+});
 ```
 
 ## Building Policy-Aware UI
@@ -98,27 +108,27 @@ That matters when different visitors may resolve to different experiences, for e
 - different action sets such as accept/customize without reject
 - different category scopes depending on the active policy
 
-You can preview that locally with `offlinePolicy.policyPacks`:
+You can preview that locally with `createOfflineTransport()`:
 
 ```ts
-import { getOrCreateConsentRuntime, policyPackPresets } from 'c15t';
+import { createConsentKernel, createOfflineTransport, policyPackPresets } from 'c15t';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'offline',
-  offlinePolicy: {
+const kernel = createConsentKernel({
+  initialOverrides: {
+    country: 'US',
+    region: 'CA',
+  },
+  transport: createOfflineTransport({
     policyPacks: [
       policyPackPresets.californiaOptOut(),
       policyPackPresets.europeOptIn(),
       policyPackPresets.worldNoBanner(),
     ],
-  },
-  overrides: {
-    country: 'US',
-    region: 'CA',
-  },
+  }),
 });
 
-const state = consentStore.getState();
+await kernel.commands.init();
+const state = kernel.getSnapshot();
 console.log(state.policy?.id, state.policyDecision?.matchedBy);
 ```
 
@@ -127,70 +137,30 @@ When building custom UI, prefer these runtime values:
 - `activeUI` to decide whether to show banner, dialog, or nothing
 - `policy` to inspect the resolved mode and UI hints
 - `policyDecision` to debug why a policy was selected
-- `consentCategories` to decide which categories should render
+- `policyCategories` to decide which categories should render
 
 <Callout type="info">
   See [Policy Packs](/docs/frameworks/javascript/policy-packs) for offline preview setup and [Policy Packs Concept](/docs/frameworks/javascript/concepts/policy-packs) for matcher precedence and fallback behavior.
 </Callout>
 
-## Key Store Properties for UI
+## Key Snapshot Properties for UI
 
 | Property | Type | Use |
 |----------|------|-----|
 | `activeUI` | `'none' \| 'banner' \| 'dialog'` | Which consent UI is currently visible |
 | `consents` | `Record<string, boolean>` | Current consent state per category |
-| `selectedConsents` | `Record<string, boolean>` | Staged toggle state (unsaved) |
-| `consentTypes` | `ConsentType[]` | Categories to display with title/description |
 | `model` | `string \| null` | Current consent model (opt-in, opt-out, iab) |
-| `locationInfo` | `LocationInfo \| null` | Detected location (country, region) |
+| `location` | `LocationResponse \| null` | Detected location (country, region) |
+| `policyCategories` | `string[]` | Categories allowed by the resolved policy |
 
-## Key Store Actions for UI
+## Key Kernel Actions for UI
 
 | Action | Signature | Use |
 |--------|-----------|-----|
-| `saveConsents` | `(type: 'all' \| 'custom' \| 'necessary') => Promise<void>` | Save consent choices |
-| `setSelectedConsent` | `(name, value) => void` | Toggle a category (staged, not saved) |
-| `setConsent` | `(name, value) => void` | Set + auto-save a single category |
-| `setActiveUI` | `(ui: 'none' \| 'banner' \| 'dialog', options?) => void` | Show/hide the banner or dialog |
-| `getDisplayedConsents` | `() => ConsentType[]` | Get visible consent categories |
-
-## Validating Custom UI Against the Resolved Policy
-
-If you're building a reusable headless component library or framework wrapper, test your rendered UI against the resolved policy shape.
-
-```ts
-import {
-  getEffectivePolicy,
-  type PolicyUIState,
-  validateUIAgainstPolicy,
-} from 'c15t';
-
-const policy = getEffectivePolicy(initData);
-
-const bannerState: PolicyUIState = {
-  mode: 'banner',
-  actions: ['accept', 'reject', 'customize'],
-  layout: 'split',
-  uiProfile: 'compact',
-  scrollLock: false,
-};
-
-const issues = validateUIAgainstPolicy({
-  policy,
-  state: bannerState,
-});
-
-if (issues.length > 0) {
-  console.warn('UI does not match policy:', issues);
-}
-```
-
-This catches mismatches such as:
-
-- rendering actions the policy does not allow
-- rendering the wrong action order
-- using the wrong layout or UI profile
-- showing banner/dialog UI that does not match the resolved mode
+| `commands.save` | `(input?: Partial<ConsentState> \| 'all' \| 'none') => Promise<SaveResult>` | Update and persist consent choices |
+| `set.consent` | `(input: Partial<ConsentState>) => void` | Update consent synchronously without saving |
+| `set.activeUI` | `(ui: 'none' \| 'banner' \| 'dialog' \| null) => void` | Show or hide consent UI |
+| `subscribe` | `(listener) => unsubscribe` | Bridge snapshots into framework state |
 
 ## Using `@c15t/ui` for Theming
 
@@ -271,29 +241,29 @@ These functions return CSS module class name generators. To apply the associated
 ## Building a Framework Library
 
 <Callout type="info">
-  **Building a Vue, Svelte, or other framework library?** Use `c15t` for the consent logic and `@c15t/ui` for the theme/style system. Library authors can depend on the scoped `@c15t/core` package directly instead of the `c15t` umbrella — see [Granular Installs](/docs/granular-installs) for the trade-offs. See the [`@c15t/react` source code](https://github.com/c15t/c15t/tree/main/packages/react) for a reference implementation of how to wrap the core store in a framework-specific API.
+  **Building a Vue, Svelte, or other framework library?** Use `c15t` for the consent logic and `@c15t/ui` for the theme/style system. Library authors can depend on the scoped `@c15t/core` package directly instead of the `c15t` umbrella — see [Granular Installs](/docs/granular-installs) for the trade-offs. See the [`@c15t/react` source code](https://github.com/c15t/c15t/tree/main/packages/react) for a reference implementation of how to wrap the core kernel in a framework-specific API.
 </Callout>
 
 The pattern for building a framework wrapper:
 
-1. **Create a provider** — Initialize `getOrCreateConsentRuntime()` and expose the store via your framework's context system (Vue `provide`/`inject`, Svelte context, etc.)
-2. **Build reactive bindings** — Subscribe to store changes and bridge them to your framework's reactivity system
+1. **Create a provider** — Create one kernel and expose it through your framework's context system (Vue `provide`/`inject`, Svelte context, etc.)
+2. **Build reactive bindings** — Subscribe to kernel snapshots and bridge them to your framework's reactivity system
 3. **Wrap UI components** — Use `@c15t/ui` tokens and slots for consistent theming, render with your framework's component model
-4. **Export hooks/composables** — Expose store actions through framework-idiomatic APIs (Vue composables, Svelte stores, etc.)
+4. **Export hooks/composables** — Expose kernel actions through framework-idiomatic APIs (Vue composables, Svelte stores, etc.)
 
 ```ts
 // Pseudocode for a framework wrapper
-import { getOrCreateConsentRuntime } from 'c15t';
-import type { ConsentRuntimeOptions } from 'c15t';
+import { createConsentKernel, has } from 'c15t';
+import type { KernelConfig } from 'c15t';
 
-export function createConsentPlugin(options: ConsentRuntimeOptions) {
-  const { consentStore } = getOrCreateConsentRuntime(options);
+export function createConsentPlugin(options: KernelConfig) {
+  const kernel = createConsentKernel(options);
 
   return {
-    store: consentStore,
-    has: (condition) => consentStore.getState().has(condition),
-    saveConsents: (type) => consentStore.getState().saveConsents(type),
-    subscribe: (selector, callback) => consentStore.subscribe(selector, callback),
+    kernel,
+    has: (condition) => has(condition, kernel.getSnapshot().consents),
+    saveConsents: (input) => kernel.commands.save(input),
+    subscribe: kernel.subscribe,
   };
 }
 ```
