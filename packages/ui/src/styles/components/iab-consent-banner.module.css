@@ -292,7 +292,7 @@
 		position: fixed;
 		inset: 0;
 		background-color: var(--iab-consent-banner-overlay-background-color);
-		z-index: 999999997;
+		z-index: 999997;
 	}
 
 	/* Animation classes for overlay */

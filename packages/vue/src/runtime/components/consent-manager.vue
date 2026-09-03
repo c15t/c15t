@@ -71,7 +71,7 @@ const refreshOverlayFallback = async function refreshOverlayFallback() {
 		backgroundColor: 'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
 		inset: '0',
 		position: 'fixed',
-		zIndex: '999999998',
+		zIndex: '999998',
 	};
 };
 
