@@ -28,6 +28,7 @@ import type {
 	InitContext,
 	InitResponse,
 	KernelTransport,
+	KernelUser,
 	SavePayload,
 	SaveResult,
 } from '../types';
@@ -151,6 +152,29 @@ const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 	return allowed;
 };
 
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	reject: (reason?: unknown) => void;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
+
 /**
  * Build a hosted transport. The returned object is plain — no listeners,
  * no caches, and no state beyond the decision inputs remembered when
@@ -170,37 +194,85 @@ export const createHostedTransport = function createHostedTransport(
 	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
+	let establishedSubjectId: string | null = null;
 	let lastDecisionInputs: RememberedDecisionInputs | undefined;
+	interface PendingIdentity {
+		reject: (error: unknown) => void;
+		resolve: () => void;
+		user: KernelUser;
+	}
+	let pendingIdentities: PendingIdentity[] = [];
+
+	const patchIdentity = async function patchIdentity(
+		user: KernelUser,
+		subjectId: string
+	): Promise<void> {
+		const response = await fetchImpl(
+			`${base}/subjects/${encodeURIComponent(subjectId)}`,
+			{
+				body: JSON.stringify({
+					externalId: user.externalId,
+					identityProvider: user.identityProvider,
+				}),
+				credentials,
+				headers: {
+					accept: 'application/json',
+					'content-type': 'application/json',
+					...c15tVersionHeaders,
+				},
+				method: 'PATCH',
+			}
+		);
+
+		if (!response.ok) {
+			throw new Error(
+				`c15t hosted transport: /subjects/:id responded ${response.status} ${response.statusText}`
+			);
+		}
+	};
+
+	const flushPendingIdentities = async function flushPendingIdentities(
+		subjectId: string
+	): Promise<void> {
+		const pending = pendingIdentities;
+		pendingIdentities = [];
+		const latest = pending.at(-1);
+		if (!latest) {
+			return;
+		}
+		try {
+			await patchIdentity(latest.user, subjectId);
+			for (const item of pending) {
+				item.resolve();
+			}
+		} catch (error) {
+			for (const item of pending) {
+				item.reject(error);
+			}
+		}
+	};
+
+	const resolvePendingIdentities = function resolvePendingIdentities(): void {
+		const pending = pendingIdentities;
+		pendingIdentities = [];
+		for (const item of pending) {
+			item.resolve();
+		}
+	};
 
 	return {
 		async identify(user, subjectId): Promise<void> {
-			if (!subjectId) {
-				throw new Error(
-					'c15t hosted transport: identify requires an initialized subject'
-				);
+			const resolvedSubjectId = subjectId ?? establishedSubjectId;
+			if (!resolvedSubjectId) {
+				return createDeferredPromise<undefined>((resolve, reject) => {
+					pendingIdentities.push({
+						reject,
+						resolve: () => resolve(undefined),
+						user,
+					});
+				});
 			}
-			const response = await fetchImpl(
-				`${base}/subjects/${encodeURIComponent(subjectId)}`,
-				{
-					body: JSON.stringify({
-						externalId: user.externalId,
-						identityProvider: user.identityProvider,
-					}),
-					credentials,
-					headers: {
-						accept: 'application/json',
-						'content-type': 'application/json',
-						...c15tVersionHeaders,
-					},
-					method: 'PATCH',
-				}
-			);
-
-			if (!response.ok) {
-				throw new Error(
-					`c15t hosted transport: /subjects/:id responded ${response.status} ${response.statusText}`
-				);
-			}
+			await patchIdentity(user, resolvedSubjectId);
 		},
 
 		async init(_ctx: InitContext): Promise<InitResponse> {
@@ -227,7 +299,12 @@ export const createHostedTransport = function createHostedTransport(
 					gpcFromHeaders(initHeaders)
 				);
 			}
-			return mapInitOutputToInitResponse(payload, initHeaders);
+			const result = mapInitOutputToInitResponse(payload, initHeaders);
+			if (result.subjectId) {
+				establishedSubjectId = result.subjectId;
+				await flushPendingIdentities(result.subjectId);
+			}
+			return result;
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
@@ -252,6 +329,23 @@ export const createHostedTransport = function createHostedTransport(
 			}
 
 			const data = (await response.json()) as SaveResult;
+			if (data.subjectId) {
+				establishedSubjectId = data.subjectId;
+			}
+			const latestPendingUser = pendingIdentities.at(-1)?.user;
+			const savedUser = payload.user;
+			if (
+				data.subjectId &&
+				savedUser &&
+				latestPendingUser &&
+				savedUser.externalId === latestPendingUser.externalId &&
+				savedUser.identityProvider === latestPendingUser.identityProvider
+			) {
+				// POST /subjects already linked the latest queued identity.
+				resolvePendingIdentities();
+			} else if (data.subjectId) {
+				await flushPendingIdentities(data.subjectId);
+			}
 			return data;
 		},
 	};

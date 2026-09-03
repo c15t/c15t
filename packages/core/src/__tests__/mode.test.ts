@@ -107,9 +107,11 @@ describe('custom()', () => {
 			identityProvider: 'clerk',
 		};
 
-		await transport.identify?.(user);
+		await transport.identify?.(user, 'sub_123');
 
-		expect(identifyUser).toHaveBeenCalledWith({ body: user });
+		expect(identifyUser).toHaveBeenCalledWith({
+			body: { ...user, subjectId: 'sub_123' },
+		});
 	});
 
 	test('treats missing init as an empty response', async () => {

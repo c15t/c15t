@@ -109,7 +109,10 @@ export type EndpointHandler<
 export interface EndpointHandlers {
 	init?: EndpointHandler<Record<string, unknown>>;
 	setConsent: EndpointHandler<{ subjectId?: string }, unknown>;
-	identifyUser?: EndpointHandler<unknown, KernelUser>;
+	identifyUser?: EndpointHandler<
+		unknown,
+		KernelUser & { subjectId: string | null }
+	>;
 }
 
 const isEndpointHandlers = function isEndpointHandlers(
@@ -122,11 +125,13 @@ const createEndpointTransport = function createEndpointTransport(
 	endpointHandlers: EndpointHandlers
 ): KernelTransport {
 	return {
-		async identify(user) {
+		async identify(user, subjectId) {
 			if (!endpointHandlers.identifyUser) {
 				return;
 			}
-			const response = await endpointHandlers.identifyUser({ body: user });
+			const response = await endpointHandlers.identifyUser({
+				body: { ...user, subjectId },
+			});
 			if (!response.ok) {
 				throw (
 					response.error ?? new Error('c15t custom transport: identify failed')

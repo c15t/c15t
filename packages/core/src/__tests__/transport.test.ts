@@ -1687,17 +1687,63 @@ describe('createHostedTransport: request shape', () => {
 		});
 	});
 
-	test('identify rejects before a subject has been initialized', async () => {
-		const fetchSpy = vi.fn();
+	test('identify waits for the first save to establish a fresh subject', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ok: true, subjectId: 'sub-created' }), {
+				status: 200,
+			})
+		);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+		const user = { externalId: 'user-42', identityProvider: 'clerk' };
+
+		const identified = transport.identify?.(user, null);
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub-created',
+			uiSource: 'banner',
+			user,
+		});
+
+		await expect(identified).resolves.toBeUndefined();
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/c15t/subjects');
+	});
+
+	test('identify PATCHes after a save establishes the subject', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ok: true, subjectId: 'sub-created' }), {
+				status: 200,
+			})
+		);
 		const transport = createHostedTransport({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		await expect(
-			transport.identify?.({ externalId: 'user-42' }, null)
-		).rejects.toThrow('requires an initialized subject');
-		expect(fetchSpy).not.toHaveBeenCalled();
+		const identified = transport.identify?.({ externalId: 'user-42' }, null);
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub-created',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		await expect(identified).resolves.toBeUndefined();
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+		expect(fetchSpy.mock.calls[1]?.[0]).toBe('/api/c15t/subjects/sub-created');
 	});
 
 	test('initURL overrides init without changing the save endpoint', async () => {

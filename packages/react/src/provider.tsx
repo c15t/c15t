@@ -555,7 +555,13 @@ const useProviderOptionSync = function useProviderOptionSync(
 		if (previousUserRef.current !== serialized) {
 			previousUserRef.current = serialized;
 			if (nextUser) {
-				void kernel.commands.identify(nextUser);
+				void (async () => {
+					try {
+						await kernel.commands.identify(nextUser);
+					} catch {
+						// Provider callbacks receive the command:error event.
+					}
+				})();
 			}
 		}
 	}, [kernel, options.user]);

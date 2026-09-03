@@ -595,7 +595,13 @@
 	$effect(() => {
 		const nextUser = normalizeUser(options.user);
 		if (nextUser) {
-			void kernel.commands.identify(nextUser);
+			void (async () => {
+				try {
+					await kernel.commands.identify(nextUser);
+				} catch {
+					// Provider callbacks receive the command:error event.
+				}
+			})();
 		}
 	});
 
