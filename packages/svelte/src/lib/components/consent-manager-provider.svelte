@@ -468,7 +468,8 @@
 		if (iab === false || !iab || iab.enabled === false) {
 			return null;
 		}
-		const { cmpId } = iab;
+		const currentIab = kernel.getSnapshot().iab;
+		const cmpId = iab.cmpId ?? currentIab?.cmpId;
 		if (typeof cmpId !== 'number') {
 			return null;
 		}
@@ -479,7 +480,8 @@
 				typeof iab.cmpVersion === 'string'
 					? Number(iab.cmpVersion)
 					: iab.cmpVersion,
-			gvl: iab.gvl ?? snapshot.iab?.gvl ?? undefined,
+			customVendors: iab.customVendors ?? currentIab?.customVendors,
+			gvl: iab.gvl ?? currentIab?.gvl ?? undefined,
 		};
 	};
 
@@ -555,14 +557,28 @@
 			disposers.push(() => blocker.dispose());
 		}
 
-		const iabOptions = normalizeIabOptions(getProviderIab(options));
-		if (enabled && iabOptions) {
-			const handle = createIAB({ ...iabOptions, kernel });
-			iabHandle = handle;
-			disposers.push(() => {
-				handle.dispose();
-				iabHandle = null;
-			});
+		if (enabled && getProviderIab(options)) {
+			let iabMounted = false;
+			const mountIabIfReady = () => {
+				if (iabMounted) {
+					return;
+				}
+				const iabOptions = normalizeIabOptions(getProviderIab(options));
+				if (!iabOptions) {
+					return;
+				}
+				iabMounted = true;
+				const handle = createIAB({ ...iabOptions, kernel });
+				iabHandle = handle;
+				disposers.push(() => {
+					handle.dispose();
+					iabHandle = null;
+					iabMounted = false;
+				});
+			};
+
+			mountIabIfReady();
+			disposers.push(kernel.subscribe(mountIabIfReady));
 		}
 
 		return () => {

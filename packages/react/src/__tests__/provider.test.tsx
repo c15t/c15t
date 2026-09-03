@@ -649,7 +649,7 @@ describe('v3 ConsentProvider options API', () => {
 		} satisfies ConsentProviderOptions;
 
 		const Probe = () => {
-			const translations = useTranslations();
+			const { translations } = useSnapshot();
 			const policy = usePolicy();
 			return (
 				<div data-testid="legacy">
@@ -680,8 +680,7 @@ describe('v3 ConsentProvider options API', () => {
 	test('deep-merges selected i18n messages over the default language base', async () => {
 		const Probe = () => {
 			const translations = useTranslations();
-			const marketing =
-				translations?.translations.consentTypes?.marketing ?? {};
+			const marketing = translations.consentTypes?.marketing ?? {};
 			return (
 				<div data-testid="copy">
 					{marketing.title}|{marketing.description}

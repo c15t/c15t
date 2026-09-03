@@ -24,9 +24,11 @@ group: reference
   When using inth.com or a self-hosted backend, the provider connects automatically. No policy configuration is needed on the frontend:
 
   ```tsx
+  import { ConsentProvider, hosted } from 'c15t/react';
+
   <ConsentProvider
     options={{
-      backendURL: 'https://your-instance.c15t.dev',
+      mode: hosted({ url: 'https://your-instance.c15t.dev' }),
     }}
   >
     <ConsentBanner />

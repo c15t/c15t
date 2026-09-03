@@ -491,13 +491,15 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 
 	const commands = {
 		async identify(user: KernelUser): Promise<void> {
+			const { subjectId } = getSnapshot();
 			advance({ user: { ...user } });
 			emit({ snapshot: getSnapshot(), type: 'user:identified' });
 			if (transport?.identify) {
 				try {
-					await transport.identify({ ...user });
+					await transport.identify({ ...user }, subjectId);
 				} catch (error) {
 					emit({ command: 'identify', error, type: 'command:error' });
+					throw error;
 				}
 			}
 		},

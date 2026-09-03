@@ -352,7 +352,7 @@ export interface SavePayload {
 export interface KernelTransport {
 	init?: (ctx: InitContext) => Promise<InitResponse>;
 	save?: (payload: SavePayload) => Promise<SaveResult>;
-	identify?: (user: KernelUser) => Promise<void>;
+	identify?: (user: KernelUser, subjectId: string | null) => Promise<void>;
 }
 
 /**

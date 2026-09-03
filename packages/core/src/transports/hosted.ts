@@ -173,6 +173,36 @@ export const createHostedTransport = function createHostedTransport(
 	let lastDecisionInputs: RememberedDecisionInputs | undefined;
 
 	return {
+		async identify(user, subjectId): Promise<void> {
+			if (!subjectId) {
+				throw new Error(
+					'c15t hosted transport: identify requires an initialized subject'
+				);
+			}
+			const response = await fetchImpl(
+				`${base}/subjects/${encodeURIComponent(subjectId)}`,
+				{
+					body: JSON.stringify({
+						externalId: user.externalId,
+						identityProvider: user.identityProvider,
+					}),
+					credentials,
+					headers: {
+						accept: 'application/json',
+						'content-type': 'application/json',
+						...c15tVersionHeaders,
+					},
+					method: 'PATCH',
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(
+					`c15t hosted transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				);
+			}
+		},
+
 		async init(_ctx: InitContext): Promise<InitResponse> {
 			const response = await fetchImpl(initURL, {
 				credentials,

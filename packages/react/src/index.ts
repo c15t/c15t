@@ -86,6 +86,7 @@ export { Frame } from './components/frame';
 export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
 export { ConsentDraftProvider, useConsentDraft } from './draft';
 export { useConsentManager } from './component-hooks/use-consent-manager';
+export { useTranslations } from './component-hooks/use-translations';
 export {
 	useActiveUI,
 	useBranding,
@@ -114,7 +115,6 @@ export {
 	useSnapshot,
 	useSpecialFeatureOptIn,
 	useTCString,
-	useTranslations,
 	useUser,
 	useVendorConsent,
 } from './hooks';

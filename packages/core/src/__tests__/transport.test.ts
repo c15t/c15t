@@ -1591,14 +1591,21 @@ describe('kernel transport: identify forwards to transport', () => {
 		identifySpy.mockResolvedValue();
 		const transport: KernelTransport = { identify: identifySpy };
 
-		const kernel = createConsentKernel({ transport });
+		const kernel = createConsentKernel({
+			initialSubjectId: 'sub-42',
+			transport,
+		});
 		await kernel.commands.identify({ externalId: 'user-42' });
 
 		expect(kernel.getSnapshot().user?.externalId).toBe('user-42');
 		expect(identifySpy).toHaveBeenCalledTimes(1);
+		expect(identifySpy).toHaveBeenCalledWith(
+			{ externalId: 'user-42' },
+			'sub-42'
+		);
 	});
 
-	test('identify transport error emits command:error but snapshot still updated', async () => {
+	test('identify transport error emits command:error, rejects, and keeps the updated snapshot', async () => {
 		const boom = new Error('identify failed');
 		const transport: KernelTransport = {
 			identify() {
@@ -1609,7 +1616,9 @@ describe('kernel transport: identify forwards to transport', () => {
 		const errors: unknown[] = [];
 		kernel.events.on('command:error', (e) => errors.push(e.error));
 
-		await kernel.commands.identify({ externalId: 'user-42' });
+		await expect(
+			kernel.commands.identify({ externalId: 'user-42' })
+		).rejects.toBe(boom);
 
 		expect(kernel.getSnapshot().user?.externalId).toBe('user-42');
 		expect(errors).toEqual([boom]);
@@ -1645,6 +1654,50 @@ describe('createHostedTransport: request shape', () => {
 		expect(url).toBe('https://api.example.com/c15t/init');
 		expect((init as RequestInit).method).toBe('GET');
 		expect((init as RequestInit).body).toBeUndefined();
+	});
+
+	test('identify PATCHes the current subject with the external identity', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ success: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await transport.identify?.(
+			{
+				externalId: 'user-42',
+				identityProvider: 'clerk',
+				properties: { plan: 'pro' },
+			},
+			'subject/42'
+		);
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'/api/c15t/subjects/subject%2F42',
+			expect.objectContaining({ method: 'PATCH' })
+		);
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+			externalId: 'user-42',
+			identityProvider: 'clerk',
+		});
+	});
+
+	test('identify rejects before a subject has been initialized', async () => {
+		const fetchSpy = vi.fn();
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await expect(
+			transport.identify?.({ externalId: 'user-42' }, null)
+		).rejects.toThrow('requires an initialized subject');
+		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
 	test('initURL overrides init without changing the save endpoint', async () => {
