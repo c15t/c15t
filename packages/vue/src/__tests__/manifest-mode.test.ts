@@ -1,5 +1,6 @@
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import { flushPromises } from '@vue/test-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentConfig } from '../runtime/config';
@@ -15,6 +16,29 @@ import {
 	getResolverInputsFromHeaders,
 	resolveManifestInit,
 } from '../runtime/server/manifest-mode';
+
+interface DeferredPromise<Value> {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+}
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers: <Value>() => DeferredPromise<Value>;
+};
+
+const createDeferredPromise = function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+};
 
 type WindowWithC15t = Window & {
 	c15t?: {
@@ -291,6 +315,87 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		context.dispose();
 	});
 
+	test('client manifest mode retries the manifest fetch after a failed load', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		let manifestStatus = 503;
+		const fetchMock = vi.fn((input: RequestInfo | URL) => {
+			expect(String(input)).toBe('https://cdn.example/manifest');
+			return new Response(
+				manifestStatus === 200
+					? JSON.stringify(createManifestFixture())
+					: 'unavailable',
+				{ status: manifestStatus }
+			);
+		});
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://backend.example',
+				customFetch: fetchMock as unknown as typeof fetch,
+				manifest: 'client',
+				manifestURL: 'https://cdn.example/manifest',
+			} as ConsentConfig,
+		});
+
+		const first = await context.kernel.commands.init();
+		expect(first.ok).toBe(false);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(context.snapshot.value.policy).toBeNull();
+
+		manifestStatus = 200;
+		const second = await context.kernel.commands.init();
+		expect(second.ok).toBe(true);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(context.snapshot.value.policy?.id).toBe('eu-opt-in');
+		context.dispose();
+	});
+
+	test('runtime teardown stops the geo refresh from re-arming the kernel', async () => {
+		let resolveGeo: (response: Response) => void = () => {};
+		const fetchMock = vi.fn((input: RequestInfo | URL) => {
+			const url = String(input);
+			if (url === 'https://cdn.example/manifest') {
+				return new Response(JSON.stringify(createManifestFixture()), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				});
+			}
+			if (url === '/api/geo') {
+				return createDeferredPromise<Response>((resolve) => {
+					resolveGeo = resolve;
+				});
+			}
+			return new Response('not found', { status: 404 });
+		});
+		const config = {
+			backendURL: 'https://backend.example',
+			customFetch: fetchMock as unknown as typeof fetch,
+			geoURL: '/api/geo',
+			manifest: 'client',
+			manifestURL: 'https://cdn.example/manifest',
+		} as ConsentConfig;
+		const context = createVueConsentKernelContext({ config });
+		const initSpy = vi.spyOn(context.kernel.commands, 'init');
+
+		const dispose = startVueConsentRuntime(context, config);
+		await vi.waitFor(() => {
+			expect(fetchMock).toHaveBeenCalledWith('/api/geo', expect.anything());
+		});
+		expect(initSpy).toHaveBeenCalledTimes(1);
+
+		dispose();
+		resolveGeo(
+			new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+		await flushPromises();
+		await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+
+		expect(initSpy).toHaveBeenCalledTimes(1);
+		expect(context.snapshot.value.policy?.id).toBe('eu-opt-in');
+	});
+
 	test('client manifest mode applies strict unknown-geo policy before geo microfetch re-resolves', async () => {
 		const seenPolicyIds: string[] = [];
 		const fetchMock = vi.fn((input: RequestInfo | URL) => {
@@ -391,6 +496,18 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			'https://backend.example/subjects',
 		]);
 		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' });
+		// The Nuxt init route resolves the manifest on the server and issues no
+		// snapshot token, so the save must still assert the decision it was
+		// made against.
+		const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+		expect(body).toMatchObject({
+			country: 'DE',
+			fingerprint: 'fingerprint-eu',
+			language: 'de',
+			policyId: 'eu-opt-in',
+			region: 'BE',
+		});
+		expect(typeof body.givenAt).toBe('number');
 		context.dispose();
 	});
 });
