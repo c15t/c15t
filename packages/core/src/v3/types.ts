@@ -326,6 +326,13 @@ export interface SavePayload {
 	policySnapshotToken: string | null;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
+	/**
+	 * Epoch milliseconds when the visitor made this decision. The save command
+	 * sets it once, before the first transport attempt, and a queued replay
+	 * reuses it so the backend records the original decision time and derives
+	 * the same consent id instead of a duplicate.
+	 */
+	givenAt?: number;
 }
 
 /**

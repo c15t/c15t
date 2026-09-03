@@ -31,6 +31,12 @@ import type {
 	SavePayload,
 	SaveResult,
 } from '../types';
+import {
+	buildDecisionAssertion,
+	gpcFromHeaders,
+	rememberDecisionInputs,
+} from './decision-inputs';
+import type { RememberedDecisionInputs } from './decision-inputs';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
 import { c15tVersionHeaders } from './version-header';
@@ -49,6 +55,21 @@ export interface HostedTransportOptions {
 	 * keeping consent saves on `${backendURL}/subjects`.
 	 */
 	initURL?: string;
+
+	/**
+	 * Assert the resolved policy decision on `POST /subjects`.
+	 *
+	 * When enabled, `init` remembers the policy id, fingerprint, geo,
+	 * language, and GPC signal it resolved, and `save` sends them whenever
+	 * the payload has no signed `policySnapshotToken`, so the backend can
+	 * reject a save made against a stale policy instead of recording it
+	 * unbound. Enable this when `initURL` points at a same-origin route that
+	 * resolves init from a manifest: manifest resolution never issues a
+	 * snapshot token.
+	 *
+	 * @defaultValue false
+	 */
+	assertDecisionInputs?: boolean;
 
 	/**
 	 * Fetch implementation. Defaults to `globalThis.fetch`.
@@ -132,7 +153,8 @@ const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 
 /**
  * Build a hosted transport. The returned object is plain — no listeners,
- * no caches, no state. Safe to create per request.
+ * no caches, and no state beyond the decision inputs remembered when
+ * `assertDecisionInputs` is set. Safe to create per request.
  */
 export const createHostedTransport = function createHostedTransport(
 	options: HostedTransportOptions
@@ -148,6 +170,7 @@ export const createHostedTransport = function createHostedTransport(
 	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
+	let lastDecisionInputs: RememberedDecisionInputs | undefined;
 
 	return {
 		async init(_ctx: InitContext): Promise<InitResponse> {
@@ -168,12 +191,21 @@ export const createHostedTransport = function createHostedTransport(
 			}
 
 			const payload = (await response.json()) as InitOutput;
+			if (options.assertDecisionInputs) {
+				lastDecisionInputs = rememberDecisionInputs(
+					payload,
+					gpcFromHeaders(initHeaders)
+				);
+			}
 			return mapInitOutputToInitResponse(payload, initHeaders);
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
 			const response = await fetchImpl(`${base}/subjects`, {
-				body: JSON.stringify(buildSubjectPostBody(payload, { domain })),
+				body: JSON.stringify({
+					...buildSubjectPostBody(payload, { domain }),
+					...buildDecisionAssertion(payload, lastDecisionInputs),
+				}),
 				credentials,
 				headers: {
 					accept: 'application/json',

@@ -271,6 +271,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		? createPendingSaveQueue({ emit, save: transport.save })
 		: null;
 	let disposed = false;
+	// Bumped by every explicit `init()`. An attempt that resolves after a newer
+	// init started is stale: it must not apply its response, touch retry
+	// state, or start a replay. `dispose()` deliberately leaves the generation
+	// alone so an in-flight init still lands when React StrictMode disposes
+	// and reuses the same kernel without calling init again.
+	let initGeneration = 0;
 	let onlineListenerInstalled = false;
 	let visibilityListenerInstalled = false;
 	let pendingRetryAttempt: number | null = null;
@@ -296,7 +302,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		) {
 			return;
 		}
-		// oxlint-disable-next-line no-use-before-define -- Browser retry callbacks call each other through event listeners.
+		// Browser retry callbacks call each other through event listeners.
+		// oxlint-disable-next-line no-use-before-define
 		document.removeEventListener('visibilitychange', onVisibilityChange);
 		visibilityListenerInstalled = false;
 	};
@@ -310,7 +317,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		) {
 			return;
 		}
-		// oxlint-disable-next-line no-use-before-define -- Browser retry callbacks call each other through event listeners.
+		// Browser retry callbacks call each other through event listeners.
+		// oxlint-disable-next-line no-use-before-define
 		document.addEventListener('visibilitychange', onVisibilityChange);
 		visibilityListenerInstalled = true;
 	};
@@ -328,7 +336,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 			const hasRemaining = await pendingSaves.replay();
 			if (hasRemaining) {
-				// oxlint-disable-next-line no-use-before-define -- Browser retry callbacks call each other through event listeners.
+				// Browser retry callbacks call each other through event listeners.
+				// oxlint-disable-next-line no-use-before-define
 				ensureOnlineListener();
 			}
 		};
@@ -346,8 +355,18 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
+			void replayPendingSaves();
 			return result;
 		}
+
+		const generation = initGeneration;
+		const completeSuperseded = function completeSuperseded(
+			error: unknown
+		): InitResult {
+			const result: InitResult = { error, ok: false };
+			emit({ result, type: 'command:init:completed' });
+			return result;
+		};
 
 		try {
 			const snapshot = getSnapshot();
@@ -356,6 +375,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				user: snapshot.user,
 			};
 			const response = await transport.init(ctx);
+			if (generation !== initGeneration) {
+				return completeSuperseded(
+					new Error('c15t: init attempt superseded by a newer init()')
+				);
+			}
 			const patch = applyInitResponse(getSnapshot(), response);
 			if (patch) {
 				advance(patch);
@@ -369,6 +393,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			void replayPendingSaves();
 			return result;
 		} catch (error) {
+			if (generation !== initGeneration) {
+				return completeSuperseded(error);
+			}
 			emit({ command: 'init', error, type: 'command:error' });
 			const nextRetryMs =
 				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
@@ -377,7 +404,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ attempt, error, nextRetryMs, type: 'init:failed' });
 			warnInitFailure(nextRetryMs);
 			if (nextRetryMs !== null) {
-				// oxlint-disable-next-line no-use-before-define -- Init failures schedule the next attempt through this callback.
+				// Init failures schedule the next attempt through this callback.
+				// oxlint-disable-next-line no-use-before-define
 				scheduleRetry(attempt + 1, nextRetryMs);
 			}
 			const result: InitResult = { error, ok: false };
@@ -427,7 +455,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		}
 		clearRetryTimer();
 		pendingRetryAttempt = attempt;
-		// oxlint-disable-next-line no-use-before-define -- Browser retry callbacks call each other through event listeners.
+		// Browser retry callbacks call each other through event listeners.
+		// oxlint-disable-next-line no-use-before-define
 		ensureOnlineListener();
 		retryTimer = setTimeout(() => {
 			retryTimer = null;
@@ -478,6 +507,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			// effect cleanup (which disposes) and then re-mounts with the same
 			// memoized kernel and calls init again; retries must work after that.
 			disposed = false;
+			initGeneration += 1;
 			clearRetryTimer();
 			pendingRetryAttempt = null;
 			removeVisibilityListener();
@@ -510,9 +540,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return result;
 			}
 
+			// Captured once so a queued replay records when the visitor decided,
+			// not when the retry ran, and derives the same backend consent id.
 			const payload: SavePayload = {
 				consentAction,
 				consents: after.consents,
+				givenAt: Date.now(),
 				model: after.model,
 				overrides: after.overrides,
 				policySnapshotToken: after.policySnapshotToken,
@@ -532,8 +565,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					setTimeout(resolve, 0);
 				});
 				const result = await transport.save(payload);
-				if (!result.ok) {
-					pendingSaves?.enqueue(payload);
+				if (result.ok) {
+					await pendingSaves?.discard(subjectId);
+				} else {
+					await pendingSaves?.enqueue(payload);
 					ensureOnlineListener();
 				}
 				if (result.subjectId && result.subjectId !== getSnapshot().subjectId) {
@@ -543,7 +578,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return result;
 			} catch (error) {
 				emit({ command: 'save', error, type: 'command:error' });
-				pendingSaves?.enqueue(payload);
+				await pendingSaves?.enqueue(payload);
 				ensureOnlineListener();
 				const result: SaveResult = { ok: false };
 				emit({ result, type: 'command:save:completed' });

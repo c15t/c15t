@@ -32,7 +32,10 @@ export type ProviderTransportKind = 'hosted' | 'offline' | 'custom';
 /**
  * Creates a kernel transport from provider runtime context.
  *
- * The `kind` property lets adapters report the selected transport without
+ * Providers require one of these as their `mode` option. Build it with
+ * `hosted()`, `custom()`, or a framework adapter's `offline()` rather than
+ * by hand so the `kind` property stays accurate. `kind` lets adapters
+ * report the selected transport through `window.c15t.mode` without
  * importing every transport implementation.
  *
  * @param context - Provider values needed to create the transport.
@@ -60,6 +63,12 @@ export interface HostedModeOptions {
  *
  * @param options - Hosted backend connection options.
  * @returns A hosted provider transport factory.
+ * @example
+ * ```ts
+ * import { hosted } from '@c15t/core/v3';
+ *
+ * const mode = hosted({ url: '/api/c15t' });
+ * ```
  */
 export const hosted = function hosted(
 	options: HostedModeOptions
@@ -139,6 +148,20 @@ const createEndpointTransport = function createEndpointTransport(
  *
  * @param handlersOrTransport - v2 endpoint handlers or a kernel transport.
  * @returns A custom provider transport factory.
+ * @example
+ * ```ts
+ * import { custom } from '@c15t/core/v3';
+ *
+ * const mode = custom({
+ *   async init() {
+ *     return await loadInitResponse();
+ *   },
+ *   async save(payload) {
+ *     await persist(payload);
+ *     return { ok: true, subjectId: payload.subjectId };
+ *   },
+ * });
+ * ```
  */
 export const custom = function custom(
 	handlersOrTransport: EndpointHandlers | KernelTransport
