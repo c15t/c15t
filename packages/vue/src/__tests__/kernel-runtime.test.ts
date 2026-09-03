@@ -421,13 +421,18 @@ describe('@c15t/vue kernel runtime', () => {
 		customizeButton.click();
 		await flushPromises();
 
-		await vi.waitFor(() => {
-			expect(
-				document.querySelector(
-					'[data-testid="consent-widget-footer-accept-all-button"]'
-				)
-			).toBeTruthy();
-		});
+		// The dialog is an async component; its first import on a cold CI
+		// runner can take well over vi.waitFor's default one second.
+		await vi.waitFor(
+			() => {
+				expect(
+					document.querySelector(
+						'[data-testid="consent-widget-footer-accept-all-button"]'
+					)
+				).toBeTruthy();
+			},
+			{ timeout: 10_000 }
+		);
 		const acceptAllButton = document.querySelector<HTMLButtonElement>(
 			'[data-testid="consent-widget-footer-accept-all-button"]'
 		);
