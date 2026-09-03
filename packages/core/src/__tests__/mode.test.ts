@@ -96,6 +96,22 @@ describe('custom()', () => {
 		);
 	});
 
+	test('maps identifyUser onto the kernel transport', async () => {
+		const identifyUser = vi.fn().mockResolvedValue({ ok: true });
+		const transport = custom({
+			identifyUser,
+			setConsent: vi.fn(),
+		})(context);
+		const user = {
+			externalId: 'user_123',
+			identityProvider: 'clerk',
+		};
+
+		await transport.identify?.(user);
+
+		expect(identifyUser).toHaveBeenCalledWith({ body: user });
+	});
+
 	test('treats missing init as an empty response', async () => {
 		const transport = custom({ setConsent: vi.fn() })(context);
 

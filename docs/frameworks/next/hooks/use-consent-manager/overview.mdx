@@ -50,7 +50,7 @@ When using Clerk, prefer the Clerk `userId` whenever the visitor is signed in. B
 
 ```tsx
 // app/layout.tsx
-import { hosted, ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider } from '@clerk/nextjs';
 import { auth } from '@clerk/nextjs/server';
 import { hosted, ConsentProvider } from 'c15t/next';
 import { cookies } from 'next/headers';
@@ -96,37 +96,37 @@ Clerk can complete a sign-in without reloading the page. Add a client component 
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useConsentManager } from 'c15t/next';
+import { useIdentify } from 'c15t/next';
 import { useEffect } from 'react';
 
 export function ClerkConsentSync() {
   const { isLoaded, isSignedIn, userId } = useAuth();
-  const { identifyUser } = useConsentManager();
+  const identify = useIdentify();
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) {
       return;
     }
 
-    void identifyUser({
-      id: userId,
+    void identify({
+      externalId: userId,
       identityProvider: 'clerk',
     }).then(() => {
       // Prevent the old anonymous ID from replacing the Clerk ID after sign-out.
       document.cookie =
         'consent_visitor_id=; Max-Age=0; Path=/; SameSite=Lax';
     });
-  }, [identifyUser, isLoaded, isSignedIn, userId]);
+  }, [identify, isLoaded, isSignedIn, userId]);
 
   return null;
 }
 ```
 
-`identifyUser()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, stop supplying the former visitor ID. The example clears its client-readable cookie only after `identifyUser()` succeeds so a later render cannot change the subject back to the anonymous ID.
+`identify()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, stop supplying the former visitor ID. The example clears its client-readable cookie only after `identify()` succeeds so a later render cannot change the subject back to the anonymous ID.
 
 <Callout type="info">
   Backend subject identification requires hosted mode (`mode: hosted({ url })`). In
-  offline mode, `identifyUser()` cannot update a backend subject. Identifiers
+  offline mode, `identify()` cannot update a backend subject. Identifiers
   supplied through `options.user` can still be held in client state and
   persisted with locally stored consent, so do not place sensitive values
   there.

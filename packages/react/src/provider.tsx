@@ -761,6 +761,29 @@ const WindowDebugMount = ({
 	return null;
 };
 
+const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
+	useEffect(() => {
+		const browserWindow = window as Window & {
+			c15tKernel?: ConsentKernel;
+		};
+		const previousKernel = browserWindow.c15tKernel;
+		browserWindow.c15tKernel = kernel;
+
+		return () => {
+			if (browserWindow.c15tKernel !== kernel) {
+				return;
+			}
+			if (previousKernel) {
+				browserWindow.c15tKernel = previousKernel;
+				return;
+			}
+			delete browserWindow.c15tKernel;
+		};
+	}, [kernel]);
+
+	return null;
+};
+
 const ThemeStyleMount = ({ theme }: { theme?: Theme }) => {
 	const [themeCSS, setThemeCSS] = useState('');
 
@@ -948,6 +971,7 @@ export const ConsentProvider = ({
 				pkg={windowDebugPkg}
 				mode={windowDebugMode}
 			/>
+			<WindowKernelMount kernel={kernel} />
 			{enabled && persistenceOptions ? (
 				<PersistenceMount options={persistenceOptions} />
 			) : null}

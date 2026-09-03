@@ -85,6 +85,7 @@ export type { FrameProps } from './components/frame';
 export { Frame } from './components/frame';
 export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
 export { ConsentDraftProvider, useConsentDraft } from './draft';
+export { useConsentManager } from './component-hooks/use-consent-manager';
 export {
 	useActiveUI,
 	useBranding,

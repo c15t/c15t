@@ -23,6 +23,10 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
+When a `ConsentProvider` is mounted, `DevTools` automatically connects to its
+kernel through `window.c15tKernel`. Pass the `kernel` prop when selecting
+between multiple providers.
+
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 
 <import src="../../../shared/react/components/dev-tools.mdx#props" />

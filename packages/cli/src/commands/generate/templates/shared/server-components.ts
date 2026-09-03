@@ -30,11 +30,11 @@ interface GenerateServerComponentOptions {
  */
 export const generateServerComponent = function generateServerComponent({
 	enableSSR,
-	backendURLValue: _backendURLValue,
+	backendURLValue,
 	framework,
 }: GenerateServerComponentOptions): string {
 	if (enableSSR) {
-		return `import { readInitialConsentConfig } from '${framework.importSource}/server';
+		return `import { prefetchInitialConsent } from '${framework.importSource}/server';
 import type { ReactNode } from 'react';
 import ConsentManagerClient from './provider';
 
@@ -43,7 +43,9 @@ import ConsentManagerClient from './provider';
  * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export async function ConsentManager({ children }: { children: ReactNode }) {
-	const config = await readInitialConsentConfig();
+	const config = await prefetchInitialConsent({
+		backendURL: ${backendURLValue},
+	});
 
 	return (
 		<ConsentManagerClient config={config}>

@@ -6,6 +6,7 @@ import type {
 	KernelConfig,
 	KernelTranslations,
 	KernelTransport,
+	KernelUser,
 } from '../types';
 import { createHostedTransport } from './hosted';
 import { mapInitOutputToInitResponse } from './init-output';
@@ -108,7 +109,7 @@ export type EndpointHandler<
 export interface EndpointHandlers {
 	init?: EndpointHandler<Record<string, unknown>>;
 	setConsent: EndpointHandler<{ subjectId?: string }, unknown>;
-	identifyUser?: EndpointHandler;
+	identifyUser?: EndpointHandler<unknown, KernelUser>;
 }
 
 const isEndpointHandlers = function isEndpointHandlers(
@@ -121,6 +122,17 @@ const createEndpointTransport = function createEndpointTransport(
 	endpointHandlers: EndpointHandlers
 ): KernelTransport {
 	return {
+		async identify(user) {
+			if (!endpointHandlers.identifyUser) {
+				return;
+			}
+			const response = await endpointHandlers.identifyUser({ body: user });
+			if (!response.ok) {
+				throw (
+					response.error ?? new Error('c15t custom transport: identify failed')
+				);
+			}
+		},
 		async init() {
 			if (!endpointHandlers.init) {
 				return {};

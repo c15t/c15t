@@ -63,15 +63,13 @@ Most apps mix more than one style. Pick the smallest one that keeps consent beha
 
 Setup is the same shape in every framework: import the helper, call it with vendor options, and pass the result to the consent runtime through your provider's `scripts` option. See the framework guides for end-to-end snippets — [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
 
-## Renderable Integrations
+## Iframes and Renderable Integrations
 
-Maps and video embeds need a visible component as well as consent-aware loading.
-The React and Next.js packages include components that own the placeholder,
-vendor loading, and rendered surface. They are imported from the framework
-package rather than `@c15t/scripts`.
-
-* [Google Maps](/docs/integrations/google-maps)
-* [YouTube](/docs/integrations/youtube)
+Maps, videos, calendars, and other embeds need a visible placeholder as well as
+consent-aware loading. Use the framework `Frame` component for iframe content,
+or combine the script loader with consent state when a vendor requires its own
+rendered component. See the [React iframe blocking guide](/docs/frameworks/react/iframe-blocking)
+or [Next.js iframe blocking guide](/docs/frameworks/next/iframe-blocking).
 
 ## Analytics
 
@@ -144,6 +142,5 @@ Learn when to use a raw `Script`, when to use a manifest, and how to debug and t
 ## Where To Next
 
 * Read the script loader guide for your framework: [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
-* Use the [Google Maps](/docs/integrations/google-maps) and [YouTube](/docs/integrations/youtube) components for built-in renderable integrations.
 * See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for other visible embeds such as calendars and social widgets.
 * Use [`has()`](/docs/frameworks/javascript/api/checking-consent) to conditionally run app code based on consent state.

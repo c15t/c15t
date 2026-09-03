@@ -55,6 +55,7 @@ type WindowWithC15t = Window & {
 		pkg: string;
 		mode: string;
 	};
+	c15tKernel?: ConsentKernel;
 };
 
 const hostedInitOutput = function hostedInitOutput(
@@ -95,6 +96,7 @@ const withProvider = function withProvider(options = {}) {
 
 beforeEach(() => {
 	delete (window as WindowWithC15t).c15t;
+	delete (window as WindowWithC15t).c15tKernel;
 	localStorage.clear();
 	clearCookies();
 	vi.restoreAllMocks();
@@ -120,10 +122,15 @@ describe('v3 ConsentProvider options API', () => {
 			});
 		});
 		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+		expect((window as WindowWithC15t).c15tKernel).toMatchObject({
+			commands: expect.any(Object),
+			getSnapshot: expect.any(Function),
+		});
 
 		unmount();
 		await vi.waitFor(() => {
 			expect((window as WindowWithC15t).c15t).toBeUndefined();
+			expect((window as WindowWithC15t).c15tKernel).toBeUndefined();
 		});
 	});
 
