@@ -13,7 +13,7 @@ import type { GlobalVendorList } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { createIAB } from '../index';
+import { createIAB, iab as createIABConfig } from '../index';
 import { setMockGVL } from '../tcf/fetch-gvl';
 
 const MOCK_GVL: GlobalVendorList = {
@@ -61,6 +61,16 @@ const MOCK_GVL: GlobalVendorList = {
 
 beforeEach(() => {
 	setMockGVL(MOCK_GVL);
+});
+
+describe('iab', () => {
+	test('creates enabled provider configuration', () => {
+		expect(createIABConfig({ cmpId: 28, vendors: [1, 2, 755] })).toEqual({
+			cmpId: 28,
+			enabled: true,
+			vendors: [1, 2, 755],
+		});
+	});
 });
 
 describe('createIAB: seeding the kernel', () => {

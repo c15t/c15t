@@ -69,6 +69,49 @@ export interface CreateIABOptions {
 }
 
 /**
+ * Provider-facing IAB configuration accepted by {@link iab}.
+ *
+ * The framework provider supplies the consent kernel when it mounts the
+ * runtime module.
+ */
+export type IABUserConfig = Omit<CreateIABOptions, 'kernel'>;
+
+/** Configuration returned by {@link iab} for framework providers. */
+export interface IABProviderConfig extends IABUserConfig {
+	/** Enables the IAB addon in the framework provider. */
+	enabled: true;
+}
+
+/**
+ * Enables IAB TCF support for a framework consent provider.
+ *
+ * @param config - CMP and vendor configuration for the IAB runtime.
+ * @returns Provider configuration with the IAB addon enabled.
+ *
+ * @example
+ * ```tsx
+ * import { iab } from '@c15t/iab';
+ *
+ * <ConsentProvider options={{
+ *   mode: hosted({ url: '/api/c15t' }),
+ *   iab: iab({ cmpId: 28, vendors: [1, 2, 755] }),
+ * }}>
+ *   {children}
+ * </ConsentProvider>
+ * ```
+ */
+const createIABProviderConfig = function createIABProviderConfig(
+	config: IABUserConfig
+): IABProviderConfig {
+	return {
+		...config,
+		enabled: true,
+	};
+};
+
+export { createIABProviderConfig as iab };
+
+/**
  * Handle returned by `createIAB`. Provides imperative control over the
  * CMP state and a `dispose` method for teardown.
  */
