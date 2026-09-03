@@ -14,6 +14,8 @@ import {
 	createDeferredPromise,
 	createVoidDeferredPromise,
 } from '~/__tests__/deferred-promise';
+import type { ConsentProviderOptions } from '~/v3/provider';
+import { offline } from '~/v3/transports/offline';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 import { mockGVL } from './fixtures/mock-consent-state';
@@ -232,6 +234,19 @@ export const defaultIABOptions: ConsentManagerOptions = {
 		gvl: mockGVL,
 	}),
 	mode: 'offline',
+	offlinePolicy: {
+		policy: { id: 'iab_default', model: 'iab' },
+	},
+};
+
+/** Default v3 consent provider options for IAB E2E tests. */
+export const defaultProviderIABOptions: ConsentProviderOptions = {
+	iab: {
+		cmpId: 160,
+		cmpVersion: 1,
+		gvl: mockGVL,
+	},
+	mode: offline(),
 	offlinePolicy: {
 		policy: { id: 'iab_default', model: 'iab' },
 	},

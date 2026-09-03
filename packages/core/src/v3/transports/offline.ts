@@ -8,8 +8,7 @@
  * Use cases:
  * - Pure static sites with no backend.
  * - Tests and storybook fixtures.
- * - Fallback path when the hosted backend is unreachable (combine with
- *   a wrapper that races hosted/offline transports).
+ * - Apps that deliberately choose a bundled policy instead of a backend.
  */
 import type {
 	PolicyConfig,

@@ -34,6 +34,10 @@ export type {
 	PolicyDecision,
 	PolicyScopeMode,
 	PolicyUiSurfaceConfig,
+	HostedModeOptions,
+	ProviderTransportContext,
+	ProviderTransportFactory,
+	ProviderTransportKind,
 	ResolvedPolicy,
 	SavePayload,
 	SaveResult,
@@ -86,9 +90,11 @@ export {
 export type {
 	ConsentManagerOptions,
 	ProviderIABOptions,
-	ProviderMode,
 	SvelteUIOptions,
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './types';
+export { custom, hosted } from '@c15t/core/v3';
+export type { OfflineModeOptions } from './transports/offline';
+export { offline } from './transports/offline';

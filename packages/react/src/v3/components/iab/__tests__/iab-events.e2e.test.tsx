@@ -18,7 +18,7 @@ import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	addCMPEventListener,
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	removeCMPEventListener,
 	waitForCMP,
 	waitForElement,
@@ -34,7 +34,7 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Status Values', () => {
 		test('should emit "tcloaded" when CMP is ready', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -51,7 +51,7 @@ describe('IAB Events E2E Tests', () => {
 			const events: string[] = [];
 
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -86,7 +86,7 @@ describe('IAB Events E2E Tests', () => {
 			const events: string[] = [];
 
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -128,7 +128,7 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Listener Lifecycle', () => {
 		test('should invoke listener immediately on registration', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -160,7 +160,7 @@ describe('IAB Events E2E Tests', () => {
 
 		test('should assign unique listenerIds', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -185,7 +185,7 @@ describe('IAB Events E2E Tests', () => {
 
 		test('should stop notifying after removeEventListener', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -241,7 +241,7 @@ describe('IAB Events E2E Tests', () => {
 
 		test('multiple listeners should all receive updates', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -291,7 +291,7 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Data Completeness', () => {
 		test('each event should include complete TCData', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -327,7 +327,7 @@ describe('IAB Events E2E Tests', () => {
 
 		test('listenerId in callback should match assigned ID', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>

@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 
 import { ConsentDialogFooter } from '~/v3/components/consent-dialog/atoms/card';
 import { ConsentProvider } from '~/v3/provider';
+import { offline } from '~/v3/transports/offline';
 
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
@@ -68,7 +69,7 @@ const renderWithConsentState = async function renderWithConsentState(
 		<ConsentProvider
 			options={{
 				components: providerOverrides.components,
-				mode: 'offline',
+				mode: offline(),
 				persistence: false,
 				prefetch: {
 					initialBranding: state.branding,

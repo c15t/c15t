@@ -1,5 +1,6 @@
 'use client';
 
+import { offline } from '@c15t/react/v3';
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { ConsentDialog } from '@c15t/react/v3/consent-dialog';
 import { ConsentWidget } from '@c15t/react/v3/consent-widget';
@@ -146,7 +147,7 @@ export const CssLayerV3ScenarioRenderer = ({
 					href: '/legal/terms',
 				},
 			},
-			mode: 'offline',
+			mode: offline(),
 			offlinePolicy: {
 				policy: V3_POLICY,
 			},

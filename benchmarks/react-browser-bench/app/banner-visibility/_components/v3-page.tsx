@@ -1,5 +1,6 @@
 'use client';
 
+import { offline } from '@c15t/react/v3';
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { useActiveUI } from '@c15t/react/v3/hooks';
 import { ConsentProvider } from '@c15t/react/v3/provider';
@@ -49,7 +50,7 @@ const V3Probe = () => {
 export const V3BannerVisibilityPage = () => (
 	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 			offlinePolicy: {
 				policy: BENCHMARK_POLICY,
 			},

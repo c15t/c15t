@@ -13,8 +13,8 @@ import type {
 import type {
 	KernelConfig,
 	KernelOverrides,
-	KernelTransport,
 	KernelUser,
+	ProviderTransportFactory,
 } from '@c15t/core/v3';
 import type { IframeBlockerOptions } from '@c15t/core/v3/modules/iframe-blocker';
 import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
@@ -25,8 +25,6 @@ import type {
 } from '@c15t/core/v3/modules/script-loader';
 import type { CreateIABOptions } from '@c15t/iab/v3';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
-
-export type ProviderMode = 'hosted' | 'offline' | 'c15t';
 
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &
@@ -52,12 +50,26 @@ export interface ConsentManagerOptions extends Pick<
 	'colorScheme' | 'disableAnimation' | 'noStyle' | 'scrollLock' | 'trapFocus'
 > {
 	enabled?: boolean;
-	mode?: ProviderMode;
-	backendURL?: string;
-	domain?: string;
-	headers?: Record<string, string>;
-	customFetch?: typeof fetch;
-	transport?: KernelTransport;
+	/**
+	 * Transport factory the provider builds its kernel with. Required.
+	 *
+	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * policies locally with no network, or `custom()` to supply your own
+	 * kernel transport or v2 endpoint handlers. This is an initial-only
+	 * option: remount the provider to change it.
+	 *
+	 * @example
+	 * ```svelte
+	 * <script lang="ts">
+	 *   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+	 * </script>
+	 *
+	 * <ConsentManagerProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+	 *   <slot />
+	 * </ConsentManagerProvider>
+	 * ```
+	 */
+	mode: ProviderTransportFactory;
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
@@ -75,7 +87,7 @@ export interface ConsentManagerOptions extends Pick<
 	 * Offline policy preview configuration.
 	 *
 	 * @remarks
-	 * Mirrors the React provider's `offlinePolicy` option: in `mode: 'offline'`
+	 * Mirrors the React provider's `offlinePolicy` option: with `offline()`
 	 * it lets you inject a synthetic resolved policy (`policy`,
 	 * `policyDecision`, `policySnapshotToken`) or backend-compatible
 	 * `policyPacks` without a live `/init` endpoint.

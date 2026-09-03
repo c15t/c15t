@@ -3,6 +3,7 @@
 import '@c15t/react/styles.css';
 import type { AllConsentNames } from '@c15t/core';
 import type { Script } from '@c15t/core/v3/modules/script-loader';
+import { offline } from '@c15t/react/v3';
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { ConsentDialog } from '@c15t/react/v3/consent-dialog';
 import { ConsentWidget } from '@c15t/react/v3/consent-widget';
@@ -87,7 +88,7 @@ const TestComponent = () => {
 const V3ReactStandardScriptLoaderPage = () => (
 	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 			scripts: DEMO_SCRIPTS,
 		}}
 	>

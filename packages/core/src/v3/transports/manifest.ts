@@ -1,6 +1,9 @@
 /**
- * Manifest transport — fetches or accepts a consent manifest and resolves
- * `/init` locally with @c15t/schema's shared resolver.
+ * Server-oriented manifest transport.
+ *
+ * This module resolves `/init` locally with `@c15t/schema` and imports every
+ * translation language. Import it from `@c15t/core/v3/transports/manifest`
+ * only in server code, or load it lazily for static client-only hosts.
  */
 
 import type {
@@ -11,6 +14,8 @@ import type {
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
 import { resolveInitFromManifest } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
+import type { BaseTranslations } from '@c15t/translations/all';
 
 import type {
 	InitContext,
@@ -20,6 +25,11 @@ import type {
 	SavePayload,
 	SaveResult,
 } from '../types';
+import {
+	buildDecisionAssertion,
+	rememberDecisionInputs,
+} from './decision-inputs';
+import type { RememberedDecisionInputs } from './decision-inputs';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
 import { c15tVersionHeaders } from './version-header';
@@ -35,6 +45,12 @@ const getDefined = <Value>(
 };
 
 export interface ManifestTransportOptions {
+	/**
+	 * Base translations used for local manifest resolution. Defaults to every
+	 * language bundled by `@c15t/translations`.
+	 */
+	baseTranslations?: BaseTranslations;
+
 	/**
 	 * URL for `GET /manifest`. Either `manifestURL` or `manifest` is required.
 	 */
@@ -92,15 +108,6 @@ export interface ManifestTransportOptions {
 	 * backend URL hostname for absolute URLs in server runtimes.
 	 */
 	domain?: string;
-}
-
-interface LastDecisionInputs {
-	policyId?: string;
-	fingerprint?: string;
-	country: string | null;
-	region: string | null;
-	language: string;
-	gpc?: boolean;
 }
 
 const trimSlash = function trimSlash(url: string): string {
@@ -203,20 +210,35 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
 	return (await response.json()) as GlobalVendorList;
 };
 
-const rememberDecision = function rememberDecision(
-	payload: InitOutput,
-	inputs?: ResolveInitFromManifestInputs
-): LastDecisionInputs {
-	return {
-		country: payload.location.countryCode,
-		fingerprint: payload.policyDecision?.fingerprint,
-		gpc: inputs?.gpc,
-		language: payload.translations.language,
-		policyId: payload.policyDecision?.policyId,
-		region: payload.location.regionCode,
-	};
-};
-
+/**
+ * Build a transport that resolves `/init` locally from a consent manifest
+ * and posts saves to the backend.
+ *
+ * Server-only by design: resolution pulls in `@c15t/schema` and every
+ * translation language, so import it from
+ * `@c15t/core/v3/transports/manifest` in server code (route handlers,
+ * RSC, edge) or behind a dynamic import on static client-only hosts.
+ * `@c15t/core/v3` deliberately does not re-export it. Pass
+ * `baseTranslations` to ship a narrower language set.
+ *
+ * Saves without a signed `policySnapshotToken` carry the resolved policy
+ * id, fingerprint, geo, language, and GPC signal so the backend can reject
+ * a consent recorded against a stale policy.
+ *
+ * @param options - Manifest source, backend URL, and resolver inputs.
+ * @returns A kernel transport backed by local manifest resolution.
+ * @throws {Error} When neither `manifest` nor `manifestURL` is provided, or no
+ * `fetch` implementation is available.
+ * @example
+ * ```ts
+ * import { createManifestTransport } from '@c15t/core/v3/transports/manifest';
+ *
+ * const transport = createManifestTransport({
+ *   manifestURL: 'https://api.example.com/c15t/manifest',
+ *   inputs: { country: 'DE', language: 'de', region: null },
+ * });
+ * ```
+ */
 export const createManifestTransport = function createManifestTransport(
 	options: ManifestTransportOptions
 ): KernelTransport {
@@ -236,9 +258,10 @@ export const createManifestTransport = function createManifestTransport(
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(backendURL, options.domain);
 	let manifestPromise: Promise<ConsentManifest> | undefined;
-	let lastDecisionInputs: LastDecisionInputs | undefined = options.initialInit
-		? rememberDecision(options.initialInit, options.inputs)
-		: undefined;
+	let lastDecisionInputs: RememberedDecisionInputs | undefined =
+		options.initialInit
+			? rememberDecisionInputs(options.initialInit, options.inputs?.gpc)
+			: undefined;
 
 	const getManifest = function getManifest(): Promise<ConsentManifest> {
 		if (options.manifest) {
@@ -272,7 +295,9 @@ export const createManifestTransport = function createManifestTransport(
 		async init(ctx: InitContext): Promise<InitResponse> {
 			const manifest = await getManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			const payload: InitOutput = resolveInitFromManifest(manifest, inputs);
+			const payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
+				baseTranslations: options.baseTranslations ?? baseTranslations,
+			});
 
 			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
 				const language = payload.translations.language.split('-')[0] || 'en';
@@ -283,7 +308,7 @@ export const createManifestTransport = function createManifestTransport(
 				});
 			}
 
-			lastDecisionInputs = rememberDecision(payload, inputs);
+			lastDecisionInputs = rememberDecisionInputs(payload, inputs.gpc);
 			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs));
 		},
 
@@ -294,24 +319,10 @@ export const createManifestTransport = function createManifestTransport(
 				);
 			}
 
-			// Only assert decision inputs when the manifest actually resolved a
-			// policy pack. Sending partial inputs (country/language without
-			// policyId/fingerprint — e.g. a manifest with no packs configured)
-			// is rejected by the backend as incomplete (422 STALE_POLICY).
-			const shouldAssertDecisionInputs =
-				!payload.policySnapshotToken &&
-				Boolean(lastDecisionInputs?.policyId && lastDecisionInputs.fingerprint);
 			const response = await fetchImpl(`${backendURL}/subjects`, {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
-					...(shouldAssertDecisionInputs && {
-						country: lastDecisionInputs?.country,
-						fingerprint: lastDecisionInputs?.fingerprint,
-						gpc: lastDecisionInputs?.gpc,
-						language: lastDecisionInputs?.language,
-						policyId: lastDecisionInputs?.policyId,
-						region: lastDecisionInputs?.region,
-					}),
+					...buildDecisionAssertion(payload, lastDecisionInputs),
 				}),
 				credentials,
 				headers: {

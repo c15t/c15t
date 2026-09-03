@@ -1,10 +1,10 @@
 ---
 title: Policy Packs
-description: Configure regional consent policies in the headless JavaScript runtime — hosted mode, presets, and offline fallback.
+description: Configure regional consent policies in the headless JavaScript runtime with hosted or offline policy resolution.
 group: frameworks
 ---
 
-Policy packs configure how c15t handles regional consent in the headless runtime. When connected to a backend, the runtime receives the resolved policy automatically via the `/init` response. For local development, testing, previews, or temporary outage fallback, you can pass policies directly and c15t resolves them locally.
+Policy packs configure how c15t handles regional consent in the headless runtime. When connected to a backend, the runtime receives the resolved policy automatically via the `/init` response. For local development, testing, or previews, you can choose offline mode and pass policies directly.
 
 ## Hosted Runtime (Recommended)
 
@@ -24,9 +24,9 @@ console.log(state.policyDecision?.matchedBy);
 
 Configure your presets on the backend side. The frontend receives the resolved policy with no client-side policy config required.
 
-## Offline / Fallback
+## Offline mode
 
-For local development, demos, automated tests, or as a resilience fallback during a temporary outage, pass presets directly:
+For local development, demos, or automated tests, select offline mode and pass presets directly:
 
 ```ts
 import {
@@ -96,11 +96,11 @@ const runtime = getOrCreateConsentRuntime({
 
 | Configuration | Result |
 |--------------|--------|
-| `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (also used for hosted network fallback) |
+| `offlinePolicy.policyPacks` omitted | Synthetic opt-in policy |
 | `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
 | Non-empty pack, no match, no default | Explicit no-banner mode |
 
-The omitted-config fallback is intentionally conservative: if the backend is unreachable or a local preview forgets to pass `offlinePolicy`, c15t still shows an opt-in banner instead of silently dropping consent UI.
+The omitted configuration is intentionally conservative in offline mode. A local preview that forgets to pass `offlinePolicy` still shows an opt-in banner instead of silently dropping consent UI. Hosted mode does not use this policy when init fails.
 
 ## When to Use Offline Mode
 
@@ -108,9 +108,8 @@ The omitted-config fallback is intentionally conservative: if the backend is unr
 - Storybook or playground environments
 - Automated tests that need deterministic policy resolution
 - Framework wrappers built on top of `c15t`
-- Resilience fallback when the backend is temporarily unreachable
 
-For production apps, keep the canonical pack on the backend and use offline policies only for development, testing, previews, or outage fallback.
+For production apps, keep the canonical pack on the backend. If hosted init fails, c15t withholds the banner and retries instead of switching to an offline policy.
 
 <Callout type="info">
   For the full concept model (matchers, scope modes, re-prompting), see [Policy Packs concepts](/docs/frameworks/javascript/concepts/policy-packs). For backend setup, see the [self-host guide](/docs/self-host/guides/policy-packs).

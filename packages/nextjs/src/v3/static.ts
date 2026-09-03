@@ -5,6 +5,7 @@ import type {
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
 import { resolveInitFromManifest } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 
 export interface StaticManifestModuleOptions {
 	manifestURL: string;
@@ -96,11 +97,15 @@ export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
 ): InitOutput {
 	const strictestPack = pickStrictestPolicyPack(manifest);
 	if (!strictestPack) {
-		return resolveInitFromManifest(manifest, {
-			...inputs,
-			country: null,
-			region: null,
-		});
+		return resolveInitFromManifest(
+			manifest,
+			{
+				...inputs,
+				country: null,
+				region: null,
+			},
+			{ baseTranslations }
+		);
 	}
 
 	return resolveInitFromManifest(
@@ -120,7 +125,8 @@ export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
 			...inputs,
 			country: null,
 			region: null,
-		}
+		},
+		{ baseTranslations }
 	);
 };
 
@@ -147,10 +153,14 @@ export const createStaticConsentResolver = function createStaticConsentResolver(
 	const initialGeo = normalizeGeo(options.geo);
 	const hasGeo = Boolean(initialGeo.country || initialGeo.region);
 	const initial = hasGeo
-		? resolveInitFromManifest(options.manifest, {
-				...commonInputs,
-				...initialGeo,
-			})
+		? resolveInitFromManifest(
+				options.manifest,
+				{
+					...commonInputs,
+					...initialGeo,
+				},
+				{ baseTranslations }
+			)
 		: resolveStrictestDefaultInit(options.manifest, commonInputs);
 
 	return {
@@ -173,10 +183,14 @@ export const createStaticConsentResolver = function createStaticConsentResolver(
 			if (!resolvedGeo.country && !resolvedGeo.region) {
 				return initial;
 			}
-			return resolveInitFromManifest(options.manifest, {
-				...commonInputs,
-				...resolvedGeo,
-			});
+			return resolveInitFromManifest(
+				options.manifest,
+				{
+					...commonInputs,
+					...resolvedGeo,
+				},
+				{ baseTranslations }
+			);
 		})(),
 	};
 };

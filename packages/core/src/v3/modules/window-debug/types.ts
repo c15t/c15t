@@ -4,8 +4,7 @@
 
 /**
  * The transport kind reported on `window.c15t`. Reflects what the
- * adapter actually built, not what the consumer wrote in config —
- * e.g. React's `mode: 'c15t'` reports as `'hosted'`.
+ * adapter actually built.
  */
 export type WindowDebugMode = 'hosted' | 'offline' | 'custom' | 'manifest';
 
@@ -46,17 +45,10 @@ export interface C15tWindowDebug {
 }
 
 /**
- * Provider options common to the React/Svelte-style adapters, as far as
- * {@link resolveWindowDebugMode} needs them. Kept structural so each
- * adapter can pass its own options object directly.
+ * Provider transport factory metadata used by
+ * {@link resolveWindowDebugMode}.
  */
 export interface WindowDebugModeInput {
-	/** The consumer-facing provider mode, if set. */
-	mode?: 'hosted' | 'offline' | 'custom' | 'c15t';
-	/** Backend URL — its presence implies hosted when `mode` is unset. */
-	backendURL?: string;
-	/** A consumer-supplied transport object, reported as `custom`. */
-	transport?: unknown;
-	/** Custom endpoint handlers — with `mode: 'custom'`, reported as `custom`. */
-	endpointHandlers?: unknown;
+	/** Transport kind declared by the factory. */
+	readonly kind: Exclude<WindowDebugMode, 'manifest'>;
 }

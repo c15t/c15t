@@ -1,7 +1,7 @@
 import {
+	c15tVersionHeaders,
 	createConsentKernel,
 	createHostedTransport,
-	createManifestTransport,
 	initOutputToKernelConfig,
 	isValidSubjectId,
 } from '@c15t/core/v3';
@@ -34,7 +34,7 @@ import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
-import type { InitOutput } from '@c15t/schema/types';
+import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { Ref } from 'vue';
 
@@ -43,7 +43,6 @@ import {
 	isClientManifestModeEnabled,
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
-	resolveNuxtManifestRoute,
 } from './manifest';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
@@ -259,21 +258,34 @@ const getManifestInputs = function getManifestInputs(
 	};
 };
 
+/**
+ * Hosted transport for Nuxt. `initURL` selects server manifest mode: init
+ * goes through the same-origin Nuxt route, which resolves the manifest on
+ * the server and never issues a policy snapshot token, so saves assert the
+ * decision inputs instead. Each init builds its own transport so the
+ * override-derived headers apply; saves go through whichever transport
+ * completed the latest init so those remembered inputs stay attached.
+ */
 const createVueHostedTransport = function createVueHostedTransport(
 	config: RuntimeConsentConfig,
-	headers: Record<string, string>
+	headers: Record<string, string>,
+	initURL?: string
 ): KernelTransport {
 	const backendURL = config.backendURL ?? '/api/c15t';
+	const assertDecisionInputs = initURL !== undefined;
 	const baseTransport = createHostedTransport({
+		assertDecisionInputs,
 		backendURL,
 		domain: config.domain,
 		fetch: config.customFetch,
 		headers,
+		initURL,
 	});
+	let activeTransport = baseTransport;
 
 	return {
 		identify: baseTransport.identify,
-		init(ctx) {
+		async init(ctx) {
 			const initHeaders = { ...headers };
 			if (ctx.overrides.language) {
 				initHeaders['accept-language'] = ctx.overrides.language;
@@ -289,17 +301,37 @@ const createVueHostedTransport = function createVueHostedTransport(
 			}
 
 			const contextualHeaders = pickAllowedInitHeaders(initHeaders);
-			return (
-				createHostedTransport({
-					backendURL,
-					domain: config.domain,
-					fetch: config.customFetch,
-					headers: contextualHeaders,
-				}).init?.(ctx) ?? Promise.resolve<InitResponse>({})
-			);
+			const contextualTransport = createHostedTransport({
+				assertDecisionInputs,
+				backendURL,
+				domain: config.domain,
+				fetch: config.customFetch,
+				headers: contextualHeaders,
+				initURL,
+			});
+			const response =
+				(await contextualTransport.init?.(ctx)) ?? ({} as InitResponse);
+			activeTransport = contextualTransport;
+			return response;
 		},
-		save: baseTransport.save,
+		save(payload) {
+			return activeTransport.save?.(payload) ?? Promise.resolve({ ok: true });
+		},
 	};
+};
+
+type Settled<Value> =
+	| { ok: true; value: Value }
+	| { ok: false; error: unknown };
+
+const settle = async function settle<Value>(
+	promise: Promise<Value>
+): Promise<Settled<Value>> {
+	try {
+		return { ok: true, value: await promise };
+	} catch (error) {
+		return { error, ok: false };
+	}
 };
 
 const createVueManifestTransport = function createVueManifestTransport(
@@ -308,17 +340,95 @@ const createVueManifestTransport = function createVueManifestTransport(
 	prefetch: InitOutput | undefined
 ): KernelTransport {
 	const backendURL = config.backendURL ?? '/api/c15t';
-	return createManifestTransport({
+	const manifestURL = resolveClientManifestURL(config);
+	const hostedTransport = createHostedTransport({
 		backendURL,
 		domain: config.domain,
 		fetch: config.customFetch,
 		headers,
-		initialInit: prefetch,
-		inputs: getManifestInputs(config, headers),
-		manifestURL: isClientManifestModeEnabled(config)
-			? resolveClientManifestURL(config)
-			: resolveNuxtManifestRoute(config),
 	});
+	let manifestTransport: KernelTransport | undefined;
+
+	const fetchManifest =
+		async function fetchManifest(): Promise<ConsentManifest> {
+			const fetchImpl =
+				config.customFetch ?? globalThis.fetch?.bind(globalThis);
+			if (!fetchImpl) {
+				throw new Error(
+					'createManifestTransport: no fetch available. Pass `fetch` in options.'
+				);
+			}
+
+			const response = await fetchImpl(manifestURL, {
+				credentials: 'include',
+				headers: {
+					accept: 'application/json',
+					...c15tVersionHeaders,
+					...headers,
+				},
+				method: 'GET',
+			});
+			if (!response.ok) {
+				throw new Error(
+					`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+				);
+			}
+
+			return response.json();
+		};
+
+	// Settled, never rejecting: a failed eager load must not surface as an
+	// unhandled rejection before `init()` awaits it. `init()` rethrows.
+	const loadClientResources = function loadClientResources() {
+		return settle(
+			Promise.all([
+				import('@c15t/core/v3/transports/manifest'),
+				import('@c15t/translations/all'),
+				fetchManifest(),
+			])
+		);
+	};
+
+	// Started eagerly so the resolver and manifest fetch overlap hydration.
+	// A failed load is dropped so the kernel's next init attempt fetches
+	// again instead of replaying the cached failure until a page reload.
+	let clientResources =
+		typeof window === 'undefined' ? undefined : loadClientResources();
+
+	return {
+		async init(ctx) {
+			if (typeof window === 'undefined') {
+				return {};
+			}
+
+			clientResources ??= loadClientResources();
+			const loaded = await clientResources;
+			if (!loaded.ok) {
+				clientResources = undefined;
+				throw loaded.error;
+			}
+			const [{ createManifestTransport }, { baseTranslations }, manifest] =
+				loaded.value;
+			manifestTransport ??= createManifestTransport({
+				backendURL,
+				baseTranslations,
+				domain: config.domain,
+				fetch: config.customFetch,
+				headers,
+				initialInit: prefetch,
+				inputs: getManifestInputs(config, headers),
+				manifest,
+				manifestURL,
+			});
+			return manifestTransport.init?.(ctx) ?? {};
+		},
+		async save(payload) {
+			return (
+				(await manifestTransport?.save?.(payload)) ??
+				(await hostedTransport.save?.(payload)) ?? { ok: true }
+			);
+		},
+	};
 };
 
 export const createVueConsentKernelContext =
@@ -329,11 +439,15 @@ export const createVueConsentKernelContext =
 		initialStoredConsent?: StoredPayload | null;
 	}): VueConsentKernelContext {
 		const headers = pickAllowedInitHeaders(options.headers ?? {});
-		const transport =
-			isClientManifestModeEnabled(options.config) ||
-			isServerManifestModeEnabled(options.config)
-				? createVueManifestTransport(options.config, headers, options.prefetch)
-				: createVueHostedTransport(options.config, headers);
+		const transport = isClientManifestModeEnabled(options.config)
+			? createVueManifestTransport(options.config, headers, options.prefetch)
+			: createVueHostedTransport(
+					options.config,
+					headers,
+					isServerManifestModeEnabled(options.config)
+						? getNuxtInitFetchTarget(options.config)?.url
+						: undefined
+				);
 		const kernel = createConsentKernel({
 			...initOutputToKernelConfig(options.prefetch, headers),
 			...storedPayloadToKernelConfig(options.initialStoredConsent),
@@ -361,6 +475,7 @@ export const createVueConsentKernelContext =
 			activeUI,
 			dispose() {
 				unsubscribe();
+				kernel.dispose();
 			},
 			init,
 			kernel,
@@ -379,7 +494,8 @@ const normalizeGeoValue = function normalizeGeoValue(
 
 const refreshClientGeo = async function refreshClientGeo(
 	context: VueConsentKernelContext,
-	config: RuntimeConsentConfig
+	config: RuntimeConsentConfig,
+	isActive: () => boolean
 ): Promise<void> {
 	if (
 		!isClientManifestModeEnabled(config) ||
@@ -409,7 +525,9 @@ const refreshClientGeo = async function refreshClientGeo(
 		};
 		const country = normalizeGeoValue(payload.country);
 		const region = normalizeGeoValue(payload.region);
-		if (!(country || region)) {
+		// The runtime may have been torn down while the geo fetch was in
+		// flight; re-arming a disposed kernel would leak its retry listeners.
+		if (!(country || region) || !isActive()) {
 			return;
 		}
 		const overrides: { country?: string; region?: string } = {};
@@ -483,14 +601,21 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => iframeBlocker.dispose());
 	}
 
+	let active = true;
+	const isActive = () => active;
+
 	if (options.runInit !== false) {
 		void (async () => {
 			await context.kernel.commands.init();
-			await refreshClientGeo(context, config);
+			if (!active) {
+				return;
+			}
+			await refreshClientGeo(context, config, isActive);
 		})();
 	}
 
 	return () => {
+		active = false;
 		for (const dispose of disposers) {
 			dispose();
 		}

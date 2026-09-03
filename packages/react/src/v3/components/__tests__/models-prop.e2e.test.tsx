@@ -16,11 +16,12 @@ import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 } from '~/v3/components/iab/__tests__/e2e-setup';
 import { ConsentProvider } from '~/v3/provider';
+import type { ConsentProviderOptions } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
+import { offline } from '~/v3/transports/offline';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -66,7 +67,7 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const optInOptions: ConsentManagerOptions = {
+const optInOptions: ConsentProviderOptions = {
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -74,7 +75,7 @@ const optInOptions: ConsentManagerOptions = {
 		'marketing',
 		'measurement',
 	],
-	mode: 'offline',
+	mode: offline(),
 	offlinePolicy: {
 		policy: {
 			consent: {
@@ -183,7 +184,7 @@ describe('models Prop E2E Tests', () => {
 	describe('IAB mode', () => {
 		test('IABConsentBanner renders when model is iab', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -202,7 +203,7 @@ describe('models Prop E2E Tests', () => {
 
 		test('ConsentBanner does NOT render when model is iab', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<ConsentBanner />
 				</ConsentProvider>
 			);

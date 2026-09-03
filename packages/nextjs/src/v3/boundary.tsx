@@ -9,6 +9,8 @@ import type { Script } from '@c15t/core/v3/modules/script-loader';
  * to the React v3 provider as `options.prefetch`. Kernel creation,
  * persistence, init, and module wiring live in `@c15t/react/v3`.
  */
+import { hosted, offline } from '@c15t/react/v3';
+import type { ProviderTransportFactory } from '@c15t/react/v3';
 import type {
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
@@ -57,7 +59,6 @@ export interface ConsentBoundaryProps {
 	 */
 	options?: Omit<
 		ConsentProviderOptions,
-		| 'backendURL'
 		| 'mode'
 		| 'networkBlocker'
 		| 'persistence'
@@ -65,7 +66,9 @@ export interface ConsentBoundaryProps {
 		| 'scriptLoader'
 		| 'scripts'
 		| '__debugPkg'
-	>;
+	> & {
+		mode?: ProviderTransportFactory;
+	};
 
 	children: ReactNode;
 }
@@ -84,8 +87,8 @@ export const ConsentBoundary = ({
 		options={{
 			...options,
 			__debugPkg: '@c15t/nextjs',
-			backendURL,
-			mode: backendURL ? 'hosted' : 'offline',
+			mode:
+				options?.mode ?? (backendURL ? hosted({ url: backendURL }) : offline()),
 			networkBlocker,
 			persistence,
 			prefetch: config,

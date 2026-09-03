@@ -82,6 +82,11 @@
 			"import": "./shims/v3/transports.js",
 			"default": "./shims/v3/transports.js"
 		},
+		"./v3/transports/manifest": {
+			"types": "./shims/v3/transports/manifest.d.ts",
+			"import": "./shims/v3/transports/manifest.js",
+			"default": "./shims/v3/transports/manifest.js"
+		},
 		"./v3/libs/generate-subject-id": {
 			"types": "./shims/v3/libs/generate-subject-id.d.ts",
 			"import": "./shims/v3/libs/generate-subject-id.js",

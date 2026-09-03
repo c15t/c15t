@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 
 import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
-import { ConsentProvider } from '../../../packages/react/src/v3/index';
+import { ConsentProvider, offline } from '../../../packages/react/src/v3/index';
 import type { ConsentProviderOptions } from '../../../packages/react/src/v3/index';
 import {
 	ConsentManagerProvider,
@@ -33,7 +33,7 @@ export const defaultV3ConsentOptions: ConsentProviderOptions = {
 		'experience',
 		'marketing',
 	],
-	mode: 'offline',
+	mode: offline(),
 	offlinePolicy: {
 		policy: {
 			consent: {
@@ -105,7 +105,7 @@ export const defaultV3IABOptions: ConsentManagerOptions = {
 		cmpVersion: 1,
 		gvl: mockGVL,
 	}),
-	mode: 'offline',
+	mode: offline(),
 	offlinePolicy: {
 		policy: { id: 'storybook_iab_v3', model: 'iab' },
 	},

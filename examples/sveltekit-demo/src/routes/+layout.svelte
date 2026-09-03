@@ -8,6 +8,7 @@
 		ConsentDialog,
 		ConsentDialogTrigger,
 		ConsentManagerProvider,
+		hosted,
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
@@ -63,8 +64,7 @@
 {:else}
 	<ConsentManagerProvider
 		options={{
-			mode: 'c15t',
-			backendURL: '/api/self-host',
+			mode: hosted({ url: '/api/self-host' }),
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			iab: {
 				enabled: true,

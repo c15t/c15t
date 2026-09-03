@@ -18,10 +18,13 @@ import { render } from 'vitest-browser-react';
 import { ConsentDraftProvider, useConsentDraft } from '../draft';
 import { useConsent, useSetConsent } from '../hooks';
 import { ConsentProvider } from '../provider';
+import { offline } from '../transports/offline';
 
 const wrap = function wrap(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider options={{ persistence: false, ...options }}>
+		<ConsentProvider
+			options={{ mode: offline(), persistence: false, ...options }}
+		>
 			{children}
 		</ConsentProvider>
 	);
@@ -30,7 +33,9 @@ const wrap = function wrap(options = {}) {
 
 const wrapWithProvider = function wrapWithProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider options={{ persistence: false, ...options }}>
+		<ConsentProvider
+			options={{ mode: offline(), persistence: false, ...options }}
+		>
 			<ConsentDraftProvider>{children}</ConsentDraftProvider>
 		</ConsentProvider>
 	);

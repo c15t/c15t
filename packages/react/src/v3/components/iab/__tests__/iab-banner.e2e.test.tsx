@@ -18,7 +18,7 @@ import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provide
 
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	getStoredConsent,
 	waitForElement,
 	waitForElementRemoved,
@@ -34,7 +34,7 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner Display Requirements (IAB Appendix B)', () => {
 		test('should show IAB banner with correct initial display', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -56,7 +56,7 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should display partner/vendor count from GVL', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -75,7 +75,7 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should display purpose summary with stack grouping', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -92,7 +92,7 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should display legitimate interest notice', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -113,7 +113,7 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner CTA Requirements', () => {
 		test('should have Accept, Reject, and Customize buttons', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -142,7 +142,7 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner Actions', () => {
 		test('should accept all via banner and close', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -169,7 +169,7 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should reject all via banner and close', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -198,7 +198,7 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should open preference center from banner', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -218,7 +218,7 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner Accessibility', () => {
 		test('should have ARIA labels', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -237,7 +237,7 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should be keyboard accessible', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>

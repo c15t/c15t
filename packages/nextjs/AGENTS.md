@@ -45,7 +45,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Internationalization](./docs/frameworks/next/internationalization.md): Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
 - [Network Blocker](./docs/frameworks/next/network-blocker.md): Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
 - [Optimization](./docs/frameworks/next/optimization.md): Improve c15t startup performance in Next.js with same-origin rewrites, static prefetching, and dynamic-route SSR.
-- [Policy Packs](./docs/frameworks/next/policy-packs.md): Configure regional consent policies in Next.js — hosted mode, presets, and offline fallback.
+- [Policy Packs](./docs/frameworks/next/policy-packs.md): Configure regional consent policies in Next.js with hosted or offline policy resolution.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add consent management to your Next.js app in under 5 minutes.
 - [Script Loader](./docs/frameworks/next/script-loader.md): Gate third-party scripts behind consent in Next.js — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Server-Side Data Fetching](./docs/frameworks/next/server-side.md): Pre-fetch consent data in Server Components with fetchInitialData for dynamic Next.js routes.

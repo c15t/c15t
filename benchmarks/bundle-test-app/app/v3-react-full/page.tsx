@@ -22,6 +22,7 @@ import {
 	ConsentDraftProvider,
 	ConsentProvider,
 	ConsentWidget,
+	offline,
 } from '@c15t/react/v3';
 import { lazy, Suspense } from 'react';
 
@@ -80,7 +81,7 @@ const DEMO_SCRIPTS: Script[] = [
 const V3ReactFullPage = () => (
 	<ConsentProvider
 		options={{
-			mode: 'offline',
+			mode: offline(),
 			networkBlocker: {
 				logBlockedRequests: false,
 				rules: [

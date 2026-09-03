@@ -6,6 +6,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentManagerProvider,
+		hosted,
 	} from '@c15t/svelte';
 
 	let { children, data } = $props();
@@ -13,8 +14,7 @@
 
 <ConsentManagerProvider
 	options={{
-		mode: 'c15t',
-		backendURL: '/api/c15t',
+		mode: hosted({ url: '/api/c15t' }),
 		consentCategories: [
 			'necessary',
 			'functionality',

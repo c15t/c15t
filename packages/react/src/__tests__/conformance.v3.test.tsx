@@ -40,7 +40,7 @@ import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { KernelContext } from '~/v3/context';
 import { IABConsentBanner, IABConsentDialog } from '~/v3/iab';
-import { ConsentBanner, ConsentProvider } from '~/v3/index';
+import { ConsentBanner, ConsentProvider, custom, offline } from '~/v3/index';
 import type { ConsentProviderOptions } from '~/v3/index';
 
 interface DeferredPromise<Value> {
@@ -287,7 +287,7 @@ const buildIabProviderOptions = function buildIabProviderOptions(
 			enabled: true,
 			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
 		},
-		mode: 'offline',
+		mode: offline(),
 		offlinePolicy: {
 			policy: {
 				id: 'react_v3_conformance_iab_policy',
@@ -326,6 +326,10 @@ const buildProviderOptions = function buildProviderOptions(
 			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialTranslations: resolveTranslations(provided, opts.locale),
 	};
+	if (initMode !== 'authoritative') {
+		basePrefetch.initialPolicy = buildPolicy(opts, provided);
+		basePrefetch.initialPolicyProvisional = true;
+	}
 	const prefetch: KernelConfig =
 		initMode === 'authoritative'
 			? {
@@ -352,7 +356,7 @@ const buildProviderOptions = function buildProviderOptions(
 		...provided,
 		consentCategories: consentCategoriesFor(provided),
 		disableAnimation: true,
-		mode: 'offline',
+		mode: offline(),
 		persistence: opts.persistence ?? false,
 		prefetch,
 		trapFocus: false,
@@ -537,7 +541,7 @@ const driver: TestDriver = {
 		const lifecycle = lifecycleTransportFor(opts);
 		const options = buildProviderOptions(opts);
 		if (lifecycle.transport) {
-			options.transport = lifecycle.transport;
+			options.mode = custom(lifecycle.transport);
 		}
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};

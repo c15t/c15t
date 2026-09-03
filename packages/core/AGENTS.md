@@ -26,7 +26,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Internationalization](./docs/frameworks/javascript/internationalization.md): Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
 - [Network Blocker](./docs/frameworks/javascript/network-blocker.md): Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
 - [Optimization](./docs/frameworks/javascript/optimization.md): Improve c15t startup performance with prefetching and network tuning.
-- [Policy Packs](./docs/frameworks/javascript/policy-packs.md): Configure regional consent policies in the headless JavaScript runtime — hosted mode, presets, and offline fallback.
+- [Policy Packs](./docs/frameworks/javascript/policy-packs.md): Configure regional consent policies in the headless JavaScript runtime with hosted or offline policy resolution.
 - [Quickstart](./docs/frameworks/javascript/quickstart.md): Get started with c15t in vanilla JavaScript — framework-agnostic consent management with no UI dependencies.
 - [Script Loader](./docs/frameworks/javascript/script-loader.md): Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Solutions for common issues with c15t in JavaScript — store access, missing banners, consent persistence, and more.

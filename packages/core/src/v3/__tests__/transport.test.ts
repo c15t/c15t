@@ -6,14 +6,59 @@
  * fetch so we know the request shape and error handling are correct.
  */
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-	createConsentKernel,
-	createHostedTransport,
-	createManifestTransport,
-} from '../index';
+import { createConsentKernel, createHostedTransport } from '../index';
 import type { InitResponse, KernelTransport, SaveResult } from '../index';
+import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
+import { createManifestTransport } from '../transports/manifest';
+
+const fallbackStorageValues = new Map<string, string>();
+const fallbackLocalStorage: Storage = {
+	clear() {
+		fallbackStorageValues.clear();
+	},
+	getItem(key) {
+		return fallbackStorageValues.get(key) ?? null;
+	},
+	key(index) {
+		return [...fallbackStorageValues.keys()][index] ?? null;
+	},
+	get length() {
+		return fallbackStorageValues.size;
+	},
+	removeItem(key) {
+		fallbackStorageValues.delete(key);
+	},
+	setItem(key, value) {
+		fallbackStorageValues.set(key, value);
+	},
+};
+const fallbackWindowEvents = new EventTarget();
+const fallbackWindow = {
+	addEventListener:
+		fallbackWindowEvents.addEventListener.bind(fallbackWindowEvents),
+	localStorage: fallbackLocalStorage,
+	removeEventListener:
+		fallbackWindowEvents.removeEventListener.bind(fallbackWindowEvents),
+};
+
+beforeEach(() => {
+	if (typeof window === 'undefined') {
+		vi.stubGlobal('window', fallbackWindow);
+	}
+	if (typeof window !== 'undefined') {
+		window.localStorage.removeItem(PENDING_SAVES_STORAGE_KEY);
+	}
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+	vi.restoreAllMocks();
+	if (typeof window !== 'undefined') {
+		window.localStorage.removeItem(PENDING_SAVES_STORAGE_KEY);
+	}
+});
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -320,10 +365,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 	});
 
 	test('init passes current overrides + user as InitContext', async () => {
-		const initSpy = vi.fn<
-			[Parameters<NonNullable<KernelTransport['init']>>[0]],
-			Promise<InitResponse>
-		>();
+		const initSpy = vi.fn<NonNullable<KernelTransport['init']>>();
 		initSpy.mockResolvedValue({});
 		const transport: KernelTransport = { init: initSpy };
 
@@ -360,13 +402,14 @@ describe('kernel transport: init applies response to snapshot', () => {
 	});
 
 	test('init transport error → result.ok=false + command:error event', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const boom = new Error('backend on fire');
 		const transport: KernelTransport = {
 			init() {
 				throw boom;
 			},
 		};
-		const kernel = createConsentKernel({ transport });
+		const kernel = createConsentKernel({ initRetry: false, transport });
 
 		const errors: unknown[] = [];
 		kernel.events.on('command:error', (e) => errors.push(e.error));
@@ -416,13 +459,16 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 
-	test('provisional policy becomes the compliance fallback when init fails', async () => {
+	test('provisional policy stays withheld when init fails', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const boom = new Error('backend unreachable');
 		const transport: KernelTransport = {
 			init() {
-				throw new Error('backend unreachable');
+				throw boom;
 			},
 		};
 		const kernel = createConsentKernel({
+			initRetry: false,
 			initialPolicy: {
 				id: 'placeholder',
 				model: 'opt-in',
@@ -432,13 +478,289 @@ describe('kernel transport: init applies response to snapshot', () => {
 			initialPolicyProvisional: true,
 			transport,
 		});
+		const initFailures: {
+			attempt: number;
+			error: unknown;
+			nextRetryMs: number | null;
+		}[] = [];
+		const commandErrors: unknown[] = [];
+		kernel.events.on('init:failed', (event) => {
+			initFailures.push(event);
+		});
+		kernel.events.on('command:error', (event) => {
+			commandErrors.push(event.error);
+		});
 
 		const result = await kernel.commands.init();
 
 		expect(result.ok).toBe(false);
-		// Defaults are the best available policy — show the banner anyway.
+		expect(kernel.getSnapshot().policyProvisional).toBe(true);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(initFailures).toEqual([
+			{ attempt: 1, error: boom, nextRetryMs: null, type: 'init:failed' },
+		]);
+		expect(commandErrors).toEqual([boom]);
+	});
+
+	test('retries failed init with jittered backoff until it succeeds', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.spyOn(Math, 'random').mockReturnValue(0.5);
+		const initSpy = vi
+			.fn<NonNullable<KernelTransport['init']>>()
+			.mockRejectedValueOnce(new Error('first failure'))
+			.mockRejectedValueOnce(new Error('second failure'))
+			.mockResolvedValue({});
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 100, maxAttempts: 3, maxDelayMs: 1000 },
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
+			} as any,
+			initialPolicyProvisional: true,
+			transport: { init: initSpy },
+		});
+		const failures: { attempt: number; nextRetryMs: number | null }[] = [];
+		const commandEvents: string[] = [];
+		kernel.events.on('init:failed', (event) => {
+			failures.push({
+				attempt: event.attempt,
+				nextRetryMs: event.nextRetryMs,
+			});
+		});
+		kernel.events.on('command:init:started', () => {
+			commandEvents.push('started');
+		});
+		kernel.events.on('command:init:completed', (event) => {
+			commandEvents.push(`completed:${String(event.result.ok)}`);
+		});
+
+		const firstResult = await kernel.commands.init();
+		expect(firstResult.ok).toBe(false);
+		expect(failures).toEqual([{ attempt: 1, nextRetryMs: 75 }]);
+
+		await vi.advanceTimersByTimeAsync(75);
+		expect(failures).toEqual([
+			{ attempt: 1, nextRetryMs: 75 },
+			{ attempt: 2, nextRetryMs: 150 },
+		]);
+
+		await vi.advanceTimersByTimeAsync(150);
+		expect(initSpy).toHaveBeenCalledTimes(3);
 		expect(kernel.getSnapshot().policyProvisional).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
+		expect(commandEvents).toEqual([
+			'started',
+			'completed:false',
+			'started',
+			'completed:false',
+			'started',
+			'completed:true',
+		]);
+		kernel.dispose();
+	});
+
+	test('initRetry false never retries', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const initSpy = vi.fn().mockRejectedValue(new Error('offline'));
+		const kernel = createConsentKernel({
+			initRetry: false,
+			transport: { init: initSpy },
+		});
+
+		await kernel.commands.init();
+		await vi.advanceTimersByTimeAsync(60_000);
+
+		expect(initSpy).toHaveBeenCalledTimes(1);
+		kernel.dispose();
+	});
+
+	test('dispose cancels a pending init retry', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.spyOn(Math, 'random').mockReturnValue(1);
+		const initSpy = vi.fn().mockRejectedValue(new Error('offline'));
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 100, maxAttempts: 3 },
+			transport: { init: initSpy },
+		});
+
+		await kernel.commands.init();
+		kernel.dispose();
+		kernel.dispose();
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(initSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('init after dispose re-arms background retries', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.spyOn(Math, 'random').mockReturnValue(1);
+		const initSpy = vi.fn().mockRejectedValue(new Error('offline'));
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 100, maxAttempts: 3 },
+			transport: { init: initSpy },
+		});
+
+		await kernel.commands.init();
+		kernel.dispose();
+		// StrictMode-style remount: same kernel, init called again.
+		await kernel.commands.init();
+		await vi.advanceTimersByTimeAsync(1000);
+
+		// 1 (first mount) + 1 (remount) + 2 retries after the remount.
+		expect(initSpy).toHaveBeenCalledTimes(4);
+	});
+
+	test('a newer init supersedes a slower in-flight attempt', async () => {
+		let resolveFirst: (value: InitResponse) => void = () => {};
+		const initSpy = vi
+			.fn<NonNullable<KernelTransport['init']>>()
+			.mockImplementationOnce(() =>
+				createDeferredPromise<InitResponse>((resolve) => {
+					resolveFirst = resolve;
+				})
+			)
+			.mockResolvedValueOnce({ resolvedOverrides: { language: 'fr' } });
+		const kernel = createConsentKernel({ transport: { init: initSpy } });
+		const completed: boolean[] = [];
+		kernel.events.on('command:init:completed', ({ result }) => {
+			completed.push(result.ok);
+		});
+
+		const first = kernel.commands.init();
+		const second = await kernel.commands.init();
+		expect(second.ok).toBe(true);
+		expect(kernel.getSnapshot().overrides.language).toBe('fr');
+
+		resolveFirst({ resolvedOverrides: { language: 'de' } });
+		const firstResult = await first;
+
+		expect(firstResult.ok).toBe(false);
+		expect(kernel.getSnapshot().overrides.language).toBe('fr');
+		expect(completed).toEqual([true, false]);
+		kernel.dispose();
+	});
+
+	test('a superseded failure neither warns nor schedules a retry', async () => {
+		vi.useFakeTimers();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		let rejectFirst: (reason: unknown) => void = () => {};
+		const initSpy = vi
+			.fn<NonNullable<KernelTransport['init']>>()
+			.mockImplementationOnce(() =>
+				createDeferredPromise<InitResponse>((_resolve, reject) => {
+					rejectFirst = reject;
+				})
+			)
+			.mockResolvedValue({});
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 100, maxAttempts: 3 },
+			transport: { init: initSpy },
+		});
+		const failures: number[] = [];
+		kernel.events.on('init:failed', ({ attempt }) => {
+			failures.push(attempt);
+		});
+
+		const first = kernel.commands.init();
+		await kernel.commands.init();
+		rejectFirst(new Error('slow failure'));
+		await first;
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(failures).toEqual([]);
+		expect(warn).not.toHaveBeenCalled();
+		expect(initSpy).toHaveBeenCalledTimes(2);
+		kernel.dispose();
+	});
+
+	test('online retries init immediately', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.spyOn(Math, 'random').mockReturnValue(1);
+		const originalWindow = globalThis.window;
+		const browserEvents = new EventTarget();
+		vi.stubGlobal('window', {
+			...originalWindow,
+			addEventListener: browserEvents.addEventListener.bind(browserEvents),
+			removeEventListener:
+				browserEvents.removeEventListener.bind(browserEvents),
+		});
+		const initSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('offline'))
+			.mockResolvedValue({});
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 10_000, maxAttempts: 2 },
+			transport: { init: initSpy },
+		});
+
+		try {
+			await kernel.commands.init();
+			browserEvents.dispatchEvent(new Event('online'));
+			await vi.advanceTimersByTimeAsync(0);
+
+			expect(initSpy).toHaveBeenCalledTimes(2);
+			await vi.advanceTimersByTimeAsync(10_000);
+			expect(initSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('window', originalWindow);
+		}
+	});
+
+	test('defers a due retry until the document becomes visible', async () => {
+		vi.useFakeTimers();
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		vi.spyOn(Math, 'random').mockReturnValue(1);
+		const originalDocument = globalThis.document;
+		let visibilityState: DocumentVisibilityState = 'hidden';
+		const listeners = new Set<EventListener>();
+		vi.stubGlobal('document', {
+			...originalDocument,
+			addEventListener(type: string, listener: EventListener) {
+				if (type === 'visibilitychange') {
+					listeners.add(listener);
+				}
+			},
+			removeEventListener(type: string, listener: EventListener) {
+				if (type === 'visibilitychange') {
+					listeners.delete(listener);
+				}
+			},
+			get visibilityState() {
+				return visibilityState;
+			},
+		});
+		const initSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('offline'))
+			.mockResolvedValue({});
+		const kernel = createConsentKernel({
+			initRetry: { baseDelayMs: 100, maxAttempts: 2 },
+			transport: { init: initSpy },
+		});
+
+		try {
+			await kernel.commands.init();
+			await vi.advanceTimersByTimeAsync(100);
+			expect(initSpy).toHaveBeenCalledTimes(1);
+
+			visibilityState = 'visible';
+			for (const listener of listeners) {
+				listener(new Event('visibilitychange'));
+			}
+			await vi.runAllTimersAsync();
+			expect(initSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('document', originalDocument);
+		}
 	});
 
 	test('getServerSnapshot stays at revision 0 through client mutations', async () => {
@@ -492,10 +814,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 describe('kernel transport: save flows consents to backend', () => {
 	test('save calls transport.save with current consent payload', async () => {
-		const saveSpy = vi.fn<
-			[Parameters<NonNullable<KernelTransport['save']>>[0]],
-			Promise<SaveResult>
-		>();
+		const saveSpy = vi.fn<NonNullable<KernelTransport['save']>>();
 		saveSpy.mockResolvedValue({ ok: true, subjectId: 'sub-1' });
 		const transport: KernelTransport = { save: saveSpy };
 
@@ -511,10 +830,7 @@ describe('kernel transport: save flows consents to backend', () => {
 	});
 
 	test('save creates and reuses a subjectId', async () => {
-		const saveSpy = vi.fn<
-			[Parameters<NonNullable<KernelTransport['save']>>[0]],
-			Promise<SaveResult>
-		>();
+		const saveSpy = vi.fn<NonNullable<KernelTransport['save']>>();
 		saveSpy.mockResolvedValue({ ok: true });
 		const kernel = createConsentKernel({ transport: { save: saveSpy } });
 
@@ -530,10 +846,7 @@ describe('kernel transport: save flows consents to backend', () => {
 	});
 
 	test('save commits the snapshot synchronously but defers transport.save off the commit task', async () => {
-		const saveSpy = vi.fn<
-			[Parameters<NonNullable<KernelTransport['save']>>[0]],
-			Promise<SaveResult>
-		>();
+		const saveSpy = vi.fn<NonNullable<KernelTransport['save']>>();
 		saveSpy.mockResolvedValue({ ok: true });
 		const kernel = createConsentKernel({ transport: { save: saveSpy } });
 
@@ -571,9 +884,710 @@ describe('kernel transport: save flows consents to backend', () => {
 	});
 });
 
+describe('kernel transport: failed save replay', () => {
+	test('successful init starts replay without waiting for it', async () => {
+		const lifecycle: string[] = [];
+		let resolveReplay: (
+			value: SaveResult | PromiseLike<SaveResult>
+		) => void = () => {};
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockImplementationOnce(() =>
+				createDeferredPromise<SaveResult>((resolve) => {
+					lifecycle.push('replay started');
+					resolveReplay = resolve;
+				})
+			);
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		kernel.events.on('save:replayed', (event) => {
+			replayed.push({ ok: event.ok, subjectId: event.subjectId });
+		});
+		kernel.events.on('command:init:completed', () => {
+			lifecycle.push('init completed');
+		});
+
+		const saveResult = await kernel.commands.save('all');
+		expect(saveResult.ok).toBe(false);
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(stored).toHaveLength(1);
+		expect(stored[0].payload.subjectId).toBe(kernel.getSnapshot().subjectId);
+
+		const initResult = await kernel.commands.init();
+		expect(initResult.ok).toBe(true);
+		// The replay takes the cross-tab queue lock first, so it starts a
+		// task or two after init resolved.
+		await vi.waitFor(() => {
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+		});
+		expect(replayed).toEqual([]);
+		expect(lifecycle).toEqual(['init completed', 'replay started']);
+
+		resolveReplay({ ok: true });
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([
+				{ ok: true, subjectId: kernel.getSnapshot().subjectId },
+			]);
+		});
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('init replays queued saves when the transport has no init', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		await kernel.commands.save('all');
+		expect(
+			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
+		).toHaveLength(1);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		});
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		kernel.dispose();
+	});
+
+	test('a successful save discards the queued save for its subject', async () => {
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			initialSubjectId: 'sub_fixed',
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: boolean[] = [];
+		kernel.events.on('save:replayed', ({ ok }) => {
+			replayed.push(ok);
+		});
+
+		await kernel.commands.save('all');
+		expect(
+			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
+		).toHaveLength(1);
+
+		await kernel.commands.save('none');
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+
+		// The stale 'all' must never reach the backend after 'none' did.
+		await kernel.commands.init();
+		await createDeferredPromise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(replayed).toEqual([]);
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		kernel.dispose();
+	});
+
+	test('queued saves replay with the original givenAt', async () => {
+		vi.useFakeTimers({ now: 1_700_000_000_000 });
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		const pendingSave = kernel.commands.save('all');
+		await vi.advanceTimersByTimeAsync(0);
+		await pendingSave;
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(stored[0].payload.givenAt).toBe(1_700_000_000_000);
+
+		vi.setSystemTime(1_700_000_060_000);
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+		});
+		expect(saveSpy.mock.calls[1]?.[0]).toMatchObject({
+			givenAt: 1_700_000_000_000,
+		});
+		kernel.dispose();
+	});
+
+	test('queue updates wait for the cross-tab Web Lock', async () => {
+		const originalNavigator = globalThis.navigator;
+		let chain: Promise<unknown> = Promise.resolve();
+		const lockNames: string[] = [];
+		const locks = {
+			request(name: string, run: () => unknown) {
+				lockNames.push(name);
+				const granted = chain.then(run);
+				chain = granted.catch(() => undefined);
+				return granted;
+			},
+		};
+		vi.stubGlobal('navigator', { locks });
+		const kernel = createConsentKernel({
+			initialSubjectId: 'sub_fixed',
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		try {
+			// Another tab holds the queue lock.
+			let releaseLock: () => void = () => {};
+			void locks.request(PENDING_SAVES_STORAGE_KEY, () =>
+				createDeferredPromise<boolean>((resolve) => {
+					releaseLock = () => resolve(true);
+				})
+			);
+
+			const saveCompleted: boolean[] = [];
+			kernel.events.on('command:save:completed', ({ result }) => {
+				saveCompleted.push(result.ok);
+			});
+			const pendingSave = kernel.commands.save('all');
+			await createDeferredPromise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+			expect(saveCompleted).toEqual([]);
+
+			releaseLock();
+			await expect(pendingSave).resolves.toEqual({ ok: false });
+			expect(saveCompleted).toEqual([false]);
+			expect(
+				JSON.parse(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+				)
+			).toHaveLength(1);
+			expect(new Set(lockNames)).toEqual(new Set([PENDING_SAVES_STORAGE_KEY]));
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('navigator', originalNavigator);
+		}
+	});
+
+	test('queue updates fall back to unsynchronized access when the lock request rejects', async () => {
+		const originalNavigator = globalThis.navigator;
+		const request = vi.fn().mockRejectedValue(new Error('lock aborted'));
+		vi.stubGlobal('navigator', { locks: { request } });
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		try {
+			await kernel.commands.save('all');
+			expect(request).toHaveBeenCalled();
+			expect(
+				JSON.parse(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+				)
+			).toHaveLength(1);
+
+			await kernel.commands.init();
+			await vi.waitFor(() => {
+				expect(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)
+				).toBeNull();
+			});
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('navigator', originalNavigator);
+		}
+	});
+
+	test('queue updates fall back when navigator.locks is inaccessible', async () => {
+		const originalNavigator = globalThis.navigator;
+		vi.stubGlobal('navigator', {
+			get locks(): LockManager {
+				throw new Error('locks blocked');
+			},
+		});
+		const kernel = createConsentKernel({
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		try {
+			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: false });
+			expect(
+				JSON.parse(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+				)
+			).toHaveLength(1);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('navigator', originalNavigator);
+		}
+	});
+
+	test('replay skips an entry another tab already replayed', async () => {
+		const originalNavigator = globalThis.navigator;
+		// Lock requests, in order: enqueue, replay listing, per-entry check.
+		// Another tab drains the queue right before the per-entry check.
+		let requests = 0;
+		const locks = {
+			request(_name: string, run: () => unknown) {
+				requests += 1;
+				if (requests === 3) {
+					window.localStorage.removeItem(PENDING_SAVES_STORAGE_KEY);
+				}
+				return Promise.resolve().then(run);
+			},
+		};
+		vi.stubGlobal('navigator', { locks });
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: boolean[] = [];
+		kernel.events.on('save:replayed', ({ ok }) => {
+			replayed.push(ok);
+		});
+
+		try {
+			await kernel.commands.save('all');
+			await kernel.commands.init();
+			await vi.waitFor(() => {
+				expect(requests).toBeGreaterThanOrEqual(4);
+			});
+
+			expect(saveSpy).toHaveBeenCalledTimes(1);
+			expect(replayed).toEqual([]);
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('navigator', originalNavigator);
+		}
+	});
+
+	test('drops malformed persisted queue entries before replay', async () => {
+		const validPayload = {
+			consentAction: 'custom',
+			consents: { marketing: true, necessary: true },
+			givenAt: 1_700_000_000_000,
+			model: 'opt-out',
+			overrides: {},
+			policySnapshotToken: 'snap-1',
+			subjectId: 'sub_valid',
+			tcString: null,
+			uiSource: 'dialog',
+			user: {
+				externalId: 'user-1',
+				externalIdType: 'email',
+				identityProvider: 'auth0',
+				properties: { plan: 'pro', seats: 3, trial: false },
+			},
+		};
+		const entry = (payload: unknown, extra: Record<string, unknown> = {}) => ({
+			attempts: 0,
+			payload,
+			queuedAt: Date.now(),
+			...extra,
+		});
+		window.localStorage.setItem(
+			PENDING_SAVES_STORAGE_KEY,
+			JSON.stringify([
+				entry(validPayload),
+				'not an entry',
+				entry(null),
+				entry({ ...validPayload, model: 'weird', subjectId: 'sub_model' }),
+				entry({ ...validPayload, subjectId: 'sub_ui', uiSource: 'widget' }),
+				entry({ ...validPayload, consentAction: 'x', subjectId: 'sub_action' }),
+				entry({
+					...validPayload,
+					consents: { a: 1 },
+					subjectId: 'sub_consents',
+				}),
+				entry({ ...validPayload, overrides: [], subjectId: 'sub_overrides' }),
+				entry({ ...validPayload, subjectId: 'sub_user', user: { id: 1 } }),
+				entry({
+					...validPayload,
+					subjectId: 'sub_user_type',
+					user: { externalId: 'u', externalIdType: 7 },
+				}),
+				entry({
+					...validPayload,
+					subjectId: 'sub_user_props',
+					user: { externalId: 'u', properties: { nested: {} } },
+				}),
+				entry({
+					...validPayload,
+					givenAt: 'yesterday',
+					subjectId: 'sub_given',
+				}),
+				entry({
+					...validPayload,
+					policySnapshotToken: 1,
+					subjectId: 'sub_token',
+				}),
+				entry({ ...validPayload, subjectId: 'sub_tc', tcString: 5 }),
+				entry({ ...validPayload, subjectId: 42 }),
+				entry({ ...validPayload, subjectId: 'sub_queued' }, { queuedAt: -1 }),
+				entry(
+					{ ...validPayload, subjectId: 'sub_attempts' },
+					{ attempts: 1.5 }
+				),
+			])
+		);
+		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		});
+
+		expect(saveSpy).toHaveBeenCalledTimes(1);
+		expect(saveSpy).toHaveBeenCalledWith(validPayload);
+		kernel.dispose();
+	});
+
+	test.each([
+		{ label: 'invalid JSON', stored: '{not json' },
+		{ label: 'a non-array value', stored: '{"payload":{}}' },
+	])('resets a queue holding $label', async ({ stored }) => {
+		window.localStorage.setItem(PENDING_SAVES_STORAGE_KEY, stored);
+		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		});
+		expect(saveSpy).not.toHaveBeenCalled();
+		kernel.dispose();
+	});
+
+	test('replays every queued subject and records each result separately', async () => {
+		const failingSave = vi.fn().mockRejectedValue(new Error('save offline'));
+		const tabA = createConsentKernel({
+			initialSubjectId: 'sub_a',
+			transport: { save: failingSave },
+		});
+		const tabB = createConsentKernel({
+			initialSubjectId: 'sub_b',
+			transport: { save: failingSave },
+		});
+		await tabA.commands.save('all');
+		await tabB.commands.save('none');
+		tabA.dispose();
+		tabB.dispose();
+
+		// A fresh kernel replays the shared queue: sub_a succeeds, sub_b fails
+		// and must survive the bookkeeping for sub_a's success.
+		const replaySave = vi.fn(({ subjectId }: { subjectId: string }) =>
+			subjectId === 'sub_b'
+				? Promise.reject(new Error('still offline'))
+				: Promise.resolve({ ok: true })
+		);
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: replaySave },
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		kernel.events.on('save:replayed', ({ ok, subjectId }) => {
+			replayed.push({ ok, subjectId });
+		});
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(2);
+		});
+
+		expect(replayed).toEqual([
+			{ ok: true, subjectId: 'sub_a' },
+			{ ok: false, subjectId: 'sub_b' },
+		]);
+		const remaining = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(remaining).toHaveLength(1);
+		expect(remaining[0]).toMatchObject({
+			attempts: 1,
+			payload: { subjectId: 'sub_b' },
+		});
+		kernel.dispose();
+	});
+
+	test('overlapping replays share one run', async () => {
+		const originalWindow = globalThis.window;
+		const browserEvents = new EventTarget();
+		vi.stubGlobal('window', {
+			...originalWindow,
+			addEventListener: browserEvents.addEventListener.bind(browserEvents),
+			removeEventListener:
+				browserEvents.removeEventListener.bind(browserEvents),
+		});
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		try {
+			await kernel.commands.save('all');
+			browserEvents.dispatchEvent(new Event('online'));
+			browserEvents.dispatchEvent(new Event('online'));
+			await vi.waitFor(() => {
+				expect(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)
+				).toBeNull();
+			});
+			await createDeferredPromise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('window', originalWindow);
+		}
+	});
+
+	test('discard and replay are no-ops without window', async () => {
+		const originalWindow = globalThis.window;
+		vi.stubGlobal('window', undefined);
+		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		try {
+			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: true });
+			await expect(kernel.commands.init()).resolves.toEqual({ ok: true });
+			await createDeferredPromise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(saveSpy).toHaveBeenCalledTimes(1);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('window', originalWindow);
+		}
+	});
+
+	test('online event replays a failed save', async () => {
+		const originalWindow = globalThis.window;
+		const browserEvents = new EventTarget();
+		vi.stubGlobal('window', {
+			...originalWindow,
+			addEventListener: browserEvents.addEventListener.bind(browserEvents),
+			removeEventListener:
+				browserEvents.removeEventListener.bind(browserEvents),
+		});
+		const saveSpy = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		try {
+			await kernel.commands.save('all');
+			browserEvents.dispatchEvent(new Event('online'));
+			await vi.waitFor(() => {
+				expect(
+					window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)
+				).toBeNull();
+			});
+
+			expect(saveSpy).toHaveBeenCalledTimes(2);
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('window', originalWindow);
+		}
+	});
+
+	test('failed replay stays queued', async () => {
+		const saveSpy = vi.fn().mockRejectedValue(new Error('save offline'));
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: { ok: boolean; subjectId: string }[] = [];
+		kernel.events.on('save:replayed', (event) => {
+			replayed.push({ ok: event.ok, subjectId: event.subjectId });
+		});
+
+		await kernel.commands.save('all');
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(1);
+		});
+
+		expect(saveSpy).toHaveBeenCalledTimes(2);
+		expect(replayed).toEqual([
+			{ ok: false, subjectId: kernel.getSnapshot().subjectId },
+		]);
+		expect(
+			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
+		).toHaveLength(1);
+		kernel.dispose();
+	});
+
+	test('queued saves dedupe by subjectId and keep the newest payload', async () => {
+		const kernel = createConsentKernel({
+			initialSubjectId: 'sub_fixed',
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		await kernel.commands.save('all');
+		const firstEntry = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		firstEntry[0].attempts = 5;
+		window.localStorage.setItem(
+			PENDING_SAVES_STORAGE_KEY,
+			JSON.stringify(firstEntry)
+		);
+		await kernel.commands.save('none');
+
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(stored).toHaveLength(1);
+		expect(stored[0]).toMatchObject({
+			attempts: 0,
+			payload: {
+				consentAction: 'necessary',
+				consents: { marketing: false },
+				subjectId: 'sub_fixed',
+			},
+		});
+		kernel.dispose();
+	});
+
+	test('drops pending saves older than seven days before replay', async () => {
+		const saveSpy = vi.fn().mockRejectedValue(new Error('save offline'));
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+
+		await kernel.commands.save('all');
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		stored[0].queuedAt = Date.now() - 7 * 24 * 60 * 60 * 1000 - 1;
+		window.localStorage.setItem(
+			PENDING_SAVES_STORAGE_KEY,
+			JSON.stringify(stored)
+		);
+
+		await kernel.commands.init();
+
+		expect(saveSpy).toHaveBeenCalledTimes(1);
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('increments failed replay attempts and drops the entry at ten', async () => {
+		const saveSpy = vi.fn().mockRejectedValue(new Error('save offline'));
+		const kernel = createConsentKernel({
+			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
+		});
+		const replayed: boolean[] = [];
+		kernel.events.on('save:replayed', (event) => {
+			replayed.push(event.ok);
+		});
+
+		await kernel.commands.save('all');
+		const stored = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		stored[0].attempts = 8;
+		window.localStorage.setItem(
+			PENDING_SAVES_STORAGE_KEY,
+			JSON.stringify(stored)
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(1);
+		});
+		const afterNinthAttempt = JSON.parse(
+			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
+		);
+		expect(afterNinthAttempt[0].attempts).toBe(9);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toHaveLength(2);
+		});
+		expect(replayed).toEqual([false, false]);
+		expect(saveSpy).toHaveBeenCalledTimes(3);
+		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		kernel.dispose();
+	});
+
+	test('save queue is a no-op without window', async () => {
+		const originalWindow = globalThis.window;
+		vi.stubGlobal('window', undefined);
+		const kernel = createConsentKernel({
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		try {
+			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: false });
+			expect(
+				originalWindow.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)
+			).toBeNull();
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('window', originalWindow);
+		}
+	});
+
+	test('save queue ignores localStorage access errors', async () => {
+		const originalWindow = globalThis.window;
+		const throwingWindow = {
+			addEventListener: originalWindow.addEventListener?.bind(originalWindow),
+			get localStorage(): Storage {
+				throw new Error('storage blocked');
+			},
+			removeEventListener:
+				originalWindow.removeEventListener?.bind(originalWindow),
+		};
+		vi.stubGlobal('window', throwingWindow);
+		const kernel = createConsentKernel({
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		try {
+			await expect(kernel.commands.save('all')).resolves.toEqual({ ok: false });
+		} finally {
+			kernel.dispose();
+			vi.stubGlobal('window', originalWindow);
+		}
+	});
+});
+
 describe('kernel transport: identify forwards to transport', () => {
 	test('identify calls transport.identify after updating snapshot', async () => {
-		const identifySpy = vi.fn<[unknown], Promise<void>>();
+		const identifySpy = vi.fn<NonNullable<KernelTransport['identify']>>();
 		identifySpy.mockResolvedValue();
 		const transport: KernelTransport = { identify: identifySpy };
 
@@ -633,6 +1647,45 @@ describe('createHostedTransport: request shape', () => {
 		expect((init as RequestInit).body).toBeUndefined();
 	});
 
+	test('initURL overrides init without changing the save endpoint', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/api/c15t/init',
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		await transport.save?.({
+			consentAction: 'all',
+			consents: {
+				experience: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				necessary: true,
+			},
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: 'snap-1',
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+			'/api/c15t/init',
+			'https://api.example.com/c15t/subjects',
+		]);
+	});
+
 	test(`save POSTs to \`${backendURLToken}/subjects\` with backend body`, async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
@@ -654,6 +1707,7 @@ describe('createHostedTransport: request shape', () => {
 				measurement: true,
 				necessary: true,
 			},
+			givenAt: 1_700_000_000_000,
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: 'snap-1',
@@ -693,8 +1747,121 @@ describe('createHostedTransport: request shape', () => {
 			type: 'cookie_banner',
 			uiSource: 'banner',
 		});
-		expect(typeof body.givenAt).toBe('number');
+		expect(body.givenAt).toBe(1_700_000_000_000);
 	});
+
+	test('save stamps givenAt when the payload has none', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		const body = JSON.parse((init as RequestInit).body as string);
+		expect(typeof body.givenAt).toBe('number');
+		expect(body.policyId).toBeUndefined();
+	});
+
+	test('assertDecisionInputs binds token-less saves to the init decision', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			headers: { 'sec-gpc': '1' },
+			initURL: '/internal/consent/init',
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'iab',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+			'/internal/consent/init',
+			'https://api.example.com/c15t/subjects',
+		]);
+		const [, saveInit] = fetchSpy.mock.calls[1] ?? [];
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			country: 'DE',
+			fingerprint: 'policy-fingerprint',
+			gpc: true,
+			language: 'de',
+			policyId: 'de-iab',
+			region: 'BE',
+		});
+	});
+
+	test.each([
+		{ expected: false, headers: { 'sec-gpc': '0' }, label: 'sec-gpc: 0' },
+		{ expected: undefined, headers: {}, label: 'no sec-gpc header' },
+	])(
+		'assertDecisionInputs maps $label to gpc',
+		async ({ expected, headers }) => {
+			const fetchSpy = vi
+				.fn()
+				.mockResolvedValueOnce(
+					new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+				)
+				.mockResolvedValueOnce(
+					new Response(JSON.stringify({ ok: true }), { status: 200 })
+				);
+			const transport = createHostedTransport({
+				assertDecisionInputs: true,
+				backendURL: '/api/c15t',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				headers,
+			});
+
+			await transport.init?.({ overrides: {}, user: null });
+			await transport.save?.({
+				consentAction: 'all',
+				consents: { necessary: true },
+				model: 'iab',
+				overrides: {},
+				policySnapshotToken: null,
+				subjectId: 'sub_test',
+				uiSource: 'banner',
+				user: null,
+			});
+
+			const [, saveInit] = fetchSpy.mock.calls[1] ?? [];
+			const body = JSON.parse((saveInit as RequestInit).body as string);
+			expect(body.policyId).toBe('de-iab');
+			expect(body.gpc).toBe(expected);
+			expect('gpc' in body).toBe(expected !== undefined);
+		}
+	);
 
 	test('init only forwards allowlisted backend input headers', async () => {
 		const fetchSpy = vi

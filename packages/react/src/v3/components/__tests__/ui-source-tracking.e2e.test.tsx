@@ -15,8 +15,9 @@ import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { ConsentProvider } from '~/v3/provider';
+import type { ConsentProviderOptions } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
+import { offline } from '~/v3/transports/offline';
 
 const getDefined = <Value,>(
 	value: Value,
@@ -49,7 +50,7 @@ Object.defineProperty(window, 'localStorage', {
 	value: localStorageMock,
 });
 
-const defaultOptions: ConsentManagerOptions = {
+const defaultOptions: ConsentProviderOptions = {
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -57,7 +58,7 @@ const defaultOptions: ConsentManagerOptions = {
 		'marketing',
 		'measurement',
 	],
-	mode: 'offline',
+	mode: offline(),
 	offlinePolicy: {
 		policy: {
 			consent: {

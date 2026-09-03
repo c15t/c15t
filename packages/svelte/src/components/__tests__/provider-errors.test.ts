@@ -9,6 +9,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
+import { offline } from '../../lib/transports/offline';
 
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
@@ -33,7 +34,7 @@ describe('ConsentManagerProvider Error Handling', () => {
 	test('should render children even when API errors occur', async () => {
 		render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 

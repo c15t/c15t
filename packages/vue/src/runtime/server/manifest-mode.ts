@@ -9,6 +9,7 @@ import {
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
@@ -293,7 +294,7 @@ export const resolveManifestInit = function resolveManifestInit(input: {
 }): InitOutput {
 	const inputs = getResolverInputsFromHeaders(input.headers);
 	return {
-		...resolveInitFromManifest(input.manifest, inputs),
+		...resolveInitFromManifest(input.manifest, inputs, { baseTranslations }),
 		// Resolver inputs use `null` for absent; the overrides record wants
 		// the fields dropped instead.
 		resolvedOverrides: consentInputsToOverrides({

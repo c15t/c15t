@@ -30,7 +30,7 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		consentAction: payload.consentAction,
 		domain: opts.domain,
 		externalSubjectId: payload.user?.externalId,
-		givenAt: Date.now(),
+		givenAt: payload.givenAt ?? Date.now(),
 		identityProvider: payload.user?.identityProvider,
 		jurisdictionModel: payload.model ?? undefined,
 		metadata: payload.user?.properties

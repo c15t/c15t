@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { ConsentProvider } from '~/v3/provider';
+import { offline } from '~/v3/transports/offline';
 
 const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
@@ -72,7 +73,7 @@ const PolicyTestProvider = ({
 	<ConsentProvider
 		options={{
 			components: providerOverrides?.components,
-			mode: 'offline',
+			mode: offline(),
 			persistence: false,
 			prefetch: {
 				initialConsents: state.consents,

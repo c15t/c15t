@@ -18,6 +18,7 @@ import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import { ConsentProvider } from '../provider';
 import type { ConsentProviderOptions } from '../provider';
+import { offline } from '../transports/offline';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
 import { defaultTheme } from '../utils/theme-utils';
 
@@ -105,7 +106,7 @@ const toKernelBridgeOptions = function toKernelBridgeOptions(
 		disableAnimation: options.disableAnimation,
 		iab: options.iab as ConsentProviderOptions['iab'],
 		legalLinks: options.store?.legalLinks,
-		mode: 'offline',
+		mode: offline(),
 		noStyle: options.noStyle,
 		overrides: options.overrides,
 		prefetch: {

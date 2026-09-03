@@ -106,3 +106,5 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 
 export type { KernelConfig } from '@c15t/core/v3';
 export type { PrefetchInitialConsentOptions, ReadInitialConsentConfigOptions };
+export { custom, hosted } from '@c15t/core/v3';
+export { offline } from '../transports/offline';

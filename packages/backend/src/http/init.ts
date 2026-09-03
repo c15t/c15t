@@ -24,6 +24,7 @@ import {
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 
 import { resolveGvl } from './gvl';
 import type { GvlOptions } from './gvl';
@@ -78,12 +79,16 @@ export const buildInitResponse = async function buildInitResponse(
 	const signals = readInitSignals(headers);
 	const manifest = await buildConsentManifestFromConfig(config);
 
-	const resolved = resolveInitFromManifest(manifest, {
-		country: signals.country,
-		gpc: signals.gpc,
-		language: signals.language,
-		region: signals.region,
-	});
+	const resolved = resolveInitFromManifest(
+		manifest,
+		{
+			country: signals.country,
+			gpc: signals.gpc,
+			language: signals.language,
+			region: signals.region,
+		},
+		{ baseTranslations }
+	);
 
 	// Signed evidence of the decision just made, so the consent submitted
 	// against it can be checked to be the one this server actually issued.

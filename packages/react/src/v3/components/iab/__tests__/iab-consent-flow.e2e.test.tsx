@@ -16,7 +16,7 @@ import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provide
 import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	getCMPTCData,
 	getStoredConsent,
 	getStoredTCString,
@@ -35,7 +35,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Accept All Flow', () => {
 		test('complete flow: display → accept → signal → storage', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -65,7 +65,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('should set all purposes to consented', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -92,7 +92,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Reject All Flow', () => {
 		test('complete flow: display → reject → signal → storage', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -120,7 +120,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Granular Consent Flow', () => {
 		test('should open preference center for granular selection', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -139,7 +139,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('should save granular preferences', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -192,7 +192,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Persistence & Restoration Flow', () => {
 		test('consent should be stored in localStorage', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -218,7 +218,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('TC String should be stored', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -249,7 +249,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('First Visit vs Return Visit', () => {
 		test('first visit - banner should display', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
@@ -263,7 +263,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Event Notifications', () => {
 		test('should fire useractioncomplete on Accept All', async () => {
 			render(
-				<ConsentProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>

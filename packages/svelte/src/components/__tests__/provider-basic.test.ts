@@ -5,12 +5,15 @@
  */
 
 import { clearConsentRuntimeCache } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core/v3';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import { custom, hosted } from '../../lib/index';
+import { offline } from '../../lib/transports/offline';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -74,7 +77,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('should install window.c15t with Svelte offline identity', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -90,10 +93,30 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect((window as WindowWithC15t).c15t).toBeUndefined();
 	});
 
-	test('should report hosted mode on window.c15t when backendURL is set', async () => {
+	test('disposes the kernel when the provider unmounts', () => {
+		let mountedKernel: ConsentKernel | null = null;
+		const result = render(ProviderOnlyFixture, {
+			onKernel: (kernel: ConsentKernel) => {
+				mountedKernel = kernel;
+			},
+			options: {
+				mode: offline(),
+			},
+		});
+
+		if (!mountedKernel) {
+			throw new Error('Expected the provider to expose its kernel');
+		}
+		const dispose = vi.spyOn(mountedKernel, 'dispose');
+
+		result.unmount();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+
+	test('hosted() reports hosted mode and calls the init URL', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				backendURL: '/api/c15t',
+				mode: hosted({ url: '/api/c15t' }),
 			},
 		});
 
@@ -103,8 +126,23 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 				pkg: '@c15t/svelte',
 			});
 		});
+		await vi.waitFor(() => {
+			expect(mockFetch).toHaveBeenCalledWith(
+				'/api/c15t/init',
+				expect.objectContaining({ method: 'GET' })
+			);
+		});
 
 		result.unmount();
+	});
+
+	test('throws when mode is missing', () => {
+		expect(() =>
+			render(ConsentManagerProvider, {
+				// @ts-expect-error Verify the runtime guard for untyped callers.
+				options: {},
+			})
+		).toThrow('Use hosted(), offline(), or custom().');
 	});
 
 	test('should not make fetch calls in offline mode', async () => {
@@ -112,7 +150,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 			},
 		});
 
@@ -125,10 +163,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		mockFetch.mockClear();
 
 		render(ConsentManagerProvider, {
-			mode: 'offline',
+			mode: offline(),
 			options: {
-				backendURL: 'https://example.invalid',
-				mode: 'hosted',
+				mode: hosted({ url: 'https://example.invalid' }),
 			},
 		});
 
@@ -142,7 +179,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		render(ProviderOnlyFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 				theme: { slots: { bannerCard: 'light' } },
 			},
 		});
@@ -156,7 +193,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('should resolve policies in offline mode', async () => {
 		const { getByTestId } = render(ContextConsumerFixture, {
 			options: {
-				mode: 'offline',
+				mode: offline(),
 				overrides: {
 					country: 'US',
 					region: 'CA',
@@ -180,16 +217,19 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	});
 
 	test('should call transport init once on initial mount', async () => {
-		const init = vi.fn(() => ({}));
+		const init = vi.fn(() => Promise.resolve({}));
 
 		render(ProviderOnlyFixture, {
 			options: {
-				transport: {
+				mode: custom({
 					init,
 					save(payload) {
-						return { ok: true, subjectId: payload.subjectId };
+						return Promise.resolve({
+							ok: true,
+							subjectId: payload.subjectId,
+						});
 					},
-				},
+				}),
 			},
 		});
 

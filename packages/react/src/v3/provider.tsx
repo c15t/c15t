@@ -3,7 +3,6 @@
 import type {
 	AllConsentNames,
 	Callbacks,
-	CustomClientOptions,
 	I18nConfig,
 	IABConfig,
 	LegalLinks,
@@ -17,10 +16,7 @@ import type {
 	User,
 } from '@c15t/core';
 import {
-	buildSubjectPostBody,
 	createConsentKernel,
-	createHostedTransport,
-	createOfflineTransport,
 	mapInitOutputToInitResponse,
 } from '@c15t/core/v3';
 import type {
@@ -33,6 +29,8 @@ import type {
 	KernelTranslations,
 	KernelTransport,
 	KernelUser,
+	ProviderTransportContext,
+	ProviderTransportFactory,
 	TranslationsResponse,
 } from '@c15t/core/v3';
 import type { Script } from '@c15t/core/v3/modules/script-loader';
@@ -41,7 +39,6 @@ import {
 	resolveWindowDebugMode,
 } from '@c15t/core/v3/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/v3/modules/window-debug';
-import { buildDefaultOptInPolicy } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
@@ -79,8 +76,6 @@ const loadScriptLoaderModule = () =>
 	import('@c15t/core/v3/modules/script-loader');
 const loadThemeModule = () => import('@c15t/ui/theme');
 
-type ProviderMode = 'hosted' | 'offline' | 'custom' | 'c15t';
-
 type ProviderIABOptions =
 	| (Partial<Omit<IABProviderProps, 'children'>> &
 			Partial<Pick<IABConfig, 'enabled' | 'cmpId' | 'cmpVersion' | 'vendors'>>)
@@ -96,12 +91,26 @@ export interface ConsentProviderOptions extends Pick<
 	| 'trapFocus'
 > {
 	enabled?: boolean;
-	mode?: ProviderMode;
-	backendURL?: string;
-	domain?: string;
-	transport?: KernelTransport;
-	headers?: Record<string, string>;
-	customFetch?: typeof fetch;
+	/**
+	 * Transport factory the provider builds its kernel with. Required.
+	 *
+	 * Pass `hosted()` to talk to a c15t backend, `offline()` to resolve
+	 * policies locally with no network, or `custom()` to supply your own
+	 * kernel transport or v2 endpoint handlers. This is an initial-only
+	 * option: remount the provider to change it.
+	 *
+	 * @example
+	 * ```tsx
+	 * import { ConsentProvider, hosted, offline } from '@c15t/react/v3';
+	 *
+	 * <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+	 *   {children}
+	 * </ConsentProvider>
+	 *
+	 * <ConsentProvider options={{ mode: offline() }}>{children}</ConsentProvider>
+	 * ```
+	 */
+	mode: ProviderTransportFactory;
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
@@ -143,11 +152,6 @@ export interface ConsentProviderOptions extends Pick<
 	 * Accepted for v2 fixture compatibility and ignored.
 	 */
 	retryConfig?: unknown;
-	/**
-	 * @deprecated Prefer hosted/offline v3 transports. Accepted for v2 fixture
-	 * compatibility and bridged through a minimal custom transport.
-	 */
-	endpointHandlers?: CustomClientOptions['endpointHandlers'];
 	/**
 	 * Adapter package name reported by `window.c15t`.
 	 * @internal
@@ -298,26 +302,10 @@ const getProviderCategories = function getProviderCategories(
 	);
 };
 
-const getProviderPolicies = function getProviderPolicies(
-	options: ConsentProviderOptions
-): PolicyConfig[] | undefined {
-	return (
-		options.policies ??
-		options.offlinePolicy?.policyPacks ??
-		options.store?.offlinePolicy?.policyPacks
-	);
-};
-
 const getProviderOfflinePolicy = function getProviderOfflinePolicy(
 	options: ConsentProviderOptions
 ): OfflinePolicyConfig | undefined {
 	return options.offlinePolicy ?? options.store?.offlinePolicy;
-};
-
-const buildInlinePolicy = function buildInlinePolicy(
-	categories: AllConsentNames[] | undefined
-) {
-	return buildDefaultOptInPolicy(categories);
 };
 
 const buildNoBannerPolicy =
@@ -370,163 +358,47 @@ const withSSRData = function withSSRData(
 	};
 };
 
-const createCustomTransport = function createCustomTransport(
-	endpointHandlers: CustomClientOptions['endpointHandlers']
-): KernelTransport {
-	return {
-		async init() {
-			if (!endpointHandlers.init) {
-				return {};
-			}
-			const response = await endpointHandlers.init();
-			if (!response.ok || !response.data) {
-				throw response.error ?? new Error('c15t custom transport: init failed');
-			}
-			const init = response.data as Record<string, unknown>;
-			if (init.location && init.translations && init.branding) {
-				return mapInitOutputToInitResponse(init as InitOutput, {});
-			}
-			return {
-				branding:
-					init.branding === 'none' ? undefined : (init.branding as never),
-				cmpId: init.cmpId as never,
-				consents: init.consents as never,
-				customVendors: init.customVendors as never,
-				gvl: init.gvl as never,
-				hasConsented: init.hasConsented as never,
-				location: init.location as never,
-				policy: init.policy as never,
-				policyDecision: init.policyDecision as never,
-				policySnapshotToken: init.policySnapshotToken as never,
-				resolvedOverrides: init.resolvedOverrides as never,
-				subjectId: init.subjectId as never,
-				translations: init.translations as never,
-			};
-		},
-		async save(payload) {
-			const response = await endpointHandlers.setConsent({
-				body: buildSubjectPostBody(payload, {
-					domain:
-						typeof window === 'undefined'
-							? 'localhost'
-							: window.location.hostname,
-				}),
-			});
-			return {
-				ok: response.ok,
-				subjectId: response.data?.subjectId,
-			};
-		},
-	};
-};
-
-const createStaticOfflineTransport = function createStaticOfflineTransport(
-	prefetch: KernelConfig,
-	offlinePolicy: OfflinePolicyConfig | undefined,
-	translations: KernelTranslations
-): KernelTransport | null {
-	const policy = prefetch.initialPolicy ?? offlinePolicy?.policy;
-	if (!policy) {
-		return null;
-	}
-	return {
-		init(ctx) {
-			return Promise.resolve({
-				branding: prefetch.initialBranding ?? 'c15t',
-				location: {
-					countryCode: ctx.overrides.country ?? null,
-					regionCode: ctx.overrides.region ?? null,
-				},
-				policy,
-				policyDecision:
-					prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-				policySnapshotToken:
-					prefetch.initialPolicySnapshotToken ??
-					offlinePolicy?.policySnapshotToken,
-				translations:
-					prefetch.initialTranslations ??
-					(ctx.overrides.language
-						? { ...translations, language: ctx.overrides.language }
-						: translations),
-			});
-		},
-		save(payload) {
-			return Promise.resolve({ ok: true, subjectId: payload.subjectId });
-		},
-	};
-};
-
-const resolveBaseTransport = function resolveBaseTransport(
-	options: ConsentProviderOptions,
-	mode: ProviderMode,
-	staticOfflineTransport: KernelTransport | null,
-	translations: KernelTranslations
-): KernelTransport {
-	if (options.transport) {
-		return options.transport;
-	}
-	if (mode === 'custom' && options.endpointHandlers) {
-		return createCustomTransport(options.endpointHandlers);
-	}
-	if (mode === 'hosted' || mode === 'c15t') {
-		return createHostedTransport({
-			backendURL: options.backendURL ?? '/api/c15t',
-			domain: options.domain,
-			fetch: options.customFetch,
-			headers: options.headers,
-		});
-	}
-	return (
-		staticOfflineTransport ??
-		createOfflineTransport({
-			policyPacks: getProviderPolicies(options),
-			translations,
-		})
-	);
-};
-
-const resolveInitialPolicy = function resolveInitialPolicy(
-	enabled: boolean | undefined,
-	prefetch: KernelConfig,
-	offlinePolicy: OfflinePolicyConfig | undefined,
+const getProviderMode = function getProviderMode(
 	options: ConsentProviderOptions
-): KernelConfig['initialPolicy'] {
-	if (enabled === false) {
-		return prefetch.initialPolicy ?? buildNoBannerPolicy();
+): ProviderTransportFactory {
+	if (typeof options.mode !== 'function') {
+		throw new Error(
+			'c15t v3 ConsentProvider: `mode` is required. Use hosted(), offline(), or custom().'
+		);
 	}
-	return (
-		prefetch.initialPolicy ??
-		offlinePolicy?.policy ??
-		(buildInlinePolicy(
-			getProviderCategories(options)
-		) as KernelConfig['initialPolicy'])
-	);
+	return options.mode;
 };
+
+const resolveInitialPolicyProvisional =
+	function resolveInitialPolicyProvisional(
+		enabled: boolean,
+		prefetch: KernelConfig,
+		offlinePolicy: OfflinePolicyConfig | undefined
+	): boolean {
+		return (
+			prefetch.initialPolicyProvisional ??
+			(enabled && !prefetch.initialPolicy && !offlinePolicy?.policy)
+		);
+	};
 
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
 	const enabled = getEnabled(options);
-	const mode: ProviderMode =
-		options.mode ?? (options.backendURL ? 'hosted' : 'offline');
 	const prefetch = options.prefetch ?? {};
 	const offlinePolicy = getProviderOfflinePolicy(options);
 	const i18nTranslations =
 		resolveI18nTranslations(resolveProviderI18n(options)) ??
 		DEFAULT_TRANSLATIONS;
 
-	const staticOfflineTransport = createStaticOfflineTransport(
-		prefetch,
+	const transportContext: ProviderTransportContext = {
+		consentCategories: getProviderCategories(options),
 		offlinePolicy,
-		i18nTranslations
-	);
-
-	const baseTransport = resolveBaseTransport(
-		options,
-		mode,
-		staticOfflineTransport,
-		i18nTranslations
-	);
+		policies: options.policies,
+		prefetch,
+		translations: i18nTranslations,
+	};
+	const baseTransport = getProviderMode(options)(transportContext);
 
 	const transport = withSSRData(baseTransport, options.ssrData);
 
@@ -543,19 +415,20 @@ const createProviderKernel = function createProviderKernel(
 		},
 		initialUser: normalizeUser(options.user) ?? prefetch.initialUser,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
-		initialPolicy: resolveInitialPolicy(
-			enabled,
-			prefetch,
-			offlinePolicy,
-			options
-		),
+		initialPolicy:
+			enabled === false
+				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
+				: (prefetch.initialPolicy ?? offlinePolicy?.policy),
 		// The synthetic categories fallback is a placeholder for whatever the
 		// transport's init resolves — mark it provisional so no surface renders
 		// copy/actions that init may replace (mid-read copy swap, CLS, consent
 		// recorded against a placeholder policy). Real initial policies
 		// (prefetch/SSR/offline config) stay authoritative and render at once.
-		initialPolicyProvisional:
-			enabled !== false && !prefetch.initialPolicy && !offlinePolicy?.policy,
+		initialPolicyProvisional: resolveInitialPolicyProvisional(
+			enabled,
+			prefetch,
+			offlinePolicy
+		),
 		initialPolicyDecision:
 			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
 		initialPolicySnapshotToken:
@@ -720,12 +593,8 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 	options: ConsentProviderOptions
 ): string {
 	return JSON.stringify({
-		backendURL: options.backendURL,
-		domain: options.domain,
-		hasCustomFetch: Boolean(options.customFetch),
-		headers: options.headers,
 		i18n: options.i18n,
-		mode: options.mode,
+		mode: options.mode?.kind,
 		offlinePolicy: options.offlinePolicy,
 		policies: options.policies,
 		ssrData: Boolean(options.ssrData),
@@ -804,7 +673,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 		if (initialOnlyRef.current !== serialized) {
 			initialOnlyRef.current = serialized;
 			console.warn(
-				'c15t v3 ConsentProvider: backendURL, domain, mode, headers, customFetch, policies, i18n/translations, offlinePolicy, and ssrData are initial-only options. Remount the provider to apply changes.'
+				'c15t v3 ConsentProvider: mode, policies, i18n/translations, offlinePolicy, and ssrData are initial-only options. Remount the provider to apply changes.'
 			);
 		}
 	}, [options]);
@@ -1108,7 +977,7 @@ export const ConsentProvider = ({
 	const scripts = getProviderScripts(options);
 	const networkBlocker = getProviderNetworkBlocker(options);
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
-	const windowDebugMode = resolveWindowDebugMode(options);
+	const windowDebugMode = resolveWindowDebugMode(options.mode);
 
 	useProviderCallbacks(
 		kernel,
@@ -1116,6 +985,7 @@ export const ConsentProvider = ({
 		reloadOnConsentRevoked
 	);
 	useProviderOptionSync(kernel, options, enabled);
+	useEffect(() => () => kernel.dispose(), [kernel]);
 
 	const userTheme = options.theme;
 

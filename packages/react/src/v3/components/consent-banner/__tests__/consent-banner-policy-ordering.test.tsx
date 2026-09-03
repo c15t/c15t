@@ -6,6 +6,7 @@ import { render } from 'vitest-browser-react';
 
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentProvider } from '~/v3/provider';
+import { offline } from '~/v3/transports/offline';
 
 const createMockState = function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
@@ -76,7 +77,7 @@ const renderBanner = function renderBanner(
 					},
 					...componentOverrides,
 				},
-				mode: 'offline',
+				mode: offline(),
 				persistence: false,
 				prefetch: {
 					initialConsents: state.consents,

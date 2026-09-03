@@ -1,11 +1,13 @@
 'use client';
 
-import { createManifestTransport } from '@c15t/core/v3';
+import { createManifestTransport } from '@c15t/core/v3/transports/manifest';
 import {
 	ConsentBanner,
 	ConsentBoundary,
 	ConsentDialog,
 	ConsentProvider,
+	custom,
+	hosted,
 } from '@c15t/nextjs/v3';
 import type {
 	ConsentBoundaryProps,
@@ -31,7 +33,6 @@ const createOptions = function createOptions(
 	scenario: NextjsBenchScenario
 ): ConsentProviderOptions {
 	return {
-		backendURL: '/api/bench-consent',
 		callbacks: {
 			onBannerFetched() {
 				const state = getState(scenario);
@@ -57,7 +58,7 @@ const createOptions = function createOptions(
 			},
 		},
 		consentCategories,
-		mode: 'c15t',
+		mode: hosted({ url: '/api/bench-consent' }),
 		theme: {
 			motion: {
 				duration: {
@@ -73,8 +74,7 @@ const createOptions = function createOptions(
 const createBoundaryOptions = function createBoundaryOptions(
 	scenario: NextjsBenchScenario
 ): ConsentBoundaryProps['options'] {
-	const { backendURL, mode, ...options } = createOptions(scenario);
-	void backendURL;
+	const { mode, ...options } = createOptions(scenario);
 	void mode;
 	return options;
 };
@@ -126,7 +126,7 @@ export const NextjsV3ManifestClientBenchmarkProvider = ({
 		<ConsentProvider
 			options={{
 				...createOptions(scenario),
-				transport,
+				mode: custom(transport),
 			}}
 		>
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>

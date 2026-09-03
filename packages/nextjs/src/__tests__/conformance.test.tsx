@@ -42,6 +42,7 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentWidget,
+	custom,
 	useSnapshot,
 } from '@c15t/react/v3';
 import type { ConsentSnapshot } from '@c15t/react/v3';
@@ -305,6 +306,10 @@ const buildBoundaryProps = function buildBoundaryProps(opts: MountOptions): {
 			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialTranslations: resolveTranslations(provided, opts.locale),
 	};
+	if (initMode !== 'authoritative') {
+		basePrefetch.initialPolicy = buildPolicy(opts, provided);
+		basePrefetch.initialPolicyProvisional = true;
+	}
 	// GPC arrives in the serializable server config — exactly the field
 	// the nextjs server plumbing derives from the `sec-gpc` header.
 	if (opts.gpc !== undefined) {
@@ -587,7 +592,7 @@ const driver: TestDriver = {
 		const lifecycle = lifecycleTransportFor(opts);
 		const { config, options: baseOptions } = buildBoundaryProps(opts);
 		const options: BoundaryOptions = lifecycle.transport
-			? { ...baseOptions, transport: lifecycle.transport }
+			? { ...baseOptions, mode: custom(lifecycle.transport) }
 			: baseOptions;
 		const bridge = createBridge();
 		let resolveSettled: () => void = () => {};
