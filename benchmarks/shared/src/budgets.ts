@@ -109,13 +109,13 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 		comparator: 'percent-lte',
 		description:
 			'Tiny runtime operations may regress slightly, but should stay within 30%.',
-		metric: 'configureConsentManager',
+		metric: 'createConsentKernel',
 		threshold: 30,
 	},
 	{
 		comparator: 'percent-lte',
-		description: 'Store creation should remain within 20% of the baseline.',
-		metric: 'createConsentManagerStore',
+		description: 'Snapshot reads should remain within 20% of the baseline.',
+		metric: 'getSnapshot',
 		threshold: 20,
 	},
 	{

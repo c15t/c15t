@@ -76,8 +76,8 @@ const resolveGeoOverrides = function resolveGeoOverrides(
  * @remarks
  * This split architecture is necessary because certain options like callbacks
  * and scripts cannot be serialized during server-side rendering. For
- * client-only implementations, use `<ConsentManagerProvider />` from
- * `@c15t/nextjs/client`.
+ * client-only implementations, use `<ConsentProvider />` from
+ * `@c15t/nextjs` with an explicit transport mode.
  *
  * @example
  * ```tsx

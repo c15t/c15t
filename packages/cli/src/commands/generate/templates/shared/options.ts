@@ -95,7 +95,7 @@ export const generateOptionsText = function generateOptionsText(
 				return `mode: custom({
 				async init() {
 					const res = await fetch(${url});
-					return res.json();
+					return { ok: res.ok, data: await res.json() };
 				},
 				async setConsent({ body }) {
 					const res = await fetch(${url}, {
@@ -103,7 +103,7 @@ export const generateOptionsText = function generateOptionsText(
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(body),
 					});
-					return res.json();
+					return { ok: res.ok, data: await res.json() };
 				},
 			}),`;
 			}

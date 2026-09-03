@@ -30,11 +30,11 @@
 		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/next/quickstart#manual-setup)."
 	],
 	"usage": [
-		"Import `ConsentManagerProvider` in your app's root layout",
+		"Read the initial consent config and mount `ConsentBoundary` in your root layout",
 		"Add `ConsentBanner` and `ConsentDialog` components",
 		"Customize styling and behavior to fit your app",
 		"For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)",
-		"```tsx\n// app/layout.tsx\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from '@c15t/nextjs'\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <ConsentManagerProvider>\n          {children}\n          <ConsentBanner />\n          <ConsentDialog />\n        </ConsentManagerProvider>\n      </body>\n    </html>\n  )\n}\n```"
+		"```tsx\n// app/layout.tsx\nimport { ConsentBoundary, ConsentBanner, ConsentDialog } from '@c15t/nextjs'\nimport { readInitialConsentConfig } from '@c15t/nextjs/server'\n\nexport default async function RootLayout({ children }: { children: React.ReactNode }) {\n  const config = await readInitialConsentConfig()\n\n  return (\n    <html lang=\"en\">\n      <body>\n        <ConsentBoundary\n          config={config}\n          backendURL=\"https://your-instance.c15t.dev\"\n          options={{\n            consentCategories: ['necessary', 'measurement', 'marketing'],\n          }}\n        >\n          {children}\n          <ConsentBanner />\n          <ConsentDialog />\n        </ConsentBoundary>\n      </body>\n    </html>\n  )\n}\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/next/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/next/quickstart",

@@ -63,7 +63,7 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		z-index: 999999998;
+		z-index: 999998;
 		position: fixed;
 		inset: 0;
 		font-family: var(--iab-consent-banner-font-family);

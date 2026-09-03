@@ -39,7 +39,6 @@
 		ProviderIABOptions,
 		UsePersistenceOptions,
 	} from '../types';
-	import { defaultTheme } from '../utils';
 
 	const ALL_CONSENTS_ON: ConsentState = {
 		experience: true,
@@ -626,7 +625,7 @@
 		return () => mediaQuery.removeEventListener('change', handler);
 	});
 
-	const mergedTheme = $derived(deepMerge(defaultTheme, options.theme ?? {}));
+	const userTheme = $derived(options.theme);
 
 	setThemeContext({
 		get colorScheme() {
@@ -645,20 +644,28 @@
 			return options.scrollLock;
 		},
 		get theme() {
-			return mergedTheme;
+			return userTheme;
 		},
 		get trapFocus() {
 			return options.trapFocus ?? true;
 		},
 	});
 
-	const themeCSS = $derived(generateThemeCSS(mergedTheme));
+	const themeCSS = $derived(userTheme ? generateThemeCSS(userTheme) : '');
 
 	let themeStyleEl: HTMLStyleElement | null = null;
 	let ownedStyleEl = false;
 
 	$effect(() => {
-		if (!themeCSS || typeof document === 'undefined') {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		if (!themeCSS) {
+			if (ownedStyleEl && themeStyleEl) {
+				themeStyleEl.remove();
+				themeStyleEl = null;
+				ownedStyleEl = false;
+			}
 			return;
 		}
 		if (!themeStyleEl) {

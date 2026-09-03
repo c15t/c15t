@@ -55,6 +55,19 @@ describe('ConsentDialogLink', () => {
 		});
 	});
 
+	test('emits the shared styled-button data contract', async () => {
+		render(DialogLinkFixture, { options: defaultOptions, styled: true });
+
+		await waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="consent-dialog-link"]'
+			);
+			expect(link).toHaveAttribute('data-variant', 'neutral');
+			expect(link).toHaveAttribute('data-mode', 'stroke');
+			expect(link).toHaveAttribute('data-size', 'small');
+		});
+	});
+
 	test('opens dialog on click', async () => {
 		render(DialogLinkFixture, { options: defaultOptions });
 

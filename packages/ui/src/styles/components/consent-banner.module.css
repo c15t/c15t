@@ -58,7 +58,7 @@
 		flex-direction: column;
 		width: 100%;
 		display: flex;
-		z-index: 999999998;
+		z-index: 999998;
 		position: fixed;
 		font-family: var(--consent-banner-font-family);
 		line-height: var(--consent-banner-line-height);
@@ -315,7 +315,7 @@
 		position: fixed;
 		inset: 0px;
 		background-color: var(--consent-banner-overlay-background-color);
-		z-index: 999999997;
+		z-index: 999997;
 	}
 
 	/* Overlay — Vue <Transition> enter/leave classes */

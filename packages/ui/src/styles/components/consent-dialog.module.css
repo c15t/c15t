@@ -41,8 +41,8 @@
 	--consent-dialog-card-radius: var(--c15t-radius-lg);
 	--consent-dialog-max-width: 28rem;
 	--consent-dialog-height: 100%;
-	--consent-dialog-z-index: 999999999;
-	--consent-dialog-overlay-z-index: 999999998;
+	--consent-dialog-z-index: 999999;
+	--consent-dialog-overlay-z-index: 999998;
 
 	/* Effects */
 	--consent-dialog-card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);

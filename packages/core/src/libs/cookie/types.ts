@@ -16,9 +16,12 @@
  *
  * @example
  * ```typescript
- * import { createConsentManagerStore } from 'c15t';
+ * import { createConsentKernel } from 'c15t';
+ * import { createPersistence } from 'c15t/modules/persistence';
  *
- * const store = createConsentManagerStore(client, {
+ * const kernel = createConsentKernel();
+ * const persistence = createPersistence({
+ *   kernel,
  *   storageConfig: {
  *     storageKey: 'my-consent-storage',
  *     crossSubdomain: true,

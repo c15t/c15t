@@ -26,7 +26,7 @@
 		"Every export matches its scoped package: `c15t/react/hooks` is `@c15t/react/hooks`, `c15t/next` is `@c15t/nextjs`",
 		"For full implementation details, see the [quickstart docs](https://c15t.com/docs)",
 
-		"```tsx\n// React\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from 'c15t/react'\nimport 'c15t/react/styles.css'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentManagerProvider>\n  )\n}\n```"
+		"```tsx\n// React\nimport {\n  ConsentProvider,\n  ConsentBanner,\n  ConsentDialog,\n  hosted,\n} from 'c15t/react'\nimport 'c15t/react/styles.css'\n\nfunction App() {\n  return (\n    <ConsentProvider\n      options={{\n        mode: hosted({ url: 'https://your-instance.c15t.dev' }),\n        consentCategories: ['necessary', 'measurement', 'marketing'],\n      }}\n    >\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentProvider>\n  )\n}\n```"
 	],
 	"docsLink": "https://c15t.com/docs",
 	"quickStartLink": "https://c15t.com/docs",

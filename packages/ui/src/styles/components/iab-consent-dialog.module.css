@@ -29,8 +29,8 @@
 	--iab-cd-max-width: 48rem;
 	--iab-cd-max-height: 85vh;
 	--iab-cd-border-radius: var(--c15t-radius-lg);
-	--iab-cd-z-index: 999999999;
-	--iab-cd-overlay-z-index: 999999998;
+	--iab-cd-z-index: 999999;
+	--iab-cd-overlay-z-index: 999998;
 
 	/* Spacing */
 	--iab-cd-padding: var(--c15t-space-md);

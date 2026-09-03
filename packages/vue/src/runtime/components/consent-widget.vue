@@ -14,10 +14,10 @@ import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
  */
 import type { PolicyUiAction } from '@c15t/schema/types';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
+import buttonStyles from '@c15t/ui/styles/components/button';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import managerStyles from '@c15t/ui/styles/components/consent-manager';
 import {
-	buttonVariants,
 	preferenceItemVariants,
 	switchVariants,
 } from '@c15t/ui/styles/primitives';
@@ -177,17 +177,17 @@ const ACTION_TEST_IDS: Record<PolicyUiAction, string> = {
 	reject: 'consent-widget-reject-button',
 };
 
-const actionClass = function actionClass(
-	action: PolicyUiAction
-): string | undefined {
+const actionClass = function actionClass(): string | undefined {
 	if (props.noStyle) {
 		return undefined;
 	}
-	return buttonVariants({
-		mode: 'stroke',
-		size: 'small',
-		variant: primaryActions.value.includes(action) ? 'primary' : 'neutral',
-	}).root();
+	return buttonStyles.button;
+};
+
+const actionVariant = function actionVariant(
+	action: PolicyUiAction
+): 'primary' | 'neutral' {
+	return primaryActions.value.includes(action) ? 'primary' : 'neutral';
 };
 
 const isSplitLayout = computed(() => actionGroups.value.length > 1);
@@ -255,7 +255,6 @@ const onAction = function onAction(action: PolicyUiAction) {
 							:data-testid="`consent-widget-accordion-arrow-${category}`"
 						>
 							<svg
-								aria-hidden="true"
 								fill="none"
 								height="16"
 								width="16"
@@ -265,6 +264,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 								stroke-width="2"
 								viewBox="0 0 24 24"
 							>
+								<title>{{ isOpen(category) ? 'Close' : 'Open' }}</title>
 								<path :d="isOpen(category) ? 'M5 12h14' : 'M5 12h14M12 5v14'" />
 							</svg>
 						</div>
@@ -359,9 +359,12 @@ const onAction = function onAction(action: PolicyUiAction) {
 					v-for="action in group"
 					:key="action"
 					type="button"
-					:class="actionClass(action)"
+					:class="actionClass()"
 					:data-action="action"
+					:data-mode="noStyle ? undefined : 'stroke'"
+					:data-size="noStyle ? undefined : 'small'"
 					:data-testid="ACTION_TEST_IDS[action]"
+					:data-variant="noStyle ? undefined : actionVariant(action)"
 					@click="onAction(action)"
 				>
 					{{ labels[action] }}

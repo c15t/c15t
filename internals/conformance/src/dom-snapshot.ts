@@ -14,6 +14,8 @@
 
 const SVELTE_SCOPED_CLASS = /\bsvelte-[a-z0-9]+\b/gu;
 const S_SCOPED_CLASS = /\bs-[a-z0-9]{6,}\b/gu;
+const CSS_MODULE_CLASS = /^_(?<name>[^_]+)_[^_]+_\d+$/u;
+const SVELTE_CSS_MODULE_CLASS = /^c15t-ui-(?<name>.+)-[A-Za-z0-9]+$/u;
 const AUTO_ID_VALUE = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
 
 const STRIP_ATTRS = new Set([
@@ -28,6 +30,13 @@ const stripClasses = function stripClasses(classValue: string): string {
 		.replace(S_SCOPED_CLASS, '')
 		.split(/\s+/u)
 		.filter(Boolean)
+		.map(
+			(className) =>
+				className.match(CSS_MODULE_CLASS)?.groups?.name ??
+				className.match(SVELTE_CSS_MODULE_CLASS)?.groups?.name ??
+				className
+		)
+		.filter((className, index, classes) => classes.indexOf(className) === index)
 		.sort()
 		.join(' ');
 };
