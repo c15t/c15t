@@ -1,12 +1,17 @@
 /**
  * Browser-project test setup.
  *
- * Neither Node 26's built-in `localStorage` (inert without
- * `--localstorage-file`) nor this jsdom build exposes web storage, and the
- * runtime guards persistence behind `typeof localStorage !== 'undefined'`.
- * Without a real implementation the tests would pass while silently
- * exercising no persistence at all, so install an in-memory one — the same
- * approach `packages/core/vitest.setup.ts` takes for its node suite.
+ * Node's experimental webstorage global shadows the one jsdom puts on
+ * `window`, and it is inert without `--localstorage-file`, so `localStorage`
+ * ends up undefined. The runtime guards persistence behind
+ * `typeof localStorage !== 'undefined'`, so the tests would pass while
+ * silently exercising no persistence at all.
+ *
+ * Installing an in-memory implementation here — the approach
+ * `packages/core/vitest.setup.ts` already takes for its node suite — keeps
+ * the suite correct whatever flags vitest was launched with. Running with
+ * `NODE_OPTIONS=--no-experimental-webstorage` also works, but only for
+ * whoever remembers to set it.
  */
 
 class MemoryStorage implements Storage {
