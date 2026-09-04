@@ -101,6 +101,7 @@ export {
 	extractConsentRequestInputs,
 	getTranslations,
 	getTranslationsData,
+	headersToRecord,
 	inspectPolicies,
 	listProfiles,
 	POLICY_MATCH_DATASET_VERSION,
