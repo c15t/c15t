@@ -8,8 +8,14 @@
  */
 import { mergeInitOutputIntoKernelConfig } from '@c15t/core';
 import type { KernelConfig } from '@c15t/core';
-import type { InitOutput } from '@c15t/schema/types';
-import { headersToRecord } from '@c15t/schema/types';
+import type {
+	ConsentRequestHeaderInputs,
+	InitOutput,
+} from '@c15t/schema/types';
+import {
+	extractConsentRequestInputs,
+	headersToRecord,
+} from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { prefetchInitialConsent, readInitialConsentConfig } from '../server';
@@ -47,25 +53,58 @@ const readLocals = function readLocals(
 };
 
 /**
- * Resolves the base config: whatever {@link c15tHandle} already computed for
- * this request, or a fresh cookie + header read when the handle is not
- * installed.
+ * Resolves the base config and request inputs: whatever {@link c15tHandle}
+ * already computed for this request, or a fresh cookie + header read when the
+ * handle is not installed.
  */
-const resolveBaseConfig = function resolveBaseConfig(
+const resolveBase = async function resolveBase(
 	event: RequestEvent,
 	options: LoadConsentOptions
-): Promise<KernelConfig> {
+): Promise<{ config: KernelConfig; inputs: ConsentRequestHeaderInputs }> {
 	const locals = readLocals(event);
 	if (locals) {
-		return Promise.resolve(locals.config);
+		return locals;
 	}
-	return readInitialConsentConfig({
-		cookieName: options.cookieName,
+	const inputs = extractConsentRequestInputs(event.request.headers, {
 		country: options.country,
-		headers: event.request.headers,
 		language: options.language,
 		region: options.region,
 	});
+	const config = await readInitialConsentConfig({
+		cookieName: options.cookieName,
+		country: inputs.country,
+		headers: event.request.headers,
+		language: inputs.language,
+		region: inputs.region,
+	});
+	return { config, inputs };
+};
+
+/**
+ * Request headers for the same-origin init call.
+ *
+ * `event.fetch` only inherits `cookie` and `authorization`, so the geo,
+ * language and GPC context has to be restated explicitly — otherwise the init
+ * route resolves a different policy than the page did, and hydration corrects
+ * a banner the server already painted.
+ */
+const initRequestHeaders = function initRequestHeaders(
+	inputs: ConsentRequestHeaderInputs
+): Record<string, string> {
+	const headers: Record<string, string> = {};
+	if (inputs.country) {
+		headers['x-c15t-country'] = inputs.country;
+	}
+	if (inputs.region) {
+		headers['x-c15t-region'] = inputs.region;
+	}
+	if (inputs.language) {
+		headers['accept-language'] = inputs.language;
+	}
+	if (inputs.gpc !== undefined) {
+		headers['sec-gpc'] = inputs.gpc ? '1' : '0';
+	}
+	return headers;
 };
 
 /**
@@ -104,23 +143,25 @@ export const loadConsent = async function loadConsent(
 	event: RequestEvent,
 	options: LoadConsentOptions = {}
 ): Promise<KernelConfig> {
-	const base = await resolveBaseConfig(event, options);
+	const { config, inputs } = await resolveBase(event, options);
 
 	if (options.initRoute) {
+		const forwarded = initRequestHeaders(inputs);
 		try {
-			const response = await event.fetch(options.initRoute);
+			const response = await event.fetch(options.initRoute, {
+				headers: forwarded,
+			});
 			if (!response.ok) {
-				return base;
+				return config;
 			}
 			const payload = (await response.json()) as InitOutput;
-			return mergeInitOutputIntoKernelConfig(
-				base,
-				payload,
-				headersToRecord(event.request.headers)
-			);
+			return mergeInitOutputIntoKernelConfig(config, payload, {
+				...headersToRecord(event.request.headers),
+				...forwarded,
+			});
 		} catch {
 			// Fail soft: the client re-runs init on hydration.
-			return base;
+			return config;
 		}
 	}
 
@@ -128,14 +169,14 @@ export const loadConsent = async function loadConsent(
 		return prefetchInitialConsent({
 			backendURL: options.backendURL,
 			cookieName: options.cookieName,
-			country: options.country,
+			country: inputs.country,
 			fetch: options.fetch ?? event.fetch,
 			forwardHeaders: options.forwardHeaders,
 			headers: event.request.headers,
-			language: options.language,
-			region: options.region,
+			language: inputs.language,
+			region: inputs.region,
 		});
 	}
 
-	return base;
+	return config;
 };
