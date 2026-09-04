@@ -29,7 +29,7 @@ const proxyToBackend: RequestHandler = ({ fetch, params, request, url }) => {
 	} as RequestInit);
 };
 
-export const GET = consentRoutes.GET;
+export const { GET } = consentRoutes;
 export const POST = proxyToBackend;
 export const PATCH = proxyToBackend;
 export const OPTIONS = proxyToBackend;

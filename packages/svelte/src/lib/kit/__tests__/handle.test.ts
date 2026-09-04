@@ -10,7 +10,11 @@ const runHandle = async function runHandle(
 ) {
 	const resolve = vi.fn(() => Promise.resolve(new Response('ok')));
 	const response = await c15tHandle(options)({ event, resolve });
-	return { locals: (event.locals as { c15t: C15tLocals }).c15t, resolve, response };
+	return {
+		locals: (event.locals as { c15t: C15tLocals }).c15t,
+		resolve,
+		response,
+	};
 };
 
 describe('c15tHandle', () => {

@@ -14,7 +14,10 @@
  * - The init route is per-request (geo, language, GPC) and therefore
  *   `private, no-store`.
  */
-import { fetchCachedManifest, MANIFEST_PASSTHROUGH_HEADERS } from '@c15t/core/server';
+import {
+	fetchCachedManifest,
+	MANIFEST_PASSTHROUGH_HEADERS,
+} from '@c15t/core/server';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,

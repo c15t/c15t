@@ -10,7 +10,6 @@ import type { KernelConfig, ResolvedPolicy } from '@c15t/core';
 import { render } from 'svelte/server';
 import { describe, expect, test } from 'vitest';
 
-import ConsentBanner from '../lib/components/consent-banner.svelte';
 import ConsentManagerProvider from '../lib/components/consent-manager-provider.svelte';
 import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';

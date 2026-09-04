@@ -117,7 +117,8 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 				fetch: () =>
 					Promise.resolve(
 						manifestResponse({
-							'cache-control': 'public, s-maxage=300, stale-while-revalidate=86400',
+							'cache-control':
+								'public, s-maxage=300, stale-while-revalidate=86400',
 							etag: '"rev-1"',
 						})
 					),
@@ -162,7 +163,9 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 			});
 
 			await manifest(
-				createEvent({ url: 'http://localhost:5173/api/c15t/manifest?language=de' })
+				createEvent({
+					url: 'http://localhost:5173/api/c15t/manifest?language=de',
+				})
 			);
 
 			expect(fetchImpl.mock.calls[0]?.[0]).toBe(
