@@ -4,6 +4,7 @@ import type { SVGProps } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
 import { useBranding } from '~/hooks';
+import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -112,8 +113,12 @@ export const BrandingLink = ({
 	const { noStyle } = useTheme();
 	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
-	const refParam =
-		typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
+	// The referral hostname only exists in the browser. Reading `window` during
+	// the hydration render would make the client href differ from the
+	// server-rendered one and trip React's attribute-mismatch check, so the
+	// parameter is added after hydration instead.
+	const isHydrated = useIsHydrated();
+	const refParam = isHydrated ? `?ref=${window.location.hostname}` : '';
 	const context = slotContext;
 	const brandingStyle = mergeSlotProps(
 		context ? components?.tag?.[context] : undefined,
