@@ -9,13 +9,13 @@ group: frameworks
 ## Basic Usage
 
 ```tsx
-import { hosted, ConsentProvider, ConsentBanner } from 'c15t/react';
+import { ConsentManagerProvider, ConsentBanner } from 'c15t/react';
 
 export function ConsentManager() {
   return (
-    <ConsentProvider options={{ mode: hosted({ url: 'https://your-instance.c15t.dev'  })}}>
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
       <ConsentBanner />
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```

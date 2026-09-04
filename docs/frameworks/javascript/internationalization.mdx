@@ -6,28 +6,37 @@ group: frameworks
 
 <import src="../../shared/react/guides/internationalization.mdx#intro" />
 
-## Read Resolved Translations
+## Basic Configuration
 
-Hosted mode returns the language and translation bundle selected by the
-backend:
+Pass custom translations via the `i18n` option:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  i18n: {
+    locale: 'en',
+    messages: {
+      de: {
+        cookieBanner: {
+          title: 'Datenschutzeinstellungen',
+          description: 'Wir verwenden Cookies, um Ihnen das beste Erlebnis zu bieten.',
+        },
+        common: {
+          acceptAll: 'Alle akzeptieren',
+          rejectAll: 'Alle ablehnen',
+          customize: 'Anpassen',
+          save: 'Speichern',
+        },
+      },
+    },
+  },
 });
-
-await kernel.commands.init();
-
-const { translations } = kernel.getSnapshot();
-console.log(translations?.language);
-console.log(translations?.translations);
 ```
 
-For offline mode, pass a translation bundle to `createOfflineTransport()`.
+Custom translations are deep-merged with built-in defaults — you only need to override the keys you want to change.
 
 <import src="../../shared/react/guides/internationalization.mdx#imports" />
 
@@ -38,19 +47,20 @@ For offline mode, pass a translation bundle to `createOfflineTransport()`.
 Switch the active language at runtime with `setLanguage()`:
 
 ```ts
+const state = consentStore.getState();
+
 // Switch to German
-kernel.set.language('de');
-await kernel.commands.init();
+await state.setLanguage('de');
 
 // Build a language switcher
 document.getElementById('lang-select')?.addEventListener('change', async (e) => {
   const lang = (e.target as HTMLSelectElement).value;
-  kernel.set.language(lang);
-  await kernel.commands.init();
+  await consentStore.getState().setLanguage(lang);
 });
 ```
 
-Calling `commands.init()` after `set.language()` asks the transport to resolve
-the new language.
+`setLanguage()` re-fetches the consent banner to get server-resolved translations for the new language.
 
 <import src="../../shared/react/guides/internationalization.mdx#auto-detection" />
+
+<import src="../../shared/react/guides/internationalization.mdx#legacy-compat" />

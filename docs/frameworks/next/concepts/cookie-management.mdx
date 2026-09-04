@@ -14,13 +14,14 @@ Configure reload behavior in the provider:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/next';
+import { ConsentManagerProvider } from 'c15t/next';
 
 function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: '/api/c15t' }),
+        mode: 'hosted',
+        backendURL: '/api/c15t',
         reloadOnConsentRevoked: true, // default: true
         callbacks: {
           onBeforeConsentRevocationReload: ({ preferences }) => {
@@ -32,7 +33,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```

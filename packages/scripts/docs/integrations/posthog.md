@@ -34,18 +34,18 @@ This is the recommended approach if you're using the PostHog JS SDK; it's common
    posthog.opt_out_capturing() // Avoids cookie-based capture until c15t syncs consent
    ```
 
-3. **Sync settled consent once, then subscribe to real changes** The recommended PostHog SDK approach uses two phases: run one initial sync after c15t has finished resolving consent, then subscribe to future kernel snapshots.
+3. **Sync settled consent once, then subscribe to real changes** The recommended PostHog SDK approach uses two phases: run one initial sync after c15t has finished resolving consent, then subscribe to future real preference changes with `subscribeToConsentChanges()`.
 
    With cookieless\_mode: 'on\_reject', denied measurement consent does not mean "no events." It means PostHog records cookieless events without browser persistence. If your product needs denied consent to stop all PostHog event capture, do not use cookieless mode; load or call PostHog only after consent is granted.
 
    > ⚠️ Warning:
-   > Do not use posthog.has\_opted\_in\_capturing() or posthog.has\_opted\_out\_capturing() to decide whether to show your banner. In recent PostHog versions, has\_opted\_in\_capturing() can return true when consent is still pending. Use c15t's kernel snapshot as the source of truth, or use PostHog's get\_explicit\_consent\_status() when you specifically need PostHog's stored consent state.
+   > Do not use posthog.has\_opted\_in\_capturing() or posthog.has\_opted\_out\_capturing() to decide whether to show your banner. In recent PostHog versions, has\_opted\_in\_capturing() can return true when consent is still pending. Use c15t's consent store as the source of truth, or use PostHog's get\_explicit\_consent\_status() when you specifically need PostHog's stored consent state.
    >
    > ℹ️ Info:
-   > To wrap this in your framework, pass the callbacks option to your ConsentProvider the same way you would pass scripts — see the JavaScript, React, or Next.js script loader guide.
+   > To wrap this in your framework, pass the callbacks option to your ConsentManagerProvider the same way you would pass scripts — see the JavaScript, React, or Next.js script loader guide.
 
    ```ts
-   import { createConsentKernel, createHostedTransport, has } from 'c15t';
+   import { getOrCreateConsentRuntime } from 'c15t';
    import posthog from 'posthog-js';
 
    function syncPostHogMeasurementConsent(hasMeasurementConsent: boolean) {
@@ -56,25 +56,28 @@ This is the recommended approach if you're using the PostHog JS SDK; it's common
      }
    }
 
-   const kernel = createConsentKernel({
-     transport: createHostedTransport({
-       backendURL: 'https://your-instance.c15t.dev',
-     }),
+   const runtime = getOrCreateConsentRuntime({
+     mode: 'hosted',
+     callbacks: {
+       onBannerFetched() {
+         syncPostHogMeasurementConsent(
+           runtime.consentStore.getState().has('measurement')
+         );
+       },
+     },
    });
 
-   const syncFromSnapshot = () => {
-     syncPostHogMeasurementConsent(
-       has('measurement', kernel.getSnapshot().consents)
-     );
-   };
-
-   await kernel.commands.init();
-   syncFromSnapshot();
-   kernel.subscribe(syncFromSnapshot);
+   runtime.consentStore
+     .getState()
+     .subscribeToConsentChanges(({ allowedCategories }) => {
+       syncPostHogMeasurementConsent(
+         allowedCategories.includes('measurement')
+       );
+     });
    ```
 
    > ℹ️ Info:
-   > Keep this subscription for the lifetime of your app and call the returned unsubscribe function during teardown.
+   > Avoid using onConsentSet plus manual deduplication for PostHog. subscribeToConsentChanges() already gives you the exact change-only semantics most analytics SDKs need.
 
 ### Script helper pattern
 
@@ -111,7 +114,7 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
 3. **Add the script helper**
 
    import \{ type ReactNode } from 'react';
-   import \{ hosted, ConsentProvider } from 'c15t/react';
+   import \{ ConsentManagerProvider } from 'c15t/react';
    import \{ posthog } from '@c15t/scripts/posthog';
 
    const scripts = \[
@@ -122,21 +125,22 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
    &#x20;}),
    ];
 
-   export function ConsentManager(\{ children }: \{ children: ReactNode }) \{
+   export function ConsentProvider(\{ children }: \{ children: ReactNode }) \{
    &#x20;return (
-   &#x20;\<ConsentProvider
+   &#x20;\<ConsentManagerProvider
    &#x20;options=\{\{
-   &#x20;mode: hosted(\{ url: 'https\://your-instance.c15t.dev' }),
+   &#x20;mode: 'hosted',
+   &#x20;backendURL: 'https\://your-instance.c15t.dev',
    &#x20;scripts,
    &#x20;}}
    &#x20;\>
    &#x20;\{children}
-   &#x20;\</ConsentProvider>
+   &#x20;\</ConsentManagerProvider>
    &#x20;);
    }'use client';
 
    import \{ type ReactNode } from 'react';
-   import \{ hosted, ConsentProvider } from 'c15t/next';
+   import \{ ConsentManagerProvider } from 'c15t/next';
    import \{ posthog } from '@c15t/scripts/posthog';
 
    const scripts = \[
@@ -147,28 +151,25 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
    &#x20;}),
    ];
 
-   export function ConsentManager(\{ children }: \{ children: ReactNode }) \{
+   export function ConsentProvider(\{ children }: \{ children: ReactNode }) \{
    &#x20;return (
-   &#x20;\<ConsentProvider
+   &#x20;\<ConsentManagerProvider
    &#x20;options=\{\{
-   &#x20;mode: hosted(\{ url: '/api/c15t' }),
+   &#x20;mode: 'hosted',
+   &#x20;backendURL: '/api/c15t',
    &#x20;scripts,
    &#x20;}}
    &#x20;\>
    &#x20;\{children}
-   &#x20;\</ConsentProvider>
+   &#x20;\</ConsentManagerProvider>
    &#x20;);
-   }import \{ createConsentKernel, createHostedTransport } from 'c15t';
-   import \{ createScriptLoader } from 'c15t/modules/script-loader';
+   }import \{ getOrCreateConsentRuntime } from 'c15t';
    import \{ posthog } from '@c15t/scripts/posthog';
 
-   const kernel = createConsentKernel(\{
-   transport: createHostedTransport(\{ backendURL: 'https\://your-instance.c15t.dev' }),
-   });
-
-   createScriptLoader(\{
-   kernel,
-   scripts: \[
+   getOrCreateConsentRuntime(\{
+   &#x20;mode: 'hosted',
+   &#x20;backendURL: 'https\://your-instance.c15t.dev',
+   &#x20;scripts: \[
    &#x20;posthog(\{
    &#x20;id: 'phc\_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
    &#x20;region: 'eu',
@@ -176,8 +177,6 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
    &#x20;}),
    &#x20;],
    });
-
-   void kernel.commands.init();
 
 ### No PostHog request before consent
 

@@ -115,8 +115,8 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
-* Use `Frame` for iframe-only embeds so the child iframe does not mount before consent.
-* For SDK-backed UI, register the shared script through the provider and create each widget instance from lifecycle callbacks.
+* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
 
@@ -279,10 +279,11 @@ function SignupButton() {
 From non-React code, read the consent store directly:
 
 ```ts
-import { has } from 'c15t';
-import { kernel } from './consent';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-if (has('measurement', kernel.getSnapshot().consents)) {
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
   window.fathom?.trackEvent('signup');
 }
 ```

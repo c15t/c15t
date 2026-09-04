@@ -13,7 +13,7 @@ icon: pirsch
 
 ```tsx
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { pirsch } from '@c15t/scripts/pirsch';
 
 const scripts = [
@@ -22,16 +22,17 @@ const scripts = [
   }),
 ];
 
-export function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
         scripts,
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -42,7 +43,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/next';
+import { ConsentManagerProvider } from 'c15t/next';
 import { pirsch } from '@c15t/scripts/pirsch';
 
 const scripts = [
@@ -51,16 +52,17 @@ const scripts = [
   }),
 ];
 
-export function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: '/api/c15t' }),
+        mode: 'hosted',
+        backendURL: '/api/c15t',
         scripts,
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -68,24 +70,18 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { getOrCreateConsentRuntime } from 'c15t';
 import { pirsch } from '@c15t/scripts/pirsch';
 
-const kernel = createConsentKernel({
-transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
-});
-
-createScriptLoader({
-kernel,
-scripts: [
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  scripts: [
     pirsch({
       identificationCode: 'YOUR_IDENTIFICATION_CODE',
     }),
   ],
 });
-
-void kernel.commands.init();
 ```
 
 ## How c15t loads it

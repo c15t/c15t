@@ -11,16 +11,13 @@ Policy packs configure how c15t handles regional consent in the headless runtime
 Point the runtime at your backend — policy resolution happens server-side:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentStore } = getOrCreateConsentRuntime({
+  backendURL: 'https://your-instance.c15t.dev',
 });
 
-await kernel.commands.init();
-const state = kernel.getSnapshot();
+const state = consentStore.getState();
 console.log(state.policy?.id);
 console.log(state.policyDecision?.matchedBy);
 ```
@@ -32,24 +29,27 @@ Configure your presets on the backend side. The frontend receives the resolved p
 For local development, demos, or automated tests, select offline mode and pass presets directly:
 
 ```ts
-import { createConsentKernel, createOfflineTransport, policyPackPresets } from 'c15t';
+import {
+  getOrCreateConsentRuntime,
+  policyPackPresets,
+} from 'c15t';
 
-const kernel = createConsentKernel({
-  initialOverrides: {
-    country: 'US',
-    region: 'CA',
-  },
-  transport: createOfflineTransport({
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  offlinePolicy: {
     policyPacks: [
       policyPackPresets.europeOptIn(),
       policyPackPresets.californiaOptOut(),
       policyPackPresets.worldNoBanner(),
     ],
-  }),
+  },
+  overrides: {
+    country: 'US',
+    region: 'CA',
+  },
 });
 
-await kernel.commands.init();
-const state = kernel.getSnapshot();
+const state = consentStore.getState();
 console.log(state.policy?.id);       // → 'policy_ca_opt_out'
 console.log(state.policyDecision?.matchedBy); // → 'region'
 ```
@@ -57,9 +57,9 @@ console.log(state.policyDecision?.matchedBy); // → 'region'
 ## Custom Pack
 
 ```ts
-const kernel = createConsentKernel({
-  initialOverrides: { country: 'DE' },
-  transport: createOfflineTransport({
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  offlinePolicy: {
     policyPacks: [
       {
         id: 'eu',
@@ -74,19 +74,21 @@ const kernel = createConsentKernel({
         ui: { mode: 'none' },
       },
     ],
-  }),
+  },
+  overrides: { country: 'DE' },
 });
 ```
 
 ## Runtime Shape
 
-Offline policy resolution is configured on the offline transport:
+Offline policy resolution is configured directly on `offlinePolicy`:
 
 ```ts
-const kernel = createConsentKernel({
-  transport: createOfflineTransport({
-    policyPacks,
-  }),
+const runtime = getOrCreateConsentRuntime({
+  mode: 'offline',
+  offlinePolicy: {
+    policyPacks: [...],
+  },
 });
 ```
 
@@ -94,11 +96,11 @@ const kernel = createConsentKernel({
 
 | Configuration | Result |
 |--------------|--------|
-| `policyPacks` omitted | Synthetic opt-in policy |
-| `policyPacks: []` | Explicit no-banner mode |
+| `offlinePolicy.policyPacks` omitted | Synthetic opt-in policy |
+| `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
 | Non-empty pack, no match, no default | Explicit no-banner mode |
 
-The omitted configuration is intentionally conservative in offline mode. A local preview that forgets to pass `policyPacks` still shows an opt-in banner instead of silently dropping consent UI. Hosted mode does not use this policy when init fails.
+The omitted configuration is intentionally conservative in offline mode. A local preview that forgets to pass `offlinePolicy` still shows an opt-in banner instead of silently dropping consent UI. Hosted mode does not use this policy when init fails.
 
 ## When to Use Offline Mode
 

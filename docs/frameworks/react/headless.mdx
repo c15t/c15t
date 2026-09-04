@@ -88,23 +88,24 @@ function CustomConsentBanner() {
 
 ## Usage with Provider
 
-The headless UI still needs a `ConsentProvider`:
+The headless UI still needs a `ConsentManagerProvider`:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
     >
       <CustomConsentBanner />
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```

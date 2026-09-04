@@ -9,7 +9,7 @@ group: reference
 <section id="intro">
   c15t ships with built-in translations for 30+ languages via the `@c15t/translations` package. Language detection happens automatically based on the browser's language preference, and you can override or extend translations for any language.
 
-  Configure client-side translations with `i18n`, using `locale`, `detectBrowserLanguage`, and `messages`.
+  In c15t v2, the preferred config shape is `i18n` with `locale`, `detectBrowserLanguage`, and `messages`.
 
   There are two ways c15t can load translations: client-side or server-side.
 
@@ -109,4 +109,28 @@ group: reference
     },
   }
   ```
+</section>
+
+<section id="legacy-compat">
+  ## Legacy `translations` Compatibility
+
+  The legacy syntax is still supported in 2.0 for RC compatibility:
+
+  ```tsx
+  // Legacy (still supported)
+  translations: {
+    defaultLanguage: 'en',
+    disableAutoLanguageSwitch: true,
+    translations: { ... },
+  }
+
+  // Preferred in v2
+  i18n: {
+    locale: 'en',
+    detectBrowserLanguage: false,
+    messages: { ... },
+  }
+  ```
+
+  If both are provided, `i18n` takes precedence.
 </section>

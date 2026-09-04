@@ -23,6 +23,82 @@ group: reference
   <ConsentDialogTrigger icon={<MyCustomIcon />} />
   ```
 
+  ## Configurable Toolbar
+
+  Use the separate `ConsentDialogTriggerToolbar` when you want to place app-owned controls beside the privacy trigger. It always renders exactly one built-in action that opens consent preferences, so `actions` only contains controls your app owns.
+
+  ```tsx
+  <ConsentDialogTriggerToolbar
+    ariaLabel="Site controls"
+    actions={[
+      {
+        id: 'theme',
+        label: isDark ? 'Switch to light theme' : 'Switch to dark theme',
+        icon: isDark ? <SunIcon /> : <MoonIcon />,
+        pressed: isDark,
+        onSelect: toggleColorScheme,
+      },
+      {
+        id: 'support',
+        label: 'Open support chat',
+        icon: <ChatIcon />,
+        onSelect: openSupportChat,
+      },
+    ]}
+    preferences={{
+      icon: 'fingerprint',
+      label: 'Manage privacy settings',
+    }}
+  />
+  ```
+
+  Each custom action requires a stable `id`, accessible `label`, `icon`, and `onSelect` callback. Use `pressed` for toggle actions and `disabled` for unavailable actions. Your app remains responsible for state, integrations, and changing the icon or label. The preferences action automatically moves to the edge nearest the toolbar's snapped corner while custom actions keep their configured order.
+
+  Toolbars are horizontal by default. Set `orientation="vertical"` to stack the actions and enable Up/Down arrow-key navigation:
+
+  ```tsx
+  <ConsentDialogTriggerToolbar
+    orientation="vertical"
+    actions={toolbarActions}
+  />
+  ```
+
+  ### Toolbar Styling
+
+  The toolbar follows the standard styling precedence: internal CSS module styles, provider theme slots, then direct component overrides. Use `className` and `style` on the toolbar, or on an individual action, and use `noStyle` for a fully custom implementation.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        slots: {
+          consentDialogTriggerToolbar: 'my-toolbar',
+          consentDialogTriggerToolbarItem: 'my-toolbar-item',
+          consentDialogTriggerToolbarIcon: 'my-toolbar-icon',
+        },
+      },
+    }}
+  >
+    <ConsentDialogTriggerToolbar
+      className="fixed-toolbar"
+      style={{ '--cdtt-offset': '24px' }}
+      actions={[
+        {
+          id: 'support',
+          label: 'Open support chat',
+          icon: <ChatIcon />,
+          onSelect: openSupportChat,
+          className: 'support-action',
+        },
+      ]}
+    />
+  </ConsentManagerProvider>
+  ```
+
+  Available toolbar theme slots are `consentDialogTriggerToolbar`, `consentDialogTriggerToolbarItem`, and `consentDialogTriggerToolbarIcon`.
+
+  With `noStyle`, use `data-corner`, `data-dragging`, and `data-snapping` on the toolbar to style its current position and interaction state.
+
   ## Visibility
 
   Control when the trigger is visible:
@@ -83,4 +159,16 @@ group: reference
   ### ConsentDialogTrigger
 
   <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerProps" />
+
+  ### ConsentDialogTriggerToolbar
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerToolbarProps" />
+
+  ### Toolbar Actions
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerToolbarAction" />
+
+  ### Preferences Action
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerToolbarPreferences" />
 </section>

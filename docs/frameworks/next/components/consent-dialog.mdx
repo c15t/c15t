@@ -9,14 +9,14 @@ group: frameworks
 ## Basic Usage
 
 ```tsx
-import { hosted, ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
 
 export function ConsentManager() {
   return (
-    <ConsentProvider options={{ mode: hosted({ url: '/api/c15t'  })}}>
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
       <ConsentBanner />
       <ConsentDialog />
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```

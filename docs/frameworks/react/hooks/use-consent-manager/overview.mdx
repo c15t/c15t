@@ -41,7 +41,7 @@ When using Clerk, wait for Clerk to load and prefer its authenticated `userId`. 
 
 ```tsx
 import { useAuth } from '@clerk/react';
-import { hosted, ConsentProvider } from 'c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 
 function ConsentApp() {
   // Render this component beneath your existing ClerkProvider.
@@ -59,55 +59,56 @@ function ConsentApp() {
       : undefined;
 
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
         consentCategories: ['necessary', 'measurement', 'marketing'],
         user: consentUser,
       }}
     >
       <ClerkConsentSync />
       <MyComponents />
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
 
 ### 2. Synchronizing Clerk Sign-ins
 
-Use a component inside `ConsentProvider` to update the current consent subject when Clerk's authentication state changes:
+Use a component inside `ConsentManagerProvider` to update the current consent subject when Clerk's authentication state changes:
 
 ```tsx
 import { useAuth } from '@clerk/react';
-import { useIdentify } from 'c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { useEffect } from 'react';
 
 function ClerkConsentSync() {
   const { isLoaded, isSignedIn, userId } = useAuth();
-  const identify = useIdentify();
+  const { identifyUser } = useConsentManager();
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !userId) {
       return;
     }
 
-    void identify({
-      externalId: userId,
+    void identifyUser({
+      id: userId,
       identityProvider: 'clerk',
     }).then(() => {
       clearVisitorId();
     });
-  }, [identify, isLoaded, isSignedIn, userId]);
+  }, [identifyUser, isLoaded, isSignedIn, userId]);
 
   return null;
 }
 ```
 
-`identify()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, clear the previous visitor ID from the application state or storage used by `getVisitorId()` so it cannot replace the Clerk ID later.
+`identifyUser()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, clear the previous visitor ID from the application state or storage used by `getVisitorId()` so it cannot replace the Clerk ID later.
 
 <Callout type="info">
-  Backend subject identification requires hosted mode (`mode: hosted({ url })`). In
-  offline mode, `identify()` cannot update a backend subject. Identifiers
+  Backend subject identification requires hosted mode (`mode: 'hosted'`). In
+  offline mode, `identifyUser()` cannot update a backend subject. Identifiers
   supplied through `options.user` can still be held in client state and
   persisted with locally stored consent, so do not place sensitive values
   there.

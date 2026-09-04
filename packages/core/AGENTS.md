@@ -8,11 +8,11 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
-- [Checking Consent](./docs/frameworks/javascript/api/checking-consent.md): Read consent state from the kernel — check individual categories, logical conditions, and the full consent object.
+- [Checking Consent](./docs/frameworks/javascript/api/checking-consent.md): Read consent state from the store — check individual categories, logical conditions, and the full consent object.
 - [Location & Identity](./docs/frameworks/javascript/api/location-info.md): Access detected location, override geolocation, change language, and link user identity.
-- [Kernel API Overview](./docs/frameworks/javascript/api/overview.md): Core API entry points for framework-neutral JavaScript consent management.
-- [Setting Consent](./docs/frameworks/javascript/api/setting-consent.md): Save, stage, and reset consent preferences using the kernel API.
-- [Building UI](./docs/frameworks/javascript/building-ui.md): Build your own consent UI on top of the headless c15t kernel — with vanilla DOM, any framework, or the @c15t/ui theme system.
+- [Store API Overview](./docs/frameworks/javascript/api/overview.md): Core API entry points for JavaScript consent management — runtime creation, store access, and subscription patterns.
+- [Setting Consent](./docs/frameworks/javascript/api/setting-consent.md): Save, stage, and reset consent preferences using the store API.
+- [Building UI](./docs/frameworks/javascript/building-ui.md): Build your own consent UI on top of the headless c15t store — with vanilla DOM, any framework, or the @c15t/ui theme system.
 - [Callbacks](./docs/frameworks/javascript/callbacks.md): React to consent lifecycle events — initialization, consent changes, errors, and revocation reloads.
 - [Client Modes](./docs/frameworks/javascript/concepts/client-modes.md): Choose how c15t connects to its backend — full hosted integration, offline-only, or bring your own backend.
 - [Consent Categories](./docs/frameworks/javascript/concepts/consent-categories.md): How c15t organizes tracking technologies into five consent categories.
@@ -29,7 +29,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Policy Packs](./docs/frameworks/javascript/policy-packs.md): Configure regional consent policies in the headless JavaScript runtime with hosted or offline policy resolution.
 - [Quickstart](./docs/frameworks/javascript/quickstart.md): Get started with c15t in vanilla JavaScript — framework-agnostic consent management with no UI dependencies.
 - [Script Loader](./docs/frameworks/javascript/script-loader.md): Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
-- [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Solutions for common issues with c15t in JavaScript — kernel access, missing banners, consent persistence, and more.
+- [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Solutions for common issues with c15t in JavaScript — store access, missing banners, consent persistence, and more.
 
 ## Integrations
 
@@ -44,6 +44,7 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Crisp](./docs/integrations/crisp.md): Load Crisp live chat with website ID, runtime, cookie, and session options.
 - [Databuddy](./docs/integrations/databuddy.md): Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
+- [Google Maps](./docs/integrations/google-maps.md): Render Google Maps only after consent with one shared Maps JavaScript API loader and independently managed map instances.
 - [GA4 + Google Ads (gtag.js)](./docs/integrations/google-tag.md): Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Deploy and manage marketing tags centrally with automatic consent state synchronization.
 - [Heap](./docs/integrations/heap.md): Load Heap with c15t and gate autocapture product analytics behind measurement consent.
@@ -71,6 +72,7 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Umami Analytics](./docs/integrations/umami-analytics.md): Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 - [Vercel Analytics](./docs/integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./docs/integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
+- [YouTube](./docs/integrations/youtube.md): Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
 
 ## Reference
 
@@ -87,7 +89,7 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Consent Dialog](./docs/shared/react/components/consent-dialog.md): Reference page for consent dialog.
 - [Consent Dialog Link](./docs/shared/react/components/consent-dialog-link.md): Reference page for consent dialog link.
 - [Consent Dialog Trigger](./docs/shared/react/components/consent-dialog-trigger.md): Reference page for consent dialog trigger.
-- [Consent Provider](./docs/shared/react/components/consent-manager-provider.md): Reference page for the React consent provider.
+- [Consent Manager Provider](./docs/shared/react/components/consent-manager-provider.md): Reference page for consent manager provider.
 - [Consent Widget](./docs/shared/react/components/consent-widget.md): Reference page for consent widget.
 - [Dev Tools](./docs/shared/react/components/dev-tools.md): Reference page for dev tools.
 - [Frame](./docs/shared/react/components/frame.md): Reference page for frame.
@@ -108,6 +110,7 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Use Draggable](./docs/shared/react/hooks/use-draggable.md): Reference page for use draggable.
 - [Use Focus Trap](./docs/shared/react/hooks/use-focus-trap.md): Reference page for use focus trap.
 - [Use Reduced Motion](./docs/shared/react/hooks/use-reduced-motion.md): Reference page for use reduced motion.
+- [Use SSR Status](./docs/shared/react/hooks/use-ssr-status.md): Reference page for use ssr status.
 - [Use Text Direction](./docs/shared/react/hooks/use-text-direction.md): Reference page for use text direction.
 - [Use Translations](./docs/shared/react/hooks/use-translations.md): Reference page for use translations.
 - [Consent Banner](./docs/shared/react/iab/consent-banner.md): Reference page for consent banner.

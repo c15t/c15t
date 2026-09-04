@@ -12,7 +12,7 @@ Matomo gives you privacy-focused web analytics with self-hosted and cloud deploy
 
 ```tsx
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
 
 const scripts = [
@@ -22,16 +22,17 @@ const scripts = [
   }),
 ];
 
-export function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
         scripts,
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -42,7 +43,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/next';
+import { ConsentManagerProvider } from 'c15t/next';
 import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
 
 const scripts = [
@@ -52,16 +53,17 @@ const scripts = [
   }),
 ];
 
-export function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: '/api/c15t' }),
+        mode: 'hosted',
+        backendURL: '/api/c15t',
         scripts,
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -69,25 +71,19 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { getOrCreateConsentRuntime } from 'c15t';
 import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
 
-const kernel = createConsentKernel({
-transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
-});
-
-createScriptLoader({
-kernel,
-scripts: [
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  scripts: [
     matomoAnalytics({
       matomoUrl: 'https://analytics.example.com',
       siteId: 1,
     }),
   ],
 });
-
-void kernel.commands.init();
 ```
 
 ## How c15t loads it
@@ -145,11 +141,11 @@ function SignupExample() {
 From plain JavaScript:
 
 ```ts
-import { has } from 'c15t';
-import { kernel } from './consent';
+import { getOrCreateConsentRuntime } from 'c15t';
 
+const { consentStore } = getOrCreateConsentRuntime();
 
-if (has('measurement', kernel.getSnapshot().consents)) {
+if (consentStore.getState().has('measurement')) {
   window._paq?.push(['trackEvent', 'signup', 'completed']);
 }
 ```

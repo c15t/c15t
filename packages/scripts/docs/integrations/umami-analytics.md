@@ -13,21 +13,22 @@ Umami is an open-source, cookieless analytics product configured entirely throug
 
 ```tsx
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
 
 const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
 
-export function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
         scripts,
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -38,21 +39,22 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { hosted, ConsentProvider } from 'c15t/next';
+import { ConsentManagerProvider } from 'c15t/next';
 import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
 
 const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
 
-export function ConsentManager({ children }: { children: ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: '/api/c15t' }),
+        mode: 'hosted',
+        backendURL: '/api/c15t',
         scripts,
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -60,20 +62,14 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { getOrCreateConsentRuntime } from 'c15t';
 import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
 
-const kernel = createConsentKernel({
-transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  scripts: [umamiAnalytics({ websiteId: 'site-abc-123' })],
 });
-
-createScriptLoader({
-kernel,
-scripts: [umamiAnalytics({ websiteId: 'site-abc-123' })],
-});
-
-void kernel.commands.init();
 ```
 
 ## How c15t loads it
@@ -122,11 +118,11 @@ function useTrackSignup() {
 From plain JavaScript:
 
 ```ts
-import { has } from 'c15t';
-import { kernel } from './consent';
+import { getOrCreateConsentRuntime } from 'c15t';
 
+const { consentStore } = getOrCreateConsentRuntime();
 
-if (has('measurement', kernel.getSnapshot().consents)) {
+if (consentStore.getState().has('measurement')) {
   window.umami?.track('signup');
 }
 ```

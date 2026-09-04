@@ -9,7 +9,7 @@ group: reference
 <section id="content">
   ## What Are Component Slots?
 
-  Component slots let you target specific parts of the stock consent UI with framework-native attributes. In React, slots are configured through `ConsentProvider.options.components`.
+  Component slots let you target specific parts of the stock consent UI with framework-native attributes. In React v3, slots are configured through `ConsentManagerProvider.options.components`.
 
   Use slots after the stock component APIs and design tokens:
 
@@ -21,7 +21,7 @@ group: reference
   Pass slot props in the provider `components` object:
 
   ```tsx
-  <ConsentProvider
+  <ConsentManagerProvider
     options={{
       components: {
         banner: {
@@ -39,7 +39,7 @@ group: reference
     }}
   >
     <ConsentBanner />
-  </ConsentProvider>
+  </ConsentManagerProvider>
   ```
 
   Each slot accepts a React attribute bag. `className`, `style`, `data-*`, ARIA attributes, and other valid HTML attributes are preserved.
@@ -87,5 +87,5 @@ group: reference
   | `iab-dialog.footer` | Footer container for IAB dialog actions. |
   | `tag.iab-dialog` | Branding tag rendered below the IAB dialog card. |
 
-  The React slot contract is shared with `@c15t/vue` through `@c15t/schema/config`.
+  The React v3 slot contract is shared with `@c15t/vue` through `@c15t/schema/config`.
 </section>

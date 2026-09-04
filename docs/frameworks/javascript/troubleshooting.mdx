@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues with c15t in JavaScript — kernel access, missing banners, consent persistence, and more.
+description: Solutions for common issues with c15t in JavaScript — store access, missing banners, consent persistence, and more.
 group: frameworks
 ---
 
@@ -14,32 +14,33 @@ group: frameworks
 
 <import src="../../shared/troubleshooting.mdx#esm-only" />
 
-## Kernel Not Accessible
+## Store Not Accessible
 
-**Symptom:** Code that reads `kernel.getSnapshot()` cannot access the kernel.
+**Symptom:** `window.c15tStore` is `undefined`, or `consentStore.getState()` throws an error.
 
 **Fixes:**
 
-Create the kernel in a module and export that instance to every consumer:
+1. **Runtime not initialized** — Ensure `getOrCreateConsentRuntime()` has been called before accessing the store:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-export const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
 });
 
-await kernel.commands.init();
-console.log(kernel.getSnapshot());
+// Now the store is accessible
+console.log(consentStore.getState());
+console.log(window.c15tStore?.getState());
 ```
 
-The kernel is not installed on `window`. If browser-console access is useful
-during development, assign it explicitly in your application code.
+2. **Script load order** — If using `<script>` tags, make sure the script that initializes the runtime loads before any scripts that access `window.c15tStore`.
+
+3. **Custom namespace** — If you set a custom `namespace` in store options, the window property will use that name instead of `c15tStore`.
 
 ## Still Stuck?
 
-- Subscribe to `kernel.events.on('command:error', ...)` to inspect failures
-- Inspect `kernel.getSnapshot()` in the browser console
+- Enable `debug: true` in runtime options for verbose console logging
+- Inspect `window.c15tStore?.getState()` in the browser console
 - Check the [GitHub issues](https://github.com/c15t/c15t/issues) for known bugs

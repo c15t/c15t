@@ -4,66 +4,62 @@ description: Access detected location, override geolocation, change language, an
 group: frameworks
 ---
 
-## `location`
+## `locationInfo`
 
 The detected location data, available after initialization completes. Contains the user's country and region as resolved by the c15t backend (or overrides in offline mode).
 
 ```ts
-const { location } = kernel.getSnapshot();
+const { locationInfo } = consentStore.getState();
 
-if (location) {
-  console.log('Country:', location.countryCode); // 'DE'
-  console.log('Region:', location.regionCode);   // 'BY'
+if (locationInfo) {
+  console.log('Country:', locationInfo.countryCode); // 'DE'
+  console.log('Region:', locationInfo.regionCode);   // 'BY'
 }
 ```
 
 Subscribe to location changes:
 
 ```ts
-let previousLocation = kernel.getSnapshot().location;
-
-kernel.subscribe((snapshot) => {
-  if (snapshot.location !== previousLocation && snapshot.location) {
-    console.log('Location detected:', snapshot.location.countryCode);
-    previousLocation = snapshot.location;
+consentStore.subscribe((state, prevState) => {
+  if (state.locationInfo !== prevState.locationInfo && state.locationInfo) {
+    console.log('Location detected:', state.locationInfo.countryCode);
   }
 });
 ```
 
-## `set.overrides(overrides)`
+## `setOverrides(overrides)`
 
 Override the detected geolocation. This re-runs initialization with the new location, which may change the consent model (e.g., switching from opt-out to opt-in when changing from US to DE).
 
 ```ts
+const state = consentStore.getState();
+
 // Override as EU visitor (triggers GDPR opt-in model)
-kernel.set.overrides({ country: 'DE' });
-await kernel.commands.init();
+await state.setOverrides({ country: 'DE' });
 
 // Override as California visitor (triggers CCPA opt-out model)
-kernel.set.overrides({ country: 'US', region: 'CA' });
-await kernel.commands.init();
+await state.setOverrides({ country: 'US', region: 'CA' });
 
 // Override country and language together
-kernel.set.overrides({ country: 'FR', language: 'fr' });
-await kernel.commands.init();
+await state.setOverrides({ country: 'FR', language: 'fr' });
 ```
 
 <Callout type="info">
-  Setters are synchronous. Call `commands.init()` afterward to ask the hosted transport to resolve the new jurisdiction, model, and translations.
+  `setOverrides()` triggers a new `/init` request to the backend (in hosted mode), so the resolved jurisdiction, model, and translations will update accordingly.
 </Callout>
 
-## `set.language(language)`
+## `setLanguage(language)`
 
 Change the active language at runtime. This re-fetches the consent banner to get server-resolved translations for the new language.
 
 ```ts
+const state = consentStore.getState();
+
 // Switch to German
-kernel.set.language('de');
-await kernel.commands.init();
+await state.setLanguage('de');
 
 // Switch to French
-kernel.set.language('fr');
-await kernel.commands.init();
+await state.setLanguage('fr');
 ```
 
 Use this to build a language switcher:
@@ -71,19 +67,20 @@ Use this to build a language switcher:
 ```ts
 document.getElementById('lang-select')?.addEventListener('change', async (e) => {
   const lang = (e.target as HTMLSelectElement).value;
-  kernel.set.language(lang);
-  await kernel.commands.init();
+  await consentStore.getState().setLanguage(lang);
 });
 ```
 
-## `commands.identify(user)`
+## `identifyUser(user)`
 
 Link an authenticated user identity to the consent record. This allows the c15t backend to associate consent across devices for the same user.
 
 ```ts
+const state = consentStore.getState();
+
 // After user logs in
-await kernel.commands.identify({
-  externalId: 'user_123',
+await state.identifyUser({
+  id: 'user_123',
   identityProvider: 'clerk',
 });
 ```
@@ -91,5 +88,5 @@ await kernel.commands.identify({
 The `identityProvider` field indicates which auth system provided the ID (e.g., `'clerk'`, `'auth0'`, `'custom'`).
 
 <Callout type="warn">
-  `commands.identify()` sends the external ID to the configured transport. Only call this after the user has authenticated and consented to being identified.
+  `identifyUser()` sends the user ID to the c15t backend. Only call this after the user has authenticated and consented to being identified.
 </Callout>

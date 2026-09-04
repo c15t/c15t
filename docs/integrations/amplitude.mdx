@@ -13,7 +13,7 @@ icon: amplitude
   <Tab value="React">
     ```tsx
     import { type ReactNode } from 'react';
-    import { hosted, ConsentProvider } from 'c15t/react';
+    import { ConsentManagerProvider } from 'c15t/react';
     import { amplitude } from '@c15t/scripts/amplitude';
 
     const scripts = [
@@ -25,16 +25,17 @@ icon: amplitude
       }),
     ];
 
-    export function ConsentManager({ children }: { children: ReactNode }) {
+    export function ConsentProvider({ children }: { children: ReactNode }) {
       return (
-        <ConsentProvider
+        <ConsentManagerProvider
           options={{
-            mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
             scripts,
           }}
         >
           {children}
-        </ConsentProvider>
+        </ConsentManagerProvider>
       );
     }
     ```
@@ -45,7 +46,7 @@ icon: amplitude
     'use client';
 
     import { type ReactNode } from 'react';
-    import { hosted, ConsentProvider } from 'c15t/next';
+    import { ConsentManagerProvider } from 'c15t/next';
     import { amplitude } from '@c15t/scripts/amplitude';
 
     const scripts = [
@@ -57,16 +58,17 @@ icon: amplitude
       }),
     ];
 
-    export function ConsentManager({ children }: { children: ReactNode }) {
+    export function ConsentProvider({ children }: { children: ReactNode }) {
       return (
-        <ConsentProvider
+        <ConsentManagerProvider
           options={{
-            mode: hosted({ url: '/api/c15t' }),
+            mode: 'hosted',
+            backendURL: '/api/c15t',
             scripts,
           }}
         >
           {children}
-        </ConsentProvider>
+        </ConsentManagerProvider>
       );
     }
     ```
@@ -74,17 +76,13 @@ icon: amplitude
 
   <Tab value="JavaScript">
     ```ts
-    import { createConsentKernel, createHostedTransport } from 'c15t';
-    import { createScriptLoader } from 'c15t/modules/script-loader';
+    import { getOrCreateConsentRuntime } from 'c15t';
     import { amplitude } from '@c15t/scripts/amplitude';
 
-    const kernel = createConsentKernel({
-    transport: createHostedTransport({ backendURL: 'https://your-instance.c15t.dev' }),
-    });
-
-    createScriptLoader({
-    kernel,
-    scripts: [
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
         amplitude({
           apiKey: 'AMPLITUDE_API_KEY',
           initOptions: {
@@ -93,8 +91,6 @@ icon: amplitude
         }),
       ],
     });
-
-    void kernel.commands.init();
     ```
   </Tab>
 </Tabs>
@@ -206,11 +202,11 @@ function SignupExample() {
 From plain JavaScript:
 
 ```ts
-import { has } from 'c15t';
-import { kernel } from './consent';
+import { getOrCreateConsentRuntime } from 'c15t';
 
+const { consentStore } = getOrCreateConsentRuntime();
 
-if (has('measurement', kernel.getSnapshot().consents)) {
+if (consentStore.getState().has('measurement')) {
   window.amplitude?.track('Signup Completed', { plan: 'pro' });
 }
 ```

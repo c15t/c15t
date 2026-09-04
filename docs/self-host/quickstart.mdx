@@ -92,9 +92,10 @@ If you want a fully managed experience we recommend using [inth.com](https://int
     Update your frontend consent manager to use your self-hosted URL:
 
     ```tsx
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://example.com/api/c15t' }),
+        mode: 'hosted',
+        backendURL: 'https://example.com/api/c15t',
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
     >

@@ -30,7 +30,7 @@ Apply Tailwind classes via the theme's `slots` object:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { hosted, type Theme, ConsentProvider } from 'c15t/next';
+import { type Theme, ConsentManagerProvider } from 'c15t/next';
 
 const theme = {
   slots: {
@@ -47,9 +47,9 @@ const theme = {
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider options={{ theme, mode: hosted({ url: '/api/c15t'  })}}>
+    <ConsentManagerProvider options={{ theme, mode: 'hosted', backendURL: '/api/c15t' }}>
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```

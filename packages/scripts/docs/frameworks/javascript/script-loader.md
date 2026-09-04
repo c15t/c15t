@@ -21,23 +21,15 @@ Use it for analytics, pixels, tag managers, product analytics, and other vendor 
 
 ## Basic Usage
 
-Create the loader after the kernel has initialized:
+Pass an array of `Script` objects to the runtime options:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createScriptLoader } from 'c15t/modules/script-loader';
+import { getOrCreateConsentRuntime } from 'c15t';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
-});
-
-await kernel.commands.init();
-
-const scriptLoader = createScriptLoader({
-  kernel,
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
   scripts: [
     metaPixel({ pixelId: '123456' }),
     {
@@ -146,8 +138,8 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
-* Use `Frame` for iframe-only embeds so the child iframe does not mount before consent.
-* For SDK-backed UI, register the shared script through the provider and create each widget instance from lifecycle callbacks.
+* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
 
@@ -310,10 +302,11 @@ function SignupButton() {
 From non-React code, read the consent store directly:
 
 ```ts
-import { has } from 'c15t';
-import { kernel } from './consent';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-if (has('measurement', kernel.getSnapshot().consents)) {
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
   window.fathom?.trackEvent('signup');
 }
 ```
@@ -333,21 +326,24 @@ When a script does not behave as expected:
 
 ## Dynamic Script Management
 
-Replace the configured scripts or inspect loaded script IDs through the loader
-handle:
+Add, remove, or check scripts at runtime via the store:
 
 ```ts
-scriptLoader.updateScripts([
-  // Keep existing entries that should remain active
-  metaPixel({ pixelId: '123456' }),
+const state = consentStore.getState();
+
+// Add scripts dynamically
+state.setScripts([
   { id: 'dynamic', src: 'https://cdn.example.com/widget.js', category: 'measurement' },
 ]);
 
-// Get all loaded script IDs
-const allLoaded = scriptLoader.getLoadedScriptIds();
+// Remove a script
+state.removeScript('dynamic');
 
-// Remove mounted scripts and stop listening during teardown
-scriptLoader.dispose();
+// Check if a script is loaded
+const loaded = state.isScriptLoaded('custom-analytics');
+
+// Get all loaded script IDs
+const allLoaded = state.getLoadedScriptIds();
 ```
 
 ## API Reference

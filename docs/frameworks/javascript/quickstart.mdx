@@ -10,23 +10,18 @@ group: frameworks
 
 The root `c15t` entry point is the headless engine; the same package also provides `c15t/react` and `c15t/next`. Only need the engine? See [Granular Installs](/docs/granular-installs) for installing the scoped `@c15t/core` package alone.
 
-## Create the Kernel
+## Initialize the Runtime
 
-`createConsentKernel()` creates an isolated consent state container. Add the
-persistence module in browser code, then initialize the selected transport.
+`getOrCreateConsentRuntime()` creates a consent client and a Zustand vanilla store in a single call. The store holds all consent state and exposes methods for checking, setting, and subscribing to consent changes.
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
-import { createPersistence } from 'c15t/modules/persistence';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentManager, consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
 });
-
-const persistence = createPersistence({ kernel });
-await kernel.commands.init();
 ```
 
 <Callout type="info">
@@ -34,94 +29,93 @@ await kernel.commands.init();
 </Callout>
 
 <Callout type="warn">
-  You can switch to `createOfflineTransport()` for local-only storage, demos, or static previews, but that removes backend audit history, automatic jurisdiction detection, and server-side consent awareness. Review [Client Modes](/docs/frameworks/javascript/concepts/client-modes) before using offline mode in production.
+  You can switch to `mode: 'offline'` for local-only storage, demos, or static previews, but that removes backend audit history, automatic jurisdiction detection, and server-side consent awareness. Review [Client Modes](/docs/frameworks/javascript/concepts/client-modes) before using offline mode in production.
 </Callout>
 
 ## Subscribe to State Changes
 
-Use `subscribe()` for state updates and `getSnapshot()` to read the current
-immutable snapshot:
+The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/reference/apis/create-store). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:
 
 ```ts
 // React to every state change
-const unsubscribe = kernel.subscribe((snapshot) => {
-  console.log('Consent state:', snapshot.consents);
-  console.log('Show banner?', snapshot.activeUI === 'banner');
+consentStore.subscribe((state) => {
+  console.log('Consent state:', state.consents);
+  console.log('Show banner?', state.activeUI === 'banner');
 });
 
-// Read current state at any time
-const snapshot = kernel.getSnapshot();
-console.log('Measurement consent:', snapshot.consents.measurement);
+// React only to real saved preference changes
+consentStore
+  .getState()
+  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+    analytics.syncConsent({ allowedCategories, deniedCategories });
+  });
 
-// Stop listening during teardown
-unsubscribe();
-persistence.dispose();
+// Read current state at any time
+const state = consentStore.getState();
+console.log('Has measurement consent:', state.has('measurement'));
 ```
 
 ## Check and Set Consent
 
 ```ts
-import { has } from 'c15t';
-
-const snapshot = kernel.getSnapshot();
+const state = consentStore.getState();
 
 // Check if a category has consent
-if (has('measurement', snapshot.consents)) {
+if (state.has('measurement')) {
   // Safe to load analytics
 }
 
 // Accept all categories
-await kernel.commands.save('all');
+await state.saveConsents('all');
 
 // Accept only necessary categories
-await kernel.commands.save('none');
+await state.saveConsents('necessary');
 
 // Set a specific category
-kernel.set.consent({ marketing: true });
+state.setConsent('marketing', true);
 ```
 
 ## Minimal Consent Prompt
 
-Here's a bare-bones example using the kernel to drive a consent prompt — no framework required:
+Here's a bare-bones example using the store to drive a consent prompt — no framework required:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
 });
 
 // Subscribe to show/hide the banner
-kernel.subscribe((snapshot) => {
+consentStore.subscribe((state) => {
   const banner = document.getElementById('consent-banner');
   if (banner) {
-    banner.style.display = snapshot.activeUI === 'banner' ? 'block' : 'none';
+    banner.style.display = state.activeUI === 'banner' ? 'block' : 'none';
   }
 });
 
 // Wire up buttons
 document.getElementById('accept-all')?.addEventListener('click', () => {
-  void kernel.commands.save('all');
+  consentStore.getState().saveConsents('all');
 });
 
 document.getElementById('reject')?.addEventListener('click', () => {
-  void kernel.commands.save('none');
+  consentStore.getState().saveConsents('necessary');
 });
-
-await kernel.commands.init();
 ```
 
 ## Verify It Works
 
-Open the browser console and inspect the kernel snapshot:
+Open the browser console and inspect the store state:
 
 ```ts
-const snapshot = kernel.getSnapshot();
-console.log('Consents:', snapshot.consents);
-console.log('Has consented:', snapshot.hasConsented);
-console.log('Location:', snapshot.location);
+// The store is also available on the window object
+const state = window.c15tStore?.getState();
+console.log('Consents:', state?.consents);
+console.log('Has consented:', state?.hasConsented());
+console.log('Location:', state?.locationInfo);
 ```
 
 <Callout type="info">
@@ -139,7 +133,7 @@ See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
 ## Next Steps
 
 - [Client Modes](/docs/frameworks/javascript/concepts/client-modes) — Choose between hosted, offline, or custom backend
-- [Kernel API](/docs/frameworks/javascript/api/overview) — Full reference for snapshots, setters, and commands
+- [Store API](/docs/frameworks/javascript/api/overview) — Full reference for store state and actions
 - [Script Loader](/docs/frameworks/javascript/script-loader) — Gate third-party scripts behind consent
 - [Building UI](/docs/frameworks/javascript/building-ui) — Create your own consent components
 - [AI Agents](/docs/ai-agents) — Get bundled package docs and reusable agent skills for c15t

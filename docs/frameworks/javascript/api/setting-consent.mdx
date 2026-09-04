@@ -1,109 +1,115 @@
 ---
 title: Setting Consent
-description: Save, stage, and reset consent preferences using the kernel API.
+description: Save, stage, and reset consent preferences using the store API.
 group: frameworks
 ---
 
-## `commands.save(input)`
+## `saveConsents(type)`
 
 Batch-save consent preferences. This is the primary way users grant or deny consent.
 
 ```ts
+const state = consentStore.getState();
+
 // Accept all categories
-await kernel.commands.save('all');
+await state.saveConsents('all');
 
 // Accept only necessary (reject everything else)
-await kernel.commands.save('none');
+await state.saveConsents('necessary');
 
-// Save a custom selection
-await kernel.commands.save({ measurement: true, marketing: false });
+// Save the currently staged selections (from setSelectedConsent)
+await state.saveConsents('custom');
 ```
 
 | Type | Behavior |
 |------|----------|
 | `'all'` | Sets all configured categories (those in `consentCategories`) to `true` and saves |
-| `'none'` | Sets only `necessary` to `true`, all others to `false`, and saves |
-| Partial consent object | Merges the supplied categories and saves the result |
+| `'necessary'` | Sets only `necessary` to `true`, all others to `false`, and saves |
+| `'custom'` | Saves the current `selectedConsents` as the final `consents` |
 
-The configured transport receives the save. Add `createPersistence({ kernel })`
-in browser code when consent should also be stored locally.
+After saving, the store syncs with the backend (in c15t or custom mode), stores the consent in a cookie, always triggers `onConsentSet`, and triggers `onConsentChanged` only if the saved preferences actually changed.
 
-## `set.consent(input)`
+## `setConsent(name, value)`
 
-Update one or more categories synchronously without running the transport save.
+Set a single category and immediately save. This is a shortcut for setting one category without staging.
 
 ```ts
-kernel.set.consent({ measurement: true });
+const state = consentStore.getState();
 
-// Persist the current state afterward
-await kernel.commands.save();
+// Grant measurement consent (saves immediately)
+state.setConsent('measurement', true);
+
+// Revoke marketing consent (saves immediately)
+state.setConsent('marketing', false);
 ```
 
-Use `commands.save({ measurement: true })` when a single action should update and
-persist in one call.
+`setConsent()` uses the same save pipeline as `saveConsents()`, so the same callback rules apply.
 
-## Stage Preference-Dialog Changes
+## `setSelectedConsent(name, value)`
 
-The kernel only stores committed consent. Keep draft selections in your UI, then
-pass the completed draft to `commands.save()`:
+Stage a consent toggle without saving. This is useful for building a preference dialog where the user can toggle multiple categories before confirming.
 
 ```ts
-const draft = {
-  ...kernel.getSnapshot().consents,
-  measurement: true,
-  marketing: false,
-};
+const state = consentStore.getState();
+
+// User toggles in the dialog (not yet saved)
+state.setSelectedConsent('measurement', true);
+state.setSelectedConsent('marketing', false);
+
+// Read the staged state
+console.log(consentStore.getState().selectedConsents);
+// { necessary: true, measurement: true, marketing: false }
 
 // User clicks "Save" — persist the staged selections
-await kernel.commands.save(draft);
+await consentStore.getState().saveConsents('custom');
 ```
 
-## Reset Consent
+The `selectedConsents` state lets you render toggle states in a preference dialog without modifying the actual consent until the user confirms.
+
+## `resetConsents()`
 
 Reset all consent preferences to their defaults. This clears stored consent and returns the user to an unconsented state.
 
 ```ts
-import { createPersistence } from 'c15t/modules/persistence';
+const state = consentStore.getState();
+state.resetConsents();
 
-const persistence = createPersistence({ kernel });
-persistence.clear();
-kernel.set.consent({
-  necessary: true,
-  functionality: false,
-  measurement: false,
-  experience: false,
-  marketing: false,
-});
-kernel.set.hasConsented(false);
-kernel.set.activeUI('banner');
+// To show the banner again after resetting, call setActiveUI manually
+consentStore.getState().setActiveUI('banner', { force: true });
 ```
+
+`resetConsents()` clears stored consent, but it does not emit `onConsentChanged`.
 
 ## Full Preference Dialog Flow
 
 Here's a typical flow for a preference dialog:
 
 ```ts
-import { createConsentKernel, createHostedTransport } from 'c15t';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  consentCategories: ['necessary', 'measurement', 'marketing'],
 });
 
-await kernel.commands.init();
-
 // 1. User opens the preference dialog
-kernel.set.activeUI('dialog');
+consentStore.getState().setActiveUI('dialog');
 
-// 2. Copy the current state into UI-local draft state
-const draft = { ...kernel.getSnapshot().consents };
-draft.measurement = true;
-draft.marketing = false;
+// 2. Render toggles from displayed consents
+const displayed = consentStore.getState().getDisplayedConsents();
+displayed.forEach((type) => {
+  const isSelected = consentStore.getState().selectedConsents[type.name];
+  console.log(`${type.name}: ${isSelected}`);
+});
 
-// 3. User clicks "Save"
-await kernel.commands.save(draft);
+// 3. User toggles categories
+consentStore.getState().setSelectedConsent('measurement', true);
+consentStore.getState().setSelectedConsent('marketing', false);
 
-// 4. Close the dialog
-kernel.set.activeUI('none');
+// 4. User clicks "Save"
+await consentStore.getState().saveConsents('custom');
+
+// 5. Close the dialog
+consentStore.getState().setActiveUI('none');
 ```

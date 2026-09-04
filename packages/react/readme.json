@@ -31,12 +31,12 @@
 		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/react/quickstart#manual-setup)."
 	],
 	"usage": [
-		"Import `ConsentProvider` and a transport factory in your app's root component",
+		"Import `ConsentManagerProvider` in your app's root component",
 		"Add `ConsentBanner` and `ConsentDialog` components",
 		"Customize styling and behavior to fit your app",
 		"For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)",
 
-		"```tsx\n// App.tsx\nimport {\n  ConsentProvider,\n  ConsentBanner,\n  ConsentDialog,\n  hosted,\n} from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentProvider\n      options={{\n        mode: hosted({ url: 'https://your-instance.c15t.dev' }),\n        consentCategories: ['necessary', 'measurement', 'marketing'],\n      }}\n    >\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentProvider>\n  )\n}\n```"
+		"```tsx\n// App.tsx\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentManagerProvider>\n  )\n}\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/quickstart",

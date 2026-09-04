@@ -76,16 +76,16 @@ export function BannerActionsWithCustomMapping() {
 'use client';
 
 import type { ReactNode } from 'react';
-import { offline,
-  ConsentProvider,
+import {
+  ConsentManagerProvider,
   policyPackPresets,
 } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: offline(),
+        mode: 'offline',
         offlinePolicy: {
           policyPacks: [
             policyPackPresets.californiaOptOut(),
@@ -99,7 +99,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```

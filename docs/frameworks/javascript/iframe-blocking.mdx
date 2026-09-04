@@ -30,17 +30,15 @@ c15t uses a `MutationObserver` to watch for dynamically added iframes. Any ifram
 The iframe blocker for HTML attributes needs to be initialized after the runtime is created:
 
 ```ts
-import { createConsentKernel, createHostedTransport, has } from 'c15t';
-import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
+import { getOrCreateConsentRuntime } from 'c15t';
 
-const kernel = createConsentKernel({
-  transport: createHostedTransport({
-    backendURL: 'https://your-instance.c15t.dev',
-  }),
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
 });
 
-await kernel.commands.init();
-const iframeBlocker = createIframeBlocker({ kernel });
+// Initialize the iframe blocker
+consentStore.getState().initializeIframeBlocker();
 ```
 
 The blocker will scan the DOM for all `<iframe>` elements with `data-category` and manage their `src`/`data-src` based on consent state. It also sets up a `MutationObserver` to handle iframes added later.
@@ -60,12 +58,12 @@ function createIframePlaceholder(category: string, iframeSrc: string) {
 
   const button = container.querySelector('.consent-button');
   button?.addEventListener('click', () => {
-    kernel.set.consent({ [category]: true });
+    consentStore.getState().setConsent(category, true);
   });
 
   // Replace placeholder when consent is granted
-  kernel.subscribe((snapshot) => {
-    if (has(category, snapshot.consents)) {
+  consentStore.subscribe((state) => {
+    if (state.has(category)) {
       const iframe = document.createElement('iframe');
       iframe.src = iframeSrc;
       iframe.width = '560';
@@ -83,7 +81,7 @@ function createIframePlaceholder(category: string, iframeSrc: string) {
 Destroy the iframe blocker when it's no longer needed (e.g., on page teardown in a SPA):
 
 ```ts
-iframeBlocker.dispose();
+consentStore.getState().destroyIframeBlocker();
 ```
 
 <import src="../../shared/react/guides/iframe-blocking.mdx#api-reference" />

@@ -138,6 +138,7 @@ const generateDocsConfig = () =>
 									'hooks/use-color-scheme',
 									'hooks/use-reduced-motion',
 									'hooks/use-text-direction',
+									'hooks/use-ssr-status',
 									'hooks/use-draggable',
 								],
 
@@ -264,6 +265,11 @@ const generateDocsConfig = () =>
 			{
 				base: 'integrations',
 				children: [
+					{
+						pages: ['google-maps', 'youtube'],
+
+						title: 'Renderable',
+					},
 					{
 						pages: ['google-tag-manager'],
 

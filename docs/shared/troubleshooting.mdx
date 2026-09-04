@@ -9,23 +9,23 @@ group: reference
 <section id="provider-not-found">
   ## "Provider not found" Error
 
-  **Symptom:** `useConsentManager must be used within a ConsentProvider` error.
+  **Symptom:** `useConsentManager must be used within a ConsentManagerProvider` error.
 
-  **Fix:** Ensure the component calling `useConsentManager()` (or any c15t hook) is rendered inside a `ConsentProvider`:
+  **Fix:** Ensure the component calling `useConsentManager()` (or any c15t hook) is rendered inside a `ConsentManagerProvider`:
 
   ```tsx
   // Wrong — hook is outside the provider
   function App() {
     const { consents } = useConsentManager(); // throws
-    return <ConsentProvider options={...}>...</ConsentProvider>;
+    return <ConsentManagerProvider options={...}>...</ConsentManagerProvider>;
   }
 
   // Correct — hook is inside the provider
   function App() {
     return (
-      <ConsentProvider options={...}>
+      <ConsentManagerProvider options={...}>
         <MyComponent /> {/* useConsentManager works here */}
-      </ConsentProvider>
+      </ConsentManagerProvider>
     );
   }
   ```

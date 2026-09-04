@@ -19,21 +19,20 @@ import type { ReactNode } from 'react';
 import {
   ConsentBanner,
   ConsentDialog,
-  ConsentProvider,
-  hosted,
+  ConsentManagerProvider,
 } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
+        backendURL: 'https://your-instance.c15t.dev',
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
@@ -49,18 +48,17 @@ For local development, previews, or automated tests, select offline mode and pas
 
 import type { ReactNode } from 'react';
 import {
-  offline,
   ConsentBanner,
   ConsentDialog,
-  ConsentProvider,
+  ConsentManagerProvider,
   policyPackPresets,
 } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
+    <ConsentManagerProvider
       options={{
-        mode: offline(),
+        mode: 'offline',
         offlinePolicy: {
           policyPacks: [
             policyPackPresets.europeOptIn(),
@@ -76,7 +74,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentProvider>
+    </ConsentManagerProvider>
   );
 }
 ```
