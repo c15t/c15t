@@ -3,10 +3,21 @@
  *
  * Pattern:
  *   // src/routes/__root.tsx
+ *   import { createRootRoute, Outlet } from '@tanstack/react-router';
+ *   import { createServerFn } from '@tanstack/react-start';
  *   import { ConsentBoundary } from '@c15t/tanstack-start';
- *   import { consentLoaderOptions, createConsentConfigServerFn } from '@c15t/tanstack-start/server';
+ *   import {
+ *     consentLoaderOptions,
+ *     createConsentConfigHandler,
+ *   } from '@c15t/tanstack-start/server';
  *
- *   const getConsentConfig = createConsentConfigServerFn({ backendURL: '/api/c15t' });
+ *   const backendURL = 'https://consent.example.com';
+ *
+ *   // Declared in your module: the Start compiler splits server code at
+ *   // this `createServerFn().handler()` call site.
+ *   const getConsentConfig = createServerFn({ method: 'GET' }).handler(
+ *     createConsentConfigHandler({ backendURL })
+ *   );
  *
  *   export const Route = createRootRoute({
  *     ...consentLoaderOptions,
@@ -17,7 +28,7 @@
  *   function RootComponent() {
  *     const config = Route.useLoaderData();
  *     return (
- *       <ConsentBoundary config={config} backendURL="/api/c15t">
+ *       <ConsentBoundary config={config} backendURL={backendURL}>
  *         <Outlet />
  *       </ConsentBoundary>
  *     );
@@ -26,6 +37,10 @@
  *   // any component
  *   import { useConsent } from '@c15t/tanstack-start';
  *   const allowed = useConsent('marketing');
+ *
+ * `backendURL` is the c15t backend itself, not the app's `/api/c15t` route:
+ * init goes to the same-origin route by default, saves go to
+ * `${backendURL}/subjects`, which the route does not proxy.
  *
  * Server helpers return serializable data and avoid module-level runtime
  * caches, so concurrent requests never share a kernel.

@@ -126,7 +126,10 @@ const resolveMode = function resolveMode(
  * function RootComponent() {
  *   const config = Route.useLoaderData();
  *   return (
- *     <ConsentBoundary config={config} backendURL="/api/c15t">
+ *     <ConsentBoundary
+ *       config={config}
+ *       backendURL="https://consent.example.com"
+ *     >
  *       <Outlet />
  *     </ConsentBoundary>
  *   );
