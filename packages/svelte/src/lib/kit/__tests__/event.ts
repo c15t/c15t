@@ -6,12 +6,14 @@ import type { RequestEvent } from '@sveltejs/kit';
  * Built from real `Request`/`Headers`, so header precedence and cookie
  * parsing are exercised for real rather than against a stub.
  */
-export const createEvent = function createEvent(input: {
-	url?: string;
-	headers?: Record<string, string>;
-	locals?: Record<string, unknown>;
-	fetch?: typeof globalThis.fetch;
-} = {}): RequestEvent {
+export const createEvent = function createEvent(
+	input: {
+		url?: string;
+		headers?: Record<string, string>;
+		locals?: Record<string, unknown>;
+		fetch?: typeof globalThis.fetch;
+	} = {}
+): RequestEvent {
 	const url = new URL(input.url ?? 'http://localhost:5173/');
 	const request = new Request(url, { headers: input.headers ?? {} });
 	return {

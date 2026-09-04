@@ -21,11 +21,17 @@ const workspaceAliases = [
 	},
 	{
 		find: '@c15t/core/modules/iframe-blocker',
-		replacement: resolve(__dirname, '../core/src/modules/iframe-blocker/index.ts'),
+		replacement: resolve(
+			__dirname,
+			'../core/src/modules/iframe-blocker/index.ts'
+		),
 	},
 	{
 		find: '@c15t/core/modules/network-blocker',
-		replacement: resolve(__dirname, '../core/src/modules/network-blocker/index.ts'),
+		replacement: resolve(
+			__dirname,
+			'../core/src/modules/network-blocker/index.ts'
+		),
 	},
 	{
 		find: '@c15t/core/modules/persistence',
@@ -33,11 +39,17 @@ const workspaceAliases = [
 	},
 	{
 		find: '@c15t/core/modules/script-loader',
-		replacement: resolve(__dirname, '../core/src/modules/script-loader/index.ts'),
+		replacement: resolve(
+			__dirname,
+			'../core/src/modules/script-loader/index.ts'
+		),
 	},
 	{
 		find: '@c15t/core/modules/window-debug',
-		replacement: resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
+		replacement: resolve(
+			__dirname,
+			'../core/src/modules/window-debug/index.ts'
+		),
 	},
 	{
 		find: '@c15t/core/server',

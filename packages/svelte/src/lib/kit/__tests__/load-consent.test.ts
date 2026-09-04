@@ -62,7 +62,7 @@ describe('loadConsent', () => {
 
 	test('falls back to reading the request itself when the handle is absent', async () => {
 		const event = createEvent({
-			headers: { cookie: CONSENTED_COOKIE, 'cf-ipcountry': 'FR' },
+			headers: { 'cf-ipcountry': 'FR', cookie: CONSENTED_COOKIE },
 		});
 
 		const config = await loadConsent(event);
@@ -133,7 +133,9 @@ describe('loadConsent', () => {
 	test('degrades to the cookie-only config when the init route fails', async () => {
 		const event = createEvent({
 			fetch: (() =>
-				Promise.resolve(jsonResponse({}, 500))) as unknown as typeof globalThis.fetch,
+				Promise.resolve(
+					jsonResponse({}, 500)
+				)) as unknown as typeof globalThis.fetch,
 			headers: { cookie: CONSENTED_COOKIE },
 		});
 
@@ -146,7 +148,9 @@ describe('loadConsent', () => {
 	test('degrades to the cookie-only config when the init route throws', async () => {
 		const event = createEvent({
 			fetch: (() =>
-				Promise.reject(new Error('offline'))) as unknown as typeof globalThis.fetch,
+				Promise.reject(
+					new Error('offline')
+				)) as unknown as typeof globalThis.fetch,
 			headers: { cookie: CONSENTED_COOKIE },
 		});
 
@@ -179,7 +183,9 @@ describe('loadConsent', () => {
 	test('returns a JSON-serializable config', async () => {
 		const event = createEvent({
 			fetch: (() =>
-				Promise.resolve(jsonResponse(INIT_PAYLOAD))) as unknown as typeof globalThis.fetch,
+				Promise.resolve(
+					jsonResponse(INIT_PAYLOAD)
+				)) as unknown as typeof globalThis.fetch,
 			headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'DE' },
 		});
 
