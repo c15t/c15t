@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { expect } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
 import type { Theme, ThemeValue } from '~/types/theme';
 
 interface DeferredPromise<Value> {
@@ -51,7 +52,7 @@ interface ComponentStyles {
  * ```tsx
  * await testComponentStyles({
  *   component: <MyComponent />,
- *   theme: { slots: { root: 'custom-class' } },
+ *   components: { banner: { root: { className: 'custom-class' } } },
  *   testCases: [{ testId: 'my-component-root', styles: 'custom-class' }]
  * });
  * ```
@@ -62,17 +63,17 @@ export const testComponentStyles = async function testComponentStyles({
 	noStyle = false,
 	theme,
 }: ComponentStyles) {
-	// Render the component with the ConsentManagerProvider
+	// Render the component with the ConsentProvider
 	const { container } = await render(
-		<ConsentManagerProvider
+		<ConsentProvider
 			options={{
-				mode: 'offline',
+				mode: offline(),
 				noStyle,
 				theme,
 			}}
 		>
 			{component}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 
 	// Wait for rendering to complete

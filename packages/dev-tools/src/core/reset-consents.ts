@@ -3,8 +3,7 @@
  * Centralized logic for resetting all consent data
  */
 
-import type { ConsentStoreState } from '@c15t/core';
-import type { StoreApi } from 'zustand/vanilla';
+import type { ConsentKernel, ConsentState } from '@c15t/core';
 
 import type { StateManager } from './state-manager';
 
@@ -16,6 +15,10 @@ const STORAGE_KEYS = {
 	C15T: 'c15t',
 	/** IAB TCF euconsent string */
 	EUCONSENT: 'euconsent-v2',
+	/** Legacy consent storage key */
+	LEGACY: 'privacy-consent-storage',
+	/** Failed consent saves waiting for a backend replay */
+	PENDING_SAVES: 'c15t-v3-pending-consent-saves:v1',
 	/** Pending consent submissions */
 	PENDING_SUBMISSIONS: 'c15t-pending-consent-submissions',
 	/** Pending consent sync data */
@@ -53,8 +56,10 @@ const clearAllCookies = function clearAllCookies(): void {
 const clearAllLocalStorage = function clearAllLocalStorage(): void {
 	try {
 		localStorage.removeItem(STORAGE_KEYS.C15T);
+		localStorage.removeItem(STORAGE_KEYS.LEGACY);
 		localStorage.removeItem(STORAGE_KEYS.PENDING_SYNC);
 		localStorage.removeItem(STORAGE_KEYS.PENDING_SUBMISSIONS);
+		localStorage.removeItem(STORAGE_KEYS.PENDING_SAVES);
 		localStorage.removeItem(STORAGE_KEYS.EUCONSENT);
 	} catch {
 		// localStorage might be unavailable
@@ -62,30 +67,55 @@ const clearAllLocalStorage = function clearAllLocalStorage(): void {
 };
 
 /**
+ * Builds the consent record a fresh kernel starts from: every category off
+ * except `necessary`.
+ */
+const buildDefaultConsents = function buildDefaultConsents(
+	current: Readonly<ConsentState>
+): Partial<ConsentState> {
+	const defaults: Partial<ConsentState> = {};
+	for (const name of Object.keys(current) as (keyof ConsentState)[]) {
+		defaults[name] = name === 'necessary';
+	}
+	return defaults;
+};
+
+/**
  * Resets all consent data including:
- * - Store state via resetConsents()
+ * - Kernel state (consents back to defaults, `hasConsented` off, subject ID cleared)
  * - Cookies (c15t, euconsent-v2)
  * - localStorage entries
- * - Re-initializes the consent manager to reset IAB state
+ * - Re-runs init so policy-derived state (banner, IAB) is rebuilt
  *
- * @param store - The c15t store instance
+ * @param kernel - The consent kernel
  * @param stateManager - Optional state manager for event logging
  */
 export const resetAllConsents = async function resetAllConsents(
-	store: StoreApi<ConsentStoreState>,
+	kernel: ConsentKernel,
 	stateManager?: StateManager
 ): Promise<void> {
-	const storeState = store.getState();
+	const snapshot = kernel.getSnapshot();
 
-	// Reset store state
-	storeState.resetConsents();
+	kernel.set.consent(buildDefaultConsents(snapshot.consents));
+	kernel.set.hasConsented(false);
+	kernel.set.subjectId(null);
+	if (snapshot.iab) {
+		kernel.set.iab({
+			purposeConsents: {},
+			purposeLegitimateInterests: {},
+			specialFeatureOptIns: {},
+			tcString: null,
+			vendorConsents: {},
+			vendorLegitimateInterests: {},
+		});
+	}
 
 	// Clear all storage
 	clearAllCookies();
 	clearAllLocalStorage();
 
-	// Re-initialize to reset IAB state in memory
-	await storeState.initConsentManager();
+	// Re-run init so the banner and policy state come back
+	await kernel.commands.init();
 
 	// Log event if state manager provided
 	stateManager?.addEvent({
@@ -95,17 +125,17 @@ export const resetAllConsents = async function resetAllConsents(
 };
 
 /**
- * Creates a reset handler function bound to a store connector
+ * Creates a reset handler function bound to a kernel getter
  * This is a convenience wrapper for use in panel callbacks
  */
 export const createResetHandler = function createResetHandler(
-	getStore: () => StoreApi<ConsentStoreState> | null,
+	getKernel: () => ConsentKernel | null,
 	stateManager?: StateManager
 ): () => Promise<void> {
 	return async () => {
-		const store = getStore();
-		if (store) {
-			await resetAllConsents(store, stateManager);
+		const kernel = getKernel();
+		if (kernel) {
+			await resetAllConsents(kernel, stateManager);
 		}
 	};
 };

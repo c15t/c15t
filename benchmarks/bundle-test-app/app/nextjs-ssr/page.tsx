@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentBanner } from '@c15t/react/components/consent-banner';
+import { ConsentBanner } from '@c15t/nextjs';
 
 const NextjsSSRPage = () => (
 	<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>

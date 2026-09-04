@@ -1,8 +1,7 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/iab-consent-banner';
 import {
 	forwardRef as createForwardRef,
 	useEffect,
@@ -14,11 +13,17 @@ import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import {
+	useActiveUI,
+	useModel,
+	usePolicyBanner,
+	useTranslations,
+} from '~/hooks';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
-import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { IABConsentBannerOverlay } from './overlay';
 
@@ -62,14 +67,30 @@ const IABConsentBannerRootChildren = createForwardRef<
 		},
 		ref
 	) => {
-		const { activeUI, translationConfig, model } = useConsentManager();
-		const textDirection = useTextDirection(translationConfig.defaultLanguage);
+		const activeUI = useActiveUI();
+		const { components } = useUIConfig();
+		const model = useModel();
+		const translations = useTranslations();
+		const textDirection = useTextDirection(translations?.language ?? 'en');
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
-		const isMounted = useIsHydrated();
+		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// IAB banner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+
+		useEffect(() => {
+			const duration = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--iab-consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const frame = requestAnimationFrame(() => {
+				setAnimationDurationMs(duration);
+			});
+			return () => cancelAnimationFrame(frame);
+		}, []);
 
 		useEffect(() => {
 			if (shouldShowBanner) {
@@ -83,24 +104,15 @@ const IABConsentBannerRootChildren = createForwardRef<
 				}, 10);
 				return () => clearTimeout(animationTimer);
 			}
-			const frame = requestAnimationFrame(() => setHasAnimated(false));
 
 			if (disableAnimation) {
-				const visibilityFrame = requestAnimationFrame(() =>
-					setIsVisible(false)
-				);
-				return () => {
-					cancelAnimationFrame(frame);
-					cancelAnimationFrame(visibilityFrame);
-				};
+				const frame = requestAnimationFrame(() => {
+					setHasAnimated(false);
+					setIsVisible(false);
+				});
+				return () => cancelAnimationFrame(frame);
 			}
-
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--iab-consent-banner-animation-duration'
-				) || '200',
-				10
-			);
+			const frame = requestAnimationFrame(() => setHasAnimated(false));
 			const timer = setTimeout(() => {
 				setIsVisible(false);
 			}, animationDurationMs);
@@ -108,14 +120,17 @@ const IABConsentBannerRootChildren = createForwardRef<
 				cancelAnimationFrame(frame);
 				clearTimeout(timer);
 			};
-		}, [shouldShowBanner, disableAnimation, hasAnimated]);
+		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
 
-		const contentStyle = useStyles('iabConsentBanner', {
+		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {
 			baseClassName: [styles.root],
 			className: className || forwardedClassName,
 			noStyle,
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
+			...props,
 		});
+
+		const isMounted = useIsHydrated();
 
 		if (!isMounted) {
 			return null;
@@ -124,8 +139,6 @@ const IABConsentBannerRootChildren = createForwardRef<
 		const finalClassName = noStyle
 			? contentStyle.className || ''
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
-		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
-
 		if (!shouldShowBanner) {
 			return null;
 		}
@@ -135,8 +148,7 @@ const IABConsentBannerRootChildren = createForwardRef<
 				<IABConsentBannerOverlay />
 				<div
 					ref={ref}
-					{...props}
-					{...domStyleProps}
+					{...contentStyle}
 					className={finalClassName}
 					data-testid="iab-consent-banner-root"
 					dir={textDirection}
@@ -159,23 +171,25 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const { policyBanner } = useConsentManager();
+	const policyBanner = usePolicyBanner();
+	const resolvedScrollLock =
+		scrollLock ?? policyBanner?.scrollLock ?? undefined;
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,
 			noStyle,
-			scrollLock: scrollLock ?? policyBanner.scrollLock ?? undefined,
+			scrollLock: resolvedScrollLock,
 			trapFocus,
 		}),
-		[disableAnimation, noStyle, policyBanner.scrollLock, scrollLock, trapFocus]
+		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
 	);
-	const trackingValue = useMemo(
+	const trackingContextValue = useMemo(
 		() => ({ uiSource: uiSource ?? 'iab_banner' }),
 		[uiSource]
 	);
 
 	return (
-		<ConsentTrackingContext.Provider value={trackingValue}>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
 				<IABConsentBannerRootChildren
 					disableAnimation={disableAnimation}

@@ -1,7 +1,7 @@
 /**
  * ConsentDialogTrigger Component Styles
  *
- * A draggable floating button and an optional configurable toolbar.
+ * A draggable floating button that opens the consent dialog.
  * Uses CSS variables from the c15t design system.
  */
 
@@ -71,7 +71,8 @@
 }
 
 .trigger:active,
-.trigger.dragging {
+.trigger.dragging,
+.trigger[data-dragging] {
 	cursor: grabbing;
 	transform: scale(1.02);
 }
@@ -86,16 +87,19 @@
 }
 
 /* Size variants */
+.trigger[data-size='sm'],
 .sm {
 	width: var(--cdt-size-sm);
 	height: var(--cdt-size-sm);
 }
 
+.trigger[data-size='md'],
 .md {
 	width: var(--cdt-size-md);
 	height: var(--cdt-size-md);
 }
 
+.trigger[data-size='lg'],
 .lg {
 	width: var(--cdt-size-lg);
 	height: var(--cdt-size-lg);
@@ -144,28 +148,34 @@
 	height: 16px;
 }
 
+.trigger:has(.text)[data-size='sm'],
 .trigger:has(.text).sm {
 	padding: var(--c15t-space-xs, 6px) var(--c15t-space-sm, 10px);
 }
 
+.trigger:has(.text)[data-size='sm'] .icon,
 .trigger:has(.text).sm .icon {
 	width: 14px;
 	height: 14px;
 }
 
+.trigger:has(.text)[data-size='sm'] .text,
 .trigger:has(.text).sm .text {
 	font-size: var(--c15t-font-size-xs, 12px);
 }
 
+.trigger:has(.text)[data-size='lg'],
 .trigger:has(.text).lg {
 	padding: var(--c15t-space-md, 12px) var(--c15t-space-lg, 20px);
 }
 
+.trigger:has(.text)[data-size='lg'] .icon,
 .trigger:has(.text).lg .icon {
 	width: 20px;
 	height: 20px;
 }
 
+.trigger:has(.text)[data-size='lg'] .text,
 .trigger:has(.text).lg .text {
 	font-size: var(--c15t-font-size-md, 16px);
 }
@@ -218,200 +228,9 @@
 		0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
 }
 
-/* Configurable toolbar */
-.toolbar {
-	--cdtt-size-sm: 32px;
-	--cdtt-size-md: 40px;
-	--cdtt-size-lg: 48px;
-	--cdtt-bg: var(--c15t-surface, #ffffff);
-	--cdtt-bg-hover: var(--c15t-surface-hover, #f5f5f5);
-	--cdtt-border: var(--c15t-border, #d4d4d4);
-	--cdtt-primary: var(--c15t-primary, #16a779);
-	--cdtt-primary-hover: var(--c15t-primary-hover, #128866);
-	--cdtt-primary-text: var(--c15t-text-on-primary, #ffffff);
-	--cdtt-icon-color: var(--c15t-text, #262626);
-	--cdtt-focus-ring: var(--c15t-primary, #16a779);
-	--cdtt-offset: var(--c15t-space-md, 20px);
-	--cdtt-transition-duration: var(--c15t-duration-fast, 160ms);
-	--cdtt-transition-easing: var(--c15t-easing-out, ease-out);
-	--cdtt-shadow: var(
-		--c15t-shadow-md,
-		0 4px 10px rgb(0 0 0 / 0.08),
-		0 1px 2px rgb(0 0 0 / 0.06)
-	);
-
-	position: fixed;
-	z-index: 9999;
-	display: inline-flex;
-	align-items: stretch;
-	width: max-content;
-	padding: 0;
-	margin: 0;
-	overflow: hidden;
-	color: var(--cdtt-icon-color);
-	background: var(--cdtt-bg);
-	border: 1px solid var(--cdtt-border);
-	border-radius: var(--c15t-radius-md, 6px);
-	box-shadow: var(--cdtt-shadow);
-	cursor: grab;
-	touch-action: none;
-	user-select: none;
-	-webkit-user-select: none;
-	-webkit-tap-highlight-color: transparent;
-	will-change: transform;
-	transition:
-		transform var(--cdtt-transition-duration) var(--cdtt-transition-easing),
-		box-shadow var(--cdtt-transition-duration) var(--cdtt-transition-easing),
-		background var(--cdtt-transition-duration) var(--cdtt-transition-easing);
-}
-
-.toolbar.bottomRight {
-	right: max(var(--cdtt-offset), env(safe-area-inset-right, 0px));
-	bottom: max(var(--cdtt-offset), env(safe-area-inset-bottom, 0px));
-}
-
-.toolbar.bottomLeft {
-	bottom: max(var(--cdtt-offset), env(safe-area-inset-bottom, 0px));
-	left: max(var(--cdtt-offset), env(safe-area-inset-left, 0px));
-}
-
-.toolbar.topRight {
-	top: max(var(--cdtt-offset), env(safe-area-inset-top, 0px));
-	right: max(var(--cdtt-offset), env(safe-area-inset-right, 0px));
-}
-
-.toolbar.topLeft {
-	top: max(var(--cdtt-offset), env(safe-area-inset-top, 0px));
-	left: max(var(--cdtt-offset), env(safe-area-inset-left, 0px));
-}
-
-.toolbar.dragging {
-	cursor: grabbing;
-	box-shadow: var(
-		--c15t-shadow-lg,
-		0 10px 20px rgb(0 0 0 / 0.14),
-		0 3px 6px rgb(0 0 0 / 0.08)
-	);
-}
-
-.toolbarVertical {
-	flex-direction: column;
-}
-
-.toolbarItem {
-	position: relative;
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	justify-content: center;
-	width: var(--cdtt-size-md);
-	height: var(--cdtt-size-md);
-	padding: 0;
-	margin: 0;
-	color: var(--cdtt-icon-color);
-	background: transparent;
-	border: 0;
-	border-inline-start: 1px solid var(--cdtt-border);
-	border-radius: 0;
-	cursor: inherit;
-	transition:
-		color var(--cdtt-transition-duration) var(--cdtt-transition-easing),
-		background var(--cdtt-transition-duration) var(--cdtt-transition-easing);
-}
-
-.toolbarItem:first-child {
-	border-inline-start: 0;
-}
-
-.toolbarVertical .toolbarItem {
-	border-top: 1px solid var(--cdtt-border);
-	border-inline-start: 0;
-}
-
-.toolbarVertical .toolbarItem:first-child {
-	border-top: 0;
-}
-
-.toolbar .toolbarItem.sm {
-	width: var(--cdtt-size-sm);
-	height: var(--cdtt-size-sm);
-}
-
-.toolbar .toolbarItem.md {
-	width: var(--cdtt-size-md);
-	height: var(--cdtt-size-md);
-}
-
-.toolbar .toolbarItem.lg {
-	width: var(--cdtt-size-lg);
-	height: var(--cdtt-size-lg);
-}
-
-.toolbarItem[data-c15t-trigger-action='preferences'] {
-	color: var(--cdtt-primary-text);
-	background: var(--cdtt-primary);
-}
-
-.toolbarItem:focus {
-	outline: none;
-}
-
-.toolbarItem:focus-visible {
-	z-index: 1;
-	outline: 2px solid var(--cdtt-focus-ring);
-	outline-offset: -3px;
-}
-
-.toolbarItem:disabled {
-	cursor: not-allowed;
-	opacity: 0.45;
-}
-
-.toolbarIcon {
-	display: flex;
-	flex-shrink: 0;
-	align-items: center;
-	justify-content: center;
-	width: 50%;
-	height: 50%;
-	pointer-events: none;
-}
-
-.toolbarIcon > span,
-.toolbarIcon svg {
-	display: flex;
-	width: 100%;
-	height: 100%;
-}
-
-@media (hover: hover) and (pointer: fine) {
-	.toolbarItem:hover:not(:disabled) {
-		background: var(--cdtt-bg-hover);
-	}
-
-	.toolbarItem[data-c15t-trigger-action='preferences']:hover:not(:disabled) {
-		background: var(--cdtt-primary-hover);
-	}
-}
-
-.toolbarItem:active:not(:disabled) {
-	box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.16);
-}
-
-:global(.c15t-dark) .toolbar,
-:global(.dark) .toolbar {
-	--cdtt-bg: var(--c15t-surface, #262626);
-	--cdtt-bg-hover: var(--c15t-surface-hover, #343434);
-	--cdtt-border: var(--c15t-border, #525252);
-	--cdtt-icon-color: var(--c15t-text, #fafafa);
-	--cdtt-shadow: 0 8px 18px rgb(0 0 0 / 0.32), 0 2px 5px rgb(0 0 0 / 0.22);
-}
-
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-	.trigger,
-	.toolbar,
-	.toolbarItem {
+	.trigger {
 		transition: none;
 	}
 

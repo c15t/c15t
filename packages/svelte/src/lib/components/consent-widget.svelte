@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { AllConsentNames } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+	import accordionStyles from '@c15t/ui/styles/components/accordion';
+	import managerStyles from '@c15t/ui/styles/components/consent-manager';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
 	import {
 		getTextDirection,
@@ -84,7 +85,7 @@
 		resolveComponentStyles(
 			'consentWidget',
 			theme.theme,
-			{ baseClassName: styles.widget, className },
+			{ baseClassName: managerStyles.manager, className },
 			noStyle
 		)
 	);
@@ -93,7 +94,7 @@
 		resolveComponentStyles(
 			'consentWidgetFooter',
 			theme.theme,
-			{ baseClassName: styles.footer, noStyle },
+			{ baseClassName: managerStyles.footer, noStyle },
 			noStyle
 		)
 	);
@@ -102,7 +103,7 @@
 		resolveComponentStyles(
 			'consentWidgetFooter',
 			theme.theme,
-			{ baseClassName: styles.footerSubGroup, noStyle },
+			{ noStyle },
 			noStyle
 		)
 	);
@@ -153,7 +154,7 @@
 	data-testid="consent-widget-root"
 >
 	<div
-		class={noStyle ? '' : styles.accordionList || ''}
+		class={noStyle ? '' : accordionStyles.list || ''}
 		data-testid="consent-widget-accordion"
 	>
 		{#each displayedConsents as consentType (consentType.name)}
@@ -164,23 +165,22 @@
 				false}
 			{@const isDisabled = consentType.disabled ?? false}
 			<PreferenceItem.Root
-				class={noStyle ? '' : styles.accordionItem || ''}
+				class={noStyle ? '' : accordionStyles.item || ''}
 				open={isOpen}
 				noStyle
 				data-testid={`consent-widget-accordion-item-${consentType.name}`}
 			>
-				<div class={noStyle ? '' : styles.accordionTrigger || ''}>
+				<div class={noStyle ? '' : accordionStyles.triggerRow || ''}>
 					<PreferenceItem.Trigger
-						class={noStyle ? '' : styles.accordionTriggerInner || ''}
+						class={noStyle ? '' : accordionStyles.trigger || ''}
 						onclick={() => toggleOpenItem(consentType.name)}
 						data-testid={`consent-widget-accordion-trigger-${consentType.name}`}
 					>
 						<PreferenceItem.Leading
-							class={noStyle ? '' : styles.accordionArrow || ''}
+							class={noStyle ? '' : accordionStyles.arrow || ''}
 							data-testid={`consent-widget-accordion-arrow-${consentType.name}`}
 						>
 							<svg
-								class={noStyle ? '' : styles.accordionArrowIcon || ''}
 								width="16"
 								height="16"
 								viewBox="0 0 24 24"
@@ -189,8 +189,8 @@
 								stroke-width="2"
 								stroke-linecap="round"
 								stroke-linejoin="round"
-								aria-hidden={true}
 							>
+								<title>{isOpen ? 'Close' : 'Open'}</title>
 								{#if isOpen}
 									<path d="M5 12h14" />
 								{:else}
@@ -200,7 +200,7 @@
 						</PreferenceItem.Leading>
 						<PreferenceItem.Header>
 							<PreferenceItem.Title
-								class={noStyle ? '' : styles.accordionTitle || ''}
+								class={noStyle ? '' : accordionStyles.title || ''}
 							>
 								{translations.consentTypes[consentType.name]?.title ??
 									formatConsentName(consentType.name)}
@@ -208,7 +208,9 @@
 						</PreferenceItem.Header>
 					</PreferenceItem.Trigger>
 
-					<PreferenceItem.Control class={noStyle ? '' : styles.switch || ''}>
+					<PreferenceItem.Control
+						class={noStyle ? '' : accordionStyles.control || ''}
+					>
 						<Switch.Root
 							aria-label={translations.consentTypes[consentType.name]?.title ??
 								formatConsentName(consentType.name)}
@@ -230,7 +232,7 @@
 				</div>
 
 				<PreferenceItem.Content
-					class={noStyle ? '' : styles.accordionContent || ''}
+					class={noStyle ? '' : accordionStyles.content || ''}
 					data-testid={`consent-widget-accordion-content-${consentType.name}`}
 				>
 					{translations.consentTypes[consentType.name]?.description ??
@@ -246,28 +248,20 @@
 		{primaryActions}
 		{shouldFillActions}
 		{direction}
+		{noStyle}
 		footerClassName={noStyle ? '' : footerStyle.className || ''}
-		footerFillClassName={styles.footerFill || ''}
-		footerColumnClassName={styles.footerColumn || ''}
 		footerSubGroupClassName={noStyle ? '' : footerGroupStyle.className || ''}
-		footerSubGroupFillClassName={styles.footerSubGroupFill || ''}
-		footerSubGroupColumnClassName={styles.footerSubGroupColumn || ''}
-		actionButtonFillClassName={styles.actionButtonFill || ''}
 		footerTestId="consent-widget-footer"
 		footerSubGroupTestId="consent-widget-footer-sub-group"
 	>
-		{#snippet renderAction(
-			action: string,
-			isPrimary: boolean,
-			actionClassName?: string
-		)}
+		{#snippet renderAction(action: string, isPrimary: boolean)}
 			{#if action === 'reject'}
 				<ConsentButton
 					action="reject-consent"
 					variant={isPrimary ? 'primary' : 'neutral'}
 					closeConsentBanner
 					closeConsentDialog
-					class={actionClassName}
+					data-action="reject"
 					data-testid="consent-widget-reject-button"
 				>
 					{translations.common.rejectAll}
@@ -278,7 +272,7 @@
 					variant={isPrimary ? 'primary' : 'neutral'}
 					closeConsentBanner
 					closeConsentDialog
-					class={actionClassName}
+					data-action="accept"
 					data-testid="consent-widget-footer-accept-all-button"
 				>
 					{translations.common.acceptAll}
@@ -288,7 +282,7 @@
 					action="custom-consent"
 					variant={isPrimary ? 'primary' : 'neutral'}
 					closeConsentDialog
-					class={actionClassName}
+					data-action="customize"
 					data-testid="consent-widget-footer-save-button"
 				>
 					{translations.common.save}

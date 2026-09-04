@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import type { PolicyUiAction } from '@c15t/schema/types';
-import accordionStyles from '@c15t/ui/styles/v3/accordion';
-import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
-import managerStyles from '@c15t/ui/styles/v3/consent-manager';
+import accordionStyles from '@c15t/ui/styles/components/accordion';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
+import managerStyles from '@c15t/ui/styles/components/consent-manager';
 import { computed, nextTick, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 
@@ -71,7 +71,7 @@ const refreshOverlayFallback = async function refreshOverlayFallback() {
 		backgroundColor: 'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
 		inset: '0',
 		position: 'fixed',
-		zIndex: '999999998',
+		zIndex: '999998',
 	};
 };
 
@@ -275,11 +275,9 @@ const onAction = function onAction(action: PolicyUiAction) {
 															v-bind="config.components?.accordion?.arrow"
 															:class="accordionStyles.arrow"
 															:data-testid="`consent-widget-accordion-arrow-${category}`"
-															aria-hidden="true"
 														>
 															<svg
 																xmlns="http://www.w3.org/2000/svg"
-																aria-hidden="true"
 																viewBox="0 0 24 24"
 																fill="none"
 																stroke="currentColor"
@@ -287,6 +285,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 																stroke-linejoin="round"
 																stroke-width="2"
 															>
+																<title>Open</title>
 																<path d="M5 12h14M12 5v14" />
 															</svg>
 														</span>

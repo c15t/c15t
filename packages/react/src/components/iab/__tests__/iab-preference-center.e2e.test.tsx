@@ -9,14 +9,11 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+import { ConsentProvider } from '~/provider';
 
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	waitForElement,
 } from './e2e-setup';
 
@@ -47,15 +44,14 @@ describe('IAB Preference Center E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('Preference Center Layout', () => {
 		test('should render with purposes tab by default', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -69,9 +65,9 @@ describe('IAB Preference Center E2E Tests', () => {
 
 		test('should switch between purposes and vendors tabs', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -113,9 +109,9 @@ describe('IAB Preference Center E2E Tests', () => {
 			) as typeof fetch;
 
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Should show preference center
@@ -128,9 +124,9 @@ describe('IAB Preference Center E2E Tests', () => {
 	describe('Purposes Tab - Consent', () => {
 		test('should display purpose toggles', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -144,9 +140,9 @@ describe('IAB Preference Center E2E Tests', () => {
 
 		test('all purpose consents should default to OFF (no pre-checked)', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -162,9 +158,9 @@ describe('IAB Preference Center E2E Tests', () => {
 	describe('Purposes Tab - Legitimate Interest', () => {
 		test('should display LI toggles for purposes 2-11', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -187,9 +183,9 @@ describe('IAB Preference Center E2E Tests', () => {
 	describe('Special Features', () => {
 		test('should display special features with opt-in toggles', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -212,9 +208,9 @@ describe('IAB Preference Center E2E Tests', () => {
 	describe('Vendors Tab', () => {
 		test('should display vendor list', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -238,9 +234,9 @@ describe('IAB Preference Center E2E Tests', () => {
 	describe('Save & Cancel Actions', () => {
 		test('should save preferences when Save button clicked', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -263,9 +259,9 @@ describe('IAB Preference Center E2E Tests', () => {
 
 		test('should accept all when Accept All clicked', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -286,9 +282,9 @@ describe('IAB Preference Center E2E Tests', () => {
 
 		test('should reject all when Reject All clicked', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-dialog-root"]');
@@ -311,9 +307,9 @@ describe('IAB Preference Center E2E Tests', () => {
 	describe('Accessibility', () => {
 		test('should have proper ARIA attributes', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentDialog open />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const dialog = await waitForElement(

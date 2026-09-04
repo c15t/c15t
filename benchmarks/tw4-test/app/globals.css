@@ -1,14 +1,14 @@
 @import 'tailwindcss';
 @import '@c15t/nextjs/styles.css';
-@import '@c15t/ui/styles/v3/button.css';
-@import '@c15t/ui/styles/v3/consent-actions.css';
-@import '@c15t/ui/styles/v3/consent-banner.css';
-@import '@c15t/ui/styles/v3/consent-dialog.css';
-@import '@c15t/ui/styles/v3/consent-manager.css';
-@import '@c15t/ui/styles/v3/legal-links.css';
-@import '@c15t/ui/styles/v3/accordion.css';
-@import '@c15t/ui/styles/v3/switch.css';
-@import '@c15t/ui/styles/v3/preference-item.css';
+@import '@c15t/ui/styles/components/button.css';
+@import '@c15t/ui/styles/components/consent-actions.css';
+@import '@c15t/ui/styles/components/consent-banner.css';
+@import '@c15t/ui/styles/components/consent-dialog.css';
+@import '@c15t/ui/styles/components/consent-manager.css';
+@import '@c15t/ui/styles/components/legal-links.css';
+@import '@c15t/ui/styles/components/accordion.css';
+@import '@c15t/ui/styles/components/switch.css';
+@import '@c15t/ui/styles/components/preference-item.css';
 @source "../app/**/*.{ts,tsx}";
 @source "../../shared/src/**/*.{ts,tsx}";
 

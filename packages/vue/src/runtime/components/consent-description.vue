@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
+import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { computed } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';

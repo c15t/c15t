@@ -3,7 +3,7 @@
  * Displays IAB TCF information including TC String, purposes, and vendors
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
 
 import {
 	createBadge,
@@ -16,7 +16,7 @@ import {
 import { clearElement, div, span } from '../core/renderer';
 
 export interface IabPanelOptions {
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
 	onSetPurposeConsent: (purposeId: number, value: boolean) => void;
 	onSetVendorConsent: (vendorId: number | string, value: boolean) => void;
 	onSetSpecialFeatureOptIn: (featureId: number, value: boolean) => void;

@@ -1,12 +1,19 @@
 'use client';
 
-import { iab } from '@c15t/iab';
+import { policyPackPresets } from 'c15t';
+import type { ConsentSnapshot } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
-	policyPackPresets,
-	useConsentManager,
+	ConsentProvider,
+	hosted,
+	offline,
+	useInit,
+	useSetActiveUI,
+	useSetConsent,
+	useSetLanguage,
+	useSetOverrides,
+	useSnapshot,
 } from 'c15t/react';
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import Link from 'next/link';
@@ -455,12 +462,10 @@ const JsonBlock = ({ label, value }: { label: string; value: unknown }) => (
 // Runtime state panel
 // ---------------------------------------------------------------------------
 
-type ConsentManagerValue = ReturnType<typeof useConsentManager>;
-
 const policyActionLayout = function policyActionLayout(
-	manager: ConsentManagerValue
+	snapshot: ConsentSnapshot
 ) {
-	const banner = manager.lastBannerFetchData?.policy?.ui?.banner;
+	const banner = snapshot.policy?.ui?.banner;
 	return {
 		direction: banner?.direction ?? null,
 		layout: banner?.layout ?? null,
@@ -468,75 +473,69 @@ const policyActionLayout = function policyActionLayout(
 	};
 };
 
-const policyLanguage = function policyLanguage(manager: ConsentManagerValue) {
-	const profile = manager.lastBannerFetchData?.policy?.i18n?.messageProfile;
+const policyLanguage = function policyLanguage(snapshot: ConsentSnapshot) {
+	const profile = snapshot.policy?.i18n?.messageProfile;
 	return {
 		allowed: getAllowedLanguagesForProfile(profile),
-		requested: manager.overrides?.language ?? 'auto',
-		resolved:
-			manager.lastBannerFetchData?.translations.language ??
-			manager.translationConfig.defaultLanguage ??
-			'en',
+		requested: snapshot.overrides.language ?? 'auto',
+		resolved: snapshot.translations?.language ?? 'en',
 	};
 };
 
-const policyLocation = function policyLocation(manager: ConsentManagerValue) {
+const policyLocation = function policyLocation(snapshot: ConsentSnapshot) {
 	return {
-		country: manager.locationInfo?.countryCode ?? null,
-		region: manager.locationInfo?.regionCode ?? null,
+		country: snapshot.location?.countryCode ?? null,
+		region: snapshot.location?.regionCode ?? null,
 	};
 };
 
 const buildPolicySummary = function buildPolicySummary(
-	manager: ConsentManagerValue,
+	snapshot: ConsentSnapshot,
 	demoMode: DemoMode
 ) {
-	const policy = manager.lastBannerFetchData?.policy;
-	const policyDecision = manager.lastBannerFetchData?.policyDecision;
+	const { policy, policyDecision } = snapshot;
 	return {
-		actionLayout: policyActionLayout(manager),
-		categories: manager.policyCategories ?? [],
-		iabEnabled: manager.iab?.config.enabled ?? false,
+		actionLayout: policyActionLayout(snapshot),
+		categories: snapshot.policyCategories,
+		iabEnabled: snapshot.iab?.enabled ?? false,
 		id: policy?.id ?? null,
-		language: policyLanguage(manager),
-		location: policyLocation(manager),
+		language: policyLanguage(snapshot),
+		location: policyLocation(snapshot),
 		matchedBy: policyDecision?.matchedBy ?? null,
 		messageProfile: policy?.i18n?.messageProfile ?? 'default',
 		mode: demoMode,
-		model: manager.model ?? null,
-		scopeMode: manager.policyScopeMode ?? null,
-		source: manager.initDataSource ?? null,
+		model: snapshot.model,
+		scopeMode: snapshot.policyScopeMode,
+		source: demoMode,
 		uiMode: policy?.ui?.mode ?? 'none',
 	};
 };
 
 const buildMountedRuntimeDisplay = function buildMountedRuntimeDisplay(
-	manager: ConsentManagerValue,
+	snapshot: ConsentSnapshot,
 	demoMode: DemoMode
 ) {
-	const policy = manager.lastBannerFetchData?.policy;
-	const policyDecision = manager.lastBannerFetchData?.policyDecision;
-	const policySummary = buildPolicySummary(manager, demoMode);
+	const { policy, policyDecision } = snapshot;
+	const policySummary = buildPolicySummary(snapshot, demoMode);
 	return {
 		displayAllowedLanguages: policySummary.language.allowed,
 		displayLayoutText: policy?.ui?.banner?.layout
 			? JSON.stringify(policy.ui.banner.layout)
 			: 'default',
-		displayLocationCountry: manager.locationInfo?.countryCode ?? '--',
-		displayLocationRegion: manager.locationInfo?.regionCode ?? '',
-		displayModel: manager.model ?? 'none',
+		displayLocationCountry: snapshot.location?.countryCode ?? '--',
+		displayLocationRegion: snapshot.location?.regionCode ?? '',
+		displayModel: snapshot.model ?? 'none',
 		displayPolicyId: policy?.id ?? 'no policy',
 		displayPolicySummary: policySummary,
 		displayRequestedLanguage: policySummary.language.requested,
 		displayResolvedLanguage: policySummary.language.resolved,
 		displayRuntimeState: {
-			activeUI: manager.activeUI,
-			consents: manager.consents,
-			hasSavedConsent:
-				manager.consentInfo !== null && manager.consentInfo !== undefined,
+			activeUI: snapshot.activeUI,
+			consents: snapshot.consents,
+			hasSavedConsent: snapshot.hasConsented,
 			policyDecision,
 		},
-		displaySource: manager.initDataSource ?? 'unknown',
+		displaySource: demoMode,
 	};
 };
 
@@ -579,15 +578,12 @@ const buildPlaceholderRuntimeDisplay = function buildPlaceholderRuntimeDisplay(
 
 const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	const [mounted, setMounted] = useState(false);
-	const manager = useConsentManager();
-	const {
-		initConsentManager,
-		resetConsents,
-		setActiveUI,
-		setLanguage,
-		setOverrides,
-		overrides,
-	} = manager;
+	const snapshot = useSnapshot();
+	const init = useInit();
+	const setActiveUI = useSetActiveUI();
+	const setConsent = useSetConsent();
+	const setLanguage = useSetLanguage();
+	const setOverrides = useSetOverrides();
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => setMounted(true));
@@ -607,7 +603,7 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 		displayRuntimeState,
 		displaySource,
 	} = mounted
-		? buildMountedRuntimeDisplay(manager, demoMode)
+		? buildMountedRuntimeDisplay(snapshot, demoMode)
 		: buildPlaceholderRuntimeDisplay(demoMode);
 
 	return (
@@ -652,7 +648,8 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 				<div className="flex flex-wrap gap-2">
 					{demoLanguageOptions.map((option) => {
 						const isActive =
-							(option.value ?? 'auto') === (overrides?.language ?? 'auto');
+							(option.value ?? 'auto') ===
+							(snapshot.overrides.language ?? 'auto');
 						return (
 							<Button
 								key={option.label}
@@ -661,11 +658,16 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 								className="rounded-full"
 								onClick={() => {
 									if (!option.value) {
-										void setOverrides({ language: undefined });
+										setOverrides({
+											...snapshot.overrides,
+											language: undefined,
+										});
+										void init();
 										return;
 									}
 
-									void setLanguage(option.value);
+									setLanguage(option.value);
+									void init();
 								}}
 							>
 								{option.label}
@@ -683,7 +685,7 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 					variant="outline"
 					size="sm"
 					className="rounded-full"
-					onClick={() => setActiveUI('banner', { force: true })}
+					onClick={() => setActiveUI('banner')}
 				>
 					Show Banner
 				</Button>
@@ -691,7 +693,7 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 					variant="outline"
 					size="sm"
 					className="rounded-full"
-					onClick={() => setActiveUI('dialog', { force: true })}
+					onClick={() => setActiveUI('dialog')}
 				>
 					Show Dialog
 				</Button>
@@ -708,8 +710,13 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 					size="sm"
 					className="rounded-full"
 					onClick={() => {
-						resetConsents();
-						void initConsentManager();
+						setConsent({
+							experience: false,
+							functionality: false,
+							marketing: false,
+							measurement: false,
+						});
+						void init();
 					}}
 				>
 					Reset
@@ -803,7 +810,7 @@ export const PolicyDemo = () => {
 		| 'measurement'
 		| 'marketing'
 	)[] = ['necessary', 'functionality', 'measurement', 'marketing'];
-	const iabConfig = iab({
+	const iabConfig = {
 		customVendors: [
 			{
 				cookieMaxAgeSeconds: 31536000,
@@ -816,7 +823,7 @@ export const PolicyDemo = () => {
 				usesNonCookieAccess: false,
 			},
 		],
-	});
+	};
 
 	return (
 		<main className="bg-background min-h-screen">
@@ -857,15 +864,16 @@ export const PolicyDemo = () => {
 					</div>
 				</header>
 
-				<ConsentManagerProvider
+				<ConsentProvider
 					key={providerKey}
 					options={
 						demoMode === 'hosted'
 							? {
-									backendURL: `/api/self-host?example=${resolvedExample}`,
 									consentCategories: categories,
 									iab: iabConfig,
-									mode: 'c15t',
+									mode: hosted({
+										url: `/api/self-host?example=${resolvedExample}`,
+									}),
 									overrides,
 									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,
@@ -873,13 +881,14 @@ export const PolicyDemo = () => {
 							: {
 									consentCategories: categories,
 									iab: iabConfig,
-									mode: 'offline',
+									mode: offline({
+										policyPacks: offlinePoliciesByExample[resolvedExample],
+									}),
 									offlinePolicy: {
 										i18n: {
 											defaultProfile: 'default',
 											messages: demoI18nMessages,
 										},
-										policyPacks: offlinePoliciesByExample[resolvedExample],
 									},
 									overrides,
 									scripts: createDemoScripts('demo-analytics'),
@@ -1037,7 +1046,7 @@ export const PolicyDemo = () => {
 					<IABConsentBanner />
 					<IABConsentDialog />
 					<ConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			</div>
 		</main>
 	);

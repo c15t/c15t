@@ -1,5 +1,5 @@
 <script lang="ts">
-	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
 
 	import type { IABTranslations } from '../iab-translations';

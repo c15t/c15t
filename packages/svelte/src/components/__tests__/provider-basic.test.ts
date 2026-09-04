@@ -4,8 +4,8 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
-import type { ConsentKernel } from '@c15t/core/v3';
+import { IAB_FIXTURE_CMP_ID, MINIMAL_GVL } from '@c15t/conformance';
+import type { ConsentKernel } from '@c15t/core';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -42,6 +42,7 @@ const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
 type WindowWithC15t = Window & {
+	__tcfapi?: unknown;
 	c15t?: {
 		version: string;
 		pkg: string;
@@ -52,8 +53,8 @@ type WindowWithC15t = Window & {
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		delete (window as WindowWithC15t).c15t;
+		delete (window as WindowWithC15t).__tcfapi;
 		vi.resetAllMocks();
-		clearConsentRuntimeCache();
 
 		mockFetch.mockResolvedValue(
 			new Response(
@@ -72,6 +73,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	afterEach(() => {
 		vi.clearAllMocks();
 		delete (window as WindowWithC15t).c15t;
+		delete (window as WindowWithC15t).__tcfapi;
 	});
 
 	test('should install window.c15t with Svelte offline identity', async () => {
@@ -134,6 +136,49 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		});
 
 		result.unmount();
+	});
+
+	test('mounts hosted IAB after init supplies the CMP ID', async () => {
+		let mountedKernel: ConsentKernel | null = null;
+		mockFetch.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					branding: 'c15t',
+					cmpId: IAB_FIXTURE_CMP_ID,
+					customVendors: [],
+					gvl: MINIMAL_GVL,
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					policy: {
+						id: 'hosted-iab',
+						model: 'iab',
+						ui: { mode: 'banner' },
+					},
+					translations: { language: 'en', translations: {} },
+				}),
+				{ status: 200 }
+			)
+		);
+
+		const result = render(ProviderOnlyFixture, {
+			onKernel: (kernel: ConsentKernel) => {
+				mountedKernel = kernel;
+			},
+			options: {
+				iab: { enabled: true, vendors: [755] },
+				mode: hosted({ url: '/api/c15t' }),
+			},
+		});
+
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).__tcfapi).toBeTypeOf('function');
+			expect(
+				(mountedKernel as ConsentKernel | null)?.getSnapshot().iab?.cmpId
+			).toBe(IAB_FIXTURE_CMP_ID);
+		});
+
+		result.unmount();
+		expect((window as WindowWithC15t).__tcfapi).toBeUndefined();
 	});
 
 	test('throws when mode is missing', () => {

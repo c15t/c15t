@@ -1,4 +1,3 @@
-import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
 import { offline } from '../../../packages/svelte/src/lib/transports/offline';
 import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
@@ -15,17 +14,15 @@ const clearCookies = function clearCookies() {
 	}
 };
 
-export const resetStorybookConsentState = function resetStorybookConsentState(
-	clearConsentRuntimeCache: () => void
-) {
-	if (typeof window === 'undefined') {
-		return;
-	}
+export const resetStorybookConsentState =
+	function resetStorybookConsentState() {
+		if (typeof window === 'undefined') {
+			return;
+		}
 
-	clearConsentRuntimeCache();
-	window.localStorage.clear();
-	clearCookies();
-};
+		window.localStorage.clear();
+		clearCookies();
+	};
 
 export const seedStoredConsent = function seedStoredConsent(
 	consents: ConsentRecord
@@ -79,11 +76,11 @@ export const editableStoredConsent: ConsentRecord = {
 
 export const defaultIABOptions: ConsentManagerOptions = {
 	...defaultConsentOptions,
-	iab: iab({
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	}),
+	},
 	offlinePolicy: {
 		policy: { id: 'storybook_iab', model: 'iab' },
 	},

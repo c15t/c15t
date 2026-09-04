@@ -53,10 +53,7 @@ const outputDir = join(repoRoot, '.benchmarks', 'current', 'banner-visibility');
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '15');
 const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '2');
 
-type Version = 'v2' | 'v3';
-
 interface BenchState {
-	version: Version;
 	activeUI: string;
 	renderCount: number;
 	mountMs?: number;
@@ -133,20 +130,15 @@ const waitForServer = async function waitForServer() {
 };
 
 const collectSample = async function collectSample(
-	page: Page,
-	version: Version
+	page: Page
 ): Promise<BenchState> {
-	await page.goto(`/bench/banner-visibility?version=${version}`);
+	await page.goto('/bench/banner-visibility');
 	await page.waitForFunction(
-		(expectedVersion) => {
+		() => {
 			const state = window.__c15tBannerVisibilityBench;
-			return (
-				!!state &&
-				state.version === expectedVersion &&
-				typeof state.bannerVisibleMs === 'number'
-			);
+			return !!state && typeof state.bannerVisibleMs === 'number';
 		},
-		version,
+		undefined,
 		{ timeout: 30_000 }
 	);
 
@@ -154,11 +146,11 @@ const collectSample = async function collectSample(
 		JSON.parse(JSON.stringify(window.__c15tBannerVisibilityBench ?? null))
 	);
 	if (!state) {
-		throw new Error(`${version}: missing benchmark state`);
+		throw new Error('Missing benchmark state');
 	}
 	const typed = state as BenchState;
 	if (typed.errorCount > 0) {
-		throw new Error(`${version}: ${typed.errors.join('; ')}`);
+		throw new Error(typed.errors.join('; '));
 	}
 	return typed;
 };
@@ -186,64 +178,47 @@ const run = async function run() {
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
-		const results: {
-			version: Version;
-			bannerReadyMs: Stats;
-			bannerVisibleMs: Stats;
-			mountMs: Stats;
-			renderCount: Stats;
-		}[] = [];
-
-		await (['v2', 'v3'] as const).reduce<Promise<void>>(
-			async (previousVersion, version) => {
-				await previousVersion;
-				const readySamples: number[] = [];
-				const visibleSamples: number[] = [];
-				const mountSamples: number[] = [];
-				const renderSamples: number[] = [];
-
-				const iterationIndexes = Array.from(
-					{ length: warmupIterations + iterations },
-					(_, index) => index
-				);
-				await iterationIndexes.reduce<Promise<void>>(
-					async (previousIteration, index) => {
-						await previousIteration;
-						const context = await browser.newContext({ baseURL: BASE_URL });
-						const page = await context.newPage();
-						const sample = await collectSample(page, version);
-						if (index >= warmupIterations) {
-							readySamples.push(sample.bannerReadyMs ?? 0);
-							visibleSamples.push(sample.bannerVisibleMs ?? 0);
-							mountSamples.push(sample.mountMs ?? 0);
-							renderSamples.push(sample.renderCount);
-						}
-						await context.close();
-					},
-					Promise.resolve()
-				);
-
-				results.push({
-					bannerReadyMs: summarize(readySamples),
-					bannerVisibleMs: summarize(visibleSamples),
-					mountMs: summarize(mountSamples),
-					renderCount: summarize(renderSamples),
-					version,
-				});
+		const readySamples: number[] = [];
+		const visibleSamples: number[] = [];
+		const mountSamples: number[] = [];
+		const renderSamples: number[] = [];
+		const iterationIndexes = Array.from(
+			{ length: warmupIterations + iterations },
+			(_, index) => index
+		);
+		await iterationIndexes.reduce<Promise<void>>(
+			async (previousIteration, index) => {
+				await previousIteration;
+				const context = await browser.newContext({ baseURL: BASE_URL });
+				const page = await context.newPage();
+				const sample = await collectSample(page);
+				if (index >= warmupIterations) {
+					readySamples.push(sample.bannerReadyMs ?? 0);
+					visibleSamples.push(sample.bannerVisibleMs ?? 0);
+					mountSamples.push(sample.mountMs ?? 0);
+					renderSamples.push(sample.renderCount);
+				}
+				await context.close();
 			},
 			Promise.resolve()
 		);
+		const result = {
+			bannerReadyMs: summarize(readySamples),
+			bannerVisibleMs: summarize(visibleSamples),
+			mountMs: summarize(mountSamples),
+			renderCount: summarize(renderSamples),
+		};
 
 		await browser.close();
 
 		mkdirSync(outputDir, { recursive: true });
 		writeFileSync(
-			join(outputDir, 'svelte-v2-v3-banner-visibility.json'),
+			join(outputDir, 'svelte-banner-visibility.json'),
 			`${JSON.stringify(
 				{
 					generatedAt: new Date().toISOString(),
 					iterations,
-					results,
+					result,
 					suite: 'svelte-banner-visibility',
 					warmupIterations,
 				},
@@ -252,28 +227,18 @@ const run = async function run() {
 			)}\n`
 		);
 
-		const v2 = results.find((result) => result.version === 'v2');
-		const v3 = results.find((result) => result.version === 'v3');
 		console.log('# Svelte banner visibility benchmark\n');
 		console.log(`Iterations per metric: ${iterations}\n`);
-		console.log(
-			'| Metric | v2 median ms | v3 median ms | Δ | v2 p95 ms | v3 p95 ms | Δ |'
-		);
-		console.log('|---|---:|---:|---:|---:|---:|---:|');
-		if (v2 && v3) {
-			for (const metric of [
-				'bannerReadyMs',
-				'bannerVisibleMs',
-				'mountMs',
-			] as const) {
-				const medianDelta =
-					((v3[metric].median - v2[metric].median) / v2[metric].median) * 100;
-				const p95Delta =
-					((v3[metric].p95 - v2[metric].p95) / v2[metric].p95) * 100;
-				console.log(
-					`| ${metric} | ${v2[metric].median.toFixed(2)} | ${v3[metric].median.toFixed(2)} | ${medianDelta >= 0 ? '+' : ''}${medianDelta.toFixed(1)}% | ${v2[metric].p95.toFixed(2)} | ${v3[metric].p95.toFixed(2)} | ${p95Delta >= 0 ? '+' : ''}${p95Delta.toFixed(1)}% |`
-				);
-			}
+		console.log('| Metric | Median | p95 |');
+		console.log('|---|---:|---:|');
+		for (const metric of [
+			'bannerReadyMs',
+			'bannerVisibleMs',
+			'mountMs',
+		] as const) {
+			console.log(
+				`| ${metric} | ${result[metric].median.toFixed(2)} | ${result[metric].p95.toFixed(2)} |`
+			);
 		}
 	} finally {
 		server.kill('SIGTERM');

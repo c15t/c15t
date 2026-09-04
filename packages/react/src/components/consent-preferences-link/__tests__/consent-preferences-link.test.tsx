@@ -4,24 +4,21 @@ import { userEvent } from 'vitest/browser';
 
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogLink } from '~/components/consent-dialog-link';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
 
 describe('ConsentDialogLink', () => {
 	beforeEach(() => {
-		clearConsentRuntimeCache();
 		window.localStorage.clear();
 		vi.clearAllMocks();
 	});
 
 	test('renders custom text and opens the dialog when clicked', async () => {
 		render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentProvider options={{ mode: offline() }}>
 				<ConsentDialog />
 				<ConsentDialogLink>Your privacy settings</ConsentDialogLink>
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -54,7 +51,7 @@ describe('ConsentDialogLink', () => {
 
 	test('supports asChild for anchor-based footer links', async () => {
 		render(
-			<ConsentManagerProvider options={{ mode: 'offline' }}>
+			<ConsentProvider options={{ mode: offline() }}>
 				<ConsentDialog />
 				<ConsentDialogLink asChild>
 					<a
@@ -64,7 +61,7 @@ describe('ConsentDialogLink', () => {
 						Manage Preferences
 					</a>
 				</ConsentDialogLink>
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(

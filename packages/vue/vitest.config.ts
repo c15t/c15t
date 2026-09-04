@@ -13,20 +13,6 @@ export default mergeConfig(
 		resolve: {
 			alias: assignInOrder(
 				{},
-				{ '~/store/type': resolve(__dirname, '../core/src/store/type.ts') },
-				{
-					'~/libs/determine-model': resolve(
-						__dirname,
-						'../core/src/libs/determine-model.ts'
-					),
-				},
-				{
-					'~/types/compliance': resolve(
-						__dirname,
-						'../core/src/types/compliance.ts'
-					),
-				},
-				{ '~/version': resolve(__dirname, '../core/src/version.ts') },
 				{ '~': resolve(__dirname, './src') },
 				{ '#imports': resolve(__dirname, './src/runtime/vue/stubs.ts') },
 				{
@@ -36,48 +22,47 @@ export default mergeConfig(
 					),
 				},
 				{
-					'@c15t/core/v3/modules/script-loader': resolve(
+					'@c15t/core/modules/script-loader': resolve(
 						__dirname,
-						'../core/src/v3/modules/script-loader/index.ts'
+						'../core/src/modules/script-loader/index.ts'
 					),
 				},
 				{
-					'@c15t/core/v3/modules/network-blocker': resolve(
+					'@c15t/core/modules/network-blocker': resolve(
 						__dirname,
-						'../core/src/v3/modules/network-blocker/index.ts'
+						'../core/src/modules/network-blocker/index.ts'
 					),
 				},
 				{
-					'@c15t/core/v3/modules/iframe-blocker': resolve(
+					'@c15t/core/modules/iframe-blocker': resolve(
 						__dirname,
-						'../core/src/v3/modules/iframe-blocker/index.ts'
+						'../core/src/modules/iframe-blocker/index.ts'
 					),
 				},
 				{
-					'@c15t/core/v3/modules/persistence': resolve(
+					'@c15t/core/modules/persistence': resolve(
 						__dirname,
-						'../core/src/v3/modules/persistence/index.ts'
+						'../core/src/modules/persistence/index.ts'
 					),
 				},
 				{
-					'@c15t/core/v3/modules/window-debug': resolve(
+					'@c15t/core/modules/window-debug': resolve(
 						__dirname,
-						'../core/src/v3/modules/window-debug/index.ts'
+						'../core/src/modules/window-debug/index.ts'
 					),
 				},
 				{
-					'@c15t/core/v3/consent-record': resolve(
+					'@c15t/core/consent-record': resolve(
 						__dirname,
-						'../core/src/v3/consent-record/index.ts'
+						'../core/src/consent-record/index.ts'
 					),
 				},
 				{
-					'@c15t/core/v3/transports/manifest': resolve(
+					'@c15t/core/transports/manifest': resolve(
 						__dirname,
-						'../core/src/v3/transports/manifest.ts'
+						'../core/src/transports/manifest.ts'
 					),
 				},
-				{ '@c15t/core/v3': resolve(__dirname, '../core/src/v3/index.ts') },
 				{ '@c15t/core': resolve(__dirname, '../core/src/index.ts') },
 				{
 					'@c15t/translations/all': resolve(

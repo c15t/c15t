@@ -4,15 +4,12 @@
  * Tests for legitimate interest UI behavior in IAB Consent Dialog.
  */
 
-import { iab } from '@c15t/iab';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import { ConsentProvider } from '~/provider';
+import type { ConsentProviderOptions } from '~/provider';
+import { offline } from '~/transports/offline';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
 
@@ -28,7 +25,7 @@ const localStorageMock = (() => {
 			Reflect.deleteProperty(store, key);
 		},
 		setItem: (key: string, value: string) => {
-			store[key] = String(value);
+			store[key] = value;
 		},
 	};
 })();
@@ -214,13 +211,13 @@ globalThis.fetch = vi.fn(() =>
 	)
 ) as typeof fetch;
 
-const defaultIABOptions: ConsentManagerOptions = {
-	iab: iab({
+const defaultIABOptions: ConsentProviderOptions = {
+	iab: {
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	}),
-	mode: 'offline',
+	},
+	mode: offline(),
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},
@@ -230,15 +227,14 @@ describe('Legitimate Interest UI - Purpose Level', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('LI purposes section should be separate from consent', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -254,9 +250,9 @@ describe('Legitimate Interest UI - Purpose Level', () => {
 
 	test('LI toggle should default to allowed (not objected)', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -273,9 +269,9 @@ describe('Legitimate Interest UI - Purpose Level', () => {
 
 	test('Purpose 1 should not have LI toggle (per IAB spec)', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -292,9 +288,9 @@ describe('Legitimate Interest UI - Purpose Level', () => {
 
 	test('Purposes 2-11 can have LI toggles', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -314,15 +310,14 @@ describe('Legitimate Interest UI - Vendor Level', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('Vendor with LI purposes should show LI toggle', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -350,9 +345,9 @@ describe('Legitimate Interest UI - Vendor Level', () => {
 
 	test('Vendor without LI purposes should not show LI toggle', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -380,9 +375,9 @@ describe('Legitimate Interest UI - Vendor Level', () => {
 
 	test('Vendor-level LI objection should be independent per vendor', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -413,15 +408,14 @@ describe('Legitimate Interest UI - Objection Behavior', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('Toggling to object should set LI to false', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -437,9 +431,9 @@ describe('Legitimate Interest UI - Objection Behavior', () => {
 
 	test('Purpose-level LI objection should cascade to vendors using that purpose', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -455,9 +449,9 @@ describe('Legitimate Interest UI - Objection Behavior', () => {
 
 	test('LI objection should persist after save', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -476,15 +470,14 @@ describe('Legitimate Interest UI - Display Requirements', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('LI section should display purpose names from GVL', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -501,9 +494,9 @@ describe('Legitimate Interest UI - Display Requirements', () => {
 
 	test('LI toggle should be clearly distinguishable from consent toggle', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -519,9 +512,9 @@ describe('Legitimate Interest UI - Display Requirements', () => {
 
 	test('Vendor details should show which purposes use LI', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -552,15 +545,14 @@ describe('Legitimate Interest UI - Flexible Purposes', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 		delete (window as { __tcfapi?: unknown }).__tcfapi;
 	});
 
 	test('Flexible purposes can use either consent or LI', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -576,9 +568,9 @@ describe('Legitimate Interest UI - Flexible Purposes', () => {
 
 	test('Vendor with flexible purposes should show both consent and LI options', async () => {
 		render(
-			<ConsentManagerProvider options={defaultIABOptions}>
+			<ConsentProvider options={defaultIABOptions}>
 				<IABConsentDialog open />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(

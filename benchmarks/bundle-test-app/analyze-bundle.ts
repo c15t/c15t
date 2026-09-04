@@ -68,22 +68,18 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 // entry benchmarks for transport-level comparisons.
 const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/': 'baseline',
-	'/core-only': 'core-only',
-	'/css-v2-banner-monolith': 'css-v2-banner-monolith',
-	'/css-v2-iab-monolith': 'css-v2-iab-monolith',
-	'/css-v3-banner-modules': 'css-v3-banner-modules',
-	'/css-v3-iab-lazy': 'css-v3-iab-lazy',
-	'/css-v3-iab-modules': 'css-v3-iab-modules',
+	'/css-banner-modules': 'css-banner-modules',
+	'/css-iab-lazy': 'css-iab-lazy',
+	'/css-iab-modules': 'css-iab-modules',
 	'/nextjs-basic': 'nextjs-basic',
 	'/nextjs-ssr': 'nextjs-ssr',
 	'/react-banner-only': 'react-banner-only',
 	'/react-full': 'react-full',
+	'/react-full-split': 'react-full-split',
+	'/react-harness': 'react-harness',
 	'/react-headless': 'react-headless',
-	'/v3-react-full': 'v3-react-full',
-	'/v3-react-full-aggregate': 'v3-react-full-aggregate',
-	'/v3-react-full-split': 'v3-react-full-split',
-	'/v3-react-manifest-client': 'v3-react-manifest-client',
-	'/v3-react-standard-script-loader': 'v3-react-standard-script-loader',
+	'/react-manifest-client': 'react-manifest-client',
+	'/react-standard-script-loader': 'react-standard-script-loader',
 };
 
 const waitForServer = async function waitForServer() {
@@ -344,7 +340,7 @@ const main = async function main() {
 			if (route.route.startsWith('/nextjs')) {
 				return 'nextjs';
 			}
-			return route.route === '/core-only' ? 'core' : 'react';
+			return 'react';
 		};
 		const bundleResults: BenchmarkResult[] = routes.map((route) => ({
 			baseSha: safeBaseSha(),

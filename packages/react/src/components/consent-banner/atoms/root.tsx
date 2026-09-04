@@ -1,8 +1,7 @@
 'use client';
 
 import type * as C15tCoreTypes from '@c15t/core';
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/consent-banner';
 import {
 	forwardRef as createForwardRef,
 	useEffect,
@@ -10,19 +9,34 @@ import {
 	useState,
 } from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
-import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useIsHydrated } from '~/hooks/use-is-hydrated';
-import { useStyles } from '~/hooks/use-styles';
+import {
+	useActiveUI,
+	useTranslations as useKernelTranslations,
+	useModel,
+	usePolicyBanner,
+} from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
+import { defaultTranslationConfig } from '~/utils/default-translation-config';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Overlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in'];
+
+const getBannerAnimationClass = (
+	disableAnimation: boolean | undefined,
+	isVisible: boolean
+): string => {
+	if (disableAnimation) {
+		return '';
+	}
+	return isVisible ? styles.bannerVisible : styles.bannerHidden;
+};
 
 /**
  * Props for the root component of the ConsentBanner.
@@ -116,19 +130,22 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  * ```
  *
  * @example
- * Preferred styling with provider theme tokens and slots:
+ * Preferred styling with provider theme tokens and components:
  * ```tsx
- * <ConsentManagerProvider
+ * <ConsentProvider
  *   options={{
+ *     mode: hosted({ url: '/api/c15t' }),
  *     theme: {
  *       colors: {
  *         surface: '#fffdf8',
  *         surfaceHover: '#f6f3ee',
  *       },
- *       slots: {
- *         consentBannerCard: 'rounded-3xl shadow-xl',
- *         consentBannerFooter: 'border-t border-black/10 px-6',
- *         consentBannerTitle: 'tracking-tight',
+ *     },
+ *     components: {
+ *       banner: {
+ *         card: { className: 'rounded-3xl shadow-xl' },
+ *         footer: { className: 'border-t border-black/10 px-6' },
+ *         title: { className: 'tracking-tight' },
  *       },
  *     },
  *   }}
@@ -148,7 +165,7 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  *       </ConsentBanner.Footer>
  *     </ConsentBanner.Card>
  *   </ConsentBanner.Root>
- * </ConsentManagerProvider>
+ * </ConsentProvider>
  * ```
  *
  * @public
@@ -211,18 +228,58 @@ const ConsentBannerRootChildren = createForwardRef<
 		},
 		ref
 	) => {
-		const { activeUI, translationConfig, model } = useConsentManager();
-		const textDirection = useTextDirection(translationConfig.defaultLanguage);
+		const activeUI = useActiveUI();
+		const { components } = useUIConfig();
+		const model = useModel() ?? 'opt-in';
+		const translations = useKernelTranslations();
+		const textDirection = useTextDirection(
+			translations?.language ?? defaultTranslationConfig.defaultLanguage
+		);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
-		const isMounted = useIsHydrated();
+		// Default fallback for SSR
+		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// ConsentBanner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+		const [hasInitializedVisibility, setHasInitializedVisibility] =
+			useState(false);
+
+		// Get animation duration from CSS custom property (client-side only)
+		useEffect(() => {
+			const duration = Number.parseInt(
+				getComputedStyle(document.documentElement).getPropertyValue(
+					'--consent-banner-animation-duration'
+				) || '200',
+				10
+			);
+			const frame = requestAnimationFrame(() => {
+				setAnimationDurationMs(duration);
+			});
+			return () => cancelAnimationFrame(frame);
+		}, []);
 
 		// Handle animation visibility state
 		useEffect(() => {
+			if (!hasInitializedVisibility) {
+				const frame = requestAnimationFrame(() => {
+					setHasInitializedVisibility(true);
+					setIsVisible(shouldShowBanner);
+					if (shouldShowBanner) {
+						setHasAnimated(true);
+					}
+				});
+				return () => cancelAnimationFrame(frame);
+			}
+
 			if (shouldShowBanner) {
+				if (disableAnimation) {
+					const frame = requestAnimationFrame(() => {
+						setIsVisible(true);
+						setHasAnimated(true);
+					});
+					return () => cancelAnimationFrame(frame);
+				}
 				// If banner is showing but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
 					const frame = requestAnimationFrame(() => setIsVisible(true));
@@ -235,25 +292,16 @@ const ConsentBannerRootChildren = createForwardRef<
 				}, 10);
 				return () => clearTimeout(animationTimer);
 			}
+
 			// Reset animation state when hiding so it can animate again next time
-			const frame = requestAnimationFrame(() => setHasAnimated(false));
-
 			if (disableAnimation) {
-				const visibilityFrame = requestAnimationFrame(() =>
-					setIsVisible(false)
-				);
-				return () => {
-					cancelAnimationFrame(frame);
-					cancelAnimationFrame(visibilityFrame);
-				};
+				const frame = requestAnimationFrame(() => {
+					setHasAnimated(false);
+					setIsVisible(false);
+				});
+				return () => cancelAnimationFrame(frame);
 			}
-
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--consent-banner-animation-duration'
-				) || '200',
-				10
-			);
+			const frame = requestAnimationFrame(() => setHasAnimated(false));
 			const timer = setTimeout(() => {
 				setIsVisible(false);
 				// Match CSS animation duration
@@ -262,50 +310,47 @@ const ConsentBannerRootChildren = createForwardRef<
 				cancelAnimationFrame(frame);
 				clearTimeout(timer);
 			};
-		}, [shouldShowBanner, disableAnimation, hasAnimated]);
+		}, [
+			shouldShowBanner,
+			disableAnimation,
+			hasAnimated,
+			animationDurationMs,
+			hasInitializedVisibility,
+		]);
 
-		// Apply styles from the ConsentBanner context and merge with local styles.
-		// Uses the 'content' style key for consistent theming.
-		const contentStyle = useStyles('consentBanner', {
-			baseClassName: [
-				styles.root,
-				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-			],
+		const contentStyle = mergeSlotProps(components?.banner?.root, {
+			baseClassName: styles.root,
 			className: className || forwardedClassName,
 			noStyle,
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
+			...props,
 		});
-
-		// Prevent rendering until client-side mount is complete
-		if (!isMounted) {
-			return null;
-		}
 
 		// Create a final class name that respects the noStyle flag
 		const finalClassName = noStyle
 			? contentStyle.className || ''
-			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
-		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
-
+			: `${contentStyle.className || ''} ${getBannerAnimationClass(
+					disableAnimation,
+					isVisible
+				)}`;
 		// Only render when the banner should be shown
-		return shouldShowBanner
-			? createPortal(
-					<>
-						<Overlay />
-						<div
-							ref={ref}
-							{...props}
-							{...domStyleProps}
-							className={finalClassName}
-							data-testid="consent-banner-root"
-							dir={textDirection}
-						>
-							{children}
-						</div>
-					</>,
-					document.body
-				)
-			: null;
+		return shouldShowBanner ? (
+			<>
+				<Overlay />
+				<div
+					ref={ref}
+					{...contentStyle}
+					className={finalClassName}
+					data-position={
+						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
+					}
+					data-testid="consent-banner-root"
+					dir={textDirection}
+				>
+					{children}
+				</div>
+			</>
+		) : null;
 	}
 );
 const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
@@ -319,28 +364,30 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const { policyBanner } = useConsentManager();
+	const policyBanner = usePolicyBanner();
 
 	/**
 	 * Combine consent manager state with styling configuration
 	 * to create the context value for child components
 	 */
+	const resolvedScrollLock =
+		scrollLock ?? policyBanner?.scrollLock ?? undefined;
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,
 			noStyle,
-			scrollLock: scrollLock ?? policyBanner.scrollLock ?? undefined,
+			scrollLock: resolvedScrollLock,
 			trapFocus,
 		}),
-		[disableAnimation, noStyle, policyBanner.scrollLock, scrollLock, trapFocus]
+		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
 	);
-	const trackingValue = useMemo(
+	const trackingContextValue = useMemo(
 		() => ({ uiSource: uiSource ?? 'banner' }),
 		[uiSource]
 	);
 
 	return (
-		<ConsentTrackingContext.Provider value={trackingValue}>
+		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
 				<ConsentBannerRootChildren
 					disableAnimation={disableAnimation}

@@ -1,114 +1,135 @@
-import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import { createConsentKernel, has } from '@c15t/core';
 
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
-// Create store once for condition evaluation benchmarks
-const manager = configureConsentManager({ mode: 'offline' });
-const store = createConsentManagerStore(manager);
-const state = store.getState();
+const kernel = createConsentKernel();
+const consents = { ...kernel.getSnapshot().consents };
 
 // Simple single consent checks
 bench('has() - single consent (measurement)', () => {
-	state.has('measurement');
+	has('measurement', consents);
 });
 
 bench('has() - single consent (marketing)', () => {
-	state.has('marketing');
+	has('marketing', consents);
 });
 
 bench('has() - single consent (necessary)', () => {
-	state.has('necessary');
+	has('necessary', consents);
 });
 
 // AND conditions
 bench('has() - AND condition (2 items)', () => {
-	state.has({ and: ['measurement', 'marketing'] });
+	has({ and: ['measurement', 'marketing'] }, consents);
 });
 
 bench('has() - AND condition (3 items)', () => {
-	state.has({ and: ['measurement', 'marketing', 'functionality'] });
+	has({ and: ['measurement', 'marketing', 'functionality'] }, consents);
 });
 
 bench('has() - AND condition (4 items)', () => {
-	state.has({
-		and: ['necessary', 'measurement', 'marketing', 'functionality'],
-	});
+	has(
+		{
+			and: ['necessary', 'measurement', 'marketing', 'functionality'],
+		},
+		consents
+	);
 });
 
 bench('has() - AND condition (5 items - all)', () => {
-	state.has({
-		and: [
-			'necessary',
-			'measurement',
-			'marketing',
-			'functionality',
-			'experience',
-		],
-	});
+	has(
+		{
+			and: [
+				'necessary',
+				'measurement',
+				'marketing',
+				'functionality',
+				'experience',
+			],
+		},
+		consents
+	);
 });
 
 // OR conditions
 bench('has() - OR condition (2 items)', () => {
-	state.has({ or: ['measurement', 'marketing'] });
+	has({ or: ['measurement', 'marketing'] }, consents);
 });
 
 bench('has() - OR condition (3 items)', () => {
-	state.has({ or: ['measurement', 'marketing', 'functionality'] });
+	has({ or: ['measurement', 'marketing', 'functionality'] }, consents);
 });
 
 bench('has() - OR condition (5 items - all)', () => {
-	state.has({
-		or: [
-			'necessary',
-			'measurement',
-			'marketing',
-			'functionality',
-			'experience',
-		],
-	});
+	has(
+		{
+			or: [
+				'necessary',
+				'measurement',
+				'marketing',
+				'functionality',
+				'experience',
+			],
+		},
+		consents
+	);
 });
 
 // NOT conditions
 bench('has() - NOT condition (single)', () => {
-	state.has({ not: 'marketing' });
+	has({ not: 'marketing' }, consents);
 });
 
 bench('has() - NOT condition (nested)', () => {
-	state.has({ not: { and: ['measurement', 'marketing'] } });
+	has({ not: { and: ['measurement', 'marketing'] } }, consents);
 });
 
 // Complex nested conditions
 bench('has() - nested: AND with OR', () => {
-	state.has({
-		and: ['necessary', { or: ['measurement', 'marketing'] }],
-	});
+	has(
+		{
+			and: ['necessary', { or: ['measurement', 'marketing'] }],
+		},
+		consents
+	);
 });
 
 bench('has() - nested: AND with NOT', () => {
-	state.has({
-		and: ['necessary', { not: 'marketing' }],
-	});
+	has(
+		{
+			and: ['necessary', { not: 'marketing' }],
+		},
+		consents
+	);
 });
 
 bench('has() - nested: complex (3 levels)', () => {
-	state.has({
-		and: [
-			'necessary',
-			{ or: ['measurement', 'marketing'] },
-			{ not: 'functionality' },
-		],
-	});
+	has(
+		{
+			and: [
+				'necessary',
+				{ or: ['measurement', 'marketing'] },
+				{ not: 'functionality' },
+			],
+		},
+		consents
+	);
 });
 
 bench('has() - deeply nested (4 levels)', () => {
-	state.has({
-		and: [
-			'necessary',
-			{
-				or: [{ and: ['measurement', 'marketing'] }, { not: 'functionality' }],
-			},
-		],
-	});
+	has(
+		{
+			and: [
+				'necessary',
+				{
+					or: [{ and: ['measurement', 'marketing'] }, { not: 'functionality' }],
+				},
+			],
+		},
+		consents
+	);
 });
 
 await runMicroBenchmarkSuite('has-condition');
+
+kernel.dispose();

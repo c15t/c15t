@@ -7,8 +7,7 @@ import {
 	getTabState,
 } from '@c15t/ui/primitives/tabs';
 import type { TabsOrientation } from '@c15t/ui/primitives/tabs';
-import { tabsVariants } from '@c15t/ui/styles/primitives/tabs';
-import type { TabsVariantsProps } from '@c15t/ui/styles/primitives/tabs';
+import styles from '@c15t/ui/styles/components/tabs';
 import {
 	createContext,
 	forwardRef as createForwardRef,
@@ -21,6 +20,21 @@ import type { HTMLAttributes, KeyboardEvent, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';
+
+export interface TabsVariantsProps {
+	orientation?: TabsOrientation;
+}
+
+export const tabsVariants = () => ({
+	content: (options?: { class?: string }) =>
+		[styles.content, options?.class].filter(Boolean).join(' '),
+	list: (options?: { class?: string }) =>
+		[styles.list, options?.class].filter(Boolean).join(' '),
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	trigger: (options?: { class?: string }) =>
+		[styles.trigger, options?.class].filter(Boolean).join(' '),
+});
 
 interface TabsContextValue {
 	baseId: string;
@@ -76,7 +90,7 @@ const TabsRoot = createForwardRef<HTMLDivElement, TabsRootProps>(
 	) => {
 		const reactId = useId().replace(/:/gu, '');
 		const { noStyle: contextNoStyle } = useTheme();
-		const variants = tabsVariants({ orientation });
+		const variants = tabsVariants();
 		const [currentValue, setCurrentValue] = useControllableState({
 			defaultValue: defaultValue ?? '',
 			onChange: onValueChange,
@@ -146,7 +160,7 @@ const TabsList = createForwardRef<HTMLDivElement, TabsListProps>(
 			orientation: rootOrientation,
 		} = useTabsContext();
 		const finalOrientation = orientation ?? rootOrientation;
-		const variants = tabsVariants({ orientation: finalOrientation });
+		const variants = tabsVariants();
 		const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
 
 		return (

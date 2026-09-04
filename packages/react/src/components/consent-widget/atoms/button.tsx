@@ -1,9 +1,10 @@
 import { forwardRef as createForwardRef } from 'react';
 import type { Ref } from 'react';
 
+import { useTranslations } from '~/component-hooks/use-translations';
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
-import { useTranslations } from '~/hooks/use-translations';
+import { useConsentDraft } from '~/draft';
 
 /**
  * Button to accept all available cookies.
@@ -25,7 +26,7 @@ const ConsentWidgetAcceptAllButton = createForwardRef<
 			action="accept-consent"
 			consentAction="accept"
 			{...props}
-			themeKey="buttonSecondary"
+			slotKey="button.secondary"
 			data-testid="consent-widget-footer-accept-all-button"
 			closeConsentBanner={true}
 			closeConsentDialog={true}
@@ -34,7 +35,6 @@ const ConsentWidgetAcceptAllButton = createForwardRef<
 		</ConsentButton>
 	);
 });
-
 ConsentWidgetAcceptAllButton.displayName = 'ConsentWidgetAcceptAllButton';
 
 const ConsentWidgetCustomizeButton = createForwardRef<
@@ -48,14 +48,13 @@ const ConsentWidgetCustomizeButton = createForwardRef<
 			action="open-consent-dialog"
 			consentAction="customize"
 			{...props}
-			themeKey="buttonSecondary"
+			slotKey="button.secondary"
 			data-testid="consent-widget-footer-customize-button"
 		>
 			{children ?? common.customize}
 		</ConsentButton>
 	);
 });
-
 ConsentWidgetCustomizeButton.displayName = 'ConsentWidgetCustomizeButton';
 
 const ConsentWidgetSaveButton = createForwardRef<
@@ -63,21 +62,27 @@ const ConsentWidgetSaveButton = createForwardRef<
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
+	const draft = useConsentDraft();
+	const { onClick, ...buttonProps } = props;
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="custom-consent"
 			consentAction="customize"
 			closeConsentDialog
-			{...props}
-			themeKey="buttonPrimary"
+			onClick={(event) => {
+				onClick?.(event);
+				void draft.save();
+			}}
+			performDefaultAction={false}
+			{...buttonProps}
+			slotKey="button.primary"
 			data-testid="consent-widget-footer-save-button"
 		>
 			{children ?? common.save}
 		</ConsentButton>
 	);
 });
-
 ConsentWidgetSaveButton.displayName = 'ConsentWidgetSaveButton';
 
 /**
@@ -100,7 +105,7 @@ const ConsentWidgetRejectButton = createForwardRef<
 			action="reject-consent"
 			consentAction="reject"
 			{...props}
-			themeKey="buttonSecondary"
+			slotKey="button.secondary"
 			data-testid="consent-widget-reject-button"
 			closeConsentBanner={true}
 			closeConsentDialog={true}
@@ -109,7 +114,6 @@ const ConsentWidgetRejectButton = createForwardRef<
 		</ConsentButton>
 	);
 });
-
 ConsentWidgetRejectButton.displayName = 'ConsentWidgetRejectButton';
 
 const AcceptAllButton = ConsentWidgetAcceptAllButton;

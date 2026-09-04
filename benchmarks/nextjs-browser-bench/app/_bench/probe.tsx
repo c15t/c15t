@@ -1,6 +1,6 @@
 'use client';
 
-import { useConsentManager } from '@c15t/nextjs';
+import { useActiveUI, useSnapshot } from '@c15t/nextjs';
 import { useEffect, useRef } from 'react';
 
 import { getState, hasRunningAnimations, isElementVisible } from './state';
@@ -39,14 +39,22 @@ export const NextjsBenchmarkProbe = ({
 }: {
 	scenario: NextjsBenchScenario;
 }) => {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
+	const snapshot = useSnapshot();
 	const renderRef = useRef(0);
-
 	useEffect(() => {
 		renderRef.current += 1;
 		const state = getState(scenario);
 		if (state) {
 			state.renderCount = renderRef.current;
+			state.overrides = { ...snapshot.overrides };
+			state.location = snapshot.location
+				? {
+						countryCode: snapshot.location.countryCode,
+						regionCode: snapshot.location.regionCode,
+					}
+				: null;
+			state.hasConsented = snapshot.hasConsented;
 		}
 	});
 
@@ -96,7 +104,15 @@ export const NextjsBenchmarkProbe = ({
 			return;
 		}
 
-		current.activeUI = activeUI;
+		current.activeUI = activeUI ?? 'none';
+		current.overrides = { ...snapshot.overrides };
+		current.location = snapshot.location
+			? {
+					countryCode: snapshot.location.countryCode,
+					regionCode: snapshot.location.regionCode,
+				}
+			: null;
+		current.hasConsented = snapshot.hasConsented;
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}
@@ -140,7 +156,7 @@ export const NextjsBenchmarkProbe = ({
 
 		frameId = window.requestAnimationFrame(check);
 		return () => window.cancelAnimationFrame(frameId);
-	}, [activeUI, scenario]);
+	}, [activeUI, scenario, snapshot]);
 
 	return null;
 };

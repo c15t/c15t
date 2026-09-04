@@ -1,27 +1,24 @@
 'use client';
 
-import { ConsentManagerProvider, useConsentManager } from '@c15t/nextjs';
-import type { InitialDataPromise } from '@c15t/nextjs';
+import { ConsentBoundary, useActiveUI } from '@c15t/nextjs';
+import type { ConsentBoundaryProps } from '@c15t/nextjs';
 
 const SSRStateProbe = () => {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 	return <div data-active-ui={activeUI} />;
 };
 export const NextjsSSRProvider = ({
 	children,
-	ssrData,
+	config,
 }: {
 	children: React.ReactNode;
-	ssrData: InitialDataPromise;
+	config: ConsentBoundaryProps['config'];
 }) => (
-	<ConsentManagerProvider
-		options={{
-			backendURL: '/api/bench-consent',
-			mode: 'c15t',
-			ssrData,
-		}}
+	<ConsentBoundary
+		backendURL="/api/bench-consent"
+		config={config}
 	>
 		<SSRStateProbe />
 		{children}
-	</ConsentManagerProvider>
+	</ConsentBoundary>
 );

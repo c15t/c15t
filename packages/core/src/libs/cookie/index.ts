@@ -47,7 +47,12 @@ export {
 	shortenFlatKeys,
 } from './key-mapping';
 // Re-export cookie operations
-export { deleteCookie, getCookie, setCookie } from './operations';
+export {
+	deleteCookie,
+	getCookie,
+	parseCookieValue,
+	setCookie,
+} from './operations';
 
 // Re-export serialization (internal use)
 export {
@@ -59,6 +64,7 @@ export {
 // Re-export high-level storage functions
 export {
 	deleteConsentFromStorage,
+	getConsentFromCookieHeader,
 	getConsentFromStorage,
 	saveConsentToStorage,
 } from './storage';

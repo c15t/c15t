@@ -1,20 +1,34 @@
 /**
- * Main entry point for the C15T Next.js integration package.
- * Re-exports all necessary components, hooks, and utilities from the React package
- * and middleware for seamless integration with Next.js applications.
+ * `@c15t/nextjs` Next.js App Router adapter.
  *
- * @packageDocumentation
- * @see {@link @c15t/react} for React components and hooks
- * @see {@link ./middleware} for Next.js middleware integration
+ * Pattern:
+ *   // app/layout.tsx (Server Component)
+ *   import { readInitialConsentConfig } from '@c15t/nextjs/server';
+ *   import { ConsentBoundary } from '@c15t/nextjs';
+ *
+ *   export default async function RootLayout({ children }) {
+ *     const config = await readInitialConsentConfig();
+ *     return (
+ *       <html>
+ *         <body>
+ *           <ConsentBoundary config={config}>{children}</ConsentBoundary>
+ *         </body>
+ *       </html>
+ *     );
+ *   }
+ *
+ *   // any client component
+ *   import { useConsent } from '@c15t/react';
+ *   const allowed = useConsent('marketing');
+ *
+ * Server helpers return serializable data and avoid module-level runtime
+ * caches, keeping requests isolated under Fluid Compute.
  */
 
 export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
+// oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from '@c15t/react';
+export type { ConsentBoundaryProps } from './boundary';
+export { ConsentBoundary } from './boundary';
 export { C15tPrefetch } from './libs/browser-initial-data';
-export { fetchInitialData } from './libs/initial-data';
-export type {
-	C15tPrefetchProps,
-	ConsentManagerProps,
-	FetchInitialDataOptions,
-	InitialDataPromise,
-} from './types';
+export type { C15tPrefetchProps } from './types';

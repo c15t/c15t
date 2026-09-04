@@ -1,3 +1,5 @@
+@import url('./animations/spin.css');
+
 :root {
 	/* Typography */
 	--iab-cd-font-family: var(--c15t-font-family);
@@ -27,8 +29,8 @@
 	--iab-cd-max-width: 48rem;
 	--iab-cd-max-height: 85vh;
 	--iab-cd-border-radius: var(--c15t-radius-lg);
-	--iab-cd-z-index: 999999999;
-	--iab-cd-overlay-z-index: 999999998;
+	--iab-cd-z-index: 999999;
+	--iab-cd-overlay-z-index: 999998;
 
 	/* Spacing */
 	--iab-cd-padding: var(--c15t-space-md);
@@ -123,12 +125,9 @@
 		width: min(100%, var(--iab-cd-max-width));
 		max-height: var(--iab-cd-max-height);
 		min-height: 0;
-		margin: 0;
-		padding: 0;
 		border-radius: var(--iab-cd-border-radius);
 		border: 1px solid var(--iab-cd-border-color);
 		background-color: var(--iab-cd-background-color);
-		color: inherit;
 		box-shadow: var(--iab-cd-shadow);
 		display: flex;
 		flex-direction: column;
@@ -552,7 +551,7 @@
 		color: var(--iab-cd-text-muted-color-dark);
 	}
 
-	.vendorSectionTitleLI {
+	.vendorSectionTitleLi {
 		color: var(--iab-cd-text-muted-color);
 		display: flex;
 		align-items: center;
@@ -574,7 +573,7 @@
 		background-color: var(--iab-cd-surface-hover-dark);
 	}
 
-	.vendorRowLI {
+	.vendorRowLi {
 		background-color: var(--iab-cd-surface-hover);
 		border: 1px solid var(--iab-cd-border-color);
 	}
@@ -632,7 +631,7 @@
 		color: var(--iab-cd-text-muted-color-dark);
 	}
 
-	.vendorDetailLI {
+	.vendorDetailLi {
 		color: var(--iab-cd-text-muted-color);
 		font-weight: 500;
 	}
@@ -1039,7 +1038,7 @@
 		color: var(--iab-cd-text-muted-color-dark);
 	}
 
-	.vendorListLIBadge {
+	.vendorListLiBadge {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.125rem;
@@ -1148,7 +1147,7 @@
 		border-color: var(--iab-cd-border-color-dark);
 	}
 
-	.vendorPurposeItemLI {
+	.vendorPurposeItemLi {
 		border-color: var(--iab-cd-text-muted-color);
 		color: var(--iab-cd-text-muted-color);
 	}
@@ -1172,15 +1171,6 @@
 	:global(.c15t-dark) .footer {
 		border-color: var(--iab-cd-border-color-dark);
 		background-color: var(--iab-cd-surface-hover-dark);
-	}
-
-	.footerButtons {
-		display: flex;
-		gap: 0.5rem;
-	}
-
-	.footerSpacer {
-		flex: 1;
 	}
 
 	/* Consent storage notice */
@@ -1220,13 +1210,7 @@
 		border: 2px solid var(--iab-cd-border-color);
 		border-top-color: var(--iab-cd-primary-color);
 		border-radius: 50%;
-		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		to {
-			transform: rotate(360deg);
-		}
+		animation: var(--c15t-spin-animation);
 	}
 
 	.loadingText {
@@ -1404,12 +1388,14 @@
 		color: var(--iab-cd-text-color);
 	}
 
+	.objectButton[data-active],
 	.objectButtonActive {
 		background-color: var(--iab-cd-text-muted-color);
 		border-color: var(--iab-cd-text-muted-color);
 		color: var(--iab-cd-background-color);
 	}
 
+	.objectButton[data-active]:hover,
 	.objectButtonActive:hover {
 		opacity: 0.9;
 	}
@@ -1424,6 +1410,7 @@
 		color: var(--iab-cd-text-color-dark);
 	}
 
+	:global(.c15t-dark) .objectButton[data-active],
 	:global(.c15t-dark) .objectButtonActive {
 		background-color: var(--iab-cd-text-muted-color-dark);
 		border-color: var(--iab-cd-text-muted-color-dark);
@@ -1445,17 +1432,17 @@
 	}
 
 	/* Vendor LI Section in Vendors tab */
-	.vendorLISection {
+	.vendorLiSection {
 		margin-top: 0.75rem;
 		padding-top: 0.75rem;
 		border-top: 1px solid var(--iab-cd-border-color);
 	}
 
-	:global(.c15t-dark) .vendorLISection {
+	:global(.c15t-dark) .vendorLiSection {
 		border-color: var(--iab-cd-border-color-dark);
 	}
 
-	.vendorLISectionHeader {
+	.vendorLiSectionHeader {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1463,14 +1450,14 @@
 		margin-bottom: 0.375rem;
 	}
 
-	.vendorLISectionHeader .vendorPurposesTitle {
+	.vendorLiSectionHeader .vendorPurposesTitle {
 		margin: 0;
 		display: flex;
 		align-items: center;
 	}
 
 	/* Purpose-level Legitimate Interest Section */
-	.purposeLISection {
+	.purposeLiSection {
 		margin: 0.75rem 0;
 		padding: 0.75rem;
 		background-color: var(--iab-cd-surface-hover);
@@ -1478,12 +1465,12 @@
 		border: 1px solid var(--iab-cd-border-color);
 	}
 
-	:global(.c15t-dark) .purposeLISection {
+	:global(.c15t-dark) .purposeLiSection {
 		background-color: var(--iab-cd-surface-hover-dark);
 		border-color: var(--iab-cd-border-color-dark);
 	}
 
-	.purposeLISectionHeader {
+	.purposeLiSectionHeader {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1491,7 +1478,7 @@
 		margin-bottom: 0.5rem;
 	}
 
-	.purposeLIInfo {
+	.purposeLiInfo {
 		display: flex;
 		align-items: center;
 		gap: 0.375rem;
@@ -1500,11 +1487,11 @@
 		color: var(--iab-cd-text-color);
 	}
 
-	:global(.c15t-dark) .purposeLIInfo {
+	:global(.c15t-dark) .purposeLiInfo {
 		color: var(--iab-cd-text-color-dark);
 	}
 
-	.purposeLIInfo .legitimateInterestIcon {
+	.purposeLiInfo .legitimateInterestIcon {
 		flex-shrink: 0;
 	}
 

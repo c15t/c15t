@@ -1,10 +1,6 @@
 const baseUrl = process.env.CSS_LAYER_PREVIEW_URL ?? 'http://localhost:3120';
 
-const routes = [
-	'/matrix/banner/baseline',
-	'/matrix/banner/relay',
-	'/matrix/dialog/relay',
-];
+const routes = ['/matrix/banner', '/matrix/dialog', '/matrix/widget'];
 
 console.log('c15t CSS layer manual review');
 console.log('');

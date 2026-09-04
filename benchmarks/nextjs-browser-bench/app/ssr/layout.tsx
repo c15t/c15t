@@ -1,23 +1,20 @@
-import { fetchInitialData } from '@c15t/nextjs';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
 
-import { NextjsBenchmarkProvider } from '../_bench/provider';
+import { NextjsPrefetchedBenchmarkProvider } from '../_bench/provider';
 
-const SSRLayout = ({ children }: { children: ReactNode }) => {
-	const ssrData = fetchInitialData({
+const SSRLayout = async ({ children }: { children: ReactNode }) => {
+	const config = await prefetchInitialConsent({
 		backendURL: '/api/bench-consent',
-		nextCache: {
-			revalidateSeconds: false,
-		},
 	});
 
 	return (
-		<NextjsBenchmarkProvider
+		<NextjsPrefetchedBenchmarkProvider
+			config={config}
 			scenario="ssr"
-			ssrData={ssrData}
 		>
 			{children}
-		</NextjsBenchmarkProvider>
+		</NextjsPrefetchedBenchmarkProvider>
 	);
 };
 

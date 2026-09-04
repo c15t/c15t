@@ -28,13 +28,13 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import type { AllConsentNames } from '@c15t/core';
 import type {
+	AllConsentNames,
 	ConsentKernel,
 	KernelActiveUI,
 	KernelConfig,
 	ResolvedPolicy,
-} from '@c15t/core/v3';
+} from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';

@@ -1,5 +1,5 @@
-import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import { computed } from 'vue';
 
 import { useConsentConfig } from './config';

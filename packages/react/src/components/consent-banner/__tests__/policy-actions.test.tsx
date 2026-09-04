@@ -1,19 +1,18 @@
-import type { ConsentStoreState } from '@c15t/core';
 import { defaultTranslationConfig } from '@c15t/core';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import {
-	StableConsentStateProvider,
-	StableGlobalThemeProvider,
-} from '~/__tests__/stable-context-providers';
+import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
+
+type ConsentManagerState = ReturnType<typeof useConsentManager>;
 
 const createMockState = function createMockState(
-	overrides: Partial<ConsentStoreState> = {}
-): ConsentStoreState {
+	overrides: Partial<ConsentManagerState> = {}
+): ConsentManagerState {
 	return {
 		activeUI: 'banner',
 		consentCategories: [
@@ -59,79 +58,95 @@ const createMockState = function createMockState(
 		setSelectedConsent: vi.fn(),
 		translationConfig: defaultTranslationConfig,
 		...overrides,
-	} as unknown as ConsentStoreState;
+	} as unknown as ConsentManagerState;
 };
 
+const PolicyTestProvider = ({
+	children,
+	state,
+	providerOverrides,
+}: {
+	children: ReactNode;
+	state: ConsentManagerState;
+	providerOverrides?: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	>;
+}) => (
+	<ConsentProvider
+		options={{
+			components: providerOverrides?.components,
+			mode: offline(),
+			persistence: false,
+			prefetch: {
+				initialConsents: state.consents,
+				initialPolicy: {
+					consent: {
+						categories: state.consentCategories,
+						scopeMode: 'permissive',
+					},
+					id: 'policy-actions-test',
+					model: state.model ?? 'opt-in',
+					ui: {
+						banner: state.policyBanner,
+						dialog: state.policyDialog,
+						mode: 'banner',
+					},
+				},
+				initialTranslations: {
+					language: 'en',
+					translations: defaultTranslationConfig.translations.en as never,
+				},
+			},
+			theme: providerOverrides?.theme,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
 const renderPolicyActions = async function renderPolicyActions(
-	stateOverrides: Partial<ConsentStoreState> = {},
+	stateOverrides: Partial<ConsentManagerState> = {},
 	renderAction?: ComponentProps<
 		typeof ConsentBanner.PolicyActions
 	>['renderAction'],
-	themeOverrides?: Record<string, unknown>
+	providerOverrides?: Partial<ComponentProps<typeof ConsentProvider>['options']>
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<StableGlobalThemeProvider
-			value={{
-				noStyle: false,
-				theme: themeOverrides as never,
-			}}
+		<PolicyTestProvider
+			state={state}
+			providerOverrides={providerOverrides}
 		>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentBanner.PolicyActions
-					renderAction={
-						renderAction ??
-						((action, props) => (
-							<button
-								key={props.key}
-								data-testid={`banner-action-${action}`}
-								data-consent-action={props.consentAction}
-								data-primary={String(props.isPrimary)}
-								data-style={props.style ? 'styled' : 'plain'}
-								type="button"
-							>
-								{action}
-							</button>
-						))
-					}
-				/>
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+			<ConsentBanner.PolicyActions
+				renderAction={
+					renderAction ??
+					((action, props) => (
+						<button
+							key={props.key}
+							data-testid={`banner-action-${action}`}
+							data-consent-action={props.consentAction}
+							data-primary={String(props.isPrimary)}
+							data-style={props.style ? 'styled' : 'plain'}
+							type="button"
+						>
+							{action}
+						</button>
+					))
+				}
+			/>
+		</PolicyTestProvider>
 	);
 };
 
 const renderDefaultPolicyActions = async function renderDefaultPolicyActions(
-	stateOverrides: Partial<ConsentStoreState> = {}
+	stateOverrides: Partial<ConsentManagerState> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<StableGlobalThemeProvider value={{ noStyle: false }}>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentBanner.PolicyActions />
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+		<PolicyTestProvider state={state}>
+			<ConsentBanner.PolicyActions />
+		</PolicyTestProvider>
 	);
 };
 
@@ -284,13 +299,17 @@ describe('ConsentBanner.PolicyActions', () => {
 				}
 			},
 			{
-				consentActions: {
-					accept: { variant: 'primary' },
-					default: { variant: 'neutral' },
+				components: {
+					button: {
+						primary: { className: 'button-primary-marker' },
+						secondary: { className: 'button-secondary-marker' },
+					},
 				},
-				slots: {
-					buttonPrimary: 'button-primary-marker',
-					buttonSecondary: 'button-secondary-marker',
+				theme: {
+					consentActions: {
+						accept: { variant: 'primary' },
+						default: { variant: 'neutral' },
+					},
 				},
 			}
 		);
@@ -299,75 +318,6 @@ describe('ConsentBanner.PolicyActions', () => {
 			document.querySelector('[data-testid="consent-banner-accept-button"]')
 				?.className
 		).toContain('button-primary-marker');
-		expect(
-			document.querySelector('[data-testid="consent-banner-reject-button"]')
-				?.className
-		).toContain('button-secondary-marker');
-	});
-
-	test('consentActions.primary styles whichever action the policy marks primary', async () => {
-		await renderPolicyActions(
-			{
-				policyBanner: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					direction: 'row',
-					layout: ['customize', ['reject', 'accept']],
-					primaryActions: ['customize'],
-				},
-			},
-			(action, props) => {
-				const { key, ...buttonProps } = props;
-
-				switch (action) {
-					case 'accept':
-						return (
-							<ConsentBanner.AcceptButton
-								key={key}
-								{...buttonProps}
-							/>
-						);
-					case 'reject':
-						return (
-							<ConsentBanner.RejectButton
-								key={key}
-								{...buttonProps}
-							/>
-						);
-					case 'customize':
-						return (
-							<ConsentBanner.CustomizeButton
-								key={key}
-								{...buttonProps}
-							/>
-						);
-					default: {
-						const _exhaustive: never = action;
-						throw new Error(`Unhandled banner action: ${_exhaustive}`);
-					}
-				}
-			},
-			{
-				consentActions: {
-					default: { variant: 'neutral' },
-					primary: { variant: 'primary' },
-				},
-				slots: {
-					buttonPrimary: 'button-primary-marker',
-					buttonSecondary: 'button-secondary-marker',
-				},
-			}
-		);
-
-		// The policy marks customize as primary, so the theme's `primary`
-		// treatment lands there — not on accept.
-		expect(
-			document.querySelector('[data-testid="consent-banner-customize-button"]')
-				?.className
-		).toContain('button-primary-marker');
-		expect(
-			document.querySelector('[data-testid="consent-banner-accept-button"]')
-				?.className
-		).toContain('button-secondary-marker');
 		expect(
 			document.querySelector('[data-testid="consent-banner-reject-button"]')
 				?.className

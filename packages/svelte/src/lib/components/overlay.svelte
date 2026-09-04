@@ -1,6 +1,6 @@
 <script lang="ts">
-	import bannerStyles from '@c15t/ui/styles/components/consent-banner.module.js';
-	import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
+	import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+	import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 
 	import { getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';

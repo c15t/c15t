@@ -1,16 +1,12 @@
 <script lang="ts">
-	import { defaultTranslationConfig } from '@c15t/core';
+	import { createConsentKernel, defaultTranslationConfig } from '@c15t/core';
 	import type {
 		AllConsentNames,
 		Callbacks,
-		I18nConfig,
-		User,
-	} from '@c15t/core';
-	import { createConsentKernel } from '@c15t/core/v3';
-	import type {
 		ConsentKernel,
 		ConsentSnapshot,
 		ConsentState,
+		I18nConfig,
 		KernelConfig,
 		KernelEvent,
 		KernelOverrides,
@@ -19,17 +15,18 @@
 		ProviderTransportContext,
 		ProviderTransportFactory,
 		TranslationsResponse,
-	} from '@c15t/core/v3';
-	import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
-	import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
-	import { createPersistence } from '@c15t/core/v3/modules/persistence';
-	import { createScriptLoader } from '@c15t/core/v3/modules/script-loader';
+		User,
+	} from '@c15t/core';
+	import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
+	import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
+	import { createPersistence } from '@c15t/core/modules/persistence';
+	import { createScriptLoader } from '@c15t/core/modules/script-loader';
 	import {
 		createWindowDebug,
 		resolveWindowDebugMode,
-	} from '@c15t/core/v3/modules/window-debug';
-	import { createIAB } from '@c15t/iab/v3';
-	import type { IABHandle } from '@c15t/iab/v3';
+	} from '@c15t/core/modules/window-debug';
+	import { createIAB } from '@c15t/iab';
+	import type { IABHandle } from '@c15t/iab';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
@@ -42,7 +39,6 @@
 		ProviderIABOptions,
 		UsePersistenceOptions,
 	} from '../types';
-	import { defaultTheme } from '../utils';
 
 	const ALL_CONSENTS_ON: ConsentState = {
 		experience: true,
@@ -472,7 +468,8 @@
 		if (iab === false || !iab || iab.enabled === false) {
 			return null;
 		}
-		const { cmpId } = iab;
+		const currentIab = kernel.getSnapshot().iab;
+		const cmpId = iab.cmpId ?? currentIab?.cmpId;
 		if (typeof cmpId !== 'number') {
 			return null;
 		}
@@ -483,7 +480,8 @@
 				typeof iab.cmpVersion === 'string'
 					? Number(iab.cmpVersion)
 					: iab.cmpVersion,
-			gvl: iab.gvl ?? snapshot.iab?.gvl ?? undefined,
+			customVendors: iab.customVendors ?? currentIab?.customVendors,
+			gvl: iab.gvl ?? currentIab?.gvl ?? undefined,
 		};
 	};
 
@@ -559,14 +557,28 @@
 			disposers.push(() => blocker.dispose());
 		}
 
-		const iabOptions = normalizeIabOptions(getProviderIab(options));
-		if (enabled && iabOptions) {
-			const handle = createIAB({ ...iabOptions, kernel });
-			iabHandle = handle;
-			disposers.push(() => {
-				handle.dispose();
-				iabHandle = null;
-			});
+		if (enabled && getProviderIab(options)) {
+			let iabMounted = false;
+			const mountIabIfReady = () => {
+				if (iabMounted) {
+					return;
+				}
+				const iabOptions = normalizeIabOptions(getProviderIab(options));
+				if (!iabOptions) {
+					return;
+				}
+				iabMounted = true;
+				const handle = createIAB({ ...iabOptions, kernel });
+				iabHandle = handle;
+				disposers.push(() => {
+					handle.dispose();
+					iabHandle = null;
+					iabMounted = false;
+				});
+			};
+
+			mountIabIfReady();
+			disposers.push(kernel.subscribe(mountIabIfReady));
 		}
 
 		return () => {
@@ -583,7 +595,13 @@
 	$effect(() => {
 		const nextUser = normalizeUser(options.user);
 		if (nextUser) {
-			void kernel.commands.identify(nextUser);
+			void (async () => {
+				try {
+					await kernel.commands.identify(nextUser);
+				} catch {
+					// Provider callbacks receive the command:error event.
+				}
+			})();
 		}
 	});
 
@@ -629,7 +647,7 @@
 		return () => mediaQuery.removeEventListener('change', handler);
 	});
 
-	const mergedTheme = $derived(deepMerge(defaultTheme, options.theme ?? {}));
+	const userTheme = $derived(options.theme);
 
 	setThemeContext({
 		get colorScheme() {
@@ -648,20 +666,28 @@
 			return options.scrollLock;
 		},
 		get theme() {
-			return mergedTheme;
+			return userTheme;
 		},
 		get trapFocus() {
 			return options.trapFocus ?? true;
 		},
 	});
 
-	const themeCSS = $derived(generateThemeCSS(mergedTheme));
+	const themeCSS = $derived(userTheme ? generateThemeCSS(userTheme) : '');
 
 	let themeStyleEl: HTMLStyleElement | null = null;
 	let ownedStyleEl = false;
 
 	$effect(() => {
-		if (!themeCSS || typeof document === 'undefined') {
+		if (typeof document === 'undefined') {
+			return;
+		}
+		if (!themeCSS) {
+			if (ownedStyleEl && themeStyleEl) {
+				themeStyleEl.remove();
+				themeStyleEl = null;
+				ownedStyleEl = false;
+			}
 			return;
 		}
 		if (!themeStyleEl) {

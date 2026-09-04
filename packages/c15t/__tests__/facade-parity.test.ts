@@ -73,39 +73,39 @@ const rows = JSON.parse(
  * files (pre-existing; bundler-only entries), so plain Node rejects them on
  * both sides with `ERR_UNKNOWN_FILE_EXTENSION`.
  */
-const V3_CSS_IMPORTERS = [
-	'./react/v3',
-	'./react/v3/consent-banner',
-	'./react/v3/consent-dialog',
-	'./react/v3/consent-widget',
-	'./react/v3/consent-dialog-link',
-	'./react/v3/consent-dialog-trigger',
-	'./react/v3/frame',
-	'./react/v3/iab',
-	'./react/v3/primitives',
-	'./react/v3/primitives/accordion',
-	'./react/v3/primitives/button',
-	'./react/v3/primitives/collapsible',
-	'./react/v3/primitives/preference-item',
-	'./react/v3/primitives/switch',
-	'./react/v3/primitives/tabs',
-	'./react/v3/components/consent-banner',
-	'./react/v3/components/consent-dialog',
-	'./react/v3/components/consent-dialog-trigger',
-	'./react/v3/components/consent-dialog-link',
-	'./react/v3/components/consent-widget',
-	'./react/v3/components/frame',
-	'./next/v3',
-	'./next/v3/components/consent-dialog-link',
-	'./next/v3/rsc',
+const CSS_IMPORTERS = [
+	'./react',
+	'./react/consent-banner',
+	'./react/consent-dialog',
+	'./react/consent-widget',
+	'./react/consent-dialog-link',
+	'./react/consent-dialog-trigger',
+	'./react/frame',
+	'./react/iab',
+	'./react/primitives',
+	'./react/primitives/accordion',
+	'./react/primitives/button',
+	'./react/primitives/collapsible',
+	'./react/primitives/preference-item',
+	'./react/primitives/switch',
+	'./react/primitives/tabs',
+	'./react/components/consent-banner',
+	'./react/components/consent-dialog',
+	'./react/components/consent-dialog-trigger',
+	'./react/components/consent-dialog-link',
+	'./react/components/consent-widget',
+	'./react/components/frame',
+	'./next',
+	'./next/components/consent-dialog-link',
+	'./next/rsc',
 ];
 
 const EXPECTED_ESM_FAILURES = new Set<string>([
-	...V3_CSS_IMPORTERS,
+	...CSS_IMPORTERS,
 	// The @c15t/nextjs ESM dist resolves `next/*` subpaths that only exist
 	// inside a bundler.
 	'./next',
-	'./next/v3/middleware',
+	'./next/middleware',
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
 	'./vue/vue-plugin',

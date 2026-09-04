@@ -14,7 +14,7 @@ import type {
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-} from '../store/type';
+} from '@c15t/schema/types';
 
 export type {
 	PolicyUiAction,

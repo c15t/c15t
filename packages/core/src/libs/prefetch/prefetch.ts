@@ -1,7 +1,7 @@
 import type { InitOutput } from '@c15t/schema/types';
 
-import { C15T_VERSION_HEADERS } from '../../client/headers';
-import type { SSRInitialData } from '../../store/type';
+import type { SSRInitialData } from '../../options/ssr';
+import { c15tVersionHeaders } from '../../transports/version-header';
 import {
 	buildRequestContextHeaders,
 	createBrowserRequestContext,
@@ -59,7 +59,7 @@ const buildPrefetchConfig = function buildPrefetchConfig(
 	const url = buildInitURL(requestContext.backendURL);
 	const credentials = requestContext.credentials ?? 'include';
 	const headers = {
-		...C15T_VERSION_HEADERS,
+		...c15tVersionHeaders,
 		...buildRequestContextHeaders(options.overrides),
 	};
 
@@ -198,7 +198,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
 		backendURL: options.backendURL,
 		credentials: options.credentials ?? 'include',
 		headers: {
-			...C15T_VERSION_HEADERS,
+			...c15tVersionHeaders,
 			...buildRequestContextHeaders(options.overrides),
 		},
 		requestContext: {

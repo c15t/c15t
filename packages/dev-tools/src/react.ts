@@ -26,11 +26,12 @@ import { useEffect, useRef } from 'react';
 
 import { createDevTools } from './core/devtools';
 import type { DevToolsInstance, DevToolsOptions } from './core/devtools';
+import { DEFAULT_KERNEL_NAMESPACE } from './core/store-connector';
 
 /**
  * Props for the C15TDevTools component
  */
-export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
+export interface C15TDevToolsProps extends DevToolsOptions {
 	/**
 	 * Whether the DevTools should be disabled
 	 * Useful for production builds
@@ -44,6 +45,8 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
  *
  * This component creates a floating DevTools button that, when clicked,
  * opens a panel showing consent state, location info, scripts, and actions.
+ * Hand it the kernel your provider created, or expose the kernel on
+ * `window.c15tKernel` and let the devtools find it.
  *
  * @example
  * Basic usage:
@@ -79,7 +82,8 @@ export interface C15TDevToolsProps extends Partial<DevToolsOptions> {
  * ```
  */
 export const C15TDevTools = ({
-	namespace = 'c15tStore',
+	kernel,
+	namespace = DEFAULT_KERNEL_NAMESPACE,
 	position = 'bottom-right',
 	defaultOpen = false,
 	disabled = false,
@@ -100,6 +104,7 @@ export const C15TDevTools = ({
 		// Create devtools instance
 		devtoolsRef.current = createDevTools({
 			defaultOpen,
+			kernel,
 			namespace,
 			position,
 		});
@@ -109,7 +114,7 @@ export const C15TDevTools = ({
 			devtoolsRef.current?.destroy();
 			devtoolsRef.current = null;
 		};
-	}, [namespace, position, defaultOpen, disabled]);
+	}, [kernel, namespace, position, defaultOpen, disabled]);
 
 	// Component renders nothing - devtools injects into document.body
 	return null;

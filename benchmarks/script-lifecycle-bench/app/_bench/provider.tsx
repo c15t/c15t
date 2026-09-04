@@ -1,13 +1,16 @@
 'use client';
 
 import {
-	configureConsentManager,
-	createConsentManagerStore,
+	createConsentKernel,
+	createHostedTransport,
 	deleteConsentFromStorage,
-	generateSubjectId,
-	saveConsentToStorage,
 } from '@c15t/core';
-import type { Script } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import type {
+	Script,
+	ScriptLoaderHandle,
+} from '@c15t/core/modules/script-loader';
 import {
 	createContext,
 	useContext,
@@ -28,12 +31,6 @@ import {
 	nowMs,
 } from './state';
 import type { ScriptBenchState } from './state';
-
-type Store = ReturnType<typeof createConsentManagerStore>;
-type StoreState = ReturnType<Store['getState']>;
-type StoreStateWithReload = StoreState & {
-	reloadScript: (scriptId: string) => unknown;
-};
 
 interface ScriptLifecycleContextValue {
 	config: ScriptLifecycleScenarioConfig;
@@ -216,7 +213,8 @@ export const ScriptLifecycleProvider = ({
 	children: ReactNode;
 	config: ScriptLifecycleScenarioConfig;
 }) => {
-	const storeRef = useRef<Store | null>(null);
+	const kernelRef = useRef<ConsentKernel | null>(null);
+	const loaderRef = useRef<ScriptLoaderHandle | null>(null);
 	const [ready, setReady] = useState(false);
 	const [currentState, setCurrentState] = useState<ScriptBenchState | null>(
 		() => getBenchState(config.name) ?? null
@@ -227,15 +225,16 @@ export const ScriptLifecycleProvider = ({
 		let unsubscribe: (() => void) | undefined;
 
 		const syncState = () => {
-			const store = storeRef.current;
+			const kernel = kernelRef.current;
+			const loader = loaderRef.current;
 			const state = getBenchState(config.name);
-			if (!store || !state) {
+			if (!kernel || !loader || !state) {
 				return;
 			}
 
-			const current = store.getState();
-			state.activeUI = current.activeUI;
-			state.loadedIds = normalizeIds(current.getLoadedScriptIds());
+			const current = kernel.getSnapshot();
+			state.activeUI = current.activeUI ?? 'none';
+			state.loadedIds = normalizeIds(loader.getLoadedScriptIds());
 			updateDomPresence(state, config.scriptIds);
 			evaluateCompletion(state, config);
 			setCurrentState({ ...state });
@@ -262,56 +261,34 @@ export const ScriptLifecycleProvider = ({
 				setCurrentState({ ...state });
 			};
 
-			if (config.initialConsent === 'all') {
-				saveConsentToStorage({
-					consentInfo: {
-						subjectId: generateSubjectId(),
-						time: Date.now(),
-					},
-					consents: {
-						experience: true,
-						functionality: true,
-						marketing: true,
-						measurement: true,
-						necessary: true,
-					},
-				});
-			}
-
-			const manager = configureConsentManager({
-				backendURL: '/api/bench-consent',
-				mode: 'c15t',
-			});
-			const store = createConsentManagerStore(manager, {
-				callbacks: {
-					onError(info) {
-						const latest = getBenchState(config.name);
-						if (!latest) {
-							return;
+			const hasInitialConsent = config.initialConsent === 'all';
+			const kernel = createConsentKernel({
+				initialConsents: hasInitialConsent
+					? {
+							experience: true,
+							functionality: true,
+							marketing: true,
+							measurement: true,
+							necessary: true,
 						}
-						latest.errors.push(
-							typeof info?.error === 'string'
-								? info.error
-								: 'Script lifecycle benchmark error'
-						);
-						setCurrentState({ ...latest });
-					},
-				},
-				initialConsentCategories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
-				reloadOnConsentRevoked: false,
+					: undefined,
+				initialHasConsented: hasInitialConsent,
+				transport: createHostedTransport({
+					backendURL: '/api/bench-consent',
+				}),
 			});
-			storeRef.current = store;
+			kernelRef.current = kernel;
 
-			await store.getState().initConsentManager();
-			store.getState().setScripts(augmentScripts(config, syncState));
+			const initResult = await kernel.commands.init();
+			if (!initResult.ok) {
+				state.errors.push(String(initResult.error));
+			}
+			loaderRef.current = createScriptLoader({
+				kernel,
+				scripts: augmentScripts(config, syncState),
+			});
 
-			unsubscribe = store.subscribe(syncState);
+			unsubscribe = kernel.subscribe(syncState);
 			syncState();
 			if (!disposed) {
 				setReady(true);
@@ -323,15 +300,17 @@ export const ScriptLifecycleProvider = ({
 		return () => {
 			disposed = true;
 			unsubscribe?.();
-			storeRef.current = null;
+			loaderRef.current?.dispose();
+			loaderRef.current = null;
+			kernelRef.current = null;
 		};
 	}, [config]);
 
 	const value = useMemo<ScriptLifecycleContextValue>(() => {
 		const runScenarioAction = async () => {
-			const store = storeRef.current;
+			const kernel = kernelRef.current;
 			const state = getBenchState(config.name);
-			if (!store || !state) {
+			if (!kernel || !state) {
 				return;
 			}
 
@@ -339,27 +318,45 @@ export const ScriptLifecycleProvider = ({
 				case 'grant-standard':
 				case 'callback-only-toggle':
 					state.consentSaveCount += 1;
-					await store.getState().saveConsents('all');
+					await kernel.commands.save('all');
 					break;
 				case 'revoke-standard':
 				case 'always-load-retain':
 				case 'persist-after-revoked':
 					state.consentSaveCount += 1;
-					await store.getState().saveConsents('necessary');
+					await kernel.commands.save('none');
 					break;
-				case 'reload-single':
+				case 'reload-single': {
 					state.reloadCount += 1;
-					(store.getState() as StoreStateWithReload).reloadScript(
-						config.reloadTargetId ?? 'fixture-standard-head'
-					);
+					loaderRef.current?.dispose();
+					const syncReloadState = () => {
+						const latest = getBenchState(config.name);
+						if (!latest) {
+							return;
+						}
+						latest.activeUI = kernel.getSnapshot().activeUI ?? 'none';
+						latest.loadedIds = normalizeIds(
+							loaderRef.current?.getLoadedScriptIds() ?? []
+						);
+						updateDomPresence(latest, config.scriptIds);
+						evaluateCompletion(latest, config);
+						setCurrentState({ ...latest });
+					};
+					loaderRef.current = createScriptLoader({
+						kernel,
+						scripts: augmentScripts(config, syncReloadState),
+					});
 					break;
+				}
 				default:
 					return;
 			}
 
-			const current = store.getState();
-			state.activeUI = current.activeUI;
-			state.loadedIds = normalizeIds(current.getLoadedScriptIds());
+			const current = kernel.getSnapshot();
+			state.activeUI = current.activeUI ?? 'none';
+			state.loadedIds = normalizeIds(
+				loaderRef.current?.getLoadedScriptIds() ?? []
+			);
 			updateDomPresence(state, config.scriptIds);
 			evaluateCompletion(state, config);
 			setCurrentState({ ...state });

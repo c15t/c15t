@@ -1,14 +1,21 @@
 /**
  * DOM Scanner
- * Scans the DOM for external scripts and iframes, cross-referencing with c15t config
+ * Scans the DOM for external scripts and iframes, cross-referencing with the
+ * scripts the c15t loader is known to manage
  */
-
-import type { ConsentStoreState } from '@c15t/core';
 
 import { createButton, createSection } from '../components/ui';
 import { div, span } from '../core/renderer';
+import type { ManagedScript } from '../core/script-registry';
 
 // === Types ===
+
+/**
+ * Scripts the loader manages, used to classify scanned resources
+ */
+export interface DomScanSource {
+	scripts: readonly ManagedScript[];
+}
 
 /**
  * Represents a scanned external resource
@@ -107,12 +114,12 @@ const checkResource = function checkResource(
  * Scans the DOM for external scripts and iframes, cross-referencing with c15t config
  */
 export const scanDOM = function scanDOM(
-	state: ConsentStoreState
+	source: DomScanSource
 ): ScannedResource[] {
 	const results: ScannedResource[] = [];
 
-	// Get all configured script sources from c15t
-	const configuredScripts = state.scripts || [];
+	// Get all managed script sources from c15t
+	const configuredScripts = source.scripts;
 	const managedResources: ManagedResourceMatcher[] = [];
 
 	// Build matchers from configured script URLs for accurate domain + path checks.
@@ -352,7 +359,7 @@ const renderScanResults = function renderScanResults(
  * Creates the DOM scanner section UI
  */
 export const createDomScannerSection = function createDomScannerSection(
-	state: ConsentStoreState | null
+	source: DomScanSource | null
 ): HTMLElement {
 	let resultsContainer: HTMLElement | null = null;
 	let lastScanResults: ScannedResource[] = [];
@@ -369,12 +376,12 @@ export const createDomScannerSection = function createDomScannerSection(
 	};
 
 	const handleScan = (): void => {
-		if (!state || !resultsContainer) {
+		if (!source || !resultsContainer) {
 			return;
 		}
 
 		// Fresh scan every time
-		lastScanResults = scanDOM(state);
+		lastScanResults = scanDOM(source);
 		doRender();
 	};
 

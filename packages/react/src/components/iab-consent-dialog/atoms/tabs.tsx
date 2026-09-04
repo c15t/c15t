@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { forwardRef as createForwardRef, useMemo } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 

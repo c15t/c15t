@@ -1,19 +1,18 @@
-import type { ConsentStoreState } from '@c15t/core';
 import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import {
-	StableConsentStateProvider,
-	StableGlobalThemeProvider,
-} from '~/__tests__/stable-context-providers';
+import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { GlobalThemeContext as _GlobalThemeContext } from '~/context/theme-context';
+import { ConsentProvider } from '~/provider';
+import { offline } from '~/transports/offline';
+
+type ConsentManagerState = ReturnType<typeof useConsentManager>;
 
 const createMockState = function createMockState(
-	overrides: Partial<ConsentStoreState> = {}
-): ConsentStoreState {
+	overrides: Partial<ConsentManagerState> = {}
+): ConsentManagerState {
 	return {
 		activeUI: 'banner',
 		consentCategories: [
@@ -58,42 +57,54 @@ const createMockState = function createMockState(
 		setSelectedConsent: vi.fn(),
 		translationConfig: defaultTranslationConfig,
 		...overrides,
-	} as unknown as ConsentStoreState;
+	} as unknown as ConsentManagerState;
 };
 
 const renderBanner = function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
-	stateOverrides: Partial<ConsentStoreState> = {},
-	themeSlotOverrides: Record<string, string> = {}
+	stateOverrides: Partial<ConsentManagerState> = {},
+	componentOverrides: ComponentProps<
+		typeof ConsentProvider
+	>['options']['components'] = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	render(
-		<StableGlobalThemeProvider
-			value={{
-				theme: {
-					slots: {
-						buttonPrimary: 'button-primary-marker',
-						buttonSecondary: 'button-secondary-marker',
-						...themeSlotOverrides,
+		<ConsentProvider
+			options={{
+				components: {
+					button: {
+						primary: { className: 'button-primary-marker' },
+						secondary: { className: 'button-secondary-marker' },
+					},
+					...componentOverrides,
+				},
+				mode: offline(),
+				persistence: false,
+				prefetch: {
+					initialConsents: state.consents,
+					initialPolicy: {
+						consent: {
+							categories: state.consentCategories,
+							scopeMode: 'permissive',
+						},
+						id: 'banner-policy-ordering-test',
+						model: state.model ?? 'opt-in',
+						ui: {
+							banner: state.policyBanner,
+							dialog: state.policyDialog,
+							mode: 'banner',
+						},
+					},
+					initialTranslations: {
+						language: 'en',
+						translations: defaultTranslationConfig.translations.en as never,
 					},
 				},
 			}}
 		>
-			<StableConsentStateProvider
-				value={{
-					manager: null,
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-				}}
-			>
-				<ConsentBanner {...props} />
-			</StableConsentStateProvider>
-		</StableGlobalThemeProvider>
+			<ConsentBanner {...props} />
+		</ConsentProvider>
 	);
 };
 
@@ -228,8 +239,12 @@ describe('ConsentBanner policy ordering', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('applies the consentBannerTag theme slot to the stock banner tag', async () => {
-		renderBanner({}, {}, { consentBannerTag: 'consent-banner-tag-marker' });
+	test('applies the banner tag component slot to the stock banner tag', async () => {
+		renderBanner(
+			{},
+			{},
+			{ tag: { banner: { className: 'consent-banner-tag-marker' } } }
+		);
 
 		await waitForBanner();
 

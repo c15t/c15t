@@ -22,7 +22,6 @@ describe('generateSubjectId', () => {
 
 		for (let i = 0; i < 100; i += 1) {
 			const id = generateSubjectId();
-			// Remove 'sub_' prefix
 			const encoded = id.slice(4);
 
 			for (const char of encoded) {
@@ -31,14 +30,10 @@ describe('generateSubjectId', () => {
 		}
 	});
 
-	it('should generate IDs that are chronologically ordered', () => {
+	it('should generate IDs that are unique when generated back to back', () => {
 		const id1 = generateSubjectId();
 		const id2 = generateSubjectId();
 
-		// The base58 encoding should preserve chronological order
-		// because timestamp is in the first 8 bytes
-		// Note: This test may fail if IDs are generated in the same millisecond
-		// but with different random parts, so we just check they're different
 		expect(id1).not.toBe(id2);
 	});
 });
@@ -64,7 +59,6 @@ describe('isValidSubjectId', () => {
 	});
 
 	it('should return false for IDs with invalid base58 characters', () => {
-		// 0, O, I, l are not in base58 alphabet
 		expect(isValidSubjectId('sub_0invalid')).toBe(false);
 		expect(isValidSubjectId('sub_Oinvalid')).toBe(false);
 		expect(isValidSubjectId('sub_Iinvalid')).toBe(false);

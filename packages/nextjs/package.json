@@ -51,7 +51,6 @@
 		"dist-types",
 		"AGENTS.md",
 		"docs",
-		"client",
 		"styles.css",
 		"styles.tw3.css",
 		"iab",
@@ -78,62 +77,38 @@
 		},
 		"./components/consent-dialog-link": {
 			"types": "./dist-types/index.d.ts",
-			"import": "./client/components/consent-dialog-link.js",
-			"default": "./client/components/consent-dialog-link.js"
-		},
-		"./components/integrations": {
-			"types": "./dist-types/components/integrations/index.d.ts",
-			"import": "./client/components/integrations.js",
-			"default": "./client/components/integrations.js"
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
 		},
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
-		"./v3": {
-			"types": "./dist-types/v3/index.d.ts",
-			"import": "./dist/v3/index.js",
-			"default": "./dist/v3/index.js"
+		"./server": {
+			"types": "./dist-types/server.d.ts",
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
 		},
-		"./v3/server": {
-			"types": "./dist-types/v3/server.d.ts",
-			"import": "./dist/v3/server.js",
-			"default": "./dist/v3/server.js"
+		"./api": {
+			"types": "./dist-types/api.d.ts",
+			"import": "./dist/api.js",
+			"default": "./dist/api.js"
 		},
-		"./v3/api": {
-			"types": "./dist-types/v3/api.d.ts",
-			"import": "./dist/v3/api.js",
-			"default": "./dist/v3/api.js"
+		"./middleware": {
+			"types": "./dist-types/middleware.d.ts",
+			"import": "./dist/middleware.js",
+			"default": "./dist/middleware.js"
 		},
-		"./v3/middleware": {
-			"types": "./dist-types/v3/middleware.d.ts",
-			"import": "./dist/v3/middleware.js",
-			"default": "./dist/v3/middleware.js"
+		"./static": {
+			"types": "./dist-types/static.d.ts",
+			"import": "./dist/static.js",
+			"default": "./dist/static.js"
 		},
-		"./v3/static": {
-			"types": "./dist-types/v3/static.d.ts",
-			"import": "./dist/v3/static.js",
-			"default": "./dist/v3/static.js"
-		},
-		"./v3/styles.css": "./dist/v3/styles.css",
-		"./v3/styles.tw3.css": "./dist/v3/styles.tw3.css",
-		"./v3/iab/styles.css": "./dist/v3/iab/styles.css",
-		"./v3/iab/styles.tw3.css": "./dist/v3/iab/styles.tw3.css",
-		"./v3/headless": {
-			"types": "./dist-types/v3/headless.d.ts",
-			"import": "./dist/v3/headless.js",
-			"default": "./dist/v3/headless.js"
-		},
-		"./v3/components/consent-dialog-link": {
-			"types": "./dist-types/v3/index.d.ts",
-			"import": "./dist/v3/index.js",
-			"default": "./dist/v3/index.js"
-		},
-		"./v3/rsc": {
-			"types": "./dist-types/v3/rsc/index.d.ts",
-			"import": "./dist/v3/rsc/index.js",
-			"default": "./dist/v3/rsc/index.js"
+		"./rsc": {
+			"types": "./dist-types/rsc/index.d.ts",
+			"import": "./dist/rsc/index.js",
+			"default": "./dist/rsc/index.js"
 		}
 	},
 	"publishConfig": {

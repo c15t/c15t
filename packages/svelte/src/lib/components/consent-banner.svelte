@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+	import styles from '@c15t/ui/styles/components/consent-banner';
 	import {
 		getTextDirection,
 		resolvePolicyActionGroups,
@@ -115,10 +115,7 @@
 			'consentBanner',
 			theme.theme,
 			{
-				baseClassName: [
-					styles.root,
-					textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-				],
+				baseClassName: styles.root,
 				className,
 				noStyle,
 			},
@@ -175,7 +172,7 @@
 		resolveComponentStyles(
 			'consentBannerFooterSubGroup',
 			theme.theme,
-			{ baseClassName: styles.footerSubGroup, noStyle },
+			{ noStyle },
 			noStyle
 		)
 	);
@@ -266,6 +263,7 @@
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
 			dir={textDirection}
+			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="consent-banner-root"
 			use:scrollLock={shouldScrollLock}
 		>
@@ -316,29 +314,21 @@
 						{primaryActions}
 						{shouldFillActions}
 						{direction}
+						{noStyle}
 						footerClassName={noStyle ? '' : footerStyle.className || ''}
-						footerFillClassName={styles.footerFill || ''}
-						footerColumnClassName={styles.footerColumn || ''}
 						footerSubGroupClassName={noStyle
 							? ''
 							: footerSubGroupStyle.className || ''}
-						footerSubGroupFillClassName={styles.footerSubGroupFill || ''}
-						footerSubGroupColumnClassName={styles.footerSubGroupColumn || ''}
-						actionButtonFillClassName={styles.actionButtonFill || ''}
 						footerTestId="consent-banner-footer"
 						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
-						{#snippet renderAction(
-							action: string,
-							isPrimary: boolean,
-							actionClassName?: string
-						)}
+						{#snippet renderAction(action: string, isPrimary: boolean)}
 							{#if action === 'reject'}
 								<ConsentButton
 									action="reject-consent"
 									variant={isPrimary ? 'primary' : 'neutral'}
 									closeConsentBanner
-									class={actionClassName}
+									data-action="reject"
 									data-testid="consent-banner-reject-button"
 								>
 									{resolvedRejectText}
@@ -348,7 +338,7 @@
 									action="accept-consent"
 									variant={isPrimary ? 'primary' : 'neutral'}
 									closeConsentBanner
-									class={actionClassName}
+									data-action="accept"
 									data-testid="consent-banner-accept-button"
 								>
 									{resolvedAcceptText}
@@ -357,7 +347,7 @@
 								<ConsentButton
 									action="open-consent-dialog"
 									variant={isPrimary ? 'primary' : 'neutral'}
-									class={actionClassName}
+									data-action="customize"
 									data-testid="consent-banner-customize-button"
 								>
 									{resolvedCustomizeText}

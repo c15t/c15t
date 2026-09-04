@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { LegalLinks as LegalLinksType } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import legalLinkStyles from '@c15t/ui/styles/primitives/legal-links.module.js';
+	import legalLinkStyles from '@c15t/ui/styles/components/legal-links';
 	import type { AllThemeKeys } from '@c15t/ui/theme';
 	import { resolveTranslations } from '@c15t/ui/utils';
 

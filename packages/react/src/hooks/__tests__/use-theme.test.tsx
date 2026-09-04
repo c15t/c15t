@@ -14,8 +14,8 @@ describe('useTheme', () => {
 		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'global-style',
+				colors: {
+					primary: '#000000',
 				},
 			},
 		};
@@ -35,18 +35,18 @@ describe('useTheme', () => {
 		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'global-style',
-					dialogTitle: 'global-title',
+				colors: {
+					primary: '#000000',
+					secondary: '#111111',
 				},
 			},
 		};
 
 		const localTheme: ThemeContextValue = {
 			theme: {
-				slots: {
-					dialog: 'local-style',
-					dialogContent: 'local-content',
+				colors: {
+					border: '#eeeeee',
+					primary: '#ffffff',
 				},
 			},
 		};
@@ -64,10 +64,10 @@ describe('useTheme', () => {
 		expect(result.current).toEqual({
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'local-style',
-					dialogContent: 'local-content',
-					dialogTitle: 'global-title',
+				colors: {
+					border: '#eeeeee',
+					primary: '#ffffff',
+					secondary: '#111111',
 				},
 			},
 		});
@@ -77,8 +77,8 @@ describe('useTheme', () => {
 		const globalTheme: ThemeContextValue = {
 			noStyle: false,
 			theme: {
-				slots: {
-					dialog: 'global-style',
+				colors: {
+					primary: '#000000',
 				},
 			},
 		};
@@ -86,8 +86,8 @@ describe('useTheme', () => {
 		const localTheme: ThemeContextValue = {
 			noStyle: true,
 			theme: {
-				slots: {
-					dialog: 'local-style',
+				colors: {
+					primary: '#ffffff',
 				},
 			},
 		};
@@ -102,7 +102,7 @@ describe('useTheme', () => {
 			),
 		});
 
-		expect(result.current.theme?.slots?.dialog).toBe('local-style');
+		expect(result.current.theme?.colors?.primary).toBe('#ffffff');
 		expect(result.current.noStyle).toBe(true);
 	});
 });

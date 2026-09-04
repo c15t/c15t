@@ -140,7 +140,7 @@ const parseArgs = function parseArgs(args: string[]): Options {
 };
 
 const printHelp = function printHelp() {
-	console.log(`Run the important React v2/v3 browser benchmarks in parallel.
+	console.log(`Run the important React browser benchmarks in parallel.
 
 Usage:
   bun run bench:important-react -- --iterations 10

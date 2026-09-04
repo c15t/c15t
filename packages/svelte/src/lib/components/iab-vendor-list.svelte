@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { GlobalVendorList } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
 	import { untrack } from 'svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
@@ -381,7 +381,7 @@
 										</span>
 										{#if legIntCount > 0}
 											<span
-												class={noStyle ? '' : styles.vendorListLIBadge || ''}
+												class={noStyle ? '' : styles.vendorListLiBadge || ''}
 											>
 												<LegitimateInterestIcon
 													width="10"
@@ -501,7 +501,7 @@
 											<li
 												class={noStyle
 													? ''
-													: `${styles.vendorPurposeItem || ''} ${purpose.usesLegitimateInterest ? styles.vendorPurposeItemLI || '' : ''}`}
+													: `${styles.vendorPurposeItem || ''} ${purpose.usesLegitimateInterest ? styles.vendorPurposeItemLi || '' : ''}`}
 											>
 												<span>
 													{purpose.name}
@@ -522,7 +522,7 @@
 													<span
 														class={noStyle
 															? ''
-															: styles.vendorListLIBadge || ''}
+															: styles.vendorListLiBadge || ''}
 													>
 														<LegitimateInterestIcon
 															width="10"
@@ -540,9 +540,9 @@
 
 							<!-- Legitimate Interest Objection -->
 							{#if hasLegitimateInterest && onVendorLegitimateInterestToggle}
-								<div class={noStyle ? '' : styles.vendorLISection || ''}>
+								<div class={noStyle ? '' : styles.vendorLiSection || ''}>
 									<div
-										class={noStyle ? '' : styles.vendorLISectionHeader || ''}
+										class={noStyle ? '' : styles.vendorLiSectionHeader || ''}
 									>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
 											<LegitimateInterestIcon
@@ -804,9 +804,9 @@
 							{/if}
 
 							{#if hasLegitimateInterest && onVendorLegitimateInterestToggle}
-								<div class={noStyle ? '' : styles.vendorLISection || ''}>
+								<div class={noStyle ? '' : styles.vendorLiSection || ''}>
 									<div
-										class={noStyle ? '' : styles.vendorLISectionHeader || ''}
+										class={noStyle ? '' : styles.vendorLiSectionHeader || ''}
 									>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
 											<LegitimateInterestIcon

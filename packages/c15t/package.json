@@ -67,55 +67,130 @@
 			"import": "./shims/index.js",
 			"default": "./shims/index.js"
 		},
-		"./v3": {
-			"types": "./shims/v3.d.ts",
-			"import": "./shims/v3.js",
-			"default": "./shims/v3.js"
+		"./consent-record": {
+			"types": "./shims/consent-record.d.ts",
+			"import": "./shims/consent-record.js",
+			"default": "./shims/consent-record.js"
 		},
-		"./v3/consent-record": {
-			"types": "./shims/v3/consent-record.d.ts",
-			"import": "./shims/v3/consent-record.js",
-			"default": "./shims/v3/consent-record.js"
+		"./transports": {
+			"types": "./shims/transports.d.ts",
+			"import": "./shims/transports.js",
+			"default": "./shims/transports.js"
 		},
-		"./v3/transports": {
-			"types": "./shims/v3/transports.d.ts",
-			"import": "./shims/v3/transports.js",
-			"default": "./shims/v3/transports.js"
+		"./transports/manifest": {
+			"types": "./shims/transports/manifest.d.ts",
+			"import": "./shims/transports/manifest.js",
+			"default": "./shims/transports/manifest.js"
 		},
-		"./v3/transports/manifest": {
-			"types": "./shims/v3/transports/manifest.d.ts",
-			"import": "./shims/v3/transports/manifest.js",
-			"default": "./shims/v3/transports/manifest.js"
+		"./libs/generate-subject-id": {
+			"types": "./shims/libs/generate-subject-id.d.ts",
+			"import": "./shims/libs/generate-subject-id.js",
+			"default": "./shims/libs/generate-subject-id.js"
 		},
-		"./v3/libs/generate-subject-id": {
-			"types": "./shims/v3/libs/generate-subject-id.d.ts",
-			"import": "./shims/v3/libs/generate-subject-id.js",
-			"default": "./shims/v3/libs/generate-subject-id.js"
+		"./modules/script-loader": {
+			"types": "./shims/modules/script-loader.d.ts",
+			"import": "./shims/modules/script-loader.js",
+			"default": "./shims/modules/script-loader.js"
 		},
-		"./v3/modules/script-loader": {
-			"types": "./shims/v3/modules/script-loader.d.ts",
-			"import": "./shims/v3/modules/script-loader.js",
-			"default": "./shims/v3/modules/script-loader.js"
+		"./modules/network-blocker": {
+			"types": "./shims/modules/network-blocker.d.ts",
+			"import": "./shims/modules/network-blocker.js",
+			"default": "./shims/modules/network-blocker.js"
 		},
-		"./v3/modules/network-blocker": {
-			"types": "./shims/v3/modules/network-blocker.d.ts",
-			"import": "./shims/v3/modules/network-blocker.js",
-			"default": "./shims/v3/modules/network-blocker.js"
+		"./modules/iframe-blocker": {
+			"types": "./shims/modules/iframe-blocker.d.ts",
+			"import": "./shims/modules/iframe-blocker.js",
+			"default": "./shims/modules/iframe-blocker.js"
 		},
-		"./v3/modules/iframe-blocker": {
-			"types": "./shims/v3/modules/iframe-blocker.d.ts",
-			"import": "./shims/v3/modules/iframe-blocker.js",
-			"default": "./shims/v3/modules/iframe-blocker.js"
+		"./modules/persistence": {
+			"types": "./shims/modules/persistence.d.ts",
+			"import": "./shims/modules/persistence.js",
+			"default": "./shims/modules/persistence.js"
 		},
-		"./v3/modules/persistence": {
-			"types": "./shims/v3/modules/persistence.d.ts",
-			"import": "./shims/v3/modules/persistence.js",
-			"default": "./shims/v3/modules/persistence.js"
+		"./modules/window-debug": {
+			"types": "./shims/modules/window-debug.d.ts",
+			"import": "./shims/modules/window-debug.js",
+			"default": "./shims/modules/window-debug.js"
 		},
-		"./v3/modules/window-debug": {
-			"types": "./shims/v3/modules/window-debug.d.ts",
-			"import": "./shims/v3/modules/window-debug.js",
-			"default": "./shims/v3/modules/window-debug.js"
+		"./react": {
+			"types": "./shims/react.d.ts",
+			"import": "./shims/react.js",
+			"default": "./shims/react.js"
+		},
+		"./react/provider": {
+			"types": "./shims/react/provider.d.ts",
+			"import": "./shims/react/provider.js",
+			"default": "./shims/react/provider.js"
+		},
+		"./react/hooks": {
+			"types": "./shims/react/hooks.d.ts",
+			"import": "./shims/react/hooks.js",
+			"default": "./shims/react/hooks.js"
+		},
+		"./react/draft": {
+			"types": "./shims/react/draft.d.ts",
+			"import": "./shims/react/draft.js",
+			"default": "./shims/react/draft.js"
+		},
+		"./react/module-hooks": {
+			"types": "./shims/react/module-hooks.d.ts",
+			"import": "./shims/react/module-hooks.js",
+			"default": "./shims/react/module-hooks.js"
+		},
+		"./react/module-hooks/script-loader": {
+			"types": "./shims/react/module-hooks/script-loader.d.ts",
+			"import": "./shims/react/module-hooks/script-loader.js",
+			"default": "./shims/react/module-hooks/script-loader.js"
+		},
+		"./react/module-hooks/persistence": {
+			"types": "./shims/react/module-hooks/persistence.d.ts",
+			"import": "./shims/react/module-hooks/persistence.js",
+			"default": "./shims/react/module-hooks/persistence.js"
+		},
+		"./react/module-hooks/network-blocker": {
+			"types": "./shims/react/module-hooks/network-blocker.d.ts",
+			"import": "./shims/react/module-hooks/network-blocker.js",
+			"default": "./shims/react/module-hooks/network-blocker.js"
+		},
+		"./react/module-hooks/iframe-blocker": {
+			"types": "./shims/react/module-hooks/iframe-blocker.d.ts",
+			"import": "./shims/react/module-hooks/iframe-blocker.js",
+			"default": "./shims/react/module-hooks/iframe-blocker.js"
+		},
+		"./react/consent-banner": {
+			"types": "./shims/react/consent-banner.d.ts",
+			"import": "./shims/react/consent-banner.js",
+			"default": "./shims/react/consent-banner.js"
+		},
+		"./react/consent-dialog": {
+			"types": "./shims/react/consent-dialog.d.ts",
+			"import": "./shims/react/consent-dialog.js",
+			"default": "./shims/react/consent-dialog.js"
+		},
+		"./react/consent-widget": {
+			"types": "./shims/react/consent-widget.d.ts",
+			"import": "./shims/react/consent-widget.js",
+			"default": "./shims/react/consent-widget.js"
+		},
+		"./react/consent-dialog-link": {
+			"types": "./shims/react/consent-dialog-link.d.ts",
+			"import": "./shims/react/consent-dialog-link.js",
+			"default": "./shims/react/consent-dialog-link.js"
+		},
+		"./react/consent-dialog-trigger": {
+			"types": "./shims/react/consent-dialog-trigger.d.ts",
+			"import": "./shims/react/consent-dialog-trigger.js",
+			"default": "./shims/react/consent-dialog-trigger.js"
+		},
+		"./react/frame": {
+			"types": "./shims/react/frame.d.ts",
+			"import": "./shims/react/frame.js",
+			"default": "./shims/react/frame.js"
+		},
+		"./react/iab": {
+			"types": "./shims/react/iab.d.ts",
+			"import": "./shims/react/iab.js",
+			"default": "./shims/react/iab.js"
 		},
 		"./react/styles.css": "./dist/react/styles.css",
 		"./react/styles.tw3.css": "./dist/react/styles.tw3.css",
@@ -140,11 +215,6 @@
 			"types": "./shims/react/headless.d.ts",
 			"import": "./shims/react/headless.js",
 			"default": "./shims/react/headless.js"
-		},
-		"./react/cookie-banner": {
-			"types": "./shims/react/cookie-banner.d.ts",
-			"import": "./shims/react/cookie-banner.js",
-			"default": "./shims/react/cookie-banner.js"
 		},
 		"./react/components/consent-banner": {
 			"types": "./shims/react/components/consent-banner.d.ts",
@@ -176,179 +246,20 @@
 			"import": "./shims/react/components/frame.js",
 			"default": "./shims/react/components/frame.js"
 		},
-		"./react/components/integrations": {
-			"types": "./shims/react/components/integrations.d.ts",
-			"import": "./shims/react/components/integrations.js",
-			"default": "./shims/react/components/integrations.js"
+		"./react/context": {
+			"types": "./shims/react/context.d.ts",
+			"import": "./shims/react/context.js",
+			"default": "./shims/react/context.js"
 		},
-		"./react/iab": {
-			"types": "./shims/react/iab.d.ts",
-			"import": "./shims/react/iab.js",
-			"default": "./shims/react/iab.js"
+		"./react/types": {
+			"types": "./shims/react/types.d.ts",
+			"import": "./shims/react/types.js",
+			"default": "./shims/react/types.js"
 		},
-		"./react/hooks": {
-			"types": "./shims/react/hooks.d.ts",
-			"import": "./shims/react/hooks.js",
-			"default": "./shims/react/hooks.js"
-		},
-		"./react": {
-			"types": "./shims/react.d.ts",
-			"import": "./shims/react.js",
-			"default": "./shims/react.js"
-		},
-		"./react/v3": {
-			"types": "./shims/react/v3.d.ts",
-			"import": "./shims/react/v3.js",
-			"default": "./shims/react/v3.js"
-		},
-		"./react/v3/provider": {
-			"types": "./shims/react/v3/provider.d.ts",
-			"import": "./shims/react/v3/provider.js",
-			"default": "./shims/react/v3/provider.js"
-		},
-		"./react/v3/hooks": {
-			"types": "./shims/react/v3/hooks.d.ts",
-			"import": "./shims/react/v3/hooks.js",
-			"default": "./shims/react/v3/hooks.js"
-		},
-		"./react/v3/draft": {
-			"types": "./shims/react/v3/draft.d.ts",
-			"import": "./shims/react/v3/draft.js",
-			"default": "./shims/react/v3/draft.js"
-		},
-		"./react/v3/module-hooks": {
-			"types": "./shims/react/v3/module-hooks.d.ts",
-			"import": "./shims/react/v3/module-hooks.js",
-			"default": "./shims/react/v3/module-hooks.js"
-		},
-		"./react/v3/module-hooks/script-loader": {
-			"types": "./shims/react/v3/module-hooks/script-loader.d.ts",
-			"import": "./shims/react/v3/module-hooks/script-loader.js",
-			"default": "./shims/react/v3/module-hooks/script-loader.js"
-		},
-		"./react/v3/module-hooks/persistence": {
-			"types": "./shims/react/v3/module-hooks/persistence.d.ts",
-			"import": "./shims/react/v3/module-hooks/persistence.js",
-			"default": "./shims/react/v3/module-hooks/persistence.js"
-		},
-		"./react/v3/module-hooks/network-blocker": {
-			"types": "./shims/react/v3/module-hooks/network-blocker.d.ts",
-			"import": "./shims/react/v3/module-hooks/network-blocker.js",
-			"default": "./shims/react/v3/module-hooks/network-blocker.js"
-		},
-		"./react/v3/module-hooks/iframe-blocker": {
-			"types": "./shims/react/v3/module-hooks/iframe-blocker.d.ts",
-			"import": "./shims/react/v3/module-hooks/iframe-blocker.js",
-			"default": "./shims/react/v3/module-hooks/iframe-blocker.js"
-		},
-		"./react/v3/consent-banner": {
-			"types": "./shims/react/v3/consent-banner.d.ts",
-			"import": "./shims/react/v3/consent-banner.js",
-			"default": "./shims/react/v3/consent-banner.js"
-		},
-		"./react/v3/consent-dialog": {
-			"types": "./shims/react/v3/consent-dialog.d.ts",
-			"import": "./shims/react/v3/consent-dialog.js",
-			"default": "./shims/react/v3/consent-dialog.js"
-		},
-		"./react/v3/consent-widget": {
-			"types": "./shims/react/v3/consent-widget.d.ts",
-			"import": "./shims/react/v3/consent-widget.js",
-			"default": "./shims/react/v3/consent-widget.js"
-		},
-		"./react/v3/consent-dialog-link": {
-			"types": "./shims/react/v3/consent-dialog-link.d.ts",
-			"import": "./shims/react/v3/consent-dialog-link.js",
-			"default": "./shims/react/v3/consent-dialog-link.js"
-		},
-		"./react/v3/consent-dialog-trigger": {
-			"types": "./shims/react/v3/consent-dialog-trigger.d.ts",
-			"import": "./shims/react/v3/consent-dialog-trigger.js",
-			"default": "./shims/react/v3/consent-dialog-trigger.js"
-		},
-		"./react/v3/frame": {
-			"types": "./shims/react/v3/frame.d.ts",
-			"import": "./shims/react/v3/frame.js",
-			"default": "./shims/react/v3/frame.js"
-		},
-		"./react/v3/iab": {
-			"types": "./shims/react/v3/iab.d.ts",
-			"import": "./shims/react/v3/iab.js",
-			"default": "./shims/react/v3/iab.js"
-		},
-		"./react/v3/styles.css": "./dist/react/v3/styles.css",
-		"./react/v3/styles.tw3.css": "./dist/react/v3/styles.tw3.css",
-		"./react/v3/iab/styles.css": "./dist/react/v3/iab/styles.css",
-		"./react/v3/iab/styles.tw3.css": "./dist/react/v3/iab/styles.tw3.css",
-		"./react/v3/primitives": {
-			"types": "./shims/react/v3/primitives.d.ts",
-			"import": "./shims/react/v3/primitives.js",
-			"default": "./shims/react/v3/primitives.js"
-		},
-		"./react/v3/primitives/*": {
-			"types": "./shims/react/v3/primitives/*.d.ts",
-			"import": "./shims/react/v3/primitives/*.js",
-			"default": "./shims/react/v3/primitives/*.js"
-		},
-		"./react/v3/server": {
-			"types": "./shims/react/v3/server.d.ts",
-			"import": "./shims/react/v3/server.js",
-			"default": "./shims/react/v3/server.js"
-		},
-		"./react/v3/headless": {
-			"types": "./shims/react/v3/headless.d.ts",
-			"import": "./shims/react/v3/headless.js",
-			"default": "./shims/react/v3/headless.js"
-		},
-		"./react/v3/components/consent-banner": {
-			"types": "./shims/react/v3/components/consent-banner.d.ts",
-			"import": "./shims/react/v3/components/consent-banner.js",
-			"default": "./shims/react/v3/components/consent-banner.js"
-		},
-		"./react/v3/components/consent-dialog": {
-			"types": "./shims/react/v3/components/consent-dialog.d.ts",
-			"import": "./shims/react/v3/components/consent-dialog.js",
-			"default": "./shims/react/v3/components/consent-dialog.js"
-		},
-		"./react/v3/components/consent-dialog-trigger": {
-			"types": "./shims/react/v3/components/consent-dialog-trigger.d.ts",
-			"import": "./shims/react/v3/components/consent-dialog-trigger.js",
-			"default": "./shims/react/v3/components/consent-dialog-trigger.js"
-		},
-		"./react/v3/components/consent-dialog-link": {
-			"types": "./shims/react/v3/components/consent-dialog-link.d.ts",
-			"import": "./shims/react/v3/components/consent-dialog-link.js",
-			"default": "./shims/react/v3/components/consent-dialog-link.js"
-		},
-		"./react/v3/components/consent-widget": {
-			"types": "./shims/react/v3/components/consent-widget.d.ts",
-			"import": "./shims/react/v3/components/consent-widget.js",
-			"default": "./shims/react/v3/components/consent-widget.js"
-		},
-		"./react/v3/components/frame": {
-			"types": "./shims/react/v3/components/frame.d.ts",
-			"import": "./shims/react/v3/components/frame.js",
-			"default": "./shims/react/v3/components/frame.js"
-		},
-		"./react/v3/context": {
-			"types": "./shims/react/v3/context.d.ts",
-			"import": "./shims/react/v3/context.js",
-			"default": "./shims/react/v3/context.js"
-		},
-		"./react/v3/types": {
-			"types": "./shims/react/v3/types.d.ts",
-			"import": "./shims/react/v3/types.js",
-			"default": "./shims/react/v3/types.js"
-		},
-		"./react/v3/utils": {
-			"types": "./shims/react/v3/utils.d.ts",
-			"import": "./shims/react/v3/utils.js",
-			"default": "./shims/react/v3/utils.js"
-		},
-		"./react/v3/compat": {
-			"types": "./shims/react/v3/compat.d.ts",
-			"import": "./shims/react/v3/compat.js",
-			"default": "./shims/react/v3/compat.js"
+		"./react/utils": {
+			"types": "./shims/react/utils.d.ts",
+			"import": "./shims/react/utils.js",
+			"default": "./shims/react/utils.js"
 		},
 		"./next/styles.css": "./dist/next/styles.css",
 		"./next/styles.tw3.css": "./dist/next/styles.tw3.css",
@@ -364,59 +275,35 @@
 			"import": "./shims/next/components/consent-dialog-link.js",
 			"default": "./shims/next/components/consent-dialog-link.js"
 		},
-		"./next/components/integrations": {
-			"types": "./shims/next/components/integrations.d.ts",
-			"import": "./shims/next/components/integrations.js",
-			"default": "./shims/next/components/integrations.js"
-		},
 		"./next": {
 			"types": "./shims/next.d.ts",
 			"import": "./shims/next.js",
 			"default": "./shims/next.js"
 		},
-		"./next/v3": {
-			"types": "./shims/next/v3.d.ts",
-			"import": "./shims/next/v3.js",
-			"default": "./shims/next/v3.js"
+		"./next/server": {
+			"types": "./shims/next/server.d.ts",
+			"import": "./shims/next/server.js",
+			"default": "./shims/next/server.js"
 		},
-		"./next/v3/server": {
-			"types": "./shims/next/v3/server.d.ts",
-			"import": "./shims/next/v3/server.js",
-			"default": "./shims/next/v3/server.js"
+		"./next/api": {
+			"types": "./shims/next/api.d.ts",
+			"import": "./shims/next/api.js",
+			"default": "./shims/next/api.js"
 		},
-		"./next/v3/api": {
-			"types": "./shims/next/v3/api.d.ts",
-			"import": "./shims/next/v3/api.js",
-			"default": "./shims/next/v3/api.js"
+		"./next/middleware": {
+			"types": "./shims/next/middleware.d.ts",
+			"import": "./shims/next/middleware.js",
+			"default": "./shims/next/middleware.js"
 		},
-		"./next/v3/middleware": {
-			"types": "./shims/next/v3/middleware.d.ts",
-			"import": "./shims/next/v3/middleware.js",
-			"default": "./shims/next/v3/middleware.js"
+		"./next/static": {
+			"types": "./shims/next/static.d.ts",
+			"import": "./shims/next/static.js",
+			"default": "./shims/next/static.js"
 		},
-		"./next/v3/static": {
-			"types": "./shims/next/v3/static.d.ts",
-			"import": "./shims/next/v3/static.js",
-			"default": "./shims/next/v3/static.js"
-		},
-		"./next/v3/styles.css": "./dist/next/v3/styles.css",
-		"./next/v3/styles.tw3.css": "./dist/next/v3/styles.tw3.css",
-		"./next/v3/iab/styles.css": "./dist/next/v3/iab/styles.css",
-		"./next/v3/iab/styles.tw3.css": "./dist/next/v3/iab/styles.tw3.css",
-		"./next/v3/headless": {
-			"types": "./shims/next/v3/headless.d.ts",
-			"import": "./shims/next/v3/headless.js",
-			"default": "./shims/next/v3/headless.js"
-		},
-		"./next/v3/components/consent-dialog-link": {
-			"types": "./shims/next/v3/components/consent-dialog-link.d.ts",
-			"import": "./shims/next/v3/components/consent-dialog-link.js",
-			"default": "./shims/next/v3/components/consent-dialog-link.js"
-		},
-		"./next/v3/rsc": {
-			"types": "./shims/next/v3/rsc.d.ts",
-			"import": "./shims/next/v3/rsc.js",
-			"default": "./shims/next/v3/rsc.js"
+		"./next/rsc": {
+			"types": "./shims/next/rsc.d.ts",
+			"import": "./shims/next/rsc.js",
+			"default": "./shims/next/rsc.js"
 		},
 		"./vue": {
 			"types": "./shims/vue.d.ts",

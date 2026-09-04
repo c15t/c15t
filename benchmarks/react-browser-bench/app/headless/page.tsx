@@ -1,25 +1,44 @@
 'use client';
 
 import {
-	ConsentManagerProvider,
-	useConsentManager,
-} from '@c15t/react/headless';
+	ConsentProvider,
+	hosted,
+	useActiveUI,
+	useConsent,
+	useSaveConsents,
+	useSetActiveUI,
+} from '@c15t/react';
+import type { ConsentProviderOptions } from '@c15t/react';
 import { useEffect } from 'react';
 
 import { getBenchState, markInteraction } from '../_bench/state';
 
+const scenario = 'headless' as const;
+
+const consentCategories = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
+
 const HeadlessBenchmarkUI = () => {
-	const { activeUI, has, saveConsents, setActiveUI } = useConsentManager();
+	const activeUI = useActiveUI();
+	const hasMeasurement = useConsent('measurement');
+	const saveConsents = useSaveConsents();
+	const setActiveUI = useSetActiveUI();
 
 	useEffect(() => {
-		const state = getBenchState('headless');
+		const state = getBenchState(scenario);
 		if (!state) {
 			return;
 		}
-		state.activeUI = activeUI;
+		state.activeUI = activeUI ?? 'none';
 		if (activeUI === 'banner' && state.bannerReadyMs === undefined) {
-			state.bannerReadyMs = performance.now();
-			state.bannerVisibleMs = performance.now();
+			const now = performance.now();
+			state.bannerReadyMs = now;
+			state.bannerVisibleMs = now;
 		}
 	}, [activeUI]);
 
@@ -27,35 +46,35 @@ const HeadlessBenchmarkUI = () => {
 		<main style={{ fontFamily: 'system-ui', padding: '2rem' }}>
 			<h1>React Headless Benchmark</h1>
 			<p data-testid="headless-status">
-				Measurement consent: {has('measurement') ? 'yes' : 'no'}
+				Measurement consent: {hasMeasurement ? 'yes' : 'no'}
 			</p>
 			<div style={{ display: 'flex', gap: '1rem' }}>
 				<button
-					type="button"
 					id="headless-accept"
+					type="button"
 					onClick={async () => {
-						markInteraction('headless', 'acceptAllMs');
+						markInteraction(scenario, 'acceptAllMs');
 						await saveConsents('all');
 					}}
 				>
 					Accept All
 				</button>
 				<button
-					type="button"
 					id="headless-reject"
+					type="button"
 					onClick={async () => {
-						markInteraction('headless', 'rejectAllMs');
-						await saveConsents('necessary');
+						markInteraction(scenario, 'rejectAllMs');
+						await saveConsents('none');
 					}}
 				>
 					Reject All
 				</button>
 				<button
-					type="button"
 					id="headless-open"
+					type="button"
 					onClick={() => {
-						markInteraction('headless', 'openPreferencesMs');
-						setActiveUI('dialog', { force: true });
+						markInteraction(scenario, 'openPreferencesMs');
+						setActiveUI('dialog');
 					}}
 				>
 					Open Preferences
@@ -66,12 +85,11 @@ const HeadlessBenchmarkUI = () => {
 };
 
 const HeadlessPage = () => (
-	<ConsentManagerProvider
+	<ConsentProvider
 		options={{
-			backendURL: '/api/bench-consent',
 			callbacks: {
 				onBannerFetched() {
-					const state = getBenchState('headless');
+					const state = getBenchState(scenario);
 					if (!state) {
 						return;
 					}
@@ -81,23 +99,24 @@ const HeadlessPage = () => (
 					}
 				},
 				onConsentSet() {
-					const state = getBenchState('headless');
+					const state = getBenchState(scenario);
 					if (state) {
 						state.onConsentSetCount += 1;
 					}
 				},
 				onError() {
-					const state = getBenchState('headless');
+					const state = getBenchState(scenario);
 					if (state) {
 						state.onErrorCount += 1;
 					}
 				},
 			},
-			mode: 'c15t',
+			consentCategories,
+			mode: hosted({ url: '/api/bench-consent' }),
 		}}
 	>
 		<HeadlessBenchmarkUI />
-	</ConsentManagerProvider>
+	</ConsentProvider>
 );
 
 export default HeadlessPage;

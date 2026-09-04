@@ -1,7 +1,6 @@
-import type { Script as V2Script } from '@c15t/core';
-import type { Script as V3Script } from '@c15t/core/v3/modules/script-loader';
+import type { Script } from '@c15t/core/modules/script-loader';
 
-export type ScriptCountVersion = 'v2' | 'v3';
+export type ScriptCountVersion = 'v3';
 
 export interface ScriptCountBenchState {
 	version: ScriptCountVersion;
@@ -44,13 +43,7 @@ export const normalizeCount = function normalizeCount(
 	return Math.max(1, Math.min(100, Math.trunc(parsed)));
 };
 
-export const normalizeVersion = function normalizeVersion(
-	value: string | string[] | undefined
-): ScriptCountVersion {
-	return value === 'v3' ? 'v3' : 'v2';
-};
-
-export const makeScripts = function makeScripts(count: number): V2Script[] {
+export const makeScripts = function makeScripts(count: number): Script[] {
 	return Array.from({ length: count }, (_, index) => {
 		const id = `script-count-${index + 1}`;
 		return {
@@ -66,12 +59,7 @@ export const makeScripts = function makeScripts(count: number): V2Script[] {
 	});
 };
 
-export const makeV3Scripts = function makeV3Scripts(count: number): V3Script[] {
-	return makeScripts(count) as V3Script[];
-};
-
 export const createInitialBenchState = function createInitialBenchState(
-	version: ScriptCountVersion,
 	count: number
 ): ScriptCountBenchState {
 	const executed = new Set<string>();
@@ -99,7 +87,7 @@ export const createInitialBenchState = function createInitialBenchState(
 			}
 		},
 		scriptEvents: {},
-		version,
+		version: 'v3',
 	};
 
 	return state;

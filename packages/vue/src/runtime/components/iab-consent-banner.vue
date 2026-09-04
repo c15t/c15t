@@ -4,7 +4,7 @@ import type {
 	NonIABVendor,
 	PolicyUiAction,
 } from '@c15t/schema/types';
-import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner';
+import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 
 import {

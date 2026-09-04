@@ -1,10 +1,9 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import type { ReactNode } from 'react';
 
-import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
-import type { HeadlessConsentDialogAction } from '~/hooks/use-headless-consent-ui';
+import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
+import type { HeadlessConsentDialogAction } from '~/component-hooks/use-headless-consent-ui';
 
 import { PolicyActionsRenderer } from '../shared/policy-actions';
 import type { PolicyActionRenderProps } from '../shared/policy-actions';
@@ -79,12 +78,7 @@ export const ConsentWidgetPolicyActions = ({
 			state={dialog}
 			Footer={ConsentWidgetFooter}
 			FooterSubGroup={ConsentWidgetFooterSubGroup}
-			classNames={{
-				footerColumn: styles.footerColumn,
-				footerFill: styles.footerFill,
-				footerSubGroupColumn: styles.footerSubGroupColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
-			}}
+			classNames={{}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}
 		/>

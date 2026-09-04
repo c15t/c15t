@@ -3,7 +3,7 @@
  * Displays and manages location/language overrides
  */
 
-import type { ConsentStoreState } from '@c15t/core';
+import type { ConsentSnapshot } from '@c15t/core';
 
 import {
 	createButton,
@@ -13,7 +13,6 @@ import {
 } from '../components/ui';
 import { clearElement, div, input, select, span } from '../core/renderer';
 import type { SelectOption } from '../core/renderer';
-import { formatInitSource } from '../utils/init-source';
 
 import componentStyles from '../styles/components.module.css';
 
@@ -39,7 +38,7 @@ interface OverrideField<T extends HTMLInputElement | HTMLSelectElement> {
 }
 
 export interface LocationPanelOptions {
-	getState: () => ConsentStoreState | null;
+	getState: () => ConsentSnapshot | null;
 	onApplyOverrides: (overrides: OverridePayload) => void | Promise<void>;
 	onClearOverrides: () => void | Promise<void>;
 }
@@ -409,31 +408,21 @@ export function renderLocationPanel(
 		return;
 	}
 
-	const { locationInfo } = state;
-	const { overrides } = state;
-	const { translationConfig } = state;
-	const initData = state.lastBannerFetchData;
-	const activePolicy = initData?.policy;
-	const policyDecision = initData?.policyDecision;
-	const initSource = formatInitSource(
-		state.initDataSource,
-		state.initDataSourceDetail
-	);
+	const { location, overrides, translations } = state;
+	const activePolicy = state.policy ?? undefined;
+	const policyDecision = state.policyDecision ?? undefined;
 
 	// Current location as a compact grid
 	const gridItems = [
-		createCompactInfoCard('Country', locationInfo?.countryCode || '—'),
-		createCompactInfoCard('Region', locationInfo?.regionCode || '—'),
-		createCompactInfoCard(
-			'Language',
-			translationConfig?.defaultLanguage || '—'
-		),
-		createCompactInfoCard('Init Source', initSource),
+		createCompactInfoCard('Country', location?.countryCode || '—'),
+		createCompactInfoCard('Region', location?.regionCode || '—'),
+		createCompactInfoCard('Language', translations?.language || '—'),
+		createCompactInfoCard('Jurisdiction', policyDecision?.jurisdiction || '—'),
 	];
 
 	// Add GPC status - shows effective state (override takes precedence)
 	gridItems.push(
-		createCompactInfoCard('GPC', getEffectiveGpcLabel(overrides?.gpc))
+		createCompactInfoCard('GPC', getEffectiveGpcLabel(overrides.gpc))
 	);
 
 	// Add consent model if set
@@ -551,7 +540,7 @@ export function renderLocationPanel(
 		createActivePolicySummarySection({
 			policy: activePolicy,
 			policyDecision,
-			policySnapshotToken: initData?.policySnapshotToken,
+			policySnapshotToken: state.policySnapshotToken ?? undefined,
 		})
 	);
 

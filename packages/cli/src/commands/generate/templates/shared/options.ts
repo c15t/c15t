@@ -45,7 +45,7 @@ export const getBackendURLValue = function getBackendURLValue(
 };
 
 /**
- * Generates the inner options text for ConsentManagerProvider based on mode and configuration
+ * Generates the inner options text for ConsentProvider based on mode and configuration
  *
  * @param mode - The storage mode ('hosted', 'self-hosted', 'offline', or 'custom')
  * @param backendURL - URL for the c15t backend/API (for 'hosted'/'self-hosted' modes)
@@ -85,34 +85,31 @@ export const generateOptionsText = function generateOptionsText(
 				proxyNextjs,
 				envVarPrefix
 			);
-			return `mode: 'hosted',
-				backendURL: ${backendURLValue},`;
+			return `mode: hosted({ url: ${backendURLValue} }),`;
 		}
 		case 'custom': {
-			if (inlineCustomHandlers) {
+			if (inlineCustomHandlers !== false) {
 				const url = useEnvFile
 					? `process.env.${envVarPrefix}_CONSENT_API_URL`
 					: `'${backendURL || '/api/consent'}'`;
-				return `mode: 'custom',
-			endpointHandlers: {
-				async getConsent() {
+				return `mode: custom({
+				async init() {
 					const res = await fetch(${url});
-					return res.json();
+					return { ok: res.ok, data: await res.json() };
 				},
-				async setConsent(consent) {
+				async setConsent({ body }) {
 					const res = await fetch(${url}, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(consent),
+						body: JSON.stringify(body),
 					});
-					return res.json();
+					return { ok: res.ok, data: await res.json() };
 				},
-			},`;
+			}),`;
 			}
-			return `mode: 'custom',
-				endpointHandlers: createCustomHandlers(),`;
+			return `mode: custom(createCustomHandlers()),`;
 		}
 		default:
-			return `mode: 'offline',`;
+			return `mode: offline(),`;
 	}
 };

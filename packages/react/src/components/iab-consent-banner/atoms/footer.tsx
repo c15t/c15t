@@ -1,14 +1,16 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/iab-consent-banner';
 import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes, ReactNode } from 'react';
 
-import { useStyles } from '~/hooks/use-styles';
+import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
+	'data-testid'?: string;
 }
 
 /**
@@ -22,19 +24,21 @@ interface IABConsentBannerFooterProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerFooter = createForwardRef<
 	HTMLDivElement,
 	IABConsentBannerFooterProps
->(({ children, className, ...props }, ref) => {
-	const themedStyle = useStyles('iabConsentBannerFooter', {
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
+	const themedStyle = mergeSlotProps(components?.['iab-banner']?.footer, {
 		baseClassName: styles.footer,
 		className,
+		'data-testid': dataTestId ?? 'iab-consent-banner-footer',
+		noStyle,
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...domStyleProps}
-			data-testid="iab-consent-banner-footer"
-			{...props}
+			{...themedStyle}
 		>
 			{children}
 		</div>

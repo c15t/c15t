@@ -4,7 +4,6 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-hydration.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
@@ -13,9 +12,7 @@ import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.
 import { offline } from '../../lib/transports/offline';
 
 describe('ConsentManagerProvider Rendering Behavior', () => {
-	beforeEach(() => {
-		clearConsentRuntimeCache();
-	});
+	beforeEach(() => {});
 
 	test('should render children immediately without blocking', () => {
 		render(ProviderOnlyFixture, {

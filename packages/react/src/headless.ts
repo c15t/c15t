@@ -1,37 +1,26 @@
-// Export components
+/**
+ * `@c15t/react/headless` — hooks for building your own consent UI on the
+ * kernel, without the prebuilt components or their CSS.
+ *
+ * Pair with `ConsentProvider` from `@c15t/react` (or `@c15t/react/provider`).
+ */
 
-// Export client
 export {
-	type ConsentManagerInterface,
-	configureConsentManager,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
 	type EuropePolicyMode,
 	mergeTranslationConfigs,
 	type PolicyPackPresets,
 	policyPackPresets,
-	// Translation utilities
 	prepareTranslationConfig,
 } from '@c15t/core';
-export { useColorScheme } from './hooks/use-color-scheme';
 export {
 	type ConsentDialogTriggerVisibility,
 	type UseConsentDialogTriggerOptions,
 	type UseConsentDialogTriggerResult,
 	useConsentDialogTrigger,
-} from './hooks/use-consent-dialog-trigger';
-// Export hooks
-export { useConsentManager } from './hooks/use-consent-manager';
-export {
-	ConsentScriptConflictError,
-	type ConsentScriptReadyControls,
-	type ConsentScriptStatus,
-	type ConsentScriptUnmountBehavior,
-	type UseConsentScriptOptions,
-	type UseConsentScriptResult,
-	useConsentScript,
-} from './hooks/use-consent-script';
-export { useFocusTrap } from './hooks/use-focus-trap';
+} from './component-hooks/use-consent-dialog-trigger';
+export { useConsentManager } from './component-hooks/use-consent-manager';
 export {
 	type HeadlessConsentBannerAction,
 	type HeadlessConsentBannerState,
@@ -41,16 +30,10 @@ export {
 	type HeadlessConsentSurfaceAction,
 	type HeadlessConsentSurfaceState,
 	type HeadlessConsentWriteAction,
-	type UseHeadlessConsentUIResult,
 	useHeadlessConsentUI,
-} from './hooks/use-headless-consent-ui';
-// IAB headless hook — moved to @c15t/react/iab subpath.
-// Import from '@c15t/react/iab' instead of '@c15t/react/headless'.
-export { useTranslations } from './hooks/use-translations';
-export { ConsentManagerProvider } from './providers/consent-manager-provider';
-
-// Export types
-export type {
-	ConsentManagerOptions,
-	ConsentManagerProviderProps,
-} from './types/consent-manager';
+} from './component-hooks/use-headless-consent-ui';
+export { useTranslations } from './component-hooks/use-translations';
+export { useColorScheme } from './hooks/use-color-scheme';
+export { useFocusTrap } from './hooks/use-focus-trap';
+// IAB headless hook lives on the `@c15t/react/iab` subpath.
+export type { ReactUIOptions } from './types/consent-manager';

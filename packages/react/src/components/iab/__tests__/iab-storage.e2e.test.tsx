@@ -10,35 +10,31 @@ import { render } from 'vitest-browser-react';
 
 import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
+import { ConsentProvider } from '~/provider';
 
 import {
 	clearConsentState,
-	defaultIABOptions,
+	defaultProviderIABOptions,
 	getStoredConsent,
+	getStoredTCString,
 	waitForCMP,
 	waitForElement,
 	waitForElementRemoved,
-	waitForStoredValue,
 } from './e2e-setup';
 
 describe('IAB Storage E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	describe('localStorage Storage', () => {
 		test('should store consent to localStorage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -50,7 +46,14 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Wait for localStorage to be updated
-			await waitForStoredValue('c15t');
+			await vi.waitFor(
+				() => {
+					const stored = window.localStorage.getItem('c15t');
+					expect(stored).not.toBeNull();
+					return stored;
+				},
+				{ timeout: 1000 }
+			);
 
 			const stored = window.localStorage.getItem('c15t');
 			const parsed = JSON.parse(stored || '{}');
@@ -59,10 +62,10 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('should store TC string in localStorage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -73,18 +76,24 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Verify TC string storage (persistence is debounced)
-			const tcString = await waitForStoredValue('euconsent-v2');
-			expect(tcString).toBeDefined();
+			// Verify TC string storage
+			const tcString = await vi.waitFor(
+				() => {
+					const stored = getStoredTCString();
+					expect(stored).not.toBeNull();
+					return stored;
+				},
+				{ timeout: 2000 }
+			);
 			expect(typeof tcString).toBe('string');
 		});
 
 		test('TC string should be valid base64url format', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -95,7 +104,14 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			const tcString = await waitForStoredValue('euconsent-v2');
+			const tcString = await vi.waitFor(
+				() => {
+					const stored = getStoredTCString();
+					expect(stored).not.toBeNull();
+					return stored;
+				},
+				{ timeout: 2000 }
+			);
 
 			// TC strings are base64url encoded with dots as section separators
 			// Format: core.disclosedVendors.allowedVendors.publisherTC
@@ -107,10 +123,10 @@ describe('IAB Storage E2E Tests', () => {
 	describe('Storage Update on Consent Change', () => {
 		test('should update storage when Accept All clicked', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -129,16 +145,16 @@ describe('IAB Storage E2E Tests', () => {
 				() => {
 					expect(getStoredConsent()).not.toBeNull();
 				},
-				{ timeout: 5000 }
+				{ timeout: 2000 }
 			);
 		});
 
 		test('should update storage when Reject All clicked', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const rejectButton = await waitForElement(
@@ -158,7 +174,7 @@ describe('IAB Storage E2E Tests', () => {
 					expect(consent).not.toBeNull();
 					expect(consent?.consents?.necessary).toBe(true);
 				},
-				{ timeout: 5000 }
+				{ timeout: 2000 }
 			);
 		});
 	});
@@ -166,10 +182,10 @@ describe('IAB Storage E2E Tests', () => {
 	describe('Storage Content', () => {
 		test('should store consent info with timestamp', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -188,7 +204,7 @@ describe('IAB Storage E2E Tests', () => {
 					expect(c?.consentInfo?.time).toBeDefined();
 					return c;
 				},
-				{ timeout: 5000 }
+				{ timeout: 2000 }
 			);
 
 			const consent = getStoredConsent();
@@ -201,10 +217,10 @@ describe('IAB Storage E2E Tests', () => {
 
 		test('should store consent info with subjectId', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -221,7 +237,7 @@ describe('IAB Storage E2E Tests', () => {
 					expect(consent?.consentInfo?.subjectId).toBeDefined();
 					expect(typeof consent?.consentInfo?.subjectId).toBe('string');
 				},
-				{ timeout: 5000 }
+				{ timeout: 2000 }
 			);
 		});
 	});
@@ -229,10 +245,10 @@ describe('IAB Storage E2E Tests', () => {
 	describe('c15t Storage Key', () => {
 		test('should use "c15t" key in localStorage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -243,16 +259,21 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Should use c15t key (persistence is debounced)
-			expect(await waitForStoredValue('c15t')).not.toBeNull();
+			// Should use c15t key
+			await vi.waitFor(
+				() => {
+					expect(window.localStorage.getItem('c15t')).not.toBeNull();
+				},
+				{ timeout: 2000 }
+			);
 		});
 
 		test('should use "euconsent-v2" key for TC string', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -264,7 +285,12 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Should use euconsent-v2 key (IAB standard)
-			expect(await waitForStoredValue('euconsent-v2')).not.toBeNull();
+			await vi.waitFor(
+				() => {
+					expect(window.localStorage.getItem('euconsent-v2')).not.toBeNull();
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 });

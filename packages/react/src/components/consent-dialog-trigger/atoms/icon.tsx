@@ -6,12 +6,15 @@
  * @packageDocumentation
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
+import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { isValidElement } from 'react';
 import type { ReactNode } from 'react';
 
 import { BrandingCompactLogo } from '~/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';
+import { useTheme } from '~/hooks/use-theme';
+import { useUIConfig } from '~/ui-config-context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import type { TriggerIcon as TriggerIconType } from '../types';
 import { useTriggerContext } from './root';
@@ -61,20 +64,23 @@ export interface TriggerIconProps {
 export const TriggerIcon = ({
 	icon = 'branding',
 	className,
-	noStyle = false,
+	noStyle,
 }: TriggerIconProps): ReactNode => {
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
 	const { branding } = useTriggerContext();
-
-	const iconClasses = noStyle
-		? className
-		: [styles.icon, className].filter(Boolean).join(' ');
+	const iconProps = mergeSlotProps(components?.trigger?.icon, {
+		baseClassName: styles.icon,
+		className,
+		noStyle: noStyle ?? contextNoStyle,
+	});
 
 	// Render custom ReactNode
 	if (isValidElement(icon)) {
 		return (
 			<span
+				{...iconProps}
 				aria-hidden="true"
-				className={iconClasses}
 			>
 				{icon}
 			</span>
@@ -97,8 +103,8 @@ export const TriggerIcon = ({
 
 	return (
 		<span
+			{...iconProps}
 			aria-hidden="true"
-			className={iconClasses}
 		>
 			{iconElement}
 		</span>

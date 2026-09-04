@@ -1,4 +1,4 @@
-import { c15tVersionHeaders } from '@c15t/core/v3';
+import { c15tVersionHeaders } from '@c15t/core';
 import type {
 	ConsentManifest,
 	InitOutput,

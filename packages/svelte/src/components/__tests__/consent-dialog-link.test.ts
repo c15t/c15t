@@ -5,7 +5,6 @@
  * with action="open-consent-dialog" and noStyle=true by default.
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -31,7 +30,6 @@ describe('ConsentDialogLink', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
 	});
 
 	test('renders with default data-testid', async () => {
@@ -54,6 +52,19 @@ describe('ConsentDialogLink', () => {
 			);
 			expect(link).toBeInTheDocument();
 			expect(link?.textContent).toContain('Manage Preferences');
+		});
+	});
+
+	test('emits the shared styled-button data contract', async () => {
+		render(DialogLinkFixture, { options: defaultOptions, styled: true });
+
+		await waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="consent-dialog-link"]'
+			);
+			expect(link).toHaveAttribute('data-variant', 'neutral');
+			expect(link).toHaveAttribute('data-mode', 'stroke');
+			expect(link).toHaveAttribute('data-size', 'small');
 		});
 	});
 

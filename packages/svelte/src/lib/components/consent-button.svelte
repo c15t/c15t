@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { AllConsentNames } from '@c15t/core';
-	import { buttonVariants } from '@c15t/ui/styles/primitives';
+	import buttonStyles from '@c15t/ui/styles/components/button';
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
 
@@ -49,9 +49,7 @@
 			: ('buttonSecondary' as const)
 	);
 
-	const variantClasses = $derived(
-		noStyle ? '' : buttonVariants({ mode, size, variant }).root()
-	);
+	const variantClasses = $derived(noStyle ? '' : buttonStyles.button);
 
 	const buttonStyle = $derived(
 		resolveComponentStyles(
@@ -106,6 +104,9 @@
 <button
 	type="button"
 	class={[variantClasses, buttonStyle.className].filter(Boolean).join(' ')}
+	data-variant={noStyle ? undefined : variant}
+	data-mode={noStyle ? undefined : mode}
+	data-size={noStyle ? undefined : size}
 	style={buttonStyle.style
 		? Object.entries(buttonStyle.style)
 				.map(([k, v]) => `${k}:${v}`)

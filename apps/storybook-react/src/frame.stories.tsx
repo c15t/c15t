@@ -8,7 +8,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'COMPONENTS - REACT/Core/Frame',
+	title: 'COMPONENTS - REACT/Frame',
 } satisfies Meta<typeof Frame>;
 
 export default meta;
@@ -17,7 +17,12 @@ type Story = StoryObj<typeof meta>;
 
 export const Placeholder: Story = {
 	render: () => (
-		<StorybookConsentProvider>
+		<StorybookConsentProvider
+			storedConsent={{
+				marketing: false,
+				necessary: true,
+			}}
+		>
 			<div style={{ width: '32rem' }}>
 				<Frame category="marketing">
 					<div>Marketing content</div>

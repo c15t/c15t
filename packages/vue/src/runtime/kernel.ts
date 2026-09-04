@@ -4,7 +4,7 @@ import {
 	createHostedTransport,
 	initOutputToKernelConfig,
 	isValidSubjectId,
-} from '@c15t/core/v3';
+} from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -12,23 +12,23 @@ import type {
 	KernelActiveUI,
 	KernelConfig,
 	KernelTransport,
-} from '@c15t/core/v3';
-import type { Consent } from '@c15t/core/v3/consent-record';
-import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
-import type { IframeBlockerOptions } from '@c15t/core/v3/modules/iframe-blocker';
-import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
+} from '@c15t/core';
+import type { Consent } from '@c15t/core/consent-record';
+import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
+import type { IframeBlockerOptions } from '@c15t/core/modules/iframe-blocker';
+import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
 import type {
 	BlockedRequestInfo,
 	NetworkBlockerRule,
-} from '@c15t/core/v3/modules/network-blocker';
-import { createPersistence } from '@c15t/core/v3/modules/persistence';
+} from '@c15t/core/modules/network-blocker';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import type {
 	StorageConfig,
 	StoredPayload,
-} from '@c15t/core/v3/modules/persistence';
-import { createScriptLoader } from '@c15t/core/v3/modules/script-loader';
-import type { Script } from '@c15t/core/v3/modules/script-loader';
-import { createWindowDebug } from '@c15t/core/v3/modules/window-debug';
+} from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import type { Script } from '@c15t/core/modules/script-loader';
+import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
@@ -382,7 +382,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 	const loadClientResources = function loadClientResources() {
 		return settle(
 			Promise.all([
-				import('@c15t/core/v3/transports/manifest'),
+				import('@c15t/core/transports/manifest'),
 				import('@c15t/translations/all'),
 				fetchManifest(),
 			])

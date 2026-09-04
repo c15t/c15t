@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { AllConsentNames } from '@c15t/core';
 	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/frame.module.js';
+	import styles from '@c15t/ui/styles/components/frame';
 	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { resolveTranslations } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';

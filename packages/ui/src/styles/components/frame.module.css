@@ -1,3 +1,5 @@
+@import url('./animations/fade-in.css');
+
 :root {
 	--frame-font-family:
 		system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
@@ -25,8 +27,7 @@
 
 	--frame-placeholder-opacity: 0;
 	/* ease-out for entering elements - provides immediate visual feedback */
-	--frame-placeholder-animation: fadeIn 0.15s cubic-bezier(0.165, 0.84, 0.44, 1)
-		forwards;
+	--frame-placeholder-animation: var(--c15t-fade-in-animation);
 }
 
 @layer components {
@@ -44,6 +45,8 @@
 		text-align: center;
 		border-radius: var(--frame-placeholder-border-radius);
 		border-width: var(--frame-placeholder-border-width);
+		/* Explicit style: never rely on Tailwind preflight's `border-style`. */
+		border-style: solid;
 		border-color: var(--frame-placeholder-border-color);
 		background-color: var(--frame-placeholder-background-color);
 		opacity: var(--frame-placeholder-opacity);
@@ -51,12 +54,6 @@
 		pointer-events: auto;
 		gap: var(--frame-placeholder-gap);
 		animation: var(--frame-placeholder-animation);
-	}
-
-	@keyframes fadeIn {
-		to {
-			opacity: 1;
-		}
 	}
 
 	:global(.c15t-dark) .placeholder {

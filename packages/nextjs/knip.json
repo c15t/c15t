@@ -1,6 +1,14 @@
 {
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
-	"entry": ["src/index.ts"],
+	"entry": [
+		"src/api.ts",
+		"src/headless.ts",
+		"src/index.ts",
+		"src/middleware.ts",
+		"src/rsc/index.ts",
+		"src/server.ts",
+		"src/static.ts"
+	],
 	"project": ["src/**/*.ts"],
 	"ignore": ["**/*.test.ts", "**/*.d.ts"],
 	"ignoreDependencies": ["@types/*"],

@@ -42,16 +42,6 @@
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
 			"default": "./dist/headless.js"
-		},
-		"./v3": {
-			"types": "./dist-types/v3/index.d.ts",
-			"import": "./dist/v3.js",
-			"default": "./dist/v3.js"
-		},
-		"./v3/headless": {
-			"types": "./dist-types/v3/headless.d.ts",
-			"import": "./dist/v3/headless.js",
-			"default": "./dist/v3/headless.js"
 		}
 	},
 	"publishConfig": {

@@ -1,45 +1,32 @@
-import type { ConsentStoreState } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { StoreApi } from 'zustand/vanilla';
 
 import { createStoreConnector } from '../../core/store-connector';
-
-const createMockStore =
-	function createMockStore(): StoreApi<ConsentStoreState> {
-		const state = {} as ConsentStoreState;
-		return {
-			getInitialState: () => state,
-			getState: () => state,
-			setState: () => state,
-			subscribe: () => () => {},
-		} as unknown as StoreApi<ConsentStoreState>;
-	};
 
 describe('store-connector', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
-		delete (window as unknown as Record<string, unknown>).testStore;
+		delete (window as unknown as Record<string, unknown>).testKernel;
 	});
 
-	it('keeps retrying and connects when the store appears later', () => {
+	it('keeps retrying and connects when the kernel appears later', () => {
 		const onConnect = vi.fn();
 		const onDisconnect = vi.fn();
 		const connector = createStoreConnector({
-			namespace: 'testStore',
+			namespace: 'testKernel',
 			onConnect,
 			onDisconnect,
 		});
 
-		// Reaches disconnect notification threshold, but should continue retrying.
 		vi.advanceTimersByTime(3200);
 		expect(onDisconnect).toHaveBeenCalledTimes(1);
 		expect(connector.isConnected()).toBe(false);
 
-		(window as unknown as Record<string, unknown>).testStore =
-			createMockStore();
+		const kernel = createConsentKernel();
+		(window as unknown as Record<string, unknown>).testKernel = kernel;
 		vi.advanceTimersByTime(2500);
 
-		expect(onConnect).toHaveBeenCalledTimes(1);
+		expect(onConnect).toHaveBeenCalledWith(kernel.getSnapshot(), kernel);
 		expect(connector.isConnected()).toBe(true);
 
 		connector.destroy();
@@ -47,26 +34,34 @@ describe('store-connector', () => {
 
 	it('retryConnection triggers an immediate reconnect attempt', () => {
 		const onConnect = vi.fn();
+		const kernel = createConsentKernel();
 		const connector = createStoreConnector({
-			namespace: 'testStore',
+			namespace: 'testKernel',
 			onConnect,
 		});
 
-		(window as unknown as Record<string, unknown>).testStore =
-			createMockStore();
+		(window as unknown as Record<string, unknown>).testKernel = kernel;
 		connector.retryConnection();
 		vi.runOnlyPendingTimers();
 
-		expect(connector.isConnected()).toBe(true);
+		expect(connector.getKernel()).toBe(kernel);
 		expect(onConnect).toHaveBeenCalledTimes(1);
 
 		connector.destroy();
 	});
 
+	it('connects directly to a supplied kernel', () => {
+		const kernel = createConsentKernel();
+		const connector = createStoreConnector({ kernel });
+
+		expect(connector.getKernel()).toBe(kernel);
+		expect(connector.getState()).toBe(kernel.getSnapshot());
+
+		connector.destroy();
+	});
+
 	it('exposes reconnect diagnostics for disconnected state', () => {
-		const connector = createStoreConnector({
-			namespace: 'testStore',
-		});
+		const connector = createStoreConnector({ namespace: 'testKernel' });
 		const snapshots: ReturnType<typeof connector.getDiagnostics>[] = [];
 		const unsubscribe = connector.subscribeDiagnostics((diagnostics) => {
 			snapshots.push(diagnostics);
@@ -75,10 +70,10 @@ describe('store-connector', () => {
 		vi.advanceTimersByTime(100);
 
 		const latest = connector.getDiagnostics();
-		expect(latest.namespace).toBe('testStore');
+		expect(latest.namespace).toBe('testKernel');
 		expect(latest.isPolling).toBe(true);
 		expect(latest.reconnectAttempts).toBeGreaterThanOrEqual(1);
-		expect(latest.lastError).toContain('testStore');
+		expect(latest.lastError).toContain('testKernel');
 		expect(snapshots.length).toBeGreaterThan(1);
 
 		unsubscribe();

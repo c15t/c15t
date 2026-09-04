@@ -20,7 +20,7 @@ const apps = [
 		dir: 'benchmarks/nextjs-browser-bench',
 		env: { C15T_BENCH_COLD_MANIFEST_TOKEN: String(Date.now()) },
 		label: 'Next.js manifest SSR',
-		path: '/v3-manifest-ssr',
+		path: '/manifest-ssr',
 		port: 4312,
 		probeName: '__c15tNextBench',
 		startCommand: ['./node_modules/.bin/next', ['start', '--port', '4312']],

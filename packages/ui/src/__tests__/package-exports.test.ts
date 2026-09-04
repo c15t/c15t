@@ -2,14 +2,23 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, test } from 'vitest';
 
-const COMPONENT_CSS_MODULES = [
+const COMPONENT_STYLE_MODULES = [
+	'accordion',
+	'branding',
+	'button',
+	'collapsible',
+	'consent-actions',
 	'consent-banner',
 	'consent-dialog',
 	'consent-dialog-trigger',
-	'consent-widget',
+	'consent-manager',
 	'frame',
 	'iab-consent-banner',
 	'iab-consent-dialog',
+	'legal-links',
+	'preference-item',
+	'switch',
+	'tabs',
 ] as const;
 
 const PRIMITIVE_CSS_MODULES = [
@@ -21,7 +30,7 @@ const PRIMITIVE_CSS_MODULES = [
 ] as const;
 
 /**
- * Style-loader runtime markers that must NOT appear in .module.js class maps.
+ * Style-loader runtime markers that must NOT appear in class maps.
  * Their presence means styles are being injected at runtime via JS instead of
  * being shipped as plain CSS assets.
  */
@@ -33,88 +42,101 @@ const STYLE_LOADER_MARKERS = [
 	'injectStylesIntoStyleTag',
 ] as const;
 
+const resolvePath = function resolvePath(specifier: string): string {
+	return import.meta.resolve(specifier).replace('file://', '');
+};
+
 /**
- * Verify that CSS module exports resolve correctly:
- * - `.module.css` exports point to real CSS assets in dist/
- * - `.module.js` exports point to JS class-name maps in dist/
+ * Every component style ships as a flat triple under dist/styles/components:
+ * `<name>.js` (class map), `<name>.css` (plain CSS), `<name>.d.ts`.
  */
-describe('package exports: .module.css resolves to CSS assets in dist/', () => {
-	for (const name of COMPONENT_CSS_MODULES) {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		test(`@c15t/ui/styles/components/${name}.module.css → dist CSS asset`, async () => {
-			const subpath = `./styles/components/${name}.module.css`;
-			const resolved = import.meta.resolve(`@c15t/ui/${subpath.slice(2)}`);
-			const resolvedPath = resolved.replace('file://', '');
+describe('package exports: @c15t/ui/styles/components/<name> triple', () => {
+	for (const name of COMPONENT_STYLE_MODULES) {
+		test(`@c15t/ui/styles/components/${name} → dist JS class map`, () => {
+			const resolvedPath = resolvePath(`@c15t/ui/styles/components/${name}`);
 
-			// Must resolve to dist/, not src/
-			expect(resolvedPath).toContain('/dist/');
+			expect(resolvedPath).toContain('/dist/styles/components/');
 			expect(resolvedPath).not.toContain('/src/');
+			expect(resolvedPath).toMatch(new RegExp(`/${name}\\.js$`, 'u'));
+		});
 
-			// Must be a real CSS file, not a JS bundle
-			expect(resolvedPath).toMatch(/\.module\.css$/u);
+		test(`@c15t/ui/styles/components/${name}.css → dist CSS asset`, () => {
+			const resolvedPath = resolvePath(
+				`@c15t/ui/styles/components/${name}.css`
+			);
+
+			expect(resolvedPath).toContain('/dist/styles/components/');
+			expect(resolvedPath).toMatch(new RegExp(`/${name}\\.css$`, 'u'));
+			expect(readFileSync(resolvedPath, 'utf-8')).toContain('c15t-ui-');
+		});
+
+		test(`@c15t/ui/styles/components/${name}.module.css → dist JS class map`, () => {
+			const resolvedPath = resolvePath(
+				`@c15t/ui/styles/components/${name}.module.css`
+			);
+
+			expect(resolvedPath).toContain('/dist/styles/components/');
+			expect(resolvedPath).toMatch(new RegExp(`/${name}\\.js$`, 'u'));
+		});
+
+		test(`components/${name}.js has no style-injection runtime`, () => {
+			const contents = readFileSync(
+				resolvePath(`@c15t/ui/styles/components/${name}`),
+				'utf-8'
+			);
+
+			expect(contents).toContain(`./${name}.css`);
+			for (const marker of STYLE_LOADER_MARKERS) {
+				expect(contents).not.toContain(marker);
+			}
 		});
 	}
 });
 
 describe('package exports: .module.js resolves to JS class maps in dist/', () => {
-	for (const name of COMPONENT_CSS_MODULES) {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		test(`@c15t/ui/styles/components/${name}.module.js → dist JS class map`, async () => {
-			const resolved = import.meta.resolve(
-				`@c15t/ui/styles/components/${name}.module.js`
-			);
-			const resolvedPath = resolved.replace('file://', '');
-
-			expect(resolvedPath).toContain('/dist/');
-			expect(resolvedPath).not.toContain('/src/');
-			// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
-			expect(resolvedPath).toMatch(/\.module\.(js|cjs)$/u);
-		});
-	}
-
 	for (const name of PRIMITIVE_CSS_MODULES) {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		test(`@c15t/ui/styles/primitives/${name}.module.js → dist JS class map`, async () => {
-			const resolved = import.meta.resolve(
+		test(`@c15t/ui/styles/primitives/${name}.module.js → dist JS class map`, () => {
+			const resolvedPath = resolvePath(
 				`@c15t/ui/styles/primitives/${name}.module.js`
 			);
-			const resolvedPath = resolved.replace('file://', '');
 
 			expect(resolvedPath).toContain('/dist/');
 			expect(resolvedPath).not.toContain('/src/');
 			// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.
 			expect(resolvedPath).toMatch(/\.module\.(js|cjs)$/u);
 		});
-	}
-});
 
-describe('package exports: .module.js files contain no style-loader runtime', () => {
-	for (const name of COMPONENT_CSS_MODULES) {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		test(`components/${name}.module.js has no style-injection runtime`, async () => {
-			const resolved = import.meta.resolve(
-				`@c15t/ui/styles/components/${name}.module.js`
+		test(`primitives/${name}.module.js has no style-injection runtime`, () => {
+			const contents = readFileSync(
+				resolvePath(`@c15t/ui/styles/primitives/${name}.module.js`),
+				'utf-8'
 			);
-			const resolvedPath = resolved.replace('file://', '');
-			const contents = readFileSync(resolvedPath, 'utf-8');
 
 			for (const marker of STYLE_LOADER_MARKERS) {
 				expect(contents).not.toContain(marker);
 			}
 		});
 	}
+});
 
-	for (const name of PRIMITIVE_CSS_MODULES) {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		test(`primitives/${name}.module.js has no style-injection runtime`, async () => {
-			const resolved = import.meta.resolve(
-				`@c15t/ui/styles/primitives/${name}.module.js`
-			);
-			const resolvedPath = resolved.replace('file://', '');
+describe('package exports: aggregated stylesheets', () => {
+	for (const entry of [
+		'styles.css',
+		'styles.tw3.css',
+		'iab/styles.css',
+		'iab/styles.tw3.css',
+	]) {
+		test(`@c15t/ui/${entry} aggregates component rules`, () => {
+			const resolvedPath = resolvePath(`@c15t/ui/${entry}`);
 			const contents = readFileSync(resolvedPath, 'utf-8');
 
-			for (const marker of STYLE_LOADER_MARKERS) {
-				expect(contents).not.toContain(marker);
+			expect(resolvedPath).toContain('/dist/');
+			expect(contents).toContain('c15t-ui-');
+			expect(contents).toContain('@keyframes');
+			if (entry.endsWith('.tw3.css')) {
+				expect(contents).not.toMatch(/@layer\b/u);
+			} else {
+				expect(contents).toContain('@layer components');
 			}
 		});
 	}

@@ -1,40 +1,30 @@
 import type { Branding } from '@c15t/core';
-import { defaultTranslationConfig } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import {
-	resolveStyles,
-	resolveTranslations,
-	sanitizeDOMStyleProps,
-} from '@c15t/ui/utils';
+import styles from '@c15t/ui/styles/components/branding';
 import type { SVGProps } from 'react';
-import { useContext, useMemo } from 'react';
 
-import { ConsentStateContext } from '~/context/consent-manager-context';
+import { useTranslations } from '~/component-hooks/use-translations';
+import { useBranding } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
-import type {
-	AllThemeKeys,
-	ClassNameStyle,
-	CSSPropertiesWithVars,
-} from '~/types/theme';
+import type { CSSPropertiesWithVars } from '~/types/theme';
+import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
-import { mergeStyles } from '~/utils/merge-styles';
-import { KernelContext } from '~/v3/context';
+import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';
 export type BrandingVariant = 'footer' | 'dialog-tag' | 'banner-tag';
-export type BrandingThemeKey =
-	| 'consentBannerTag'
-	| 'consentDialogTag'
-	| 'consentWidgetTag'
-	| 'iabConsentBannerTag'
-	| 'iabConsentDialogTag';
+export type BrandingSlotContext =
+	| 'banner'
+	| 'dialog'
+	| 'manager'
+	| 'iab-banner'
+	| 'iab-dialog';
 
 interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	themeKey?: BrandingThemeKey;
+	slotContext?: BrandingSlotContext;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
@@ -112,38 +102,22 @@ export const BrandingCompactLogo = ({
 export const BrandingLink = ({
 	hideBranding,
 	variant = 'footer',
-	themeKey,
+	slotContext,
 	className,
 	style,
 	'data-testid': testId,
 }: BrandingProps) => {
-	const consentState = useContext(ConsentStateContext);
-	const kernel = useContext(KernelContext);
-	const { noStyle: contextNoStyle, theme } = useTheme();
-	const commonTranslations = useMemo(() => {
-		if (consentState) {
-			return resolveTranslations(
-				consentState.state.translationConfig,
-				defaultTranslationConfig
-			).common as { securedBy: string };
-		}
-
-		return (
-			(kernel?.getSnapshot().translations?.translations.common as
-				| { securedBy: string }
-				| undefined) ??
-			(defaultTranslationConfig.translations.en?.common as {
-				securedBy: string;
-			})
-		);
-	}, [consentState, kernel]);
-	const branding =
-		consentState?.state.branding ?? kernel?.getSnapshot().branding ?? 'c15t';
+	const branding = useBranding() ?? 'c15t';
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
+	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
 	const refParam =
 		typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
-	const brandingStyle = useMemo(() => {
-		const componentStyle: ClassNameStyle = {
+	const context = slotContext;
+	const brandingStyle = mergeSlotProps(
+		context ? components?.tag?.[context] : undefined,
+		{
 			baseClassName: cn(
 				styles.branding,
 				variant !== 'footer' && styles.brandingTag,
@@ -151,20 +125,18 @@ export const BrandingLink = ({
 				variant === 'banner-tag' && styles.brandingTagBanner
 			),
 			className,
+			'data-testid': testId,
+			noStyle,
 			style,
-		};
-		if (themeKey && theme?.slots && themeKey in theme.slots) {
-			return resolveStyles(
-				themeKey as AllThemeKeys,
-				theme,
-				componentStyle,
-				contextNoStyle
-			);
 		}
-
-		return mergeStyles({}, componentStyle);
-	}, [className, contextNoStyle, style, theme, themeKey, variant]);
-	const domStyleProps = sanitizeDOMStyleProps(brandingStyle);
+	);
+	const contentStyle = mergeSlotProps(
+		context ? components?.tag?.content : undefined,
+		{
+			baseClassName: styles.brandingContent,
+			noStyle,
+		}
+	);
 
 	if (resolvedBranding === 'none' || hideBranding) {
 		return null;
@@ -172,25 +144,27 @@ export const BrandingLink = ({
 
 	return (
 		<a
-			{...domStyleProps}
+			{...brandingStyle}
 			href={getBrandingHref(branding, refParam)}
 			data-branding={resolvedBranding}
 			data-variant={variant}
-			data-testid={testId}
 		>
-			<span className={styles.brandingCopy}>
-				<span className={styles.brandingText}>
-					{commonTranslations?.securedBy ?? 'Secured by'}
+			<span
+				{...contentStyle}
+				data-slot="tag-content"
+			>
+				<span className={styles.brandingCopy}>
+					<span className={styles.brandingText}>{common.securedBy}</span>
 				</span>
+				<BrandingFullLogo
+					branding={branding}
+					className={
+						resolvedBranding === 'inth'
+							? styles.brandingInth
+							: styles.brandingC15T
+					}
+				/>
 			</span>
-			<BrandingFullLogo
-				branding={branding}
-				className={
-					resolvedBranding === 'inth'
-						? styles.brandingInth
-						: styles.brandingC15T
-				}
-			/>
 		</a>
 	);
 };

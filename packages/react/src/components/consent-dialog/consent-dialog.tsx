@@ -11,11 +11,11 @@ import type * as C15tCoreTypes from '@c15t/core';
  */
 import type { FC } from 'react';
 
+import { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
 import type { ConsentDialogTriggerProps } from '~/components/consent-dialog-trigger';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
-import { useConsentManager } from '~/hooks/use-consent-manager';
 
 import { ConsentCustomizationCard } from './atoms/card';
 import { Root as ConsentDialogRoot } from './atoms/root';
@@ -26,7 +26,7 @@ import { Root as ConsentDialogRoot } from './atoms/root';
 export interface ConsentDialogProps {
 	/**
 	 * Theme configuration override (deprecated)
-	 * @deprecated Theme should be set on the ConsentManagerProvider
+	 * @deprecated Theme should be set on the ConsentProvider
 	 */
 	theme?: never;
 
@@ -78,7 +78,7 @@ export interface ConsentDialogProps {
 	 * ```
 	 *
 	 * @remarks
-	 * You must set the legal links in the ConsentManagerProvider options.
+	 * You must set the legal links in the ConsentProvider options.
 	 */
 	legalLinks?: InlineLegalLinksProps['links'];
 

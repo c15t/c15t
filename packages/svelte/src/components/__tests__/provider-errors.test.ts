@@ -4,7 +4,6 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-errors.test.tsx
  */
 
-import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -17,7 +16,6 @@ window.fetch = mockFetch;
 describe('ConsentManagerProvider Error Handling', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
-		clearConsentRuntimeCache();
 
 		mockFetch.mockResolvedValueOnce(
 			new Response(JSON.stringify({ error: 'API error' }), {
