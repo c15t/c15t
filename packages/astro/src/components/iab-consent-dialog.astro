@@ -1,0 +1,41 @@
+---
+/**
+ * The IAB TCF preference centre.
+ *
+ * Like `<ConsentDialog />`, this renders only a host element; the TCF
+ * surface and `@c15t/iab` are both loaded on first open, so a site with IAB
+ * configured still serves a banner-only page with no TCF bytes.
+ *
+ * ```astro
+ * ---
+ * import IABConsentDialog from '@c15t/astro/components/iab-consent-dialog.astro';
+ * ---
+ * <IABConsentDialog />
+ * ```
+ */
+interface Props {
+	/** Warm the island's chunk once the browser is idle. */
+	preload?: boolean;
+}
+
+const { preload = false } = Astro.props;
+---
+
+<div data-c15t-dialog-host="iab" data-preload={preload ? 'true' : undefined}></div>
+
+<script>
+	import { preloadDialog } from '@c15t/astro/client';
+
+	const host = document.querySelector('[data-c15t-dialog-host="iab"]');
+
+	if (host?.getAttribute('data-preload') === 'true') {
+		const schedule = () => {
+			void preloadDialog();
+		};
+		if ('requestIdleCallback' in window) {
+			window.requestIdleCallback(schedule);
+		} else {
+			window.setTimeout(schedule, 2000);
+		}
+	}
+</script>

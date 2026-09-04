@@ -1,0 +1,22 @@
+---
+/**
+ * Inlines the server-resolved consent config for the browser.
+ *
+ * Put this in your layout's `<head>`. It hands the client boot script the
+ * decision the server already made — consents, policy, translations — so
+ * the page boots with no `/init` roundtrip and no banner flicker.
+ *
+ * `<ConsentBanner />` renders this itself if it has not been emitted yet,
+ * so a site with a banner in every layout does not need it explicitly.
+ */
+import { buildConfigScript, markConfigEmitted } from '@c15t/astro/server';
+
+const { c15t } = Astro.locals;
+const shouldEmit = c15t !== undefined && markConfigEmitted(Astro.locals);
+---
+
+{
+	shouldEmit && (
+		<script is:inline set:html={buildConfigScript(c15t.config)} />
+	)
+}

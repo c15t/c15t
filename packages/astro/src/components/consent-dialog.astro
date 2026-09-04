@@ -1,0 +1,61 @@
+---
+/**
+ * The preference-centre dialog.
+ *
+ * Renders nothing but an empty host element. The surface itself is a Svelte
+ * island mounted with Svelte 5's `mount()` the first time something opens
+ * it — not `client:load` — so a visitor who accepts or rejects from the
+ * banner never downloads a framework at all.
+ *
+ * ```astro
+ * ---
+ * import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
+ * ---
+ * <ConsentDialog />
+ * ```
+ */
+interface Props {
+	/**
+	 * Warm the island's chunk once the browser is idle, so the first open
+	 * is instant. Costs a background download on every page.
+	 *
+	 * @default false
+	 */
+	preload?: boolean;
+}
+
+const { preload = false } = Astro.props;
+---
+
+<div data-c15t-dialog-host="preferences" data-preload={preload ? 'true' : undefined}>
+</div>
+
+<script>
+	import { getConsentClient, openDialog, preloadDialog } from '@c15t/astro/client';
+
+	const host = document.querySelector('[data-c15t-dialog-host="preferences"]');
+
+	if (host?.getAttribute('data-preload') === 'true') {
+		const warm = async () => {
+			try {
+				await preloadDialog();
+			} catch {
+				// Warming is best-effort; the first open loads it anyway.
+			}
+		};
+		const schedule = () => {
+			void warm();
+		};
+		if ('requestIdleCallback' in window) {
+			window.requestIdleCallback(schedule);
+		} else {
+			window.setTimeout(schedule, 2000);
+		}
+	}
+
+	// A page can ask for the dialog before the runtime has booted (a link
+	// with `#c15t-preferences`, say); replaying it here keeps that working.
+	if (window.location.hash === '#c15t-preferences' && getConsentClient()) {
+		void openDialog('preferences');
+	}
+</script>

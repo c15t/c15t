@@ -1,0 +1,42 @@
+---
+/**
+ * A button that opens a consent dialog.
+ *
+ * Ships no JavaScript of its own — it carries `data-c15t-action` and the
+ * one delegated listener the banner already installed picks it up. Use it
+ * for the "Cookie preferences" link every footer needs.
+ *
+ * ```astro
+ * <ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
+ * <ConsentDialogTrigger kind="iab">Ad partners</ConsentDialogTrigger>
+ * ```
+ */
+interface Props {
+	/** Which dialog to open. */
+	kind?: 'preferences' | 'iab';
+	/** Extra class names. */
+	class?: string;
+	/** Render an `<a href="#">` instead of a `<button>`. */
+	as?: 'button' | 'a';
+}
+
+const { kind = 'preferences', class: className, as = 'button' } = Astro.props;
+const Tag = as;
+---
+
+<Tag
+	class={className}
+	data-c15t-action="customize"
+	data-c15t-dialog={kind}
+	data-testid="consent-dialog-trigger"
+	href={as === 'a' ? '#c15t-preferences' : undefined}
+	type={as === 'button' ? 'button' : undefined}
+>
+	<slot />
+</Tag>
+
+<script>
+	import { attachBannerActions } from '@c15t/astro/client';
+
+	attachBannerActions();
+</script>
