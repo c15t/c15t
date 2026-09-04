@@ -30,9 +30,9 @@ import {
 } from '@c15t/core';
 import type { LegalLinks, TranslationsResponse } from '@c15t/core';
 import { buildConfigScript, markConfigEmitted } from '@c15t/astro/server';
-import actionStyles from '@c15t/ui/styles/components/consent-actions.module.js';
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import buttonStyles from '@c15t/ui/styles/components/button.module.js';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import styles from '@c15t/ui/styles/components/consent-banner';
+import buttonStyles from '@c15t/ui/styles/components/button';
 import { getTextDirection } from '@c15t/ui/utils';
 
 interface Props {
@@ -151,6 +151,7 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
 			data-testid="consent-banner-root"
 			dir={textDirection}
+			lang={snapshot.translations?.language}
 		>
 			<div class={noStyle ? '' : styles.cardShell}>
 				<div

@@ -68,14 +68,15 @@ export const resolveTranslations = function resolveTranslations(
 		(detect ? inputs.language : undefined) ??
 		defaultTranslationConfig.defaultLanguage ??
 		'en';
-	const catalogue = defaultTranslationConfig.translations as Record<
+	// The server can afford the whole catalogue; only the one negotiated
+	// bundle is inlined into the page, so the client pays for one language.
+	const catalogue = baseTranslations as unknown as Record<
 		string,
 		TranslationsResponse
 	>;
 	const base =
 		catalogue[language] ??
-		(catalogue.en as TranslationsResponse) ??
-		({} as TranslationsResponse);
+		(defaultTranslationConfig.translations.en as TranslationsResponse);
 	const overrides = options.i18n?.messages?.[language] as
 		| Partial<TranslationsResponse>
 		| undefined;
