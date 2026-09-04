@@ -52,7 +52,11 @@ const getEnv = function getEnv(name: string): string | undefined {
 	if (typeof process === 'undefined') {
 		return undefined;
 	}
-	return process.env?.[name];
+	// `process.env` is typed narrowly in a Svelte app's TS project; this
+	// module also runs in plain Node and edge runtimes.
+	return (process.env as Record<string, string | undefined> | undefined)?.[
+		name
+	];
 };
 
 /**
