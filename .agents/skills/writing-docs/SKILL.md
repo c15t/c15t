@@ -23,7 +23,6 @@ The docs pipeline (generation, `docs/docs.config.ts`, MDX components, lint schem
 | Directory | Feeds |
 | --- | --- |
 | `docs/frameworks/{javascript,react,next,...}/` | Framework quickstarts and guides; javascript→`c15t`, react→`@c15t/react`, next→`@c15t/nextjs` bundled docs |
-| `docs/shared/` | Content reused across frameworks; bundled into core/react/nextjs |
 | `docs/integrations/` | GTM, GA4, PostHog, Meta Pixel, etc.; bundled into core/react/nextjs/scripts |
 | `docs/self-host/` | Bundled into `@c15t/backend` |
 | `docs/cli/` | Bundled into `@c15t/cli` |

@@ -1,49 +1,21 @@
 ---
-title: Styling Overview
-description: Customize every aspect of c15t's consent components using design tokens, component slots, and CSS variables.
+title: Styling
+description: Theme c15t components with tokens, slots, and class names.
 group: frameworks
 ---
 
-<import src="../../../shared/react/styling/overview.mdx#intro" />
+<Callout type="info">
+  This page is a placeholder for the v3 docs rewrite.
+</Callout>
 
-## Quick Start
+## Stylesheet
 
-Use the `Theme` type for TypeScript autocomplete and validation:
+TODO.
 
-```tsx
-import { type ReactNode } from 'react';
-import { type Theme, ConsentManagerProvider } from 'c15t/react';
+## Tokens
 
-const theme = {
-  colors: {
-    primary: '#6366f1',
-    primaryHover: '#4f46e5',
-    surface: '#ffffff',
-    text: '#1f2937',
-    textMuted: '#6b7280',
-  },
-  radius: {
-    md: '0.75rem',
-    lg: '1rem',
-  },
-  spacing: {
-    md: '1.25rem',
-  },
-} satisfies Theme;
+TODO.
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
-        theme,
-      }}
-    >
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
+## Slots
 
-<import src="../../../shared/react/styling/overview.mdx#styling-paths-to-api" />
+TODO.
