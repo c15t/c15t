@@ -72,8 +72,8 @@ export default getViteConfig(
 					extends: true,
 					test: {
 						environment: 'node',
-						include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
 						exclude: ['src/**/*.dom.test.ts'],
+						include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
 						name: 'server',
 					},
 				},

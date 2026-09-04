@@ -27,6 +27,60 @@ export interface ConsentDialogContext {
 	kind: ConsentDialogKind;
 }
 
+/**
+ * Loads the component a dialog adapter mounts.
+ *
+ * The loader is registered by the `.astro` dialog component rather than
+ * imported here, so the specifier is resolved by the consuming app's build
+ * — which is the only build that knows how to compile a `.svelte` file —
+ * and the chunk stays out of the page until someone opens a dialog.
+ */
+export type ConsentDialogSurfaceLoader = () => Promise<{ default: unknown }>;
+
+const surfaces = new Map<C15tUIAdapterName, ConsentDialogSurfaceLoader>();
+
+/**
+ * Register the component a dialog adapter should mount.
+ *
+ * @param name - The adapter the surface belongs to.
+ * @param load - Loader returning the surface module.
+ * @example
+ * ```astro
+ * <script>
+ *   import { registerDialogSurface } from '@c15t/astro/client';
+ *
+ *   registerDialogSurface('svelte', () =>
+ *     import('@c15t/astro/islands/consent-dialog-surface.svelte')
+ *   );
+ * </script>
+ * ```
+ */
+export const registerDialogSurface = function registerDialogSurface(
+	name: C15tUIAdapterName,
+	load: ConsentDialogSurfaceLoader
+): void {
+	surfaces.set(name, load);
+};
+
+/**
+ * The registered surface loader for an adapter.
+ *
+ * @param name - The adapter name.
+ * @returns The loader.
+ * @throws {Error} When no surface has been registered for that adapter.
+ */
+export const requireDialogSurface = function requireDialogSurface(
+	name: C15tUIAdapterName
+): ConsentDialogSurfaceLoader {
+	const load = surfaces.get(name);
+	if (!load) {
+		throw new Error(
+			`@c15t/astro: no ${name} dialog surface registered. Render <ConsentDialog /> (or <IABConsentDialog />) somewhere on the page — it is what registers the island.`
+		);
+	}
+	return load;
+};
+
 /** A mounted dialog surface. */
 export interface ConsentDialogHandle {
 	/** Hide the dialog without destroying the surface. */
