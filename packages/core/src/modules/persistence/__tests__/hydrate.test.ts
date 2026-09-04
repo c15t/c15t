@@ -17,13 +17,13 @@ afterEach(() => {
 
 describe('hydrateFromStorage', () => {
 	test('returns false when storage has nothing', () => {
-		vi.spyOn(cookie, 'getConsentFromStorage').mockReturnValue(null);
+		vi.spyOn(cookie, 'readStoredConsent').mockReturnValue(null);
 		const kernel = createConsentKernel();
 		expect(hydrateFromStorage(kernel, undefined)).toBe(false);
 	});
 
 	test('applies stored consents to the kernel', () => {
-		vi.spyOn(cookie, 'getConsentFromStorage').mockReturnValue({
+		vi.spyOn(cookie, 'readStoredConsent').mockReturnValue({
 			consents: { marketing: true },
 		});
 		const kernel = createConsentKernel();
@@ -34,7 +34,7 @@ describe('hydrateFromStorage', () => {
 	test('applies stored subjectId when valid', () => {
 		// Subject IDs are `sub_<base58>` — example from isValidSubjectId docs.
 		const validId = 'sub_2VZxR7YmNpKq3WfLs8TgHd';
-		vi.spyOn(cookie, 'getConsentFromStorage').mockReturnValue({
+		vi.spyOn(cookie, 'readStoredConsent').mockReturnValue({
 			consentInfo: { subjectId: validId, time: 0 },
 		});
 		const kernel = createConsentKernel();
@@ -44,7 +44,7 @@ describe('hydrateFromStorage', () => {
 	});
 
 	test('ignores invalid stored subjectId but still sets hasConsented', () => {
-		vi.spyOn(cookie, 'getConsentFromStorage').mockReturnValue({
+		vi.spyOn(cookie, 'readStoredConsent').mockReturnValue({
 			consentInfo: { subjectId: 'not-a-real-id', time: 0 },
 		});
 		const kernel = createConsentKernel();

@@ -82,6 +82,31 @@ const isLegacyConsentFormat = function isLegacyConsentFormat(
 };
 
 /**
+ * Reads and parses a localStorage entry without touching any other key.
+ *
+ * @param key - localStorage key to read
+ * @returns Parsed value, or null when the key is absent, unreadable, or
+ * not valid JSON
+ *
+ * @internal
+ */
+const readLocalStorageEntry = function readLocalStorageEntry<
+	ReturnType = unknown,
+>(key: string): ReturnType | null {
+	try {
+		if (typeof window !== 'undefined' && window.localStorage) {
+			const stored = window.localStorage.getItem(key);
+			if (stored) {
+				return JSON.parse(stored) as ReturnType;
+			}
+		}
+	} catch (error) {
+		console.warn('Failed to read consent from localStorage:', error);
+	}
+	return null;
+};
+
+/**
  * Migrates consent data from legacy storage key to new storage key.
  *
  * @param config - Storage configuration
@@ -291,20 +316,10 @@ export const getConsentFromStorage = function getConsentFromStorage<
 	migrateLegacyStorage(config);
 
 	const storageKey = config?.storageKey || STORAGE_KEY_V2;
-	let localStorageData: ReturnType | null = null;
 	let cookieData: ReturnType | null = null;
 
 	// Try localStorage first
-	try {
-		if (typeof window !== 'undefined' && window.localStorage) {
-			const stored = window.localStorage.getItem(storageKey);
-			if (stored) {
-				localStorageData = JSON.parse(stored) as ReturnType;
-			}
-		}
-	} catch (error) {
-		console.warn('Failed to read consent from localStorage:', error);
-	}
+	const localStorageData = readLocalStorageEntry<ReturnType>(storageKey);
 
 	// Try cookie as fallback
 	try {
@@ -422,6 +437,71 @@ export const getConsentFromStorage = function getConsentFromStorage<
 
 	// Normalize consent data to ensure all values are explicit booleans
 	return chosenData ? normalizeStoredConsentData(chosenData) : chosenData;
+};
+
+/**
+ * Reads stored consent without writing anything back.
+ *
+ * @typeParam ReturnType - The expected type of the consent data
+ *
+ * @param config - Storage configuration
+ * @returns Normalized consent data, or null when nothing is stored
+ *
+ * @remarks
+ * This is the hydration read path. Unlike {@link getConsentFromStorage}
+ * it never migrates the legacy localStorage key, never mirrors one
+ * store into the other, and never deletes a v1.x record. Startup must
+ * not renew the stored choice time or recreate a missing cookie.
+ * Parsing and normalization only; it does not validate the record.
+ *
+ * Read order matches {@link getConsentFromStorage}: the cookie wins,
+ * then localStorage under the configured key, then localStorage under
+ * the legacy `privacy-consent-storage` key so unmigrated data stays
+ * readable. A v1.x record (server `id` without `subjectId`) is reported
+ * as no consent but left in place; the next explicit save replaces it.
+ *
+ * @example
+ * ```typescript
+ * const stored = readStoredConsent();
+ * if (stored) {
+ *   kernel.set.consent(stored.consents);
+ * }
+ * ```
+ *
+ * @public
+ */
+export const readStoredConsent = function readStoredConsent<
+	ReturnType = unknown,
+>(config?: StorageConfig): ReturnType | null {
+	const storageKey = config?.storageKey || STORAGE_KEY_V2;
+
+	let chosenData: ReturnType | null = null;
+	try {
+		chosenData = getCookie<ReturnType>(storageKey);
+	} catch (error) {
+		console.warn('Failed to read consent from cookie:', error);
+	}
+
+	if (!chosenData) {
+		chosenData = readLocalStorageEntry<ReturnType>(storageKey);
+	}
+
+	if (!chosenData && storageKey !== STORAGE_KEY) {
+		chosenData = readLocalStorageEntry<ReturnType>(STORAGE_KEY);
+	}
+
+	if (!chosenData) {
+		return null;
+	}
+
+	if (isLegacyConsentFormat(chosenData)) {
+		getDebugLogger().log(
+			'Detected legacy consent format (v1.x). Re-consent required for v2.0.'
+		);
+		return null;
+	}
+
+	return normalizeStoredConsentData(chosenData);
 };
 
 /**

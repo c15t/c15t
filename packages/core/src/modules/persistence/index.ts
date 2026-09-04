@@ -19,9 +19,16 @@
  *   caller can block first paint until stored consent is applied.
  *   This is still pure (no async work), but it does read cookies and
  *   localStorage — caller must invoke inside the browser only.
+ * - Hydration is read-only. Kernel changes it causes never schedule a
+ *   write, so startup does not renew the stored choice time or
+ *   recreate a missing cookie / localStorage mirror. A `hydrate()` call
+ *   flushes any queued write first, so an explicit choice made moments
+ *   earlier is never lost to the rehydrated stored value.
  * - Write path subscribes to kernel; on every tick where `consents`
- *   or `hasConsented` change, schedules a write. Writes are batched
- *   with a microtask debounce so rapid flips produce one write.
+ *   or `hasConsented` change, schedules a write. Every `save()` also
+ *   schedules one, so a repeat save that changes nothing still refreshes
+ *   the stored record. Writes are batched with a microtask debounce so
+ *   rapid flips produce one write.
  * - Dispose unsubscribes but does not clear storage.
  */
 import {
@@ -64,6 +71,7 @@ export const createPersistence = function createPersistence(
 		typeof document !== 'undefined' && typeof localStorage !== 'undefined';
 
 	let lastSnapshot = kernel.getSnapshot();
+	let hydrating = false;
 
 	const scheduler = createWriteScheduler(() => {
 		writeToStorage(kernel.getSnapshot(), kernel, storageConfig);
@@ -73,13 +81,41 @@ export const createPersistence = function createPersistence(
 		const consentsChanged = snapshot.consents !== lastSnapshot.consents;
 		const statusChanged = snapshot.hasConsented !== lastSnapshot.hasConsented;
 		lastSnapshot = snapshot;
+		// Changes applied by hydration come from storage; writing them back
+		// would only renew the choice timestamp the user never re-made.
+		if (hydrating) {
+			return;
+		}
 		if (consentsChanged || statusChanged) {
 			scheduler.schedule();
 		}
 	});
 
+	// `save()` with no input finalizes the current consents in place: the
+	// snapshot's `consents` and `hasConsented` may both be unchanged, so the
+	// snapshot diff above would skip the write. It is still an explicit act
+	// and must refresh the stored record. The event fires before the save
+	// patch is applied, and the deferred write reads the snapshot at flush
+	// time, so this coalesces with the diff-driven write into one.
+	const unsubscribeSave = kernel.events.on('command:save:started', () => {
+		scheduler.schedule();
+	});
+
+	const hydrate = function hydrate(): boolean {
+		// An explicit choice may still be queued. Land it first so
+		// rehydration reads the new choice back instead of overwriting it
+		// with whatever storage held before the user acted.
+		scheduler.flush();
+		hydrating = true;
+		try {
+			return hydrateFromStorage(kernel, storageConfig);
+		} finally {
+			hydrating = false;
+		}
+	};
+
 	if (!options.skipHydration) {
-		hydrateFromStorage(kernel, storageConfig);
+		hydrate();
 	}
 
 	return {
@@ -91,14 +127,13 @@ export const createPersistence = function createPersistence(
 		},
 		dispose() {
 			unsubscribe();
+			unsubscribeSave();
 			// A write queued in the current tick must not fire after dispose —
 			// it would flush the (possibly stale) snapshot into storage after a
 			// newer provider took over. Flushing synchronously keeps the last
 			// consent change durable without leaving a timer behind.
 			scheduler.flush();
 		},
-		hydrate() {
-			return hydrateFromStorage(kernel, storageConfig);
-		},
+		hydrate,
 	};
 };

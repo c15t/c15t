@@ -5,11 +5,12 @@
  * the kernel via `kernel.set.*` calls. Returns `true` when at least
  * one stored value was applied.
  *
- * No I/O beyond the storage read — the v2 cookie layer is the single
- * source of read truth so v2 + v3 consumers see the same persistence
- * format.
+ * Read-only: the storage read never migrates, mirrors, or deletes
+ * anything, so startup leaves the stored choice time and metadata
+ * untouched. The v2 cookie layer is the single source of read truth so
+ * v2 + v3 consumers see the same persistence format.
  */
-import { getConsentFromStorage } from '../../libs/cookie';
+import { readStoredConsent } from '../../libs/cookie';
 import { isValidSubjectId } from '../../libs/generate-subject-id';
 import type { ConsentKernel } from '../../types';
 import type { StorageConfig, StoredPayload } from './types';
@@ -28,7 +29,7 @@ export const hydrateFromStorage = function hydrateFromStorage(
 		return false;
 	}
 
-	const stored = getConsentFromStorage<StoredPayload>(storageConfig) as
+	const stored = readStoredConsent<StoredPayload>(storageConfig) as
 		| StoredPayload
 		| null
 		| undefined;

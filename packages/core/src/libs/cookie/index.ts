@@ -66,6 +66,7 @@ export {
 	deleteConsentFromStorage,
 	getConsentFromCookieHeader,
 	getConsentFromStorage,
+	readStoredConsent,
 	saveConsentToStorage,
 } from './storage';
 // Re-export types

@@ -18,7 +18,7 @@ group: reference
   There are four sources of cookies on a typical website:
 
   **1. c15t itself**
-  c15t stores the user's consent state in a `c15t` cookie (and mirrors it to localStorage). This cookie records which categories the user consented to, when they consented, and their subject ID. This is a strictly necessary cookie - it exists so the site remembers the user's consent choice.
+  c15t stores the user's consent state in a `c15t` cookie (and mirrors it to localStorage). This cookie records which categories the user consented to, when they consented, and their subject ID. This is a strictly necessary cookie - it exists so the site remembers the user's consent choice. Reading it on page load never rewrites it, so the recorded time is not renewed by a visit.
 
   **2. Third-party scripts**
   When you load a tracking script (Google Analytics, Meta Pixel, etc.), that script sets its own cookies. Google Analytics creates `_ga` and `_gid` cookies. Meta creates `_fbp` and `_fbc`. These cookies are set by the script's code running in the browser - c15t prevents them by not loading the script until the user consents.
