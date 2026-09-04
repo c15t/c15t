@@ -1,12 +1,25 @@
 /**
  * Route handlers for `/api/c15t/init` and `/api/c15t/manifest`.
  *
- * Same semantics as `@c15t/nextjs/api`: the manifest is fetched once and
- * cached in-process with the backend's own cache headers, `/init` resolves
- * from it per request and is never cached, and the GVL is only fetched when
- * the resolved policy is actually IAB.
+ * Manifest mode moves policy resolution off the browser's critical path:
+ * the host fetches one geo-independent, CDN-cacheable manifest and resolves
+ * `/init` locally per request. These are the Astro handlers for that — the
+ * same contract `createSvelteKitConsentRouteHandlers` and
+ * `createNextConsentRouteHandlers` implement.
+ *
+ * Cache discipline:
+ * - The manifest route forwards the backend's `Cache-Control`/`ETag`
+ *   verbatim and answers `If-None-Match` with `304`. The edge caches it;
+ *   this process only dedupes bursts (see `@c15t/core/server`).
+ * - The init route is per-request (geo, language, GPC) and therefore
+ *   `private, no-store`.
  */
 
+import {
+	fetchCachedManifest,
+	MANIFEST_PASSTHROUGH_HEADERS,
+} from '@c15t/core/server';
+import type { ManifestFetch } from '@c15t/core/server';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
@@ -14,6 +27,7 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 import {
+	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveBackendURL,
 	resolveInitFromManifest,
@@ -21,12 +35,9 @@ import {
 import { baseTranslations } from '@c15t/translations/all';
 
 import type { C15tResolvedOptions } from '../types';
-import { fetchCachedManifest } from './manifest-cache';
-import type { ManifestFetch } from './manifest-cache';
 
 const INIT_CACHE_CONTROL = 'private, no-store';
-const DEFAULT_MANIFEST_CACHE_CONTROL =
-	'public, s-maxage=300, stale-while-revalidate=86400';
+const MANIFEST_ROUTE_SUFFIX = '/manifest';
 
 /** Options accepted by the route handler factory. */
 export interface ConsentRouteHandlerOptions {
@@ -34,7 +45,10 @@ export interface ConsentRouteHandlerOptions {
 	options: C15tResolvedOptions;
 	/** Override fetch, mainly for tests. */
 	fetch?: ManifestFetch;
-	/** Override the GVL fetcher. */
+	/**
+	 * Fetches the Global Vendor List when the resolved policy is IAB.
+	 * Defaults to a plain `GET` of the manifest's GVL reference.
+	 */
 	fetchGvl?: (input: {
 		reference: ConsentManifestGVLReference;
 		language: string;
@@ -46,7 +60,9 @@ const getEnv = function getEnv(name: string): string | undefined {
 	if (typeof process === 'undefined') {
 		return undefined;
 	}
-	return process.env?.[name];
+	return (process.env as Record<string, string | undefined> | undefined)?.[
+		name
+	];
 };
 
 const trimSlash = function trimSlash(value: string): string {
@@ -54,7 +70,34 @@ const trimSlash = function trimSlash(value: string): string {
 };
 
 /**
+ * Resolves a possibly-relative backend URL against the request.
+ *
+ * Seeds the protocol from the request URL rather than letting the shared
+ * resolver fall back to `https`, so a relative `backendURL` still resolves
+ * on a plain `http://localhost` dev server.
+ */
+const resolveAgainstRequest = function resolveAgainstRequest(
+	url: string,
+	request: Request
+): string | null {
+	const requestURL = new URL(request.url);
+	const headers: Record<string, string> = {
+		host: requestURL.host,
+		'x-forwarded-proto': requestURL.protocol.replace(':', ''),
+	};
+	for (const name of ['x-forwarded-host', 'x-forwarded-proto', 'referer']) {
+		const value = request.headers.get(name);
+		if (value) {
+			headers[name] = value;
+		}
+	}
+	return resolveBackendURL(url, headers);
+};
+
+/**
  * Work out where `GET /manifest` lives for this request.
+ *
+ * Explicit options win, then `C15T_MANIFEST_URL` / `C15T_BACKEND_URL`.
  *
  * @param request - The incoming request, used to resolve relative URLs.
  * @param options - The resolved integration options.
@@ -70,7 +113,7 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 		(mode.type === 'manifest' ? mode.manifestURL : undefined) ??
 		getEnv('C15T_MANIFEST_URL');
 	if (manifestURL) {
-		const resolved = resolveBackendURL(manifestURL, request.headers);
+		const resolved = resolveAgainstRequest(manifestURL, request);
 		if (!resolved) {
 			throw new Error('@c15t/astro: invalid manifest URL.');
 		}
@@ -84,26 +127,14 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 		getEnv('PUBLIC_C15T_BACKEND_URL');
 	if (!backendURL) {
 		throw new Error(
-			'@c15t/astro: manifest mode needs `backendURL` or `manifestURL` (or C15T_BACKEND_URL / C15T_MANIFEST_URL).'
+			'@c15t/astro: manifest mode requires `backendURL` or `manifestURL` (or the C15T_BACKEND_URL environment variable).'
 		);
 	}
-	const resolved = resolveBackendURL(backendURL, request.headers);
+	const resolved = resolveAgainstRequest(backendURL, request);
 	if (!resolved) {
 		throw new Error('@c15t/astro: invalid backend URL.');
 	}
-	return `${trimSlash(resolved)}/manifest`;
-};
-
-const withLanguage = function withLanguage(
-	url: string,
-	language: string | null
-): string {
-	if (!language) {
-		return url;
-	}
-	const next = new URL(url);
-	next.searchParams.set('language', language);
-	return next.toString();
+	return `${trimSlash(resolved)}${MANIFEST_ROUTE_SUFFIX}`;
 };
 
 const shouldFetchGvl = function shouldFetchGvl(
@@ -141,14 +172,15 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
  * Build the `init` and `manifest` route handlers.
  *
  * @param handlerOptions - Integration options plus test seams.
- * @returns Handlers matching Astro's `APIRoute` signature.
+ * @returns `init`, `manifest`, and a `GET` that dispatches between them.
  * @example
  * ```ts
  * // src/pages/api/c15t/init.ts
  * import options from 'virtual:c15t/options';
  * import { createConsentRouteHandlers } from '@c15t/astro/api';
  *
- * export const GET = createConsentRouteHandlers({ options }).init;
+ * const handlers = createConsentRouteHandlers({ options });
+ * export const GET = ({ request }) => handlers.init(request);
  * ```
  */
 export const createConsentRouteHandlers = function createConsentRouteHandlers(
@@ -158,56 +190,88 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		handlerOptions.fetch ??
 		(globalThis.fetch?.bind(globalThis) as ManifestFetch | undefined);
 
-	return {
-		/** `GET /api/c15t/init` — a resolved `InitOutput`, never cached. */
-		async init(request: Request): Promise<Response> {
-			const { manifest } = await fetchCachedManifest({
+	/** `GET /api/c15t/init` — a resolved `InitOutput`, never cached. */
+	const init = async function init(request: Request): Promise<Response> {
+		const manifestURL = resolveManifestSourceURL(
+			request,
+			handlerOptions.options
+		);
+		const { manifest } = await fetchCachedManifest({
+			config: { manifestURL },
+			fetch: handlerOptions.fetch,
+		});
+
+		const inputs = extractConsentRequestInputs(request.headers);
+		const payload = resolveInitFromManifest(
+			manifest,
+			{
+				country: inputs.country,
+				gpc: inputs.gpc,
+				language: inputs.language ?? 'en',
+				region: inputs.region,
+			},
+			{ baseTranslations }
+		) as InitOutput & { resolvedOverrides?: Record<string, unknown> };
+
+		if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
+			const language = payload.translations.language.split('-')[0] || 'en';
+			payload.gvl = await (handlerOptions.fetchGvl ?? defaultFetchGvl)({
 				fetch: fetchImpl,
-				sourceURL: resolveManifestSourceURL(request, handlerOptions.options),
+				language,
+				reference: manifest.iab.gvl,
 			});
-			const inputs = extractConsentRequestInputs(request.headers);
-			const payload = resolveInitFromManifest(manifest, inputs, {
-				baseTranslations,
-			});
+		}
 
-			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
-				const language = payload.translations.language.split('-')[0] || 'en';
-				payload.gvl = await (handlerOptions.fetchGvl ?? defaultFetchGvl)({
-					fetch: fetchImpl,
-					language,
-					reference: manifest.iab.gvl,
-				});
-			}
+		// The resolver's inputs are the only place GPC survives on the SSR
+		// path — the browser never sends `Sec-GPC` to this route when the
+		// page was server-rendered. Echo them back so the kernel folds the
+		// same overrides it would have derived client-side.
+		payload.resolvedOverrides = consentInputsToOverrides(inputs);
 
-			return Response.json(payload, {
-				headers: { 'cache-control': INIT_CACHE_CONTROL },
-			});
-		},
-
-		/** `GET /api/c15t/manifest` — the manifest, with its own cache headers. */
-		async manifest(request: Request): Promise<Response> {
-			const requestURL = new URL(request.url);
-			const result = await fetchCachedManifest({
-				fetch: fetchImpl,
-				sourceURL: withLanguage(
-					resolveManifestSourceURL(request, handlerOptions.options),
-					requestURL.searchParams.get('language')
-				),
-			});
-
-			const headers = new Headers({
-				'cache-control':
-					result.headers['cache-control'] ?? DEFAULT_MANIFEST_CACHE_CONTROL,
-				'content-type': 'application/json',
-			});
-			if (result.headers.etag) {
-				headers.set('etag', result.headers.etag);
-			}
-
-			return new Response(JSON.stringify(result.manifest), {
-				headers,
-				status: 200,
-			});
-		},
+		return Response.json(payload, {
+			headers: { 'cache-control': INIT_CACHE_CONTROL },
+		});
 	};
+
+	/** `GET /api/c15t/manifest` — the manifest, with its own cache headers. */
+	const manifest = async function manifest(
+		request: Request
+	): Promise<Response> {
+		const manifestURL = resolveManifestSourceURL(
+			request,
+			handlerOptions.options
+		);
+		const query = new URL(request.url).searchParams.toString();
+		const result = await fetchCachedManifest({
+			config: { manifestURL },
+			fetch: handlerOptions.fetch,
+			query,
+		});
+
+		const headers = new Headers({ 'content-type': 'application/json' });
+		for (const name of MANIFEST_PASSTHROUGH_HEADERS) {
+			const value = result.headers[name];
+			if (value) {
+				headers.set(name, value);
+			}
+		}
+
+		const { etag } = result.headers;
+		if (etag && request.headers.get('if-none-match') === etag) {
+			return new Response(null, { headers, status: 304 });
+		}
+
+		return new Response(JSON.stringify(result.manifest), {
+			headers,
+			status: 200,
+		});
+	};
+
+	const GET = function GET(request: Request): Promise<Response> {
+		return new URL(request.url).pathname.endsWith(MANIFEST_ROUTE_SUFFIX)
+			? manifest(request)
+			: init(request);
+	};
+
+	return { GET, init, manifest };
 };

@@ -53,7 +53,7 @@ export type {
 	ConsentDialogSurfaceLoader,
 } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
-export type { ConsentRuntime, ConsentRuntimeOptions } from './runtime';
+export type { ConsentRuntime, ConsentRuntimeOptions } from '@c15t/core/runtime';
 
 // Re-exported so an app can stay inside `@c15t/astro` for the common types.
 export type {

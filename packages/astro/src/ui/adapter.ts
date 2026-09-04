@@ -9,7 +9,8 @@
  * or the client boot.
  */
 
-import type { ConsentRuntime } from '../runtime';
+import type { ConsentRuntime } from '@c15t/core/runtime';
+
 import type { C15tResolvedOptions, C15tUIAdapterName } from '../types';
 
 /** Which dialog a caller asked for. */

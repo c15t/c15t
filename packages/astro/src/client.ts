@@ -23,16 +23,19 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelConfig,
-	KernelTranslations,
 	KernelUser,
 	Unsubscribe,
 } from '@c15t/core';
+import { createConsentRuntime } from '@c15t/core/runtime';
+import type {
+	ConsentRuntime,
+	ConsentRuntimeOptions,
+	RuntimeIABOptions,
+} from '@c15t/core/runtime';
 
-import { lazyCreateIAB } from './browser/iab';
+import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
 import { resolveTransportFactory } from './mode';
-import { createConsentRuntime } from './runtime';
-import type { ConsentRuntime, RuntimeIABOptions } from './runtime';
 import type { C15tClientOptionsExtension, C15tResolvedOptions } from './types';
 import { loadDialogAdapter } from './ui/adapter';
 import type { ConsentDialogHandle, ConsentDialogKind } from './ui/adapter';
@@ -107,17 +110,6 @@ const readInlinedConfig = function readInlinedConfig(): KernelConfig {
 	return getWindow()?.[CONFIG_KEY] ?? {};
 };
 
-const resolveTranslations = function resolveTranslations(
-	config: KernelConfig
-): KernelTranslations {
-	return (
-		config.initialTranslations ?? {
-			language: 'en',
-			translations: {} as KernelTranslations['translations'],
-		}
-	);
-};
-
 const ensureDialogHost = function ensureDialogHost(): HTMLElement {
 	const existing = document.getElementById(DIALOG_HOST_ID);
 	if (existing) {
@@ -184,9 +176,12 @@ const createClient = function createClient(
 	const config = readInlinedConfig();
 	const scripts = [...(options.scripts ?? []), ...(extension.scripts ?? [])];
 
+	// The server already resolved translations into `prefetch`, which the
+	// runtime prefers over anything it would derive from `i18n`.
 	const runtime = createConsentRuntime({
 		consentCategories: options.consentCategories,
 		createIAB: lazyCreateIAB,
+		i18n: options.i18n as ConsentRuntimeOptions['i18n'],
 		// `RuntimeIABOptions` is the runtime's open-ended shape; the
 		// integration option is the closed, documented subset of it.
 		iab:
@@ -204,7 +199,6 @@ const createClient = function createClient(
 		prefetch: config,
 		scripts,
 		storageConfig: options.storageConfig,
-		translations: resolveTranslations(config),
 	});
 
 	let dialog: ConsentDialogHandle | null = null;
@@ -245,6 +239,11 @@ const createClient = function createClient(
 			if (!dialog) {
 				opening = (async () => {
 					const adapter = await loadDialogAdapter(options.ui);
+					if (kind === 'iab') {
+						// The IAB surface renders against `runtime.iab`, which is
+						// a lazy proxy until `@c15t/iab` lands.
+						await whenIABReady();
+					}
 					dialog = await adapter.mount({
 						kind,
 						options,
@@ -433,7 +432,7 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 };
 
 export { activateGatedScripts } from './browser/inline-scripts';
-export type { ConsentRuntime } from './runtime';
+export type { ConsentRuntime } from '@c15t/core/runtime';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
 export type {
