@@ -11,6 +11,10 @@
  * imported here: a `.svelte` file can only be compiled by the consuming
  * app's build, and keeping the specifier in the `.astro` component is what
  * lets that build see it.
+ *
+ * The provider inside the island renders against the page runtime through
+ * its `runtime` prop, so there is one kernel per page no matter how many
+ * islands, scripts or frameworks read it.
  */
 
 import type {
@@ -31,9 +35,8 @@ export const svelteDialogAdapter: ConsentDialogAdapter = {
 
 		const component = mount(surface.default as never, {
 			props: {
+				...buildProviderProps(context.runtime, context.options),
 				kind: context.kind,
-				providerProps: buildProviderProps(context.runtime, context.options),
-				runtime: context.runtime,
 			},
 			target: context.target,
 		});

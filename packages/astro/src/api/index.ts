@@ -1,5 +1,9 @@
 /**
  * `@c15t/astro/api` — route handlers for the injected consent endpoints.
+ *
+ * The manifest cache itself lives in `@c15t/core/server`, shared with the
+ * Next.js, Nuxt and SvelteKit layers so no two hosts can disagree about
+ * cache lifetimes or revalidation.
  */
 
 export {
@@ -9,8 +13,16 @@ export {
 export type { ConsentRouteHandlerOptions } from './handlers';
 export {
 	clearManifestCache,
+	createManifestRequestURL,
 	fetchCachedManifest,
 	getManifestSMaxAge,
+	getManifestStaleWhileRevalidate,
 	MANIFEST_DEDUPE_TTL_SECONDS,
-} from './manifest-cache';
-export type { CachedManifestResponse, ManifestFetch } from './manifest-cache';
+	MANIFEST_PASSTHROUGH_HEADERS,
+} from '@c15t/core/server';
+export type {
+	CachedManifestResponse,
+	FetchCachedManifestOptions,
+	ManifestFetch,
+	ManifestSourceConfig,
+} from '@c15t/core/server';

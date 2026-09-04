@@ -23,3 +23,9 @@ framework — reads that one runtime.
   `astro:page-load` / `astro:after-swap`.
 - `<script data-c15t-category="..." is:inline type="text/plain">` tags are
   gated alongside the scripts declared in configuration.
+
+The runtime is `createConsentRuntime` from `@c15t/core/runtime` and the
+injected routes use the shared manifest cache in `@c15t/core/server`, so the
+Astro, SvelteKit, Next.js and Nuxt layers cannot drift on lifecycle or cache
+semantics. The dialog island renders `<ConsentManagerProvider runtime={...}>`
+against the page runtime rather than building a kernel of its own.

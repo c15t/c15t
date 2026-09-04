@@ -7,7 +7,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	clearManifestCache,
 	createConsentRouteHandlers,
-	fetchCachedManifest,
 	resolveManifestSourceURL,
 } from '../api';
 import { resolveOptions } from '../integration';
@@ -31,6 +30,12 @@ const makeRequest = function makeRequest(
 	return new Request(url, { headers: new Headers(headers) });
 };
 
+const makeManifestRequest = function makeManifestRequest(
+	headers: Record<string, string> = {}
+): Request {
+	return makeRequest('https://site.example.com/api/c15t/manifest', headers);
+};
+
 const jsonResponse = function jsonResponse(
 	body: unknown,
 	headers: Record<string, string> = {}
@@ -51,6 +56,7 @@ const options = function options(
 
 afterEach(() => {
 	clearManifestCache();
+	vi.useRealTimers();
 });
 
 describe('resolveManifestSourceURL', () => {
@@ -93,25 +99,24 @@ describe('resolveManifestSourceURL', () => {
 	});
 });
 
-describe('manifest cache', () => {
-	it('serves a second request from memory', async () => {
+describe('manifest caching through the routes', () => {
+	it('fetches the manifest once and serves the second request from memory', async () => {
 		const fetchImpl = vi.fn(() =>
 			jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
 		);
-		const first = await fetchCachedManifest({
+		const handlers = createConsentRouteHandlers({
 			fetch: fetchImpl,
-			sourceURL: 'https://consent.example.com/manifest',
+			options: options(),
 		});
-		const second = await fetchCachedManifest({
-			fetch: fetchImpl,
-			sourceURL: 'https://consent.example.com/manifest',
-		});
+
+		await handlers.init(makeRequest());
+		await handlers.init(makeRequest());
+
 		expect(fetchImpl).toHaveBeenCalledOnce();
-		expect(second.manifest).toEqual(first.manifest);
-		expect(first.sMaxAge).toBe(300);
 	});
 
-	it('revalidates with the stored ETag and reuses the body on 304', async () => {
+	it('revalidates with the stored ETag once the entry goes stale', async () => {
+		vi.useFakeTimers({ shouldAdvanceTime: true });
 		const fetchImpl = vi
 			.fn()
 			.mockResolvedValueOnce(
@@ -126,53 +131,34 @@ describe('manifest cache', () => {
 					status: 304,
 				})
 			);
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
 
-		await fetchCachedManifest({
-			fetch: fetchImpl,
-			now: 0,
-			sourceURL: 'https://consent.example.com/manifest',
-		});
-		const refreshed = await fetchCachedManifest({
-			fetch: fetchImpl,
-			now: 10_000,
-			sourceURL: 'https://consent.example.com/manifest',
-		});
+		await handlers.manifest(makeManifestRequest());
+		// Push past the backend's 1s s-maxage instead of sleeping for it.
+		vi.setSystemTime(Date.now() + 1100);
+		const response = await handlers.manifest(makeManifestRequest());
 
 		expect(fetchImpl).toHaveBeenCalledTimes(2);
 		const [, init] = fetchImpl.mock.calls[1] as [string, RequestInit];
 		expect((init.headers as Record<string, string>)['if-none-match']).toBe(
 			'W/"v1"'
 		);
-		expect(refreshed.manifest).toEqual(MANIFEST);
+		// The 304 reuses the cached body rather than serving an empty one.
+		expect(await response.json()).toEqual(MANIFEST);
 	});
 
-	it('does not cache a no-store manifest', async () => {
-		const fetchImpl = vi.fn(() =>
-			jsonResponse(MANIFEST, { 'cache-control': 'no-store' })
-		);
-		await fetchCachedManifest({
-			fetch: fetchImpl,
-			now: 0,
-			sourceURL: 'https://consent.example.com/manifest',
-		});
-		await fetchCachedManifest({
-			fetch: fetchImpl,
-			now: 1,
-			sourceURL: 'https://consent.example.com/manifest',
-		});
-		expect(fetchImpl).toHaveBeenCalledTimes(2);
-	});
-
-	it('reports a failing backend', async () => {
+	it('surfaces a failing backend', async () => {
 		const fetchImpl = vi.fn(
 			() => new Response('nope', { status: 502, statusText: 'Bad Gateway' })
 		);
-		await expect(
-			fetchCachedManifest({
-				fetch: fetchImpl,
-				sourceURL: 'https://consent.example.com/manifest',
-			})
-		).rejects.toThrowError(/502 Bad Gateway/u);
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
+		await expect(handlers.init(makeRequest())).rejects.toThrowError(/502/u);
 	});
 });
 
@@ -237,5 +223,82 @@ describe('route handlers', () => {
 
 		const [url] = fetchImpl.mock.calls[0] as [string];
 		expect(url).toContain('language=fr');
+	});
+
+	it('answers If-None-Match with 304 and no body', async () => {
+		const fetchImpl = vi.fn(() =>
+			jsonResponse(MANIFEST, {
+				'cache-control': 'public, s-maxage=600',
+				etag: 'W/"abc"',
+			})
+		);
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
+
+		await handlers.manifest(makeManifestRequest());
+		const response = await handlers.manifest(
+			makeManifestRequest({ 'if-none-match': 'W/"abc"' })
+		);
+
+		expect(response.status).toBe(304);
+		expect(response.body).toBeNull();
+		// The validators still have to come back on a 304.
+		expect(response.headers.get('etag')).toBe('W/"abc"');
+		expect(response.headers.get('cache-control')).toBe('public, s-maxage=600');
+	});
+
+	it('serves the body when the ETag does not match', async () => {
+		const fetchImpl = vi.fn(() => jsonResponse(MANIFEST, { etag: 'W/"abc"' }));
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
+		const response = await handlers.manifest(
+			makeManifestRequest({ 'if-none-match': 'W/"stale"' })
+		);
+
+		expect(response.status).toBe(200);
+		expect(await response.json()).toEqual(MANIFEST);
+	});
+
+	it('echoes the resolved overrides so GPC survives the SSR path', async () => {
+		const fetchImpl = vi.fn(() => jsonResponse(MANIFEST));
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
+		const payload = (await (
+			await handlers.init(
+				makeRequest('https://site.example.com/api/c15t/init', {
+					'accept-language': 'de',
+					'sec-gpc': '1',
+					'x-c15t-country': 'DE',
+					'x-c15t-region': 'BY',
+				})
+			)
+		).json()) as { resolvedOverrides: Record<string, unknown> };
+
+		expect(payload.resolvedOverrides).toEqual({
+			country: 'DE',
+			gpc: true,
+			language: 'de',
+			region: 'BY',
+		});
+	});
+
+	it('dispatches GET between the two routes by path', async () => {
+		const fetchImpl = vi.fn(() => jsonResponse(MANIFEST));
+		const handlers = createConsentRouteHandlers({
+			fetch: fetchImpl,
+			options: options(),
+		});
+
+		const manifestResponse = await handlers.GET(makeManifestRequest());
+		expect(await manifestResponse.json()).toEqual(MANIFEST);
+
+		const initResponse = await handlers.GET(makeRequest());
+		expect(initResponse.headers.get('cache-control')).toBe('private, no-store');
 	});
 });

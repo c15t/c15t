@@ -50,10 +50,10 @@ export default getViteConfig(
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {
-					branches: 60,
-					functions: 70,
-					lines: 75,
-					statements: 75,
+					branches: 65,
+					functions: 78,
+					lines: 80,
+					statements: 80,
 				},
 			},
 			exclude: [

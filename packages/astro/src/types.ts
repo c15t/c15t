@@ -153,12 +153,29 @@ export interface C15tAstroOptions {
 	requireSvelte?: boolean;
 }
 
-/** IAB TCF options accepted by the integration. */
+/**
+ * IAB TCF options accepted by the integration.
+ *
+ * The serializable subset of the runtime's `RuntimeIABOptions`: a live GVL
+ * or a custom fetcher cannot survive the trip into the injected boot
+ * script, so those belong in
+ * {@link C15tAstroOptions.clientEntrypoint} instead.
+ */
 export interface C15tIABOptions {
+	/** Set `false` to keep IAB configured but inert. */
 	enabled?: boolean;
+	/** IAB-registered CMP ID. A hosted backend can supply it through `/init`. */
 	cmpId?: number;
+	/** CMP version reported through `__tcfapi`. */
 	cmpVersion?: number;
+	/** Restricts the vendor list to these vendor IDs. */
 	vendors?: number[];
+	/** Publisher country code used in the TC string. */
+	publisherCountryCode?: string;
+	/** Whether the CMP is service-specific rather than global. */
+	isServiceSpecific?: boolean;
+	/** Override the GVL endpoint. */
+	gvlURL?: string;
 }
 
 /** Locale configuration accepted by the integration. */
