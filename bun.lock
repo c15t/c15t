@@ -1000,6 +1000,7 @@
         "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",
         "clsx": "2.1.1",
       },
@@ -1007,6 +1008,7 @@
         "@c15t/conformance": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
+        "@sveltejs/kit": "^2.16.0",
         "@sveltejs/package": "^2.3.7",
         "@sveltejs/vite-plugin-svelte": "^5.0.3",
         "@testing-library/jest-dom": "^6.0.0",
@@ -1018,9 +1020,11 @@
         "typescript": "6.0.3",
       },
       "peerDependencies": {
+        "@sveltejs/kit": "^2.0.0",
         "svelte": "^5.0.0",
       },
       "optionalPeers": [
+        "@sveltejs/kit",
         "svelte",
       ],
     },
