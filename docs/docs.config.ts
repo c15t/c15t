@@ -5,7 +5,7 @@ const generateDocsConfig = () =>
 		groups: [
 			{
 				description:
-					'Install and configure c15t in JavaScript, React, and Next.js applications.',
+					'Install and configure c15t in JavaScript, React, Next.js, and TanStack Start applications.',
 
 				slug: 'frameworks',
 				title: 'Frameworks',
@@ -67,6 +67,12 @@ const generateDocsConfig = () =>
 						template: 'componentFramework',
 
 						title: 'Next.js',
+					},
+					{
+						base: 'tanstack-start',
+						pages: ['quickstart', 'server-side'],
+
+						title: 'TanStack Start',
 					},
 				],
 
@@ -393,7 +399,7 @@ const generateDocsConfig = () =>
 			],
 			bullets: [
 				'Add GDPR-ready cookie banners, consent dialogs, and preference flows.',
-				'Use framework-specific guides for JavaScript, React, and Next.js.',
+				'Use framework-specific guides for JavaScript, React, Next.js, and TanStack Start.',
 				'Load scripts, iframes, and analytics only after the required consent.',
 				'Self-host the consent backend when managed hosting is not the right fit.',
 			],

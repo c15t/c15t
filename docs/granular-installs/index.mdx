@@ -1,6 +1,6 @@
 ---
 title: Granular Installs
-description: The single c15t package is the default install and what the docs teach. The scoped packages behind it — @c15t/core, @c15t/react, @c15t/nextjs, @c15t/vue — stay published and permanently supported when you want a granular install.
+description: The single c15t package is the default install and what the docs teach. The scoped packages behind it — @c15t/core, @c15t/react, @c15t/nextjs, @c15t/tanstack-start, @c15t/vue — stay published and permanently supported when you want a granular install.
 group: reference
 ---
 
@@ -19,6 +19,7 @@ The `c15t` package is an umbrella: each entry point re-exports one of the scoped
 | `c15t` (root)        | `@c15t/core` — the headless consent engine                          |
 | `c15t/react`         | `@c15t/react` — React components, hooks, and headless primitives    |
 | `c15t/next`          | `@c15t/nextjs` — Next.js integration (App Router and Pages Router)  |
+| `c15t/tanstack-start` | `@c15t/tanstack-start` — TanStack Start integration (server routes, server functions, middleware) |
 | `c15t/vue`           | `@c15t/vue` — Vue integration and the Nuxt module                   |
 
 Every subpath carries over, including stylesheets: `c15t/react/styles.css` is `@c15t/react/styles.css`, `c15t/next/headless` is `@c15t/nextjs/headless`, and so on.
@@ -39,6 +40,8 @@ Install the scoped package for your layer directly:
 <PackageCommandTabs mode="install" command="@c15t/react" />
 
 <PackageCommandTabs mode="install" command="@c15t/nextjs" />
+
+<PackageCommandTabs mode="install" command="@c15t/tanstack-start" />
 
 With a scoped install, use the scoped import paths (`@c15t/react`, `@c15t/react/styles.css`, …) wherever the docs show the `c15t/*` equivalents from the [package mapping](#package-mapping).
 
