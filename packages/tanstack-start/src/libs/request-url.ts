@@ -1,0 +1,60 @@
+import { resolveBackendURL } from '@c15t/schema/types';
+
+/**
+ * Headers `resolveBackendURL` needs to turn a relative backend URL into an
+ * absolute one. Reads the proxy headers Node, Cloudflare Workers, Vercel,
+ * and Netlify populate, and falls back to the request URL's host, which is
+ * always present on a fetch `Request`.
+ */
+export const getRequestResolutionHeaders = function getRequestResolutionHeaders(
+	request: Request
+): Record<string, string> {
+	const headers: Record<string, string> = {};
+	try {
+		headers.host = new URL(request.url).host;
+	} catch {
+		// Relative request URLs (some test doubles) carry no host.
+	}
+	for (const name of [
+		'x-forwarded-proto',
+		'x-forwarded-ssl',
+		'x-forwarded-host',
+		'host',
+		'referer',
+	]) {
+		const value = request.headers.get(name);
+		if (value) {
+			headers[name] = value;
+		}
+	}
+	return headers;
+};
+
+/**
+ * Resolves a relative or absolute backend URL against the incoming request.
+ *
+ * @returns The absolute URL, or `null` when it cannot be resolved.
+ */
+export const resolveRequestURL = function resolveRequestURL(
+	url: string,
+	request: Request
+): string | null {
+	return resolveBackendURL(url, getRequestResolutionHeaders(request));
+};
+
+/** `true` when `url` targets the request's own origin under `pathPrefix`. */
+export const isSelfRoute = function isSelfRoute(
+	url: string,
+	request: Request,
+	pathPrefix: string
+): boolean {
+	try {
+		const target = new URL(url);
+		const origin = new URL(request.url);
+		return (
+			target.origin === origin.origin && target.pathname.startsWith(pathPrefix)
+		);
+	} catch {
+		return false;
+	}
+};

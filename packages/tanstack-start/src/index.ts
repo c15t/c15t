@@ -1,0 +1,40 @@
+/**
+ * `@c15t/tanstack-start` client entry.
+ *
+ * Pattern:
+ *   // src/routes/__root.tsx
+ *   import { ConsentBoundary } from '@c15t/tanstack-start';
+ *   import { consentLoaderOptions, createConsentConfigServerFn } from '@c15t/tanstack-start/server';
+ *
+ *   const getConsentConfig = createConsentConfigServerFn({ backendURL: '/api/c15t' });
+ *
+ *   export const Route = createRootRoute({
+ *     ...consentLoaderOptions,
+ *     loader: () => getConsentConfig(),
+ *     component: RootComponent,
+ *   });
+ *
+ *   function RootComponent() {
+ *     const config = Route.useLoaderData();
+ *     return (
+ *       <ConsentBoundary config={config} backendURL="/api/c15t">
+ *         <Outlet />
+ *       </ConsentBoundary>
+ *     );
+ *   }
+ *
+ *   // any component
+ *   import { useConsent } from '@c15t/tanstack-start';
+ *   const allowed = useConsent('marketing');
+ *
+ * Server helpers return serializable data and avoid module-level runtime
+ * caches, so concurrent requests never share a kernel.
+ */
+
+export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
+// oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
+export * from '@c15t/react';
+export type { ConsentBoundaryProps } from './boundary';
+export { ConsentBoundary, DEFAULT_INIT_ROUTE } from './boundary';
+export { consentPrefetchHead } from './libs/prefetch-head';
+export type { ConsentPrefetchHead, ConsentPrefetchHeadOptions } from './types';
