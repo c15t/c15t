@@ -250,23 +250,27 @@ const derivePromptRequirement = function derivePromptRequirement(
  */
 const deriveNextDeadline = function deriveNextDeadline(
 	input: ConsentEvaluationInput,
-	categories: Record<OptionalConsentCategory, CategoryEvaluation>
+	categories: Record<OptionalConsentCategory, CategoryEvaluation>,
+	promptRequirement: PromptRequirement
 ): number | null {
 	const { policy } = input;
 	const candidates: number[] = [];
-	const grantExpiryMatters =
-		policy.model !== 'opt-out' || policy.prompt === 'choice';
-	if (grantExpiryMatters) {
-		for (const category of policy.scope) {
-			const evaluation = categories[category];
-			const decision = input.choice?.categories[category];
-			if (
-				decision?.value === true &&
-				evaluation.authority === 'valid' &&
-				evaluation.expiresAt !== null
-			) {
-				candidates.push(evaluation.expiresAt);
-			}
+	// Expiry can only change a choice prompt from satisfied to expired.
+	// Missing coverage or a mismatch keeps precedence over later expiry.
+	const choicePromptCanChange =
+		policy.prompt === 'choice' && promptRequirement.kind === 'none';
+	for (const category of policy.scope) {
+		const evaluation = categories[category];
+		const decision = input.choice?.categories[category];
+		const permissionCanChange =
+			policy.model !== 'opt-out' && evaluation.restrictions.length === 0;
+		if (
+			decision?.value === true &&
+			evaluation.authority === 'valid' &&
+			evaluation.expiresAt !== null &&
+			(permissionCanChange || choicePromptCanChange)
+		) {
+			candidates.push(evaluation.expiresAt);
 		}
 	}
 	const dismissal = input.noticeDismissal;
@@ -303,11 +307,12 @@ export const evaluateConsentRecord = function evaluateConsentRecord(
 		}
 	}
 
+	const promptRequirement = derivePromptRequirement(input, categories);
 	return {
 		categories,
-		nextDeadline: deriveNextDeadline(input, categories),
+		nextDeadline: deriveNextDeadline(input, categories, promptRequirement),
 		permissions,
-		promptRequirement: derivePromptRequirement(input, categories),
+		promptRequirement,
 		restrictions,
 	};
 };

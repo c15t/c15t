@@ -49,6 +49,12 @@ const assertPromptForModel = function assertPromptForModel(
 	model: PolicyModel,
 	prompt: PolicyPrompt
 ): void {
+	if (model !== 'opt-in' && model !== 'opt-out' && model !== 'iab') {
+		throw new TypeError(`Unknown policy model "${model}"`);
+	}
+	if (prompt !== 'choice' && prompt !== 'notice' && prompt !== 'none') {
+		throw new TypeError(`Unknown policy prompt "${prompt}"`);
+	}
 	if (model !== 'opt-out' && prompt !== 'choice') {
 		throw new TypeError(
 			`Policy model "${model}" requires prompt "choice", received "${prompt}"`
@@ -56,19 +62,20 @@ const assertPromptForModel = function assertPromptForModel(
 	}
 };
 
-const assertValidity = function assertValidity(
+const normalizeValidity = function normalizeValidity(
 	validity: RecordValidity,
 	name: string
-): void {
-	if (!isNonEmptyString(validity.fingerprint)) {
+): RecordValidity {
+	const { fingerprint, maxAgeMs } = validity;
+	if (!isNonEmptyString(fingerprint)) {
 		throw new TypeError(`${name}.fingerprint must be a non-empty string`);
 	}
-	const { maxAgeMs } = validity;
 	if (maxAgeMs !== null && !(Number.isFinite(maxAgeMs) && maxAgeMs >= 0)) {
 		throw new TypeError(
 			`${name}.maxAgeMs must be null or a finite non-negative number`
 		);
 	}
+	return { fingerprint, maxAgeMs };
 };
 
 const assertScope = function assertScope(scope: readonly string[]): void {
@@ -112,22 +119,35 @@ const assertGpcMapping = function assertGpcMapping(
 export const createEvaluationPolicy = function createEvaluationPolicy(
 	input: EvaluationPolicyInput
 ): EvaluationPolicy {
-	assertPromptForModel(input.model, input.prompt);
-	assertValidity(input.choice, 'choice');
-	assertValidity(input.notice, 'notice');
+	const { model, prompt, scopeMode } = input;
+	const legacyMaterialFingerprint = input.legacyMaterialFingerprint ?? null;
+	assertPromptForModel(model, prompt);
+	if (scopeMode !== 'strict' && scopeMode !== 'permissive') {
+		throw new TypeError(`Unknown policy scope mode "${scopeMode}"`);
+	}
+	if (
+		legacyMaterialFingerprint !== null &&
+		!isNonEmptyString(legacyMaterialFingerprint)
+	) {
+		throw new TypeError(
+			'legacyMaterialFingerprint must be null or a non-empty string'
+		);
+	}
+	const choice = normalizeValidity(input.choice, 'choice');
+	const notice = normalizeValidity(input.notice, 'notice');
 	assertScope(input.scope);
 	const scope = canonicalizeCategories(input.scope);
 	const gpcDenyCategories = input.gpcDenyCategories ?? [];
 	assertGpcMapping(gpcDenyCategories, scope);
 
 	return {
-		choice: { ...input.choice },
+		choice,
 		gpcDenyCategories: canonicalizeCategories(gpcDenyCategories),
-		legacyMaterialFingerprint: input.legacyMaterialFingerprint ?? null,
-		model: input.model,
-		notice: { ...input.notice },
-		prompt: input.prompt,
+		legacyMaterialFingerprint,
+		model,
+		notice,
+		prompt,
 		scope,
-		scopeMode: input.scopeMode,
+		scopeMode,
 	};
 };

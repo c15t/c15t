@@ -230,7 +230,7 @@ describe('evaluateConsentRecord: per-category grant expiry', () => {
 		expect(permitted(expiresAt + 1)).toBe(false);
 	});
 
-	it('does not add a grant deadline while a required category is still missing', () => {
+	it('keeps the permission expiry deadline while required coverage is missing', () => {
 		const partial: ExplicitChoice = {
 			categories: { marketing: { basis, confirmedAt: NOW, value: true } },
 			version: 3,
@@ -596,5 +596,106 @@ describe('evaluateConsentRecord: determinism', () => {
 			policy,
 		};
 		expect(evaluateConsentRecord(input)).toEqual(evaluateConsentRecord(input));
+	});
+});
+
+describe('evaluateConsentRecord: meaningful deadlines', () => {
+	const policy = makePolicy({
+		choice: { fingerprint: 'current', maxAgeMs: 30 },
+		gpcDenyCategories: ['marketing'],
+		model: 'opt-out',
+		scope: ['marketing', 'measurement'],
+	});
+
+	it.each(['missing', 'policy-changed', 'expired'] as const)(
+		'ignores later opt-out expiry when the prompt remains %s',
+		(reason) => {
+			const choice = makeChoice({ marketing: true }, NOW, currentBasis(policy));
+			if (reason !== 'missing') {
+				choice.categories.measurement = {
+					basis: {
+						fingerprint: reason === 'policy-changed' ? 'old' : 'current',
+						kind: 'choice-v1',
+					},
+					confirmedAt: NOW - 30,
+					value: true,
+				};
+			}
+			const at = (now: number) =>
+				evaluateConsentRecord({
+					choice,
+					noticeDismissal: null,
+					now,
+					policy,
+				});
+			expect(at(NOW).promptRequirement).toEqual({ kind: 'choice', reason });
+			expect(at(NOW).nextDeadline).toBeNull();
+			expect(at(NOW + 30).permissions).toEqual(at(NOW).permissions);
+			expect(at(NOW + 30).promptRequirement).toEqual(at(NOW).promptRequirement);
+		}
+	);
+
+	it('schedules opt-out expiry when complete coverage will need a choice', () => {
+		const choice = makeChoice(
+			{ marketing: true, measurement: false },
+			NOW,
+			currentBasis(policy)
+		);
+		const at = (now: number) =>
+			evaluateConsentRecord({
+				choice,
+				gpc: true,
+				noticeDismissal: null,
+				now,
+				policy,
+			});
+		expect(at(NOW).promptRequirement).toEqual({ kind: 'none' });
+		expect(at(NOW).nextDeadline).toBe(NOW + 30);
+		expect(at(NOW + 30).promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'expired',
+		});
+	});
+
+	it.each(['opt-in', 'iab'] as const)(
+		'ignores masked %s expiry while coverage stays missing',
+		(model) => {
+			const choice = makeChoice({ marketing: true }, NOW, currentBasis(policy));
+			const evaluation = evaluateConsentRecord({
+				choice,
+				gpc: true,
+				noticeDismissal: null,
+				now: NOW,
+				policy: { ...policy, model },
+			});
+			expect(evaluation.permissions.marketing).toBe(false);
+			expect(evaluation.nextDeadline).toBeNull();
+		}
+	);
+
+	it('skips an earlier masked grant and schedules the first permission change', () => {
+		const choice = makeChoice({ marketing: true }, NOW, currentBasis(policy));
+		choice.categories.measurement = {
+			basis: currentBasis(policy),
+			confirmedAt: NOW + 10,
+			value: true,
+		};
+		const scoped = makePolicy({
+			choice: policy.choice,
+			gpcDenyCategories: ['marketing'],
+			scope: ['marketing', 'measurement', 'functionality'],
+		});
+		const evaluation = evaluateConsentRecord({
+			choice,
+			gpc: true,
+			noticeDismissal: null,
+			now: NOW + 10,
+			policy: scoped,
+		});
+		expect(evaluation.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+		expect(evaluation.nextDeadline).toBe(NOW + 40);
 	});
 });

@@ -62,11 +62,11 @@ export const isPlainRecord = function isPlainRecord(
 	return prototype === Object.prototype || prototype === null;
 };
 
-/** Own enumerable string keys only. */
+/** All own string keys, including non-enumerable category fields. */
 export const ownKeys = function ownKeys(
 	value: Record<string, unknown>
 ): string[] {
-	return Object.keys(value);
+	return Object.getOwnPropertyNames(value);
 };
 
 /** Own property value, or `undefined` when the key is inherited or absent. */
@@ -105,65 +105,75 @@ export const isNonEmptyString = function isNonEmptyString(
 	return typeof value === 'string' && value.length > 0;
 };
 
-const checkBasis = function checkBasis(
+const normalizeBasis = function normalizeBasis(
 	value: unknown,
 	path: string,
 	issues: RecordIssue[]
-): value is ChoiceBasis {
+): ChoiceBasis | null {
 	if (!isPlainRecord(value)) {
 		issues.push({ code: 'invalid-basis', path });
-		return false;
+		return null;
 	}
 	const kind = ownValue(value, 'kind');
 	if (kind === 'choice-v1') {
-		if (!isNonEmptyString(ownValue(value, 'fingerprint'))) {
+		const fingerprint = ownValue(value, 'fingerprint');
+		if (!isNonEmptyString(fingerprint)) {
 			issues.push({ code: 'invalid-fingerprint', path: `${path}.fingerprint` });
-			return false;
+			return null;
 		}
-		return true;
+		return { fingerprint, kind };
 	}
 	if (kind === 'legacy-v2') {
 		const materialFingerprint = ownValue(value, 'materialFingerprint');
-		if (
-			materialFingerprint !== undefined &&
-			!isNonEmptyString(materialFingerprint)
-		) {
+		if (materialFingerprint === undefined) {
+			return { kind };
+		}
+		if (!isNonEmptyString(materialFingerprint)) {
 			issues.push({
 				code: 'invalid-fingerprint',
 				path: `${path}.materialFingerprint`,
 			});
-			return false;
+			return null;
 		}
-		return true;
+		return { kind, materialFingerprint };
 	}
 	issues.push({ code: 'invalid-basis', path: `${path}.kind` });
-	return false;
+	return null;
 };
 
-const checkDecision = function checkDecision(
-	value: unknown,
+const normalizeDecision = function normalizeDecision(
+	input: unknown,
 	path: string,
 	now: number,
 	issues: RecordIssue[]
-): value is CategoryDecision {
-	if (!isPlainRecord(value)) {
+): CategoryDecision | null {
+	if (!isPlainRecord(input)) {
 		issues.push({ code: 'not-an-object', path });
-		return false;
+		return null;
 	}
-	let valid = true;
-	if (typeof ownValue(value, 'value') !== 'boolean') {
+	const value = ownValue(input, 'value');
+	if (typeof value !== 'boolean') {
 		issues.push({ code: 'invalid-boolean', path: `${path}.value` });
-		valid = false;
 	}
-	const timestampIssue = checkTimestamp(ownValue(value, 'confirmedAt'), now);
+	const confirmedAt = ownValue(input, 'confirmedAt');
+	const timestampIssue = checkTimestamp(confirmedAt, now);
 	if (timestampIssue) {
 		issues.push({ code: timestampIssue, path: `${path}.confirmedAt` });
-		valid = false;
 	}
-	if (!checkBasis(ownValue(value, 'basis'), `${path}.basis`, issues)) {
-		valid = false;
+	const basis = normalizeBasis(
+		ownValue(input, 'basis'),
+		`${path}.basis`,
+		issues
+	);
+	if (
+		typeof value !== 'boolean' ||
+		typeof confirmedAt !== 'number' ||
+		timestampIssue ||
+		!basis
+	) {
+		return null;
 	}
-	return valid;
+	return { basis, confirmedAt, value };
 };
 
 /**
@@ -206,13 +216,14 @@ export const validateExplicitChoice = function validateExplicitChoice(
 			issues.push({ code: 'unknown-key', path: `categories.${key}` });
 			continue;
 		}
-		const decision = inputCategories[key];
-		if (checkDecision(decision, `categories.${key}`, now, issues)) {
-			categories[key] = {
-				basis: { ...decision.basis },
-				confirmedAt: decision.confirmedAt,
-				value: decision.value,
-			};
+		const decision = normalizeDecision(
+			inputCategories[key],
+			`categories.${key}`,
+			now,
+			issues
+		);
+		if (decision) {
+			categories[key] = decision;
 		}
 	}
 

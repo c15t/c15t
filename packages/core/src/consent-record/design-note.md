@@ -1,32 +1,32 @@
-# Consent record foundation (internal)
+# Internal consent records
 
-Status: internal, not exported from `@c15t/core/consent-record` or the package root. Tracks #1025. The kernel, persistence, transports and framework adapters still run the old `hasConsented` plus flat `consents` model; nothing here changes runtime behavior yet.
+These helpers track #1025 and are not exported from `@c15t/core/consent-record` or the package root. The kernel, persistence, transports and framework adapters still use `hasConsented` and flat `consents`. Runtime integration remains separate work.
 
 ## Files
 
 | File | Role |
 | --- | --- |
-| `types.ts` | `ExplicitChoice` (one latest `CategoryDecision` per optional category), `NoticeDismissal`, `PrivacyOptOut`, `EvaluationPolicy`, `ConsentEvaluation`. |
-| `validation.ts` | Structural checks. Own fields on plain-prototype objects only. Timestamps are safe non-negative integer epoch milliseconds not later than `now`; no clock-skew tolerance. |
-| `normalize.ts` | v2 `{ consents, consentInfo }` reader. Takes the raw parsed record plus its encoding. Compact cookies restore omitted `false`; JSON keeps absent keys absent. Never writes, never renews time, never stamps a new fingerprint. |
-| `record.ts` | `recordCategoryPatch`: an object patch replaces exactly its own optional keys at one captured action time and the current `choice-v1` basis. Omitted keys keep their decision. |
-| `evaluation-policy.ts` | `createEvaluationPolicy`: validates model/prompt pairing, durations, scope and the explicit GPC deny mapping. Fingerprints arrive precomputed; this module does not hash. |
-| `evaluate.ts` | `evaluateConsentRecord`: pure, explicit `now`. Returns permissions, a separate restriction map, the prompt requirement and the next deadline. |
+| `types.ts` | One latest `CategoryDecision` per optional category, plus separate notice dismissal, privacy directive, policy and evaluation types. |
+| `validation.ts` | Checks own fields on objects with a plain or null prototype. Includes non-enumerable category keys and copies validated basis fields explicitly. Timestamps must be safe non-negative integer milliseconds no later than the supplied `now`. |
+| `normalize.ts` | Reads raw v2 `{ consents, consentInfo }` with its encoding. Compact cookies restore omitted `false`; JSON keeps absent keys absent. Retains original times and legacy fingerprints. |
+| `record.ts` | Replaces each supplied own optional key at the captured action time with the current choice basis. Omitted decisions retain their time and basis. |
+| `evaluation-policy.ts` | Validates model, prompt and scope mode, fingerprints, durations, scope and GPC mappings. Copies validity fields explicitly. Fingerprints arrive precomputed. |
+| `evaluate.ts` | Derives permissions, restrictions, the prompt requirement and the next deadline from records and an explicit `now`. |
 
 ## Semantics
 
-Per optional category: start from the model default (opt-in and IAB deny in scope, opt-out allows; outside scope strict denies and permissive allows). A compatible unexpired positive decision grants in scope. Then restrictions apply and always win: explicit `false`, strict scope exclusion, an active mapped GPC signal, and standing opt-out directives. A denial never ages into a grant. Opt-out reports an expired grant as `default`, not consent.
+Opt-in and IAB default to denied within scope; opt-out defaults to allowed. Outside scope, strict mode denies and permissive mode allows. A compatible, unexpired positive decision grants within scope. Explicit false, strict scope exclusion, applicable GPC and standing opt-out directives override grants and defaults. Denials do not expire. An expired opt-out grant can still be allowed by default, with its source reported as `default`.
 
-Compatibility: a `choice-v1` decision must equal the policy's choice fingerprint. A `legacy-v2` decision is compared only to the policy's legacy material fingerprint, and only when both exist; otherwise it is grandfathered. The two hash domains are never compared to each other.
+A `choice-v1` basis must match the policy's choice fingerprint. A `legacy-v2` basis compares only with the policy's legacy material fingerprint. If either legacy fingerprint is absent, the decision is grandfathered.
 
-Expiry is `confirmedAt + choice.maxAgeMs`, effective while `now < expiresAt`. `maxAgeMs: null` is an explicit unbounded compatibility projection, not a default.
+Positive decisions expire at `confirmedAt + choice.maxAgeMs` and remain valid while `now < expiresAt`. An explicit `maxAgeMs: null` retains unbounded compatibility behavior and does not meet the eventual requirement to bound grant lifetimes.
 
-Choice prompt, in order: no decisions at all yields `missing`; any in-scope decision with an incompatible basis yields `policy-changed`; any in-scope category without a decision yields `missing`; any in-scope positive decision past expiry yields `expired`; otherwise `none`. A matching denial satisfies coverage regardless of age. An empty scope yields `none`.
+A choice prompt uses the active optional scope. Empty scope requires no prompt. Otherwise, no decisions yields `missing`; any incompatible in-scope basis yields `policy-changed`; missing required coverage yields `missing`; any expired positive decision yields `expired`. Complete matching coverage requires no prompt. Matching denials satisfy coverage regardless of age.
 
-Notice prompt depends only on the dismissal: `missing`, then fingerprint mismatch (`policy-changed`), then exact expiry (`expired`). Category saves, category expiry and GPC never acknowledge a notice.
+A notice prompt depends only on its dismissal. Missing dismissal yields `missing`, a fingerprint mismatch yields `policy-changed`, and expiry yields `expired`. Category saves, category expiry and GPC do not acknowledge a notice.
 
-`nextDeadline` is the earliest future grant expiry that can change a permission or a choice prompt, or the notice dismissal expiry under a notice prompt.
+`nextDeadline` is the earliest expiry that changes a permission or the aggregate prompt. An unmasked opt-in or IAB grant still needs an expiry deadline when choice coverage is missing. A masked grant or opt-out grant needs one only when expiry changes satisfied choice coverage to `expired`. Existing `missing`, `policy-changed` and `expired` prompts keep their reason as other grants expire. A notice deadline uses the dismissal's independent lifetime.
 
-## Not in this slice
+## Remaining integration
 
-Kernel wiring and events, storage codecs and the raw-read boundary, `'all'`/`'none'`/no-input save expansion, fingerprint producers, the `ResolvedPolicy` bridge, the resolution status union, IAB target gating, GPC directive recording, the GPC exception question, and failed-init prompt visibility.
+Kernel wiring and events, storage codecs and raw reads, all/none/no-input save expansion, fingerprint producers, the resolved-policy bridge, resolution status, IAB target gates, GPC directive recording, informed exceptions and failed-init prompt visibility remain outside these helpers.
