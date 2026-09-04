@@ -43,7 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-	deleteConsentFromStorage({ storageKey: 'custom-key' });
+	deleteConsentFromStorage(undefined, { storageKey: 'custom-key' });
 	vi.useRealTimers();
 });
 
@@ -252,6 +252,42 @@ describe('persistence: explicit choices still write', () => {
 		reloadedHandle.dispose();
 		expect(reloaded.getSnapshot().hasConsented).toBe(true);
 		expect(reloaded.getSnapshot().consents.marketing).toBe(false);
+	});
+
+	test('clear removes the custom receipt and preserves default-key data', async () => {
+		const storageConfig = { storageKey: 'custom-key' };
+		const defaultPayload = storedPayload();
+		localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(defaultPayload));
+		setCookie(STORAGE_KEY_V2, defaultPayload);
+		const defaultCookie = document.cookie;
+
+		const kernel = createConsentKernel();
+		const handle = createPersistence({ kernel, storageConfig });
+		await kernel.commands.save('none');
+		vi.runAllTimers();
+		expect(readLocalStorage('custom-key')?.consents.marketing).toBe(false);
+		expect(document.cookie).toContain('custom-key=');
+
+		handle.clear();
+		expect(localStorage.getItem('custom-key')).toBeNull();
+		expect(readLocalStorage()).toEqual(defaultPayload);
+		expect(document.cookie).toBe(defaultCookie);
+		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		handle.dispose();
+
+		const reloaded = createConsentKernel();
+		const reloadedHandle = createPersistence({
+			kernel: reloaded,
+			storageConfig,
+		});
+		expect(reloadedHandle.hydrate()).toBe(false);
+		expect(reloaded.getSnapshot().hasConsented).toBe(false);
+		vi.runAllTimers();
+		reloadedHandle.dispose();
+		expect(localStorage.getItem('custom-key')).toBeNull();
+		expect(readLocalStorage()).toEqual(defaultPayload);
+		expect(document.cookie).toBe(defaultCookie);
 	});
 
 	test('a failed remote save still persists the choice locally', async () => {

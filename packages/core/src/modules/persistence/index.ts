@@ -123,7 +123,7 @@ export const createPersistence = function createPersistence(
 			if (!hasStorageAPIs) {
 				return;
 			}
-			deleteConsentFromStorage(storageConfig);
+			deleteConsentFromStorage(undefined, storageConfig);
 		},
 		dispose() {
 			unsubscribe();
