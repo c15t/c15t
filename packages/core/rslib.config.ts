@@ -29,6 +29,7 @@ export default defineConfig({
 			index: ['./src/index.ts'],
 			'network-blocker': ['./src/modules/network-blocker/index.ts'],
 			persistence: ['./src/modules/persistence/index.ts'],
+			runtime: ['./src/runtime/index.ts'],
 			'script-loader': ['./src/modules/script-loader/index.ts'],
 			'transport-manifest': ['./src/transports/manifest.ts'],
 			transports: ['./src/transports/index.ts'],

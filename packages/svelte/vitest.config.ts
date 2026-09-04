@@ -14,6 +14,10 @@ export default mergeConfig(
 		resolve: {
 			alias: [
 				{
+					find: '@c15t/core/runtime',
+					replacement: resolve(__dirname, '../core/src/runtime/index.ts'),
+				},
+				{
 					find: '@c15t/core/modules/iframe-blocker',
 					replacement: resolve(
 						__dirname,
