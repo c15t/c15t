@@ -98,6 +98,8 @@ const CSS_IMPORTERS = [
 	'./next',
 	'./next/components/consent-dialog-link',
 	'./next/rsc',
+	'./tanstack-start',
+	'./tanstack-start/components/consent-dialog-link',
 ];
 
 const EXPECTED_ESM_FAILURES = new Set<string>([
@@ -241,6 +243,7 @@ const rowsScopedSpecifier = function rowsScopedSpecifier(
 	const prefixes: [string, string][] = [
 		['react', '@c15t/react'],
 		['next', '@c15t/nextjs'],
+		['tanstack-start', '@c15t/tanstack-start'],
 		['vue', '@c15t/vue'],
 	];
 	for (const [prefix, packageName] of prefixes) {
