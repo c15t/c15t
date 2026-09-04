@@ -1,3 +1,4 @@
+import { MANIFEST_PASSTHROUGH_HEADERS } from '@c15t/core/transports/manifest-cache';
 import {
 	defineEventHandler,
 	getRequestHeader,
@@ -42,17 +43,6 @@ interface InitRouteDependencies extends RouteDependencies {
 	defineCachedEventHandler: CachedEventHandler;
 }
 
-// `vary` is deliberately NOT forwarded. This route sends no request headers
-// upstream and returns no CORS headers downstream, so its body is a pure
-// function of the request URL. The backend's `Vary: Origin` would only
-// fragment the edge cache for no benefit.
-const PASSTHROUGH_HEADERS = [
-	'cache-control',
-	'etag',
-	'last-modified',
-	'content-language',
-] as const;
-
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
 ): ConsentConfig {
@@ -82,7 +72,7 @@ export const createManifestRoute = function createManifestRoute(
 		});
 
 		setResponseHeader(event, 'content-type', 'application/json');
-		for (const header of PASSTHROUGH_HEADERS) {
+		for (const header of MANIFEST_PASSTHROUGH_HEADERS) {
 			const value = manifest.headers[header];
 			if (value) {
 				setResponseHeader(event, header, value);

@@ -58,6 +58,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'@c15t/core/transports/manifest-cache': resolve(
+						__dirname,
+						'../core/src/transports/manifest-cache.ts'
+					),
+				},
+				{
 					'@c15t/core/transports/manifest': resolve(
 						__dirname,
 						'../core/src/transports/manifest.ts'
