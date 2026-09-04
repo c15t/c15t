@@ -8,7 +8,7 @@ group: frameworks
 
 ## readInitialConsentConfig
 
-Reads the `c15t` cookie and the geo, language, and GPC headers. It never touches the network, so use it when you want the fastest possible loader and are happy for the browser to run init through the same-origin route.
+Reads the `c15t` cookie and the geo, language, and GPC headers. It never touches the network, so use it when you want the fastest possible loader and are happy for the browser to run init through the same-origin route. It returns a `ConsentConfig`, the JSON-serializable subset of `KernelConfig`, which is what lets the result be the return value of a server function.
 
 ```ts
 import { createServerFn } from '@tanstack/react-start';

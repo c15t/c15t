@@ -6,9 +6,14 @@
  * hands the helper at runtime.
  */
 
-import { describe, expect, test } from 'vitest';
+import { createServerFn } from '@tanstack/react-start';
+import { describe, expect, expectTypeOf, test } from 'vitest';
 
-import { readInitialConsentConfig as baseReadInitialConsentConfig } from '../server';
+import {
+	createConsentConfigHandler,
+	readInitialConsentConfig as baseReadInitialConsentConfig,
+} from '../server';
+import type { ConsentConfig } from '../server';
 
 const createRequest = function createRequest(
 	headers: Record<string, string> = {}
@@ -124,5 +129,30 @@ describe('readInitialConsentConfig: language and GPC', () => {
 	test('reads sec-gpc', async () => {
 		const config = await readInitialConsentConfig({ 'sec-gpc': '1' });
 		expect(config.initialOverrides?.gpc).toBe(true);
+	});
+});
+
+describe('createConsentConfigHandler: server function contract', () => {
+	test('is accepted by createServerFn().handler() as-is', () => {
+		// Compile-time regression guard for the documented root-route pattern.
+		// TanStack Start validates that a server function's return type is
+		// serializable; `KernelConfig.transport` holds functions, so returning
+		// the full `KernelConfig` fails type-checking. The helpers must return
+		// the narrower `ConsentConfig`.
+		const getConsentConfig = createServerFn({ method: 'GET' }).handler(
+			createConsentConfigHandler({ backendURL: 'https://consent.example.com' })
+		);
+		expect(typeof getConsentConfig).toBe('function');
+		expectTypeOf(
+			createConsentConfigHandler()
+		).returns.resolves.toEqualTypeOf<ConsentConfig>();
+	});
+
+	test('never carries a transport in the resolved config', async () => {
+		const config = await createConsentConfigHandler({
+			request: createRequest({ 'x-c15t-country': 'DE' }),
+		})();
+		expect(config).not.toHaveProperty('transport');
+		expect(config.initialOverrides).toMatchObject({ country: 'DE' });
 	});
 });

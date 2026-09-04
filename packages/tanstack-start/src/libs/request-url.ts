@@ -3,15 +3,22 @@ import { resolveBackendURL } from '@c15t/schema/types';
 /**
  * Headers `resolveBackendURL` needs to turn a relative backend URL into an
  * absolute one. Reads the proxy headers Node, Cloudflare Workers, Vercel,
- * and Netlify populate, and falls back to the request URL's host, which is
- * always present on a fetch `Request`.
+ * and Netlify populate, and falls back to the request URL's host and
+ * protocol, which are always present on a fetch `Request`.
+ *
+ * The protocol fallback matters for local development: without it a
+ * relative `backendURL` resolves to `https://localhost:3000/...` against a
+ * plain-HTTP dev server and every manifest fetch fails with a TLS error. A
+ * real `x-forwarded-proto` header from a TLS-terminating proxy still wins.
  */
 export const getRequestResolutionHeaders = function getRequestResolutionHeaders(
 	request: Request
 ): Record<string, string> {
 	const headers: Record<string, string> = {};
 	try {
-		headers.host = new URL(request.url).host;
+		const url = new URL(request.url);
+		headers.host = url.host;
+		headers['x-forwarded-proto'] = url.protocol.replace(/:$/u, '');
 	} catch {
 		// Relative request URLs (some test doubles) carry no host.
 	}

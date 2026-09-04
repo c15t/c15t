@@ -3,8 +3,9 @@
  *
  * Reads the incoming request (cookies + headers via `getRequest()` from
  * `@tanstack/react-start/server`) and produces a JSON-serializable
- * `KernelConfig`. The root route loader returns it, and the client
- * `ConsentBoundary` reads it back with `Route.useLoaderData()`.
+ * `ConsentConfig` (a `KernelConfig` without `transport`). The root route
+ * loader returns it, and the client `ConsentBoundary` reads it back with
+ * `Route.useLoaderData()`.
  *
  * The recommended `__root.tsx` shape:
  *
@@ -83,6 +84,18 @@ export type ConsentRequestSource = Request | (() => Awaitable<Request>);
 /** Default same-origin prefix served by `createConsentServerRoute()`. */
 const DEFAULT_ROUTE_PREFIX = '/api/c15t';
 
+/**
+ * The core merge helpers type their result as the full `KernelConfig`. They
+ * never set `transport`, so dropping the key only narrows the type; it keeps
+ * the loader payload provably serializable.
+ */
+const stripTransport = function stripTransport({
+	transport: _transport,
+	...config
+}: KernelConfig): ConsentConfig {
+	return config;
+};
+
 const readCurrentRequest = async function readCurrentRequest(
 	source: ConsentRequestSource | undefined
 ): Promise<Request> {
@@ -148,7 +161,7 @@ export interface ReadInitialConsentConfigOptions {
  */
 export const readInitialConsentConfig = async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions = {}
-): Promise<KernelConfig> {
+): Promise<ConsentConfig> {
 	const request = await readCurrentRequest(options.request);
 	const cookieHeader = request.headers.get('cookie') ?? undefined;
 	const persisted = readStoredConsentFromCookie(
@@ -172,7 +185,7 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 	});
 	const overrides = consentInputsToOverrides(inputs) as KernelOverrides;
 
-	const config: KernelConfig = {};
+	const config: ConsentConfig = {};
 	if (storedConsent) {
 		config.initialConsents = storedConsent.consents;
 		config.initialHasConsented = true;
@@ -192,6 +205,16 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
  * `@c15t/tanstack-start`.
  */
 export type { KernelConfig } from '@c15t/core';
+
+/**
+ * The JSON-serializable subset of `KernelConfig` the server helpers return.
+ *
+ * `KernelConfig.transport` holds functions, and TanStack Start's server
+ * function types reject any return value that may carry one. Returning this
+ * narrower type is what lets `createServerFn().handler(...)` accept the
+ * helpers directly. `ConsentBoundary` accepts it as-is.
+ */
+export type ConsentConfig = Omit<KernelConfig, 'transport'>;
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
@@ -323,7 +346,7 @@ const loadManifest = async function loadManifest(
  */
 export const prefetchInitialConsent = async function prefetchInitialConsent(
 	options: PrefetchInitialConsentOptions
-): Promise<KernelConfig> {
+): Promise<ConsentConfig> {
 	const request = await readCurrentRequest(options.request);
 	const base = await readInitialConsentConfig({ ...options, request });
 
@@ -354,7 +377,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		if (!response) {
 			return base;
 		}
-		return mergeInitResponseIntoKernelConfig(base, response);
+		return stripTransport(mergeInitResponseIntoKernelConfig(base, response));
 	} catch {
 		// Silent degradation. Client-side init will retry.
 		return base;
@@ -371,10 +394,10 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
  * @returns The merged kernel config.
  */
 export const mergeInitIntoConsentConfig = function mergeInitIntoConsentConfig(
-	base: KernelConfig,
+	base: ConsentConfig,
 	init: InitOutput
-): KernelConfig {
-	return mergeInitOutputIntoKernelConfig(base, init);
+): ConsentConfig {
+	return stripTransport(mergeInitOutputIntoKernelConfig(base, init));
 };
 
 // -- Route wiring ------------------------------------------------------------
@@ -424,7 +447,7 @@ export const consentLoaderOptions = {
  */
 export const createConsentConfigHandler = function createConsentConfigHandler(
 	options: PrefetchInitialConsentOptions | ReadInitialConsentConfigOptions = {}
-): () => Promise<KernelConfig> {
+): () => Promise<ConsentConfig> {
 	return () =>
 		'backendURL' in options && options.backendURL
 			? prefetchInitialConsent(options)
