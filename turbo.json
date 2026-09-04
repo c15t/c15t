@@ -60,6 +60,12 @@
 			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
 			"env": ["VERCEL", "NITRO_PRESET", "NUXT_PUBLIC_C15T_BACKEND_URL"]
 		},
+		"@c15t/example-tanstack-start#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"],
+			"env": ["VERCEL", "C15T_BACKEND_URL"]
+		},
 		"@c15t/benchmarking#build": {
 			"dependsOn": ["^build"],
 			"outputs": []
@@ -123,6 +129,22 @@
 				"@c15t/backend#dev",
 				"@c15t/logger#dev",
 				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/example-tanstack-start#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/backend#dev",
+				"@c15t/logger#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/tanstack-start#dev",
 				"@c15t/translations#dev",
 				"@c15t/ui#dev"
 			]
