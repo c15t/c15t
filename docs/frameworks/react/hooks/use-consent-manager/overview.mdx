@@ -1,117 +1,17 @@
 ---
 title: useConsentManager
-description: The primary hook for accessing consent state and actions. Returns the full consent store including all state properties and action methods.
+description: Read and update consent state from any component.
 group: frameworks
 ---
 
-`useConsentManager()` is the primary hook for interacting with the consent system. It returns the complete consent store state and all action methods.
-
-```tsx
-import { useConsentManager } from 'c15t/react';
-
-function MyComponent() {
-  const {
-    consents,
-    model,
-    has,
-    saveConsents,
-    // ... all state and actions
-  } = useConsentManager();
-}
-```
-
-<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#callout" />
-
-<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#state-and-actions" />
-
-## User Identification
-
-You can link a consent subject to your own internal user ID or a non-secret anonymous visitor ID. c15t stores the identifier in the subject row's `externalId` field. Consent records remain associated with that subject through `subjectId`, so your backend can find the subject and its related consent records by external ID for GDPR Article 15 exports.
-
-### 1. Providing the Current User ID
-
-When using Clerk, wait for Clerk to load and prefer its authenticated `userId`. Before sign-in, you can fall back to a non-secret visitor ID from your application:
-
-<Callout type="warn">
-  Values passed through `options.user` are available to client-side JavaScript.
-  Pass only a non-secret identifier, such as a Clerk `userId` or an opaque
-  visitor ID. Never pass a Clerk session token or a value returned by
-  `getToken()`.
-</Callout>
-
-```tsx
-import { useAuth } from '@clerk/react';
-import { ConsentManagerProvider } from 'c15t/react';
-
-function ConsentApp() {
-  // Render this component beneath your existing ClerkProvider.
-  const { isLoaded, isSignedIn, userId } = useAuth();
-
-  if (!isLoaded) {
-    return null;
-  }
-
-  const visitorId = getVisitorId();
-  const consentUser = isSignedIn && userId
-    ? { id: userId, identityProvider: 'clerk' }
-    : visitorId
-      ? { id: visitorId, identityProvider: 'anonymous-visitor' }
-      : undefined;
-
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
-        consentCategories: ['necessary', 'measurement', 'marketing'],
-        user: consentUser,
-      }}
-    >
-      <ClerkConsentSync />
-      <MyComponents />
-    </ConsentManagerProvider>
-  );
-}
-```
-
-### 2. Synchronizing Clerk Sign-ins
-
-Use a component inside `ConsentManagerProvider` to update the current consent subject when Clerk's authentication state changes:
-
-```tsx
-import { useAuth } from '@clerk/react';
-import { useConsentManager } from 'c15t/react';
-import { useEffect } from 'react';
-
-function ClerkConsentSync() {
-  const { isLoaded, isSignedIn, userId } = useAuth();
-  const { identifyUser } = useConsentManager();
-
-  useEffect(() => {
-    if (!isLoaded || !isSignedIn || !userId) {
-      return;
-    }
-
-    void identifyUser({
-      id: userId,
-      identityProvider: 'clerk',
-    }).then(() => {
-      clearVisitorId();
-    });
-  }, [identifyUser, isLoaded, isSignedIn, userId]);
-
-  return null;
-}
-```
-
-`identifyUser()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, clear the previous visitor ID from the application state or storage used by `getVisitorId()` so it cannot replace the Clerk ID later.
-
 <Callout type="info">
-  Backend subject identification requires hosted mode (`mode: 'hosted'`). In
-  offline mode, `identifyUser()` cannot update a backend subject. Identifiers
-  supplied through `options.user` can still be held in client state and
-  persisted with locally stored consent, so do not place sensitive values
-  there.
+  This page is a placeholder for the v3 docs rewrite.
 </Callout>
 
-<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#key-types" />
+## Usage
+
+TODO.
+
+## Return value
+
+TODO.
