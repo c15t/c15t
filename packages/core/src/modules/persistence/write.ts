@@ -56,6 +56,11 @@ export const writeToStorage = function writeToStorage(
 			},
 			consents: snapshot.consents as V2ConsentState,
 		},
+		// Cookie options derive from the storage config inside the cookie
+		// layer (`getDefaultCookieOptions`). The config must land in the third
+		// slot: passed as cookie options it is spread over the defaults, which
+		// silently drops `storageKey`, `defaultDomain`, and `defaultExpiryDays`.
+		undefined,
 		storageConfig
 	);
 };

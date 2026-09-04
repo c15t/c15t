@@ -43,6 +43,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	deleteConsentFromStorage({ storageKey: 'custom-key' });
 	vi.useRealTimers();
 });
 
@@ -216,6 +217,41 @@ describe('persistence: explicit choices still write', () => {
 		const stored = readLocalStorage();
 		expect(stored?.consents.marketing).toBe(false);
 		expect(stored?.consentInfo.time).toBe(NOW);
+	});
+
+	test('a rejection under a custom key survives hydrate() and a reload', async () => {
+		const storageConfig = { storageKey: 'custom-key' };
+		localStorage.setItem('custom-key', JSON.stringify(storedPayload()));
+
+		const kernel = createConsentKernel();
+		const handle = createPersistence({ kernel, storageConfig });
+		vi.runAllTimers();
+		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+
+		// Reject, then rehydrate before the debounced write lands. The write
+		// must target the custom key or hydration reads the old grant back.
+		await kernel.commands.save('none');
+		handle.hydrate();
+		vi.runAllTimers();
+		handle.dispose();
+
+		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(readLocalStorage('custom-key')?.consents.marketing).toBe(false);
+		expect(readLocalStorage('custom-key')?.consentInfo.time).toBe(NOW);
+		expect(document.cookie).toContain('custom-key=');
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
+		expect(document.cookie).not.toContain(`${STORAGE_KEY_V2}=`);
+
+		// Next page load with the same configuration.
+		const reloaded = createConsentKernel();
+		const reloadedHandle = createPersistence({
+			kernel: reloaded,
+			storageConfig,
+		});
+		vi.runAllTimers();
+		reloadedHandle.dispose();
+		expect(reloaded.getSnapshot().hasConsented).toBe(true);
+		expect(reloaded.getSnapshot().consents.marketing).toBe(false);
 	});
 
 	test('a failed remote save still persists the choice locally', async () => {
