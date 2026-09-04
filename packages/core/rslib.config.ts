@@ -30,6 +30,7 @@ export default defineConfig({
 			'manifest-cache': ['./src/libs/manifest-cache.ts'],
 			'network-blocker': ['./src/modules/network-blocker/index.ts'],
 			persistence: ['./src/modules/persistence/index.ts'],
+			runtime: ['./src/runtime/index.ts'],
 			'script-loader': ['./src/modules/script-loader/index.ts'],
 			'transport-manifest': ['./src/transports/manifest.ts'],
 			'transport-manifest-cache': ['./src/transports/manifest-cache.ts'],
