@@ -1,0 +1,127 @@
+{
+	"name": "@c15t/astro",
+	"version": "0.1.0",
+	"description": "Astro consent management: server-rendered cookie banner, Svelte preference-centre islands, geo-aware middleware, and consent-gated script loading.",
+	"keywords": [
+		"astro",
+		"astro-integration",
+		"ccpa",
+		"cmp",
+		"consent",
+		"consent-banner",
+		"consent-management-platform",
+		"cookie-banner",
+		"gdpr",
+		"iab",
+		"islands",
+		"lgpd",
+		"privacy",
+		"ssr",
+		"svelte",
+		"tcf",
+		"typescript"
+	],
+	"homepage": "https://c15t.com/docs/frameworks/astro/quickstart",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/astro"
+	},
+	"files": [
+		"dist",
+		"dist-types",
+		"src/components"
+	],
+	"type": "module",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./client": {
+			"types": "./dist-types/client.d.ts",
+			"import": "./dist/client.js",
+			"default": "./dist/client.js"
+		},
+		"./middleware": {
+			"types": "./dist-types/middleware.d.ts",
+			"import": "./dist/middleware.js",
+			"default": "./dist/middleware.js"
+		},
+		"./server": {
+			"types": "./dist-types/server.d.ts",
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
+		},
+		"./api": {
+			"types": "./dist-types/api/index.d.ts",
+			"import": "./dist/api/index.js",
+			"default": "./dist/api/index.js"
+		},
+		"./components/*": "./src/components/*",
+		"./islands/*": {
+			"svelte": "./src/components/islands/*",
+			"default": "./src/components/islands/*"
+		},
+		"./api/init": {
+			"types": "./dist-types/api/init.d.ts",
+			"import": "./dist/api/init.js",
+			"default": "./dist/api/init.js"
+		},
+		"./api/manifest": {
+			"types": "./dist-types/api/manifest.d.ts",
+			"import": "./dist/api/manifest.js",
+			"default": "./dist/api/manifest.js"
+		},
+		"./styles.css": "./dist/styles.css",
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"check-types": "tsc --noEmit",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/iab": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"@c15t/translations": "workspace:*",
+		"@c15t/ui": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"astro": "^5.16.0",
+		"jsdom": "^25.0.0",
+		"svelte": "^5.0.0",
+		"typescript": "6.0.3"
+	},
+	"peerDependencies": {
+		"astro": "^5.0.0",
+		"svelte": "^5.0.0"
+	},
+	"peerDependenciesMeta": {
+		"svelte": {
+			"optional": true
+		}
+	}
+}

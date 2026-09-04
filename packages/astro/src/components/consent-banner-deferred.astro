@@ -1,0 +1,38 @@
+---
+/**
+ * The banner as a server island.
+ *
+ * A statically cached page cannot carry a per-visitor consent decision: the
+ * first visitor's country would be baked into the HTML every later visitor
+ * receives. This variant renders the page from cache and defers only the
+ * banner to a per-request island, so geo, GPC and the stored consent cookie
+ * are all still honoured.
+ *
+ * ```astro
+ * ---
+ * import ConsentBannerDeferred from '@c15t/astro/components/consent-banner-deferred.astro';
+ * ---
+ * <ConsentBannerDeferred />
+ * ```
+ *
+ * Needs an adapter with on-demand rendering available (`output: 'server'`,
+ * or `output: 'static'` with the page's own `prerender` left on and the
+ * adapter configured). Without one, use `<ConsentBanner />` on an
+ * on-demand-rendered page instead.
+ */
+import ConsentBanner from './consent-banner.astro';
+
+interface Props {
+	title?: string;
+	description?: string;
+	rejectButtonText?: string;
+	acceptButtonText?: string;
+	customizeButtonText?: string;
+	noStyle?: boolean;
+	class?: string;
+}
+---
+
+<ConsentBanner server:defer {...Astro.props}>
+	<slot name="fallback" slot="fallback" />
+</ConsentBanner>
