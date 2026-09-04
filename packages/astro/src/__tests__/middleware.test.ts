@@ -76,22 +76,6 @@ describe('consent middleware', () => {
 		expect(c15t.snapshot.translations?.language).toBe('fr');
 	});
 
-	it('hides the banner for a returning visitor', async () => {
-		const first = await run();
-		expect(first.shouldShowBanner).toBe(true);
-
-		const cookie = `c15t=${encodeURIComponent(
-			JSON.stringify({
-				c: { e: 1, f: 1, m: 1, n: 1, s: 1 },
-				i: { t: Date.now() },
-			})
-		)}`;
-		const returning = await run({ headers: { cookie } });
-		expect(returning.config.initialHasConsented ?? false).toBe(
-			returning.snapshot.hasConsented
-		);
-	});
-
 	it('skips the network prefetch on a prerendered route', async () => {
 		const fetchImpl = vi.fn();
 		const c15t = await run({

@@ -1,0 +1,50 @@
+---
+/**
+ * Geo override demo.
+ *
+ * The middleware reads `x-c15t-country` / `x-c15t-region`, which outrank
+ * every infrastructure header, so you can force a jurisdiction locally
+ * without a VPN:
+ *
+ *   curl -H 'x-c15t-country: DE' http://localhost:4321/geo
+ */
+import BaseLayout from '../layouts/base.astro';
+
+const { c15t } = Astro.locals;
+---
+
+<BaseLayout title="Geo overrides">
+	<p>
+		Send <code>x-c15t-country</code>, <code>x-c15t-region</code>,
+		<code>sec-gpc</code> or <code>accept-language</code> and watch the
+		server-side decision change. These override headers beat Cloudflare's and
+		Vercel's, which is what makes local testing possible.
+	</p>
+
+	<section class="panel">
+		<h2>Resolved request inputs</h2>
+		<pre data-testid="geo-inputs">{JSON.stringify(c15t.inputs, null, 2)}</pre>
+	</section>
+
+	<section class="panel">
+		<h2>Resolved decision</h2>
+		<pre data-testid="geo-decision">{JSON.stringify(
+			{
+				decision: c15t.decision,
+				language: c15t.snapshot.translations?.language ?? null,
+				policy: c15t.snapshot.policy?.id ?? null,
+				shouldShowBanner: c15t.shouldShowBanner,
+			},
+			null,
+			2
+		)}</pre>
+	</section>
+
+	<section class="panel">
+		<h2>Try it</h2>
+		<pre>curl -H 'x-c15t-country: DE' http://localhost:4321/geo
+curl -H 'x-c15t-country: US' -H 'x-c15t-region: CA' http://localhost:4321/geo
+curl -H 'sec-gpc: 1' http://localhost:4321/geo
+curl -H 'accept-language: de-DE,de;q=0.9' http://localhost:4321/geo</pre>
+	</section>
+</BaseLayout>

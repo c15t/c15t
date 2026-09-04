@@ -1,0 +1,36 @@
+@import '@c15t/astro/styles.css';
+
+:root {
+	color-scheme: light dark;
+	font-family:
+		ui-sans-serif,
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
+	line-height: 1.5;
+}
+
+body {
+	margin: 0 auto;
+	max-width: 44rem;
+	padding: 3rem 1.5rem 8rem;
+}
+
+nav {
+	display: flex;
+	gap: 1rem;
+	margin-bottom: 2rem;
+}
+
+.panel {
+	border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+	border-radius: 0.75rem;
+	margin: 1.5rem 0;
+	padding: 1rem 1.25rem;
+}
+
+pre {
+	overflow-x: auto;
+}

@@ -1,0 +1,26 @@
+{
+	"name": "astro-demo",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "astro build",
+		"check-types": "astro check",
+		"dev": "astro dev",
+		"fmt": "oxfmt .",
+		"preview": "astro preview",
+		"start": "astro dev"
+	},
+	"dependencies": {
+		"@astrojs/node": "^9.5.0",
+		"@astrojs/svelte": "^7.2.0",
+		"@c15t/astro": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"astro": "^5.16.0",
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.4",
+		"typescript": "6.0.3"
+	}
+}

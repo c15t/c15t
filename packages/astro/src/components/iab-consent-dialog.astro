@@ -24,7 +24,12 @@ const { preload = false } = Astro.props;
 <div data-c15t-dialog-host="iab" data-preload={preload ? 'true' : undefined}></div>
 
 <script>
-	import { preloadDialog } from '@c15t/astro/client';
+	import { preloadDialog, registerDialogSurface } from '@c15t/astro/client';
+
+	registerDialogSurface(
+		'svelte',
+		() => import('@c15t/astro/islands/consent-dialog-surface.svelte')
+	);
 
 	const host = document.querySelector('[data-c15t-dialog-host="iab"]');
 

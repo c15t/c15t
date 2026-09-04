@@ -27,24 +27,32 @@ interface Props {
 const { preload = false } = Astro.props;
 ---
 
-<div data-c15t-dialog-host="preferences" data-preload={preload ? 'true' : undefined}>
+<div
+	data-c15t-dialog-host="preferences"
+	data-preload={preload ? 'true' : undefined}
+>
 </div>
 
 <script>
-	import { getConsentClient, openDialog, preloadDialog } from '@c15t/astro/client';
+	import {
+		getConsentClient,
+		openDialog,
+		preloadDialog,
+		registerDialogSurface,
+	} from '@c15t/astro/client';
+
+	// The specifier lives here, in a file this app's build compiles, because
+	// only that build knows how to turn a `.svelte` file into a component.
+	registerDialogSurface(
+		'svelte',
+		() => import('@c15t/astro/islands/consent-dialog-surface.svelte')
+	);
 
 	const host = document.querySelector('[data-c15t-dialog-host="preferences"]');
 
 	if (host?.getAttribute('data-preload') === 'true') {
-		const warm = async () => {
-			try {
-				await preloadDialog();
-			} catch {
-				// Warming is best-effort; the first open loads it anyway.
-			}
-		};
 		const schedule = () => {
-			void warm();
+			void preloadDialog();
 		};
 		if ('requestIdleCallback' in window) {
 			window.requestIdleCallback(schedule);

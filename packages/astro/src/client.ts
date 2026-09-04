@@ -435,9 +435,10 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 export { activateGatedScripts } from './browser/inline-scripts';
 export type { ConsentRuntime } from './runtime';
 export type { ConsentDialogKind } from './ui/adapter';
-export { registerDialogAdapter } from './ui/adapter';
+export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
 export type {
 	ConsentDialogAdapter,
 	ConsentDialogContext,
 	ConsentDialogHandle,
+	ConsentDialogSurfaceLoader,
 } from './ui/adapter';

@@ -149,6 +149,22 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"astro-demo#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/astro#dev",
+				"@c15t/core#dev",
+				"@c15t/iab#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
 		"sveltekit-demo#dev": {
 			"cache": false,
 			"persistent": true,

@@ -1,0 +1,23 @@
+---
+import ConsentState from '../components/consent-state.astro';
+import BaseLayout from '../layouts/base.astro';
+---
+
+<BaseLayout title="Second page">
+	<p>
+		Navigate here and back with the ClientRouter on. The runtime is a page
+		singleton that survives the swap: consent state stays put, the banner does
+		not reappear, and nothing re-initialises over the network.
+	</p>
+
+	<ConsentState />
+
+	<section class="panel">
+		<h2>A script added by this page</h2>
+		<script data-c15t-category="marketing" is:inline type="text/plain">
+			document.querySelector('[data-testid="second-script"]').textContent =
+				'marketing script ran';
+		</script>
+		<p data-testid="second-script">marketing script blocked</p>
+	</section>
+</BaseLayout>

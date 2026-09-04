@@ -6,11 +6,14 @@
  * covers the other half: mark a tag as inert and label it, and it runs the
  * moment consent allows it.
  *
- * ```html
- * <script type="text/plain" data-c15t-category="measurement">
+ * ```astro
+ * <script data-c15t-category="measurement" is:inline type="text/plain">
  *   console.log('only with measurement consent');
  * </script>
  * ```
+ *
+ * `is:inline` matters: without it Astro hoists the tag into a bundled
+ * module and runs it regardless of consent.
  *
  * `data-c15t-category` accepts one category name. The tag is left alone
  * until consent is granted, then replaced by a live `<script>` in the same
