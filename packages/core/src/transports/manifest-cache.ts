@@ -1,0 +1,443 @@
+/**
+ * In-process consent-manifest cache for server adapters.
+ *
+ * Framework server routes (Nuxt, TanStack Start, ...) that proxy the backend's
+ * `GET /manifest` and resolve `GET /init` locally share this module so the
+ * caching rules live in one place: honour the backend's `s-maxage`, revalidate
+ * with `ETag`, respect `no-store`, and collapse bursts for backends that send
+ * no shared-cache TTL at all.
+ *
+ * Like `@c15t/core/transports/manifest`, this module resolves init with
+ * `@c15t/schema` and imports every translation language. Import it from
+ * `@c15t/core/transports/manifest-cache` in server code only.
+ */
+
+import type {
+	ConsentManifest,
+	InitOutput,
+	ResolveInitFromManifestInputs,
+} from '@c15t/schema/types';
+import {
+	consentInputsToOverrides,
+	extractConsentRequestInputs,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
+
+import { c15tVersionHeaders } from './version-header';
+
+/**
+ * Just the call signature the manifest cache needs.
+ *
+ * Deliberately narrower than `typeof globalThis.fetch`, which carries static
+ * members (`fetch.preconnect` under recent `@types/node`) that no sensible
+ * custom implementation provides — Nitro's `localFetch` included.
+ */
+export type ManifestFetch = (
+	input: string | URL | Request,
+	init?: RequestInit
+) => Promise<Response>;
+
+/** A manifest response held by the in-process cache. */
+export interface CachedManifestResponse {
+	/** The parsed manifest body. */
+	manifest: ConsentManifest;
+	/** Upstream response headers, keys lower-cased. */
+	headers: Record<string, string>;
+	/** The backend's `s-maxage`, in seconds, or `0` when it sent none. */
+	sMaxAge: number;
+	/** Epoch milliseconds after which the entry must be revalidated. */
+	expiresAt: number;
+}
+
+/**
+ * Storage behind {@link fetchCachedManifest}, keyed by the full request URL.
+ * A `Map<string, CachedManifestResponse>` satisfies it; hosts that want
+ * per-request or per-tenant isolation can supply their own.
+ */
+export interface ManifestCache {
+	get: (sourceURL: string) => CachedManifestResponse | undefined;
+	set: (sourceURL: string, entry: CachedManifestResponse) => unknown;
+	delete: (sourceURL: string) => unknown;
+	clear: () => void;
+}
+
+/**
+ * Creates an empty, Map-backed manifest cache.
+ *
+ * @returns A cache instance for {@link fetchCachedManifest}.
+ */
+export const createManifestCache =
+	function createManifestCache(): ManifestCache {
+		return new Map<string, CachedManifestResponse>();
+	};
+
+/** Cache used when {@link fetchCachedManifest} is called without one. */
+const defaultManifestCache = createManifestCache();
+
+/**
+ * Empties a manifest cache.
+ *
+ * @param cache - The cache to clear. Defaults to the module-level cache.
+ */
+export const clearManifestCache = function clearManifestCache(
+	cache: ManifestCache = defaultManifestCache
+): void {
+	cache.clear();
+};
+
+/**
+ * Response headers a proxying manifest route forwards downstream verbatim.
+ *
+ * `vary` is deliberately NOT forwarded. The route sends no request headers
+ * upstream and returns no CORS headers downstream, so its body is a pure
+ * function of the request URL. The backend's `Vary: Origin` would only
+ * fragment the edge cache for no benefit.
+ */
+export const MANIFEST_PASSTHROUGH_HEADERS = [
+	'cache-control',
+	'etag',
+	'last-modified',
+	'content-language',
+] as const;
+
+/**
+ * In-process dedupe floor, in seconds, for backends that serve `/manifest`
+ * without a shared-cache TTL. Without it every request to an older backend
+ * would hit the network. Kept deliberately short: it only collapses
+ * concurrent/bursty requests and is never advertised downstream as a
+ * `Cache-Control` value.
+ */
+export const MANIFEST_DEDUPE_TTL_SECONDS = 5;
+
+const trimSlash = function trimSlash(value: string): string {
+	return value.endsWith('/') ? value.slice(0, -1) : value;
+};
+
+const normalizeHeaders = function normalizeHeaders(
+	headers: Headers
+): Record<string, string> {
+	const normalized: Record<string, string> = {};
+	headers.forEach((value, key) => {
+		normalized[key.toLowerCase()] = value;
+	});
+	return normalized;
+};
+
+const parseCacheDirectiveSeconds = function parseCacheDirectiveSeconds(
+	cacheControl: string | undefined,
+	directive: string
+): number | undefined {
+	if (!cacheControl) {
+		return undefined;
+	}
+	for (const part of cacheControl.split(',')) {
+		const [rawKey, rawValue] = part.trim().split('=');
+		if (rawKey?.toLowerCase() !== directive) {
+			continue;
+		}
+		const seconds = Number(rawValue);
+		return Number.isFinite(seconds) && seconds >= 0
+			? Math.floor(seconds)
+			: undefined;
+	}
+	return undefined;
+};
+
+/**
+ * Reads the `s-maxage` directive from a `Cache-Control` header.
+ *
+ * @param cacheControl - The header value, if any.
+ * @returns The directive in seconds, or `0` when absent or invalid.
+ */
+export const getManifestSMaxAge = function getManifestSMaxAge(
+	cacheControl: string | undefined
+): number {
+	return parseCacheDirectiveSeconds(cacheControl, 's-maxage') ?? 0;
+};
+
+/**
+ * Reads the `stale-while-revalidate` directive from a `Cache-Control` header.
+ *
+ * @param cacheControl - The header value, if any.
+ * @returns The directive in seconds, or `0` when absent or invalid.
+ */
+export const getManifestStaleWhileRevalidate =
+	function getManifestStaleWhileRevalidate(
+		cacheControl: string | undefined
+	): number {
+		return (
+			parseCacheDirectiveSeconds(cacheControl, 'stale-while-revalidate') ?? 0
+		);
+	};
+
+/** `true` when the backend explicitly forbids reusing the response. */
+const forbidsReuse = function forbidsReuse(
+	cacheControl: string | undefined
+): boolean {
+	if (!cacheControl) {
+		return false;
+	}
+	return cacheControl
+		.split(',')
+		.some((part) =>
+			['no-store', 'no-cache', 'private'].includes(
+				part.trim().split('=')[0]?.toLowerCase() ?? ''
+			)
+		);
+};
+
+/**
+ * How long to keep an entry in the in-process cache. Prefers the backend's
+ * `s-maxage`, falls back to the dedupe floor, and honours an explicit
+ * `no-store`/`no-cache`/`private` by not caching at all.
+ */
+const resolveCacheTtlSeconds = function resolveCacheTtlSeconds(
+	cacheControl: string | undefined,
+	sMaxAge: number
+): number {
+	if (sMaxAge > 0) {
+		return sMaxAge;
+	}
+	return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
+};
+
+/** Where a server adapter reads the manifest from. */
+export interface ManifestSourceOptions {
+	/** Backend URL; the manifest is read from `${backendURL}/manifest`. */
+	backendURL?: string;
+	/** Explicit manifest URL. Takes precedence over `backendURL`. */
+	manifestURL?: string;
+}
+
+/**
+ * Resolves the upstream manifest URL from adapter configuration.
+ *
+ * @param options - Backend or explicit manifest URL.
+ * @returns The URL to fetch the manifest from.
+ * @throws {Error} When neither `manifestURL` nor `backendURL` is set.
+ */
+export const resolveManifestSourceURL = function resolveManifestSourceURL(
+	options: ManifestSourceOptions
+): string {
+	if (options.manifestURL) {
+		return options.manifestURL;
+	}
+	if (!options.backendURL) {
+		throw new Error(
+			'c15t manifest cache: `backendURL` or `manifestURL` is required.'
+		);
+	}
+	return `${trimSlash(options.backendURL)}/manifest`;
+};
+
+/**
+ * Appends a request query string to the manifest source URL.
+ *
+ * @param input - The source URL and the raw query string to append.
+ * @returns The full request URL.
+ */
+export const createManifestRequestURL =
+	function createManifestRequestURL(input: {
+		sourceURL: string;
+		query?: string;
+	}): string {
+		if (!input.query) {
+			return input.sourceURL;
+		}
+		const separator = input.sourceURL.includes('?') ? '&' : '?';
+		return `${input.sourceURL}${separator}${input.query}`;
+	};
+
+/** Options for {@link fetchCachedManifest}. */
+export interface FetchCachedManifestOptions {
+	/** Resolved upstream manifest URL (see {@link resolveManifestSourceURL}). */
+	sourceURL: string;
+	/** Fetch implementation. Defaults to `globalThis.fetch`. */
+	fetch?: ManifestFetch;
+	/** Raw query string forwarded to the upstream request. */
+	query?: string;
+	/** Current time in epoch milliseconds. Defaults to `Date.now()`. */
+	now?: number;
+	/** Cache to read and write. Defaults to the module-level cache. */
+	cache?: ManifestCache;
+}
+
+/**
+ * Fetches the manifest through the in-process cache.
+ *
+ * Serves a fresh entry without a network round-trip, revalidates a stale
+ * entry with `If-None-Match` and refreshes its TTL on `304`, and otherwise
+ * fetches and caches the response according to its `Cache-Control`.
+ *
+ * @param options - Source URL, fetch, query, clock, and cache overrides.
+ * @returns The cached or freshly fetched manifest with its upstream headers.
+ * @throws {Error} When no fetch implementation is available or the backend responds
+ * with a non-2xx status.
+ */
+export const fetchCachedManifest = async function fetchCachedManifest(
+	options: FetchCachedManifestOptions
+): Promise<CachedManifestResponse> {
+	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		throw new Error('c15t manifest cache: a fetch implementation is required.');
+	}
+
+	const cache = options.cache ?? defaultManifestCache;
+	const requestURL = createManifestRequestURL({
+		query: options.query,
+		sourceURL: options.sourceURL,
+	});
+	const now = options.now ?? Date.now();
+	const cached = cache.get(requestURL);
+	if (cached && cached.expiresAt > now) {
+		return cached;
+	}
+
+	const headers: Record<string, string> = {
+		accept: 'application/json',
+		...c15tVersionHeaders,
+	};
+	if (cached?.headers.etag) {
+		headers['if-none-match'] = cached.headers.etag;
+	}
+
+	const response = await fetchImpl(requestURL, {
+		headers,
+		method: 'GET',
+	});
+
+	if (response.status === 304 && cached) {
+		const responseHeaders = {
+			...cached.headers,
+			...normalizeHeaders(response.headers),
+		};
+		const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
+		const ttl = resolveCacheTtlSeconds(
+			responseHeaders['cache-control'],
+			sMaxAge
+		);
+		const refreshed: CachedManifestResponse = {
+			...cached,
+			expiresAt: now + ttl * 1000,
+			headers: responseHeaders,
+			sMaxAge,
+		};
+		if (ttl > 0) {
+			cache.set(requestURL, refreshed);
+		} else {
+			cache.delete(requestURL);
+		}
+		return refreshed;
+	}
+
+	if (!response.ok) {
+		throw new Error(
+			`c15t manifest cache: backend /manifest responded ${response.status} ${response.statusText}`
+		);
+	}
+
+	const manifest = (await response.json()) as ConsentManifest;
+	const responseHeaders = normalizeHeaders(response.headers);
+	const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
+	const ttl = resolveCacheTtlSeconds(responseHeaders['cache-control'], sMaxAge);
+	const entry: CachedManifestResponse = {
+		expiresAt: now + ttl * 1000,
+		headers: responseHeaders,
+		manifest,
+		sMaxAge,
+	};
+	if (ttl > 0) {
+		cache.set(requestURL, entry);
+	}
+	return entry;
+};
+
+/** Request headers accepted by {@link resolveManifestInit}. */
+export type ManifestRequestHeaders =
+	| Headers
+	| Record<string, string | string[] | undefined>;
+
+const normalizeHeader = function normalizeHeader(
+	value: string | string[] | undefined
+): string | undefined {
+	if (!value) {
+		return undefined;
+	}
+	return Array.isArray(value) ? value[0] : value;
+};
+
+/**
+ * Derives manifest resolver inputs (geo, language, GPC) from request headers.
+ *
+ * @param headers - A `Headers` instance or a header record (any key casing).
+ * @returns Inputs for `resolveInitFromManifest`; language falls back to `en`.
+ */
+export const getResolverInputsFromHeaders =
+	function getResolverInputsFromHeaders(
+		headers: ManifestRequestHeaders
+	): ResolveInitFromManifestInputs {
+		let source: Headers | Record<string, string | undefined>;
+		if (headers instanceof Headers) {
+			source = headers;
+		} else {
+			const normalized: Record<string, string | undefined> = {};
+			for (const [key, value] of Object.entries(headers)) {
+				normalized[key.toLowerCase()] = normalizeHeader(value);
+			}
+			source = normalized;
+		}
+		const inputs = extractConsentRequestInputs(source);
+
+		return {
+			country: inputs.country,
+			gpc: inputs.gpc,
+			language: inputs.language ?? 'en',
+			region: inputs.region,
+		};
+	};
+
+/** Input for {@link resolveManifestInit}. */
+export type ResolveManifestInitOptions =
+	| {
+			/** The manifest to resolve against. */
+			manifest: ConsentManifest;
+			/** Request headers the resolver inputs are derived from. */
+			headers: ManifestRequestHeaders;
+			inputs?: never;
+	  }
+	| {
+			/** The manifest to resolve against. */
+			manifest: ConsentManifest;
+			/** Explicit resolver inputs, used as-is. */
+			inputs: ResolveInitFromManifestInputs;
+			headers?: never;
+	  };
+
+/**
+ * Resolves a `GET /init` response locally from a manifest.
+ *
+ * Mirrors what the backend's `/init` returns, minus a `policySnapshotToken`:
+ * pair it with `hosted({ assertDecisionInputs: true })` on the client so saves
+ * stay bound to the decision they were made against.
+ *
+ * @param options - The manifest plus either request headers or explicit inputs.
+ * @returns The resolved init output including `resolvedOverrides`.
+ */
+export const resolveManifestInit = function resolveManifestInit(
+	options: ResolveManifestInitOptions
+): InitOutput {
+	const inputs =
+		options.inputs ?? getResolverInputsFromHeaders(options.headers);
+	return {
+		...resolveInitFromManifest(options.manifest, inputs, { baseTranslations }),
+		// Resolver inputs use `null` for absent; the overrides record wants
+		// the fields dropped instead.
+		resolvedOverrides: consentInputsToOverrides({
+			country: inputs.country ?? undefined,
+			gpc: inputs.gpc,
+			language: inputs.language ?? undefined,
+			region: inputs.region ?? undefined,
+		}),
+	} as InitOutput;
+};

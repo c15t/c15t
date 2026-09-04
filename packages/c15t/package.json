@@ -82,6 +82,11 @@
 			"import": "./shims/transports/manifest.js",
 			"default": "./shims/transports/manifest.js"
 		},
+		"./transports/manifest-cache": {
+			"types": "./shims/transports/manifest-cache.d.ts",
+			"import": "./shims/transports/manifest-cache.js",
+			"default": "./shims/transports/manifest-cache.js"
+		},
 		"./libs/generate-subject-id": {
 			"types": "./shims/libs/generate-subject-id.d.ts",
 			"import": "./shims/libs/generate-subject-id.js",

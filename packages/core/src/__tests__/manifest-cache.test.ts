@@ -1,0 +1,418 @@
+/**
+ * In-process manifest cache shared by the framework server adapters.
+ *
+ * Covers the caching contract adapters rely on: TTL from `s-maxage`, ETag
+ * revalidation, `no-store` opt-out, the dedupe floor, and the shape of a
+ * locally resolved init.
+ */
+import type { ConsentManifest } from '@c15t/schema/types';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
+import {
+	clearManifestCache,
+	createManifestCache,
+	createManifestRequestURL,
+	fetchCachedManifest,
+	getManifestSMaxAge,
+	getManifestStaleWhileRevalidate,
+	getResolverInputsFromHeaders,
+	MANIFEST_DEDUPE_TTL_SECONDS,
+	MANIFEST_PASSTHROUGH_HEADERS,
+	resolveManifestInit,
+	resolveManifestSourceURL,
+} from '../transports/manifest-cache';
+import type { ManifestFetch } from '../transports/manifest-cache';
+import { C15T_VERSION_HEADER } from '../transports/version-header';
+
+const SOURCE_URL = 'https://backend.example/manifest';
+
+const createManifestFixture = function createManifestFixture(
+	revision = 'manifest-rev-1'
+): ConsentManifest {
+	return {
+		branding: 'c15t',
+		policyPacks: [
+			createConsentManifestPolicyPack({
+				fingerprint: 'fingerprint-eu',
+				policy: {
+					consent: {
+						categories: ['necessary', 'measurement', 'marketing'],
+						expiryDays: 365,
+						model: 'opt-in',
+						scopeMode: 'strict',
+					},
+					id: 'eu-opt-in',
+					match: { countries: ['DE'], fallback: true },
+					ui: { mode: 'banner' },
+				},
+			}),
+			createConsentManifestPolicyPack({
+				fingerprint: 'fingerprint-ca',
+				policy: {
+					consent: {
+						categories: ['necessary', 'marketing'],
+						expiryDays: 365,
+						gpc: true,
+						model: 'opt-out',
+						scopeMode: 'permissive',
+					},
+					id: 'ca-opt-out',
+					match: { regions: [{ country: 'US', region: 'CA' }] },
+					ui: { mode: 'banner' },
+				},
+			}),
+		],
+		revision,
+		schemaVersion: 1,
+		translations: {
+			i18n: {
+				defaultProfile: 'default',
+				messages: {
+					default: {
+						fallbackLanguage: 'en',
+						translations: {
+							de: {
+								common: {
+									acceptAll: 'Alle akzeptieren',
+									rejectAll: 'Alle ablehnen',
+								},
+							},
+							en: {
+								common: {
+									acceptAll: 'Accept all',
+									rejectAll: 'Reject all',
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	};
+};
+
+const manifestResponse = function manifestResponse(
+	headers: Record<string, string>,
+	manifest = createManifestFixture()
+): Response {
+	return new Response(JSON.stringify(manifest), {
+		headers: { 'content-type': 'application/json', ...headers },
+		status: 200,
+	});
+};
+
+const createFetchMock = function createFetchMock(
+	respond: (input: string | URL | Request, init?: RequestInit) => Response
+) {
+	return vi.fn<ManifestFetch>((input, init) =>
+		Promise.resolve(respond(input, init))
+	);
+};
+
+afterEach(() => {
+	clearManifestCache();
+});
+
+describe('fetchCachedManifest', () => {
+	test('serves a cached manifest inside the s-maxage TTL', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({
+				'cache-control': 'public, s-maxage=60, stale-while-revalidate=120',
+				etag: '"manifest-rev-1"',
+			})
+		);
+
+		const first = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		const second = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 59_000,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock.mock.calls[0]?.[0]).toBe(SOURCE_URL);
+		expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+			headers: {
+				accept: 'application/json',
+				[C15T_VERSION_HEADER]: expect.any(String),
+			},
+			method: 'GET',
+		});
+		expect(first).toEqual({
+			expiresAt: 61_000,
+			headers: expect.objectContaining({ etag: '"manifest-rev-1"' }),
+			manifest: expect.objectContaining({ revision: 'manifest-rev-1' }),
+			sMaxAge: 60,
+		});
+		expect(second).toBe(first);
+		expect(getManifestSMaxAge(first.headers['cache-control'])).toBe(60);
+		expect(
+			getManifestStaleWhileRevalidate(first.headers['cache-control'])
+		).toBe(120);
+	});
+
+	test('revalidates an expired entry with If-None-Match and refreshes it on 304', async () => {
+		let requests = 0;
+		const fetchMock = createFetchMock(() => {
+			requests += 1;
+			if (requests === 1) {
+				return manifestResponse({
+					'cache-control': 'public, s-maxage=60',
+					etag: '"manifest-rev-1"',
+				});
+			}
+			return new Response(null, {
+				headers: { 'cache-control': 'public, s-maxage=30' },
+				status: 304,
+			});
+		});
+
+		const first = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		const refreshed = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 62_000,
+			sourceURL: SOURCE_URL,
+		});
+		const served = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 90_000,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
+			headers: { 'if-none-match': '"manifest-rev-1"' },
+		});
+		expect(refreshed.manifest).toBe(first.manifest);
+		expect(refreshed).toMatchObject({
+			expiresAt: 92_000,
+			headers: {
+				'cache-control': 'public, s-maxage=30',
+				etag: '"manifest-rev-1"',
+			},
+			sMaxAge: 30,
+		});
+		expect(served).toBe(refreshed);
+	});
+
+	test('never caches a no-store response', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'no-store' })
+		);
+
+		const first = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1001,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		expect(first).toMatchObject({ expiresAt: 1000, sMaxAge: 0 });
+		expect(fetchMock.mock.calls[1]?.[1]).not.toMatchObject({
+			headers: { 'if-none-match': expect.any(String) },
+		});
+	});
+
+	test('dedupes for a short floor when the backend sends no s-maxage', async () => {
+		const fetchMock = createFetchMock(() => manifestResponse({}));
+		const floorMs = MANIFEST_DEDUPE_TTL_SECONDS * 1000;
+
+		const first = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000 + floorMs - 1,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000 + floorMs + 1,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(first).toMatchObject({ expiresAt: 1000 + floorMs, sMaxAge: 0 });
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	test('keys entries by the full request URL and honours a caller-owned cache', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+		const cache = createManifestCache();
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			query: 'preview=1',
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+			`${SOURCE_URL}?preview=1`,
+			SOURCE_URL,
+			SOURCE_URL,
+		]);
+		expect(cache.get(`${SOURCE_URL}?preview=1`)).toBeDefined();
+
+		clearManifestCache(cache);
+		expect(cache.get(SOURCE_URL)).toBeUndefined();
+	});
+
+	test('rejects a non-2xx backend response', async () => {
+		const fetchMock = createFetchMock(
+			() => new Response('unavailable', { status: 503 })
+		);
+
+		await expect(
+			fetchCachedManifest({ fetch: fetchMock, sourceURL: SOURCE_URL })
+		).rejects.toThrow('c15t manifest cache: backend /manifest responded 503');
+	});
+});
+
+describe('manifest source URLs', () => {
+	test('prefers manifestURL and otherwise appends /manifest to backendURL', () => {
+		expect(
+			resolveManifestSourceURL({
+				backendURL: 'https://backend.example',
+				manifestURL: 'https://cdn.example/manifest.json',
+			})
+		).toBe('https://cdn.example/manifest.json');
+		expect(resolveManifestSourceURL({ backendURL: '/api/c15t/' })).toBe(
+			'/api/c15t/manifest'
+		);
+		expect(() => resolveManifestSourceURL({})).toThrow(
+			'c15t manifest cache: `backendURL` or `manifestURL` is required.'
+		);
+	});
+
+	test('appends a query with the right separator', () => {
+		expect(createManifestRequestURL({ sourceURL: SOURCE_URL })).toBe(
+			SOURCE_URL
+		);
+		expect(
+			createManifestRequestURL({ query: 'a=1', sourceURL: SOURCE_URL })
+		).toBe(`${SOURCE_URL}?a=1`);
+		expect(
+			createManifestRequestURL({
+				query: 'a=1',
+				sourceURL: `${SOURCE_URL}?x=y`,
+			})
+		).toBe(`${SOURCE_URL}?x=y&a=1`);
+	});
+
+	test('lists the headers a proxying route forwards, without vary', () => {
+		expect(MANIFEST_PASSTHROUGH_HEADERS).toEqual([
+			'cache-control',
+			'etag',
+			'last-modified',
+			'content-language',
+		]);
+	});
+});
+
+describe('resolveManifestInit', () => {
+	test('resolves init from request headers with resolvedOverrides', () => {
+		const init = resolveManifestInit({
+			headers: {
+				'Accept-Language': 'de-DE,de;q=0.8,en;q=0.7',
+				'x-c15t-country': ['DE'],
+				'x-c15t-region': 'BE',
+			},
+			manifest: createManifestFixture(),
+		});
+
+		expect(init).toMatchObject({
+			branding: 'c15t',
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: 'BE' },
+			policy: { id: 'eu-opt-in', model: 'opt-in' },
+			policyDecision: {
+				country: 'DE',
+				fingerprint: 'fingerprint-eu',
+				matchedBy: 'country',
+				policyId: 'eu-opt-in',
+				region: 'BE',
+			},
+			resolvedOverrides: { country: 'DE', language: 'de', region: 'BE' },
+			translations: { language: 'de' },
+		});
+		expect(init.resolvedOverrides).not.toHaveProperty('gpc');
+		expect(init).not.toHaveProperty('policySnapshotToken');
+	});
+
+	test('accepts a Headers instance', () => {
+		const init = resolveManifestInit({
+			headers: new Headers({
+				'accept-language': 'en-US,en;q=0.9',
+				'sec-gpc': '1',
+				'x-vercel-ip-country': 'US',
+				'x-vercel-ip-country-region': 'CA',
+			}),
+			manifest: createManifestFixture(),
+		});
+
+		expect(init).toMatchObject({
+			policy: { id: 'ca-opt-out', model: 'opt-out' },
+			policyDecision: { matchedBy: 'region', policyId: 'ca-opt-out' },
+			resolvedOverrides: {
+				country: 'US',
+				gpc: true,
+				language: 'en',
+				region: 'CA',
+			},
+		});
+	});
+
+	test('uses explicit resolver inputs as-is', () => {
+		const init = resolveManifestInit({
+			inputs: { country: null, gpc: false, language: 'en', region: null },
+			manifest: createManifestFixture(),
+		});
+
+		expect(init).toMatchObject({
+			location: { countryCode: null, regionCode: null },
+			policyDecision: { matchedBy: 'fallback', policyId: 'eu-opt-in' },
+			resolvedOverrides: { gpc: false, language: 'en' },
+		});
+		expect(init.resolvedOverrides).not.toHaveProperty('country');
+	});
+
+	test('maps Sec-GPC and geo headers to resolver inputs with an English fallback', () => {
+		expect(
+			getResolverInputsFromHeaders({
+				'sec-gpc': '1',
+				'x-vercel-ip-country': 'US',
+				'x-vercel-ip-country-region': 'CA',
+			})
+		).toEqual({ country: 'US', gpc: true, language: 'en', region: 'CA' });
+	});
+});

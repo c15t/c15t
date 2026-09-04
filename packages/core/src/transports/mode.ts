@@ -56,6 +56,26 @@ export interface HostedModeOptions {
 	fetch?: typeof globalThis.fetch;
 	/** Headers forwarded to the backend init endpoint. */
 	headers?: Record<string, string>;
+	/**
+	 * URL used for `GET /init`. Defaults to `${url}/init`.
+	 *
+	 * Point this at a same-origin server route that resolves init from a
+	 * manifest (for example with `resolveManifestInit` from
+	 * `@c15t/core/transports/manifest-cache`) while consent saves keep going
+	 * to `${url}/subjects`. Set `assertDecisionInputs: true` alongside it:
+	 * manifest resolution never issues a `policySnapshotToken`.
+	 */
+	initURL?: string;
+	/**
+	 * Assert the resolved policy decision on `POST /subjects` when the save
+	 * carries no signed `policySnapshotToken`. Enable this whenever `initURL`
+	 * points at a route that resolves init from a manifest, so the backend
+	 * can reject a save made against a stale policy instead of recording it
+	 * unbound.
+	 *
+	 * @defaultValue false
+	 */
+	assertDecisionInputs?: boolean;
 }
 
 /**
@@ -76,10 +96,12 @@ export const hosted = function hosted(
 	return Object.assign(
 		() =>
 			createHostedTransport({
+				assertDecisionInputs: options.assertDecisionInputs,
 				backendURL: options.url,
 				domain: options.domain,
 				fetch: options.fetch,
 				headers: options.headers,
+				initURL: options.initURL,
 			}),
 		{ kind: 'hosted' as const }
 	);

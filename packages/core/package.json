@@ -73,6 +73,11 @@
 			"import": "./dist/transport-manifest.js",
 			"default": "./dist/transport-manifest.js"
 		},
+		"./transports/manifest-cache": {
+			"types": "./dist-types/transports/manifest-cache.d.ts",
+			"import": "./dist/transport-manifest-cache.js",
+			"default": "./dist/transport-manifest-cache.js"
+		},
 		"./libs/generate-subject-id": {
 			"types": "./dist-types/libs/generate-subject-id.d.ts",
 			"import": "./dist/generate-subject-id.js",
