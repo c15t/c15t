@@ -39,16 +39,21 @@ export type {
 	GetSubjectOutput,
 	GetSubjectParams,
 	GetSubjectQuery,
+	IdentityPrivacyDirectiveInput,
+	ListPrivacyDirectivesOutput,
 	ListSubjectsOutput,
 	ListSubjectsQuery,
 	PatchSubjectFullInput,
 	PatchSubjectOutput,
 	PostSubjectInput,
 	PostSubjectOutput,
+	PrivacyDirectiveWire,
+	RecordPrivacyDirectiveOutput,
 	SubjectCategoryReceiptWire,
 	SubjectChoiceBasisWire,
 	SubjectChoiceWire,
 	SubjectItem,
+	SubjectPrivacyDirectiveInput,
 } from './api/subject';
 // Domain types
 export type {
