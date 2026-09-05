@@ -2525,3 +2525,78 @@ describe('hosted transport: init context', () => {
 		expect((init as RequestInit).headers).not.toHaveProperty('sec-gpc');
 	});
 });
+
+describe('hosted transport: decisionInputs seed', () => {
+	test('a save before init resolves still carries the seeded assertion', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			decisionInputs: {
+				country: 'DE',
+				fingerprint: 'seeded-fingerprint',
+				gpc: false,
+				language: 'de',
+				policyId: 'de-seeded',
+				region: null,
+			},
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [, saveInit] = fetchSpy.mock.calls[0] ?? [];
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			country: 'DE',
+			fingerprint: 'seeded-fingerprint',
+			language: 'de',
+			policyId: 'de-seeded',
+		});
+	});
+
+	test('the seed is ignored without assertDecisionInputs', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			decisionInputs: {
+				country: 'DE',
+				fingerprint: 'seeded-fingerprint',
+				language: 'de',
+				policyId: 'de-seeded',
+				region: null,
+			},
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [, saveInit] = fetchSpy.mock.calls[0] ?? [];
+		expect(
+			JSON.parse((saveInit as RequestInit).body as string)
+		).not.toHaveProperty('policyId');
+	});
+});

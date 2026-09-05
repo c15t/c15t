@@ -212,3 +212,35 @@ describe('resolveStrictestDefaultInit: category ties', () => {
 		}
 	});
 });
+
+describe('resolveStrictestDefaultInit: unrestricted category lists', () => {
+	test('ranks a wildcard or empty list below any explicit allowlist', () => {
+		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
+		if (!optOut) {
+			throw new Error('fixture has no opt-out pack');
+		}
+		for (const categories of [['*'], []]) {
+			const open = structuredClone(optOut);
+			open.policy.id = 'us-ca-opt-out-open';
+			open.resolvedPolicy.id = 'us-ca-opt-out-open';
+			if (open.policy.consent) {
+				open.policy.consent.categories = categories;
+			}
+			if (open.resolvedPolicy.consent) {
+				open.resolvedPolicy.consent.categories = categories;
+			}
+			for (const policyPacks of [
+				[optOut, open],
+				[open, optOut],
+			]) {
+				const payload = resolveStrictestDefaultInit(
+					{ ...MANIFEST_FIXTURE, policyPacks },
+					{ language: 'en' }
+				);
+				expect(payload.policy?.id, JSON.stringify(categories)).toBe(
+					'us-ca-opt-out'
+				);
+			}
+		}
+	});
+});

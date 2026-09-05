@@ -90,6 +90,14 @@ export interface HostedTransportOptions {
 	initialData?: Promise<SSRInitialData | undefined>;
 
 	/**
+	 * Decision inputs a server-side prefetch already resolved. Seeds the
+	 * assertion `POST /subjects` carries when `assertDecisionInputs` is set,
+	 * so a save made before the first client `init()` resolves is still
+	 * bound to the policy the server rendered. `init()` replaces the seed.
+	 */
+	decisionInputs?: RememberedDecisionInputs;
+
+	/**
 	 * Request headers that may be passed through to `GET /init`.
 	 *
 	 * Only the backend-recognized init headers are forwarded:
@@ -206,7 +214,8 @@ export const createHostedTransport = function createHostedTransport(
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
 	let establishedSubjectId: string | null = null;
-	let lastDecisionInputs: RememberedDecisionInputs | undefined;
+	let lastDecisionInputs: RememberedDecisionInputs | undefined =
+		options.assertDecisionInputs ? options.decisionInputs : undefined;
 	interface PendingIdentity {
 		reject: (error: unknown) => void;
 		resolve: () => void;

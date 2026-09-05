@@ -152,9 +152,12 @@ const scoreScope = function scoreScope(pack: ConsentManifestPolicyPack) {
 const countOptionalCategories = function countOptionalCategories(
 	pack: ConsentManifestPolicyPack
 ) {
-	return (pack.resolvedPolicy.consent?.categories ?? []).filter(
-		(category) => category !== 'necessary'
-	).length;
+	const categories = pack.resolvedPolicy.consent?.categories;
+	// The runtime reads an absent, empty, or `*` list as every category.
+	if (!categories || categories.length === 0 || categories.includes('*')) {
+		return Number.POSITIVE_INFINITY;
+	}
+	return categories.filter((category) => category !== 'necessary').length;
 };
 
 const comparePolicyStrictness = function comparePolicyStrictness(

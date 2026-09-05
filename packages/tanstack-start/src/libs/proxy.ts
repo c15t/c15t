@@ -258,7 +258,7 @@ export const isProxyPathAllowed = function isProxyPathAllowed(
  * Headers that describe the hop chain. They are never copied from the
  * browser through `forwardHeaders`; the trusted branch below builds them.
  */
-const FORWARDING_HEADERS = new Set([
+export const FORWARDING_HEADERS: ReadonlySet<string> = new Set([
 	'forwarded',
 	'x-forwarded-for',
 	'x-forwarded-host',

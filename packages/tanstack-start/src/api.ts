@@ -42,7 +42,11 @@ import type {
 } from '@c15t/schema/types';
 
 import { filterCookieHeader } from './libs/cookies';
-import { proxyConsentRequest, resolveProxyOptions } from './libs/proxy';
+import {
+	FORWARDING_HEADERS,
+	proxyConsentRequest,
+	resolveProxyOptions,
+} from './libs/proxy';
 import type { ConsentProxyOptions } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
 import { resolveRequestURL } from './libs/request-url';
@@ -380,7 +384,9 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				: [];
 		for (const name of extras) {
 			const lower = name.toLowerCase();
-			if (lower === 'cookie') {
+			// Hop-chain headers are never copied from the browser; the manifest
+			// fetch carries no trusted branch to rebuild them from.
+			if (lower === 'cookie' || FORWARDING_HEADERS.has(lower)) {
 				continue;
 			}
 			const value = request.headers.get(lower);

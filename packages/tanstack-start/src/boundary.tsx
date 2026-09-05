@@ -26,6 +26,7 @@ import type { ConsentProviderOptions } from '@c15t/react/provider';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
+import { decisionInputsFromConfig } from './libs/decision-seed';
 import { readPrefetchedInitialData } from './libs/prefetch-head';
 
 /**
@@ -112,7 +113,8 @@ export interface ConsentBoundaryProps {
 const resolveMode = function resolveMode(
 	backendURL: string | undefined,
 	initRoute: string | false | undefined,
-	initialData: ReturnType<typeof readPrefetchedInitialData>
+	initialData: ReturnType<typeof readPrefetchedInitialData>,
+	config: KernelConfig | undefined
 ): ProviderTransportFactory {
 	if (!backendURL) {
 		return offline();
@@ -122,6 +124,9 @@ const resolveMode = function resolveMode(
 	}
 	return hosted({
 		assertDecisionInputs: true,
+		// The server-rendered banner is interactive before the client init
+		// resolves; the prefetched decision binds any save made in between.
+		decisionInputs: decisionInputsFromConfig(config),
 		initURL: initRoute ?? DEFAULT_INIT_ROUTE,
 		initialData,
 		url: backendURL,
@@ -175,7 +180,8 @@ export const ConsentBoundary = ({
 					backendURL,
 					initRoute,
 					overrides: options?.overrides,
-				})
+				}),
+				config
 			)
 	);
 	// Initial-only, like the provider's own `mode`.

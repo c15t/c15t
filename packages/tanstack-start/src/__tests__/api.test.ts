@@ -369,3 +369,33 @@ describe('createConsentServerRoute: manifest cache keys and credentialed respons
 		expect(anonymous.headers.get('cache-control')).toBe('public, s-maxage=120');
 	});
 });
+
+describe('createConsentServerRoute: forwarding headers on the manifest fetch', () => {
+	test('never copies client x-forwarded-* onto the upstream manifest request', async () => {
+		const fetch = createManifestFetch();
+		const { manifestGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			proxy: {
+				forwardHeaders: [
+					'x-forwarded-host',
+					'x-forwarded-for',
+					'x-forwarded-proto',
+				],
+			},
+		});
+		await manifestGET({
+			request: request('/api/c15t/manifest', {
+				'x-forwarded-for': '203.0.113.7',
+				'x-forwarded-host': 'evil.example',
+				'x-forwarded-proto': 'http',
+			}),
+		});
+		const headers = new Headers(
+			(fetch.mock.calls[0] as [string, RequestInit])[1].headers
+		);
+		expect(headers.get('x-forwarded-host')).toBeNull();
+		expect(headers.get('x-forwarded-for')).toBeNull();
+		expect(headers.get('x-forwarded-proto')).toBeNull();
+	});
+});

@@ -9,6 +9,7 @@ import type {
 	KernelTransport,
 	KernelUser,
 } from '../types';
+import type { RememberedDecisionInputs } from './decision-inputs';
 import { createHostedTransport } from './hosted';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
@@ -83,6 +84,12 @@ export interface HostedModeOptions {
 	 * decision-input assertion intact.
 	 */
 	initialData?: Promise<SSRInitialData | undefined>;
+	/**
+	 * Decision inputs a server-side prefetch already resolved, so a save
+	 * made before the first client `init()` resolves still carries the
+	 * decision assertion. Only used with `assertDecisionInputs`.
+	 */
+	decisionInputs?: RememberedDecisionInputs;
 }
 
 /**
@@ -105,6 +112,7 @@ export const hosted = function hosted(
 			createHostedTransport({
 				assertDecisionInputs: options.assertDecisionInputs,
 				backendURL: options.url,
+				decisionInputs: options.decisionInputs,
 				domain: options.domain,
 				fetch: options.fetch,
 				headers: options.headers,
