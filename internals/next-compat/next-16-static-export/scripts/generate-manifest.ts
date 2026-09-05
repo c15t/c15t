@@ -14,7 +14,9 @@ import { createStaticManifestModule } from '@c15t/nextjs/static';
 const backendURL = process.env.NEXT_PUBLIC_COMPAT_BACKEND_URL;
 if (!backendURL) {
 	throw new Error(
-		'NEXT_PUBLIC_COMPAT_BACKEND_URL is not set. The compat suite sets it to the standalone stub; run `bun run test:compat` instead of `bun run build`.'
+		'NEXT_PUBLIC_COMPAT_BACKEND_URL is not set. The compat suite sets it ' +
+			'to the standalone stub; run `bun run test:compat` instead of ' +
+			'`bun run build`.'
 	);
 }
 

@@ -53,7 +53,13 @@ const resolveFile = function resolveFile(
 	outDir: string,
 	pathname: string
 ): string | undefined {
-	for (const candidate of candidatesFor(decodeURIComponent(pathname))) {
+	let decoded: string;
+	try {
+		decoded = decodeURIComponent(pathname);
+	} catch {
+		return undefined;
+	}
+	for (const candidate of candidatesFor(decoded)) {
 		const file = resolve(outDir, candidate);
 		if (file.startsWith(`${outDir}${sep}`) && isFile(file)) {
 			return file;

@@ -278,12 +278,42 @@
 			],
 			"env": ["C15T_TEST_PG_URL", "C15T_TEST_MYSQL_URL"]
 		},
+		"@c15t/next-compat-15-app#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-15-pages#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-app#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-cache-components#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-pages#check-types": {
+			"dependsOn": []
+		},
+		"@c15t/next-compat-16-static-export#check-types": {
+			"dependsOn": []
+		},
 		"test:compat": {
+			"cache": false,
 			"dependsOn": ["build", "^build"],
+			"env": [
+				"COMPAT_FORCE_BUILD",
+				"COMPAT_SKIP_BUILD",
+				"COMPAT_PRINT_SERVER_LOGS"
+			],
 			"outputs": []
 		},
 		"@c15t/next-compat-16-static-export#test:compat": {
+			"cache": false,
 			"dependsOn": ["^build"],
+			"env": [
+				"COMPAT_FORCE_BUILD",
+				"COMPAT_SKIP_BUILD",
+				"COMPAT_PRINT_SERVER_LOGS"
+			],
 			"outputs": []
 		},
 		"test-storybook": {

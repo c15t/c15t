@@ -116,10 +116,10 @@ export const resolveManifestCacheTtlSeconds =
 		cacheControl: string | undefined,
 		sMaxAge: number
 	): number {
-		if (sMaxAge > 0) {
-			return sMaxAge;
+		if (forbidsReuse(cacheControl)) {
+			return 0;
 		}
-		return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
+		return sMaxAge > 0 ? sMaxAge : MANIFEST_DEDUPE_TTL_SECONDS;
 	};
 
 const revalidate = async function revalidate(

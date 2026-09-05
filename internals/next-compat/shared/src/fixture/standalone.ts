@@ -130,7 +130,8 @@ export const startFixtureServer = async function startFixtureServer({
 }: FixtureServerOptions = {}): Promise<FixtureServer> {
 	const server = createServer(createHandler(basePath));
 	const boundPort = await listen(server, host, port);
-	const url = `http://${host}:${boundPort}`;
+	const urlHost = host.includes(':') ? `[${host}]` : host;
+	const url = `http://${urlHost}:${boundPort}`;
 	return {
 		backendURL: `${url}${basePath}`,
 		close: async () => {

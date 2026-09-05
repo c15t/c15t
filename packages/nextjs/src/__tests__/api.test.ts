@@ -203,6 +203,7 @@ describe('@c15t/nextjs/api', () => {
 
 		// Both routes read the backend manifest, never the config's own
 		// same-origin `manifestURL`, which these handlers serve.
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		for (const [url] of fetchSpy.mock.calls) {
 			expect(url).toBe('https://consent.example.com/api/c15t/manifest');
 		}

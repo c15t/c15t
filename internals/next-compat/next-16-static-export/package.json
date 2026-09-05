@@ -9,7 +9,6 @@
 		"dev": "next dev",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint .",
-		"start": "next start",
 		"test:compat": "vitest run"
 	},
 	"dependencies": {

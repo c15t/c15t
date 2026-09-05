@@ -49,9 +49,9 @@ const createResponseSink = function createResponseSink() {
 	};
 	const text = () => {
 		const decoder = new TextDecoder();
-		return chunks
+		return `${chunks
 			.map((chunk) => decoder.decode(chunk, { stream: true }))
-			.join('');
+			.join('')}${decoder.decode()}`;
 	};
 	return { ended: () => ended, headers, res, text };
 };

@@ -90,7 +90,8 @@ const run = function run(command: string, args: string[], cwd: string) {
 	const result = spawnSync(command, args, { cwd, stdio: 'pipe' });
 	if (result.status !== 0) {
 		throw new Error(
-			`${command} ${args.join(' ')} failed in ${cwd}\n${String(result.stdout)}${String(result.stderr)}`
+			`${command} ${args.join(' ')} failed in ${cwd}\n` +
+				`${String(result.stdout)}${String(result.stderr)}`
 		);
 	}
 	return String(result.stdout).trim();
@@ -233,7 +234,8 @@ const main = function main() {
 	rmSync(join(cellDir, '.next', 'cache'), { force: true, recursive: true });
 
 	console.log(
-		`[next-compat] installed ${closure.length} packed packages and ${SHARED_PACKAGE} into ${relative(repoRoot, cellModules)}`
+		`[next-compat] installed ${closure.length} packed packages and ` +
+			`${SHARED_PACKAGE} into ${relative(repoRoot, cellModules)}`
 	);
 };
 

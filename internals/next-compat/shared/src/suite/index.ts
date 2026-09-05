@@ -323,6 +323,15 @@ export const defineCompatSuite = function defineCompatSuite({
 						{ timeout: 30_000 }
 					);
 
+					// The persistence module batches its cookie write on a timer, so
+					// wait for the cookie itself before reloading; otherwise a slow
+					// runner reloads before the consent is persisted.
+					await page.waitForFunction(
+						() => document.cookie.includes('c15t='),
+						undefined,
+						{ timeout: 10_000 }
+					);
+
 					await page.reload({ waitUntil: 'domcontentloaded' });
 					await waitForInit(page);
 					// Persisted consent hydrates from the cookie alongside init; in

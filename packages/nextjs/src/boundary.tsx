@@ -114,7 +114,16 @@ const createLazyManifestTransport = function createLazyManifestTransport(
 ): KernelTransport {
 	let transportPromise: Promise<KernelTransport> | undefined;
 	const load = function load(): Promise<KernelTransport> {
-		transportPromise ??= loadManifestTransport(options);
+		transportPromise ??= (async () => {
+			try {
+				return await loadManifestTransport(options);
+			} catch (error) {
+				// A failed chunk load must not poison every later init/save;
+				// the kernel's retry gets a fresh import attempt.
+				transportPromise = undefined;
+				throw error;
+			}
+		})();
 		return transportPromise;
 	};
 

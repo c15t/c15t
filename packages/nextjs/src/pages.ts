@@ -150,6 +150,16 @@ const toPagesApiHandler = function toPagesApiHandler(
 	handler: (request: Request) => Promise<Response>
 ): PagesApiHandler {
 	return async (req, res) => {
+		// The App Router only exposes GET for these routes and answers other
+		// methods with 405; a pages/api default export sees every method.
+		const method = (req.method ?? 'GET').toUpperCase();
+		if (method !== 'GET' && method !== 'HEAD') {
+			await writeWebResponse(
+				new Response(null, { headers: { allow: 'GET' }, status: 405 }),
+				res
+			);
+			return;
+		}
 		const response = await handler(await toWebRequest(req));
 		await writeWebResponse(response, res);
 	};

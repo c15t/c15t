@@ -294,6 +294,20 @@ const createInitHeadersFromOverrides = function createInitHeadersFromOverrides(
  * Headers forwarded onto the backend call: the incoming cookies plus any
  * explicitly requested request headers.
  */
+const pickRequestHeaders = function pickRequestHeaders(
+	requestHeaders: Headers,
+	names: readonly string[] | undefined
+): Record<string, string> {
+	const picked: Record<string, string> = {};
+	for (const name of names ?? []) {
+		const value = requestHeaders.get(name);
+		if (value) {
+			picked[name.toLowerCase()] = value;
+		}
+	}
+	return picked;
+};
+
 const createForwardHeaders = function createForwardHeaders(
 	cookieHeader: string,
 	requestHeaders: Headers,
@@ -423,13 +437,40 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 
 	const absoluteBackend = resolveBackendURL(backendURL, requestHeaders);
 	if (!absoluteBackend) {
+		reportPrefetchError(
+			options,
+			backendURL,
+			new Error(
+				'backendURL could not be resolved from the request headers; pass an absolute URL or make sure host/x-forwarded-* reach the server.'
+			)
+		);
 		return base;
 	}
 	const absoluteManifest = manifestURL
 		? resolveBackendURL(manifestURL, requestHeaders)
 		: undefined;
 	if (manifestURL && !absoluteManifest) {
+		reportPrefetchError(
+			options,
+			manifestURL,
+			new Error(
+				'manifestURL could not be resolved from the request headers; pass an absolute URL or make sure host/x-forwarded-* reach the server.'
+			)
+		);
 		return base;
+	}
+
+	if (options.manifest || absoluteManifest) {
+		// The manifest is public policy data, so the fetch carries only the
+		// headers the caller asked for: no cookies, client IP, or user agent.
+		return await prefetchFromManifest({
+			absoluteBackend,
+			absoluteManifest,
+			base,
+			forward: pickRequestHeaders(requestHeaders, options.forwardHeaders),
+			options,
+			requestHeaders,
+		});
 	}
 
 	const forward = createForwardHeaders(
@@ -437,17 +478,6 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		requestHeaders,
 		options.forwardHeaders
 	);
-
-	if (options.manifest || absoluteManifest) {
-		return await prefetchFromManifest({
-			absoluteBackend,
-			absoluteManifest,
-			base,
-			forward,
-			options,
-			requestHeaders,
-		});
-	}
 
 	try {
 		const response = await fetchHostedInit({
