@@ -1,0 +1,10 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["node"],
+		"moduleResolution": "bundler"
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

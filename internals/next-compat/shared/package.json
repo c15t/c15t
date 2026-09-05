@@ -1,0 +1,32 @@
+{
+	"name": "@c15t/next-compat-shared",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Shared fixture routes, probe, and Vitest suites for the @c15t/nextjs compatibility matrix.",
+	"type": "module",
+	"exports": {
+		"./config": "./src/config.ts",
+		"./consent-shell": "./src/consent-shell.tsx",
+		"./probe": "./src/probe.tsx",
+		"./fixture": "./src/fixture/index.ts",
+		"./fixture/node-adapter": "./src/fixture/node-adapter.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/nextjs": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@types/node": "25.5.0",
+		"@types/react": "19.2.17",
+		"playwright": "1.61.1",
+		"react": "19.2.7",
+		"typescript": "6.0.3",
+		"vitest": "4.1.9"
+	}
+}
