@@ -46,6 +46,28 @@ export const dialogContract: PlayFunction = async () => {
 			).toBeGreaterThan(0);
 		}
 	});
+	// Native controls must work through browser keyboard activation, separately.
+	const trigger = body.getByTestId(
+		'consent-widget-accordion-trigger-functionality'
+	);
+	const toggle = body.getByTestId('consent-widget-switch-functionality');
+	trigger.focus();
+	await userEvent.keyboard('{Enter}');
+	await waitFor(() => expect(trigger).toHaveAttribute('aria-expanded', 'true'));
+	await userEvent.keyboard('{Enter}');
+	await waitFor(() =>
+		expect(trigger).toHaveAttribute('aria-expanded', 'false')
+	);
+	const previous = toggle.getAttribute('aria-checked');
+	toggle.focus();
+	await userEvent.keyboard(' ');
+	await waitFor(() =>
+		expect(toggle.getAttribute('aria-checked')).not.toBe(previous)
+	);
+	expect(trigger).toHaveAttribute('aria-expanded', 'false');
+	await userEvent.keyboard(' ');
+	await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', previous));
+	root.focus();
 };
 
 /**

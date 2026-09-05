@@ -134,7 +134,9 @@ const mockFetch = function mockFetch(): typeof fetch {
 	) as unknown as typeof fetch;
 };
 
-const renderManager = async function renderManager() {
+const renderManager = async function renderManager(
+	overrides: Partial<ConsentConfig> = {}
+) {
 	const config = {
 		backendURL: 'https://consent.example',
 		consentCategories: ['necessary', 'functionality', 'measurement'],
@@ -143,6 +145,7 @@ const renderManager = async function renderManager() {
 		domain: 'consent.example',
 		hideBranding: false,
 		trapFocus: false,
+		...overrides,
 	} as ConsentConfig;
 	const context = createVueConsentKernelContext({ config, prefetch: init });
 	context.activeUI.value = 'manager';
@@ -206,7 +209,7 @@ describe('ConsentManager accordion accessibility', () => {
 		}
 	});
 
-	test('Space toggles a focused switch without opening the accordion', async () => {
+	test('native switch activation toggles without opening the accordion', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const switchEl = document.querySelector(
@@ -219,9 +222,7 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(switchEl.getAttribute('aria-checked')).toBe('false');
 			expect(content?.getAttribute('data-state')).toBe('closed');
 
-			switchEl.dispatchEvent(
-				new KeyboardEvent('keydown', { bubbles: true, key: ' ' })
-			);
+			switchEl.click();
 			await flushPromises();
 
 			expect(switchEl.getAttribute('aria-checked')).toBe('true');
@@ -231,7 +232,7 @@ describe('ConsentManager accordion accessibility', () => {
 		}
 	});
 
-	test('Enter toggles the accordion trigger and updates aria-expanded', async () => {
+	test('native trigger activation updates aria-expanded', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const trigger = document.querySelector(
@@ -244,9 +245,7 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(trigger.getAttribute('aria-expanded')).toBe('false');
 			expect(content?.getAttribute('data-state')).toBe('closed');
 
-			trigger.dispatchEvent(
-				new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' })
-			);
+			trigger.click();
 			await flushPromises();
 
 			expect(trigger.getAttribute('aria-expanded')).toBe('true');
@@ -302,6 +301,140 @@ describe('ConsentManager accordion accessibility', () => {
 			expect(accept?.getAttribute('data-mode')).toBe('stroke');
 			expect(customize?.getAttribute('data-variant')).toBe('primary');
 			expect(customize?.getAttribute('data-mode')).toBe('stroke');
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+});
+
+describe('ConsentManager widget composition', () => {
+	const button = (action: string) => {
+		const element = document.querySelector<HTMLButtonElement>(
+			`[data-action="${action}"]`
+		);
+		expect(element).toBeInstanceOf(HTMLButtonElement);
+		if (!element) {
+			throw new Error(`Missing ${action} action`);
+		}
+		return element;
+	};
+
+	for (const action of ['accept', 'reject', 'save']) {
+		test(`${action} waits for completion, stays open on failure, and returns to a required prompt`, async () => {
+			const { context, wrapper } = await renderManager();
+			try {
+				let complete: ((value: { ok: false }) => void) | undefined;
+				const pending = createDeferredPromise<{ ok: false }>((resolve) => {
+					complete = resolve;
+				});
+				const save = vi
+					.spyOn(context.kernel.commands, 'save')
+					.mockReturnValueOnce(pending)
+					.mockResolvedValueOnce({ ok: true });
+				button(action).click();
+				await flushPromises();
+				expect(save).toHaveBeenCalledTimes(1);
+				expect(context.activeUI.value).toBe('manager');
+				complete?.({ ok: false });
+				await flushPromises();
+				expect(context.activeUI.value).toBe('manager');
+				button(action).click();
+				await flushPromises();
+				expect(save).toHaveBeenCalledTimes(2);
+				expect(context.activeUI.value).toBe('banner');
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+	}
+
+	test('successful save closes when no prompt remains', async () => {
+		const { context, wrapper } = await renderManager();
+		try {
+			await context.kernel.commands.save('all');
+			await flushPromises();
+			expect(context.snapshot.value.promptRequirement.kind).toBe('none');
+			context.activeUI.value = 'manager';
+			await flushPromises();
+			button('save').click();
+			await flushPromises();
+			await vi.waitFor(() => expect(context.activeUI.value).toBeNull());
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('reopening discards unsaved draft changes and save uses the displayed draft', async () => {
+		const { context, wrapper } = await renderManager();
+		const toggle = () => {
+			const element = document.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-widget-switch-functionality"]'
+			);
+			if (!element) {
+				throw new Error('Missing functionality switch');
+			}
+			return element;
+		};
+		try {
+			toggle().click();
+			await flushPromises();
+			expect(toggle().getAttribute('aria-checked')).toBe('true');
+			context.activeUI.value = null;
+			await flushPromises();
+			context.activeUI.value = 'manager';
+			await flushPromises();
+			expect(toggle().getAttribute('aria-checked')).toBe('false');
+			toggle().click();
+			await flushPromises();
+			const save = vi
+				.spyOn(context.kernel.commands, 'save')
+				.mockResolvedValue({ ok: false });
+			button('save').click();
+			await flushPromises();
+			expect(save).toHaveBeenCalledWith({
+				functionality: true,
+				measurement: false,
+			});
+		} finally {
+			await cleanup(wrapper, context);
+		}
+	});
+
+	test('configuration reaches widget regions and retains host handlers', async () => {
+		const onClick = vi.fn();
+		const { context, wrapper } = await renderManager({
+			components: {
+				accordion: {
+					contentInner: { class: 'host-inner' },
+					triggerRow: { onClick },
+				},
+				'accordion-item': { trigger: { class: 'host-trigger' } },
+				button: { primary: { class: 'host-primary' } },
+				manager: {
+					actionGroup: { class: 'host-group' },
+					actions: { class: 'host-actions' },
+					footer: { class: 'host-footer' },
+					root: { class: 'host-root' },
+				},
+				switch: { thumb: { class: 'host-thumb' } },
+			},
+		});
+		try {
+			for (const region of [
+				'inner',
+				'trigger',
+				'primary',
+				'group',
+				'footer',
+				'root',
+				'thumb',
+			]) {
+				expect(document.querySelector(`.host-${region}`)).not.toBeNull();
+			}
+			expect(document.querySelector('.host-actions')).not.toBeNull();
+			document.querySelector<HTMLButtonElement>('.host-trigger')?.click();
+			await flushPromises();
+			expect(onClick).toHaveBeenCalledTimes(1);
 		} finally {
 			await cleanup(wrapper, context);
 		}
