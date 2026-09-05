@@ -22,6 +22,8 @@
 import { c15tVersionHeaders } from '@c15t/core';
 import { CONSENT_REQUEST_HEADER_NAMES, getIpAddress } from '@c15t/schema/geo';
 
+import { filterCookieHeader } from './cookies';
+
 /** Value of the `x-c15t-proxy` header added to every forwarded request. */
 export const PROXY_HEADER_VALUE = '@c15t/tanstack-start';
 
@@ -91,12 +93,21 @@ export interface ConsentProxyOptions {
 	 * `sec-gpc`, and every consent request header).
 	 */
 	forwardHeaders?: readonly string[];
+
+	/**
+	 * Cookie names to forward. By default the whole `Cookie` header goes
+	 * upstream, which the backend needs for its own consent cookies but also
+	 * carries any session cookie your origin sets. Pass the names c15t needs,
+	 * for example `['c15t']`, to keep the rest on your origin.
+	 */
+	cookieNames?: readonly string[];
 }
 
 /** Resolved proxy configuration shared by the handler factory. */
 export interface ResolvedProxyOptions {
 	paths: readonly string[];
 	forwardHeaders: readonly string[];
+	cookieNames?: readonly string[];
 }
 
 /**
@@ -111,6 +122,7 @@ export const resolveProxyOptions = function resolveProxyOptions(
 	}
 	const options = proxy === true ? {} : proxy;
 	return {
+		cookieNames: options.cookieNames,
 		forwardHeaders: [
 			...DEFAULT_FORWARD_HEADERS,
 			...(options.forwardHeaders ?? []).map((name) => name.toLowerCase()),
@@ -136,9 +148,35 @@ const matchesPattern = function matchesPattern(
 	);
 };
 
+const decodeSegment = function decodeSegment(segment: string): string | null {
+	try {
+		return decodeURIComponent(segment);
+	} catch {
+		return null;
+	}
+};
+
+/**
+ * `true` when a decoded path segment could change the target once the URL
+ * parser normalizes it: empty, dot segments, or an encoded separator.
+ */
+const isUnsafeSegment = function isUnsafeSegment(segment: string): boolean {
+	const decoded = decodeSegment(segment);
+	return (
+		decoded === null ||
+		decoded === '' ||
+		decoded === '.' ||
+		decoded === '..' ||
+		decoded.includes('/') ||
+		decoded.includes('\\')
+	);
+};
+
 /**
  * `true` when `path` is allowed through the proxy. Each allowlist entry is
  * matched segment by segment; `*` matches exactly one non-empty segment.
+ * Segments are percent-decoded before the check, so `%2e%2e` and an encoded
+ * slash are rejected the same as a literal `..`.
  */
 export const isProxyPathAllowed = function isProxyPathAllowed(
 	path: string,
@@ -149,7 +187,7 @@ export const isProxyPathAllowed = function isProxyPathAllowed(
 		return false;
 	}
 	const segments = normalized.split('/');
-	if (segments.some((segment) => segment === '' || segment === '..')) {
+	if (segments.some((segment) => isUnsafeSegment(segment))) {
 		return false;
 	}
 	return allowed.some((pattern) => matchesPattern(pattern, segments));
@@ -186,14 +224,23 @@ const appendForwardedFor = function appendForwardedFor(
  */
 export const buildProxyRequestHeaders = function buildProxyRequestHeaders(
 	request: Request,
-	forwardHeaders: readonly string[]
+	forwardHeaders: readonly string[],
+	cookieNames?: readonly string[]
 ): Headers {
 	const headers = new Headers();
 	for (const name of forwardHeaders) {
 		const value = request.headers.get(name);
-		if (value !== null) {
-			headers.set(name, value);
+		if (value === null) {
+			continue;
 		}
+		if (name === 'cookie' && cookieNames) {
+			const scoped = filterCookieHeader(value, cookieNames);
+			if (scoped) {
+				headers.set(name, scoped);
+			}
+			continue;
+		}
+		headers.set(name, value);
 	}
 
 	appendForwardedFor(request.headers, headers);
@@ -297,10 +344,22 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	}
 
 	const { search } = new URL(request.url);
-	const target = `${backendURL.replace(/\/+$/u, '')}/${normalized}${search}`;
+	const base = backendURL.replace(/\/+$/u, '');
+	const target = `${base}/${normalized}${search}`;
+	// Belt and braces: the segment check above rejects anything the URL
+	// parser would fold, so the parsed target must still sit exactly at the
+	// allowlisted path under the backend base.
+	const expectedPathname = `${new URL(base).pathname.replace(/\/+$/u, '')}/${normalized}`;
+	if (new URL(target).pathname !== expectedPathname) {
+		return Response.json({ error: 'Not found' }, { status: 404 });
+	}
 	const method = request.method.toUpperCase();
 	const init: RequestInit & { duplex?: 'half' } = {
-		headers: buildProxyRequestHeaders(request, options.forwardHeaders),
+		headers: buildProxyRequestHeaders(
+			request,
+			options.forwardHeaders,
+			options.cookieNames
+		),
 		method,
 		redirect: 'manual',
 	};

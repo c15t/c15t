@@ -4,7 +4,7 @@
  * Import this stylesheet once from your app-level CSS entrypoint when using
  * prebuilt (styled) consent components.
  *
- * Usage (app/globals.css):
+ * Usage (src/styles.css):
  *   @import "@c15t/tanstack-start/styles.css";
  */
 @import '@c15t/react/styles.css';

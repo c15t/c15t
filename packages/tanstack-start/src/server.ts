@@ -69,6 +69,7 @@ import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from './headers';
+import { filterCookieHeader } from './libs/cookies';
 import { isSelfRoute, resolveRequestURL } from './libs/request-url';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -252,10 +253,20 @@ export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigO
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * Request headers to forward onto backend calls, for example an
-	 * authentication token. Cookies are forwarded automatically.
+	 * Request headers to forward onto the manifest fetch, for example an
+	 * authentication token a private backend requires. The request's
+	 * cookies are forwarded automatically; scope them with
+	 * {@link PrefetchInitialConsentOptions.cookieNames}.
 	 */
 	forwardHeaders?: string[];
+
+	/**
+	 * Cookie names to forward to the backend. By default the whole `Cookie`
+	 * header goes along, which matches the Next.js adapter but also sends
+	 * any session cookie your origin sets. Pass the names c15t needs, for
+	 * example `['c15t']`, to keep the rest at home.
+	 */
+	cookieNames?: readonly string[];
 
 	/**
 	 * Manifest cache to read through. Defaults to the module-level cache
@@ -276,12 +287,15 @@ export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigO
 
 const collectForwardHeaders = function collectForwardHeaders(
 	request: Request,
-	names: string[] | undefined
+	names: string[] | undefined,
+	cookieNames: readonly string[] | undefined
 ): Record<string, string> {
 	const forward: Record<string, string> = {};
 	const cookie = request.headers.get('cookie');
-	if (cookie) {
-		forward.cookie = cookie;
+	const scopedCookie =
+		cookie && cookieNames ? filterCookieHeader(cookie, cookieNames) : cookie;
+	if (scopedCookie) {
+		forward.cookie = scopedCookie;
 	}
 	for (const name of names ?? []) {
 		const value = request.headers.get(name);
@@ -294,7 +308,8 @@ const collectForwardHeaders = function collectForwardHeaders(
 
 const loadManifest = async function loadManifest(
 	options: PrefetchInitialConsentOptions,
-	request: Request
+	request: Request,
+	forward: Record<string, string>
 ): Promise<{ backendURL: string; manifest: ConsentManifest } | null> {
 	const backendURL = resolveRequestURL(options.backendURL, request);
 	if (!backendURL) {
@@ -323,6 +338,7 @@ const loadManifest = async function loadManifest(
 	const cached = await fetchCachedManifest({
 		cache: options.cache,
 		fetch: options.fetch,
+		headers: forward,
 		sourceURL,
 	});
 	return { backendURL, manifest: cached.manifest };
@@ -351,7 +367,12 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 	const base = await readInitialConsentConfig({ ...options, request });
 
 	try {
-		const loaded = await loadManifest(options, request);
+		const forward = collectForwardHeaders(
+			request,
+			options.forwardHeaders,
+			options.cookieNames
+		);
+		const loaded = await loadManifest(options, request, forward);
 		if (!loaded) {
 			return base;
 		}
@@ -363,7 +384,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 			backendURL: loaded.backendURL,
 			baseTranslations,
 			fetch: options.fetch,
-			headers: collectForwardHeaders(request, options.forwardHeaders),
+			headers: forward,
 			inputs,
 			manifest: loaded.manifest,
 		});
@@ -425,9 +446,12 @@ export const consentLoaderOptions = {
 /**
  * Builds the handler for the consent config server function.
  *
- * TanStack Start's compiler only splits `createServerFn().handler()` calls
- * it finds at the top level of your own modules, so the server function
- * must be declared in your code. This factory returns the handler body:
+ * TanStack Start keys each server function's ID to the file path of the
+ * `createServerFn().handler()` call site and requires that call to be a
+ * top-level assignment in your own module, so a function built inside this
+ * package would carry an ID bound to the package's build and fail to
+ * resolve at runtime. Declare the server function in your code and pass
+ * this factory's result as its handler:
  *
  * @example
  * ```ts

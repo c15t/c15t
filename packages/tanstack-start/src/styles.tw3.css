@@ -4,7 +4,7 @@
  * Import this stylesheet in the same global CSS entrypoint as Tailwind 3,
  * after `@tailwind components;` and before `@tailwind utilities;`.
  *
- * Usage (app/globals.css):
+ * Usage (src/styles.css):
  *   @tailwind base;
  *   @tailwind components;
  *   @import "@c15t/tanstack-start/styles.tw3.css";

@@ -224,3 +224,47 @@ describe('createConsentConfigHandler', () => {
 		expect(await handler()).toEqual({ initialOverrides: { country: 'DE' } });
 	});
 });
+
+describe('prefetchInitialConsent: header forwarding', () => {
+	const manifestCall = function manifestCall(
+		fetchSpy: ReturnType<typeof vi.fn>
+	) {
+		const call = fetchSpy.mock.calls[0] as [string, RequestInit] | undefined;
+		if (!call) {
+			throw new Error('manifest was not fetched');
+		}
+		return { headers: new Headers(call[1].headers), url: call[0] };
+	};
+
+	test('forwards cookies and named headers on the manifest fetch', async () => {
+		const fetchSpy = createManifestFetch();
+		await prefetchInitialConsent(
+			{
+				backendURL: 'https://consent.example.com',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				forwardHeaders: ['authorization'],
+			},
+			createRequest({
+				authorization: 'Bearer token',
+				cookie: 'session=secret; c15t=abc',
+			})
+		);
+		const { headers, url } = manifestCall(fetchSpy);
+		expect(url).toBe('https://consent.example.com/manifest');
+		expect(headers.get('authorization')).toBe('Bearer token');
+		expect(headers.get('cookie')).toBe('session=secret; c15t=abc');
+	});
+
+	test('scopes forwarded cookies with cookieNames', async () => {
+		const fetchSpy = createManifestFetch();
+		await prefetchInitialConsent(
+			{
+				backendURL: 'https://consent.example.com',
+				cookieNames: ['c15t'],
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			},
+			createRequest({ cookie: 'session=secret; c15t=abc' })
+		);
+		expect(manifestCall(fetchSpy).headers.get('cookie')).toBe('c15t=abc');
+	});
+});

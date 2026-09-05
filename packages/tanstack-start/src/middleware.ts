@@ -17,7 +17,10 @@ export interface ConsentRequestMiddlewareOptions {
 	region?: string;
 
 	/**
-	 * Override the negotiated language.
+	 * Override the negotiated language. Written back onto the request as
+	 * `accept-language` when header normalization is on, so readers that
+	 * only look at headers (`readInitialConsentConfig`, the init route) see
+	 * the same value as `context.consent.language`.
 	 */
 	language?: string;
 
@@ -40,9 +43,13 @@ export interface ConsentRequestContext {
 
 const writeNormalizedHeaders = function writeNormalizedHeaders(
 	headers: Headers,
-	inputs: ConsentRequestInputs
+	inputs: ConsentRequestInputs,
+	language: string | undefined
 ): void {
 	try {
+		if (language) {
+			headers.set('accept-language', language);
+		}
 		if (inputs.country) {
 			headers.set('x-c15t-country', inputs.country);
 		}
@@ -109,7 +116,7 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 			}
 		);
 		if (options.normalizeHeaders !== false) {
-			writeNormalizedHeaders(request.headers, inputs);
+			writeNormalizedHeaders(request.headers, inputs, options.language);
 		}
 		return next({
 			context: { consent: inputs } satisfies ConsentRequestContext,

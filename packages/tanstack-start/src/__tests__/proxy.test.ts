@@ -465,3 +465,54 @@ describe('proxy on: response shaping', () => {
 		expect(rewriteSetCookie('a=1; Path=/')).toBe('a=1; Path=/');
 	});
 });
+
+describe('proxy on: canonical paths and cookie scoping', () => {
+	test('rejects encoded dot and separator segments without calling upstream', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch);
+		for (const splat of [
+			'subjects/%2e%2e',
+			'subjects/%2E%2E',
+			'subjects/a%2Fb',
+			'subjects/%2e',
+		]) {
+			// oxlint-disable-next-line no-await-in-loop -- sequential assertions keep the failing splat readable.
+			const response = await handlers.POST({
+				params: { _splat: splat },
+				request: request(splat, { body: '{}', method: 'POST' }),
+			});
+			expect(response.status, splat).toBe(404);
+		}
+		expect(fetch).not.toHaveBeenCalled();
+		expect(isProxyPathAllowed('subjects/%2e%2e', ['subjects/*'])).toBe(false);
+		expect(isProxyPathAllowed('subjects/sub_1', ['subjects/*'])).toBe(true);
+	});
+
+	test('forwards only the named cookies when cookieNames is set', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch, { cookieNames: ['c15t'] });
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { cookie: 'session=secret; c15t=abc; other=1' },
+				method: 'POST',
+			}),
+		});
+		expect(upstreamCall(fetch).headers.get('cookie')).toBe('c15t=abc');
+	});
+
+	test('drops the cookie header entirely when no named cookie is present', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch, { cookieNames: ['c15t'] });
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { cookie: 'session=secret' },
+				method: 'POST',
+			}),
+		});
+		expect(upstreamCall(fetch).headers.get('cookie')).toBeNull();
+	});
+});

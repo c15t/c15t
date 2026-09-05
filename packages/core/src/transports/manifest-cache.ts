@@ -187,16 +187,24 @@ const forbidsReuse = function forbidsReuse(
 		);
 };
 
+/** `true` when the backend sent an `s-maxage` directive, including `0`. */
+const hasSharedMaxAge = function hasSharedMaxAge(
+	cacheControl: string | undefined
+): boolean {
+	return parseCacheDirectiveSeconds(cacheControl, 's-maxage') !== undefined;
+};
+
 /**
- * How long to keep an entry in the in-process cache. Prefers the backend's
- * `s-maxage`, falls back to the dedupe floor, and honours an explicit
- * `no-store`/`no-cache`/`private` by not caching at all.
+ * How long to keep an entry in the in-process cache. An explicit `s-maxage`
+ * is used as-is, so `s-maxage=0` means revalidate on every use rather than
+ * the dedupe floor; a missing directive falls back to the floor, and an
+ * explicit `no-store`/`no-cache`/`private` is not cached at all.
  */
 const resolveCacheTtlSeconds = function resolveCacheTtlSeconds(
 	cacheControl: string | undefined,
 	sMaxAge: number
 ): number {
-	if (sMaxAge > 0) {
+	if (hasSharedMaxAge(cacheControl)) {
 		return sMaxAge;
 	}
 	return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
@@ -261,42 +269,45 @@ export interface FetchCachedManifestOptions {
 	now?: number;
 	/** Cache to read and write. Defaults to the module-level cache. */
 	cache?: ManifestCache;
+	/**
+	 * Extra headers for the upstream request, for example a cookie or an
+	 * authentication header a private manifest requires. They are not part
+	 * of the cache key: the manifest is tenant-level data, so the first
+	 * successful response is shared with every later caller of the same URL.
+	 */
+	headers?: Record<string, string>;
 }
 
-/**
- * Fetches the manifest through the in-process cache.
- *
- * Serves a fresh entry without a network round-trip, revalidates a stale
- * entry with `If-None-Match` and refreshes its TTL on `304`, and otherwise
- * fetches and caches the response according to its `Cache-Control`.
- *
- * @param options - Source URL, fetch, query, clock, and cache overrides.
- * @returns The cached or freshly fetched manifest with its upstream headers.
- * @throws {Error} When no fetch implementation is available or the backend responds
- * with a non-2xx status.
- */
-export const fetchCachedManifest = async function fetchCachedManifest(
-	options: FetchCachedManifestOptions
-): Promise<CachedManifestResponse> {
-	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('c15t manifest cache: a fetch implementation is required.');
-	}
+/** In-flight upstream requests, so concurrent misses share one fetch. */
+const inflightByCache = new WeakMap<
+	ManifestCache,
+	Map<string, Promise<CachedManifestResponse>>
+>();
 
-	const cache = options.cache ?? defaultManifestCache;
-	const requestURL = createManifestRequestURL({
-		query: options.query,
-		sourceURL: options.sourceURL,
-	});
-	const now = options.now ?? Date.now();
-	const cached = cache.get(requestURL);
-	if (cached && cached.expiresAt > now) {
-		return cached;
+const getInflight = function getInflight(
+	cache: ManifestCache
+): Map<string, Promise<CachedManifestResponse>> {
+	let inflight = inflightByCache.get(cache);
+	if (!inflight) {
+		inflight = new Map();
+		inflightByCache.set(cache, inflight);
 	}
+	return inflight;
+};
 
+const revalidateManifest = async function revalidateManifest(input: {
+	cache: ManifestCache;
+	cached: CachedManifestResponse | undefined;
+	fetchImpl: ManifestFetch;
+	headers: Record<string, string> | undefined;
+	now: number;
+	requestURL: string;
+}): Promise<CachedManifestResponse> {
+	const { cache, cached, fetchImpl, now, requestURL } = input;
 	const headers: Record<string, string> = {
 		accept: 'application/json',
 		...c15tVersionHeaders,
+		...input.headers,
 	};
 	if (cached?.headers.etag) {
 		headers['if-none-match'] = cached.headers.etag;
@@ -351,6 +362,62 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 		cache.set(requestURL, entry);
 	}
 	return entry;
+};
+
+/**
+ * Fetches the manifest through the in-process cache.
+ *
+ * Serves a fresh entry without a network round-trip, revalidates a stale
+ * entry with `If-None-Match` and refreshes its TTL on `304`, and otherwise
+ * fetches and caches the response according to its `Cache-Control`.
+ * Concurrent misses for the same URL share one upstream request, so a cold
+ * start or an expiry under load reaches the backend once.
+ *
+ * @param options - Source URL, fetch, query, clock, and cache overrides.
+ * @returns The cached or freshly fetched manifest with its upstream headers.
+ * @throws {Error} When no fetch implementation is available or the backend responds
+ * with a non-2xx status.
+ */
+export const fetchCachedManifest = function fetchCachedManifest(
+	options: FetchCachedManifestOptions
+): Promise<CachedManifestResponse> {
+	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		throw new Error('c15t manifest cache: a fetch implementation is required.');
+	}
+
+	const cache = options.cache ?? defaultManifestCache;
+	const requestURL = createManifestRequestURL({
+		query: options.query,
+		sourceURL: options.sourceURL,
+	});
+	const now = options.now ?? Date.now();
+	const cached = cache.get(requestURL);
+	if (cached && cached.expiresAt > now) {
+		return Promise.resolve(cached);
+	}
+
+	const inflight = getInflight(cache);
+	const pending = inflight.get(requestURL);
+	if (pending) {
+		return pending;
+	}
+	const request = (async () => {
+		try {
+			return await revalidateManifest({
+				cache,
+				cached,
+				fetchImpl,
+				headers: options.headers,
+				now,
+				requestURL,
+			});
+		} finally {
+			inflight.delete(requestURL);
+		}
+	})();
+	inflight.set(requestURL, request);
+	return request;
 };
 
 /** Request headers accepted by {@link resolveManifestInit}. */

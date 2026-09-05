@@ -86,3 +86,22 @@ describe('consentRequestMiddleware', () => {
 		});
 	});
 });
+
+describe('consentRequestMiddleware: language override', () => {
+	test('writes the language override onto accept-language', async () => {
+		const { request } = await run(
+			consentRequestMiddleware({ language: 'fr' }),
+			{
+				'accept-language': 'de-DE,de;q=0.9',
+			}
+		);
+		expect(request.headers.get('accept-language')).toBe('fr');
+	});
+
+	test('leaves accept-language alone without an override', async () => {
+		const { request } = await run(consentRequestMiddleware(), {
+			'accept-language': 'de-DE,de;q=0.9',
+		});
+		expect(request.headers.get('accept-language')).toBe('de-DE,de;q=0.9');
+	});
+});

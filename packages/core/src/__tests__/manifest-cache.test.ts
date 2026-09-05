@@ -416,3 +416,98 @@ describe('resolveManifestInit', () => {
 		).toEqual({ country: 'US', gpc: true, language: 'en', region: 'CA' });
 	});
 });
+
+describe('fetchCachedManifest: concurrency, explicit directives, headers', () => {
+	const jsonManifest = function jsonManifest(headers: Record<string, string>) {
+		return new Response(JSON.stringify(createManifestFixture()), {
+			headers: { 'content-type': 'application/json', ...headers },
+			status: 200,
+		});
+	};
+
+	test('coalesces concurrent misses into one upstream request', async () => {
+		const gate = (
+			Promise as PromiseConstructor & {
+				withResolvers: <Value>() => {
+					promise: Promise<Value>;
+					resolve: (value: Value) => void;
+				};
+			}
+		).withResolvers<undefined>();
+		const fetchMock = vi.fn(async () => {
+			await gate.promise;
+			return jsonManifest({ 'cache-control': 'public, s-maxage=60' });
+		}) as unknown as ManifestFetch;
+		const cache = createManifestCache();
+
+		const first = fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		const second = fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		gate.resolve(undefined);
+		const [a, b] = await Promise.all([first, second]);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(b).toBe(a);
+		// The in-flight slot is released, so a later miss fetches again.
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 100_000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	test('treats an explicit s-maxage=0 as revalidate on every use', async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve(jsonManifest({ 'cache-control': 'public, s-maxage=0' }))
+		) as unknown as ManifestFetch;
+		const cache = createManifestCache();
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1500,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	test('forwards caller headers on the upstream request', async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve(jsonManifest({ 'cache-control': 'public, s-maxage=60' }))
+		) as unknown as ManifestFetch & ReturnType<typeof vi.fn>;
+
+		await fetchCachedManifest({
+			cache: createManifestCache(),
+			fetch: fetchMock,
+			headers: { authorization: 'Bearer token', cookie: 'c15t=abc' },
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+			headers: expect.objectContaining({
+				accept: 'application/json',
+				authorization: 'Bearer token',
+				cookie: 'c15t=abc',
+			}),
+		});
+	});
+});
