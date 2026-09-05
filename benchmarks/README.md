@@ -16,10 +16,25 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Runs Playwright against a Next integration benchmark app covering client, prefetch, SSR, and repeat-visitor paths.
 - `tanstack-start-browser-bench`
   Runs Playwright against a TanStack Start integration benchmark app with the same fixture, scenarios, and metrics as the Next arm, plus a proxied-save arm. See its README for the head-to-head numbers.
+- `nuxt-browser-bench`
+  Runs Playwright against a Nuxt app on `@c15t/vue`, covering SSR, client SPA, manifest and repeat-visitor paths plus a zero-consent baseline build.
+- `sveltekit-browser-bench`
+  Runs Playwright against a SvelteKit app on `@c15t/svelte/kit` (`c15tHandle`, `loadConsent`, `createSvelteKitConsentRouteHandlers`), with the same scenario names as the Nuxt suite and zero-consent baseline routes.
+- `astro-browser-bench`
+  Runs Playwright against an Astro app on `@c15t/astro`, covering the server-rendered banner in manifest and hosted modes, the `server:defer` banner island, a repeat visitor, and a zero-consent baseline built without the integration.
 - `script-lifecycle-bench`
   Runs deterministic local script lifecycle flows for load, unload, reload, callback-only, `alwaysLoad`, and `persistAfterConsentRevoked` behavior.
 - `shared`
   Shared schema, fixtures, budgets, comparison logic, and report formatting.
+
+### Consent tax
+
+`sveltekit-browser-bench`, `astro-browser-bench` and `nuxt-browser-bench` all
+ship a zero-consent `baseline` arm: the same app shell with no c15t in the
+route's module graph. Subtracting it from a measured arm's `bannerVisibleMs`
+gives the consent tax — the part of the number that is the library rather than
+the host framework — the way the July gate report's "desktop-real" addendum
+did it.
 
 ## Compatibility Suites
 
