@@ -237,8 +237,19 @@ const buildVitePlugins = async function buildVitePlugins(
 		createVirtualOptionsPlugin(resolved),
 	];
 	if (resolved.ui === 'vue') {
-		const { default: shimVueImports } = await import('@c15t/vue/vite');
-		plugins.push(shimVueImports() as unknown as VirtualOptionsPlugin);
+		try {
+			const { default: shimVueImports } = await import('@c15t/vue/vite');
+			plugins.push(shimVueImports() as unknown as VirtualOptionsPlugin);
+		} catch (cause) {
+			// This runs at `astro:config:setup`, before `astro:config:done`
+			// where the peer check lives, so an unresolved import would
+			// otherwise surface as a module error naming a path the site
+			// owner never wrote.
+			throw new Error(
+				`@c15t/astro: \`ui: 'vue'\` needs ${UI_ADAPTERS.vue.packages.join(', ')} installed. Install them, or pick another \`ui\`.`,
+				{ cause }
+			);
+		}
 	}
 	return plugins;
 };

@@ -68,28 +68,28 @@ const trimSlash = function trimSlash(value: string): string {
  * Seeds the protocol from the request URL rather than letting the shared
  * resolver fall back to `https`, so a relative `backendURL` still resolves
  * on a plain `http://localhost` dev server.
+ *
+ * Only the request's own URL or `Host` decides the origin — never a
+ * forwarded header the caller supplied. The adapter builds `Request.url`
+ * from whatever proxy configuration the deployment declared, so trusting
+ * `x-forwarded-host` on top of it would let a forged header steer this
+ * server-side fetch at a host of the caller's choosing, and a forged
+ * `x-forwarded-proto: https` would send a plain-HTTP dev server at a TLS
+ * handshake it cannot answer.
  */
 const resolveAgainstRequest = function resolveAgainstRequest(
 	url: string,
 	source: RequestSource
 ): string | null {
-	const headers: Record<string, string> = {};
-	const hostHeader = source.headers.get('host');
-	if (hostHeader) {
-		headers.host = hostHeader;
-	}
 	if (source.url) {
 		const requestURL = new URL(source.url);
-		headers.host = requestURL.host;
-		headers['x-forwarded-proto'] = requestURL.protocol.replace(':', '');
+		return resolveBackendURL(url, {
+			host: requestURL.host,
+			'x-forwarded-proto': requestURL.protocol.replace(':', ''),
+		});
 	}
-	for (const name of ['x-forwarded-host', 'x-forwarded-proto', 'referer']) {
-		const value = source.headers.get(name);
-		if (value) {
-			headers[name] = value;
-		}
-	}
-	return resolveBackendURL(url, headers);
+	const hostHeader = source.headers.get('host');
+	return hostHeader ? resolveBackendURL(url, { host: hostHeader }) : null;
 };
 
 /**
@@ -178,11 +178,19 @@ const shouldFetchGvl = function shouldFetchGvl(
 	);
 };
 
+/**
+ * How long to wait for the Global Vendor List before giving up on it. The
+ * list is a nice-to-have on this path; the response is not, and an open
+ * request would hold the page or the route open with it.
+ */
+const GVL_FETCH_TIMEOUT_MS = 5000;
+
 /** Plain `GET` of the manifest's GVL reference. */
 export const defaultFetchGvl: FetchGvl = async function defaultFetchGvl(input) {
 	const response = await input.fetch(input.reference.url, {
 		headers: { 'accept-language': input.language },
 		method: 'GET',
+		signal: AbortSignal.timeout(GVL_FETCH_TIMEOUT_MS),
 	});
 	if (response.status === 204) {
 		return null;
@@ -205,7 +213,7 @@ export type ResolvedInitOutput = InitOutput & {
  *
  * @param input - The manifest, the request inputs, and the GVL seams.
  * @returns The resolved init payload, with `resolvedOverrides` echoed back.
- * @throws {Error} When the GVL fetch fails.
+ *   `gvl` is `null` when the vendor list could not be fetched.
  */
 export const resolveManifestInit = async function resolveManifestInit(input: {
 	manifest: ConsentManifest;
@@ -229,11 +237,18 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 		input.fetch ?? (globalThis.fetch?.bind(globalThis) as ManifestFetch);
 	if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
 		const language = payload.translations.language.split('-')[0] || 'en';
-		payload.gvl = await (input.fetchGvl ?? defaultFetchGvl)({
-			fetch: fetchImpl,
-			language,
-			reference: manifest.iab.gvl,
-		});
+		try {
+			payload.gvl = await (input.fetchGvl ?? defaultFetchGvl)({
+				fetch: fetchImpl,
+				language,
+				reference: manifest.iab.gvl,
+			});
+		} catch {
+			// `gvl` is nullable by contract, and neither the init route nor
+			// the SSR path has a boundary above this. A vendor list the
+			// client can treat as unavailable beats a 500.
+			payload.gvl = null;
+		}
 	}
 
 	// The resolver's inputs are the only place GPC survives on the SSR

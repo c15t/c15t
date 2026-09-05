@@ -154,15 +154,14 @@ const applyColorScheme = function applyColorScheme(
 	// `setupColorScheme` reaches for `matchMedia` whichever scheme it is
 	// given, and a few embedded webviews do not have it. The boot is the
 	// page's only entry point, so a throw here would take consent with it:
-	// honour the pinned schemes by hand instead and leave `system` at the
-	// stylesheet's light default.
+	// set the class by hand instead. `system` falls back to light, and it
+	// has to say so — leaving the class alone would keep whatever a previous
+	// scheme or a swapped-in dark shell had put there.
 	if (typeof browserWindow.matchMedia !== 'function') {
-		if (colorScheme !== 'system') {
-			document.documentElement.classList.toggle(
-				'c15t-dark',
-				colorScheme === 'dark'
-			);
-		}
+		document.documentElement.classList.toggle(
+			'c15t-dark',
+			colorScheme === 'dark'
+		);
 		return;
 	}
 

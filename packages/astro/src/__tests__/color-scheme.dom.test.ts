@@ -108,22 +108,21 @@ describe('boot applies the colour scheme', () => {
 describe('a webview with no matchMedia', () => {
 	it('still honours a pinned scheme instead of throwing', () => {
 		vi.stubGlobal('matchMedia', undefined);
-		// oxlint-disable-next-line no-explicit-any -- Removing a DOM global.
-		(window as any).matchMedia = undefined;
+		Reflect.set(window, 'matchMedia', undefined);
 
 		expect(() => start('dark')).not.toThrow();
 		expect(isDark()).toBe(true);
 	});
 
-	it('leaves system at the stylesheet default rather than guessing', () => {
+	it('falls system back to light rather than keeping a stale dark', () => {
 		document.documentElement.classList.add('c15t-dark');
 		vi.stubGlobal('matchMedia', undefined);
-		// oxlint-disable-next-line no-explicit-any -- Removing a DOM global.
-		(window as any).matchMedia = undefined;
+		Reflect.set(window, 'matchMedia', undefined);
 
 		expect(() => start('system')).not.toThrow();
-		// Untouched: with nothing to read, changing it would be a guess.
-		expect(isDark()).toBe(true);
+		// The documented fallback for `system` is light, and a swapped-in
+		// dark shell would otherwise stay dark for the rest of the visit.
+		expect(isDark()).toBe(false);
 	});
 });
 

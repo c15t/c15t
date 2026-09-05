@@ -24,6 +24,8 @@ import {
 } from '@c15t/react';
 import { lazy, Suspense } from 'react';
 
+import type { DialogPresentationOptions } from '../../ui/provider-props';
+
 // The TCF surface is the larger half of this island and only an IAB site
 // ever opens it, so it arrives on its own chunk.
 const IABDialogSurface = lazy(() => import('./iab-dialog-surface'));
@@ -33,7 +35,7 @@ export interface ConsentDialogSurfaceProps {
 	/** The page-level runtime. The provider borrows it, it does not own it. */
 	runtime: ConsentRuntime;
 	/** Presentation options forwarded to the provider. */
-	options: Record<string, unknown>;
+	options: DialogPresentationOptions;
 	/** Which dialog to render. */
 	kind?: 'preferences' | 'iab';
 }
@@ -45,7 +47,7 @@ const ConsentDialogSurface = ({
 }: ConsentDialogSurfaceProps) => (
 	<ConsentProvider
 		runtime={runtime}
-		options={options as never}
+		options={options}
 	>
 		{kind === 'iab' ? (
 			<Suspense fallback={null}>

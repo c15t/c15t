@@ -5,8 +5,13 @@ import {
 	registerDialogAdapter,
 	registerDialogSurface,
 	requireDialogSurface,
+	resetDialogRegistriesForTest,
 } from '../ui/adapter';
 import type { ConsentDialogAdapter } from '../ui/adapter';
+
+beforeEach(() => {
+	resetDialogRegistriesForTest();
+});
 
 describe('dialog adapter registry', () => {
 	it('starts empty so no build resolves a framework it did not pick', async () => {

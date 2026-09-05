@@ -34,6 +34,7 @@ export type { ManifestClientEndpoints } from './mode';
 export type {
 	C15tAstroOptions,
 	C15tClientOptionsExtension,
+	C15tColorScheme,
 	C15tEndpointOptions,
 	C15tHostedDescriptor,
 	C15tI18nOptions,

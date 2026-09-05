@@ -136,6 +136,22 @@ export const registerDialogAdapter = function registerDialogAdapter(
 };
 
 /**
+ * Empties both registries.
+ *
+ * The registries are module state, so a test that registers an adapter
+ * would otherwise decide what the next one sees.
+ *
+ * Tests only.
+ *
+ * @internal
+ */
+export const resetDialogRegistriesForTest =
+	function resetDialogRegistriesForTest(): void {
+		registry.clear();
+		surfaces.clear();
+	};
+
+/**
  * Load the adapter named by the `ui` option.
  *
  * The import is dynamic so a page that never opens a dialog never

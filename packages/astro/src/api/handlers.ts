@@ -94,7 +94,11 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		const payload = await resolveManifestInit({
 			fetch: handlerOptions.fetch,
 			fetchGvl: handlerOptions.fetchGvl,
-			inputs: extractConsentRequestInputs(request.headers),
+			// The same override the SSR path applies, so both resolve one
+			// language — and one set of GVL translations.
+			inputs: extractConsentRequestInputs(request.headers, {
+				language: handlerOptions.options.i18n?.locale,
+			}),
 			manifest,
 		});
 
