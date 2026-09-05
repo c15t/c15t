@@ -196,9 +196,24 @@ export const mountScript = function mountScript(
 	// no network event. Skip listener attach when no callback consumes it.
 	if (script.src && info) {
 		element.addEventListener('load', () => {
+			if (deps.loadedElements.get(script.id) !== element) {
+				return;
+			}
 			invokeCallback(script, 'onLoad', info, deps.emit);
+			deps.emit({
+				action: 'load_completed',
+				elementId,
+				message: 'Script finished loading',
+				scope: 'lifecycle',
+				scriptId: script.id,
+				source: 'script-loader',
+				timestamp: Date.now(),
+			});
 		});
 		element.addEventListener('error', () => {
+			if (deps.loadedElements.get(script.id) !== element) {
+				return;
+			}
 			const errorInfo = {
 				...info,
 				error: new Error(`Failed to load script: ${script.src}`),
@@ -273,6 +288,10 @@ export const unmountScript = function unmountScript(
 		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);
 		deps.ownedScriptIds.delete(script.id);
+		if (typeof script.onConsentChange === 'function') {
+			const info = buildCallbackInfo(script, snapshot, hasConsent, elementId);
+			invokeCallback(script, 'onConsentChange', info, deps.emit);
+		}
 		if (deps.hasDebugListener) {
 			deps.emit({
 				action: 'unloaded',

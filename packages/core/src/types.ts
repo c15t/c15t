@@ -468,7 +468,9 @@ export interface ConsentKernel {
 	readonly commands: {
 		init: () => Promise<InitResult>;
 		save: (
-			input?: Partial<ConsentState> | 'all' | 'none'
+			input?: Partial<ConsentState> | 'all' | 'none',
+			/** Categories displayed by the caller's UI. Defaults to the policy scope. */
+			options?: { categories?: readonly AllConsentNames[] }
 		) => Promise<SaveResult>;
 		identify: (user: KernelUser) => Promise<void>;
 	};

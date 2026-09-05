@@ -24,6 +24,134 @@ afterEach(() => {
 });
 
 describe('createDevTools', () => {
+	it('disables duplicate saves and reports failure and retry success beside the controls', async () => {
+		const pendingSave = Promise.withResolvers<{ ok: boolean }>();
+		const save = vi
+			.fn()
+			.mockReturnValueOnce(pendingSave.promise)
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save } });
+		const devTools = createInstance(kernel);
+		devTools.open();
+		const saveButton = () =>
+			[...(devTools.element?.querySelectorAll('button') ?? [])].find(
+				(button) => button.textContent === 'Save changes'
+			);
+		saveButton()?.click();
+		expect(saveButton()?.disabled).toBe(true);
+		saveButton()?.click();
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		pendingSave.resolve({ ok: false });
+		await vi.waitFor(() =>
+			expect(
+				devTools.element?.querySelector('[role="alert"]')?.textContent
+			).toContain('request failed')
+		);
+		expect(saveButton()?.disabled).toBe(false);
+		saveButton()?.click();
+		await vi.waitFor(() =>
+			expect(
+				devTools.element?.querySelector('[role="status"]')?.textContent
+			).toBe('Consent saved.')
+		);
+	});
+
+	it('accepts and rejects only displayed categories, preserving hidden choices', async () => {
+		const kernel = createConsentKernel({
+			initialConsents: { experience: true, functionality: false },
+		});
+		const devTools = createDevTools({
+			defaultOpen: true,
+			getConsentCategories: () => ['necessary', 'marketing', 'measurement'],
+			kernel,
+		});
+		instances.push(devTools);
+		expect(devTools.element?.querySelectorAll('[role="switch"]')).toHaveLength(
+			3
+		);
+		const click = (label: string) => {
+			const button = [
+				...(devTools.element?.querySelectorAll('button') ?? []),
+			].find((element) => element.textContent === label);
+			if (!button) {
+				throw new Error(`Missing ${label}`);
+			}
+			button.click();
+		};
+		click('Accept all');
+		expect(kernel.getSnapshot().consents).toEqual({
+			experience: true,
+			functionality: false,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		});
+		await vi.waitFor(() => {
+			expect(
+				devTools.element?.querySelector('[role="status"]')?.textContent
+			).toBe('Displayed consents accepted.');
+		});
+		click('Reject optional');
+		expect(kernel.getSnapshot().consents).toEqual({
+			experience: true,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		});
+		await devTools.actions.save('all');
+		expect(kernel.getSnapshot().consents.functionality).toBe(false);
+		await devTools.actions.save('none');
+		expect(kernel.getSnapshot().consents.experience).toBe(true);
+	});
+
+	it('updates consent through labeled switches and keeps necessary consent locked', () => {
+		const kernel = createConsentKernel();
+		const devTools = createInstance(kernel);
+		devTools.open();
+		const necessary = devTools.element?.querySelector<HTMLInputElement>(
+			'[data-focus-key="consent:necessary"]'
+		);
+		const marketing = devTools.element?.querySelector<HTMLInputElement>(
+			'[data-focus-key="consent:marketing"]'
+		);
+
+		expect(necessary?.disabled).toBe(true);
+		expect(necessary?.closest('label')?.textContent).toContain('Always on');
+		expect(marketing?.getAttribute('role')).toBe('switch');
+		marketing?.closest('label')?.click();
+		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+	});
+
+	it('opens from an accessible icon-only launcher', () => {
+		const devTools = createInstance();
+		const launcher = devTools.element?.querySelector<HTMLButtonElement>(
+			'button[aria-label="Open c15t DevTools"]'
+		);
+
+		expect(launcher?.textContent).toBe('');
+		expect(launcher?.querySelector('svg')?.getAttribute('aria-hidden')).toBe(
+			'true'
+		);
+		launcher?.click();
+		expect(devTools.getState().isOpen).toBe(true);
+	});
+
+	it('closes with Escape and returns focus to the launcher', async () => {
+		const devTools = createInstance();
+		devTools.open();
+		devTools.element?.dispatchEvent(
+			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+		);
+
+		expect(devTools.getState().isOpen).toBe(false);
+		await vi.waitFor(() => {
+			expect(document.activeElement?.getAttribute('aria-label')).toBe(
+				'Open c15t DevTools'
+			);
+		});
+	});
+
 	it('publishes kernel snapshots to instance subscribers', () => {
 		const kernel = createConsentKernel();
 		const devTools = createInstance(kernel);

@@ -6,6 +6,11 @@ import type {
 	KernelOverrides,
 	SaveResult,
 } from '@c15t/core/v3';
+import { CONSENT_CATEGORIES } from '@c15t/core/v3';
+import {
+	getScriptDiagnostics,
+	subscribeScriptDiagnostics,
+} from '@c15t/core/v3/modules/script-loader';
 
 import { KERNEL_EVENT_TYPES, kernelEventToDevToolsEvent } from './events';
 import { createStateManager } from './state-manager';
@@ -23,6 +28,8 @@ import '../styles/dev-tools.css';
 export interface DevToolsOptions {
 	/** Kernel to inspect. DevTools never discovers a kernel through globals. */
 	kernel: ConsentKernel;
+	/** Read the categories displayed by the provider. Defaults to policy categories. */
+	getConsentCategories?: () => readonly (keyof ConsentState)[];
 	/** Parent node for the imperative UI. Defaults to `document.body`. */
 	container?: HTMLElement;
 	/** Floating panel placement. @default 'bottom-right' */
@@ -31,7 +38,7 @@ export interface DevToolsOptions {
 	defaultOpen?: boolean;
 	/** Initial panel. @default 'consents' */
 	defaultTab?: DevToolsTab;
-	/** Maximum captured kernel events. @default 100 */
+	/** Maximum captured kernel and script events. @default 100 */
 	maxEvents?: number;
 }
 
@@ -89,6 +96,12 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	const eventLimit = Number.isFinite(maxEvents)
 		? Math.max(1, Math.trunc(maxEvents))
 		: 100;
+	const getConsentCategories =
+		options.getConsentCategories ??
+		(() => {
+			const categories = kernel.getSnapshot().policyCategories;
+			return categories.length > 0 ? categories : CONSENT_CATEGORIES;
+		});
 	const stateManager = createStateManager({
 		activeTab: defaultTab,
 		isOpen: defaultOpen,
@@ -98,6 +111,30 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 	});
 	let destroyed = false;
 	let eventSequence = 0;
+	let scriptRefreshPending = false;
+	stateManager.setScripts(getScriptDiagnostics(kernel));
+	const unsubscribeScripts = subscribeScriptDiagnostics(kernel, (event) => {
+		if (event) {
+			eventSequence += 1;
+			stateManager.addEvent({
+				data: { ...event },
+				id: String(eventSequence),
+				message: `${event.scriptId}: ${event.message}`,
+				timestamp: event.timestamp,
+				type: `script:${event.action}`,
+			});
+		}
+		if (scriptRefreshPending) {
+			return;
+		}
+		scriptRefreshPending = true;
+		queueMicrotask(() => {
+			scriptRefreshPending = false;
+			if (!destroyed) {
+				stateManager.setScripts(getScriptDiagnostics(kernel));
+			}
+		});
+	});
 
 	const unsubscribeSnapshot = kernel.subscribe((snapshot) => {
 		stateManager.setSnapshot(snapshot);
@@ -110,11 +147,17 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 			);
 		})
 	);
-	const view = createDevToolsView({ container, kernel, stateManager });
+	const view = createDevToolsView({
+		container,
+		getConsentCategories,
+		kernel,
+		stateManager,
+	});
 
 	const actions: DevToolsActions = {
 		init: () => kernel.commands.init(),
-		save: (input) => kernel.commands.save(input),
+		save: (input) =>
+			kernel.commands.save(input, { categories: getConsentCategories() }),
 		setActiveUI: (activeUI) => kernel.set.activeUI(activeUI),
 		setConsent(name, value) {
 			const patch: Partial<ConsentState> = {};
@@ -134,6 +177,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 			}
 			destroyed = true;
 			unsubscribeSnapshot();
+			unsubscribeScripts();
 			for (const unsubscribe of unsubscribeEvents) {
 				unsubscribe();
 			}

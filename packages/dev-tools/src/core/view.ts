@@ -4,8 +4,21 @@ import type {
 	ConsentState,
 	KernelOverrides,
 } from '@c15t/core/v3';
-import { CONSENT_CATEGORIES } from '@c15t/core/v3';
+import { CONSENT_CATEGORIES, subscribeIABControls } from '@c15t/core/v3';
 
+import type { RunAction } from './action-runner';
+import { appendActionFeedback } from './action-runner';
+import {
+	createButton,
+	createCodeBlock,
+	createElement,
+	createSection,
+	createStat,
+	createTextField,
+} from './elements';
+import { renderIABPanel } from './iab-panel';
+import type { IABPanelState } from './iab-panel';
+import { createLogo } from './logo';
 import type {
 	DevToolsPosition,
 	DevToolsState,
@@ -15,6 +28,7 @@ import type {
 
 const TABS: readonly { id: DevToolsTab; label: string }[] = [
 	{ id: 'consents', label: 'Consents' },
+	{ id: 'scripts', label: 'Scripts' },
 	{ id: 'location', label: 'Location' },
 	{ id: 'policy', label: 'Policy' },
 	{ id: 'iab', label: 'IAB' },
@@ -31,81 +45,15 @@ export interface DevToolsView {
 
 interface ViewOptions {
 	kernel: ConsentKernel;
+	getConsentCategories: () => readonly (keyof ConsentState)[];
 	stateManager: StateManager;
 	container?: HTMLElement;
 }
 
-// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
-function createElement<K extends keyof HTMLElementTagNameMap>(
-	document: Document,
-	tag: K,
-	className?: string,
-	text?: string
-): HTMLElementTagNameMap[K] {
-	const element = document.createElement(tag);
-	if (className) {
-		element.className = className;
-	}
-	if (text !== undefined) {
-		element.textContent = text;
-	}
-	return element;
-}
-
-// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
-function createButton(
-	document: Document,
-	label: string,
-	onClick: () => void,
-	variant: 'primary' | 'secondary' | 'danger' = 'secondary'
-): HTMLButtonElement {
-	const button = createElement(
-		document,
-		'button',
-		`c15t-dev-tools__button c15t-dev-tools__button--${variant}`,
-		label
-	);
-	button.type = 'button';
-	button.dataset.focusKey = `button:${label}`;
-	button.addEventListener('click', onClick);
-	return button;
-}
-
-// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
-function createSection(
-	document: Document,
-	title: string,
-	description?: string
-): HTMLElement {
-	const section = createElement(document, 'section', 'c15t-dev-tools__section');
-	section.append(createElement(document, 'h3', undefined, title));
-	if (description) {
-		section.append(
-			createElement(document, 'p', 'c15t-dev-tools__muted', description)
-		);
-	}
-	return section;
-}
-
-// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
-function createCodeBlock(document: Document, value: unknown): HTMLElement {
-	const output = createElement(document, 'pre', 'c15t-dev-tools__code');
-	output.textContent = JSON.stringify(value, null, 2) ?? 'null';
-	return output;
-}
-
-// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
-function createStat(
-	document: Document,
-	label: string,
-	value: string
-): HTMLElement {
-	const row = createElement(document, 'div', 'c15t-dev-tools__stat');
-	row.append(
-		createElement(document, 'dt', undefined, label),
-		createElement(document, 'dd', undefined, value)
-	);
-	return row;
+interface ViewState {
+	scriptSearch: string;
+	expandedScripts: Set<string>;
+	iab: IABPanelState;
 }
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
@@ -113,20 +61,26 @@ function renderConsents(
 	document: Document,
 	container: HTMLElement,
 	kernel: ConsentKernel,
-	snapshot: ConsentSnapshot
+	snapshot: ConsentSnapshot,
+	getConsentCategories: ViewOptions['getConsentCategories'],
+	run: RunAction
 ): void {
 	const section = createSection(
 		document,
 		'Consent categories',
-		'Toggles update the kernel immediately. Save to run the configured transport.'
+		'Changes apply immediately. Save to record your preferences.'
 	);
 	const list = createElement(document, 'div', 'c15t-dev-tools__control-list');
 
-	for (const name of CONSENT_CATEGORIES) {
+	const displayed = new Set(getConsentCategories());
+	for (const name of CONSENT_CATEGORIES.filter((category) =>
+		displayed.has(category)
+	)) {
 		const enabled = snapshot.consents[name];
 		const label = createElement(document, 'label', 'c15t-dev-tools__check');
 		const input = createElement(document, 'input');
 		input.type = 'checkbox';
+		input.setAttribute('role', 'switch');
 		input.checked = enabled;
 		input.disabled = name === 'necessary';
 		input.dataset.focusKey = `consent:${name}`;
@@ -135,7 +89,20 @@ function renderConsents(
 			patch[name] = input.checked;
 			kernel.set.consent(patch);
 		});
-		label.append(input, createElement(document, 'span', undefined, name));
+		label.append(
+			createElement(
+				document,
+				'span',
+				undefined,
+				name[0]?.toUpperCase() + name.slice(1)
+			)
+		);
+		if (name === 'necessary') {
+			label.append(
+				createElement(document, 'span', 'c15t-dev-tools__badge', 'Always on')
+			);
+		}
+		label.append(input);
 		list.append(label);
 	}
 
@@ -143,47 +110,238 @@ function renderConsents(
 	actions.append(
 		createButton(
 			document,
-			'Save current',
+			'Save changes',
 			() => {
-				void kernel.commands.save();
+				run('Saving consent…', () => kernel.commands.save(), 'Consent saved.');
 			},
 			'primary'
 		),
 		createButton(document, 'Accept all', () => {
-			void kernel.commands.save('all');
+			run(
+				'Accepting displayed consents…',
+				() =>
+					kernel.commands.save('all', { categories: getConsentCategories() }),
+				'Displayed consents accepted.'
+			);
 		}),
 		createButton(document, 'Reject optional', () => {
-			void kernel.commands.save('none');
+			run(
+				'Rejecting optional consents…',
+				() =>
+					kernel.commands.save('none', { categories: getConsentCategories() }),
+				'Optional displayed consents rejected.'
+			);
 		})
 	);
 	section.append(list, actions);
 	container.append(section);
 }
 
-// oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
-function createTextField(
+const renderScripts = (
 	document: Document,
-	labelText: string,
-	value: string
-): { field: HTMLElement; input: HTMLInputElement } {
-	const field = createElement(document, 'label', 'c15t-dev-tools__field');
-	field.append(createElement(document, 'span', undefined, labelText));
-	const input = createElement(document, 'input');
-	input.type = 'text';
-	input.value = value;
-	input.autocomplete = 'off';
-	input.spellcheck = false;
-	input.dataset.focusKey = `field:${labelText}`;
-	field.append(input);
-	return { field, input };
-}
+	container: HTMLElement,
+	state: DevToolsState,
+	viewState: ViewState
+): void => {
+	const section = createSection(
+		document,
+		'Scripts',
+		'Inspect configured scripts and their loading status.'
+	);
+	const filter = createTextField(
+		document,
+		'Filter scripts',
+		viewState.scriptSearch
+	);
+	filter.input.placeholder = 'Search by name, category, or URL';
+	const list = createElement(document, 'div', 'c15t-dev-tools__script-list');
+	const renderList = (): void => {
+		list.replaceChildren();
+		const query = viewState.scriptSearch.toLowerCase();
+		const scripts = state.scripts.filter((script) =>
+			`${script.id} ${script.src ?? ''} ${JSON.stringify(script.category)} ${script.status}`
+				.toLowerCase()
+				.includes(query)
+		);
+		if (!scripts.length) {
+			list.append(
+				createElement(
+					document,
+					'p',
+					'c15t-dev-tools__empty',
+					state.scripts.length
+						? 'No scripts match your search.'
+						: 'No script loader is configured for this consent provider.'
+				)
+			);
+		}
+		for (const script of scripts) {
+			const key = `${script.loaderId}:${script.id}`;
+			const detail = createElement(
+				document,
+				'details',
+				'c15t-dev-tools__script'
+			);
+			detail.open = viewState.expandedScripts.has(key);
+			detail.addEventListener('toggle', () => {
+				if (!detail.isConnected) {
+					return;
+				}
+				if (detail.open) {
+					viewState.expandedScripts.add(key);
+				} else {
+					viewState.expandedScripts.delete(key);
+				}
+			});
+			const summary = createElement(
+				document,
+				'summary',
+				'c15t-dev-tools__script-summary'
+			);
+			const name = createElement(
+				document,
+				'span',
+				'c15t-dev-tools__script-name',
+				script.id
+			);
+			const status = createElement(
+				document,
+				'span',
+				'c15t-dev-tools__status',
+				script.status[0]?.toUpperCase() + script.status.slice(1)
+			);
+			status.dataset.status = script.status;
+			summary.append(name, status);
+			summary.dataset.focusKey = `script:${key}`;
+			const body = createElement(
+				document,
+				'div',
+				'c15t-dev-tools__script-body'
+			);
+			body.append(
+				createElement(
+					document,
+					'p',
+					'c15t-dev-tools__muted',
+					script.src ??
+						(script.callbackOnly
+							? 'Callback-only integration'
+							: 'Inline script')
+				)
+			);
+			body.append(
+				createCodeBlock(document, {
+					allowedToLoad: script.eligible,
+					alwaysLoad: script.alwaysLoad,
+					category: script.category,
+					consentGranted: script.hasConsent,
+					elementId: script.elementId,
+					persistAfterConsentRevoked: script.persistAfterConsentRevoked,
+					vendorId: script.vendorId,
+				})
+			);
+			if (script.lastEvent) {
+				body.append(
+					createElement(
+						document,
+						'p',
+						'c15t-dev-tools__muted',
+						script.lastEvent.message
+					)
+				);
+			}
+			if (script.status === 'present') {
+				body.append(
+					createElement(
+						document,
+						'p',
+						'c15t-dev-tools__muted',
+						'An existing element was reused. Its network load result is unknown.'
+					)
+				);
+			}
+			if (script.status === 'retained') {
+				body.append(
+					createElement(
+						document,
+						'p',
+						'c15t-dev-tools__muted',
+						'Consent was revoked, but this script is configured to stay on the page.'
+					)
+				);
+			}
+			detail.append(summary, body);
+			list.append(detail);
+		}
+	};
+	filter.input.addEventListener('input', () => {
+		viewState.scriptSearch = filter.input.value;
+		renderList();
+	});
+	renderList();
+	section.append(filter.field, list);
+	container.append(section);
+	const scan = createSection(
+		document,
+		'External resources',
+		'Scripts and iframes currently in the page. Presence does not confirm successful loading.'
+	);
+	const results = createElement(document, 'div', 'c15t-dev-tools__script-list');
+	const scanPage = (): void => {
+		results.replaceChildren();
+		for (const element of document.querySelectorAll<
+			HTMLScriptElement | HTMLIFrameElement
+		>('script[src], iframe[src]')) {
+			let url: URL;
+			try {
+				url = new URL(element.src, document.baseURI);
+			} catch {
+				continue;
+			}
+			if (
+				!['http:', 'https:'].includes(url.protocol) ||
+				url.origin === document.location.origin
+			) {
+				continue;
+			}
+			const managed =
+				element.tagName === 'SCRIPT'
+					? state.scripts.find((script) => script.elementId === element.id)
+					: undefined;
+			const row = createElement(document, 'div', 'c15t-dev-tools__script-body');
+			row.append(
+				createElement(
+					document,
+					'strong',
+					undefined,
+					`${element.tagName.toLowerCase()} · ${managed ? managed.id : 'Not managed by this provider'}`
+				),
+				createElement(document, 'p', 'c15t-dev-tools__muted', url.href)
+			);
+			results.append(row);
+		}
+		if (!results.childElementCount) {
+			results.append(
+				createElement(
+					document,
+					'p',
+					'c15t-dev-tools__empty',
+					'No external scripts or iframes found.'
+				)
+			);
+		}
+	};
+	scan.append(createButton(document, 'Scan page', scanPage), results);
+	container.append(scan);
+};
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 function renderLocation(
 	document: Document,
 	container: HTMLElement,
 	kernel: ConsentKernel,
-	snapshot: ConsentSnapshot
+	snapshot: ConsentSnapshot,
+	run: RunAction
 ): void {
 	const location = createSection(document, 'Resolved location');
 	location.append(
@@ -200,7 +358,7 @@ function renderLocation(
 	const overrides = createSection(
 		document,
 		'Overrides',
-		'Apply test inputs, then rerun initialization against the active transport.'
+		'Test how consent changes by location, language, or privacy signal.'
 	);
 	const form = createElement(document, 'form', 'c15t-dev-tools__form');
 	const country = createTextField(
@@ -255,7 +413,11 @@ function renderLocation(
 				language: undefined,
 				region: undefined,
 			});
-			void kernel.commands.init();
+			run(
+				'Clearing overrides…',
+				() => kernel.commands.init(),
+				'Overrides cleared and consent data refreshed.'
+			);
 		})
 	);
 
@@ -268,7 +430,11 @@ function renderLocation(
 			region: region.input.value.trim() || undefined,
 		};
 		kernel.set.overrides(nextOverrides);
-		void kernel.commands.init();
+		run(
+			'Applying overrides…',
+			() => kernel.commands.init(),
+			'Overrides applied and consent data refreshed.'
+		);
 	});
 
 	form.append(country.field, region.field, language.field, gpcField, actions);
@@ -317,28 +483,6 @@ function renderPolicy(
 }
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
-function renderIab(
-	document: Document,
-	container: HTMLElement,
-	snapshot: ConsentSnapshot
-): void {
-	const section = createSection(
-		document,
-		'IAB state',
-		'This view is read-only. The active IAB module remains the only writer.'
-	);
-	section.append(
-		snapshot.iab
-			? createCodeBlock(document, snapshot.iab)
-			: createElement(
-					document,
-					'p',
-					'c15t-dev-tools__empty',
-					'IAB mode is not active for this kernel.'
-				)
-	);
-	container.append(section);
-}
 
 // oxlint-disable-next-line func-style -- Hoisted render functions keep tab dispatch compact.
 function renderEvents(
@@ -347,7 +491,7 @@ function renderEvents(
 	state: DevToolsState,
 	clearEvents: () => void
 ): void {
-	const section = createSection(document, 'Kernel events');
+	const section = createSection(document, 'Consent events');
 	section.append(createButton(document, 'Clear events', clearEvents, 'danger'));
 	if (state.events.length === 0) {
 		section.append(
@@ -355,7 +499,7 @@ function renderEvents(
 				document,
 				'p',
 				'c15t-dev-tools__empty',
-				'Kernel events will appear here as they happen.'
+				'Consent changes and requests will appear here as they happen.'
 			)
 		);
 		container.append(section);
@@ -393,20 +537,25 @@ function renderEvents(
 function renderActions(
 	document: Document,
 	container: HTMLElement,
-	kernel: ConsentKernel
+	kernel: ConsentKernel,
+	run: RunAction
 ): void {
 	const section = createSection(
 		document,
-		'Kernel actions',
-		'Only commands and synchronous UI setters exposed by the kernel are available.'
+		'Test consent flows',
+		'Preview the banner and preferences, or refresh consent data.'
 	);
 	const actions = createElement(document, 'div', 'c15t-dev-tools__action-grid');
 	actions.append(
 		createButton(
 			document,
-			'Refresh initialization',
+			'Refresh consent data',
 			() => {
-				void kernel.commands.init();
+				run(
+					'Refreshing consent data…',
+					() => kernel.commands.init(),
+					'Consent data refreshed.'
+				);
 			},
 			'primary'
 		),
@@ -430,27 +579,40 @@ function renderTab(
 	container: HTMLElement,
 	state: DevToolsState,
 	kernel: ConsentKernel,
-	clearEvents: () => void
+	clearEvents: () => void,
+	viewState: ViewState,
+	getConsentCategories: ViewOptions['getConsentCategories'],
+	run: RunAction
 ): void {
 	// oxlint-disable-next-line default-case -- DevToolsTab is handled exhaustively.
 	switch (state.activeTab) {
+		case 'scripts':
+			renderScripts(document, container, state, viewState);
+			break;
 		case 'consents':
-			renderConsents(document, container, kernel, state.snapshot);
+			renderConsents(
+				document,
+				container,
+				kernel,
+				state.snapshot,
+				getConsentCategories,
+				run
+			);
 			break;
 		case 'location':
-			renderLocation(document, container, kernel, state.snapshot);
+			renderLocation(document, container, kernel, state.snapshot, run);
 			break;
 		case 'policy':
 			renderPolicy(document, container, state.snapshot);
 			break;
 		case 'iab':
-			renderIab(document, container, state.snapshot);
+			renderIABPanel(document, container, kernel, viewState.iab, run);
 			break;
 		case 'events':
 			renderEvents(document, container, state, clearEvents);
 			break;
 		case 'actions':
-			renderActions(document, container, kernel);
+			renderActions(document, container, kernel, run);
 			break;
 	}
 }
@@ -480,7 +642,59 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		`c15t-dev-tools ${positionClass(options.stateManager.getState().position)}`
 	);
 	root.dataset.c15tDevTools = viewId;
+	root.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape' && !options.container) {
+			event.stopPropagation();
+			options.stateManager.setOpen(false);
+		}
+	});
 	let wasOpen = options.stateManager.getState().isOpen;
+	let renderedState: DevToolsState | undefined;
+	const viewState: ViewState = {
+		expandedScripts: new Set(),
+		iab: { group: 'vendors', page: 0, rawOpen: false, search: '' },
+		scriptSearch: '',
+	};
+	let destroyed = false;
+	let action:
+		| { status: 'pending' | 'success' | 'error'; message: string }
+		| undefined;
+	const run: RunAction = (pending, task, success) => {
+		if (destroyed || action?.status === 'pending') {
+			return;
+		}
+		action = { message: pending, status: 'pending' };
+		// oxlint-disable-next-line no-use-before-define -- Render is hoisted; commands run after the view mounts.
+		render();
+		void (async () => {
+			try {
+				const result = await task();
+				if (
+					typeof result === 'object' &&
+					result !== null &&
+					'ok' in result &&
+					!result.ok
+				) {
+					throw new Error(
+						'The request failed. Check the connection and retry.'
+					);
+				}
+				action = { message: success, status: 'success' };
+			} catch (error) {
+				action = {
+					message:
+						error instanceof Error
+							? error.message
+							: 'The request failed. Retry the action.',
+					status: 'error',
+				};
+			}
+			if (!destroyed) {
+				// oxlint-disable-next-line no-use-before-define -- Render is hoisted; refresh the completed command feedback.
+				render();
+			}
+		})();
+	};
 
 	// oxlint-disable-next-line func-style -- Hoisted render helpers share view state.
 	function focusAfterRender(selector: string): void {
@@ -502,7 +716,7 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			const candidates = root.querySelectorAll<HTMLElement>('[data-focus-key]');
 			for (const candidate of candidates) {
 				if (candidate.dataset.focusKey === focusKey) {
-					candidate.focus();
+					candidate.focus({ preventScroll: true });
 					return;
 				}
 			}
@@ -526,6 +740,23 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 	// oxlint-disable-next-line func-style -- Hoisted render helpers share view state.
 	function render(): void {
 		const state = options.stateManager.getState();
+		const sameTab = renderedState?.activeTab === state.activeTab;
+		const scrollTop = sameTab
+			? (root.querySelector('.c15t-dev-tools__content')?.scrollTop ?? 0)
+			: 0;
+		const drafts = new Map<string, string>();
+		if (
+			sameTab &&
+			renderedState?.snapshot.overrides === state.snapshot.overrides
+		) {
+			for (const field of root.querySelectorAll<
+				HTMLInputElement | HTMLSelectElement
+			>('.c15t-dev-tools__field input, .c15t-dev-tools__field select')) {
+				if (field.dataset.focusKey) {
+					drafts.set(field.dataset.focusKey, field.value);
+				}
+			}
+		}
 		const { activeElement } = document;
 		const focusKey =
 			activeElement && root.contains(activeElement)
@@ -540,6 +771,9 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 			'primary'
 		);
 		toggle.classList.add('c15t-dev-tools__toggle');
+		toggle.replaceChildren(createLogo(document));
+		toggle.setAttribute('aria-label', 'Open c15t DevTools');
+		toggle.hidden = state.isOpen;
 		toggle.setAttribute('aria-expanded', String(state.isOpen));
 		toggle.setAttribute('aria-controls', panelId);
 		root.append(toggle);
@@ -548,9 +782,21 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		panel.id = panelId;
 		panel.hidden = !state.isOpen;
 		panel.setAttribute('aria-label', 'c15t consent developer tools');
-		panel.append(
-			createElement(document, 'h2', 'c15t-dev-tools__title', 'Consent DevTools')
+		const header = createElement(document, 'header', 'c15t-dev-tools__header');
+		const title = createElement(document, 'h2', 'c15t-dev-tools__title');
+		title.setAttribute('aria-label', 'c15t DevTools');
+		title.append(
+			createLogo(document),
+			createElement(document, 'span', undefined, 'DevTools')
 		);
+		const close = createButton(document, 'Close c15t DevTools', () => {
+			options.stateManager.setOpen(false);
+		});
+		close.textContent = '×';
+		close.setAttribute('aria-label', 'Close c15t DevTools');
+		close.classList.add('c15t-dev-tools__close');
+		header.append(title, close);
+		panel.append(header);
 
 		const tabList = createElement(document, 'div', 'c15t-dev-tools__tabs');
 		tabList.setAttribute('role', 'tablist');
@@ -560,6 +806,7 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 				setActiveTab(tab.id);
 			});
 			tabButton.dataset.tab = tab.id;
+			tabButton.id = `${viewId}-tab-${tab.id}`;
 			tabButton.setAttribute('role', 'tab');
 			tabButton.setAttribute(
 				'aria-selected',
@@ -594,16 +841,33 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		const content = createElement(document, 'div', 'c15t-dev-tools__content');
 		content.id = `${viewId}-tabpanel`;
 		content.setAttribute('role', 'tabpanel');
+		content.setAttribute('aria-labelledby', `${viewId}-tab-${state.activeTab}`);
 		content.tabIndex = 0;
 		renderTab(
 			document,
 			content,
 			state,
 			options.kernel,
-			options.stateManager.clearEvents
+			options.stateManager.clearEvents,
+			viewState,
+			options.getConsentCategories,
+			run
 		);
+		appendActionFeedback(document, panel, content, action);
 		panel.append(content);
 		root.append(panel);
+		for (const field of root.querySelectorAll<
+			HTMLInputElement | HTMLSelectElement
+		>('.c15t-dev-tools__field input, .c15t-dev-tools__field select')) {
+			const draft = field.dataset.focusKey
+				? drafts.get(field.dataset.focusKey)
+				: undefined;
+			if (draft !== undefined) {
+				field.value = draft;
+			}
+		}
+		content.scrollTop = scrollTop;
+		renderedState = state;
 
 		if (state.isOpen !== wasOpen) {
 			focusAfterRender(
@@ -618,11 +882,14 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 	}
 
 	const unsubscribe = options.stateManager.subscribe(render);
+	const unsubscribeIAB = subscribeIABControls(options.kernel, render);
 	(options.container ?? document.body).append(root);
 	render();
 
 	return {
 		destroy() {
+			destroyed = true;
+			unsubscribeIAB();
 			unsubscribe();
 			root.remove();
 		},

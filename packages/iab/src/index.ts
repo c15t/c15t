@@ -20,6 +20,7 @@
  * (`createCMPApi`), stub installer (`initializeIABStub`).
  */
 
+import { registerIABControls } from '@c15t/core';
 import type {
 	CMPApi,
 	ConsentKernel,
@@ -205,7 +206,10 @@ const applyBlanket = function applyBlanket(
 	gvl: GlobalVendorList,
 	value: boolean
 ): void {
-	const vendorIds = Object.keys(gvl.vendors ?? {});
+	const vendorIds = new Set([
+		...Object.keys(gvl.vendors ?? {}),
+		...readIAB(kernel).customVendors.map((vendor) => vendor.id),
+	]);
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
 
@@ -367,7 +371,7 @@ export const createIAB = function createIAB(
 		return tcString;
 	};
 
-	return {
+	const handle: IABHandle = {
 		acceptAll() {
 			const { gvl } = readIAB(kernel);
 			if (!gvl) {
@@ -380,6 +384,8 @@ export const createIAB = function createIAB(
 		},
 		dispose() {
 			disposed = true;
+			// oxlint-disable-next-line no-use-before-define -- Cleanup runs after this handle has been registered.
+			unregisterControls();
 			unsubscribe();
 			if (cmpApi) {
 				try {
@@ -414,7 +420,10 @@ export const createIAB = function createIAB(
 			// the final save payload reflects what we just generated.
 			const purposes = readIAB(kernel).purposeConsents;
 			const consents = iabPurposesToC15tConsents(purposes);
-			await kernel.commands.save(consents);
+			const result = await kernel.commands.save(consents);
+			if (!result.ok) {
+				throw new Error('IAB consent could not be saved. Retry the save.');
+			}
 		},
 		setPurposeConsent(id, value) {
 			const current = readIAB(kernel).purposeConsents;
@@ -466,6 +475,8 @@ export const createIAB = function createIAB(
 			});
 		},
 	};
+	const unregisterControls = registerIABControls(kernel, handle);
+	return handle;
 };
 
 export type { CMPApi, GlobalVendorList, NonIABVendor } from '@c15t/core';

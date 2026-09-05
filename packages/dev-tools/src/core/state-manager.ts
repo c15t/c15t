@@ -1,4 +1,8 @@
 import type { ConsentSnapshot, KernelEvent } from '@c15t/core/v3';
+import type {
+	ScriptDiagnostic,
+	ScriptLoaderDebugEvent,
+} from '@c15t/core/v3/modules/script-loader';
 
 /** Placement of the floating DevTools launcher and panel. */
 export type DevToolsPosition =
@@ -10,6 +14,7 @@ export type DevToolsPosition =
 /** Kernel views available in the first v3 DevTools release. */
 export type DevToolsTab =
 	| 'consents'
+	| 'scripts'
 	| 'location'
 	| 'policy'
 	| 'iab'
@@ -19,7 +24,9 @@ export type DevToolsTab =
 /** A serializable entry captured from the kernel event bus. */
 export interface DevToolsEvent {
 	readonly id: string;
-	readonly type: KernelEvent['type'];
+	readonly type:
+		| KernelEvent['type']
+		| `script:${ScriptLoaderDebugEvent['action']}`;
 	readonly message: string;
 	readonly timestamp: number;
 	readonly data?: Readonly<Record<string, unknown>>;
@@ -32,6 +39,7 @@ export interface DevToolsState {
 	readonly position: DevToolsPosition;
 	readonly snapshot: ConsentSnapshot;
 	readonly events: readonly DevToolsEvent[];
+	readonly scripts: readonly ScriptDiagnostic[];
 }
 
 export type DevToolsStateListener = (
@@ -45,6 +53,7 @@ export interface StateManager {
 	setOpen: (isOpen: boolean) => void;
 	setActiveTab: (tab: DevToolsTab) => void;
 	setSnapshot: (snapshot: ConsentSnapshot) => void;
+	setScripts: (scripts: readonly ScriptDiagnostic[]) => void;
 	addEvent: (event: DevToolsEvent) => void;
 	clearEvents: () => void;
 	destroy: () => void;
@@ -63,6 +72,7 @@ export function createStateManager(options: {
 		events: [],
 		isOpen: options.isOpen,
 		position: options.position,
+		scripts: [],
 		snapshot: options.snapshot,
 	};
 	let destroyed = false;
@@ -104,6 +114,7 @@ export function createStateManager(options: {
 				update({ isOpen });
 			}
 		},
+		setScripts: (scripts) => update({ scripts }),
 		setSnapshot: (snapshot) => {
 			if (state.snapshot !== snapshot) {
 				update({ snapshot });
