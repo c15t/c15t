@@ -3,7 +3,9 @@
 Playwright benchmark app for `@c15t/tanstack-start`, built to run head to head
 against `benchmarks/nextjs-browser-bench`: same fixture data, same scenario
 names, same DOM hooks, same metric list, same Chromium build. The only extra
-arm is `manifest-ssr-proxy`, which prices the opt-in same-origin proxy.
+arm is `manifest-ssr-proxy`, which prices the opt-in same-origin proxy, plus
+the `manifest-ssr-root` build variant described under "Root-mounted
+provider" below.
 
 ## Scenarios
 
@@ -16,6 +18,7 @@ arm is `manifest-ssr-proxy`, which prices the opt-in same-origin proxy.
 | `manifest-ssr` | `/manifest-ssr` | Loader runs `createConsentConfigHandler({ backendURL, manifestURL })` through the in-process manifest cache; `ConsentBoundary` with the default same-origin init route. Saves post to the fixture directly. |
 | `manifest-ssr-proxy` | `/manifest-ssr-proxy` | Same prefetch, but `ConsentBoundary backendURL="/api/c15t-proxy"`, a second `createConsentServerRoute({ proxy: true })` mount, so the accept click's `POST /subjects` takes one hop through the Start server. Start only. |
 | `repeat-visitor` | derived | After each measured `client` iteration a second browser context loads `/client` and the runner measures the Open Preferences click, exactly as the Next runner does. Note that neither runner preseeds the consent cookie for this arm. |
+| `manifest-ssr-root` | `/manifest-ssr` in the `dist-root/` build | `--root-provider` only. Same route and metrics as `manifest-ssr`, but the provider and the manifest prefetch loader live in `__root.tsx` and the route renders only the page shell. Built with `C15T_BENCH_ROOT_PROVIDER=1` (`bun run build:root`). |
 
 There is no `rsc-ssr` arm: TanStack Start has no server components, so the
 Next `rsc-ssr` scenario has no equivalent and is reported as Next-only.
@@ -32,6 +35,7 @@ bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --iterations 15 -
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --profile mobile --init-latency-ms 200
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --scenario manifest-ssr-proxy
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --cold-manifest true
+bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --root-provider
 ```
 
 The runner builds `dist/` with `vite build` when `dist/server/server.js` is
@@ -41,6 +45,13 @@ so `node dist/server/server.js` alone exits immediately; `serve.mjs` hosts it
 with srvx's `node:http` adapter and serves `dist/client` as static files, which
 is the Node hosting shape TanStack Start documents for that output. Results
 land in `.benchmarks/current/browser-runtime/tanstack-start/`.
+
+`--root-provider` builds the root-mounted variant into `dist-root/` with
+`bun run build:root` when `dist-root/server/server.js` is missing, serves it
+through the same `serve.mjs` (`DIST_DIR=dist-root`), and runs only the
+`/manifest-ssr` route, written as scenario `manifest-ssr-root` with the
+`manifest-ssr` budgets. Both builds can sit side by side; the default arm
+never reads `dist-root/`.
 
 For the head-to-head report run both arms, then:
 
@@ -175,6 +186,178 @@ Start does less main-thread work once the code arrives (`longTaskTotalMs`
   an adapter difference.
 - Manifest caches were warm for every measured iteration (two warmup
   iterations per arm). `--cold-manifest true` measures the first fill.
+
+### Root-mounted provider
+
+Recorded on 5 September 2026 on the same machine and toolchain as the
+reference run, in one session, in this order:
+
+```bash
+bun run --cwd benchmarks/nextjs-browser-bench bench -- --scenario manifest-ssr --iterations 15 --warmup 2
+bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --scenario manifest-ssr --iterations 15 --warmup 2
+bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --root-provider --iterations 15 --warmup 2
+# the same three with --profile mobile --init-latency-ms 200
+bun run bench:frameworks
+```
+
+**Hypothesis.** The bench mounts the consent provider inside each scenario
+route, which Start code-splits, so the provider's chunks are fetched after
+the route component chunk executes. The documented app pattern mounts
+`ConsentBoundary` in `__root.tsx`, which Start does not code-split, so in a
+real app those chunks should be part of the preloaded entry graph and the
+mobile gap should shrink.
+
+**Result: refuted.** Root mounting does not get the consent chunks into
+the HTML preload list, and under the mobile profile it makes the banner
+visible 69 ms later, not earlier. The gap to Next widened from +201 ms to
++270 ms.
+
+#### Preload lists
+
+`<link rel="modulepreload">` hrefs in the served `/manifest-ssr` HTML.
+Hashes are from the builds measured below.
+
+Default build (`dist/`, provider mounted in the route):
+
+```text
+/assets/index-BgNc1FhE.js
+/assets/rolldown-runtime-QTnfLwEv.js
+/assets/jsx-runtime-CIxEorsV.js
+/assets/loaders-GYqgsAgf.js
+/assets/link-F-B3v8vI.js
+/assets/router-Dlc683OF.js
+/assets/manifest-ssr-BKAMiTBR.js   (route component chunk)
+/assets/provider-CP6A0KFU.js
+/assets/manifest-ssr--5YaoUS4.js   (route definition chunk)
+```
+
+Root-mounted build (`dist-root/`, `C15T_BENCH_ROOT_PROVIDER=1`):
+
+```text
+/assets/index-Bv1mi7H7.js
+/assets/rolldown-runtime-QTnfLwEv.js
+/assets/jsx-runtime-CIxEorsV.js
+/assets/loaders-B-JkcSQw.js
+/assets/link-F-B3v8vI.js
+/assets/router-DOKVkgT0.js
+/assets/manifest-ssr-BoaaMnv8.js   (route component chunk)
+/assets/provider-D81x4oL8.js
+/assets/manifest-ssr-CHyVr-VH.js   (route definition chunk)
+/assets/page-shell-hdBAiCOv.js
+```
+
+| Chunk | Default build | Root-mounted build |
+| --- | --- | --- |
+| `policy-actions` (~49 kB) | not preloaded | not preloaded |
+| `state` | not preloaded | not preloaded |
+| `context` | not preloaded | not preloaded |
+| `use-component-config` | not preloaded | not preloaded |
+| `theme` | not preloaded | not preloaded |
+
+Why: Start builds the preload list in
+`@tanstack/start-plugin-core/src/start-manifest-plugin/manifestBuilder.ts`.
+`getChunkPreloads(chunk)` returns the chunk plus `chunk.imports`, one level
+deep, for the entry chunk (root route) and for each matched route's chunks;
+stylesheets are collected recursively, scripts are not. The same code is on
+TanStack's `main` as of this run. In the root-mounted build `__root.tsx`
+is bundled into the `router` chunk (the route tree), which the entry
+imports directly, and `router` imports `provider`, which imports
+`policy-actions`, `state`, `context`, and `use-component-config`. That puts
+the provider two levels below the entry and its own imports three levels
+down, so none of them make the list. `provider` appears in both lists only
+because the route component chunk imports it directly. `theme` is a
+dynamic import inside `@c15t/react`'s provider, so no static walk would
+ever list it.
+
+#### Metrics
+
+Medians and p95 from this session. Next has no root-mounted counterpart;
+its `manifest-ssr` boundary is already in the root layout.
+
+Desktop profile, no added latency:
+
+| Metric | Next `manifest-ssr` | Start `manifest-ssr` | Start `manifest-ssr-root` |
+| --- | ---: | ---: | ---: |
+| `ttfbMs` | 19.1 / 30.5 ms | 18.8 / 29.4 ms | 14.0 / 26.1 ms |
+| `htmlDoneMs` | 55.9 / 63.3 ms | 59.7 / 72.4 ms | 51.4 / 68.8 ms |
+| `bannerReadyMs` | 155.8 / 164.9 ms | 155.3 / 166.5 ms | 152.4 / 226.4 ms |
+| `bannerVisibleMs` | 155.9 / 164.9 ms | 155.4 / 166.5 ms | 152.4 / 226.5 ms |
+| `bannerPaintMs` | 64 / 84 ms | 68 / 80 ms | 60 / 76 ms |
+| `firstAppScriptStartMs` | 26.3 / 39.0 ms | 25.0 / 37.2 ms | 19.5 / 33.4 ms |
+| `lastAppScriptEndMs` | 183.2 / 192.4 ms | 149.6 / 165.5 ms | 149.8 / 230.2 ms |
+| `appScriptCount` | 13 / 13 | 18 / 18 | 20 / 20 |
+| `jsBytes` | 249.0 / 249.0 kB | 206.3 / 206.3 kB | 207.5 / 207.5 kB |
+| `longTaskTotalMs` | 0 / 0 ms | 0 / 0 ms | 0 / 0 ms |
+
+Mobile profile (4x CPU, 170 ms RTT), `--init-latency-ms 200`:
+
+| Metric | Next `manifest-ssr` | Start `manifest-ssr` | Start `manifest-ssr-root` |
+| --- | ---: | ---: | ---: |
+| `ttfbMs` | 19.6 / 43.0 ms | 19.7 / 27.2 ms | 20.0 / 25.1 ms |
+| `htmlDoneMs` | 398.4 / 429.7 ms | 412.4 / 440.3 ms | 410.9 / 437.1 ms |
+| `bannerReadyMs` | 984.2 / 1105.0 ms | 1184.7 / 1248.7 ms | 1253.8 / 1315.5 ms |
+| `bannerVisibleMs` | 984.3 / 1105.0 ms | 1185.2 / 1248.7 ms | 1253.8 / 1315.6 ms |
+| `bannerPaintMs` | 404 / 424 ms | 412 / 432 ms | 412 / 436 ms |
+| `firstAppScriptStartMs` | 186.2 / 210.1 ms | 185.0 / 187.1 ms | 184.4 / 188.3 ms |
+| `lastAppScriptEndMs` | 1129.8 / 1249.2 ms | 1357.4 / 1421.2 ms | 1427.3 / 1490.4 ms |
+| `appScriptCount` | 12 / 12 | 18 / 18 | 20 / 20 |
+| `jsBytes` | 246.2 / 246.2 kB | 206.3 / 206.3 kB | 207.5 / 207.5 kB |
+| `longTaskTotalMs` | 142 / 209 ms | 66 / 89 ms | 67 / 73 ms |
+
+#### Waterfall, mobile profile
+
+Resource start and end times (ms after navigation start) for the iteration
+whose `bannerVisibleMs` was the median of three, captured with the same
+CDP throttle and 200 ms fixture latency after the runs above. Stylesheets
+and the entry graph are omitted from the middle rows; they arrive in the
+first wave in both builds (index at 426/429 ms, `router` at 595 ms,
+`provider` at 642/641 ms).
+
+| Wave | Default build (banner visible 1180 ms) | Root-mounted build (banner visible 1258 ms) |
+| --- | --- | --- |
+| 1: HTML preloads | 186 to 642: entry graph, route chunks, `provider`, CSS | 184 to 724: the same plus `page-shell` |
+| 2: `router`'s second-level imports | 599 to 781: `preload-helper`, `ssr`, `manifest-ssr-proxy` | 599 to 778: `preload-helper`, `server`, `ssr`, `manifest-ssr-proxy` |
+| 2b: `provider`'s imports | (not yet requested) | 649 to 955: `policy-actions`, `context`, `use-component-config`, `state` |
+| 3 | 888 to 1081: `policy-actions`, `688`, `context`, `state`, `use-component-config` via Vite's preload helper, once the route component resolves | 843 to 1017: `688` (imported by `policy-actions`) |
+| after hydration | 1137 `/api/c15t/init`, 1175 to 1353 `theme` | 1197 `/api/c15t/init`, 1254 to 1429 `theme` |
+
+#### Reading it
+
+- **Root mounting moves the consent chunks one wave earlier, and that is
+  all.** They are requested when the browser parses the preloaded
+  `provider` chunk (649 ms) instead of when Vite's preload helper runs
+  (888 ms). But `688`, which `policy-actions` imports, becomes a new third
+  wave (843 to 1017), so the static graph completes only 64 ms earlier
+  than the default build's (1017 vs 1081 ms).
+- **It costs the overlap.** In the default build the entry's static graph
+  is complete at about 780 ms and the entry, router, and route tree
+  evaluate (about 107 ms at 4x CPU) while wave 3 is in flight. In the
+  root-mounted build `provider` and its imports are part of the entry's
+  static graph, so nothing runs until 1017 ms and every millisecond of
+  evaluation lands after the last byte. Net effect: banner visible 69 ms
+  later (1254 vs 1185 ms), `appScriptCount` 20 instead of 18. On the
+  desktop profile the two are within noise (152 vs 155 ms).
+- **What still loads late.** In both builds the entry cannot run before
+  wave 2, the second-level imports of the `router` chunk (the other
+  routes' definition chunks and Vite's preload helper), which the HTML
+  never preloads. `theme` and the browser init request are fetched after
+  hydration and are not on the banner-visible path: the banner is visible
+  before either returns.
+- **The remaining lever is upstream, not in the adapter.** Next lists
+  every chunk as `<script async>` in one wave and shows the banner at
+  984 ms. Start's manifest builder would close most of the gap by walking
+  `chunk.imports` transitively, the way Vite's own HTML entry injection
+  does; the default build would then have everything but `theme` in the
+  first wave and could execute at about 640 ms instead of 780. The adapter
+  cannot do this itself: chunk file names exist only inside the Vite
+  build, and the plugin's `additionalRouteAssets` hook is internal, used
+  for the single stylesheet when `cssCodeSplit` is off. An app could patch
+  the manifest with its own Vite plugin, but that is app tooling. The
+  `theme` dynamic import in `@c15t/react` is a separate, smaller item
+  and does not gate banner visibility. Mounting in `__root.tsx` is still
+  the right pattern for a real app, one provider for every route, but it
+  is not a performance lever on Start 1.168, so the adapter's TSDoc does
+  not recommend it on those grounds.
 
 ### Tables
 
