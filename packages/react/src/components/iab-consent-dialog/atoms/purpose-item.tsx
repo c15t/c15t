@@ -1,5 +1,6 @@
 'use client';
 
+import { iabDisplayTestId } from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useState } from 'react';
 import type { FC } from 'react';
@@ -18,6 +19,12 @@ const EMPTY_PURPOSE_INTERESTS: Record<number, boolean> = {};
 
 interface PurposeItemProps {
 	purpose: ProcessedPurpose;
+	/**
+	 * The row's `data-testid`. Comes from the shared display model, which
+	 * namespaces it by row kind — a purpose, a special purpose and a
+	 * special feature can all be numbered `1`.
+	 */
+	testId?: string;
 	isEnabled: boolean;
 	onToggle: (value: boolean) => void;
 	vendorConsents: Record<string, boolean>;
@@ -136,6 +143,7 @@ const VendorRow: FC<VendorRowProps> = ({
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const PurposeItem: FC<PurposeItemProps> = ({
 	purpose,
+	testId,
 	isEnabled,
 	onToggle,
 	vendorConsents,
@@ -221,7 +229,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	return (
 		<PreferenceItem.Root
 			className={noStyle ? undefined : styles.purposeItem}
-			data-testid={`purpose-item-${purpose.id}`}
+			data-testid={testId ?? iabDisplayTestId('purpose', purpose.id)}
 			noStyle
 			onOpenChange={setIsExpanded}
 			open={isExpanded}

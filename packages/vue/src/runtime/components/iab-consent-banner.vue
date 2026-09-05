@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type {
-	GlobalVendorList,
-	NonIABVendor,
-	PolicyUiAction,
-} from '@c15t/schema/types';
+import { resolveIABBannerSummary } from '@c15t/iab/headless';
+import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 
@@ -20,8 +17,6 @@ import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentTag from './consent-tag.vue';
 
-const MAX_DISPLAY_ITEMS = 5;
-const STANDALONE_PURPOSE_ID = 1;
 const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 	['reject', 'accept'],
 	'customize',
@@ -98,111 +93,14 @@ const labels = computed(() => ({
 	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-const resolveBannerSummary = function resolveBannerSummary(
-	gvlData: GlobalVendorList,
-	vendors: NonIABVendor[]
-) {
-	const vendorCount = Object.keys(gvlData.vendors).length + vendors.length;
-
-	const purposesWithVendors = Object.entries(gvlData.purposes)
-		.filter(([id]) =>
-			Object.values(gvlData.vendors).some(
-				(vendor) =>
-					vendor.purposes?.includes(Number(id)) ||
-					vendor.legIntPurposes?.includes(Number(id))
-			)
-		)
-		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
-
-	const standalonePurpose = purposesWithVendors.find(
-		(purpose) => purpose.id === STANDALONE_PURPOSE_ID
-	);
-	const otherPurposes = purposesWithVendors.filter(
-		(purpose) => purpose.id !== STANDALONE_PURPOSE_ID
-	);
-	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
-
-	const stackScores: {
-		name: string;
-		coveredPurposeIds: number[];
-		score: number;
-	}[] = [];
-
-	for (const stack of Object.values(gvlData.stacks || {})) {
-		const coveredPurposeIds = stack.purposes.filter((purposeId) =>
-			otherPurposeIds.has(purposeId)
-		);
-		if (coveredPurposeIds.length >= 2) {
-			stackScores.push({
-				coveredPurposeIds,
-				name: stack.name,
-				score: coveredPurposeIds.length,
-			});
-		}
-	}
-
-	stackScores.sort((left, right) => right.score - left.score);
-
-	const selectedStacks: string[] = [];
-	const assignedPurposeIds = new Set<number>();
-	for (const { name, coveredPurposeIds } of stackScores) {
-		const unassigned = coveredPurposeIds.filter(
-			(purposeId) => !assignedPurposeIds.has(purposeId)
-		);
-		if (unassigned.length >= 2) {
-			selectedStacks.push(name);
-			for (const purposeId of unassigned) {
-				assignedPurposeIds.add(purposeId);
-			}
-		}
-	}
-
-	const uncoveredPurposes = otherPurposes.filter(
-		(purpose) => !assignedPurposeIds.has(purpose.id)
-	);
-
-	const specialFeatures = Object.entries(gvlData.specialFeatures || {})
-		.filter(([id]) =>
-			Object.values(gvlData.vendors).some((vendor) =>
-				vendor.specialFeatures?.includes(Number(id))
-			)
-		)
-		.map(([, feature]) => feature.name);
-
-	const items: string[] = [];
-	if (standalonePurpose) {
-		items.push(standalonePurpose.name);
-	}
-	for (const stackName of selectedStacks) {
-		items.push(stackName);
-	}
-	for (const purpose of uncoveredPurposes) {
-		items.push(purpose.name);
-	}
-	for (const featureName of specialFeatures) {
-		items.push(featureName);
-	}
-
-	return {
-		displayItems: items.slice(0, MAX_DISPLAY_ITEMS),
-		isReady: true,
-		remainingCount: Math.max(0, items.length - MAX_DISPLAY_ITEMS),
-		vendorCount,
-	};
-};
-
-const bannerSummary = computed(() => {
-	if (!gvl.value) {
-		return {
-			displayItems: [] as string[],
-			isReady: false,
-			remainingCount: 0,
-			vendorCount: 0,
-		};
-	}
-
-	return resolveBannerSummary(gvl.value, customVendors.value);
-});
+// The summary — which purposes, stacks and special features the banner
+// names, and how many it leaves out — comes from the shared model in
+// `@c15t/iab/headless`, so the four banners list the same things.
+const bannerSummary = computed(() =>
+	resolveIABBannerSummary(
+		gvl.value ? { customVendors: customVendors.value, gvl: gvl.value } : null
+	)
+);
 
 const showBanner = computed(
 	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady

@@ -8,7 +8,7 @@
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
-	import { processGVLData } from '../iab-types';
+	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
 	import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
 	import Branding from './branding.svelte';
@@ -95,36 +95,20 @@
 		}
 	});
 
-	// Process GVL data
-	const gvlData = $derived.by(() => {
-		if (!iabState?.gvl) {
-			return null;
-		}
-		return processGVLData(iabState.gvl, iabState.nonIABVendors || []);
-	});
-
-	// Total vendor count
-	const totalVendors = $derived.by(() => {
-		if (!iabState?.gvl) {
-			return 0;
-		}
-		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
-		return gvlVendorCount + customVendorCount;
-	});
+	// The rows this surface renders, from the shared display model.
+	const display = $derived(
+		resolveIABDialogDisplayModel(
+			iabState
+				? {
+						customVendors: iabState.nonIABVendors ?? [],
+						gvl: iabState.gvl,
+						isLoadingGVL: iabState.isLoadingGVL,
+					}
+				: null
+		)
+	);
 
 	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
-
-	// Partner count for special purposes + features section
-	const specialSectionPartnerCount = $derived.by(() => {
-		if (!gvlData) {
-			return 0;
-		}
-		return new Set([
-			...gvlData.specialPurposes.flatMap((sp) => sp.vendors.map((v) => v.id)),
-			...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
-		]).size;
-	});
 
 	const handlePurposeToggle = function handlePurposeToggle(
 		purposeId: number,
@@ -258,11 +242,8 @@
 								class={noStyle ? '' : styles.tabButton || ''}
 							>
 								{iabT.preferenceCenter.tabs.purposes}
-								{#if !isLoading && gvlData}
-									({gvlData.purposes.length +
-										gvlData.specialPurposes.length +
-										gvlData.specialFeatures.length +
-										gvlData.features.length})
+								{#if !isLoading}
+									({display.purposeTabCount})
 								{/if}
 							</Tabs.Trigger>
 							<Tabs.Trigger
@@ -271,7 +252,7 @@
 							>
 								{iabT.preferenceCenter.tabs.vendors}
 								{#if !isLoading}
-									({totalVendors})
+									({display.vendorTabCount})
 								{/if}
 							</Tabs.Trigger>
 							<div
@@ -295,69 +276,62 @@
 										{iabT.common.loading}
 									</p>
 								</div>
-							{:else if gvlData && iabState}
-								<!-- Standalone purposes -->
-								{#each gvlData.standalonePurposes as purpose (purpose.id)}
-									<IABPurposeItem
-										{purpose}
-										isEnabled={iabState.purposeConsents[purpose.id] ?? false}
-										onToggle={(value) => handlePurposeToggle(purpose.id, value)}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-										onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-										purposeLegitimateInterests={iabState.purposeLegitimateInterests}
-										onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
-										{noStyle}
-										{iabT}
-									/>
-								{/each}
-
-								<!-- Stacks -->
-								{#each gvlData.stacks as stack (stack.id)}
-									<IABStackItem
-										{stack}
-										consents={iabState.purposeConsents}
-										onToggle={handlePurposeToggle}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-										onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-										purposeLegitimateInterests={iabState.purposeLegitimateInterests}
-										onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
-										{noStyle}
-										{iabT}
-									/>
-								{/each}
-
-								<!-- Special Features -->
-								{#each gvlData.specialFeatures as feature (feature.id)}
-									<IABPurposeItem
-										purpose={{
-											id: feature.id,
-											name: feature.name,
-											description: feature.description,
-											illustrations: feature.illustrations,
-											vendors: feature.vendors,
-										}}
-										isEnabled={iabState.specialFeatureOptIns[feature.id] ??
-											false}
-										onToggle={(value) =>
-											handleSpecialFeatureToggle(feature.id, value)}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-										onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
-										{noStyle}
-										{iabT}
-									/>
+							{:else if display.isReady && iabState}
+								<!-- Purposes, stacks and special features, from the
+								     shared display model so every adapter lists the
+								     same rows in the same order. -->
+								{#each display.consentRows as row (row.testId)}
+									{#if row.kind === 'stack'}
+										<IABStackItem
+											stack={row}
+											consents={iabState.purposeConsents}
+											onToggle={handlePurposeToggle}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											onVendorClick={handleVendorClick}
+											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+											purposeLegitimateInterests={iabState.purposeLegitimateInterests}
+											onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
+											{noStyle}
+											{iabT}
+										/>
+									{:else if row.toggle === 'special-feature'}
+										<IABPurposeItem
+											purpose={row}
+											testId={row.testId}
+											isEnabled={iabState.specialFeatureOptIns[row.id] ?? false}
+											onToggle={(value) =>
+												handleSpecialFeatureToggle(row.id, value)}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											onVendorClick={handleVendorClick}
+											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+											{noStyle}
+											{iabT}
+										/>
+									{:else}
+										<IABPurposeItem
+											purpose={row}
+											testId={row.testId}
+											isEnabled={iabState.purposeConsents[row.id] ?? false}
+											onToggle={(value) => handlePurposeToggle(row.id, value)}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											onVendorClick={handleVendorClick}
+											vendorLegitimateInterests={iabState.vendorLegitimateInterests}
+											onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
+											purposeLegitimateInterests={iabState.purposeLegitimateInterests}
+											onPurposeLegitimateInterestToggle={handlePurposeLegitimateInterestToggle}
+											{noStyle}
+											{iabT}
+										/>
+									{/if}
 								{/each}
 
 								<!-- Essential Functions: Special Purposes + Features (locked) -->
-								{#if gvlData.specialPurposes.length > 0 || gvlData.features.length > 0}
+								{#if display.essentialRows.length > 0}
 									<Collapsible.Root
 										bind:open={specialPurposesExpanded}
 										class={noStyle ? '' : styles.specialPurposesSection || ''}
@@ -386,8 +360,8 @@
 														/>
 													</h3>
 													<p class={noStyle ? '' : styles.purposeMeta || ''}>
-														{specialSectionPartnerCount}
-														{specialSectionPartnerCount === 1
+														{display.essentialPartnerCount}
+														{display.essentialPartnerCount === 1
 															? iabT.preferenceCenter.vendorList.partnerSingular
 															: iabT.preferenceCenter.vendorList.partnerPlural}
 													</p>
@@ -401,43 +375,28 @@
 										</div>
 
 										<Collapsible.Content>
-											<div>
-												<!-- Special Purposes -->
-												{#each gvlData.specialPurposes as purpose (purpose.id)}
-													<IABPurposeItem
-														{purpose}
-														isEnabled={true}
-														onToggle={() => {}}
-														vendorConsents={iabState.vendorConsents}
-														onVendorToggle={handleVendorToggle}
-														onVendorClick={handleVendorClick}
-														isLocked={true}
-														{noStyle}
-														{iabT}
-													/>
-												{/each}
-
-												<!-- Features -->
-												{#each gvlData.features as feature (feature.id)}
-													<IABPurposeItem
-														purpose={{
-															id: feature.id,
-															name: feature.name,
-															description: feature.description,
-															illustrations: feature.illustrations,
-															vendors: feature.vendors,
-														}}
-														isEnabled={true}
-														onToggle={() => {}}
-														vendorConsents={iabState.vendorConsents}
-														onVendorToggle={handleVendorToggle}
-														onVendorClick={handleVendorClick}
-														isLocked={true}
-														{noStyle}
-														{iabT}
-													/>
-												{/each}
-											</div>
+											<!-- Rendered only while open, the way the React and
+											     Vue surfaces do: a closed section that still
+											     mounts its rows put every row's test-id in the
+											     DOM twice. -->
+											{#if specialPurposesExpanded}
+												<div>
+													{#each display.essentialRows as row (row.testId)}
+														<IABPurposeItem
+															purpose={row}
+															testId={row.testId}
+															isEnabled={true}
+															onToggle={() => {}}
+															vendorConsents={iabState.vendorConsents}
+															onVendorToggle={handleVendorToggle}
+															onVendorClick={handleVendorClick}
+															isLocked={true}
+															{noStyle}
+															{iabT}
+														/>
+													{/each}
+												</div>
+											{/if}
 										</Collapsible.Content>
 									</Collapsible.Root>
 								{/if}
@@ -459,7 +418,7 @@
 							{#if iabState}
 								<IABVendorList
 									vendorData={iabState.gvl}
-									purposes={gvlData?.purposes ?? []}
+									purposes={display.data.purposes}
 									vendorConsents={iabState.vendorConsents}
 									onVendorToggle={handleVendorToggle}
 									{selectedVendorId}

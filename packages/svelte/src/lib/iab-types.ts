@@ -1,83 +1,50 @@
+/**
+ * The Svelte adapter's view of the shared IAB display model.
+ *
+ * The derivation itself — which purposes a stack absorbs, which rows a
+ * preference centre lists, what each row's test-id is — lives in
+ * `@c15t/iab/headless` so React, Svelte, Vue and the Astro server render
+ * cannot drift apart. This module is the thin naming layer that was left
+ * behind: the local type aliases the components already import, and two
+ * wrappers keeping the argument shapes they already call with.
+ *
+ * `@c15t/iab/headless` is pure derivation with no TCF encoder behind it,
+ * so importing it here does not pull the CMP API into an app that never
+ * mounts an IAB surface — the components that import this module are
+ * themselves only reachable from `<IABConsentBanner>`/`<IABConsentDialog>`.
+ */
+
 import type { GlobalVendorList } from '@c15t/core';
+import {
+	processGVLForDialog,
+	resolveIABBannerSummary,
+} from '@c15t/iab/headless';
+import type {
+	HeadlessIABDialogData,
+	HeadlessIABProcessedFeature,
+	HeadlessIABProcessedPurpose,
+	HeadlessIABProcessedSpecialFeature,
+	HeadlessIABProcessedStack,
+	HeadlessIABProcessedVendor,
+	HeadlessIABVendorId,
+} from '@c15t/iab/headless';
 
-export type VendorId = number | string;
+export type VendorId = HeadlessIABVendorId;
+export type ProcessedVendor = HeadlessIABProcessedVendor;
+export type ProcessedPurpose = HeadlessIABProcessedPurpose;
+export type ProcessedSpecialFeature = HeadlessIABProcessedSpecialFeature;
+export type ProcessedFeature = HeadlessIABProcessedFeature;
+export type ProcessedStack = HeadlessIABProcessedStack;
 
-/**
- * Processed vendor data for UI display.
- */
-export interface ProcessedVendor {
-	id: VendorId;
-	name: string;
-	policyUrl: string;
-	usesNonCookieAccess: boolean;
-	deviceStorageDisclosureUrl: string | null;
-	usesCookies: boolean;
-	cookieMaxAgeSeconds: number | null;
-	cookieRefresh?: boolean;
-	specialPurposes: number[];
-	specialFeatures: number[];
-	features: number[];
-	purposes: number[];
-	legIntPurposes: number[];
-	legitimateInterestUrl?: string | null;
-	isCustom?: boolean;
-	usesLegitimateInterest?: boolean;
-	dataRetention?: {
-		purposes?: Record<number, number>;
-		specialPurposes?: Record<number, number>;
-		stdRetention?: number;
-	};
-	dataDeclaration?: number[];
-}
+export type {
+	HeadlessIABDialogDisplayModel as IABDisplayModel,
+	HeadlessIABDisplayConsentRow as IABDisplayConsentRow,
+	HeadlessIABDisplayRow as IABDisplayRow,
+	HeadlessIABDisplayStackRow as IABDisplayStackRow,
+} from '@c15t/iab/headless';
+export { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
 
-/**
- * Processed purpose data for UI display.
- */
-export interface ProcessedPurpose {
-	id: number;
-	name: string;
-	description: string;
-	descriptionLegal?: string;
-	illustrations: string[];
-	vendors: ProcessedVendor[];
-	isSpecialPurpose?: boolean;
-}
-
-/**
- * Special feature data for UI display.
- */
-export interface ProcessedSpecialFeature {
-	id: number;
-	name: string;
-	description: string;
-	descriptionLegal?: string;
-	illustrations: string[];
-	vendors: ProcessedVendor[];
-}
-
-/**
- * Feature data for UI display (informational, no consent toggle).
- */
-export interface ProcessedFeature {
-	id: number;
-	name: string;
-	description: string;
-	descriptionLegal?: string;
-	illustrations: string[];
-	vendors: ProcessedVendor[];
-}
-
-/**
- * Stack data with resolved purposes.
- */
-export interface ProcessedStack {
-	id: number;
-	name: string;
-	description: string;
-	purposes: ProcessedPurpose[];
-}
-
-/** Custom vendor not registered with IAB */
+/** Custom vendor not registered with IAB. */
 export interface NonIABVendor {
 	id: string | number;
 	name: string;
@@ -92,345 +59,40 @@ export interface NonIABVendor {
 	cookieMaxAgeSeconds?: number;
 }
 
-/**
- * Result of processing GVL data into UI-friendly format.
- */
-export interface ProcessedGVLData {
-	purposes: ProcessedPurpose[];
-	specialPurposes: ProcessedPurpose[];
-	specialFeatures: ProcessedSpecialFeature[];
-	features: ProcessedFeature[];
-	stacks: ProcessedStack[];
-	standalonePurposes: ProcessedPurpose[];
-}
+/** Result of processing GVL data into UI-friendly format. */
+export type ProcessedGVLData = HeadlessIABDialogData;
 
 /**
  * Process raw GVL data into UI-friendly format.
- * Shared between IABConsentBanner and IABConsentDialog.
+ *
+ * @param gvl - The Global Vendor List.
+ * @param customVendors - Publisher-declared non-IAB vendors.
+ * @returns The processed purposes, stacks, features and vendors.
  */
 export const processGVLData = function processGVLData(
 	gvl: GlobalVendorList,
 	customVendors: NonIABVendor[] = []
 ): ProcessedGVLData {
-	// Helper to map GVL vendor to ProcessedVendor
-	const mapVendor = (
-		vendorId: string,
-		vendor: (typeof gvl.vendors)[number],
-		purposeId?: number
-	): ProcessedVendor => ({
-		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
-		cookieRefresh: vendor.cookieRefresh,
-		dataRetention: vendor.dataRetention,
-		deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
-		features: vendor.features || [],
-		id: Number(vendorId),
-		isCustom: false,
-		legIntPurposes: vendor.legIntPurposes || [],
-		legitimateInterestUrl:
-			vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
-		name: vendor.name,
-		policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
-		purposes: vendor.purposes || [],
-		specialFeatures: vendor.specialFeatures || [],
-		specialPurposes: vendor.specialPurposes || [],
-		usesCookies: vendor.usesCookies,
-		usesLegitimateInterest: purposeId
-			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
-			: false,
-		usesNonCookieAccess: vendor.usesNonCookieAccess,
-	});
-
-	// Helper to map custom vendor to ProcessedVendor
-	const mapCustomVendor = (
-		cv: NonIABVendor,
-		purposeId?: number
-	): ProcessedVendor => ({
-		cookieMaxAgeSeconds: cv.cookieMaxAgeSeconds ?? null,
-		cookieRefresh: undefined,
-		dataRetention: undefined,
-		deviceStorageDisclosureUrl: null,
-		features: cv.features || [],
-		id: cv.id,
-		isCustom: true,
-		legIntPurposes: cv.legIntPurposes || [],
-		legitimateInterestUrl: null,
-		name: cv.name,
-		policyUrl: cv.privacyPolicyUrl,
-		purposes: cv.purposes || [],
-		specialFeatures: cv.specialFeatures || [],
-		specialPurposes: [],
-		usesCookies: cv.usesCookies ?? false,
-		usesLegitimateInterest: purposeId
-			? (cv.legIntPurposes?.includes(purposeId) ?? false)
-			: false,
-		usesNonCookieAccess: cv.usesNonCookieAccess ?? false,
-	});
-
-	// Process purposes
-	const processedPurposes: ProcessedPurpose[] = Object.entries(gvl.purposes)
-		.map(([id, purpose]) => {
-			const iabVendors: ProcessedVendor[] = Object.entries(gvl.vendors)
-				.filter(
-					([, vendor]) =>
-						vendor.purposes?.includes(Number(id)) ||
-						vendor.legIntPurposes?.includes(Number(id))
-				)
-				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor, Number(id)));
-
-			const customVendorsForPurpose: ProcessedVendor[] = customVendors
-				.filter(
-					(cv) =>
-						cv.purposes?.includes(Number(id)) ||
-						cv.legIntPurposes?.includes(Number(id))
-				)
-				.map((cv) => mapCustomVendor(cv, Number(id)));
-
-			return {
-				description: purpose.description,
-				descriptionLegal: purpose.descriptionLegal,
-				id: Number(id),
-				illustrations: purpose.illustrations || [],
-				name: purpose.name,
-				vendors: [...iabVendors, ...customVendorsForPurpose],
-			};
-		})
-		.filter((purpose) => purpose.vendors.length > 0);
-
-	// Process special purposes
-	const processedSpecialPurposes: ProcessedPurpose[] = Object.entries(
-		gvl.specialPurposes || {}
-	)
-		.map(([id, purpose]) => {
-			const vendors: ProcessedVendor[] = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
-
-			return {
-				description: purpose.description,
-				descriptionLegal: purpose.descriptionLegal,
-				id: Number(id),
-				illustrations: purpose.illustrations || [],
-				isSpecialPurpose: true,
-				name: purpose.name,
-				vendors,
-			};
-		})
-		.filter((sp) => sp.vendors.length > 0);
-
-	// Process special features
-	const processedSpecialFeatures: ProcessedSpecialFeature[] = Object.entries(
-		gvl.specialFeatures || {}
-	)
-		.map(([id, feature]) => {
-			const vendors: ProcessedVendor[] = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
-
-			return {
-				description: feature.description,
-				descriptionLegal: feature.descriptionLegal,
-				id: Number(id),
-				illustrations: feature.illustrations || [],
-				name: feature.name,
-				vendors,
-			};
-		})
-		.filter((sf) => sf.vendors.length > 0);
-
-	// Process features (informational, no consent toggle)
-	const processedFeatures: ProcessedFeature[] = Object.entries(
-		gvl.features || {}
-	)
-		.map(([id, feature]) => {
-			const vendors: ProcessedVendor[] = Object.entries(gvl.vendors)
-				.filter(([, vendor]) => vendor.features?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
-
-			return {
-				description: feature.description,
-				descriptionLegal: feature.descriptionLegal,
-				id: Number(id),
-				illustrations: feature.illustrations || [],
-				name: feature.name,
-				vendors,
-			};
-		})
-		.filter((f) => f.vendors.length > 0);
-
-	// Group purposes into stacks (Purpose 1 is always standalone per IAB TCF spec)
-	const STANDALONE_PURPOSE_ID = 1;
-	const standalonePurpose = processedPurposes.find(
-		(p) => p.id === STANDALONE_PURPOSE_ID
-	);
-	const otherPurposes = processedPurposes.filter(
-		(p) => p.id !== STANDALONE_PURPOSE_ID
-	);
-	const otherPurposeIds = new Set(otherPurposes.map((p) => p.id));
-
-	const gvlStacks = gvl.stacks || {};
-
-	// Score each stack by how many purposes it covers
-	const stackScores: {
-		stackId: number;
-		stack: (typeof gvlStacks)[number];
-		coveredPurposeIds: number[];
-		score: number;
-	}[] = [];
-
-	for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
-		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));
-		if (coveredIds.length >= 2) {
-			stackScores.push({
-				coveredPurposeIds: coveredIds,
-				score: coveredIds.length,
-				stack,
-				stackId: Number(stackIdStr),
-			});
-		}
-	}
-
-	stackScores.sort((a, b) => b.score - a.score);
-
-	// Greedily select stacks
-	const processedStacks: ProcessedStack[] = [];
-	const assignedPurposeIds = new Set<number>();
-
-	for (const { stackId, stack, coveredPurposeIds: covered } of stackScores) {
-		const unassignedInStack = covered.filter(
-			(pid) => !assignedPurposeIds.has(pid)
-		);
-		if (unassignedInStack.length >= 2) {
-			const stackPurposes = otherPurposes.filter((p) =>
-				unassignedInStack.includes(p.id)
-			);
-			processedStacks.push({
-				description: stack.description,
-				id: stackId,
-				name: stack.name,
-				purposes: stackPurposes,
-			});
-			for (const pid of unassignedInStack) {
-				assignedPurposeIds.add(pid);
-			}
-		}
-	}
-
-	// Purposes not assigned to any stack become standalone
-	const uncoveredPurposes = otherPurposes.filter(
-		(p) => !assignedPurposeIds.has(p.id)
-	);
-
-	const finalStandalonePurposes = standalonePurpose
-		? [standalonePurpose, ...uncoveredPurposes]
-		: uncoveredPurposes;
-
-	return {
-		features: processedFeatures,
-		purposes: processedPurposes,
-		specialFeatures: processedSpecialFeatures,
-		specialPurposes: processedSpecialPurposes,
-		stacks: processedStacks,
-		standalonePurposes: finalStandalonePurposes,
-	};
+	return processGVLForDialog({ customVendors, gvl });
 };
 
 /**
  * Compute display items for the IAB consent banner.
- * Uses a greedy set-cover approach to group purposes into stacks,
- * then lists remaining standalone purposes and special features.
+ *
+ * @param gvl - The Global Vendor List.
+ * @param maxItems - Ignored; the shared model owns the cap so the four
+ * banners list the same number of items. Kept so existing call sites
+ * compile.
+ * @returns The item names to list, and how many were left out.
  */
 export const getIABBannerDisplayItems = function getIABBannerDisplayItems(
 	gvl: GlobalVendorList,
-	maxItems = 5
+	maxItems?: number
 ): { displayed: string[]; remainingCount: number } {
-	const purposesWithVendors = Object.entries(gvl.purposes)
-		.filter(([id]) =>
-			Object.values(gvl.vendors).some(
-				(vendor) =>
-					vendor.purposes?.includes(Number(id)) ||
-					vendor.legIntPurposes?.includes(Number(id))
-			)
-		)
-		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
-
-	// Purpose 1 is always standalone per IAB TCF spec
-	const STANDALONE_PURPOSE_ID = 1;
-	const standalonePurpose = purposesWithVendors.find(
-		(p) => p.id === STANDALONE_PURPOSE_ID
-	);
-	const otherPurposes = purposesWithVendors.filter(
-		(p) => p.id !== STANDALONE_PURPOSE_ID
-	);
-	const otherPurposeIds = new Set(otherPurposes.map((p) => p.id));
-
-	// Score stacks by coverage
-	const gvlStacks = gvl.stacks || {};
-	const stackScores: {
-		name: string;
-		coveredPurposeIds: number[];
-		score: number;
-	}[] = [];
-
-	for (const [, stack] of Object.entries(gvlStacks)) {
-		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));
-		if (coveredIds.length >= 2) {
-			stackScores.push({
-				coveredPurposeIds: coveredIds,
-				name: stack.name,
-				score: coveredIds.length,
-			});
-		}
-	}
-
-	stackScores.sort((a, b) => b.score - a.score);
-
-	// Greedily select stacks
-	const selectedStacks: string[] = [];
-	const assignedPurposeIds = new Set<number>();
-
-	for (const { name, coveredPurposeIds: covered } of stackScores) {
-		const unassignedInStack = covered.filter(
-			(pid) => !assignedPurposeIds.has(pid)
-		);
-		if (unassignedInStack.length >= 2) {
-			selectedStacks.push(name);
-			for (const pid of unassignedInStack) {
-				assignedPurposeIds.add(pid);
-			}
-		}
-	}
-
-	// Purposes not assigned to any stack become standalone
-	const uncoveredPurposes = otherPurposes.filter(
-		(p) => !assignedPurposeIds.has(p.id)
-	);
-
-	// Special features with vendors
-	const specialFeaturesWithVendors = Object.entries(gvl.specialFeatures || {})
-		.filter(([id]) =>
-			Object.values(gvl.vendors).some((vendor) =>
-				vendor.specialFeatures?.includes(Number(id))
-			)
-		)
-		.map(([, feature]) => feature.name);
-
-	// Build final list
-	const items: string[] = [];
-	if (standalonePurpose) {
-		items.push(standalonePurpose.name);
-	}
-	for (const stackName of selectedStacks) {
-		items.push(stackName);
-	}
-	for (const purpose of uncoveredPurposes) {
-		items.push(purpose.name);
-	}
-	for (const featureName of specialFeaturesWithVendors) {
-		items.push(featureName);
-	}
-
-	const displayed = items.slice(0, maxItems);
-	const remainingCount = Math.max(0, items.length - maxItems);
-
-	return { displayed, remainingCount };
+	void maxItems;
+	const summary = resolveIABBannerSummary({ gvl });
+	return {
+		displayed: summary.displayItems,
+		remainingCount: summary.remainingCount,
+	};
 };

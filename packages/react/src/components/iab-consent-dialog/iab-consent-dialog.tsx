@@ -41,7 +41,7 @@ import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
 import { VendorList } from './atoms/vendor-list';
-import { useGVLData } from './hooks/use-gvl-data';
+import { useIABDisplayModel } from './hooks/use-display-model';
 import type { VendorId } from './types';
 import { useIABTranslations } from './use-iab-translations';
 
@@ -179,14 +179,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	});
 
 	const {
-		purposes,
-		specialPurposes,
-		specialFeatures,
-		features,
-		stacks,
-		standalonePurposes,
-		totalVendors,
-	} = useGVLData();
+		consentRows,
+		essentialRows,
+		essentialPartnerCount,
+		purposeTabCount,
+		vendorTabCount,
+		data: { purposes },
+	} = useIABDisplayModel();
 
 	// Handlers
 	const handlePurposeToggle = useCallback(
@@ -600,8 +599,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 										value="purposes"
 									>
 										{iabTranslations.preferenceCenter.tabs.purposes}
-										{!isLoading &&
-											` (${purposes.length + specialPurposes.length + specialFeatures.length + features.length})`}
+										{!isLoading && ` (${purposeTabCount})`}
 									</Tabs.Trigger>
 									<Tabs.Trigger
 										{...tabTriggerProps}
@@ -609,7 +607,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 										value="vendors"
 									>
 										{iabTranslations.preferenceCenter.tabs.vendors}
-										{!isLoading && ` (${totalVendors})`}
+										{!isLoading && ` (${vendorTabCount})`}
 									</Tabs.Trigger>
 									<div
 										{...tabIndicatorProps}
@@ -638,91 +636,73 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											noStyle
 											value="purposes"
 										>
-											{/* Standalone purposes */}
-											{standalonePurposes.map((purpose) => (
-												<PurposeItem
-													key={purpose.id}
-													purpose={purpose}
-													isEnabled={
-														iabState.purposeConsents[purpose.id] ?? false
-													}
-													onToggle={(value) =>
-														handlePurposeToggle(purpose.id, value)
-													}
-													vendorConsents={iabState.vendorConsents}
-													onVendorToggle={handleVendorToggle}
-													onVendorClick={handleVendorClick}
-													vendorLegitimateInterests={
-														iabState.vendorLegitimateInterests
-													}
-													onVendorLegitimateInterestToggle={
-														handleVendorLegitimateInterestToggle
-													}
-													purposeLegitimateInterests={
-														iabState.purposeLegitimateInterests
-													}
-													onPurposeLegitimateInterestToggle={
-														handlePurposeLegitimateInterestToggle
-													}
-												/>
-											))}
-
-											{/* Stacks */}
-											{stacks.map((stack) => (
-												<StackItem
-													key={stack.id}
-													stack={stack}
-													consents={iabState.purposeConsents}
-													onToggle={handlePurposeToggle}
-													vendorConsents={iabState.vendorConsents}
-													onVendorToggle={handleVendorToggle}
-													onVendorClick={handleVendorClick}
-													vendorLegitimateInterests={
-														iabState.vendorLegitimateInterests
-													}
-													onVendorLegitimateInterestToggle={
-														handleVendorLegitimateInterestToggle
-													}
-													purposeLegitimateInterests={
-														iabState.purposeLegitimateInterests
-													}
-													onPurposeLegitimateInterestToggle={
-														handlePurposeLegitimateInterestToggle
-													}
-												/>
-											))}
-
-											{/* Special Features */}
-											{specialFeatures.map((feature) => (
-												<PurposeItem
-													key={`feature-${feature.id}`}
-													purpose={{
-														description: feature.description,
-														id: feature.id,
-														illustrations: feature.illustrations,
-														name: feature.name,
-														vendors: feature.vendors,
-													}}
-													isEnabled={
-														iabState.specialFeatureOptIns[feature.id] ?? false
-													}
-													onToggle={(value) =>
-														handleSpecialFeatureToggle(feature.id, value)
-													}
-													vendorConsents={iabState.vendorConsents}
-													onVendorToggle={handleVendorToggle}
-													onVendorClick={handleVendorClick}
-													vendorLegitimateInterests={
-														iabState.vendorLegitimateInterests
-													}
-													onVendorLegitimateInterestToggle={
-														handleVendorLegitimateInterestToggle
-													}
-												/>
-											))}
+											{/* Standalone purposes, stacks and special features */}
+											{consentRows.map((row) =>
+												row.kind === 'stack' ? (
+													<StackItem
+														key={row.testId}
+														stack={row}
+														consents={iabState.purposeConsents}
+														onToggle={handlePurposeToggle}
+														vendorConsents={iabState.vendorConsents}
+														onVendorToggle={handleVendorToggle}
+														onVendorClick={handleVendorClick}
+														vendorLegitimateInterests={
+															iabState.vendorLegitimateInterests
+														}
+														onVendorLegitimateInterestToggle={
+															handleVendorLegitimateInterestToggle
+														}
+														purposeLegitimateInterests={
+															iabState.purposeLegitimateInterests
+														}
+														onPurposeLegitimateInterestToggle={
+															handlePurposeLegitimateInterestToggle
+														}
+													/>
+												) : (
+													<PurposeItem
+														key={row.testId}
+														purpose={row}
+														testId={row.testId}
+														isEnabled={
+															row.toggle === 'special-feature'
+																? (iabState.specialFeatureOptIns[row.id] ??
+																	false)
+																: (iabState.purposeConsents[row.id] ?? false)
+														}
+														onToggle={(value) => {
+															if (row.toggle === 'special-feature') {
+																handleSpecialFeatureToggle(row.id, value);
+																return;
+															}
+															handlePurposeToggle(row.id, value);
+														}}
+														vendorConsents={iabState.vendorConsents}
+														onVendorToggle={handleVendorToggle}
+														onVendorClick={handleVendorClick}
+														vendorLegitimateInterests={
+															iabState.vendorLegitimateInterests
+														}
+														onVendorLegitimateInterestToggle={
+															handleVendorLegitimateInterestToggle
+														}
+														purposeLegitimateInterests={
+															row.kind === 'purpose'
+																? iabState.purposeLegitimateInterests
+																: undefined
+														}
+														onPurposeLegitimateInterestToggle={
+															row.kind === 'purpose'
+																? handlePurposeLegitimateInterestToggle
+																: undefined
+														}
+													/>
+												)
+											)}
 
 											{/* Essential Functions: Special Purposes + Features (locked) */}
-											{(specialPurposes.length > 0 || features.length > 0) && (
+											{essentialRows.length > 0 && (
 												<div {...specialPurposesProps}>
 													<div className={styles.specialPurposesHeader}>
 														<button
@@ -774,17 +754,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																	</svg>
 																</h3>
 																<p className={styles.purposeMeta}>
-																	{
-																		new Set([
-																			...specialPurposes.flatMap((sp) =>
-																				sp.vendors.map((v) => v.id)
-																			),
-																			...features.flatMap((f) =>
-																				f.vendors.map((v) => v.id)
-																			),
-																		]).size
-																	}{' '}
-																	partners
+																	{essentialPartnerCount}{' '}
+																	{essentialPartnerCount === 1
+																		? iabTranslations.preferenceCenter
+																				.vendorList.partnerSingular
+																		: iabTranslations.preferenceCenter
+																				.vendorList.partnerPlural}
 																</p>
 															</div>
 														</button>
@@ -823,36 +798,14 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 													{specialPurposesExpanded && (
 														<div style={{ padding: '0.75rem' }}>
-															{/* Special Purposes */}
-															{specialPurposes.map((purpose) => (
+															{essentialRows.map((row) => (
 																<PurposeItem
-																	key={`special-${purpose.id}`}
-																	purpose={purpose}
+																	key={row.testId}
+																	purpose={row}
+																	testId={row.testId}
 																	isEnabled={true}
 																	onToggle={() => {
-																		/* empty */
-																	}}
-																	vendorConsents={iabState.vendorConsents}
-																	onVendorToggle={handleVendorToggle}
-																	onVendorClick={handleVendorClick}
-																	isLocked={true}
-																/>
-															))}
-
-															{/* Features */}
-															{features.map((feature) => (
-																<PurposeItem
-																	key={`feature-${feature.id}`}
-																	purpose={{
-																		description: feature.description,
-																		id: feature.id,
-																		illustrations: feature.illustrations,
-																		name: feature.name,
-																		vendors: feature.vendors,
-																	}}
-																	isEnabled={true}
-																	onToggle={() => {
-																		/* empty */
+																		/* locked: no consent to give */
 																	}}
 																	vendorConsents={iabState.vendorConsents}
 																	onVendorToggle={handleVendorToggle}

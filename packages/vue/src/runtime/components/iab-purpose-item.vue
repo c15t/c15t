@@ -25,6 +25,12 @@ export interface IabProcessedPurpose {
 
 const props = defineProps<{
 	purpose: IabProcessedPurpose;
+	/**
+	 * The row's `data-testid`, from the shared display model. A purpose, a
+	 * special purpose and a special feature can all be numbered `1`, so the
+	 * id alone does not identify the row.
+	 */
+	testId?: string;
 	isEnabled: boolean;
 	isLocked?: boolean;
 	vendorConsents: Record<string, boolean>;
@@ -107,7 +113,7 @@ const handlePurposeLiObjection = function handlePurposeLiObjection() {
 	<div
 		v-bind="config.components?.['iab-purpose-item']?.root"
 		:class="dialogStyles.purposeItem"
-		:data-testid="`purpose-item-${purpose.id}`"
+		:data-testid="testId ?? `purpose-item-${purpose.id}`"
 	>
 		<div
 			v-bind="config.components?.['iab-purpose-item']?.header"

@@ -15,6 +15,7 @@
 
 	let {
 		purpose,
+		testId,
 		isEnabled,
 		onToggle,
 		vendorConsents,
@@ -29,6 +30,12 @@
 		iabT,
 	}: {
 		purpose: ProcessedPurpose;
+		/**
+		 * The row's `data-testid`, from the shared display model. A purpose,
+		 * a special purpose and a special feature can all be numbered `1`,
+		 * so the id alone does not identify the row.
+		 */
+		testId?: string;
 		isEnabled: boolean;
 		onToggle: (value: boolean) => void;
 		vendorConsents: Record<string, boolean>;
@@ -113,7 +120,7 @@
 <PreferenceItem.Root
 	bind:open={isExpanded}
 	class={noStyle ? '' : styles.purposeItem || ''}
-	data-testid={`purpose-item-${purpose.id}`}
+	data-testid={testId ?? `purpose-item-${purpose.id}`}
 	noStyle
 >
 	<div class={noStyle ? '' : styles.purposeHeader || ''}>

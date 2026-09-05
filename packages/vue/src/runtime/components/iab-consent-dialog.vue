@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import { resolveIABDialogDisplayModel } from '@c15t/iab/headless';
 import type {
-	GlobalVendorList,
-	NonIABVendor,
-	PolicyUiAction,
-} from '@c15t/schema/types';
+	HeadlessIABDisplayRow,
+	HeadlessIABDisplayStackRow,
+} from '@c15t/iab/headless';
+import type { PolicyUiAction } from '@c15t/schema/types';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
@@ -23,17 +24,11 @@ import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentDialogTrigger from './consent-dialog-trigger.vue';
 import ConsentTag from './consent-tag.vue';
-import type {
-	IabProcessedPurpose,
-	IabProcessedVendor,
-	IabVendorId,
-} from './iab-purpose-item.vue';
+import type { IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
-import type { IabProcessedStack } from './iab-stack-item.vue';
 import IabStackItem from './iab-stack-item.vue';
 import IabVendorList from './iab-vendor-list.vue';
 
-const STANDALONE_PURPOSE_ID = 1;
 const IAB_DIALOG_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 	['reject', 'accept'],
 	'customize',
@@ -92,6 +87,10 @@ const iabT = computed(
 						description?: string;
 						tabs?: { purposes?: string; vendors?: string };
 						specialPurposes?: { title?: string; tooltip?: string };
+						vendorList?: {
+							partnerSingular?: string;
+							partnerPlural?: string;
+						};
 						footer?: { consentStorage?: string };
 					};
 			  }
@@ -104,225 +103,29 @@ const labels = computed(() => ({
 	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-const mapVendor = function mapVendor(
-	_gvl: GlobalVendorList,
-	vendorId: string,
-	vendor: GlobalVendorList['vendors'][string],
-	purposeId?: number
-): IabProcessedVendor {
-	return {
-		id: Number(vendorId),
-		isCustom: false,
-		name: vendor.name,
-		usesLegitimateInterest: purposeId
-			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
-			: false,
-	};
-};
-
-const mapCustomVendor = function mapCustomVendor(
-	vendor: NonIABVendor,
-	purposeId?: number
-): IabProcessedVendor {
-	return {
-		id: vendor.id,
-		isCustom: true,
-		name: vendor.name,
-		usesLegitimateInterest: purposeId
-			? (vendor.legIntPurposes?.includes(purposeId) ?? false)
-			: false,
-	};
-};
-
-const processGvlData = function processGvlData(
-	gvlData: GlobalVendorList,
-	customVendorList: NonIABVendor[]
-) {
-	const processedPurposes: IabProcessedPurpose[] = Object.entries(
-		gvlData.purposes
+// Which rows this surface renders, and in what order, comes from the
+// shared display model in `@c15t/iab/headless` — the same one React,
+// Svelte and the Astro server render read.
+const display = computed(() =>
+	resolveIABDialogDisplayModel(
+		gvl.value ? { customVendors: customVendors.value, gvl: gvl.value } : null
 	)
-		.map(([id, purpose]) => {
-			const purposeId = Number(id);
-			const iabVendors = Object.entries(gvlData.vendors)
-				.filter(
-					([, vendor]) =>
-						vendor.purposes?.includes(purposeId) ||
-						vendor.legIntPurposes?.includes(purposeId)
-				)
-				.map(([vendorId, vendor]) =>
-					mapVendor(gvlData, vendorId, vendor, purposeId)
-				);
-			const customForPurpose = customVendorList
-				.filter(
-					(vendor) =>
-						vendor.purposes?.includes(purposeId) ||
-						vendor.legIntPurposes?.includes(purposeId)
-				)
-				.map((vendor) => mapCustomVendor(vendor, purposeId));
+);
 
-			return {
-				description: purpose.description,
-				id: purposeId,
-				illustrations: purpose.illustrations ?? [],
-				name: purpose.name,
-				vendors: [...iabVendors, ...customForPurpose],
-			};
-		})
-		.filter((purpose) => purpose.vendors.length > 0);
-
-	const specialPurposes: IabProcessedPurpose[] = Object.entries(
-		gvlData.specialPurposes ?? {}
-	)
-		.map(([id, purpose]) => ({
-			description: purpose.description,
-			id: Number(id),
-			illustrations: purpose.illustrations ?? [],
-			name: purpose.name,
-			vendors: Object.entries(gvlData.vendors)
-				.filter(([, vendor]) => vendor.specialPurposes?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
-		}))
-		.filter((purpose) => purpose.vendors.length > 0);
-
-	const specialFeatures: IabProcessedPurpose[] = Object.entries(
-		gvlData.specialFeatures ?? {}
-	)
-		.map(([id, feature]) => ({
-			description: feature.description,
-			id: Number(id),
-			illustrations: feature.illustrations ?? [],
-			name: feature.name,
-			vendors: Object.entries(gvlData.vendors)
-				.filter(([, vendor]) => vendor.specialFeatures?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
-		}))
-		.filter((feature) => feature.vendors.length > 0);
-
-	const features: IabProcessedPurpose[] = Object.entries(gvlData.features ?? {})
-		.map(([id, feature]) => ({
-			description: feature.description,
-			id: Number(id),
-			illustrations: feature.illustrations ?? [],
-			name: feature.name,
-			vendors: Object.entries(gvlData.vendors)
-				.filter(([, vendor]) => vendor.features?.includes(Number(id)))
-				.map(([vendorId, vendor]) => mapVendor(gvlData, vendorId, vendor)),
-		}))
-		.filter((feature) => feature.vendors.length > 0);
-
-	const standalonePurpose = processedPurposes.find(
-		(purpose) => purpose.id === STANDALONE_PURPOSE_ID
-	);
-	const otherPurposes = processedPurposes.filter(
-		(purpose) => purpose.id !== STANDALONE_PURPOSE_ID
-	);
-	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
-
-	const stackScores: {
-		stackId: number;
-		stack: GlobalVendorList['stacks'][string];
-		coveredPurposeIds: number[];
-		score: number;
-	}[] = [];
-
-	for (const [stackIdStr, stack] of Object.entries(gvlData.stacks ?? {})) {
-		const coveredIds = stack.purposes.filter((purposeId) =>
-			otherPurposeIds.has(purposeId)
-		);
-		if (coveredIds.length >= 2) {
-			stackScores.push({
-				coveredPurposeIds: coveredIds,
-				score: coveredIds.length,
-				stack,
-				stackId: Number(stackIdStr),
-			});
-		}
-	}
-
-	stackScores.sort((left, right) => right.score - left.score);
-
-	const stacks: IabProcessedStack[] = [];
-	const assignedPurposeIds = new Set<number>();
-
-	for (const { stackId, stack, coveredPurposeIds } of stackScores) {
-		const unassigned = coveredPurposeIds.filter(
-			(purposeId) => !assignedPurposeIds.has(purposeId)
-		);
-		if (unassigned.length >= 2) {
-			stacks.push({
-				description: stack.description,
-				id: stackId,
-				name: stack.name,
-				purposes: otherPurposes.filter((purpose) =>
-					unassigned.includes(purpose.id)
-				),
-			});
-			for (const purposeId of unassigned) {
-				assignedPurposeIds.add(purposeId);
-			}
-		}
-	}
-
-	const uncoveredPurposes = otherPurposes.filter(
-		(purpose) => !assignedPurposeIds.has(purpose.id)
-	);
-	const standalonePurposes = standalonePurpose
-		? [standalonePurpose, ...uncoveredPurposes]
-		: uncoveredPurposes;
-
-	return {
-		features,
-		purposes: processedPurposes,
-		specialFeatures,
-		specialPurposes,
-		stacks,
-		standalonePurposes,
-	};
+const isStackRow = function isStackRow(
+	row: HeadlessIABDisplayRow | HeadlessIABDisplayStackRow
+): row is HeadlessIABDisplayStackRow {
+	return row.kind === 'stack';
 };
-
-const processed = computed(() => {
-	if (!gvl.value) {
-		return {
-			features: [] as IabProcessedPurpose[],
-			purposes: [] as IabProcessedPurpose[],
-			specialFeatures: [] as IabProcessedPurpose[],
-			specialPurposes: [] as IabProcessedPurpose[],
-			stacks: [] as IabProcessedStack[],
-			standalonePurposes: [] as IabProcessedPurpose[],
-		};
-	}
-
-	return processGvlData(gvl.value, customVendors.value);
-});
 
 const isLoading = computed(() => !gvl.value);
 
-const totalVendors = computed(() => {
-	if (!gvl.value) {
-		return 0;
-	}
+const totalVendors = computed(() => display.value.vendorTabCount);
 
-	return Object.keys(gvl.value.vendors).length + customVendors.value.length;
-});
-
-const purposeTabCount = computed(
-	() =>
-		processed.value.purposes.length +
-		processed.value.specialPurposes.length +
-		processed.value.specialFeatures.length +
-		processed.value.features.length
-);
+const purposeTabCount = computed(() => display.value.purposeTabCount);
 
 const essentialPartnerCount = computed(
-	() =>
-		new Set([
-			...processed.value.specialPurposes.flatMap((purpose) =>
-				purpose.vendors.map((vendor) => vendor.id)
-			),
-			...processed.value.features.flatMap((feature) =>
-				feature.vendors.map((vendor) => vendor.id)
-			),
-		]).size
+	() => display.value.essentialPartnerCount
 );
 
 const setPurposeConsent = function setPurposeConsent(
@@ -626,82 +429,77 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										:class="dialogStyles.tabPanel"
 										role="tabpanel"
 									>
-										<IabPurposeItem
-											v-for="purpose in processed.standalonePurposes"
-											:key="purpose.id"
-											:purpose="purpose"
-											:is-enabled="
-												draftIab.purposeConsents[purpose.id] ?? false
-											"
-											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="
-												draftIab.vendorLegitimateInterests
-											"
-											:purpose-legitimate-interests="
-												draftIab.purposeLegitimateInterests
-											"
-											@toggle="(value) => setPurposeConsent(purpose.id, value)"
-											@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
-											@vendor-click="handleVendorClick"
-											@purpose-legitimate-interest-toggle="
-												(value) =>
-													setPurposeLegitimateInterest(purpose.id, value)
-											"
-										/>
-
-										<IabStackItem
-											v-for="stack in processed.stacks"
-											:key="stack.id"
-											:stack="stack"
-											:consents="draftIab.purposeConsents"
-											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="
-												draftIab.vendorLegitimateInterests
-											"
-											:purpose-legitimate-interests="
-												draftIab.purposeLegitimateInterests
-											"
-											@toggle="
-												(purposeId, value) =>
-													setPurposeConsent(purposeId, value)
-											"
-											@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
-											@vendor-click="handleVendorClick"
-											@purpose-legitimate-interest-toggle="
-												(purposeId, value) =>
-													setPurposeLegitimateInterest(purposeId, value)
-											"
-										/>
-
-										<IabPurposeItem
-											v-for="feature in processed.specialFeatures"
-											:key="`feature-${feature.id}`"
-											:purpose="feature"
-											:is-enabled="
-												draftIab.specialFeatureOptIns[feature.id] ?? false
-											"
-											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="
-												draftIab.vendorLegitimateInterests
-											"
-											@toggle="
-												(value) => setSpecialFeatureOptIn(feature.id, value)
-											"
-											@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
-											@vendor-click="handleVendorClick"
-										/>
-
+										<template
+											v-for="row in display.consentRows"
+											:key="row.testId"
+										>
+											<IabStackItem
+												v-if="isStackRow(row)"
+												:stack="row"
+												:consents="draftIab.purposeConsents"
+												:vendor-consents="draftIab.vendorConsents"
+												:vendor-legitimate-interests="
+													draftIab.vendorLegitimateInterests
+												"
+												:purpose-legitimate-interests="
+													draftIab.purposeLegitimateInterests
+												"
+												@toggle="
+													(purposeId, value) =>
+														setPurposeConsent(purposeId, value)
+												"
+												@vendor-toggle="
+													(vendorId, value) => setVendorConsent(vendorId, value)
+												"
+												@vendor-click="handleVendorClick"
+												@purpose-legitimate-interest-toggle="
+													(purposeId, value) =>
+														setPurposeLegitimateInterest(purposeId, value)
+												"
+											/>
+											<IabPurposeItem
+												v-else-if="row.toggle === 'special-feature'"
+												:purpose="row"
+												:test-id="row.testId"
+												:is-enabled="
+													draftIab.specialFeatureOptIns[row.id] ?? false
+												"
+												:vendor-consents="draftIab.vendorConsents"
+												:vendor-legitimate-interests="
+													draftIab.vendorLegitimateInterests
+												"
+												@toggle="
+													(value) => setSpecialFeatureOptIn(row.id, value)
+												"
+												@vendor-toggle="
+													(vendorId, value) => setVendorConsent(vendorId, value)
+												"
+												@vendor-click="handleVendorClick"
+											/>
+											<IabPurposeItem
+												v-else
+												:purpose="row"
+												:test-id="row.testId"
+												:is-enabled="draftIab.purposeConsents[row.id] ?? false"
+												:vendor-consents="draftIab.vendorConsents"
+												:vendor-legitimate-interests="
+													draftIab.vendorLegitimateInterests
+												"
+												:purpose-legitimate-interests="
+													draftIab.purposeLegitimateInterests
+												"
+												@toggle="(value) => setPurposeConsent(row.id, value)"
+												@vendor-toggle="
+													(vendorId, value) => setVendorConsent(vendorId, value)
+												"
+												@vendor-click="handleVendorClick"
+												@purpose-legitimate-interest-toggle="
+													(value) => setPurposeLegitimateInterest(row.id, value)
+												"
+											/>
+										</template>
 										<div
-											v-if="
-												processed.specialPurposes.length > 0 ||
-												processed.features.length > 0
-											"
+											v-if="display.essentialRows.length > 0"
 											v-bind="
 												config.components?.['iab-dialog']?.specialPurposes
 											"
@@ -759,7 +557,13 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 														</h3>
 														<p :class="dialogStyles.purposeMeta">
 															{{ essentialPartnerCount }}
-															partners
+															{{
+																essentialPartnerCount === 1
+																	? iabT?.preferenceCenter?.vendorList
+																			?.partnerSingular
+																	: iabT?.preferenceCenter?.vendorList
+																			?.partnerPlural
+															}}
 														</p>
 													</div>
 												</button>
@@ -796,22 +600,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 												style="padding: 0.75rem"
 											>
 												<IabPurposeItem
-													v-for="purpose in processed.specialPurposes"
-													:key="`special-${purpose.id}`"
-													:purpose="purpose"
-													:is-enabled="true"
-													is-locked
-													:vendor-consents="draftIab.vendorConsents"
-													@vendor-toggle="
-														(vendorId, value) =>
-															setVendorConsent(vendorId, value)
-													"
-													@vendor-click="handleVendorClick"
-												/>
-												<IabPurposeItem
-													v-for="feature in processed.features"
-													:key="`locked-feature-${feature.id}`"
-													:purpose="feature"
+													v-for="row in display.essentialRows"
+													:key="row.testId"
+													:purpose="row"
+													:test-id="row.testId"
 													:is-enabled="true"
 													is-locked
 													:vendor-consents="draftIab.vendorConsents"
@@ -842,7 +634,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 									>
 										<IabVendorList
 											:vendor-data="gvl"
-											:purposes="processed.purposes"
+											:purposes="display.data.purposes"
 											:vendor-consents="draftIab.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
 											:custom-vendors="customVendors"
