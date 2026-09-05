@@ -24,6 +24,7 @@
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"axe-core": "4.11.0",
 		"storybook": "10.3.1"
 	},

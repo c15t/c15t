@@ -10,9 +10,10 @@ import type { Page } from '@playwright/test';
 
 export const captureDomSnapshot = function captureDomSnapshot(
 	page: Page,
-	selector: string
+	selector: string,
+	options: { includeRoot?: boolean } = {}
 ): Promise<string> {
-	return page.locator(selector).evaluate((target) => {
+	return page.locator(selector).evaluate((target, includeRoot) => {
 		const SVELTE = /\bsvelte-[a-z0-9]+\b/gu;
 		const S_SCOPED = /\bs-[a-z0-9]{6,}\b/gu;
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
@@ -463,6 +464,10 @@ export const captureDomSnapshot = function captureDomSnapshot(
 			return `${open}${children.join('')}</${tag}>`;
 		};
 
+		if (includeRoot) {
+			return canonicalize(target);
+		}
+
 		// Portal location is framework-specific; compare every tagged UI root,
 		// including its complete descendant tree, in stable root order.
 		const roots = Array.from(target.querySelectorAll('[data-testid]'))
@@ -473,5 +478,5 @@ export const captureDomSnapshot = function captureDomSnapshot(
 				)
 			);
 		return roots.map(canonicalize).join('');
-	});
+	}, options.includeRoot ?? false);
 };

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
-import { computed, nextTick, provide, ref, watch } from 'vue';
+import { computed, nextTick, onUnmounted, provide, ref, watch } from 'vue';
 import type { HTMLAttributes } from 'vue';
 
 import {
@@ -33,7 +33,10 @@ const save = useConsentSave();
 const snapshot = useConsentSnapshot();
 
 const { presentation: surface } = useConsentPolicyActions('preferences');
-const draftState = useConsentDraft();
+let pendingActions = 0;
+let actionSequence = 0;
+let applyingSave = false;
+const draftState = useConsentDraft(() => pendingActions === 0);
 const { isStale, reset: resetDraft, save: saveDraft } = draftState;
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
@@ -87,18 +90,50 @@ watch(
 	{ immediate: true }
 );
 
+// A local receipt can hide the kernel prompt before its transport settles.
+// Explicit close/reopen and newer actions invalidate the older completion.
+watch(
+	activeUI,
+	(ui) => {
+		if (!applyingSave && ui !== 'manager') {
+			actionSequence += 1;
+		}
+	},
+	{ flush: 'sync' }
+);
+onUnmounted(() => {
+	actionSequence += 1;
+});
+
 const onAction = async function onAction(action: PresentationAction) {
-	let result;
-	if (action === 'save') {
-		result = await saveDraft();
-	} else if (action === 'accept') {
-		result = await save('all');
-	} else if (action === 'reject') {
-		result = await save('none');
-	}
-	if (result?.ok) {
-		activeUI.value =
-			snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
+	actionSequence += 1;
+	const sequence = actionSequence;
+	const preserveManager = activeUI.value === 'manager';
+	pendingActions += 1;
+	try {
+		applyingSave = true;
+		let pending;
+		try {
+			if (action === 'save') {
+				pending = saveDraft();
+			} else if (action === 'accept') {
+				pending = save('all');
+			} else if (action === 'reject') {
+				pending = save('none');
+			}
+			if (preserveManager && sequence === actionSequence) {
+				activeUI.value = 'manager';
+			}
+		} finally {
+			applyingSave = false;
+		}
+		const result = await pending;
+		if (result?.ok && preserveManager && sequence === actionSequence) {
+			activeUI.value =
+				snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
+		}
+	} finally {
+		pendingActions -= 1;
 	}
 };
 provide(consentWidgetManagerKey, { draft: draftState, onAction });

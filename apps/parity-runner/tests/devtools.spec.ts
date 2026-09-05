@@ -144,9 +144,12 @@ for (const colorScheme of ['light', 'dark'] as const) {
 						body: image,
 						contentType: 'image/png',
 					});
-					const dom = (await captureDomSnapshot(page, rootSelector))
+					const dom = (
+						await captureDomSnapshot(page, rootSelector, { includeRoot: true })
+					)
 						.replace(/c15t-dev-tools-\d+/gu, 'c15t-dev-tools-instance')
 						.replace(/c15t-[0-9a-f]{8}\b/gu, 'c15t-anonymized-script');
+					expect(dom).toContain('data-c15t-dev-tools');
 					const a11y = await root.ariaSnapshot();
 					const styles = await captureComputedStyleMap(page, rootSelector, '*');
 					const reference = baseline.get(tab);
