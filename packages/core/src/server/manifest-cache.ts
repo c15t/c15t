@@ -69,7 +69,54 @@ interface CacheEntry extends CachedManifestResponse {
 	sourceURL: string;
 }
 
+/**
+ * Ceiling on in-process cache entries.
+ *
+ * The key carries the request query, so a caller that varies `language`
+ * — or anything else a host forwards — mints a new key per value. Expired
+ * entries are skipped on read but were never removed, so without a bound the
+ * map is a slow leak driven by request input. Small on purpose: this is a
+ * burst-collapsing cache, not a CDN.
+ */
+const MANIFEST_CACHE_MAX_ENTRIES = 64;
+
 const manifestCache = new Map<string, CacheEntry>();
+
+/**
+ * Fetches in flight, keyed like the cache.
+ *
+ * An entry is only written once its response has arrived, so on a cold or
+ * expired key every concurrent caller would otherwise open its own upstream
+ * request — precisely the burst this module exists to collapse.
+ */
+const manifestInFlight = new Map<string, Promise<CachedManifestResponse>>();
+
+/**
+ * Writes an entry, dropping expired ones and then the oldest survivor if the
+ * cache is still at its ceiling.
+ */
+const storeCacheEntry = function storeCacheEntry(
+	sourceURL: string,
+	entry: CacheEntry,
+	now: number
+): void {
+	for (const [key, value] of manifestCache) {
+		if (value.expiresAt <= now) {
+			manifestCache.delete(key);
+		}
+	}
+	// Re-inserting moves the key to the back, so iteration order is
+	// least-recently-written first.
+	manifestCache.delete(sourceURL);
+	while (manifestCache.size >= MANIFEST_CACHE_MAX_ENTRIES) {
+		const oldest = manifestCache.keys().next();
+		if (oldest.done) {
+			break;
+		}
+		manifestCache.delete(oldest.value);
+	}
+	manifestCache.set(sourceURL, entry);
+};
 
 const trimSlash = function trimSlash(value: string): string {
 	return value.endsWith('/') ? value.slice(0, -1) : value;
@@ -139,18 +186,20 @@ const forbidsReuse = function forbidsReuse(
 };
 
 /**
- * How long to keep an entry in the in-process cache. Prefers the backend's
- * `s-maxage`, falls back to the dedupe floor, and honours an explicit
- * `no-store`/`no-cache`/`private` by not caching at all.
+ * How long to keep an entry in the in-process cache. An explicit
+ * `no-store`/`no-cache`/`private` wins outright — this is a shared cache, and
+ * `private, s-maxage=60` means "not in yours" no matter what the number says.
+ * Otherwise the backend's `s-maxage` applies, falling back to the dedupe
+ * floor.
  */
 const resolveCacheTtlSeconds = function resolveCacheTtlSeconds(
 	cacheControl: string | undefined,
 	sMaxAge: number
 ): number {
-	if (sMaxAge > 0) {
-		return sMaxAge;
+	if (forbidsReuse(cacheControl)) {
+		return 0;
 	}
-	return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
+	return sMaxAge > 0 ? sMaxAge : MANIFEST_DEDUPE_TTL_SECONDS;
 };
 
 /** Where the manifest lives: an explicit URL, or `backendURL + /manifest`. */
@@ -204,30 +253,16 @@ export interface FetchCachedManifestOptions {
 }
 
 /**
- * Fetches the tenant manifest, reusing a cached copy while it is fresh and
- * revalidating with `If-None-Match` once it is not.
- *
- * @param input - Source config, fetch implementation, and optional query.
- * @returns The manifest plus the upstream cache metadata.
- * @throws {Error} When no fetch is available or the backend responds non-2xx.
+ * The network half of {@link fetchCachedManifest}: conditional GET, cache
+ * write, and the 304 refresh path.
  */
-export const fetchCachedManifest = async function fetchCachedManifest(
-	input: FetchCachedManifestOptions
-): Promise<CachedManifestResponse> {
-	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('@c15t/core/server: no fetch implementation available.');
-	}
-
-	const sourceURL = createManifestRequestURL({
-		query: input.query,
-		sourceURL: resolveManifestSourceURL(input.config),
-	});
-	const now = input.now ?? Date.now();
-	const cached = manifestCache.get(sourceURL);
-	if (cached && cached.expiresAt > now) {
-		return cached;
-	}
+const revalidate = async function revalidate(input: {
+	cached: CacheEntry | undefined;
+	fetchImpl: ManifestFetch;
+	now: number;
+	sourceURL: string;
+}): Promise<CachedManifestResponse> {
+	const { cached, fetchImpl, now, sourceURL } = input;
 
 	const headers: Record<string, string> = {
 		accept: 'application/json',
@@ -256,7 +291,7 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 			sMaxAge,
 		};
 		if (ttl > 0) {
-			manifestCache.set(sourceURL, refreshed);
+			storeCacheEntry(sourceURL, refreshed, now);
 		} else {
 			manifestCache.delete(sourceURL);
 		}
@@ -281,12 +316,54 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 		sourceURL,
 	};
 	if (ttl > 0) {
-		manifestCache.set(sourceURL, entry);
+		storeCacheEntry(sourceURL, entry, now);
 	}
 	return entry;
+};
+
+/**
+ * Fetches the tenant manifest, reusing a cached copy while it is fresh and
+ * revalidating with `If-None-Match` once it is not. Concurrent callers for
+ * the same URL share one upstream request.
+ *
+ * @param input - Source config, fetch implementation, and optional query.
+ * @returns The manifest plus the upstream cache metadata.
+ * @throws {Error} When no fetch is available or the backend responds non-2xx.
+ */
+export const fetchCachedManifest = async function fetchCachedManifest(
+	input: FetchCachedManifestOptions
+): Promise<CachedManifestResponse> {
+	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		throw new Error('@c15t/core/server: no fetch implementation available.');
+	}
+
+	const sourceURL = createManifestRequestURL({
+		query: input.query,
+		sourceURL: resolveManifestSourceURL(input.config),
+	});
+	const now = input.now ?? Date.now();
+	const cached = manifestCache.get(sourceURL);
+	if (cached && cached.expiresAt > now) {
+		return cached;
+	}
+
+	const pending = manifestInFlight.get(sourceURL);
+	if (pending) {
+		return await pending;
+	}
+
+	const request = revalidate({ cached, fetchImpl, now, sourceURL });
+	manifestInFlight.set(sourceURL, request);
+	try {
+		return await request;
+	} finally {
+		manifestInFlight.delete(sourceURL);
+	}
 };
 
 /** Empties the in-process manifest cache. Intended for tests. */
 export const clearManifestCache = function clearManifestCache(): void {
 	manifestCache.clear();
+	manifestInFlight.clear();
 };
