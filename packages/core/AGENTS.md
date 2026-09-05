@@ -11,6 +11,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Store API](./docs/frameworks/javascript/api/overview.md): The consent store API for reading and setting consent.
 - [Building Framework Libraries](./docs/frameworks/javascript/building-ui.md): Build a framework adapter on top of the core consent store.
 - [Consent Categories](./docs/frameworks/javascript/concepts/consent-categories.md): How c15t groups cookies and scripts into consent categories.
+- [DevTools](./docs/frameworks/javascript/dev-tools.md): Inspect a JavaScript consent kernel with the imperative DevTools API.
 - [IAB TCF](./docs/frameworks/javascript/iab/overview.md): Enable IAB TCF 2.3 with the core store.
 - [Quickstart](./docs/frameworks/javascript/quickstart.md): Add consent management to a vanilla JavaScript app.
 - [Script Loader](./docs/frameworks/javascript/script-loader.md): Load third-party scripts only after the required consent.

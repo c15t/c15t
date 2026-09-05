@@ -1,0 +1,39 @@
+---
+title: DevTools
+description: A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
+group: frameworks
+---
+
+<import src="../../../shared/react/components/dev-tools.mdx#intro" />
+
+## Usage
+
+```tsx
+'use client';
+
+import dynamic from 'next/dynamic';
+import { type ReactNode } from 'react';
+import { ConsentProvider, hosted } from 'c15t/next';
+
+const DevTools =
+  process.env.NODE_ENV === 'development'
+    ? dynamic(() => import('c15t/next/devtools').then(({ DevTools }) => DevTools), {
+        ssr: false,
+      })
+    : () => null;
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+      {children}
+      <DevTools />
+    </ConsentProvider>
+  );
+}
+```
+
+For an App Router setup with server prefetching, put `DevTools` inside `ConsentProvider` and pass the server config through `options.prefetch`. Import the adapter from `c15t/next/devtools`, or `@c15t/nextjs/devtools` when you install the Next.js package directly.
+
+<import src="../../../shared/react/components/dev-tools.mdx#customization" />
+
+<import src="../../../shared/react/components/dev-tools.mdx#props" />
