@@ -6,6 +6,7 @@ export type {
 	PolicyUiSurfaceConfig,
 } from '@c15t/core';
 export {
+	DEFAULT_POLICY_ACTION_LAYOUT,
 	flattenPolicyActionGroups,
 	hasPolicyHints,
 	resolvePolicyActionGroups,

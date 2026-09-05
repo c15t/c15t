@@ -51,8 +51,6 @@ export type ConsentBannerLayout = (
 	| ConsentBannerButton[]
 )[];
 
-const DEFAULT_LAYOUT: ConsentBannerLayout = [['reject', 'accept'], 'customize'];
-
 /**
  * Props for configuring and customizing the ConsentBanner component.
  *
@@ -229,9 +227,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const allowedActions = new Set(orderedActions);
 	const effectivePrimaryButton =
 		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
-	const resolvedLayout: ConsentBannerLayout =
-		layout ??
-		((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
+	// `banner.actionGroups` already falls back to the shared default layout
+	// when the policy carries no hints, so there is nothing to duplicate here.
+	const resolvedLayout: ConsentBannerLayout = layout ?? banner.actionGroups;
 	const resolvedDirection = direction ?? banner.direction ?? 'row';
 	const activeGroups = resolvedLayout
 		.map((item) =>
