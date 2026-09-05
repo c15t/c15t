@@ -127,7 +127,13 @@ const runFixture = async function runFixture(
 		(init as Record<string, unknown>).policyResolution ??
 		(init as Record<string, unknown>).policyDecision;
 	const initPolicyId = matchedPolicyId(initResolution);
-	if (!initPolicyId) {
+	const expectedRule =
+		resolved.pack[fixture.presets.indexOf(fixture.expectedPreset)];
+	const expectedPolicyId =
+		expectedRule && typeof expectedRule === 'object' && 'id' in expectedRule
+			? expectedRule.id
+			: null;
+	if (!initPolicyId || initPolicyId !== expectedPolicyId) {
 		throw new Error(
 			`${fixture.name}: resolveInitFromManifest did not match a policy (keys: ${Object.keys(init).join(', ')})`
 		);
@@ -139,7 +145,7 @@ const runFixture = async function runFixture(
 	// Synchronous policy resolution over the pack.
 	const syncResolution = createSyncPolicyResolution(fixture, resolved);
 	const syncPolicyId = matchedPolicyId(syncResolution.run());
-	if (!syncPolicyId) {
+	if (!syncPolicyId || syncPolicyId !== expectedPolicyId) {
 		throw new Error(
 			`${fixture.name}: ${syncResolution.resolver} did not match a policy`
 		);
@@ -186,6 +192,18 @@ const runFixture = async function runFixture(
 		| { kind?: string; reason?: string }
 		| undefined;
 
+	const operationMetrics = [];
+	if (resolved.family === 'policy-rules') {
+		const { createPolicyOperations } = await import('./policy-operations');
+		for (const [name, operation] of Object.entries(
+			createPolicyOperations(initResponse)
+		)) {
+			// oxlint-disable-next-line no-await-in-loop -- Timed operations must never overlap.
+			const samples = await warmedAsync(operation);
+			operationMetrics.push(summarizeMetric(name, 'us', samples));
+		}
+	}
+
 	const result: BenchmarkResult = {
 		baseSha: safeBaseSha(),
 		budgetDefinitions: policyRuntimeBudgetsForFixture(fixture),
@@ -224,6 +242,7 @@ const runFixture = async function runFixture(
 			warmupIterations: WARMUP,
 		},
 		metrics: [
+			...operationMetrics,
 			summarizeMetric('manifestJsonBytes', 'bytes', [manifestBytes.json]),
 			summarizeMetric('manifestGzipBytes', 'bytes', [manifestBytes.gzip]),
 			summarizeMetric('manifestBrotliBytes', 'bytes', [manifestBytes.brotli]),

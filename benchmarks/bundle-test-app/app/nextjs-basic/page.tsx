@@ -4,11 +4,11 @@ import {
 	ConsentBanner,
 	ConsentProvider,
 	offline,
-	useConsents,
+	useEffectivePermissions,
 } from '@c15t/nextjs';
 
 const BasicState = () => {
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 	return <pre>{JSON.stringify(consents, null, 2)}</pre>;
 };
 const NextjsBasicPage = () => (

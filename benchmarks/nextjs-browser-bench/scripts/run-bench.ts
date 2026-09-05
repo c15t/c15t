@@ -167,7 +167,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 	}
 
 	const before = await page.evaluate(
-		() => window.__c15tNextBench?.onConsentSetCount ?? 0
+		() => window.__c15tNextBench?.onChoiceRecordedCount ?? 0
 	);
 	const startedAt = performance.now();
 	await page.click('[data-testid="consent-banner-accept-button"]');
@@ -176,7 +176,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 			const state = window.__c15tNextBench;
 			return (
 				!!state &&
-				state.onConsentSetCount > expected &&
+				state.onChoiceRecordedCount > expected &&
 				state.activeUI === 'none'
 			);
 		},
@@ -789,6 +789,11 @@ const run = async function run() {
 								groupedSamples.map(
 									(sample) => sample.promptTransitionCount ?? 0
 								)
+							),
+							summarizeMetric(
+								'hydratedChoicePresent',
+								'count',
+								groupedSamples.map((sample) => (sample.hasStoredChoice ? 1 : 0))
 							),
 							summarizeMetric(
 								'promptShownCount',

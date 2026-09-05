@@ -12,6 +12,8 @@ export type PolicyBenchScenario =
 export interface PolicyHydrationMeasurement {
 	/** Mean microseconds per synchronous `hydrate()` call, one entry per round. */
 	hydrateUs: number[];
+	hydrateCallCount: number;
+	hydrateSuccessCount: number;
 	/** Whether every kernel in the first round applied the stored record. */
 	hydratedFromStorage: boolean;
 	/** Cookie or localStorage writes observed during hydration. */
@@ -42,8 +44,7 @@ export interface PolicyBenchState {
 	promptReason: string | null;
 	/** Whether the settled snapshot reports an explicit stored choice. */
 	hasStoredChoice: boolean | null;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	measureHydration?: (
 		iterations: number
@@ -74,8 +75,7 @@ export const getPolicyBenchState = function getPolicyBenchState(
 			fixture,
 			hasStoredChoice: null,
 			mountCount: 0,
-			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
+			onChoiceRecordedCount: 0,
 			onErrorCount: 0,
 			promptKind: null,
 			promptReason: null,
@@ -138,12 +138,12 @@ export const isPolicySettled = function isPolicySettled(
 	snapshot: unknown
 ): boolean {
 	const record = snapshot as {
-		policyProvisional?: unknown;
+		policyPending?: unknown;
 		policy?: unknown;
 		resolution?: unknown;
 		promptRequirement?: unknown;
 	};
-	if (record?.policyProvisional === true) {
+	if (record?.policyPending === true) {
 		return false;
 	}
 	return (

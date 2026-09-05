@@ -15,9 +15,9 @@ import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = ({ request }) => {
+export const GET: RequestHandler = async ({ request }) => {
 	const inputs = extractConsentRequestInputs(request.headers);
-	const init = resolveInitFromManifest(benchConsentManifestResponse, {
+	const init = resolveInitFromManifest(await benchConsentManifestResponse, {
 		country: inputs.country,
 		gpc: inputs.gpc,
 		language: inputs.language ?? 'en',

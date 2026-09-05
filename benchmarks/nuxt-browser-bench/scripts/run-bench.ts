@@ -79,13 +79,11 @@ interface NuxtBrowserBenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
-	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
 	bannerPaintMs?: number | null;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 }
 
@@ -211,7 +209,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 	}
 
 	const before = await page.evaluate(
-		() => window.__c15tNuxtBench?.onConsentSetCount ?? 0
+		() => window.__c15tNuxtBench?.onChoiceRecordedCount ?? 0
 	);
 	const startedAt = performance.now();
 	await page.click(`[data-testid="${bannerAcceptButtonTestId}"]`);
@@ -220,7 +218,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 			const state = window.__c15tNuxtBench;
 			return (
 				!!state &&
-				state.onConsentSetCount > expected &&
+				state.onChoiceRecordedCount > expected &&
 				state.activeUI === 'none'
 			);
 		},

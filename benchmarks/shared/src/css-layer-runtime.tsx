@@ -15,15 +15,10 @@ import type { CssLayerEnvironmentId, CssLayerSurface } from './css-layer-types';
 export type { CssLayerSurface } from './css-layer-types';
 
 const POLICY = {
-	consent: {
-		categories: ['necessary', 'functionality', 'measurement', 'marketing'],
-		scopeMode: 'permissive' as const,
-	},
-	id: 'css-layer-v3-compat',
+	id: 'benchmark-opt-in',
+	match: { isDefault: true },
 	model: 'opt-in' as const,
-	ui: {
-		mode: 'banner' as const,
-	},
+	prompt: 'choice' as const,
 };
 
 const THEME = {
@@ -143,10 +138,7 @@ export const CssLayerScenarioRenderer = ({
 					href: '/legal/terms',
 				},
 			},
-			mode: offline(),
-			offlinePolicy: {
-				policy: POLICY,
-			},
+			mode: offline({ policyRules: [POLICY] }),
 			persistence: false,
 			theme: THEME,
 		}}

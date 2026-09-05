@@ -25,20 +25,18 @@ export interface NextjsBenchState {
 		countryCode?: string | null;
 		regionCode?: string | null;
 	} | null;
-	hasConsented?: boolean;
+	hasStoredChoice?: boolean;
 	/** Distinct `activeUI` values in the order the probe observed them. */
 	activeUiHistory: string[];
 	/** First moment policy resolution settled (any prompt state). */
 	promptSettledMs?: number;
 	/** Prompt requirement kind when the installed source exposes one. */
 	promptKind?: string | null;
-	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
 	bannerPaintMs?: number | null;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	openPreferencesMs?: number;
 	savePreferencesMs?: number;
@@ -62,8 +60,7 @@ export const getState = function getState(
 			activeUI: 'none',
 			activeUiHistory: [],
 			mountCount: 0,
-			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
+			onChoiceRecordedCount: 0,
 			onErrorCount: 0,
 			renderCount: 0,
 			scenario,
@@ -84,12 +81,12 @@ export const isPolicySettled = function isPolicySettled(
 	snapshot: unknown
 ): boolean {
 	const record = snapshot as {
-		policyProvisional?: unknown;
+		policyPending?: unknown;
 		policy?: unknown;
 		resolution?: unknown;
 		promptRequirement?: unknown;
 	};
-	if (record?.policyProvisional === true) {
+	if (record?.policyPending === true) {
 		return false;
 	}
 	return (

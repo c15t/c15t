@@ -152,9 +152,7 @@ export const resolvePolicyBenchPack = function resolvePolicyBenchPack(
 	});
 	return {
 		family: 'legacy-policy-packs',
-		manifestConfig: {
-			policyPacks: pack as ConsentManifestConfig['policyPacks'],
-		},
+		manifestConfig: { policyPacks: pack } as unknown as ConsentManifestConfig,
 		pack,
 		presetNames: [...fixture.presets],
 	};
@@ -232,4 +230,30 @@ export const matchedPolicyId = function matchedPolicyId(
 		return typeof id === 'string' ? id : null;
 	}
 	return null;
+};
+
+/** Build the common opt-in browser fixture through the installed producer. */
+export const buildBrowserBenchManifest = function buildBrowserBenchManifest() {
+	const resolved = resolvePolicyBenchPack(
+		policyBenchFixtures['optin-choice-eu']
+	);
+	return schema.buildConsentManifestFromConfig(resolved.manifestConfig);
+};
+
+/** Resolve the exact fixture manifest, including its policy wire version. */
+export const resolveBrowserBenchInit = function resolveBrowserBenchInit(
+	manifest: Awaited<ReturnType<typeof buildBrowserBenchManifest>>
+) {
+	return schema.resolveInitFromManifest(manifest, {
+		country: 'DE',
+		language: 'en',
+		region: 'BE',
+	});
+};
+
+/** Await the producer before serving an init response. */
+export const loadBrowserBenchInit = async function loadBrowserBenchInit(
+	manifest = buildBrowserBenchManifest()
+) {
+	return resolveBrowserBenchInit(await manifest);
 };

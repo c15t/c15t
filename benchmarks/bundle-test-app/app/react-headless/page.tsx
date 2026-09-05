@@ -1,11 +1,15 @@
 'use client';
 
 import { offline } from '@c15t/react';
-import { useConsent, useConsents, useSaveConsents } from '@c15t/react/hooks';
+import {
+	useConsent,
+	useEffectivePermissions,
+	useSaveConsents,
+} from '@c15t/react/hooks';
 import { ConsentProvider } from '@c15t/react/provider';
 
 const TestComponent = () => {
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 	const hasMeasurement = useConsent('measurement');
 	const hasMarketing = useConsent('marketing');
 	const saveConsents = useSaveConsents();

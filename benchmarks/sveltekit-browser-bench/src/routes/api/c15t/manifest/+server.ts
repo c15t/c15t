@@ -5,7 +5,7 @@ import type { RequestHandler } from './$types';
 
 const MANIFEST_ETAG = '"sveltekit-browser-bench-manifest"';
 
-export const GET: RequestHandler = ({ request }) => {
+export const GET: RequestHandler = async ({ request }) => {
 	const headers = {
 		'cache-control': 'public, s-maxage=300, stale-while-revalidate=86400',
 		etag: MANIFEST_ETAG,
@@ -15,5 +15,5 @@ export const GET: RequestHandler = ({ request }) => {
 		return new Response(null, { headers, status: 304 });
 	}
 
-	return json(benchConsentManifestResponse, { headers });
+	return json(await benchConsentManifestResponse, { headers });
 };

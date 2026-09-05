@@ -1,3 +1,7 @@
+import {
+	buildBrowserBenchManifest,
+	loadBrowserBenchInit,
+} from '@c15t/benchmarking/policy-fixtures';
 /**
  * Consent backend fixture for the SvelteKit browser bench.
  *
@@ -8,7 +12,6 @@
  * init handler performs — so the SvelteKit app exercises manifest-based
  * SSR like the Next/Nuxt benches.
  */
-import type { ConsentManifest } from '@c15t/schema/types';
 
 export const benchConsentTranslations = {
 	common: {
@@ -49,69 +52,7 @@ export const benchConsentTranslations = {
 	},
 };
 
-const policy = {
-	consent: {
-		categories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		],
-		model: 'opt-in',
-		scopeMode: 'strict',
-	},
-	id: 'sveltekit-browser-bench',
-	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		mode: 'banner',
-	},
-};
-
-const resolvedPolicy = {
-	consent: policy.consent,
-	id: policy.id,
-	model: policy.model,
-	proof: {},
-	ui: policy.ui,
-};
-
-export const benchConsentManifestResponse = {
-	branding: 'c15t',
-	policyPacks: [
-		{
-			fingerprint: 'fingerprint_sveltekit_browser_bench',
-			policy: {
-				...policy,
-				match: { isDefault: true },
-			},
-			resolvedPolicy,
-		},
-	],
-	revision: 'sveltekit-browser-bench-manifest',
-	schemaVersion: 1,
-	translations: {
-		i18n: {
-			defaultProfile: 'default',
-			messages: {
-				default: {
-					fallbackLanguage: 'en',
-					translations: {
-						de: benchConsentTranslations,
-						en: benchConsentTranslations,
-					},
-				},
-			},
-		},
-	},
-} as unknown as ConsentManifest;
+export const benchConsentManifestResponse = buildBrowserBenchManifest();
+export const benchConsentInitResponse = loadBrowserBenchInit(
+	benchConsentManifestResponse
+);

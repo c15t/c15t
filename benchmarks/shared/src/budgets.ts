@@ -349,12 +349,32 @@ export const coreRuntimeCoverageBudgets: MetricBudget[] = [
  * pure-JS SHA-256 hashes of canonical JSON), and kernel init now evaluates
  * stored records and derives the prompt requirement.
  */
+/** Compound policy operations have the existing 150µs hydration-work allowance.
+ * Each sample asserts its actual choice, prompt and privacy result.
+ * These APIs have no historical empty-kernel equivalent; no v2 speedup is claimed.
+ */
+export const realPolicyOperationBudgets: MetricBudget[] = [
+	'realPolicyAcceptUs',
+	'realPolicyRejectUs',
+	'realPolicyPartialUs',
+	'realPolicyRepeatHydrationUs',
+	'realPolicyNoticeUs',
+	'realPolicyStandingGpcUs',
+].map((metric) => ({
+	comparator: 'absolute-lte',
+	description:
+		'Complete policy operation, including setup and behavioral assertions, stays within the existing 150µs hydration-work allowance.',
+	metric,
+	threshold: 150,
+}));
+
 export const policyRuntimeBudgetsForFixture =
 	function policyRuntimeBudgetsForFixture(
 		fixture: Pick<PolicyBenchFixture, 'presets'>
 	): MetricBudget[] {
 		const packs = fixture.presets.length;
 		return [
+			...realPolicyOperationBudgets,
 			{
 				comparator: 'delta-bytes-lte',
 				description: `Manifest JSON may grow by at most 1536 bytes per pack entry (${packs} entries, allowance).`,
@@ -457,9 +477,7 @@ export const policyBrowserBudgets: MetricBudget[] = [
  * absolute ceilings on the bytes the browser actually holds, declared
  * from those measurements plus headroom for an identified subject: 320
  * bytes for the consent cookie value, 1024 bytes for its localStorage
- * JSON mirror. A notice dismissal has no cookie projection in this
- * design, so its cookie bytes must stay 0 and its localStorage record
- * under 256 bytes (measured 122).
+ * JSON mirror. Notice and privacy projections are measured separately below.
  */
 export const cookieProjectionBudgets: MetricBudget[] = [
 	{
@@ -493,11 +511,25 @@ export const cookieProjectionBudgets: MetricBudget[] = [
 
 export const noticeProjectionBudgets: MetricBudget[] = [
 	{
-		comparator: 'count-eq',
+		comparator: 'absolute-lte',
 		description:
-			'A notice dismissal has no cookie projection; its cookie bytes must be 0.',
+			'Two-category privacy projection measured 29 bytes; 64 bytes allows all four categories.',
+		metric: 'privacyCookieBytes',
+		threshold: 64,
+	},
+	{
+		comparator: 'absolute-lte',
+		description:
+			'Full request cookie header for partial choice, notice and standing privacy directive measured 276 bytes including names and separators; keep the 320-byte aggregate ceiling.',
+		metric: 'c15tCookieBytes',
+		threshold: 320,
+	},
+	{
+		comparator: 'absolute-lte',
+		description:
+			'Notice projection measured 86 bytes; 128-byte ceiling allows timestamp and encoding growth.',
 		metric: 'noticeCookieBytes',
-		threshold: 0,
+		threshold: 128,
 	},
 	{
 		comparator: 'absolute-lte',
@@ -597,6 +629,12 @@ export const ssrConsistencyBudgets: MetricBudget[] = [
  * translation modules may be pulled in.
  */
 export const importBoundaryBudgets: MetricBudget[] = [
+	...['iab', 'devtools', 'allLocales'].map((family): MetricBudget => ({
+		comparator: 'count-eq',
+		description: `Ordinary React imports no ${family} modules, including zero-byte eliminated inputs.`,
+		metric: `${family}InputModuleCount`,
+		threshold: 0,
+	})),
 	{
 		comparator: 'count-eq',
 		description: 'Ordinary route bundles no @c15t/iab module bytes.',
@@ -696,6 +734,13 @@ export const nextjsBrowserBudgetsForScenario =
 			);
 		}
 		if (baseScenario === 'ssr-repeat') {
+			budgets.push({
+				comparator: 'count-eq',
+				description:
+					'SSR repeat visitor applies the real stored choice before the settled client observation.',
+				metric: 'hydratedChoicePresent',
+				threshold: 1,
+			});
 			budgets.push(
 				{
 					comparator: 'count-eq',
