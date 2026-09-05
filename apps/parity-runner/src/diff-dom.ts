@@ -100,16 +100,67 @@ export const captureDomSnapshot = function captureDomSnapshot(
 			return value;
 		};
 
-		const canonicalize = function canonicalize(element: Element): string {
-			const originalTag = element.tagName.toLowerCase();
-			const heading =
-				/^h[1-6]$/u.test(originalTag) && !element.hasAttribute('role');
-			const tag = heading ? 'div' : originalTag;
+		const isDialogMetadata = (attribute: Attr): boolean => {
+			switch (attribute.name) {
+				case 'role':
+				case 'dir':
+				case 'open':
+					return true;
+				case 'data-slot':
+					return attribute.value === 'dialog-content';
+				case 'data-state':
+					return ['open', 'closed'].includes(attribute.value);
+				case 'data-mode':
+					return attribute.value === 'dialog';
+				case 'id':
+					return attribute.value.startsWith('c15t-dialog-content-');
+				default:
+					return false;
+			}
+		};
+		const dialogChildren = (element: Element): ChildNode[] => {
+			let childNodes = Array.from(element.childNodes);
+			const container = element.firstElementChild;
+			if (
+				container &&
+				element.children.length === 1 &&
+				Array.from(element.childNodes).every(
+					(node) =>
+						node === container ||
+						node.nodeType === 8 ||
+						(node.nodeType === 3 && !node.textContent?.trim())
+				) &&
+				container.tagName === 'DIV' &&
+				container.attributes.length === 1 &&
+				container.hasAttribute('class') &&
+				stripClasses(container.className)
+					.split(' ')
+					.every((name) => ['container', 'contentVisible'].includes(name)) &&
+				stripClasses(container.className).split(' ').includes('container')
+			) {
+				childNodes = Array.from(container.childNodes);
+			}
+			return childNodes;
+		};
+
+		const captureAttributes = (
+			element: Element,
+			originalTag: string,
+			tag: string,
+			heading: boolean,
+			dialog: boolean
+		): string[] => {
 			const attrs: string[] = heading
 				? [`role="heading"`, `aria-level="${originalTag.slice(1)}"`]
 				: [];
 			// SVG intrinsic size and CSS size are equivalent only when their rendered
 			// bounds agree. Keep path/viewBox/stroke and every other attribute intact.
+			if (dialog) {
+				attrs.push(
+					'role="dialog"',
+					`dir="${getComputedStyle(element).direction}"`
+				);
+			}
 			if (tag === 'svg') {
 				const bounds = element.getBoundingClientRect();
 				attrs.push(
@@ -125,16 +176,63 @@ export const captureDomSnapshot = function captureDomSnapshot(
 				) {
 					continue;
 				}
-				const value = normAttr(element, attribute.name, attribute.value);
+				// Native dialog and framework Content/Positioner split have distinct
+				// plumbing. Actual modal/name/description/focus/visibility and shell/card
+				// geometry are independently compared by dialog-evidence. Unknown
+				// attributes/classes and substantive wrappers remain in this snapshot.
+				if (dialog && isDialogMetadata(attribute)) {
+					continue;
+				}
+				let value = normAttr(element, attribute.name, attribute.value);
+				if (dialog && attribute.name === 'class') {
+					value = [
+						'root',
+						...value
+							.split(' ')
+							.filter(
+								(name) =>
+									![
+										'root',
+										'container',
+										'dialogVisible',
+										'contentVisible',
+									].includes(name)
+							),
+					]
+						.sort()
+						.join(' ');
+				}
 				if (attribute.name === 'class' && value === '') {
 					continue;
 				}
 				attrs.push(`${attribute.name}="${value}"`);
 			}
 			attrs.sort();
+			return attrs;
+		};
+
+		const canonicalize = function canonicalize(element: Element): string {
+			const originalTag = element.tagName.toLowerCase();
+			const testId = element.getAttribute('data-testid');
+			const dialog =
+				testId === 'consent-dialog-root' &&
+				(originalTag === 'dialog' || element.getAttribute('role') === 'dialog');
+			const heading =
+				/^h[1-6]$/u.test(originalTag) && !element.hasAttribute('role');
+			const tag = heading || dialog ? 'div' : originalTag;
+			const attrs = captureAttributes(
+				element,
+				originalTag,
+				tag,
+				heading,
+				dialog
+			);
 			const open = `<${tag}${attrs.length ? ` ${attrs.join(' ')}` : ''}>`;
 			const children: string[] = [];
-			for (const node of Array.from(element.childNodes)) {
+			const childNodes = dialog
+				? dialogChildren(element)
+				: Array.from(element.childNodes);
+			for (const node of childNodes) {
 				if (node.nodeType === 1) {
 					if (isProviderArtifact(node as Element)) {
 						continue;

@@ -34,3 +34,32 @@ test('SVG intrinsic and CSS dimensions agree only at the same rendered size', as
 		.evaluate((path) => path.setAttribute('d', 'M12 5v14'));
 	expect(await captureDomSnapshot(page, 'body')).not.toBe(css);
 });
+
+test('dialog layout wrappers normalize without dropping substantive content or attributes', async ({
+	page,
+}) => {
+	const card =
+		'<div data-testid="consent-dialog-card"><button data-testid="save">Save</button></div>';
+	const attributes =
+		'data-testid="consent-dialog-root" aria-label="Privacy" aria-modal="true" tabindex="-1"';
+	await page.setContent(
+		`<dialog open class="root dialogVisible" ${attributes}><div class="container contentVisible">${card}</div></dialog>`
+	);
+	const native = await captureDomSnapshot(page, 'body');
+	await page.setContent(
+		`<div data-slot="dialog-positioner"><div role="dialog" data-slot="dialog-content" data-state="open" class="container contentVisible" ${attributes}>${card}</div></div>`
+	);
+	expect(await captureDomSnapshot(page, 'body')).toBe(native);
+	await page.setContent(
+		`<div role="dialog" class="root" ${attributes}><div class="container" role="group">${card}</div></div>`
+	);
+	expect(await captureDomSnapshot(page, 'body')).not.toBe(native);
+	await page.setContent(
+		`<div role="dialog" class="root" ${attributes}><div class="container extra-layout">${card}</div></div>`
+	);
+	expect(await captureDomSnapshot(page, 'body')).not.toBe(native);
+	await page.setContent(
+		`<div role="dialog" class="root" ${attributes}><div class="container">Important warning${card}</div></div>`
+	);
+	expect(await captureDomSnapshot(page, 'body')).not.toBe(native);
+});
