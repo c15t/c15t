@@ -147,6 +147,7 @@
       "name": "@c15t/storybook-vue",
       "dependencies": {
         "@c15t/conformance": "workspace:*",
+        "@c15t/core": "workspace:*",
         "@c15t/ui": "workspace:*",
         "@c15t/vue": "workspace:*",
         "vue": "^3.5.39",
