@@ -122,16 +122,19 @@ export const createRuntime = function createRuntime(
 	let started = false;
 	let disposed = false;
 	let generation = 0;
-	const forwardedDirectives = new Set<string>();
-	const pendingDirectives = new Map<string, object>();
+	let forwardedDirectives: Set<string> | undefined;
+	let pendingDirectives: Map<string, object> | undefined;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
-	const listeners = new Set<Listener<ConsentSnapshot>>();
+	let listeners: Set<Listener<ConsentSnapshot>> | undefined;
 
 	const getSnapshot = () => snapshot;
 	const now = () => Date.now();
 
 	const notify = function notify(): void {
+		if (!listeners) {
+			return;
+		}
 		for (const listener of listeners) {
 			listener(snapshot);
 		}
@@ -224,10 +227,12 @@ export const createRuntime = function createRuntime(
 	): Promise<void> {
 		const attempt = {};
 		const recordsGeneration = generation;
+		pendingDirectives ??= new Map();
 		pendingDirectives.set(key, attempt);
 		try {
 			await transport?.recordPrivacyOptOut?.(directive, subjectId);
 			if (generation === recordsGeneration) {
+				forwardedDirectives ??= new Set();
 				forwardedDirectives.add(key);
 			}
 		} catch (error) {
@@ -252,7 +257,7 @@ export const createRuntime = function createRuntime(
 		}
 		for (const directive of snapshot.optOutDirectives) {
 			const key = JSON.stringify([subjectId, directiveKey(directive)]);
-			if (forwardedDirectives.has(key) || pendingDirectives.has(key)) {
+			if (forwardedDirectives?.has(key) || pendingDirectives?.has(key)) {
 				continue;
 			}
 			void persistDirective(directive, subjectId, key);
@@ -343,8 +348,8 @@ export const createRuntime = function createRuntime(
 		}
 		const changed = commit(patch);
 		if (reset) {
-			forwardedDirectives.clear();
-			pendingDirectives.clear();
+			forwardedDirectives?.clear();
+			pendingDirectives?.clear();
 		}
 		if (
 			reset ||
@@ -414,9 +419,10 @@ export const createRuntime = function createRuntime(
 		start,
 		stopTimers,
 		subscribe(listener) {
+			listeners ??= new Set();
 			listeners.add(listener);
 			return () => {
-				listeners.delete(listener);
+				listeners?.delete(listener);
 			};
 		},
 	};

@@ -34,11 +34,13 @@ export interface EventBus {
  * Create a fresh event bus. Each kernel instance owns its own bus.
  */
 export const createEventBus = function createEventBus(): EventBus {
-	const listeners = new Map<KernelEvent['type'], Set<Listener<KernelEvent>>>();
+	let listeners:
+		| Map<KernelEvent['type'], Set<Listener<KernelEvent>>>
+		| undefined;
 
 	return {
 		emit(event) {
-			const bucket = listeners.get(event.type);
+			const bucket = listeners?.get(event.type);
 			if (!bucket) {
 				return;
 			}
@@ -48,6 +50,7 @@ export const createEventBus = function createEventBus(): EventBus {
 		},
 
 		on(type, listener) {
+			listeners ??= new Map();
 			let bucket = listeners.get(type);
 			if (!bucket) {
 				bucket = new Set();
