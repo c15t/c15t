@@ -2652,3 +2652,98 @@ describe('hosted transport: save waits for an in-flight init', () => {
 		});
 	});
 });
+
+describe('hosted transport: assertion state across overlapping inits', () => {
+	const savePayload = {
+		consentAction: 'all',
+		consents: { necessary: true },
+		model: 'opt-in',
+		overrides: {},
+		policySnapshotToken: null,
+		subjectId: 'sub_test',
+		uiSource: 'banner',
+		user: null,
+	} as const;
+
+	test('an older init finishing last does not overwrite the newer decision', async () => {
+		const gates = [
+			Promise.withResolvers<undefined>(),
+			Promise.withResolvers<undefined>(),
+		];
+		let initCalls = 0;
+		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+			if (url.endsWith('/init')) {
+				const index = initCalls;
+				initCalls += 1;
+				await gates[index]?.promise;
+				return new Response(
+					JSON.stringify({
+						...REALISTIC_INIT_OUTPUT,
+						policyDecision: {
+							...REALISTIC_INIT_OUTPUT.policyDecision,
+							fingerprint: `fp-${index}`,
+							policyId: `policy-${index}`,
+						},
+					}),
+					{ status: 200 }
+				);
+			}
+			return new Response(JSON.stringify({ ok: true }), { status: 200 });
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		const first = transport.init?.({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		const second = transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		gates[1]?.resolve(undefined);
+		await second;
+		gates[0]?.resolve(undefined);
+		await first;
+
+		await transport.save?.(savePayload);
+		const saveCall = fetchSpy.mock.calls.find(([url]) =>
+			String(url).endsWith('/subjects')
+		);
+		if (!saveCall) {
+			throw new Error('save was not sent');
+		}
+		expect(
+			JSON.parse((saveCall[1] as RequestInit).body as string)
+		).toMatchObject({ fingerprint: 'fp-1', policyId: 'policy-1' });
+	});
+
+	test('a save refuses to post unbound when the awaited init failed', async () => {
+		const fetchSpy = vi.fn().mockImplementation((url: string) => {
+			if (url.endsWith('/init')) {
+				return Promise.resolve(new Response('nope', { status: 503 }));
+			}
+			return Promise.resolve(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		const initPromise = transport.init?.({ overrides: {}, user: null });
+		const savePromise = transport.save?.(savePayload);
+		await expect(initPromise).rejects.toThrow();
+		await expect(savePromise).rejects.toThrow(/policy decision/u);
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).endsWith('/subjects'))
+		).toBe(false);
+	});
+});

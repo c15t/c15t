@@ -334,16 +334,22 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	};
 
+	// Overlapping inits: the kernel keeps only the latest response, so only
+	// the latest attempt may update the assertion state.
+	let initGeneration = 0;
+
 	const runInit = async function runInit(
 		ctx: InitContext
 	): Promise<InitResponse> {
+		initGeneration += 1;
+		const generation = initGeneration;
 		// The kernel's current overrides (country, region, language, GPC)
 		// travel as the canonical consent headers so a same-origin init
 		// route resolves the requested inputs rather than the CDN's.
 		const headers = { ...initHeaders, ...overrideHeaders(ctx) };
 		const prefetched = await consumeInitialData();
 		const payload = prefetched ?? (await fetchInit(headers));
-		if (options.assertDecisionInputs) {
+		if (options.assertDecisionInputs && generation === initGeneration) {
 			// Explicit headers first; otherwise the GPC value the resolver
 			// saw (the browser sends Sec-GPC itself on a same-origin init),
 			// so the assertion carries the input that produced the decision.
@@ -390,11 +396,19 @@ export const createHostedTransport = function createHostedTransport(
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
-			if (options.assertDecisionInputs && !lastDecisionInputs && pendingInit) {
+			if (options.assertDecisionInputs && !lastDecisionInputs) {
 				// A server-rendered banner is interactive before the client init
 				// resolves. Without a decision to assert yet, wait for the one in
-				// flight rather than record a consent bound to no policy.
-				await pendingInit.catch(() => undefined);
+				// flight; if none resolves, refuse rather than record a consent
+				// bound to no policy.
+				if (pendingInit) {
+					await pendingInit.catch(() => undefined);
+				}
+				if (!lastDecisionInputs) {
+					throw new Error(
+						'c15t hosted transport: cannot save before init resolved a policy decision (assertDecisionInputs is set).'
+					);
+				}
 			}
 			const response = await fetchImpl(`${base}/subjects`, {
 				body: JSON.stringify({
