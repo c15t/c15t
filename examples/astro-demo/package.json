@@ -21,6 +21,13 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.4",
-		"typescript": "6.0.3"
+		"@astrojs/react": "^4.4.0",
+		"@astrojs/vue": "^5.1.0",
+		"@c15t/react": "workspace:*",
+		"@c15t/vue": "workspace:*",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"typescript": "6.0.3",
+		"vue": "^3.5.0"
 	}
 }

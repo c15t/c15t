@@ -32,6 +32,7 @@ import type {
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
+import { setupColorScheme } from '@c15t/ui/utils/dom';
 
 import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
@@ -41,6 +42,7 @@ import { loadDialogAdapter } from './ui/adapter';
 import type { ConsentDialogHandle, ConsentDialogKind } from './ui/adapter';
 
 const GLOBAL_KEY = '__c15tAstro';
+const COLOR_SCHEME_KEY = '__c15tAstroColorScheme';
 const CONFIG_KEY = '__c15tAstroConfig';
 const DIALOG_HOST_ID = 'c15t-dialog-host';
 
@@ -100,6 +102,7 @@ type ClientWindow = Window &
 	typeof globalThis & {
 		[GLOBAL_KEY]?: AstroConsentClient;
 		[CONFIG_KEY]?: KernelConfig;
+		[COLOR_SCHEME_KEY]?: () => void;
 	};
 
 const getWindow = function getWindow(): ClientWindow | undefined {
@@ -108,6 +111,50 @@ const getWindow = function getWindow(): ClientWindow | undefined {
 
 const readInlinedConfig = function readInlinedConfig(): KernelConfig {
 	return getWindow()?.[CONFIG_KEY] ?? {};
+};
+
+/**
+ * Apply the configured colour scheme, replacing any previous application.
+ *
+ * `setupColorScheme` is what toggles `c15t-dark` on `<html>` — the
+ * stylesheet has no `prefers-color-scheme` block, so nothing is dark until
+ * something sets that class. The inline `<head>` script gets the first
+ * paint right; this keeps it right afterwards, following the system
+ * setting as the visitor changes it.
+ *
+ * The disposer lives on `window` rather than in a module variable because
+ * ClientRouter re-runs `boot()` against a document whose `<html>` class
+ * list the swap may have replaced: re-applying needs to drop the previous
+ * listener first, or every navigation leaks one.
+ *
+ * @param colorScheme - The resolved colour scheme.
+ */
+const applyColorScheme = function applyColorScheme(
+	colorScheme: C15tResolvedOptions['colorScheme']
+): void {
+	const browserWindow = getWindow();
+	if (!browserWindow) {
+		return;
+	}
+	browserWindow[COLOR_SCHEME_KEY]?.();
+	browserWindow[COLOR_SCHEME_KEY] = undefined;
+
+	// `setupColorScheme` reaches for `matchMedia` whichever scheme it is
+	// given, and a few embedded webviews do not have it. The boot is the
+	// page's only entry point, so a throw here would take consent with it:
+	// honour the pinned schemes by hand instead and leave `system` at the
+	// stylesheet's light default.
+	if (typeof browserWindow.matchMedia !== 'function') {
+		if (colorScheme !== 'system') {
+			document.documentElement.classList.toggle(
+				'c15t-dark',
+				colorScheme === 'dark'
+			);
+		}
+		return;
+	}
+
+	browserWindow[COLOR_SCHEME_KEY] = setupColorScheme(colorScheme);
 };
 
 const ensureDialogHost = function ensureDialogHost(): HTMLElement {
@@ -219,6 +266,8 @@ const createClient = function createClient(
 			runtime.dispose();
 			const browserWindow = getWindow();
 			if (browserWindow) {
+				browserWindow[COLOR_SCHEME_KEY]?.();
+				browserWindow[COLOR_SCHEME_KEY] = undefined;
 				browserWindow[GLOBAL_KEY] = undefined;
 			}
 		},
@@ -360,6 +409,7 @@ export const boot = function boot(
 	const client = createClient(options, extension);
 	browserWindow[GLOBAL_KEY] = client;
 	client.runtime.start();
+	applyColorScheme(options.colorScheme);
 	attachBannerActions();
 
 	client.subscribe((snapshot) => {
@@ -369,8 +419,13 @@ export const boot = function boot(
 
 	// The ClientRouter replaces the document without re-evaluating modules,
 	// so the runtime survives but its DOM does not. Re-attach to the new
-	// markup instead of rebuilding consent state.
-	document.addEventListener('astro:after-swap', () => attach(client));
+	// markup instead of rebuilding consent state. The swap also replaces the
+	// `<html>` attributes, taking `c15t-dark` with them, so the colour
+	// scheme is disposed and applied again against the new document.
+	document.addEventListener('astro:after-swap', () => {
+		applyColorScheme(options.colorScheme);
+		attach(client);
+	});
 	document.addEventListener('astro:page-load', () => attach(client));
 
 	attach(client);

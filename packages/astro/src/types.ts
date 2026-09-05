@@ -61,8 +61,26 @@ export interface C15tManifestDescriptor {
 	manifest?: ConsentManifest;
 }
 
-/** Which framework renders the on-demand dialog islands. */
-export type C15tUIAdapterName = 'svelte';
+/**
+ * Which framework renders the on-demand dialog islands.
+ *
+ * Svelte is the default because it is the smallest: its runtime costs
+ * roughly 14 KB gzipped against React's ~45 KB. A site already shipping
+ * React or Vue should say so and reuse what it has instead of downloading
+ * a second framework for one dialog. The choice is never inferred — a
+ * silent change to what a page downloads is worse than an explicit one.
+ */
+export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
+
+/**
+ * How the consent surfaces pick light or dark.
+ *
+ * Dark mode is the `c15t-dark` class on `<html>`, not a
+ * `prefers-color-scheme` block, so something has to set it. `'system'`
+ * follows `prefers-color-scheme` and keeps following it; `'light'` and
+ * `'dark'` pin it.
+ */
+export type C15tColorScheme = 'light' | 'dark' | 'system';
 
 /** Route paths the integration can inject. */
 export interface C15tEndpointOptions {
@@ -78,6 +96,30 @@ export interface C15tEndpointOptions {
 	initPath?: string;
 	/** @default '/api/c15t/manifest' */
 	manifestPath?: string;
+}
+
+/** How the integration registers its `pre`-order middleware. */
+export interface C15tMiddlewareOptions {
+	/**
+	 * Register `@c15t/astro/middleware` at all.
+	 *
+	 * @default true
+	 */
+	enabled?: boolean;
+	/**
+	 * Extra path prefixes the middleware leaves alone.
+	 *
+	 * The integration's own init and manifest routes are always skipped, so
+	 * this is only for routes of your own that must not resolve consent —
+	 * health checks, webhooks, anything that would otherwise pay for a
+	 * decision it never renders. A path matches when it is the pathname
+	 * exactly or a parent segment of it, so `'/api'` covers `/api/health`.
+	 *
+	 * `Astro.locals.c15t` is left unset on a skipped route.
+	 *
+	 * @example ['/api/webhooks', '/healthz']
+	 */
+	skip?: string[];
 }
 
 /** Options accepted by the `c15t()` Astro integration. */
@@ -111,14 +153,29 @@ export interface C15tAstroOptions {
 	/** Theme tokens applied to the banner and dialog surfaces. */
 	theme?: Theme;
 
+	/**
+	 * Light or dark for the banner and dialogs.
+	 *
+	 * `'system'` follows `prefers-color-scheme` and keeps following it as
+	 * the visitor changes it. `<ConsentScript />` writes the class from a
+	 * tiny inline script in `<head>`, so the server-rendered banner is
+	 * already dark on its first paint rather than flashing light.
+	 *
+	 * @default 'system'
+	 */
+	colorScheme?: C15tColorScheme;
+
 	/** Legal links rendered inline in the banner and dialog. */
 	legalLinks?: LegalLinks;
 
 	/**
 	 * Framework used to render the on-demand dialog islands.
 	 *
-	 * `'svelte'` is the only adapter today; the option exists so React, Vue
-	 * and Solid surfaces can be added without a breaking change.
+	 * `'svelte'` ships the least JavaScript and is the default. Pick
+	 * `'react'` or `'vue'` when the site already loads that runtime, so the
+	 * dialog reuses it instead of adding a second framework. Whichever you
+	 * pick, install the matching Astro integration — `@astrojs/svelte`,
+	 * `@astrojs/react` or `@astrojs/vue` — and list it before `c15t()`.
 	 *
 	 * @default 'svelte'
 	 */
@@ -140,17 +197,23 @@ export interface C15tAstroOptions {
 	/**
 	 * Register the `pre`-order middleware that populates `Astro.locals.c15t`.
 	 *
-	 * @default true
-	 */
-	middleware?: boolean;
-
-	/**
-	 * Fail the build when `@astrojs/svelte` is missing while a Svelte dialog
-	 * surface is configured. Set to `false` for banner-only sites.
+	 * `false` is the same as `{ enabled: false }`. The middleware already
+	 * skips the integration's own init and manifest routes, so a site that
+	 * serves its own manifest does not have to hand-roll one to break the
+	 * cycle; use `skip` to add routes of your own.
 	 *
 	 * @default true
 	 */
-	requireSvelte?: boolean;
+	middleware?: boolean | C15tMiddlewareOptions;
+
+	/**
+	 * Fail the build when the Astro integration for {@link C15tAstroOptions.ui}
+	 * is missing. Set to `false` for banner-only sites, which render no
+	 * island at all.
+	 *
+	 * @default true
+	 */
+	requireUIIntegration?: boolean;
 }
 
 /**
@@ -212,12 +275,14 @@ export interface C15tClientOptionsExtension {
  */
 export interface C15tResolvedOptions extends Omit<
 	C15tAstroOptions,
-	'endpoints' | 'middleware' | 'requireSvelte'
+	'endpoints' | 'middleware' | 'requireUIIntegration'
 > {
 	ui: C15tUIAdapterName;
+	colorScheme: C15tColorScheme;
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
 		enabled: boolean;
 	};
+	middleware: Required<C15tMiddlewareOptions>;
 }
 
 /** Consent context the middleware attaches to every request. */

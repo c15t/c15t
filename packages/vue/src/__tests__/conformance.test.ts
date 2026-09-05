@@ -620,6 +620,7 @@ const createControlledContext = function createControlledContext(
 		},
 		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
 		kernel,
+		ownsKernel: true,
 		snapshot,
 		storedConsent: computed({
 			get: () => snapshotToStoredConsentForTest(snapshot.value),
