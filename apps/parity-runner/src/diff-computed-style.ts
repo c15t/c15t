@@ -7,6 +7,15 @@
  * via `diffComputedStyleMap` from `@c15t/conformance`.
  * Pass `*` as `elementSelector` to compare all descendants by DOM order.
  *
+ * Values are canonicalised before they leave this module, because each
+ * framework's Storybook reaches the same tokens by a different route and the
+ * browser hands back whatever text that route produced. Custom properties are
+ * the exposed case: `getComputedStyle` resolves a registered property but
+ * returns an unregistered `--*` as the author's literal token, so a stylesheet
+ * a bundler minified (`.5rem`, `.15s`) and one it did not (`0.5rem`, `150ms`)
+ * disagree on spelling while meaning the same thing. See
+ * {@link normalizeCssValue} for what is folded away.
+ *
  * The property list is duplicated here (and in `@c15t/conformance`'s
  * `computed-style.ts`) because Playwright can't import ESM into page context.
  * Keep these in sync.
@@ -59,12 +68,112 @@ const DEFAULT_PROPS = [
 	'direction',
 ] as const;
 
-export const captureComputedStyleMap = function captureComputedStyleMap(
+/**
+ * A CSS Modules scoped identifier, as Vite's default
+ * `[local]_[hash:base64:5]_[index]` generator spells it: `_enter_t5rx4_1`.
+ * The React Storybook compiles its keyframes through CSS Modules, the others
+ * link the built stylesheet, so the same animation arrives under two names.
+ */
+const CSS_MODULES_SCOPED_NAME =
+	/_(?<localName>[a-zA-Z][\w-]*?)_[a-z0-9]{4,8}_\d+\b/gu;
+
+/** A seconds literal, excluding the `s` that ends `ms`. */
+const SECONDS_LITERAL = /(?<seconds>-?(?:\d+\.?\d*|\.\d+))s(?![a-z%-])/gu;
+
+/** A decimal written without its leading zero: `.5rem`, `cubic-bezier(.4`. */
+const BARE_DECIMAL = /(?<before>^|[^\w.])\.(?<digit>\d)/gu;
+
+/** Trailing zeros that carry no value: `1.50px`, `2.0s`. */
+const TRAILING_ZEROS = /(?<whole>\d+)\.(?<fraction>\d*[1-9])?0+(?![\d.])/gu;
+
+/**
+ * Rounds to 6 decimal places, so `0.15 * 1000` reads as `150` rather than
+ * `150.00000000000003`.
+ */
+const roundMilliseconds = function roundMilliseconds(seconds: number): number {
+	return Math.round(seconds * 1e9) / 1e6;
+};
+
+/**
+ * Canonicalises one computed CSS value so two spellings of the same value
+ * compare equal.
+ *
+ * Three rewrites, each folding away a difference in how the value was
+ * serialised rather than a difference in what it means:
+ *
+ * - **Scoped names** — `_enter_t5rx4_1` becomes `enter`, so a keyframe
+ *   compiled through CSS Modules matches the same keyframe linked from a
+ *   plain stylesheet.
+ * - **Times** — seconds become milliseconds, so `.15s` matches `150ms`.
+ * - **Numbers** — a missing leading zero is restored and trailing zeros are
+ *   dropped, so `.5rem` matches `0.5rem` and `cubic-bezier(.4, 0, .2, 1)`
+ *   matches `cubic-bezier(0.4, 0, 0.2, 1)`.
+ *
+ * Anything else is left alone. Two values that still differ after this differ
+ * for a reason the gate should report.
+ *
+ * @param value - A computed property or custom property value.
+ * @returns The canonical spelling of that value.
+ *
+ * @example
+ * ```ts
+ * normalizeCssValue('_enter_t5rx4_1 80ms cubic-bezier(.4, 0, .2, 1)');
+ * // 'enter 80ms cubic-bezier(0.4, 0, 0.2, 1)'
+ * ```
+ */
+export const normalizeCssValue = function normalizeCssValue(
+	value: string
+): string {
+	return value
+		.replace(CSS_MODULES_SCOPED_NAME, '$<localName>')
+		.replace(
+			SECONDS_LITERAL,
+			(_match, seconds: string) => `${roundMilliseconds(Number(seconds))}ms`
+		)
+		.replace(BARE_DECIMAL, '$<before>0.$<digit>')
+		.replace(TRAILING_ZEROS, (_match, whole: string, fraction?: string) =>
+			fraction ? `${whole}.${fraction}` : whole
+		);
+};
+
+/**
+ * Applies {@link normalizeCssValue} to every value in a captured snapshot map,
+ * leaving the element ids and property names untouched.
+ *
+ * @param snapshots - The map `captureComputedStyleMap` collected in the page.
+ * @returns The same map with canonical values.
+ */
+export const normalizeComputedStyleMap = function normalizeComputedStyleMap<
+	MapType extends Record<string, ComputedStyleSnapshot>,
+>(snapshots: MapType): Record<string, ComputedStyleSnapshot> {
+	const normalizeEntries = function normalizeEntries(
+		values: Record<string, string>
+	): Record<string, string> {
+		return Object.fromEntries(
+			Object.entries(values).map(([name, value]) => [
+				name,
+				normalizeCssValue(value),
+			])
+		);
+	};
+
+	return Object.fromEntries(
+		Object.entries(snapshots).map(([id, snapshot]) => [
+			id,
+			{
+				customProperties: normalizeEntries(snapshot.customProperties),
+				properties: normalizeEntries(snapshot.properties),
+			},
+		])
+	);
+};
+
+export const captureComputedStyleMap = async function captureComputedStyleMap(
 	page: Page,
 	selector: string,
 	elementSelector = '[data-testid]'
 ): Promise<Record<string, ComputedStyleSnapshot>> {
-	return page.evaluate(
+	const captured = await page.evaluate(
 		(args: { sel: string; props: readonly string[]; elements: string }) => {
 			const root = document.querySelector(args.sel);
 			if (!root) {
@@ -121,4 +230,6 @@ export const captureComputedStyleMap = function captureComputedStyleMap(
 		},
 		{ elements: elementSelector, props: DEFAULT_PROPS, sel: selector }
 	);
+
+	return normalizeComputedStyleMap(captured);
 };
