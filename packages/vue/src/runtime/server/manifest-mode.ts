@@ -5,13 +5,15 @@
  * framework server adapters share one implementation. This module only maps
  * the Nuxt runtime config onto that API.
  */
-import type { ManifestFetch } from '@c15t/core/transports/manifest-cache';
 import {
 	clearManifestCache,
 	fetchCachedManifest as fetchCachedManifestFromSource,
 	resolveManifestSourceURL as resolveManifestSourceURLFromOptions,
 } from '@c15t/core/transports/manifest-cache';
-import type { CachedManifestResponse } from '@c15t/core/transports/manifest-cache';
+import type {
+	CachedManifestResponse,
+	ManifestFetch,
+} from '@c15t/core/transports/manifest-cache';
 
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
