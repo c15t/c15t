@@ -77,20 +77,17 @@
 	let selectedVendorId = $state<VendorId | null>(null);
 	let specialPurposesExpanded = $state(false);
 
-	// Sync tab from iabState when dialog opens
-	$effect(() => {
-		if (isOpen && iabState?.preferenceCenterTab) {
-			activeTab = iabState.preferenceCenterTab;
-		}
-	});
-
-	// A caller-supplied tab outranks the provider's remembered one, which
-	// is what makes a "N partners" deep link land on the vendor list. It
-	// goes through the provider rather than straight into `activeTab` so
-	// the effect above stays the single writer.
+	// One writer for the active tab. A caller-supplied `initialTab` outranks
+	// the provider's remembered one — that is what makes a "N partners"
+	// deep link land on the vendor list — and the effect below mirrors
+	// whatever wins back into the provider, so a reopened dialog remembers.
 	$effect(() => {
 		if (initialTab) {
-			iabState?.setPreferenceCenterTab(initialTab);
+			activeTab = initialTab;
+			return;
+		}
+		if (isOpen && iabState?.preferenceCenterTab) {
+			activeTab = iabState.preferenceCenterTab;
 		}
 	});
 

@@ -234,7 +234,9 @@ watch(
 		}
 
 		syncDraftFromSelection();
-		activeTab.value = draftIab.value.preferenceCenterTab;
+		// A caller-supplied tab outranks the remembered one, so a "N
+		// partners" deep link lands on the vendor list.
+		activeTab.value = props.initialTab ?? draftIab.value.preferenceCenterTab;
 	},
 	{ immediate: true }
 );
