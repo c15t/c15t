@@ -124,6 +124,31 @@ const sameRestrictions = function sameRestrictions(
 	return true;
 };
 
+const preservePrivacyDirectives = function preservePrivacyDirectives(
+	current: readonly PrivacyOptOut[],
+	patched: readonly PrivacyOptOut[] | undefined
+): readonly PrivacyOptOut[] {
+	if (patched === undefined || patched === current) {
+		return current;
+	}
+	const unchanged =
+		patched.length === current.length &&
+		patched.every((directive, index) => {
+			const previous = current[index];
+			return (
+				previous !== undefined &&
+				directive.source === previous.source &&
+				directive.recordedAt === previous.recordedAt &&
+				directive.categories.length === previous.categories.length &&
+				directive.categories.every(
+					(category, categoryIndex) =>
+						category === previous.categories[categoryIndex]
+				)
+			);
+		});
+	return unchanged ? current : patched;
+};
+
 const samePrivacySignals = function samePrivacySignals(
 	left: KernelPrivacySignals,
 	right: KernelPrivacySignals
@@ -205,9 +230,9 @@ export const buildNextSnapshot = function buildNextSnapshot(
 
 	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
 	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
-	const optOutDirectives = pick(
-		patch.optOutDirectives,
-		current.optOutDirectives
+	const optOutDirectives = preservePrivacyDirectives(
+		current.optOutDirectives,
+		patch.optOutDirectives
 	);
 	const overrides = pick(patch.overrides, current.overrides);
 	const detected = pick(
