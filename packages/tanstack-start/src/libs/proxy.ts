@@ -448,7 +448,10 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 
 	const upstream = await (fetchImpl ?? globalThis.fetch)(target, init);
 	const responseHeaders = buildProxyResponseHeaders(upstream.headers);
-	if (init.headers.has('cookie')) {
+	const carriedCredentials = [...CREDENTIAL_HEADERS].some((name) =>
+		init.headers.has(name)
+	);
+	if (carriedCredentials) {
 		// The response may vary by the forwarded identity; never let a shared
 		// cache reuse it for the next visitor.
 		responseHeaders.set('cache-control', 'private, no-store');

@@ -322,3 +322,50 @@ describe('createConsentServerRoute: proxy credentials on the manifest fetch', ()
 		expect(headers.get('cookie')).toBeNull();
 	});
 });
+
+describe('createConsentServerRoute: manifest cache keys and credentialed responses', () => {
+	test('canonicalises the language query and drops implausible values', async () => {
+		for (const [raw, expected] of [
+			['DE-de', 'language=de-de'],
+			['fr', 'language=fr'],
+			['<script>', undefined],
+			['a'.repeat(40), undefined],
+		] as const) {
+			const fetch = createManifestFetch();
+			const { manifestGET } = createRoute({
+				backendURL: 'https://consent.example.com',
+				fetch: fetch as unknown as typeof globalThis.fetch,
+			});
+			// oxlint-disable-next-line no-await-in-loop -- sequential cases keep the failing value readable.
+			await manifestGET({
+				request: request(
+					`/api/c15t/manifest?language=${encodeURIComponent(raw)}`
+				),
+			});
+			const url = new URL(fetch.mock.calls[0]?.[0] as string);
+			expect(url.search ? url.search.slice(1) : undefined, raw).toBe(expected);
+		}
+	});
+
+	test('marks a credentialed manifest response private and strips validators', async () => {
+		const fetch = createManifestFetch({
+			'cache-control': 'public, s-maxage=120',
+			etag: '"rev"',
+		});
+		const { manifestGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			proxy: { cookieNames: ['c15t'] },
+		});
+		const response = await manifestGET({
+			request: request('/api/c15t/manifest', { cookie: 'c15t=abc' }),
+		});
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('etag')).toBeNull();
+
+		const anonymous = await manifestGET({
+			request: request('/api/c15t/manifest'),
+		});
+		expect(anonymous.headers.get('cache-control')).toBe('public, s-maxage=120');
+	});
+});

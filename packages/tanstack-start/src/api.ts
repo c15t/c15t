@@ -256,11 +256,23 @@ const resolveSourceURL = function resolveSourceURL(
 	});
 };
 
+/** A conservative BCP 47 shape: primary subtag plus up to two subtags. */
+const LANGUAGE_TAG = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2}$/u;
+
+/**
+ * Canonical `?language` for the upstream manifest request. The value keys
+ * the shared manifest cache, so anything that is not a plausible language
+ * tag is dropped rather than allowed to mint an unbounded set of entries.
+ */
 const readLanguageQuery = function readLanguageQuery(
 	request: Request
 ): string | undefined {
-	const language = new URL(request.url).searchParams.get('language');
-	return language ? `language=${encodeURIComponent(language)}` : undefined;
+	const raw = new URL(request.url).searchParams.get('language');
+	if (!raw) {
+		return undefined;
+	}
+	const language = raw.trim().toLowerCase();
+	return LANGUAGE_TAG.test(language) ? `language=${language}` : undefined;
 };
 
 const shouldFetchGvl = function shouldFetchGvl(
@@ -380,10 +392,11 @@ export const createConsentServerRoute = function createConsentServerRoute<
 	};
 
 	const manifestGET: ConsentRouteHandler = async ({ request }) => {
+		const credentials = manifestRequestHeaders(request);
 		const cached = await fetchCachedManifest({
 			cache: resolved.cache,
 			fetch: resolved.fetch,
-			headers: manifestRequestHeaders(request),
+			headers: credentials,
 			query: readLanguageQuery(request),
 			sourceURL: resolveSourceURL(request, resolved),
 		});
@@ -395,8 +408,17 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				headers.set(name, value);
 			}
 		}
-		// Downstream caches count the remaining lifetime, not a fresh TTL.
-		headers.set('age', String(getManifestAge(cached)));
+		if (credentials) {
+			// The in-process cache is partitioned by these credentials; a shared
+			// cache in front of this route is keyed by URL only, so it must not
+			// reuse a credentialed manifest for the next visitor.
+			headers.set('cache-control', 'private, no-store');
+			headers.delete('etag');
+			headers.delete('last-modified');
+		} else {
+			// Downstream caches count the remaining lifetime, not a fresh TTL.
+			headers.set('age', String(getManifestAge(cached)));
+		}
 
 		const { etag } = cached.headers;
 		if (etag && request.headers.get('if-none-match') === etag) {

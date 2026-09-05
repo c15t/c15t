@@ -678,3 +678,21 @@ describe('proxy on: responses that carried a cookie', () => {
 		expect(plain.headers.get('cache-control')).toBe('public, s-maxage=60');
 	});
 });
+
+describe('proxy on: responses that carried an authorization header', () => {
+	test('are marked no-store too', async () => {
+		const fetch = createUpstream(
+			() =>
+				new Response('{}', {
+					headers: { 'cache-control': 'public, max-age=60', etag: '"x"' },
+				})
+		);
+		const handlers = createRoute(fetch, { forwardHeaders: ['authorization'] });
+		const response = await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status', { headers: { authorization: 'Bearer t' } }),
+		});
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('etag')).toBeNull();
+	});
+});

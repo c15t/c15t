@@ -295,7 +295,8 @@ describe('prefetchInitialConsent: cookie cannot bypass cookieNames', () => {
 			},
 			createRequest({ cookie: 'session=secret; c15t=abc' })
 		);
-		const call = fetchSpy.mock.calls[0] as [string, RequestInit] | undefined;
-		expect(new Headers(call?.[1].headers).get('cookie')).toBeNull();
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const call = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(new Headers(call[1].headers).get('cookie')).toBeNull();
 	});
 });
