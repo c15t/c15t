@@ -5,7 +5,9 @@ import { useConsentConfig } from './config';
 import { useConsentKernelContext } from './kernel';
 
 /** Editable, unmasked choices scoped to the categories the visitor reviewed. */
-export const useConsentDraft = function useConsentDraft() {
+export const useConsentDraft = function useConsentDraft(
+	shouldSyncChanges: () => boolean = () => true
+) {
 	const { kernel, snapshot } = useConsentKernelContext();
 	const config = useConsentConfig();
 	const fingerprint = ref('');
@@ -40,7 +42,14 @@ export const useConsentDraft = function useConsentDraft() {
 		() =>
 			fingerprint.value !== snapshot.value.evaluationPolicy.choice.fingerprint
 	);
-	watch(() => snapshot.value.explicitChoice, reset);
+	watch(
+		() => snapshot.value.explicitChoice,
+		() => {
+			if (shouldSyncChanges()) {
+				reset();
+			}
+		}
+	);
 	return {
 		displayedCategories,
 		isStale,

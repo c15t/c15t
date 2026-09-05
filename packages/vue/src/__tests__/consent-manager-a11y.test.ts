@@ -13,7 +13,10 @@ import ConsentManager from '../runtime/components/consent-manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
+import type {
+	RuntimeConsentConfig,
+	VueConsentKernelContext,
+} from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -136,7 +139,7 @@ const mockFetch = function mockFetch(): typeof fetch {
 };
 
 const renderManager = async function renderManager(
-	overrides: Partial<ConsentConfig> = {},
+	overrides: Partial<RuntimeConsentConfig> = {},
 	component: Component = ConsentManager
 ) {
 	const config = {
@@ -460,5 +463,167 @@ test('branding trigger renders the current brand mark instead of a menu icon', a
 		);
 	} finally {
 		await cleanup(wrapper, context);
+	}
+});
+
+describe('ConsentManager real transport completion', () => {
+	const deferredTransport = () => {
+		const replies: ((response: Response) => void)[] = [];
+		const customFetch = vi.fn(() =>
+			createDeferredPromise<Response>((resolve) => {
+				replies.push(resolve);
+			})
+		);
+		const finish = (index: number, ok: boolean) => {
+			const reply = replies[index];
+			if (!reply) {
+				throw new Error('Request not started');
+			}
+			reply(
+				new Response(JSON.stringify({ ok }), {
+					headers: { 'content-type': 'application/json' },
+					status: ok ? 200 : 500,
+				})
+			);
+		};
+		return { customFetch: customFetch as unknown as typeof fetch, finish };
+	};
+	const click = (action: string) => {
+		const element = document.querySelector<HTMLButtonElement>(
+			`[data-action="${action}"]`
+		);
+		if (!element) {
+			throw new Error(`Missing ${action} action`);
+		}
+		element.click();
+	};
+	for (const action of ['accept', 'reject', 'save']) {
+		test(`${action} retains the visible draft until a real successful response`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				expect(context.snapshot.value.resolution.status).toBe('matched');
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				const switches = () =>
+					[...document.querySelectorAll('[role="switch"]')].map((node) =>
+						node.getAttribute('aria-checked')
+					);
+				const draft = switches();
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				expect(context.snapshot.value.explicitChoice).not.toBeNull();
+				expect(context.activeUI.value).toBe('manager');
+				expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+				expect(switches()).toEqual(draft);
+				transport.finish(0, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(completed.mock.calls[0]?.[0].result.ok).toBe(false);
+				expect(context.activeUI.value).toBe('manager');
+				expect(switches()).toEqual(draft);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledTimes(2)
+				);
+				expect(context.activeUI.value).toBe('manager');
+				transport.finish(1, true);
+				await vi.waitFor(() => expect(context.activeUI.value).toBeNull());
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+		test(`${action} completion cannot close a reopened dialog or a newer action`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				context.activeUI.value = null;
+				await flushPromises();
+				expect(document.querySelector('[role="dialog"]')).toBeNull();
+				context.activeUI.value = 'manager';
+				await flushPromises();
+				click('save');
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledTimes(2)
+				);
+				transport.finish(0, true);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(context.activeUI.value).toBe('manager');
+				transport.finish(1, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+				expect(context.activeUI.value).toBe('manager');
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+		test(`${action} response cannot finish a newer pending action`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				click('save');
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledTimes(2)
+				);
+				const choice = document.querySelector<HTMLButtonElement>(
+					'[role="switch"]:not([disabled])'
+				);
+				if (!choice) {
+					throw new Error('Missing editable choice');
+				}
+				choice.click();
+				await flushPromises();
+				const checked = choice.getAttribute('aria-checked');
+				transport.finish(0, true);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(context.activeUI.value).toBe('manager');
+				expect(choice.getAttribute('aria-checked')).toBe(checked);
+				transport.finish(1, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
+				expect(context.activeUI.value).toBe('manager');
+				expect(choice.getAttribute('aria-checked')).toBe(checked);
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
+		test(`${action} failure respects an explicit close`, async () => {
+			const transport = deferredTransport();
+			const { context, wrapper } = await renderManager({
+				customFetch: transport.customFetch,
+			});
+			try {
+				const completed = vi.fn();
+				context.kernel.events.on('command:save:completed', completed);
+				click(action);
+				await vi.waitFor(() =>
+					expect(transport.customFetch).toHaveBeenCalledOnce()
+				);
+				context.activeUI.value = null;
+				transport.finish(0, false);
+				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
+				expect(context.activeUI.value).toBeNull();
+				expect(document.querySelector('[role="dialog"]')).toBeNull();
+			} finally {
+				await cleanup(wrapper, context);
+			}
+		});
 	}
 });
