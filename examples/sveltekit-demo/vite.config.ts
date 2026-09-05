@@ -10,4 +10,8 @@ export default defineConfig({
 			ignored: ['**/c15t.db', '**/c15t.db-shm', '**/c15t.db-wal'],
 		},
 	},
+	ssr: {
+		// Transform workspace CSS imports instead of passing them to Node's loader.
+		noExternal: ['@c15t/ui', '@c15t/dev-tools'],
+	},
 });
