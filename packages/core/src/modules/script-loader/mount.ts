@@ -303,18 +303,16 @@ export const unmountScript = function unmountScript(
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
 		}
-		if (deps.hasDebugListener) {
-			deps.emit({
-				action: 'unloaded',
-				data: { retained: true },
-				elementId,
-				message: 'Script persisted after consent revoked',
-				scope: 'lifecycle',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
-		}
+		deps.emit({
+			action: 'unloaded',
+			data: { retained: true },
+			elementId,
+			message: 'Script persisted after consent revoked',
+			scope: 'lifecycle',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 		return;
 	}
 

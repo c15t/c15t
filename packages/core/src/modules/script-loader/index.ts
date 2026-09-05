@@ -169,9 +169,6 @@ export const createScriptLoader = function createScriptLoader(
 		diagnostics?.notify();
 	};
 
-	// Initial reconciliation — caller is already inside useEffect /
-	// onMounted when invoking the factory, so this runs in the browser.
-	reconcile(true);
 	diagnostics = registerScriptDiagnostics(
 		kernel,
 		(loaderId): ScriptDiagnostic[] =>
@@ -215,6 +212,8 @@ export const createScriptLoader = function createScriptLoader(
 			})
 	);
 	const unsubscribe = kernel.subscribe(() => reconcile());
+	// Observe initial mounts too, including synchronous inline execution.
+	reconcile(true);
 
 	return {
 		dispose() {

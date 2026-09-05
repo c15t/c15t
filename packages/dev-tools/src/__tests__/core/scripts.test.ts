@@ -2,6 +2,7 @@ import { createConsentKernel } from '@c15t/core';
 import {
 	createScriptLoader,
 	getScriptDiagnostics,
+	subscribeScriptDiagnostics,
 } from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +18,75 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each([false, true])(
+		'records initial script mounts with callbackOnly=%s',
+		(callbackOnly) => {
+			const kernel = createConsentKernel();
+			const devTools = createDevTools({ kernel });
+			disposers.push(devTools.destroy);
+			const listener = vi.fn();
+			disposers.push(subscribeScriptDiagnostics(kernel, listener));
+			const loader = createScriptLoader({
+				emitToV2DebugListeners: false,
+				kernel,
+				scripts: [
+					{
+						callbackOnly,
+						category: 'necessary',
+						id: 'initial-mount',
+						textContent: 'void 0;',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			expect(listener).toHaveBeenCalledWith(
+				expect.objectContaining({ action: 'loaded', scriptId: 'initial-mount' })
+			);
+			expect(
+				devTools
+					.getState()
+					.events.some((event) => event.type === 'script:loaded')
+			).toBe(true);
+		}
+	);
+	it('records retained revocations without legacy forwarding', () => {
+		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
+		});
+		const devTools = createDevTools({ kernel });
+		disposers.push(devTools.destroy);
+		const listener = vi.fn();
+		disposers.push(subscribeScriptDiagnostics(kernel, listener));
+		const loader = createScriptLoader({
+			emitToV2DebugListeners: false,
+			kernel,
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'quiet-retained',
+					persistAfterConsentRevoked: true,
+					textContent: 'void 0;',
+				},
+			],
+		});
+		disposers.push(loader.dispose);
+		kernel.set.consent({ marketing: false });
+		expect(listener).toHaveBeenCalledWith(
+			expect.objectContaining({
+				action: 'unloaded',
+				data: { retained: true },
+				scriptId: 'quiet-retained',
+			})
+		);
+		expect(
+			devTools
+				.getState()
+				.events.some((event) => event.type === 'script:unloaded')
+		).toBe(true);
+		document
+			.getElementById(getScriptDiagnostics(kernel)[0]?.elementId ?? '')
+			?.remove();
+	});
 	it.each(['load', 'error'] as const)(
 		"preserves a retained script's observed %s result after consent is granted again",
 		(event) => {
