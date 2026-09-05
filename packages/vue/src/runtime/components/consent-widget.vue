@@ -21,10 +21,9 @@ import {
 	switchVariants,
 } from '@c15t/ui/styles/primitives';
 import { getTextDirection } from '@c15t/ui/utils/dom';
-import { computed, ref, useId, watch } from 'vue';
+import { computed, inject, mergeProps, ref, useId } from 'vue';
 
 import {
-	useConsentActiveUI,
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
@@ -32,6 +31,7 @@ import {
 import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import ConsentTag from './consent-tag.vue';
+import { consentWidgetManagerKey } from './consent-widget-manager-context';
 
 const props = withDefaults(
 	defineProps<{
@@ -52,7 +52,7 @@ const props = withDefaults(
 const init = useConsentInit();
 const config = useConsentConfig();
 
-const activeUI = useConsentActiveUI();
+const manager = inject(consentWidgetManagerKey, null);
 const save = useConsentSave();
 
 const pi = preferenceItemVariants();
@@ -113,7 +113,7 @@ const {
 	isStale,
 	reset: resetDraft,
 	save: saveDraft,
-} = useConsentDraft();
+} = manager?.draft ?? useConsentDraft();
 const categories = draftCategories;
 
 /** Single-open accordion state (opening one category closes the rest). */
@@ -192,6 +192,10 @@ const footerSubGroupClass = computed(() =>
 );
 
 const onAction = async function onAction(action: PresentationAction) {
+	if (manager) {
+		await manager.onAction(action);
+		return;
+	}
 	if (action === 'accept') {
 		save('all');
 	} else if (action === 'reject') {
@@ -204,7 +208,7 @@ const onAction = async function onAction(action: PresentationAction) {
 
 <template>
 	<div
-		v-if="isStale"
+		v-if="isStale && !manager"
 		role="status"
 	>
 		Privacy choices have changed.
@@ -216,28 +220,36 @@ const onAction = async function onAction(action: PresentationAction) {
 		</button>
 	</div>
 	<div
+		v-bind="config.components?.manager?.root"
 		:class="noStyle ? undefined : managerStyles.manager"
 		:dir="textDirection"
 		data-testid="consent-widget-root"
+		:data-disable-animation="config.disableAnimation ? true : undefined"
 	>
 		<div
+			v-bind="config.components?.accordion?.root"
 			:class="noStyle ? undefined : accordionStyles.list"
 			data-testid="consent-widget-accordion"
 		>
 			<div
 				v-for="(category, index) in categories"
 				:key="category"
+				v-bind="config.components?.['accordion-item']?.root"
 				:class="noStyle ? undefined : accordionStyles.item"
 				data-slot="preference-item-root"
 				:data-state="isOpen(category) ? 'open' : 'closed'"
 				:data-testid="`consent-widget-accordion-item-${category}`"
 			>
-				<div :class="noStyle ? undefined : accordionStyles.triggerRow">
+				<div
+					v-bind="config.components?.accordion?.triggerRow"
+					:class="noStyle ? undefined : accordionStyles.triggerRow"
+				>
 					<button
 						:id="triggerId(index)"
 						type="button"
 						:aria-controls="contentId(index)"
 						:aria-expanded="isOpen(category) ? 'true' : 'false'"
+						v-bind="config.components?.['accordion-item']?.trigger"
 						:class="noStyle ? undefined : accordionStyles.trigger"
 						data-slot="preference-item-trigger"
 						:data-state="isOpen(category) ? 'open' : 'closed'"
@@ -245,6 +257,7 @@ const onAction = async function onAction(action: PresentationAction) {
 						@click="toggleOpenItem(category)"
 					>
 						<div
+							v-bind="config.components?.accordion?.arrow"
 							:class="noStyle ? undefined : accordionStyles.arrow"
 							data-slot="preference-item-leading"
 							:data-testid="`consent-widget-accordion-arrow-${category}`"
@@ -263,8 +276,12 @@ const onAction = async function onAction(action: PresentationAction) {
 								<path :d="isOpen(category) ? 'M5 12h14' : 'M5 12h14M12 5v14'" />
 							</svg>
 						</div>
-						<div data-slot="preference-item-header">
+						<div
+							v-bind="config.components?.accordion?.header"
+							data-slot="preference-item-header"
+						>
 							<h3
+								v-bind="config.components?.accordion?.title"
 								:class="noStyle ? undefined : accordionStyles.title"
 								data-slot="preference-item-title"
 							>
@@ -273,6 +290,7 @@ const onAction = async function onAction(action: PresentationAction) {
 						</div>
 					</button>
 					<div
+						v-bind="config.components?.accordion?.control"
 						:class="noStyle ? undefined : accordionStyles.control"
 						data-slot="preference-item-control"
 					>
@@ -281,6 +299,7 @@ const onAction = async function onAction(action: PresentationAction) {
 							role="switch"
 							:aria-checked="draft[category] ? 'true' : 'false'"
 							:aria-label="consentTitle(category)"
+							v-bind="config.components?.switch?.root"
 							:class="noStyle ? undefined : sw.root()"
 							:data-disabled="category === 'necessary' ? '' : undefined"
 							data-slot="switch"
@@ -295,6 +314,7 @@ const onAction = async function onAction(action: PresentationAction) {
 										? undefined
 										: sw.track({ disabled: category === 'necessary' })
 								"
+								v-bind="config.components?.switch?.track"
 								data-slot="switch-track"
 							>
 								<span
@@ -303,6 +323,7 @@ const onAction = async function onAction(action: PresentationAction) {
 											? undefined
 											: sw.thumb({ disabled: category === 'necessary' })
 									"
+									v-bind="config.components?.switch?.thumb"
 									data-slot="switch-thumb"
 								/>
 							</span>
@@ -310,6 +331,7 @@ const onAction = async function onAction(action: PresentationAction) {
 					</div>
 				</div>
 				<div
+					v-bind="config.components?.['accordion-item']?.content"
 					:id="contentId(index)"
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
@@ -327,6 +349,7 @@ const onAction = async function onAction(action: PresentationAction) {
 								class: noStyle ? undefined : accordionStyles.contentViewport,
 							})
 						"
+						v-bind="config.components?.accordion?.contentViewport"
 						data-slot="preference-item-content-viewport"
 					>
 						<div
@@ -335,6 +358,7 @@ const onAction = async function onAction(action: PresentationAction) {
 									class: noStyle ? undefined : accordionStyles.contentInner,
 								})
 							"
+							v-bind="config.components?.accordion?.contentInner"
 							data-slot="preference-item-content-inner"
 						>
 							{{ consentDescription(category) }}
@@ -344,6 +368,12 @@ const onAction = async function onAction(action: PresentationAction) {
 			</div>
 		</div>
 		<div
+			v-bind="
+				mergeProps(
+					{ ...config.components?.manager?.footer },
+					{ ...config.components?.manager?.actions }
+				)
+			"
 			:class="footerClass"
 			data-testid="consent-widget-footer"
 			:data-direction="direction"
@@ -353,6 +383,7 @@ const onAction = async function onAction(action: PresentationAction) {
 			<div
 				v-for="(group, groupIndex) in actionGroups"
 				:key="`group-${group.join('-') || groupIndex}`"
+				v-bind="config.components?.manager?.actionGroup"
 				:class="footerSubGroupClass"
 				data-testid="consent-widget-footer-sub-group"
 				:data-direction="direction"
@@ -362,6 +393,11 @@ const onAction = async function onAction(action: PresentationAction) {
 					v-for="action in group"
 					:key="action"
 					type="button"
+					v-bind="
+						actionVariant(action) === 'primary'
+							? config.components?.button?.primary
+							: config.components?.button?.secondary
+					"
 					:class="actionClass()"
 					:disabled="isStale"
 					:data-action="action"

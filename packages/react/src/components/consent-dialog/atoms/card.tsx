@@ -138,6 +138,7 @@ const ConsentDialogHeaderDescription = createForwardRef<
 				baseClassName: styles.description,
 				className,
 				'data-testid': 'consent-dialog-description',
+				id: 'consent-dialog-description',
 				noStyle: noStyle ?? contextNoStyle,
 				style,
 				...props,

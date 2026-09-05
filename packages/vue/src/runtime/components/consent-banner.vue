@@ -2,7 +2,7 @@
 import type { PresentationAction } from '@c15t/core';
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
-import { computed, ref, Teleport, Transition } from 'vue';
+import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -167,6 +167,7 @@ const onAction = function onAction(action: PresentationAction) {
 					>
 						<div
 							v-bind="config.components?.banner?.header"
+							data-testid="consent-banner-header"
 							:class="bannerStyles.header"
 						>
 							<div
@@ -180,28 +181,29 @@ const onAction = function onAction(action: PresentationAction) {
 							</div>
 							<ConsentDescription context="banner" />
 						</div>
-						<div
-							v-bind="config.components?.banner?.footer"
+						<ConsentActions
 							data-testid="consent-banner-footer"
 							:class="bannerStyles.footer"
-						>
-							<ConsentActions
-								:action-groups="actionGroups"
-								:direction="direction"
-								:ui-profile="surface?.uiProfile"
-								:primary-actions="primaryActions"
-								:fill="shouldFillActions"
-								:labels="labels"
-								:test-ids="actionTestIds"
-								:root-attrs="
-									config.components?.banner?.actions as object | undefined
-								"
-								:group-attrs="
-									config.components?.banner?.actionGroup as object | undefined
-								"
-								@action="onAction"
-							/>
-						</div>
+							button-size="small"
+							:action-groups="actionGroups"
+							:direction="direction"
+							:ui-profile="surface?.uiProfile"
+							:primary-actions="primaryActions"
+							:fill="shouldFillActions"
+							:labels="labels"
+							:test-ids="actionTestIds"
+							:root-attrs="
+								mergeProps(
+									{ ...config.components?.banner?.footer },
+									{ ...config.components?.banner?.actions }
+								)
+							"
+							:group-attrs="{
+								...config.components?.banner?.actionGroup,
+								'data-testid': 'consent-banner-footer-sub-group',
+							}"
+							@action="onAction"
+						/>
 					</div>
 				</div>
 			</div>

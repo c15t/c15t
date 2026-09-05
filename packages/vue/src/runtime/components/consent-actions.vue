@@ -24,6 +24,7 @@ const props = withDefaults(
 		primaryMode?: 'stroke' | 'filled';
 		secondaryMode?: 'stroke' | 'filled';
 		fill?: boolean;
+		buttonSize?: 'small' | 'medium';
 	}>(),
 	{
 		direction: 'row',
@@ -130,6 +131,7 @@ const buttonMode = function buttonMode(action: T) {
 				:key="action"
 				:variant="isPrimary(action) ? 'primary' : 'neutral'"
 				:mode="buttonMode(action)"
+				:data-size="buttonSize"
 				:disabled="disabled"
 				:data-action="action"
 				:data-testid="actionTestId(action)"
