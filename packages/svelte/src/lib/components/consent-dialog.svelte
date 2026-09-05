@@ -190,15 +190,13 @@
 						class={noStyle ? '' : headerStyle.className || ''}
 						data-testid="consent-dialog-header"
 					>
-						<div
+						<h2
 							class={noStyle ? '' : titleStyle.className || ''}
 							data-testid="consent-dialog-title"
 							id="consent-dialog-title"
-							role="heading"
-							aria-level="2"
 						>
 							{translations.consentManagerDialog.title}
-						</div>
+						</h2>
 						<div
 							class={noStyle ? '' : descriptionStyle.className || ''}
 							data-testid="consent-dialog-description"

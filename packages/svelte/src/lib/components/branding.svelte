@@ -94,36 +94,42 @@
 </script>
 
 {#if showBranding}
+	<!-- No `dir` here: the copy follows the page direction and only the
+	     wordmark below is pinned to LTR. -->
 	<a
-		dir="ltr"
 		class={brandingStyle.className || ''}
 		href={brandingHref}
 		data-branding={resolvedBranding}
 		data-variant={variant}
 		data-testid={testId}
 	>
-		<span class={styles.brandingCopy || ''}>
-			<span class={styles.brandingText || ''}
-				>{translations.common.securedBy}</span
-			>
-		</span>
-		{#if resolvedBranding === 'inth'}
-			<span
-				dir="ltr"
-				class={`${styles.brandingWordmark || ''} ${styles.brandingInth || ''}`}
-			>
-				<InthLogo aria-hidden={true} />
+		<span
+			class={styles.brandingContent || ''}
+			data-slot="tag-content"
+		>
+			<span class={styles.brandingCopy || ''}>
+				<span class={styles.brandingText || ''}
+					>{translations.common.securedBy}</span
+				>
 			</span>
-		{:else}
-			<span
-				dir="ltr"
-				class={`${styles.brandingWordmark || ''} ${styles.brandingC15T || ''}`}
-			>
-				<span class={styles.brandingC15TMark || ''}>
-					<C15TIconOnly aria-hidden={true} />
+			{#if resolvedBranding === 'inth'}
+				<span
+					dir="ltr"
+					class={`${styles.brandingWordmark || ''} ${styles.brandingInth || ''}`}
+				>
+					<InthLogo aria-hidden={true} />
 				</span>
-				<span class={styles.brandingWordmarkLabel || ''}>c15t</span>
-			</span>
-		{/if}
+			{:else}
+				<span
+					dir="ltr"
+					class={`${styles.brandingWordmark || ''} ${styles.brandingC15T || ''}`}
+				>
+					<span class={styles.brandingC15TMark || ''}>
+						<C15TIconOnly aria-hidden={true} />
+					</span>
+					<span class={styles.brandingWordmarkLabel || ''}>c15t</span>
+				</span>
+			{/if}
+		</span>
 	</a>
 {/if}

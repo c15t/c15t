@@ -209,18 +209,16 @@ const onAction = function onAction(action: PolicyUiAction) {
 							v-bind="config.components?.dialog?.header"
 							:class="dialogStyles.header"
 						>
-							<div
+							<h2
 								v-bind="config.components?.dialog?.title"
 								data-testid="consent-dialog-title"
 								id="consent-dialog-title"
 								:class="dialogStyles.title"
-								role="heading"
-								aria-level="2"
 							>
 								{{
 									init?.translations?.translations?.consentManagerDialog?.title
 								}}
-							</div>
+							</h2>
 							<ConsentDescription context="dialog" />
 						</div>
 						<div

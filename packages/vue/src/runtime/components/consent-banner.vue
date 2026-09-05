@@ -145,15 +145,13 @@ const onAction = function onAction(action: PolicyUiAction) {
 							v-bind="config.components?.banner?.header"
 							:class="bannerStyles.header"
 						>
-							<div
+							<h2
 								v-bind="config.components?.banner?.title"
 								data-testid="consent-banner-title"
 								:class="bannerStyles.title"
-								role="heading"
-								aria-level="2"
 							>
 								{{ init?.translations?.translations?.cookieBanner?.title }}
-							</div>
+							</h2>
 							<ConsentDescription context="banner" />
 						</div>
 						<div
