@@ -1,4 +1,5 @@
 import { createConsentKernel } from '@c15t/core';
+import { createRef } from 'react';
 import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
@@ -223,6 +224,43 @@ describe('v3 React DevTools adapter', () => {
 });
 
 describe('v3 TanStack Devtools adapter', () => {
+	test('cleans up React 19 callback refs on replacement and unmount', async () => {
+		const firstCleanup = vi.fn();
+		const secondCleanup = vi.fn();
+		const firstRef = vi.fn(() => firstCleanup);
+		const secondRef = vi.fn(() => secondCleanup);
+		const tree = (ref: typeof firstRef) => (
+			<Provider>
+				<C15tTanStackDevtoolsPanel ref={ref} />
+			</Provider>
+		);
+		const view = await render(tree(firstRef));
+		expect(firstRef).toHaveBeenCalledOnce();
+		expect(firstRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+		await view.rerender(tree(secondRef));
+		expect(firstCleanup).toHaveBeenCalledOnce();
+		expect(firstRef).toHaveBeenCalledOnce();
+		expect(secondRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+		await view.unmount();
+		expect(secondCleanup).toHaveBeenCalledOnce();
+		expect(secondRef).toHaveBeenCalledOnce();
+		expect(getMountedDevTools()).toBeNull();
+	});
+	test('clears object refs and legacy callback refs on unmount', async () => {
+		const objectRef = createRef<HTMLDivElement>();
+		const callbackRef = vi.fn();
+		const view = await render(
+			<Provider>
+				<C15tTanStackDevtoolsPanel ref={objectRef} />
+				<C15tTanStackDevtoolsPanel ref={callbackRef} />
+			</Provider>
+		);
+		expect(objectRef.current).toBeInstanceOf(HTMLDivElement);
+		expect(callbackRef).toHaveBeenCalledWith(expect.any(HTMLDivElement));
+		await view.unmount();
+		expect(objectRef.current).toBeNull();
+		expect(callbackRef).toHaveBeenLastCalledWith(null);
+	});
 	test('limits embedded consent controls to the displayed scope', async () => {
 		const view = await render(
 			<Provider>

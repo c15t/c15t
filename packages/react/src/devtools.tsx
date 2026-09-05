@@ -18,7 +18,12 @@ import {
 	useMemo,
 	useRef,
 } from 'react';
-import type { ForwardedRef, HTMLAttributes, ReactElement } from 'react';
+import type {
+	ForwardedRef,
+	HTMLAttributes,
+	ReactElement,
+	RefCallback,
+} from 'react';
 
 import { KernelContext } from './context';
 import { useIsHydrated } from './hooks/use-is-hydrated';
@@ -160,9 +165,9 @@ const EMBEDDED_PANEL_STYLE = {
 const assignRef = (
 	ref: ForwardedRef<HTMLDivElement>,
 	value: HTMLDivElement | null
-): void => {
+): ReturnType<RefCallback<HTMLDivElement>> => {
 	if (typeof ref === 'function') {
-		ref(value);
+		return ref(value);
 	} else if (ref) {
 		ref.current = value;
 	}
@@ -195,7 +200,13 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 		const setContainerRef = useCallback(
 			(value: HTMLDivElement | null) => {
 				containerRef.current = value;
-				assignRef(forwardedRef, value);
+				const cleanup = assignRef(forwardedRef, value);
+				if (typeof cleanup === 'function') {
+					return () => {
+						containerRef.current = null;
+						cleanup();
+					};
+				}
 			},
 			[forwardedRef]
 		);
