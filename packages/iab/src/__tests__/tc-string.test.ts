@@ -19,10 +19,10 @@ describe('@c15t/iab TC string encode/decode', () => {
 			const kernel = createConsentKernel({ transport: { save } });
 			const iab = createIAB({
 				cmpId: 28,
-				customVendors: ['internal-analytics', '999'].map((id) => ({
+				customVendors: ['internal-analytics', '999', 2].map((id) => ({
 					id,
 					legIntPurposes: [2],
-					name: id,
+					name: String(id),
 					privacyPolicyUrl: 'https://example.test/privacy',
 					purposes: [1],
 				})),
@@ -44,12 +44,13 @@ describe('@c15t/iab TC string encode/decode', () => {
 					decoded.vendorsDisclosed,
 				]) {
 					expect(vector[999]).toBeUndefined();
+					expect(vector[2]).toBeUndefined();
 				}
 				expect(decoded.vendorsDisclosed[1]).toBe(true);
 				expect(decoded.vendorConsents[1]).toBe(
 					action === 'acceptAll' ? true : undefined
 				);
-				for (const id of ['internal-analytics', '999']) {
+				for (const id of ['internal-analytics', '999', '2']) {
 					expect(kernel.getSnapshot().iab?.vendorConsents[id]).toBe(
 						action === 'acceptAll'
 					);

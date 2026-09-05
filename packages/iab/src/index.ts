@@ -332,7 +332,9 @@ export const createIAB = function createIAB(
 
 	const buildTCFConsentData = function buildTCFConsentData() {
 		const iab = readIAB(kernel);
-		const customIds = new Set(iab.customVendors.map((vendor) => vendor.id));
+		const customIds = new Set(
+			iab.customVendors.map((vendor) => String(vendor.id))
+		);
 		const registeredChoices = (choices: Record<string, boolean>) =>
 			Object.fromEntries(
 				Object.entries(choices).filter(
