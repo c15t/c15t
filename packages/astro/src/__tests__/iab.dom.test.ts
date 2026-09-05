@@ -1,71 +1,32 @@
 import type { ConsentRuntimeIABFactoryOptions } from '@c15t/core/runtime';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { createLazyIABLoader } from '../browser/iab';
+import { lazyCreateIAB, whenIABReady } from '../browser/iab';
 
 const factoryOptions = {
 	cmpId: 42,
-	kernel: {} as never,
+	kernel: {
+		getSnapshot: () => ({ consents: {}, iab: null }),
+		set: { iab: () => undefined },
+		subscribe: () => () => undefined,
+	} as never,
 } satisfies ConsentRuntimeIABFactoryOptions;
 
-const setup = function setup() {
-	const acceptAll = vi.fn();
-	const dispose = vi.fn();
-	const createIAB = vi.fn(() => ({ acceptAll, dispose }) as never);
-	const loader = createLazyIABLoader(() => Promise.resolve({ createIAB }));
-	return { acceptAll, createIAB, dispose, loader };
-};
-
 /**
- * The runtime calls `createIAB` synchronously, but `@c15t/iab` is loaded on
- * demand so the TCF implementation stays out of the boot chunk of every
- * page. These cover the window that opens between the two.
+ * The lazy-factory mechanics live in `@c15t/core/runtime` and are covered
+ * there. What matters here is the wiring: the page's factory hands back a
+ * usable handle before `@c15t/iab` has loaded, and forwards to the real
+ * CMP once the import settles.
  */
-describe('createLazyIABLoader', () => {
-	it('returns a usable handle before the module has loaded', () => {
-		const { createIAB, loader } = setup();
-		const handle = loader.create(factoryOptions);
+describe('the page IAB factory', () => {
+	it('returns a usable handle before the module has loaded', async () => {
+		const handle = lazyCreateIAB(factoryOptions);
 
 		expect(typeof handle.dispose).toBe('function');
-		expect(createIAB).not.toHaveBeenCalled();
-	});
+		expect(handle.setPurposeConsent).toBeUndefined();
 
-	it('forwards calls to the real handle once it lands', async () => {
-		const { acceptAll, createIAB, loader } = setup();
-		const handle = loader.create(factoryOptions);
-		await loader.whenReady();
-
-		expect(createIAB).toHaveBeenCalledWith(factoryOptions);
-		handle.acceptAll();
-		expect(acceptAll).toHaveBeenCalledOnce();
-	});
-
-	it('disposes the real handle', async () => {
-		const { dispose, loader } = setup();
-		const handle = loader.create(factoryOptions);
-		await loader.whenReady();
+		await whenIABReady();
+		expect(handle.setPurposeConsent).toBeTypeOf('function');
 		handle.dispose();
-
-		expect(dispose).toHaveBeenCalledOnce();
-	});
-
-	it('never constructs a CMP that was disposed while loading', async () => {
-		const { createIAB, loader } = setup();
-		const handle = loader.create(factoryOptions);
-		// Dispose before the load can settle.
-		handle.dispose();
-		await loader.whenReady();
-
-		expect(createIAB).not.toHaveBeenCalled();
-	});
-
-	it('leaves IAB inert when the module fails to load', async () => {
-		const loader = createLazyIABLoader(() =>
-			Promise.reject(new Error('offline'))
-		);
-		const handle = loader.create(factoryOptions);
-
-		await expect(loader.whenReady()).resolves.toBeUndefined();
-		expect(() => handle.dispose()).not.toThrow();
 	});
 });
