@@ -1,4 +1,5 @@
 import { linkOpensDialog } from '@c15t/conformance/play/consent-dialog-link';
+import buttonStyles from '@c15t/ui/styles/components/button';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
@@ -41,13 +42,15 @@ export const Default: Story = {
 							]
 						)
 					),
+					version: 3,
 				},
 				now: snapshot.evaluatedAt,
 			});
+			return { buttonClass: buttonStyles.button };
 		},
 		template: `
 			<div style="padding: 2rem;">
-				<ConsentPreferencesLink>Privacy preferences</ConsentPreferencesLink>
+				<ConsentPreferencesLink :class="buttonClass" data-mode="stroke" data-size="small" data-variant="neutral">Privacy preferences</ConsentPreferencesLink>
 				<ConsentManager />
 			</div>
 		`,

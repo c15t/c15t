@@ -6,17 +6,23 @@ import type {
 import triggerStyles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { computed, ref, watch } from 'vue';
 
-import { useConsentActiveUI, useConsentConfig } from '#c15t/composables';
+import {
+	useConsentActiveUI,
+	useConsentConfig,
+	useConsentInit,
+} from '#c15t/composables';
 
 import { usePolicyRule } from '../composables/kernel';
 import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
 import { useWindowSize } from '../composables/use-window-size';
+import ConsentBrandingIcon from './consent-branding-icon.vue';
 
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const policy = usePolicyRule();
+const init = useConsentInit();
 
 const STORAGE_KEY = 'c15t:dialog-trigger-position';
 const STORAGE_OFFSET = 20;
@@ -144,6 +150,7 @@ const openDialog = function openDialog() {
 			v-bind="config.components?.trigger?.root"
 			type="button"
 			data-testid="consent-dialog-trigger"
+			data-c15t-trigger="true"
 			:data-c15t-rights="policy.rights.join(' ')"
 			:class="triggerStyles.trigger"
 			:data-size="config.triggerSize"
@@ -197,18 +204,10 @@ const openDialog = function openDialog() {
 						0 0 0-1.51 1z"
 					/>
 				</svg>
-				<svg
+				<ConsentBrandingIcon
 					v-else
-					aria-hidden="true"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M4 12h16" />
-					<path d="M4 6h16" />
-					<path d="M4 18h16" />
-				</svg>
+					:branding="init?.branding"
+				/>
 			</span>
 			<span
 				v-if="config.components?.trigger?.text"

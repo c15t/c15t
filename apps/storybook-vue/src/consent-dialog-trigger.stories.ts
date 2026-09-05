@@ -23,7 +23,10 @@ export const Default: Story = {
 	render: () => ({
 		components: { ConsentDialogTrigger, ConsentManager },
 		setup() {
-			setupStorybookConsent(null, { triggerShowWhen: 'always' });
+			setupStorybookConsent(null, {
+				triggerIcon: 'branding',
+				triggerShowWhen: 'always',
+			});
 		},
 		template: '<ConsentManager /><ConsentDialogTrigger />',
 	}),
@@ -34,7 +37,10 @@ export const DialogFocusManagement: Story = {
 	render: () => ({
 		components: { ConsentDialogTrigger, ConsentManager },
 		setup() {
-			setupStorybookConsent(null, { triggerShowWhen: 'always' });
+			setupStorybookConsent(null, {
+				triggerIcon: 'branding',
+				triggerShowWhen: 'always',
+			});
 		},
 		template: '<ConsentManager /><ConsentDialogTrigger />',
 	}),

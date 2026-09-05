@@ -6,8 +6,9 @@ import {
 import { flushPromises, mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
-import type { ComponentPublicInstance } from 'vue';
+import type { Component, ComponentPublicInstance } from 'vue';
 
+import ConsentDialogTrigger from '../runtime/components/consent-dialog-trigger.vue';
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
@@ -135,7 +136,8 @@ const mockFetch = function mockFetch(): typeof fetch {
 };
 
 const renderManager = async function renderManager(
-	overrides: Partial<ConsentConfig> = {}
+	overrides: Partial<ConsentConfig> = {},
+	component: Component = ConsentManager
 ) {
 	const config = {
 		backendURL: 'https://consent.example',
@@ -150,7 +152,7 @@ const renderManager = async function renderManager(
 	const context = createVueConsentKernelContext({ config, prefetch: init });
 	context.activeUI.value = 'manager';
 
-	const wrapper = mount(ConsentManager, {
+	const wrapper = mount(component, {
 		attachTo: document.body,
 		global: {
 			provide: {
@@ -439,4 +441,24 @@ describe('ConsentManager widget composition', () => {
 			await cleanup(wrapper, context);
 		}
 	});
+});
+
+test('branding trigger renders the current brand mark instead of a menu icon', async () => {
+	const { context, wrapper } = await renderManager(
+		{ triggerIcon: 'branding' },
+		ConsentDialogTrigger
+	);
+	try {
+		context.activeUI.value = null;
+		await flushPromises();
+		const trigger = document.querySelector(
+			'[data-testid="consent-dialog-trigger"]'
+		);
+		expect(trigger?.getAttribute('data-c15t-trigger')).toBe('true');
+		expect(trigger?.querySelector('svg')?.getAttribute('viewBox')).toBe(
+			'0 0 446 445'
+		);
+	} finally {
+		await cleanup(wrapper, context);
+	}
 });

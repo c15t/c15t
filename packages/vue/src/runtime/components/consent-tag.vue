@@ -66,8 +66,6 @@ const testId = computed(() => {
 		v-if="resolvedBranding !== 'none'"
 		v-bind="config.components?.tag?.[context]"
 		:href="href"
-		target="_blank"
-		rel="noopener noreferrer"
 		:data-branding="resolvedBranding"
 		:data-variant="
 			context === 'banner' || context === 'iab-banner'
