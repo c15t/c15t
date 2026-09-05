@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import {
+	nuxtBrowserBudgetsForScenario,
+	reactBrowserBudgetsForScenario,
+} from './budgets';
 import { evaluateBudget, hasFailingBudgets } from './reporting';
 import type { BenchmarkComparisonResult, MetricSampleSet } from './schema';
 import { summarizeMetric } from './utils';
@@ -8,6 +12,36 @@ const metric = (name: string, median: number): MetricSampleSet =>
 	summarizeMetric(name, 'us', [median]);
 
 describe('evaluateBudget', () => {
+	it.each([
+		'baseline-client',
+		'baseline-client-cold',
+		'baseline-client-steady',
+	])('enforces zero consent requests for %s', (scenario) => {
+		const budget = nuxtBrowserBudgetsForScenario(scenario).find(
+			(candidate) => candidate.metric === 'initRequestsAfterLoad'
+		);
+		if (!budget) {
+			throw new Error('Missing baseline request budget');
+		}
+		expect(
+			evaluateBudget(budget, metric('initRequestsAfterLoad', 0)).pass
+		).toBe(true);
+		expect(
+			evaluateBudget(budget, metric('initRequestsAfterLoad', 1)).pass
+		).toBe(false);
+	});
+
+	it('rejects a third notice render under the measured two-commit budget', () => {
+		const budget = reactBrowserBudgetsForScenario('policy-notice').find(
+			(candidate) => candidate.metric === 'renderCount'
+		);
+		if (!budget) {
+			throw new Error('Missing notice render budget');
+		}
+		expect(evaluateBudget(budget, metric('renderCount', 2)).pass).toBe(true);
+		expect(evaluateBudget(budget, metric('renderCount', 3)).pass).toBe(false);
+	});
+
 	it('fails a relative budget when the base metric is missing', () => {
 		const result = evaluateBudget(
 			{
