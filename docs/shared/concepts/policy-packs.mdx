@@ -290,11 +290,14 @@ group: reference
   - Quebec opt-in is a conservative configuration. The [CAI consent guidelines, version 1.0](https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf) describe consent validity, including specific purposes and duration. The [Law 25 changes](https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25) do not establish a blanket cookie opt-in rule from the highest-privacy-default provision.
   - `worldOptOutNoPrompt` is an explicit controller choice with no regional legal claim and no default GPC mapping. It is never the runtime fallback for failed or unmatched resolution.
 
+  Each preset sets `reviewBy: '2027-03-05'` as a six-month source review reminder. This date does not expire choices or change runtime permissions. Review sooner if the cited sources or your processing change.
+
   Inspect the assumptions before adapting a preset:
 
   ```ts
   const rule = policyRulePresets.californiaOptOut();
   console.log(rule.review?.reviewedOn);
+  console.log(rule.review?.reviewBy);
   console.log(rule.review?.sources);
   console.log(rule.review?.assumptions);
   ```

@@ -16,6 +16,10 @@ describe('policyRulePresets', () => {
 		expect(() => normalizePolicyRule(rule)).not.toThrow();
 		expect(rule.review?.status).toBe('reviewed');
 		expect(rule.review?.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+		expect(rule.review?.reviewBy).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+		expect(Date.parse(rule.review?.reviewBy ?? '')).toBeGreaterThan(
+			Date.parse(rule.review?.reviewedOn ?? '')
+		);
 		if (name !== 'worldOptOutNoPrompt') {
 			expect(rule.review?.sources?.length).toBeGreaterThan(0);
 		}

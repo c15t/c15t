@@ -30,6 +30,7 @@ const sourceReview = function sourceReview(
 ): PolicyRuleReview {
 	return {
 		assumptions: [...assumptions, ...SHARED_ASSUMPTIONS],
+		reviewBy: '2027-03-05',
 		reviewedOn: '2026-09-05',
 		sources,
 		status: 'reviewed',
