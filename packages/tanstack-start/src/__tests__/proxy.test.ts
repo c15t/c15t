@@ -649,3 +649,32 @@ describe('proxy on: cleartext backends and credential headers', () => {
 		expect(headers.get('user-agent')).toBe('UA');
 	});
 });
+
+describe('proxy on: responses that carried a cookie', () => {
+	test('are marked no-store and lose their validators', async () => {
+		const fetch = createUpstream(
+			() =>
+				new Response('{}', {
+					headers: {
+						'cache-control': 'public, s-maxage=60',
+						etag: '"abc"',
+						'last-modified': 'Mon, 01 Jan 2024 00:00:00 GMT',
+					},
+				})
+		);
+		const handlers = createRoute(fetch, { cookieNames: ['c15t'] });
+		const response = await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status', { headers: { cookie: 'c15t=abc' } }),
+		});
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('etag')).toBeNull();
+		expect(response.headers.get('last-modified')).toBeNull();
+
+		const plain = await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status'),
+		});
+		expect(plain.headers.get('cache-control')).toBe('public, s-maxage=60');
+	});
+});

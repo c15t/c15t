@@ -60,7 +60,10 @@ const alias = {
 /** `vitest run` is run mode; a bare `vitest` or `--watch` is watch mode. */
 const isVitestWatchMode = function isVitestWatchMode(): boolean {
 	const args = process.argv.slice(2);
-	return args.includes('--watch') || !args.includes('run');
+	if (args.includes('--watch')) {
+		return true;
+	}
+	return !(args.includes('run') || args.includes('--run'));
 };
 
 export default mergeConfig(

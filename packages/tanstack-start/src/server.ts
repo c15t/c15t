@@ -335,9 +335,14 @@ const collectForwardHeaders = function collectForwardHeaders(
 		forward.cookie = scopedCookie;
 	}
 	for (const name of names ?? []) {
+		const lower = name.toLowerCase();
+		if (lower === 'cookie') {
+			// Cookies travel only through `cookieNames`, never as a whole.
+			continue;
+		}
 		const value = request.headers.get(name);
 		if (value) {
-			forward[name.toLowerCase()] = value;
+			forward[lower] = value;
 		}
 	}
 	return forward;

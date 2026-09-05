@@ -55,7 +55,7 @@ export const readInitSignals = function readInitSignals(
 		// Global Privacy Control is a signal, not a preference: the spec
 		// defines '1' as the only affirmative value, so anything else is
 		// absence rather than a false.
-		gpc: headers.get('sec-gpc') === '1',
+		gpc: (headers.get('x-c15t-gpc') ?? headers.get('sec-gpc')) === '1',
 
 		// Matches 2.x: the raw header, defaulted to 'en'. Narrowing to a
 		// primary subtag happens downstream in the resolver, not here.

@@ -283,3 +283,19 @@ describe('prefetchInitialConsent: header forwarding', () => {
 		expect(manifestCall(fetchSpy).headers.get('cookie')).toBe('c15t=abc');
 	});
 });
+
+describe('prefetchInitialConsent: cookie cannot bypass cookieNames', () => {
+	test('forwardHeaders listing cookie forwards nothing without cookieNames', async () => {
+		const fetchSpy = createManifestFetch();
+		await prefetchInitialConsent(
+			{
+				backendURL: 'https://consent.example.com',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				forwardHeaders: ['cookie'],
+			},
+			createRequest({ cookie: 'session=secret; c15t=abc' })
+		);
+		const call = fetchSpy.mock.calls[0] as [string, RequestInit] | undefined;
+		expect(new Headers(call?.[1].headers).get('cookie')).toBeNull();
+	});
+});

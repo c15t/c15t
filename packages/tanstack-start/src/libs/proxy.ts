@@ -426,7 +426,7 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 		return Response.json({ error: 'Not found' }, { status: 404 });
 	}
 	const method = request.method.toUpperCase();
-	const init: RequestInit & { duplex?: 'half' } = {
+	const init: RequestInit & { duplex?: 'half'; headers: Headers } = {
 		headers: buildProxyRequestHeaders(
 			request,
 			cleartextRemote
@@ -447,8 +447,16 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	}
 
 	const upstream = await (fetchImpl ?? globalThis.fetch)(target, init);
+	const responseHeaders = buildProxyResponseHeaders(upstream.headers);
+	if (init.headers.has('cookie')) {
+		// The response may vary by the forwarded identity; never let a shared
+		// cache reuse it for the next visitor.
+		responseHeaders.set('cache-control', 'private, no-store');
+		responseHeaders.delete('etag');
+		responseHeaders.delete('last-modified');
+	}
 	return new Response(upstream.body, {
-		headers: buildProxyResponseHeaders(upstream.headers),
+		headers: responseHeaders,
 		status: upstream.status,
 		statusText: upstream.statusText,
 	});

@@ -1,3 +1,4 @@
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
@@ -12,8 +13,15 @@ export const Route = createFileRoute('/api/bench-consent/stats')({
 		handlers: {
 			GET: () =>
 				Response.json(getBenchConsentFixtureCounts(), { headers: noStore }),
-			POST: () =>
-				Response.json(resetBenchConsentFixtureCounts(), { headers: noStore }),
+			POST: () => {
+				// The runner resets before each scenario; dropping the shared
+				// manifest cache too keeps a `--cold-manifest` sample genuinely
+				// cold instead of a hit on the previous scenario's fill.
+				clearManifestCache();
+				return Response.json(resetBenchConsentFixtureCounts(), {
+					headers: noStore,
+				});
+			},
 		},
 	},
 });

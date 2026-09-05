@@ -6,6 +6,7 @@ import {
 	getRegionFromHeaders,
 	headersToRecord,
 	parseGlobalPrivacyControl,
+	CONSENT_REQUEST_HEADER_NAMES,
 } from './geo-headers';
 
 describe('getRegionFromHeaders', () => {
@@ -113,5 +114,16 @@ describe('consentInputsToOverrides / headersToRecord', () => {
 		);
 		expect(record['x-c15t-country']).toBe('DE');
 		expect(record['accept-language']).toBe('de');
+	});
+});
+
+describe('GPC override header', () => {
+	it('x-c15t-gpc wins over the browser sec-gpc signal', () => {
+		expect(
+			extractConsentRequestInputs({ 'sec-gpc': '1', 'x-c15t-gpc': '0' }).gpc
+		).toBe(false);
+		expect(extractConsentRequestInputs({ 'sec-gpc': '1' }).gpc).toBe(true);
+		expect(extractConsentRequestInputs({ 'x-c15t-gpc': '1' }).gpc).toBe(true);
+		expect(CONSENT_REQUEST_HEADER_NAMES).toContain('x-c15t-gpc');
 	});
 });

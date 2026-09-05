@@ -2515,9 +2515,11 @@ describe('hosted transport: init context', () => {
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
 		expect((init as RequestInit).headers).toMatchObject({
 			'accept-language': 'fr',
-			'sec-gpc': '1',
 			'x-c15t-country': 'FR',
+			'x-c15t-gpc': '1',
 			'x-c15t-region': 'IDF',
 		});
+		// Scripts cannot set Sec-* headers; the override must not try.
+		expect((init as RequestInit).headers).not.toHaveProperty('sec-gpc');
 	});
 });

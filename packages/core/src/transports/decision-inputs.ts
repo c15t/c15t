@@ -66,11 +66,14 @@ export const buildDecisionAssertion = function buildDecisionAssertion(
 	};
 };
 
-/** Parse the `sec-gpc` request header into the resolver's boolean input. */
+/**
+ * Parse the GPC request headers into the resolver's boolean input. The
+ * application override `x-c15t-gpc` wins over the browser's `sec-gpc`.
+ */
 export const gpcFromHeaders = function gpcFromHeaders(
 	headers: Record<string, string> | undefined
 ): boolean | undefined {
-	const value = headers?.['sec-gpc'];
+	const value = headers?.['x-c15t-gpc'] ?? headers?.['sec-gpc'];
 	if (value === '1') {
 		return true;
 	}
