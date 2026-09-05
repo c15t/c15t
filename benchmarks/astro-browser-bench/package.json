@@ -1,0 +1,31 @@
+{
+	"name": "@c15t/astro-browser-bench",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/browser-runtime/astro bunx tsx scripts/run-bench.ts",
+		"bench:bundle": "bun run build && bunx tsx scripts/analyze-bundle.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/browser-runtime/astro bunx tsx scripts/run-bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/astro bunx tsx scripts/run-bench.ts",
+		"build": "astro build",
+		"check-types": "astro check",
+		"dev": "astro dev",
+		"start": "node dist/server/entry.mjs"
+	},
+	"dependencies": {
+		"@astrojs/node": "^9.5.0",
+		"@astrojs/svelte": "^7.2.0",
+		"@c15t/astro": "workspace:*",
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/core": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"astro": "^5.16.0",
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.4",
+		"playwright": "1.58.2",
+		"typescript": "6.0.3"
+	}
+}
