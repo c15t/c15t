@@ -9,7 +9,7 @@ group: reference
 <section id="content">
   ## What Are Component Slots?
 
-  Component slots let you target specific parts of the stock consent UI with framework-native attributes. In React v3, slots are configured through `ConsentManagerProvider.options.components`.
+  Component slots let you target specific parts of the stock consent UI with framework-native attributes. In React v3, slots are configured through `ConsentProvider.options.components`.
 
   Use slots after the stock component APIs and design tokens:
 
@@ -21,8 +21,10 @@ group: reference
   Pass slot props in the provider `components` object:
 
   ```tsx
-  <ConsentManagerProvider
+  import { offline } from '@c15t/react';
+  <ConsentProvider
     options={{
+      mode: offline(),
       components: {
         banner: {
           card: {
@@ -39,7 +41,7 @@ group: reference
     }}
   >
     <ConsentBanner />
-  </ConsentManagerProvider>
+  </ConsentProvider>;
   ```
 
   Each slot accepts a React attribute bag. `className`, `style`, `data-*`, ARIA attributes, and other valid HTML attributes are preserved.

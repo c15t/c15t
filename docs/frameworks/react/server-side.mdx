@@ -1,155 +1,52 @@
 ---
-title: Server-Side Utilities
-description: Fetch consent data on the server for SSR hydration — eliminate the loading flash and improve performance.
-group: frameworks
+title: Server-side records and policy
+description: Prepare canonical records and policy resolution before hydrating React.
 ---
 
-The `c15t/react/server` module provides utilities for fetching consent data on the server before rendering. This enables SSR hydration — consent state is available immediately on page load without a client-side fetch, eliminating the consent banner flash.
-
-<Callout type="info">
-  SSR hydration is part of the [initialization flow](/docs/frameworks/react/concepts/initialization-flow#how-it-works). When SSR data is available, the client skips the API fetch entirely.
-</Callout>
+## Prepare one request snapshot
 
 ```ts
-import {
-  fetchSSRData,
-  extractRelevantHeaders,
-  normalizeBackendURL,
-  validateBackendURL,
-} from 'c15t/react/server';
+import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import { resolvePolicyRules, policyRulePresets } from '@c15t/schema';
+
+const now = Date.now();
+const prefetch = {
+  now,
+  initialRecords: readStoredRecordsFromCookieHeader(
+    request.headers.get('cookie') ?? '',
+    undefined,
+    now
+  ),
+  initialPolicyResolution: resolvePolicyRules({
+    rules: [policyRulePresets.europeOptIn()],
+    countryCode: null,
+    regionCode: null,
+  }),
+};
 ```
 
-<Callout type="info">
-  If you're using Next.js, the `c15t/next` package wraps these utilities with automatic header resolution. See the [Next.js docs](/docs/frameworks/next/quickstart) for framework-specific usage.
-</Callout>
+This offline example uses the Europe preset's unknown-geography fallback. For
+hosted data, use the adapter's server transport helpers and canonical init mapping.
+Next.js provides [prefetchInitialConsent](/docs/frameworks/next/server-side).
 
-## fetchSSRData
+Pass `prefetch` through `options.prefetch` to `ConsentProvider`, with the same
+transport configuration on server and browser. The provider uses the prepared
+policy, records and clock for its initial render. It does not renew records or
+fetch initialization again when complete prepared data is available.
 
-The primary function for fetching consent data on the server. It calls the c15t backend's `/init` endpoint with the user's request headers and returns the initial consent data.
+Read `Sec-GPC` as a detected signal only when its exact value is `1`; pass it as
+`initialPrivacySignals.gpc`. Do not manufacture a developer override from a
+missing header. After mounting, actual detected GPC can record a separate standing
+directive through the public signal setter without a choice or new init request.
 
-```ts
-import { fetchSSRData } from 'c15t/react/server';
+## Preserve the record boundary
 
-// In your server handler / page loader
-const ssrData = await fetchSSRData({
-  backendURL: 'https://your-instance.c15t.dev',
-  headers: request.headers,
-  debug: true,
-});
-```
+The storage reader preserves per-category times, partial choices, notice dismissals
+and standing privacy directives. It also reads valid v2 choices without rewriting
+them. A notice stored only in localStorage cannot suppress server HTML before
+hydration because the server never received it.
 
-### Options
-
-<AutoTypeTable path="./packages/react/src/server/types.ts" name="FetchSSRDataOptions" />
-
-### Return Value
-
-Returns `SSRInitialData | undefined`. The data includes the init response (jurisdiction, translations, consent model) and GVL data when IAB is configured.
-
-### Passing SSR Data to the Provider
-
-Pass the result as a Promise to the provider's `ssrData` option:
-
-```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
-import { fetchSSRData } from 'c15t/react/server';
-
-// Server component or page loader
-async function getSSRData(headers: Headers) {
-  return fetchSSRData({
-    backendURL: 'https://your-instance.c15t.dev',
-    headers,
-  });
-}
-
-export default function ConsentManager({
-  children,
-  ssrData,
-}: {
-  children: ReactNode;
-  ssrData: Promise<any>;
-}) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
-        ssrData,
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
-
-## extractRelevantHeaders
-
-Extracts geo-location and forwarding headers from the incoming request. Supports headers from Cloudflare, Vercel, AWS CloudFront, and generic proxies.
-
-```ts
-import { extractRelevantHeaders } from 'c15t/react/server';
-
-const relevant = extractRelevantHeaders(request.headers);
-// Returns: { 'cf-ipcountry': 'DE', 'accept-language': 'de-DE', ... }
-```
-
-### Recognized Headers
-
-| Header | Source | Contains |
-|--------|--------|----------|
-| `cf-ipcountry` | Cloudflare | Country code |
-| `x-vercel-ip-country` | Vercel | Country code |
-| `x-amz-cf-ipcountry` | AWS CloudFront | Country code |
-| `x-vercel-ip-country-region` | Vercel | Region code |
-| `accept-language` | Browser | Language preference |
-| `x-forwarded-host` | Proxy | Original host |
-| `x-forwarded-for` | Proxy | Client IP |
-
-## normalizeBackendURL
-
-Resolves a backend URL to an absolute URL. Absolute URLs are returned as-is. Relative URLs (starting with `/`) are resolved using the request's `Host` or `Referer` headers.
-
-```ts
-import { normalizeBackendURL } from 'c15t/react/server';
-
-// Absolute — returned as-is
-normalizeBackendURL('https://api.example.com/', headers);
-// → 'https://api.example.com'
-
-// Relative — resolved from headers
-normalizeBackendURL('/api/consent', headers);
-// → 'https://example.com/api/consent'
-```
-
-## validateBackendURL
-
-Validates and normalizes a URL without resolving relative paths. Useful for configuration validation.
-
-```ts
-import { validateBackendURL } from 'c15t/react/server';
-
-validateBackendURL('https://api.example.com/');
-// → { isAbsolute: true, normalizedURL: 'https://api.example.com' }
-
-validateBackendURL('/api/consent/');
-// → { isAbsolute: false, normalizedURL: '/api/consent' }
-```
-
-## Debugging SSR
-
-Use the [useSSRStatus](/docs/frameworks/react/hooks/use-ssr-status) hook on the client to verify SSR data was consumed:
-
-```tsx
-import { useSSRStatus } from 'c15t/react';
-
-function DebugSSR() {
-  const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
-
-  if (ssrDataUsed) return <span>SSR hydration successful</span>;
-  return <span>SSR skipped: {ssrSkippedReason ?? 'unknown'}</span>;
-}
-```
+The old `ssrData` provider option and `useSSRStatus` hook are removed. Use prepared
+records and policy with `usePolicyResolution` and `usePromptRequirement`. Keep
+pending and failed initialization hidden without treating a missing policy as
+permission. See [v3 migration](/docs/upgrade-v3).

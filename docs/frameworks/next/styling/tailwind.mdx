@@ -29,27 +29,32 @@ If you use other preset or docs-site stylesheets, apply the same rule: load them
 Apply Tailwind classes via the theme's `slots` object:
 
 ```tsx
+import { hosted } from '@c15t/nextjs';
 import { type ReactNode } from 'react';
-import { type Theme, ConsentManagerProvider } from 'c15t/next';
+import { type ReactUIOptions, ConsentProvider } from 'c15t/next';
+type Theme = NonNullable<ReactUIOptions['theme']>;
 
 const theme = {
   slots: {
     consentBanner: 'fixed bottom-0 inset-x-0 z-50',
-    consentBannerCard: 'mx-auto max-w-2xl rounded-t-2xl bg-white p-6 shadow-2xl',
+    consentBannerCard:
+      'mx-auto max-w-2xl rounded-t-2xl bg-white p-6 shadow-2xl',
     consentBannerTitle: 'text-lg font-semibold text-gray-900',
     consentBannerDescription: 'mt-2 text-sm text-gray-600',
     consentBannerFooter: 'mt-4 flex flex-wrap gap-3',
-    buttonPrimary: 'rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700',
-    buttonSecondary: 'rounded-full border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50',
+    buttonPrimary:
+      'rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700',
+    buttonSecondary:
+      'rounded-full border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50',
     toggle: 'data-[state=checked]:bg-indigo-600',
   },
 } satisfies Theme;
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={{ theme, mode: 'hosted', backendURL: '/api/c15t' }}>
+    <ConsentProvider options={{ theme, mode: hosted({ url: '/api/c15t' }) }}>
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

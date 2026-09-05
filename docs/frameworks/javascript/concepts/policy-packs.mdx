@@ -12,22 +12,9 @@ group: frameworks
 
 <import src="../../../shared/concepts/policy-packs.mdx#resolution-flow" />
 
-Inspect the resolved policy directly from the store:
+Inspect the resolved policy on the kernel snapshot.
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime({
-  backendURL: 'https://your-instance.c15t.dev',
-});
-
-const state = consentStore.getState();
-console.log({
-  policyId: state.policy?.id,
-  matchedBy: state.policyDecision?.matchedBy,
-  fingerprint: state.policyDecision?.fingerprint,
-});
-```
+See the [JavaScript quickstart](/docs/frameworks/javascript/quickstart) for kernel construction and browser persistence.
 
 <import src="../../../shared/concepts/policy-packs.mdx#common-patterns" />
 

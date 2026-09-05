@@ -50,10 +50,13 @@ group: reference
   - `legalLinks` for link visibility
   - `hideBranding` and `showTrigger` for dialog and widget behavior
   - `theme.consentActions` for stock banner and dialog button treatment
-  - `i18n` on `ConsentManagerProvider` for copy changes
+  - `i18n` on `ConsentProvider` for copy changes
 
   ```tsx
-  <ConsentBanner layout={['customize', ['reject', 'accept']]} primaryButton="accept" />
+  <ConsentBanner
+    layout={['customize', ['reject', 'accept']]}
+    primaryButton="accept"
+  />;
   ```
 
   ### 2. Design tokens
@@ -141,7 +144,7 @@ group: reference
         </ConsentBanner.FooterSubGroup>
       </ConsentBanner.Footer>
     </ConsentBanner.Card>
-  </ConsentBanner.Root>
+  </ConsentBanner.Root>;
   ```
 
   ### 6. `noStyle`
@@ -149,7 +152,7 @@ group: reference
   Use `noStyle` only when the c15t structure is still correct but you want to replace all visual defaults:
 
   ```tsx
-  <ConsentBanner noStyle />
+  <ConsentBanner noStyle />;
   ```
 
   ### 7. Headless
@@ -265,5 +268,5 @@ group: reference
 
   ## API Reference
 
-  <AutoTypeTable path="./packages/react/src/v3/types/theme/style-types.ts" name="Theme" />
+  <AutoTypeTable path="./packages/react/src/types/theme/style-types.ts" name="Theme" />
 </section>

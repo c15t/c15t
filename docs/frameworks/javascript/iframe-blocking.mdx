@@ -1,87 +1,34 @@
 ---
-title: Iframe Blocking
-description: Block embedded content (YouTube, social widgets, maps) until users grant consent for the appropriate category.
-group: frameworks
+title: Iframe blocking
+description: Keep iframe URLs inactive until their category permits processing.
 ---
 
-<import src="../../shared/react/guides/iframe-blocking.mdx#intro" />
-
-## HTML Attribute Approach
-
-For vanilla JavaScript, use `data-category` and `data-src` attributes on `<iframe>` elements:
+## Mark the iframe
 
 ```html
 <iframe
-  data-src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-  data-category="marketing"
-  width="560"
-  height="315"
+  data-src="https://www.youtube-nocookie.com/embed/VIDEO_ID"
+  data-category="experience"
+  title="Video"
 ></iframe>
 ```
 
-When consent for the specified category is granted, c15t automatically swaps `data-src` to `src`, loading the iframe. When consent is revoked, `src` is moved back to `data-src`.
+Start with `data-src` rather than `src` so the browser does not request the embed
+before the blocker runs. Include the category in the policy scope.
 
-### Dynamic Iframes
-
-c15t uses a `MutationObserver` to watch for dynamically added iframes. Any iframe with `data-category` added to the DOM after initialization is automatically processed.
-
-## Initializing the Iframe Blocker
-
-The iframe blocker for HTML attributes needs to be initialized after the runtime is created:
+## Attach the blocker
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-});
-
-// Initialize the iframe blocker
-consentStore.getState().initializeIframeBlocker();
+const blocker = createIframeBlocker({ kernel });
 ```
 
-The blocker will scan the DOM for all `<iframe>` elements with `data-category` and manage their `src`/`data-src` based on consent state. It also sets up a `MutationObserver` to handle iframes added later.
+Reuse the kernel from the [quickstart](/docs/frameworks/javascript/quickstart).
+The blocker observes added frames, checks effective permissions and removes the
+active source when permission expires or becomes restricted. Call
+`blocker.processAllIframes()` for an explicit rescan and `blocker.dispose()` at
+teardown. Display a preferences link beside blocked content; a placeholder click
+must not manufacture a category choice.
 
-## Custom Placeholder
-
-Build a consent placeholder with vanilla DOM that's shown when consent is not granted:
-
-```ts
-function createIframePlaceholder(category: string, iframeSrc: string) {
-  const container = document.createElement('div');
-  container.className = 'iframe-placeholder';
-  container.innerHTML = `
-    <p>Enable ${category} cookies to view this content.</p>
-    <button class="consent-button">Grant Consent</button>
-  `;
-
-  const button = container.querySelector('.consent-button');
-  button?.addEventListener('click', () => {
-    consentStore.getState().setConsent(category, true);
-  });
-
-  // Replace placeholder when consent is granted
-  consentStore.subscribe((state) => {
-    if (state.has(category)) {
-      const iframe = document.createElement('iframe');
-      iframe.src = iframeSrc;
-      iframe.width = '560';
-      iframe.height = '315';
-      container.replaceWith(iframe);
-    }
-  });
-
-  return container;
-}
-```
-
-## Cleanup
-
-Destroy the iframe blocker when it's no longer needed (e.g., on page teardown in a SPA):
-
-```ts
-consentStore.getState().destroyIframeBlocker();
-```
-
-<import src="../../shared/react/guides/iframe-blocking.mdx#api-reference" />
+For React and Next.js, use [Frame](/docs/frameworks/react/components/frame).

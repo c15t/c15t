@@ -31,7 +31,8 @@ How you configure this depends on your framework — Vite has `server.proxy`, Re
 Then use:
 
 ```tsx
-<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+import { hosted } from '@c15t/react';
+<ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
 ```
 
 <import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
@@ -62,30 +63,26 @@ const prefetchScript = buildPrefetchScript({
 // In your HTML template or root component:
 <head>
   <script dangerouslySetInnerHTML={{ __html: prefetchScript }} />
-</head>
+</head>;
 ```
 
 Then initialize your provider normally. Matching prefetched data is consumed automatically by the runtime during first store initialization:
 
 ```tsx
-import {
-  ConsentManagerProvider,
-  ConsentBanner,
-  ConsentDialog,
-} from 'c15t/react';
+import { hosted } from '@c15t/react';
+import { ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
 
 export default function App({ children }: { children: React.ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -96,7 +93,7 @@ export default function App({ children }: { children: React.ReactNode }) {
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
 
-Mount `ConsentManagerProvider` as high in the tree as possible so route transitions do not recreate it.
+Mount `ConsentProvider` as high in the tree as possible so route transitions do not recreate it.
 
 <import src="../../shared/react/guides/optimization.mdx#animation" />
 
@@ -111,7 +108,7 @@ If your browser must call a cross-origin backend URL directly, add `preconnect` 
 ```tsx
 <head>
   <link rel="preconnect" href="https://your-instance.c15t.dev" crossOrigin="" />
-</head>
+</head>;
 ```
 
 ## Next.js-Specific SSR And Static Routes

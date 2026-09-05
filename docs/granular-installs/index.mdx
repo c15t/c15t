@@ -10,7 +10,7 @@ The docs teach a single install:
 
 <PackageCommandTabs mode="install" command="c15t" />
 
-The `c15t` package is an umbrella: each entry point re-exports one of the scoped packages that make up c15t. `import { ConsentManagerProvider } from 'c15t/react'` loads exactly the same code as `import { ConsentManagerProvider } from '@c15t/react'` — the umbrella adds no wrapper layer, and it has no bundle-size cost because your bundler only includes the entry points you import.
+The `c15t` package is an umbrella: each entry point re-exports one of the scoped packages that make up c15t. `import { ConsentProvider } from 'c15t/react'` loads exactly the same code as `import { ConsentProvider } from '@c15t/react'` — the umbrella adds no wrapper layer, and it has no bundle-size cost because your bundler only includes the entry points you import.
 
 ## Package Mapping
 

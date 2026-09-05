@@ -26,7 +26,7 @@ group: reference
   All conditions must be true:
 
   ```tsx
-  has({ and: ['measurement', 'marketing'] })
+  has({ and: ['measurement', 'marketing'] });
   // true only if BOTH measurement AND marketing are granted
   ```
 
@@ -35,7 +35,7 @@ group: reference
   At least one condition must be true:
 
   ```tsx
-  has({ or: ['measurement', 'marketing'] })
+  has({ or: ['measurement', 'marketing'] });
   // true if EITHER measurement OR marketing is granted
   ```
 
@@ -44,7 +44,7 @@ group: reference
   Negates a condition:
 
   ```tsx
-  has({ not: 'marketing' })
+  has({ not: 'marketing' });
   // true if marketing consent is NOT granted
   ```
 
@@ -59,7 +59,7 @@ group: reference
       { or: ['measurement', 'marketing'] },
       { not: 'functionality' },
     ],
-  })
+  });
   // true if: necessary AND (measurement OR marketing) AND NOT functionality
   ```
 
@@ -67,34 +67,13 @@ group: reference
 
   ```ts
   type HasCondition<CategoryType> =
-    | CategoryType                                    // "measurement"
-    | { and: HasCondition[] | HasCondition }          // { and: ["a", "b"] }
-    | { or: HasCondition[] | HasCondition }           // { or: ["a", "b"] }
-    | { not: HasCondition }                           // { not: "a" }
+    | CategoryType // "measurement"
+    | { and: HasCondition[] | HasCondition } // { and: ["a", "b"] }
+    | { or: HasCondition[] | HasCondition } // { or: ["a", "b"] }
+    | { not: HasCondition }; // { not: "a" }
   ```
 
-  ## hasConsented()
+  ## Explicit choices
 
-  Returns `true` if the user has made any consent choice (accepted, rejected, or customized). Returns `false` if no consent has been recorded yet.
-
-  ```tsx
-  const { hasConsented } = useConsentManager();
-
-  if (hasConsented()) {
-    // User has previously made a consent choice
-  } else {
-    // First visit — no consent recorded
-  }
-  ```
-
-  ## getDisplayedConsents()
-
-  Returns the consent types that should be displayed in the UI (based on active `consentCategories` and each type's `display` property):
-
-  ```tsx
-  const { getDisplayedConsents } = useConsentManager();
-
-  const visibleCategories = getDisplayedConsents();
-  // Returns ConsentType[] with name, description, defaultValue, etc.
-  ```
+  Read `explicitChoice` for recorded decisions and `promptRequirement` for outstanding interaction. A receipt does not imply current permission.
 </section>

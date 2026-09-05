@@ -57,7 +57,13 @@ If you want a fully managed experience we recommend using [inth.com](https://int
 
     const handler = c15t.handler;
 
-    export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
+    export {
+      handler as GET,
+      handler as POST,
+      handler as PUT,
+      handler as PATCH,
+      handler as DELETE,
+    };
     ```
 
     ```ts title="worker.ts"
@@ -92,10 +98,10 @@ If you want a fully managed experience we recommend using [inth.com](https://int
     Update your frontend consent manager to use your self-hosted URL:
 
     ```tsx
-    <ConsentManagerProvider
+    import { hosted } from '@c15t/react';
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://example.com/api/c15t',
+        mode: hosted({ url: 'https://example.com/api/c15t' }),
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
     >

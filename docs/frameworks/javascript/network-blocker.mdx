@@ -1,63 +1,33 @@
 ---
-title: Network Blocker
-description: Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
-group: frameworks
+title: Network blocker
+description: Apply effective permissions to configured fetch and XMLHttpRequest targets.
 ---
 
-<import src="../../shared/react/guides/network-blocker.mdx#intro" />
-
-## Configuration
-
-Add `networkBlocker` to your runtime options:
+## Attach the blocker
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  networkBlocker: {
-    rules: [
-      {
-        id: 'google-analytics',
-        domain: 'google-analytics.com',
-        category: 'measurement',
-      },
-      {
-        id: 'facebook-pixel',
-        domain: 'facebook.com',
-        pathIncludes: '/tr',
-        category: 'marketing',
-      },
-      {
-        id: 'analytics-post',
-        domain: 'analytics.example.com',
-        methods: ['POST'],
-        category: 'measurement',
-      },
-    ],
-  },
-});
-```
-
-<import src="../../shared/react/guides/network-blocker.mdx#reference" />
-
-## Runtime Updates
-
-Update the network blocker configuration at runtime:
-
-```ts
-const state = consentStore.getState();
-
-state.setNetworkBlocker({
+const blocker = createNetworkBlocker({
+  kernel,
   rules: [
     {
-      id: 'new-tracker',
-      domain: 'tracker.example.com',
-      category: 'marketing',
+      id: 'analytics',
+      domain: 'analytics.example.com',
+      category: 'measurement',
     },
   ],
 });
 ```
 
-<import src="../../shared/react/guides/network-blocker.mdx#api-reference" />
+Reuse the kernel from the [quickstart](/docs/frameworks/javascript/quickstart).
+Install the module before the application starts requests it must control.
+Requests match the configured rules and current effective permissions, including
+expiry and privacy restrictions. Already-issued requests cannot be recalled.
+
+Replace rules with `blocker.updateRules(nextRules)`. `blocker.setEnabled(false)`
+disables interception; it does not record a choice. Dispose the blocker at teardown.
+
+<AutoTypeTable path="./packages/core/src/modules/network-blocker/types.ts" name="NetworkBlockerOptions" />
+
+<AutoTypeTable path="./packages/core/src/libs/network-blocker/types.ts" name="NetworkBlockerRule" />

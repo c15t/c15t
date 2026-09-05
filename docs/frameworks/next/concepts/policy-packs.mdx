@@ -15,24 +15,14 @@ group: frameworks
 Inspect the resolved policy from any client component:
 
 ```tsx
-'use client';
+import { useConsentManager } from '@c15t/nextjs';
 
-import { useConsentManager } from 'c15t/next';
-
-export function PolicyDebug() {
-  const { locationInfo, model, policy, policyDecision } = useConsentManager();
-
+export function PolicyStatus() {
+  const { policyRule, resolution, promptRequirement } = useConsentManager();
   return (
     <pre>
       {JSON.stringify(
-        {
-          country: locationInfo?.countryCode,
-          region: locationInfo?.regionCode,
-          model,
-          policyId: policy?.id,
-          matchedBy: policyDecision?.matchedBy,
-          fingerprint: policyDecision?.fingerprint,
-        },
+        { policyRule, resolution: resolution.status, promptRequirement },
         null,
         2
       )}

@@ -19,7 +19,7 @@ group: reference
     legalLinks={['privacyPolicy', 'cookiePolicy']}
     noStyle={false}
     disableAnimation={false}
-  />
+  />;
   ```
 
   ## Accordion Behavior
@@ -33,8 +33,10 @@ group: reference
   </Callout>
 
   ```tsx
-  <ConsentManagerProvider
+  import { offline } from '@c15t/react';
+  <ConsentProvider
     options={{
+      mode: offline(),
       theme: {
         colors: {
           surface: '#fffdf8',
@@ -53,12 +55,12 @@ group: reference
     }}
   >
     <ConsentWidget />
-  </ConsentManagerProvider>
+  </ConsentProvider>;
   ```
 
   Use `manager.footer` for styling the whole action area, such as border and padding. Use `manager.actionGroup` for spacing or alignment inside nested button groups.
 
-  Widget copy should be changed through `ConsentManagerProvider.options.i18n` so the inline UI stays aligned with the rest of the consent experience.
+  Widget copy should be changed through `ConsentProvider.options.i18n` so the inline UI stays aligned with the rest of the consent experience.
 
   ## Advanced: Compound Components
 
@@ -70,7 +72,7 @@ group: reference
       <ConsentWidget.AccordionItems />
     </ConsentWidget.Accordion>
     <ConsentWidget.PolicyActions />
-  </ConsentWidget.Root>
+  </ConsentWidget.Root>;
   ```
 
   - `ConsentWidget.Root` — Theme context provider
@@ -93,26 +95,26 @@ group: reference
   `ConsentWidget.PolicyActions` renders stock c15t buttons and translations by default.
 
   ```tsx
-  <ConsentWidget.PolicyActions />
+  <ConsentWidget.PolicyActions />;
   ```
 
   `renderAction` is optional. Return the stock button compounds when you want custom mapping while preserving built-in c15t behavior and copy:
 
   ```tsx
   <ConsentWidget.PolicyActions
-  renderAction={(action, props) => {
-    const { key, ...buttonProps } = props
+    renderAction={(action, props) => {
+      const { key, ...buttonProps } = props;
 
-    switch (action) {
-      case 'accept':
-          return <ConsentWidget.AcceptAllButton key={key} {...buttonProps} />
-      case 'reject':
-          return <ConsentWidget.RejectButton key={key} {...buttonProps} />
-      case 'customize':
-          return <ConsentWidget.SaveButton key={key} {...buttonProps} />
-    }
-  }}
-  />
+      switch (action) {
+        case 'accept':
+          return <ConsentWidget.AcceptAllButton key={key} {...buttonProps} />;
+        case 'reject':
+          return <ConsentWidget.RejectButton key={key} {...buttonProps} />;
+        case 'customize':
+          return <ConsentWidget.SaveButton key={key} {...buttonProps} />;
+      }
+    }}
+  />;
   ```
 
   `renderAction` is still meant for stock button compounds. If you want completely custom button elements and handlers, use `useHeadlessConsentUI()` and render `dialog.actionGroups` manually instead of `ConsentWidget.PolicyActions`.

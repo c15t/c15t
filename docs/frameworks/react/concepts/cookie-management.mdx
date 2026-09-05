@@ -13,15 +13,15 @@ group: frameworks
 Configure reload behavior in the provider:
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 
 function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         reloadOnConsentRevoked: true, // default: true
         callbacks: {
           onBeforeConsentRevocationReload: ({ preferences }) => {
@@ -33,7 +33,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

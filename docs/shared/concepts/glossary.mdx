@@ -1,29 +1,31 @@
 ---
-title: "Glossary"
-description: "Reference page for glossary."
-group: reference
+title: Glossary
+description: Terms used by the canonical policy and record contract.
 ---
 
-{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
-
 <section id="glossary">
-  ### Core Terms
+  ## Core terms
 
-  | Term | Definition |
-  |---|---|
-  | `subjectId` | Client-generated device/browser identifier (`sub_xxx`). Stored in the `c15t` cookie. Created on first consent save. |
-  | `externalId` | Your authenticated user's ID (from Clerk, Auth0, etc.), linked via `identifyUser()`. Connects a device to a user account. |
-  | `consents` | The **saved** consent state — `Record<string, boolean>` mapping categories to granted/denied. Used for gating scripts, iframes, and network requests. |
-  | `selectedConsents` | **Unsaved** toggle state — what the user has toggled in the dialog but hasn't submitted yet. Becomes `consents` after save. |
-  | `mode` | Client operating mode: `'hosted'` (full backend), `'offline'` (local only), or `'custom'` (bring your own handlers). Legacy alias: `'c15t'`. Set once in provider config. See [Client Modes](/docs/frameworks/react/concepts/client-modes). |
-  | `model` | Consent regulatory model derived from jurisdiction: `'opt-in'`, `'opt-out'`, `'iab'`, or `null`. See [Consent Models](/docs/frameworks/react/concepts/consent-models). |
+  | Term | Meaning |
+  | --- | --- |
+  | `explicitChoice` | Latest receipt per explicitly confirmed optional category |
+  | `effectivePermissions` | Current processing permissions after defaults, choices, expiry and restrictions |
+  | `promptRequirement` | Outstanding choice, notice or no interaction |
+  | `noticeDismissal` | Local record of dismissing the current notice; not consent or proof of delivery |
+  | `optOutDirectives` | Standing privacy requests kept separately from choices |
+  | `subject` | Subject identifiers; local identification does not prove server association |
+  | `selectedConsents` | Editable displayed draft, before effective privacy restrictions |
+  | `resolution` | Matched, unconfigured, no-match or failed policy outcome |
+  | `model` | Policy permission model: opt-in, opt-out or IAB |
+  | `mode` | Provider transport factory: hosted, offline or custom |
 
-  ### Regulatory Terms
+  ## Privacy and IAB terms
 
-  | Term | Definition |
-  |---|---|
-  | `jurisdiction` | A privacy regulation code (e.g., `GDPR`, `CCPA`, `PIPEDA`, `QC_LAW25`) detected from the user's geolocation. Maps to a consent model. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for the full mapping table. |
-  | GPC | Global Privacy Control — a browser signal (`Sec-GPC: 1`) indicating the user opts out of data sale/sharing. Honored when a policy sets `consent.gpc: true` (enabled by default in California presets). |
-  | TCF | IAB Transparency and Consent Framework (v2.3) — a standard for programmatic advertising consent in GDPR jurisdictions. See [IAB TCF](/docs/frameworks/react/iab/overview). |
-  | GVL | Global Vendor List — an IAB-maintained registry of ad-tech vendors and their declared purposes, used by the TCF consent flow. |
+  GPC is Global Privacy Control. Exact browser detection maps to categories through
+  `privacySignals.gpc.denyCategories`. It can record a standing opt-out directive,
+  never consent. Geography is policy-matching context, not permission authority.
+
+  TCF is the IAB Transparency and Consent Framework. The integration targets TCF 2.3.
+  GVL is its Global Vendor List. IAB targets require confirmed TC authority and still
+  apply category denials, scope and privacy restrictions.
 </section>

@@ -19,35 +19,21 @@ group: frameworks
 Configure callbacks in the provider to log lifecycle events, and add DevTools for a visual inspector:
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
+import { ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
 import { DevTools } from '@c15t/dev-tools/react';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         callbacks: {
-          onBannerFetched: ({ jurisdiction, location }) => {
-            console.log('Init complete:', { jurisdiction, location });
-          },
-          onConsentSet: ({ preferences }) => {
-            console.log('Broad consent lifecycle event:', preferences);
-          },
-          onConsentChanged: ({ allowedCategories, deniedCategories }) => {
-            console.log('Explicit consent change:', {
-              allowedCategories,
-              deniedCategories,
-            });
-          },
-          onBeforeConsentRevocationReload: ({ preferences }) => {
-            console.log('Reloading due to revocation:', preferences);
-          },
-          onError: ({ error }) => {
-            console.error('Consent error:', error);
-          },
+          onChoiceRecorded: ({ snapshot }) =>
+            console.log(snapshot.explicitChoice),
+          onPermissionsChanged: ({ snapshot }) =>
+            console.log(snapshot.effectivePermissions),
         },
       }}
     >
@@ -55,7 +41,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       <ConsentDialog />
       {process.env.NODE_ENV !== 'production' && <DevTools />}
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

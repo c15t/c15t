@@ -1,80 +1,22 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues with c15t/next — provider errors, missing banners, consent persistence, and more.
-group: frameworks
+description: Inspect policy, records and permissions when UI or processing differs from expectations.
 ---
 
-<import src="../../shared/troubleshooting.mdx#provider-not-found" />
+## Check prepared data
 
-<import src="../../shared/troubleshooting.mdx#banner-doesnt-show" />
+Use `options.prefetch` with canonical records and policy resolution. The old
+`ssrData` option and `useSSRStatus` hook are removed. See
+[server rendering](/docs/frameworks/next/server-side).
 
-<import src="../../shared/troubleshooting.mdx#consent-not-persisting" />
+## Check the prompt and gate independently
 
-<import src="../../shared/troubleshooting.mdx#scripts-not-loading" />
+Read `usePromptRequirement`, `usePolicyResolution`, `useEffectivePermissions` and
+`useRestrictions`. Pending and failed initialization keep the first layer hidden;
+that never grants permission. A partial save can leave a choice required and a
+preference save never dismisses a notice. GPC or a standing directive can mask a
+stored true value, including after repeated acceptance.
 
-<import src="../../shared/troubleshooting.mdx#esm-only" />
-
-## SSR Hydration Mismatch
-
-**Symptom:** React hydration warnings, consent banner flashes briefly, or consent state differs between server and client.
-
-**Fixes:**
-
-1. **Missing `ssrData`** — Ensure you're passing the SSR data Promise to the provider. Do **not** `await` `fetchInitialData()` in Server Components:
-
-```tsx title="app/layout.tsx"
-import { fetchInitialData } from 'c15t/next';
-import ConsentManager from '@/components/consent-manager';
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const ssrData = fetchInitialData({ backendURL: '/api/c15t' });
-
-  return (
-    <html lang="en">
-      <body>
-        <ConsentManager ssrData={ssrData}>
-          {children}
-        </ConsentManager>
-      </body>
-    </html>
-  );
-}
-```
-
-2. **Stale cache** — If using a CDN or caching layer, ensure the SSR data is fresh per-request and not shared across users.
-
-3. **Debug with `useSSRStatus`** — Check if SSR data was actually consumed:
-
-```tsx
-const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
-```
-
-See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for full SSR setup.
-
-## TypeScript Errors
-
-**Common import issues:**
-
-```tsx
-// Components and hooks — main entry point
-import { ConsentManagerProvider, useConsentManager } from 'c15t/next';
-
-// Server-side data fetching
-import { fetchInitialData } from 'c15t/next';
-
-// Headless (hooks only, no components)
-import { useConsentManager } from 'c15t/next/headless';
-```
-
-If you see type errors after updating, try:
-
-```sh
-rm -rf node_modules/.cache
-bun install
-```
-
-## Still Stuck?
-
-- Enable `debug: true` in provider options for verbose console logging
-- Use the [DevTools](/docs/frameworks/next/components/dev-tools) panel to inspect live consent state
-- Check the [GitHub issues](https://github.com/c15t/c15t/issues) for known bugs
+Render all hooks inside the provider. Keep a persistent preferences link outside
+the first layer. For scripts and frames, check the active policy scope and use
+the built-in gates. For styling, import the package stylesheet once.

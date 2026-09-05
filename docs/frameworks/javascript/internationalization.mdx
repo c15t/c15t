@@ -1,66 +1,23 @@
 ---
 title: Internationalization
-description: Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
-group: frameworks
+description: Read resolved translations without changing policy or choice records.
 ---
 
-<import src="../../shared/react/guides/internationalization.mdx#intro" />
-
-## Basic Configuration
-
-Pass custom translations via the `i18n` option:
+## Read translations
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  i18n: {
-    locale: 'en',
-    messages: {
-      de: {
-        cookieBanner: {
-          title: 'Datenschutzeinstellungen',
-          description: 'Wir verwenden Cookies, um Ihnen das beste Erlebnis zu bieten.',
-        },
-        common: {
-          acceptAll: 'Alle akzeptieren',
-          rejectAll: 'Alle ablehnen',
-          customize: 'Anpassen',
-          save: 'Speichern',
-        },
-      },
-    },
-  },
-});
+console.log(kernel.getSnapshot().translations);
 ```
 
-Custom translations are deep-merged with built-in defaults — you only need to override the keys you want to change.
+Hosted initialization returns resolved translations. Provider adapters accept
+`i18n` for local messages and locale selection. Headless applications render the
+translation bundle from the kernel and own their text components.
 
 <import src="../../shared/react/guides/internationalization.mdx#imports" />
 
 <import src="../../shared/react/guides/internationalization.mdx#translation-sections" />
 
-## Changing Language
-
-Switch the active language at runtime with `setLanguage()`:
-
-```ts
-const state = consentStore.getState();
-
-// Switch to German
-await state.setLanguage('de');
-
-// Build a language switcher
-document.getElementById('lang-select')?.addEventListener('change', async (e) => {
-  const lang = (e.target as HTMLSelectElement).value;
-  await consentStore.getState().setLanguage(lang);
-});
-```
-
-`setLanguage()` re-fetches the consent banner to get server-resolved translations for the new language.
-
-<import src="../../shared/react/guides/internationalization.mdx#auto-detection" />
-
-<import src="../../shared/react/guides/internationalization.mdx#legacy-compat" />
+Changing cosmetic wording or layout does not record consent. If changed legal
+copy must invalidate a prior interaction, update the policy's `copyRevision` and
+rebuild its manifest. Applications read `promptRequirement`; they do not compare
+fingerprints.

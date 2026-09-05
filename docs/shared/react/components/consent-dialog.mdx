@@ -16,10 +16,14 @@ group: reference
   Add a floating button that lets users re-open the dialog after dismissing the banner:
 
   ```tsx
-  {/* Default trigger */}
-  <ConsentDialog showTrigger />
+  {
+    /* Default trigger */
+  }
+  <ConsentDialog showTrigger />;
 
-  {/* Custom trigger */}
+  {
+    /* Custom trigger */
+  }
   <ConsentDialog
     showTrigger={{
       icon: 'settings',
@@ -27,7 +31,7 @@ group: reference
       showWhen: 'always',
       size: 'sm',
     }}
-  />
+  />;
   ```
 
   ## Branding
@@ -35,7 +39,7 @@ group: reference
   Hide the c15t branding tag:
 
   ```tsx
-  <ConsentDialog hideBranding />
+  <ConsentDialog hideBranding />;
   ```
 
   ## Styling First
@@ -45,8 +49,10 @@ group: reference
   </Callout>
 
   ```tsx
-  <ConsentManagerProvider
+  import { offline } from '@c15t/react';
+  <ConsentProvider
     options={{
+      mode: offline(),
       theme: {
         colors: {
           surface: '#fffdf8',
@@ -68,10 +74,10 @@ group: reference
     }}
   >
     <ConsentDialog />
-  </ConsentManagerProvider>
+  </ConsentProvider>;
   ```
 
-  Dialog copy should be changed through `ConsentManagerProvider.options.i18n`, not by rebuilding the dialog structure.
+  Dialog copy should be changed through `ConsentProvider.options.i18n`, not by rebuilding the dialog structure.
 
   ## Advanced: Compound Components
 
@@ -95,7 +101,7 @@ group: reference
       </ConsentDialog.Content>
       <ConsentDialog.Footer />
     </ConsentDialog.Card>
-  </ConsentDialog.Root>
+  </ConsentDialog.Root>;
   ```
 
   - `ConsentDialog.Root` — Portal container with focus trap, scroll lock, and animation
@@ -113,7 +119,7 @@ group: reference
   ```tsx
   <ConsentDialog.Root>
     <ConsentDialog.ConsentCustomizationCard />
-  </ConsentDialog.Root>
+  </ConsentDialog.Root>;
   ```
 
   `ConsentWidget.PolicyActions` uses stock c15t widget buttons and translations by default. Pass `renderAction` only when you need to customize the action mapping, and return stock widget button compounds if you want to preserve built-in behavior and copy.

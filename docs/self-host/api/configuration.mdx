@@ -1,64 +1,39 @@
 ---
-title: Configuration Reference
-description: Complete reference for all c15t backend configuration options.
-group: self-host
+title: Backend configuration
+description: Configure the database, manifest and HTTP options on c15tInstance.
 ---
 
-All options are passed to `c15tInstance()`. Only `adapter` and `trustedOrigins` are required.
-
-## Options
-
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="C15TOptions" />
-
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="OpenAPIOptions" />
-
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="TelemetryOptions" />
-
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="IPAddressOptions" />
-
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="CacheOptions" />
-
-<AutoTypeTable path="./packages/backend/src/types/index.ts" name="IABOptions" />
-
-## Return Value
-
-`c15tInstance()` returns:
+## Create an instance
 
 ```ts
-interface C15TInstance {
-  /** Standard Fetch API handler */
-  handler: (request: Request) => Promise<Response>;
+import { c15tInstance } from '@c15t/backend';
 
-  /** Resolved configuration */
-  options: C15TOptions;
-
-  /** Internal context (database, registry, logger) */
-  $context: C15TContext;
-
-  /** OpenAPI spec as JSON */
-  getOpenAPISpec: () => Promise<Record<string, unknown>>;
-
-  /** OpenAPI docs UI as HTML string */
-  getDocsUI: () => string;
-}
-```
-
-## Edge Init Options
-
-`unstable_c15tEdgeInit()` from `@c15t/backend/edge` accepts a subset of `C15TOptions` — only the fields needed for consent policy resolution without a database. This edge runtime API is unstable in `2.0`. See the [Edge Deployment guide](/docs/self-host/guides/edge-deployment) for usage.
-
-<AutoTypeTable path="./packages/backend/src/edge/types.ts" name="C15TEdgeOptions" />
-
-## defineConfig Helper
-
-For type-safe configuration in a separate file:
-
-```ts title="c15t.config.ts"
-import { defineConfig } from '@c15t/backend';
-
-export default defineConfig({
-  adapter: kyselyAdapter(db),
+const backend = c15tInstance({
+  database: { dialect: 'sqlite', filename: ':memory:' },
   trustedOrigins: ['https://example.com'],
-  // full autocomplete on all options here
+  manifest: {
+    policyRules: [
+      {
+        id: 'default',
+        match: { isDefault: true },
+        model: 'opt-in',
+        prompt: 'choice',
+      },
+    ],
+  },
 });
 ```
+
+Use a persistent database for deployment and run migrations before serving
+requests. v3 uses `database` instead of the old adapter option. The instance
+exposes `handler(request)` and `dispose()`. Dispose test and short-lived instances
+to release resources.
+
+<AutoTypeTable path="./packages/backend/src/instance.ts" name="C15TOptions" />
+
+<AutoTypeTable path="./packages/backend/src/http/context.ts" name="AppOptions" />
+
+<AutoTypeTable path="./packages/backend/src/instance.ts" name="C15TInstance" />
+
+See [policy rules](/docs/self-host/guides/policy-packs) for contract negotiation
+and [database setup](/docs/self-host/guides/database-setup) for storage.

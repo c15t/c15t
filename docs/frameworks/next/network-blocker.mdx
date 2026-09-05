@@ -11,15 +11,15 @@ group: frameworks
 Add `networkBlocker` to your provider options:
 
 ```tsx
+import { hosted } from '@c15t/nextjs';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         networkBlocker: {
           rules: [
             {
@@ -44,7 +44,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

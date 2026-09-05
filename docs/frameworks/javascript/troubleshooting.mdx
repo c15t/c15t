@@ -1,46 +1,27 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues with c15t in JavaScript — store access, missing banners, consent persistence, and more.
-group: frameworks
+description: Inspect policy resolution and permissions when an integration stays blocked.
 ---
 
-<import src="../../shared/troubleshooting.mdx#provider-not-found" />
-
-<import src="../../shared/troubleshooting.mdx#banner-doesnt-show" />
-
-<import src="../../shared/troubleshooting.mdx#consent-not-persisting" />
-
-<import src="../../shared/troubleshooting.mdx#scripts-not-loading" />
-
-<import src="../../shared/troubleshooting.mdx#esm-only" />
-
-## Store Not Accessible
-
-**Symptom:** `window.c15tStore` is `undefined`, or `consentStore.getState()` throws an error.
-
-**Fixes:**
-
-1. **Runtime not initialized** — Ensure `getOrCreateConsentRuntime()` has been called before accessing the store:
+## Inspect current state
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-});
-
-// Now the store is accessible
-console.log(consentStore.getState());
-console.log(window.c15tStore?.getState());
+console.log(kernel.getSnapshot().resolution);
+console.log(kernel.getSnapshot().promptRequirement);
+console.log(kernel.getSnapshot().effectivePermissions);
+console.log(kernel.getSnapshot().restrictions);
 ```
 
-2. **Script load order** — If using `<script>` tags, make sure the script that initializes the runtime loads before any scripts that access `window.c15tStore`.
+Create and initialize the kernel before attaching UI. A pending or failed hosted
+init keeps the first layer hidden. Check the network response for explicit
+versioned `policyResolution`; missing fields fail validation. Empty rules and
+no-match never imply permission.
 
-3. **Custom namespace** — If you set a custom `namespace` in store options, the window property will use that name instead of `c15tStore`.
+If a stored grant is blocked, check its validity, scope and privacy restrictions.
+GPC and standing opt-out directives override positive receipts. Accepting again
+does not remove a directive. For scripts, verify the configured category and any
+IAB requirements. For frames, start with `data-src` or use the framework Frame.
 
-## Still Stuck?
-
-- Enable `debug: true` in runtime options for verbose console logging
-- Inspect `window.c15tStore?.getState()` in the browser console
-- Check the [GitHub issues](https://github.com/c15t/c15t/issues) for known bugs
+If a notice returns, inspect the local dismissal and its own validity. A choice
+save does not dismiss it. Clear local test records through the persistence
+handle rather than rewriting receipt timestamps.

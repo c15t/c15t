@@ -1,5 +1,5 @@
 ---
-title: ConsentManagerProvider
+title: ConsentProvider
 description: The root provider component that initializes the consent system and makes consent state available to all child components.
 group: frameworks
 ---
@@ -9,22 +9,22 @@ group: frameworks
 ## Basic Usage
 
 ```tsx
+import { hosted } from '@c15t/nextjs';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
+import { ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -34,18 +34,18 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 ## Mode: hosted vs offline
 
 ```tsx
+import { hosted, offline } from '@c15t/react';
 // Hosted mode — persists to hosted backend
-<ConsentManagerProvider
+<ConsentProvider
   options={{
-    mode: 'hosted',
-    backendURL: '/api/c15t',
+    mode: hosted({ url: '/api/c15t' }),
   }}
 >
 
 // Offline mode — local cookie storage only
-<ConsentManagerProvider
+<ConsentProvider
   options={{
-    mode: 'offline',
+    mode: offline(),
   }}
 >
 ```
@@ -90,8 +90,9 @@ export function middleware(request: NextRequest) {
 </Callout>
 
 ```tsx title="app/layout.tsx"
+import { offline } from '@c15t/nextjs';
 import { headers } from 'next/headers';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 
 export default async function RootLayout({
   children,
@@ -103,9 +104,9 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ConsentManagerProvider options={{ mode: 'offline', nonce }}>
+        <ConsentProvider options={{ mode: offline(), nonce }}>
           {children}
-        </ConsentManagerProvider>
+        </ConsentProvider>
       </body>
     </html>
   );

@@ -11,42 +11,20 @@ group: reference
 </section>
 
 <section id="customization">
-  ## Custom Placeholder
-
-  Replace the default placeholder:
+  ## Custom placeholder
 
   ```tsx
   <Frame
     category="experience"
-    placeholder={
-      <div className="rounded-lg border p-8 text-center">
-        <p>This content requires experience cookies.</p>
-        <p>Please enable them in your privacy settings.</p>
-      </div>
-    }
+    placeholder={<p>Open privacy settings to enable this content.</p>}
   >
     <InteractiveWidget />
-  </Frame>
+  </Frame>;
   ```
 
-  ## Compound Components
-
-  Build fully custom placeholder layouts:
-
-  ```tsx
-  <Frame.Root category="marketing">
-    <Frame.Title category="marketing" />
-    <Frame.Button category="marketing" />
-  </Frame.Root>
-  ```
-
-  - `Frame.Root` - Container with default placeholder styling
-  - `Frame.Title` - Displays a consent-request message with the category name
-  - `Frame.Button` - Button that opens the consent dialog for the specified category
-
-  ## Automatic Category Registration
-
-  When `Frame` mounts, it automatically adds its `category` to the active `consentCategories` list. This means you don't need to explicitly list the category in your provider's `consentCategories` option - if a `Frame` component uses it, it will be registered.
+  `Frame.Root`, `Frame.Title` and `Frame.Button` let you compose a placeholder.
+  The button opens preferences. Frame never expands the policy category scope;
+  configure the category on the policy before using it.
 </section>
 
 <section id="props">

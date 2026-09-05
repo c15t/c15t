@@ -7,11 +7,9 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="reference">
-  ## Return Value
+  ## Migration
 
-  <AutoTypeTable path="./packages/react/src/hooks/use-ssr-status.ts" name="SSRStatus" />
-
-  <Callout type="info">
-    Must be used within a `ConsentManagerProvider`. Throws if used outside the provider context.
-  </Callout>
+  The old `useSSRStatus` hook is removed. Pass prepared server data to the provider
+  and read current policy state with `usePolicyResolution` and `usePromptRequirement`.
+  Use the adapter server helpers rather than a separate hydration-state store.
 </section>

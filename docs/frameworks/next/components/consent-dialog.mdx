@@ -9,14 +9,15 @@ group: frameworks
 ## Basic Usage
 
 ```tsx
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
+import { hosted } from '@c15t/nextjs';
+import { ConsentProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
 
 export function ConsentManager() {
   return (
-    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+    <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
       <ConsentBanner />
       <ConsentDialog />
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -48,11 +49,7 @@ import { useConsentManager } from 'c15t/next';
 function PrivacyLink() {
   const { setActiveUI } = useConsentManager();
 
-  return (
-    <button onClick={() => setActiveUI('dialog')}>
-      Manage cookies
-    </button>
-  );
+  return <button onClick={() => setActiveUI('dialog')}>Manage cookies</button>;
 }
 ```
 

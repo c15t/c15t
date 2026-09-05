@@ -18,8 +18,10 @@ group: reference
   Target individual component parts via the provider `components` object. Each slot accepts React attributes:
 
   ```tsx
-  <ConsentManagerProvider
+  import { offline } from '@c15t/react';
+  <ConsentProvider
     options={{
+      mode: offline(),
       components: {
         banner: {
           title: { className: 'text-xl font-semibold' },
@@ -33,16 +35,18 @@ group: reference
         },
       },
     }}
-  />
+  />;
   ```
 
   ## Combining with CSS Modules
 
   ```tsx
+  import { offline } from '@c15t/react';
   import styles from './consent.module.css';
 
-  <ConsentManagerProvider
+  <ConsentProvider
     options={{
+      mode: offline(),
       components: {
         banner: {
           card: { className: styles.bannerCard },
@@ -53,7 +57,7 @@ group: reference
         },
       },
     }}
-  />
+  />;
   ```
 
   ## When to Use Raw className

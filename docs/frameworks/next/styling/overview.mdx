@@ -9,7 +9,14 @@ group: frameworks
 ## Quick Start
 
 ```tsx
-import { type Theme, ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
+import { hosted } from '@c15t/nextjs';
+import {
+  type ReactUIOptions,
+  ConsentProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from 'c15t/next';
+type Theme = NonNullable<ReactUIOptions['theme']>;
 
 const theme = {
   colors: {
@@ -28,17 +35,16 @@ const theme = {
 
 export function ConsentManager({ children }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         theme,
       }}
     >
       <ConsentBanner />
       <ConsentDialog />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```

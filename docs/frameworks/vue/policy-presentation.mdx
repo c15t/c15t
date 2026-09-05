@@ -16,7 +16,12 @@ app.use(c15tVue, {
   },
   callbacks: {
     onChoiceRecorded({ snapshot, confirmed, actionAt }) {
-      console.log('Recorded choices', confirmed, actionAt, snapshot.explicitChoice);
+      console.log(
+        'Recorded choices',
+        confirmed,
+        actionAt,
+        snapshot.explicitChoice
+      );
     },
     onPermissionsChanged({ snapshot }) {
       console.log('Effective permissions', snapshot.effectivePermissions);
@@ -33,7 +38,7 @@ notice, or stays hidden. Presentation controls layout and appearance. The shared
 resolver restores required controls and keeps actions that require equal
 prominence equivalent.
 
-A notice provides a dismiss action. Dismissal records a notice acknowledgement;
+A notice provides a dismiss action. Dismissal records only that the notice was dismissed;
 it does not grant or reject categories and does not call `onChoiceRecorded`.
 Notice prompts never trap focus or lock scrolling.
 
@@ -108,7 +113,7 @@ import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistenc
 const initialRecords = readStoredRecordsFromCookieHeader(
   request.headers.get('cookie') ?? undefined,
   undefined,
-  Date.now(),
+  Date.now()
 );
 
 // Use the same resolved init response and records on server and client.

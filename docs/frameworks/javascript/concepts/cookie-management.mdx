@@ -12,22 +12,7 @@ group: frameworks
 
 Configure reload behavior in the runtime options:
 
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  reloadOnConsentRevoked: true, // default: true
-  callbacks: {
-    onBeforeConsentRevocationReload: ({ preferences }) => {
-      // Run cleanup before the page reloads
-      // e.g., flush pending analytics events
-      console.log('Reloading due to consent revocation:', preferences);
-    },
-  },
-});
-```
+See the [JavaScript quickstart](/docs/frameworks/javascript/quickstart) for kernel construction and browser persistence.
 
 <Callout type="info">
   The reload and deferred sync are part of the broader initialization flow. See [Initialization Flow](/docs/frameworks/javascript/concepts/initialization-flow) for the full sequence.

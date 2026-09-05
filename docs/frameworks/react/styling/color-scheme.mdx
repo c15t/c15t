@@ -11,15 +11,15 @@ group: frameworks
 Set the color scheme on the provider:
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 
 function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         colorScheme: 'system', // 'light' | 'dark' | 'system'
         theme: {
           colors: {
@@ -36,7 +36,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -46,7 +46,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
 For programmatic control over the color scheme:
 
 ```tsx
-import { useColorScheme } from 'c15t/react';
+import { useColorScheme } from '@c15t/react/headless';
 
 function ThemeToggle() {
   // Pass the desired scheme - 'light', 'dark', 'system', or null (disable)

@@ -61,8 +61,10 @@ group: reference
   Combine Tailwind's dark mode with c15t's `dark` tokens and component slots:
 
   ```tsx
-  <ConsentManagerProvider
+  import { offline } from '@c15t/react';
+  <ConsentProvider
     options={{
+      mode: offline(),
       theme: {
         colors: {
           primary: '#6366f1',
@@ -78,13 +80,14 @@ group: reference
       components: {
         banner: {
           card: {
-            className: 'bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-900/30',
+            className:
+              'bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-900/30',
           },
           title: { className: 'text-gray-900 dark:text-gray-100' },
         },
       },
     }}
-  />
+  />;
   ```
 
   ## Optional: noStyle Mode

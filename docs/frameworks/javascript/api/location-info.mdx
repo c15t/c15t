@@ -1,94 +1,35 @@
 ---
-title: Location & Identity
-description: Access detected location, override geolocation, change language, and link user identity.
-group: frameworks
+title: Location and identity
+description: Read resolved geography and identify an existing consent subject.
 ---
 
-## `locationInfo`
-
-The detected location data, available after initialization completes. Contains the user's country and region as resolved by the c15t backend (or overrides in offline mode).
+## Read resolved data
 
 ```ts
-const { locationInfo } = consentStore.getState();
-
-if (locationInfo) {
-  console.log('Country:', locationInfo.countryCode); // 'DE'
-  console.log('Region:', locationInfo.regionCode);   // 'BY'
-}
+const snapshot = kernel.getSnapshot();
+console.log(snapshot.location, snapshot.subject, snapshot.resolution);
 ```
 
-Subscribe to location changes:
+For a deterministic preview, set `kernel.set.overrides({ country: 'DE' })` and
+run `kernel.commands.init()` again. Overrides are test inputs, not browser GPC
+detection. Policy resolution decides behavior; a country name alone does not.
+
+## Identify
 
 ```ts
-consentStore.subscribe((state, prevState) => {
-  if (state.locationInfo !== prevState.locationInfo && state.locationInfo) {
-    console.log('Location detected:', state.locationInfo.countryCode);
-  }
+await kernel.commands.identify({
+  id: 'account-123',
+  identityProvider: 'application',
 });
 ```
 
-## `setOverrides(overrides)`
+Use a non-secret identifier. Local identification can complete before a server
+subject exists. The transport queues the association until a real subject is
+established; it never creates consent merely to obtain a subject ID. Pending
+identity and privacy work is cancelled by clear or disposal. Do not report server
+persistence until the relevant endpoint responds successfully.
 
-Override the detected geolocation. This re-runs initialization with the new location, which may change the consent model (e.g., switching from opt-out to opt-in when changing from US to DE).
-
-```ts
-const state = consentStore.getState();
-
-// Override as EU visitor (triggers GDPR opt-in model)
-await state.setOverrides({ country: 'DE' });
-
-// Override as California visitor (triggers CCPA opt-out model)
-await state.setOverrides({ country: 'US', region: 'CA' });
-
-// Override country and language together
-await state.setOverrides({ country: 'FR', language: 'fr' });
-```
-
-<Callout type="info">
-  `setOverrides()` triggers a new `/init` request to the backend (in hosted mode), so the resolved jurisdiction, model, and translations will update accordingly.
-</Callout>
-
-## `setLanguage(language)`
-
-Change the active language at runtime. This re-fetches the consent banner to get server-resolved translations for the new language.
-
-```ts
-const state = consentStore.getState();
-
-// Switch to German
-await state.setLanguage('de');
-
-// Switch to French
-await state.setLanguage('fr');
-```
-
-Use this to build a language switcher:
-
-```ts
-document.getElementById('lang-select')?.addEventListener('change', async (e) => {
-  const lang = (e.target as HTMLSelectElement).value;
-  await consentStore.getState().setLanguage(lang);
-});
-```
-
-## `identifyUser(user)`
-
-Link an authenticated user identity to the consent record. This allows the c15t backend to associate consent across devices for the same user.
-
-```ts
-const state = consentStore.getState();
-
-// After user logs in
-await state.identifyUser({
-  id: 'user_123',
-  identityProvider: 'clerk',
-});
-```
-
-The `identityProvider` field indicates which auth system provided the ID (e.g., `'clerk'`, `'auth0'`, `'custom'`).
-
-<Callout type="warn">
-  `identifyUser()` sends the user ID to the c15t backend. Only call this after the user has authenticated and consented to being identified.
-
-  Before this device has a server subject, identification is kernel-local: the call resolves at once, nothing is sent, and no consent is created to establish a subject. The next explicit save carries the identity, the backend links it when it creates the subject, and any standing privacy directives are then forwarded to that subject with their original times. Local identification is not server persistence and not a trusted cross-profile identity; only a link asserted by an API-key request is.
-</Callout>
+An anonymous detected GPC directive stays local. Once a server subject exists,
+the transport can forward it through the separate privacy endpoint. Associated
+profile propagation requires trusted server identity linkage; a browser-provided
+external ID is not that trust.

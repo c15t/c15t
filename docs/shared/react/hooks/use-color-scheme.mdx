@@ -22,8 +22,10 @@ group: reference
   You can also set the color scheme on the provider without using this hook:
 
   ```tsx
-  <ConsentManagerProvider
+  import { offline } from '@c15t/react';
+  <ConsentProvider
     options={{
+  mode: offline(),
       colorScheme: 'system',
       // ...
     }}

@@ -1,90 +1,67 @@
 ---
-title: Policy Packs
-description: Configure regional consent policies in Next.js with hosted or offline policy resolution.
+title: Policy rules and presentation
+description: Configure policy behavior separately from Next.js layout and preference controls.
 group: frameworks
 ---
 
-<import src="../../shared/react/guides/policy-packs.mdx#intro" />
-
-<import src="../../shared/react/guides/policy-packs.mdx#defaults" />
-
-## Next.js Example (Hosted)
-
-Point the provider at your backend — policy resolution happens server-side:
-
-```tsx title="components/consent-manager/provider.tsx"
-'use client';
-
-import type { ReactNode } from 'react';
+```tsx
 import {
   ConsentBanner,
   ConsentDialog,
-  ConsentManagerProvider,
-} from 'c15t/next';
+  ConsentDialogLink,
+  ConsentProvider,
+  offline,
+} from '@c15t/nextjs';
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        backendURL: 'https://your-instance.c15t.dev',
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
+<ConsentProvider
+  options={{
+    mode: offline({
+      policyRules: [
+        {
+          id: 'default',
+          match: { fallback: true },
+          model: 'opt-in',
+          prompt: 'choice',
+          categories: ['marketing', 'measurement'],
+          scopeMode: 'strict',
+        },
+      ],
+    }),
+    presentation: {
+      prompt: { layout: [['reject', 'accept'], 'customize'] },
+      preferences: { layout: [['reject', 'accept'], 'save'] },
+    },
+  }}
+>
+  <ConsentBanner />
+  <ConsentDialog />
+  <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+  {children}
+</ConsentProvider>;
 ```
 
-For production Next.js apps, you can optionally hydrate the first `/init` response with the [server-side utilities](/docs/frameworks/next/server-side).
+Policies specify the permission model, required prompt, category scope, validity, privacy signal handling, and persistent rights. Host presentation specifies order, grouping, direction, and visual emphasis. Component overrides take precedence over host settings. Policy `ui` hints no longer control React presentation.
 
-## Offline mode
+## Choice, notice, and preferences
 
-For local development, previews, or automated tests, select offline mode and pass policies directly:
+A choice prompt includes both accept and reject at the same interaction depth and with equal default prominence. Customize does not replace reject. The shared `resolveConsentPresentation` function restores omitted required actions, removes forbidden actions, and returns diagnostics. Deliberately assigning different prominence to equivalent actions produces a development diagnostic.
 
-```tsx title="components/consent-manager/provider.tsx"
-'use client';
+An opt-out notice renders one dedicated dismiss control. It does not trap focus or lock scrolling. Dismissal records only the local notice dismissal; it never records consent or changes effective permissions.
 
-import type { ReactNode } from 'react';
-import {
-  ConsentBanner,
-  ConsentDialog,
-  ConsentManagerProvider,
-  policyPackPresets,
-} from 'c15t/next';
+Preferences remain accessible while a notice is required and when no prompt is visible. They offer accept, reject, and save independently of first-layer actions. Saving preferences leaves a required notice outstanding. Keep a `ConsentDialogLink` or `ConsentDialogTrigger` in your page. The trigger defaults to `always`; `after-consent` is removed.
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'offline',
-        offlinePolicy: {
-          policyPacks: [
-            policyPackPresets.europeOptIn(),
-            policyPackPresets.californiaOptOut(),
-            policyPackPresets.worldNoBanner(),
-          ],
-        },
-        overrides: {
-          country: 'DE', // Preview as a German visitor
-        },
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
+## Headless state and drafts
 
-<import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
+Use `useExplicitChoice`, `useEffectivePermissions`, `usePromptRequirement`, `usePolicyResolution`, `usePrivacySignals`, and `useRestrictions` to read the corresponding kernel fields. `useHeadlessConsentUI` returns the resolved actions, constraints, rights, and diagnostics for custom controls. `useDismissNotice` returns the dedicated dismissal command.
 
-<import src="../../shared/react/guides/policy-packs.mdx#fallback-behavior" />
+`useConsentDraft` seeds displayed values from unmasked explicit receipts, then host preference defaults and policy defaults. Necessary is inert. Saving submits exactly the displayed optional categories and preserves unrelated receipts. A selected saved choice can remain restricted by a privacy directive; the built-in preferences show that distinction.
 
-<import src="../../shared/react/guides/policy-packs.mdx#qa-and-debugging" />
+A material policy change while a draft is dirty marks it stale. Saving fails until the user resets and reviews the current choices. Cosmetic presentation changes do not invalidate receipts or change prompt fingerprints.
 
-<Callout type="info">
-  For the full concept model (matchers, scope modes, re-prompting), see [Policy Packs concepts](/docs/frameworks/next/concepts/policy-packs). For backend setup, see the [self-host guide](/docs/self-host/guides/policy-packs).
-</Callout>
+## Prepared server data
+
+Pass the same `prefetch.initialPolicyResolution`, `prefetch.initialRecords`, and `prefetch.now` to server rendering and client hydration. Read cookie records with `readStoredRecordsFromCookieHeader` from `@c15t/core/modules/persistence`. Do not implement a separate cookie codec or hash policies during render. Prepared hydration performs no init request, storage write, or choice callback.
+
+## Optional IAB integration
+
+Import `IABProvider` and IAB components explicitly from `@c15t/nextjs/iab`, then place them inside `ConsentProvider`. The ordinary provider no longer accepts `options.iab` or imports the IAB implementation. Category selections never fabricate IAB authority.

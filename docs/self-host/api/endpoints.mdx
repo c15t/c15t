@@ -8,7 +8,7 @@ All endpoints are relative to your configured `basePath` (e.g. `/api/c15t`).
 
 ## Policy contract header
 
-Every response carries `x-c15t-policy-contract: 1`, the policy wire contract this backend produces. Clients send the same header to declare the contract they read. The `@c15t/core` transports send it on every request. A client that declares a contract this backend does not produce receives `policyResolution` as `failed` with reason `unsupported-contract`; a client that sends no header predates the contract and reads the legacy `policy` field, which the manifest fills with the strictest v2 projection of each rule. The header is on the CORS allowlist and exposed to browsers.
+Every response carries `x-c15t-policy-contract: 1`, the policy wire contract this backend produces. Clients send the same header to declare the contract they read. The `@c15t/core` transports send it on every request. A client that declares a contract this backend does not produce receives `policyResolution` as `failed` with reason `unsupported-contract`; a client that sends no header receives the backend compatibility response. That projection cannot repair stored grants in cached old code; invalidate and redeploy old clients before relying on new semantics. The header is on the CORS allowlist and exposed to browsers.
 
 `x-c15t-version` stays telemetry only. Nothing is inferred from it.
 
@@ -43,8 +43,6 @@ Returns the initial consent state for a client. This is the first call made by t
     "policy": { "...": "..." },
     "fingerprints": { "policy": "…", "choice": "…", "notice": "…" }
   },
-  "policy": { "...": "..." },
-  "policyDecision": { "...": "..." },
   "policySnapshotToken": "…"
 }
 ```
@@ -57,7 +55,6 @@ Returns the initial consent state for a client. This is the first call made by t
 | `branding` | Branding configuration |
 | `gvl` | Global Vendor List (if IAB TCF is enabled) |
 | `policyResolution` | The v3 outcome: `unconfigured`, `matched`, `no-match` or `failed` (with a `reason`). `policy` is `null` for every status except `matched`. Always present |
-| `policy`, `policyDecision` | The v2 projection for clients that predate the contract. Removed in the v3 final sweep |
 | `policySnapshotToken` | Signed evidence of the decision, when `policySnapshot.signingKey` is configured. Sent back on `POST /subjects` |
 
 The response is `Cache-Control: no-store` and varies on `x-c15t-policy-contract`.

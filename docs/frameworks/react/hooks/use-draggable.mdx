@@ -1,35 +1,9 @@
 ---
-title: useDraggable
-description: Make an element draggable between viewport corners with snapping, persistence, and animation support.
-group: frameworks
+title: Draggable controls
+description: Use the built-in dialog trigger for a draggable privacy control.
 ---
 
-`useDraggable()` provides drag-to-corner functionality. Used internally by `ConsentDialogTrigger`, this hook lets you build custom draggable elements that snap to viewport corners.
-
-```tsx
-import { useDraggable } from 'c15t/react';
-
-function DraggableButton() {
-  const { corner, isDragging, handlers, dragStyle } = useDraggable({
-    defaultPosition: 'bottom-right',
-    persistPosition: true,
-  });
-
-  return (
-    <button
-      {...handlers}
-      style={{
-        ...dragStyle,
-        position: 'fixed',
-        // Position based on corner
-        ...(corner.includes('bottom') ? { bottom: 16 } : { top: 16 }),
-        ...(corner.includes('right') ? { right: 16 } : { left: 16 }),
-      }}
-    >
-      {isDragging ? 'Dragging...' : 'Drag me'}
-    </button>
-  );
-}
-```
-
-<import src="../../../shared/react/hooks/use-draggable.mdx#reference" />
+`useDraggable` is an internal hook and is not exported by the consent adapter.
+Use `ConsentDialogTrigger` for the built-in draggable control or implement dragging
+in your host UI. Keep the control accessible before and after a choice and while
+a notice is required. See [persistent preferences](/docs/upgrade-v3#keep-notices-local-and-preferences-reachable).

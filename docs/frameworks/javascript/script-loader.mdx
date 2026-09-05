@@ -1,74 +1,49 @@
 ---
-title: Script Loader
-description: Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
-group: frameworks
+title: Script loader
+description: Attach scripts to current effective permissions.
 ---
 
-<import src="../../shared/react/guides/script-loader.mdx#intro" />
-
-## Basic Usage
-
-Pass an array of `Script` objects to the runtime options:
+## Create a loader
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  scripts: [
-    metaPixel({ pixelId: '123456' }),
-    {
-      id: 'custom-analytics',
-      src: 'https://cdn.example.com/analytics.js',
-      category: 'measurement',
-    },
-  ],
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
 });
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
+  scripts: [metaPixel({ pixelId: '123456' })],
+});
+await kernel.commands.init();
 ```
+
+Call this in the browser. Dispose `loader`, `persistence` and `kernel` during
+teardown. Update configurations with `loader.updateScripts(nextScripts)` and
+inspect loaded IDs with `loader.getLoadedScriptIds()`.
 
 <import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
 
-## Dynamic Script Management
+## Permission updates
 
-Add, remove, or check scripts at runtime via the store:
+The loader uses effective permissions and reconciles on expiry, policy changes,
+explicit choices and privacy restrictions. A stored grant can remain recorded
+while GPC denies processing. Removing the live signal does not erase a standing
+directive. Script callbacks receive effective category values, including changes
+that leave an overall OR condition allowed. Google Consent Mode updates from
+those permissions, not from receipt presence.
 
-```ts
-const state = consentStore.getState();
+IAB targets require confirmed TC authority and apply every referenced category
+restriction. Category-only OR conditions retain their usual behavior. Removing a
+script cannot undo requests already sent by it; configure cleanup callbacks for
+SDKs that retain state.
 
-// Add scripts dynamically
-state.setScripts([
-  { id: 'dynamic', src: 'https://cdn.example.com/widget.js', category: 'measurement' },
-]);
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
 
-// Remove a script
-state.removeScript('dynamic');
-
-// Check if a script is loaded
-const loaded = state.isScriptLoaded('custom-analytics');
-
-// Get all loaded script IDs
-const allLoaded = state.getLoadedScriptIds();
-```
-
-<import src="../../shared/react/guides/script-loader.mdx#api-reference" />
-
-## Effective permissions and expiry
-
-Kernel script loaders use `effectivePermissions`. Saved grants can expire or be
-restricted by the active policy, a detected GPC signal or a standing opt-out
-directive. Removing the browser signal does not remove a recorded directive.
-Browser detection accepts only `navigator.globalPrivacyControl === true`;
-developer overrides remain separate from detection.
-
-Script, iframe and network gates check expiry at use time. Kernel lifecycle
-refresh also removes scripts and iframe sources when a grant expires. A fresh
-confirmation restores eligible iframe sources. Necessary permissions remain
-granted, including Google Consent Mode's default `security_storage` mapping.
-
-Consent-aware script callbacks receive effective permissions when individual
-categories change, even when the script's overall consent condition stays true.
-This lets Google Consent Mode update analytics and advertising independently.
-Category-only `or` conditions retain their usual semantics. IAB targets also
-require confirmed TC authority and apply every referenced category restriction.
+<AutoTypeTable path="./packages/core/src/modules/script-loader/types.ts" name="ScriptLoaderHandle" />

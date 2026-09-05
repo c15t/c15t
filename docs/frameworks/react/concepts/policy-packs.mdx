@@ -15,22 +15,14 @@ group: frameworks
 Inspect the resolved policy at runtime with `useConsentManager()`:
 
 ```tsx
-import { useConsentManager } from 'c15t/react';
+import { useConsentManager } from '@c15t/react';
 
-function PolicyDebug() {
-  const { locationInfo, model, policy, policyDecision } = useConsentManager();
-
+export function PolicyStatus() {
+  const { policyRule, resolution, promptRequirement } = useConsentManager();
   return (
     <pre>
       {JSON.stringify(
-        {
-          country: locationInfo?.countryCode,
-          region: locationInfo?.regionCode,
-          model,
-          policyId: policy?.id,
-          matchedBy: policyDecision?.matchedBy,
-          fingerprint: policyDecision?.fingerprint,
-        },
+        { policyRule, resolution: resolution.status, promptRequirement },
         null,
         2
       )}

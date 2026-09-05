@@ -47,7 +47,9 @@ function CustomConsentBanner() {
           <label key={type.name} className="flex items-center gap-3">
             <input
               type="checkbox"
-              checked={selectedConsents[type.name] ?? consents[type.name] ?? false}
+              checked={
+                selectedConsents[type.name] ?? consents[type.name] ?? false
+              }
               disabled={type.disabled}
               onChange={(e) => setSelectedConsent(type.name, e.target.checked)}
             />
@@ -88,24 +90,24 @@ function CustomConsentBanner() {
 
 ## Usage with Provider
 
-The headless UI still needs a `ConsentManagerProvider`:
+The headless UI still needs a `ConsentProvider`:
 
 ```tsx
+import { hosted } from '@c15t/nextjs';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         consentCategories: ['necessary', 'measurement', 'marketing'],
       }}
     >
       <CustomConsentBanner />
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -135,23 +137,37 @@ function CustomConsentDialog() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={() => setActiveUI('none')} />
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={() => setActiveUI('none')}
+      />
       <div className="relative bg-white rounded-xl p-6 max-w-md w-full">
-        <h2 className="text-lg font-semibold">{translations.consentManagerDialog.title}</h2>
+        <h2 className="text-lg font-semibold">
+          {translations.consentManagerDialog.title}
+        </h2>
 
         {consentTypes
           .filter((t) => consentCategories.includes(t.name))
           .map((type) => (
-            <div key={type.name} className="flex items-center justify-between py-3 border-b">
+            <div
+              key={type.name}
+              className="flex items-center justify-between py-3 border-b"
+            >
               <div>
-                <p className="font-medium">{translations.consentTypes[type.name]?.title}</p>
+                <p className="font-medium">
+                  {translations.consentTypes[type.name]?.title}
+                </p>
                 <p className="text-sm text-gray-500">{type.description}</p>
               </div>
               <input
                 type="checkbox"
-                checked={selectedConsents[type.name] ?? consents[type.name] ?? false}
+                checked={
+                  selectedConsents[type.name] ?? consents[type.name] ?? false
+                }
                 disabled={type.disabled}
-                onChange={(e) => setSelectedConsent(type.name, e.target.checked)}
+                onChange={(e) =>
+                  setSelectedConsent(type.name, e.target.checked)
+                }
               />
             </div>
           ))}
