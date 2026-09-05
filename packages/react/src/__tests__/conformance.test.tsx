@@ -21,10 +21,9 @@ import type {
 	AllConsentNames,
 	ConsentKernel,
 	KernelActiveUI,
-	KernelConfig,
-	ResolvedPolicy,
 	TranslationsResponse,
 } from '@c15t/core';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { useContext, useEffect } from 'react';
 import type { ReactElement } from 'react';
@@ -36,11 +35,12 @@ import { describe, expect, test } from 'vitest';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
 import { KernelContext } from '~/context';
-import { IABConsentBanner, IABConsentDialog } from '~/iab';
+import { IABProvider, IABConsentBanner, IABConsentDialog } from '~/iab';
 import { ConsentBanner, ConsentProvider, custom, offline } from '~/index';
 import type { ConsentProviderOptions } from '~/index';
 
 import { createPolicySession, probePolicyContract } from './policy-driver';
+import { policyFixture } from './policy-fixture';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -233,147 +233,63 @@ const activeUIForComponent = function activeUIForComponent(
 	}
 };
 
-const buildPolicy = function buildPolicy(
-	opts: MountOptions,
-	options: ProviderOptions
-): ResolvedPolicy {
-	const state = opts.initialState as
-		| { activeUI?: 'none' | 'banner' | 'dialog' }
-		| undefined;
-	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
-	const consent: ResolvedPolicy['consent'] = {
-		categories: consentCategoriesFor(options),
-		scopeMode: 'permissive',
-	};
-	if (opts.policy?.respectGpc !== undefined) {
-		consent.gpc = opts.policy.respectGpc;
-	}
-
-	return {
-		consent,
-		id: 'react_v3_conformance_policy',
-		model: opts.policy?.model ?? 'opt-in',
-		ui: {
-			banner: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				scrollLock: false,
-			},
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				scrollLock: false,
-			},
-			mode,
-		},
-	};
-};
-
-/**
- * IAB mounts mirror the production wiring (and the v3 IAB unit tests):
- * offline mode with an `iab` model `offlinePolicy` plus the provider's
- * `iab` option, which routes through `createIAB` and seeds the kernel's
- * IAB slice with the shared minimal GVL fixture.
- */
-const buildIabProviderOptions = function buildIabProviderOptions(
-	opts: MountOptions
-): ConsentProviderOptions {
+const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	const state = opts.initialState as
+		| { consents?: Record<string, boolean> }
+		| undefined;
+	const prepared = policyFixture(state?.consents, {
+		categories: consentCategoriesFor(provided).filter(
+			(category) => category !== 'necessary'
+		),
+		model: isIabComponent(opts.component)
+			? 'iab'
+			: (opts.policy?.model ?? 'opt-in'),
+		privacySignals: {
+			gpc: {
+				denyCategories: opts.policy?.respectGpc
+					? ['marketing', 'measurement']
+					: [],
+			},
+		},
+		scopeMode: 'strict',
+	});
 	return {
 		...provided,
 		disableAnimation: true,
-		iab: {
-			cmpId: IAB_FIXTURE_CMP_ID,
-			cmpVersion: IAB_FIXTURE_CMP_VERSION,
-			enabled: true,
-			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
-		},
-		mode: offline(),
-		offlinePolicy: {
-			policy: {
-				id: 'react_v3_conformance_iab_policy',
-				model: 'iab',
-				ui: {
-					mode: activeUIForComponent(opts.component),
-				},
-			},
-		},
-		persistence: opts.persistence ?? false,
-		trapFocus: false,
-	};
-};
-
-const buildProviderOptions = function buildProviderOptions(
-	opts: MountOptions
-): ConsentProviderOptions {
-	if (isIabComponent(opts.component)) {
-		return buildIabProviderOptions(opts);
-	}
-	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
-	const state = opts.initialState as
-		| {
-				consents?: Record<string, boolean>;
-				hasConsented?: boolean;
-		  }
-		| undefined;
-	const initMode = opts.initMode ?? 'authoritative';
-	const basePrefetch: KernelConfig = {
-		...(provided.prefetch ?? {}),
-		initialConsents: {
-			...(provided.prefetch?.initialConsents ?? {}),
-			...(state?.consents ?? {}),
-		},
-		initialHasConsented:
-			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
-		initialTranslations: resolveTranslations(provided, opts.locale),
-	};
-	if (initMode !== 'authoritative') {
-		basePrefetch.initialPolicy = buildPolicy(opts, provided);
-		basePrefetch.initialPolicyProvisional = true;
-	}
-	const prefetch: KernelConfig =
-		initMode === 'authoritative'
-			? {
-					...basePrefetch,
-					initialBranding: 'c15t',
-					initialLocation: {
-						countryCode: 'DE',
-						regionCode: null,
-					},
-					initialPolicy: buildPolicy(opts, provided),
-					initialPolicyDecision: {
-						country: 'DE',
-						fingerprint: 'react_v3_conformance_fingerprint',
-						jurisdiction: 'GDPR',
-						matchedBy: 'default',
-						policyId: 'react_v3_conformance_policy',
-						region: null,
-					},
-					initialPolicySnapshotToken: 'react_v3_conformance_token',
-				}
-			: basePrefetch;
-
-	const options: ProviderOptions = {
-		...provided,
-		consentCategories: consentCategoriesFor(provided),
-		disableAnimation: true,
 		mode: offline(),
 		persistence: opts.persistence ?? false,
-		prefetch,
-		trapFocus: false,
+		prefetch: {
+			...prepared,
+			...provided.prefetch,
+			initialPolicyProvisional:
+				opts.initMode === 'pending' || opts.initMode === 'failing',
+			initialPolicyResolution:
+				(opts.initMode ?? 'authoritative') === 'authoritative'
+					? prepared.initialPolicyResolution
+					: undefined,
+			initialPrivacySignals: { gpc: opts.gpc },
+			initialTranslations: resolveTranslations(provided, opts.locale),
+		},
+		trapFocus: provided.trapFocus ?? false,
 	};
-	// GPC uses the provider's public `overrides` input — the same channel
-	// a real app (or the nextjs server plumbing) delivers the signal on.
-	if (opts.gpc !== undefined) {
-		options.overrides = { gpc: opts.gpc };
-	}
-
-	return options;
 };
 
 const createPendingInit = function createPendingInit() {
 	let resolve!: () => void;
-	const promise = createDeferredPromise<Record<string, never>>((settle) => {
-		resolve = () => settle({});
-	});
+	const promise = createDeferredPromise<{ policyResolution: unknown }>(
+		(settle) => {
+			resolve = () =>
+				settle({
+					policyResolution: writePolicyResolutionWire(
+						policyFixture().initialPolicyResolution ?? {
+							policy: null,
+							status: 'unconfigured',
+						}
+					),
+				});
+		}
+	);
 	return { promise, resolve };
 };
 
@@ -414,7 +330,7 @@ const KernelCapture = ({
 	if (!kernel) {
 		throw new Error('React v3 driver: missing kernel context');
 	}
-	onKernel(kernel);
+	useEffect(() => onKernel(kernel), [kernel, onKernel]);
 	return null;
 };
 
@@ -486,13 +402,26 @@ const renderTree = function renderTree(
 	onKernel: (kernel: ConsentKernel) => void,
 	onSettled?: () => void
 ) {
+	const content = (
+		<Harness
+			opts={opts}
+			onKernel={onKernel}
+		/>
+	);
 	return (
 		<ConsentProvider options={options}>
 			{onSettled ? <ClientSettled onSettled={onSettled} /> : null}
-			<Harness
-				opts={opts}
-				onKernel={onKernel}
-			/>
+			{isIabComponent(opts.component) ? (
+				<IABProvider
+					cmpId={IAB_FIXTURE_CMP_ID}
+					cmpVersion={IAB_FIXTURE_CMP_VERSION}
+					gvl={MINIMAL_GVL as unknown as GlobalVendorList}
+				>
+					{content}
+				</IABProvider>
+			) : (
+				content
+			)}
 		</ConsentProvider>
 	);
 };
@@ -510,11 +439,14 @@ const projectStoreState = function projectStoreState(
 	kernel: ConsentKernel
 ): StoreState {
 	const snapshot = kernel.getSnapshot();
-	const consents = { ...snapshot.consents } as Record<string, boolean>;
+	const consents = { ...snapshot.effectivePermissions } as Record<
+		string,
+		boolean
+	>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
 		activeUI: activeUIForStore(snapshot.activeUI),
-		consentCategories: [...snapshot.policyCategories],
+		consentCategories: ['necessary', ...snapshot.policyRule.scope],
 		consents,
 		selectedConsents: { ...consents },
 	};
@@ -560,6 +492,9 @@ const driver: TestDriver = {
 				(kernel) => {
 					mountedKernel = kernel;
 					lastKernel = kernel;
+					if (activeUIForComponent(opts.component) === 'dialog') {
+						kernel.set.activeUI('dialog');
+					}
 				},
 				resolveSettled
 			)

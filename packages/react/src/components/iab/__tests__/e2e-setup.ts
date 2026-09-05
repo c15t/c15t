@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E Test Setup for IAB TCF 2.3 Components
  *
@@ -6,7 +7,6 @@
  *
  * @packageDocumentation
  */
-
 import { vi } from 'vitest';
 
 import {
@@ -305,21 +305,9 @@ export const waitForElementRemoved = function waitForElementRemoved(
 /**
  * Gets consent from localStorage
  */
-export const getStoredConsent = function getStoredConsent(): {
-	consents?: Record<string, boolean>;
-	consentInfo?: { time: number; subjectId: string };
-	iabCustomVendorConsents?: Record<string, boolean>;
-	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
-} | null {
-	const stored = window.localStorage.getItem('c15t');
-	if (!stored) {
-		return null;
-	}
-	try {
-		return JSON.parse(stored);
-	} catch {
-		return null;
-	}
+export const getStoredConsent = function getStoredConsent() {
+	const { records } = readStoredRecords(undefined, Date.now());
+	return records.choice ? records : null;
 };
 
 /**

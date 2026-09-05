@@ -3,9 +3,9 @@ import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentWidget } from '~/components/consent-widget';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 type ConsentManagerState = ReturnType<typeof useConsentManager>;
@@ -38,10 +38,10 @@ const createMockState = function createMockState(
 		policyBanner: {},
 		policyCategories: null,
 		policyDialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
+			allowedActions: ['reject', 'accept', 'save'],
 			direction: 'row',
-			layout: ['customize', ['reject', 'accept']],
-			primaryActions: ['customize'],
+			layout: ['save', ['reject', 'accept']],
+			primaryActions: ['save'],
 			uiProfile: 'balanced',
 		},
 		policyScopeMode: null,
@@ -167,7 +167,7 @@ describe('ConsentWidget.PolicyActions', () => {
 		).map((element) => element.dataset.testid);
 
 		expect(actions).toEqual([
-			'widget-action-customize',
+			'widget-action-save',
 			'widget-action-reject',
 			'widget-action-accept',
 		]);
@@ -177,7 +177,7 @@ describe('ConsentWidget.PolicyActions', () => {
 		await renderPolicyActions();
 
 		expect(
-			document.querySelector('[data-testid="widget-action-customize"]')
+			document.querySelector('[data-testid="widget-action-save"]')
 		).toHaveAttribute('data-primary', 'true');
 		expect(
 			document.querySelector('[data-testid="widget-action-accept"]')
@@ -191,38 +191,38 @@ describe('ConsentWidget.PolicyActions', () => {
 			document.querySelector('[data-testid="widget-action-accept"]')
 		).toHaveAttribute('data-consent-action', 'accept');
 		expect(
-			document.querySelector('[data-testid="widget-action-customize"]')
-		).toHaveAttribute('data-consent-action', 'customize');
+			document.querySelector('[data-testid="widget-action-save"]')
+		).toHaveAttribute('data-consent-action', 'save');
 	});
 
-	test('filters disallowed actions', async () => {
+	test('host hints cannot remove persistent preference actions', async () => {
 		await renderPolicyActions({
 			policyDialog: {
-				allowedActions: ['reject', 'customize'],
+				allowedActions: ['reject', 'save'],
 				direction: 'row',
-				layout: ['customize', ['reject', 'accept']],
-				primaryActions: ['customize'],
+				layout: ['save', ['reject', 'accept']],
+				primaryActions: ['save'],
 			},
 		});
 
 		expect(
-			document.querySelector('[data-testid="widget-action-customize"]')
+			document.querySelector('[data-testid="widget-action-save"]')
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="widget-action-reject"]')
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="widget-action-accept"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	});
 
 	test('applies stacked and fill layout behavior', async () => {
 		await renderPolicyActions({
 			policyDialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
+				allowedActions: ['reject', 'accept', 'save'],
 				direction: 'column',
-				layout: ['customize', ['reject', 'accept']],
-				primaryActions: ['customize'],
+				layout: ['save', ['reject', 'accept']],
+				primaryActions: ['save'],
 				uiProfile: 'strict',
 			},
 		});
@@ -241,7 +241,7 @@ describe('ConsentWidget.PolicyActions', () => {
 			firstGroup?.className.split(/\s+/u).filter(Boolean).length
 		).toBeGreaterThan(1);
 		expect(
-			document.querySelector('[data-testid="widget-action-customize"]')
+			document.querySelector('[data-testid="widget-action-save"]')
 		).toHaveAttribute('data-style', 'styled');
 	});
 

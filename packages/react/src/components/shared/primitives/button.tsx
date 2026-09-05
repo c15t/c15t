@@ -183,6 +183,10 @@ export const ConsentButton = createForwardRef<
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
+				forwardedOnClick?.(e);
+				if (e.defaultPrevented) {
+					return;
+				}
 				const actionSavesConsent =
 					action === 'accept-consent' ||
 					action === 'reject-consent' ||
@@ -195,11 +199,6 @@ export const ConsentButton = createForwardRef<
 				// Open privacy dialog if needed
 				if (action === 'open-consent-dialog') {
 					setActiveUI('dialog');
-				}
-
-				// Call the user's onClick handler after UI updates
-				if (forwardedOnClick) {
-					forwardedOnClick(e);
 				}
 
 				if (performDefaultAction && action !== 'open-consent-dialog') {

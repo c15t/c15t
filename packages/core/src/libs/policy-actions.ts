@@ -302,6 +302,10 @@ export const resolveConsentPresentation =
 		surface: 'prompt' | 'preferences';
 		presentation?: ConsentPresentation;
 		override?: PromptPresentation | PreferencesPresentation;
+		/** Host appearance tokens after theme resolution, used to check equivalent prominence. */
+		actionAppearance?: Partial<
+			Record<PresentationAction, { variant?: string; mode?: string }>
+		>;
 	}): ResolvedConsentPresentation {
 		const preferences = input.surface === 'preferences';
 		const options: PromptPresentation = {
@@ -346,7 +350,16 @@ export const resolveConsentPresentation =
 			const primaryCount = group.filter((action) =>
 				primaryActions.includes(action)
 			).length;
-			if (primaryCount > 0 && primaryCount < group.length) {
+			const appearances = new Set(
+				group.map((action) => {
+					const style = input.actionAppearance?.[action];
+					return `${style?.variant ?? (primaryActions.includes(action) ? 'primary' : 'neutral')}:${style?.mode ?? 'stroke'}`;
+				})
+			);
+			if (
+				(primaryCount > 0 && primaryCount < group.length) ||
+				appearances.size > 1
+			) {
 				diagnostics.push({
 					actions: [...group],
 					code: 'equivalent-prominence-overridden',

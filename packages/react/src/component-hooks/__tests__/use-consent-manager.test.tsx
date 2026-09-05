@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { offline } from '~/transports/offline';
 
 import { useConsentManager } from '../use-consent-manager';
@@ -40,7 +40,7 @@ describe('useConsentManager', () => {
 
 		expect(result.current).toBeDefined();
 		expect(typeof result.current.activeUI).toBe('string');
-		expect(typeof result.current.setConsent).toBe('function');
+		expect(result.current.explicitChoice).toBeNull();
 		expect(typeof result.current.saveConsents).toBe('function');
 	});
 
@@ -57,7 +57,7 @@ describe('useConsentManager', () => {
 		expect(result.current.subscribeToConsentChanges).toBe(firstSubscribe);
 	});
 
-	test('permissive scope mode gates only policy categories in has()', async () => {
+	test('permissive scope retains explicit restrictions outside its categories', async () => {
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: createWrapper({
 				prefetch: {
@@ -85,8 +85,8 @@ describe('useConsentManager', () => {
 		// In-policy categories honor the stored consent value; categories the
 		// policy does not govern are ungated under permissive scope.
 		expect(result.current.has('measurement')).toBe(false);
-		expect(result.current.has('marketing')).toBe(true);
-		expect(result.current.has({ and: ['necessary', 'marketing'] })).toBe(true);
+		expect(result.current.has('marketing')).toBe(false);
+		expect(result.current.has({ and: ['necessary', 'marketing'] })).toBe(false);
 	});
 
 	test('restricts has() to policy categories in strict scope mode', async () => {

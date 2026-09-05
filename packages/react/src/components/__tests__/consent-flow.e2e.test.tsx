@@ -1,3 +1,4 @@
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
  * E2E tests for the complete consent flow.
  *
@@ -5,18 +6,17 @@
  *
  * @packageDocumentation
  */
-
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
 import { ConsentWidget } from '~/components/consent-widget';
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(
@@ -220,11 +220,12 @@ describe('Consent Flow E2E Tests', () => {
 
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(getDefined(stored));
-					expect(consent.consents).toBeTruthy();
-					expect(consent.consents.necessary).toBe(true);
+					const consent = getDefined(stored);
+					expect(consent.categories).toBeTruthy();
+					expect(consent.categories.necessary).toBeUndefined();
 				},
 				{ timeout: 3000 }
 			);
@@ -254,12 +255,13 @@ describe('Consent Flow E2E Tests', () => {
 
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(getDefined(stored));
-					expect(consent.consents.necessary).toBe(true);
-					expect(consent.consents.marketing).toBe(false);
-					expect(consent.consents.measurement).toBe(false);
+					const consent = getDefined(stored);
+					expect(consent.categories.necessary).toBeUndefined();
+					expect(consent.categories.marketing?.value).toBe(false);
+					expect(consent.categories.measurement?.value).toBe(false);
 				},
 				{ timeout: 3000 }
 			);
@@ -549,10 +551,11 @@ describe('Consent Flow E2E Tests', () => {
 			// Step 6: Verify consent was saved
 			await vi.waitFor(
 				() => {
-					const stored = window.localStorage.getItem('c15t');
+					const stored = readStoredRecords(undefined, Date.now()).records
+						.choice;
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(getDefined(stored));
-					expect(consent.consents).toBeTruthy();
+					const consent = getDefined(stored);
+					expect(consent.categories).toBeTruthy();
 				},
 				{ timeout: 3000 }
 			);

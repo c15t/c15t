@@ -9,7 +9,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
 - [Building Headless Components](./docs/frameworks/react/building-headless-components.md): Build policy-aware custom consent components in React using the headless hooks and policy-pack tooling.
-- [Callbacks](./docs/frameworks/react/callbacks.md): React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
+- [Callbacks](./docs/frameworks/react/callbacks.md): Observe explicit choices separately from effective permission changes.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): A pre-built consent banner that appears when user consent is needed. Supports policy-aware layout, theming, and advanced composition when markup must change.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): A modal dialog where users can toggle individual consent categories.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): An inline trigger for opening the consent dialog from footers, legal pages, and account settings.
@@ -45,7 +45,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Internationalization](./docs/frameworks/react/internationalization.md): Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
 - [Network Blocker](./docs/frameworks/react/network-blocker.md): Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
 - [Optimization](./docs/frameworks/react/optimization.md): Improve c15t startup performance in React with prefetching, proxy rewrites, and rendering tradeoffs.
-- [Policy Packs](./docs/frameworks/react/policy-packs.md): Configure regional consent policies in React with hosted or offline policy resolution.
+- [Policy rules and presentation](./docs/frameworks/react/policy-packs.md): Configure policy behavior separately from React layout and preference controls.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Add consent management to your React app in under 5 minutes.
 - [Script Loader](./docs/frameworks/react/script-loader.md): Gate third-party scripts behind consent in React — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Server-Side Utilities](./docs/frameworks/react/server-side.md): Fetch consent data on the server for SSR hydration — eliminate the loading flash and improve performance.

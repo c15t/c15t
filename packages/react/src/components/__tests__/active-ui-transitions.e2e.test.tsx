@@ -11,12 +11,12 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
-import { ConsentProvider } from '~/provider';
-import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
 
 const getDefined = <Value,>(

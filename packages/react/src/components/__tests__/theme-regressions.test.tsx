@@ -7,6 +7,7 @@ import switchStyles from '@c15t/ui/styles/components/switch';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import {
 	StableTriggerProvider,
 	StableV3UIConfigProvider,
@@ -18,7 +19,6 @@ import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accord
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
 import * as Switch from '~/components/shared/ui/switch';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 describe('Theme regressions', () => {

@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { userEvent } from 'vitest/browser';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogLink } from '~/components/consent-dialog-link';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 describe('ConsentDialogLink', () => {

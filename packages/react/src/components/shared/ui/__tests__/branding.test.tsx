@@ -3,9 +3,9 @@ import type { ComponentProps, ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 import { BrandingCompactLogo, BrandingLink } from '../branding';

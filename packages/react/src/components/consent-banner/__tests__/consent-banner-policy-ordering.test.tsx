@@ -3,9 +3,9 @@ import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 type ConsentManagerState = ReturnType<typeof useConsentManager>;
@@ -140,7 +140,7 @@ describe('ConsentBanner policy ordering', () => {
 		]);
 	});
 
-	test('uses policy primary actions before the primaryButton prop', async () => {
+	test('component primaryButton overrides host primary actions', async () => {
 		renderBanner({
 			primaryButton: 'reject',
 		});
@@ -154,11 +154,11 @@ describe('ConsentBanner policy ordering', () => {
 			'[data-testid="consent-banner-reject-button"]'
 		);
 
-		expect(acceptButton?.className).toContain('button-primary-marker');
-		expect(rejectButton?.className).toContain('button-secondary-marker');
+		expect(acceptButton?.className).toContain('button-secondary-marker');
+		expect(rejectButton?.className).toContain('button-primary-marker');
 	});
 
-	test('filters out actions disallowed by policy even when local layout includes them', async () => {
+	test('host action hints cannot remove policy-required controls', async () => {
 		renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
@@ -180,10 +180,10 @@ describe('ConsentBanner policy ordering', () => {
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="consent-banner-reject-button"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="consent-banner-customize-button"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	});
 
 	test('keeps the default layout when policy has hints but no policy layout', async () => {
@@ -212,7 +212,11 @@ describe('ConsentBanner policy ordering', () => {
 		);
 
 		expect(footerGroups).toEqual([
-			['consent-banner-reject-button', 'consent-banner-accept-button'],
+			[
+				'consent-banner-accept-button',
+				'consent-banner-customize-button',
+				'consent-banner-reject-button',
+			],
 		]);
 		expect(
 			document.querySelector('[data-testid="consent-banner-customize-button"]')

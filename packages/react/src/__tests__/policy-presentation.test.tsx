@@ -299,3 +299,32 @@ it('hydrates prepared server HTML without a prompt flash, callback, request or s
 	root.unmount();
 	host.remove();
 });
+
+it('diagnoses theme overrides that give equivalent actions unequal prominence', async () => {
+	const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				mode: custom({}),
+				persistence: false,
+				prefetch: { initialPolicyResolution: resolution() },
+				theme: {
+					consentActions: {
+						accept: { mode: 'filled', variant: 'primary' },
+						reject: { mode: 'ghost', variant: 'neutral' },
+					},
+				},
+			}}
+		>
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByTestId('consent-banner-accept-button'))
+		.toBeVisible();
+	expect(
+		warning.mock.calls.some(([message]) =>
+			String(message).includes('different prominence')
+		)
+	).toBe(true);
+});

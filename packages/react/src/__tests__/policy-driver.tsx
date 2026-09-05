@@ -14,7 +14,7 @@ import type {
 	ConsentPresentation,
 	InitResponse,
 } from '@c15t/core';
-import { custom, createConsentKernel } from '@c15t/core';
+import { custom, createConsentKernel, evaluateConsent } from '@c15t/core';
 import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
 import {
 	createPersistence,
@@ -24,6 +24,8 @@ import {
 } from '@c15t/core/modules/persistence';
 import type { PersistenceHandle } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { createIAB } from '@c15t/iab';
+import type { IABHandle } from '@c15t/iab';
 import type { GlobalVendorList, PolicyResolution } from '@c15t/schema/types';
 import {
 	inspectPolicyRules,
@@ -57,6 +59,7 @@ import { ConsentProvider } from '../provider';
 
 // oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 const settle = () =>
+	// oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 	new Promise<void>((resolve) => {
 		setTimeout(resolve, 25);
 	});
@@ -192,6 +195,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	let failTransport = false;
 	let presentation: ConsentPresentation | undefined;
 	let kernel: ConsentKernel;
+	let addon: IABHandle | undefined;
+	let iabTargetAllowed: boolean | undefined;
 	let persistence: PersistenceHandle;
 	let root: Root | undefined;
 	let container: HTMLDivElement | undefined;
@@ -261,6 +266,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			seedBytes(setup.storage.legacyLocalStorage)
 		);
 	}
+	localStorage.removeItem('c15t-iab-authority-v1');
 	const baseline = { logs: logs(), storage: storageBytes() };
 	const consentMode: Record<string, string> = {};
 	const previousGtag = window.gtag;
@@ -389,6 +395,14 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					}),
 					persistence: false,
 					prefetch: {
+						initialIab:
+							setup.policy.model === 'iab'
+								? {
+										cmpId: 123,
+										enabled: true,
+										gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+									}
+								: undefined,
 						initialPolicyResolution: resolution,
 						initialPrivacySignals: { gpc: setup.gpc },
 						initialRecords,
@@ -399,7 +413,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			>
 				<Mount />
 				<ConsentBanner />
-				<ConsentDialog />
+				<ConsentDialog models={['opt-in', 'opt-out', 'iab']} />
 				<ConsentDialogTrigger />
 				<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 				{setup.probeGates ? (
@@ -489,6 +503,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	return {
 		baseline,
 		dispose() {
+			addon?.dispose();
 			root?.unmount();
 			container?.remove();
 			date.mockRestore();
@@ -609,10 +624,54 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					root = undefined;
 					await mount();
 					break;
-				case 'probe-iab':
-					throw new Error(
-						'IAB authority integration requires the accepted gate slice'
+				case 'probe-iab': {
+					if (
+						operation.authority === 'valid' &&
+						!kernel.getSnapshot().iab?.authority
+					) {
+						const seedKernel = createConsentKernel({
+							initialIab:
+								setup.policy.model === 'iab'
+									? {
+											cmpId: 123,
+											enabled: true,
+											gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+										}
+									: undefined,
+							initialPolicyResolution: resolution,
+							now: setup.clock.now(),
+						});
+						const seedAddon = createIAB({
+							cmpId: 123,
+							gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+							kernel: seedKernel,
+						});
+						try {
+							seedAddon.acceptAll();
+							await seedAddon.save();
+						} finally {
+							seedAddon.dispose();
+							seedKernel.dispose();
+						}
+						addon = createIAB({
+							cmpId: 123,
+							gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+							kernel,
+						});
+						await settle();
+					}
+					iabTargetAllowed = evaluateConsent(
+						{
+							category: operation.category,
+							iabPurposes: [1],
+							vendorId: 755,
+						},
+						kernel.getSnapshot(),
+						setup.clock.now()
 					);
+					break;
+				}
+
 				default: {
 					const exhaustive: never = operation;
 					throw new Error(`Unknown operation ${String(exhaustive)}`);
@@ -646,6 +705,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 							scriptLoads,
 						}
 					: undefined,
+				iabTargetAllowed,
 				logs: logs(),
 				snapshot: { ...snapshot, iab: snapshot.iab ?? null },
 				ssr,

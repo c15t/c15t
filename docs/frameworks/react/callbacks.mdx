@@ -15,7 +15,7 @@ import { ConsentProvider, offline } from '@c15t/react';
         console.log(snapshot.explicitChoice, confirmed, actionAt);
       },
       onPermissionsChanged: ({ snapshot, previous }) => {
-        console.log(previous.effectivePermissions, snapshot.effectivePermissions);
+        console.log(previous, snapshot.effectivePermissions);
       },
     },
   }}
@@ -33,3 +33,5 @@ Dismissing a notice invokes neither choice callback nor consent-saving endpoint.
 ## Migration
 
 Replace `onConsentSet` with `onChoiceRecorded` when recording user decisions. Replace `onConsentChanged` with `onPermissionsChanged` when synchronizing gates or analytics permissions. Use `snapshot.effectivePermissions` for processing decisions and `snapshot.explicitChoice` for confirmation receipts. Do not build receipt timestamps from callback registration or component mounting.
+
+`onBannerFetched` and `reloadOnConsentRevoked` are no longer provider options. Read initialization through `usePolicyResolution` and apply reload behavior explicitly from `onPermissionsChanged` if your application needs it.

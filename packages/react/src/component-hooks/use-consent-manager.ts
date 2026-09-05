@@ -8,9 +8,10 @@ import type {
 	HasCondition,
 	KernelActiveUI,
 	Model,
-	PolicyUiSurfaceConfig,
+	PromptPresentation,
 	TranslationConfig,
 } from '@c15t/core';
+import { evaluateConsent } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
 import { useConsentDraft } from '../draft';
@@ -33,7 +34,7 @@ import { defaultTranslationConfig } from '../utils/default-translation-config';
 
 type SaveType = 'all' | 'custom' | 'necessary';
 
-const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
+const EMPTY_POLICY_SURFACE: PromptPresentation = {};
 const DEFAULT_CONSENT_TYPES: ConsentType[] = [
 	{
 		defaultValue: true,
@@ -94,45 +95,6 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
 };
 
-const evaluateHas = function evaluateHas(
-	condition: HasCondition<AllConsentNames>,
-	consents: ConsentState,
-	options: {
-		policyCategories: AllConsentNames[] | null;
-		policyScopeMode: 'strict' | 'permissive';
-	}
-): boolean {
-	if (typeof condition !== 'string') {
-		if ('and' in condition) {
-			const entries = Array.isArray(condition.and)
-				? condition.and
-				: [condition.and];
-			return entries.every((entry: HasCondition<AllConsentNames>) =>
-				evaluateHas(entry, consents, options)
-			);
-		}
-		if ('or' in condition) {
-			const entries = Array.isArray(condition.or)
-				? condition.or
-				: [condition.or];
-			return entries.some((entry: HasCondition<AllConsentNames>) =>
-				evaluateHas(entry, consents, options)
-			);
-		}
-		if ('not' in condition) {
-			return !evaluateHas(condition.not, consents, options);
-		}
-		return false;
-	}
-
-	const category = condition as AllConsentNames;
-	const allowed = options.policyCategories;
-	if (allowed && options.policyScopeMode === 'strict') {
-		return allowed.includes(category) && Boolean(consents[category]);
-	}
-	return Boolean(consents[category]);
-};
-
 export const useConsentManager = function useConsentManager() {
 	const snapshot = useSnapshot();
 	const consents = useConsents();
@@ -175,11 +137,8 @@ export const useConsentManager = function useConsentManager() {
 
 	const has = useCallback(
 		(condition: HasCondition<AllConsentNames>) =>
-			evaluateHas(condition, consents as ConsentState, {
-				policyCategories: policyCategories.length > 0 ? policyCategories : null,
-				policyScopeMode,
-			}),
-		[consents, policyScopeMode, policyCategories]
+			evaluateConsent({ category: condition }, snapshot),
+		[snapshot]
 	);
 
 	const setActiveUI = useCallback(

@@ -6,32 +6,25 @@ import type {
 	Callbacks,
 	ConsentKernel,
 	I18nConfig,
-	InitResponse,
 	KernelConfig,
 	KernelEvent,
 	KernelOverrides,
 	KernelTranslations,
-	KernelTransport,
 	KernelUser,
 	LegalLinks,
-	OfflinePolicyConfig,
-	PolicyConfig,
 	ProviderTransportContext,
 	ProviderTransportFactory,
-	SSRInitialData,
 	StorageConfig,
-	TranslationConfig,
 	TranslationsResponse,
 	User,
 } from '@c15t/core';
-import { createConsentKernel, mapInitOutputToInitResponse } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
 	createWindowDebug,
 	resolveWindowDebugMode,
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
-import type { InitOutput } from '@c15t/schema/types';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
@@ -57,6 +50,21 @@ const loadNetworkBlockerModule = () =>
 	import('@c15t/core/modules/network-blocker');
 const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
 const loadThemeModule = () => import('@c15t/ui/theme');
+
+/** Events emitted by the mounted provider without snapshot-derived consent aliases. */
+export type ConsentProviderCallbacks = Pick<
+	Callbacks,
+	'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+>;
+/** Prepared policy and records; legacy consent projections are not provider inputs. */
+export type ConsentProviderPrefetch = Omit<
+	KernelConfig,
+	| 'initialConsents'
+	| 'initialHasConsented'
+	| 'initialSubjectId'
+	| 'initialPolicy'
+	| 'transport'
+>;
 
 export interface ConsentProviderOptions extends Pick<
 	ReactUIOptions,
@@ -92,38 +100,17 @@ export interface ConsentProviderOptions extends Pick<
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
-	prefetch?: KernelConfig;
-	callbacks?: Callbacks;
-	reloadOnConsentRevoked?: boolean;
+	prefetch?: ConsentProviderPrefetch;
+	callbacks?: ConsentProviderCallbacks;
 	scripts?: Script[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
 	persistence?: boolean | UsePersistenceOptions;
-	policies?: PolicyConfig[];
 	i18n?: Partial<I18nConfig>;
 	consentCategories?: AllConsentNames[];
 	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
 	components?: ReactComponentSlots;
 	legalLinks?: LegalLinks;
-	/**
-	 * @deprecated Use `prefetch` with v3 server helpers. Kept so v2-shaped
-	 * provider fixtures can be reused while migrating tests.
-	 */
-	ssrData?: Promise<SSRInitialData | undefined>;
-	/**
-	 * @deprecated Use `i18n` instead.
-	 */
-	translations?: Partial<TranslationConfig>;
-	/**
-	 * @deprecated Use `policies` for policy packs and `prefetch` for synthetic
-	 * policy/init data.
-	 */
-	offlinePolicy?: OfflinePolicyConfig;
-	/**
-	 * @deprecated v3 hosted transport does not implement retry/backoff yet.
-	 * Accepted for v2 fixture compatibility and ignored.
-	 */
-	retryConfig?: unknown;
 	/**
 	 * Adapter package name reported by `window.c15t`.
 	 * @internal
@@ -169,28 +156,6 @@ const normalizeUser = function normalizeUser(
 	};
 };
 
-const normalizeLegacyI18n = function normalizeLegacyI18n(
-	translations: Partial<TranslationConfig> | undefined
-): Partial<I18nConfig> | undefined {
-	if (!translations?.translations) {
-		return undefined;
-	}
-	return {
-		detectBrowserLanguage:
-			translations.disableAutoLanguageSwitch === undefined
-				? undefined
-				: !translations.disableAutoLanguageSwitch,
-		locale: translations.defaultLanguage,
-		messages: translations.translations,
-	};
-};
-
-const resolveProviderI18n = function resolveProviderI18n(
-	options: ConsentProviderOptions
-): Partial<I18nConfig> | undefined {
-	return options.i18n ?? normalizeLegacyI18n(options.translations);
-};
-
 const resolveI18nTranslations = function resolveI18nTranslations(
 	i18n: Partial<I18nConfig> | undefined
 ): KernelTranslations | undefined {
@@ -222,45 +187,6 @@ const getEnabled = function getEnabled(
 	return options.enabled ?? true;
 };
 
-const mapSSRInitialData = function mapSSRInitialData(
-	data: SSRInitialData | undefined
-): InitResponse | null {
-	if (!data?.init) {
-		return null;
-	}
-	const init = data.init as Record<string, unknown>;
-	return mapInitOutputToInitResponse(
-		{
-			...init,
-			gvl: data.gvl ?? init.gvl,
-		} as InitOutput,
-		{}
-	);
-};
-
-const withSSRData = function withSSRData(
-	transport: KernelTransport,
-	ssrData: ConsentProviderOptions['ssrData']
-): KernelTransport {
-	if (!ssrData) {
-		return transport;
-	}
-	let used = false;
-	return {
-		...transport,
-		async init(ctx) {
-			if (!used) {
-				used = true;
-				const mapped = mapSSRInitialData(await ssrData);
-				if (mapped) {
-					return mapped as never;
-				}
-			}
-			return transport.init?.(ctx) ?? {};
-		},
-	};
-};
-
 const getProviderMode = function getProviderMode(
 	options: ConsentProviderOptions
 ): ProviderTransportFactory {
@@ -275,15 +201,11 @@ const getProviderMode = function getProviderMode(
 const resolveInitialPolicyProvisional =
 	function resolveInitialPolicyProvisional(
 		enabled: boolean,
-		prefetch: KernelConfig,
-		offlinePolicy: OfflinePolicyConfig | undefined
+		prefetch: KernelConfig
 	): boolean {
 		return (
 			prefetch.initialPolicyProvisional ??
-			(enabled &&
-				!prefetch.initialPolicyResolution &&
-				!prefetch.initialPolicy &&
-				!offlinePolicy?.policy)
+			(enabled && !prefetch.initialPolicyResolution)
 		);
 	};
 
@@ -292,21 +214,15 @@ const createProviderKernel = function createProviderKernel(
 ): ConsentKernel {
 	const enabled = getEnabled(options);
 	const prefetch = options.prefetch ?? {};
-	const { offlinePolicy } = options;
 	const i18nTranslations =
-		resolveI18nTranslations(resolveProviderI18n(options)) ??
-		DEFAULT_TRANSLATIONS;
+		resolveI18nTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
-		offlinePolicy,
-		policies: options.policies,
 		prefetch,
 		translations: i18nTranslations,
 	};
-	const baseTransport = getProviderMode(options)(transportContext);
-
-	const transport = withSSRData(baseTransport, options.ssrData);
+	const transport = getProviderMode(options)(transportContext);
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	return createConsentKernel({
@@ -328,8 +244,7 @@ const createProviderKernel = function createProviderKernel(
 		// (prefetch/SSR/offline config) stay authoritative and render at once.
 		initialPolicyProvisional: resolveInitialPolicyProvisional(
 			enabled,
-			prefetch,
-			offlinePolicy
+			prefetch
 		),
 	});
 };
@@ -350,8 +265,7 @@ const stringifyError = function stringifyError(error: unknown): string {
 
 const useProviderCallbacks = function useProviderCallbacks(
 	kernel: ConsentKernel,
-	callbacks: Callbacks | undefined,
-	_reloadOnConsentRevoked: boolean
+	callbacks: ConsentProviderCallbacks | undefined
 ) {
 	const callbacksRef = useRef(callbacks);
 
@@ -374,18 +288,7 @@ const useProviderCallbacks = function useProviderCallbacks(
 			kernel.events.on('permissions:changed', ({ snapshot, previous }) => {
 				callbacksRef.current?.onPermissionsChanged?.({ previous, snapshot });
 			}),
-			kernel.events.on('init:applied', ({ snapshot }) => {
-				callbacksRef.current?.onBannerFetched?.({
-					jurisdiction: 'NONE' as never,
-					location: {
-						countryCode: snapshot.location?.countryCode ?? null,
-						regionCode: snapshot.location?.regionCode ?? null,
-					},
-					translations: snapshot.translations ?? {
-						...DEFAULT_TRANSLATIONS,
-					},
-				});
-			}),
+
 			kernel.events.on(
 				'command:error',
 				(event: Extract<KernelEvent, { type: 'command:error' }>) => {
@@ -410,10 +313,6 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 	return JSON.stringify({
 		i18n: options.i18n,
 		mode: options.mode?.kind,
-		offlinePolicy: options.offlinePolicy,
-		policies: options.policies,
-		ssrData: Boolean(options.ssrData),
-		translations: options.translations,
 	});
 };
 
@@ -489,7 +388,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 		if (initialOnlyRef.current !== serialized) {
 			initialOnlyRef.current = serialized;
 			console.warn(
-				'c15t ConsentProvider: mode, policies, i18n/translations, offlinePolicy, and ssrData are initial-only options. Remount the provider to apply changes.'
+				'c15t ConsentProvider: mode and i18n are initial-only options. Remount the provider to apply changes.'
 			);
 		}
 	}, [options]);
@@ -498,39 +397,33 @@ const useProviderOptionSync = function useProviderOptionSync(
 const ProviderCallbacksMount = ({
 	kernel,
 	callbacks,
-	reloadOnConsentRevoked,
 }: {
 	kernel: ConsentKernel;
-	callbacks?: Callbacks;
-	reloadOnConsentRevoked: boolean;
+	callbacks?: ConsentProviderCallbacks;
 }) => {
-	useProviderCallbacks(kernel, callbacks, reloadOnConsentRevoked);
+	useProviderCallbacks(kernel, callbacks);
 	return null;
 };
 
 const InitMount = ({
 	enabled,
 	kernel,
-	eagerInit = false,
 }: {
 	enabled: boolean;
 	kernel: ConsentKernel;
-	eagerInit?: boolean;
 }) => {
-	const skippedEagerRef = useRef(false);
+	const initialized = useRef(false);
 	useEffect(() => {
 		if (!enabled) {
+			initialized.current = false;
 			return;
 		}
-		// The provider may have dispatched init at kernel creation (eager,
-		// render-time) — skip this effect's first pass so init fires exactly
-		// once, while later `enabled` flips still re-init.
-		if (eagerInit && !skippedEagerRef.current) {
-			skippedEagerRef.current = true;
+		if (initialized.current) {
 			return;
 		}
-		void kernel.commands.init();
-	}, [enabled, kernel, eagerInit]);
+		initialized.current = true;
+		kernel.commands.init();
+	}, [enabled, kernel]);
 	return null;
 };
 
@@ -729,23 +622,13 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 		return false;
 	}
 	const { storageConfig } = options;
+	const prepared = !!options.prefetch?.initialRecords;
 	if (options.persistence === true || options.persistence === undefined) {
-		return {
-			now: () =>
-				options.prefetch?.now ??
-				options.prefetch?.initialRecords?.now ??
-				Date.now(),
-			storageConfig,
-		};
+		return { skipHydration: prepared, storageConfig };
 	}
 	return {
-		now:
-			options.persistence.now ??
-			(() =>
-				options.prefetch?.now ??
-				options.prefetch?.initialRecords?.now ??
-				Date.now()),
-		skipHydration: options.persistence.skipHydration,
+		...options.persistence,
+		skipHydration: options.persistence.skipHydration ?? prepared,
 		storageConfig: options.persistence.storageConfig ?? storageConfig,
 	};
 };
@@ -765,14 +648,24 @@ export const ConsentProvider = ({
 	const [kernel, setKernel] = useState(() => createProviderKernel(options));
 	void setKernel;
 	const enabled = getEnabled(options);
-	const reloadOnConsentRevoked = options.reloadOnConsentRevoked !== false;
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
 	const windowDebugMode = resolveWindowDebugMode(options.mode);
 
 	useProviderOptionSync(kernel, options, enabled);
-	useEffect(() => () => kernel.dispose(), [kernel]);
+	const lifecycle = useRef(0);
+	useEffect(() => {
+		lifecycle.current += 1;
+		const generation = lifecycle.current;
+		return () => {
+			queueMicrotask(() => {
+				if (lifecycle.current === generation) {
+					kernel.dispose();
+				}
+			});
+		};
+	}, [kernel]);
 
 	const userTheme = options.theme;
 
@@ -811,7 +704,6 @@ export const ConsentProvider = ({
 			<ProviderCallbacksMount
 				kernel={kernel}
 				callbacks={options.callbacks}
-				reloadOnConsentRevoked={reloadOnConsentRevoked}
 			/>
 			<WindowDebugMount
 				pkg={windowDebugPkg}

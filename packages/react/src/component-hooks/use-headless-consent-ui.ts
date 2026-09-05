@@ -16,6 +16,7 @@ import {
 	useSaveConsents,
 	useSetActiveUI,
 } from '../hooks';
+import { useTheme } from '../hooks/use-theme';
 import { useUIConfig } from '../ui-config-context';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
@@ -46,6 +47,17 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 	const activeUI = useActiveUI();
 	const policy = usePolicyRule();
 	const { presentation } = useUIConfig();
+	const { theme } = useTheme();
+	const appearance = useMemo(() => {
+		const styles = theme?.consentActions;
+		if (!styles?.accept && !styles?.reject) {
+			return undefined;
+		}
+		return {
+			accept: { ...styles.default, ...styles.accept },
+			reject: { ...styles.default, ...styles.reject },
+		};
+	}, [theme]);
 	const saveConsents = useSaveConsents();
 	const dismissNotice = useDismissNotice();
 	const setActiveUI = useSetActiveUI();
@@ -53,6 +65,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 	const banner = useMemo(
 		() => ({
 			...resolveConsentPresentation({
+				actionAppearance: appearance,
 				override: overrides?.prompt,
 				policy,
 				presentation,
@@ -60,11 +73,12 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 			}),
 			isVisible: activeUI === 'banner',
 		}),
-		[policy, presentation, overrides?.prompt, activeUI]
+		[policy, presentation, overrides?.prompt, activeUI, appearance]
 	);
 	const dialog = useMemo(
 		() => ({
 			...resolveConsentPresentation({
+				actionAppearance: appearance,
 				override: overrides?.preferences,
 				policy,
 				presentation,
@@ -72,7 +86,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 			}),
 			isVisible: activeUI === 'dialog',
 		}),
-		[policy, presentation, overrides?.preferences, activeUI]
+		[policy, presentation, overrides?.preferences, activeUI, appearance]
 	);
 	useEffect(() => {
 		if (

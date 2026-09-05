@@ -143,6 +143,7 @@ export const TriggerButton = createForwardRef<
 				ref={ref}
 				type="button"
 				data-c15t-trigger="true"
+				data-c15t-rights="disclosure preferences opt-out"
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}

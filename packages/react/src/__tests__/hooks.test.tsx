@@ -16,13 +16,13 @@ import {
 	offline,
 	useConsent,
 	useConsents,
-	useHasConsented,
+	useExplicitChoice,
 	useNetworkBlocker,
 	useOverrides,
 	useSaveConsents,
-	useSetConsent,
 	useSetOverrides,
 } from '../index';
+import { policyFixture } from './policy-fixture';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -50,7 +50,12 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 const withProvider = function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider
-			options={{ mode: offline(), persistence: false, ...options }}
+			options={{
+				mode: offline(),
+				persistence: false,
+				prefetch: policyFixture(),
+				...options,
+			}}
 		>
 			{children}
 		</ConsentProvider>
@@ -68,7 +73,7 @@ describe('v3 react: selector hook basics', () => {
 		};
 
 		const ToggleMarketing = () => {
-			const setConsent = useSetConsent();
+			const setConsent = useSaveConsents();
 			return (
 				<button
 					type="button"
@@ -103,7 +108,7 @@ describe('v3 react: selector hook basics', () => {
 		};
 
 		const Toggle = () => {
-			const setConsent = useSetConsent();
+			const setConsent = useSaveConsents();
 			return (
 				<button
 					type="button"
@@ -133,11 +138,11 @@ describe('v3 react: selector hook basics', () => {
 			.toHaveTextContent('"marketing":true');
 	});
 
-	test('useHasConsented flips after save', async () => {
+	test('explicit choice appears after save', async () => {
 		const { Wrapper } = withProvider();
 
 		const Status = () => {
-			const v = useHasConsented();
+			const v = useExplicitChoice() !== null;
 			return <div data-testid="has">{String(v)}</div>;
 		};
 
@@ -237,7 +242,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 		};
 
 		const ToggleMarketing = () => {
-			const setConsent = useSetConsent();
+			const setConsent = useSaveConsents();
 			return (
 				<button
 					type="button"
@@ -280,7 +285,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 
 		const View = () => {
 			const consents = useConsents();
-			const setConsent = useSetConsent();
+			const setConsent = useSaveConsents();
 			return (
 				<>
 					<button
@@ -331,7 +336,7 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 
 		const MarketingReader = () => {
 			const allowed = useConsent('marketing');
-			const setConsent = useSetConsent();
+			const setConsent = useSaveConsents();
 			return (
 				<>
 					<button
@@ -528,13 +533,13 @@ describe('v3 react: network blocker lifecycle', () => {
 });
 
 describe('v3 react: action hooks', () => {
-	test('useSetConsent returns a stable reference and mutates kernel', async () => {
+	test('useSaveConsents returns a stable reference and mutates kernel', async () => {
 		const { Wrapper } = withProvider();
 		const references: unknown[] = [];
 		const observedMeasurements: boolean[] = [];
 
 		const Actor = () => {
-			const setConsent = useSetConsent();
+			const setConsent = useSaveConsents();
 			const measurement = useConsent('measurement');
 			useEffect(() => {
 				references.push(setConsent);
@@ -574,7 +579,7 @@ describe('v3 react: action hooks', () => {
 
 		const Saver = () => {
 			const save = useSaveConsents();
-			const hasConsented = useHasConsented();
+			const hasConsented = useExplicitChoice() !== null;
 			const marketing = useConsent('marketing');
 			return (
 				<div>

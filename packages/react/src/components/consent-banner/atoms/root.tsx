@@ -236,15 +236,19 @@ const ConsentBannerRootChildren = createForwardRef<
 		const textDirection = useTextDirection(
 			translations?.language ?? defaultTranslationConfig.defaultLanguage
 		);
-		const [isVisible, setIsVisible] = useState(false);
-		const [hasAnimated, setHasAnimated] = useState(false);
+		const [isVisible, setIsVisible] = useState(
+			activeUI === 'banner' && models.includes(model)
+		);
+		const [hasAnimated, setHasAnimated] = useState(
+			activeUI === 'banner' && models.includes(model)
+		);
 		// Default fallback for SSR
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);
 
 		// ConsentBanner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
 		const [hasInitializedVisibility, setHasInitializedVisibility] =
-			useState(false);
+			useState(true);
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {

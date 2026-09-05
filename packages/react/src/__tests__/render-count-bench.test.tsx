@@ -15,7 +15,13 @@ import { Profiler } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentProvider, offline, useConsent, useSetConsent } from '../index';
+import {
+	ConsentProvider,
+	offline,
+	useConsent,
+	useSaveConsents,
+} from '../index';
+import { policyFixture } from './policy-fixture';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -83,7 +89,7 @@ const runBench = async function runBench(): Promise<Run> {
 	};
 
 	const Mutator = () => {
-		const setConsent = useSetConsent();
+		const setConsent = useSaveConsents();
 		return (
 			<button
 				data-testid="toggle"
@@ -100,15 +106,7 @@ const runBench = async function runBench(): Promise<Run> {
 			options={{
 				mode: offline(),
 				persistence: false,
-				prefetch: {
-					initialConsents: {
-						experience: false,
-						functionality: false,
-						marketing: false,
-						measurement: false,
-						necessary: true,
-					},
-				},
+				prefetch: policyFixture(),
 			}}
 		>
 			{Array.from({ length: CHILDREN }, (_, i) => (

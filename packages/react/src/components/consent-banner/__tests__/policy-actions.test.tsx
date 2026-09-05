@@ -3,9 +3,9 @@ import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
-import { ConsentProvider } from '~/provider';
 import { offline } from '~/transports/offline';
 
 type ConsentManagerState = ReturnType<typeof useConsentManager>;
@@ -187,7 +187,7 @@ describe('ConsentBanner.PolicyActions', () => {
 		).toHaveAttribute('data-consent-action', 'customize');
 	});
 
-	test('filters disallowed actions', async () => {
+	test('host hints cannot remove policy actions', async () => {
 		await renderPolicyActions({
 			policyBanner: {
 				allowedActions: ['accept'],
@@ -202,10 +202,10 @@ describe('ConsentBanner.PolicyActions', () => {
 		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="banner-action-reject"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 		expect(
 			document.querySelector('[data-testid="banner-action-customize"]')
-		).not.toBeInTheDocument();
+		).toBeInTheDocument();
 	});
 
 	test('applies stacked and fill layout behavior', async () => {

@@ -8,9 +8,9 @@ import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import { IABConsentBanner } from '~/components/iab-consent-banner';
 import { IABConsentDialog } from '~/components/iab-consent-dialog';
-import { ConsentProvider } from '~/provider';
 
 import type { TcfApiTestFunction } from './e2e-setup';
 import {
@@ -108,7 +108,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 				() => {
 					const consent = getStoredConsent();
 					expect(consent).toBeDefined();
-					expect(consent?.consents?.necessary).toBe(true);
+					expect(consent?.choice?.categories.marketing?.value).toBe(false);
 				},
 				{ timeout: 2000 }
 			);
@@ -208,7 +208,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 				() => {
 					const consent = getStoredConsent();
 					expect(consent).toBeDefined();
-					expect(consent?.consents).toBeDefined();
+					expect(consent?.choice?.categories).toBeDefined();
 				},
 				{ timeout: 2000 }
 			);

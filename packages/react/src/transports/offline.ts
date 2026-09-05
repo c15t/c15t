@@ -1,5 +1,8 @@
-import type { ProviderTransportFactory } from '@c15t/core';
-import { resolvePolicyRules } from '@c15t/schema/types';
+import type { ProviderTransportFactory, InitContext } from '@c15t/core';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import type { PolicyRule } from '@c15t/schema/types';
 
 /** Policy rules evaluated locally when initialization runs. */
@@ -17,13 +20,15 @@ export const offline = function offline(
 ): ProviderTransportFactory {
 	return Object.assign(
 		(context: Parameters<ProviderTransportFactory>[0]) => ({
-			init: () =>
+			init: ({ overrides }: InitContext) =>
 				Promise.resolve({
-					policyResolution: resolvePolicyRules({
-						countryCode: null,
-						regionCode: null,
-						rules: options.policyRules,
-					}),
+					policyResolution: writePolicyResolutionWire(
+						resolvePolicyRules({
+							countryCode: overrides.country ?? null,
+							regionCode: overrides.region ?? null,
+							rules: options.policyRules,
+						})
+					),
 					translations: context.translations,
 				}),
 		}),
