@@ -3,7 +3,7 @@
 import {
 	useInit,
 	useSetActiveUI,
-	useClear,
+	useConsentDraft,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
@@ -42,7 +42,7 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const snapshot = useSnapshot();
 	const init = useInit();
 	const setActiveUI = useSetActiveUI();
-	const clear = useClear();
+	const draft = useConsentDraft();
 	const setLanguage = useSetLanguage();
 	const setOverrides = useSetOverrides();
 
@@ -206,13 +206,12 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 				<Button
 					className="rounded-full"
 					onClick={() => {
-						clear();
-						void init();
+						draft.reset();
 					}}
 					size="sm"
 					variant="ghost"
 				>
-					Reset consent
+					Reset draft
 				</Button>
 			</div>
 

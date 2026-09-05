@@ -9,7 +9,7 @@ import {
 	ConsentProvider,
 	ConsentWidget,
 	offline,
-	useClear,
+	useConsentDraft,
 	useSnapshot,
 } from 'c15t/react';
 import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
@@ -292,12 +292,12 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 
 const PolicyActionsDemoContent = () => {
 	const [variant, setVariant] = React.useState<DemoVariant>('default');
-	const clear = useClear();
+	const draft = useConsentDraft();
 	const snapshot = useSnapshot();
 	const { banner, dialog, openBanner, openDialog } = useHeadlessConsentUI();
 
-	const resetConsents = () => {
-		clear();
+	const resetDraft = () => {
+		draft.reset();
 	};
 
 	const bannerSnapshot = React.useMemo(
@@ -356,7 +356,7 @@ const PolicyActionsDemoContent = () => {
 						<Button
 							variant="outline"
 							onClick={() => {
-								resetConsents();
+								resetDraft();
 								openBanner();
 							}}
 						>

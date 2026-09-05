@@ -390,7 +390,7 @@ export const demoScenarios: DemoScenario[] = [
 		presentation: {
 			preferences: {
 				direction: 'column',
-				layout: ['accept', 'reject'],
+				layout: ['accept', 'reject', 'save'],
 				primaryActions: ['accept', 'reject'],
 				uiProfile: 'compact',
 			},

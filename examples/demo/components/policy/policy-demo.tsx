@@ -9,7 +9,7 @@ import {
 	offline,
 	useInit,
 	useSetActiveUI,
-	useClear,
+	useConsentDraft,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
@@ -399,7 +399,7 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 	const presentation = usePromptPresentation();
 	const init = useInit();
 	const setActiveUI = useSetActiveUI();
-	const clear = useClear();
+	const draft = useConsentDraft();
 	const setLanguage = useSetLanguage();
 	const setOverrides = useSetOverrides();
 
@@ -528,11 +528,10 @@ const RuntimeInfo = ({ demoMode }: { demoMode: DemoMode }) => {
 					size="sm"
 					className="rounded-full"
 					onClick={() => {
-						clear();
-						void init();
+						draft.reset();
 					}}
 				>
-					Reset
+					Reset draft
 				</Button>
 			</div>
 
