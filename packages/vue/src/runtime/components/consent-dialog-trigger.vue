@@ -25,7 +25,7 @@ const policy = usePolicyRule();
 const init = useConsentInit();
 
 const STORAGE_KEY = 'c15t:dialog-trigger-position';
-const STORAGE_OFFSET = 20;
+const FALLBACK_OFFSET = 20;
 
 const mounted = useMounted();
 const { width, height } = useWindowSize();
@@ -47,27 +47,38 @@ const resolveSizePixels = function resolveSizePixels(
 	return 40;
 };
 
+// Resolve the same CSS length as class-positioned triggers, including rem,
+// calc(), and caller overrides inherited by the rendered trigger.
+const resolveOffset = function resolveOffset(): number {
+	const trigger = triggerRef.value;
+	if (!trigger) {
+		return FALLBACK_OFFSET;
+	}
+	const probe = document.createElement('span');
+	probe.style.cssText =
+		'position:absolute;visibility:hidden;padding-left:var(--cdt-offset,20px)';
+	trigger.append(probe);
+	const offset = Number.parseFloat(getComputedStyle(probe).paddingLeft);
+	probe.remove();
+	return Number.isFinite(offset) ? offset : FALLBACK_OFFSET;
+};
+
 const resolveInitialPosition = function resolveInitialPosition(
 	position: ConsentDialogTriggerPosition,
 	size: ConsentDialogTriggerSize
 ) {
 	const sizePixels = resolveSizePixels(size);
-	const maxX = Math.max(
-		width.value - sizePixels - STORAGE_OFFSET,
-		STORAGE_OFFSET
-	);
-	const maxY = Math.max(
-		height.value - sizePixels - STORAGE_OFFSET,
-		STORAGE_OFFSET
-	);
+	const offset = resolveOffset();
+	const maxX = Math.max(width.value - sizePixels - offset, offset);
+	const maxY = Math.max(height.value - sizePixels - offset, offset);
 	if (position === 'top-left') {
-		return { x: STORAGE_OFFSET, y: STORAGE_OFFSET };
+		return { x: offset, y: offset };
 	}
 	if (position === 'top-right') {
-		return { x: maxX, y: STORAGE_OFFSET };
+		return { x: maxX, y: offset };
 	}
 	if (position === 'bottom-left') {
-		return { x: STORAGE_OFFSET, y: maxY };
+		return { x: offset, y: maxY };
 	}
 	return { x: maxX, y: maxY };
 };
@@ -95,7 +106,7 @@ const { position, isDragging } = useDraggable(triggerRef, {
 });
 
 watch(
-	[mounted, width, height],
+	[mounted, width, height, activeUI],
 	() => {
 		if (!mounted.value || isDragging.value) {
 			return;
@@ -110,7 +121,7 @@ watch(
 		);
 		position.value = next;
 	},
-	{ immediate: true }
+	{ flush: 'post', immediate: true }
 );
 
 const isVisible = computed(() => {
@@ -155,7 +166,7 @@ const openDialog = function openDialog() {
 			:class="triggerStyles.trigger"
 			:data-size="config.triggerSize"
 			:data-dragging="isDragging ? true : undefined"
-			:style="triggerStyle"
+			:style="[config.components?.trigger?.root?.style, triggerStyle]"
 			:aria-label="config.triggerAriaLabel"
 			@click="openDialog"
 		>
