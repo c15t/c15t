@@ -108,7 +108,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/core",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/prune-dist-types.ts && bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",

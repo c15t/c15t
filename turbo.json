@@ -31,7 +31,9 @@
 				"$TURBO_DEFAULT$",
 				".env*",
 				"$TURBO_ROOT$/docs/**",
-				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts",
+				"$TURBO_ROOT$/scripts/prune-dist-types.ts",
+				"$TURBO_ROOT$/scripts/manifest-utils.ts"
 			],
 			"outputs": [
 				"dist/**",
