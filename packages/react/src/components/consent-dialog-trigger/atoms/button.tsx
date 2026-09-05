@@ -10,6 +10,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import { forwardRef as createForwardRef } from 'react';
 import type { ReactNode } from 'react';
 
+import { usePolicyRule } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
@@ -94,6 +95,7 @@ export const TriggerButton = createForwardRef<
 		},
 		ref
 	) => {
+		const policy = usePolicyRule();
 		const { components } = useUIConfig();
 		const { noStyle: contextNoStyle } = useTheme();
 		const {
@@ -143,7 +145,7 @@ export const TriggerButton = createForwardRef<
 				ref={ref}
 				type="button"
 				data-c15t-trigger="true"
-				data-c15t-rights="disclosure preferences opt-out"
+				data-c15t-rights={policy.rights.join(' ')}
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
