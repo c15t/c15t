@@ -15,6 +15,7 @@ import {
 	useContext,
 	useEffect,
 	useLayoutEffect,
+	useMemo,
 	useRef,
 } from 'react';
 import type { ForwardedRef, HTMLAttributes, ReactElement } from 'react';
@@ -45,6 +46,21 @@ const requireKernel = (kernel: ConsentKernel | null): ConsentKernel => {
 	return kernel;
 };
 
+const useStableConsentCategories = (
+	getter: DevToolsOptions['getConsentCategories']
+): DevToolsOptions['getConsentCategories'] => {
+	const categoryKey = getter ? JSON.stringify(getter()) : undefined;
+	return useMemo(() => {
+		if (categoryKey === undefined) {
+			return undefined;
+		}
+		const categories = JSON.parse(categoryKey) as ReturnType<
+			NonNullable<typeof getter>
+		>;
+		return () => categories;
+	}, [categoryKey]);
+};
+
 /**
  * Mounts the c15t DevTools engine for the nearest v3 consent provider.
  *
@@ -61,6 +77,8 @@ export const ConsentDevTools = ({
 }: ConsentDevToolsProps): null => {
 	const contextKernel = useContext(KernelContext);
 	const kernel = disabled ? null : requireKernel(contextKernel);
+	const getDisplayedCategories =
+		useStableConsentCategories(getConsentCategories);
 
 	useEffect(() => {
 		if (!kernel) {
@@ -70,7 +88,7 @@ export const ConsentDevTools = ({
 		const devTools = createDevTools({
 			defaultOpen,
 			defaultTab,
-			getConsentCategories,
+			getConsentCategories: getDisplayedCategories,
 			kernel,
 			maxEvents,
 			position,
@@ -79,7 +97,7 @@ export const ConsentDevTools = ({
 	}, [
 		defaultOpen,
 		defaultTab,
-		getConsentCategories,
+		getDisplayedCategories,
 		kernel,
 		maxEvents,
 		position,
@@ -157,6 +175,8 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 	) {
 		const contextKernel = useContext(KernelContext);
 		const kernel = disabled ? null : requireKernel(contextKernel);
+		const getDisplayedCategories =
+			useStableConsentCategories(getConsentCategories);
 		const containerRef = useRef<HTMLDivElement | null>(null);
 		const setContainerRef = useCallback(
 			(value: HTMLDivElement | null) => {
@@ -176,14 +196,14 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 				container,
 				defaultOpen: true,
 				defaultTab,
-				getConsentCategories,
+				getConsentCategories: getDisplayedCategories,
 				kernel,
 				maxEvents,
 			});
 			devTools.element?.classList.add('c15t-dev-tools--embedded');
 
 			return () => devTools.destroy();
-		}, [defaultTab, getConsentCategories, kernel, maxEvents]);
+		}, [defaultTab, getDisplayedCategories, kernel, maxEvents]);
 
 		return (
 			<div

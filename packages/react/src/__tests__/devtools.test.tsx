@@ -35,6 +35,68 @@ afterEach(() => {
 });
 
 describe('v3 React DevTools adapter', () => {
+	test.each([false, true])(
+		'preserves the active tab and events across inline callback rerenders, embedded=%s',
+		async (embedded) => {
+			const tree = (measurement: boolean) => (
+				<Provider>
+					{embedded ? (
+						<C15tTanStackDevtoolsPanel
+							getConsentCategories={() =>
+								measurement
+									? ['necessary', 'measurement']
+									: ['necessary', 'marketing']
+							}
+						/>
+					) : (
+						<ConsentDevTools
+							defaultOpen
+							getConsentCategories={() =>
+								measurement
+									? ['necessary', 'measurement']
+									: ['necessary', 'marketing']
+							}
+						/>
+					)}
+				</Provider>
+			);
+			const view = await render(tree(true));
+			await vi.waitFor(() => expect(getMountedDevTools()).not.toBeNull());
+			const root = getMountedDevTools();
+			root
+				?.querySelector<HTMLInputElement>(
+					'[data-focus-key="consent:measurement"]'
+				)
+				?.click();
+			root?.querySelector<HTMLButtonElement>('[data-tab="events"]')?.click();
+			const events = root?.querySelector('[role="tabpanel"]')?.textContent;
+			expect(events).toContain('consent:set');
+			await view.rerender(tree(true));
+			expect(getMountedDevTools()).toBe(root);
+			expect(
+				root
+					?.querySelector('[data-tab="events"]')
+					?.getAttribute('aria-selected')
+			).toBe('true');
+			expect(root?.querySelector('[role="tabpanel"]')?.textContent).toBe(
+				events
+			);
+			await view.rerender(tree(false));
+			await vi.waitFor(() => {
+				expect(
+					getMountedDevTools()?.querySelector(
+						'[data-focus-key="consent:marketing"]'
+					)
+				).not.toBeNull();
+				expect(
+					getMountedDevTools()?.querySelector(
+						'[data-focus-key="consent:measurement"]'
+					)
+				).toBeNull();
+			});
+			view.unmount();
+		}
+	);
 	test('exports the compatible component names', () => {
 		expect(DevTools).toBe(ConsentDevTools);
 		expect(C15TDevTools).toBe(ConsentDevTools);
