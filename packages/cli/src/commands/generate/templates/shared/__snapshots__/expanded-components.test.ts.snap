@@ -1,0 +1,97 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`expanded component templates > generates a Next.js v3 SSR boundary with config 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentProvider, hosted } from 'c15t/next';
+import type { KernelConfig } from 'c15t/next';
+import { lazy, Suspense } from 'react';
+
+const DevTools = process.env.NODE_ENV !== 'production'
+	? lazy(() => import('c15t/next/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
+import ConsentBanner from './consent-banner';
+import ConsentDialog from './consent-dialog';
+import { components, theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+	config: KernelConfig;
+}
+
+/**
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/next/quickstart
+ */
+export default function ConsentManagerClient({ children, config }: Props) {
+	return (
+		<ConsentProvider
+			options={{
+				mode: hosted({ url: '/api/c15t' }),
+				prefetch: config,
+				theme,
+				components,
+				// Add your scripts here:
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+			}}
+		>
+			<ConsentBanner />
+			<ConsentDialog />
+			<Suspense fallback={null}><DevTools /></Suspense>
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;
+
+exports[`expanded component templates > generates a React v3 provider with its DevTools adapter 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentProvider, offline } from 'c15t/react';
+
+import { lazy, Suspense } from 'react';
+
+const DevTools = import.meta.env.DEV
+	? lazy(() => import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
+import ConsentBanner from './consent-banner';
+import ConsentDialog from './consent-dialog';
+import { components, theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+}
+
+/**
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/react/quickstart
+ */
+export default function ConsentManagerClient({ children }: Props) {
+	return (
+		<ConsentProvider
+			options={{
+				mode: offline(),
+				theme,
+				components,
+				// Add your scripts here:
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+				// Shows banner during development. Remove for production.
+				overrides: { country: 'DE' },
+			}}
+		>
+			<ConsentBanner />
+			<ConsentDialog />
+			<Suspense fallback={null}><DevTools /></Suspense>
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;

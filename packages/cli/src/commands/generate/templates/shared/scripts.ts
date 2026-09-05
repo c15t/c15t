@@ -1,3 +1,4 @@
+/* oxlint-disable func-style, no-use-before-define -- Function hoisting keeps the public script generators in API order. */
 /**
  * Script generation utilities
  * Generates import statements and configuration for selected c15t scripts
@@ -171,13 +172,13 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
  * @param scriptName - The script name (e.g., 'google-tag-manager')
  * @returns The camelCase version (e.g., 'googleTagManager')
  */
-export const toCamelCase = function toCamelCase(scriptName: string): string {
-	return scriptName.replace(/-(?<capture1>[a-z])/gu, (_, letter) =>
+export function toCamelCase(scriptName: string): string {
+	return scriptName.replace(/-(?<letter>[a-z])/gu, (_, letter) =>
 		letter.toUpperCase()
 	);
-};
+}
 
-const getSnippet = function getSnippet(scriptName: string): ScriptSnippet {
+function getSnippet(scriptName: string): ScriptSnippet {
 	const snippet = SCRIPT_SNIPPETS[scriptName];
 	if (snippet) {
 		return snippet;
@@ -187,7 +188,7 @@ const getSnippet = function getSnippet(scriptName: string): ScriptSnippet {
 		example: `${toCamelCase(scriptName)}({ /* TODO: configure ${scriptName} */ })`,
 		importName: toCamelCase(scriptName),
 	};
-};
+}
 
 /**
  * Generates the import statements for selected scripts
@@ -204,9 +205,7 @@ const getSnippet = function getSnippet(scriptName: string): ScriptSnippet {
  * //  import { clarity } from '@c15t/scripts/microsoft-clarity';"
  * ```
  */
-export const generateScriptsImport = function generateScriptsImport(
-	selectedScripts: string[]
-): string {
+export function generateScriptsImport(selectedScripts: string[]): string {
 	if (!selectedScripts.length) {
 		return '';
 	}
@@ -217,10 +216,10 @@ export const generateScriptsImport = function generateScriptsImport(
 				`import { ${getSnippet(script).importName} } from '@c15t/scripts/${script}';`
 		)
 		.join('\n');
-};
+}
 
 /**
- * Generates the scripts configuration array for ConsentManagerProvider options
+ * Generates the scripts configuration array for `ConsentProvider` options.
  *
  * @param selectedScripts - Array of script names to configure
  * @returns The scripts configuration string, or empty string if no scripts
@@ -239,21 +238,25 @@ export const generateScriptsImport = function generateScriptsImport(
  * // ],"
  * ```
  */
-export const generateScriptsConfig = function generateScriptsConfig(
-	selectedScripts: string[]
-): string {
+export function generateScriptsConfig(selectedScripts: string[]): string {
 	if (!selectedScripts.length) {
 		return '';
 	}
 
+	return `scripts: ${generateScriptsArrayValue(selectedScripts)},`;
+}
+
+/** Generates an array expression for framework adapters with a scripts prop. */
+export function generateScriptsArrayValue(
+	selectedScripts: string[],
+	indentation = '\t\t\t\t'
+): string {
 	const scriptConfigs = selectedScripts.map(
 		(script) => getSnippet(script).example
 	);
 
-	return `scripts: [
-					${scriptConfigs.join(',\n\t\t\t\t\t')},
-				],`;
-};
+	return `[\n${indentation}\t${scriptConfigs.join(`,\n${indentation}\t`)},\n${indentation}]`;
+}
 
 /**
  * Generates a comment block showing example script configuration
@@ -261,11 +264,10 @@ export const generateScriptsConfig = function generateScriptsConfig(
  *
  * @returns A comment block with example script usage
  */
-export const generateScriptsCommentPlaceholder =
-	function generateScriptsCommentPlaceholder(): string {
-		return `// Add your scripts here:
+export function generateScriptsCommentPlaceholder(): string {
+	return `// Add your scripts here:
 				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
 				// ],`;
-	};
+}

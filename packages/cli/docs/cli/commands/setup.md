@@ -51,10 +51,23 @@ After `setup` completes, the banner appears on first page load in dev. Follow-up
 
 ## Flags
 
-`setup` is an alias for [`generate`](./generate) and accepts the same flags:
+`setup` accepts these setup flags:
 
 * `-y` / `--yes` — accept defaults and skip prompts (used by the summary step).
 * `--resume` — resume from a previously interrupted run.
 * A storage mode (`hosted`, `offline`, `self-hosted`, `custom`) can be passed as the first positional argument to skip the storage-mode prompt.
 
 Plus the [global flags](../global-flags) (`--help`, `--version`, `--logger`, `--config`, `--no-telemetry`, `--telemetry-debug`).
+
+## Optional DevTools
+
+When you opt in to DevTools, setup uses the framework's `/devtools` adapter.
+Check the generated development flag before shipping. React scaffolds use a
+build-time flag when the bundler is recognized, and otherwise leave the panel
+disabled for you to configure. Plain JavaScript scaffolds need a development
+entry point or an explicit bundler guard around the imperative panel setup.
+
+See the [React](/docs/frameworks/react/components/dev-tools),
+[Next.js](/docs/frameworks/next/components/dev-tools) or
+[JavaScript](/docs/frameworks/javascript/dev-tools) guide for the exact imports.
+The panel must inspect the same kernel used by your consent UI and scripts.

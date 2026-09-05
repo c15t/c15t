@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
+
+const ConsentDevTools = import.meta.dev
+	? defineAsyncComponent(() => import('c15t/vue/devtools'))
+	: null;
+
 /**
  * The only required integration: mount <ConsentRoot /> once.
  * Everything below it is demo chrome showing the consent state live.
@@ -8,17 +14,21 @@ const hasConsent = useHasConsent();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 
-const reopenBanner = function reopenBanner() {
+const reopenBanner = () => {
 	activeUI.value = 'banner';
 };
 
-const openPreferences = function openPreferences() {
+const openPreferences = () => {
 	activeUI.value = 'manager';
 };
 </script>
 
 <template>
 	<ConsentRoot />
+	<ConsentDevTools
+		v-if="ConsentDevTools"
+		position="bottom-right"
+	/>
 
 	<main class="page">
 		<h1>c15t × Nuxt</h1>

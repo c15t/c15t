@@ -1,31 +1,30 @@
 {
-	"title": "@c15t/dev-tools: Developer Tooling (Work in Progress)",
-	"description": "A collection of developer tools and utilities for the c15t ecosystem, currently under active development.",
+	"title": "@c15t/dev-tools: Kernel-first consent debugging",
+	"description": "Framework-neutral developer tools for inspecting c15t v3 consent state, resolved policy, location, IAB state, kernel events, and actions.",
 	"features": [
-		"🚧 Experimental developer utilities",
-		"React component library with utility tools",
-		"Radix UI and Tailwind CSS integration",
-		"State management and UI component helpers",
-		"Ongoing development and refinement"
+		"Explicit ConsentKernel binding with no global store discovery",
+		"Isolated state and event history for multiple providers",
+		"Framework-neutral DOM panel for consent, location, policy, IAB, events, and actions",
+		"Typed kernel event capture without callback instrumentation"
 	],
 	"prerequisites": [
 		"Node.js 20.19 or later",
-		"React 16.8.0 or later",
-		"Familiarity with experimental tooling"
+		"A c15t v3 ConsentKernel",
+		"A browser DOM"
 	],
 	"manualInstallation": [
 		"",
-		"```bash\npnpm add @c15t/dev-tools\n```",
+		"Framework adapters include this engine, so React, Next.js, Vue, and Svelte applications do not need to install it separately. Install it directly only for the imperative API:",
 		"",
-		"⚠️ **Note:** This package is experimental and may undergo significant changes."
+		"```bash\npnpm add -D @c15t/dev-tools\n```"
 	],
 	"usage": [
-		"🚧 Explore the dev tools with caution",
-		"Import and use components carefully",
-		"Expect potential breaking changes",
-		"Feedback and contributions welcome!"
+		"Create the engine with `createDevTools({ kernel })`",
+		"Call `destroy()` when the kernel owner unmounts",
+		"Use the framework adapter when the kernel is held in framework context",
+		"Load DevTools only during development"
 	],
-	"docsLink": "https://c15t.com/docs/dev-tools/overview",
-	"quickStartLink": "https://c15t.com/docs/dev-tools/quickstart",
+	"docsLink": "https://c15t.com/docs/frameworks/react/components/dev-tools",
+	"quickStartLink": "https://c15t.com/docs/frameworks/react/components/dev-tools",
 	"showCLIGeneration": false
 }

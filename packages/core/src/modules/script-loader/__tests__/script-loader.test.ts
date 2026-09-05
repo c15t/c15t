@@ -35,6 +35,7 @@ const IAB_RESOLUTION = matchedResolution(iabRule());
 
 interface StubScriptElement {
 	id: string;
+	readonly isConnected: boolean;
 	src?: string;
 	textContent?: string;
 	async?: boolean;
@@ -68,6 +69,9 @@ const createStubElement = function createStubElement(): StubScriptElement {
 		},
 		attributes: new Map(),
 		id: '',
+		get isConnected() {
+			return this.parentNode !== null;
+		},
 		listeners: new Map(),
 		parentNode: null,
 		removeEventListener(event, handler) {
@@ -192,7 +196,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 			],
 		});
 
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(head.children).toHaveLength(0);
 	});
@@ -214,7 +218,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		// Permissive scope means the controller declared categories outside
 		// the scope unrestricted; strict scope denies them (see the strict
 		// test above). Neither creates a choice.
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(head.children).toHaveLength(1);
 	});
@@ -311,6 +315,48 @@ describe('script-loader: DOM dedupe across loader instances', () => {
 });
 
 describe('script-loader: alwaysLoad bypasses consent', () => {
+	test('reports actual consent and forwards changes across categories', async () => {
+		const kernel = createConsentKernel();
+		const onBeforeLoad = vi.fn();
+		const onConsentChange = vi.fn();
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					alwaysLoad: true,
+					category: 'measurement',
+					id: 'google-consent-mode',
+					onBeforeLoad,
+					onConsentChange,
+					src: 'https://example.com/google.js',
+				},
+			],
+		});
+		expect(onBeforeLoad).toHaveBeenCalledWith(
+			expect.objectContaining({ hasConsent: false })
+		);
+		onConsentChange.mockClear();
+
+		await kernel.commands.save({ measurement: true });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: true })
+		);
+		await kernel.commands.save({ marketing: true });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				consents: expect.objectContaining({ marketing: true }),
+				hasConsent: true,
+			})
+		);
+		await kernel.commands.save({ measurement: false });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: false })
+		);
+		expect(onConsentChange).toHaveBeenCalledTimes(3);
+		expect(head.children).toHaveLength(1);
+		expect(onBeforeLoad).toHaveBeenCalledOnce();
+	});
+
 	test('alwaysLoad scripts mount regardless of consent state', () => {
 		const kernel = createConsentKernel();
 		createScriptLoader({
@@ -360,6 +406,42 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 });
 
 describe('script-loader: persistAfterConsentRevoked', () => {
+	test('notifies retained scripts on revoke and re-grant without mounting twice', async () => {
+		const onConsentChange = vi.fn();
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+		});
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'retained-pixel',
+					onConsentChange,
+					persistAfterConsentRevoked: true,
+					src: 'https://example.com/pixel.js',
+				},
+			],
+		});
+		const [element] = head.children;
+		onConsentChange.mockClear();
+
+		await kernel.commands.save({ marketing: false });
+		expect(onConsentChange).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ element, hasConsent: false })
+		);
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]).toBe(element);
+
+		await kernel.commands.save({ marketing: true });
+		expect(onConsentChange).toHaveBeenCalledTimes(2);
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: true })
+		);
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]).toBe(element);
+	});
+
 	test('element stays in DOM even after consent revoke', () => {
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true }),

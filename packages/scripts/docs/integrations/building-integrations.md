@@ -5,7 +5,7 @@ description: Learn when to use a raw Script, when to build a reusable
   scripts in c15t.
 group: integrations
 ---
-If you cannot find a prebuilt integration in [`@c15t/scripts`](/docs/integrations), you have two good options:
+If you cannot find a prebuilt integration in [`@c15t/scripts`](/docs/integrations/overview), you have two good options:
 
 1. Build a one-off `Script` object directly in your app.
 2. Build a reusable manifest-backed integration helper.

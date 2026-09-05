@@ -153,7 +153,9 @@ describe('kernel: commands', () => {
 			'measurement',
 		]);
 		const snap = kernel.getSnapshot();
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(snap.effectivePermissions).toEqual({
 			experience: true,
 			functionality: true,
@@ -170,7 +172,9 @@ describe('kernel: commands', () => {
 		});
 		await kernel.commands.save('none');
 		const snap = kernel.getSnapshot();
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(snap.effectivePermissions.necessary).toBe(true);
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.restrictions.marketing).toEqual(['explicit-denial']);
@@ -184,7 +188,9 @@ describe('kernel: commands', () => {
 		await kernel.commands.save({ marketing: false });
 
 		const snap = kernel.getSnapshot();
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(snap.subject?.subjectId ?? null).toMatch(/^sub_/u);
 		expect(snap.subject?.subjectId).toBe(snap.subject?.subjectId ?? null);
 		expect(listener).toHaveBeenCalledTimes(1);

@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	choiceRecords,
@@ -7,6 +7,7 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
+import { createConsentKernel } from '../../index';
 import { resolveSaveSelection } from '../commands';
 import { buildInitialSnapshot } from '../snapshot';
 
@@ -76,5 +77,39 @@ describe('resolveSaveSelection', () => {
 		expect(resolveSaveSelection(snap, null, undefined).values).toEqual({
 			marketing: true,
 		});
+	});
+});
+
+describe('displayed category saves', () => {
+	afterEach(() => vi.useRealTimers());
+	test.each(['all', 'none', undefined] as const)(
+		'preserves hidden choices and clocks for %s',
+		async (input) => {
+			let now = NOW;
+			vi.useFakeTimers();
+			vi.setSystemTime(now);
+			const kernel = createConsentKernel({ now });
+			await kernel.commands.save({ marketing: true, measurement: false });
+			const hidden = kernel.getSnapshot().explicitChoice?.categories.marketing;
+			now += 1000;
+			vi.setSystemTime(now);
+			const result = await kernel.commands.save(input, {
+				categories: ['necessary', 'measurement'],
+			});
+			expect(result.ok).toBe(true);
+			expect(kernel.getSnapshot().explicitChoice?.categories.marketing).toEqual(
+				hidden
+			);
+			expect(
+				kernel.getSnapshot().explicitChoice?.categories.measurement
+			).toMatchObject({ confirmedAt: now, value: input === 'all' });
+			kernel.dispose();
+		}
+	);
+	test('an empty displayed scope records no choice', async () => {
+		const kernel = createConsentKernel({ now: NOW });
+		await kernel.commands.save('all', { categories: [] });
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		kernel.dispose();
 	});
 });

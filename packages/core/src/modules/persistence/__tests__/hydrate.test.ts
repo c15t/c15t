@@ -169,7 +169,9 @@ describe('hydrateFromStorage', () => {
 		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe(
 			'legacy-cookie'
 		);
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(choiceRecorded).not.toHaveBeenCalled();
 		expect(permissions).toHaveBeenCalledTimes(1);
 	});

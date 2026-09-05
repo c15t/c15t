@@ -1,6 +1,7 @@
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import { computed } from 'vue';
 
+import { useConsentConfig } from './config';
 import { useConsentKernel, useConsentKernelContext } from './kernel';
 
 const useStoredConsent = function useStoredConsent() {
@@ -26,16 +27,21 @@ export type ConsentSaveInput = CONSENT_CATEGORY[] | 'all' | 'none';
 
 const useConsentSave = function useConsentSave() {
 	const kernel = useConsentKernel();
+	const config = useConsentConfig();
 
 	return (categories: ConsentSaveInput) => {
-		if (categories === 'all' || categories === 'none') {
-			return kernel.commands.save(categories);
-		}
-
+		const { scope } = kernel.getSnapshot().policyRule;
+		const configured = config.value.consentCategories;
 		const available = [
 			'necessary' as const,
-			...kernel.getSnapshot().policyRule.scope,
+			...scope.filter(
+				(name) => !configured?.length || configured.includes(name)
+			),
 		];
+		if (categories === 'all' || categories === 'none') {
+			return kernel.commands.save(categories, { categories: available });
+		}
+
 		const selected = new Set(categories);
 
 		const next = {} as Record<CONSENT_CATEGORY, boolean>;

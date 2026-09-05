@@ -78,11 +78,10 @@ const generateDocsConfig = () =>
 								pages: [
 									'concepts/initialization-flow',
 									'concepts/client-modes',
-									'concepts/consent-models',
-									'concepts/policy-packs',
 									'concepts/consent-categories',
+									'concepts/consent-models',
 									'concepts/cookie-management',
-									'concepts/glossary',
+									'concepts/policy-packs',
 								],
 
 								title: 'Concepts',
@@ -90,12 +89,9 @@ const generateDocsConfig = () =>
 							{
 								pages: [
 									'script-loader',
-									'iframe-blocking',
-									'network-blocker',
-									'callbacks',
-									'internationalization',
-									'policy-packs',
 									'server-side',
+									'policy-packs',
+									'callbacks',
 								],
 
 								title: 'Guides',
@@ -105,42 +101,18 @@ const generateDocsConfig = () =>
 									'components/consent-manager-provider',
 									'components/consent-banner',
 									'components/consent-dialog',
-									'components/consent-widget',
-									'components/consent-dialog-trigger',
-									'components/consent-dialog-link',
-									'components/frame',
 									'components/dev-tools',
 								],
 
 								title: 'Components',
 							},
 							{
-								pages: [
-									'styling/overview',
-									'styling/tokens',
-									'styling/slots',
-									'styling/classnames',
-									'styling/tailwind',
-									'styling/color-scheme',
-									'styling/css-variables',
-								],
+								pages: ['styling/overview'],
 
 								title: 'Styling',
 							},
 							{
-								pages: [
-									'hooks/use-consent-manager/overview',
-									'hooks/use-consent-manager/checking-consent',
-									'hooks/use-consent-manager/setting-consent',
-									'hooks/use-consent-manager/location-info',
-									'hooks/use-translations',
-									'hooks/use-focus-trap',
-									'hooks/use-color-scheme',
-									'hooks/use-reduced-motion',
-									'hooks/use-text-direction',
-									'hooks/use-ssr-status',
-									'hooks/use-draggable',
-								],
+								pages: ['hooks/use-consent-manager/overview'],
 
 								title: 'Hooks',
 							},
@@ -150,28 +122,18 @@ const generateDocsConfig = () =>
 								title: 'Troubleshooting',
 							},
 							{
-								pages: ['building-headless-components', 'headless'],
+								pages: ['headless'],
 
 								title: 'Headless',
 							},
 							{
-								pages: [
-									'iab/overview',
-									'iab/consent-banner',
-									'iab/consent-dialog',
-									'iab/use-gvl-data',
-								],
+								pages: ['iab/overview'],
 
 								title: 'IAB TCF',
 							},
 						],
 
-						pages: [
-							'quickstart',
-							'optimization',
-							'/granular-installs',
-							'/ai-agents',
-						],
+						pages: ['quickstart'],
 					},
 					javascript: {
 						children: [
@@ -179,11 +141,10 @@ const generateDocsConfig = () =>
 								pages: [
 									'concepts/initialization-flow',
 									'concepts/client-modes',
-									'concepts/consent-models',
-									'concepts/policy-packs',
 									'concepts/consent-categories',
+									'concepts/consent-models',
 									'concepts/cookie-management',
-									'concepts/glossary',
+									'concepts/policy-packs',
 								],
 
 								title: 'Concepts',
@@ -191,22 +152,15 @@ const generateDocsConfig = () =>
 							{
 								pages: [
 									'script-loader',
-									'iframe-blocking',
-									'network-blocker',
-									'callbacks',
-									'internationalization',
+									'dev-tools',
 									'policy-packs',
+									'callbacks',
 								],
 
 								title: 'Guides',
 							},
 							{
-								pages: [
-									'api/overview',
-									'api/checking-consent',
-									'api/setting-consent',
-									'api/location-info',
-								],
+								pages: ['api/overview'],
 
 								title: 'Store API',
 							},
@@ -227,12 +181,7 @@ const generateDocsConfig = () =>
 							},
 						],
 
-						pages: [
-							'quickstart',
-							'optimization',
-							'/granular-installs',
-							'/ai-agents',
-						],
+						pages: ['quickstart'],
 					},
 				},
 				title: 'Frameworks',
@@ -240,30 +189,23 @@ const generateDocsConfig = () =>
 			{
 				base: 'frameworks/vue',
 				pages: ['policy-presentation'],
-				title: 'Vue and Nuxt',
+				title: 'Vue policy presentation',
 			},
 			{
 				base: 'frameworks/svelte',
 				pages: ['quickstart', 'policy-records'],
-				title: 'Svelte and SvelteKit',
+				title: 'Svelte policy records',
 			},
 			{
 				base: 'cli',
 				children: [
 					{
-						pages: [
-							'commands/setup',
-							'commands/generate',
-							'commands/codemods',
-							'commands/self-host',
-							'commands/skills',
-							'commands/auth',
-						],
+						pages: ['commands/setup'],
 
 						title: 'Commands',
 					},
 					{
-						pages: ['global-flags', 'telemetry'],
+						pages: ['global-flags'],
 
 						title: 'Reference',
 					},
@@ -276,7 +218,7 @@ const generateDocsConfig = () =>
 				base: 'integrations',
 				children: [
 					{
-						pages: ['google-maps', 'youtube'],
+						pages: ['google-maps'],
 
 						title: 'Renderable',
 					},
@@ -286,50 +228,17 @@ const generateDocsConfig = () =>
 						title: 'Tag Managers',
 					},
 					{
-						pages: [
-							'google-tag',
-							'ahrefs-analytics',
-							'adobe-analytics',
-							'amplitude',
-							'cloudflare-web-analytics',
-							'clearbit',
-							'microsoft-clarity',
-							'databuddy',
-							'fathom-analytics',
-							'heap',
-							'matomo-analytics',
-							'mixpanel-analytics',
-							'hotjar',
-							'hightouch',
-							'logrocket',
-							'plausible-analytics',
-							'posthog',
-							'promptwatch',
-							'pirsch',
-							'rudderstack',
-							'segment',
-							'rybbit-analytics',
-							'umami-analytics',
-							'vercel-analytics',
-						],
+						pages: ['google-tag'],
 
 						title: 'Analytics',
 					},
 					{
-						pages: ['crisp', 'intercom'],
+						pages: ['intercom'],
 
 						title: 'Functional',
 					},
 					{
-						pages: [
-							'meta-pixel',
-							'reddit-pixel',
-							'tiktok-pixel',
-							'linkedin-insights',
-							'microsoft-uet',
-							'snapchat-pixel',
-							'x-pixel',
-						],
+						pages: ['meta-pixel'],
 
 						title: 'Ads & Pixels',
 					},
@@ -342,15 +251,7 @@ const generateDocsConfig = () =>
 				base: 'self-host',
 				children: [
 					{
-						pages: [
-							'guides/database-setup',
-							'guides/framework-integration',
-							'guides/edge-deployment',
-							'guides/caching',
-							'guides/iab-tcf',
-							'guides/policy-packs',
-							'guides/observability',
-						],
+						pages: ['guides/database-setup', 'guides/policy-packs'],
 
 						title: 'Guides',
 					},
@@ -366,7 +267,7 @@ const generateDocsConfig = () =>
 			},
 			{
 				base: 'contributing',
-				pages: ['index', 'docs-preview-action', 'documentation-setup'],
+				pages: ['index'],
 
 				title: 'Contributing',
 			},
@@ -402,7 +303,7 @@ const generateDocsConfig = () =>
 				{ urlPath: '/changelog' },
 			],
 			bullets: [
-				'Add cookie banners, consent dialogs, and persistent preference controls.',
+				'Add GDPR-ready cookie banners, consent dialogs, and preference flows.',
 				'Use framework-specific guides for JavaScript, React, and Next.js.',
 				'Load scripts, iframes, and analytics only after the required consent.',
 				'Self-host the consent backend when managed hosting is not the right fit.',

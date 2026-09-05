@@ -6,7 +6,7 @@
 '@c15t/ui': major
 ---
 
-Separate explicit choice receipts, effective permissions, prompt requirements and privacy directives. Gates consume `effectivePermissions`; preferences edit a local draft. Replace `initialConsents` and `set.consent()` with `initialDraft` and `set.draft()`. Replace snapshot `consents` with `effectivePermissions` and `subjectId` with `subject?.subjectId`. Remove `initialHasConsented`, its setter, the old `Consent` interpreter, `initialPolicy`, `policyDecision`, embedded policy presentation, and policy-scope overrides to `has()`. The remaining read-only `hasConsented` diagnostic grants nothing.
+Separate explicit choice receipts, effective permissions, prompt requirements and privacy directives. Gates consume `effectivePermissions`; preferences edit a local draft. Replace `initialConsents` and `set.consent()` with `initialDraft` and `set.draft()`. Replace snapshot `consents` with `effectivePermissions` and `subjectId` with `subject?.subjectId`. Remove `initialHasConsented`, its setter, the old `Consent` interpreter, `initialPolicy`, `policyDecision`, embedded policy presentation, and policy-scope overrides to `has()`. Remove the snapshot `hasConsented` diagnostic; inspect `explicitChoice` for receipt presence.
 
 Only `commands.save()` records choices. An object confirms exactly its own optional keys; `all` and `none` confirm the current policy scope. Repeating a value renews only the supplied category receipts, empty input records nothing, and queued retries keep the original confirmation time. Positive grants expire; denials and standing opt-out directives remain effective. `commands.dismissNotice()` records a local dismissal without changing permissions. Persistent rights remain available after a prompt closes.
 

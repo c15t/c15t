@@ -33,11 +33,9 @@
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState } from '../has';
 import { createDebugEmitter } from './debug';
-import {
-	buildReconcilePass,
-	hasScriptConsent,
-	isEligible,
-} from './eligibility';
+import { registerScriptDiagnostics } from './diagnostics';
+import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
+import { buildReconcilePass, hasScriptConsent } from './eligibility';
 import { flushPendingMounts, mountScript, unmountScript } from './mount';
 import type { MountDeps } from './mount';
 import { createElementIdResolver, normalizeScripts } from './normalize';
@@ -47,7 +45,14 @@ import type {
 	Script,
 	ScriptLoaderHandle,
 	ScriptLoaderOptions,
+	ScriptLoaderDebugEvent,
 } from './types';
+
+export {
+	getScriptDiagnostics,
+	subscribeScriptDiagnostics,
+} from './diagnostics';
+export type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
 
 export type {
 	Script,
@@ -62,12 +67,35 @@ export const createScriptLoader = function createScriptLoader(
 ): ScriptLoaderHandle {
 	const { kernel, onDebug } = options;
 	const emitToV2 = options.emitToV2DebugListeners ?? true;
-	const emit = createDebugEmitter({ emitToV2, onDebug });
+	const emitDebug = createDebugEmitter({ emitToV2, onDebug });
 	const hasDebugListener = !!onDebug || emitToV2;
+	const lastEvents = new Map<string, ScriptLoaderDebugEvent>();
+	const statuses = new Map<string, ScriptDiagnosticStatus>();
+	let diagnostics: ReturnType<typeof registerScriptDiagnostics> | undefined;
+	const emit = (event: ScriptLoaderDebugEvent): void => {
+		lastEvents.set(event.scriptId, event);
+		if (event.action === 'load_completed') {
+			statuses.set(event.scriptId, 'loaded');
+		} else if (event.action === 'loaded' && !statuses.has(event.scriptId)) {
+			statuses.set(event.scriptId, 'loading');
+		} else if (event.action === 'error') {
+			statuses.set(event.scriptId, 'error');
+		} else if (
+			event.action === 'already_loaded' &&
+			!statuses.has(event.scriptId)
+		) {
+			statuses.set(event.scriptId, 'present');
+		} else if (event.action === 'unloaded' && event.data?.retained !== true) {
+			statuses.delete(event.scriptId);
+		}
+		emitDebug(event);
+		diagnostics?.notify(event);
+	};
 
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
 
 	const loadedElements = new Map<string, HTMLScriptElement | null>();
+	const retainedElements = new Map<string, HTMLScriptElement>();
 	const ownedScriptIds = new Set<string>();
 	const elementIds = createElementIdResolver();
 	const eligibilityByScriptId = new Map<string, boolean>();
@@ -76,9 +104,11 @@ export const createScriptLoader = function createScriptLoader(
 	const mountDeps: MountDeps = {
 		elementIds,
 		emit,
+		getSnapshot: kernel.getSnapshot,
 		hasDebugListener,
 		loadedElements,
 		ownedScriptIds,
+		retainedElements,
 	};
 
 	// Track the last-seen consent-relevant references so a kernel tick
@@ -123,13 +153,15 @@ export const createScriptLoader = function createScriptLoader(
 
 		for (const entry of normalized) {
 			const { script } = entry;
-			const eligible = isEligible(entry, pass);
 			const hasConsent = hasScriptConsent(entry, pass);
+			const eligible = script.alwaysLoad === true || hasConsent;
 			const previousEligibility = eligibilityByScriptId.get(script.id);
 			const previousConsent = consentByScriptId.get(script.id);
 			eligibilityByScriptId.set(script.id, eligible);
 			consentByScriptId.set(script.id, hasConsent);
 
+			// Always-loaded integrations can map several categories (Google
+			// Consent Mode), so they need updates even when mounting is unchanged.
 			if (
 				!force &&
 				previousEligibility === eligible &&
@@ -140,6 +172,7 @@ export const createScriptLoader = function createScriptLoader(
 			}
 
 			if (eligible) {
+				retainedElements.delete(script.id);
 				mountScript(mountDeps, script, snapshot, hasConsent, batch);
 			} else {
 				unmountScript(mountDeps, script, snapshot, hasConsent);
@@ -147,16 +180,59 @@ export const createScriptLoader = function createScriptLoader(
 		}
 
 		flushPendingMounts(mountDeps, batch);
+		diagnostics?.notify();
 	};
 
-	// Initial reconciliation — caller is already inside useEffect /
-	// onMounted when invoking the factory, so this runs in the browser.
-	reconcile(true);
+	diagnostics = registerScriptDiagnostics(
+		kernel,
+		(loaderId): ScriptDiagnostic[] =>
+			normalized.map((entry) => {
+				const { script } = entry;
+				const eligible = eligibilityByScriptId.get(script.id) ?? false;
+				const elementId = elementIds.resolve(script);
+				const retainedElement = retainedElements.get(script.id);
+				const retained =
+					!eligible &&
+					retainedElement?.isConnected &&
+					typeof document !== 'undefined' &&
+					document.getElementById(elementId) === retainedElement;
+				let status: ScriptDiagnosticStatus = eligible ? 'pending' : 'blocked';
+				if (retained) {
+					status = 'retained';
+				} else if (loadedElements.has(script.id)) {
+					status = statuses.get(script.id) ?? 'present';
+					if (!script.src && status === 'loading') {
+						status = 'loaded';
+					}
+				}
+				return {
+					alwaysLoad: script.alwaysLoad ?? false,
+					callbackOnly: script.callbackOnly ?? false,
+					category: script.category,
+					elementId,
+					eligible,
+					hasConsent: hasScriptConsent(
+						entry,
+						buildReconcilePass(kernel.getSnapshot())
+					),
+					id: script.id,
+					lastEvent: lastEvents.get(script.id),
+					loaderId,
+					persistAfterConsentRevoked:
+						script.persistAfterConsentRevoked ?? false,
+					src: script.src,
+					status,
+					vendorId: script.vendorId,
+				};
+			})
+	);
 	const unsubscribe = kernel.subscribe(() => reconcile());
 
-	return {
+	const handle: ScriptLoaderHandle = {
 		dispose() {
 			unsubscribe();
+			diagnostics?.dispose();
+			diagnostics = undefined;
 			if (typeof document === 'undefined') {
 				return;
 			}
@@ -169,10 +245,13 @@ export const createScriptLoader = function createScriptLoader(
 				}
 			}
 			loadedElements.clear();
+			retainedElements.clear();
 			ownedScriptIds.clear();
 			elementIds.clear();
 			eligibilityByScriptId.clear();
 			consentByScriptId.clear();
+			lastEvents.clear();
+			statuses.clear();
 		},
 		getLoadedScriptIds() {
 			return Array.from(loadedElements.keys());
@@ -183,12 +262,23 @@ export const createScriptLoader = function createScriptLoader(
 			for (const { script } of normalized) {
 				if (!nextIds.has(script.id)) {
 					unmountScript(mountDeps, script, snapshot, false);
+					retainedElements.delete(script.id);
 					eligibilityByScriptId.delete(script.id);
 					consentByScriptId.delete(script.id);
+					lastEvents.delete(script.id);
+					statuses.delete(script.id);
 				}
 			}
 			normalized = normalizeScripts(next);
 			reconcile(true);
 		},
 	};
+	try {
+		// Observe initial mounts too, including synchronous inline execution.
+		reconcile(true);
+	} catch (error) {
+		handle.dispose();
+		throw error;
+	}
+	return handle;
 };

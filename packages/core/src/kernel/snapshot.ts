@@ -291,9 +291,6 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		evaluatedAt: now,
 		evaluationPolicy,
 		explicitChoice,
-		hasConsented:
-			explicitChoice !== null &&
-			Object.keys(explicitChoice.categories).length > 0,
 		iab,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
 		model: deriveModel(effective.rule, iab?.enabled ?? false),

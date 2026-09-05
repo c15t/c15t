@@ -76,3 +76,8 @@ contains the permissions after policy scope, expiration and privacy restrictions
 `promptRequirement` explains the interaction currently required. `noticeDismissal`,
 `privacySignals`, `optOutDirectives`, `resolution`, `policyRule` and `restrictions`
 remain separate fields. An existing receipt alone does not suppress a required prompt.
+
+Preferences stay open while a save is pending or fails. A failed transport does
+not revoke the local choice already recorded by that action. The draft remains
+available for retry; a later save completion does not close a newly opened dialog
+or hide a required notice.

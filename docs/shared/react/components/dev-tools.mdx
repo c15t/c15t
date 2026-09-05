@@ -7,19 +7,18 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `DevTools` is a floating panel that shows the internal state of the consent manager. Use it during development to inspect consent values, geolocation results, loaded scripts, and debug consent flows. Also exported as `C15TDevTools` if you need to avoid naming conflicts with other devtools.
+  `DevTools` is a floating panel for the c15t v3 kernel. Use it during development to inspect explicit choices, effective permissions, scripts, location, policy resolution, IAB state, events, and consent actions. The framework adapter reads the kernel from the nearest v3 provider. It never discovers a store through a window global.
 
   <Callout type="warn">
-    DevTools should only be included in development builds. The component renders nothing to the React tree - it injects directly into `document.body`.
+    Load DevTools only in development. A conditional JSX expression stops it from mounting in production, but a static import can still add DevTools to the production bundle. Use a development-only dynamic import as shown below. The component renders nothing into the React tree and mounts its panel in `document.body`.
   </Callout>
 
   ## Installation
 
-  DevTools lives in a separate package to keep it out of production bundles:
-
-  ```bash
-  bun add -D @c15t/dev-tools
-  ```
+  No extra package is required for a framework adapter. The adapter and its
+  engine are included with `c15t`, `@c15t/react`, `@c15t/nextjs`,
+  `@c15t/vue`, and `@c15t/svelte`. Install `@c15t/dev-tools` directly only
+  when you need the imperative `createDevTools({ kernel })` API.
 </section>
 
 <section id="customization">
@@ -27,27 +26,193 @@ group: reference
 
   ```tsx
   <DevTools
-    position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-    defaultOpen={false}       // Start with panel open
-    namespace="c15tStore"     // Store namespace to connect to
-    disabled={false}          // Disable without removing from tree
+    position="bottom-right"
+    defaultOpen={false}
+    defaultTab="consents"
+    maxEvents={100}
+    disabled={false}
   />
   ```
 
+  `position` accepts any corner: `top-left`, `top-right`, `bottom-left`, or
+  `bottom-right`. Set `defaultOpen` to open the initial panel and `defaultTab`
+  to choose that panel. `maxEvents` limits captured kernel and script events.
+  Set `disabled` to prevent mounting without removing the component.
+
   ## Panels
+
+  Accept and reject apply only to categories displayed by the provider, leaving
+  hidden consent values unchanged. `necessary` always remains enabled. Framework adapters use their provider's displayed categories. Direct kernel
+  integrations use the current policy categories by default.
+
+  For an imperative integration with a narrower UI, pass
+  `getConsentCategories: () => ['necessary', 'measurement']` to
+  `createDevTools`. The getter is read again when an action runs. Headless UI
+  actions can use `kernel.commands.save('all', { categories: displayed })` or
+  `kernel.commands.save('none', { categories: displayed })`. These scoped bulk
+  saves use a `custom` transport action when they cover only part of the policy.
+  Actions covering the whole policy retain `all` or `necessary`. Without an
+  explicit scope, bulk saves confirm the current policy scope. They never
+  override GPC or standing privacy restrictions, and a category save does not
+  dismiss a required notice. Notice dismissal is a separate user action.
 
   | Panel | What it shows |
   |-------|---------------|
-  | **Consents** | Current consent state for all categories |
+  | **Consents** | Inspect and save categories, accept all, or reject optional categories |
+  | **Scripts** | Configured scripts, loading status, search, and external page resources |
   | **Location** | Detected jurisdiction, country, region, and consent model |
-  | **Scripts** | Configured scripts and their load status |
-  | **IAB** | IAB TCF state (when enabled) - TC string, vendor consents, purposes |
-  | **Events** | Timeline of consent events and state changes |
-  | **Actions** | Buttons to trigger consent actions (accept all, reject all, reset) |
+  | **Policy** | Resolution outcome, active rule, prompt requirement and policy rights |
+  | **IAB** | Edit vendors, purposes, legitimate interests, and special features; save and copy TC strings |
+  | **Events** | Timeline of consent changes, kernel events, and script lifecycle events |
+  | **Actions** | Show the banner, open preferences, hide consent UI, or refresh consent data |
+
+  Category toggles stage a DevTools draft. They do not grant permissions until
+  Save confirms the selections. The Actions panel can dismiss the current local
+  notice through the public notice command without recording category consent.
+  Framework adapters bind record clearing to the provider's existing persistence
+  instance. With persistence disabled, clearing affects only in-memory records.
+  Direct kernel integrations supply their existing persistence handle's `clear`
+  callback.
+
+  The Policy panel labels presentation diagnostics as resolved defaults unless
+  host presentation options are available. Framework adapters read those options
+  from the provider; direct integrations supply `getPresentation`. It resolves the supplied
+  host configuration; it does not verify the controls rendered by the app. See
+  the [imperative API](/docs/frameworks/javascript/dev-tools) for draft,
+  presentation, and persistence callbacks.
+
+  ### Script inspection
+
+  Set `defaultTab="scripts"` to open script inspection first. It reads all script
+  loaders attached to the current provider's kernel, including loaders created
+  before DevTools mounts. Search by script ID, category, URL, or status, then
+  expand a script to inspect its configuration and latest lifecycle event.
+
+  `loading` means an external script was inserted; `loaded` means its browser
+  load event fired, or an inline script or callback-only integration mounted.
+  `error` reports a loader error. `blocked` means consent requirements were not
+  met, and `pending` means an eligible script has not mounted. `present` means
+  the loader reused an element without a confirmed load result. `retained`
+  means consent was revoked but `persistAfterConsentRevoked` kept the element.
+  Retained scripts still receive `onConsentChange` with `hasConsent: false`, so
+  their integrations can send the vendor's consent-revocation command.
+  `alwaysLoad` bypasses the loading gate, not consent: callbacks receive the
+  actual consent state and updates across categories for integrations such as
+  Google Consent Mode.
+
+  Script details distinguish `allowedToLoad` from `consentGranted`. An
+  `alwaysLoad` integration can be allowed to load while its consent is denied.
+  Diagnostics expose these as `eligible` and `hasConsent`, respectively.
+
+  Lifecycle diagnostics work even when legacy debug forwarding is disabled.
+  The page scan lists external scripts and iframes present in the
+  DOM; it does not prove that they loaded successfully or were consent-gated.
+
+  For custom inspection tools, import `getScriptDiagnostics(kernel)` and
+  `subscribeScriptDiagnostics(kernel, listener)` from
+  `c15t/modules/script-loader`. With a scoped framework package, install
+  `@c15t/core` as a direct dependency and import from
+  `@c15t/core/modules/script-loader` instead. The subscription reports loader
+  registration, updates, disposal, and lifecycle events. Read a fresh snapshot
+  after changes and call the returned unsubscribe function during cleanup.
+
+  ### IAB editing
+
+  Under an IAB policy, the Consents tab is read-only. Edit and save vendors
+  and purposes in the IAB tab so the derived categories and TC string stay
+  consistent.
+
+  The IAB panel connects to the existing `@c15t/iab` module attached to the
+  provider's kernel. It does not create a second CMP or replace `__tcfapi`.
+  Controls become available after initialization, when the current policy uses
+  IAB and the vendor list is loaded.
+
+  Choose Vendors, Purposes, or Special features, then search by name or ID.
+  Vendors include the provider's custom vendors. Long lists show 20 entries per
+  page. Legitimate-interest controls appear for declared legitimate interests.
+  Search only filters the view; Accept all IAB and Reject all IAB apply to the
+  configured choices, including custom vendors.
+
+  Toggles edit IAB values without establishing new confirmed processing
+  authority. Use Save IAB consent to generate a fresh TC string, record the
+  current authority and run the configured save transport. Processing gates
+  read confirmed TCF authority and current restrictions. The panel displays
+  the last generated string; unsaved edits are not represented in it. Copy TC string confirms success or reports clipboard failures. Raw IAB
+  data remains available in an expandable section.
+
+  IAB saves normally write the TC string to its standard cookie and localStorage.
+  For an in-memory playground, set `persistence: false` in the IAB module options
+  as well as disabling the provider's core persistence. The IAB option prevents
+  TC-string storage writes; it does not disable the configured save transport
+  or remove previously stored values.
+
+  Save and refresh actions show pending, success, and failure feedback. Controls
+  are disabled while a request is pending. A failed save does not roll back the
+  live choices; retry to record them.
+
+  For custom inspection tools, `getIABControls(kernel)` and
+  `subscribeIABControls(kernel, listener)` are exported from `c15t`.
+  With a scoped framework package, install `@c15t/core` directly and import
+  these helpers from `@c15t/core` instead.
+  The getter returns undefined before module initialization and after disposal.
+  A snapshot without an attached IAB module is read-only in DevTools.
+
+  ## Vue and Svelte
+
+  Vue imports `ConsentDevTools` from `c15t/vue/devtools` or
+  `@c15t/vue/devtools`. Render it in the app where the c15t plugin provides
+  the kernel. In Nuxt, the configured c15t module provides that context.
+
+  ```vue
+  <script setup lang="ts">
+  import { defineAsyncComponent } from 'vue';
+
+  const DevTools = import.meta.env.DEV
+    ? defineAsyncComponent(() => import('@c15t/vue/devtools'))
+    : null;
+  </script>
+
+  <template>
+    <DevTools v-if="DevTools" position="bottom-right" />
+  </template>
+  ```
+
+  In Nuxt, use `import.meta.dev` instead of `import.meta.env.DEV`.
+  Svelte imports the adapter from `@c15t/svelte/devtools` and renders it
+  inside `ConsentManagerProvider`.
+
+  ```svelte
+  <script lang="ts">
+    import { ConsentManagerProvider, offline } from '@c15t/svelte';
+
+    const devTools = import.meta.env.DEV
+      ? import('@c15t/svelte/devtools')
+      : null;
+  </script>
+
+  <ConsentManagerProvider options={{ mode: offline() }}>
+    {#if devTools}
+      {#await devTools then { ConsentDevTools }}
+        <ConsentDevTools position="bottom-right" />
+      {/await}
+    {/if}
+  </ConsentManagerProvider>
+  ```
+
+  Both adapters accept `position`, `defaultOpen`, `defaultTab`, `maxEvents`,
+  and `getConsentCategories`. Changing these presentation options recreates
+  the panel and clears its event history. They do not accept React's `disabled`
+  prop; conditionally render them instead. Unmounting removes the panel and
+  subscriptions without changing consent.
 
   ## TanStack Devtools
 
-  `@c15t/dev-tools/tanstack` exposes a panel component and plugin factory that match TanStack Devtools' plugin API, so c15t can sit beside Query and Router without a custom mount adapter:
+  Each embedded panel owns its event history and subscriptions. Unmounting it
+  destroys the instance; remounting starts a new history. If you need to capture
+  events while switching plugins, keep the c15t panel mounted. This differs from
+  the old globally shared DevTools store.
+
+  The React v3 DevTools adapter exports a panel component and plugin factory that match TanStack Devtools' plugin API:
 
   ```tsx
   import * as React from 'react';
@@ -55,7 +220,7 @@ group: reference
   import { TanStackDevtools } from '@tanstack/react-devtools';
   import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
   import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
-  import { c15tDevtools } from '@c15t/dev-tools/tanstack';
+  import { c15tDevtools } from 'c15t/react/devtools';
 
   export function AppDevtools() {
     const router = useRouter();
@@ -77,10 +242,12 @@ group: reference
     );
   }
   ```
+
+  In a Next.js app, import `c15tDevtools` from `c15t/next/devtools` instead. Scoped installs use `@c15t/react/devtools` and `@c15t/nextjs/devtools`.
 </section>
 
 <section id="props">
   ## Props
 
-  <AutoTypeTable path="./packages/dev-tools/src/react.ts" name="C15TDevToolsProps" />
+  <AutoTypeTable path="./packages/react/src/devtools.tsx" name="ConsentDevToolsProps" />
 </section>

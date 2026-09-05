@@ -45,6 +45,9 @@
 	"types": "./dist/index.d.ts",
 	"typesVersions": {
 		">4.0": {
+			"devtools": [
+				"./dist/devtools.d.ts"
+			],
 			"headless": [
 				"./dist/headless.d.ts"
 			],
@@ -61,6 +64,11 @@
 			"types": "./dist/headless.d.ts",
 			"svelte": "./dist/headless.js",
 			"default": "./dist/headless.js"
+		},
+		"./devtools": {
+			"types": "./dist/devtools.d.ts",
+			"svelte": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
 		},
 		"./server": {
 			"types": "./dist/server/index.d.ts",
@@ -92,6 +100,7 @@
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/ui": "workspace:*",

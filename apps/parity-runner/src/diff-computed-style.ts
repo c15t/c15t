@@ -5,6 +5,7 @@
  * under `selector`. The capture runs inside the page (Playwright `evaluate`)
  * because `getComputedStyle` is a browser API; the diff itself runs Node-side
  * via `diffComputedStyleMap` from `@c15t/conformance`.
+ * Pass `*` as `elementSelector` to compare all descendants by DOM order.
  *
  * The property list is duplicated here (and in `@c15t/conformance`'s
  * `computed-style.ts`) because Playwright can't import ESM into page context.
@@ -60,10 +61,11 @@ const DEFAULT_PROPS = [
 
 export const captureComputedStyleMap = function captureComputedStyleMap(
 	page: Page,
-	selector: string
+	selector: string,
+	elementSelector = '[data-testid]'
 ): Promise<Record<string, ComputedStyleSnapshot>> {
 	return page.evaluate(
-		(args: { sel: string; props: readonly string[] }) => {
+		(args: { sel: string; props: readonly string[]; elements: string }) => {
 			const root = document.querySelector(args.sel);
 			if (!root) {
 				throw new Error(`no element: ${args.sel}`);
@@ -102,9 +104,13 @@ export const captureComputedStyleMap = function captureComputedStyleMap(
 				}
 			> = {};
 			const seen = new Set<string>();
-			const elements = root.querySelectorAll('[data-testid]');
-			for (const el of Array.from(elements)) {
-				const id = el.getAttribute('data-testid');
+			const elements = root.querySelectorAll(args.elements);
+			for (const [index, el] of Array.from(elements).entries()) {
+				const id =
+					el.getAttribute('data-testid') ??
+					(args.elements === '*'
+						? `${el.tagName.toLowerCase()}:${index}`
+						: null);
 				if (!id || seen.has(id)) {
 					continue;
 				}
@@ -132,6 +138,6 @@ export const captureComputedStyleMap = function captureComputedStyleMap(
 			}
 			return out;
 		},
-		{ props: DEFAULT_PROPS, sel: selector }
+		{ elements: elementSelector, props: DEFAULT_PROPS, sel: selector }
 	);
 };
