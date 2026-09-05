@@ -21,10 +21,9 @@ export type TriggerIcon = 'branding' | 'fingerprint' | 'settings' | ReactNode;
  * Visibility options for when to show the trigger.
  *
  * - `'always'` - Always visible
- * - `'after-consent'` - Only visible after user has made a consent choice
  * - `'never'` - Never visible (useful for programmatic control)
  */
-export type TriggerVisibility = 'always' | 'after-consent' | 'never';
+export type TriggerVisibility = 'always' | 'never';
 
 /**
  * Size options for the trigger button.

@@ -1,106 +1,35 @@
 ---
 title: Callbacks
-description: React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
+description: Observe explicit choices separately from effective permission changes.
 group: frameworks
 ---
 
-<import src="../../shared/react/guides/callbacks.mdx#intro" />
-
-<Callout type="info">
-  `subscribeToConsentChanges()` is the recommended API for analytics SDKs and consent-mode integrations. It only emits future saves that actually changed persisted preferences.
-</Callout>
-
-## Configuration
-
 ```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider, offline } from '@c15t/react';
 
-export function ConsentManager({ children }: { children: ReactNode }) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
-        callbacks: {
-          onBannerFetched: ({ jurisdiction, location, translations }) => {
-            console.log('Jurisdiction:', jurisdiction);
-            console.log('Country:', location.countryCode);
-            console.log('Language:', translations.language);
-          },
-          onConsentSet: ({ preferences }) => {
-            console.log('Consent lifecycle event:', preferences);
-          },
-          onConsentChanged: ({ allowedCategories, deniedCategories }) => {
-            analytics.syncConsent({ allowedCategories, deniedCategories });
-          },
-          onError: ({ error }) => {
-            errorReporter.captureMessage(error);
-          },
-          onBeforeConsentRevocationReload: ({ preferences }) => {
-            // Flush pending analytics before page reloads
-            analytics.flush();
-          },
-        },
-      }}
-    >
-      {children}
-    </ConsentManagerProvider>
-  );
-}
+<ConsentProvider
+  options={{
+    mode: offline(),
+    callbacks: {
+      onChoiceRecorded: ({ snapshot, confirmed, actionAt }) => {
+        console.log(snapshot.explicitChoice, confirmed, actionAt);
+      },
+      onPermissionsChanged: ({ snapshot, previous }) => {
+        console.log(previous.effectivePermissions, snapshot.effectivePermissions);
+      },
+    },
+  }}
+>
+  {children}
+</ConsentProvider>
 ```
 
-<import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
+`onChoiceRecorded` runs after an explicit accept, reject, or save records at least one category. An empty save does nothing. Reconfirming an unchanged value records a new receipt for that category and invokes this callback once. `confirmed` contains only the categories confirmed by that action, and `actionAt` is their actual confirmation time.
 
-## Change-Only Subscriptions
+`onPermissionsChanged` runs only when the kernel emits its distinct permissions event. Hydration, expiry, a policy change, or a privacy signal can change permissions without creating a choice. Registering a callback does not replay it.
 
-Use `subscribeToConsentChanges()` when you want a stable listener for real preference changes after mount:
+Dismissing a notice invokes neither choice callback nor consent-saving endpoint. A detected Global Privacy Control signal can create a separate privacy directive, but never an explicit category choice. A saved `true` receipt can remain in `explicitChoice` while `effectivePermissions` is `false`.
 
-```tsx
-import { useEffect } from 'react';
-import { useConsentManager } from 'c15t/react';
+## Migration
 
-function ConsentAnalytics() {
-  const { subscribeToConsentChanges } = useConsentManager();
-
-  useEffect(() => {
-    return subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
-      analytics.syncConsent({ allowedCategories, deniedCategories });
-    });
-  }, [subscribeToConsentChanges]);
-
-  return null;
-}
-```
-
-## Runtime Callback Registration
-
-Register or update callbacks at runtime using `setCallback()`:
-
-```tsx
-import { useEffect } from 'react';
-import { useConsentManager } from 'c15t/react';
-
-function ConsentAnalytics() {
-  const { setCallback } = useConsentManager();
-
-  useEffect(() => {
-    setCallback('onBannerFetched', ({ jurisdiction, location }) => {
-      console.log('Resolved init data:', { jurisdiction, location });
-    });
-
-    setCallback('onConsentSet', ({ preferences }) => {
-      console.log('Broad consent lifecycle event:', preferences);
-    });
-
-    return () => {
-      setCallback('onBannerFetched', undefined);
-      setCallback('onConsentSet', undefined);
-    };
-  }, [setCallback]);
-
-  return null;
-}
-```
-
-`setCallback('onConsentSet', ...)` immediately replays the current consent state. For change-only logic, prefer `subscribeToConsentChanges()` or `onConsentChanged`.
+Replace `onConsentSet` with `onChoiceRecorded` when recording user decisions. Replace `onConsentChanged` with `onPermissionsChanged` when synchronizing gates or analytics permissions. Use `snapshot.effectivePermissions` for processing decisions and `snapshot.explicitChoice` for confirmation receipts. Do not build receipt timestamps from callback registration or component mounting.

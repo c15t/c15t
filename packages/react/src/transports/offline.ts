@@ -1,103 +1,32 @@
-import type {
-	InitContext,
-	InitResponse,
-	KernelConfig,
-	KernelTransport,
-	PolicyConfig,
-	ProviderTransportContext,
-	ProviderTransportFactory,
-} from '@c15t/core';
-import { createOfflineTransport } from '@c15t/core';
-import { buildDefaultOptInPolicy } from '@c15t/schema/types';
+import type { ProviderTransportFactory } from '@c15t/core';
+import { resolvePolicyRules } from '@c15t/schema/types';
+import type { PolicyRule } from '@c15t/schema/types';
 
-/** Options for {@link offline}. */
+/** Policy rules evaluated locally when initialization runs. */
 export interface OfflineModeOptions {
-	/** Policy packs to resolve locally instead of the provider's policy packs. */
-	policyPacks?: PolicyConfig[];
+	policyRules?: PolicyRule[];
 }
 
-const buildInlinePolicy = function buildInlinePolicy(
-	categories: ProviderTransportContext['consentCategories']
-): KernelConfig['initialPolicy'] {
-	return buildDefaultOptInPolicy(categories);
-};
-
-const getProviderPolicies = function getProviderPolicies(
-	options: OfflineModeOptions,
-	context: ProviderTransportContext
-): PolicyConfig[] | undefined {
-	return (
-		options.policyPacks ??
-		context.policies ??
-		context.offlinePolicy?.policyPacks
-	);
-};
-
-const createStaticOfflineTransport = function createStaticOfflineTransport(
-	baseTransport: KernelTransport,
-	context: ProviderTransportContext,
-	policyPacks: PolicyConfig[] | undefined
-): KernelTransport {
-	const configuredPolicy =
-		context.prefetch.initialPolicy ?? context.offlinePolicy?.policy;
-	const inlinePolicy =
-		policyPacks === undefined
-			? buildInlinePolicy(context.consentCategories)
-			: undefined;
-	const policy = configuredPolicy ?? inlinePolicy;
-	if (!policy) {
-		return baseTransport;
-	}
-
-	return {
-		...baseTransport,
-		async init(initContext: InitContext): Promise<InitResponse> {
-			const response = (await baseTransport.init?.(initContext)) ?? {};
-			return {
-				...response,
-				branding: context.prefetch.initialBranding ?? response.branding,
-				policy,
-				policyDecision:
-					context.prefetch.initialPolicyDecision ??
-					context.offlinePolicy?.policyDecision ??
-					response.policyDecision,
-				policySnapshotToken:
-					context.prefetch.initialPolicySnapshotToken ??
-					context.offlinePolicy?.policySnapshotToken ??
-					response.policySnapshotToken,
-				translations:
-					context.prefetch.initialTranslations ?? response.translations,
-			};
-		},
-	};
-};
-
 /**
- * Selects the local-only transport for a consent provider.
- *
- * @param options - Offline policy resolution options.
- * @returns An offline provider transport factory.
- * @example
- * ```ts
- * import { offline } from '@c15t/react';
- *
- * // Resolve the provider's `policies` locally, no backend involved.
- * const mode = offline();
- *
- * // Or pin a specific set of policy packs for this provider.
- * const previewMode = offline({ policyPacks });
- * ```
+ * Resolve local rules outside render and hydration.
+ * @param options - Explicit policy rules; absence retains the safe fallback.
+ * @returns A provider transport with no network requests.
  */
 export const offline = function offline(
 	options: OfflineModeOptions = {}
 ): ProviderTransportFactory {
-	const createTransport = (context: ProviderTransportContext) => {
-		const policyPacks = getProviderPolicies(options, context);
-		const baseTransport = createOfflineTransport({
-			policyPacks,
-			translations: context.translations,
-		});
-		return createStaticOfflineTransport(baseTransport, context, policyPacks);
-	};
-	return Object.assign(createTransport, { kind: 'offline' as const });
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]) => ({
+			init: () =>
+				Promise.resolve({
+					policyResolution: resolvePolicyRules({
+						countryCode: null,
+						regionCode: null,
+						rules: options.policyRules,
+					}),
+					translations: context.translations,
+				}),
+		}),
+		{ kind: 'offline' as const }
+	);
 };

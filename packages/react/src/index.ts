@@ -92,7 +92,6 @@ export {
 	useBranding,
 	useConsent,
 	useConsents,
-	useHasConsented,
 	useIABEnabled,
 	useIABSnapshot,
 	useIdentify,
@@ -100,16 +99,13 @@ export {
 	useLocation,
 	useModel,
 	useOverrides,
-	usePolicy,
-	usePolicyBanner,
+	usePromptPresentation,
 	usePolicyCategories,
-	usePolicyDecision,
-	usePolicyDialog,
+	usePreferencesPresentation,
 	usePolicyScopeMode,
 	usePurposeConsent,
 	useSaveConsents,
 	useSetActiveUI,
-	useSetConsent,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
@@ -133,3 +129,23 @@ export {
 export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
 export { ConsentProvider } from './provider';
 export type { ReactUIOptions } from './types/consent-manager';
+
+export {
+	useExplicitChoice,
+	useEffectivePermissions,
+	usePromptRequirement,
+	useNoticeDismissal,
+	usePrivacySignals,
+	useOptOutDirectives,
+	usePolicyResolution,
+	usePolicyRule,
+	useRestrictions,
+	useDismissNotice,
+} from './hooks';
+export type {
+	ConsentPresentation,
+	PromptPresentation,
+	PreferencesPresentation,
+	PresentationAction,
+	ResolvedConsentPresentation,
+} from '@c15t/core';

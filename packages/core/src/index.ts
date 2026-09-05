@@ -208,6 +208,8 @@ export type {
 	OnBannerFetchedPayload,
 	OnConsentChangedPayload,
 	OnConsentSetPayload,
+	OnChoiceRecordedPayload,
+	OnPermissionsChangedPayload,
 	OnErrorPayload,
 	Overrides,
 	PingData,
@@ -265,5 +267,15 @@ export {
 	readPolicyResolutionWire,
 	safeFallbackPolicyRule,
 } from '@c15t/schema/types';
+export { resolveConsentPresentation } from './libs/policy-actions';
+export type {
+	ConsentPresentation,
+	PromptPresentation,
+	PreferencesPresentation,
+	SurfacePresentation,
+	PresentationAction,
+	PresentationDiagnostic,
+	ResolvedConsentPresentation,
+} from './libs/policy-actions';
 
 export { evaluateConsent, getEffectiveGateState } from './modules/has';

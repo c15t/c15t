@@ -22,6 +22,8 @@
 import type {
 	AllConsentNames,
 	ConsentKernel,
+	PromptPresentation,
+	PreferencesPresentation,
 	ConsentSnapshot,
 	ConsentState,
 	KernelActiveUI,
@@ -32,14 +34,12 @@ import type {
 	KernelTranslations,
 	KernelUser,
 	LocationResponse,
-	PolicyDecision,
 	PolicyScopeMode,
-	PolicyUiSurfaceConfig,
-	ResolvedPolicy,
 } from '@c15t/core';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
+import { useUIConfig } from './ui-config-context';
 
 const useKernel = function useKernel(): ConsentKernel {
 	const kernel = useContext(KernelContext);
@@ -94,21 +94,14 @@ export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 export const useConsent = function useConsent(
 	category: AllConsentNames
 ): boolean {
-	return useKernelSelector((snap) => snap.consents[category]);
+	return useKernelSelector((snap) => snap.effectivePermissions[category]);
 };
 
 /**
  * Full consent record. Re-renders on any category change.
  */
 export const useConsents = function useConsents(): Readonly<ConsentState> {
-	return useKernelSelector((snap) => snap.consents);
-};
-
-/**
- * Whether the user has completed any consent interaction.
- */
-export const useHasConsented = function useHasConsented(): boolean {
-	return useKernelSelector((snap) => snap.hasConsented);
+	return useKernelSelector((snap) => snap.effectivePermissions);
 };
 
 /**
@@ -144,17 +137,6 @@ export const useBranding = function useBranding(): KernelBranding | null {
 	return useKernelSelector((snap) => snap.branding);
 };
 
-/** Full resolved policy from `/init`. */
-export const usePolicy = function usePolicy(): Readonly<ResolvedPolicy> | null {
-	return useKernelSelector((snap) => snap.policy);
-};
-
-/** Policy-decision explainability metadata. */
-export const usePolicyDecision =
-	function usePolicyDecision(): Readonly<PolicyDecision> | null {
-		return useKernelSelector((snap) => snap.policyDecision);
-	};
-
 /** Derived consent model (opt-in / opt-out / iab / null). */
 export const useModel = function useModel(): KernelModel {
 	return useKernelSelector((snap) => snap.model);
@@ -168,25 +150,13 @@ export const useActiveUI = function useActiveUI(): KernelActiveUI {
 /** Category allowlist from `policy.consent.categories`. */
 export const usePolicyCategories =
 	function usePolicyCategories(): readonly AllConsentNames[] {
-		return useKernelSelector((snap) => snap.policyCategories);
+		return useKernelSelector((snap) => snap.policyRule.scope);
 	};
 
 /** `strict` or `permissive` — from `policy.consent.scopeMode`. */
 export const usePolicyScopeMode =
 	function usePolicyScopeMode(): PolicyScopeMode {
-		return useKernelSelector((snap) => snap.policyScopeMode);
-	};
-
-/** UI hints for the banner surface. */
-export const usePolicyBanner =
-	function usePolicyBanner(): Readonly<PolicyUiSurfaceConfig> | null {
-		return useKernelSelector((snap) => snap.policyBanner);
-	};
-
-/** UI hints for the dialog surface. */
-export const usePolicyDialog =
-	function usePolicyDialog(): Readonly<PolicyUiSurfaceConfig> | null {
-		return useKernelSelector((snap) => snap.policyDialog);
+		return useKernelSelector((snap) => snap.policyRule.scopeMode);
 	};
 
 /** Full IAB state slice (null when IAB is not enabled). */
@@ -234,16 +204,6 @@ export const useTCString = function useTCString(): string | null {
 };
 
 // -- Action hooks -----------------------------------------------------------
-
-/**
- * Sync mutation: apply a partial consent patch. No-op on equal values.
- */
-export const useSetConsent = function useSetConsent(): (
-	input: Partial<ConsentState>
-) => void {
-	const kernel = useKernel();
-	return kernel.set.consent;
-};
 
 /**
  * Sync mutation: apply overrides (country, region, language, GPC).
@@ -300,7 +260,9 @@ export const useSubscribeToConsentChanges =
 		const kernel = useKernel();
 		return useCallback(
 			(listener: (state: ConsentState) => void) =>
-				kernel.subscribe((snapshot) => listener(snapshot.consents)),
+				kernel.events.on('permissions:changed', ({ snapshot }) =>
+					listener(snapshot.effectivePermissions)
+				),
 			[kernel]
 		);
 	};
@@ -322,3 +284,76 @@ export const useInit = function useInit(): ConsentKernel['commands']['init'] {
 	const kernel = useKernel();
 	return kernel.commands.init;
 };
+
+/** Read explicitChoice from the kernel without a competing projection. */
+export const useExplicitChoice =
+	function useExplicitChoice(): ConsentSnapshot['explicitChoice'] {
+		return useKernelSelector((snapshot) => snapshot.explicitChoice);
+	};
+
+/** Read effectivePermissions from the kernel without a competing projection. */
+export const useEffectivePermissions =
+	function useEffectivePermissions(): ConsentSnapshot['effectivePermissions'] {
+		return useKernelSelector((snapshot) => snapshot.effectivePermissions);
+	};
+
+/** Read promptRequirement from the kernel without a competing projection. */
+export const usePromptRequirement =
+	function usePromptRequirement(): ConsentSnapshot['promptRequirement'] {
+		return useKernelSelector((snapshot) => snapshot.promptRequirement);
+	};
+
+/** Read noticeDismissal from the kernel without a competing projection. */
+export const useNoticeDismissal =
+	function useNoticeDismissal(): ConsentSnapshot['noticeDismissal'] {
+		return useKernelSelector((snapshot) => snapshot.noticeDismissal);
+	};
+
+/** Read privacySignals from the kernel without a competing projection. */
+export const usePrivacySignals =
+	function usePrivacySignals(): ConsentSnapshot['privacySignals'] {
+		return useKernelSelector((snapshot) => snapshot.privacySignals);
+	};
+
+/** Read optOutDirectives from the kernel without a competing projection. */
+export const useOptOutDirectives =
+	function useOptOutDirectives(): ConsentSnapshot['optOutDirectives'] {
+		return useKernelSelector((snapshot) => snapshot.optOutDirectives);
+	};
+
+/** Read resolution from the kernel without a competing projection. */
+export const usePolicyResolution =
+	function usePolicyResolution(): ConsentSnapshot['resolution'] {
+		return useKernelSelector((snapshot) => snapshot.resolution);
+	};
+
+/** Read policyRule from the kernel without a competing projection. */
+export const usePolicyRule =
+	function usePolicyRule(): ConsentSnapshot['policyRule'] {
+		return useKernelSelector((snapshot) => snapshot.policyRule);
+	};
+
+/** Read restrictions from the kernel without a competing projection. */
+export const useRestrictions =
+	function useRestrictions(): ConsentSnapshot['restrictions'] {
+		return useKernelSelector((snapshot) => snapshot.restrictions);
+	};
+
+/** Dismiss the current local notice without recording a category choice. */
+export const useDismissNotice =
+	function useDismissNotice(): ConsentKernel['commands']['dismissNotice'] {
+		return useKernel().commands.dismissNotice;
+	};
+
+const EMPTY_PROMPT: PromptPresentation = {};
+const EMPTY_PREFERENCES: PreferencesPresentation = {};
+/** Host first-layer presentation. */
+export const usePromptPresentation =
+	function usePromptPresentation(): PromptPresentation {
+		return useUIConfig().presentation?.prompt ?? EMPTY_PROMPT;
+	};
+/** Host persistent preferences presentation. */
+export const usePreferencesPresentation =
+	function usePreferencesPresentation(): PreferencesPresentation {
+		return useUIConfig().presentation?.preferences ?? EMPTY_PREFERENCES;
+	};

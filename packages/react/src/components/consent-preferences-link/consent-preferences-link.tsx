@@ -31,6 +31,7 @@ export const ConsentDialogLink = createForwardRef<
 		action="open-consent-dialog"
 		noStyle={noStyle}
 		data-testid="consent-dialog-link"
+		data-c15t-rights="disclosure preferences opt-out"
 		{...props}
 	>
 		{children}

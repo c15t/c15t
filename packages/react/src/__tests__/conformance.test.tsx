@@ -1,16 +1,15 @@
-/**
- * React conformance entry point.
- *
- * This driver targets the kernel adapter: `ConsentProvider` plus the
- * useSyncExternalStore-backed selector hooks.
- */
-
 import {
 	IAB_FIXTURE_CMP_ID,
 	IAB_FIXTURE_CMP_VERSION,
 	MINIMAL_GVL,
 	runConformanceSuite,
 } from '@c15t/conformance';
+/**
+ * React conformance entry point.
+ *
+ * This driver targets the kernel adapter: `ConsentProvider` plus the
+ * useSyncExternalStore-backed selector hooks.
+ */
 import type {
 	MountableComponent,
 	MountOptions,
@@ -40,6 +39,8 @@ import { KernelContext } from '~/context';
 import { IABConsentBanner, IABConsentDialog } from '~/iab';
 import { ConsentBanner, ConsentProvider, custom, offline } from '~/index';
 import type { ConsentProviderOptions } from '~/index';
+
+import { createPolicySession, probePolicyContract } from './policy-driver';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -522,6 +523,7 @@ const projectStoreState = function projectStoreState(
 let lastKernel: ConsentKernel | null = null;
 
 const driver: TestDriver = {
+	createPolicySession,
 	framework: 'react',
 	getStore() {
 		if (!lastKernel) {
@@ -588,6 +590,7 @@ const driver: TestDriver = {
 			},
 		};
 	},
+	probePolicyContract,
 	serverRender(opts: MountOptions): Promise<string> {
 		const options = buildProviderOptions(opts);
 		return Promise.resolve(

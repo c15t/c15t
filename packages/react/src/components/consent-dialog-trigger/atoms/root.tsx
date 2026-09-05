@@ -80,7 +80,7 @@ export interface TriggerRootProps {
 
 	/**
 	 * Controls when the trigger is visible.
-	 * @default 'after-consent'
+	 * @default 'always'
 	 */
 	showWhen?: TriggerVisibility;
 
@@ -111,7 +111,7 @@ export const TriggerRoot = ({
 	children,
 	defaultPosition = 'bottom-right',
 	persistPosition: shouldPersist = true,
-	showWhen = 'after-consent',
+	showWhen = 'always',
 	onPositionChange,
 	onClick,
 }: TriggerRootProps): ReactNode => {

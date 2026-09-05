@@ -1,51 +1,11 @@
-import type {
-	InitOutput,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-} from '@c15t/schema/types';
-
 import type { ConsentState } from '../consent/compliance';
 import { allConsentNames } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
-
-type ResolvedPolicy = InitOutput['policy'];
-
-export interface PolicyUIState {
-	mode: PolicyUiMode;
-	actions: PolicyUiAction[];
-	layout?: PolicyUiActionGroup[];
-	direction?: PolicyUiActionDirection;
-	uiProfile?: 'balanced' | 'compact' | 'strict';
-	scrollLock?: boolean;
-}
-
-export interface PolicyValidationIssue {
-	code:
-		| 'mode_mismatch'
-		| 'action_not_allowed'
-		| 'group_layout_mismatch'
-		| 'direction_mismatch'
-		| 'ui_profile_mismatch'
-		| 'scroll_lock_mismatch';
-	message: string;
-}
 
 const isConsentCategory = function isConsentCategory(
 	value: string
 ): value is AllConsentNames {
 	return allConsentNames.includes(value as AllConsentNames);
-};
-
-const flattenLayout = function flattenLayout(
-	layout?: PolicyUiActionGroup[]
-): PolicyUiAction[] {
-	if (!layout) {
-		return [];
-	}
-
-	return layout.flatMap((group) => (Array.isArray(group) ? group : [group]));
 };
 
 /**
@@ -185,103 +145,4 @@ export const applyPolicyScopeForRuntimeGating =
 		next.necessary = true;
 
 		return next;
-	};
-
-/**
- * Gets the runtime policy returned by /init, if present.
- */
-export const getEffectivePolicy = function getEffectivePolicy(
-	initData?: InitOutput | null
-): ResolvedPolicy | undefined {
-	return initData?.policy;
-};
-
-/**
- * Validates UI state against backend policy constraints.
- */
-export const validateUIAgainstPolicy =
-	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
-	function validateUIAgainstPolicy(params: {
-		policy?: ResolvedPolicy;
-		state: PolicyUIState;
-	}): PolicyValidationIssue[] {
-		const { policy, state } = params;
-		if (!policy) {
-			return [];
-		}
-
-		const issues: PolicyValidationIssue[] = [];
-
-		if (policy.ui?.mode && state.mode !== policy.ui.mode) {
-			issues.push({
-				code: 'mode_mismatch',
-				message: `UI mode "${state.mode}" does not match policy mode "${policy.ui.mode}".`,
-			});
-		}
-
-		const surfacePolicy =
-			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
-			state.mode === 'banner'
-				? policy.ui?.banner
-				: state.mode === 'dialog'
-					? policy.ui?.dialog
-					: undefined;
-
-		const allowedActions = surfacePolicy?.allowedActions;
-		if (allowedActions && allowedActions.length > 0) {
-			const disallowed = state.actions.filter(
-				(action) => !allowedActions.includes(action)
-			);
-			if (disallowed.length > 0) {
-				issues.push({
-					code: 'action_not_allowed',
-					message: `UI renders actions not allowed by policy: ${disallowed.join(', ')}`,
-				});
-			}
-		}
-
-		const expectedLayout = surfacePolicy?.layout;
-		if (expectedLayout && expectedLayout.length > 0) {
-			const expected = flattenLayout(expectedLayout);
-			const actual = state.actions.filter((action) =>
-				expected.includes(action)
-			);
-			if (expected.join('|') !== actual.join('|')) {
-				issues.push({
-					code: 'group_layout_mismatch',
-					message: `UI action order "${actual.join(', ')}" does not match policy layout "${expected.join(', ')}".`,
-				});
-			}
-		}
-
-		if (surfacePolicy?.direction && state.direction) {
-			if (surfacePolicy.direction !== state.direction) {
-				issues.push({
-					code: 'direction_mismatch',
-					message: `UI action direction "${state.direction}" does not match policy action direction "${surfacePolicy.direction}".`,
-				});
-			}
-		}
-
-		if (surfacePolicy?.uiProfile && state.uiProfile) {
-			if (surfacePolicy.uiProfile !== state.uiProfile) {
-				issues.push({
-					code: 'ui_profile_mismatch',
-					message: `UI profile "${state.uiProfile}" does not match policy UI profile "${surfacePolicy.uiProfile}".`,
-				});
-			}
-		}
-
-		if (
-			typeof surfacePolicy?.scrollLock === 'boolean' &&
-			typeof state.scrollLock === 'boolean' &&
-			surfacePolicy.scrollLock !== state.scrollLock
-		) {
-			issues.push({
-				code: 'scroll_lock_mismatch',
-				message: `UI scroll lock "${state.scrollLock ? 'on' : 'off'}" does not match policy scroll lock "${surfacePolicy.scrollLock ? 'on' : 'off'}".`,
-			});
-		}
-
-		return issues;
 	};

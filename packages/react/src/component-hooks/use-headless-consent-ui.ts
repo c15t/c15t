@@ -1,136 +1,115 @@
 'use client';
 
-import {
-	hasPolicyHints,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
+import { resolveConsentPresentation } from '@c15t/core';
 import type {
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
-} from '@c15t/ui/utils';
-import { useCallback, useMemo } from 'react';
+	ConsentPresentation,
+	PresentationAction,
+	ResolvedConsentPresentation,
+} from '@c15t/core';
+import { useCallback, useEffect, useMemo } from 'react';
 
+import { useConsentDraft } from '../draft';
 import {
 	useActiveUI,
-	usePolicyBanner,
-	usePolicyDialog,
+	useDismissNotice,
+	usePolicyRule,
 	useSaveConsents,
 	useSetActiveUI,
 } from '../hooks';
+import { useUIConfig } from '../ui-config-context';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
-export type HeadlessConsentSurfaceAction = PolicyUiAction;
-export type HeadlessConsentWriteAction = 'accept' | 'reject';
-export type HeadlessConsentBannerAction = HeadlessConsentSurfaceAction;
-export type HeadlessConsentDialogAction = HeadlessConsentSurfaceAction;
+export type HeadlessConsentSurfaceAction = PresentationAction;
+export type HeadlessConsentWriteAction = 'accept' | 'reject' | 'save';
+export type HeadlessConsentBannerAction = PresentationAction;
+export type HeadlessConsentDialogAction = PresentationAction;
 
 export interface HeadlessConsentSurfaceState<
-	TAction extends string = HeadlessConsentSurfaceAction,
+	Action extends string = PresentationAction,
+> extends Omit<
+	ResolvedConsentPresentation,
+	'allowedActions' | 'orderedActions' | 'actionGroups' | 'primaryActions'
 > {
-	allowedActions: TAction[];
-	orderedActions: TAction[];
-	actionGroups: TAction[][];
-	primaryActions: TAction[];
-	layout?: PolicyUiActionGroup[];
-	direction: PolicyUiActionDirection;
-	uiProfile?: PolicyUiProfile;
-	scrollLock?: boolean;
-	hasPolicyHints: boolean;
-	shouldFillActions: boolean;
+	allowedActions: Action[];
+	orderedActions: Action[];
+	actionGroups: Action[][];
+	primaryActions: Action[];
 	isVisible: boolean;
 }
+export type HeadlessConsentBannerState = HeadlessConsentSurfaceState;
+export type HeadlessConsentDialogState = HeadlessConsentSurfaceState;
 
-export type HeadlessConsentBannerState =
-	HeadlessConsentSurfaceState<HeadlessConsentBannerAction>;
-export type HeadlessConsentDialogState =
-	HeadlessConsentSurfaceState<HeadlessConsentDialogAction>;
-
-const resolveSurfaceState = function resolveSurfaceState(
-	activeUI: string,
-	surface: HeadlessConsentSurface,
-	policy: PolicyUiSurfaceConfig
-): HeadlessConsentSurfaceState {
-	const allowedActions = resolvePolicyAllowedActions({
-		allowedActions: policy.allowedActions,
-	});
-	const actionGroups = resolvePolicyActionGroups({
-		allowedActions,
-		layout: policy.layout,
-	});
-	const orderedActions = resolvePolicyOrderedActions({
-		allowedActions,
-		layout: policy.layout,
-	});
-	const direction = resolvePolicyDirection(policy.direction);
-
-	return {
-		actionGroups,
-		allowedActions,
-		direction,
-		hasPolicyHints: hasPolicyHints(policy),
-		isVisible: activeUI === surface,
-		layout: policy.layout,
-		orderedActions,
-		primaryActions: resolvePolicyPrimaryActions({
-			orderedActions,
-			primaryActions: policy.primaryActions,
-		}),
-		scrollLock: policy.scrollLock,
-		shouldFillActions: shouldFillPolicyActions({
-			actionGroups,
-			direction,
-
-			uiProfile: policy.uiProfile,
-		}),
-		uiProfile: policy.uiProfile,
-	};
-};
-
-const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
-
-export const useHeadlessConsentUI = function useHeadlessConsentUI() {
-	const activeUI = useActiveUI() ?? 'none';
-	const policyBanner = usePolicyBanner() ?? EMPTY_POLICY_SURFACE;
-	const policyDialog = usePolicyDialog() ?? EMPTY_POLICY_SURFACE;
+/** Resolve required controls with optional component-level presentation. */
+export const useHeadlessConsentUI = function useHeadlessConsentUI(
+	overrides?: ConsentPresentation
+) {
+	const activeUI = useActiveUI();
+	const policy = usePolicyRule();
+	const { presentation } = useUIConfig();
 	const saveConsents = useSaveConsents();
+	const dismissNotice = useDismissNotice();
 	const setActiveUI = useSetActiveUI();
-
+	const { save: saveDraft } = useConsentDraft();
 	const banner = useMemo(
-		() => resolveSurfaceState(activeUI, 'banner', policyBanner),
-		[activeUI, policyBanner]
+		() => ({
+			...resolveConsentPresentation({
+				override: overrides?.prompt,
+				policy,
+				presentation,
+				surface: 'prompt',
+			}),
+			isVisible: activeUI === 'banner',
+		}),
+		[policy, presentation, overrides?.prompt, activeUI]
 	);
 	const dialog = useMemo(
-		() => resolveSurfaceState(activeUI, 'dialog', policyDialog),
-		[activeUI, policyDialog]
+		() => ({
+			...resolveConsentPresentation({
+				override: overrides?.preferences,
+				policy,
+				presentation,
+				surface: 'preferences',
+			}),
+			isVisible: activeUI === 'dialog',
+		}),
+		[policy, presentation, overrides?.preferences, activeUI]
 	);
-
+	useEffect(() => {
+		if (
+			(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
+				?.NODE_ENV === 'production'
+		) {
+			return;
+		}
+		for (const diagnostic of [...banner.diagnostics, ...dialog.diagnostics]) {
+			console.warn(
+				`c15t presentation: ${diagnostic.message}`,
+				diagnostic.actions
+			);
+		}
+	}, [banner.diagnostics, dialog.diagnostics]);
 	const openBanner = useCallback(() => setActiveUI('banner'), [setActiveUI]);
 	const openDialog = useCallback(() => setActiveUI('dialog'), [setActiveUI]);
 	const closeUI = useCallback(() => setActiveUI('none'), [setActiveUI]);
-
 	const performAction = useCallback(
-		async (action: HeadlessConsentWriteAction | 'customize') => {
-			if (action === 'accept') {
-				await saveConsents('all');
-				return;
+		(action: PresentationAction) => {
+			switch (action) {
+				case 'accept':
+					return saveConsents('all');
+				case 'reject':
+					return saveConsents('none');
+				case 'save':
+					return saveDraft();
+				case 'dismiss':
+					return dismissNotice();
+				case 'customize':
+					return setActiveUI('dialog');
+				default:
+					return undefined;
 			}
-			if (action === 'reject') {
-				await saveConsents('none');
-				return;
-			}
-			setActiveUI('dialog');
 		},
-		[saveConsents, setActiveUI]
+		[saveConsents, saveDraft, dismissNotice, setActiveUI]
 	);
-
 	return {
 		activeUI,
 		banner,
@@ -141,6 +120,6 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI() {
 		performAction,
 		performBannerAction: performAction,
 		performDialogAction: performAction,
-		saveCustomPreferences: () => saveConsents(),
+		saveCustomPreferences: saveDraft,
 	};
 };

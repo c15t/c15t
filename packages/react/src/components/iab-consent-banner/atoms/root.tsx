@@ -16,7 +16,7 @@ import { LocalThemeContext } from '~/context/theme-context';
 import {
 	useActiveUI,
 	useModel,
-	usePolicyBanner,
+	usePromptPresentation,
 	useTranslations,
 } from '~/hooks';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
@@ -171,7 +171,7 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const policyBanner = usePolicyBanner();
+	const policyBanner = usePromptPresentation();
 	const resolvedScrollLock =
 		scrollLock ?? policyBanner?.scrollLock ?? undefined;
 	const contextValue = useMemo(

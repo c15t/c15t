@@ -130,8 +130,12 @@ const ConsentWidgetAccordion = ({
 };
 
 const ConsentWidgetAccordionItems = () => {
-	const { selectedConsents, setSelectedConsent, getDisplayedConsents } =
-		useConsentManager();
+	const {
+		selectedConsents,
+		setSelectedConsent,
+		getDisplayedConsents,
+		effectivePermissions,
+	} = useConsentManager();
 	const { noStyle, onToggleItem, openValues } =
 		useConsentWidgetAccordionContext();
 	const handleConsentChange = useCallback(
@@ -205,6 +209,13 @@ const ConsentWidgetAccordionItems = () => {
 					</PreferenceItem.Header>
 				</ConsentWidgetAccordionTriggerInner>
 
+				{consent.name !== 'necessary' &&
+				selectedConsents[consent.name] &&
+				!effectivePermissions[consent.name] ? (
+					<output id={`c15t-restriction-${consent.name}`}>
+						Your saved choice is restricted by the current privacy settings.
+					</output>
+				) : null}
 				<PreferenceItem.Control
 					className={noStyle ? undefined : accordionStyles.control}
 					noStyle
@@ -216,6 +227,13 @@ const ConsentWidgetAccordionItems = () => {
 							formatConsentName(consent.name)
 						}
 						checked={selectedConsents[consent.name]}
+						aria-describedby={
+							consent.name !== 'necessary' &&
+							selectedConsents[consent.name] &&
+							!effectivePermissions[consent.name]
+								? `c15t-restriction-${consent.name}`
+								: undefined
+						}
 						onCheckedChange={(checked) =>
 							handleConsentChange(consent.name, checked)
 						}

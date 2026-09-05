@@ -39,3 +39,6 @@ export {
 	type UseHeadlessIABConsentUIResult,
 	useHeadlessIABConsentUI,
 } from './hooks/use-headless-iab-consent-ui';
+
+export { IABProvider } from './iab-context';
+export type { IABProviderProps } from './iab-context';

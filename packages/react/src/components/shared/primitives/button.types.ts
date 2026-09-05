@@ -48,7 +48,7 @@ export interface ConsentButtonProps
 	 * @remarks
 	 * Semantic consent action type for theme-based button styling.
 	 */
-	consentAction?: 'accept' | 'reject' | 'customize';
+	consentAction?: 'accept' | 'reject' | 'customize' | 'dismiss' | 'save';
 	/**
 	 * @remarks
 	 * Whether this button is the primary action for the current surface.

@@ -3,6 +3,7 @@ import type { Translations } from '@c15t/translations';
 
 import type { ConsentState } from '../consent/compliance';
 import type { AllConsentNames } from '../consent/consent-types';
+import type { KernelEvent } from '../types';
 
 /**
  * A generic type for callback functions that can accept an argument of type T.
@@ -55,7 +56,20 @@ export interface OnErrorPayload {
  *
  * @public
  */
+export type OnChoiceRecordedPayload = Omit<
+	Extract<KernelEvent, { type: 'choice:recorded' }>,
+	'type'
+>;
+export type OnPermissionsChangedPayload = Omit<
+	Extract<KernelEvent, { type: 'permissions:changed' }>,
+	'type'
+>;
+
 export interface Callbacks {
+	/** Runs only for an explicit accept, reject or save action. */
+	onChoiceRecorded?: Callback<OnChoiceRecordedPayload>;
+	/** Runs only when effective permissions change. */
+	onPermissionsChanged?: Callback<OnPermissionsChangedPayload>;
 	/**
 	 * Called when the consent banner is fetched.
 	 *

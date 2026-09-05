@@ -15,23 +15,21 @@ export const usePersistence = function usePersistence(
 	options: UsePersistenceOptions = {}
 ): PersistenceHandle {
 	const kernel = useRequiredKernel();
-	// Hydrate inside the lazy initializer so stored consent lands in the
-	// kernel before the first render reads from it. Deferring to useEffect
-	// causes a brief flash of "default consent" for returning visitors.
-	const [handle, setHandle] = useState(() => {
-		const created = createPersistence({
+	const [handle, setHandle] = useState(() =>
+		createPersistence({
 			kernel,
+			now: options.now,
 			skipHydration: true,
 			storageConfig: options.storageConfig,
-		});
-		if (options.skipHydration !== true) {
-			created.hydrate();
-		}
-		return created;
-	});
+		})
+	);
 	void setHandle;
-
-	useEffect(() => () => handle.dispose(), [handle]);
+	useEffect(() => {
+		if (options.skipHydration !== true) {
+			handle.hydrate();
+		}
+		return () => handle.dispose();
+	}, [handle, options.skipHydration]);
 
 	return handle;
 };

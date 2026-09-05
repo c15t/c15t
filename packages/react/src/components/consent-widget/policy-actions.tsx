@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import { useHeadlessConsentUI } from '~/component-hooks/use-headless-consent-ui';
 import type { HeadlessConsentDialogAction } from '~/component-hooks/use-headless-consent-ui';
+import { useConsentDraft } from '~/draft';
 
 import { PolicyActionsRenderer } from '../shared/policy-actions';
 import type { PolicyActionRenderProps } from '../shared/policy-actions';
@@ -52,7 +53,7 @@ const renderDefaultAction = function renderDefaultAction(
 					{...buttonProps}
 				/>
 			);
-		case 'customize':
+		case 'save':
 			return (
 				<ConsentWidgetSaveButton
 					key={key}
@@ -61,6 +62,9 @@ const renderDefaultAction = function renderDefaultAction(
 					{...buttonProps}
 				/>
 			);
+		case 'customize':
+		case 'dismiss':
+			return null;
 		default: {
 			const _exhaustive: never = action;
 			throw new Error(`Unhandled consent widget action: ${_exhaustive}`);
@@ -72,16 +76,31 @@ export const ConsentWidgetPolicyActions = ({
 	renderAction,
 }: ConsentWidgetPolicyActionsProps) => {
 	const { dialog } = useHeadlessConsentUI();
+	const draft = useConsentDraft();
+	const handleReview = draft.reset;
 
 	return (
-		<PolicyActionsRenderer
-			state={dialog}
-			Footer={ConsentWidgetFooter}
-			FooterSubGroup={ConsentWidgetFooterSubGroup}
-			classNames={{}}
-			renderAction={renderAction}
-			renderDefaultAction={renderDefaultAction}
-		/>
+		<>
+			{draft.isStale ? (
+				<div role="alert">
+					The privacy policy changed. Review the current choices before saving.{' '}
+					<button
+						type="button"
+						onClick={handleReview}
+					>
+						Review choices
+					</button>
+				</div>
+			) : null}
+			<PolicyActionsRenderer
+				state={dialog}
+				Footer={ConsentWidgetFooter}
+				FooterSubGroup={ConsentWidgetFooterSubGroup}
+				classNames={{}}
+				renderAction={renderAction}
+				renderDefaultAction={renderDefaultAction}
+			/>
+		</>
 	);
 };
 

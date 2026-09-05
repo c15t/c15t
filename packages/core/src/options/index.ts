@@ -4,6 +4,8 @@ export type {
 	OnBannerFetchedPayload,
 	OnConsentChangedPayload,
 	OnConsentSetPayload,
+	OnChoiceRecordedPayload,
+	OnPermissionsChangedPayload,
 	OnErrorPayload,
 } from './callbacks';
 export type { CMPApi, CMPApiConfig, FetchGVLResult, IABConfig } from './iab';

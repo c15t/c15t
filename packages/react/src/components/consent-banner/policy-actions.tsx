@@ -8,6 +8,7 @@ import type { HeadlessConsentBannerAction } from '~/component-hooks/use-headless
 import { warmDialogChunk } from '../../chunk-warming';
 import { PolicyActionsRenderer } from '../shared/policy-actions';
 import type { PolicyActionRenderProps } from '../shared/policy-actions';
+import { ConsentButton } from '../shared/primitives/button';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,
@@ -62,6 +63,20 @@ const renderDefaultAction = function renderDefaultAction(
 					{...buttonProps}
 				/>
 			);
+		case 'dismiss':
+			return (
+				<ConsentButton
+					key={key}
+					action="dismiss-notice"
+					consentAction="dismiss"
+					data-testid="consent-banner-dismiss-button"
+					{...buttonProps}
+				>
+					Dismiss
+				</ConsentButton>
+			);
+		case 'save':
+			return null;
 		default: {
 			const _exhaustive: never = action;
 			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);

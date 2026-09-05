@@ -7,7 +7,6 @@ import type {
 	ConsentType,
 	HasCondition,
 	KernelActiveUI,
-	KernelIABState,
 	Model,
 	PolicyUiSurfaceConfig,
 	TranslationConfig,
@@ -19,20 +18,17 @@ import {
 	useActiveUI,
 	useBranding,
 	useConsents,
-	useHasConsented,
 	useModel,
-	usePolicyBanner,
+	usePromptPresentation,
 	usePolicyCategories,
-	usePolicyDialog,
+	usePreferencesPresentation,
 	usePolicyScopeMode,
 	useSaveConsents,
 	useSetActiveUI,
-	useSetConsent,
 	useSnapshot,
 	useSubscribeToConsentChanges,
 	useTranslations,
 } from '../hooks';
-import type { ReactIABState } from '../iab-context';
 import { defaultTranslationConfig } from '../utils/default-translation-config';
 
 type SaveType = 'all' | 'custom' | 'necessary';
@@ -137,65 +133,29 @@ const evaluateHas = function evaluateHas(
 	return Boolean(consents[category]);
 };
 
-const toLightweightIab = function toLightweightIab(
-	iab: KernelIABState | null
-): ReactIABState | null {
-	if (!iab) {
-		return null;
-	}
-	const noop = () => {
-		/* empty */
-	};
-	const noopAsync = async () => {
-		/* empty */
-	};
-
-	return {
-		...iab,
-		acceptAll: noop,
-		config: {
-			cmpId: iab.cmpId,
-			enabled: false,
-		},
-		isLoadingGVL: iab.enabled,
-		nonIABVendors: iab.customVendors,
-		preferenceCenterTab: 'purposes',
-		rejectAll: noop,
-		save: noopAsync,
-		setPreferenceCenterTab: noop,
-		setPurposeConsent: noop,
-		setPurposeLegitimateInterest: noop,
-		setSpecialFeatureOptIn: noop,
-		setVendorConsent: noop,
-		setVendorLegitimateInterest: noop,
-	};
-};
-
 export const useConsentManager = function useConsentManager() {
 	const snapshot = useSnapshot();
 	const consents = useConsents();
 	const activeUI = useActiveUI();
 	const branding = useBranding();
-	const hasConsentedValue = useHasConsented();
 	const model = useModel();
-	const policyBanner = usePolicyBanner();
+	const policyBanner = usePromptPresentation();
 	const policyCategoriesSnapshot = usePolicyCategories();
-	const policyDialog = usePolicyDialog();
+	const policyDialog = usePreferencesPresentation();
 	const policyScopeMode = usePolicyScopeMode();
 	const saveKernelConsents = useSaveConsents();
 	const setKernelActiveUI = useSetActiveUI();
-	const setKernelConsent = useSetConsent();
 	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
 	const translations = useTranslations();
 	const draft = useConsentDraft();
-	const iab = useMemo(() => toLightweightIab(snapshot.iab), [snapshot.iab]);
+
 	const translationConfig = useMemo(
 		() => toTranslationConfig(translations),
 		[translations]
 	);
 
 	const policyCategories = useMemo(
-		() => Array.from(policyCategoriesSnapshot),
+		() => ['necessary', ...policyCategoriesSnapshot] as AllConsentNames[],
 		[policyCategoriesSnapshot]
 	);
 	const consentCategories = useMemo<AllConsentNames[]>(
@@ -222,11 +182,6 @@ export const useConsentManager = function useConsentManager() {
 		[consents, policyScopeMode, policyCategories]
 	);
 
-	const hasConsented = useCallback(
-		() => hasConsentedValue,
-		[hasConsentedValue]
-	);
-
 	const setActiveUI = useCallback(
 		(ui: ActiveUI) => {
 			setKernelActiveUI(ui as KernelActiveUI);
@@ -251,13 +206,6 @@ export const useConsentManager = function useConsentManager() {
 		[draft, saveKernelConsents]
 	);
 
-	const setConsent = useCallback(
-		(name: AllConsentNames, value: boolean) => {
-			setKernelConsent({ [name]: value } as Partial<ConsentState>);
-		},
-		[setKernelConsent]
-	);
-
 	const setSelectedConsent = useCallback(
 		(name: AllConsentNames, value: boolean) => {
 			draft.set(name, value);
@@ -276,28 +224,35 @@ export const useConsentManager = function useConsentManager() {
 	);
 
 	return {
-		...snapshot,
 		activeUI: toActiveUI(activeUI),
 		branding: branding ?? 'c15t',
 		consentCategories,
-		consentInfo: hasConsentedValue ? { type: 'v3' } : null,
 		consentTypes: getDisplayedConsents(),
 		consents: consents as ConsentState,
+		draftIsStale: draft.isStale,
+		effectivePermissions: snapshot.effectivePermissions,
+		explicitChoice: snapshot.explicitChoice,
 		getDisplayedConsents,
 		has,
-		hasConsented,
-		iab,
+		iab: snapshot.iab,
 		manager: null,
 		model: (model ?? 'opt-in') as Model,
+		noticeDismissal: snapshot.noticeDismissal,
+		optOutDirectives: snapshot.optOutDirectives,
 		policyBanner: policyBanner ?? EMPTY_POLICY_SURFACE,
 		policyCategories,
 		policyDialog: policyDialog ?? EMPTY_POLICY_SURFACE,
+		policyRule: snapshot.policyRule,
 		policyScopeMode,
+		privacySignals: snapshot.privacySignals,
+		promptRequirement: snapshot.promptRequirement,
+		resetDraft: draft.reset,
+		resolution: snapshot.resolution,
+		restrictions: snapshot.restrictions,
 		saveConsents,
 		selectedConsentTypes: draft.values,
 		selectedConsents: draft.values,
 		setActiveUI,
-		setConsent,
 		setSelectedConsent,
 		subscribeToConsentChanges,
 		translationConfig,

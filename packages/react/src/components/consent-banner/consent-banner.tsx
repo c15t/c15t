@@ -8,8 +8,7 @@ import type * as C15tCoreTypes from '@c15t/core';
  */
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
-import { shouldFillPolicyActions } from '@c15t/ui/utils';
-import type { PolicyUiAction, PolicyUiActionDirection } from '@c15t/ui/utils';
+import type { PolicyUiActionDirection } from '@c15t/ui/utils';
 import { Fragment } from 'react';
 import type { FC, ReactNode } from 'react';
 
@@ -18,9 +17,9 @@ import { useTranslations } from '~/component-hooks/use-translations';
 import { Box } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';
-import { usePolicyBanner } from '~/hooks';
 import { useComponentConfig } from '~/hooks/use-component-config';
 
+import { ConsentButton } from '../shared/primitives/button';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -39,7 +38,12 @@ import { ErrorBoundary } from './error-boundary';
  * Identifiers for the available buttons in the consent banner.
  * @public
  */
-export type ConsentBannerButton = 'reject' | 'accept' | 'customize';
+export type ConsentBannerButton =
+	| 'reject'
+	| 'accept'
+	| 'customize'
+	| 'dismiss'
+	| 'save';
 
 /**
  * Structure for defining the layout of buttons in the consent banner.
@@ -50,8 +54,6 @@ export type ConsentBannerLayout = (
 	| ConsentBannerButton
 	| ConsentBannerButton[]
 )[];
-
-const DEFAULT_LAYOUT: ConsentBannerLayout = [['reject', 'accept'], 'customize'];
 
 /**
  * Props for configuring and customizing the ConsentBanner component.
@@ -207,49 +209,39 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	hideBranding = false,
 	layout,
 	direction,
-	primaryButton = 'customize',
+	primaryButton,
 	models,
 	uiSource,
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
-	const { banner } = useHeadlessConsentUI();
-	const policyBanner = usePolicyBanner();
-	const resolvedScrollLock =
-		localScrollLock ?? policyBanner?.scrollLock ?? false;
+	const primaryActions =
+		typeof primaryButton === 'string' ? [primaryButton] : primaryButton;
+	const { banner } = useHeadlessConsentUI({
+		prompt: {
+			direction,
+			layout,
+			primaryActions,
+		},
+	});
+
+	const resolvedScrollLock = banner.trapFocus
+		? (localScrollLock ?? banner.scrollLock)
+		: false;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		disableAnimation: localDisableAnimation,
 		noStyle: localNoStyle,
 		scrollLock: resolvedScrollLock,
-		trapFocus: localTrapFocus,
+		trapFocus: banner.trapFocus && localTrapFocus,
 	});
 
 	const { orderedActions } = banner;
 	const allowedActions = new Set(orderedActions);
-	const effectivePrimaryButton =
-		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
-	const resolvedLayout: ConsentBannerLayout =
-		layout ??
-		((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
-	const resolvedDirection = direction ?? banner.direction ?? 'row';
-	const activeGroups = resolvedLayout
-		.map((item) =>
-			// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
-			Array.isArray(item)
-				? item.filter((action): action is PolicyUiAction =>
-						allowedActions.has(action)
-					)
-				: allowedActions.has(item)
-					? [item]
-					: []
-		)
-		.filter((group) => group.length > 0);
-	const shouldFillActions = shouldFillPolicyActions({
-		actionGroups: activeGroups,
-		direction: resolvedDirection,
-		uiProfile: banner.uiProfile,
-	});
+	const effectivePrimaryButton = banner.primaryActions;
+	const resolvedLayout = banner.actionGroups;
+	const resolvedDirection = banner.direction;
+	const { shouldFillActions } = banner;
 
 	const renderButton = (type: ConsentBannerButton, className?: string) => {
 		if (!allowedActions.has(type)) {
@@ -297,6 +289,18 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						{customizeButtonText}
 					</ConsentBannerCustomizeButton>
 				);
+			case 'dismiss':
+				return (
+					<ConsentButton
+						action="dismiss-notice"
+						consentAction="dismiss"
+						data-testid="consent-banner-dismiss-button"
+					>
+						Dismiss
+					</ConsentButton>
+				);
+			case 'save':
+				return null;
 			default: {
 				const _exhaustive: never = type;
 				throw new Error(`Unhandled consent banner button type: ${_exhaustive}`);

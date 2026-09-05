@@ -16,7 +16,8 @@ import {
 	useActiveUI,
 	useTranslations as useKernelTranslations,
 	useModel,
-	usePolicyBanner,
+	usePromptPresentation,
+	usePromptRequirement,
 } from '~/hooks';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
@@ -26,7 +27,7 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
 
 import { Overlay } from './overlay';
 
-const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in'];
+const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
 
 const getBannerAnimationClass = (
 	disableAnimation: boolean | undefined,
@@ -364,22 +365,24 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const policyBanner = usePolicyBanner();
+	const policyBanner = usePromptPresentation();
+	const notice = usePromptRequirement().kind === 'notice';
 
 	/**
 	 * Combine consent manager state with styling configuration
 	 * to create the context value for child components
 	 */
-	const resolvedScrollLock =
-		scrollLock ?? policyBanner?.scrollLock ?? undefined;
+	const resolvedScrollLock = notice
+		? false
+		: (scrollLock ?? policyBanner?.scrollLock ?? undefined);
 	const contextValue = useMemo(
 		() => ({
 			disableAnimation,
 			noStyle,
 			scrollLock: resolvedScrollLock,
-			trapFocus,
+			trapFocus: !notice && trapFocus,
 		}),
-		[disableAnimation, noStyle, resolvedScrollLock, trapFocus]
+		[disableAnimation, noStyle, resolvedScrollLock, trapFocus, notice]
 	);
 	const trackingContextValue = useMemo(
 		() => ({ uiSource: uiSource ?? 'banner' }),

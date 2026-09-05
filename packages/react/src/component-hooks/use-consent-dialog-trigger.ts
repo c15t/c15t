@@ -1,47 +1,28 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 
-import { useConsentManager } from './use-consent-manager';
+import { useSetActiveUI } from '../hooks';
 
-export type ConsentDialogTriggerVisibility =
-	| 'always'
-	| 'after-consent'
-	| 'never';
-
+export type ConsentDialogTriggerVisibility = 'always' | 'never';
 export interface UseConsentDialogTriggerOptions {
 	showWhen?: ConsentDialogTriggerVisibility;
 	onClick?: () => void;
 }
-
 export interface UseConsentDialogTriggerResult {
 	isVisible: boolean;
 	openDialog: () => void;
 }
 
+/** Persistent preferences access does not depend on a choice or prompt. */
 export const useConsentDialogTrigger = function useConsentDialogTrigger(
 	options: UseConsentDialogTriggerOptions = {}
 ): UseConsentDialogTriggerResult {
-	const { showWhen = 'after-consent', onClick } = options;
-	const { activeUI, hasConsented, setActiveUI } = useConsentManager();
-
-	const shouldShow = useMemo(() => {
-		if (showWhen === 'never') {
-			return false;
-		}
-		if (showWhen === 'after-consent') {
-			return hasConsented();
-		}
-		return true;
-	}, [hasConsented, showWhen]);
-
+	const { showWhen = 'always', onClick } = options;
+	const setActiveUI = useSetActiveUI();
 	const openDialog = useCallback(() => {
 		onClick?.();
 		setActiveUI('dialog');
 	}, [onClick, setActiveUI]);
-
-	return {
-		isVisible: shouldShow && activeUI === 'none',
-		openDialog,
-	};
+	return { isVisible: showWhen !== 'never', openDialog };
 };
