@@ -1,10 +1,12 @@
-import { createConsentKernel } from '@c15t/core';
+import { createConsentKernel, getIABControls } from '@c15t/core';
+import { createIAB } from '@c15t/iab';
 import { createRef } from 'react';
 import type { ReactNode } from 'react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { mockGVL } from '../components/iab/__tests__/fixtures/mock-consent-state';
 import { KernelContext } from '../context';
 import {
 	C15TDevTools,
@@ -39,6 +41,116 @@ afterEach(() => {
 });
 
 describe('v3 React DevTools adapter', () => {
+	test.each([false, true])(
+		'saves only displayed categories, embedded=%s',
+		async (embedded) => {
+			const save = vi.fn(() => Promise.resolve({ ok: true as const }));
+			const kernel = createConsentKernel({
+				initialConsents: { experience: true },
+				transport: { save },
+			});
+			const props = {
+				getConsentCategories: () => ['necessary', 'measurement'] as const,
+			};
+			const view = await render(
+				<KernelContext.Provider value={kernel}>
+					{embedded ? (
+						<C15tTanStackDevtoolsPanel {...props} />
+					) : (
+						<DevTools
+							defaultOpen
+							{...props}
+						/>
+					)}
+				</KernelContext.Provider>
+			);
+			try {
+				await vi.waitFor(() => expect(getMountedDevTools()).not.toBeNull());
+				for (const [label, accepted] of [
+					['Accept all', true],
+					['Reject optional', false],
+				] as const) {
+					const button = [
+						...(getMountedDevTools()?.querySelectorAll('button') ?? []),
+					].find((element) => element.textContent === label);
+					expect(button).toBeDefined();
+					button?.click();
+					// oxlint-disable-next-line no-await-in-loop -- Reject runs after the preceding accept has completed.
+					await vi.waitFor(() =>
+						expect(kernel.getSnapshot().consents.measurement).toBe(accepted)
+					);
+					expect(kernel.getSnapshot().consents.experience).toBe(true);
+					// oxlint-disable-next-line no-await-in-loop -- Verify each sequential save before the next action.
+					await vi.waitFor(() =>
+						expect(save).toHaveBeenCalledWith(
+							expect.objectContaining({
+								consents: expect.objectContaining({
+									experience: true,
+									measurement: accepted,
+									necessary: true,
+								}),
+							})
+						)
+					);
+				}
+			} finally {
+				await view.unmount();
+			}
+		}
+	);
+	test.each([false, true])(
+		'edits and saves the existing IAB module, embedded=%s',
+		async (embedded) => {
+			const kernel = createConsentKernel({ initialPolicy: { model: 'iab' } });
+			const iab = createIAB({
+				cmpId: 28,
+				gvl: mockGVL,
+				kernel,
+				persistence: false,
+			});
+			const view = await render(
+				<KernelContext.Provider value={kernel}>
+					{embedded ? (
+						<C15tTanStackDevtoolsPanel defaultTab="iab" />
+					) : (
+						<DevTools
+							defaultOpen
+							defaultTab="iab"
+						/>
+					)}
+				</KernelContext.Provider>
+			);
+			try {
+				const controls = getIABControls(kernel);
+				expect(controls).toBeDefined();
+				await vi.waitFor(() =>
+					expect(getMountedDevTools()?.textContent).toContain('Accept all IAB')
+				);
+				const click = (label: string) => {
+					const button = [
+						...(getMountedDevTools()?.querySelectorAll('button') ?? []),
+					].find((element) => element.textContent === label);
+					expect(button).toBeDefined();
+					button?.click();
+				};
+				click('Accept all IAB');
+				expect(kernel.getSnapshot().iab?.vendorConsents[1]).toBe(true);
+				click('Save IAB consent');
+				await vi.waitFor(() =>
+					expect(getMountedDevTools()?.textContent).toContain(
+						'IAB consent saved.'
+					)
+				);
+				expect(kernel.getSnapshot().iab?.tcString).toBeTruthy();
+				click('Reject all IAB');
+				expect(kernel.getSnapshot().iab?.vendorConsents[1]).toBe(false);
+				expect(getIABControls(kernel)).toBe(controls);
+			} finally {
+				await view.unmount();
+				iab.dispose();
+			}
+		}
+	);
 	test.each([ConsentDevTools, C15tTanStackDevtoolsPanel])(
 		'does not evaluate category callbacks during server rendering (%s)',
 		(Component) => {
