@@ -13,7 +13,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ChoiceBasis } from '../../../consent-record/types';
+import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
 import {
 	flatToString,
 	flattenObject,
@@ -23,11 +23,19 @@ import {
 } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import {
+	encodeNoticeDismissal,
+	encodeNoticeDismissalCompact,
+	encodePrivacyOptOuts,
+	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 } from '../record-codec';
 import type { StoredConsentEnvelope } from '../record-codec';
-import { writeStoredConsentEnvelope } from '../record-storage';
+import {
+	writeStoredConsentEnvelope,
+	writeStoredNoticeDismissal,
+	writeStoredPrivacyOptOuts,
+} from '../record-storage';
 
 const TIME = 1_756_857_600_000;
 const SUBJECT_ID = 'sub_2VZxR7YmNpKq3WfLs8TgHd';
@@ -237,5 +245,51 @@ describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 			rejectAll: 752,
 			singleGrant: 246,
 		});
+	});
+});
+
+describe('auxiliary cookie projection bytes (baseline evidence, not a budget)', () => {
+	beforeEach(() => {
+		document.cookie = '';
+		window.localStorage.clear();
+	});
+
+	afterEach(() => {
+		document.cookie = '';
+		window.localStorage.clear();
+	});
+
+	it('measures the notice dismissal projection actually stored', () => {
+		const record = {
+			dismissedAt: TIME,
+			fingerprint: CHOICE_FP,
+			version: 1 as const,
+		};
+		const result = writeStoredNoticeDismissal(record, undefined, NOW);
+		expect(result.ok).toBe(true);
+		const stored = getRawCookieValue(`${STORAGE_KEY_V2}-notice`);
+		expect(stored).toBe(encodeNoticeDismissalCompact(record));
+		expect(bytes(stored ?? '')).toBe(86);
+		expect(bytes(encodeNoticeDismissal(record))).toBe(122);
+	});
+
+	it('measures the privacy directive projection actually stored', () => {
+		const one: PrivacyOptOut[] = [
+			{
+				categories: ['marketing', 'measurement'],
+				recordedAt: TIME,
+				source: 'gpc',
+			},
+		];
+		const result = writeStoredPrivacyOptOuts(one, undefined, NOW);
+		expect(result.ok).toBe(true);
+		const stored = getRawCookieValue(`${STORAGE_KEY_V2}-privacy`);
+		expect(stored).toBe(
+			encodePrivacyOptOutsCompact({ directives: one, version: 1 })
+		);
+		expect(bytes(stored ?? '')).toBe(29);
+		expect(bytes(encodePrivacyOptOuts({ directives: one, version: 1 }))).toBe(
+			113
+		);
 	});
 });

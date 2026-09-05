@@ -669,7 +669,7 @@ describe('notice dismissal and privacy opt-outs', () => {
 			{ now: NOW }
 		);
 		const consentLocal = window.localStorage.getItem(STORAGE_KEY_V2);
-		const consentCookie = document.cookie;
+		const consentBefore = readStoredConsentRecord(undefined, NOW).selected;
 
 		writeStoredNoticeDismissal(
 			{ dismissedAt: NOW - DAY, fingerprint: 'notice-fp-1', version: 1 },
@@ -683,7 +683,9 @@ describe('notice dismissal and privacy opt-outs', () => {
 		);
 
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(consentLocal);
-		expect(document.cookie).toBe(consentCookie);
+		expect(readStoredConsentRecord(undefined, NOW).selected?.choice).toEqual(
+			consentBefore?.choice
+		);
 		expect(readStoredNoticeDismissal(undefined, NOW)).toEqual({
 			ok: true,
 			record: {

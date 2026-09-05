@@ -6,6 +6,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
+import { choiceRecords, NOW } from './fixtures/kernel-fixtures';
 
 describe('kernel: pure construction', () => {
 	test('createConsentKernel() performs no window writes', () => {
@@ -43,7 +44,7 @@ describe('kernel: pure construction', () => {
 		}
 	});
 
-	test('createConsentKernel() installs no MutationObservers', () => {
+	test('createConsentKernel() installs no MutationObservers and no timers', () => {
 		const observeCalls: number[] = [];
 		class TrackingObserver {
 			observe = vi.fn(() => {
@@ -54,11 +55,17 @@ describe('kernel: pure construction', () => {
 			takeRecords = () => [];
 		}
 		vi.stubGlobal('MutationObserver', TrackingObserver);
+		const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
 		try {
-			createConsentKernel();
+			createConsentKernel({
+				initialRecords: choiceRecords({ marketing: true }),
+				now: NOW,
+			});
 			expect(observeCalls).toEqual([]);
+			expect(timeoutSpy).not.toHaveBeenCalled();
 		} finally {
+			timeoutSpy.mockRestore();
 			vi.unstubAllGlobals();
 		}
 	});
@@ -67,112 +74,120 @@ describe('kernel: pure construction', () => {
 describe('kernel: snapshot identity', () => {
 	test('getSnapshot() returns the same reference when no mutations occur', () => {
 		const kernel = createConsentKernel();
-		const a = kernel.getSnapshot();
-		const b = kernel.getSnapshot();
-		expect(a).toBe(b);
+		expect(kernel.getSnapshot()).toBe(kernel.getSnapshot());
 	});
 
 	test('snapshot is deeply frozen', () => {
 		const kernel = createConsentKernel();
 		const snap = kernel.getSnapshot();
 		expect(Object.isFrozen(snap)).toBe(true);
-		expect(Object.isFrozen(snap.consents)).toBe(true);
+		expect(Object.isFrozen(snap.effectivePermissions)).toBe(true);
 		expect(Object.isFrozen(snap.overrides)).toBe(true);
+		expect(Object.isFrozen(snap.promptRequirement)).toBe(true);
 	});
 
-	test('mutation produces a new snapshot with incremented revision', () => {
+	test('a recorded choice produces a new snapshot with incremented revision', async () => {
 		const kernel = createConsentKernel();
 		const before = kernel.getSnapshot();
-		kernel.set.consent({ marketing: true });
+		await kernel.commands.save({ marketing: true });
 		const after = kernel.getSnapshot();
 
 		expect(after).not.toBe(before);
 		expect(after.revision).toBe(before.revision + 1);
-		expect(after.consents.marketing).toBe(true);
-		expect(before.consents.marketing).toBe(false);
+		expect(after.effectivePermissions.marketing).toBe(true);
+		expect(before.effectivePermissions.marketing).toBe(false);
 	});
 
-	test('no-op mutation does NOT produce a new snapshot', () => {
+	test('a no-op save does NOT produce a new snapshot', async () => {
 		const kernel = createConsentKernel();
 		const before = kernel.getSnapshot();
-		// already true
-		kernel.set.consent({ necessary: true });
-		const after = kernel.getSnapshot();
-
-		expect(after).toBe(before);
-		expect(after.revision).toBe(before.revision);
+		const result = await kernel.commands.save({ necessary: true });
+		expect(result).toEqual({ confirmed: [], ok: true, subjectId: undefined });
+		expect(kernel.getSnapshot()).toBe(before);
 	});
 });
 
 describe('kernel: subscribe', () => {
-	test('subscribers fire on state change', () => {
+	test('subscribers fire on state change', async () => {
 		const kernel = createConsentKernel();
 		const listener = vi.fn();
 		kernel.subscribe(listener);
 
+		await kernel.commands.save({ marketing: true });
+		expect(listener).toHaveBeenCalledTimes(1);
+		expect(listener.mock.calls[0]?.[0]?.effectivePermissions.marketing).toBe(
+			true
+		);
+
+		// Draft staging does not touch the snapshot.
 		kernel.set.consent({ marketing: true });
 		expect(listener).toHaveBeenCalledTimes(1);
-		expect(listener.mock.calls[0]?.[0]?.consents.marketing).toBe(true);
 
-		// no-op
-		kernel.set.consent({ marketing: true });
-		expect(listener).toHaveBeenCalledTimes(1);
-
-		kernel.set.consent({ marketing: false });
+		await kernel.commands.save({ marketing: false });
 		expect(listener).toHaveBeenCalledTimes(2);
 	});
 
-	test('unsubscribe stops future notifications', () => {
+	test('unsubscribe stops future notifications', async () => {
 		const kernel = createConsentKernel();
 		const listener = vi.fn();
 		const unsubscribe = kernel.subscribe(listener);
 
-		kernel.set.consent({ marketing: true });
+		await kernel.commands.save({ marketing: true });
 		unsubscribe();
-		kernel.set.consent({ marketing: false });
+		await kernel.commands.save({ marketing: false });
 
 		expect(listener).toHaveBeenCalledTimes(1);
 	});
 });
 
 describe('kernel: commands', () => {
-	test('save("all") flips every category true and marks hasConsented', async () => {
+	test('save("all") grants every category in scope and records a choice', async () => {
 		const kernel = createConsentKernel();
 		const result = await kernel.commands.save('all');
 
 		expect(result.ok).toBe(true);
+		expect(result.confirmed).toEqual([
+			'experience',
+			'functionality',
+			'marketing',
+			'measurement',
+		]);
 		const snap = kernel.getSnapshot();
 		expect(snap.hasConsented).toBe(true);
-		expect(snap.consents.marketing).toBe(true);
-		expect(snap.consents.measurement).toBe(true);
-		expect(snap.consents.experience).toBe(true);
-		expect(snap.consents.functionality).toBe(true);
+		expect(snap.effectivePermissions).toEqual({
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+			necessary: true,
+		});
+		expect(snap.promptRequirement).toEqual({ kind: 'none' });
 	});
 
-	test('save("none") keeps necessary, clears everything else', async () => {
+	test('save("none") keeps necessary, denies everything else', async () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true, measurement: true },
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 		});
 		await kernel.commands.save('none');
 		const snap = kernel.getSnapshot();
 		expect(snap.hasConsented).toBe(true);
-		expect(snap.consents.necessary).toBe(true);
-		expect(snap.consents.marketing).toBe(false);
-		expect(snap.consents.measurement).toBe(false);
+		expect(snap.effectivePermissions.necessary).toBe(true);
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.restrictions.marketing).toEqual(['explicit-denial']);
 	});
 
-	test('save(object equal to current) still marks consented and notifies subscribers', async () => {
+	test('save(object) generates a subject id lazily and notifies once', async () => {
 		const kernel = createConsentKernel();
 		const listener = vi.fn();
 		kernel.subscribe(listener);
 
-		await kernel.commands.save({ necessary: true });
+		await kernel.commands.save({ marketing: false });
 
 		const snap = kernel.getSnapshot();
 		expect(snap.hasConsented).toBe(true);
 		expect(snap.subjectId).toMatch(/^sub_/u);
+		expect(snap.subject?.subjectId).toBe(snap.subjectId);
 		expect(listener).toHaveBeenCalledTimes(1);
-		expect(listener.mock.calls[0]?.[0]?.hasConsented).toBe(true);
 	});
 
 	test('identify writes user into snapshot', async () => {
@@ -183,24 +198,27 @@ describe('kernel: commands', () => {
 });
 
 describe('kernel: events', () => {
-	test('events.on("consent:set") fires on set.consent', () => {
+	test('choice:recorded fires on save with the confirmed coverage', async () => {
 		const kernel = createConsentKernel();
 		const listener = vi.fn();
-		kernel.events.on('consent:set', listener);
+		kernel.events.on('choice:recorded', listener);
 
-		kernel.set.consent({ marketing: true });
+		await kernel.commands.save({ marketing: true });
 		expect(listener).toHaveBeenCalledTimes(1);
-		expect(listener.mock.calls[0]?.[0]?.type).toBe('consent:set');
+		expect(listener.mock.calls[0]?.[0]).toMatchObject({
+			confirmed: ['marketing'],
+			type: 'choice:recorded',
+		});
 	});
 
-	test('events.on returns working unsubscribe', () => {
+	test('events.on returns working unsubscribe', async () => {
 		const kernel = createConsentKernel();
 		const listener = vi.fn();
-		const off = kernel.events.on('consent:set', listener);
+		const off = kernel.events.on('permissions:changed', listener);
 
-		kernel.set.consent({ marketing: true });
+		await kernel.commands.save({ marketing: true });
 		off();
-		kernel.set.consent({ marketing: false });
+		await kernel.commands.save({ marketing: false });
 
 		expect(listener).toHaveBeenCalledTimes(1);
 	});

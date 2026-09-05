@@ -862,3 +862,167 @@ export const decodePrivacyOptOuts = function decodePrivacyOptOuts(
 	}
 	return { ok: true, record: { directives, version: 1 } };
 };
+
+// ---------------------------------------------------------------------------
+// Compact cookie projections for notice dismissal and privacy opt-outs
+// ---------------------------------------------------------------------------
+
+/** Prefix of the compact notice-dismissal cookie projection. */
+export const COMPACT_NOTICE_PREFIX = 'v=1';
+/** Prefix of the compact privacy-opt-out cookie projection. */
+export const COMPACT_PRIVACY_PREFIX = 'v=1';
+
+const CATEGORY_LIST_SEPARATOR = '-';
+
+const parseCompactFields = function parseCompactFields(
+	rawValue: string,
+	prefix: string,
+	issues: StorageIssue[]
+): Map<string, string> | null {
+	const parts = rawValue.split(FIELD_SEPARATOR);
+	if (parts[0] !== prefix) {
+		issues.push({ code: 'unsupported-version', path: 'v' });
+		return null;
+	}
+	const fields = new Map<string, string>();
+	for (const part of parts.slice(1)) {
+		const separator = part.indexOf(KEY_VALUE_SEPARATOR);
+		if (separator <= 0) {
+			issues.push({ code: 'malformed-encoding', path: part });
+			return null;
+		}
+		const key = part.slice(0, separator);
+		if (fields.has(key)) {
+			issues.push({ code: 'duplicate-key', path: key });
+			return null;
+		}
+		fields.set(key, part.slice(separator + 1));
+	}
+	return fields;
+};
+
+const parseCompactInteger = function parseCompactInteger(
+	value: string | undefined
+): unknown {
+	if (value === undefined || !/^\d+$/u.test(value)) {
+		return value;
+	}
+	return Number(value);
+};
+
+/**
+ * Compact notice dismissal for the `<key>-notice` cookie:
+ * `v=1&t=<dismissedAt>&f=<uri-encoded fingerprint>`.
+ */
+export const encodeNoticeDismissalCompact =
+	function encodeNoticeDismissalCompact(record: StoredNoticeDismissal): string {
+		return [
+			COMPACT_NOTICE_PREFIX,
+			`t${KEY_VALUE_SEPARATOR}${record.dismissedAt}`,
+			`f${KEY_VALUE_SEPARATOR}${encodeURIComponent(record.fingerprint)}`,
+		].join(FIELD_SEPARATOR);
+	};
+
+/** Decodes a compact notice dismissal through the shared validator. */
+export const decodeNoticeDismissalCompact =
+	function decodeNoticeDismissalCompact(
+		rawValue: string,
+		now: number
+	): DecodeResult<StoredNoticeDismissal> {
+		const issues: StorageIssue[] = [];
+		const fields = parseCompactFields(rawValue, COMPACT_NOTICE_PREFIX, issues);
+		if (!fields) {
+			return { issues, ok: false };
+		}
+		for (const key of fields.keys()) {
+			if (key !== 't' && key !== 'f') {
+				issues.push({ code: 'unknown-key', path: key });
+			}
+		}
+		if (issues.length > 0) {
+			return { issues, ok: false };
+		}
+		const fingerprintText = fields.get('f');
+		const fingerprint =
+			fingerprintText === undefined
+				? undefined
+				: decodeComponent(fingerprintText);
+		if (fingerprint === null) {
+			return { issues: [{ code: 'malformed-encoding', path: 'f' }], ok: false };
+		}
+		return decodeNoticeDismissal(
+			{
+				dismissedAt: parseCompactInteger(fields.get('t')),
+				fingerprint,
+				version: 1,
+			},
+			now
+		);
+	};
+
+/**
+ * Compact privacy directives for the `<key>-privacy` cookie:
+ * `v=1&d=<source>.<recordedAt>.<code-code>|<source>.<recordedAt>.<code>`.
+ * Category codes are the same two-letter codes the consent cookie uses.
+ */
+export const encodePrivacyOptOutsCompact = function encodePrivacyOptOutsCompact(
+	record: StoredPrivacyOptOuts
+): string {
+	const directives = record.directives.map((directive) =>
+		[
+			directive.source,
+			String(directive.recordedAt),
+			[...directive.categories]
+				.sort()
+				.map((category) => CATEGORY_CODES[category])
+				.join(CATEGORY_LIST_SEPARATOR),
+		].join(TUPLE_SEPARATOR)
+	);
+	const parts = [COMPACT_PRIVACY_PREFIX];
+	if (directives.length > 0) {
+		parts.push(`d${KEY_VALUE_SEPARATOR}${directives.join(LIST_SEPARATOR)}`);
+	}
+	return parts.join(FIELD_SEPARATOR);
+};
+
+/** Decodes compact privacy directives through the shared validator. */
+export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
+	rawValue: string,
+	now: number
+): DecodeResult<StoredPrivacyOptOuts> {
+	const issues: StorageIssue[] = [];
+	const fields = parseCompactFields(rawValue, COMPACT_PRIVACY_PREFIX, issues);
+	if (!fields) {
+		return { issues, ok: false };
+	}
+	for (const key of fields.keys()) {
+		if (key !== 'd') {
+			issues.push({ code: 'unknown-key', path: key });
+		}
+	}
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const list = fields.get('d');
+	const directives: unknown[] = [];
+	if (list !== undefined && list !== '') {
+		for (const [index, entry] of list.split(LIST_SEPARATOR).entries()) {
+			const [source, recordedAt, codes, ...rest] = entry.split(TUPLE_SEPARATOR);
+			if (rest.length > 0 || source === undefined || codes === undefined) {
+				return {
+					issues: [{ code: 'malformed-encoding', path: `d[${index}]` }],
+					ok: false,
+				};
+			}
+			const categories = codes
+				.split(CATEGORY_LIST_SEPARATOR)
+				.map((code) => CODE_TO_CATEGORY.get(code) ?? code);
+			directives.push({
+				categories,
+				recordedAt: parseCompactInteger(recordedAt),
+				source,
+			});
+		}
+	}
+	return decodePrivacyOptOuts({ directives, version: 1 }, now);
+};

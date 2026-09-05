@@ -1,66 +1,93 @@
 /**
- * Write kernel state to stored consent.
+ * Write kernel records to storage.
  *
- * Synchronous: serializes the snapshot and persists it via the v2
- * cookie layer. Skips the write when the user has not yet decided
- * (`hasConsented === false`) so we don't poison storage with the
- * defaults.
- *
- * Has one side effect beyond the storage write: when the snapshot's
- * `subjectId` is missing or invalid, generates a fresh ID and pushes
- * it back through `kernel.set.subjectId`. This keeps the storage
- * payload and the kernel in sync without forcing the caller to
- * coordinate them. Pure-extracting that side effect is a separate
- * refactor (would change the kernel-write order during the same tick).
+ * Every write is driven by an explicit kernel event: a recorded choice
+ * writes the v3 envelope, a dismissed notice writes the notice record, a
+ * recorded directive writes the privacy record. Category times are
+ * written exactly as the kernel holds them; nothing here stamps the clock
+ * into a receipt.
  */
 
-import type { ConsentState as V2ConsentState } from '../../consent/compliance';
-import { saveConsentToStorage } from '../../libs/cookie';
+import type { ConsentSnapshot } from '../../types';
+import type { StoredConsentEnvelope, StoredIabMetadata } from './record-codec';
 import {
-	generateSubjectId,
-	isValidSubjectId,
-} from '../../libs/generate-subject-id';
-import type { ConsentKernel, ConsentSnapshot } from '../../types';
+	writeStoredConsentEnvelope,
+	writeStoredNoticeDismissal,
+	writeStoredPrivacyOptOuts,
+} from './record-storage';
 import type { StorageConfig } from './types';
 
-/**
- * Write the snapshot to storage. No-op outside the browser, or when
- * the user has not consented yet.
- *
- * Regenerates `subjectId` and pushes it back to the kernel via
- * `kernel.set.subjectId` when the snapshot's ID is missing or invalid.
- */
-export const writeToStorage = function writeToStorage(
+const hasStorageAPIs = function hasStorageAPIs(): boolean {
+	return typeof document !== 'undefined' && typeof localStorage !== 'undefined';
+};
+
+/** Envelope a snapshot's explicit choice serializes to, or `null`. */
+export const buildStoredEnvelope = function buildStoredEnvelope(
 	snapshot: ConsentSnapshot,
-	kernel: ConsentKernel,
-	storageConfig: StorageConfig | undefined
+	iab: StoredIabMetadata | null
+): StoredConsentEnvelope | null {
+	if (!snapshot.explicitChoice) {
+		return null;
+	}
+	const envelope: StoredConsentEnvelope = {
+		categories: snapshot.explicitChoice.categories,
+		version: 3,
+	};
+	if (snapshot.subject && Object.keys(snapshot.subject).length > 0) {
+		envelope.subject = { ...snapshot.subject };
+	}
+	if (iab) {
+		envelope.iab = iab;
+	}
+	return envelope;
+};
+
+/**
+ * Write the explicit choice to storage. No-op outside the browser or when
+ * no choice exists.
+ */
+export const writeChoiceToStorage = function writeChoiceToStorage(
+	snapshot: ConsentSnapshot,
+	iab: StoredIabMetadata | null,
+	storageConfig: StorageConfig | undefined,
+	now: number
 ): void {
-	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+	if (!hasStorageAPIs()) {
 		return;
 	}
-	if (!snapshot.hasConsented) {
+	const envelope = buildStoredEnvelope(snapshot, iab);
+	if (!envelope) {
 		return;
 	}
-
-	let { subjectId } = snapshot;
-	if (!subjectId || !isValidSubjectId(subjectId)) {
-		subjectId = generateSubjectId();
-		kernel.set.subjectId(subjectId);
+	const result = writeStoredConsentEnvelope(envelope, {
+		config: storageConfig,
+		now,
+	});
+	if (result.ok === false) {
+		console.warn('[c15t] Consent record was not written.', result.issues);
 	}
+};
 
-	saveConsentToStorage(
-		{
-			consentInfo: {
-				subjectId,
-				time: Date.now(),
-			},
-			consents: snapshot.consents as V2ConsentState,
-		},
-		// Cookie options derive from the storage config inside the cookie
-		// layer (`getDefaultCookieOptions`). The config must land in the third
-		// slot: passed as cookie options it is spread over the defaults, which
-		// silently drops `storageKey`, `defaultDomain`, and `defaultExpiryDays`.
-		undefined,
-		storageConfig
-	);
+/** Write the notice dismissal. No-op outside the browser or when absent. */
+export const writeNoticeToStorage = function writeNoticeToStorage(
+	snapshot: ConsentSnapshot,
+	storageConfig: StorageConfig | undefined,
+	now: number
+): void {
+	if (!hasStorageAPIs() || !snapshot.noticeDismissal) {
+		return;
+	}
+	writeStoredNoticeDismissal(snapshot.noticeDismissal, storageConfig, now);
+};
+
+/** Write the standing privacy directives. No-op outside the browser. */
+export const writePrivacyToStorage = function writePrivacyToStorage(
+	snapshot: ConsentSnapshot,
+	storageConfig: StorageConfig | undefined,
+	now: number
+): void {
+	if (!hasStorageAPIs()) {
+		return;
+	}
+	writeStoredPrivacyOptOuts(snapshot.optOutDirectives, storageConfig, now);
 };

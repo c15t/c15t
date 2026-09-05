@@ -3,6 +3,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
+import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
 import {
 	buildReconcilePass,
@@ -49,7 +50,7 @@ describe('determineCategory', () => {
 describe('reconcileIframe', () => {
 	test('promotes data-src to src when consent granted', () => {
 		const snap = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		}).getSnapshot();
 		const iframe = makeIframe({
 			'data-category': 'marketing',
@@ -79,7 +80,7 @@ describe('reconcileIframe', () => {
 
 	test('does not overwrite existing src when consent granted', () => {
 		const snap = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		}).getSnapshot();
 		const iframe = makeIframe({
 			'data-category': 'marketing',

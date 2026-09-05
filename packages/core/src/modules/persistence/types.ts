@@ -12,32 +12,37 @@ export type { StorageConfig };
 export interface PersistenceOptions {
 	kernel: ConsentKernel;
 	/**
-	 * Cookie + storage configuration. Forwarded directly to the v2
-	 * cookie layer; any option that cookie.ts accepts is accepted here.
-	 * Defaults match v2.
+	 * Cookie + storage configuration. Forwarded to the storage layer; any
+	 * option the cookie library accepts is accepted here.
 	 */
 	storageConfig?: StorageConfig;
 	/**
 	 * Skip the initial hydration pass. Useful when the adapter has
-	 * already seeded the kernel from SSR prefetch.
+	 * already seeded the kernel from an SSR record seed.
 	 */
 	skipHydration?: boolean;
+	/**
+	 * Clock used for reads and writes. Defaults to `Date.now`. Tests and
+	 * server renders pass a fixed time.
+	 */
+	now?: () => number;
 }
 
 export interface PersistenceHandle {
 	dispose: () => void;
-	/** Re-run hydration from storage. Returns whether any state was loaded. */
+	/** Re-run hydration from storage. Returns whether any record was found. */
 	hydrate: () => boolean;
-	/** Clear stored consent. Does NOT mutate the kernel. */
+	/**
+	 * Cancel queued writes, clear every c15t record (choice, notice, privacy,
+	 * their cookie projections and the queued backend replays) and reset the
+	 * kernel's in-memory records.
+	 */
 	clear: () => void;
 }
 
 /**
- * Shape of payloads the v2 cookie layer reads/writes.
- *
- * `getConsentFromStorage` returns `unknown` by default, so we
- * type-narrow here. Both v2 and v3 use the same payload shape so
- * upgraded users don't lose stored consent.
+ * BRIDGE: shape of the legacy v2 payload `readStoredConsentFromCookie`
+ * returns. Prefer `readStoredRecordsFromCookieHeader`.
  */
 export interface StoredPayload {
 	consents?: Partial<V2ConsentState>;

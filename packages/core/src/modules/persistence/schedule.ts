@@ -1,13 +1,12 @@
 /**
  * Macrotask-debounced write scheduler.
  *
- * Multiple consent flips within a single tick (e.g. accept-all then
- * adjust) coalesce into one storage write. The write runs in a later
- * macrotask so synchronous cookie/localStorage work does not sit on the
- * user interaction path that just updated the kernel and UI.
+ * Multiple writes requested within a single tick coalesce into one
+ * storage write. The write runs in a later macrotask so synchronous
+ * cookie/localStorage work does not sit on the user interaction path
+ * that just updated the kernel and UI.
  *
- * Pure: takes a `write` callback, returns `{ schedule, flush }`. No
- * closure capture beyond the supplied callback.
+ * Pure: takes a `write` callback, returns `{ schedule, flush, cancel }`.
  */
 export interface WriteScheduler {
 	/** Request a write in a later macrotask. Idempotent within a tick. */
@@ -17,14 +16,13 @@ export interface WriteScheduler {
 	 * Useful for tests and for flushing on dispose.
 	 */
 	flush: () => void;
+	/** Drop a queued write without running it. */
+	cancel: () => void;
 }
 
 /**
  * Build a scheduler that coalesces multiple `schedule()` calls into one
  * deferred `write()` call.
- *
- * `flush()` runs the pending write synchronously and clears the queued
- * timer, so a flushed-then-completed task does not write a second time.
  */
 export const createWriteScheduler = function createWriteScheduler(
 	write: () => void
@@ -32,16 +30,21 @@ export const createWriteScheduler = function createWriteScheduler(
 	let pending = false;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 
+	const cancel = function cancel(): void {
+		if (timer !== null) {
+			clearTimeout(timer);
+			timer = null;
+		}
+		pending = false;
+	};
+
 	return {
+		cancel,
 		flush() {
 			if (!pending) {
 				return;
 			}
-			if (timer !== null) {
-				clearTimeout(timer);
-				timer = null;
-			}
-			pending = false;
+			cancel();
 			write();
 		},
 		schedule() {

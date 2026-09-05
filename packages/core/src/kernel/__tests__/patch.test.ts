@@ -1,70 +1,92 @@
 import { describe, expect, test } from 'vitest';
 
-import { applyPatch } from '../patch';
+import {
+	choiceRecords,
+	matchedResolution,
+	NOW,
+	optInRule,
+	optOutRule,
+} from '../../__tests__/fixtures/kernel-fixtures';
+import { applyPatch, buildNextSnapshot, snapshotChanged } from '../patch';
 import { buildInitialSnapshot } from '../snapshot';
 
-describe('advance', () => {
-	test('increments revision by exactly 1', () => {
-		const initial = buildInitialSnapshot({});
-		const next = applyPatch(initial, { hasConsented: true });
+describe('applyPatch', () => {
+	test('increments revision by exactly 1 and returns a frozen snapshot', () => {
+		const initial = buildInitialSnapshot({ now: NOW });
+		const next = applyPatch(initial, { subject: { subjectId: 'sub_1' } });
 		expect(next.revision).toBe(1);
-		const after = applyPatch(next, { hasConsented: false });
-		expect(after.revision).toBe(2);
-	});
-
-	test('returns a frozen snapshot', () => {
-		const initial = buildInitialSnapshot({});
-		const next = applyPatch(initial, { hasConsented: true });
 		expect(Object.isFrozen(next)).toBe(true);
+		const after = applyPatch(next, { subject: null });
+		expect(after.revision).toBe(2);
+		expect(initial.revision).toBe(0);
 	});
 
-	test('does not mutate the input', () => {
-		const initial = buildInitialSnapshot({});
-		const before = initial.revision;
-		applyPatch(initial, { hasConsented: true });
-		expect(initial.revision).toBe(before);
-	});
-
-	test('undefined fields preserve current value', () => {
+	test('undefined fields preserve current values, null clears them', () => {
 		const initial = buildInitialSnapshot({
 			initialSubjectId: 'sub_1',
 			initialUser: { externalId: 'u1' },
+			now: NOW,
 		});
-		const next = applyPatch(initial, { hasConsented: true });
-		expect(next.user).toBe(initial.user);
-		expect(next.subjectId).toBe(initial.subjectId);
+		const kept = applyPatch(initial, { branding: 'consent' });
+		expect(kept.user).toBe(initial.user);
+		expect(kept.subject).toBe(initial.subject);
+		const cleared = applyPatch(initial, { subject: null, user: null });
+		expect(cleared.user).toBeNull();
+		expect(cleared.subject).toBeNull();
+		expect(cleared.subjectId).toBeNull();
 	});
 
-	test('null fields explicitly clear nullable values', () => {
-		const initial = buildInitialSnapshot({
-			initialSubjectId: 'sub_1',
-			initialUser: { externalId: 'u1' },
-		});
-		const next = applyPatch(initial, { subjectId: null, user: null });
-		expect(next.user).toBeNull();
-		expect(next.subjectId).toBeNull();
+	test('derived fields keep their reference when their value is unchanged', () => {
+		const initial = buildInitialSnapshot({ now: NOW });
+		const next = buildNextSnapshot(initial, { now: NOW + 1000 });
+		expect(next.effectivePermissions).toBe(initial.effectivePermissions);
+		expect(next.consents).toBe(initial.effectivePermissions);
+		expect(next.promptRequirement).toBe(initial.promptRequirement);
+		expect(next.restrictions).toBe(initial.restrictions);
+		expect(next.privacySignals).toBe(initial.privacySignals);
+		expect(next.evaluationPolicy).toBe(initial.evaluationPolicy);
+		expect(snapshotChanged(initial, next)).toBe(false);
 	});
 
-	test('replaces concrete fields when patched', () => {
-		const initial = buildInitialSnapshot({});
+	test('a choice patch re-derives permissions and the prompt', () => {
+		const initial = buildInitialSnapshot({ now: NOW });
+		const records = choiceRecords({
+			experience: false,
+			functionality: false,
+			marketing: true,
+			measurement: false,
+		});
+		const next = applyPatch(initial, { explicitChoice: records.choice });
+		expect(next.effectivePermissions.marketing).toBe(true);
+		expect(next.consents).toBe(next.effectivePermissions);
+		expect(next.hasConsented).toBe(true);
+		expect(next.promptRequirement).toEqual({ kind: 'none' });
+		expect(next.activeUI).toBe('none');
+		expect(snapshotChanged(initial, next)).toBe(true);
+	});
+
+	test('a resolution patch replaces the rule, the legacy bridge and the model', () => {
+		const initial = buildInitialSnapshot({ now: NOW });
+		expect(initial.model).toBe('opt-in');
 		const next = applyPatch(initial, {
-			consents: {
-				experience: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				necessary: true,
-			},
+			resolution: matchedResolution(optOutRule({ prompt: 'none' })),
 		});
-		expect(next.consents.marketing).toBe(true);
-		expect(next.consents.experience).toBe(true);
+		expect(next.model).toBe('opt-out');
+		expect(next.policyRule.id).toBe('test-opt-out');
+		expect(next.policy?.model).toBe('opt-out');
+		expect(next.policy?.ui?.mode).toBe('none');
+		expect(next.promptRequirement).toEqual({ kind: 'none' });
+		expect(next.effectivePermissions.marketing).toBe(true);
+		expect(next.activeUI).toBe('none');
 	});
 
-	test('preserves consents reference when not patched', () => {
-		// Structural sharing: subscribers can `===` on `consents` to skip
-		// re-deriving downstream state when only metadata changed.
-		const initial = buildInitialSnapshot({});
-		const next = applyPatch(initial, { hasConsented: true });
-		expect(next.consents).toBe(initial.consents);
+	test('an explicit activeUI patch survives an unrelated re-evaluation', () => {
+		const initial = buildInitialSnapshot({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			now: NOW,
+		});
+		const opened = applyPatch(initial, { activeUI: 'dialog' });
+		const later = applyPatch(opened, { now: NOW + 1000 });
+		expect(later.activeUI).toBe('dialog');
 	});
 });

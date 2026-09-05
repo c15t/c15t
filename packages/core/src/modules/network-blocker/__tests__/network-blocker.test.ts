@@ -13,8 +13,15 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import {
+	choiceRecords,
+	iabRule,
+	matchedResolution,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import { createNetworkBlocker } from '../index';
+
+const IAB_RESOLUTION = matchedResolution(iabRule());
 
 const originalFetch = globalThis.fetch;
 
@@ -104,7 +111,7 @@ describe('network-blocker: fetch interception', () => {
 
 	test('allows fetch when consent is granted', async () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createNetworkBlocker({
 			kernel,
@@ -120,7 +127,7 @@ describe('network-blocker: fetch interception', () => {
 
 	test('reacts to consent revoke — subsequent requests blocked', async () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createNetworkBlocker({
 			kernel,
@@ -132,7 +139,7 @@ describe('network-blocker: fetch interception', () => {
 		);
 		expect(first.status).toBe(200);
 
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 
 		const second = await window.fetch(
 			'https://www.google-analytics.com/collect'
@@ -311,14 +318,12 @@ describe('network-blocker: dispose', () => {
 describe('network-blocker: IAB evaluation when model="iab"', () => {
 	test('rule with vendorId blocks when vendor consent missing', async () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
-			initialHasConsented: true,
 			initialIab: { enabled: true },
-			initialPolicy: {
-				id: 'iab',
-				model: 'iab',
-				ui: { mode: 'banner' },
-			} as never,
+			initialPolicyResolution: IAB_RESOLUTION,
+			initialRecords: choiceRecords(
+				{ marketing: true },
+				{ fingerprint: IAB_RESOLUTION.fingerprints.choice }
+			),
 		});
 		createNetworkBlocker({
 			kernel,

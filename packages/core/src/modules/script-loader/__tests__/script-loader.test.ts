@@ -15,9 +15,17 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import {
+	choiceRecords,
+	iabRule,
+	matchedResolution,
+	optInRule,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import { createScriptLoader } from '../index';
 import type { Script } from '../index';
+
+const IAB_RESOLUTION = matchedResolution(iabRule());
 
 // ---------------------------------------------------------------
 // Minimal DOM stubs. The kernel has zero browser-globals usage;
@@ -141,7 +149,7 @@ afterEach(() => {
 describe('script-loader: basic load/unload on consent change', () => {
 	test('mounts a script when category consent is granted', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -168,17 +176,13 @@ describe('script-loader: basic load/unload on consent change', () => {
 
 	test('does NOT mount an in-policy marketing script before opt-in consent even when preselected', () => {
 		const kernel = createConsentKernel({
-			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-			initialPolicy: {
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				consent: {
-					categories: ['necessary', 'marketing', 'measurement'],
-					preselectedCategories: ['necessary', 'marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({
+					categories: ['marketing', 'measurement'],
+					preselectedCategories: ['marketing'],
 					scopeMode: 'strict',
-				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+				})
+			),
 		});
 
 		createScriptLoader({
@@ -193,19 +197,11 @@ describe('script-loader: basic load/unload on consent change', () => {
 		expect(head.children).toHaveLength(0);
 	});
 
-	test('does NOT mount an out-of-policy marketing script before opt-in consent in permissive scope', () => {
+	test('mounts an out-of-policy marketing script under a permissive opt-in scope', () => {
 		const kernel = createConsentKernel({
-			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-			initialPolicy: {
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				consent: {
-					categories: ['necessary'],
-					preselectedCategories: ['necessary'],
-					scopeMode: 'permissive',
-				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['functionality'], scopeMode: 'permissive' })
+			),
 		});
 
 		createScriptLoader({
@@ -215,14 +211,17 @@ describe('script-loader: basic load/unload on consent change', () => {
 			],
 		});
 
+		// Permissive scope means the controller declared categories outside
+		// the scope unrestricted; strict scope denies them (see the strict
+		// test above). Neither creates a choice.
 		expect(kernel.getSnapshot().hasConsented).toBe(false);
-		expect(kernel.getSnapshot().consents.marketing).toBe(false);
-		expect(head.children).toHaveLength(0);
+		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		expect(head.children).toHaveLength(1);
 	});
 
 	test('unmounts when consent is revoked', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const script: Script = {
 			category: 'marketing',
@@ -232,13 +231,13 @@ describe('script-loader: basic load/unload on consent change', () => {
 		createScriptLoader({ kernel, scripts: [script] });
 
 		expect(head.children).toHaveLength(1);
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		expect(head.children).toHaveLength(0);
 	});
 
 	test('remounts when consent is re-granted', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const script: Script = {
 			category: 'marketing',
@@ -247,9 +246,9 @@ describe('script-loader: basic load/unload on consent change', () => {
 		};
 		createScriptLoader({ kernel, scripts: [script] });
 
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		expect(head.children).toHaveLength(0);
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: true });
 		expect(head.children).toHaveLength(1);
 	});
 });
@@ -257,7 +256,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 describe('script-loader: DOM dedupe across loader instances', () => {
 	test('second loader reuses an existing default-anonymized element', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const script: Script = {
 			category: 'marketing',
@@ -288,7 +287,7 @@ describe('script-loader: DOM dedupe across loader instances', () => {
 
 	test('second loader reuses an existing stable non-anonymized element', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const script: Script = {
 			anonymizeId: false,
@@ -353,7 +352,7 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 			expect.objectContaining({ hasConsent: false })
 		);
 
-		kernel.set.consent({ measurement: true });
+		void kernel.commands.save({ measurement: true });
 		expect(onConsentChange).toHaveBeenCalledWith(
 			expect.objectContaining({ hasConsent: true })
 		);
@@ -363,7 +362,7 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 describe('script-loader: persistAfterConsentRevoked', () => {
 	test('element stays in DOM even after consent revoke', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -378,7 +377,7 @@ describe('script-loader: persistAfterConsentRevoked', () => {
 		});
 
 		expect(head.children).toHaveLength(1);
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		// DOM element persists...
 		expect(head.children).toHaveLength(1);
 	});
@@ -388,7 +387,7 @@ describe('script-loader: callbackOnly skips DOM mount', () => {
 	test('no element appended, onLoad still fires', () => {
 		const onLoad = vi.fn();
 		const kernel = createConsentKernel({
-			initialConsents: { measurement: true },
+			initialRecords: choiceRecords({ measurement: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -411,7 +410,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 	test('onBeforeLoad → (mount) → onLoad (for external scripts)', () => {
 		const order: string[] = [];
 		const kernel = createConsentKernel({
-			initialConsents: { measurement: true },
+			initialRecords: choiceRecords({ measurement: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -435,7 +434,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 	test('inline script: onLoad fires asynchronously on next tick', () => {
 		const onLoad = vi.fn();
 		const kernel = createConsentKernel({
-			initialConsents: { functionality: true },
+			initialRecords: choiceRecords({ functionality: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -457,7 +456,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 	test('onConsentChange skips unrelated consent flips for an already-loaded script', () => {
 		const onConsentChange = vi.fn();
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true, measurement: false },
+			initialRecords: choiceRecords({ marketing: true, measurement: false }),
 		});
 		createScriptLoader({
 			kernel,
@@ -472,14 +471,14 @@ describe('script-loader: callbacks fire in sequence', () => {
 		});
 		onConsentChange.mockClear();
 
-		kernel.set.consent({ measurement: true });
+		void kernel.commands.save({ measurement: true });
 		expect(onConsentChange).not.toHaveBeenCalled();
 	});
 
 	test('onConsentChange fires when a loaded script loses consent', () => {
 		const onConsentChange = vi.fn();
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -494,7 +493,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 		});
 		onConsentChange.mockClear();
 
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		expect(onConsentChange).toHaveBeenCalled();
 	});
 });
@@ -502,7 +501,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 describe('script-loader: anonymizeId', () => {
 	test('default generates a random id; stable across reconciles', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -515,14 +514,14 @@ describe('script-loader: anonymizeId', () => {
 		expect(firstId).not.toBe('c15t-script-gtm');
 
 		// Revoke + regrant should keep the same anonymized ID.
-		kernel.set.consent({ marketing: false });
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: false });
+		void kernel.commands.save({ marketing: true });
 		expect(head.children[0]?.id).toBe(firstId);
 	});
 
 	test('opt out with anonymizeId:false → element id is c15t-script-<id>', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -542,7 +541,7 @@ describe('script-loader: anonymizeId', () => {
 describe('script-loader: nested AND/OR/NOT conditions', () => {
 	test('AND requires all', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: false, measurement: true },
+			initialRecords: choiceRecords({ marketing: false, measurement: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -556,7 +555,7 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 		});
 		expect(head.children).toHaveLength(0);
 
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: true });
 		expect(head.children).toHaveLength(1);
 	});
 
@@ -574,13 +573,13 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 		});
 		expect(head.children).toHaveLength(0);
 
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: true });
 		expect(head.children).toHaveLength(1);
 	});
 
 	test('NOT negates', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: false },
+			initialRecords: choiceRecords({ marketing: false }),
 		});
 		createScriptLoader({
 			kernel,
@@ -595,7 +594,7 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 		// NOT marketing (marketing=false) → should load
 		expect(head.children).toHaveLength(1);
 
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: true });
 		expect(head.children).toHaveLength(0);
 	});
 });
@@ -603,13 +602,12 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 describe('script-loader: IAB evaluation when model="iab"', () => {
 	test('vendorId gate: vendor consent drives load', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
 			initialIab: { enabled: true },
-			initialPolicy: {
-				id: 'iab',
-				model: 'iab',
-				ui: { mode: 'banner' },
-			} as never,
+			initialPolicyResolution: IAB_RESOLUTION,
+			initialRecords: choiceRecords(
+				{ marketing: true },
+				{ fingerprint: IAB_RESOLUTION.fingerprints.choice }
+			),
 		});
 
 		createScriptLoader({
@@ -638,7 +636,7 @@ describe('script-loader: IAB evaluation when model="iab"', () => {
 describe('script-loader: updateScripts swaps config', () => {
 	test('removed scripts unmount; added scripts mount', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true, measurement: true },
+			initialRecords: choiceRecords({ marketing: true, measurement: true }),
 		});
 		const loader = createScriptLoader({
 			kernel,
@@ -664,7 +662,7 @@ describe('script-loader: updateScripts swaps config', () => {
 describe('script-loader: dispose', () => {
 	test('removes mounted elements and stops reacting to consent', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const loader = createScriptLoader({
 			kernel,
@@ -678,8 +676,8 @@ describe('script-loader: dispose', () => {
 		expect(head.children).toHaveLength(0);
 
 		// Post-dispose snapshot changes should not re-mount.
-		kernel.set.consent({ marketing: false });
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: false });
+		void kernel.commands.save({ marketing: true });
 		expect(head.children).toHaveLength(0);
 	});
 });
@@ -688,7 +686,7 @@ describe('script-loader: onDebug emits lifecycle events', () => {
 	test('emits loaded and unloaded actions', () => {
 		const events: string[] = [];
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createScriptLoader({
 			kernel,
@@ -699,7 +697,7 @@ describe('script-loader: onDebug emits lifecycle events', () => {
 		});
 
 		expect(events).toContain('loaded:gtm');
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		expect(events).toContain('unloaded:gtm');
 	});
 });

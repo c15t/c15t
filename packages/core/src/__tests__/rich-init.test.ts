@@ -17,6 +17,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
 import type { KernelTransport, SavePayload } from '../index';
+import { iabRule, matchedResolution } from './fixtures/kernel-fixtures';
 
 // --- Fixture: a reasonable GDPR policy with all the fields we care about ---
 
@@ -52,16 +53,6 @@ const GDPR_DECISION: PolicyDecision = {
 	fingerprint: 'abc123',
 	matchedBy: 'region',
 } as unknown as PolicyDecision;
-
-const IAB_POLICY: ResolvedPolicy = {
-	...GDPR_POLICY,
-	consent: {
-		...GDPR_POLICY.consent,
-		model: 'iab',
-	},
-	id: 'iab-policy',
-	model: 'iab',
-} as unknown as ResolvedPolicy;
 
 const NO_BANNER_POLICY: ResolvedPolicy = {
 	id: 'no_banner',
@@ -170,14 +161,15 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		expect(snap.hasConsented).toBe(true);
-		// Server consent respected
-		expect(snap.consents.marketing).toBe(true);
-		// Preselected not applied (hasConsented=true)
+		// Booleans without receipts are a draft, not a choice: nothing is
+		// granted until an explicit save confirms them.
+		expect(snap.hasConsented).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.consents.marketing).toBe(false);
 		expect(snap.consents.functionality).toBe(false);
 	});
 
-	test('model=null when policy.model is none', async () => {
+	test('legacy no_banner sentinel is a successful no-match with the safe fallback', async () => {
 		const transport: KernelTransport = {
 			init() {
 				return { policy: NO_BANNER_POLICY };
@@ -186,8 +178,13 @@ describe('rich init: applies full response to snapshot', () => {
 		const kernel = createConsentKernel({ transport });
 
 		await kernel.commands.init();
-		expect(kernel.getSnapshot().model).toBeNull();
-		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getSnapshot().resolution).toEqual({
+			policy: null,
+			status: 'no-match',
+		});
+		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('choice');
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 });
 
@@ -295,16 +292,17 @@ describe('set.iab: kernel action', () => {
 	test('flipping enabled re-derives model + activeUI', () => {
 		const kernel = createConsentKernel({
 			initialIab: { enabled: false },
-			initialPolicy: IAB_POLICY,
+			initialPolicyResolution: matchedResolution(iabRule()),
 		});
 
-		expect(kernel.getSnapshot().model).toBeNull();
+		// An IAB rule without the IAB module runs its categories as opt-in.
+		expect(kernel.getSnapshot().model).toBe('opt-in');
 
 		kernel.set.iab({ enabled: true });
 		expect(kernel.getSnapshot().model).toBe('iab');
 
 		kernel.set.iab({ enabled: false });
-		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().model).toBe('opt-in');
 	});
 
 	test('no-op patch does not notify subscribers', () => {
@@ -324,7 +322,10 @@ describe('SavePayload: carries policySnapshotToken + tcString', () => {
 		const saveSpy = vi.fn().mockResolvedValue({ ok: true });
 		const transport: KernelTransport = {
 			init() {
-				return { policySnapshotToken: 'snap-42' };
+				return Promise.resolve({
+					policy: GDPR_POLICY,
+					policySnapshotToken: 'snap-42',
+				});
 			},
 			save: saveSpy,
 		};

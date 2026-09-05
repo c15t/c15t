@@ -10,6 +10,8 @@
  * unsynchronized access.
  */
 
+import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
+import { validateExplicitChoice } from '../consent-record/validation';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
 
@@ -73,12 +75,47 @@ const isSaveUser = function isSaveUser(value: unknown): boolean {
 	);
 };
 
+const isSubject = function isSubject(value: unknown): boolean {
+	return (
+		isRecord(value) &&
+		isOptionalString(value.subjectId) &&
+		isOptionalString(value.externalId) &&
+		isOptionalString(value.identityProvider)
+	);
+};
+
+const isConfirmedCoverage = function isConfirmedCoverage(
+	value: unknown
+): boolean {
+	if (!isRecord(value) || !isRecord(value.categories)) {
+		return false;
+	}
+	if (
+		typeof value.actionAt !== 'number' ||
+		!Number.isSafeInteger(value.actionAt) ||
+		value.actionAt < 0
+	) {
+		return false;
+	}
+	const known = new Set<string>(OPTIONAL_CONSENT_CATEGORIES);
+	return Object.entries(value.categories).every(
+		([key, item]) => known.has(key) && typeof item === 'boolean'
+	);
+};
+
 // Validate every persisted payload field before replaying it.
 // oxlint-disable-next-line complexity
 const isSavePayload = function isSavePayload(
 	value: unknown
 ): value is SavePayload {
 	if (!isRecord(value)) {
+		return false;
+	}
+	if (
+		!isSubject(value.subject) ||
+		!isConfirmedCoverage(value.confirmed) ||
+		!validateExplicitChoice(value.choice, Date.now()).ok
+	) {
 		return false;
 	}
 
@@ -191,6 +228,27 @@ const writePendingSaves = function writePendingSaves(
 	}
 };
 
+const confirmedKeys = function confirmedKeys(payload: SavePayload): string[] {
+	return Object.keys(payload.confirmed.categories);
+};
+
+/**
+ * Whether `older` still carries a receipt `newer` did not supersede. A
+ * later action for the same subject replaces only the categories it
+ * confirmed; a disjoint earlier action keeps its own receipts and its
+ * own action time.
+ */
+const isSuperseded = function isSuperseded(
+	older: SavePayload,
+	newer: SavePayload
+): boolean {
+	if (older.subjectId !== newer.subjectId) {
+		return false;
+	}
+	const covered = new Set(confirmedKeys(newer));
+	return confirmedKeys(older).every((key) => covered.has(key));
+};
+
 const normalizePendingSaves = function normalizePendingSaves(
 	value: unknown,
 	now: number
@@ -200,7 +258,7 @@ const normalizePendingSaves = function normalizePendingSaves(
 	}
 
 	const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
-	const newestBySubject = new Map<string, PendingSaveEntry>();
+	const entries: PendingSaveEntry[] = [];
 	for (const entry of value) {
 		if (
 			!isPendingSaveEntry(entry) ||
@@ -209,14 +267,16 @@ const normalizePendingSaves = function normalizePendingSaves(
 		) {
 			continue;
 		}
-
-		const current = newestBySubject.get(entry.payload.subjectId);
-		if (!current || entry.queuedAt >= current.queuedAt) {
-			newestBySubject.delete(entry.payload.subjectId);
-			newestBySubject.set(entry.payload.subjectId, entry);
-		}
+		entries.push(entry);
 	}
-	return [...newestBySubject.values()];
+	entries.sort((left, right) => left.queuedAt - right.queuedAt);
+	// Keep every action whose receipts a later queued action did not replace.
+	return entries.filter(
+		(entry, index) =>
+			!entries
+				.slice(index + 1)
+				.some((later) => isSuperseded(entry.payload, later.payload))
+	);
 };
 
 const readPendingSaves = function readPendingSaves(
@@ -293,7 +353,7 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 
 		await withQueueLock(() => {
 			const pending = readPendingSaves(storage).filter(
-				(candidate) => candidate.payload.subjectId !== payload.subjectId
+				(candidate) => !isSuperseded(candidate.payload, payload)
 			);
 			pending.push({ attempts: 0, payload, queuedAt: Date.now() });
 			writePendingSaves(storage, pending);
@@ -301,11 +361,11 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 	};
 
 	/**
-	 * Drop the queued save for a subject once a newer save for that subject
-	 * reached the backend, so a later replay cannot overwrite the newer
-	 * choice with the stale one.
+	 * Drop queued saves a newer accepted save superseded, so a later replay
+	 * cannot overwrite the newer receipts with stale ones. Queued actions
+	 * for other categories keep waiting for their own replay.
 	 */
-	const discard = async function discard(subjectId: string): Promise<void> {
+	const discard = async function discard(payload: SavePayload): Promise<void> {
 		const storage = getLocalStorage();
 		if (!storage) {
 			return;
@@ -314,7 +374,7 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 		await withQueueLock(() => {
 			const pending = readPendingSaves(storage);
 			const remaining = pending.filter(
-				(candidate) => candidate.payload.subjectId !== subjectId
+				(candidate) => !isSuperseded(candidate.payload, payload)
 			);
 			if (remaining.length !== pending.length) {
 				writePendingSaves(storage, remaining);

@@ -1,46 +1,38 @@
 import { describe, expect, test } from 'vitest';
 
 import {
-	buildInitialConsents,
+	choiceRecords,
+	matchedResolution,
+	NOW,
+	optInRule,
+	optOutRule,
+} from '../../__tests__/fixtures/kernel-fixtures';
+import {
+	buildDraft,
 	buildInitialIab,
 	buildInitialSnapshot,
 	DEFAULT_CONSENTS,
 	DEFAULT_IAB,
+	stageLegacyPolicy,
 } from '../snapshot';
 
-describe('buildInitialConsents', () => {
-	test('returns defaults when no overrides', () => {
-		expect(buildInitialConsents(undefined)).toEqual(DEFAULT_CONSENTS);
+describe('buildDraft', () => {
+	test('keeps own boolean optional categories only', () => {
+		expect(
+			buildDraft({
+				// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
+				analytics: true as any,
+				marketing: true,
+				// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
+				measurement: 'yes' as any,
+				necessary: true,
+			})
+		).toEqual({ marketing: true });
 	});
 
-	test('does not return the same reference as DEFAULT_CONSENTS', () => {
-		// Defensive copy: the kernel must never share the module-level
-		// DEFAULT_CONSENTS reference, or one kernel mutation could leak
-		// into the next kernel's defaults.
-		expect(buildInitialConsents(undefined)).not.toBe(DEFAULT_CONSENTS);
-	});
-
-	test('merges boolean overrides', () => {
-		const result = buildInitialConsents({ marketing: true });
-		expect(result.marketing).toBe(true);
-		expect(result.necessary).toBe(true);
-		expect(result.functionality).toBe(false);
-	});
-
-	test('drops non-boolean overrides silently', () => {
-		const result = buildInitialConsents({
-			// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-			marketing: 'yes' as any,
-		});
-		expect(result.marketing).toBe(false);
-	});
-
-	test('drops unknown keys silently', () => {
-		const result = buildInitialConsents({
-			// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-			analytics: true as any,
-		});
-		expect('analytics' in result).toBe(false);
+	test('returns null when nothing usable was supplied', () => {
+		expect(buildDraft(undefined)).toBeNull();
+		expect(buildDraft({ necessary: true })).toBeNull();
 	});
 });
 
@@ -51,174 +43,148 @@ describe('buildInitialIab', () => {
 
 	test('merges over the IAB defaults when a seed is provided', () => {
 		const result = buildInitialIab({ cmpId: 7, enabled: true });
-		expect(result).not.toBeNull();
 		expect(result?.enabled).toBe(true);
 		expect(result?.cmpId).toBe(7);
 		expect(result?.gvl).toBeNull();
-		expect(result?.tcString).toBeNull();
-	});
-
-	test('does not return the same reference as DEFAULT_IAB', () => {
-		const result = buildInitialIab({ enabled: true });
 		expect(result).not.toBe(DEFAULT_IAB);
 	});
 });
 
-describe('freezeSnapshot', () => {
-	test('freezes the top-level object and known nested objects', () => {
-		const snap = buildInitialSnapshot({});
-		expect(Object.isFrozen(snap)).toBe(true);
-		expect(Object.isFrozen(snap.consents)).toBe(true);
-		expect(Object.isFrozen(snap.overrides)).toBe(true);
-		expect(Object.isFrozen(snap.policyCategories)).toBe(true);
-	});
-});
-
 describe('buildInitialSnapshot', () => {
-	test('returns a frozen snapshot at revision 0', () => {
-		const snap = buildInitialSnapshot({});
+	test('uses the safe opt-in fallback when nothing is configured', () => {
+		const snap = buildInitialSnapshot({ now: NOW });
 		expect(snap.revision).toBe(0);
 		expect(Object.isFrozen(snap)).toBe(true);
-	});
-
-	test('uses defaults for omitted config', () => {
-		const snap = buildInitialSnapshot({});
-		expect(snap.consents).toEqual(DEFAULT_CONSENTS);
-		expect(snap.overrides).toEqual({});
-		expect(snap.user).toBeNull();
-		expect(snap.subjectId).toBeNull();
+		expect(snap.resolution).toEqual({ policy: null, status: 'unconfigured' });
+		expect(snap.policyRule.id).toBe('c15t_safe_fallback');
+		expect(snap.model).toBe('opt-in');
+		expect(snap.effectivePermissions).toEqual(DEFAULT_CONSENTS);
+		expect(snap.consents).toBe(snap.effectivePermissions);
+		expect(snap.explicitChoice).toBeNull();
 		expect(snap.hasConsented).toBe(false);
-		expect(snap.translations).toBeNull();
-		expect(snap.branding).toBeNull();
-		expect(snap.policy).toBeNull();
-		expect(snap.iab).toBeNull();
-		expect(snap.model).toBeNull();
+		expect(snap.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+		expect(snap.activeUI).toBe('banner');
+		expect(snap.evaluatedAt).toBe(NOW);
+		expect(snap.subject).toBeNull();
+		expect(snap.policy?.model).toBe('opt-in');
 	});
 
-	test('IAB-on seed produces a non-null IAB slice', () => {
-		const snap = buildInitialSnapshot({ initialIab: { enabled: true } });
-		expect(snap.iab).not.toBeNull();
-		expect(snap.iab?.enabled).toBe(true);
-	});
-
-	test('initial subjectId is preserved', () => {
-		const snap = buildInitialSnapshot({ initialSubjectId: 'sub_42' });
-		expect(snap.subjectId).toBe('sub_42');
-	});
-
-	test('initialHasConsented hides active UI and preserves user consents', () => {
+	test('initialConsents seed nothing but the draft', () => {
 		const snap = buildInitialSnapshot({
-			initialConsents: { marketing: true, measurement: true },
+			initialConsents: { marketing: true },
 			initialHasConsented: true,
-			initialPolicy: {
-				consent: {
-					categories: ['marketing'],
-					scopeMode: 'strict',
-				},
-				id: 'initial-consent-policy',
-				model: 'opt-in',
-				ui: {
-					mode: 'banner',
-				},
-			},
+			now: NOW,
 		});
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.hasConsented).toBe(false);
+		expect(snap.activeUI).toBe('banner');
+	});
 
+	test('initialRecords evaluate at config.now', () => {
+		const snap = buildInitialSnapshot({
+			initialRecords: choiceRecords(
+				{
+					experience: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+				},
+				{ subjectId: 'legacy-id-42' }
+			),
+			now: NOW,
+		});
 		expect(snap.hasConsented).toBe(true);
+		expect(snap.effectivePermissions.marketing).toBe(true);
+		expect(snap.promptRequirement).toEqual({ kind: 'none' });
 		expect(snap.activeUI).toBe('none');
-		expect(snap.consents.marketing).toBe(true);
-		expect(snap.consents.measurement).toBe(true);
+		expect(snap.subject).toEqual({ subjectId: 'legacy-id-42' });
+		expect(snap.subjectId).toBe('legacy-id-42');
 	});
 
-	test('fresh opt-in policy denies optional consents even when preselected', () => {
+	test('invalid initialRecords are ignored, not salvaged', () => {
+		const snap = buildInitialSnapshot({
+			initialRecords: choiceRecords(
+				{ marketing: true },
+				{ confirmedAt: NOW + 1 }
+			),
+			now: NOW,
+		});
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.effectivePermissions.marketing).toBe(false);
+	});
+
+	test('a precomputed matched resolution drives model, scope and prompt', () => {
+		const snap = buildInitialSnapshot({
+			initialPolicyResolution: matchedResolution(
+				optOutRule({ categories: ['marketing'], prompt: 'notice' })
+			),
+			now: NOW,
+		});
+		expect(snap.model).toBe('opt-out');
+		expect(snap.policyCategories).toEqual(['necessary', 'marketing']);
+		expect(snap.policyScopeMode).toBe('permissive');
+		expect(snap.promptRequirement).toEqual({
+			kind: 'notice',
+			reason: 'missing',
+		});
+		expect(snap.activeUI).toBe('banner');
+		expect(snap.effectivePermissions.marketing).toBe(true);
+	});
+
+	test('a legacy initialPolicy without a resolution is staged and hidden', () => {
+		const config = {
+			initialPolicy: {
+				id: 'legacy',
+				model: 'opt-out' as const,
+				ui: { mode: 'banner' as const },
+			},
+			now: NOW,
+		};
+		expect(stageLegacyPolicy(config)?.policy.id).toBe('legacy');
+		const snap = buildInitialSnapshot(config);
+		expect(snap.policyProvisional).toBe(true);
+		expect(snap.activeUI).toBe('none');
+		expect(snap.resolution.status).toBe('unconfigured');
+		// Permissions stay safe until init lifts the policy.
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.policy?.id).toBe('legacy');
+	});
+
+	test('a provisional policy hides the first layer', () => {
 		const snap = buildInitialSnapshot({
 			initialPolicy: {
-				consent: {
-					categories: [
-						'necessary',
-						'functionality',
-						'measurement',
-						'marketing',
-					],
-					preselectedCategories: [
-						'necessary',
-						'functionality',
-						'measurement',
-						'marketing',
-					],
-					scopeMode: 'strict',
-				},
-				id: 'strict-opt-in-policy',
+				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
 			},
+			initialPolicyProvisional: true,
+			initialPolicyResolution: matchedResolution(optInRule()),
+			now: NOW,
 		});
-
-		expect(snap.hasConsented).toBe(false);
-		expect(snap.consents).toMatchObject({
-			experience: false,
-			functionality: false,
-			marketing: false,
-			measurement: false,
-			necessary: true,
-		});
+		expect(snap.policyProvisional).toBe(true);
+		expect(snap.activeUI).toBe('none');
 	});
 
-	test('fresh opt-in permissive policy denies out-of-policy optional consents', () => {
-		const snap = buildInitialSnapshot({
-			initialPolicy: {
-				consent: {
-					categories: ['necessary'],
-					preselectedCategories: ['necessary'],
-					scopeMode: 'permissive',
-				},
-				id: 'permissive-opt-in-policy',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-			},
+	test('detected and overridden GPC are kept apart', () => {
+		const detected = buildInitialSnapshot({
+			initialPrivacySignals: { gpc: true },
+			now: NOW,
 		});
-
-		expect(snap.hasConsented).toBe(false);
-		expect(snap.consents).toEqual({
-			experience: false,
-			functionality: false,
-			marketing: false,
-			measurement: false,
-			necessary: true,
+		expect(detected.privacySignals).toEqual({
+			gpc: { active: true, detected: true, override: undefined },
 		});
+		const overridden = buildInitialSnapshot({
+			initialOverrides: { gpc: false },
+			initialPrivacySignals: { gpc: true },
+			now: NOW,
+		});
+		expect(overridden.privacySignals.gpc.active).toBe(false);
 	});
 
-	test('fresh opt-out policy grants optional consents except GPC tracking categories', () => {
-		const snap = buildInitialSnapshot({
-			initialOverrides: { gpc: true },
-			initialPolicy: {
-				consent: {
-					categories: [
-						'necessary',
-						'functionality',
-						'experience',
-						'measurement',
-						'marketing',
-					],
-					gpc: true,
-					scopeMode: 'strict',
-				},
-				id: 'strict-opt-out-policy',
-				model: 'opt-out',
-				ui: { mode: 'banner' },
-			},
-		});
-
-		expect(snap.hasConsented).toBe(false);
-		expect(snap.consents).toMatchObject({
-			experience: true,
-			functionality: true,
-			marketing: false,
-			measurement: false,
-			necessary: true,
-		});
-	});
-
-	test('initial banner/dialog UI hints are copied off the policy', () => {
+	test('initial banner/dialog UI hints are copied off a legacy policy', () => {
 		const snap = buildInitialSnapshot({
 			initialPolicy: {
 				model: 'opt-in',
@@ -229,6 +195,8 @@ describe('buildInitialSnapshot', () => {
 				},
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
+			initialPolicyResolution: matchedResolution(optInRule()),
+			now: NOW,
 		});
 		expect(snap.policyBanner).toEqual({ theme: 'dark' });
 		expect(snap.policyDialog).toEqual({ theme: 'light' });
@@ -236,7 +204,7 @@ describe('buildInitialSnapshot', () => {
 
 	test('does not share user reference with config', () => {
 		const user = { externalId: 'u1' };
-		const snap = buildInitialSnapshot({ initialUser: user });
+		const snap = buildInitialSnapshot({ initialUser: user, now: NOW });
 		expect(snap.user).toEqual(user);
 		expect(snap.user).not.toBe(user);
 	});

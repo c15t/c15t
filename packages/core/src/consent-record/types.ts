@@ -1,16 +1,23 @@
 /**
  * Normalized consent-record contracts.
  *
- * These shapes are internal to the consent-record module while the
- * kernel integration is reviewed. Nothing here is re-exported from the
- * package entry yet. The semantics follow the #1025 decision review:
- * one latest decision per optional category, each carrying its own
- * confirmation time and policy-compatibility basis, with no history.
- *
- * @internal
+ * The semantics follow the #1025 decision review: one latest decision per
+ * optional category, each carrying its own confirmation time and
+ * policy-compatibility basis, with no history. The kernel snapshot exposes
+ * these shapes directly; `@c15t/core/consent-record` re-exports them.
  */
 
-import type { CONSENT_CATEGORY } from './index';
+/** Every category the runtime knows about, in stable display order. */
+export const CONSENT_CATEGORIES = [
+	'necessary',
+	'functionality',
+	'experience',
+	'measurement',
+	'marketing',
+] as const;
+
+/** One of {@link CONSENT_CATEGORIES}. */
+export type CONSENT_CATEGORY = (typeof CONSENT_CATEGORIES)[number];
 
 /** Every category the runtime knows about, including `necessary`. */
 export type ConsentCategory = CONSENT_CATEGORY;

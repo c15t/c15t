@@ -6,84 +6,64 @@
  * Concerns are split across siblings:
  *
  * - `snapshot.ts`             — initial-state construction + freezing.
- * - `patch.ts`                — `SnapshotPatch` shape + pure `advance`.
+ * - `patch.ts`                — `SnapshotPatch` shape + pure derivation.
+ * - `records.ts`              — validation for hydration records.
+ * - `runtime.ts`              — commit, hydrate, refresh, timers, GPC directive.
  * - `apply-init-response.ts`  — pure transport-response folder.
  * - `setters.ts`              — `kernel.set.*` (sync mutators).
  * - `commands.ts`             — `kernel.commands.*` (async I/O).
  * - `events.ts`               — typed event bus.
  *
  * Invariants:
- * - `createConsentKernel()` has zero side effects. No window writes,
- *   no DOM observers, no network, no localStorage. Enforced by the
- *   kernel tests in `packages/core/src/kernel/__tests__/`.
- * - `getSnapshot()` is non-allocating in the steady state — returns
- *   the current frozen snapshot by reference. Adapters can use `===`
- *   to bail out of work cheaply.
- * - `set.*` methods are synchronous. They produce a new frozen
- *   snapshot (with structural sharing where possible) and notify
- *   subscribers in insertion order. Notification cost is O(n) in
- *   subscribers.
- * - `commands.*` are async I/O boundaries. Retry listeners and failed-save
- *   storage are installed lazily after a command runs, never at construction.
+ * - `createConsentKernel()` has zero side effects. No window writes, no
+ *   DOM observers, no network, no localStorage, no hashing, no timers.
+ * - `getSnapshot()` is non-allocating in the steady state and derived
+ *   fields keep their reference when their value did not change.
+ * - Only `commands.save()` records an explicit choice. Hydration,
+ *   initialization, setters, elapsed time and privacy signals change
+ *   permissions at most, never the choice.
+ * - Timers and browser listeners are installed by lifecycle commands
+ *   (`init`, `hydrate`) and removed by `dispose()`.
  */
-import type {
-	ConsentKernel,
-	ConsentSnapshot,
-	KernelConfig,
-	Listener,
-} from '../types';
+import type { ConsentKernel, KernelConfig } from '../types';
 import { buildCommands } from './commands';
 import { createEventBus } from './events';
-import { applyPatch } from './patch';
+import { createRuntime } from './runtime';
 import { buildSetters } from './setters';
-import { buildInitialSnapshot } from './snapshot';
+import {
+	buildDraft,
+	buildInitialSnapshot,
+	stageLegacyPolicy,
+} from './snapshot';
 
 /**
  * Create a fresh consent kernel.
  *
- * Pure: takes plain config, returns a kernel handle. No I/O. The handle
- * exposes `getSnapshot()`, `subscribe()`, `set.*`, `commands.*`, `events.*`,
- * and `dispose()`. See the file-level invariants above for guarantees.
+ * Pure: takes plain config, returns a kernel handle. No I/O. See the
+ * file-level invariants above for guarantees.
  */
 export const createConsentKernel = function createConsentKernel(
 	config: KernelConfig = {}
 ): ConsentKernel {
 	const { transport } = config;
-
-	let snapshot: ConsentSnapshot = buildInitialSnapshot(config);
-	// The revision-0 snapshot, held immutably. This is what a server render
-	// saw (no persistence hydrate, no init application run server-side), so
-	// hydration-time consumers (React's useSyncExternalStore
-	// getServerSnapshot) can render EXACTLY what the server rendered even
-	// when client boot mutations (sync persistence hydrate, eager init)
-	// land before hydration completes. Without it, a mid-hydration state
-	// flip strands server-rendered consent UI as unowned DOM.
-	const serverSnapshot: ConsentSnapshot = snapshot;
-	const snapshotListeners = new Set<Listener<ConsentSnapshot>>();
 	const eventBus = createEventBus();
+	const initialSnapshot = buildInitialSnapshot(config);
+	// The revision-0 snapshot, held immutably. This is what a server render
+	// saw, so hydration-time consumers can render exactly what the server
+	// rendered even when client boot mutations land before hydration completes.
+	const serverSnapshot = initialSnapshot;
 
-	const getSnapshot = () => snapshot;
-	const getServerSnapshot = () => serverSnapshot;
-
-	const notifySnapshot = function notifySnapshot(): void {
-		for (const listener of snapshotListeners) {
-			listener(snapshot);
-		}
-	};
-
-	const advance = function advance(
-		patch: Parameters<typeof applyPatch>[1]
-	): void {
-		snapshot = applyPatch(snapshot, patch);
-		notifySnapshot();
-	};
-
-	const set = buildSetters({ advance, emit: eventBus.emit, getSnapshot });
-	const commandHandle = buildCommands({
-		advance,
+	const runtime = createRuntime({
 		emit: eventBus.emit,
-		getSnapshot,
+		initialDraft: buildDraft(config.initialConsents),
+		initialSnapshot,
+		transport,
+	});
+	const set = buildSetters(runtime);
+	const commandHandle = buildCommands({
 		initRetry: config.initRetry,
+		runtime,
+		staged: stageLegacyPolicy(config),
 		transport,
 	});
 
@@ -94,14 +74,11 @@ export const createConsentKernel = function createConsentKernel(
 			emit: eventBus.emit,
 			on: eventBus.on,
 		},
-		getServerSnapshot,
-		getSnapshot,
+		getServerSnapshot: () => serverSnapshot,
+		getSnapshot: runtime.getSnapshot,
+		hydrate: runtime.hydrate,
+		refresh: runtime.refresh,
 		set,
-		subscribe(listener) {
-			snapshotListeners.add(listener);
-			return () => {
-				snapshotListeners.delete(listener);
-			};
-		},
+		subscribe: runtime.subscribe,
 	};
 };

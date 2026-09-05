@@ -11,6 +11,7 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import { createIframeBlocker } from '../index';
 
@@ -133,7 +134,7 @@ describe('iframe-blocker: initial scan', () => {
 		body.children.push(iframe);
 
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createIframeBlocker({ kernel });
 
@@ -157,13 +158,13 @@ describe('iframe-blocker: reacts to consent changes', () => {
 		const iframe = createStubIframe('marketing', 'https://example.com/');
 		body.children.push(iframe);
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 
 		createIframeBlocker({ kernel });
 		expect(iframe.getAttribute('src')).toBe('https://example.com/');
 
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		expect(iframe.getAttribute('src')).toBeNull();
 	});
 
@@ -181,7 +182,7 @@ describe('iframe-blocker: reacts to consent changes', () => {
 		expect(iframe.getAttribute('src')).toBeNull();
 		expect(iframe.getAttribute('data-src')).toBe('https://example.com/');
 
-		kernel.set.consent({ marketing: true });
+		void kernel.commands.save({ marketing: true });
 		expect(iframe.getAttribute('src')).toBe('https://example.com/');
 	});
 });
@@ -199,7 +200,7 @@ describe('iframe-blocker: MutationObserver processes new iframes', () => {
 
 	test('dynamically added iframe is allowed if consent granted', () => {
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		createIframeBlocker({ kernel });
 
@@ -231,7 +232,7 @@ describe('iframe-blocker: dispose', () => {
 		const iframe = createStubIframe('marketing', 'https://example.com/');
 		body.children.push(iframe);
 		const kernel = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 
 		const blocker = createIframeBlocker({ kernel });
@@ -241,7 +242,7 @@ describe('iframe-blocker: dispose', () => {
 
 		// Post-dispose consent changes should not process iframes.
 		iframe.setAttribute('src', 'https://example.com/');
-		kernel.set.consent({ marketing: false });
+		void kernel.commands.save({ marketing: false });
 		expect(iframe.getAttribute('src')).toBe('https://example.com/');
 	});
 

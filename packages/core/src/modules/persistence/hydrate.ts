@@ -1,52 +1,120 @@
 /**
- * Hydrate kernel state from stored consent.
+ * Read stored records into the kernel.
  *
- * Synchronous: reads cookie + localStorage and folds the result into
- * the kernel via `kernel.set.*` calls. Returns `true` when at least
- * one stored value was applied.
- *
- * Read-only: the storage read never migrates, mirrors, or deletes
- * anything, so startup leaves the stored choice time and metadata
- * untouched. The v2 cookie layer is the single source of read truth so
- * v2 + v3 consumers see the same persistence format.
+ * Synchronous and read-only: the storage read never migrates, mirrors,
+ * renews or deletes anything. The first structurally valid consent
+ * candidate wins (cookie, configured localStorage, legacy localStorage),
+ * the notice dismissal and privacy directives are read with the same
+ * `now`, and everything is applied through `kernel.hydrate()`, which
+ * validates again and never emits a choice event.
  */
-import { readStoredConsent } from '../../libs/cookie';
-import { isValidSubjectId } from '../../libs/generate-subject-id';
-import type { ConsentKernel } from '../../types';
-import type { StorageConfig, StoredPayload } from './types';
+import type { ConsentKernel, HydrationRecords } from '../../types';
+import type { StoredIabMetadata } from './record-codec';
+import {
+	readStoredConsentRecord,
+	readStoredConsentRecordFromCookieHeader,
+	readStoredNoticeDismissal,
+	readStoredNoticeDismissalFromCookieHeader,
+	readStoredPrivacyOptOuts,
+	readStoredPrivacyOptOutsFromCookieHeader,
+} from './record-storage';
+import type { StoredConsentSelection } from './record-storage';
+import type { StorageConfig } from './types';
+
+/** Stored records plus the IAB transport metadata the next save preserves. */
+export interface StoredRecords {
+	records: HydrationRecords;
+	iab: StoredIabMetadata | null;
+	/** Whether any valid record was found. */
+	found: boolean;
+	/** Diagnostics for every inspected consent candidate. */
+	candidates: StoredConsentSelection['candidates'];
+}
+
+const composeRecords = function composeRecords(
+	selection: StoredConsentSelection,
+	notice: ReturnType<typeof readStoredNoticeDismissal>,
+	privacy: ReturnType<typeof readStoredPrivacyOptOuts>,
+	now: number
+): StoredRecords {
+	const { selected } = selection;
+	const records: HydrationRecords = {
+		choice: selected?.choice ?? null,
+		noticeDismissal: notice?.ok ? notice.record : null,
+		now,
+		optOutDirectives: privacy?.ok ? [...privacy.record.directives] : [],
+		subject: selected?.subject ?? null,
+	};
+	return {
+		candidates: selection.candidates,
+		found: selected !== null || notice?.ok === true || privacy?.ok === true,
+		iab: selected?.iab ?? null,
+		records,
+	};
+};
 
 /**
- * Read stored consent and apply it to the kernel. Returns `true` when
- * a non-null payload was found in storage; `false` otherwise (no-op).
- *
- * No-op (returns `false`) when storage APIs are unavailable.
+ * Browser read of every stored record at `now`. Never writes.
+ */
+export const readStoredRecords = function readStoredRecords(
+	storageConfig: StorageConfig | undefined,
+	now: number
+): StoredRecords {
+	return composeRecords(
+		readStoredConsentRecord(storageConfig, now),
+		readStoredNoticeDismissal(storageConfig, now),
+		readStoredPrivacyOptOuts(storageConfig, now),
+		now
+	);
+};
+
+/**
+ * Server read of every cookie-carried record from a request `Cookie`
+ * header at `now`. The choice, the notice projection and the privacy
+ * projection are decoded with the same validators the browser uses, so a
+ * server render seeded with the result matches the client's hydration.
+ */
+export const readStoredRecordsFromCookieHeader =
+	function readStoredRecordsFromCookieHeader(
+		cookieHeader: string | undefined,
+		storageConfig: StorageConfig | undefined,
+		now: number
+	): HydrationRecords {
+		return composeRecords(
+			readStoredConsentRecordFromCookieHeader(cookieHeader, storageConfig, now),
+			readStoredNoticeDismissalFromCookieHeader(
+				cookieHeader,
+				storageConfig,
+				now
+			),
+			readStoredPrivacyOptOutsFromCookieHeader(
+				cookieHeader,
+				storageConfig,
+				now
+			),
+			now
+		).records;
+	};
+
+/**
+ * Read stored records and apply them to the kernel. Returns the read
+ * result so the caller can keep the IAB metadata for the next save, or
+ * `null` when storage APIs are unavailable.
  */
 export const hydrateFromStorage = function hydrateFromStorage(
 	kernel: ConsentKernel,
-	storageConfig: StorageConfig | undefined
-): boolean {
+	storageConfig: StorageConfig | undefined,
+	now: number
+): StoredRecords | null {
 	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
-		return false;
+		return null;
 	}
-
-	const stored = readStoredConsent<StoredPayload>(storageConfig) as
-		| StoredPayload
-		| null
-		| undefined;
-	if (!stored) {
-		return false;
+	const stored = readStoredRecords(storageConfig, now);
+	const result = kernel.hydrate(stored.records);
+	if (result.ok === false) {
+		// The storage layer already validated; a rejection here means the
+		// records changed shape between read and apply. Nothing is applied.
+		console.warn('[c15t] Stored consent records were rejected.', result.issues);
 	}
-
-	if (stored.consents) {
-		kernel.set.consent(stored.consents);
-	}
-	if (stored.consentInfo) {
-		const storedId = stored.consentInfo.subjectId;
-		if (storedId && isValidSubjectId(storedId)) {
-			kernel.set.subjectId(storedId);
-		}
-		kernel.set.hasConsented(true);
-		kernel.set.activeUI('none');
-	}
-	return true;
+	return stored;
 };

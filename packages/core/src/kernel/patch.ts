@@ -1,125 +1,382 @@
 /**
  * Snapshot patching.
  *
- * The kernel exposes mutation through partial patches: callers describe
- * which fields change, and `advance()` produces the next frozen snapshot
- * with `revision` bumped by 1.
+ * Callers describe which input fields change; `buildNextSnapshot` merges
+ * the patch, re-runs the pure evaluator and re-derives every dependent
+ * field. Derived fields keep their previous reference when their value did
+ * not change, so subscribers can rely on `===`.
  *
  * Pure: takes the current snapshot + a patch, returns the next snapshot.
- * Does not notify subscribers — the caller (kernel index) is responsible
- * for calling listeners. This split keeps state notification orthogonal
- * to state derivation, so tests can exercise the data flow without
- * touching the listener set.
+ * Does not notify subscribers.
  */
 import type {
 	LocationResponse,
 	PolicyDecision,
-	PolicyScopeMode,
+	PolicyResolution,
 	ResolvedPolicy,
 } from '@c15t/schema/types';
 
-import type { AllConsentNames } from '../consent/consent-types';
+import { evaluateConsentRecord } from '../consent-record/evaluate';
+import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
+import type {
+	ConsentSubject,
+	ExplicitChoice,
+	NoticeDismissal,
+	OptionalConsentCategory,
+	PrivacyOptOut,
+	PromptRequirement,
+	RestrictionReason,
+} from '../consent-record/types';
+import {
+	buildEvaluationPolicy,
+	deriveActiveUI,
+	deriveModel,
+	derivePolicyCategories,
+	legacyPolicyForRule,
+	resolveEffectivePolicy,
+} from '../policy';
 import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelActiveUI,
 	KernelBranding,
 	KernelIABState,
-	KernelModel,
 	KernelOverrides,
+	KernelPrivacySignals,
 	KernelTranslations,
 	KernelUser,
 } from '../types';
 import { freezeSnapshot } from './snapshot';
 
 /**
- * Partial update applied to a snapshot.
+ * Partial update applied to a snapshot. Only input fields are patchable;
+ * permissions, prompt, restrictions, deadline, model and the bridge
+ * aliases are always derived.
  *
- * Semantics for nullable fields (`user`, `subjectId`, `location`,
- * `translations`, `branding`, `policy`, `policyDecision`,
- * `policySnapshotToken`, `policyBanner`, `policyDialog`, `iab`):
- * - `undefined` (omitted) — preserve the current value.
- * - `null` — explicitly clear the field.
- *
- * Non-nullable fields (`consents`, `overrides`, `hasConsented`, `model`,
- * `activeUI`, `policyCategories`, `policyScopeMode`) only support
- * `undefined` (preserve) and a concrete value (replace).
+ * Nullable fields: `undefined` (omitted) preserves, `null` clears.
  */
 export interface SnapshotPatch {
-	consents?: ConsentState;
+	explicitChoice?: ExplicitChoice | null;
+	noticeDismissal?: NoticeDismissal | null;
+	optOutDirectives?: readonly PrivacyOptOut[];
+	resolution?: PolicyResolution;
+	subject?: ConsentSubject | null;
+	/** Detected user-agent GPC signal. */
+	privacyDetected?: boolean;
 	overrides?: KernelOverrides;
 	user?: KernelUser | null;
-	subjectId?: string | null;
-	hasConsented?: boolean;
 	location?: LocationResponse | null;
 	translations?: KernelTranslations | null;
 	branding?: KernelBranding | null;
+	/** BRIDGE legacy presentation policy. `null` falls back to the rule projection. */
 	policy?: ResolvedPolicy | null;
 	policyDecision?: PolicyDecision | null;
 	policySnapshotToken?: string | null;
-	model?: KernelModel;
 	activeUI?: KernelActiveUI;
 	policyProvisional?: boolean;
-	policyCategories?: AllConsentNames[];
-	policyScopeMode?: PolicyScopeMode;
-	policyBanner?: ConsentSnapshot['policyBanner'];
-	policyDialog?: ConsentSnapshot['policyDialog'];
 	iab?: KernelIABState | null;
+	/** Evaluation time. Defaults to the current `evaluatedAt`. */
+	now?: number;
 }
 
+const pick = function pick<Value>(
+	patched: Value | undefined,
+	current: Value
+): Value {
+	return patched === undefined ? current : patched;
+};
+
+const samePermissions = function samePermissions(
+	left: Readonly<ConsentState>,
+	right: Readonly<ConsentState>
+): boolean {
+	for (const key of Object.keys(right) as (keyof ConsentState)[]) {
+		if (left[key] !== right[key]) {
+			return false;
+		}
+	}
+	return Object.keys(left).length === Object.keys(right).length;
+};
+
+const samePrompt = function samePrompt(
+	left: PromptRequirement,
+	right: PromptRequirement
+): boolean {
+	if (left.kind !== right.kind) {
+		return false;
+	}
+	return left.kind === 'none' || right.kind === 'none'
+		? true
+		: left.reason === right.reason;
+};
+
+type Restrictions = Readonly<
+	Partial<Record<OptionalConsentCategory, readonly RestrictionReason[]>>
+>;
+
+const sameRestrictions = function sameRestrictions(
+	left: Restrictions,
+	right: Restrictions
+): boolean {
+	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+		const a = left[category];
+		const b = right[category];
+		if (a === b) {
+			continue;
+		}
+		if (!a || !b || a.length !== b.length) {
+			return false;
+		}
+		if (a.some((reason, index) => reason !== b[index])) {
+			return false;
+		}
+	}
+	return true;
+};
+
+const samePrivacySignals = function samePrivacySignals(
+	left: KernelPrivacySignals,
+	right: KernelPrivacySignals
+): boolean {
+	return (
+		left.gpc.active === right.gpc.active &&
+		left.gpc.detected === right.gpc.detected &&
+		left.gpc.override === right.gpc.override
+	);
+};
+
+/** Derive the privacy-signal view from the override and the detection. */
+export const derivePrivacySignals = function derivePrivacySignals(
+	override: boolean | undefined,
+	detected: boolean
+): KernelPrivacySignals {
+	return {
+		gpc: {
+			active: override ?? detected,
+			detected,
+			override,
+		},
+	};
+};
+
+/** Whether a choice holds at least one receipt. */
+export const hasChoicePresence = function hasChoicePresence(
+	choice: ExplicitChoice | null
+): boolean {
+	return choice !== null && Object.keys(choice.categories).length > 0;
+};
+
+const derivePolicyBridge = function derivePolicyBridge(
+	current: ConsentSnapshot,
+	patch: SnapshotPatch,
+	resolutionChanged: boolean,
+	policyRule: ConsentSnapshot['policyRule']
+): ResolvedPolicy | null {
+	if (patch.policy !== undefined) {
+		return patch.policy ?? legacyPolicyForRule(policyRule);
+	}
+	if (resolutionChanged) {
+		return legacyPolicyForRule(policyRule);
+	}
+	return current.policy;
+};
+
 /**
- * Produce the next snapshot by applying a patch to the current snapshot.
- *
- * Increments `revision` by 1 and returns a frozen result. The current
- * snapshot is not mutated. The caller is responsible for swapping in the
- * returned snapshot and notifying subscribers.
+ * Re-derive the surface only when the prompt or the visibility inputs
+ * changed. An adapter that opened the dialog keeps it open across an
+ * unrelated re-evaluation; an explicit patch always wins.
+ */
+const deriveNextActiveUI = function deriveNextActiveUI(input: {
+	current: ConsentSnapshot;
+	patch: SnapshotPatch;
+	derive: boolean;
+	policy: ResolvedPolicy | null;
+	policyProvisional: boolean;
+	promptRequirement: PromptRequirement;
+	resolution: PolicyResolution;
+}): KernelActiveUI {
+	if (input.patch.activeUI !== undefined) {
+		return input.patch.activeUI;
+	}
+	if (input.derive) {
+		return deriveActiveUI({
+			policy: input.policy,
+			policyProvisional: input.policyProvisional,
+			promptRequirement: input.promptRequirement,
+			resolution: input.resolution,
+		});
+	}
+	return input.current.activeUI;
+};
+
+/**
+ * Merge a patch over the current snapshot and re-derive every dependent
+ * field. Returns an unfrozen candidate at `revision + 1`; the kernel
+ * decides whether anything changed before adopting it.
+ */
+// oxlint-disable-next-line complexity -- One pass over every derived field keeps the derivation order visible.
+export const buildNextSnapshot = function buildNextSnapshot(
+	current: ConsentSnapshot,
+	patch: SnapshotPatch
+): ConsentSnapshot {
+	const resolution = pick(patch.resolution, current.resolution);
+	const resolutionChanged = resolution !== current.resolution;
+	const effective = resolutionChanged
+		? resolveEffectivePolicy(resolution)
+		: null;
+	const policyRule = effective ? effective.rule : current.policyRule;
+	const evaluationPolicy = effective
+		? buildEvaluationPolicy(effective)
+		: current.evaluationPolicy;
+
+	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
+	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
+	const optOutDirectives = pick(
+		patch.optOutDirectives,
+		current.optOutDirectives
+	);
+	const overrides = pick(patch.overrides, current.overrides);
+	const detected = pick(
+		patch.privacyDetected,
+		current.privacySignals.gpc.detected
+	);
+	const privacyCandidate = derivePrivacySignals(overrides.gpc, detected);
+	const privacySignals = samePrivacySignals(
+		privacyCandidate,
+		current.privacySignals
+	)
+		? current.privacySignals
+		: privacyCandidate;
+	const now = pick(patch.now, current.evaluatedAt);
+	const iab = pick(patch.iab, current.iab);
+
+	const evaluation = evaluateConsentRecord({
+		choice: explicitChoice,
+		gpc: privacySignals.gpc.active,
+		noticeDismissal,
+		now,
+		optOuts: optOutDirectives,
+		policy: evaluationPolicy,
+	});
+	const effectivePermissions = samePermissions(
+		current.effectivePermissions,
+		evaluation.permissions
+	)
+		? current.effectivePermissions
+		: evaluation.permissions;
+	const promptRequirement = samePrompt(
+		current.promptRequirement,
+		evaluation.promptRequirement
+	)
+		? current.promptRequirement
+		: evaluation.promptRequirement;
+	const restrictions = sameRestrictions(
+		current.restrictions,
+		evaluation.restrictions
+	)
+		? current.restrictions
+		: evaluation.restrictions;
+
+	const policyProvisional = pick(
+		patch.policyProvisional,
+		current.policyProvisional
+	);
+	const policy = derivePolicyBridge(
+		current,
+		patch,
+		resolutionChanged,
+		policyRule
+	);
+	const promptChanged = promptRequirement !== current.promptRequirement;
+	const visibilityChanged =
+		resolutionChanged || policyProvisional !== current.policyProvisional;
+	const activeUI = deriveNextActiveUI({
+		current,
+		derive: promptChanged || visibilityChanged || patch.policy !== undefined,
+		patch,
+		policy,
+		policyProvisional,
+		promptRequirement,
+		resolution,
+	});
+
+	const subject = pick(patch.subject, current.subject);
+
+	return {
+		activeUI,
+		branding: pick(patch.branding, current.branding),
+		consents: effectivePermissions,
+		effectivePermissions,
+		evaluatedAt: now,
+		evaluationPolicy,
+		explicitChoice,
+		hasConsented: hasChoicePresence(explicitChoice),
+		iab,
+		location: pick(patch.location, current.location),
+		model: deriveModel(policyRule, iab?.enabled ?? false),
+		nextDeadline: evaluation.nextDeadline,
+		noticeDismissal,
+		optOutDirectives,
+		overrides,
+		policy,
+		policyBanner:
+			policy === current.policy
+				? current.policyBanner
+				: (policy?.ui?.banner ?? null),
+		policyCategories: resolutionChanged
+			? derivePolicyCategories(policyRule)
+			: current.policyCategories,
+		policyDecision: pick(patch.policyDecision, current.policyDecision),
+		policyDialog:
+			policy === current.policy
+				? current.policyDialog
+				: (policy?.ui?.dialog ?? null),
+		policyProvisional,
+		policyRule,
+		policyScopeMode: policyRule.scopeMode,
+		policySnapshotToken: pick(
+			patch.policySnapshotToken,
+			current.policySnapshotToken
+		),
+		privacySignals,
+		promptRequirement,
+		resolution,
+		restrictions,
+		revision: current.revision + 1,
+		subject,
+		subjectId: subject?.subjectId ?? null,
+		translations: pick(patch.translations, current.translations),
+		user: pick(patch.user, current.user),
+	};
+};
+
+/**
+ * Whether a candidate differs from the current snapshot in any field other
+ * than `revision` and `evaluatedAt`. Derived fields are reference-stable,
+ * so a shallow comparison is exact.
+ */
+export const snapshotChanged = function snapshotChanged(
+	current: ConsentSnapshot,
+	next: ConsentSnapshot
+): boolean {
+	for (const key of Object.keys(next) as (keyof ConsentSnapshot)[]) {
+		if (key === 'revision' || key === 'evaluatedAt') {
+			continue;
+		}
+		if (current[key] !== next[key]) {
+			return true;
+		}
+	}
+	return false;
+};
+
+/**
+ * Produce the next frozen snapshot by applying a patch. Always bumps the
+ * revision; use {@link snapshotChanged} first to skip no-op patches.
  */
 export const applyPatch = function applyPatch(
 	current: ConsentSnapshot,
 	patch: SnapshotPatch
 ): ConsentSnapshot {
-	return freezeSnapshot({
-		activeUI: patch.activeUI === undefined ? current.activeUI : patch.activeUI,
-		branding: patch.branding === undefined ? current.branding : patch.branding,
-		consents: patch.consents ?? current.consents,
-		hasConsented: patch.hasConsented ?? current.hasConsented,
-		iab: patch.iab === undefined ? current.iab : patch.iab,
-		location: patch.location === undefined ? current.location : patch.location,
-		model: patch.model === undefined ? current.model : patch.model,
-		overrides: patch.overrides ?? current.overrides,
-		policy: patch.policy === undefined ? current.policy : patch.policy,
-		policyBanner:
-			patch.policyBanner === undefined
-				? current.policyBanner
-				: patch.policyBanner,
-		policyCategories:
-			patch.policyCategories === undefined
-				? current.policyCategories
-				: patch.policyCategories,
-		policyDecision:
-			patch.policyDecision === undefined
-				? current.policyDecision
-				: patch.policyDecision,
-		policyDialog:
-			patch.policyDialog === undefined
-				? current.policyDialog
-				: patch.policyDialog,
-		policyProvisional: patch.policyProvisional ?? current.policyProvisional,
-		policyScopeMode:
-			patch.policyScopeMode === undefined
-				? current.policyScopeMode
-				: patch.policyScopeMode,
-		policySnapshotToken:
-			patch.policySnapshotToken === undefined
-				? current.policySnapshotToken
-				: patch.policySnapshotToken,
-		revision: current.revision + 1,
-		subjectId:
-			patch.subjectId === undefined ? current.subjectId : patch.subjectId,
-		translations:
-			patch.translations === undefined
-				? current.translations
-				: patch.translations,
-		user: patch.user === undefined ? current.user : patch.user,
-	});
+	return freezeSnapshot(buildNextSnapshot(current, patch));
 };

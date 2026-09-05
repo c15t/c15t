@@ -6,12 +6,12 @@ describe('createEventBus', () => {
 	test('routes events to listeners by type', () => {
 		const bus = createEventBus();
 		const listener = vi.fn();
-		bus.on('consent:set', listener);
+		bus.on('iab:set', listener);
 		bus.emit({
 			// oxlint-disable-next-line typescript/no-explicit-any -- stub snapshot
 			snapshot: {} as any,
 
-			type: 'consent:set',
+			type: 'iab:set',
 		});
 		expect(listener).toHaveBeenCalledOnce();
 	});
@@ -19,7 +19,7 @@ describe('createEventBus', () => {
 	test('does not call listeners for other event types', () => {
 		const bus = createEventBus();
 		const listener = vi.fn();
-		bus.on('consent:set', listener);
+		bus.on('iab:set', listener);
 		bus.emit({ type: 'command:init:started' });
 		expect(listener).not.toHaveBeenCalled();
 	});

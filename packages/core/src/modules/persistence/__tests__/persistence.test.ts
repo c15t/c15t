@@ -1,217 +1,318 @@
 /**
+ * @vitest-environment jsdom
+ *
  * Tests for @c15t/core/modules/persistence.
  *
  * Covers:
- * - Hydration from cookie / localStorage
- * - Writing on consent mutation (debounced batch)
- * - Does not write until hasConsented=true
+ * - Hydration from cookie / localStorage through the kernel boundary
+ * - Writing only on explicit kernel events (choice, notice, privacy)
  * - skipHydration option
- * - clear() removes stored consent
+ * - clear() removes every record and resets the kernel
  * - dispose stops further writes
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import {
+	matchedResolution,
+	NOW,
+	noticeRule,
+	optOutRule,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
-import { deleteConsentFromStorage } from '../../../libs/cookie';
+import {
+	PENDING_SAVES_STORAGE_KEY,
+	STORAGE_KEY_V2,
+} from '../../../libs/storage-keys';
 import { createPersistence } from '../index';
+import { clearStoredConsentRecords } from '../record-storage';
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
+/**
+ * Run the macrotask write scheduler without firing the kernel's expiry
+ * deadline timer, which would move the fake clock past the grant lifetime.
+ */
+const flushWrites = function flushWrites(): void {
+	vi.advanceTimersByTime(0);
 };
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
-// localStorage + document.cookie are stubbed by packages/core/vitest.setup.ts
-// Let's just flush between tests.
 
 beforeEach(() => {
-	// Clear localStorage AND use the v2 cookie lib's own delete to scrub
-	// anything the tests or prior runs wrote.
+	vi.useFakeTimers();
+	vi.setSystemTime(NOW);
 	localStorage.clear();
-	deleteConsentFromStorage();
+	clearStoredConsentRecords();
 });
 
 afterEach(() => {
+	clearStoredConsentRecords();
 	vi.useRealTimers();
 });
 
-const flushDebounce = async function flushDebounce(): Promise<void> {
-	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+const cookieNames = function cookieNames(): string[] {
+	return document.cookie
+		.split(';')
+		.map((part) => part.trim().split('=')[0] ?? '')
+		.filter(Boolean)
+		.sort();
 };
 
 describe('persistence: hydration', () => {
 	test('does nothing when nothing is stored', () => {
-		const kernel = createConsentKernel();
+		const kernel = createConsentKernel({ now: NOW });
 		const handle = createPersistence({ kernel });
 		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		handle.dispose();
 	});
 
-	test('hydrates stored consents into the kernel', async () => {
-		// Seed storage first, then create kernel + persistence.
-		const pre = createConsentKernel();
+	test('hydrates a stored choice into a fresh kernel', async () => {
+		const pre = createConsentKernel({ now: NOW });
 		const seed = createPersistence({ kernel: pre });
-		// Simulate a user interaction that flips consents + hasConsented.
-		pre.set.consent({ marketing: true, measurement: true });
-		await pre.commands.save('all');
-		await flushDebounce();
+		await pre.commands.save({ marketing: true, measurement: true });
+		flushWrites();
 		seed.dispose();
 
-		// Fresh kernel, expect hydration.
-		const kernel = createConsentKernel();
+		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel });
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
-		expect(kernel.getSnapshot().subjectId).toMatch(/^sub_/u);
+		expect(kernel.getSnapshot().subjectId).toBe(pre.getSnapshot().subjectId);
+		expect(kernel.getSnapshot().explicitChoice).toEqual(
+			pre.getSnapshot().explicitChoice
+		);
 	});
 
-	test('hydration does not call transport.save', async () => {
-		const pre = createConsentKernel();
+	test('hydration never calls transport.save or records a choice', async () => {
+		const pre = createConsentKernel({ now: NOW });
 		const seed = createPersistence({ kernel: pre });
 		await pre.commands.save({ marketing: true });
-		await flushDebounce();
+		flushWrites();
 		seed.dispose();
 
 		const save = vi.fn().mockResolvedValue({ ok: true });
-		const kernel = createConsentKernel({ transport: { save } });
+		const kernel = createConsentKernel({ now: NOW, transport: { save } });
+		const choiceRecorded = vi.fn();
+		kernel.events.on('choice:recorded', choiceRecorded);
 		createPersistence({ kernel });
 
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(save).not.toHaveBeenCalled();
+		expect(choiceRecorded).not.toHaveBeenCalled();
 	});
 
 	test('skipHydration skips the read', async () => {
-		const pre = createConsentKernel();
+		const pre = createConsentKernel({ now: NOW });
 		const seed = createPersistence({ kernel: pre });
-		pre.set.consent({ marketing: true });
 		await pre.commands.save('all');
-		await flushDebounce();
+		flushWrites();
 		seed.dispose();
 
-		const kernel = createConsentKernel();
+		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel, skipHydration: true });
-		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().hasConsented).toBe(false);
 	});
 });
 
 describe('persistence: write path', () => {
-	test('does NOT write until hasConsented flips true', async () => {
-		const kernel = createConsentKernel();
+	test('a staged draft never writes', () => {
+		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel });
 		kernel.set.consent({ marketing: true });
-		await flushDebounce();
-
-		// Before save, no cookie should exist.
-		const read = createConsentKernel();
-		createPersistence({ kernel: read });
-		expect(read.getSnapshot().hasConsented).toBe(false);
+		flushWrites();
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
+		expect(document.cookie).toBe('');
 	});
 
-	test('writes after save(), new kernel hydrates the values', async () => {
-		const kernel = createConsentKernel();
+	test('writes the v3 envelope after save()', async () => {
+		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel });
 		await kernel.commands.save({ marketing: true, measurement: true });
-		await flushDebounce();
+		flushWrites();
 
-		const read = createConsentKernel();
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toContain('"version":3');
+		expect(document.cookie).toContain(`${STORAGE_KEY_V2}=v=3&`);
+		const read = createConsentKernel({ now: NOW });
 		createPersistence({ kernel: read });
-		expect(read.getSnapshot().consents.marketing).toBe(true);
-		expect(read.getSnapshot().consents.measurement).toBe(true);
-		expect(read.getSnapshot().hasConsented).toBe(true);
+		expect(read.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(read.getSnapshot().effectivePermissions.measurement).toBe(true);
 	});
 
-	test('writes after an explicit save whose object equals current consents', async () => {
-		const kernel = createConsentKernel();
+	test('an unchanged repeat save still refreshes the confirmed receipts', async () => {
+		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel });
 		await kernel.commands.save('all');
-		await flushDebounce();
+		flushWrites();
 
-		deleteConsentFromStorage();
-		localStorage.clear();
-		await kernel.commands.save({
-			experience: true,
-			functionality: true,
-			marketing: true,
-			measurement: true,
-			necessary: true,
+		vi.setSystemTime(NOW + 1000);
+		await kernel.commands.save({ marketing: true });
+		flushWrites();
+
+		const read = createConsentKernel({ now: NOW + 1000 });
+		createPersistence({ kernel: read });
+		const categories = read.getSnapshot().explicitChoice?.categories ?? {};
+		expect(categories.marketing?.confirmedAt).toBe(NOW + 1000);
+		expect(categories.measurement?.confirmedAt).toBe(NOW);
+	});
+
+	test('rapid saves are written once, after the interaction, with the final receipts', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		createPersistence({ kernel });
+
+		void kernel.commands.save({ marketing: true });
+		vi.setSystemTime(NOW + 1);
+		void kernel.commands.save({ marketing: false });
+		vi.setSystemTime(NOW + 2);
+		void kernel.commands.save({ marketing: true });
+		// Nothing is written on the interaction path.
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
+		flushWrites();
+
+		const read = createConsentKernel({ now: NOW + 2 });
+		createPersistence({ kernel: read });
+		expect(read.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(
+			read.getSnapshot().explicitChoice?.categories.marketing?.confirmedAt
+		).toBe(NOW + 2);
+	});
+
+	test('a notice dismissal writes only the notice record and its projection', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			now: NOW,
 		});
-		await flushDebounce();
+		createPersistence({ kernel });
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
 
-		const read = createConsentKernel();
+		await kernel.commands.dismissNotice();
+		flushWrites();
+
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-notice`)).toContain(
+			'"version":1'
+		);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-notice`]);
+
+		const read = createConsentKernel({
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			now: NOW + 1000,
+		});
 		createPersistence({ kernel: read });
-		expect(read.getSnapshot().hasConsented).toBe(true);
-		expect(read.getSnapshot().consents.marketing).toBe(true);
-		expect(read.getSnapshot().consents.measurement).toBe(true);
+		expect(read.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		expect(read.getSnapshot().explicitChoice).toBeNull();
 	});
 
-	test('debounces rapid mutations into one write', async () => {
-		const kernel = createConsentKernel();
-		createPersistence({ kernel });
-		await kernel.commands.save('all');
+	test('a detected GPC signal writes only the privacy record and its projection', () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optOutRule({
+					privacySignals: { gpc: { denyCategories: ['marketing'] } },
+					prompt: 'none',
+				})
+			),
+			now: NOW,
+		});
+		const handle = createPersistence({ kernel });
+		kernel.set.privacySignals({ gpc: true });
+		flushWrites();
 
-		// A burst of consent flips during the debounce window.
-		kernel.set.consent({ marketing: true });
-		kernel.set.consent({ marketing: false });
-		kernel.set.consent({ marketing: true });
-		await flushDebounce();
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-privacy`)).toContain(
+			'"source":"gpc"'
+		);
+		expect(cookieNames()).toEqual([`${STORAGE_KEY_V2}-privacy`]);
+		handle.dispose();
 
-		// Read back — marketing should be true (final state).
-		const read = createConsentKernel();
+		// The signal disappears; the standing directive still denies.
+		const read = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optOutRule({
+					privacySignals: { gpc: { denyCategories: ['marketing'] } },
+					prompt: 'none',
+				})
+			),
+			now: NOW + 1000,
+		});
 		createPersistence({ kernel: read });
-		expect(read.getSnapshot().consents.marketing).toBe(true);
+		expect(read.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(read.getSnapshot().restrictions.marketing).toEqual([
+			'opt-out-directive',
+		]);
 	});
 });
 
 describe('persistence: clear', () => {
-	test('removes stored consent', async () => {
-		const kernel = createConsentKernel();
+	test('removes every record, cancels queued writes and resets the kernel', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				noticeRule({
+					privacySignals: { gpc: { denyCategories: ['marketing'] } },
+				})
+			),
+			now: NOW,
+		});
 		const handle = createPersistence({ kernel });
-		await kernel.commands.save({ marketing: true });
-		await flushDebounce();
+		await kernel.commands.save({ marketing: false });
+		await kernel.commands.dismissNotice();
+		kernel.set.privacySignals({ gpc: true });
+		localStorage.setItem(PENDING_SAVES_STORAGE_KEY, '[]');
+		// Writes are still queued: clear must cancel them, not flush them.
+		handle.clear();
+		flushWrites();
+
+		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-notice`)).toBeNull();
+		expect(localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		const snap = kernel.getSnapshot();
+		expect(snap.explicitChoice).toBeNull();
+		expect(snap.noticeDismissal).toBeNull();
+		expect(snap.subject).toBeNull();
+		expect(snap.hasConsented).toBe(false);
+		expect(snap.promptRequirement).toEqual({
+			kind: 'notice',
+			reason: 'missing',
+		});
+		// The standing directive is gone and nothing recreates it from a queued
+		// flush; the live signal alone keeps masking the permission.
+		expect(snap.optOutDirectives).toEqual([]);
+		expect(localStorage.length).toBe(0);
+		expect(document.cookie).toBe('');
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.restrictions.marketing).toEqual(['gpc']);
+	});
+
+	test('clear without a live signal leaves nothing behind', async () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(noticeRule()),
+			now: NOW,
+		});
+		const handle = createPersistence({ kernel });
+		await kernel.commands.save({ marketing: false });
+		await kernel.commands.dismissNotice();
+		flushWrites();
+		expect(cookieNames()).toEqual([STORAGE_KEY_V2, `${STORAGE_KEY_V2}-notice`]);
 
 		handle.clear();
-
-		const read = createConsentKernel();
-		createPersistence({ kernel: read });
-		expect(read.getSnapshot().hasConsented).toBe(false);
+		flushWrites();
+		expect(localStorage.length).toBe(0);
+		expect(document.cookie).toBe('');
+		expect(kernel.getSnapshot().hasConsented).toBe(false);
 	});
 });
 
 describe('persistence: dispose', () => {
 	test('stops writing after dispose', async () => {
-		const kernel = createConsentKernel();
+		const kernel = createConsentKernel({ now: NOW });
 		const handle = createPersistence({ kernel });
 		await kernel.commands.save('all');
-		await flushDebounce();
+		flushWrites();
 
 		handle.dispose();
 
-		// Further mutations should NOT get written.
-		kernel.set.consent({ marketing: false });
-		await flushDebounce();
+		await kernel.commands.save({ marketing: false });
+		flushWrites();
 
-		const read = createConsentKernel();
+		const read = createConsentKernel({ now: NOW });
 		createPersistence({ kernel: read });
-		// Last state written was save('all') → marketing=true.
-		expect(read.getSnapshot().consents.marketing).toBe(true);
+		expect(read.getSnapshot().effectivePermissions.marketing).toBe(true);
 	});
 });

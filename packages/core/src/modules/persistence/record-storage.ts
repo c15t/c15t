@@ -39,6 +39,7 @@ import type {
 import { isPlainRecord, ownValue } from '../../consent-record/validation';
 import {
 	deleteConsentFromStorage,
+	deleteCookie,
 	expandFlatKeys,
 	getRawCookieValue,
 	readCookieValueFromHeader,
@@ -50,13 +51,21 @@ import type {
 	CookieWriteReport,
 	StorageConfig,
 } from '../../libs/cookie';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
+import {
+	PENDING_SAVES_STORAGE_KEY,
+	STORAGE_KEY,
+	STORAGE_KEY_V2,
+} from '../../libs/storage-keys';
 import {
 	decodeNoticeDismissal,
+	decodeNoticeDismissalCompact,
 	decodePrivacyOptOuts,
+	decodePrivacyOptOutsCompact,
 	decodeStoredConsentEnvelopeCompact,
 	encodeNoticeDismissal,
+	encodeNoticeDismissalCompact,
 	encodePrivacyOptOuts,
+	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 	validateIabMetadata,
@@ -706,7 +715,12 @@ export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 };
 
 // ---------------------------------------------------------------------------
-// Notice dismissal (local-only)
+// Auxiliary records: notice dismissal and privacy opt-outs
+//
+// Each lives under its own localStorage key and has a compact cookie
+// projection under the same name so a server render can read it from the
+// request. The cookie is read first, then localStorage, mirroring the
+// consent record order. Neither is ever written during hydration.
 // ---------------------------------------------------------------------------
 
 const readLocalJson = function readLocalJson<RecordType>(
@@ -727,86 +741,198 @@ const readLocalJson = function readLocalJson<RecordType>(
 	return decode(value);
 };
 
+const readCompactCookie = function readCompactCookie<RecordType>(
+	rawValue: string | null | undefined,
+	decode: (text: string) => DecodeResult<RecordType>
+): DecodeResult<RecordType> | null {
+	if (rawValue === null || rawValue === undefined) {
+		return null;
+	}
+	const text = rawValue.trim();
+	if (text === '') {
+		return null;
+	}
+	if (text.startsWith('v=')) {
+		return decode(text);
+	}
+	if (text.includes('%')) {
+		const unwrapped = tryDecodeOuterLayer(text);
+		if (unwrapped !== null && unwrapped.trim().startsWith('v=')) {
+			return decode(unwrapped.trim());
+		}
+	}
+	return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
+};
+
+/** Report of one auxiliary write. */
+export interface AuxiliaryWriteReport {
+	localStorage: boolean;
+	cookie: boolean;
+	cookieDetail: CookieWriteReport;
+}
+
 /**
- * Reads the local notice dismissal. `null` when nothing is stored; an
- * invalid record is reported, not silently treated as absent, so callers
- * can log it while still deriving `missing`.
+ * Reads the local notice dismissal: the cookie projection first, then
+ * localStorage. `null` when nothing is stored; an invalid record is
+ * reported, not silently treated as absent, so callers can log it while
+ * still deriving `missing`.
  */
 export const readStoredNoticeDismissal = function readStoredNoticeDismissal(
 	config: StorageConfig | undefined,
 	now: number
 ): DecodeResult<StoredNoticeDismissal> | null {
-	return readLocalJson(resolveStorageKeys(config).notice, (value) =>
-		decodeNoticeDismissal(value, now)
+	const keys = resolveStorageKeys(config);
+	const fromCookie = readCompactCookie(getRawCookieValue(keys.notice), (text) =>
+		decodeNoticeDismissalCompact(text, now)
+	);
+	if (fromCookie?.ok) {
+		return fromCookie;
+	}
+	return (
+		readLocalJson(keys.notice, (value) => decodeNoticeDismissal(value, now)) ??
+		fromCookie
 	);
 };
 
+/** Server read of the notice cookie projection from a `Cookie` header. */
+export const readStoredNoticeDismissalFromCookieHeader =
+	function readStoredNoticeDismissalFromCookieHeader(
+		cookieHeader: string | undefined,
+		config: StorageConfig | undefined,
+		now: number
+	): DecodeResult<StoredNoticeDismissal> | null {
+		const keys = resolveStorageKeys(config);
+		return readCompactCookie(
+			readCookieValueFromHeader(cookieHeader, keys.notice),
+			(text) => decodeNoticeDismissalCompact(text, now)
+		);
+	};
+
 /**
- * Writes the local notice dismissal. localStorage only: a dismissal is
- * browser-local and never changes permissions, so it has no cookie
- * projection in this slice.
+ * Writes the local notice dismissal to localStorage and its compact cookie
+ * projection. The consent record and its cookie are never touched.
  */
 export const writeStoredNoticeDismissal = function writeStoredNoticeDismissal(
 	record: StoredNoticeDismissal,
 	config: StorageConfig | undefined,
-	now: number
-): DecodeResult<StoredNoticeDismissal> & { written?: boolean } {
+	now: number,
+	cookie?: CookieOptions
+): DecodeResult<StoredNoticeDismissal> & { written?: AuxiliaryWriteReport } {
 	const validated = decodeNoticeDismissal(record, now);
 	if (validated.ok === false) {
 		return validated;
 	}
-	const written = writeLocalStorageText(
-		resolveStorageKeys(config).notice,
+	const keys = resolveStorageKeys(config);
+	const localStorageWritten = writeLocalStorageText(
+		keys.notice,
 		encodeNoticeDismissal(validated.record)
 	);
-	return { ok: true, record: validated.record, written };
+	const cookieDetail = writeCookie(
+		keys.notice,
+		encodeNoticeDismissalCompact(validated.record),
+		cookie,
+		config
+	);
+	return {
+		ok: true,
+		record: validated.record,
+		written: {
+			cookie: cookieDetail.attempted && cookieDetail.verified,
+			cookieDetail,
+			localStorage: localStorageWritten,
+		},
+	};
 };
 
 export const clearStoredNoticeDismissal = function clearStoredNoticeDismissal(
-	config?: StorageConfig
+	config?: StorageConfig,
+	cookie?: CookieOptions
 ): void {
-	removeLocalStorageKey(resolveStorageKeys(config).notice);
+	const keys = resolveStorageKeys(config);
+	removeLocalStorageKey(keys.notice);
+	deleteCookie(keys.notice, cookie, config);
 };
 
-// ---------------------------------------------------------------------------
-// Privacy opt-out directives (local-only)
-// ---------------------------------------------------------------------------
-
-/** Reads standing privacy directives. `null` when nothing is stored. */
+/**
+ * Reads standing privacy directives: the cookie projection first, then
+ * localStorage. `null` when nothing is stored.
+ */
 export const readStoredPrivacyOptOuts = function readStoredPrivacyOptOuts(
 	config: StorageConfig | undefined,
 	now: number
 ): DecodeResult<StoredPrivacyOptOuts> | null {
-	return readLocalJson(resolveStorageKeys(config).privacy, (value) =>
-		decodePrivacyOptOuts(value, now)
+	const keys = resolveStorageKeys(config);
+	const fromCookie = readCompactCookie(
+		getRawCookieValue(keys.privacy),
+		(text) => decodePrivacyOptOutsCompact(text, now)
+	);
+	if (fromCookie?.ok) {
+		return fromCookie;
+	}
+	return (
+		readLocalJson(keys.privacy, (value) => decodePrivacyOptOuts(value, now)) ??
+		fromCookie
 	);
 };
 
+/** Server read of the privacy cookie projection from a `Cookie` header. */
+export const readStoredPrivacyOptOutsFromCookieHeader =
+	function readStoredPrivacyOptOutsFromCookieHeader(
+		cookieHeader: string | undefined,
+		config: StorageConfig | undefined,
+		now: number
+	): DecodeResult<StoredPrivacyOptOuts> | null {
+		const keys = resolveStorageKeys(config);
+		return readCompactCookie(
+			readCookieValueFromHeader(cookieHeader, keys.privacy),
+			(text) => decodePrivacyOptOutsCompact(text, now)
+		);
+	};
+
 /**
- * Writes standing privacy directives. localStorage only. The list is
- * replaced wholesale; merging with an identified-subject directive on
- * the server is a transport concern outside this slice.
+ * Writes standing privacy directives to localStorage and the compact
+ * cookie projection. The list is replaced wholesale; merging with an
+ * identified-subject directive on the server is a transport concern.
  */
 export const writeStoredPrivacyOptOuts = function writeStoredPrivacyOptOuts(
 	directives: readonly PrivacyOptOut[],
 	config: StorageConfig | undefined,
-	now: number
-): DecodeResult<StoredPrivacyOptOuts> & { written?: boolean } {
+	now: number,
+	cookie?: CookieOptions
+): DecodeResult<StoredPrivacyOptOuts> & { written?: AuxiliaryWriteReport } {
 	const validated = decodePrivacyOptOuts({ directives, version: 1 }, now);
 	if (validated.ok === false) {
 		return validated;
 	}
-	const written = writeLocalStorageText(
-		resolveStorageKeys(config).privacy,
+	const keys = resolveStorageKeys(config);
+	const localStorageWritten = writeLocalStorageText(
+		keys.privacy,
 		encodePrivacyOptOuts(validated.record)
 	);
-	return { ok: true, record: validated.record, written };
+	const cookieDetail = writeCookie(
+		keys.privacy,
+		encodePrivacyOptOutsCompact(validated.record),
+		cookie,
+		config
+	);
+	return {
+		ok: true,
+		record: validated.record,
+		written: {
+			cookie: cookieDetail.attempted && cookieDetail.verified,
+			cookieDetail,
+			localStorage: localStorageWritten,
+		},
+	};
 };
 
 export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
-	config?: StorageConfig
+	config?: StorageConfig,
+	cookie?: CookieOptions
 ): void {
-	removeLocalStorageKey(resolveStorageKeys(config).privacy);
+	const keys = resolveStorageKeys(config);
+	removeLocalStorageKey(keys.privacy);
+	deleteCookie(keys.privacy, cookie, config);
 };
 
 // ---------------------------------------------------------------------------
@@ -815,7 +941,8 @@ export const clearStoredPrivacyOptOuts = function clearStoredPrivacyOptOuts(
 
 /**
  * Removes explicit choices (configured and legacy keys, cookie and
- * localStorage), the notice dismissal and the privacy directives. Cookie
+ * localStorage), the notice dismissal and the privacy directives with
+ * their cookie projections, and the queued backend replays. Cookie
  * deletion uses the same domain handling as writes so a cross-subdomain
  * cookie is actually removed.
  */
@@ -824,6 +951,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	config?: StorageConfig
 ): void {
 	deleteConsentFromStorage(cookie, config);
-	clearStoredNoticeDismissal(config);
-	clearStoredPrivacyOptOuts(config);
+	clearStoredNoticeDismissal(config, cookie);
+	clearStoredPrivacyOptOuts(config, cookie);
+	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
 };

@@ -23,12 +23,29 @@ export {
 	resolvePolicyUiProfile,
 	shouldFillPolicyActions,
 } from './libs/policy-actions';
-export type { CONSENT_CATEGORY, Consent } from './consent-record';
+export type {
+	CategoryDecision,
+	ChoiceBasis,
+	CONSENT_CATEGORY,
+	ConsentEvaluation,
+	ConsentSubject,
+	EvaluationPolicy,
+	ExplicitChoice,
+	NoticeDismissal,
+	OptionalConsentCategory,
+	PrivacyOptOut,
+	PromptReason,
+	PromptRequirement,
+	RecordIssue,
+	RestrictionReason,
+} from './consent-record';
 export {
 	CONSENT_CATEGORIES,
-	deriveActiveConsentUi,
-	getConsentAvailableCategories,
-	interpretStoredConsent,
+	createEvaluationPolicy,
+	evaluateConsentRecord,
+	OPTIONAL_CONSENT_CATEGORIES,
+	validateExplicitChoice,
+	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
 export {
@@ -70,10 +87,13 @@ export {
 	c15tVersionHeaders,
 } from './transports/version-header';
 export type {
+	ConfirmedCoverage,
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
 	GlobalVendorList,
+	HydrationRecords,
+	HydrationResult,
 	InitContext,
 	InitResponse,
 	InitResult,
@@ -84,13 +104,16 @@ export type {
 	KernelIABState,
 	KernelModel,
 	KernelOverrides,
+	KernelPrivacySignals,
 	KernelTranslations,
 	KernelTransport,
 	KernelUser,
 	Listener,
 	LocationResponse,
 	NonIABVendor,
+	NoticeDismissResult,
 	PolicyDecision,
+	PolicyResolution,
 	PolicyScopeMode,
 	PolicyUiAction,
 	PolicyUiActionDirection,
@@ -99,6 +122,8 @@ export type {
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	ResolvedPolicy,
+	ResolvedPolicyRule,
+	SaveInput,
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,
@@ -223,5 +248,14 @@ export type {
 	JurisdictionCode,
 	PolicyConfig,
 	PolicyPackPresets,
+	PolicyPrompt,
+	PolicyResolutionFailure,
+	PolicyRule,
+	PolicyRulePresets,
 } from '@c15t/schema/types';
-export { policyPackPresets } from '@c15t/schema/types';
+export {
+	policyPackPresets,
+	policyRulePresets,
+	readPolicyResolutionWire,
+	safeFallbackPolicyRule,
+} from '@c15t/schema/types';

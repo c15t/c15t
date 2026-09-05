@@ -9,6 +9,7 @@
  */
 import { describe, expect, test } from 'vitest';
 
+import { choiceRecords } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../index';
 import type { ConsentSnapshot, KernelIABState } from '../../types';
 import { evaluateConsent, has, hasIABConsent } from '../has';
@@ -131,15 +132,14 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		} = {}
 	): ConsentSnapshot {
 		const kernel = createConsentKernel({
-			initialConsents: {
+			initialIab: options.iab,
+			initialRecords: choiceRecords({
 				experience: false,
 				functionality: false,
 				marketing: false,
 				measurement: false,
-				necessary: true,
 				...options.consents,
-			},
-			initialIab: options.iab,
+			}),
 		});
 		// Force a specific model for the test — kernel usually derives this
 		// from jurisdiction, but here we want deterministic dispatch tests.

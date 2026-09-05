@@ -1,36 +1,24 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import type { ConsentSnapshot } from '../../types';
-import type { SnapshotPatch } from '../patch';
-import { applyPatch } from '../patch';
-import { buildSetters, mergeConsent, mergeIab } from '../setters';
-import { buildInitialSnapshot } from '../snapshot';
+import {
+	iabRule,
+	matchedResolution,
+	NOW,
+	optOutRule,
+} from '../../__tests__/fixtures/kernel-fixtures';
+import { createConsentKernel } from '../index';
+import { mergeDraft, mergeIab } from '../setters';
 
-describe('mergeConsent', () => {
-	test('returns null when no key actually changes', () => {
-		const snap = buildInitialSnapshot({});
-		expect(mergeConsent(snap.consents, { necessary: true })).toBeNull();
-	});
-
-	test('returns next consents when a key flips', () => {
-		const snap = buildInitialSnapshot({});
-		const next = mergeConsent(snap.consents, { marketing: true });
-		expect(next?.marketing).toBe(true);
-		expect(next?.necessary).toBe(true);
-	});
-
-	test('drops non-boolean values', () => {
-		const snap = buildInitialSnapshot({});
+describe('mergeDraft', () => {
+	test('merges optional booleans and ignores the rest', () => {
+		const first = mergeDraft(null, { marketing: true, necessary: true });
+		expect(first).toEqual({ marketing: true });
 		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-		const next = mergeConsent(snap.consents, { marketing: 'yes' as any });
-		expect(next).toBeNull();
-	});
-
-	test('drops unknown keys', () => {
-		const snap = buildInitialSnapshot({});
-		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-		const next = mergeConsent(snap.consents, { analytics: true as any });
-		expect(next).toBeNull();
+		const second = mergeDraft(first, { measurement: 'yes' as any });
+		expect(second).toBe(first);
+		expect(mergeDraft(first, { marketing: false })).toEqual({
+			marketing: false,
+		});
 	});
 });
 
@@ -43,88 +31,89 @@ describe('mergeIab', () => {
 
 	test('no-change when scalar fields match the baseline', () => {
 		const baseline = mergeIab(null, { enabled: true }).next;
-		const result = mergeIab(baseline, { enabled: true });
-		expect(result.changed).toBe(false);
+		expect(mergeIab(baseline, { enabled: true }).changed).toBe(false);
 	});
 
 	test('detects scalar field flip', () => {
-		const baseline = mergeIab(null, { cmpId: 1, enabled: true }).next;
-		const result = mergeIab(baseline, { cmpId: 2 });
-		expect(result.changed).toBe(true);
-		expect(result.next.cmpId).toBe(2);
+		const baseline = mergeIab(null, { enabled: true }).next;
+		expect(mergeIab(baseline, { enabled: false }).changed).toBe(true);
 	});
 });
 
 describe('buildSetters', () => {
-	const makeKernelStub = function makeKernelStub() {
-		let snapshot: ConsentSnapshot = buildInitialSnapshot({});
-		const events: { type: string }[] = [];
-		const setters = buildSetters({
-			advance: (patch: SnapshotPatch) => {
-				snapshot = applyPatch(snapshot, patch);
-			},
-			emit: (event) => {
-				events.push({ type: event.type });
-			},
-			getSnapshot: () => snapshot,
-		});
-		return { events, getSnapshot: () => snapshot, setters };
-	};
-
-	test('set.consent emits when a key changes', () => {
-		const { setters, events, getSnapshot } = makeKernelStub();
-		setters.consent({ marketing: true });
-		expect(events).toEqual([{ type: 'consent:set' }]);
-		expect(getSnapshot().consents.marketing).toBe(true);
+	test('set.consent stages a draft without changing the snapshot', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		const before = kernel.getSnapshot();
+		const listener = vi.fn();
+		kernel.subscribe(listener);
+		kernel.set.consent({ marketing: true });
+		expect(kernel.getSnapshot()).toBe(before);
+		expect(listener).not.toHaveBeenCalled();
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 	});
 
-	test('set.consent is a no-op when nothing changes', () => {
-		const { setters, events } = makeKernelStub();
-		const fn = vi.fn();
-		setters.consent({ necessary: true });
-		expect(events).toEqual([]);
-		expect(fn).not.toHaveBeenCalled();
+	test('set.hasConsented is inert', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		const before = kernel.getSnapshot();
+		kernel.set.hasConsented(true);
+		expect(kernel.getSnapshot()).toBe(before);
+		expect(kernel.getSnapshot().hasConsented).toBe(false);
 	});
 
 	test('set.language is a no-op when language already matches', () => {
-		const { setters, events, getSnapshot } = makeKernelStub();
-		setters.language('en');
-		expect(events).toEqual([{ type: 'overrides:set' }]);
-		const before = getSnapshot();
-		setters.language('en');
-		expect(getSnapshot()).toBe(before);
+		const kernel = createConsentKernel({
+			initialOverrides: { language: 'en' },
+			now: NOW,
+		});
+		const before = kernel.getSnapshot();
+		kernel.set.language('en');
+		expect(kernel.getSnapshot()).toBe(before);
 	});
 
-	test('set.subjectId is a no-op when value matches', () => {
-		const { setters, getSnapshot } = makeKernelStub();
-		setters.subjectId(null);
-		expect(getSnapshot().subjectId).toBeNull();
-		const before = getSnapshot();
-		setters.subjectId(null);
-		expect(getSnapshot()).toBe(before);
+	test('set.subjectId updates the subject once', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		kernel.set.subjectId('sub_1');
+		expect(kernel.getSnapshot().subject).toEqual({ subjectId: 'sub_1' });
+		expect(kernel.getSnapshot().subjectId).toBe('sub_1');
+		const before = kernel.getSnapshot();
+		kernel.set.subjectId('sub_1');
+		expect(kernel.getSnapshot()).toBe(before);
+		kernel.set.subjectId(null);
+		expect(kernel.getSnapshot().subject).toBeNull();
 	});
 
-	test('set.iab re-derives model + activeUI when enabled flips', () => {
-		// Start with an opt-in policy + iab.enabled: false → model "opt-in".
-		// Flip iab.enabled to true under the same policy → model still
-		// "opt-in" but the derivation runs. Use an iab-only policy to
-		// observe the flip cleanly.
-		let snapshot: ConsentSnapshot = buildInitialSnapshot({
-			initialPolicy: {
-				model: 'iab',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+	test('set.iab re-derives the model when enabled flips', () => {
+		const kernel = createConsentKernel({
+			initialIab: { enabled: false },
+			initialPolicyResolution: matchedResolution(iabRule()),
+			now: NOW,
 		});
-		const setters = buildSetters({
-			advance: (patch: SnapshotPatch) => {
-				snapshot = applyPatch(snapshot, patch);
-			},
-			emit: () => {},
-			getSnapshot: () => snapshot,
+		const events = vi.fn();
+		kernel.events.on('iab:set', events);
+		expect(kernel.getSnapshot().model).toBe('opt-in');
+		kernel.set.iab({ enabled: true });
+		expect(kernel.getSnapshot().model).toBe('iab');
+		expect(events).toHaveBeenCalledTimes(1);
+	});
+
+	test('set.overrides with gpc masks permissions and emits permissions:changed', () => {
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(
+				optOutRule({
+					privacySignals: { gpc: { denyCategories: ['marketing'] } },
+					prompt: 'none',
+				})
+			),
+			now: NOW,
 		});
-		expect(snapshot.model).toBeNull();
-		setters.iab({ enabled: true });
-		expect(snapshot.model).toBe('iab');
+		const permissions = vi.fn();
+		kernel.events.on('permissions:changed', permissions);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		kernel.set.overrides({ gpc: true });
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
+		expect(permissions).toHaveBeenCalledTimes(1);
+		// An override is not a detected signal: no standing directive.
+		expect(kernel.getSnapshot().optOutDirectives).toEqual([]);
 	});
 });

@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
+import {
+	choiceRecords,
+	iabRule,
+	matchedResolution,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
 import {
 	buildReconcilePass,
@@ -19,11 +24,7 @@ describe('buildReconcilePass', () => {
 	test('marks isIabMode true when snapshot.model is iab', () => {
 		const snap = snapshotForKernel({
 			initialIab: { enabled: true },
-			initialPolicy: {
-				model: 'iab',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
+			initialPolicyResolution: matchedResolution(iabRule()),
 		});
 		const pass = buildReconcilePass(snap);
 		expect(pass.isIabMode).toBe(true);
@@ -78,7 +79,7 @@ describe('isEligible', () => {
 
 	test('simpleCategory grants when consent is true', () => {
 		const snap = snapshotForKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		});
 		const pass = buildReconcilePass(snap);
 		const [entry] = normalizeScripts([

@@ -1,62 +1,25 @@
 /**
  * Synchronous setters exposed at `kernel.set.*`.
  *
- * Each setter computes a `SnapshotPatch` (or `null` for a no-op) using
- * a pure helper, then hands the patch to `advance` and emits the
- * corresponding event. The pure helpers are exported separately so
- * tests can verify change-detection without standing up a full kernel.
- *
- * No-op short-circuits matter: subscribers commonly use `===` on
- * snapshots to skip work, and emitting a new snapshot for a no-op
- * mutation would defeat that.
+ * Each setter computes a `SnapshotPatch` and hands it to the runtime,
+ * which re-derives dependent fields and skips no-ops. `set.consent` is a
+ * BRIDGE: it stages draft values for a no-input `save()` and never grants
+ * anything.
  */
 
-import { allConsentNames } from '../consent/consent-types';
-import { deriveActiveUI, deriveModel } from '../policy';
+import type { PresentedSelection } from '../policy';
 import type {
-	ConsentSnapshot,
 	ConsentState,
 	KernelActiveUI,
-	KernelEvent,
 	KernelIABState,
 	KernelOverrides,
 } from '../types';
-import type { SnapshotPatch } from './patch';
-import { DEFAULT_IAB } from './snapshot';
-
-/**
- * Merge a `Partial<ConsentState>` over the current consents, accepting
- * only boolean values for known category names. Returns the next
- * consents object only when at least one category actually changed;
- * returns `null` to signal a no-op.
- */
-export const mergeConsent = function mergeConsent(
-	current: ConsentState,
-	input: Partial<ConsentState>
-): ConsentState | null {
-	const next: ConsentState = { ...current };
-	let changed = false;
-	for (const name of allConsentNames) {
-		if (
-			name in input &&
-			typeof input[name] === 'boolean' &&
-			next[name] !== input[name]
-		) {
-			next[name] = input[name] as boolean;
-			changed = true;
-		}
-	}
-	return changed ? next : null;
-};
+import type { KernelRuntime } from './runtime';
+import { buildDraft, DEFAULT_IAB } from './snapshot';
 
 /**
  * Merge an IAB patch onto the current IAB slice, returning the next
- * slice plus a `changed` flag. The flag is `true` when at least one
- * scalar field differs from the baseline, or when the slice was
- * previously `null` and any patch was supplied.
- *
- * Object fields (e.g. `vendorConsents`) always allocate a new
- * reference; callers are responsible for avoiding churn there.
+ * slice plus a `changed` flag.
  */
 export const mergeIab = function mergeIab(
 	current: KernelIABState | null,
@@ -77,67 +40,45 @@ export const mergeIab = function mergeIab(
 	return { changed, next };
 };
 
-/**
- * Dependencies required by `buildSetters`. The kernel index supplies
- * a getter for the live snapshot, the `advance` function (which swaps
- * snapshots and notifies subscribers), and the event emitter.
- */
-export interface SetterDeps {
-	getSnapshot: () => ConsentSnapshot;
-	advance: (patch: SnapshotPatch) => void;
-	emit: (event: KernelEvent) => void;
-}
+/** Merge staged draft values. `null` input clears the draft. */
+export const mergeDraft = function mergeDraft(
+	current: PresentedSelection | null,
+	input: Partial<ConsentState>
+): PresentedSelection | null {
+	const patch = buildDraft(input);
+	if (!patch) {
+		return current;
+	}
+	return { ...current, ...patch };
+};
 
 /**
- * Build the `kernel.set.*` object given the kernel's runtime deps.
- *
- * Each setter is a thin wrapper that computes a patch from the current
- * snapshot, short-circuits on no-op, then advances + emits.
+ * Build the `kernel.set.*` object given the kernel runtime.
  */
-export const buildSetters = function buildSetters(deps: SetterDeps) {
-	const { getSnapshot, advance, emit } = deps;
+export const buildSetters = function buildSetters(runtime: KernelRuntime) {
+	const { getSnapshot, commit, emit } = runtime;
 
 	return {
 		activeUI(ui: KernelActiveUI): void {
-			if (getSnapshot().activeUI === ui) {
-				return;
-			}
-			advance({ activeUI: ui });
+			commit({ activeUI: ui });
 		},
 
 		consent(input: Partial<ConsentState>): void {
-			const next = mergeConsent(getSnapshot().consents, input);
-			if (!next) {
-				return;
-			}
-			advance({ consents: next });
-			emit({ snapshot: getSnapshot(), type: 'consent:set' });
+			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
 		},
 
-		hasConsented(value: boolean): void {
-			if (getSnapshot().hasConsented === value) {
-				return;
-			}
-			advance({ hasConsented: value });
+		hasConsented(_value: boolean): void {
+			// BRIDGE: choice presence is derived from receipts.
 		},
 
 		iab(input: Partial<KernelIABState>): void {
-			const snapshot = getSnapshot();
-			const { next, changed } = mergeIab(snapshot.iab, input);
+			const { next, changed } = mergeIab(getSnapshot().iab, input);
 			if (!changed) {
 				return;
 			}
-
-			const patch: SnapshotPatch = { iab: next };
-			// If enable/disable flipped, re-derive model + activeUI so the
-			// rest of the snapshot stays internally consistent.
-			if (next.enabled !== (snapshot.iab?.enabled ?? false)) {
-				const nextModel = deriveModel(snapshot.policy, next.enabled);
-				patch.model = nextModel;
-				patch.activeUI = deriveActiveUI(nextModel, snapshot.policy);
+			if (commit({ iab: next })) {
+				emit({ snapshot: getSnapshot(), type: 'iab:set' });
 			}
-			advance(patch);
-			emit({ snapshot: getSnapshot(), type: 'iab:set' });
 		},
 
 		language(code: string): void {
@@ -145,21 +86,40 @@ export const buildSetters = function buildSetters(deps: SetterDeps) {
 			if (snapshot.overrides.language === code) {
 				return;
 			}
-			advance({ overrides: { ...snapshot.overrides, language: code } });
+			commit({ overrides: { ...snapshot.overrides, language: code } });
 			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
 		},
 
 		overrides(input: KernelOverrides): void {
 			const snapshot = getSnapshot();
-			advance({ overrides: { ...snapshot.overrides, ...input } });
+			const at = runtime.now();
+			commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
 			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			runtime.reconcilePrivacy(at);
+			runtime.armDeadlineTimer();
+		},
+
+		privacySignals(input: { gpc?: boolean }): void {
+			if (input.gpc === undefined) {
+				return;
+			}
+			const at = runtime.now();
+			commit({ now: at, privacyDetected: input.gpc === true });
+			runtime.reconcilePrivacy(at);
+			runtime.armDeadlineTimer();
 		},
 
 		subjectId(id: string | null): void {
-			if (getSnapshot().subjectId === id) {
+			const { subject } = getSnapshot();
+			if ((subject?.subjectId ?? null) === id) {
 				return;
 			}
-			advance({ subjectId: id });
+			if (id === null) {
+				const { subjectId: _dropped, ...rest } = subject ?? {};
+				commit({ subject: Object.keys(rest).length > 0 ? rest : null });
+				return;
+			}
+			commit({ subject: { ...subject, subjectId: id } });
 		},
 	};
 };

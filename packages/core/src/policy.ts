@@ -1,254 +1,191 @@
 /**
- * v3 policy derivation — pure functions the kernel calls during
- * `commands.init()` to fold an `InitResponse` onto the snapshot.
+ * Policy derivations the kernel runs on the effective policy rule.
  *
- * No DOM, no window, no network. Safe to run in Node, edge, RSC.
- *
- * Where possible these delegate to the v2 pure helpers in
- * `packages/core/src/libs/policy.ts` — those were already framework-
- * neutral and there's no reason to duplicate the logic.
+ * Pure. No DOM, no window, no network, no hashing: the rule and its
+ * fingerprints arrive resolved, and every non-matched resolution uses the
+ * schema's safe opt-in fallback with pinned fingerprints.
  */
-import type { PolicyScopeMode, ResolvedPolicy } from '@c15t/schema/types';
+import type {
+	PolicyFingerprints,
+	PolicyResolution,
+	ResolvedPolicy,
+	ResolvedPolicyRule,
+} from '@c15t/schema/types';
+import {
+	projectPolicyRuleToLegacy,
+	safeFallbackPolicyInput,
+} from '@c15t/schema/types';
 
+import { createEvaluationPolicy } from './consent-record/evaluation-policy';
+import { OPTIONAL_CONSENT_CATEGORIES } from './consent-record/types';
+import type {
+	EvaluationPolicy,
+	ExplicitChoice,
+	OptionalConsentCategory,
+	PromptRequirement,
+} from './consent-record/types';
 import type { AllConsentNames } from './consent/consent-types';
 import { allConsentNames } from './consent/consent-types';
-import {
-	applyPolicyScopeForRuntimeGating as v2ApplyPolicyScope,
-	filterConsentCategoriesByPolicy as v2FilterCategories,
-} from './libs/policy';
-import type { ConsentState, KernelActiveUI, KernelModel } from './types';
+import type { KernelActiveUI, KernelModel } from './types';
+
+/** Rule plus fingerprints the evaluator runs on. */
+export interface EffectivePolicy {
+	rule: ResolvedPolicyRule;
+	fingerprints: PolicyFingerprints;
+}
 
 /**
- * Determines the consent model from the resolved policy. Geography is an
- * input to policy resolution, but the kernel only cares about the policy
- * the backend or offline transport selected.
+ * The rule a resolution puts in force: the matched rule, or the safe
+ * opt-in choice fallback for `unconfigured`, `no-match` and `failed`.
+ * The status stays observable on the snapshot; the fallback is never
+ * reported as a matched policy.
+ */
+export const resolveEffectivePolicy = function resolveEffectivePolicy(
+	resolution: PolicyResolution
+): EffectivePolicy {
+	if (resolution.status === 'matched') {
+		return { fingerprints: resolution.fingerprints, rule: resolution.policy };
+	}
+	const fallback = safeFallbackPolicyInput();
+	return { fingerprints: fallback.fingerprints, rule: fallback.policy };
+};
+
+/**
+ * Validated evaluator projection of an effective policy. Validity is
+ * rounded to whole milliseconds: a day count multiplied out by the schema
+ * can carry floating-point noise, and an expiry a fraction of a millisecond
+ * past a timer tick would otherwise never be reached.
+ */
+export const buildEvaluationPolicy = function buildEvaluationPolicy(
+	effective: EffectivePolicy
+): EvaluationPolicy {
+	const { rule, fingerprints } = effective;
+	return createEvaluationPolicy({
+		choice: {
+			fingerprint: fingerprints.choice,
+			maxAgeMs: Math.round(rule.validity.choiceMs),
+		},
+		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
+		legacyMaterialFingerprint: fingerprints.legacyMaterial ?? null,
+		model: rule.model,
+		notice: {
+			fingerprint: fingerprints.notice,
+			maxAgeMs: Math.round(rule.validity.noticeMs),
+		},
+		prompt: rule.prompt,
+		scope: rule.scope,
+		scopeMode: rule.scopeMode,
+	});
+};
+
+/**
+ * Runtime model. An IAB rule only runs as `iab` when the IAB module is
+ * enabled; otherwise its categories behave as opt-in, which is what the
+ * evaluator already does for the `iab` model.
  */
 export const deriveModel = function deriveModel(
-	policy: ResolvedPolicy | null,
+	rule: ResolvedPolicyRule,
 	iabEnabled: boolean
 ): KernelModel {
-	if (!policy || policy.model === 'none') {
-		return null;
+	if (rule.model === 'iab') {
+		return iabEnabled ? 'iab' : 'opt-in';
 	}
-	if (policy.model === 'iab') {
-		return iabEnabled ? 'iab' : null;
-	}
-	return policy.model;
+	return rule.model;
 };
 
 /**
- * Derives which UI surface the adapter should render, if any.
- *
- * Rules (mirror v2's `store-updater.ts:166-170` behavior):
- * - If the policy explicitly sets `ui.mode`, use that.
- * - Otherwise, if a model is in effect, default to `'banner'`.
- * - If no model applies, render nothing.
+ * Which surface the first layer should use for the remaining prompt.
+ * Visibility follows the prompt requirement, never `hasConsented`. A
+ * provisional placeholder policy and a failed resolution keep the first
+ * layer hidden (the existing failed-init behavior). Presentation of a
+ * choice prompt still reads the legacy `ui.mode` bridge for banner versus
+ * dialog; a notice is a non-blocking banner.
  */
-export const deriveActiveUI = function deriveActiveUI(
-	model: KernelModel,
-	policy: ResolvedPolicy | null
-): KernelActiveUI {
-	const policyMode = policy?.ui?.mode;
-	if (
-		policyMode === 'none' ||
-		policyMode === 'banner' ||
-		policyMode === 'dialog'
-	) {
-		return policyMode;
-	}
-	if (model === null) {
+export const deriveActiveUI = function deriveActiveUI(input: {
+	promptRequirement: PromptRequirement;
+	policy: ResolvedPolicy | null;
+	policyProvisional: boolean;
+	resolution: PolicyResolution;
+}): KernelActiveUI {
+	if (input.policyProvisional || input.resolution.status === 'failed') {
 		return 'none';
 	}
-	return 'banner';
+	if (input.promptRequirement.kind === 'none') {
+		return 'none';
+	}
+	if (input.promptRequirement.kind === 'notice') {
+		return 'banner';
+	}
+	return input.policy?.ui?.mode === 'dialog' ? 'dialog' : 'banner';
 };
 
 /**
- * Resolves the category allowlist from a policy. Returns an empty array
- * when the policy allows all categories (wildcard or absent) so the
- * kernel can represent "unrestricted" uniformly.
+ * BRIDGE category allowlist. Empty means every category is in scope.
  */
-export const deriveCategoryAllowlist = function deriveCategoryAllowlist(
-	policy: ResolvedPolicy | null
+export const derivePolicyCategories = function derivePolicyCategories(
+	rule: ResolvedPolicyRule
 ): AllConsentNames[] {
-	const allowed = policy?.consent?.categories;
-	if (!allowed || allowed.length === 0 || allowed.includes('*')) {
+	if (rule.scope.length === OPTIONAL_CONSENT_CATEGORIES.length) {
 		return [];
 	}
-	return v2FilterCategories(Array.from(allConsentNames), allowed);
-};
-
-/**
- * Filters consents for runtime gating using the v2 scope rules. In
- * `strict` mode the input is passed through (storage-time enforcement
- * already trimmed invalid categories). In `permissive` mode, categories
- * outside the allowlist are forced to `true` so gating decisions treat
- * them as granted.
- */
-export const applyPolicyScope = function applyPolicyScope(
-	consents: ConsentState,
-	policyCategories: readonly AllConsentNames[],
-	scopeMode: PolicyScopeMode
-): ConsentState {
-	const allowed =
-		policyCategories.length === 0 ? undefined : Array.from(policyCategories);
-	return v2ApplyPolicyScope(consents, allowed, scopeMode);
-};
-
-/**
- * Applies `policy.consent.preselectedCategories` to a consent record
- * where no prior user interaction is present. Matches v2's behavior at
- * `store-updater.ts:203-240`:
- * - If `hasConsented`, user choices win — preselected is ignored.
- * - If no prior consent, preselected categories flip to `true`.
- * - Out-of-policy preselected entries are dropped.
- * - `necessary` is always `true`.
- */
-export const applyPreselectedConsents = function applyPreselectedConsents(
-	consents: ConsentState,
-	policy: ResolvedPolicy | null,
-	policyCategories: readonly AllConsentNames[],
-	hasConsented: boolean
-): ConsentState {
-	if (hasConsented) {
-		return consents;
-	}
-
-	const preselected = policy?.consent?.preselectedCategories;
-	if (!Array.isArray(preselected) || preselected.length === 0) {
-		return consents;
-	}
-
-	const allowlistScope: readonly AllConsentNames[] =
-		policyCategories.length === 0
-			? Array.from(allConsentNames)
-			: policyCategories;
-	const allowedPreselected = v2FilterCategories(
-		Array.from(allowlistScope),
-		preselected
+	const scope = new Set<string>(rule.scope);
+	return allConsentNames.filter(
+		(name) => name === 'necessary' || scope.has(name)
 	);
-	if (allowedPreselected.length === 0) {
-		return { ...consents, necessary: true };
-	}
-
-	const preselectedSet = new Set(allowedPreselected);
-	const next = { ...consents } as ConsentState;
-	for (const category of allConsentNames) {
-		next[category] =
-			category === 'necessary' ? true : preselectedSet.has(category);
-	}
-	return next;
 };
 
-const isOutOfPolicyCategory = function isOutOfPolicyCategory(
-	category: AllConsentNames,
-	policyCategories: readonly AllConsentNames[]
-): boolean {
-	return policyCategories.length > 0 && !policyCategories.includes(category);
+/** BRIDGE legacy presentation projection of the effective rule. */
+export const legacyPolicyForRule = function legacyPolicyForRule(
+	rule: ResolvedPolicyRule
+): ResolvedPolicy {
+	return projectPolicyRuleToLegacy(rule);
 };
 
-const isTrackingCategory = function isTrackingCategory(
-	category: AllConsentNames
-): boolean {
-	return category === 'marketing' || category === 'measurement';
-};
+/** Values a form would present before any restriction is applied. */
+export type PresentedSelection = Partial<
+	Record<OptionalConsentCategory, boolean>
+>;
 
 /**
- * Applies model defaults before a subject has made an explicit choice.
- *
- * Pre-consent runtime state is an enforcement decision, not a UI draft:
- * opt-in/IAB silence denies optional categories; opt-out silence grants
- * categories unless strict scope or GPC says otherwise. This mirrors
- * `interpretStoredConsent()` for the empty stored-consent case.
+ * The selection a no-input `save()` confirms for the active scope: the
+ * staged draft value, else the explicit value, else the model's displayed
+ * default (allowed under opt-out, preselected under opt-in and IAB). It is
+ * deliberately not the effective permission, which may be masked by GPC or
+ * an expired grant.
  */
-export const applyModelDefaultsForNoConsent =
-	function applyModelDefaultsForNoConsent(params: {
-		consents: ConsentState;
-		policy: ResolvedPolicy | null;
-		policyCategories: readonly AllConsentNames[];
-		scopeMode: PolicyScopeMode;
-		hasConsented: boolean;
-		gpc?: boolean;
-	}): ConsentState {
-		if (params.hasConsented || !params.policy?.model) {
-			return params.consents;
+export const presentedSelection = function presentedSelection(
+	rule: ResolvedPolicyRule,
+	draft: PresentedSelection | null,
+	choice: ExplicitChoice | null
+): PresentedSelection {
+	const selection: PresentedSelection = {};
+	for (const category of rule.scope) {
+		const staged = draft?.[category];
+		if (typeof staged === 'boolean') {
+			selection[category] = staged;
+			continue;
 		}
-
-		const { model } = params.policy;
-		if (model !== 'opt-in' && model !== 'opt-out' && model !== 'iab') {
-			return { ...params.consents, necessary: true };
+		const decision = choice?.categories[category];
+		if (decision) {
+			selection[category] = decision.value;
+			continue;
 		}
+		selection[category] =
+			rule.model === 'opt-out'
+				? true
+				: rule.preselectedCategories.includes(category);
+	}
+	return selection;
+};
 
-		const next = { ...params.consents } as ConsentState;
-		for (const category of allConsentNames) {
-			if (category === 'necessary') {
-				next[category] = true;
-				continue;
-			}
-
-			if (model === 'opt-out') {
-				next[category] =
-					!(
-						params.gpc === true &&
-						params.policy.consent?.gpc === true &&
-						isTrackingCategory(category)
-					) &&
-					!(
-						params.scopeMode === 'strict' &&
-						isOutOfPolicyCategory(category, params.policyCategories)
-					);
-				continue;
-			}
-
-			next[category] = false;
-		}
-
-		return next;
-	};
-
-/**
- * Convenience: apply all runtime policy-derived transformations in one call.
- * Mirrors what the kernel does inside `commands.init()`.
- *
- * Order:
- *   1. Filter the category allowlist.
- *   2. Apply consent-model defaults for a fresh subject.
- *   3. Apply scope mode for stored/explicit consent.
- *
- * Exported so parity tests can verify the flow in isolation.
- */
-export interface PolicyApplyInputs {
-	consents: ConsentState;
-	hasConsented: boolean;
-	policy: ResolvedPolicy | null;
-	gpc?: boolean;
-}
-
-export interface PolicyApplyResult {
-	consents: ConsentState;
-	policyCategories: AllConsentNames[];
-	policyScopeMode: PolicyScopeMode;
-}
-
-export const applyPolicyToConsents = function applyPolicyToConsents(
-	input: PolicyApplyInputs
-): PolicyApplyResult {
-	const policyCategories = deriveCategoryAllowlist(input.policy);
-	const scopeMode: PolicyScopeMode =
-		input.policy?.consent?.scopeMode ?? 'permissive';
-	const modelDefaults = applyModelDefaultsForNoConsent({
-		consents: input.consents,
-		gpc: input.gpc,
-		hasConsented: input.hasConsented,
-		policy: input.policy,
-		policyCategories,
-		scopeMode,
-	});
-	const scoped = input.hasConsented
-		? applyPolicyScope(modelDefaults, policyCategories, scopeMode)
-		: modelDefaults;
-	return {
-		consents: scoped,
-		policyCategories,
-		policyScopeMode: scopeMode,
-	};
+/** Every category in the active scope set to one value. */
+export const scopeSelection = function scopeSelection(
+	rule: ResolvedPolicyRule,
+	value: boolean
+): PresentedSelection {
+	const selection: PresentedSelection = {};
+	for (const category of rule.scope) {
+		selection[category] = value;
+	}
+	return selection;
 };

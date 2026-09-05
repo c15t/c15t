@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 
+import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
 import { evaluateBlock } from '../decide';
 import type { NetworkBlockerRule } from '../types';
@@ -41,7 +42,7 @@ describe('evaluateBlock', () => {
 
 	test('passes a matching domain when consent is granted', () => {
 		const snap = createConsentKernel({
-			initialConsents: { marketing: true },
+			initialRecords: choiceRecords({ marketing: true }),
 		}).getSnapshot();
 		const decision = evaluateBlock(
 			new URL('https://tracker.example/foo'),
