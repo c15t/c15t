@@ -119,6 +119,24 @@ describe('<ConsentBanner />', () => {
 		expect(html).toContain('data-testid="consent-banner-root"');
 	});
 
+	it('renders the branding tag with the shared markup', async () => {
+		const html = await render(await buildLocals());
+		expect(html).toContain('data-testid="consent-banner-branding"');
+		expect(html).toContain('data-variant="banner-tag"');
+		expect(html).toContain('data-branding="c15t"');
+		expect(html).toContain('Secured by');
+		// It sits beside the card, not inside it, so the tag can overlap the
+		// card's top edge the way the Svelte and React banners do.
+		expect(html.indexOf('consent-banner-branding')).toBeLessThan(
+			html.indexOf('consent-banner-card')
+		);
+	});
+
+	it('drops the branding tag with `hideBranding`', async () => {
+		const html = await render(await buildLocals(), { hideBranding: true });
+		expect(html).not.toContain('data-testid="consent-banner-branding"');
+	});
+
 	it('fails loudly when the middleware did not run', async () => {
 		await expect(
 			container.renderToString(ConsentBanner, { locals: {}, props: {} })
