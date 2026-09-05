@@ -11,7 +11,6 @@
 		normalizeKernelUser,
 	} from '@c15t/core/runtime';
 	import type { ConsentRuntime } from '@c15t/core/runtime';
-	import { createIAB } from '@c15t/iab';
 	import type { IABHandle } from '@c15t/iab';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { setupColorScheme } from '@c15t/ui/utils';
@@ -20,6 +19,7 @@
 
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
+	import { isIABConfigured, lazyCreateIAB, whenIABReady } from '../iab-loader';
 	import type { ConsentManagerOptions } from '../types';
 
 	const ALL_CONSENTS_ON: ConsentState = {
@@ -97,7 +97,9 @@
 		untrack(() =>
 			createConsentRuntime({
 				...options,
-				createIAB,
+				// Only an app that configured IAB reaches for `@c15t/iab`, and
+				// even then the module arrives through a dynamic import.
+				createIAB: isIABConfigured(options.iab) ? lazyCreateIAB : undefined,
 				mode: options.mode as ConsentManagerOptions['mode'],
 				pkg: '@c15t/svelte',
 			})
@@ -109,6 +111,9 @@
 	let iabHandle = $state<IABHandle | null>(
 		untrack(() => runtime.iab as IABHandle | null)
 	);
+	// The handle the lazy factory returns forwards nothing until
+	// `@c15t/iab` lands. Surfaces stay unrendered until it has.
+	let iabHandleReady = $state(false);
 	let iabTab = $state<'purposes' | 'vendors'>('purposes');
 	let configuredCategories = $state<AllConsentNames[]>(
 		untrack(() => options.consentCategories ?? runtime.consentCategories)
@@ -135,9 +140,26 @@
 		},
 	};
 
+	// A handle that has not resolved yet answers every call with
+	// `undefined`; rendering the preference centre against it would give the
+	// visitor inert toggles, so surfaces wait for the real one.
+	const resolvedIABHandle = function resolvedIABHandle(): {
+		handle: IABHandle | null;
+		pending: boolean;
+	} {
+		if (!iabHandle) {
+			return { handle: null, pending: false };
+		}
+		return {
+			handle: iabHandleReady ? iabHandle : null,
+			pending: !iabHandleReady,
+		};
+	};
+
 	const getIABState = function getIABState(): SvelteIABState | null {
 		const { iab } = snapshot;
-		if (!iab) {
+		const { handle: readyHandle, pending } = resolvedIABHandle();
+		if (!iab || pending) {
 			return null;
 		}
 		const noop = () => {
@@ -148,7 +170,7 @@
 		};
 		return {
 			...iab,
-			acceptAll: iabHandle?.acceptAll ?? noop,
+			acceptAll: readyHandle?.acceptAll ?? noop,
 			config: {
 				cmpId: iab.cmpId,
 				enabled: iab.enabled,
@@ -156,18 +178,18 @@
 			isLoadingGVL: iab.enabled && !iab.gvl,
 			nonIABVendors: iab.customVendors,
 			preferenceCenterTab: iabTab,
-			rejectAll: iabHandle?.rejectAll ?? noop,
-			save: iabHandle?.save ?? noopAsync,
+			rejectAll: readyHandle?.rejectAll ?? noop,
+			save: readyHandle?.save ?? noopAsync,
 			setPreferenceCenterTab(tab) {
 				iabTab = tab;
 			},
-			setPurposeConsent: iabHandle?.setPurposeConsent ?? noop,
+			setPurposeConsent: readyHandle?.setPurposeConsent ?? noop,
 			setPurposeLegitimateInterest:
-				iabHandle?.setPurposeLegitimateInterest ?? noop,
-			setSpecialFeatureOptIn: iabHandle?.setSpecialFeatureOptIn ?? noop,
-			setVendorConsent: iabHandle?.setVendorConsent ?? noop,
+				readyHandle?.setPurposeLegitimateInterest ?? noop,
+			setSpecialFeatureOptIn: readyHandle?.setSpecialFeatureOptIn ?? noop,
+			setVendorConsent: readyHandle?.setVendorConsent ?? noop,
 			setVendorLegitimateInterest:
-				iabHandle?.setVendorLegitimateInterest ?? noop,
+				readyHandle?.setVendorLegitimateInterest ?? noop,
 		};
 	};
 
@@ -183,8 +205,24 @@
 		snapshot = next;
 	});
 
+	// `$state` wraps the assigned handle in its own proxy, so identity is
+	// tracked with a counter rather than by comparing references.
+	let iabGeneration = 0;
+
 	const unsubscribeIAB = runtime.onIABChange((next) => {
 		iabHandle = next as IABHandle | null;
+		iabHandleReady = false;
+		iabGeneration += 1;
+		if (!next) {
+			return;
+		}
+		const generation = iabGeneration;
+		void (async () => {
+			await whenIABReady();
+			if (generation === iabGeneration) {
+				iabHandleReady = true;
+			}
+		})();
 	});
 
 	onMount(() => {
