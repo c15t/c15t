@@ -432,6 +432,12 @@ const InitMount = ({
 					: kernel.getServerSnapshot().evaluatedAt,
 			});
 			hydrated.current = true;
+			const { gpc } = kernel.getSnapshot().privacySignals;
+			if (gpc.detected && gpc.active) {
+				// Hydration stays read-only; activate the detected signal through
+				// the public setter after the prepared snapshot has committed.
+				kernel.set.privacySignals({ gpc: true });
+			}
 		} else {
 			kernel.commands.init();
 		}

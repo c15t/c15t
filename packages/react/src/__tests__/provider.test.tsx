@@ -316,3 +316,69 @@ test('StrictMode remount keeps persistence subscriptions active', async () => {
 	);
 	await screen.unmount();
 });
+
+test.each(['header', 'browser'] as const)(
+	'prepared mount persists %s GPC without init or category choice',
+	async (source) => {
+		const key = `react-prepared-gpc-${source}`;
+		const previous = Object.getOwnPropertyDescriptor(
+			navigator,
+			'globalPrivacyControl'
+		);
+		Object.defineProperty(navigator, 'globalPrivacyControl', {
+			configurable: true,
+			value: source === 'browser',
+		});
+		const prepared = policyFixture(
+			{ marketing: true },
+			{
+				categories: ['marketing'],
+				model: 'opt-out',
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+				prompt: 'none',
+			}
+		);
+		prepared.initialPrivacySignals = { gpc: source === 'header' };
+		const init = vi.fn();
+		const save = vi.fn();
+		const onChoiceRecorded = vi.fn();
+		try {
+			const screen = await render(
+				<StrictMode>
+					<ConsentProvider
+						options={{
+							callbacks: { onChoiceRecorded },
+							mode: custom({ init, save }),
+							prefetch: prepared,
+							storageConfig: { storageKey: key },
+						}}
+					>
+						<Capture />
+					</ConsentProvider>
+				</StrictMode>
+			);
+			await vi.waitFor(() =>
+				expect(localStorage.getItem(`${key}-privacy`)).not.toBeNull()
+			);
+			expect(kernel.getSnapshot().optOutDirectives).toHaveLength(1);
+			expect(kernel.getServerSnapshot().optOutDirectives).toEqual([]);
+			expect(kernel.getSnapshot().explicitChoice).toEqual(
+				prepared.initialRecords?.choice
+			);
+			kernel.set.privacySignals({ gpc: false });
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+			expect(init).not.toHaveBeenCalled();
+			expect(save).not.toHaveBeenCalled();
+			expect(onChoiceRecorded).not.toHaveBeenCalled();
+			await screen.unmount();
+		} finally {
+			localStorage.removeItem(`${key}-privacy`);
+			document.cookie = `${key}-privacy=; Max-Age=0; Path=/`;
+			if (previous) {
+				Object.defineProperty(navigator, 'globalPrivacyControl', previous);
+			} else {
+				Reflect.deleteProperty(navigator, 'globalPrivacyControl');
+			}
+		}
+	}
+);
