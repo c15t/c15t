@@ -212,10 +212,8 @@ export const createScriptLoader = function createScriptLoader(
 			})
 	);
 	const unsubscribe = kernel.subscribe(() => reconcile());
-	// Observe initial mounts too, including synchronous inline execution.
-	reconcile(true);
 
-	return {
+	const handle: ScriptLoaderHandle = {
 		dispose() {
 			unsubscribe();
 			diagnostics?.dispose();
@@ -258,4 +256,12 @@ export const createScriptLoader = function createScriptLoader(
 			reconcile(true);
 		},
 	};
+	try {
+		// Observe initial mounts too, including synchronous inline execution.
+		reconcile(true);
+	} catch (error) {
+		handle.dispose();
+		throw error;
+	}
+	return handle;
 };

@@ -18,6 +18,24 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it('cleans up diagnostics and subscriptions when initial mounting fails', () => {
+		const kernel = createConsentKernel();
+		expect(() =>
+			createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						category: 'necessary',
+						id: 'invalid',
+						src: 'https://example.test/pixel.js',
+						textContent: 'void 0;',
+					},
+				],
+			})
+		).toThrow();
+		expect(getScriptDiagnostics(kernel)).toEqual([]);
+		expect(() => kernel.set.consent({ marketing: true })).not.toThrow();
+	});
 	it.each([false, true])(
 		'records initial script mounts with callbackOnly=%s',
 		(callbackOnly) => {
