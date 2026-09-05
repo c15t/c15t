@@ -34,6 +34,10 @@ const repoRoot = path.resolve(storybookDir, '../../..');
 const astroPackage = path.resolve(repoRoot, 'packages/astro');
 const astroSrc = path.resolve(astroPackage, 'src');
 
+/**
+ * The virtual module this plugin serves, imported by
+ * `render-astro-story.ts` to reach the prerendered variants.
+ */
 export const VIRTUAL_ID = 'virtual:c15t-astro-prerendered';
 const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 

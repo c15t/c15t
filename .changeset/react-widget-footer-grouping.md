@@ -1,5 +1,6 @@
 ---
 'c15t': patch
+'@c15t/core': patch
 '@c15t/react': patch
 '@c15t/ui': patch
 ---
