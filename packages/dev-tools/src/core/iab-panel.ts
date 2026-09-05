@@ -21,7 +21,7 @@ interface Choice {
 	id: string | number;
 	name: string;
 	custom?: boolean;
-	consent: boolean;
+	consent?: boolean;
 	legitimateInterest?: boolean;
 	setConsent: (controls: KernelIABControls, value: boolean) => void;
 	setLegitimateInterest?: (controls: KernelIABControls, value: boolean) => void;
@@ -152,7 +152,9 @@ export const renderIABPanel = (
 	const choicesForGroup = (): Choice[] => {
 		if (state.group === 'vendors') {
 			return vendors.map((vendor) => ({
-				consent: iab.vendorConsents[String(vendor.id)] ?? false,
+				consent: vendor.purposes.length
+					? (iab.vendorConsents[String(vendor.id)] ?? false)
+					: undefined,
 				custom: vendor.custom,
 				id: vendor.id,
 				legitimateInterest: vendor.legIntPurposes?.length
@@ -242,20 +244,22 @@ export const renderIABPanel = (
 				);
 			}
 			const name = state.group === 'features' ? 'Opt in' : 'Consent';
-			item.append(
-				createSwitch(
-					document,
-					`${name}: ${choice.name}`,
-					`iab:${state.group}:${choice.id}:consent`,
-					choice.consent,
-					!controls,
-					(value) => {
-						if (controls) {
-							choice.setConsent(controls, value);
+			if (choice.consent !== undefined) {
+				item.append(
+					createSwitch(
+						document,
+						`${name}: ${choice.name}`,
+						`iab:${state.group}:${choice.id}:consent`,
+						choice.consent,
+						!controls,
+						(value) => {
+							if (controls) {
+								choice.setConsent(controls, value);
+							}
 						}
-					}
-				)
-			);
+					)
+				);
+			}
 			if (choice.legitimateInterest !== undefined) {
 				item.append(
 					createSwitch(

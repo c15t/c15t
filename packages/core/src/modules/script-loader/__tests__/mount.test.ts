@@ -37,6 +37,25 @@ afterEach(() => {
 });
 
 describe('mountScript', () => {
+	test.each([false, true])(
+		'emits mounted lifecycle events without legacy debug listeners, batched=%s',
+		(batched) => {
+			const { deps, emitted } = makeDeps();
+			deps.hasDebugListener = false;
+			const batch: PendingMount[] | null = batched ? [] : null;
+			mountScript(
+				deps,
+				{ category: 'necessary', id: 'inline', textContent: 'void 0;' },
+				createConsentKernel().getSnapshot(),
+				true,
+				batch
+			);
+			if (batch) {
+				flushPendingMounts(deps, batch);
+			}
+			expect(emitted).toContainEqual({ action: 'loaded', scriptId: 'inline' });
+		}
+	);
 	test('throws when both src and textContent are set', () => {
 		const { deps } = makeDeps();
 		const snap = createConsentKernel().getSnapshot();

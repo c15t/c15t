@@ -97,8 +97,12 @@ describe('IAB DevTools', () => {
 		expect(tools.element?.textContent).toContain('Use the IAB tab');
 		expect(tools.element?.textContent).not.toContain('Save changes');
 	});
-	it('only grants legal bases declared by custom vendors', () => {
+	it('only exposes and grants legal bases declared by registered and custom vendors', () => {
 		const kernel = makeKernel();
+		const [template] = Object.values(minimalGVL.vendors);
+		if (!template) {
+			throw new Error('Missing fixture vendor');
+		}
 		const iab = createIAB({
 			cmpId: 28,
 			customVendors: [
@@ -117,16 +121,46 @@ describe('IAB DevTools', () => {
 					purposes: [],
 				},
 			],
-			gvl: minimalGVL,
+			gvl: {
+				...minimalGVL,
+				vendors: {
+					1: { ...template, id: 1, legIntPurposes: [], purposes: [1] },
+					2: { ...template, id: 2, legIntPurposes: [2], purposes: [] },
+				},
+			},
 			kernel,
 		});
 		cleanups.push(iab.dispose);
+		const tools = mount(kernel);
+		for (const id of ['2', 'li-only']) {
+			expect(
+				tools.element?.querySelector(
+					`[data-focus-key="iab:vendors:${id}:consent"]`
+				)
+			).toBeNull();
+			toggle(tools, `iab:vendors:${id}:li`).click();
+			expect(kernel.getSnapshot().iab?.vendorLegitimateInterests[id]).toBe(
+				true
+			);
+			expect(kernel.getSnapshot().iab?.vendorConsents[id]).not.toBe(true);
+		}
+		for (const id of ['1', 'consent-only']) {
+			expect(
+				tools.element?.querySelector(`[data-focus-key="iab:vendors:${id}:li"]`)
+			).toBeNull();
+			toggle(tools, `iab:vendors:${id}:consent`).click();
+			expect(kernel.getSnapshot().iab?.vendorConsents[id]).toBe(true);
+		}
 		iab.acceptAll();
 		expect(kernel.getSnapshot().iab?.vendorConsents).toMatchObject({
+			1: true,
+			2: false,
 			'consent-only': true,
 			'li-only': false,
 		});
 		expect(kernel.getSnapshot().iab?.vendorLegitimateInterests).toMatchObject({
+			1: false,
+			2: true,
 			'consent-only': false,
 			'li-only': true,
 		});

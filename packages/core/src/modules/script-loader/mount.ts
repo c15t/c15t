@@ -252,18 +252,16 @@ export const mountScript = function mountScript(
 		setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
 	}
 
-	if (deps.hasDebugListener) {
-		deps.emit({
-			action: 'loaded',
-			elementId,
-			hasConsent,
-			message: 'Script mounted',
-			scope: 'lifecycle',
-			scriptId: script.id,
-			source: 'script-loader',
-			timestamp: Date.now(),
-		});
-	}
+	deps.emit({
+		action: 'loaded',
+		elementId,
+		hasConsent,
+		message: 'Script mounted',
+		scope: 'lifecycle',
+		scriptId: script.id,
+		source: 'script-loader',
+		timestamp: Date.now(),
+	});
 };
 
 /**
@@ -406,17 +404,15 @@ export const flushPendingMounts = function flushPendingMounts(
 			setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
 		}
 
-		if (deps.hasDebugListener) {
-			deps.emit({
-				action: 'loaded',
-				elementId: pending.elementId,
-				hasConsent: pending.hasConsent,
-				message: 'Script mounted',
-				scope: 'lifecycle',
-				scriptId: pending.script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
-		}
+		deps.emit({
+			action: 'loaded',
+			elementId: pending.elementId,
+			hasConsent: pending.hasConsent,
+			message: 'Script mounted',
+			scope: 'lifecycle',
+			scriptId: pending.script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 	}
 };

@@ -206,20 +206,16 @@ const applyBlanket = function applyBlanket(
 	gvl: GlobalVendorList,
 	value: boolean
 ): void {
-	const vendorIds = new Set([
-		...Object.keys(gvl.vendors ?? {}),
-		...readIAB(kernel).customVendors.map((vendor) => vendor.id),
-	]);
+	const vendors = [
+		...Object.values(gvl.vendors ?? {}),
+		...readIAB(kernel).customVendors,
+	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
 
 	const vendorConsents: Record<string, boolean> = {};
 	const vendorLegitimateInterests: Record<string, boolean> = {};
-	for (const id of vendorIds) {
-		vendorConsents[id] = value;
-		vendorLegitimateInterests[id] = value;
-	}
-	for (const vendor of readIAB(kernel).customVendors) {
+	for (const vendor of vendors) {
 		vendorConsents[vendor.id] = value && vendor.purposes.length > 0;
 		vendorLegitimateInterests[vendor.id] =
 			value && (vendor.legIntPurposes?.length ?? 0) > 0;

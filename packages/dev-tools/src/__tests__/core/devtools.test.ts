@@ -158,19 +158,36 @@ describe('createDevTools', () => {
 		expect(devTools.getState().isOpen).toBe(true);
 	});
 
-	it('closes with Escape and returns focus to the launcher', async () => {
-		const devTools = createInstance();
+	it.each([false, true])(
+		'closes with Escape and returns focus to the launcher with custom container=%s',
+		async (customContainer) => {
+			const container = document.createElement('div');
+			document.body.append(container);
+			const devTools = createInstance(
+				undefined,
+				customContainer ? container : undefined
+			);
+			devTools.open();
+			devTools.element?.dispatchEvent(
+				new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
+			);
+
+			expect(devTools.getState().isOpen).toBe(false);
+			await vi.waitFor(() => {
+				expect(document.activeElement?.getAttribute('aria-label')).toBe(
+					'Open c15t DevTools'
+				);
+			});
+		}
+	);
+	it('keeps the embedded panel open on Escape', () => {
+		const devTools = createInstance(undefined, document.body);
+		devTools.element?.classList.add('c15t-dev-tools--embedded');
 		devTools.open();
 		devTools.element?.dispatchEvent(
 			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
 		);
-
-		expect(devTools.getState().isOpen).toBe(false);
-		await vi.waitFor(() => {
-			expect(document.activeElement?.getAttribute('aria-label')).toBe(
-				'Open c15t DevTools'
-			);
-		});
+		expect(devTools.getState().isOpen).toBe(true);
 	});
 
 	it('publishes kernel snapshots to instance subscribers', () => {

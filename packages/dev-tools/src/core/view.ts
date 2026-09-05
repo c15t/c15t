@@ -665,7 +665,10 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 	);
 	root.dataset.c15tDevTools = viewId;
 	root.addEventListener('keydown', (event) => {
-		if (event.key === 'Escape' && !options.container) {
+		if (
+			event.key === 'Escape' &&
+			!root.classList.contains('c15t-dev-tools--embedded')
+		) {
 			event.stopPropagation();
 			options.stateManager.setOpen(false);
 		}

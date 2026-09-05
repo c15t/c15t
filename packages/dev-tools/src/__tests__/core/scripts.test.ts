@@ -17,6 +17,33 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each([false, true])(
+		'distinguishes mounted and reused inline scripts without debug forwarding, reused=%s',
+		(reused) => {
+			if (reused) {
+				const existing = document.createElement('script');
+				existing.id = 'c15t-script-quiet-inline';
+				document.body.append(existing);
+			}
+			const kernel = createConsentKernel();
+			const loader = createScriptLoader({
+				emitToV2DebugListeners: false,
+				kernel,
+				scripts: [
+					{
+						anonymizeId: false,
+						category: 'necessary',
+						id: 'quiet-inline',
+						textContent: 'void 0;',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+				reused ? 'present' : 'loaded'
+			);
+		}
+	);
 	it('observes synchronous load events during insertion', () => {
 		const append = document.head.appendChild.bind(document.head);
 		const probe = vi
