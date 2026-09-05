@@ -18,6 +18,40 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each(['initially blocked', 'replaced after revocation'])(
+		'does not report a foreign element as retained when %s',
+		(scenario) => {
+			const kernel = createConsentKernel({
+				initialConsents: {
+					marketing: scenario === 'replaced after revocation',
+				},
+			});
+			const foreign = document.createElement('div');
+			foreign.id = 'c15t-script-retained-identity';
+			if (scenario === 'initially blocked') {
+				document.body.append(foreign);
+			}
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						anonymizeId: false,
+						category: 'marketing',
+						id: 'retained-identity',
+						persistAfterConsentRevoked: true,
+						textContent: 'void 0;',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			if (scenario === 'replaced after revocation') {
+				kernel.set.consent({ marketing: false });
+				expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
+				document.getElementById(foreign.id)?.replaceWith(foreign);
+			}
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('blocked');
+		}
+	);
 	it.each([false, true])(
 		'records script reuse without legacy forwarding, existing DOM=%s',
 		(existingDOM) => {

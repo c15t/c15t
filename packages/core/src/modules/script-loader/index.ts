@@ -180,11 +180,12 @@ export const createScriptLoader = function createScriptLoader(
 				const { script } = entry;
 				const eligible = eligibilityByScriptId.get(script.id) ?? false;
 				const elementId = elementIds.resolve(script);
+				const retainedElement = retainedElements.get(script.id);
 				const retained =
 					!eligible &&
-					script.persistAfterConsentRevoked &&
+					retainedElement?.isConnected &&
 					typeof document !== 'undefined' &&
-					!!document.getElementById(elementId);
+					document.getElementById(elementId) === retainedElement;
 				let status: ScriptDiagnosticStatus = eligible ? 'pending' : 'blocked';
 				if (retained) {
 					status = 'retained';
