@@ -193,13 +193,15 @@ export const mountScript = function mountScript(
 	}
 
 	// Listeners only make sense on external scripts; inline scripts have
-	// no network event. Skip listener attach when no callback consumes it.
-	if (script.src && info) {
+	// no network event. Diagnostics still need events without user callbacks.
+	if (script.src) {
 		element.addEventListener('load', () => {
 			if (deps.loadedElements.get(script.id) !== element) {
 				return;
 			}
-			invokeCallback(script, 'onLoad', info, deps.emit);
+			if (info) {
+				invokeCallback(script, 'onLoad', info, deps.emit);
+			}
 			deps.emit({
 				action: 'load_completed',
 				elementId,
@@ -214,11 +216,13 @@ export const mountScript = function mountScript(
 			if (deps.loadedElements.get(script.id) !== element) {
 				return;
 			}
-			const errorInfo = {
-				...info,
-				error: new Error(`Failed to load script: ${script.src}`),
-			};
-			invokeCallback(script, 'onError', errorInfo, deps.emit);
+			if (info) {
+				const errorInfo = {
+					...info,
+					error: new Error(`Failed to load script: ${script.src}`),
+				};
+				invokeCallback(script, 'onError', errorInfo, deps.emit);
+			}
 			deps.emit({
 				action: 'error',
 				elementId,

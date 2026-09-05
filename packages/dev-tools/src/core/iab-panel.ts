@@ -1,5 +1,5 @@
-import { getIABControls } from '@c15t/core/v3';
-import type { ConsentKernel, KernelIABControls } from '@c15t/core/v3';
+import { getIABControls } from '@c15t/core';
+import type { ConsentKernel, KernelIABControls } from '@c15t/core';
 
 import type { RunAction } from './action-runner';
 import {

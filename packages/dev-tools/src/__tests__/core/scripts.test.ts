@@ -1,8 +1,8 @@
-import { createConsentKernel } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core';
 import {
 	createScriptLoader,
 	getScriptDiagnostics,
-} from '@c15t/core/v3/modules/script-loader';
+} from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDevTools } from '../../index';
@@ -17,6 +17,34 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each(['load', 'error'] as const)(
+		'tracks %s without callbacks or legacy debug forwarding',
+		async (event) => {
+			const kernel = createConsentKernel();
+			const loader = createScriptLoader({
+				emitToV2DebugListeners: false,
+				kernel,
+				scripts: [
+					{
+						category: 'necessary',
+						id: 'quiet',
+						src: 'https://example.test/quiet.js',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			const element = document.getElementById(
+				getScriptDiagnostics(kernel)[0]?.elementId ?? ''
+			);
+			expect(element).not.toBeNull();
+			element?.dispatchEvent(new Event(event));
+			await vi.waitFor(() =>
+				expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+					event === 'load' ? 'loaded' : 'error'
+				)
+			);
+		}
+	);
 	it('separates permission to load from actual consent for alwaysLoad scripts', () => {
 		const kernel = createConsentKernel();
 		const loader = createScriptLoader({

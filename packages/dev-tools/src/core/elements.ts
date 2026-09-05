@@ -1,3 +1,5 @@
+import { serializeDiagnostic } from './serialization';
+
 // oxlint-disable-next-line func-style -- Hoisted DOM helpers keep render functions readable.
 export function createElement<K extends keyof HTMLElementTagNameMap>(
 	document: Document,
@@ -56,7 +58,7 @@ export function createCodeBlock(
 	value: unknown
 ): HTMLElement {
 	const output = createElement(document, 'pre', 'c15t-dev-tools__code');
-	output.textContent = JSON.stringify(value, null, 2) ?? 'null';
+	output.textContent = serializeDiagnostic(value);
 	return output;
 }
 

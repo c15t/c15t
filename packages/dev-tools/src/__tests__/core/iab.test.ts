@@ -1,16 +1,12 @@
-import { createConsentKernel, getIABControls } from '@c15t/core/v3';
-import type {
-	ConsentKernel,
-	GlobalVendorList,
-	SavePayload,
-} from '@c15t/core/v3';
-import { createScriptLoader } from '@c15t/core/v3/modules/script-loader';
+import { createConsentKernel, getIABControls } from '@c15t/core';
+import type { ConsentKernel, GlobalVendorList, SavePayload } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { minimalGVL } from '../../../../iab/src/__tests__/tcf/fixtures/gvl-sample';
-import { createMockGVL } from '../../../../iab/src/__tests__/tcf/test-setup';
-import { createIAB } from '../../../../iab/src/v3';
-import { decodeTCString } from '../../../../iab/src/v3/tcf/tc-string';
+import { createIAB } from '../../../../iab/src';
+import { minimalGVL } from '../../../../iab/src/__tests__/fixtures/gvl-sample';
+import { createMockGVL } from '../../../../iab/src/__tests__/test-setup';
+import { decodeTCString } from '../../../../iab/src/tcf/tc-string';
 import { createDevTools } from '../../index';
 import type { DevToolsInstance } from '../../index';
 
@@ -86,6 +82,47 @@ afterEach(() => {
 });
 
 describe('IAB DevTools', () => {
+	it('only grants legal bases declared by custom vendors', () => {
+		const kernel = makeKernel();
+		const iab = createIAB({
+			cmpId: 28,
+			customVendors: [
+				{
+					id: 'consent-only',
+					legIntPurposes: [],
+					name: 'Consent',
+					privacyPolicyUrl: 'https://example.test/privacy',
+					purposes: [1],
+				},
+				{
+					id: 'li-only',
+					legIntPurposes: [1],
+					name: 'Interest',
+					privacyPolicyUrl: 'https://example.test/privacy',
+					purposes: [],
+				},
+			],
+			gvl: minimalGVL,
+			kernel,
+		});
+		cleanups.push(iab.dispose);
+		iab.acceptAll();
+		expect(kernel.getSnapshot().iab?.vendorConsents).toMatchObject({
+			'consent-only': true,
+			'li-only': false,
+		});
+		expect(kernel.getSnapshot().iab?.vendorLegitimateInterests).toMatchObject({
+			'consent-only': false,
+			'li-only': true,
+		});
+		iab.rejectAll();
+		expect(kernel.getSnapshot().iab?.vendorConsents['consent-only']).toBe(
+			false
+		);
+		expect(kernel.getSnapshot().iab?.vendorLegitimateInterests['li-only']).toBe(
+			false
+		);
+	});
 	it('uses the existing module to edit vendors, purposes, legitimate interests, and features', () => {
 		const kernel = makeKernel();
 		attachIAB(kernel);

@@ -5,12 +5,12 @@ import type {
 	KernelActiveUI,
 	KernelOverrides,
 	SaveResult,
-} from '@c15t/core/v3';
-import { CONSENT_CATEGORIES } from '@c15t/core/v3';
+} from '@c15t/core';
+import { CONSENT_CATEGORIES } from '@c15t/core';
 import {
 	getScriptDiagnostics,
 	subscribeScriptDiagnostics,
-} from '@c15t/core/v3/modules/script-loader';
+} from '@c15t/core/modules/script-loader';
 
 import { KERNEL_EVENT_TYPES, kernelEventToDevToolsEvent } from './events';
 import { createStateManager } from './state-manager';

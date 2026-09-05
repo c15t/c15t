@@ -174,11 +174,15 @@ export const resolveSavePatch = function resolveSavePatch(
 	input: Partial<ConsentState> | 'all' | 'none' | undefined,
 	options?: { categories?: readonly (keyof ConsentState)[] }
 ): ResolvedSave {
-	const categories =
-		options?.categories ??
-		(current.policyCategories.length > 0
+	const policyCategories =
+		current.policyCategories.length > 0
 			? current.policyCategories
-			: allConsentNames);
+			: allConsentNames;
+	const categories = options?.categories ?? policyCategories;
+	// A partial UI action must not claim to accept or reject the whole policy.
+	const coversPolicy = policyCategories.every(
+		(name) => name === 'necessary' || categories.includes(name)
+	);
 	if (input === 'all') {
 		const all: ConsentState = { ...current.consents };
 		for (const name of categories) {
@@ -186,7 +190,7 @@ export const resolveSavePatch = function resolveSavePatch(
 		}
 		all.necessary = true;
 		return {
-			consentAction: 'all',
+			consentAction: coversPolicy ? 'all' : 'custom',
 			patch: {
 				activeUI: 'none',
 				consents: all,
@@ -203,7 +207,7 @@ export const resolveSavePatch = function resolveSavePatch(
 		}
 		none.necessary = true;
 		return {
-			consentAction: 'necessary',
+			consentAction: coversPolicy ? 'necessary' : 'custom',
 			patch: {
 				activeUI: 'none',
 				consents: none,

@@ -219,6 +219,11 @@ const applyBlanket = function applyBlanket(
 		vendorConsents[id] = value;
 		vendorLegitimateInterests[id] = value;
 	}
+	for (const vendor of readIAB(kernel).customVendors) {
+		vendorConsents[vendor.id] = value && vendor.purposes.length > 0;
+		vendorLegitimateInterests[vendor.id] =
+			value && (vendor.legIntPurposes?.length ?? 0) > 0;
+	}
 	const purposeConsents: Record<number, boolean> = {};
 	const purposeLegitimateInterests: Record<number, boolean> = {};
 	for (const id of purposeIds) {

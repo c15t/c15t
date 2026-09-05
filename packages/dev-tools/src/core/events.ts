@@ -1,5 +1,6 @@
-import type { ConsentSnapshot, KernelEvent, SaveResult } from '@c15t/core/v3';
+import type { ConsentSnapshot, KernelEvent, SaveResult } from '@c15t/core';
 
+import { serializeDiagnostic } from './serialization';
 import type { DevToolsEvent } from './state-manager';
 
 export const KERNEL_EVENT_TYPES = [
@@ -8,6 +9,8 @@ export const KERNEL_EVENT_TYPES = [
 	'user:identified',
 	'iab:set',
 	'init:applied',
+	'init:failed',
+	'save:replayed',
 	'command:init:started',
 	'command:init:completed',
 	'command:save:started',
@@ -29,14 +32,20 @@ function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 function resultData(
 	result: SaveResult | { ok: boolean }
 ): Record<string, unknown> {
-	return { result };
+	return { result: JSON.parse(serializeDiagnostic(result)) as unknown };
 }
 
 // oxlint-disable-next-line func-style -- Named conversion helpers aid stack traces.
 function errorData(command: string, error: unknown): Record<string, unknown> {
+	let message = serializeDiagnostic(error);
+	if (error instanceof Error) {
+		({ message } = error);
+	} else if (typeof error === 'string') {
+		message = error;
+	}
 	return {
 		command,
-		error: error instanceof Error ? error.message : String(error),
+		error: message,
 	};
 }
 
@@ -100,6 +109,28 @@ export function kernelEventToDevToolsEvent(
 			return {
 				id,
 				message: 'Initialization started',
+				timestamp,
+				type: event.type,
+			};
+		case 'init:failed':
+			return {
+				data: {
+					...errorData('init', event.error),
+					attempt: event.attempt,
+					nextRetryMs: event.nextRetryMs,
+				},
+				id,
+				message: 'Initialization failed',
+				timestamp,
+				type: event.type,
+			};
+		case 'save:replayed':
+			return {
+				data: { ok: event.ok, subjectId: event.subjectId },
+				id,
+				message: event.ok
+					? 'Queued consent saved'
+					: 'Queued consent save failed',
 				timestamp,
 				type: event.type,
 			};

@@ -39,9 +39,15 @@ describe('resolveSavePatch', () => {
 			const snapshot = buildInitialSnapshot({
 				initialConsents: { experience: true, marketing: true },
 			});
-			const { patch } = resolveSavePatch(snapshot, subjectId, input, {
-				categories: ['measurement'],
-			});
+			const { patch, consentAction } = resolveSavePatch(
+				snapshot,
+				subjectId,
+				input,
+				{
+					categories: ['measurement'],
+				}
+			);
+			expect(consentAction).toBe('custom');
 			expect(patch.consents).toEqual({
 				...snapshot.consents,
 				measurement: input === 'all',

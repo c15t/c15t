@@ -1,4 +1,4 @@
-import { createConsentKernel } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createDevTools } from '../../index';

@@ -3,8 +3,8 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelOverrides,
-} from '@c15t/core/v3';
-import { CONSENT_CATEGORIES, subscribeIABControls } from '@c15t/core/v3';
+} from '@c15t/core';
+import { CONSENT_CATEGORIES, subscribeIABControls } from '@c15t/core';
 
 import type { RunAction } from './action-runner';
 import { appendActionFeedback } from './action-runner';
@@ -843,17 +843,19 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		content.setAttribute('role', 'tabpanel');
 		content.setAttribute('aria-labelledby', `${viewId}-tab-${state.activeTab}`);
 		content.tabIndex = 0;
-		renderTab(
-			document,
-			content,
-			state,
-			options.kernel,
-			options.stateManager.clearEvents,
-			viewState,
-			options.getConsentCategories,
-			run
-		);
-		appendActionFeedback(document, panel, content, action);
+		if (state.isOpen) {
+			renderTab(
+				document,
+				content,
+				state,
+				options.kernel,
+				options.stateManager.clearEvents,
+				viewState,
+				options.getConsentCategories,
+				run
+			);
+			appendActionFeedback(document, panel, content, action);
+		}
 		panel.append(content);
 		root.append(panel);
 		for (const field of root.querySelectorAll<

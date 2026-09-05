@@ -1,5 +1,5 @@
-import type { KernelEvent } from '@c15t/core/v3';
-import { createConsentKernel } from '@c15t/core/v3';
+import type { KernelEvent } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -8,6 +8,18 @@ import {
 } from '../../core/events';
 
 describe('kernel event mapping', () => {
+	it('captures circular and bigint transport results without breaking the log', () => {
+		const data: Record<string, unknown> = { count: 1n };
+		data.self = data;
+		const event = kernelEventToDevToolsEvent(
+			{ result: { error: data, ok: false }, type: 'command:init:completed' },
+			'1',
+			0
+		);
+		expect(() => JSON.stringify(event)).not.toThrow();
+		expect(JSON.stringify(event)).toContain('[Circular]');
+		expect(JSON.stringify(event)).toContain('count');
+	});
 	it('maps every core kernel event to a serializable log entry', () => {
 		const snapshot = createConsentKernel().getSnapshot();
 		const events: KernelEvent[] = [
@@ -16,6 +28,13 @@ describe('kernel event mapping', () => {
 			{ snapshot, type: 'user:identified' },
 			{ snapshot, type: 'iab:set' },
 			{ snapshot, type: 'init:applied' },
+			{
+				attempt: 1,
+				error: new Error('offline'),
+				nextRetryMs: null,
+				type: 'init:failed',
+			},
+			{ ok: true, subjectId: 'test', type: 'save:replayed' },
 			{ type: 'command:init:started' },
 			{ result: { ok: true }, type: 'command:init:completed' },
 			{ type: 'command:save:started' },
