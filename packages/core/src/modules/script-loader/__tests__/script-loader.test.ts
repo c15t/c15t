@@ -27,6 +27,7 @@ import type { Script } from '../index';
 
 interface StubScriptElement {
 	id: string;
+	readonly isConnected: boolean;
 	src?: string;
 	textContent?: string;
 	async?: boolean;
@@ -60,6 +61,9 @@ const createStubElement = function createStubElement(): StubScriptElement {
 		},
 		attributes: new Map(),
 		id: '',
+		get isConnected() {
+			return this.parentNode !== null;
+		},
 		listeners: new Map(),
 		parentNode: null,
 		removeEventListener(event, handler) {
@@ -312,6 +316,48 @@ describe('script-loader: DOM dedupe across loader instances', () => {
 });
 
 describe('script-loader: alwaysLoad bypasses consent', () => {
+	test('reports actual consent and forwards changes across categories', () => {
+		const kernel = createConsentKernel();
+		const onBeforeLoad = vi.fn();
+		const onConsentChange = vi.fn();
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					alwaysLoad: true,
+					category: 'measurement',
+					id: 'google-consent-mode',
+					onBeforeLoad,
+					onConsentChange,
+					src: 'https://example.com/google.js',
+				},
+			],
+		});
+		expect(onBeforeLoad).toHaveBeenCalledWith(
+			expect.objectContaining({ hasConsent: false })
+		);
+		onConsentChange.mockClear();
+
+		kernel.set.consent({ measurement: true });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: true })
+		);
+		kernel.set.consent({ marketing: true });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				consents: expect.objectContaining({ marketing: true }),
+				hasConsent: true,
+			})
+		);
+		kernel.set.consent({ measurement: false });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: false })
+		);
+		expect(onConsentChange).toHaveBeenCalledTimes(3);
+		expect(head.children).toHaveLength(1);
+		expect(onBeforeLoad).toHaveBeenCalledOnce();
+	});
+
 	test('alwaysLoad scripts mount regardless of consent state', () => {
 		const kernel = createConsentKernel();
 		createScriptLoader({
@@ -361,6 +407,42 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 });
 
 describe('script-loader: persistAfterConsentRevoked', () => {
+	test('notifies retained scripts on revoke and re-grant without mounting twice', () => {
+		const onConsentChange = vi.fn();
+		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
+		});
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'retained-pixel',
+					onConsentChange,
+					persistAfterConsentRevoked: true,
+					src: 'https://example.com/pixel.js',
+				},
+			],
+		});
+		const [element] = head.children;
+		onConsentChange.mockClear();
+
+		kernel.set.consent({ marketing: false });
+		expect(onConsentChange).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ element, hasConsent: false })
+		);
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]).toBe(element);
+
+		kernel.set.consent({ marketing: true });
+		expect(onConsentChange).toHaveBeenCalledTimes(2);
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: true })
+		);
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]).toBe(element);
+	});
+
 	test('element stays in DOM even after consent revoke', () => {
 		const kernel = createConsentKernel({
 			initialConsents: { marketing: true },

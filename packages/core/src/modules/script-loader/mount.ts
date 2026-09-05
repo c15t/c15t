@@ -23,6 +23,10 @@ import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
  * closure capture and remain testable.
  */
 export interface MountDeps {
+	/** Latest kernel state for callbacks completing after consent changes. */
+	getSnapshot: () => ConsentSnapshot;
+	/** Retained elements still observed after consent revocation. */
+	retainedElements: Map<string, HTMLScriptElement>;
 	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
 	loadedElements: Map<string, HTMLScriptElement | null>;
 	/** Script IDs whose DOM element was created by this loader instance. */
@@ -31,8 +35,7 @@ export interface MountDeps {
 	elementIds: ElementIdResolver;
 	/** Debug emitter (merged onDebug + v2 compat). */
 	emit: (event: ScriptLoaderDebugEvent) => void;
-	/** True if any debug consumer is wired. Skip allocating
-	 * lifecycle events when false. */
+	/** Whether consumer or legacy debug listeners need callback metadata. */
 	hasDebugListener: boolean;
 }
 
@@ -73,17 +76,17 @@ export const mountScript = function mountScript(
 				existing
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
-			deps.emit({
-				action: 'already_loaded',
-				elementId: info.elementId,
-				hasConsent: info.hasConsent,
-				message: 'Script already loaded; fired onConsentChange',
-				scope: 'step',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
 		}
+		deps.emit({
+			action: 'already_loaded',
+			elementId,
+			hasConsent,
+			message: 'Script already mounted',
+			scope: 'step',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 		return;
 	}
 
@@ -138,17 +141,17 @@ export const mountScript = function mountScript(
 				element
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
-			deps.emit({
-				action: 'already_loaded',
-				elementId: info.elementId,
-				hasConsent: info.hasConsent,
-				message: 'Script element already exists in DOM; reused it',
-				scope: 'step',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
 		}
+		deps.emit({
+			action: 'already_loaded',
+			elementId,
+			hasConsent,
+			message: 'Script element already exists in DOM; reused it',
+			scope: 'step',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 		return;
 	}
 
@@ -193,17 +196,53 @@ export const mountScript = function mountScript(
 	}
 
 	// Listeners only make sense on external scripts; inline scripts have
-	// no network event. Skip listener attach when no callback consumes it.
-	if (script.src && info) {
+	// no network event. Diagnostics still need events without user callbacks.
+	if (script.src) {
+		const isCurrentElement = () =>
+			element.isConnected &&
+			document.getElementById(elementId) === element &&
+			(deps.loadedElements.get(script.id) === element ||
+				deps.retainedElements.get(script.id) === element);
+		const completionInfo = () =>
+			info && deps.retainedElements.get(script.id) === element
+				? buildCallbackInfo(
+						script,
+						deps.getSnapshot(),
+						false,
+						elementId,
+						element
+					)
+				: info;
 		element.addEventListener('load', () => {
-			invokeCallback(script, 'onLoad', info, deps.emit);
+			if (!isCurrentElement()) {
+				return;
+			}
+			const currentInfo = completionInfo();
+			if (currentInfo) {
+				invokeCallback(script, 'onLoad', currentInfo, deps.emit);
+			}
+			deps.emit({
+				action: 'load_completed',
+				elementId,
+				message: 'Script finished loading',
+				scope: 'lifecycle',
+				scriptId: script.id,
+				source: 'script-loader',
+				timestamp: Date.now(),
+			});
 		});
 		element.addEventListener('error', () => {
-			const errorInfo = {
-				...info,
-				error: new Error(`Failed to load script: ${script.src}`),
-			};
-			invokeCallback(script, 'onError', errorInfo, deps.emit);
+			if (!isCurrentElement()) {
+				return;
+			}
+			const currentInfo = completionInfo();
+			if (currentInfo) {
+				const errorInfo = {
+					...currentInfo,
+					error: new Error(`Failed to load script: ${script.src}`),
+				};
+				invokeCallback(script, 'onError', errorInfo, deps.emit);
+			}
 			deps.emit({
 				action: 'error',
 				elementId,
@@ -223,9 +262,12 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	target.appendChild(element);
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
+	target.appendChild(element);
+	if (deps.loadedElements.get(script.id) !== element) {
+		return;
+	}
 
 	if (!script.src && info) {
 		// Inline script: defer onLoad one tick so the browser parses
@@ -233,18 +275,16 @@ export const mountScript = function mountScript(
 		setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
 	}
 
-	if (deps.hasDebugListener) {
-		deps.emit({
-			action: 'loaded',
-			elementId,
-			hasConsent,
-			message: 'Script mounted',
-			scope: 'lifecycle',
-			scriptId: script.id,
-			source: 'script-loader',
-			timestamp: Date.now(),
-		});
-	}
+	deps.emit({
+		action: 'loaded',
+		elementId,
+		hasConsent,
+		message: 'Script mounted',
+		scope: 'lifecycle',
+		scriptId: script.id,
+		source: 'script-loader',
+		timestamp: Date.now(),
+	});
 };
 
 /**
@@ -269,21 +309,33 @@ export const unmountScript = function unmountScript(
 	const elementId = deps.elementIds.resolve(script);
 
 	if (script.persistAfterConsentRevoked) {
+		if (element) {
+			deps.retainedElements.set(script.id, element);
+		}
 		// Element stays in DOM but we drop our reference so a later
 		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);
 		deps.ownedScriptIds.delete(script.id);
-		if (deps.hasDebugListener) {
-			deps.emit({
-				action: 'unloaded',
+		if (typeof script.onConsentChange === 'function') {
+			const info = buildCallbackInfo(
+				script,
+				snapshot,
+				hasConsent,
 				elementId,
-				message: 'Script persisted after consent revoked',
-				scope: 'lifecycle',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
+				element ?? undefined
+			);
+			invokeCallback(script, 'onConsentChange', info, deps.emit);
 		}
+		deps.emit({
+			action: 'unloaded',
+			data: { retained: true },
+			elementId,
+			message: 'Script persisted after consent revoked',
+			scope: 'lifecycle',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 		return;
 	}
 
@@ -329,6 +381,12 @@ export const flushPendingMounts = function flushPendingMounts(
 	if (batch.length === 0) {
 		return;
 	}
+	// Register before insertion: inline execution and DOM adapters can dispatch
+	// load events synchronously while the element is being appended.
+	for (const pending of batch) {
+		deps.loadedElements.set(pending.script.id, pending.element);
+		deps.ownedScriptIds.add(pending.script.id);
+	}
 
 	if (batch.length === 1) {
 		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
@@ -338,16 +396,27 @@ export const flushPendingMounts = function flushPendingMounts(
 		}
 		only.target.appendChild(only.element);
 	} else {
-		const byTarget = new Map<HTMLElement, HTMLScriptElement[]>();
+		const byTarget = new Map<HTMLElement, PendingMount[]>();
 		for (const pending of batch) {
 			const list = byTarget.get(pending.target);
 			if (list) {
-				list.push(pending.element);
+				list.push(pending);
 			} else {
-				byTarget.set(pending.target, [pending.element]);
+				byTarget.set(pending.target, [pending]);
 			}
 		}
-		for (const [target, elements] of byTarget) {
+		for (const [target, entries] of byTarget) {
+			// A previous target can execute inline code that revokes consent or
+			// replaces this loader's scripts. Never insert invalidated entries.
+			const elements = entries
+				.filter(
+					({ script, element }) =>
+						deps.loadedElements.get(script.id) === element
+				)
+				.map(({ element }) => element);
+			if (elements.length === 0) {
+				continue;
+			}
 			if (elements.length === 1) {
 				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				const first = elements[0];
@@ -365,26 +434,24 @@ export const flushPendingMounts = function flushPendingMounts(
 	}
 
 	for (const pending of batch) {
-		deps.loadedElements.set(pending.script.id, pending.element);
-		deps.ownedScriptIds.add(pending.script.id);
-
+		if (deps.loadedElements.get(pending.script.id) !== pending.element) {
+			continue;
+		}
 		if (!pending.script.src && pending.info) {
 			const { info } = pending;
 			const { script } = pending;
 			setTimeout(() => invokeCallback(script, 'onLoad', info, deps.emit), 0);
 		}
 
-		if (deps.hasDebugListener) {
-			deps.emit({
-				action: 'loaded',
-				elementId: pending.elementId,
-				hasConsent: pending.hasConsent,
-				message: 'Script mounted',
-				scope: 'lifecycle',
-				scriptId: pending.script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
-		}
+		deps.emit({
+			action: 'loaded',
+			elementId: pending.elementId,
+			hasConsent: pending.hasConsent,
+			message: 'Script mounted',
+			scope: 'lifecycle',
+			scriptId: pending.script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 	}
 };
