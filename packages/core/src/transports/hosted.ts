@@ -42,10 +42,14 @@
  * - Translation bundle fetching
  * - Retry / backoff
  */
-import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
 import type { PrivacyOptOut } from '../consent-record/types';
+import { consumePrefetchedInitialData } from '../libs/prefetch/prefetch';
 import type {
 	InitContext,
 	KernelTransport,
@@ -296,7 +300,39 @@ export const createHostedTransport = function createHostedTransport(
 			await patchIdentity(user, subjectId);
 		},
 
-		async init(_ctx: InitContext): Promise<TransportInitResponse> {
+		async init(ctx: InitContext): Promise<TransportInitResponse> {
+			const prefetched = options.initURL
+				? undefined
+				: await consumePrefetchedInitialData({
+						backendURL: base,
+						credentials,
+						overrides: {
+							...extractConsentRequestInputs(new Headers(initHeaders)),
+							...ctx.overrides,
+						},
+					});
+			if (prefetched?.init) {
+				const headers = {
+					...initHeaders,
+					'sec-gpc': prefetched.metadata?.requestContext?.gpc ? '1' : '0',
+				};
+				if (options.assertDecisionInputs) {
+					lastDecisionInputs = rememberDecisionInputs(
+						prefetched.init,
+						gpcFromHeaders(headers)
+					);
+				}
+				const producerHeaders = new Headers();
+				if (typeof prefetched.producerPolicyContract === 'string') {
+					producerHeaders.set(
+						'x-c15t-policy-contract',
+						prefetched.producerPolicyContract
+					);
+				}
+				return mapInitOutputToInitResponse(prefetched.init, headers, {
+					producerContract: readProducerPolicyContract(producerHeaders),
+				});
+			}
 			const response = await fetchImpl(initURL, {
 				credentials,
 				headers: {
