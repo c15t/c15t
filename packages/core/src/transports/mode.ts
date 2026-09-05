@@ -2,12 +2,14 @@ import type { InitOutput, PolicyConfig } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { OfflinePolicyConfig } from '../options/offline-policy';
+import type { SSRInitialData } from '../options/ssr';
 import type {
 	KernelConfig,
 	KernelTranslations,
 	KernelTransport,
 	KernelUser,
 } from '../types';
+import type { RememberedDecisionInputs } from './decision-inputs';
 import { createHostedTransport } from './hosted';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
@@ -56,6 +58,38 @@ export interface HostedModeOptions {
 	fetch?: typeof globalThis.fetch;
 	/** Headers forwarded to the backend init endpoint. */
 	headers?: Record<string, string>;
+	/**
+	 * URL used for `GET /init`. Defaults to `${url}/init`.
+	 *
+	 * Point this at a same-origin server route that resolves init from a
+	 * manifest (for example with `resolveManifestInit` from
+	 * `@c15t/core/transports/manifest-cache`) while consent saves keep going
+	 * to `${url}/subjects`. Set `assertDecisionInputs: true` alongside it:
+	 * manifest resolution never issues a `policySnapshotToken`.
+	 */
+	initURL?: string;
+	/**
+	 * Assert the resolved policy decision on `POST /subjects` when the save
+	 * carries no signed `policySnapshotToken`. Enable this whenever `initURL`
+	 * points at a route that resolves init from a manifest, so the backend
+	 * can reject a save made against a stale policy instead of recording it
+	 * unbound.
+	 *
+	 * @defaultValue false
+	 */
+	assertDecisionInputs?: boolean;
+	/**
+	 * An init response an inline prefetch script already requested. The
+	 * first `init()` consumes it instead of calling `initURL`, keeping the
+	 * decision-input assertion intact.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
+	/**
+	 * Decision inputs a server-side prefetch already resolved, so a save
+	 * made before the first client `init()` resolves still carries the
+	 * decision assertion. Only used with `assertDecisionInputs`.
+	 */
+	decisionInputs?: RememberedDecisionInputs;
 }
 
 /**
@@ -76,10 +110,14 @@ export const hosted = function hosted(
 	return Object.assign(
 		() =>
 			createHostedTransport({
+				assertDecisionInputs: options.assertDecisionInputs,
 				backendURL: options.url,
+				decisionInputs: options.decisionInputs,
 				domain: options.domain,
 				fetch: options.fetch,
 				headers: options.headers,
+				initURL: options.initURL,
+				initialData: options.initialData,
 			}),
 		{ kind: 'hosted' as const }
 	);

@@ -14,6 +14,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Runs Playwright against a React-flavoured benchmark app with local deterministic API routes.
 - `nextjs-browser-bench`
   Runs Playwright against a Next integration benchmark app covering client, prefetch, SSR, and repeat-visitor paths.
+- `tanstack-start-browser-bench`
+  Runs Playwright against a TanStack Start integration benchmark app with the same fixture, scenarios, and metrics as the Next arm, plus a proxied-save arm. See its README for the head-to-head numbers.
 - `script-lifecycle-bench`
   Runs deterministic local script lifecycle flows for load, unload, reload, callback-only, `alwaysLoad`, and `persistAfterConsentRevoked` behavior.
 - `shared`
@@ -43,6 +45,11 @@ Benchmark tasks write machine-readable JSON to:
 
 - `.benchmarks/compare/comparison.json`
 - `.benchmarks/compare/comparison.md`
+
+`bun run bench:frameworks` pairs the browser-runtime results of every framework directory under `.benchmarks/current/browser-runtime/` by scenario name and emits:
+
+- `.benchmarks/compare/frameworks.json`
+- `.benchmarks/compare/frameworks.md`
 
 `.benchmarks/` is gitignored so local and CI benchmark artifacts do not dirty the worktree.
 

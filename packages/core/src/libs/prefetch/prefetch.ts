@@ -51,7 +51,10 @@ const buildPrefetchCacheKey = function buildPrefetchCacheKey(options: {
 const buildPrefetchConfig = function buildPrefetchConfig(
 	options: PrefetchOptions
 ): PrefetchConfig {
-	const requestContext = createBrowserRequestContext(options);
+	const requestContext = createBrowserRequestContext({
+		...options,
+		gpc: options.overrides?.gpc,
+	});
 	if (!requestContext) {
 		throw new Error(`Invalid backend URL: ${options.backendURL}`);
 	}
@@ -197,6 +200,9 @@ export const buildPrefetchScript = function buildPrefetchScript(
 	const payload = {
 		backendURL: options.backendURL,
 		credentials: options.credentials ?? 'include',
+		// An explicit override wins over the browser signal, and travels on
+		// `x-c15t-gpc` inside `headers`; `null` means detect at runtime.
+		gpc: options.overrides?.gpc ?? null,
 		headers: {
 			...c15tVersionHeaders,
 			...buildRequestContextHeaders(options.overrides),
@@ -257,7 +263,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
   if (!backendURL) {
     return;
   }
-  const gpc = detectGpc();
+  const gpc = payload.gpc === null ? detectGpc() : payload.gpc;
   const requestContext = {
     backendURL,
     country: payload.requestContext.country,

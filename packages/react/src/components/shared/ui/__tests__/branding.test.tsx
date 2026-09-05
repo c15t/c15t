@@ -1,5 +1,6 @@
 import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps, ReactElement } from 'react';
+import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -58,7 +59,7 @@ const createMockState = function createMockState(
 	} as unknown as ConsentManagerState;
 };
 
-const renderWithConsentState = async function renderWithConsentState(
+const createConsentTree = function createConsentTree(
 	ui: ReactElement,
 	stateOverrides: Partial<ConsentManagerState> = {},
 	providerOverrides: Partial<
@@ -67,7 +68,7 @@ const renderWithConsentState = async function renderWithConsentState(
 ) {
 	const state = createMockState(stateOverrides);
 
-	await render(
+	return (
 		<ConsentProvider
 			options={{
 				components: providerOverrides.components,
@@ -103,6 +104,12 @@ const renderWithConsentState = async function renderWithConsentState(
 			{ui}
 		</ConsentProvider>
 	);
+};
+
+const renderWithConsentState = async function renderWithConsentState(
+	...args: Parameters<typeof createConsentTree>
+) {
+	await render(createConsentTree(...args));
 };
 
 describe('BrandingLink', () => {
@@ -245,6 +252,40 @@ describe('BrandingLink', () => {
 			expect(mark).toBeInTheDocument();
 			expect(mark?.querySelector('svg')).toBeInTheDocument();
 			expect(wordmark).toHaveTextContent('c15t');
+		});
+	});
+
+	test('adds the referral hostname only after hydration', async () => {
+		// The server has no `window`. If the hydration render produced a
+		// different href than the server markup, React would log an attribute
+		// mismatch and leave the server value in place, so the referral
+		// parameter has to wait for hydration.
+		const markup = renderToString(
+			createConsentTree(
+				<BrandingLink
+					hideBranding={false}
+					variant="banner-tag"
+					data-testid="branding-link"
+				/>
+			)
+		);
+		expect(markup).toContain('href="https://c15t.com"');
+		expect(markup).not.toContain('?ref=');
+
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector('[data-testid="branding-link"]');
+			expect(link).toHaveAttribute(
+				'href',
+				`https://c15t.com?ref=${window.location.hostname}`
+			);
 		});
 	});
 

@@ -794,20 +794,20 @@ const WindowKernelMount = ({ kernel }: { kernel: ConsentKernel }) => {
 	return null;
 };
 
+/**
+ * Emits the `--c15t-*` custom properties the prebuilt styles read. Without a
+ * user theme the UI package's default theme is used, so components are
+ * never left without colours; a stylesheet can still override any token.
+ */
 const ThemeStyleMount = ({ theme }: { theme?: Theme }) => {
 	const [themeCSS, setThemeCSS] = useState('');
 
 	useEffect(() => {
-		if (!theme) {
-			const frame = requestAnimationFrame(() => setThemeCSS(''));
-			return () => cancelAnimationFrame(frame);
-		}
-
 		let disposed = false;
 		void (async () => {
-			const { generateThemeCSS } = await loadThemeModule();
+			const { defaultTheme, generateThemeCSS } = await loadThemeModule();
 			if (!disposed) {
-				setThemeCSS(generateThemeCSS(theme as never));
+				setThemeCSS(generateThemeCSS((theme ?? defaultTheme) as never));
 			}
 		})();
 

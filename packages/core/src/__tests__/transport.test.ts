@@ -2378,3 +2378,524 @@ describe('x-c15t-version header (issue #916)', () => {
 		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 	});
 });
+
+describe('hosted transport: initialData', () => {
+	test('consumes a prefetched init once and keeps the decision assertion', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			headers: { 'sec-gpc': '1' },
+			initURL: '/internal/consent/init',
+			initialData: Promise.resolve({ init: REALISTIC_INIT_OUTPUT }),
+		});
+
+		const first = await transport.init?.({ overrides: {}, user: null });
+		expect(first?.policy?.id).toBe(REALISTIC_INIT_OUTPUT.policy.id);
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'iab',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [saveURL, saveInit] = fetchSpy.mock.calls[0] ?? [];
+		expect(saveURL).toBe('https://api.example.com/c15t/subjects');
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			country: 'DE',
+			fingerprint: 'policy-fingerprint',
+			gpc: true,
+			policyId: 'de-iab',
+		});
+
+		// The second init goes to the network: the prefetch is single-use.
+		await transport.init?.({ overrides: {}, user: null });
+		expect(fetchSpy.mock.calls[1]?.[0]).toBe('/internal/consent/init');
+	});
+
+	test('falls back to the fetch when the prefetch resolved empty or rejected', async () => {
+		for (const initialData of [
+			Promise.resolve(undefined),
+			Promise.reject(new Error('offline')),
+		]) {
+			const fetchSpy = vi
+				.fn()
+				.mockResolvedValue(
+					new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+				);
+			const transport = createHostedTransport({
+				backendURL: 'https://api.example.com/c15t',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				initialData,
+			});
+			// oxlint-disable-next-line no-await-in-loop -- sequential cases keep the failing input readable.
+			await transport.init?.({ overrides: {}, user: null });
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		}
+	});
+});
+
+describe('hosted transport: GPC in decision assertions', () => {
+	test('uses the GPC value the resolver reported when no explicit header is configured', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						...REALISTIC_INIT_OUTPUT,
+						resolvedOverrides: {
+							...REALISTIC_INIT_OUTPUT.resolvedOverrides,
+							gpc: true,
+						},
+					}),
+					{ status: 200 }
+				)
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/api/c15t/init',
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'iab',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		const [, saveInit] = fetchSpy.mock.calls[1] ?? [];
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			gpc: true,
+			policyId: 'de-iab',
+		});
+	});
+});
+
+describe('hosted transport: init context', () => {
+	test('sends the kernel overrides as canonical consent headers on init', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/api/c15t/init',
+		});
+
+		const result = await transport.init?.({
+			overrides: { country: 'FR', gpc: true, language: 'fr', region: 'IDF' },
+			user: null,
+		});
+		// A backend that echoes nothing back still yields the requested GPC.
+		expect(result?.resolvedOverrides?.gpc).toBe(true);
+
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		expect((init as RequestInit).headers).toMatchObject({
+			'accept-language': 'fr',
+			'x-c15t-country': 'FR',
+			'x-c15t-gpc': '1',
+			'x-c15t-region': 'IDF',
+		});
+		// Scripts cannot set Sec-* headers; the override must not try.
+		expect((init as RequestInit).headers).not.toHaveProperty('sec-gpc');
+	});
+});
+
+describe('hosted transport: decisionInputs seed', () => {
+	test('a save before init resolves still carries the seeded assertion', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			decisionInputs: {
+				country: 'DE',
+				fingerprint: 'seeded-fingerprint',
+				gpc: false,
+				language: 'de',
+				policyId: 'de-seeded',
+				region: null,
+			},
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [, saveInit] = fetchSpy.mock.calls[0] ?? [];
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			country: 'DE',
+			fingerprint: 'seeded-fingerprint',
+			language: 'de',
+			policyId: 'de-seeded',
+		});
+	});
+
+	test('the seed is ignored without assertDecisionInputs', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			decisionInputs: {
+				country: 'DE',
+				fingerprint: 'seeded-fingerprint',
+				language: 'de',
+				policyId: 'de-seeded',
+				region: null,
+			},
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [, saveInit] = fetchSpy.mock.calls[0] ?? [];
+		expect(
+			JSON.parse((saveInit as RequestInit).body as string)
+		).not.toHaveProperty('policyId');
+	});
+});
+
+describe('hosted transport: save waits for an in-flight init', () => {
+	test('a save issued while init is pending carries that init decision', async () => {
+		const initGate = Promise.withResolvers<undefined>();
+		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+			if (url.endsWith('/init')) {
+				await initGate.promise;
+				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+					status: 200,
+				});
+			}
+			return new Response(JSON.stringify({ ok: true }), { status: 200 });
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		const initPromise = transport.init?.({ overrides: {}, user: null });
+		const savePromise = transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		await Promise.resolve();
+		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+			'/internal/consent/init',
+		]);
+
+		initGate.resolve(undefined);
+		await Promise.all([initPromise, savePromise]);
+		const saveCall = fetchSpy.mock.calls.find(([url]) =>
+			String(url).endsWith('/subjects')
+		);
+		if (!saveCall) {
+			throw new Error('save was not sent');
+		}
+		expect(
+			JSON.parse((saveCall[1] as RequestInit).body as string)
+		).toMatchObject({
+			fingerprint: 'policy-fingerprint',
+			policyId: 'de-iab',
+		});
+	});
+});
+
+describe('hosted transport: assertion state across overlapping inits', () => {
+	const savePayload = {
+		consentAction: 'all',
+		consents: { necessary: true },
+		model: 'opt-in',
+		overrides: {},
+		policySnapshotToken: null,
+		subjectId: 'sub_test',
+		uiSource: 'banner',
+		user: null,
+	} as const;
+
+	test('an older init finishing last does not overwrite the newer decision', async () => {
+		const gates = [
+			Promise.withResolvers<undefined>(),
+			Promise.withResolvers<undefined>(),
+		];
+		let initCalls = 0;
+		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+			if (url.endsWith('/init')) {
+				const index = initCalls;
+				initCalls += 1;
+				await gates[index]?.promise;
+				return new Response(
+					JSON.stringify({
+						...REALISTIC_INIT_OUTPUT,
+						policyDecision: {
+							...REALISTIC_INIT_OUTPUT.policyDecision,
+							fingerprint: `fp-${index}`,
+							policyId: `policy-${index}`,
+						},
+					}),
+					{ status: 200 }
+				);
+			}
+			return new Response(JSON.stringify({ ok: true }), { status: 200 });
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		const first = transport.init?.({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		const second = transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		gates[1]?.resolve(undefined);
+		await second;
+		gates[0]?.resolve(undefined);
+		await first;
+
+		await transport.save?.(savePayload);
+		const saveCall = fetchSpy.mock.calls.find(([url]) =>
+			String(url).endsWith('/subjects')
+		);
+		if (!saveCall) {
+			throw new Error('save was not sent');
+		}
+		expect(
+			JSON.parse((saveCall[1] as RequestInit).body as string)
+		).toMatchObject({ fingerprint: 'fp-1', policyId: 'policy-1' });
+	});
+
+	test('a save refuses to post unbound when the awaited init failed', async () => {
+		const fetchSpy = vi.fn().mockImplementation((url: string) => {
+			if (url.endsWith('/init')) {
+				return Promise.resolve(new Response('nope', { status: 503 }));
+			}
+			return Promise.resolve(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		const initPromise = transport.init?.({ overrides: {}, user: null });
+		const savePromise = transport.save?.(savePayload);
+		await expect(initPromise).rejects.toThrow();
+		await expect(savePromise).rejects.toThrow(/policy decision/u);
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).endsWith('/subjects'))
+		).toBe(false);
+	});
+});
+
+describe('hosted transport: re-init with different inputs', () => {
+	const savePayload = {
+		consentAction: 'all',
+		consents: { necessary: true },
+		model: 'opt-in',
+		overrides: {},
+		policySnapshotToken: null,
+		subjectId: 'sub_test',
+		uiSource: 'banner',
+		user: null,
+	} as const;
+
+	const createGatedInit = function createGatedInit() {
+		const gates: PromiseWithResolvers<undefined>[] = [];
+		let initCalls = 0;
+		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+			if (url.endsWith('/init')) {
+				const index = initCalls;
+				initCalls += 1;
+				const gate = Promise.withResolvers<undefined>();
+				gates.push(gate);
+				await gate.promise;
+				return new Response(
+					JSON.stringify({
+						...REALISTIC_INIT_OUTPUT,
+						policyDecision: {
+							...REALISTIC_INIT_OUTPUT.policyDecision,
+							fingerprint: `fp-${index}`,
+							policyId: `policy-${index}`,
+						},
+					}),
+					{ status: 200 }
+				);
+			}
+			return new Response(JSON.stringify({ ok: true }), { status: 200 });
+		});
+		return { fetchSpy, gates };
+	};
+
+	const savedAssertion = function savedAssertion(
+		fetchSpy: ReturnType<typeof vi.fn>
+	) {
+		const saveCall = fetchSpy.mock.calls.find(([url]) =>
+			String(url).endsWith('/subjects')
+		);
+		if (!saveCall) {
+			throw new Error('save was not sent');
+		}
+		return JSON.parse((saveCall[1] as RequestInit).body as string);
+	};
+
+	test('a save during a re-init for other inputs waits for the new decision', async () => {
+		const { fetchSpy, gates } = createGatedInit();
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+		const first = transport.init?.({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		await vi.waitFor(() => expect(gates).toHaveLength(1));
+		gates[0]?.resolve(undefined);
+		await first;
+
+		const second = transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		const save = transport.save?.(savePayload);
+		await vi.waitFor(() => expect(gates).toHaveLength(2));
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).endsWith('/subjects'))
+		).toBe(false);
+		gates[1]?.resolve(undefined);
+		await Promise.all([second, save]);
+		expect(savedAssertion(fetchSpy)).toMatchObject({ policyId: 'policy-1' });
+	});
+
+	test('a save waiting on one init also waits for a newer one started meanwhile', async () => {
+		const { fetchSpy, gates } = createGatedInit();
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+		const first = transport.init?.({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		const save = transport.save?.(savePayload);
+		await vi.waitFor(() => expect(gates).toHaveLength(1));
+		const second = transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		await vi.waitFor(() => expect(gates).toHaveLength(2));
+		gates[0]?.resolve(undefined);
+		await first;
+		gates[1]?.resolve(undefined);
+		await Promise.all([second, save]);
+		expect(savedAssertion(fetchSpy)).toMatchObject({ policyId: 'policy-1' });
+	});
+});
+
+describe('hosted transport: removing an override', () => {
+	test('drops the remembered decision so a failed re-init refuses the save', async () => {
+		let initCalls = 0;
+		const fetchSpy = vi.fn().mockImplementation((url: string) => {
+			if (url.endsWith('/init')) {
+				initCalls += 1;
+				return Promise.resolve(
+					initCalls === 1
+						? new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+								status: 200,
+							})
+						: new Response('nope', { status: 503 })
+				);
+			}
+			return Promise.resolve(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+		await transport.init?.({ overrides: { country: 'DE' }, user: null });
+		const reinit = transport.init?.({ overrides: {}, user: null });
+		const save = transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		await expect(reinit).rejects.toThrow();
+		await expect(save).rejects.toThrow(/policy decision/u);
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).endsWith('/subjects'))
+		).toBe(false);
+	});
+});

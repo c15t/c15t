@@ -30,6 +30,7 @@ import {
 	rememberDecisionInputs,
 } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
+import { fetchCachedGvl } from './gvl-cache';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
 import { c15tVersionHeaders } from './version-header';
@@ -185,29 +186,18 @@ const shouldFetchGvl = function shouldFetchGvl(
 	);
 };
 
-const defaultFetchGvl = async function defaultFetchGvl(input: {
+const defaultFetchGvl = function defaultFetchGvl(input: {
 	reference: ConsentManifestGVLReference;
 	language: string;
 	fetch: typeof globalThis.fetch;
 }): Promise<GlobalVendorList | null> {
-	const response = await input.fetch(input.reference.url, {
-		headers: {
-			'accept-language': input.language,
-			...c15tVersionHeaders,
-		},
-		method: 'GET',
+	return fetchCachedGvl({
+		fetch: input.fetch,
+		headers: c15tVersionHeaders,
+		label: 'c15t manifest transport',
+		language: input.language,
+		url: input.reference.url,
 	});
-
-	if (response.status === 204) {
-		return null;
-	}
-	if (!response.ok) {
-		throw new Error(
-			`c15t manifest transport: GVL responded ${response.status} ${response.statusText}`
-		);
-	}
-
-	return (await response.json()) as GlobalVendorList;
 };
 
 /**

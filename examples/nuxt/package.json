@@ -14,6 +14,7 @@
 		"@effect/sql-pglite": "4.0.0-beta.102",
 		"@electric-sql/pglite": "0.4.2",
 		"c15t": "workspace:*",
+		"h3": "1.15.11",
 		"nuxt": "^4.5.1",
 		"pg": "^8.20.0"
 	},

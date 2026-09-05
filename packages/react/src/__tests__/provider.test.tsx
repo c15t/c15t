@@ -956,9 +956,11 @@ describe('v3 ConsentProvider options API', () => {
 		unmount();
 
 		const fetchError = new Error('init failed');
-		vi.spyOn(globalThis, 'fetch').mockRejectedValue(fetchError);
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockRejectedValue(fetchError);
 
-		await render(
+		const failing = await render(
 			<ConsentProvider
 				options={{
 					callbacks,
@@ -971,5 +973,9 @@ describe('v3 ConsentProvider options API', () => {
 		);
 
 		await vi.waitFor(() => expect(callbacks.onError).toHaveBeenCalled());
+		// Tear down before the kernel's retry timer fires, so the rejected
+		// fetch and its act() work cannot bleed into the next test.
+		failing.unmount();
+		fetchSpy.mockRestore();
 	});
 });

@@ -52,6 +52,14 @@ export {
 	createWindowDebug,
 	resolveWindowDebugMode,
 } from './modules/window-debug';
+export type { RememberedDecisionInputs } from './transports/decision-inputs';
+export { decisionInputsMatchOverrides } from './transports/decision-inputs';
+export type {
+	CachedGvl,
+	FetchCachedGvlOptions,
+	GvlCache,
+} from './transports/gvl-cache';
+export { clearGvlCache, fetchCachedGvl } from './transports/gvl-cache';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
 export {
@@ -199,7 +207,11 @@ export type { ActiveUI, Model } from './types';
 
 // -- Prefetch ------------------------------------------------------------------
 export type { PrefetchOptions } from './libs/prefetch';
-export { buildPrefetchScript } from './libs/prefetch';
+export {
+	buildPrefetchScript,
+	getMatchingPrefetchedInitialData,
+	primePrefetchedInitialData,
+} from './libs/prefetch';
 
 // -- Translations --------------------------------------------------------------
 export type {

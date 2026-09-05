@@ -1,0 +1,152 @@
+{
+	"name": "@c15t/tanstack-start",
+	"version": "2.2.0-canary-20260731105620",
+	"description": "TanStack Start cookie banner and consent management platform with SSR-hydrated first paint, same-origin consent routes, request middleware, IAB TCF, and Consent Mode.",
+	"keywords": [
+		"ccpa",
+		"cmp",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"consent-management-platform",
+		"consent-mode-v2",
+		"cookie-banner",
+		"cookie-consent",
+		"gdpr",
+		"google-consent-mode",
+		"headless",
+		"iab",
+		"lgpd",
+		"preference-center",
+		"privacy",
+		"react",
+		"server-side-rendering",
+		"ssr",
+		"tanstack",
+		"tanstack-router",
+		"tanstack-start",
+		"tanstack-start-cmp",
+		"tanstack-start-consent",
+		"tanstack-start-cookie-banner",
+		"tcf",
+		"tracking-consent",
+		"typescript"
+	],
+	"homepage": "https://c15t.com/docs/frameworks/tanstack-start/quickstart",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/tanstack-start"
+	},
+	"files": [
+		"dist",
+		"dist-types",
+		"styles.css",
+		"styles.tw3.css",
+		"iab",
+		"src/styles.css",
+		"src/styles.tw3.css",
+		"src/iab/styles.css",
+		"src/iab/styles.tw3.css"
+	],
+	"type": "module",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./headless": {
+			"types": "./dist-types/headless.d.ts",
+			"import": "./dist/headless.js",
+			"default": "./dist/headless.js"
+		},
+		"./components/consent-dialog-link": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/index.js"
+		},
+		"./server": {
+			"types": "./dist-types/server.d.ts",
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
+		},
+		"./api": {
+			"types": "./dist-types/api.d.ts",
+			"import": "./dist/api.js",
+			"default": "./dist/api.js"
+		},
+		"./middleware": {
+			"types": "./dist-types/middleware.d.ts",
+			"import": "./dist/middleware.js",
+			"default": "./dist/middleware.js"
+		},
+		"./static": {
+			"types": "./dist-types/static.d.ts",
+			"import": "./dist/static.js",
+			"default": "./dist/static.js"
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"test": "bun prebuild && vitest run --passWithNoTests",
+		"test:watch": "bun prebuild && vitest --passWithNoTests"
+	},
+	"dependencies": {
+		"@c15t/core": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/conformance": "workspace:*",
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@tanstack/react-router": "1.170.32",
+		"@tanstack/react-start": "1.168.49",
+		"genversion": "3.2.0",
+		"typescript": "7.0.2"
+	},
+	"peerDependencies": {
+		"@tanstack/react-router": "^1.170.0",
+		"@tanstack/react-start": "^1.168.0",
+		"react": "^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+		"react-dom": "^18.0.0 || ^19.0.0 || ^19.0.0-rc"
+	},
+	"peerDependenciesMeta": {
+		"@tanstack/react-router": {
+			"optional": true
+		},
+		"@tanstack/react-start": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		}
+	}
+}

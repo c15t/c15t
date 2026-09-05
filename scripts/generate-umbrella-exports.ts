@@ -137,6 +137,11 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 	{ directory: 'react', packageName: '@c15t/react', prefix: 'react' },
 	{ directory: 'nextjs', packageName: '@c15t/nextjs', prefix: 'next' },
 	{
+		directory: 'tanstack-start',
+		packageName: '@c15t/tanstack-start',
+		prefix: 'tanstack-start',
+	},
+	{
 		directory: 'vue',
 		packageName: '@c15t/vue',
 		prefix: 'vue',
