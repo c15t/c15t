@@ -14,7 +14,6 @@
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
-	import { ConsentDevTools } from '@c15t/svelte/devtools';
 	import { baseTranslations } from '@c15t/translations/all';
 
 	import '../app.css';
@@ -22,6 +21,7 @@
 	import '@c15t/svelte/iab/styles.css';
 
 	let { children } = $props();
+	const devTools = dev ? import('@c15t/svelte/devtools') : null;
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
 	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
 	const scripts = dev
@@ -139,8 +139,10 @@
 		<IABConsentDialog />
 		<ConsentDialogTrigger />
 		<ConsentDialog />
-		{#if dev}
-			<ConsentDevTools position="bottom-right" />
+		{#if devTools}
+			{#await devTools then { ConsentDevTools }}
+				<ConsentDevTools position="bottom-right" />
+			{/await}
 		{/if}
 	</ConsentManagerProvider>
 {/if}
