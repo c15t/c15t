@@ -131,7 +131,7 @@ export type {
 } from './consent/compliance';
 
 // -- Consent conditions --------------------------------------------------------
-export type { HasCondition, HasOptions } from './libs/has';
+export type { HasCondition } from './libs/has';
 export { extractConsentNamesFromCondition, has } from './libs/has';
 
 // -- Storage -------------------------------------------------------------------
@@ -235,6 +235,7 @@ export type {
 	PolicyRulePresets,
 } from '@c15t/schema/types';
 export {
+	normalizePolicyRule,
 	policyRulePresets,
 	readPolicyResolutionWire,
 	resolvePolicyRules,

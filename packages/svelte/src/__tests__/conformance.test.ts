@@ -183,11 +183,14 @@ const projectStoreState = function projectStoreState(
 	kernel: ConsentKernel
 ): StoreState {
 	const snapshot = kernel.getSnapshot();
-	const consents = { ...snapshot.consents } as Record<string, boolean>;
+	const consents = { ...snapshot.effectivePermissions } as Record<
+		string,
+		boolean
+	>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
 		activeUI: activeUIForStore(snapshot.activeUI),
-		consentCategories: [...snapshot.policyCategories],
+		consentCategories: [...snapshot.policyRule.scope],
 		consents,
 		selectedConsents: { ...consents },
 	};

@@ -1,28 +1,41 @@
-import type { ConsentKernel, ResolvedPolicy } from '@c15t/core';
+import type {
+	ConsentKernel,
+	SurfacePresentation,
+	KernelActiveUI,
+} from '@c15t/core';
 import { useContext } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { KernelContext } from '~/context';
 import { offline } from '~/transports/offline';
 
 import { useHeadlessConsentUI } from '../use-headless-consent-ui';
 
-const createWrapper = function createWrapper(ui: ResolvedPolicy['ui']) {
+const createWrapper = function createWrapper(ui: {
+	banner?: SurfacePresentation;
+	dialog?: SurfacePresentation;
+	mode?: KernelActiveUI;
+}) {
 	return function Wrapper({ children }: { children: React.ReactNode }) {
 		return (
 			<ConsentProvider
 				options={{
+					initialUI: ui?.mode,
 					mode: offline(),
 					persistence: false,
 					prefetch: {
-						initialPolicy: {
+						...policyFixture(undefined, {
+							categories: undefined,
 							id: 'headless-test',
 							model: 'opt-in',
-							ui,
-						},
+							prompt: 'choice',
+							scopeMode: 'strict',
+						}),
 					},
+					presentation: { preferences: ui?.dialog, prompt: ui?.banner },
 				}}
 			>
 				{children}
@@ -42,7 +55,6 @@ describe('useHeadlessConsentUI', () => {
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {
 			wrapper: createWrapper({
 				banner: {
-					allowedActions: ['accept', 'reject'],
 					direction: 'row',
 					layout: [['reject', 'accept']],
 					primaryActions: ['accept'],
@@ -50,7 +62,6 @@ describe('useHeadlessConsentUI', () => {
 					uiProfile: 'balanced',
 				},
 				dialog: {
-					allowedActions: ['reject', 'accept', 'save'],
 					direction: 'row',
 					layout: ['save', ['reject', 'accept']],
 					primaryActions: ['save'],
@@ -160,7 +171,6 @@ describe('useHeadlessConsentUI', () => {
 		const { result } = await renderHook(() => useHeadlessConsentUI(), {
 			wrapper: createWrapper({
 				banner: {
-					allowedActions: [],
 					layout: [],
 				},
 				dialog: {

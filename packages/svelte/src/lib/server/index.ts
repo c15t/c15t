@@ -128,8 +128,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 				},
 			};
 		}
-		delete merged.initialConsents;
-		delete merged.initialSubjectId;
+		delete merged.initialDraft;
 		return merged;
 	} catch {
 		return base;

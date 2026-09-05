@@ -228,14 +228,6 @@ const buildInitOutput = function buildInitOutput(
 		options.consentCategories?.length === 0
 			? [...DEFAULT_CONSENT_CATEGORIES]
 			: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
-	const consent: NonNullable<NonNullable<InitOutput['policy']>['consent']> = {
-		categories: consentCategories,
-		scopeMode: 'permissive',
-	};
-	if (opts.policy?.respectGpc !== undefined) {
-		consent.gpc = opts.policy.respectGpc;
-	}
-
 	const policy = normalizePolicyRule({
 		categories: consentCategories.filter(
 			(category) => category !== 'necessary'
@@ -260,30 +252,6 @@ const buildInitOutput = function buildInitOutput(
 			countryCode: 'DE',
 			regionCode: null,
 		},
-		policy: {
-			consent,
-			id: 'vue_conformance_policy',
-			model: policyModelFor(opts),
-			ui: {
-				banner: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					scrollLock: false,
-				},
-				dialog: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					scrollLock: false,
-				},
-				mode: 'banner',
-			},
-		},
-		policyDecision: {
-			country: 'DE',
-			fingerprint: 'vue_conformance_fingerprint',
-			jurisdiction: 'GDPR',
-			matchedBy: 'default',
-			policyId: 'vue_conformance_policy',
-			region: null,
-		},
 		policyResolution,
 		policySnapshotToken: 'vue_conformance_token',
 		translations: resolveTranslations(options, opts.locale),
@@ -303,8 +271,7 @@ const buildKernelConfig = function buildKernelConfig(
 		| undefined;
 	const initMode = opts.initMode ?? 'authoritative';
 	const base: KernelConfig = {
-		initialConsents: state?.consents,
-		initialHasConsented: state?.hasConsented,
+		initialDraft: state?.consents,
 		initialTranslations: resolveTranslations(options, opts.locale),
 		transport,
 	};
@@ -328,20 +295,11 @@ const buildKernelConfig = function buildKernelConfig(
 			},
 			...initOutputToKernelConfig(buildInitOutput(opts, options)),
 			initialIab: base.initialIab,
-			initialPolicyDecision: {
-				country: 'DE',
-				fingerprint: 'vue_conformance_fingerprint',
-				jurisdiction: 'GDPR',
-				matchedBy: 'default',
-				policyId: 'vue_conformance_policy',
-				region: null,
-			},
 			initialPolicySnapshotToken: 'vue_conformance_token',
 		};
 	}
 	return {
 		...base,
-		initialPolicy: buildInitOutput(opts, options).policy,
 		initialPolicyPending: true,
 	};
 };
@@ -534,7 +492,6 @@ const createLifecycleTransport = function createLifecycleTransport(
 				return Promise.resolve({
 					branding: init.branding === 'none' ? undefined : init.branding,
 					location: init.location,
-					policyDecision: init.policyDecision,
 					policyResolution: init.policyResolution,
 					policySnapshotToken: init.policySnapshotToken,
 					translations: init.translations,
@@ -575,11 +532,14 @@ const projectStoreState = function projectStoreState(
 	context: VueConsentKernelContext
 ): StoreState {
 	const snapshot = context.kernel.getSnapshot();
-	const consents = { ...snapshot.consents } as Record<string, boolean>;
+	const consents = { ...snapshot.effectivePermissions } as Record<
+		string,
+		boolean
+	>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
 		activeUI: activeUIForStore(snapshot.activeUI),
-		consentCategories: [...snapshot.policyCategories],
+		consentCategories: [...snapshot.policyRule.scope],
 		consents,
 		selectedConsents: { ...consents },
 	};

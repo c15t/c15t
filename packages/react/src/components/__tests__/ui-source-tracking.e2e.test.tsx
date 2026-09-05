@@ -13,6 +13,7 @@ import { userEvent } from 'vitest/browser';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
@@ -58,25 +59,19 @@ const defaultOptions: ConsentProviderOptions = {
 		'measurement',
 	],
 	mode: offline(),
-	offlinePolicy: {
-		policy: {
-			consent: {
-				categories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
-				scopeMode: 'permissive',
-			},
-			id: 'ui-source-tracking-test',
-			model: 'opt-in',
-			ui: {
-				mode: 'banner',
-			},
-		},
-	},
+	prefetch: policyFixture(undefined, {
+		categories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		id: 'ui-source-tracking-test',
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	}),
 };
 
 describe('UI Source Tracking E2E Tests', () => {

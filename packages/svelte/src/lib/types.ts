@@ -70,10 +70,7 @@ export interface ConsentManagerOptions extends Pick<
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
-	prefetch?: Omit<
-		KernelConfig,
-		'transport' | 'initialConsents' | 'initialSubjectId'
-	>;
+	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'>;
 	callbacks?: ConsentProviderCallbacks;
 	presentation?: ConsentPresentation;
 

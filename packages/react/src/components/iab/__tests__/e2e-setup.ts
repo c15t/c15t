@@ -13,6 +13,7 @@ import {
 	createDeferredPromise,
 	createVoidDeferredPromise,
 } from '~/__tests__/deferred-promise';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
 
@@ -231,9 +232,13 @@ export const defaultProviderIABOptions: ConsentProviderOptions = {
 		gvl: mockGVL,
 	},
 	mode: offline(),
-	offlinePolicy: {
-		policy: { id: 'iab_default', model: 'iab' },
-	},
+	prefetch: policyFixture(undefined, {
+		categories: undefined,
+		id: 'iab_default',
+		model: 'iab',
+		prompt: 'choice',
+		scopeMode: 'strict',
+	}),
 };
 
 /**

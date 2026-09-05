@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentBanner } from '~/components/consent-banner';
 import { offline } from '~/transports/offline';
@@ -78,24 +79,22 @@ const PolicyTestProvider = ({
 			mode: offline(),
 			persistence: false,
 			prefetch: {
-				initialConsents: state.consents,
-				initialPolicy: {
-					consent: {
-						categories: state.consentCategories,
-						scopeMode: 'permissive',
-					},
+				...policyFixture(undefined, {
+					categories: state.consentCategories,
 					id: 'policy-actions-test',
 					model: state.model ?? 'opt-in',
-					ui: {
-						banner: state.policyBanner,
-						dialog: state.policyDialog,
-						mode: 'banner',
-					},
-				},
+					prompt: 'choice',
+					scopeMode: 'permissive',
+				}),
+				initialDraft: state.consents,
 				initialTranslations: {
 					language: 'en',
 					translations: defaultTranslationConfig.translations.en as never,
 				},
+			},
+			presentation: {
+				preferences: state.policyDialog,
+				prompt: state.policyBanner,
 			},
 			theme: providerOverrides?.theme,
 		}}

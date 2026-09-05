@@ -1,101 +1,41 @@
 import type { ConsentManifest } from '@c15t/schema/types';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 
 /** Shared manifest fixture for the promoted Next.js adapter tests. */
 export const MANIFEST_FIXTURE = {
 	branding: 'c15t',
 	policyPacks: [
-		{
-			fingerprint: 'eu-fingerprint',
-
-			policy: {
-				consent: {
-					categories: ['necessary', 'measurement', 'marketing'],
-
-					expiryDays: 365,
-					model: 'opt-in',
-					scopeMode: 'strict',
-				},
-				id: 'eu-opt-in',
-				match: { countries: ['DE'] },
-				ui: { mode: 'banner' },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['necessary', 'measurement', 'marketing'],
-
-					expiryDays: 365,
-					scopeMode: 'strict',
-				},
-				id: 'eu-opt-in',
-				model: 'opt-in',
-				proof: {},
-
-				ui: { mode: 'banner' },
-			},
-		},
-		{
-			fingerprint: 'ca-fingerprint',
-
-			policy: {
-				consent: {
-					categories: ['necessary', 'marketing'],
-					expiryDays: 365,
-					gpc: true,
-
-					model: 'opt-out',
-					scopeMode: 'permissive',
-				},
-				id: 'us-ca-opt-out',
-				match: { regions: [{ country: 'US', region: 'CA' }] },
-				ui: { mode: 'banner' },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['necessary', 'marketing'],
-					expiryDays: 365,
-					gpc: true,
-
-					scopeMode: 'permissive',
-				},
-				id: 'us-ca-opt-out',
-				model: 'opt-out',
-				proof: {},
-
-				ui: { mode: 'banner' },
-			},
-		},
-		{
-			fingerprint: 'notice-fingerprint',
-
-			policy: {
-				consent: {
-					categories: ['necessary'],
-
-					expiryDays: 30,
-					model: 'none',
-					scopeMode: 'permissive',
-				},
-				id: 'notice-default',
-				match: { isDefault: true },
-				ui: { mode: 'none' },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['necessary'],
-
-					expiryDays: 30,
-					scopeMode: 'permissive',
-				},
-				id: 'notice-default',
-				model: 'none',
-				proof: {},
-
-				ui: { mode: 'none' },
-			},
-		},
+		createConsentManifestPolicyPack({
+			categories: ['measurement', 'marketing'],
+			id: 'eu-opt-in',
+			match: { countries: ['DE'] },
+			model: 'opt-in',
+			prompt: 'choice',
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
+		}),
+		createConsentManifestPolicyPack({
+			categories: ['marketing'],
+			id: 'us-ca-opt-out',
+			match: { regions: [{ country: 'US', region: 'CA' }] },
+			model: 'opt-out',
+			privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			prompt: 'choice',
+			scopeMode: 'permissive',
+			validity: { choiceDays: 365 },
+		}),
+		createConsentManifestPolicyPack({
+			categories: [],
+			id: 'notice-default',
+			match: { isDefault: true },
+			model: 'opt-out',
+			prompt: 'none',
+			scopeMode: 'permissive',
+			validity: { choiceDays: 30 },
+		}),
 	],
 	revision: 'manifest-revision',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',

@@ -1,4 +1,8 @@
 import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
 import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
@@ -96,30 +100,22 @@ const init: InitOutput = {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	policy: {
-		consent: {
-			categories: ['necessary', 'functionality', 'measurement'],
-			scopeMode: 'permissive',
-		},
-		id: 'vue_a11y_policy',
-		model: 'opt-in',
-		ui: {
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['customize'],
-				scrollLock: false,
-			},
-			mode: 'dialog',
-		},
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'vue_a11y_fingerprint',
-		jurisdiction: 'GDPR',
-		matchedBy: 'default',
-		policyId: 'vue_a11y_policy',
-		region: null,
-	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: null,
+			regionCode: null,
+			rules: [
+				{
+					categories: ['functionality', 'measurement'],
+					id: 'vue_a11y_policy',
+					match: { fallback: true },
+					model: 'opt-in',
+					prompt: 'choice',
+					scopeMode: 'permissive',
+				},
+			],
+		})
+	),
 	policySnapshotToken: 'vue_a11y_token',
 	translations: {
 		language: 'en',

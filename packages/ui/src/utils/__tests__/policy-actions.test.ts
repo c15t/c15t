@@ -1,231 +1,101 @@
-import { describe, expect, it } from 'vitest';
+import { normalizePolicyRule } from '@c15t/core';
+import { describe, expect, test } from 'vitest';
 
-import {
-	flattenPolicyActionGroups,
-	hasPolicyHints,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	resolvePolicyUiProfile,
-	shouldFillPolicyActions,
-} from '../policy-actions';
+import { resolveConsentPresentation } from '../policy-actions';
 
-describe('resolvePolicyAllowedActions', () => {
-	it('uses configured allowed actions', () => {
-		const actions = resolvePolicyAllowedActions({
-			allowedActions: ['accept', 'reject'],
-		});
-
-		expect(actions).toEqual(['accept', 'reject']);
-	});
-
-	it('falls back to default actions when policy actions are absent', () => {
-		const actions = resolvePolicyAllowedActions({});
-		expect(actions).toEqual(['reject', 'accept', 'customize']);
-	});
+const policy = normalizePolicyRule({
+	id: 'presentation-test',
+	match: { isDefault: true },
+	model: 'opt-in',
+	prompt: 'choice',
 });
 
-describe('flattenPolicyActionGroups', () => {
-	it('returns an empty array when layout is undefined or empty', () => {
-		expect(flattenPolicyActionGroups()).toEqual([]);
-		expect(flattenPolicyActionGroups([])).toEqual([]);
+describe('resolveConsentPresentation', () => {
+	test('supplies required controls with no host layout', () => {
+		const result = resolveConsentPresentation({ policy, surface: 'prompt' });
+		expect(result.orderedActions).toEqual(['accept', 'customize', 'reject']);
+		expect(result.requiredActions).toEqual(['accept', 'reject']);
 	});
-
-	it('preserves action order across grouped and ungrouped layout entries', () => {
-		expect(
-			flattenPolicyActionGroups(['customize', ['reject', 'accept']])
-		).toEqual(['customize', 'reject', 'accept']);
-	});
-});
-
-describe('resolvePolicyOrderedActions', () => {
-	it('uses grouped layout ordering', () => {
-		const actions = resolvePolicyOrderedActions({
-			allowedActions: ['accept', 'reject', 'customize'],
-			layout: [['reject', 'accept'], 'customize'],
+	test('deduplicates host groups and retains their order', () => {
+		const result = resolveConsentPresentation({
+			policy,
+			presentation: {
+				prompt: { layout: ['customize', ['reject', 'accept'], 'accept'] },
+			},
+			surface: 'prompt',
 		});
-
-		expect(actions).toEqual(['reject', 'accept', 'customize']);
+		expect(result.actionGroups).toEqual([['customize'], ['reject', 'accept']]);
+		expect(result.orderedActions).toEqual(['customize', 'reject', 'accept']);
 	});
-});
-
-describe('resolvePolicyPrimaryActions', () => {
-	it('defaults to customize when no policy primary actions are set', () => {
-		const primary = resolvePolicyPrimaryActions({
-			orderedActions: ['reject', 'accept', 'customize'],
+	test('restores missing required actions in an empty layout', () => {
+		const result = resolveConsentPresentation({
+			policy,
+			presentation: { prompt: { layout: [] } },
+			surface: 'prompt',
 		});
-
-		expect(primary).toEqual(['customize']);
+		expect(result.orderedActions).toEqual(['accept', 'reject']);
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({ code: 'required-action-restored' })
+		);
 	});
-
-	it('returns empty array when customize is unavailable and no policy primary actions are set', () => {
-		const primary = resolvePolicyPrimaryActions({
-			orderedActions: ['accept', 'reject'],
+	test('excludes save from the prompt and reports the forbidden action', () => {
+		const result = resolveConsentPresentation({
+			policy,
+			presentation: { prompt: { layout: ['save', 'accept', 'reject'] } },
+			surface: 'prompt',
 		});
-
-		expect(primary).toEqual([]);
+		expect(result.orderedActions).toEqual(['accept', 'reject']);
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({ actions: ['save'], code: 'forbidden-action' })
+		);
 	});
-
-	it('preserves multiple policy primary actions that are part of ordered actions', () => {
-		const primary = resolvePolicyPrimaryActions({
-			orderedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept', 'customize'],
+	test('keeps save available in persistent preferences', () => {
+		const result = resolveConsentPresentation({
+			policy,
+			presentation: { preferences: { layout: ['save', ['reject', 'accept']] } },
+			surface: 'preferences',
 		});
-
-		expect(primary).toEqual(['accept', 'customize']);
+		expect(result.orderedActions).toEqual(['save', 'reject', 'accept']);
+		expect(result.rights).toEqual(
+			expect.arrayContaining(['disclosure', 'preferences'])
+		);
 	});
-
-	it('preserves explicit customize primary actions', () => {
-		const primary = resolvePolicyPrimaryActions({
-			orderedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['customize'],
+	test('reports unequal prominence for equivalent choice actions', () => {
+		const result = resolveConsentPresentation({
+			policy,
+			presentation: { prompt: { primaryActions: ['accept'] } },
+			surface: 'prompt',
 		});
-
-		expect(primary).toEqual(['customize']);
+		expect(result.diagnostics).toContainEqual(
+			expect.objectContaining({ code: 'equivalent-prominence-overridden' })
+		);
 	});
-
-	it('falls back to customize when configured primary actions are invalid', () => {
-		const primary = resolvePolicyPrimaryActions({
-			orderedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['missing'] as unknown as (
-				| 'accept'
-				| 'reject'
-				| 'customize'
-			)[],
+	test.each(['row', 'column'] as const)(
+		'retains host direction %s',
+		(direction) => {
+			expect(
+				resolveConsentPresentation({
+					policy,
+					presentation: { preferences: { direction } },
+					surface: 'preferences',
+				}).direction
+			).toBe(direction);
+		}
+	);
+	test('notices cannot trap focus or lock scrolling', () => {
+		const notice = normalizePolicyRule({
+			id: 'notice',
+			match: { isDefault: true },
+			model: 'opt-out',
+			prompt: 'notice',
 		});
-
-		expect(primary).toEqual(['customize']);
-	});
-});
-
-describe('hasPolicyHints', () => {
-	it('returns false for empty arrays and absent booleans', () => {
-		expect(
-			hasPolicyHints({
-				allowedActions: [],
-				layout: [],
-			})
-		).toBe(false);
-	});
-
-	it('returns true for explicit boolean hints', () => {
-		expect(
-			hasPolicyHints({
-				scrollLock: false,
-			})
-		).toBe(true);
-	});
-});
-
-describe('resolvePolicyActionGroups', () => {
-	it('returns a single group when layout is omitted', () => {
-		const groups = resolvePolicyActionGroups({
-			allowedActions: ['customize', 'accept', 'reject'],
+		const result = resolveConsentPresentation({
+			policy: notice,
+			presentation: { prompt: { scrollLock: true, trapFocus: true } },
+			surface: 'prompt',
 		});
-
-		expect(groups).toEqual([['customize', 'accept', 'reject']]);
-	});
-
-	it('returns grouped row layout', () => {
-		const groups = resolvePolicyActionGroups({
-			allowedActions: ['reject', 'accept', 'customize'],
-			layout: [['reject', 'accept'], 'customize'],
-		});
-
-		expect(groups).toEqual([['reject', 'accept'], ['customize']]);
-	});
-
-	it('supports split stack layouts', () => {
-		const groups = resolvePolicyActionGroups({
-			allowedActions: ['customize', 'reject', 'accept'],
-			layout: ['customize', ['reject', 'accept']],
-		});
-
-		expect(groups).toEqual([['customize'], ['reject', 'accept']]);
-	});
-});
-
-describe('resolvePolicyDirection', () => {
-	it('defaults to row', () => {
-		expect(resolvePolicyDirection(undefined)).toBe('row');
-	});
-
-	it('returns column unchanged', () => {
-		expect(resolvePolicyDirection('column')).toBe('column');
-	});
-});
-
-describe('resolvePolicyUiProfile', () => {
-	it('falls back to compact profile when undefined', () => {
-		expect(resolvePolicyUiProfile(undefined)).toBe('compact');
-	});
-
-	it('returns a valid profile unchanged', () => {
-		expect(resolvePolicyUiProfile('balanced')).toBe('balanced');
-		expect(resolvePolicyUiProfile('strict')).toBe('strict');
-	});
-});
-
-describe('shouldFillPolicyActions', () => {
-	it('fills for strict profile', () => {
-		expect(
-			shouldFillPolicyActions({
-				actionGroups: [['customize']],
-				direction: 'row',
-				uiProfile: 'strict',
-			})
-		).toBe(true);
-	});
-
-	it('fills for balanced with single action group <= 2 actions', () => {
-		expect(
-			shouldFillPolicyActions({
-				actionGroups: [['accept', 'reject']],
-				direction: 'row',
-				uiProfile: 'balanced',
-			})
-		).toBe(true);
-	});
-
-	it('fills for balanced with 3 actions in split groups', () => {
-		expect(
-			shouldFillPolicyActions({
-				actionGroups: [['customize'], ['accept', 'reject']],
-				direction: 'row',
-				uiProfile: 'balanced',
-			})
-		).toBe(true);
-	});
-
-	it('fills for balanced with 3 actions in a column layout', () => {
-		expect(
-			shouldFillPolicyActions({
-				actionGroups: [['customize', 'accept', 'reject']],
-				direction: 'column',
-				uiProfile: 'balanced',
-			})
-		).toBe(true);
-	});
-
-	it('does not fill for balanced with 3 actions in one row group', () => {
-		expect(
-			shouldFillPolicyActions({
-				actionGroups: [['customize', 'accept', 'reject']],
-				direction: 'row',
-				uiProfile: 'balanced',
-			})
-		).toBe(false);
-	});
-
-	it('does not fill for compact profile', () => {
-		expect(
-			shouldFillPolicyActions({
-				actionGroups: [['customize']],
-				direction: 'row',
-				uiProfile: 'compact',
-			})
-		).toBe(false);
+		expect(result.allowedActions).toEqual(['dismiss']);
+		expect(result.scrollLock).toBe(false);
+		expect(result.trapFocus).toBe(false);
 	});
 });

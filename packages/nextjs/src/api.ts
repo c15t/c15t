@@ -287,8 +287,7 @@ export const createNextConsentRouteHandlers =
 						status: 'failed',
 						version: POLICY_CONTRACT_VERSION,
 					};
-					delete payload.policy;
-					delete payload.policyDecision;
+
 					delete payload.policySnapshotToken;
 					delete payload.gvl;
 				}

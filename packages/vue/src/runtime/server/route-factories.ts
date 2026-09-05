@@ -126,8 +126,6 @@ const negotiateInit = function negotiateInit(
 	if (
 		readPolicyResolutionWire(negotiated.policyResolution).status !== 'matched'
 	) {
-		delete negotiated.policy;
-		delete negotiated.policyDecision;
 		delete negotiated.policySnapshotToken;
 		delete negotiated.gvl;
 		delete negotiated.cmpId;

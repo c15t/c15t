@@ -8,7 +8,7 @@ import type * as C15tCoreTypes from '@c15t/core';
  */
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
-import type { PolicyUiActionDirection } from '@c15t/ui/utils';
+import type { SurfacePresentation } from '@c15t/ui/utils';
 import { Fragment } from 'react';
 import type { FC, ReactNode } from 'react';
 
@@ -173,7 +173,7 @@ export interface ConsentBannerProps {
 	 *
 	 * @defaultValue 'row'
 	 */
-	direction?: PolicyUiActionDirection;
+	direction?: SurfacePresentation['direction'];
 
 	/**
 	 * Specifies which button(s) should be highlighted as the primary action.

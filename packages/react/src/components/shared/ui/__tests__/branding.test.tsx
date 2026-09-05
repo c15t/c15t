@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import type { useConsentManager } from '~/component-hooks/use-consent-manager';
 import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
 import { offline } from '~/transports/offline';
@@ -71,24 +72,19 @@ const renderWithConsentState = async function renderWithConsentState(
 		<ConsentProvider
 			options={{
 				components: providerOverrides.components,
+				initialUI: state.activeUI === 'dialog' ? 'dialog' : 'banner',
 				mode: offline(),
 				persistence: false,
 				prefetch: {
-					initialBranding: state.branding,
-					initialConsents: state.consents,
-					initialPolicy: {
-						consent: {
-							categories: state.consentCategories,
-							scopeMode: state.policyScopeMode ?? 'permissive',
-						},
+					...policyFixture(undefined, {
+						categories: state.consentCategories,
 						id: 'branding-test-policy',
 						model: state.model ?? 'opt-in',
-						ui: {
-							banner: state.policyBanner,
-							dialog: state.policyDialog,
-							mode: state.activeUI === 'dialog' ? 'dialog' : 'banner',
-						},
-					},
+						prompt: 'choice',
+						scopeMode: state.policyScopeMode ?? 'permissive',
+					}),
+					initialBranding: state.branding,
+					initialDraft: state.consents,
 					initialTranslations: {
 						language: state.translationConfig.defaultLanguage,
 						translations:
@@ -96,6 +92,10 @@ const renderWithConsentState = async function renderWithConsentState(
 								state.translationConfig.defaultLanguage
 							] ?? state.translationConfig.translations.en,
 					},
+				},
+				presentation: {
+					preferences: state.policyDialog,
+					prompt: state.policyBanner,
 				},
 				theme: providerOverrides.theme,
 			}}
