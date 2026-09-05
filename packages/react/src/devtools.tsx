@@ -195,7 +195,11 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 	}
 );
 
-/** Creates the c15t plugin configuration for React TanStack Devtools. */
+/**
+ * Create a c15t plugin configuration for React TanStack Devtools.
+ * @param options - Plugin identity, initial state, and embedded panel options.
+ * @returns Plugin configuration whose panel binds to the nearest provider.
+ */
 export const c15tDevtools = (
 	options: C15tDevtoolsPluginOptions = {}
 ): TanStackDevtoolsPlugin => {
