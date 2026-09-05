@@ -56,7 +56,7 @@ import { ConsentProvider, offline } from 'c15t/react';
 
 import { lazy, Suspense } from 'react';
 
-const DevTools = process.env.NODE_ENV !== 'production'
+const DevTools = import.meta.env.DEV
 	? lazy(() => import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })))
 	: () => null;
 import ConsentBanner from './consent-banner';

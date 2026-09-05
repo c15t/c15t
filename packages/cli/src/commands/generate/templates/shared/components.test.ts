@@ -31,7 +31,8 @@ describe('consent component template', () => {
 
 		expect(template).toContain("from 'c15t/react';");
 		expect(template).toContain("import('c15t/react/devtools')");
-		expect(template).toContain("process.env.NODE_ENV !== 'production'");
+		expect(template).toContain('import.meta.env.DEV');
+		expect(template).not.toContain('process.env');
 		expect(template).toContain('<ConsentProvider options=');
 		expect(template).not.toContain('ConsentManagerProvider');
 		expect(template).toMatchSnapshot();
