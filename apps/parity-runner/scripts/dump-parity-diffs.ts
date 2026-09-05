@@ -12,6 +12,7 @@ import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
 import { frameworkOf, pairStories } from '../src/pair-stories';
 import type { StoryEntry } from '../src/pair-stories';
+import { markSurfaceRoots, SURFACE_SCOPE_SELECTOR } from '../src/surface-scope';
 
 const URLS: Record<string, string> = {
 	react: 'http://127.0.0.1:6006',
@@ -70,11 +71,13 @@ for (const pair of pairs) {
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await page.locator('#storybook-root').waitFor({ state: 'attached' });
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-		const dom = await captureDomSnapshot(page, '#storybook-root');
+		await markSurfaceRoots(page);
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-		const a11y = await captureA11yTree(page);
+		const dom = await captureDomSnapshot(page, SURFACE_SCOPE_SELECTOR);
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-		const styles = await captureComputedStyleMap(page, '#storybook-root');
+		const a11y = await captureA11yTree(page, SURFACE_SCOPE_SELECTOR);
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+		const styles = await captureComputedStyleMap(page, SURFACE_SCOPE_SELECTOR);
 		writeFileSync(`${OUT}/${slug}.${fw}.dom.txt`, dom);
 		writeFileSync(`${OUT}/${slug}.${fw}.a11y.txt`, a11y);
 		writeFileSync(

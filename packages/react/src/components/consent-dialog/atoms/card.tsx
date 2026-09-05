@@ -47,6 +47,7 @@ const ConsentDialogCard = createForwardRef<
 		{...props}
 		slotKey="dialog.card"
 		data-testid="consent-dialog-card"
+		tabIndex={-1}
 	>
 		{children}
 	</Box>
@@ -137,7 +138,9 @@ const ConsentDialogHeaderDescription = createForwardRef<
 			{
 				baseClassName: styles.description,
 				className,
+				'data-context': context,
 				'data-testid': 'consent-dialog-description',
+				id: 'consent-dialog-description',
 				noStyle: noStyle ?? contextNoStyle,
 				style,
 				...props,

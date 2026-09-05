@@ -316,8 +316,9 @@ describe('IAB Preference Center E2E Tests', () => {
 				'[data-testid="iab-consent-dialog-card"]'
 			);
 
-			// Native dialog elements expose the implicit dialog role.
-			expect(dialog.tagName).toBe('DIALOG');
+			// The card carries the dialog role explicitly: a native `dialog`
+			// brings the user agent's 1em padding with it.
+			expect(dialog.getAttribute('role')).toBe('dialog');
 
 			// Should have aria-label
 			expect(dialog.getAttribute('aria-label')).toBeTruthy();

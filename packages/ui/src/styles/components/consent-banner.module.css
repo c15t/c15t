@@ -300,10 +300,8 @@
 	}
 
 	.title:not(:global(.headless)) {
-		/* React renders the title as an `<h2>` for the heading semantics;
-		   Svelte, Vue and Astro use `<div role="heading">`. Without this the
-		   user agent's block margins make the React card 26px taller for the
-		   same markup. */
+		/* Every adapter renders the title as an `<h2>`, so the card height
+		   depends on the user agent's block margins unless they are reset. */
 		margin: 0;
 		font-size: 1rem;
 		line-height: 1.5rem;

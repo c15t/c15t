@@ -159,13 +159,12 @@ const ConsentWidgetAccordionItems = () => {
 			open={openValues.includes(consent.name)}
 			slotKey="accordion-item.root"
 		>
-			<ConsentWidgetAccordionTrigger
-				data-testid={`consent-widget-accordion-trigger-${consent.name}`}
-				slotKey="accordion.triggerRow"
-			>
+			<ConsentWidgetAccordionTrigger slotKey="accordion.triggerRow">
+				{/* The testid names the button, not the row that holds it,
+				    so it means the same element in every adapter. */}
 				<ConsentWidgetAccordionTriggerInner
 					className={noStyle ? undefined : accordionStyles.trigger}
-					data-testid={`consent-widget-accordion-trigger-inner-${consent.name}`}
+					data-testid={`consent-widget-accordion-trigger-${consent.name}`}
 					noStyle
 					slotKey="accordion-item.trigger"
 				>
