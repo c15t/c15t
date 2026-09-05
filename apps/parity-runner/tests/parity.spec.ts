@@ -17,6 +17,8 @@
  * Environment variables:
  *   - `REACT_STORYBOOK_URL` (default http://127.0.0.1:6006)
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
+ *   - `VUE_STORYBOOK_URL` (default http://127.0.0.1:6008)
+ *   - `ASTRO_STORYBOOK_URL` (default http://127.0.0.1:6010)
  *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte`)
  */
 
@@ -32,6 +34,7 @@ import type { PairedStory } from '../src/pair-stories';
 import { loadStorybookIndex } from '../src/storybook-index';
 
 const FRAMEWORK_URLS: Record<string, string> = {
+	astro: process.env.ASTRO_STORYBOOK_URL ?? 'http://127.0.0.1:6010',
 	react: process.env.REACT_STORYBOOK_URL ?? 'http://127.0.0.1:6006',
 	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',

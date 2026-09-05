@@ -3,9 +3,9 @@
  *
  * React titles live under `COMPONENTS - REACT/...`; Svelte under
  * `COMPONENTS - SVELTE/...`; Vue under `COMPONENTS - VUE/...`; Solid
- * under `COMPONENTS - SOLID/...`. Pairing strips the `{FRAMEWORK}`
- * segment so `COMPONENTS - REACT/Button` pairs with
- * `COMPONENTS - SVELTE/Button`, `COMPONENTS - VUE/Button`, etc.
+ * under `COMPONENTS - SOLID/...`; Astro under `COMPONENTS - ASTRO/...`.
+ * Pairing strips the `{FRAMEWORK}` segment so `COMPONENTS - REACT/Button`
+ * pairs with `COMPONENTS - SVELTE/Button`, `COMPONENTS - VUE/Button`, etc.
  */
 
 export interface StoryEntry {
@@ -25,7 +25,7 @@ export interface PairedStory {
 }
 
 const FRAMEWORK_SEGMENT =
-	/^components\s*-\s*(?<capture1>react|svelte|vue|solid)\//iu;
+	/^components\s*-\s*(?<capture1>react|svelte|vue|solid|astro)\//iu;
 
 /**
  * Extract the framework code from a Storybook title, or null if the title
