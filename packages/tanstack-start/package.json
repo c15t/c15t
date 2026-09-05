@@ -45,8 +45,6 @@
 	"files": [
 		"dist",
 		"dist-types",
-		"AGENTS.md",
-		"docs",
 		"styles.css",
 		"styles.tw3.css",
 		"iab",
@@ -106,8 +104,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun ../../scripts/generate-package-docs.ts @c15t/tanstack-start && node ../shared/restore-client-directives.mjs src dist",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/tanstack-start",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && node ../shared/restore-client-directives.mjs src dist",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",

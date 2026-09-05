@@ -45,7 +45,7 @@
 		"@c15t/tanstack-start#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {

@@ -6,7 +6,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 ## Frameworks
 
-Install and configure c15t in JavaScript, React, Next.js, and TanStack Start applications.
+Install and configure c15t in JavaScript, React, and Next.js applications.
 
 - [Building Headless Components](./docs/frameworks/react/building-headless-components.md): Build policy-aware custom consent components in React using the headless hooks and policy-pack tooling.
 - [Callbacks](./docs/frameworks/react/callbacks.md): React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.

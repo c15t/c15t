@@ -48,17 +48,6 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/nextjs for c15t/next, @c15t/core for root c15t imports, and @c15t/react for c15t/react.',
 	},
 	{
-		include: [
-			'frameworks/tanstack-start/**/*.mdx',
-			'shared/**/*.mdx',
-			'integrations/**/*.mdx',
-		],
-		name: '@c15t/tanstack-start',
-		outDir: 'packages/tanstack-start',
-		summary:
-			'TanStack Start consent management docs for c15t, including root route setup, SSR-hydrated first paint, same-origin consent routes, request middleware, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/tanstack-start for c15t/tanstack-start, @c15t/core for root c15t imports, and @c15t/react for c15t/react.',
-	},
-	{
 		include: ['self-host/**/*.mdx', 'self-host/**/*.md'],
 		name: '@c15t/backend',
 		outDir: 'packages/backend',
