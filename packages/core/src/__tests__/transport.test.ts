@@ -2506,3 +2506,105 @@ describe('x-c15t-version header (issue #916)', () => {
 		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 	});
 });
+
+describe('independent partial save transport', () => {
+	test('disjoint confirmations made in one turn both reach transport', async () => {
+		const send = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: send } });
+		try {
+			const first = kernel.commands.save({ marketing: true });
+			const second = kernel.commands.save({ measurement: false });
+			await Promise.all([first, second]);
+			expect(
+				send.mock.calls.map(([payload]) => payload.confirmed.categories)
+			).toEqual([{ marketing: true }, { measurement: false }]);
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test.each(['same-subject', 'canonical-subject'])(
+		'failed disjoint confirmation replays its original payload after %s acknowledgement',
+		async (mapping) => {
+			let finish: (result: SaveResult) => void = () => {};
+			const send = vi
+				.fn()
+				.mockImplementationOnce(() =>
+					createDeferredPromise<SaveResult>((resolve) => {
+						finish = resolve;
+					})
+				)
+				.mockResolvedValue(
+					mapping === 'canonical-subject'
+						? { ok: true, subjectId: 'canonical' }
+						: { ok: true }
+				);
+			const kernel = createConsentKernel({ transport: { save: send } });
+			try {
+				const first = kernel.commands.save({ marketing: true });
+				await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+				await kernel.commands.save({ measurement: false });
+				finish({ ok: false });
+				await first;
+				await kernel.commands.init();
+				await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(3));
+				expect(send.mock.calls[2]?.[0]).toEqual(send.mock.calls[0]?.[0]);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(true);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.measurement?.value
+				).toBe(false);
+			} finally {
+				kernel.dispose();
+			}
+		}
+	);
+
+	test('an older disjoint response cannot replace the latest canonical subject', async () => {
+		let finish: (result: SaveResult) => void = () => {};
+		const send = vi
+			.fn()
+			.mockImplementationOnce(() =>
+				createDeferredPromise<SaveResult>((resolve) => {
+					finish = resolve;
+				})
+			)
+			.mockResolvedValue({ ok: true, subjectId: 'latest' });
+		const kernel = createConsentKernel({ transport: { save: send } });
+		try {
+			const first = kernel.commands.save({ marketing: true });
+			await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+			await kernel.commands.save({ measurement: false });
+			finish({ ok: true, subjectId: 'older' });
+			await first;
+			expect(kernel.getSnapshot().subjectId).toBe('latest');
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test('an explicit subject switch cancels a pending retry even after switching back', async () => {
+		let finish: (result: SaveResult) => void = () => {};
+		const send = vi.fn().mockImplementationOnce(() =>
+			createDeferredPromise<SaveResult>((resolve) => {
+				finish = resolve;
+			})
+		);
+		const kernel = createConsentKernel({
+			initialSubjectId: 'original',
+			transport: { save: send },
+		});
+		try {
+			const pending = kernel.commands.save({ marketing: true });
+			await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+			kernel.set.subjectId('other');
+			kernel.set.subjectId('original');
+			finish({ ok: false });
+			await pending;
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		} finally {
+			kernel.dispose();
+		}
+	});
+});

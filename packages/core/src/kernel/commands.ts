@@ -612,8 +612,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 
 	/**
 	 * Transport phase of a save. The outcome only touches the replay queue
-	 * and the subject while the action is still the current one; a clear or
-	 * a server record that replaced the choice in the meantime supersedes it.
+	 * while this action's confirmed receipts are current. Disjoint category
+	 * actions remain independent. Only the newest action can map the subject
+	 * returned by the server; older outcomes cannot replace its identity.
 	 */
 	const sendSave = async function sendSave(
 		payload: SavePayload,
@@ -625,8 +626,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const current = getSnapshot();
 			return (
 				runtime.getGeneration() === generation &&
-				current.explicitChoice === actionSnapshot.explicitChoice &&
-				current.subject === actionSnapshot.subject &&
+				confirmed.every(
+					(category) =>
+						current.explicitChoice?.categories[category] ===
+						actionSnapshot.explicitChoice?.categories[category]
+				) &&
 				current.user === actionSnapshot.user &&
 				current.evaluationPolicy.choice.fingerprint ===
 					actionSnapshot.evaluationPolicy.choice.fingerprint
@@ -659,7 +663,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (!isCurrent()) {
 				return { ...result, confirmed };
 			}
-			if (result.subjectId && result.subjectId !== getSnapshot().subjectId) {
+			if (
+				result.subjectId &&
+				result.subjectId !== getSnapshot().subjectId &&
+				getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
+				getSnapshot().subjectId === actionSnapshot.subjectId
+			) {
 				commit({
 					subject: { ...getSnapshot().subject, subjectId: result.subjectId },
 				});

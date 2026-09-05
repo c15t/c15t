@@ -120,6 +120,7 @@ export const buildSetters = function buildSetters(runtime: KernelRuntime) {
 			if ((subject?.subjectId ?? null) === id) {
 				return;
 			}
+			runtime.invalidateRecords();
 			if (id === null) {
 				const { subjectId: _dropped, ...rest } = subject ?? {};
 				commit({

@@ -38,6 +38,8 @@ export interface KernelRuntime {
 	 * tell that its action was superseded and must not queue a replay.
 	 */
 	getGeneration: () => number;
+	/** Fence pending record work after an explicit subject switch. */
+	invalidateRecords: () => void;
 	/**
 	 * Forward standing directives that were recorded without a server
 	 * subject. Called once a subject is established (identify, accepted
@@ -385,6 +387,9 @@ export const createRuntime = function createRuntime(
 		getGeneration: () => generation,
 		getSnapshot,
 		hydrate,
+		invalidateRecords: () => {
+			generation += 1;
+		},
 		isStarted: () => started,
 		mergeServerRecords,
 		now,
