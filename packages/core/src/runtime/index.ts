@@ -75,6 +75,8 @@ export type {
 } from './types';
 export type { WireRuntimeCallbacksOptions } from './callbacks';
 export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
+export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
+export { createLazyIABFactory } from './lazy-iab';
 
 /**
  * Every consent category granted.
@@ -187,6 +189,30 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 		skipHydration: options.persistence.skipHydration,
 		storageConfig: options.persistence.storageConfig ?? storageConfig,
 	};
+};
+
+/**
+ * Whether a prefetch already carries a server-resolved policy.
+ *
+ * A resolved prefetch is what `/init` would have returned: the policy, the
+ * decision that produced it, and no provisional marker. The kernel is
+ * built from it, so calling `init()` again on `start()` would re-fetch the
+ * same answer and cost every SSR page one request. Frameworks that render
+ * with a prefetch (SvelteKit `loadConsent`, the Astro middleware, Nuxt)
+ * therefore skip the initial call; `reinit()`, a language or override
+ * change, and any app without a prefetch still go to the backend.
+ *
+ * @param prefetch - The runtime's `prefetch` option, if any.
+ * @returns `true` when init would be redundant.
+ */
+export const hasResolvedPrefetch = function hasResolvedPrefetch(
+	prefetch: KernelConfig | undefined
+): boolean {
+	return Boolean(
+		prefetch?.initialPolicy &&
+		prefetch.initialPolicyDecision &&
+		prefetch.initialPolicyProvisional !== true
+	);
 };
 
 const requireTransportFactory = function requireTransportFactory(
@@ -488,8 +514,18 @@ export const createConsentRuntime = function createConsentRuntime(
 
 			startPersistence();
 
-			if (enabled) {
+			// A server-resolved prefetch already holds the init answer; asking
+			// for it again is one request per page load on every SSR route.
+			if (enabled && !hasResolvedPrefetch(options.prefetch)) {
 				void runInit();
+			} else if (enabled) {
+				// The prefetch stands in for the response, so replay the event
+				// the applied response would have raised — `onBannerFetched`
+				// fires with the server's policy instead of not at all.
+				kernel.events.emit({
+					snapshot: kernel.getSnapshot(),
+					type: 'init:applied',
+				});
 			}
 
 			if (enabled && options.scripts && options.scripts.length > 0) {

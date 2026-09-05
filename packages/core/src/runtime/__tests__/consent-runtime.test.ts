@@ -8,7 +8,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { saveConsentToStorage } from '../../libs/cookie';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
-import { createConsentRuntime, createRuntimeKernel } from '../index';
+import {
+	createConsentRuntime,
+	createRuntimeKernel,
+	hasResolvedPrefetch,
+} from '../index';
 import type { ConsentRuntimeIABHandle } from '../types';
 
 const createTransport = function createTransport(
@@ -58,6 +62,32 @@ beforeEach(() => {
 afterEach(() => {
 	vi.restoreAllMocks();
 	delete (window as { c15t?: unknown }).c15t;
+});
+
+const RESOLVED_PREFETCH = {
+	initialPolicy: {
+		id: 'policy_1',
+		model: 'opt-in',
+		ui: { mode: 'banner' },
+	},
+	initialPolicyDecision: { jurisdiction: 'GDPR' },
+} as never;
+
+describe('hasResolvedPrefetch', () => {
+	test('needs a policy, a decision and no provisional marker', () => {
+		expect(hasResolvedPrefetch(undefined)).toBe(false);
+		expect(hasResolvedPrefetch({})).toBe(false);
+		expect(
+			hasResolvedPrefetch({ initialPolicy: { id: 'p', model: 'opt-in' } })
+		).toBe(false);
+		expect(hasResolvedPrefetch(RESOLVED_PREFETCH)).toBe(true);
+		expect(
+			hasResolvedPrefetch({
+				...(RESOLVED_PREFETCH as object),
+				initialPolicyProvisional: true,
+			} as never)
+		).toBe(false);
+	});
 });
 
 describe('createRuntimeKernel', () => {
@@ -148,6 +178,63 @@ describe('createConsentRuntime', () => {
 			expect(transport.init).toHaveBeenCalledTimes(1);
 		});
 		expect(runtime.started).toBe(true);
+		runtime.dispose();
+	});
+
+	test('`start()` skips init when the prefetch already resolved the policy', async () => {
+		const transport = createTransport();
+		const runtime = createConsentRuntime({
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+		});
+
+		runtime.start();
+		await Promise.resolve();
+		await Promise.resolve();
+		expect(transport.init).not.toHaveBeenCalled();
+		expect(runtime.kernel.getSnapshot().policy?.id).toBe('policy_1');
+		runtime.dispose();
+	});
+
+	test('`start()` still replays `init:applied` for a skipped init', async () => {
+		const transport = createTransport();
+		const runtime = createConsentRuntime({
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+		});
+		const applied = vi.fn();
+		runtime.kernel.events.on('init:applied', applied);
+
+		runtime.start();
+		await Promise.resolve();
+		expect(applied).toHaveBeenCalledTimes(1);
+		runtime.dispose();
+	});
+
+	test('`start()` runs init for a prefetch without a resolved policy', async () => {
+		const transport = createTransport();
+		const runtime = createConsentRuntime({
+			mode: custom(transport),
+			prefetch: { initialOverrides: { country: 'DE' } },
+		});
+
+		runtime.start();
+		await vi.waitFor(() => {
+			expect(transport.init).toHaveBeenCalledTimes(1);
+		});
+		runtime.dispose();
+	});
+
+	test('`reinit()` still calls init with a resolved prefetch', async () => {
+		const transport = createTransport();
+		const runtime = createConsentRuntime({
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+		});
+
+		runtime.start();
+		await runtime.reinit();
+		expect(transport.init).toHaveBeenCalledTimes(1);
 		runtime.dispose();
 	});
 
