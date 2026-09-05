@@ -14,6 +14,7 @@ import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import { createManifestTransport } from '../transports/manifest';
 import {
 	choiceRecords,
+	explicitChoice,
 	matchedResolution,
 	optInRule,
 } from './fixtures/kernel-fixtures';
@@ -1886,9 +1887,16 @@ describe('createHostedTransport: request shape', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
+		const values = {
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+		};
+		const actionAt = 1_700_000_000_000;
 		const result = await transport.save?.({
-			choice: { categories: {}, version: 3 },
-			confirmed: { actionAt: 0, categories: {} },
+			choice: explicitChoice(values, { confirmedAt: actionAt, legacy: true }),
+			confirmed: { actionAt, categories: values },
 			consentAction: 'all',
 			consents: {
 				experience: true,
@@ -2242,9 +2250,16 @@ describe('createManifestTransport: local init resolution', () => {
 		});
 
 		await transport.init?.({ overrides: {}, user: null });
+		const values = {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+		};
+		const actionAt = 1_700_000_000_000;
 		const result = await transport.save?.({
-			choice: { categories: {}, version: 3 },
-			confirmed: { actionAt: 0, categories: {} },
+			choice: explicitChoice(values, { confirmedAt: actionAt, legacy: true }),
+			confirmed: { actionAt, categories: values },
 			consentAction: 'custom',
 			consents: {
 				experience: false,
