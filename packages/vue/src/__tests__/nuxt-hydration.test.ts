@@ -1,4 +1,5 @@
 import { C15T_POLICY_CONTRACT_HEADER } from '@c15t/core';
+import { readStoredRecords } from '@c15t/core/modules/persistence';
 import {
 	normalizePolicyRule,
 	createPolicyRuleFingerprints,
@@ -198,6 +199,12 @@ test('Nuxt hydrates the actual server prompt, request GPC and clock before brows
 		expect(document.cookie).toBe(beforeCookie);
 		mounted?.();
 		await nextTick();
+		await vi.waitFor(() =>
+			expect(
+				readStoredRecords(undefined, now + 10_000).records.optOutDirectives
+			).toHaveLength(1)
+		);
+		expect(context.snapshot.value.explicitChoice).toBeNull();
 		expect(nuxt.requests).toBe(1);
 	} finally {
 		clientApp.unmount();

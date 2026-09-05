@@ -573,6 +573,13 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => persistence.dispose());
 	}
 
+	const detectedGpc = context.snapshot.value.privacySignals.gpc;
+	if (detectedGpc.detected && detectedGpc.active) {
+		// Prepared hydration is read-only. Commit the honored request signal
+		// through the public setter once the provider has mounted.
+		context.kernel.set.privacySignals({ gpc: true });
+	}
+
 	if (typeof document !== 'undefined' && config.scripts?.length) {
 		const scriptLoader = createScriptLoader({
 			kernel: context.kernel,
