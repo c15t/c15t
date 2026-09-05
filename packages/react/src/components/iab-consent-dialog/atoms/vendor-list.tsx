@@ -288,7 +288,7 @@ export const VendorList: FC<VendorListProps> = ({
 			<PreferenceItem.Content
 				innerClassName={noStyle ? undefined : styles.vendorListContent}
 				innerSlotKey="iab-vendor-list.rowContent"
-				noStyle
+				noStyle={noStyle}
 			>
 				<div className={styles.vendorLinks}>
 					<a

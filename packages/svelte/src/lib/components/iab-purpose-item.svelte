@@ -166,7 +166,12 @@
 		</PreferenceItem.Control>
 	</div>
 
-	<PreferenceItem.Content class={noStyle ? '' : styles.purposeContent || ''}>
+	<!-- The surface's padding goes on the inner element: the outer one is
+	     the collapsing grid, and padding there keeps a closed item open by
+	     its own padding's worth. -->
+	<PreferenceItem.Content
+		innerClassName={noStyle ? '' : styles.purposeContent || ''}
+	>
 		<p class={noStyle ? '' : styles.purposeDescription || ''}>
 			{purpose.description}
 		</p>

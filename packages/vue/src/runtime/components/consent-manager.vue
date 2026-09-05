@@ -151,9 +151,7 @@ const actionTestIds = {
 // The footer and the action root are one element, so both slots merge
 // onto it.
 const textDirection = computed(() =>
-	getTextDirection(
-		init.value?.translations?.defaultLanguage as string | undefined
-	)
+	getTextDirection(init.value?.translations?.language)
 );
 
 const footerAttrs = computed(() =>

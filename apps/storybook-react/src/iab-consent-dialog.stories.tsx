@@ -15,7 +15,8 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
+// Named to pair with the Svelte and Astro stories of the same surface.
+export const Overview: Story = {
 	render: () => (
 		<StorybookIABProvider>
 			<IABConsentDialog open />

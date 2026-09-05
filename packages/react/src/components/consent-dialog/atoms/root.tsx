@@ -294,6 +294,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 								aria-modal={trapFocus ? 'true' : undefined}
 								data-testid="consent-dialog-root"
 								dir={textDirection}
+								// oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- A native `dialog` is the positioning shell here, not the panel; the panel is what carries the role.
 								role="dialog"
 								tabIndex={-1}
 							>

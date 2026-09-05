@@ -119,7 +119,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const { components } = useUIConfig();
 	const resolvedScrollLock = localScrollLock ?? policyBanner.scrollLock ?? true;
 
-	const cardRef = useRef<HTMLDialogElement>(null);
+	const cardRef = useRef<HTMLDivElement>(null);
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -243,16 +243,15 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 				<Box
 					baseClassName={styles.card}
 					slotKey="iab-banner.card"
-					tabIndex={-1}
 					aria-modal={config.trapFocus ? 'true' : undefined}
 					aria-label={iabT.banner.title}
 					data-testid="iab-consent-banner-card"
+					role={config.trapFocus ? 'dialog' : undefined}
 					asChild
 				>
-					<dialog
-						ref={cardRef}
-						open
-					>
+					{/* A `div`, not a `dialog`: the user agent's dialog
+					    padding is 1em, which the card sets for itself. */}
+					<div ref={cardRef}>
 						{/* Header */}
 						<Box
 							baseClassName={styles.header}
@@ -288,7 +287,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								)}
 							</ul>
 							<p {...legitimateInterestNoticeProps}>
-								{iabT.banner.legitimateInterestNotice} {scopeNotice}
+								{`${iabT.banner.legitimateInterestNotice} ${scopeNotice}`}
 							</p>
 						</Box>
 
@@ -332,7 +331,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								{iabT.common.customize}
 							</Button.Root>
 						</Box>
-					</dialog>
+					</div>
 				</Box>
 			</Box>
 		</IABConsentBannerRoot>

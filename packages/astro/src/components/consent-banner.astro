@@ -186,10 +186,11 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 				/>
 				<div
 					aria-label={copy.title}
-					aria-modal="false"
+					aria-modal="true"
 					class={noStyle ? '' : styles.card}
 					data-testid="consent-banner-card"
 					role="dialog"
+					tabindex="-1"
 				>
 					<div
 						class={noStyle ? '' : styles.header}
@@ -203,6 +204,7 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 						</h2>
 						<div
 							class={noStyle ? '' : styles.description}
+							data-context="banner"
 							data-testid="consent-banner-description"
 						>
 							{copy.description}

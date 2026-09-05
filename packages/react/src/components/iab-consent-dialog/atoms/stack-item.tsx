@@ -146,7 +146,7 @@ export const StackItem: FC<StackItemProps> = ({
 					/>
 				</PreferenceItem.Control>
 			</div>
-			<PreferenceItem.Content noStyle>
+			<PreferenceItem.Content noStyle={noStyle}>
 				<div className={styles.stackDescription}>
 					<p>{stack.description}</p>
 				</div>

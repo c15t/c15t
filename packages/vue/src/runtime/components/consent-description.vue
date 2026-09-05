@@ -36,6 +36,12 @@ const descriptionClass = computed(() =>
 		: dialogStyles.description
 );
 
+// Only the dialog's description is referenced, by the dialog's
+// `aria-describedby`.
+const descriptionId = computed(() =>
+	props.context === 'banner' ? undefined : 'consent-dialog-description'
+);
+
 const testId = computed(() =>
 	props.context === 'banner'
 		? 'consent-banner-description'
@@ -46,7 +52,7 @@ const testId = computed(() =>
 <template>
 	<div
 		v-bind="config.components?.description?.[context]"
-		:id="testId"
+		:id="descriptionId"
 		:data-testid="testId"
 		:class="descriptionClass"
 		:data-context="context"

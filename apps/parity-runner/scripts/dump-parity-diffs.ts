@@ -72,6 +72,7 @@ for (const pair of pairs) {
 		await page.locator('#storybook-root').waitFor({ state: 'attached' });
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		await markSurfaceRoots(page);
+		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const dom = await captureDomSnapshot(page, SURFACE_SCOPE_SELECTOR);
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		const a11y = await captureA11yTree(page, SURFACE_SCOPE_SELECTOR);

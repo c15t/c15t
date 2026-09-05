@@ -321,7 +321,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 			<PreferenceItem.Content
 				innerClassName={noStyle ? undefined : styles.purposeContent}
 				innerSlotKey="iab-purpose-item.content"
-				noStyle
+				noStyle={noStyle}
 			>
 				<p className={styles.purposeDescription}>{purpose.description}</p>
 
@@ -409,7 +409,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								{iab.preferenceCenter.purposeItem.examples} (
 								{purpose.illustrations.length})
 							</PreferenceItem.Trigger>
-							<PreferenceItem.Content noStyle>
+							<PreferenceItem.Content noStyle={noStyle}>
 								<ul className={styles.examplesList}>
 									{purpose.illustrations.map((illustration, index) => (
 										<li key={index}>{illustration}</li>
@@ -448,7 +448,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						</PreferenceItem.Trigger>
 						<PreferenceItem.Content
 							innerClassName={styles.vendorSection}
-							noStyle
+							noStyle={noStyle}
 						>
 							{/* IAB Consent Vendors */}
 							{iabConsentVendors.length > 0 && (
