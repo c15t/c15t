@@ -8,7 +8,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'COMPONENTS - REACT/IAB Consent Dialog',
+	title: 'COMPONENTS - REACT/IAB/IAB Consent Dialog',
 } satisfies Meta<typeof IABConsentDialog>;
 
 export default meta;
