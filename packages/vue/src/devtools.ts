@@ -57,6 +57,13 @@ export const ConsentDevTools = defineComponent({
 					props.maxEvents,
 					props.position,
 					props.getConsentCategories,
+					JSON.stringify(
+						props.getConsentCategories?.() ??
+							getConsentAvailableCategories(
+								init?.value,
+								config.value.consentCategories
+							)
+					),
 				],
 				() => {
 					devTools?.destroy();

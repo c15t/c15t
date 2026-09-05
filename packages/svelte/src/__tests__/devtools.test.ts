@@ -12,6 +12,53 @@ const mountedDevTools = (): NodeListOf<HTMLElement> =>
 	document.querySelectorAll('[data-c15t-dev-tools]');
 
 describe('@c15t/svelte/devtools', () => {
+	test.each(['getter', 'provider'] as const)(
+		'updates displayed categories when the %s scope changes',
+		async (source) => {
+			const first = ['necessary', 'marketing'] as const;
+			const second = ['necessary', 'measurement'] as const;
+			const result = render(
+				DevToolsFixture,
+				source === 'getter'
+					? { getConsentCategories: () => first }
+					: { categories: [...first] }
+			);
+			await vi.waitFor(() =>
+				expect(
+					document.querySelector('[data-focus-key="consent:marketing"]')
+				).not.toBeNull()
+			);
+			await result.rerender(
+				source === 'getter'
+					? { getConsentCategories: () => second }
+					: { categories: [...second] }
+			);
+			await vi.waitFor(() => {
+				expect(
+					document.querySelector('[data-focus-key="consent:measurement"]')
+				).not.toBeNull();
+				expect(
+					document.querySelector('[data-focus-key="consent:marketing"]')
+				).toBeNull();
+			});
+			const [root] = mountedDevTools();
+			document
+				.querySelector<HTMLInputElement>(
+					'[data-focus-key="consent:measurement"]'
+				)
+				?.click();
+			await vi.waitFor(() =>
+				expect(
+					document.querySelector<HTMLInputElement>(
+						'[data-focus-key="consent:measurement"]'
+					)?.checked
+				).toBe(true)
+			);
+			expect(mountedDevTools()[0]).toBe(root);
+			expect(mountedDevTools()).toHaveLength(1);
+			result.unmount();
+		}
+	);
 	test('updates presentation options without leaving duplicate instances', async () => {
 		const result = render(DevToolsFixture, { position: 'top-left' });
 		await vi.waitFor(() =>

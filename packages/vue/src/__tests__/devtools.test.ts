@@ -38,6 +38,47 @@ afterEach(() => {
 });
 
 describe('@c15t/vue/devtools', () => {
+	test('tracks reactive categories returned by a stable getter', async () => {
+		const categories = ref<('necessary' | 'marketing' | 'measurement')[]>([
+			'necessary',
+			'marketing',
+		]);
+		const kernel = createConsentKernel();
+		const getConsentCategories = () => categories.value;
+		const Root = defineComponent({
+			setup: () => () =>
+				provider(
+					kernel,
+					h(ConsentDevTools, { defaultOpen: true, getConsentCategories })
+				),
+		});
+		const wrapper = mount(Root);
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector('[data-focus-key="consent:marketing"]')
+			).not.toBeNull()
+		);
+		categories.value = ['necessary', 'measurement'];
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-focus-key="consent:measurement"]')
+			).not.toBeNull();
+			expect(
+				document.querySelector('[data-focus-key="consent:marketing"]')
+			).toBeNull();
+		});
+		const [root] = mountedDevTools();
+		kernel.set.consent({ measurement: true });
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector<HTMLInputElement>(
+					'[data-focus-key="consent:measurement"]'
+				)?.checked
+			).toBe(true)
+		);
+		expect(mountedDevTools()[0]).toBe(root);
+		wrapper.unmount();
+	});
 	test('updates presentation options without leaving duplicate instances', async () => {
 		const position = ref<'top-left' | 'bottom-left'>('top-left');
 		const kernel = createConsentKernel();
