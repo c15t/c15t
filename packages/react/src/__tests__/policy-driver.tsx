@@ -74,7 +74,7 @@ const firstLayer = (
 };
 const POLICY_GVL = {
 	...MINIMAL_GVL,
-	vendors: { 755: { ...MINIMAL_GVL.vendors[1], id: 755 } },
+	vendors: { 755: { ...MINIMAL_GVL.vendors[755], id: 755 } },
 };
 const config = { storageKey: 'c15t-policy-conformance' };
 const keys = resolveStorageKeys(config);
