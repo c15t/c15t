@@ -389,6 +389,47 @@ const createVueManifestTransport = function createVueManifestTransport(
 	};
 };
 
+const prepareVueRecords = (
+	initialConfig: KernelConfig,
+	rawRecords?: HydrationRecords,
+	kernelRecords?: HydrationRecords
+) => {
+	const merged = { ...rawRecords, ...initialConfig.initialRecords };
+	if (
+		initialConfig.initialSubjectId &&
+		initialConfig.initialRecords?.subject === undefined
+	) {
+		merged.subject = {
+			...merged.subject,
+			subjectId: initialConfig.initialSubjectId,
+		};
+	}
+	const initialRecords =
+		kernelRecords ?? (Object.keys(merged).length ? merged : undefined);
+	return {
+		hydrationRecords:
+			rawRecords || kernelRecords || initialConfig.initialRecords
+				? initialRecords
+				: undefined,
+		initialRecords,
+	};
+};
+
+const hydrateVuePersistence = (
+	context: VueConsentKernelContext,
+	persistence: ReturnType<typeof createPersistence>
+): void => {
+	if (context.initialRecords) {
+		context.kernel.hydrate(context.initialRecords);
+		return;
+	}
+	const prefetchedSubject = context.kernel.getSnapshot().subject;
+	persistence.hydrate();
+	if (prefetchedSubject) {
+		context.kernel.hydrate({ subject: prefetchedSubject });
+	}
+};
+
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
@@ -418,25 +459,14 @@ export const createVueConsentKernelContext =
 			headers,
 			{ producerContract: options.producerContract }
 		);
-		const initialRecords = {
-			...(options.initialRecords ?? options.config.initialRecords),
-			...initialConfig.initialRecords,
-		};
-		if (
-			initialConfig.initialSubjectId &&
-			initialConfig.initialRecords?.subject === undefined
-		) {
-			initialRecords.subject = {
-				...initialRecords.subject,
-				subjectId: initialConfig.initialSubjectId,
-			};
-		}
-		const preparedRecords =
-			options.kernelConfig?.initialRecords ??
-			(Object.keys(initialRecords).length ? initialRecords : undefined);
+		const records = prepareVueRecords(
+			initialConfig,
+			options.initialRecords ?? options.config.initialRecords,
+			options.kernelConfig?.initialRecords
+		);
 		const kernel = createConsentKernel({
 			...initialConfig,
-			initialRecords: preparedRecords,
+			initialRecords: records.initialRecords,
 			now:
 				options.now ??
 				options.initialRecords?.now ??
@@ -485,7 +515,7 @@ export const createVueConsentKernelContext =
 				kernel.dispose();
 			},
 			init,
-			initialRecords: preparedRecords,
+			initialRecords: records.hydrationRecords,
 			kernel,
 			snapshot,
 			storedConsent,
@@ -578,11 +608,7 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 			skipHydration: true,
 			storageConfig: config.storageConfig,
 		});
-		if (context.initialRecords) {
-			context.kernel.hydrate(context.initialRecords);
-		} else {
-			persistence.hydrate();
-		}
+		hydrateVuePersistence(context, persistence);
 		disposers.push(() => persistence.dispose());
 	}
 

@@ -5,6 +5,7 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
+import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
 import { createApp, defineComponent, h } from 'vue';
 
@@ -34,6 +35,59 @@ const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
 	};
 };
 afterEach(() => vi.restoreAllMocks());
+
+test('subject-only prefetch preserves browser receipts without a prepared record seed', async () => {
+	const now = 1_800_000_000_000;
+	vi.spyOn(Date, 'now').mockReturnValue(now);
+	const policyResolution = writePolicyResolutionWire(resolution());
+	if (policyResolution.status !== 'matched') {
+		throw new Error('Expected a matched fixture');
+	}
+	const receipt = {
+		basis: {
+			fingerprint: policyResolution.fingerprints.choice,
+			kind: 'choice-v1',
+		},
+		confirmedAt: now - 1000,
+		value: true,
+	};
+	const storageKey = 'vue-prefetched-subject';
+	localStorage.setItem(
+		storageKey,
+		JSON.stringify({ categories: { marketing: receipt }, version: 3 })
+	);
+	const config = {
+		backendURL: '/api/c15t',
+		iframeBlocker: false as const,
+		storageConfig: { storageKey },
+	};
+	const prefetch = {
+		branding: 'c15t' as const,
+		jurisdiction: 'GDPR' as const,
+		location: { countryCode: 'DE', regionCode: null },
+		policyResolution,
+		subjectId: 'backend+literal',
+		translations: { language: 'en', translations },
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		now,
+		prefetch,
+		producerContract: 1,
+	});
+	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	try {
+		await Promise.resolve();
+		expect(context.snapshot.value.explicitChoice?.categories.marketing).toEqual(
+			receipt
+		);
+		expect(context.snapshot.value.subject?.subjectId).toBe('backend+literal');
+	} finally {
+		dispose();
+		localStorage.removeItem(storageKey);
+		document.cookie = `${storageKey}=; Max-Age=0; Path=/`;
+	}
+});
 
 test('a draft reads the raw grant under GPC and confirms only displayed categories', async () => {
 	const now = 1_800_000_000_000;
