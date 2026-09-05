@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 import { computed } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
@@ -35,7 +36,10 @@ const testId = computed(() =>
 	<div
 		v-bind="config.components?.description?.[context]"
 		:data-testid="testId"
-		:class="bannerStyles.description"
+		:id="context === 'dialog' ? 'consent-dialog-description' : undefined"
+		:class="
+			context === 'dialog' ? dialogStyles.description : bannerStyles.description
+		"
 		:data-context="context"
 	>
 		<slot>

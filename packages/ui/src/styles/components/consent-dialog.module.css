@@ -67,6 +67,7 @@
 		box-sizing: border-box;
 		isolation: isolate;
 		font-family: var(--consent-dialog-font-family);
+		color: var(--c15t-text);
 		line-height: var(--consent-dialog-line-height);
 		-webkit-text-size-adjust: 100%;
 		tab-size: 4;

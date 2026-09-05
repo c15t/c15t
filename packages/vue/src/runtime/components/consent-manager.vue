@@ -189,6 +189,7 @@ const onAction = async function onAction(action: PresentationAction) {
 				:class="dialogStyles.root"
 				:data-disable-animation="disableAnimation ? true : undefined"
 				aria-labelledby="consent-dialog-title"
+				aria-describedby="consent-dialog-description"
 			>
 				<div
 					v-bind="config.components?.dialog?.container"

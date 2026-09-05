@@ -75,7 +75,13 @@ const testId = computed(() => {
 				: 'dialog-tag'
 		"
 		:data-testid="testId"
-		:class="brandingStyles.brandingTag"
+		:class="[
+			brandingStyles.branding,
+			brandingStyles.brandingTag,
+			context === 'banner' || context === 'iab-banner'
+				? brandingStyles.brandingTagBanner
+				: brandingStyles.brandingTagDialog,
+		]"
 		:data-context="context"
 	>
 		<span

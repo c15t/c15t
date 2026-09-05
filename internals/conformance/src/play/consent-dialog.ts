@@ -21,6 +21,10 @@ export const dialogContract: PlayFunction = async () => {
 	assertStableElements(document.body, 'consentDialog');
 	const root = body.getByTestId('consent-dialog-root');
 	const card = body.getByTestId('consent-dialog-card');
+	const description = body.getByTestId('consent-dialog-description');
+	expect(root).toHaveAccessibleDescription(
+		(description.textContent ?? '').replace(/\s+/gu, ' ').trim()
+	);
 	const title = body.getByTestId('consent-dialog-title');
 	expect(getComputedStyle(title).marginBlockStart).toBe('0px');
 	expect(getComputedStyle(title).marginBlockEnd).toBe('0px');
