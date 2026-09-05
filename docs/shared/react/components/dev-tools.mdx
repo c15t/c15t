@@ -7,7 +7,7 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `DevTools` is a floating panel for the c15t v3 kernel. Use it during development to inspect consent values, location, the resolved policy, IAB state, kernel events, and consent actions. The framework adapter reads the kernel from the nearest v3 provider. It never discovers a store through a window global.
+  `DevTools` is a floating panel for the c15t v3 kernel. Use it during development to inspect consent values, scripts, location, the resolved policy, IAB state, events, and consent actions. The framework adapter reads the kernel from the nearest v3 provider. It never discovers a store through a window global.
 
   <Callout type="warn">
     Load DevTools only in development. A conditional JSX expression stops it from mounting in production, but a static import can still add DevTools to the production bundle. Use a development-only dynamic import as shown below. The component renders nothing into the React tree and mounts its panel in `document.body`.
@@ -29,21 +29,97 @@ group: reference
     position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
     defaultOpen={false}       // Start with panel open
     defaultTab="consents"     // Initial panel
-    maxEvents={100}            // Maximum captured kernel events
+    maxEvents={100}            // Maximum captured kernel and script events
     disabled={false}          // Disable without removing from tree
   />
   ```
 
   ## Panels
 
+  Accept and reject apply only to categories displayed by the provider, leaving
+  hidden consent values unchanged. `necessary` always remains enabled. Svelte
+  and Vue adapters use their provider's displayed categories; the kernel and
+  React adapter use the current policy categories by default.
+
+  For an imperative integration with a narrower UI, pass
+  `getConsentCategories: () => ['necessary', 'measurement']` to
+  `createDevTools`. The getter is read again when an action runs. Headless UI
+  actions can use `kernel.commands.save('all', { categories: displayed })` or
+  `kernel.commands.save('none', { categories: displayed })`. These scoped bulk
+  saves preserve the accept/reject action in the transport payload. Without an
+  explicit scope or policy categories, bulk saves cover all known categories.
+
   | Panel | What it shows |
   |-------|---------------|
-  | **Consents** | Current consent state for all categories |
+  | **Consents** | Inspect and save categories, accept all, or reject optional categories |
+  | **Scripts** | Configured scripts, loading status, search, and external page resources |
   | **Location** | Detected jurisdiction, country, region, and consent model |
   | **Policy** | Resolved policy and UI configuration |
-  | **IAB** | IAB TCF state (when enabled) - TC string, vendor consents, purposes |
-  | **Events** | Timeline of consent events and state changes |
-  | **Actions** | Buttons to trigger consent actions (accept all, reject all, reset) |
+  | **IAB** | Edit vendors, purposes, legitimate interests, and special features; save and copy TC strings |
+  | **Events** | Timeline of consent changes, kernel events, and script lifecycle events |
+  | **Actions** | Show the banner, open preferences, hide consent UI, or refresh consent data |
+
+  ### Script inspection
+
+  Set `defaultTab="scripts"` to open script inspection first. It reads all script
+  loaders attached to the current provider's kernel, including loaders created
+  before DevTools mounts. Search by script ID, category, URL, or status, then
+  expand a script to inspect its configuration and latest lifecycle event.
+
+  `loading` means an external script was inserted; `loaded` means its browser
+  load event fired, or an inline script or callback-only integration mounted.
+  `error` reports a loader error. `blocked` means consent requirements were not
+  met, and `pending` means an eligible script has not mounted. `present` means
+  the loader reused an element without a confirmed load result. `retained`
+  means consent was revoked but `persistAfterConsentRevoked` kept the element.
+  Retained scripts still receive `onConsentChange` with `hasConsent: false`, so
+  their integrations can send the vendor's consent-revocation command.
+  `alwaysLoad` bypasses the loading gate, not consent: callbacks receive the
+  actual consent state and updates across categories for integrations such as
+  Google Consent Mode.
+
+  Script details distinguish `allowedToLoad` from `consentGranted`. An
+  `alwaysLoad` integration can be allowed to load while its consent is denied.
+  Diagnostics expose these as `eligible` and `hasConsent`, respectively.
+
+  Keep script-loader debug events enabled to capture lifecycle results.
+  Setting `emitToV2DebugListeners` to `false` without `onDebug` can leave load results
+  unobserved. The page scan lists external scripts and iframes present in the
+  DOM; it does not prove that they loaded successfully or were consent-gated.
+
+  For custom inspection tools, import `getScriptDiagnostics(kernel)` and
+  `subscribeScriptDiagnostics(kernel, listener)` from
+  `@c15t/core/v3/modules/script-loader`. The subscription reports loader
+  registration, updates, disposal, and lifecycle events. Read a fresh snapshot
+  after changes and call the returned unsubscribe function during cleanup.
+
+  ### IAB editing
+
+  The IAB panel connects to the existing `@c15t/iab/v3` module attached to the
+  provider's kernel. It does not create a second CMP or replace `__tcfapi`.
+  Controls become available after initialization, when the current policy uses
+  IAB and the vendor list is loaded.
+
+  Choose Vendors, Purposes, or Special features, then search by name or ID.
+  Vendors include the provider's custom vendors. Long lists show 20 entries per
+  page. Legitimate-interest controls appear for declared legitimate interests.
+  Search only filters the view; Accept all IAB and Reject all IAB apply to the
+  configured choices, including custom vendors.
+
+  Toggles update live IAB state and script gating immediately. Use Save IAB
+  consent to generate a fresh TC string and run the configured save transport.
+  The panel displays the last generated string; unsaved edits are not represented
+  in it. Copy TC string confirms success or reports clipboard failures. Raw IAB
+  data remains available in an expandable section.
+
+  Save and refresh actions show pending, success, and failure feedback. Controls
+  are disabled while a request is pending. A failed save does not roll back the
+  live choices; retry to record them.
+
+  For custom inspection tools, `getIABControls(kernel)` and
+  `subscribeIABControls(kernel, listener)` are exported from `@c15t/core/v3`.
+  The getter returns undefined before module initialization and after disposal.
+  A snapshot without an attached IAB module is read-only in DevTools.
 
   ## TanStack Devtools
 
