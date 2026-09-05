@@ -21,7 +21,7 @@ export async function getDevToolsOption({
 		context.framework.pkg === 'c15t/next' ? 'next' : 'react';
 
 	context.logger.info(
-		'c15t DevTools helps you inspect consent state, scripts, and location overrides during development.'
+		'c15t DevTools helps you inspect consent state, policy, location, and kernel events during development.'
 	);
 	context.logger.info(
 		`Learn more: https://c15t.com/docs/frameworks/${docsFramework}/components/dev-tools`
@@ -29,7 +29,7 @@ export async function getDevToolsOption({
 
 	const enableDevTools = await p.select({
 		initialValue: true,
-		message: 'Install and enable c15t DevTools?',
+		message: 'Enable c15t DevTools?',
 		options: [
 			{
 				hint: isReactProject
@@ -39,7 +39,7 @@ export async function getDevToolsOption({
 				value: true,
 			},
 			{
-				hint: 'Skip DevTools installation and setup',
+				hint: 'Skip DevTools setup',
 				label: 'No',
 				value: false,
 			},
