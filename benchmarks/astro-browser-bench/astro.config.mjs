@@ -20,6 +20,12 @@ import { defineConfig } from 'astro/config';
  * Absolute fixture URLs on purpose: the shared resolver assumes `https` for
  * a relative URL with no `x-forwarded-proto`, which a plain HTTP bench
  * server does not speak.
+ *
+ * The shipped `pre` middleware is registered as it would be on a real site.
+ * It skips the integration's own init and manifest routes, so serving the
+ * manifest from this same process does not make the manifest request
+ * resolve consent, which would fetch the manifest, which would resolve
+ * consent.
  */
 const benchMode = process.env.C15T_BENCH_ASTRO_MODE ?? 'manifest';
 const origin = process.env.C15T_BENCH_ORIGIN ?? 'http://127.0.0.1:4353';
@@ -39,9 +45,10 @@ if (benchMode === 'manifest') {
 	integrations.push(
 		c15t({
 			consentCategories,
-			// `src/middleware.ts` registers the shipped middleware itself, so
-			// it can skip `/api/` — see the note there.
-			middleware: false,
+			// The fixture backend lives under `/api/bench-consent`, which the
+			// integration does not know about; the manifest route it does
+			// know about is skipped for it.
+			middleware: { skip: ['/api/bench-consent'] },
 			mode: manifest({
 				backendURL,
 				manifestURL: `${backendURL}/manifest`,
@@ -52,34 +59,15 @@ if (benchMode === 'manifest') {
 	integrations.push(
 		c15t({
 			consentCategories,
-			middleware: false,
+			middleware: { skip: ['/api/bench-consent'] },
 			mode: hosted({ url: backendURL }),
 		})
 	);
 }
-
-/**
- * The baseline build has no `c15t()` integration, so nothing generates
- * `virtual:c15t/options`. Stub it to `null` there — `src/middleware.ts`
- * reads that as "no consent middleware on this build".
- */
-const baselineVirtualOptions = {
-	load(id) {
-		return id === '\0virtual:c15t/options' ? 'export default null;' : undefined;
-	},
-	name: 'c15t-bench:baseline-options',
-	resolveId(id) {
-		return id === 'virtual:c15t/options' ? '\0virtual:c15t/options' : undefined;
-	},
-};
 
 export default defineConfig({
 	adapter: node({ mode: 'standalone' }),
 	integrations,
 	outDir: process.env.C15T_BENCH_OUT_DIR ?? './dist',
 	output: 'server',
-	vite:
-		benchMode === 'baseline'
-			? { plugins: [baselineVirtualOptions] }
-			: undefined,
 });
