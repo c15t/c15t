@@ -2,10 +2,10 @@
 /**
  * The preference-centre dialog.
  *
- * Renders nothing but an empty host element. The surface itself is a Svelte
- * island mounted with Svelte 5's `mount()` the first time something opens
- * it — not `client:load` — so a visitor who accepts or rejects from the
- * banner never downloads a framework at all.
+ * Renders nothing but an empty host element. The surface itself is an
+ * island in whichever framework the `ui` option names, mounted the first
+ * time something opens it — not `client:load` — so a visitor who accepts
+ * or rejects from the banner never downloads a framework at all.
  *
  * ```astro
  * ---
@@ -38,16 +38,12 @@ const { preload = false } = Astro.props;
 		getConsentClient,
 		openDialog,
 		preloadDialog,
-		registerDialogSurface,
 	} from '@c15t/astro/client';
 
-	// The specifier lives here, in a file this app's build compiles, because
-	// only that build knows how to turn a `.svelte` file into a component.
-	registerDialogSurface(
-		'svelte',
-		() => import('@c15t/astro/islands/consent-dialog-surface.svelte')
-	);
-
+	// The island's specifier is not written here: only the integration knows
+	// which framework `ui` selected, and naming all of them would make every
+	// build resolve every framework. It registers the one surface from the
+	// page script it injects.
 	const host = document.querySelector('[data-c15t-dialog-host="preferences"]');
 
 	if (host?.getAttribute('data-preload') === 'true') {

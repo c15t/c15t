@@ -61,8 +61,16 @@ export interface C15tManifestDescriptor {
 	manifest?: ConsentManifest;
 }
 
-/** Which framework renders the on-demand dialog islands. */
-export type C15tUIAdapterName = 'svelte';
+/**
+ * Which framework renders the on-demand dialog islands.
+ *
+ * Svelte is the default because it is the smallest: its runtime costs
+ * roughly 14 KB gzipped against React's ~45 KB. A site already shipping
+ * React or Vue should say so and reuse what it has instead of downloading
+ * a second framework for one dialog. The choice is never inferred — a
+ * silent change to what a page downloads is worse than an explicit one.
+ */
+export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
 
 /** Route paths the integration can inject. */
 export interface C15tEndpointOptions {
@@ -117,8 +125,11 @@ export interface C15tAstroOptions {
 	/**
 	 * Framework used to render the on-demand dialog islands.
 	 *
-	 * `'svelte'` is the only adapter today; the option exists so React, Vue
-	 * and Solid surfaces can be added without a breaking change.
+	 * `'svelte'` ships the least JavaScript and is the default. Pick
+	 * `'react'` or `'vue'` when the site already loads that runtime, so the
+	 * dialog reuses it instead of adding a second framework. Whichever you
+	 * pick, install the matching Astro integration — `@astrojs/svelte`,
+	 * `@astrojs/react` or `@astrojs/vue` — and list it before `c15t()`.
 	 *
 	 * @default 'svelte'
 	 */
@@ -145,12 +156,13 @@ export interface C15tAstroOptions {
 	middleware?: boolean;
 
 	/**
-	 * Fail the build when `@astrojs/svelte` is missing while a Svelte dialog
-	 * surface is configured. Set to `false` for banner-only sites.
+	 * Fail the build when the Astro integration for {@link C15tAstroOptions.ui}
+	 * is missing. Set to `false` for banner-only sites, which render no
+	 * island at all.
 	 *
 	 * @default true
 	 */
-	requireSvelte?: boolean;
+	requireUIIntegration?: boolean;
 }
 
 /**
@@ -212,7 +224,7 @@ export interface C15tClientOptionsExtension {
  */
 export interface C15tResolvedOptions extends Omit<
 	C15tAstroOptions,
-	'endpoints' | 'middleware' | 'requireSvelte'
+	'endpoints' | 'middleware' | 'requireUIIntegration'
 > {
 	ui: C15tUIAdapterName;
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
