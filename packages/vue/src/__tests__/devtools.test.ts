@@ -2,7 +2,7 @@ import { createConsentKernel } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { defineComponent, h, provide, ref } from 'vue';
+import { defineComponent, h, nextTick, provide, ref } from 'vue';
 import type { PropType, VNode } from 'vue';
 
 import ConsentDevToolsDefault, {
@@ -38,6 +38,37 @@ afterEach(() => {
 });
 
 describe('@c15t/vue/devtools', () => {
+	test('keeps the panel mounted when a new callback returns the same scope', async () => {
+		const getConsentCategories = ref(
+			() => ['necessary', 'measurement'] as const
+		);
+		const kernel = createConsentKernel();
+		const Root = defineComponent({
+			setup: () => () =>
+				provider(
+					kernel,
+					h(ConsentDevTools, {
+						defaultOpen: true,
+						getConsentCategories: getConsentCategories.value,
+					})
+				),
+		});
+		const wrapper = mount(Root);
+		await vi.waitFor(() => expect(mountedDevTools()).toHaveLength(1));
+		const [root] = mountedDevTools();
+		root?.querySelector<HTMLButtonElement>('[data-tab="events"]')?.click();
+		kernel.set.consent({ measurement: true });
+		const events = root?.querySelector('[role="tabpanel"]')?.textContent;
+		expect(events).toContain('consent:set');
+		getConsentCategories.value = () => ['necessary', 'measurement'] as const;
+		await nextTick();
+		expect(mountedDevTools()[0]).toBe(root);
+		expect(
+			root?.querySelector('[data-tab="events"]')?.getAttribute('aria-selected')
+		).toBe('true');
+		expect(root?.querySelector('[role="tabpanel"]')?.textContent).toBe(events);
+		wrapper.unmount();
+	});
 	test('tracks reactive categories returned by a stable getter', async () => {
 		const categories = ref<('necessary' | 'marketing' | 'measurement')[]>([
 			'necessary',

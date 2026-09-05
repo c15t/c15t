@@ -51,19 +51,19 @@ export const ConsentDevTools = defineComponent({
 
 		onMounted(() => {
 			stopWatching = watch(
-				() => [
-					props.defaultOpen,
-					props.defaultTab,
-					props.maxEvents,
-					props.position,
-					props.getConsentCategories,
-					JSON.stringify(
-						props.getConsentCategories?.() ??
-							getConsentAvailableCategories(
-								init?.value,
-								config.value.consentCategories
-							)
-					),
+				[
+					() => props.defaultOpen,
+					() => props.defaultTab,
+					() => props.maxEvents,
+					() => props.position,
+					() =>
+						JSON.stringify(
+							props.getConsentCategories?.() ??
+								getConsentAvailableCategories(
+									init?.value,
+									config.value.consentCategories
+								)
+						),
 				],
 				() => {
 					devTools?.destroy();
