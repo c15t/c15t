@@ -15,7 +15,8 @@
 				"dist-types/**",
 				"storybook-static/**",
 				"AGENTS.md",
-				"docs/**"
+				"docs/**",
+				"src/version.ts"
 			],
 			"env": ["WITH_RSDOCTOR"]
 		},
@@ -32,7 +33,13 @@
 				"$TURBO_ROOT$/docs/**",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
 			],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
@@ -43,7 +50,13 @@
 				"$TURBO_ROOT$/docs/**",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
 			],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
@@ -54,7 +67,13 @@
 				"$TURBO_ROOT$/docs/**",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
 			],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {
@@ -65,7 +84,13 @@
 				"$TURBO_ROOT$/docs/**",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
 			],
-			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"outputs": [
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**",
+				"src/version.ts"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/example-nuxt#build": {
@@ -91,7 +116,7 @@
 				"$TURBO_ROOT$/docs/**",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
 			],
-			"outputs": ["dist/**", "AGENTS.md", "docs/**"]
+			"outputs": ["dist/**", "AGENTS.md", "docs/**", "src/lib/version.ts"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
