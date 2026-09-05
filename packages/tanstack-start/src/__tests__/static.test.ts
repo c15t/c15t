@@ -99,3 +99,15 @@ describe('createStaticManifestModule: reserved export names', () => {
 		).rejects.toThrow(/valid identifier/u);
 	});
 });
+
+describe('createStaticManifestModule: strict-mode names', () => {
+	test.each(['eval', 'arguments'])('rejects %s', async (exportName) => {
+		await expect(
+			createStaticManifestModule({
+				exportName,
+				fetch: vi.fn() as unknown as typeof globalThis.fetch,
+				manifestURL: 'https://consent.example.com/manifest',
+			})
+		).rejects.toThrow(/valid identifier/u);
+	});
+});

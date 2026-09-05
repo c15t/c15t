@@ -98,6 +98,14 @@ export default mergeConfig(
 				['react-dom', resolve(__dirname, './node_modules/react-dom')],
 			]),
 		},
+		server: {
+			// Sibling packages regenerate `src/version.ts` in their own prebuild
+			// while these browser tests run against core source through the
+			// aliases above. With a file watcher active that rewrite reloads a
+			// test mid-run, which vitest-browser-react does not survive, so the
+			// watcher is off unless vitest itself runs in watch mode.
+			watch: process.env.VITEST_MODE === 'WATCH' ? undefined : null,
+		},
 		test: {
 			browser: {
 				enabled: true,

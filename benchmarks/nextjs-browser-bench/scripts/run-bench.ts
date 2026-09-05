@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -184,6 +185,21 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		{ timeout: 30_000 }
 	);
 	return performance.now() - startedAt;
+};
+
+const waitForExit = async function waitForExit(
+	child: ReturnType<typeof spawn>,
+	timeoutMs: number
+): Promise<boolean> {
+	if (child.exitCode !== null || child.signalCode !== null) {
+		return true;
+	}
+	try {
+		await once(child, 'exit', { signal: AbortSignal.timeout(timeoutMs) });
+		return true;
+	} catch {
+		return false;
+	}
 };
 
 const waitForServer = async function waitForServer() {
@@ -733,9 +749,11 @@ const run = async function run() {
 		await browser.close();
 	} finally {
 		server.kill('SIGTERM');
-		await sleep(500);
-		if (!server.killed) {
+		// `killed` only confirms signal delivery; wait for the process to
+		// actually exit before judging its status, escalating if it lingers.
+		if (!(await waitForExit(server, 500))) {
 			server.kill('SIGKILL');
+			await waitForExit(server, 2000);
 		}
 		if (
 			server.exitCode !== null &&

@@ -709,3 +709,42 @@ describe('fetchCachedManifest: upstream Age', () => {
 		expect(cache.get(SOURCE_URL)).toBeUndefined();
 	});
 });
+
+describe('clearManifestCache during cache-key construction', () => {
+	test('a clear that lands while the key is digested cannot seed the new in-flight map', async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(createManifestFixture()), {
+					headers: { 'cache-control': 'public, s-maxage=60' },
+					status: 200,
+				})
+			)
+		) as unknown as ManifestFetch;
+		const cache = createManifestCache();
+		const headers = { authorization: 'Bearer scope' };
+
+		// Credentialed keys are digested asynchronously, so the clear runs
+		// between capturing the generation and registering the fill.
+		const early = fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			headers,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		clearManifestCache(cache);
+		await early;
+		const later = await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			headers,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+
+		// The early fill restarted after the clear and stored under the new
+		// generation, so the later call is a cache hit on a post-clear entry.
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(later).toBe(await early);
+	});
+});

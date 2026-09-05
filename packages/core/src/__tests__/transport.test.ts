@@ -2493,3 +2493,31 @@ describe('hosted transport: GPC in decision assertions', () => {
 		});
 	});
 });
+
+describe('hosted transport: init context', () => {
+	test('sends the kernel overrides as canonical consent headers on init', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/api/c15t/init',
+		});
+
+		await transport.init?.({
+			overrides: { country: 'FR', gpc: true, language: 'fr', region: 'IDF' },
+			user: null,
+		});
+
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		expect((init as RequestInit).headers).toMatchObject({
+			'accept-language': 'fr',
+			'sec-gpc': '1',
+			'x-c15t-country': 'FR',
+			'x-c15t-region': 'IDF',
+		});
+	});
+});

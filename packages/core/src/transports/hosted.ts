@@ -24,6 +24,7 @@
 import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
+import { buildRequestContextHeaders } from '../libs/request-context';
 import type { SSRInitialData } from '../options/ssr';
 import type {
 	InitContext,
@@ -288,13 +289,25 @@ export const createHostedTransport = function createHostedTransport(
 		return { ...data.init, gvl: data.gvl ?? data.init.gvl } as InitOutput;
 	};
 
-	const fetchInit = async function fetchInit(): Promise<InitOutput> {
+	const overrideHeaders = function overrideHeaders(
+		ctx: InitContext
+	): Record<string, string> {
+		const headers = buildRequestContextHeaders(ctx.overrides);
+		if (ctx.overrides.gpc !== undefined) {
+			headers['sec-gpc'] = ctx.overrides.gpc ? '1' : '0';
+		}
+		return headers;
+	};
+
+	const fetchInit = async function fetchInit(
+		headers: Record<string, string>
+	): Promise<InitOutput> {
 		const response = await fetchImpl(initURL, {
 			credentials,
 			headers: {
 				accept: 'application/json',
 				...c15tVersionHeaders,
-				...initHeaders,
+				...headers,
 			},
 			method: 'GET',
 		});
@@ -331,19 +344,23 @@ export const createHostedTransport = function createHostedTransport(
 			await patchIdentity(user, resolvedSubjectId);
 		},
 
-		async init(_ctx: InitContext): Promise<InitResponse> {
+		async init(ctx: InitContext): Promise<InitResponse> {
+			// The kernel's current overrides (country, region, language, GPC)
+			// travel as the canonical consent headers so a same-origin init
+			// route resolves the requested inputs rather than the CDN's.
+			const headers = { ...initHeaders, ...overrideHeaders(ctx) };
 			const prefetched = await consumeInitialData();
-			const payload = prefetched ?? (await fetchInit());
+			const payload = prefetched ?? (await fetchInit(headers));
 			if (options.assertDecisionInputs) {
 				// Explicit headers first; otherwise the GPC value the resolver
 				// saw (the browser sends Sec-GPC itself on a same-origin init),
 				// so the assertion carries the input that produced the decision.
 				lastDecisionInputs = rememberDecisionInputs(
 					payload,
-					gpcFromHeaders(initHeaders) ?? resolvedGpc(payload)
+					gpcFromHeaders(headers) ?? resolvedGpc(payload)
 				);
 			}
-			const result = mapInitOutputToInitResponse(payload, initHeaders);
+			const result = mapInitOutputToInitResponse(payload, headers);
 			if (result.subjectId) {
 				establishedSubjectId = result.subjectId;
 				await flushPendingIdentities(result.subjectId);

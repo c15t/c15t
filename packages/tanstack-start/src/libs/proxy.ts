@@ -181,6 +181,18 @@ const decodeSegment = function decodeSegment(segment: string): string | null {
 	}
 };
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+
+/** `true` for an `http:` target that is not a loopback host. */
+const isCleartextRemote = function isCleartextRemote(url: string): boolean {
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === 'http:' && !LOOPBACK_HOSTS.has(parsed.hostname);
+	} catch {
+		return false;
+	}
+};
+
 const MAX_DECODE_PASSES = 3;
 
 /**
@@ -395,6 +407,11 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	const { search } = new URL(request.url);
 	const base = backendURL.replace(/\/+$/u, '');
 	const target = `${base}/${normalized}${search}`;
+	// Named cookies never travel in clear text to a remote backend; a
+	// loopback host is allowed for local development.
+	const cookieNames = isCleartextRemote(target)
+		? undefined
+		: options.cookieNames;
 	// Belt and braces: the segment check above rejects anything the URL
 	// parser would fold, so the parsed target must still sit exactly at the
 	// allowlisted path under the backend base.
@@ -407,7 +424,7 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 		headers: buildProxyRequestHeaders(
 			request,
 			options.forwardHeaders,
-			options.cookieNames,
+			cookieNames,
 			options.trustForwardedHeaders
 		),
 		method,

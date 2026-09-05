@@ -62,6 +62,14 @@ export default mergeConfig(
 	defineConfig({
 		plugins: [react()],
 		resolve: { alias },
+		server: {
+			// Sibling packages regenerate `src/version.ts` in their own prebuild
+			// while these browser tests run against core source through the
+			// aliases above. With a file watcher active that rewrite reloads a
+			// test mid-run, which vitest-browser-react does not survive, so the
+			// watcher is off unless vitest itself runs in watch mode.
+			watch: process.env.VITEST_MODE === 'WATCH' ? undefined : null,
+		},
 		test: {
 			coverage: {
 				// Coverage ratchet: floors below current coverage so regressions

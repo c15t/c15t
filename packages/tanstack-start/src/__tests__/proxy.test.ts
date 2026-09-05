@@ -586,3 +586,43 @@ describe('proxy on: double encoding, timeout, default cookies', () => {
 		expect(upstreamCall(fetch).headers.get('cookie')).toBeNull();
 	});
 });
+
+describe('proxy on: cleartext backends', () => {
+	test('never sends named cookies to a remote http backend', async () => {
+		const fetch = createUpstream();
+		const handlers = createConsentServerRoute({
+			backendURL: 'http://consent.internal.example',
+			cache: createManifestCache(),
+			fetch,
+			proxy: { cookieNames: ['c15t'] },
+		});
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { cookie: 'c15t=abc' },
+				method: 'POST',
+			}),
+		});
+		expect(upstreamCall(fetch).headers.get('cookie')).toBeNull();
+	});
+
+	test('still forwards named cookies to a loopback http backend', async () => {
+		const fetch = createUpstream();
+		const handlers = createConsentServerRoute({
+			backendURL: 'http://localhost:3010/api/self-host',
+			cache: createManifestCache(),
+			fetch,
+			proxy: { cookieNames: ['c15t'] },
+		});
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { cookie: 'c15t=abc' },
+				method: 'POST',
+			}),
+		});
+		expect(upstreamCall(fetch).headers.get('cookie')).toBe('c15t=abc');
+	});
+});

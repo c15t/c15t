@@ -395,13 +395,10 @@ const digest = async function digest(value: string): Promise<string> {
 			byte.toString(16).padStart(2, '0')
 		).join('');
 	}
-	// Polynomial string hash for runtimes without WebCrypto; only a
-	// partition key, never a secret.
-	let hash = 7;
-	for (let index = 0; index < value.length; index += 1) {
-		hash = (hash * 31 + value.charCodeAt(index)) % 4_294_967_296;
-	}
-	return hash.toString(16);
+	// Without WebCrypto, keep the canonical scope itself: the key only ever
+	// lives in this process's memory, and a lossy hash could merge two
+	// credential scopes.
+	return value;
 };
 
 /**
@@ -541,6 +538,11 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	// being digested still invalidates this fill.
 	const generation = getGeneration(cache);
 	const cacheKey = await buildCacheKey(requestURL, options.headers);
+	if (getGeneration(cache) !== generation) {
+		// A clear landed while the key was being digested: start over so this
+		// fill can neither reuse nor register anything from before the clear.
+		return fetchCachedManifest(options);
+	}
 	const now = options.now ?? Date.now();
 	const cached = cache.get(cacheKey);
 	if (cached && cached.expiresAt > now) {

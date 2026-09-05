@@ -9,6 +9,7 @@ import { baseTranslations } from '@c15t/translations/all';
 
 /** Names that parse but cannot be bound with `export const`. */
 const RESERVED_EXPORT_NAMES = new Set([
+	'arguments',
 	'await',
 	'break',
 	'case',
@@ -22,6 +23,7 @@ const RESERVED_EXPORT_NAMES = new Set([
 	'do',
 	'else',
 	'enum',
+	'eval',
 	'export',
 	'extends',
 	'false',
