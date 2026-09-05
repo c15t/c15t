@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { once } from 'node:events';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
@@ -24,22 +24,6 @@ const getFreePort = async function getFreePort(): Promise<number> {
 	return port;
 };
 
-/**
- * Reads the cell's `build` script so flags such as `--webpack` apply when the
- * global setup builds the app itself instead of Turbo running the script.
- */
-const readBuildArgs = function readBuildArgs(appDir: string): string[] {
-	const manifest = JSON.parse(
-		readFileSync(join(appDir, 'package.json'), 'utf8')
-	) as { scripts?: { build?: string } };
-	const script = manifest.scripts?.build ?? 'next build';
-	const [command, ...args] = script.split(/\s+/u);
-	if (command !== 'next') {
-		throw new Error(`expected a next build script, got "${script}"`);
-	}
-	return args;
-};
-
 const resolveNextBin = function resolveNextBin(appDir: string): string {
 	const require = createRequire(join(appDir, 'package.json'));
 	return require.resolve('next/dist/bin/next');
@@ -48,9 +32,10 @@ const resolveNextBin = function resolveNextBin(appDir: string): string {
 const run = async function run(
 	args: string[],
 	appDir: string,
-	label: string
+	label: string,
+	command: string = process.execPath
 ): Promise<void> {
-	const child = spawn(process.execPath, args, {
+	const child = spawn(command, args, {
 		cwd: appDir,
 		env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
 		stdio: ['ignore', 'pipe', 'pipe'],
@@ -109,7 +94,8 @@ export default async function setup(project: TestProject) {
 		(process.env.COMPAT_FORCE_BUILD === '1' ||
 			!existsSync(join(appDir, '.next', 'BUILD_ID')))
 	) {
-		await run([nextBin, ...readBuildArgs(appDir)], appDir, 'next build');
+		// The cell's build script installs the packed packages before `next build`.
+		await run(['run', 'build'], appDir, 'bun run build', 'bun');
 	}
 
 	const port = await getFreePort();

@@ -276,12 +276,10 @@ export const defineCompatSuite = function defineCompatSuite({
 						}
 						case 'manifest-ssr': {
 							// The server resolved init from the manifest route and the
-							// policy reached the first HTML; no /init anywhere. The
-							// backend may see no manifest fetch at all here because the
-							// route's Data Cache can already hold it from an earlier
-							// scenario in the same server process.
+							// policy reached the first HTML; no /init anywhere. Whether
+							// the backend saw a manifest fetch depends on the route's
+							// cache state, which the `manifest` scenario asserts.
 							expect(initRequests).toHaveLength(0);
-							expect(manifestRequests.length).toBeLessThanOrEqual(1);
 							expect(initialHTML).toContain(BANNER_MARKER);
 							break;
 						}

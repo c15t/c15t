@@ -5,7 +5,7 @@
 	"description": "Compatibility fixture: Next.js 16, App Router, default caching.",
 	"type": "module",
 	"scripts": {
-		"build": "next build",
+		"build": "bun ../shared/scripts/pack.ts && next build",
 		"dev": "next dev",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint .",
