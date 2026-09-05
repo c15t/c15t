@@ -322,11 +322,19 @@ const onAction = async function onAction(action: PresentationAction) {
 					:inert="!isOpen(category)"
 				>
 					<div
-						:class="pi.contentViewport()"
+						:class="
+							pi.contentViewport({
+								class: noStyle ? undefined : accordionStyles.contentViewport,
+							})
+						"
 						data-slot="preference-item-content-viewport"
 					>
 						<div
-							:class="pi.contentInner()"
+							:class="
+								pi.contentInner({
+									class: noStyle ? undefined : accordionStyles.contentInner,
+								})
+							"
 							data-slot="preference-item-content-inner"
 						>
 							{{ consentDescription(category) }}

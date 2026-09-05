@@ -19,6 +19,26 @@ export const dialogContract: PlayFunction = async () => {
 	await body.findByTestId('consent-dialog-root');
 	assertDomContract(document.body, 'consentDialog');
 	assertStableElements(document.body, 'consentDialog');
+	const root = body.getByTestId('consent-dialog-root');
+	const card = body.getByTestId('consent-dialog-card');
+	await waitFor(() => {
+		const focused = document.activeElement;
+		expect(root.contains(focused)).toBe(true);
+		if (
+			focused instanceof HTMLElement &&
+			getComputedStyle(focused).outlineStyle !== 'none'
+		) {
+			expect(focused.getBoundingClientRect().width).toBeLessThanOrEqual(
+				card.getBoundingClientRect().width + 4
+			);
+		}
+		if (root.dataset.slot === 'dialog-content' && focused === root) {
+			expect(getComputedStyle(card).outlineStyle).not.toBe('none');
+			expect(
+				Number.parseFloat(getComputedStyle(card).outlineWidth)
+			).toBeGreaterThan(0);
+		}
+	});
 };
 
 /**
