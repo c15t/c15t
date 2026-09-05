@@ -102,14 +102,14 @@ export const createIframeBlocker = function createIframeBlocker(
 		}
 		if (
 			snapshot.effectivePermissions === lastConsents &&
-			snapshot.policyCategories === lastPolicyCategories &&
-			snapshot.policyScopeMode === lastScopeMode
+			snapshot.policyRule.scope === lastPolicyCategories &&
+			snapshot.policyRule.scopeMode === lastScopeMode
 		) {
 			return;
 		}
 		lastConsents = snapshot.effectivePermissions;
-		lastPolicyCategories = snapshot.policyCategories;
-		lastScopeMode = snapshot.policyScopeMode;
+		lastPolicyCategories = snapshot.policyRule.scope;
+		lastScopeMode = snapshot.policyRule.scopeMode;
 		processAll();
 	});
 

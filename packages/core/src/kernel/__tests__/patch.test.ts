@@ -65,7 +65,7 @@ describe('applyPatch', () => {
 		expect(snapshotChanged(initial, next)).toBe(true);
 	});
 
-	test('a resolution patch replaces the rule, the legacy bridge and the model', () => {
+	test('a resolution patch replaces the rule and the model', () => {
 		const initial = buildInitialSnapshot({ now: NOW });
 		expect(initial.model).toBe('opt-in');
 		const next = applyPatch(initial, {
@@ -73,8 +73,8 @@ describe('applyPatch', () => {
 		});
 		expect(next.model).toBe('opt-out');
 		expect(next.policyRule.id).toBe('test-opt-out');
-		expect(next.policy?.model).toBe('opt-out');
-		expect(next.policy?.ui?.mode).toBe('none');
+		expect(next.policyRule.model).toBe('opt-out');
+		expect(next.policyRule.prompt).toBe('none');
 		expect(next.promptRequirement).toEqual({ kind: 'none' });
 		expect(next.effectivePermissions.marketing).toBe(true);
 		expect(next.activeUI).toBe('none');

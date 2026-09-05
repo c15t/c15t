@@ -619,23 +619,19 @@ describe('policy resolution outcomes', () => {
 		expect(kernel.getSnapshot().policyRule.id).toBe('second');
 	});
 
-	test('a legacy initialPolicy without a resolution stays hidden until the no-transport init lifts it', async () => {
+	test('no-transport init preserves the precomputed policy resolution', async () => {
+		const resolution = fixtureResolution({ model: 'opt-out' });
 		const kernel = createConsentKernel({
-			initialPolicy: {
-				consent: { categories: ['*'], scopeMode: 'permissive' },
-				id: 'legacy-opt-out',
-				model: 'opt-out',
-				ui: { mode: 'none' },
-			},
+			initialPolicyPending: true,
+			initialPolicyResolution: resolution,
 			now: POLICY_NOW,
 		});
 		expect(kernel.getSnapshot().activeUI).toBe('none');
-		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		await kernel.commands.init();
-		expect(kernel.getSnapshot().resolution.status).toBe('matched');
+		expect(kernel.getSnapshot().resolution).toEqual(resolution);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().model).toBe('opt-out');
-		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
-		expect(kernel.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+		kernel.dispose();
 	});
 });
 
@@ -644,7 +640,6 @@ describe('lifecycle: timers, refresh, dispose, rearm', () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(POLICY_NOW);
 	});
-
 	afterEach(() => {
 		vi.useRealTimers();
 	});

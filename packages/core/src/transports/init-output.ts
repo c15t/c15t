@@ -26,7 +26,6 @@ import type {
 } from '@c15t/schema/types';
 import {
 	POLICY_CONTRACT_VERSION,
-	readLegacyPolicyWire,
 	readPolicyResolutionWire,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -42,12 +41,7 @@ import type {
 import type { TransportHydrationRecords } from './subject-record';
 
 type RichInitOutput = InitOutput &
-	Partial<
-		Pick<
-			InitResponse,
-			'consents' | 'hasConsented' | 'resolvedOverrides' | 'subjectId'
-		>
-	>;
+	Partial<Pick<InitResponse, 'consents' | 'resolvedOverrides' | 'subjectId'>>;
 
 /**
  * Detected privacy signals reported by a transport.
@@ -147,7 +141,7 @@ export const mapPrivacySignals = function mapPrivacySignals(
  * response.
  */
 export const resolveInitPolicyWire = function resolveInitPolicyWire(
-	payload: Pick<InitOutput, 'policy' | 'policyDecision' | 'policyResolution'>,
+	payload: Pick<InitOutput, 'policyResolution'>,
 	options: MapInitOutputOptions = {}
 ): PolicyResolutionWire {
 	const declared = options.producerContract;
@@ -161,12 +155,7 @@ export const resolveInitPolicyWire = function resolveInitPolicyWire(
 	if (declared !== undefined) {
 		return writePolicyResolutionWire(FAILED_INVALID_PAYLOAD);
 	}
-	return writePolicyResolutionWire(
-		readLegacyPolicyWire({
-			policy: payload.policy,
-			policyDecision: payload.policyDecision,
-		})
-	);
+	return writePolicyResolutionWire(FAILED_UNSUPPORTED_CONTRACT);
 };
 
 export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
@@ -196,9 +185,6 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (branding !== undefined) {
 		mapped.branding = branding;
 	}
-	if (payload.policy !== undefined) {
-		mapped.policy = payload.policy;
-	}
 	if (payload.policyDecision !== undefined) {
 		mapped.policyDecision = payload.policyDecision;
 	}
@@ -210,16 +196,6 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	}
 	if (payload.cmpId !== undefined) {
 		mapped.cmpId = payload.cmpId;
-	}
-	if (payload.consents !== undefined) {
-		// BRIDGE: the hosted service's `consents` is a boolean map without
-		// per-category times or a policy basis, so it cannot become a receipt.
-		// The kernel seeds only its draft from it. `hasConsented` is passed
-		// through for the same bridge and never gates anything.
-		mapped.consents = payload.consents;
-		mapped.hasConsented = payload.hasConsented ?? true;
-	} else if (payload.hasConsented !== undefined) {
-		mapped.hasConsented = payload.hasConsented;
 	}
 	if (payload.subjectId !== undefined && payload.subjectId !== null) {
 		mapped.subjectId = payload.subjectId;
@@ -284,11 +260,6 @@ export const mergeInitResponseIntoKernelConfig =
 				...(response.consents as Partial<ConsentState>),
 			};
 		}
-		if (response.hasConsented !== undefined) {
-			merged.initialHasConsented = response.hasConsented;
-		} else if (response.consents) {
-			merged.initialHasConsented = true;
-		}
 		if (response.subjectId) {
 			merged.initialSubjectId = response.subjectId;
 		}
@@ -312,9 +283,6 @@ export const mergeInitResponseIntoKernelConfig =
 			// resolution and never lifts or hashes anything itself.
 			const resolution = readPolicyResolutionWire(response.policyResolution);
 			merged.initialPolicyResolution = resolution;
-		}
-		if (response.policy !== undefined) {
-			merged.initialPolicy = response.policy;
 		}
 		if (response.policyDecision !== undefined) {
 			merged.initialPolicyDecision = response.policyDecision;
@@ -349,7 +317,6 @@ export const mergeInitResponseIntoKernelConfig =
 		) {
 			// Clear after folding the response: a failed producer may include
 			// stale legacy metadata alongside its non-matching resolution.
-			delete merged.initialPolicy;
 			delete merged.initialPolicyDecision;
 			delete merged.initialPolicySnapshotToken;
 			delete merged.initialIab;

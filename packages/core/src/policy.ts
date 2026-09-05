@@ -8,24 +8,17 @@
 import type {
 	PolicyFingerprints,
 	PolicyResolution,
-	ResolvedPolicy,
 	ResolvedPolicyRule,
 } from '@c15t/schema/types';
-import {
-	projectPolicyRuleToLegacy,
-	safeFallbackPolicyInput,
-} from '@c15t/schema/types';
+import { safeFallbackPolicyInput } from '@c15t/schema/types';
 
 import { createEvaluationPolicy } from './consent-record/evaluation-policy';
-import { OPTIONAL_CONSENT_CATEGORIES } from './consent-record/types';
 import type {
 	EvaluationPolicy,
 	ExplicitChoice,
 	OptionalConsentCategory,
 	PromptRequirement,
 } from './consent-record/types';
-import type { AllConsentNames } from './consent/consent-types';
-import { allConsentNames } from './consent/consent-types';
 import type { KernelActiveUI, KernelModel } from './types';
 
 /** Rule plus fingerprints the evaluator runs on. */
@@ -96,18 +89,15 @@ export const deriveModel = function deriveModel(
 /**
  * Which surface the first layer should use for the remaining prompt.
  * Visibility follows the prompt requirement, never `hasConsented`. A
- * provisional placeholder policy and a failed resolution keep the first
- * layer hidden (the existing failed-init behavior). Presentation of a
- * choice prompt still reads the legacy `ui.mode` bridge for banner versus
- * dialog; a notice is a non-blocking banner.
+ * pending policy and a failed resolution keep the first layer hidden.
+ * Adapters resolve the host presentation for a required prompt.
  */
 export const deriveActiveUI = function deriveActiveUI(input: {
 	promptRequirement: PromptRequirement;
-	policy: ResolvedPolicy | null;
-	policyProvisional: boolean;
+	policyPending: boolean;
 	resolution: PolicyResolution;
 }): KernelActiveUI {
-	if (input.policyProvisional || input.resolution.status === 'failed') {
+	if (input.policyPending || input.resolution.status === 'failed') {
 		return 'none';
 	}
 	if (input.promptRequirement.kind === 'none') {
@@ -116,29 +106,7 @@ export const deriveActiveUI = function deriveActiveUI(input: {
 	if (input.promptRequirement.kind === 'notice') {
 		return 'banner';
 	}
-	return input.policy?.ui?.mode === 'dialog' ? 'dialog' : 'banner';
-};
-
-/**
- * BRIDGE category allowlist. Empty means every category is in scope.
- */
-export const derivePolicyCategories = function derivePolicyCategories(
-	rule: ResolvedPolicyRule
-): AllConsentNames[] {
-	if (rule.scope.length === OPTIONAL_CONSENT_CATEGORIES.length) {
-		return [];
-	}
-	const scope = new Set<string>(rule.scope);
-	return allConsentNames.filter(
-		(name) => name === 'necessary' || scope.has(name)
-	);
-};
-
-/** BRIDGE legacy presentation projection of the effective rule. */
-export const legacyPolicyForRule = function legacyPolicyForRule(
-	rule: ResolvedPolicyRule
-): ResolvedPolicy {
-	return projectPolicyRuleToLegacy(rule);
+	return 'banner';
 };
 
 /** Values a form would present before any restriction is applied. */

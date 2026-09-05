@@ -43,7 +43,7 @@ const payload: InitOutput = {
 	translations: { language: 'en', translations: {} },
 };
 const expectNoProof = (config: ReturnType<typeof initOutputToKernelConfig>) => {
-	expect(config.initialPolicy).toBeUndefined();
+	expect(config).not.toHaveProperty('initialPolicy');
 	expect(config.initialPolicyDecision).toBeUndefined();
 	expect(config.initialPolicySnapshotToken).toBeUndefined();
 	expect(config.initialIab).toBeUndefined();
@@ -73,7 +73,6 @@ describe('prefetch policy metadata', () => {
 		});
 		const next = mergeInitResponseIntoKernelConfig(base, {
 			cmpId: 999,
-			policy: payload.policy,
 			policyDecision: payload.policyDecision,
 			policyResolution: writePolicyResolutionWire(resolution),
 			policySnapshotToken: 'another-stale-token',

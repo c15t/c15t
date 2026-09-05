@@ -217,9 +217,7 @@ const prepareConfig = (
 		};
 	}
 	delete config.initialConsents;
-	delete config.initialHasConsented;
 	delete config.initialSubjectId;
-	delete config.initialPolicy;
 	if (config.initialPolicyResolution?.status !== 'matched') {
 		delete config.initialPolicyDecision;
 		delete config.initialPolicySnapshotToken;

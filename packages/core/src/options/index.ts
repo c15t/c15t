@@ -2,8 +2,6 @@ export type {
 	Callback,
 	Callbacks,
 	OnBannerFetchedPayload,
-	OnConsentChangedPayload,
-	OnConsentSetPayload,
 	OnChoiceRecordedPayload,
 	OnPermissionsChangedPayload,
 	OnErrorPayload,
@@ -19,7 +17,6 @@ export type {
 	TCFConsentData,
 } from './iab-tcf';
 export type { LegalLink, LegalLinks } from './legal-links';
-export type { OfflinePolicyConfig } from './offline-policy';
 export type { Overrides } from './overrides';
 export type {
 	SSRInitialData,

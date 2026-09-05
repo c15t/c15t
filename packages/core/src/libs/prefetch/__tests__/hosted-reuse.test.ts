@@ -88,7 +88,7 @@ describe('hosted browser prefetch consumption', () => {
 		}
 	);
 
-	it('uses the legacy wire reader when the producer did not declare a contract', async () => {
+	it('rejects cached responses that predate the policy contract', async () => {
 		vi.stubGlobal(
 			'fetch',
 			vi.fn().mockResolvedValue(response({ policy: legacyPolicy }, null))
@@ -98,8 +98,8 @@ describe('hosted browser prefetch consumption', () => {
 			backendURL: '/api/c15t',
 		}).init?.(context);
 		expect(result?.policyResolution).toMatchObject({
-			policyId: 'legacy',
-			status: 'matched',
+			reason: 'unsupported-contract',
+			status: 'failed',
 		});
 	});
 

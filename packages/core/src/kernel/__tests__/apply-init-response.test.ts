@@ -43,16 +43,16 @@ describe('readInitResolution', () => {
 		});
 	});
 
-	test('a legacy policy field is lifted, the no_banner sentinel is no-match', () => {
-		expect(readInitResolution({ policy: LEGACY_OPT_OUT })).toMatchObject({
-			policyId: 'legacy-opt-out',
-			status: 'matched',
+	test('a legacy policy field cannot establish authority without the versioned contract', () => {
+		const response = {
+			policy: LEGACY_OPT_OUT,
+			policySnapshotToken: 'old-token',
+		};
+		expect(readInitResolution(response)).toEqual({
+			policy: null,
+			reason: 'invalid-payload',
+			status: 'failed',
 		});
-		expect(
-			readInitResolution({
-				policy: { id: 'no_banner', model: 'none', ui: { mode: 'none' } },
-			})
-		).toEqual({ policy: null, status: 'no-match' });
 	});
 
 	test('a response without any policy field is a malformed complete init', () => {
@@ -68,13 +68,13 @@ describe('applyInitResponse', () => {
 	test('an empty response is a complete init: finalizes and fails safely', () => {
 		const snap = buildInitialSnapshot({ now: NOW });
 		const { patch } = applyInitResponse(snap, {}, NOW);
-		expect(patch.policyProvisional).toBe(false);
+		expect(patch.policyPending).toBe(false);
 		expect(patch.resolution).toEqual({
 			policy: null,
 			reason: 'invalid-payload',
 			status: 'failed',
 		});
-		expect(patch.policy).toBeNull();
+		expect(patch.policySnapshotToken).toBeNull();
 	});
 
 	test('a complete response replaces a prior matched resolution', () => {
@@ -132,13 +132,12 @@ describe('applyInitResponse', () => {
 		expect(patch.iab?.enabled).toBe(false);
 	});
 
-	test('consents seed the draft, hasConsented is ignored, records hydrate', () => {
+	test('consents seed the draft and records hydrate', () => {
 		const snap = buildInitialSnapshot({ now: NOW });
 		const applied = applyInitResponse(
 			snap,
 			{
 				consents: { marketing: true },
-				hasConsented: true,
 				records: choiceRecords({ measurement: true }),
 				subjectId: 'sub_server',
 			},
@@ -177,30 +176,21 @@ describe('applyInitResponse', () => {
 		expect(patch.overrides).toBeUndefined();
 	});
 
-	test('legacy policy carries banner/dialog UI hints and the token', () => {
+	test('a matched policy contract carries its token', () => {
 		const snap = buildInitialSnapshot({ now: NOW });
+		const resolution = matchedResolution(optOutRule());
 		const { patch } = applyInitResponse(
 			snap,
 			{
-				policy: {
-					...LEGACY_OPT_OUT,
-					ui: {
-						banner: { theme: 'dark' },
-						dialog: { theme: 'light' },
-						mode: 'banner',
-					},
-					// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-				} as any,
+				policyResolution: { ...resolution, version: 1 },
 				policySnapshotToken: 'tok-1',
 			},
 			NOW
 		);
 		const next = applyPatch(snap, patch);
-		expect(next.policyBanner).toEqual({ theme: 'dark' });
-		expect(next.policyDialog).toEqual({ theme: 'light' });
 		expect(next.policySnapshotToken).toBe('tok-1');
+		expect(next.policyRule).toEqual(resolution.policy);
 		expect(next.model).toBe('opt-out');
-		expect(next.resolution.status).toBe('matched');
 	});
 
 	test('same-language partial translations deep-merge over current copy', () => {

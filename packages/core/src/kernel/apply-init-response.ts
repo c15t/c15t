@@ -1,29 +1,9 @@
 /**
- * Fold an `InitResponse` from a transport onto a snapshot.
- *
- * Pure: takes the current snapshot, the response, the staged legacy policy
- * and the evaluation time, and returns the patch plus the draft seed. A
- * transport response is a complete init, not an internal patch: the policy
- * resolution is always replaced, never preserved from a previous init.
- *
- * Resolution precedence:
- * 1. An own `policyResolution` field is read with the strict schema
- *    reader. Anything the client cannot represent fails safely.
- * 2. Otherwise an own legacy `policy` field is lifted through the
- *    versioned legacy producer bridge (`readLegacyPolicyWire`).
- * 3. Otherwise the response is malformed: `failed` with `invalid-payload`.
- *    A transport that answered is a producer; a legacy policy staged from
- *    config never rescues its malformed response. Only the no-transport
- *    init path lifts the staged policy or reports `unconfigured`.
- *
- * Every non-matched outcome clears the legacy policy, decision, token and
- * the policy-derived IAB enablement before the safe fallback applies.
+ * Fold a complete transport response through the versioned policy reader.
+ * Missing or invalid policy contracts fail safely and clear policy proof.
  */
 import type { PolicyResolution } from '@c15t/schema/types';
-import {
-	readLegacyPolicyWire,
-	readPolicyResolutionWire,
-} from '@c15t/schema/types';
+import { readPolicyResolutionWire } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
@@ -72,12 +52,6 @@ export const readInitResolution = function readInitResolution(
 	if (Object.hasOwn(response, 'policyResolution')) {
 		return readPolicyResolutionWire(response.policyResolution);
 	}
-	if (Object.hasOwn(response, 'policy')) {
-		return readLegacyPolicyWire({
-			policy: response.policy,
-			policyDecision: response.policyDecision,
-		});
-	}
 	return { policy: null, reason: 'invalid-payload', status: 'failed' };
 };
 
@@ -99,7 +73,7 @@ export const applyInitResponse = function applyInitResponse(
 	response: InitResponse,
 	now: number
 ): AppliedInitResponse {
-	const patch: SnapshotPatch = { now, policyProvisional: false };
+	const patch: SnapshotPatch = { now, policyPending: false };
 
 	if (response.resolvedOverrides) {
 		patch.overrides = {
@@ -122,11 +96,9 @@ export const applyInitResponse = function applyInitResponse(
 	const resolution = readInitResolution(response);
 	patch.resolution = resolution;
 	if (resolution.status === 'matched') {
-		patch.policy = response.policy ?? null;
 		patch.policyDecision = response.policyDecision ?? null;
 		patch.policySnapshotToken = response.policySnapshotToken ?? null;
 	} else {
-		patch.policy = null;
 		patch.policyDecision = null;
 		patch.policySnapshotToken = null;
 	}

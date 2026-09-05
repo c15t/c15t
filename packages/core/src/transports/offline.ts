@@ -18,19 +18,12 @@
  * - Apps that deliberately choose a bundled policy instead of a backend.
  */
 import type {
-	PolicyConfig,
-	PolicyDecision,
 	PolicyResolution,
 	PolicyRule,
-	ResolvedPolicy,
 	TranslationsResponse,
 } from '@c15t/schema/types';
 import {
-	buildDefaultOptInPolicy,
-	liftLegacyPolicyConfig,
-	projectPolicyRuleToLegacy,
 	resolvePolicyRules,
-	resolvePolicySync,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 
@@ -58,12 +51,6 @@ export interface OfflineTransportOptions {
 	 * `policyPacks`, not both.
 	 */
 	policyRules?: PolicyRule[];
-
-	/**
-	 * BRIDGE: legacy policy packs, lifted to rules at init time. Removed in
-	 * the v3 final sweep; prefer `policyRules`.
-	 */
-	policyPacks?: PolicyConfig[];
 
 	/**
 	 * Translations to serve. Optional — defaults to en with empty
@@ -121,52 +108,6 @@ const normalizeTranslations = function normalizeTranslations(
 	};
 };
 
-/** The v2 no-match sentinel, which an old kernel reads as "no banner". */
-const legacyNoMatch = (): ResolvedPolicy => ({
-	id: 'no_banner',
-	model: 'none',
-	ui: { mode: 'none' },
-});
-
-/**
- * BRIDGE: the legacy field for a v3 outcome. A matched rule projects to the
- * strictest v2 shape it has; no rules at all keeps the historical default
- * opt-in banner; a configured pack that matched nothing is the v2 sentinel.
- */
-const legacyPolicyFor = function legacyPolicyFor(
-	resolution: PolicyResolution,
-	rules: readonly PolicyRule[] | undefined
-): ResolvedPolicy {
-	if (resolution.status === 'matched') {
-		return projectPolicyRuleToLegacy(resolution.policy);
-	}
-	if (rules === undefined || rules.length === 0) {
-		return buildDefaultOptInPolicy();
-	}
-	return legacyNoMatch();
-};
-
-/**
- * The rule set to resolve, lifting legacy packs once per transport rather
- * than once per init. `undefined` means no policy system was configured.
- */
-const configuredRules = function configuredRules(
-	options: OfflineTransportOptions
-): PolicyRule[] | undefined {
-	if (options.policyRules && options.policyPacks) {
-		throw new TypeError(
-			'createOfflineTransport: configure either policyRules or policyPacks, not both.'
-		);
-	}
-	if (options.policyRules) {
-		return options.policyRules;
-	}
-	if (options.policyPacks) {
-		return options.policyPacks.map((pack) => liftLegacyPolicyConfig(pack));
-	}
-	return undefined;
-};
-
 /**
  * Build an offline transport. The returned object is plain — no
  * listeners, no caches, no state. Safe to create per request.
@@ -181,7 +122,7 @@ export const createOfflineTransport = function createOfflineTransport(
 		options.translations,
 		defaultLanguage
 	);
-	const rules = configuredRules(options);
+	const rules = options.policyRules;
 
 	return {
 		init(ctx: InitContext): Promise<TransportInitResponse> {
@@ -195,32 +136,6 @@ export const createOfflineTransport = function createOfflineTransport(
 				regionCode: region,
 				rules,
 			});
-
-			// BRIDGE: the legacy fields the current kernel still reads. A legacy
-			// pack keeps its original resolved shape so an existing offline
-			// deployment sees exactly what it configured; a v3 rule projects to
-			// the strictest v2 shape it has.
-			const legacyMatch =
-				options.policyPacks && options.policyPacks.length > 0
-					? resolvePolicySync({
-							countryCode: country,
-							iabEnabled,
-							policies: options.policyPacks,
-							regionCode: region,
-						})
-					: undefined;
-			const policy: ResolvedPolicy =
-				legacyMatch?.policy ?? legacyPolicyFor(resolution, rules);
-
-			const policyDecision: PolicyDecision | undefined =
-				resolution.status === 'matched'
-					? ({
-							// The legacy exact-policy hash was never computed offline; the
-							// v3 fingerprints live on `policyResolution`.
-							fingerprint: '',
-							matchedBy: resolution.matchedBy,
-						} as unknown as PolicyDecision)
-					: undefined;
 
 			// Override language if caller supplied one.
 			const resolvedTranslations: KernelTranslations = ctx.overrides.language
@@ -236,13 +151,9 @@ export const createOfflineTransport = function createOfflineTransport(
 					countryCode: country,
 					regionCode: region,
 				},
-				policy,
 				policyResolution: writePolicyResolutionWire(resolution),
 				translations: resolvedTranslations,
 			};
-			if (policyDecision) {
-				response.policyDecision = policyDecision;
-			}
 			return Promise.resolve(response);
 		},
 

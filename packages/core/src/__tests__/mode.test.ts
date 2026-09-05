@@ -51,7 +51,7 @@ describe('custom()', () => {
 		expect(mode(context)).toBe(transport);
 	});
 
-	test('maps v2 endpoint handlers onto the kernel transport', async () => {
+	test('maps endpoint handlers without trusting legacy consent markers', async () => {
 		const setConsent = vi.fn().mockResolvedValue({
 			data: { subjectId: 'sub_backend' },
 			ok: true,
@@ -67,7 +67,6 @@ describe('custom()', () => {
 
 		const initResponse = await transport.init?.({ overrides: {}, user: null });
 		expect(initResponse).toMatchObject({
-			hasConsented: true,
 			subjectId: 'sub_init',
 		});
 

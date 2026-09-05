@@ -101,8 +101,8 @@ export const createScriptLoader = function createScriptLoader(
 		if (
 			!force &&
 			!permissionsChanged &&
-			snapshot.policyCategories === lastPolicyCategories &&
-			snapshot.policyScopeMode === lastScopeMode &&
+			snapshot.policyRule.scope === lastPolicyCategories &&
+			snapshot.policyRule.scopeMode === lastScopeMode &&
 			snapshot.iab === lastIab &&
 			effective.restrictions === lastRestrictions &&
 			snapshot.model === lastModel &&
@@ -114,8 +114,8 @@ export const createScriptLoader = function createScriptLoader(
 		lastRestrictions = effective.restrictions;
 		lastModel = snapshot.model;
 		lastEvaluationPolicy = snapshot.evaluationPolicy;
-		lastPolicyCategories = snapshot.policyCategories;
-		lastScopeMode = snapshot.policyScopeMode;
+		lastPolicyCategories = snapshot.policyRule.scope;
+		lastScopeMode = snapshot.policyRule.scopeMode;
 		lastIab = snapshot.iab;
 
 		const pass = buildReconcilePass(snapshot);

@@ -13,7 +13,6 @@ import {
 	buildInitialSnapshot,
 	DEFAULT_CONSENTS,
 	DEFAULT_IAB,
-	stageLegacyPolicy,
 } from '../snapshot';
 
 describe('buildDraft', () => {
@@ -69,13 +68,12 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.activeUI).toBe('banner');
 		expect(snap.evaluatedAt).toBe(NOW);
 		expect(snap.subject).toBeNull();
-		expect(snap.policy?.model).toBe('opt-in');
+		expect(snap.policyRule.model).toBe('opt-in');
 	});
 
 	test('initialConsents seed nothing but the draft', () => {
 		const snap = buildInitialSnapshot({
 			initialConsents: { marketing: true },
-			initialHasConsented: true,
 			now: NOW,
 		});
 		expect(snap.effectivePermissions.marketing).toBe(false);
@@ -124,8 +122,8 @@ describe('buildInitialSnapshot', () => {
 			now: NOW,
 		});
 		expect(snap.model).toBe('opt-out');
-		expect(snap.policyCategories).toEqual(['necessary', 'marketing']);
-		expect(snap.policyScopeMode).toBe('permissive');
+		expect(snap.policyRule.scope).toEqual(['marketing']);
+		expect(snap.policyRule.scopeMode).toBe('permissive');
 		expect(snap.promptRequirement).toEqual({
 			kind: 'notice',
 			reason: 'missing',
@@ -134,37 +132,24 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.effectivePermissions.marketing).toBe(true);
 	});
 
-	test('a legacy initialPolicy without a resolution is staged and hidden', () => {
+	test('an unknown legacy initialPolicy cannot establish policy authority', () => {
 		const config = {
-			initialPolicy: {
-				id: 'legacy',
-				model: 'opt-out' as const,
-				ui: { mode: 'banner' as const },
-			},
+			initialPolicy: { id: 'legacy', model: 'opt-out' },
 			now: NOW,
 		};
-		expect(stageLegacyPolicy(config)?.policy.id).toBe('legacy');
 		const snap = buildInitialSnapshot(config);
-		expect(snap.policyProvisional).toBe(true);
-		expect(snap.activeUI).toBe('none');
 		expect(snap.resolution.status).toBe('unconfigured');
-		// Permissions stay safe until init lifts the policy.
 		expect(snap.effectivePermissions.marketing).toBe(false);
-		expect(snap.policy?.id).toBe('legacy');
+		expect(snap.policyRule.id).toBe('c15t_safe_fallback');
 	});
 
 	test('a provisional policy hides the first layer', () => {
 		const snap = buildInitialSnapshot({
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-			},
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			initialPolicyResolution: matchedResolution(optInRule()),
 			now: NOW,
 		});
-		expect(snap.policyProvisional).toBe(true);
+		expect(snap.policyPending).toBe(true);
 		expect(snap.activeUI).toBe('none');
 	});
 
@@ -184,22 +169,15 @@ describe('buildInitialSnapshot', () => {
 		expect(overridden.privacySignals.gpc.active).toBe(false);
 	});
 
-	test('initial banner/dialog UI hints are copied off a legacy policy', () => {
+	test('the normalized policy rule is immutable', () => {
 		const snap = buildInitialSnapshot({
-			initialPolicy: {
-				model: 'opt-in',
-				ui: {
-					banner: { theme: 'dark' },
-					dialog: { theme: 'light' },
-					mode: 'banner',
-				},
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
 			initialPolicyResolution: matchedResolution(optInRule()),
 			now: NOW,
 		});
-		expect(snap.policyBanner).toEqual({ theme: 'dark' });
-		expect(snap.policyDialog).toEqual({ theme: 'light' });
+		expect(Object.isFrozen(snap.policyRule)).toBe(true);
+		expect(Object.isFrozen(snap.policyRule.actions)).toBe(true);
+		expect(snap).not.toHaveProperty('policyBanner');
+		expect(snap).not.toHaveProperty('policyDialog');
 	});
 
 	test('does not share user reference with config', () => {

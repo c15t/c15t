@@ -75,7 +75,7 @@ export interface ConsentManagerState extends Pick<
 	| 'subject'
 	| 'evaluatedAt'
 	| 'evaluationPolicy'
-	| 'policyProvisional'
+	| 'policyPending'
 	| 'location'
 	| 'overrides'
 	| 'revision'
@@ -287,8 +287,8 @@ const createConsentState = function createConsentState(
 			return getSnapshotLocal().overrides;
 		},
 
-		get policyProvisional() {
-			return getSnapshotLocal().policyProvisional;
+		get policyPending() {
+			return getSnapshotLocal().policyPending;
 		},
 
 		get revision() {

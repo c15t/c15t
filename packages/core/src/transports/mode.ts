@@ -1,8 +1,7 @@
-import type { InitOutput, PolicyConfig, PolicyRule } from '@c15t/schema/types';
+import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
-import type { OfflinePolicyConfig } from '../options/offline-policy';
 import type {
 	KernelConfig,
 	KernelTranslations,
@@ -18,10 +17,6 @@ import { buildSubjectPostBody } from './subject-body';
 export interface ProviderTransportContext {
 	/** Categories configured on the provider. */
 	consentCategories?: AllConsentNames[];
-	/** Offline policy configuration supplied to the provider. */
-	offlinePolicy?: OfflinePolicyConfig;
-	/** BRIDGE: legacy policy packs configured on the provider. */
-	policies?: PolicyConfig[];
 	/** v3 policy rules configured on the provider. */
 	policyRules?: PolicyRule[];
 	/** Server-prefetched kernel configuration. */
@@ -172,9 +167,7 @@ const createEndpointTransport = function createEndpointTransport(
 				consents: init.consents as never,
 				customVendors: init.customVendors as never,
 				gvl: init.gvl as never,
-				hasConsented: init.hasConsented as never,
 				location: init.location as never,
-				policy: init.policy as never,
 				policyDecision: init.policyDecision as never,
 				policySnapshotToken: init.policySnapshotToken as never,
 				resolvedOverrides: init.resolvedOverrides as never,

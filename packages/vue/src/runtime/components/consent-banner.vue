@@ -46,7 +46,7 @@ const isOpen = computed(() => {
 	return (
 		activeUI.value === 'banner' &&
 		matchesModel &&
-		!snapshot.value.policyProvisional &&
+		!snapshot.value.policyPending &&
 		snapshot.value.promptRequirement.kind !== 'none'
 	);
 });

@@ -22,8 +22,6 @@ import {
 	buildEvaluationPolicy,
 	deriveActiveUI,
 	deriveModel,
-	derivePolicyCategories,
-	legacyPolicyForRule,
 	resolveEffectivePolicy,
 } from '../policy';
 import type { PresentedSelection } from '../policy';
@@ -201,17 +199,13 @@ export const freezeSnapshot = function freezeSnapshot(
 	deepFreeze(snapshot.resolution);
 	deepFreeze(snapshot.policyRule);
 	deepFreeze(snapshot.evaluationPolicy);
-	Object.freeze(snapshot.policyCategories);
 	freezeChoice(snapshot.explicitChoice as ExplicitChoice | null);
 	for (const nested of [
 		snapshot.noticeDismissal,
 		snapshot.subject,
 		snapshot.user,
 		snapshot.translations,
-		snapshot.policy,
 		snapshot.policyDecision,
-		snapshot.policyBanner,
-		snapshot.policyDialog,
 		snapshot.iab,
 		snapshot.location,
 	]) {
@@ -220,32 +214,6 @@ export const freezeSnapshot = function freezeSnapshot(
 		}
 	}
 	return Object.freeze(snapshot) as ConsentSnapshot;
-};
-
-/**
- * Legacy policy input the kernel could not resolve at construction. It is
- * lifted during `commands.init()`, never during construction.
- */
-export interface StagedLegacyPolicy {
-	policy: NonNullable<KernelConfig['initialPolicy']>;
-	policyDecision: KernelConfig['initialPolicyDecision'];
-}
-
-/**
- * Whether the config carries a legacy policy without a precomputed
- * resolution. Such a policy is staged for lifecycle init and keeps the
- * first layer hidden until then.
- */
-export const stageLegacyPolicy = function stageLegacyPolicy(
-	config: KernelConfig
-): StagedLegacyPolicy | null {
-	if (!config.initialPolicy || config.initialPolicyResolution) {
-		return null;
-	}
-	return {
-		policy: config.initialPolicy,
-		policyDecision: config.initialPolicyDecision,
-	};
 };
 
 const initialSubject = function initialSubject(
@@ -265,9 +233,7 @@ const initialSubject = function initialSubject(
  *
  * Pure. Evaluates once at `config.now` (default `Date.now()`), using the
  * precomputed resolution when supplied and the safe fallback otherwise.
- * A legacy `initialPolicy` without a resolution is staged: the snapshot is
- * provisional (first layer hidden) and permissions follow the fallback
- * until `commands.init()` lifts it.
+ * A pending policy keeps the first layer hidden until init finishes.
  */
 // oxlint-disable-next-line complexity -- Construction reads every config field once in a fixed order.
 export const buildInitialSnapshot = function buildInitialSnapshot(
@@ -279,9 +245,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const resolution = config.initialPolicyResolution ?? UNCONFIGURED;
 	const effective = resolveEffectivePolicy(resolution);
 	const evaluationPolicy = buildEvaluationPolicy(effective);
-	const staged = stageLegacyPolicy(config);
-	const policyProvisional =
-		(config.initialPolicyProvisional ?? false) || staged !== null;
+	const policyPending = config.initialPolicyPending ?? false;
 
 	const validated = config.initialRecords
 		? validateHydrationRecords(config.initialRecords, now)
@@ -308,14 +272,9 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		policy: evaluationPolicy,
 	});
 
-	const policy = config.initialPolicy
-		? { ...config.initialPolicy }
-		: legacyPolicyForRule(effective.rule);
-
 	return freezeSnapshot({
 		activeUI: deriveActiveUI({
-			policy,
-			policyProvisional,
+			policyPending,
 			promptRequirement: evaluation.promptRequirement,
 			resolution,
 		}),
@@ -335,16 +294,11 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		noticeDismissal,
 		optOutDirectives,
 		overrides: { ...(config.initialOverrides ?? {}) },
-		policy,
-		policyBanner: policy.ui?.banner ? { ...policy.ui.banner } : null,
-		policyCategories: derivePolicyCategories(effective.rule),
 		policyDecision: config.initialPolicyDecision
 			? { ...config.initialPolicyDecision }
 			: null,
-		policyDialog: policy.ui?.dialog ? { ...policy.ui.dialog } : null,
-		policyProvisional,
+		policyPending,
 		policyRule: effective.rule,
-		policyScopeMode: effective.rule.scopeMode,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
 		privacySignals,
 		promptRequirement: evaluation.promptRequirement,

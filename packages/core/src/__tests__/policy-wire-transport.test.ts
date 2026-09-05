@@ -160,44 +160,29 @@ describe('resolveInitPolicyWire', () => {
 		expect(wire).toBe(MATCHED_WIRE);
 	});
 
-	test('lifts the legacy field of a producer that predates the contract', () => {
-		const wire = resolveInitPolicyWire({
-			...BASE_INIT,
-			policy: LEGACY_POLICY as never,
-			policyDecision: {
-				country: 'DE',
-				fingerprint: 'legacy-exact',
-				jurisdiction: 'GDPR',
-				matchedBy: 'country',
-				policyId: 'legacy-eu',
-				region: null,
-			},
+	test('rejects a producer that predates the policy contract', () => {
+		const payload = { ...BASE_INIT, policy: LEGACY_POLICY };
+		expect(readPolicyResolutionWire(resolveInitPolicyWire(payload))).toEqual({
+			policy: null,
+			reason: 'unsupported-contract',
+			status: 'failed',
 		});
-		const read = readPolicyResolutionWire(wire);
-		expect(read.status).toBe('matched');
-		if (read.status === 'matched') {
-			expect(read.policyId).toBe('legacy-eu');
-			expect(read.matchedBy).toBe('country');
-			expect(read.policy.privacySignals.gpc.denyCategories).toEqual([
-				'marketing',
-			]);
-			expect(read.fingerprints.legacyMaterial).toMatch(/^[0-9a-f]{64}$/u);
-		}
 	});
 
-	test('maps a legacy producer without a policy to unconfigured and the sentinel to no-match', () => {
-		expect(readPolicyResolutionWire(resolveInitPolicyWire(BASE_INIT))).toEqual({
-			policy: null,
-			status: 'unconfigured',
-		});
-		expect(
-			readPolicyResolutionWire(
-				resolveInitPolicyWire({
-					...BASE_INIT,
-					policy: { id: 'no_banner', model: 'none', ui: { mode: 'none' } },
-				})
-			)
-		).toEqual({ policy: null, status: 'no-match' });
+	test('an absent legacy policy and the old no-banner sentinel cannot suppress a required prompt', () => {
+		for (const payload of [
+			BASE_INIT,
+			{
+				...BASE_INIT,
+				policy: { id: 'no_banner', model: 'none', ui: { mode: 'none' } },
+			},
+		]) {
+			expect(readPolicyResolutionWire(resolveInitPolicyWire(payload))).toEqual({
+				policy: null,
+				reason: 'unsupported-contract',
+				status: 'failed',
+			});
+		}
 	});
 
 	test('fails a negotiated producer whose response lacks the field', () => {
@@ -278,11 +263,11 @@ describe('hosted init negotiation', () => {
 		// No declaration: a producer from before the contract, lifted.
 		const legacy = await transport.init({ overrides: {}, user: null });
 		expect(readPolicyResolutionWire(legacy.policyResolution)).toMatchObject({
-			policyId: 'legacy-eu',
-			status: 'matched',
+			reason: 'unsupported-contract',
+			status: 'failed',
 		});
 		// The legacy field still rides along for the presentation bridge.
-		expect(legacy.policy?.id).toBe('legacy-eu');
+		expect(legacy).not.toHaveProperty('policy');
 	});
 });
 
@@ -666,7 +651,7 @@ describe('offline transport resolution', () => {
 		}
 		// The legacy field is the strictest v2 shape for the old kernel: a
 		// notice-with-GPC rule cannot be expressed, so it is the opt-in banner.
-		expect(response?.policy).toMatchObject({ id: 'ca', model: 'opt-in' });
+		expect(response).not.toHaveProperty('policy');
 	});
 
 	test('emits unconfigured, no-match and failed explicitly', async () => {
@@ -712,36 +697,36 @@ describe('offline transport resolution', () => {
 		});
 	});
 
-	test('lifts legacy packs through the bridge and keeps their legacy field', async () => {
+	test('offline rules retain the explicit GPC mapping', async () => {
 		const transport = createOfflineTransport({
-			policyPacks: [
+			policyRules: [
 				{
-					consent: { gpc: true, model: 'opt-in' },
-					id: 'legacy',
-					match: { countries: ['DE'] },
-					ui: { mode: 'dialog' },
+					id: 'local',
+					match: { isDefault: true },
+					model: 'opt-in',
+					privacySignals: { gpc: { denyCategories: ['marketing'] } },
+					prompt: 'choice',
 				},
 			],
 		});
-		const response = await transport.init?.({
+		const response = await transport.init({ overrides: {}, user: null });
+		expect(readPolicyResolutionWire(response.policyResolution)).toMatchObject({
+			policy: { privacySignals: { gpc: { denyCategories: ['marketing'] } } },
+			status: 'matched',
+		});
+		expect(response).not.toHaveProperty('policy');
+	});
+
+	test('removed policy packs cannot override configured rules', async () => {
+		const options = { policyPacks: [], policyRules: rules };
+		const response = await createOfflineTransport(options).init({
 			overrides: { country: 'DE' },
 			user: null,
 		});
-		const resolution = readPolicyResolutionWire(response?.policyResolution);
-		expect(resolution).toMatchObject({ policyId: 'legacy', status: 'matched' });
-		if (resolution.status === 'matched') {
-			expect(resolution.policy.privacySignals.gpc.denyCategories).toEqual([
-				'marketing',
-				'measurement',
-			]);
-		}
-		expect(response?.policy?.ui?.mode).toBe('dialog');
-	});
-
-	test('refuses both rule shapes at once', () => {
-		expect(() =>
-			createOfflineTransport({ policyPacks: [], policyRules: rules })
-		).toThrow(/either policyRules or policyPacks/u);
+		expect(readPolicyResolutionWire(response.policyResolution)).toMatchObject({
+			policyId: 'eu',
+			status: 'matched',
+		});
 	});
 });
 

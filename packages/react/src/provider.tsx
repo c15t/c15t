@@ -59,11 +59,7 @@ export type ConsentProviderCallbacks = Pick<
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
 	KernelConfig,
-	| 'initialConsents'
-	| 'initialHasConsented'
-	| 'initialSubjectId'
-	| 'initialPolicy'
-	| 'transport'
+	'initialConsents' | 'initialSubjectId' | 'transport'
 >;
 
 export interface ConsentProviderOptions extends Pick<
@@ -198,16 +194,15 @@ const getProviderMode = function getProviderMode(
 	return options.mode;
 };
 
-const resolveInitialPolicyProvisional =
-	function resolveInitialPolicyProvisional(
-		enabled: boolean,
-		prefetch: KernelConfig
-	): boolean {
-		return (
-			prefetch.initialPolicyProvisional ??
-			(enabled && !prefetch.initialPolicyResolution)
-		);
-	};
+const resolveInitialPolicyPending = function resolveInitialPolicyPending(
+	enabled: boolean,
+	prefetch: KernelConfig
+): boolean {
+	return (
+		prefetch.initialPolicyPending ??
+		(enabled && !prefetch.initialPolicyResolution)
+	);
+};
 
 const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
@@ -242,10 +237,7 @@ const createProviderKernel = function createProviderKernel(
 		// copy/actions that init may replace (mid-read copy swap, CLS, consent
 		// recorded against a placeholder policy). Real initial policies
 		// (prefetch/SSR/offline config) stay authoritative and render at once.
-		initialPolicyProvisional: resolveInitialPolicyProvisional(
-			enabled,
-			prefetch
-		),
+		initialPolicyPending: resolveInitialPolicyPending(enabled, prefetch),
 	});
 };
 

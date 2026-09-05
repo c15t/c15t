@@ -70,10 +70,6 @@ export const buildSetters = function buildSetters(runtime: KernelRuntime) {
 			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
 		},
 
-		hasConsented(_value: boolean): void {
-			// BRIDGE: choice presence is derived from receipts.
-		},
-
 		iab(input: Partial<KernelIABState>): void {
 			const { next, changed } = mergeIab(getSnapshot().iab, input);
 			if (!changed) {

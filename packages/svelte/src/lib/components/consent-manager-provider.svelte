@@ -222,8 +222,8 @@
 				...(prefetch.initialOverrides ?? {}),
 				...(providerOptions.overrides ?? {}),
 			},
-			initialPolicyProvisional:
-				prefetch.initialPolicyProvisional ??
+			initialPolicyPending:
+				prefetch.initialPolicyPending ??
 				(enabled && !prefetch.initialPolicyResolution),
 			initialPolicyResolution: enabled
 				? prefetch.initialPolicyResolution
@@ -423,7 +423,7 @@
 	};
 	const isPrepared = (providerOptions: ProviderOptionsInput) =>
 		providerOptions.prefetch?.initialPolicyResolution !== undefined &&
-		providerOptions.prefetch?.initialPolicyProvisional !== true;
+		providerOptions.prefetch?.initialPolicyPending !== true;
 	onMount(() => {
 		const disposers: (() => void)[] = [];
 		disposers.push(() => kernel.dispose());

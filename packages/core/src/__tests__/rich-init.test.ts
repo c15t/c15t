@@ -12,53 +12,34 @@
  *    when enabled flips.
  * 6. SavePayload carries policySnapshotToken and tcString.
  */
-import type { PolicyDecision, ResolvedPolicy } from '@c15t/schema/types';
+import type { PolicyDecision } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
 import type { KernelTransport, SavePayload } from '../index';
-import { iabRule, matchedResolution } from './fixtures/kernel-fixtures';
+import {
+	iabRule,
+	matchedResolution,
+	optInRule,
+} from './fixtures/kernel-fixtures';
 
 // --- Fixture: a reasonable GDPR policy with all the fields we care about ---
 
-const GDPR_POLICY: ResolvedPolicy = {
-	consent: {
-		categories: ['necessary', 'functionality', 'marketing', 'measurement'],
-		model: 'opt-in',
-		preselectedCategories: ['necessary', 'functionality'],
-		scopeMode: 'permissive',
-	},
-	id: 'gdpr-strict',
-	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['accept', 'reject', 'customize'],
-			direction: 'row',
-			primaryActions: ['accept', 'reject'],
-			scrollLock: false,
-			uiProfile: 'balanced',
-		},
-		dialog: {
-			allowedActions: ['accept', 'reject', 'customize'],
-			direction: 'column',
-			primaryActions: ['accept'],
-			scrollLock: true,
-			uiProfile: 'balanced',
-		},
-		mode: 'banner',
-	},
-} as unknown as ResolvedPolicy;
+const GDPR_RESOLUTION = {
+	...matchedResolution(
+		optInRule({
+			categories: ['functionality', 'marketing', 'measurement'],
+			id: 'gdpr-strict',
+			preselectedCategories: ['functionality'],
+		})
+	),
+	version: 1,
+};
 
 const GDPR_DECISION: PolicyDecision = {
 	fingerprint: 'abc123',
 	matchedBy: 'region',
 } as unknown as PolicyDecision;
-
-const NO_BANNER_POLICY: ResolvedPolicy = {
-	id: 'no_banner',
-	model: 'none',
-	ui: { mode: 'none' },
-} as unknown as ResolvedPolicy;
 
 describe('rich init: applies full response to snapshot', () => {
 	test('fills location / translations / branding / policy / policyDecision / policySnapshotToken', async () => {
@@ -67,8 +48,8 @@ describe('rich init: applies full response to snapshot', () => {
 				return {
 					branding: 'c15t',
 					location: { countryCode: 'DE', regionCode: 'BE' },
-					policy: GDPR_POLICY,
 					policyDecision: GDPR_DECISION,
+					policyResolution: GDPR_RESOLUTION,
 					policySnapshotToken: 'token-xyz',
 					translations: {
 						language: 'de',
@@ -87,7 +68,10 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(snap.translations?.language).toBe('de');
 		expect(snap.branding).toBe('c15t');
-		expect(snap.policy).toMatchObject({ id: 'gdpr-strict', model: 'opt-in' });
+		expect(snap.policyRule).toMatchObject({
+			id: 'gdpr-strict',
+			model: 'opt-in',
+		});
 		expect(snap.policyDecision?.matchedBy).toBe('region');
 		expect(snap.policySnapshotToken).toBe('token-xyz');
 	});
@@ -96,7 +80,7 @@ describe('rich init: applies full response to snapshot', () => {
 		const transport: KernelTransport = {
 			init() {
 				return {
-					policy: GDPR_POLICY,
+					policyResolution: GDPR_RESOLUTION,
 				};
 			},
 		};
@@ -111,24 +95,18 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.activeUI).toBe('banner');
 		// policy.consent.categories — order follows allConsentNames, not the
 		// input allowlist, so compare as a set.
-		expect(new Set(snap.policyCategories)).toEqual(
-			new Set(['necessary', 'functionality', 'marketing', 'measurement'])
+		expect(new Set(snap.policyRule.scope)).toEqual(
+			new Set(['functionality', 'marketing', 'measurement'])
 		);
 		// policy.consent.scopeMode
-		expect(snap.policyScopeMode).toBe('permissive');
-		// policy.ui.banner + dialog landed
-		expect(snap.policyBanner?.allowedActions).toEqual([
-			'accept',
-			'reject',
-			'customize',
-		]);
-		expect(snap.policyDialog?.scrollLock).toBe(true);
+		expect(snap.policyRule.scopeMode).toBe('permissive');
+		expect(snap.policyRule.actions.required).toEqual(['accept', 'reject']);
 	});
 
 	test('does not grant policy.preselectedCategories when hasConsented is false', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { policy: GDPR_POLICY };
+				return { policyResolution: GDPR_RESOLUTION };
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -149,9 +127,8 @@ describe('rich init: applies full response to snapshot', () => {
 			init() {
 				// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 				return {
-					policy: GDPR_POLICY,
+					policyResolution: GDPR_RESOLUTION,
 					// Server says hasConsented=true — user has prior choice
-					hasConsented: true,
 					consents: { marketing: true },
 				};
 			},
@@ -172,7 +149,9 @@ describe('rich init: applies full response to snapshot', () => {
 	test('legacy no_banner sentinel is a successful no-match with the safe fallback', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { policy: NO_BANNER_POLICY };
+				return {
+					policyResolution: { policy: null, status: 'no-match', version: 1 },
+				};
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -323,7 +302,7 @@ describe('SavePayload: carries policySnapshotToken + tcString', () => {
 		const transport: KernelTransport = {
 			init() {
 				return Promise.resolve({
-					policy: GDPR_POLICY,
+					policyResolution: GDPR_RESOLUTION,
 					policySnapshotToken: 'snap-42',
 				});
 			},

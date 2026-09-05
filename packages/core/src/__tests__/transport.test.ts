@@ -17,6 +17,7 @@ import {
 	explicitChoice,
 	matchedResolution,
 	optInRule,
+	iabRule,
 } from './fixtures/kernel-fixtures';
 
 const fallbackStorageValues = new Map<string, string>();
@@ -116,43 +117,6 @@ const REALISTIC_INIT_OUTPUT = {
 	},
 	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: 'BE' },
-	policy: {
-		consent: {
-			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
-			expiryDays: 180,
-			gpc: true,
-			preselectedCategories: ['necessary'],
-			scopeMode: 'strict',
-		},
-		i18n: {
-			language: 'de',
-			messageProfile: 'formal',
-		},
-		id: 'de-iab',
-		model: 'iab',
-		proof: {
-			storeIp: false,
-			storeLanguage: true,
-			storeUserAgent: true,
-		},
-		ui: {
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				direction: 'row',
-				primaryActions: ['accept'],
-				scrollLock: false,
-				uiProfile: 'balanced',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				direction: 'column',
-				primaryActions: ['accept', 'customize'],
-				scrollLock: true,
-				uiProfile: 'strict',
-			},
-			mode: 'dialog',
-		},
-	},
 	policyDecision: {
 		country: 'DE',
 		fingerprint: 'policy-fingerprint',
@@ -160,6 +124,13 @@ const REALISTIC_INIT_OUTPUT = {
 		matchedBy: 'region',
 		policyId: 'de-iab',
 		region: 'BE',
+	},
+	policyResolution: {
+		...matchedResolution(
+			iabRule({ id: 'de-iab', scopeMode: 'strict' }),
+			'region'
+		),
+		version: 1,
 	},
 	policySnapshotToken: 'snapshot-token',
 	translations: {
@@ -463,20 +434,14 @@ describe('kernel transport: init applies response to snapshot', () => {
 			},
 		};
 		const kernel = createConsentKernel({
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport,
 		});
 
 		// Model is populated for SSR ergonomics, but no surface renders.
 		expect(kernel.getSnapshot().model).toBe('opt-in');
 		expect(kernel.getSnapshot().activeUI).toBe('none');
-		expect(kernel.getSnapshot().policyProvisional).toBe(true);
+		expect(kernel.getSnapshot().policyPending).toBe(true);
 
 		const pending = kernel.commands.init();
 		expect(kernel.getSnapshot().activeUI).toBe('none');
@@ -486,7 +451,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		});
 		await pending;
 
-		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 
@@ -500,13 +465,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		};
 		const kernel = createConsentKernel({
 			initRetry: false,
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport,
 		});
 		const initFailures: {
@@ -525,7 +484,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		const result = await kernel.commands.init();
 
 		expect(result.ok).toBe(false);
-		expect(kernel.getSnapshot().policyProvisional).toBe(true);
+		expect(kernel.getSnapshot().policyPending).toBe(true);
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		expect(initFailures).toEqual([
 			{ attempt: 1, error: boom, nextRetryMs: null, type: 'init:failed' },
@@ -546,13 +505,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 			});
 		const kernel = createConsentKernel({
 			initRetry: { baseDelayMs: 100, maxAttempts: 3, maxDelayMs: 1000 },
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport: { init: initSpy },
 		});
 		const failures: { attempt: number; nextRetryMs: number | null }[] = [];
@@ -582,7 +535,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 		await vi.advanceTimersByTimeAsync(150);
 		expect(initSpy).toHaveBeenCalledTimes(3);
-		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 		expect(commandEvents).toEqual([
 			'started',
@@ -835,19 +788,13 @@ describe('kernel transport: init applies response to snapshot', () => {
 
 	test('provisional policy finalizes when the transport has no init', async () => {
 		const kernel = createConsentKernel({
-			initialPolicy: {
-				id: 'placeholder',
-				model: 'opt-in',
-				ui: { mode: 'banner' },
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-			} as any,
-			initialPolicyProvisional: true,
+			initialPolicyPending: true,
 			transport: {},
 		});
 
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		await kernel.commands.init();
-		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().policyPending).toBe(false);
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 });
@@ -1710,7 +1657,7 @@ describe('createHostedTransport: request shape', () => {
 			user: { externalId: 'user-1' },
 		});
 
-		expect(response?.policy?.id).toBe('de-iab');
+		expect(response?.policyResolution?.policy?.id).toBe('de-iab');
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		// Trailing slash on backendURL is stripped.
@@ -2126,11 +2073,14 @@ describe('createHostedTransport: request shape', () => {
 			customVendors: [{ id: 'internal-analytics' }],
 			gvl: { vendorListVersion: 42 },
 			location: { countryCode: 'DE', regionCode: 'BE' },
-			policy: { id: 'de-iab', model: 'iab' },
 			policyDecision: {
 				jurisdiction: 'GDPR',
 				matchedBy: 'region',
 				policyId: 'de-iab',
+			},
+			policyResolution: {
+				policy: { id: 'de-iab', model: 'iab' },
+				status: 'matched',
 			},
 			policySnapshotToken: 'snapshot-token',
 			resolvedOverrides: {
@@ -2206,11 +2156,14 @@ describe('createManifestTransport: local init resolution', () => {
 			cmpId: 28,
 			customVendors: [{ id: 'internal-analytics' }],
 			gvl: { vendorListVersion: 42 },
-			policy: { id: 'de-iab', model: 'iab' },
 			policyDecision: {
 				fingerprint: 'policy-fingerprint',
 				matchedBy: 'region',
 				policyId: 'de-iab',
+			},
+			policyResolution: {
+				policy: { id: 'de-iab', model: 'iab' },
+				status: 'matched',
 			},
 			resolvedOverrides: {
 				country: 'DE',

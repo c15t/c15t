@@ -9,11 +9,8 @@
  * Only `save()` records an explicit choice, and it captures one action
  * time before any yield, network call or persistence. `dismissNotice()`
  * records the local dismissal only. `init()` folds a complete transport
- * response, lifts a staged legacy policy, and installs the deadline timer.
+ * response and installs the deadline timer.
  */
-
-import type { PolicyResolution } from '@c15t/schema/types';
-import { readLegacyPolicyWire } from '@c15t/schema/types';
 
 import { recordCategoryPatch } from '../consent-record/record';
 import type {
@@ -42,7 +39,6 @@ import { createPendingSaveQueue } from './pending-saves';
 import type { KernelRuntime } from './runtime';
 import { selectSavePayload } from './save-selection';
 import { copyIABAuthority } from './snapshot';
-import type { StagedLegacyPolicy } from './snapshot';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_BASE_DELAY_MS = 1000;
@@ -154,7 +150,6 @@ const failedResolutionPatch = function failedResolutionPatch(
 ): SnapshotPatch {
 	const patch: SnapshotPatch = {
 		now,
-		policy: null,
 		policyDecision: null,
 		policySnapshotToken: null,
 		resolution: { policy: null, reason: 'transport', status: 'failed' },
@@ -278,8 +273,6 @@ export interface CommandDeps {
 	runtime: KernelRuntime;
 	transport: KernelTransport | undefined;
 	initRetry: KernelConfig['initRetry'];
-	/** Legacy policy staged from config, lifted by the first init. */
-	staged: StagedLegacyPolicy | null;
 }
 
 /**
@@ -289,7 +282,6 @@ export interface CommandDeps {
 export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { runtime, transport, initRetry } = deps;
 	const { getSnapshot, commit, emit } = runtime;
-	const { staged } = deps;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
 		? createPendingSaveQueue({ emit, save: transport.save })
@@ -376,28 +368,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		runtime.armDeadlineTimer();
 	};
 
-	/**
-	 * No transport init: the explicit local producer path. A staged legacy
-	 * policy is lifted here, in the lifecycle, never at construction. With
-	 * nothing staged the configured resolution stands (a precomputed
-	 * `initialPolicyResolution`, or the default `unconfigured`).
-	 */
+	/** Finalize local init while preserving its precomputed resolution. */
 	const finalizeWithoutTransport = function finalizeWithoutTransport(
 		now: number
 	): void {
-		const patch: SnapshotPatch = { now, policyProvisional: false };
-		if (staged) {
-			const resolution: PolicyResolution = readLegacyPolicyWire(staged);
-			patch.resolution = resolution;
-			if (resolution.status === 'matched') {
-				patch.policy = staged.policy;
-				patch.policyDecision = staged.policyDecision ?? null;
-			} else {
-				patch.policy = null;
-				patch.policyDecision = null;
-				patch.policySnapshotToken = null;
-			}
-		}
+		const patch: SnapshotPatch = { now, policyPending: false };
 		if (commit(patch)) {
 			emit({ snapshot: getSnapshot(), type: 'init:applied' });
 		}
@@ -468,7 +443,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				runtime.setDraft({ ...runtime.getDraft(), ...applied.draft });
 			}
 			const changed = commit(applied.patch);
-			if (changed || snapshot.policyProvisional) {
+			if (changed || snapshot.policyPending) {
 				emit({ snapshot: getSnapshot(), type: 'init:applied' });
 			}
 			finishLifecycle(now, recordsGeneration === runtime.getGeneration());

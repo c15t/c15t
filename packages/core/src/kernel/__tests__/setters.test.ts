@@ -52,12 +52,10 @@ describe('buildSetters', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 	});
 
-	test('set.hasConsented is inert', () => {
-		const kernel = createConsentKernel({ now: NOW });
-		const before = kernel.getSnapshot();
-		kernel.set.hasConsented(true);
-		expect(kernel.getSnapshot()).toBe(before);
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+	test('choice authority has no boolean setter', () => {
+		const kernel = createConsentKernel();
+		expect(kernel.set).not.toHaveProperty('hasConsented');
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 
 	test('set.language is a no-op when language already matches', () => {

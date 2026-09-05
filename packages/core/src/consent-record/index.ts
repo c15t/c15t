@@ -57,5 +57,3 @@ export {
 export type { RecordIssue, ValidationResult } from './validation';
 
 // -- BRIDGE (removed with the Vue adapter migration) ---------------------------
-export { getConsentAvailableCategories } from './legacy';
-export type { Consent } from './legacy';

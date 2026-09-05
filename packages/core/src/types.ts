@@ -24,7 +24,6 @@ import type {
 	PolicyUiMode,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-	ResolvedPolicy,
 	ResolvedPolicyRule,
 	TranslationsResponse,
 } from '@c15t/schema/types';
@@ -58,7 +57,6 @@ export type {
 	PolicyUiMode,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-	ResolvedPolicy,
 	ResolvedPolicyRule,
 	TranslationsResponse,
 };
@@ -296,8 +294,6 @@ export interface ConsentSnapshot {
 	readonly translations: Readonly<KernelTranslations> | null;
 	/** Branding identifier. */
 	readonly branding: KernelBranding | null;
-	/** BRIDGE: legacy resolved policy used for presentation hints. */
-	readonly policy: Readonly<ResolvedPolicy> | null;
 	/** Explainability metadata for how the policy was matched. */
 	readonly policyDecision: Readonly<PolicyDecision> | null;
 	/** Signed token for write-time consistency — sent back on save. */
@@ -313,15 +309,7 @@ export interface ConsentSnapshot {
 	 * transport's init resolution. While provisional, `activeUI` stays
 	 * `'none'`. A failed init also keeps the first layer hidden.
 	 */
-	readonly policyProvisional: boolean;
-	/** BRIDGE: category allowlist. Empty array means every category is in scope. */
-	readonly policyCategories: readonly AllConsentNames[];
-	/** BRIDGE: scope mode of the effective rule. */
-	readonly policyScopeMode: PolicyScopeMode;
-	/** BRIDGE: UI hints for the banner surface. */
-	readonly policyBanner: Readonly<PolicyUiSurfaceConfig> | null;
-	/** BRIDGE: UI hints for the dialog surface. */
-	readonly policyDialog: Readonly<PolicyUiSurfaceConfig> | null;
+	readonly policyPending: boolean;
 
 	// -- IAB passthrough (null when IAB not enabled) -------------------------
 	readonly iab: Readonly<KernelIABState> | null;
@@ -356,8 +344,6 @@ export interface KernelConfig {
 	initialUser?: KernelUser;
 	/** BRIDGE: initial subject ID; prefer `initialRecords.subject`. */
 	initialSubjectId?: string;
-	/** BRIDGE: ignored. Choice presence is derived from stored receipts. */
-	initialHasConsented?: boolean;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
 	/** Initial location (e.g. from prefetch). */
@@ -365,17 +351,10 @@ export interface KernelConfig {
 	/** Initial branding. */
 	initialBranding?: KernelBranding;
 	/**
-	 * BRIDGE: legacy resolved policy. Without `initialPolicyResolution` it is
-	 * staged: the kernel keeps the safe opt-in fallback and hides the first
-	 * layer until `commands.init()` lifts it. Nothing hashes at construction.
-	 * Prefetch helpers compute `initialPolicyResolution` server-side.
-	 */
-	initialPolicy?: ResolvedPolicy;
-	/**
-	 * Marks `initialPolicy` as a placeholder pending init resolution.
+	 * Marks the policy as pending transport initialization.
 	 * Suppresses `activeUI` until init completes.
 	 */
-	initialPolicyProvisional?: boolean;
+	initialPolicyPending?: boolean;
 	/**
 	 * Retry policy for failed transport initialization. The first call is
 	 * attempt 1. Defaults to 5 total attempts, a 1,000 ms base delay, and a
@@ -425,17 +404,14 @@ export interface InitResponse {
 	resolvedPrivacySignals?: { gpc?: boolean };
 	/**
 	 * Raw `policyResolution` wire value. Read with the strict schema reader;
-	 * anything the client cannot represent fails safely. When absent, the
-	 * legacy `policy` field is lifted; when both are absent the current
-	 * resolution is preserved.
+	 * anything the client cannot represent fails safely. Missing policy
+	 * contracts fail with `invalid-payload`.
 	 */
 	policyResolution?: unknown;
 	/** Server-mapped receipts, applied through the hydration boundary. */
 	records?: HydrationRecords;
 	/** BRIDGE: seeds only the staged draft. Never a choice. */
 	consents?: Partial<ConsentState>;
-	/** BRIDGE: ignored. */
-	hasConsented?: boolean;
 	/** Server-side subject ID, if the user already has one. */
 	subjectId?: string;
 
@@ -445,8 +421,6 @@ export interface InitResponse {
 	translations?: KernelTranslations;
 	/** Branding preference. */
 	branding?: KernelBranding;
-	/** BRIDGE: legacy resolved policy; also the presentation-hint source. */
-	policy?: ResolvedPolicy;
 	/** Explainability metadata for policy resolution. */
 	policyDecision?: PolicyDecision;
 	/** Signed token for write-time consistency. Sent back on save. */
@@ -671,8 +645,6 @@ export interface ConsentKernel {
 		overrides: (input: KernelOverrides) => void;
 		language: (code: string) => void;
 		subjectId: (id: string | null) => void;
-		/** BRIDGE: no-op. Choice presence is derived from receipts. */
-		hasConsented: (value: boolean) => void;
 		/** Detected user-agent privacy signals. */
 		privacySignals: (input: { gpc?: boolean }) => void;
 		/** Set the active UI surface. */

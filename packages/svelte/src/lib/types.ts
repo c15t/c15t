@@ -72,11 +72,7 @@ export interface ConsentManagerOptions extends Pick<
 	overrides?: KernelOverrides;
 	prefetch?: Omit<
 		KernelConfig,
-		| 'transport'
-		| 'initialConsents'
-		| 'initialHasConsented'
-		| 'initialSubjectId'
-		| 'initialPolicy'
+		'transport' | 'initialConsents' | 'initialSubjectId'
 	>;
 	callbacks?: ConsentProviderCallbacks;
 	presentation?: ConsentPresentation;

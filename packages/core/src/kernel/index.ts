@@ -30,11 +30,7 @@ import { buildCommands } from './commands';
 import { createEventBus } from './events';
 import { createRuntime } from './runtime';
 import { buildSetters } from './setters';
-import {
-	buildDraft,
-	buildInitialSnapshot,
-	stageLegacyPolicy,
-} from './snapshot';
+import { buildDraft, buildInitialSnapshot } from './snapshot';
 
 /**
  * Create a fresh consent kernel.
@@ -63,7 +59,6 @@ export const createConsentKernel = function createConsentKernel(
 	const commandHandle = buildCommands({
 		initRetry: config.initRetry,
 		runtime,
-		staged: stageLegacyPolicy(config),
 		transport,
 	});
 

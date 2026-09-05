@@ -13,7 +13,6 @@ import type {
 	LocationResponse,
 	PolicyDecision,
 	PolicyResolution,
-	ResolvedPolicy,
 } from '@c15t/schema/types';
 
 import { evaluateConsentRecord } from '../consent-record/evaluate';
@@ -31,8 +30,6 @@ import {
 	buildEvaluationPolicy,
 	deriveActiveUI,
 	deriveModel,
-	derivePolicyCategories,
-	legacyPolicyForRule,
 	resolveEffectivePolicy,
 } from '../policy';
 import type {
@@ -68,12 +65,10 @@ export interface SnapshotPatch {
 	location?: LocationResponse | null;
 	translations?: KernelTranslations | null;
 	branding?: KernelBranding | null;
-	/** BRIDGE legacy presentation policy. `null` falls back to the rule projection. */
-	policy?: ResolvedPolicy | null;
 	policyDecision?: PolicyDecision | null;
 	policySnapshotToken?: string | null;
 	activeUI?: KernelActiveUI;
-	policyProvisional?: boolean;
+	policyPending?: boolean;
 	iab?: KernelIABState | null;
 	/** Evaluation time. Defaults to the current `evaluatedAt`. */
 	now?: number;
@@ -166,21 +161,6 @@ export const hasChoicePresence = function hasChoicePresence(
 	return choice !== null && Object.keys(choice.categories).length > 0;
 };
 
-const derivePolicyBridge = function derivePolicyBridge(
-	current: ConsentSnapshot,
-	patch: SnapshotPatch,
-	resolutionChanged: boolean,
-	policyRule: ConsentSnapshot['policyRule']
-): ResolvedPolicy | null {
-	if (patch.policy !== undefined) {
-		return patch.policy ?? legacyPolicyForRule(policyRule);
-	}
-	if (resolutionChanged) {
-		return legacyPolicyForRule(policyRule);
-	}
-	return current.policy;
-};
-
 /**
  * Re-derive the surface only when the prompt or the visibility inputs
  * changed. An adapter that opened the dialog keeps it open across an
@@ -190,8 +170,8 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	current: ConsentSnapshot;
 	patch: SnapshotPatch;
 	derive: boolean;
-	policy: ResolvedPolicy | null;
-	policyProvisional: boolean;
+	policyRule: ConsentSnapshot['policyRule'];
+	policyPending: boolean;
 	promptRequirement: PromptRequirement;
 	resolution: PolicyResolution;
 }): KernelActiveUI {
@@ -200,8 +180,7 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	}
 	if (input.derive) {
 		return deriveActiveUI({
-			policy: input.policy,
-			policyProvisional: input.policyProvisional,
+			policyPending: input.policyPending,
 			promptRequirement: input.promptRequirement,
 			resolution: input.resolution,
 		});
@@ -286,25 +265,16 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		? current.restrictions
 		: evaluation.restrictions;
 
-	const policyProvisional = pick(
-		patch.policyProvisional,
-		current.policyProvisional
-	);
-	const policy = derivePolicyBridge(
-		current,
-		patch,
-		resolutionChanged,
-		policyRule
-	);
+	const policyPending = pick(patch.policyPending, current.policyPending);
 	const promptChanged = promptRequirement !== current.promptRequirement;
 	const visibilityChanged =
-		resolutionChanged || policyProvisional !== current.policyProvisional;
+		resolutionChanged || policyPending !== current.policyPending;
 	const activeUI = deriveNextActiveUI({
 		current,
-		derive: promptChanged || visibilityChanged || patch.policy !== undefined,
+		derive: promptChanged || visibilityChanged,
 		patch,
-		policy,
-		policyProvisional,
+		policyPending,
+		policyRule,
 		promptRequirement,
 		resolution,
 	});
@@ -327,22 +297,9 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		noticeDismissal,
 		optOutDirectives,
 		overrides,
-		policy,
-		policyBanner:
-			policy === current.policy
-				? current.policyBanner
-				: (policy?.ui?.banner ?? null),
-		policyCategories: resolutionChanged
-			? derivePolicyCategories(policyRule)
-			: current.policyCategories,
 		policyDecision: pick(patch.policyDecision, current.policyDecision),
-		policyDialog:
-			policy === current.policy
-				? current.policyDialog
-				: (policy?.ui?.dialog ?? null),
-		policyProvisional,
+		policyPending,
 		policyRule,
-		policyScopeMode: policyRule.scopeMode,
 		policySnapshotToken: pick(
 			patch.policySnapshotToken,
 			current.policySnapshotToken

@@ -262,7 +262,7 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 		prefetch: {
 			...prepared,
 			...provided.prefetch,
-			initialPolicyProvisional:
+			initialPolicyPending:
 				opts.initMode === 'pending' || opts.initMode === 'failing',
 			initialPolicyResolution:
 				(opts.initMode ?? 'authoritative') === 'authoritative'

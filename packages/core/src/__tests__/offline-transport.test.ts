@@ -10,34 +10,32 @@ import { describe, expect, test } from 'vitest';
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {
-	test('no policy packs → returns shared default opt-in policy', async () => {
+	test('no rules report unconfigured', async () => {
 		const transport = createOfflineTransport();
 		const response = await transport.init?.({
 			overrides: {},
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('default-opt-in');
-		expect(response?.policy?.model).toBe('opt-in');
-		expect(response?.policy?.ui?.mode).toBe('banner');
-		expect(response?.policy?.consent?.categories).toEqual([
-			'necessary',
-			'functionality',
-			'marketing',
-			'measurement',
-			'experience',
-		]);
+		expect(response?.policyResolution).toEqual({
+			policy: null,
+			status: 'unconfigured',
+			version: 1,
+		});
 		expect(response?.branding).toBe('c15t');
 		expect(response?.translations?.language).toBe('en');
 	});
 
-	test('empty policy packs → returns shared default opt-in policy', async () => {
-		const transport = createOfflineTransport({ policyPacks: [] });
+	test('empty rules report no-match', async () => {
+		const transport = createOfflineTransport({ policyRules: [] });
 		const response = await transport.init?.({
 			overrides: {},
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('default-opt-in');
-		expect(response?.policy?.ui?.mode).toBe('banner');
+		expect(response?.policyResolution).toEqual({
+			policy: null,
+			status: 'no-match',
+			version: 1,
+		});
 	});
 
 	test('custom defaultLanguage + branding honored', async () => {
@@ -76,14 +74,14 @@ describe('createOfflineTransport: basic behavior', () => {
 });
 
 describe('createOfflineTransport: policy-pack resolution', () => {
-	test('matching policy pack drives policy UI mode', async () => {
+	test('matching rule drives model and prompt', async () => {
 		const transport = createOfflineTransport({
-			policyPacks: [
+			policyRules: [
 				{
-					consent: { model: 'opt-in' },
 					id: 'gdpr',
 					match: { countries: ['DE'] },
-					ui: { mode: 'banner' },
+					model: 'opt-in',
+					prompt: 'choice',
 				},
 			],
 		});
@@ -91,19 +89,20 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 			overrides: { country: 'DE' },
 			user: null,
 		});
-		expect(response?.policy?.ui?.mode).toBe('banner');
-		expect(response?.policy).toBeDefined();
-		expect(response?.policyDecision).toBeDefined();
+		expect(response?.policyResolution).toMatchObject({
+			policy: { id: 'gdpr', model: 'opt-in', prompt: 'choice' },
+			status: 'matched',
+		});
 	});
 
-	test('non-matching override returns no-banner fallback policy', async () => {
+	test('non-matching location reports no-match', async () => {
 		const transport = createOfflineTransport({
-			policyPacks: [
+			policyRules: [
 				{
-					consent: { model: 'opt-in' },
 					id: 'gdpr',
 					match: { countries: ['DE'] },
-					ui: { mode: 'banner' },
+					model: 'opt-in',
+					prompt: 'choice',
 				},
 			],
 		});
@@ -111,8 +110,11 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 			overrides: { country: 'US' },
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('no_banner');
-		expect(response?.policy?.ui?.mode).toBe('none');
+		expect(response?.policyResolution).toEqual({
+			policy: null,
+			status: 'no-match',
+			version: 1,
+		});
 	});
 });
 
@@ -121,12 +123,12 @@ describe('createOfflineTransport: kernel integration', () => {
 		const kernel = createConsentKernel({
 			initialOverrides: { country: 'DE' },
 			transport: createOfflineTransport({
-				policyPacks: [
+				policyRules: [
 					{
-						consent: { model: 'opt-in' },
 						id: 'gdpr',
 						match: { countries: ['DE'] },
-						ui: { mode: 'banner' },
+						model: 'opt-in',
+						prompt: 'choice',
 					},
 				],
 			}),
@@ -136,7 +138,7 @@ describe('createOfflineTransport: kernel integration', () => {
 		expect(snap.activeUI).toBe('banner');
 		expect(snap.model).toBe('opt-in');
 		expect(snap.location).toEqual({ countryCode: 'DE', regionCode: null });
-		expect(snap.policy).toBeDefined();
+		expect(snap.policyRule.id).toBe('gdpr');
 		expect(snap.translations).toBeDefined();
 	});
 

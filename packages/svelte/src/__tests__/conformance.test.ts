@@ -138,7 +138,7 @@ const buildProviderOptions = function buildProviderOptions(
 	const prefetch: KernelConfig = {
 		...(provided.prefetch ?? {}),
 		initialBranding: 'c15t',
-		initialPolicyProvisional:
+		initialPolicyPending:
 			opts.initMode === 'pending' || opts.initMode === 'failing',
 		initialPolicyResolution:
 			opts.initMode === 'pending' || opts.initMode === 'failing'

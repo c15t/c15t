@@ -9,6 +9,12 @@ import {
 	mapInitOutputToInitResponse,
 	mergeInitResponseIntoKernelConfig,
 } from '../transports/init-output';
+import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
+
+const POLICY = {
+	...matchedResolution(optInRule({ id: 'p1' })),
+	version: 1 as const,
+};
 
 const BASE_PAYLOAD = {
 	location: { countryCode: 'DE', regionCode: null },
@@ -20,34 +26,33 @@ const BASE_PAYLOAD = {
 } as any;
 
 describe('mapInitOutputToInitResponse: consent inference', () => {
-	test('consent-bearing payload implies hasConsented', () => {
+	test('receipt-free booleans cannot seed authority', () => {
 		const mapped = mapInitOutputToInitResponse(
 			{ ...BASE_PAYLOAD, consents: { marketing: true } },
 			{}
 		);
-		expect(mapped.consents).toEqual({ marketing: true });
+		expect(mapped).not.toHaveProperty('consents');
 		// Without this, opt-in fresh-visitor defaults would reset the values
 		// and re-show the banner — and the client fold would disagree with
 		// the server prefetch merge.
-		expect(mapped.hasConsented).toBe(true);
+		expect(mapped).not.toHaveProperty('hasConsented');
 	});
 
-	test('explicit hasConsented: false wins over the inference', () => {
+	test('legacy false marker is not forwarded', () => {
 		const mapped = mapInitOutputToInitResponse(
 			{ ...BASE_PAYLOAD, consents: { marketing: true }, hasConsented: false },
 			{}
 		);
-		expect(mapped.hasConsented).toBe(false);
+		expect(mapped).not.toHaveProperty('hasConsented');
 	});
 
-	test('no consents → hasConsented passes through untouched', () => {
-		expect(
-			mapInitOutputToInitResponse(BASE_PAYLOAD, {}).hasConsented
-		).toBeUndefined();
+	test('legacy true marker is not forwarded', () => {
+		expect(mapInitOutputToInitResponse(BASE_PAYLOAD, {})).not.toHaveProperty(
+			'hasConsented'
+		);
 		expect(
 			mapInitOutputToInitResponse({ ...BASE_PAYLOAD, hasConsented: true }, {})
-				.hasConsented
-		).toBe(true);
+		).not.toHaveProperty('hasConsented');
 	});
 });
 
@@ -75,19 +80,19 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		});
 	});
 
-	test('consents merge implies hasConsented; explicit false wins', () => {
+	test('draft merge cannot create a consent marker', () => {
 		const inferred = mergeInitResponseIntoKernelConfig(
 			{},
 			{ consents: { marketing: true } }
 		);
 		expect(inferred.initialConsents).toEqual({ marketing: true });
-		expect(inferred.initialHasConsented).toBe(true);
+		expect(inferred).not.toHaveProperty('initialHasConsented');
 
 		const explicit = mergeInitResponseIntoKernelConfig(
 			{},
-			{ consents: { marketing: true }, hasConsented: false }
+			{ consents: { marketing: true } }
 		);
-		expect(explicit.initialHasConsented).toBe(false);
+		expect(explicit).not.toHaveProperty('initialHasConsented');
 	});
 
 	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
@@ -107,17 +112,19 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		const merged = mergeInitResponseIntoKernelConfig(
 			{},
 			{
-				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
 				policyDecision: { policyId: 'p1' } as any,
+				policyResolution: POLICY,
 				policySnapshotToken: 'tok',
 
 				subjectId: 'sub_9',
 			}
 		);
 		expect(merged.initialSubjectId).toBe('sub_9');
-		expect(merged.initialPolicy?.id).toBe('p1');
+		expect(merged.initialPolicyResolution).toMatchObject({
+			policyId: 'p1',
+			status: 'matched',
+		});
 		expect(merged.initialPolicyDecision).toBeDefined();
 		expect(merged.initialPolicySnapshotToken).toBe('tok');
 	});
@@ -141,7 +148,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 				branding: 'c15t',
 				location: { countryCode: 'DE', regionCode: null },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
-				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
+				policyResolution: POLICY,
 
 				translations: { language: 'de', translations: {} },
 			},
@@ -153,7 +160,10 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		});
 		// The detected header signal is a privacy signal, not an override.
 		expect(config.initialPrivacySignals).toEqual({ gpc: true });
-		expect(config.initialPolicy?.id).toBe('p1');
+		expect(config.initialPolicyResolution).toMatchObject({
+			policyId: 'p1',
+			status: 'matched',
+		});
 		expect(config.initialBranding).toBe('c15t');
 		// A producer that sent no `policyResolution` and declared no contract
 		// is a legacy producer: its policy is lifted on the server, once.

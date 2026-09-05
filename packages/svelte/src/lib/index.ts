@@ -4,7 +4,6 @@ export {
 	detectBrowserLanguage,
 	hosted,
 	mergeTranslationConfigs,
-	policyPackPresets,
 	prepareTranslationConfig,
 } from '@c15t/core';
 export type {
@@ -37,7 +36,6 @@ export type {
 	ProviderTransportContext,
 	ProviderTransportFactory,
 	ProviderTransportKind,
-	ResolvedPolicy,
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,

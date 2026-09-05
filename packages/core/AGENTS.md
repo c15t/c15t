@@ -8,28 +8,14 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
-- [Checking Consent](./docs/frameworks/javascript/api/checking-consent.md): Read consent state from the store — check individual categories, logical conditions, and the full consent object.
-- [Location & Identity](./docs/frameworks/javascript/api/location-info.md): Access detected location, override geolocation, change language, and link user identity.
-- [Store API Overview](./docs/frameworks/javascript/api/overview.md): Core API entry points for JavaScript consent management — runtime creation, store access, and subscription patterns.
-- [Setting Consent](./docs/frameworks/javascript/api/setting-consent.md): Save, stage, and reset consent preferences using the store API.
-- [Building UI](./docs/frameworks/javascript/building-ui.md): Build your own consent UI on top of the headless c15t store — with vanilla DOM, any framework, or the @c15t/ui theme system.
-- [Callbacks](./docs/frameworks/javascript/callbacks.md): React to consent lifecycle events — initialization, consent changes, errors, and revocation reloads.
-- [Client Modes](./docs/frameworks/javascript/concepts/client-modes.md): Choose how c15t connects to its backend — full hosted integration, offline-only, or bring your own backend.
 - [Consent Categories](./docs/frameworks/javascript/concepts/consent-categories.md): How c15t organizes tracking technologies into five consent categories.
 - [Consent Models](./docs/frameworks/javascript/concepts/consent-models.md): How c15t determines consent behavior based on legal jurisdiction.
 - [Cookie Management](./docs/frameworks/javascript/concepts/cookie-management.md): How c15t manages cookies through script, iframe, and network gating.
 - [Glossary](./docs/frameworks/javascript/concepts/glossary.md): Key terms used throughout the c15t documentation.
 - [Initialization Flow](./docs/frameworks/javascript/concepts/initialization-flow.md): What happens from runtime creation to first state update — the full consent lifecycle.
 - [Policy Packs](./docs/frameworks/javascript/concepts/policy-packs.md): How c15t resolves regional consent policies and what a policy pack controls.
-- [IAB TCF 2.3](./docs/frameworks/javascript/iab/overview.md): Implement IAB Transparency & Consent Framework 2.3 compliance for programmatic advertising in EU/EEA jurisdictions.
-- [Iframe Blocking](./docs/frameworks/javascript/iframe-blocking.md): Block embedded content (YouTube, social widgets, maps) until users grant consent for the appropriate category.
-- [Internationalization](./docs/frameworks/javascript/internationalization.md): Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
-- [Network Blocker](./docs/frameworks/javascript/network-blocker.md): Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
+- [IAB TCF 2.3](./docs/frameworks/javascript/iab/overview.md): Use confirmed IAB TCF 2.3 authority for programmatic advertising gates.
 - [Optimization](./docs/frameworks/javascript/optimization.md): Improve c15t startup performance with prefetching and network tuning.
-- [Policy Packs](./docs/frameworks/javascript/policy-packs.md): Configure regional consent policies in the headless JavaScript runtime with hosted or offline policy resolution.
-- [Quickstart](./docs/frameworks/javascript/quickstart.md): Get started with c15t in vanilla JavaScript — framework-agnostic consent management with no UI dependencies.
-- [Script Loader](./docs/frameworks/javascript/script-loader.md): Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
-- [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Solutions for common issues with c15t in JavaScript — store access, missing banners, consent persistence, and more.
 
 ## Integrations
 
@@ -44,7 +30,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Crisp](./docs/integrations/crisp.md): Load Crisp live chat with website ID, runtime, cookie, and session options.
 - [Databuddy](./docs/integrations/databuddy.md): Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
-- [Google Maps](./docs/integrations/google-maps.md): Render Google Maps only after consent with one shared Maps JavaScript API loader and independently managed map instances.
 - [GA4 + Google Ads (gtag.js)](./docs/integrations/google-tag.md): Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Deploy and manage marketing tags centrally with automatic consent state synchronization.
 - [Heap](./docs/integrations/heap.md): Load Heap with c15t and gate autocapture product analytics behind measurement consent.
@@ -72,7 +57,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Umami Analytics](./docs/integrations/umami-analytics.md): Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 - [Vercel Analytics](./docs/integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./docs/integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
-- [YouTube](./docs/integrations/youtube.md): Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
 
 ## Reference
 
@@ -82,7 +66,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Consent Categories](./docs/shared/concepts/consent-categories.md): Reference page for consent categories.
 - [Consent Models](./docs/shared/concepts/consent-models.md): Reference page for consent models.
 - [Cookie Management](./docs/shared/concepts/cookie-management.md): Reference page for cookie management.
-- [Glossary](./docs/shared/concepts/glossary.md): Reference page for glossary.
 - [Initialization Flow](./docs/shared/concepts/initialization-flow.md): Reference page for initialization flow.
 - [Policy Packs](./docs/shared/concepts/policy-packs.md): Reference page for policy packs.
 - [Consent Banner](./docs/shared/react/components/consent-banner.md): Reference page for consent banner.
@@ -126,3 +109,24 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Tailwind](./docs/shared/react/styling/tailwind.md): Reference page for tailwind.
 - [Tokens](./docs/shared/react/styling/tokens.md): Reference page for tokens.
 - [Troubleshooting](./docs/shared/troubleshooting.md): Reference page for troubleshooting.
+
+## Other
+
+- [Checking permissions](./docs/frameworks/javascript/api/checking-consent.md): Use the core evaluator for processing decisions.
+- [Location and identity](./docs/frameworks/javascript/api/location-info.md): Read resolved geography and identify an existing consent subject.
+- [Kernel API](./docs/frameworks/javascript/api/overview.md): Read snapshots, subscribe to events and record explicit choices.
+- [Recording choices](./docs/frameworks/javascript/api/setting-consent.md): Confirm only categories supplied by a direct user action.
+- [Building consent UI](./docs/frameworks/javascript/building-ui.md): Render policy interactions while keeping processing gates independent.
+- [Kernel events](./docs/frameworks/javascript/callbacks.md): Observe explicit choices independently of permission changes.
+- [Transport modes](./docs/frameworks/javascript/concepts/client-modes.md): Choose a transport separately from browser persistence.
+- [Iframe blocking](./docs/frameworks/javascript/iframe-blocking.md): Keep iframe URLs inactive until their category permits processing.
+- [Internationalization](./docs/frameworks/javascript/internationalization.md): Read resolved translations without changing policy or choice records.
+- [Network blocker](./docs/frameworks/javascript/network-blocker.md): Apply effective permissions to configured fetch and XMLHttpRequest targets.
+- [Policy rules](./docs/frameworks/javascript/policy-packs.md): Resolve local rules or fetch the versioned backend policy contract.
+- [JavaScript quickstart](./docs/frameworks/javascript/quickstart.md): Create a consent kernel and attach browser persistence.
+- [Script loader](./docs/frameworks/javascript/script-loader.md): Attach scripts to current effective permissions.
+- [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Inspect policy resolution and permissions when an integration stays blocked.
+- [Google Maps](./docs/integrations/google-maps.md): Gate a Google Maps iframe with the Frame component.
+- [YouTube](./docs/integrations/youtube.md): Gate a YouTube iframe with the Frame component.
+- [Glossary](./docs/shared/concepts/glossary.md): Terms used by the canonical policy and record contract.
+- [Upgrade to v3](./docs/upgrade-v3.md): Migrate choices, processing gates, policy rules, presentation and transports to the v3 contract.

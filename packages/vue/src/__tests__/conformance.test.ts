@@ -342,7 +342,7 @@ const buildKernelConfig = function buildKernelConfig(
 	return {
 		...base,
 		initialPolicy: buildInitOutput(opts, options).policy,
-		initialPolicyProvisional: true,
+		initialPolicyPending: true,
 	};
 };
 
