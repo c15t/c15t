@@ -60,7 +60,7 @@ export const NextjsBenchmarkProbe = ({
 						regionCode: snapshot.location.regionCode,
 					}
 				: null;
-			state.hasConsented = snapshot.hasConsented;
+			state.hasStoredChoice = Boolean(snapshot.explicitChoice);
 		}
 	});
 
@@ -126,7 +126,7 @@ export const NextjsBenchmarkProbe = ({
 					regionCode: snapshot.location.regionCode,
 				}
 			: null;
-		current.hasConsented = snapshot.hasConsented;
+		current.hasStoredChoice = Boolean(snapshot.explicitChoice);
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}

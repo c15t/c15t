@@ -101,7 +101,9 @@ const measureHydration = async function measureHydration(
 	// kernels untimed, then times their hydrate() calls as one block and
 	// reports the per-call mean; rounds are the samples.
 	const samples: number[] = [];
-	let hydratedFromStorage = false;
+	let hydratedFromStorage = true;
+	let hydrateCallCount = 0;
+	let hydrateSuccessCount = 0;
 	let writeCount = 0;
 	let activeUI = 'none';
 	let promptKind: string | null = null;
@@ -122,9 +124,11 @@ const measureHydration = async function measureHydration(
 			});
 		}
 		let hydratedCount = 0;
+		let calls = 0;
 		const startedAt = performance.now();
 		const writes = countStorageWrites(() => {
 			for (const entry of prepared) {
+				calls += 1;
 				if (entry.handle.hydrate()) {
 					hydratedCount += 1;
 				}
@@ -132,8 +136,10 @@ const measureHydration = async function measureHydration(
 		});
 		samples.push(((performance.now() - startedAt) * 1000) / prepared.length);
 		writeCount += writes;
+		hydrateCallCount += calls;
+		hydrateSuccessCount += hydratedCount;
+		hydratedFromStorage &&= hydratedCount === prepared.length;
 		if (round === 0) {
-			hydratedFromStorage = hydratedCount === prepared.length;
 			const snapshot = prepared[0]?.kernel.getSnapshot();
 			activeUI = snapshot?.activeUI ?? 'none';
 			promptKind = readPromptRequirement(snapshot).kind;
@@ -148,6 +154,8 @@ const measureHydration = async function measureHydration(
 	return {
 		activeUI,
 		hasStoredChoice,
+		hydrateCallCount,
+		hydrateSuccessCount,
 		hydrateUs: samples,
 		hydratedFromStorage,
 		promptKind,
@@ -176,16 +184,10 @@ export const PolicyBenchmarkProvider = ({
 
 	const options: ConsentProviderOptions = {
 		callbacks: {
-			onBannerFetched() {
+			onChoiceRecorded() {
 				const state = getPolicyBenchState(scenario, fixture);
 				if (state) {
-					state.onBannerFetchedCount += 1;
-				}
-			},
-			onConsentSet() {
-				const state = getPolicyBenchState(scenario, fixture);
-				if (state) {
-					state.onConsentSetCount += 1;
+					state.onChoiceRecordedCount += 1;
 				}
 			},
 			onError() {

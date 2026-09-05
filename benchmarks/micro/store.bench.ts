@@ -27,7 +27,7 @@ bench('kernel.commands.save("all")', async () => {
 
 bench('kernel.commands.save("none")', async () => {
 	const kernel = createConsentKernel({
-		initialConsents: { marketing: true, measurement: true },
+		initialDraft: { marketing: true, measurement: true },
 	});
 	await kernel.commands.save('none');
 	kernel.dispose();
@@ -39,9 +39,9 @@ bench('kernel.commands.save(custom)', async () => {
 	kernel.dispose();
 });
 
-bench('kernel.set.consent()', () => {
+bench('kernel.set.draft()', () => {
 	const kernel = createConsentKernel();
-	kernel.set.consent({ marketing: true });
+	kernel.set.draft({ marketing: true });
 	kernel.dispose();
 });
 

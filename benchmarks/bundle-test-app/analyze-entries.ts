@@ -90,7 +90,16 @@ const measureEntry = async function measureEntry(
 	}
 
 	const [outputMetadata] = Object.values(buildResult.metafile.outputs);
-	const boundaries = classifyBoundaries(outputMetadata?.inputs ?? {});
+	const boundaries = classifyBoundaries(
+		Object.fromEntries(
+			Object.keys(buildResult.metafile.inputs).map((path) => [
+				path,
+				{
+					bytesInOutput: outputMetadata?.inputs[path]?.bytesInOutput ?? 0,
+				},
+			])
+		)
+	);
 	const topInputs = Object.entries(outputMetadata?.inputs ?? {})
 		.map(([path, input]) => ({
 			bytesInOutput: input.bytesInOutput,
@@ -137,6 +146,11 @@ const toBenchmarkResult = function toBenchmarkResult(
 			),
 		},
 		metrics: [
+			...Object.entries(measurement.boundaries).map(([family, boundary]) =>
+				summarizeMetric(`${family}InputModuleCount`, 'count', [
+					boundary.inputs.length,
+				])
+			),
 			summarizeMetric('gzipSize', 'bytes', [measurement.gzipBytes]),
 			summarizeMetric('rawSize', 'bytes', [measurement.rawBytes]),
 			summarizeMetric('iabInputBytes', 'bytes', [

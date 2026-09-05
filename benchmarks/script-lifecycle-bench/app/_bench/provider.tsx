@@ -267,16 +267,6 @@ export const ScriptLifecycleProvider = ({
 
 			const hasInitialConsent = config.initialConsent === 'all';
 			const kernel = createConsentKernel({
-				initialConsents: hasInitialConsent
-					? {
-							experience: true,
-							functionality: true,
-							marketing: true,
-							measurement: true,
-							necessary: true,
-						}
-					: undefined,
-				initialHasConsented: hasInitialConsent,
 				transport: createHostedTransport({
 					backendURL: '/api/bench-consent',
 				}),
@@ -286,6 +276,12 @@ export const ScriptLifecycleProvider = ({
 			const initResult = await kernel.commands.init();
 			if (!initResult.ok) {
 				state.errors.push(String(initResult.error));
+			}
+			if (hasInitialConsent) {
+				const saved = await kernel.commands.save('all');
+				if (!saved.ok) {
+					throw new Error('Failed to prepare saved-choice lifecycle fixture');
+				}
 			}
 			loaderRef.current = createScriptLoader({
 				kernel,

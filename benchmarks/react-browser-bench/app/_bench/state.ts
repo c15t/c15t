@@ -21,13 +21,11 @@ export interface BenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
-	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
 	bannerPaintMs?: number | null;
-	onBannerFetchedCount: number;
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	interaction: BenchInteractionMetrics;
 }
@@ -57,8 +55,7 @@ export const getBenchState = function getBenchState(
 			activeUI: 'none',
 			interaction: {},
 			mountCount: 0,
-			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
+			onChoiceRecordedCount: 0,
 			onErrorCount: 0,
 			renderCount: 0,
 			scenario,

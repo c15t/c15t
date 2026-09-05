@@ -206,25 +206,28 @@ export const formatMetric = function formatMetric(
 	return `${value.toFixed(2)} ${unit}`;
 };
 
-export const measureLoop = function measureLoop(
+export const measureLoop = function measureLoop<Result>(
 	iterations: number,
-	fn: () => void
+	fn: () => Result,
+	cleanup?: (result: Result) => void
 ): number[] {
 	const samples: number[] = [];
 
 	for (let index = 0; index < iterations; index += 1) {
 		const startedAt = performance.now();
-		fn();
+		const result = fn();
 		const finishedAt = performance.now();
+		cleanup?.(result);
 		samples.push((finishedAt - startedAt) * 1000);
 	}
 
 	return samples;
 };
 
-export const measureAsyncLoop = function measureAsyncLoop(
+export const measureAsyncLoop = function measureAsyncLoop<Result>(
 	iterations: number,
-	fn: () => Promise<void>
+	fn: () => Promise<Result>,
+	cleanup?: (result: Result) => void
 ): Promise<number[]> {
 	const samples: number[] = [];
 	const iterationIndexes = Array.from(
@@ -236,8 +239,9 @@ export const measureAsyncLoop = function measureAsyncLoop(
 		async (previous, _index) => {
 			await previous;
 			const startedAt = performance.now();
-			await fn();
+			const result = await fn();
 			const finishedAt = performance.now();
+			cleanup?.(result);
 			samples.push((finishedAt - startedAt) * 1000);
 			return samples;
 		},
