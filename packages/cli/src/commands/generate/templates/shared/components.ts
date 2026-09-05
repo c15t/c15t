@@ -132,7 +132,7 @@ export const generateConsentComponent = function generateConsentComponent({
 
 	// Build the full options object
 	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tprefetch: config,' : '';
-	const themeLine = includeTheme ? '\n\t\t\t\ttheme,' : '';
+	const themeLine = includeTheme ? '\n\t\t\t\ttheme,\n\t\t\t\tcomponents,' : '';
 	const overridesLine = '';
 
 	const fullOptionsText = `{
@@ -183,7 +183,9 @@ export const generateConsentComponent = function generateConsentComponent({
 	const devToolsImport = enableDevTools
 		? generateDevToolsImport(devToolsImportSource)
 		: '';
-	const themeImport = includeTheme ? "import { theme } from './theme';\n" : '';
+	const themeImport = includeTheme
+		? "import { components, theme } from './theme';\n"
+		: '';
 
 	// Build export
 	const componentName = defaultExport

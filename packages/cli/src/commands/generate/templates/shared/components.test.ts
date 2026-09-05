@@ -3,6 +3,22 @@ import { describe, expect, it } from 'vitest';
 import { generateConsentComponent } from './components';
 
 describe('consent component template', () => {
+	it.each(['c15t/react', 'c15t/next'])(
+		'passes generated theme and component overrides to the %s prebuilt provider',
+		(importSource) => {
+			const template = generateConsentComponent({
+				importSource,
+				includeTheme: true,
+				optionsText: 'mode: offline(),',
+			});
+			expect(template).toContain(
+				"import { components, theme } from './theme';"
+			);
+			expect(template).toMatch(
+				/options=\{\{[\s\S]*?\btheme,[\s\S]*?\bcomponents,/u
+			);
+		}
+	);
 	it('generates a React v3 provider with its framework DevTools adapter', () => {
 		const template = generateConsentComponent({
 			devToolsImportSource: 'c15t/react/devtools',

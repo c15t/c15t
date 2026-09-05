@@ -123,6 +123,12 @@ group: reference
   in it. Copy TC string confirms success or reports clipboard failures. Raw IAB
   data remains available in an expandable section.
 
+  IAB saves normally write the TC string to its standard cookie and localStorage.
+  For an in-memory playground, set `persistence: false` in the IAB module options
+  as well as disabling the provider's core persistence. The IAB option prevents
+  TC-string storage writes; it does not disable the configured save transport
+  or remove previously stored values.
+
   Save and refresh actions show pending, success, and failure feedback. Controls
   are disabled while a request is pending. A failed save does not roll back the
   live choices; retry to record them.
