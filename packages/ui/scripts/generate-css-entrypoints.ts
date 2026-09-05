@@ -5,6 +5,10 @@
  * 2. Generates aggregated CSS entrypoints from `dist/styles/primitives` and
  *    the flat component CSS in `dist/styles/components` (produced by
  *    `generate-style-artifacts.ts`, which must run first):
+ *    - the `defaultTheme` base tokens (`--c15t-surface`, `--c15t-radius-lg`,
+ *      `--c15t-font-family`, ...) are emitted first and unlayered, so an app
+ *      that imports the stylesheet without passing a `theme` still renders the
+ *      styled UI instead of falling back to browser defaults
  *    - :root custom properties and @keyframes stay unlayered
  *    - `styles.css` / `iab/styles.css` wrap component rules in `@layer components`
  *      for Tailwind 4 and native CSS layer consumers
@@ -20,6 +24,8 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
+
+import { defaultTheme, generateThemeCSS } from '../src/theme/utils';
 
 const DIST_DIR = join(import.meta.dirname, '..', 'dist');
 const PRIMITIVES_DIR = join(DIST_DIR, 'styles', 'primitives');
@@ -239,6 +245,28 @@ const collectCssParts = function collectCssParts(
 };
 
 /**
+ * The `defaultTheme` base tokens, rendered by the same `generateThemeCSS` a
+ * host calls when it passes `theme`. Every component stylesheet resolves its
+ * colours, radii, fonts and motion through these, mostly without `var()`
+ * fallbacks, so a stylesheet that ships without them renders unstyled in any
+ * app that does not pass a `theme` — including server-rendered, zero-JS pages
+ * that can never inject them.
+ *
+ * `defaultTheme` stays the single source of truth: this is generated at build
+ * time from the same object the runtime exports, so CSS and JS cannot drift.
+ *
+ * Emitted first and **unlayered** in every entrypoint. A provider's injected
+ * `<style id="c15t-theme">` still wins: it carries the same selectors and the
+ * same specificity, and lands later in the cascade — later in `<head>` when
+ * the defaults are unlayered too, and unconditionally when a host imports the
+ * stylesheet into a cascade layer (`@import ... layer(c15t)`), since unlayered
+ * declarations outrank every layer.
+ */
+const DEFAULT_THEME_CSS = `/* default theme tokens (generated from defaultTheme) */\n${generateThemeCSS(
+	defaultTheme
+)}`;
+
+/**
  * Generate layered CSS: component rules wrapped in @layer components.
  * Use with Tailwind 4 — import Tailwind normally; c15t joins the components layer automatically.
  */
@@ -246,7 +274,7 @@ const buildLayeredCss = function buildLayeredCss(
 	rootParts: string[],
 	ruleParts: string[]
 ): string {
-	const parts: string[] = [];
+	const parts: string[] = [DEFAULT_THEME_CSS];
 	if (rootParts.length) {
 		parts.push(rootParts.join('\n\n'));
 	}
@@ -267,7 +295,7 @@ const buildFlatCss = function buildFlatCss(
 	rootParts: string[],
 	ruleParts: string[]
 ): string {
-	const parts: string[] = [];
+	const parts: string[] = [DEFAULT_THEME_CSS];
 	if (rootParts.length) {
 		parts.push(rootParts.join('\n\n'));
 	}
