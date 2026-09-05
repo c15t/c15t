@@ -25,7 +25,7 @@ import {
 	CONSENT_STORAGE_KEY,
 	readStoredConsentFromCookie,
 } from '@c15t/core/modules/persistence';
-import { createManifestTransport } from '@c15t/core/transports/manifest';
+import type { ManifestFetch } from '@c15t/core/server';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
@@ -38,6 +38,7 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import { loadConsentManifest, resolveManifestInit } from './api/manifest-init';
 import { filterCookieHeader } from './libs/cookies';
 import { buildInlineOfflinePolicy } from './mode';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
@@ -333,37 +334,37 @@ const prefetchManifest = async function prefetchManifest(
 	input: PrefetchLocalInput,
 	mode: Extract<C15tResolvedOptions['mode'], { type: 'manifest' }>
 ): Promise<KernelConfig> {
-	const absoluteBackend = mode.backendURL
-		? (resolveAgainstRequest(mode.backendURL, input.headers, input.url) ??
-			undefined)
-		: undefined;
-	const absoluteManifest = mode.manifestURL
-		? (resolveAgainstRequest(mode.manifestURL, input.headers, input.url) ??
-			undefined)
-		: undefined;
-	const cookieTarget = absoluteManifest ?? absoluteBackend;
-	const transport = createManifestTransport({
-		backendURL: absoluteBackend,
-		baseTranslations,
-		fetch: input.fetch,
-		headers: forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-			allowCookie: cookieTarget
-				? mayForwardCookie(cookieTarget, input.url)
-				: false,
-			cookieName: consentCookieName(input.options),
-		}),
-		inputs: input.inputs,
-		manifest: mode.manifest,
-		manifestURL: absoluteManifest,
-	});
+	// Deliberately not `createManifestTransport`: its manifest memo lives
+	// on the transport instance, and a render builds a fresh one, so every
+	// page view paid a manifest fetch. The route handlers already go
+	// through the process-wide cache in `@c15t/core/server`; so does this,
+	// which is what makes the second render cost nothing.
+	const source = { headers: input.headers, url: input.url };
+	const target = mode.manifestURL ?? mode.backendURL;
+	const absoluteTarget = target
+		? resolveAgainstRequest(target, input.headers, input.url)
+		: null;
 	try {
-		const response = await transport.init?.({
-			overrides: input.base.initialOverrides ?? {},
-			user: input.base.initialUser ?? null,
+		const manifest = await loadConsentManifest({
+			fetch: input.fetch as ManifestFetch | undefined,
+			options: input.options,
+			source,
 		});
-		return response
-			? mergeInitResponseIntoKernelConfig(input.base, response)
-			: input.base;
+		const payload = await resolveManifestInit({
+			fetch: input.fetch as ManifestFetch | undefined,
+			inputs: input.inputs,
+			manifest,
+		});
+		return mergeInitOutputIntoKernelConfig(
+			input.base,
+			payload,
+			forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
+				allowCookie: absoluteTarget
+					? mayForwardCookie(absoluteTarget, input.url)
+					: false,
+				cookieName: consentCookieName(input.options),
+			})
+		);
 	} catch {
 		return input.base;
 	}

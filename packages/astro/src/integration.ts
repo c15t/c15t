@@ -19,6 +19,7 @@ import type { AstroIntegration } from 'astro';
 import type {
 	C15tAstroOptions,
 	C15tEndpointOptions,
+	C15tMiddlewareOptions,
 	C15tResolvedOptions,
 	C15tUIAdapterName,
 } from './types';
@@ -77,6 +78,16 @@ const UI_ADAPTERS: Record<
  * to be installed would be a worse surprise than a one-line log.
  */
 const SUGGESTIBLE_ADAPTERS: C15tUIAdapterName[] = ['react', 'vue'];
+
+const resolveMiddleware = function resolveMiddleware(
+	options: C15tAstroOptions
+): C15tResolvedOptions['middleware'] {
+	const raw: C15tMiddlewareOptions =
+		typeof options.middleware === 'boolean'
+			? { enabled: options.middleware }
+			: (options.middleware ?? {});
+	return { enabled: raw.enabled ?? true, skip: raw.skip ?? [] };
+};
 
 const resolveEndpoints = function resolveEndpoints(
 	options: C15tAstroOptions
@@ -142,6 +153,7 @@ export const resolveOptions = function resolveOptions(
 		...rest,
 		colorScheme: options.colorScheme ?? 'system',
 		endpoints: resolveEndpoints(options),
+		middleware: resolveMiddleware(options),
 		ui: options.ui ?? 'svelte',
 	};
 };
@@ -329,7 +341,7 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 					vite: { plugins: await buildVitePlugins(resolved) },
 				});
 
-				if (options.middleware !== false) {
+				if (resolved.middleware.enabled) {
 					addMiddleware({
 						entrypoint: '@c15t/astro/middleware',
 						order: 'pre',

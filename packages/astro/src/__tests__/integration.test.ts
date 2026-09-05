@@ -99,8 +99,23 @@ describe('resolveOptions', () => {
 			mode: offlineMode(),
 			requireUIIntegration: false,
 		});
-		expect(resolved).not.toHaveProperty('middleware');
 		expect(resolved).not.toHaveProperty('requireUIIntegration');
+	});
+
+	it('normalizes the middleware option', () => {
+		expect(resolveOptions({ mode: offlineMode() }).middleware).toEqual({
+			enabled: true,
+			skip: [],
+		});
+		expect(
+			resolveOptions({ middleware: false, mode: offlineMode() }).middleware
+		).toEqual({ enabled: false, skip: [] });
+		expect(
+			resolveOptions({
+				middleware: { skip: ['/healthz'] },
+				mode: offlineMode(),
+			}).middleware
+		).toEqual({ enabled: true, skip: ['/healthz'] });
 	});
 
 	it('keeps an explicit ui adapter', () => {

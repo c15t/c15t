@@ -98,6 +98,30 @@ export interface C15tEndpointOptions {
 	manifestPath?: string;
 }
 
+/** How the integration registers its `pre`-order middleware. */
+export interface C15tMiddlewareOptions {
+	/**
+	 * Register `@c15t/astro/middleware` at all.
+	 *
+	 * @default true
+	 */
+	enabled?: boolean;
+	/**
+	 * Extra path prefixes the middleware leaves alone.
+	 *
+	 * The integration's own init and manifest routes are always skipped, so
+	 * this is only for routes of your own that must not resolve consent —
+	 * health checks, webhooks, anything that would otherwise pay for a
+	 * decision it never renders. A path matches when it is the pathname
+	 * exactly or a parent segment of it, so `'/api'` covers `/api/health`.
+	 *
+	 * `Astro.locals.c15t` is left unset on a skipped route.
+	 *
+	 * @example ['/api/webhooks', '/healthz']
+	 */
+	skip?: string[];
+}
+
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
 	/**
@@ -173,9 +197,14 @@ export interface C15tAstroOptions {
 	/**
 	 * Register the `pre`-order middleware that populates `Astro.locals.c15t`.
 	 *
+	 * `false` is the same as `{ enabled: false }`. The middleware already
+	 * skips the integration's own init and manifest routes, so a site that
+	 * serves its own manifest does not have to hand-roll one to break the
+	 * cycle; use `skip` to add routes of your own.
+	 *
 	 * @default true
 	 */
-	middleware?: boolean;
+	middleware?: boolean | C15tMiddlewareOptions;
 
 	/**
 	 * Fail the build when the Astro integration for {@link C15tAstroOptions.ui}
@@ -253,6 +282,7 @@ export interface C15tResolvedOptions extends Omit<
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
 		enabled: boolean;
 	};
+	middleware: Required<C15tMiddlewareOptions>;
 }
 
 /** Consent context the middleware attaches to every request. */

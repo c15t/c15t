@@ -12,6 +12,16 @@ export {
 } from './handlers';
 export type { ConsentRouteHandlerOptions } from './handlers';
 export {
+	loadConsentManifest,
+	resolveManifestInit,
+	resolveManifestSourceFrom,
+} from './manifest-init';
+export type {
+	FetchGvl,
+	RequestSource,
+	ResolvedInitOutput,
+} from './manifest-init';
+export {
 	clearManifestCache,
 	createManifestRequestURL,
 	fetchCachedManifest,

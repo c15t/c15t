@@ -40,6 +40,7 @@ export type {
 	C15tIABOptions,
 	C15tLocals,
 	C15tManifestDescriptor,
+	C15tMiddlewareOptions,
 	C15tModeDescriptor,
 	C15tOfflineDescriptor,
 	C15tResolvedOptions,
