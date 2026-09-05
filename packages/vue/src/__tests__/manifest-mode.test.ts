@@ -195,6 +195,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
 			headers: {
 				'if-none-match': '"manifest-rev-1"',
+				'x-c15t-policy-contract': '1',
 			},
 		});
 		expect(third.manifest.revision).toBe('manifest-rev-1');
@@ -273,8 +274,11 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			configurable: true,
 			value: true,
 		});
-		const fetchMock = vi.fn((input: RequestInfo | URL) => {
+		const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
 			expect(String(input)).toBe('https://cdn.example/manifest');
+			expect(new Headers(init?.headers).get('x-c15t-policy-contract')).toBe(
+				'1'
+			);
 			return new Response(JSON.stringify(createManifestFixture()), {
 				headers: { 'content-type': 'application/json' },
 				status: 200,
@@ -317,8 +321,11 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 	test('client manifest mode retries the manifest fetch after a failed load', async () => {
 		vi.spyOn(console, 'warn').mockImplementation(() => {});
 		let manifestStatus = 503;
-		const fetchMock = vi.fn((input: RequestInfo | URL) => {
+		const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
 			expect(String(input)).toBe('https://cdn.example/manifest');
+			expect(new Headers(init?.headers).get('x-c15t-policy-contract')).toBe(
+				'1'
+			);
 			return new Response(
 				manifestStatus === 200
 					? JSON.stringify(createManifestFixture())

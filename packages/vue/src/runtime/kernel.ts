@@ -1,5 +1,5 @@
 import {
-	c15tVersionHeaders,
+	c15tProtocolHeaders,
 	createConsentKernel,
 	createHostedTransport,
 	initOutputToKernelConfig,
@@ -321,7 +321,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 				credentials: 'include',
 				headers: {
 					accept: 'application/json',
-					...c15tVersionHeaders,
+					...c15tProtocolHeaders,
 					...headers,
 				},
 				method: 'GET',

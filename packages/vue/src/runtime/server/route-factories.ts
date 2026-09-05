@@ -1,4 +1,9 @@
+import { c15tProtocolHeaders, mapInitOutputToInitResponse } from '@c15t/core';
+import type { InitOutput } from '@c15t/schema/types';
 import {
+	parsePolicyContractHeader,
+	readPolicyResolutionWire,
+	writePolicyResolutionWire,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 } from '@c15t/schema/types';
@@ -103,6 +108,26 @@ export const createManifestRoute = function createManifestRoute(
 	});
 };
 
+const negotiateInit = function negotiateInit(
+	output: InitOutput,
+	clientContract: string | undefined
+): InitOutput {
+	if (
+		clientContract === undefined ||
+		parsePolicyContractHeader(clientContract) === POLICY_CONTRACT_VERSION
+	) {
+		return output;
+	}
+	return {
+		...output,
+		policyResolution: writePolicyResolutionWire({
+			policy: null,
+			reason: 'unsupported-contract',
+			status: 'failed',
+		}),
+	};
+};
+
 export const createInitRoute = function createInitRoute(
 	dependencies: InitRouteDependencies
 ) {
@@ -123,17 +148,17 @@ export const createInitRoute = function createInitRoute(
 					config,
 					fetch: dependencies.fetch,
 				});
-				return resolveManifestInit({
-					headers,
-					manifest: manifest.manifest,
-				});
+				return negotiateInit(
+					resolveManifestInit({ headers, manifest: manifest.manifest }),
+					getRequestHeader(event, POLICY_CONTRACT_HEADER)
+				);
 			} catch (cause) {
 				// Older backends may not expose /manifest; fall back to GET /init
 				// through the same fetch adapter so relative backend URLs work.
 				if (!config.backendURL) {
 					throw cause;
 				}
-				const forward: Record<string, string> = {};
+				const forward: Record<string, string> = { ...c15tProtocolHeaders };
 				for (const key of [
 					'accept-language',
 					'sec-gpc',
@@ -158,7 +183,24 @@ export const createInitRoute = function createInitRoute(
 				if (!response.ok) {
 					throw cause;
 				}
-				return await response.json();
+				const payload = (await response.json()) as InitOutput;
+				const declaration = response.headers.get(POLICY_CONTRACT_HEADER);
+				const producerContract =
+					declaration === null
+						? undefined
+						: (parsePolicyContractHeader(declaration) ?? null);
+				const mapped = mapInitOutputToInitResponse(payload, forward, {
+					producerContract,
+				});
+				return negotiateInit(
+					{
+						...payload,
+						policyResolution: writePolicyResolutionWire(
+							readPolicyResolutionWire(mapped.policyResolution)
+						),
+					},
+					getRequestHeader(event, POLICY_CONTRACT_HEADER)
+				);
 			}
 		},
 		{

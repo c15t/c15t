@@ -228,6 +228,61 @@ describe('fetchCachedManifest upstream dedupe', () => {
 });
 
 describe('init route', () => {
+	test.each(['99', 'invalid', ''])(
+		'rejects unsupported client declaration %s',
+		async (contract) => {
+			mocks.serverFetch.mockResolvedValue(manifestResponse({}));
+			const response = await callInitRoute({
+				'x-c15t-policy-contract': contract,
+			});
+			expect(await response.json()).toMatchObject({
+				policyResolution: { reason: 'unsupported-contract', status: 'failed' },
+			});
+		}
+	);
+
+	test.each([
+		{ declaration: undefined, reason: undefined, status: 'matched' },
+		{ declaration: '1', reason: 'invalid-payload', status: 'failed' },
+		{ declaration: '99', reason: 'unsupported-contract', status: 'failed' },
+		{
+			declaration: 'invalid',
+			reason: 'unsupported-contract',
+			status: 'failed',
+		},
+	])(
+		'negotiates fallback producer $declaration',
+		async ({ declaration, status, reason }) => {
+			const headers = new Headers();
+			if (declaration !== undefined) {
+				headers.set('x-c15t-policy-contract', declaration);
+			}
+			mocks.serverFetch
+				.mockResolvedValueOnce(new Response('missing', { status: 404 }))
+				.mockResolvedValueOnce(
+					new Response(
+						JSON.stringify({
+							location: { countryCode: 'DE', regionCode: null },
+							policy: { id: 'legacy', model: 'opt-in', ui: { mode: 'banner' } },
+							translations: { language: 'en', translations: {} },
+						}),
+						{ headers }
+					)
+				);
+			const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+			expect(response.headers.get('x-c15t-policy-contract')).toBe('1');
+			const body = await response.json();
+			expect(body.policyResolution.status).toBe(status);
+			expect(body.policyResolution.reason).toBe(reason);
+			expect(mocks.serverFetch).toHaveBeenLastCalledWith(
+				'/api/self-host/init',
+				expect.objectContaining({
+					headers: expect.objectContaining({ 'x-c15t-policy-contract': '1' }),
+				})
+			);
+		}
+	);
+
 	test('resolves geo locally from the manifest and never caches the answer', async () => {
 		mocks.serverFetch.mockResolvedValue(
 			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
@@ -255,10 +310,17 @@ describe('init route', () => {
 			if (url.includes('/manifest')) {
 				return new Response('nope', { status: 404 });
 			}
-			return new Response(JSON.stringify({ jurisdiction: 'NONE' }), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
+			return new Response(
+				JSON.stringify({
+					jurisdiction: 'NONE',
+					location: { countryCode: null, regionCode: null },
+					translations: { language: 'en', translations: {} },
+				}),
+				{
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				}
+			);
 		});
 
 		const response = await callInitRoute({ 'x-c15t-country': 'DE' });

@@ -1,4 +1,4 @@
-import { c15tVersionHeaders } from '@c15t/core';
+import { c15tProtocolHeaders } from '@c15t/core';
 import type {
 	ConsentManifest,
 	InitOutput,
@@ -207,7 +207,7 @@ export const fetchCachedManifest = async function fetchCachedManifest(input: {
 
 	const headers: Record<string, string> = {
 		accept: 'application/json',
-		...c15tVersionHeaders,
+		...c15tProtocolHeaders,
 	};
 	if (cached?.headers.etag) {
 		headers['if-none-match'] = cached.headers.etag;
