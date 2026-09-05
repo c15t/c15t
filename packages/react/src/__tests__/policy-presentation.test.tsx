@@ -331,7 +331,10 @@ it('diagnoses theme overrides that give equivalent actions unequal prominence', 
 
 it('starts real expiry timers for prepared records without replaying choice or writing storage', async () => {
 	const clock = Date.now();
-	const policy = resolution({ categories: ['marketing'] });
+	const policy = resolution({
+		categories: ['marketing'],
+		validity: { choiceDays: 1 },
+	});
 	if (policy.status !== 'matched') {
 		throw new Error('Expected matched policy');
 	}
@@ -341,28 +344,27 @@ it('starts real expiry timers for prepared records without replaying choice or w
 	const screen = await render(
 		<ConsentProvider
 			options={{
+				callbacks: { onChoiceRecorded, onPermissionsChanged },
 				mode: custom({}),
 				persistence: false,
-				callbacks: { onChoiceRecorded, onPermissionsChanged },
 				prefetch: {
-					now: clock,
 					initialPolicyResolution: policy,
 					initialRecords: {
 						choice: {
-							version: 3,
 							categories: {
 								marketing: {
-									value: true,
-									confirmedAt: clock - 1,
-									expiresAt: clock + 150,
 									basis: {
-										kind: 'choice-v1',
 										fingerprint: policy.fingerprints.choice,
+										kind: 'choice-v1',
 									},
+									confirmedAt: clock - 86_400_000 + 500,
+									value: true,
 								},
 							},
+							version: 3,
 						},
 					},
+					now: clock,
 				},
 			}}
 		>
