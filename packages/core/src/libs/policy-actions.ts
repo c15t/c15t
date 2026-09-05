@@ -30,6 +30,30 @@ const DEFAULT_POLICY_ACTIONS: PolicyUiAction[] = [
 	'customize',
 ];
 
+/**
+ * The grouping a surface uses when the policy supplies no layout: the two
+ * write actions together, "customize" on its own, laid out with
+ * `space-between`.
+ *
+ * It is the same shape `policyDefaults`' compact profile ships, so a
+ * surface rendered without policy hints matches one rendered with them.
+ * Adapters should prefer this over a component-local constant — a banner
+ * and a preference centre that disagree about the default is exactly the
+ * drift the cross-framework parity gate exists to catch.
+ *
+ * @example
+ * ```ts
+ * const groups = resolvePolicyActionGroups({
+ *   allowedActions,
+ *   layout: policy.layout?.length ? policy.layout : DEFAULT_POLICY_ACTION_LAYOUT,
+ * });
+ * ```
+ */
+export const DEFAULT_POLICY_ACTION_LAYOUT: PolicyUiActionGroup[] = [
+	['reject', 'accept'],
+	'customize',
+];
+
 const dedupeActions = function dedupeActions(
 	actions?: PolicyUiAction[]
 ): PolicyUiAction[] {

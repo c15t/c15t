@@ -11,7 +11,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'COMPONENTS - REACT/IAB Consent Banner',
+	title: 'COMPONENTS - REACT/IAB/IAB Consent Banner',
 } satisfies Meta<typeof IABConsentBanner>;
 
 export default meta;

@@ -1,12 +1,12 @@
-import type { Preview } from '@storybook/svelte-vite';
+import type { Preview } from '@storybook/html-vite';
 
-// The stylesheets ship the `defaultTheme` tokens themselves, so the canvas
-// only has to opt into them — no `generateThemeCSS(defaultTheme)` injection.
-import '../../../packages/svelte/src/styles.css';
-import '../../../packages/svelte/src/iab/styles.css';
+// The shipped stylesheet, the same one an Astro site imports. It now
+// carries the default theme tokens, so nothing has to inject a theme at
+// runtime — which is the whole point of a server-rendered banner.
+import '@c15t/astro/styles.css';
+import '@c15t/ui/iab/styles.css';
 
 const storybookCanvasStyleId = 'c15t-storybook-canvas';
-
 const canvasCSS = `
 	:root {
 		color: var(--c15t-text);
@@ -43,7 +43,7 @@ ensureGlobalStyle(storybookCanvasStyleId, canvasCSS);
 
 const preview: Preview = {
 	parameters: {
-		layout: 'centered',
+		layout: 'fullscreen',
 	},
 };
 

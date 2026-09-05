@@ -287,7 +287,7 @@ jobs:
       - name: 🏗️ Build Storybooks
         # Use turbo so workspace deps (notably @c15t/ui CSS dist) build
         # before the storybook builds consume them via PostCSS @import.
-        run: bun turbo run build --filter=@c15t/storybook-react --filter=@c15t/storybook-svelte --filter=@c15t/storybook-vue
+        run: bun turbo run build --filter=@c15t/storybook-react --filter=@c15t/storybook-svelte --filter=@c15t/storybook-vue --filter=@c15t/storybook-astro
 
       - name: 🌐 Serve Storybooks
         run: |
@@ -297,8 +297,9 @@ jobs:
           bunx --no-install http-server apps/storybook-react/storybook-static --port 6006 --silent &
           bunx --no-install http-server apps/storybook-svelte/storybook-static --port 6007 --silent &
           bunx --no-install http-server apps/storybook-vue/storybook-static --port 6008 --silent &
+          bunx --no-install http-server apps/storybook-astro/storybook-static --port 6010 --silent &
           # Wait for all to be reachable before continuing.
-          for port in 6006 6007 6008; do
+          for port in 6006 6007 6008 6010; do
             ready=false
             for i in {1..30}; do
               if curl --fail --silent "http://127.0.0.1:$port/index.json" >/dev/null; then
@@ -318,7 +319,8 @@ jobs:
           REACT_STORYBOOK_URL: http://127.0.0.1:6006
           SVELTE_STORYBOOK_URL: http://127.0.0.1:6007
           VUE_STORYBOOK_URL: http://127.0.0.1:6008
-          PARITY_FRAMEWORKS: react,svelte,vue
+          ASTRO_STORYBOOK_URL: http://127.0.0.1:6010
+          PARITY_FRAMEWORKS: react,svelte,vue,astro
         # --ignore-snapshots: committed screenshot baselines are darwin-only;
         # DOM/a11y/computed-style parity is still fully enforced. Drop the
         # flag once linux baselines are generated (e.g. via the Playwright
@@ -342,6 +344,12 @@ jobs:
         env:
           STORYBOOK_URL: http://127.0.0.1:6008
         run: bun run --cwd apps/storybook-vue test-storybook
+
+      - name: 📖 Run Storybook interaction tests (astro)
+        if: ${{ !cancelled() }}
+        env:
+          STORYBOOK_URL: http://127.0.0.1:6010
+        run: bun run --cwd apps/storybook-astro test-storybook
 
       - name: ⬆️ Upload Playwright report
         if: failure()

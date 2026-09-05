@@ -20,6 +20,7 @@
  * ```
  */
 import {
+	DEFAULT_POLICY_ACTION_LAYOUT,
 	defaultTranslationConfig,
 	resolvePolicyActionGroups,
 	resolvePolicyAllowedActions,
@@ -34,6 +35,7 @@ import {
 	buildConfigScript,
 	markConfigEmitted,
 } from '@c15t/astro/server';
+import Branding from './branding.astro';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
 import buttonStyles from '@c15t/ui/styles/components/button';
@@ -54,6 +56,8 @@ interface Props {
 	noStyle?: boolean;
 	/** Extra class on the banner root. */
 	class?: string;
+	/** Drop the "Secured by c15t" tag. */
+	hideBranding?: boolean;
 	/** Which legal links to render inline. `null` renders none. */
 	legalLinks?: (keyof LegalLinks)[] | null;
 	/**
@@ -71,6 +75,7 @@ const {
 	customizeButtonText,
 	noStyle = false,
 	class: className,
+	hideBranding = false,
 	legalLinks = null,
 	force = false,
 } = Astro.props;
@@ -101,6 +106,7 @@ const copy = {
 	description:
 		description ?? bundle.cookieBanner?.description ?? fallback.cookieBanner.description,
 	reject: rejectButtonText ?? bundle.common?.rejectAll ?? fallback.common.rejectAll,
+	securedBy: bundle.common?.securedBy ?? fallback.common.securedBy,
 	title: title ?? bundle.cookieBanner?.title ?? fallback.cookieBanner.title,
 };
 
@@ -114,7 +120,7 @@ const allowedActions = resolvePolicyAllowedActions({
 const layout =
 	(snapshot.policyBanner?.layout?.length ?? 0) > 0
 		? snapshot.policyBanner?.layout
-		: [['reject', 'accept'], 'customize'];
+		: DEFAULT_POLICY_ACTION_LAYOUT;
 const orderedActions = resolvePolicyOrderedActions({ allowedActions, layout });
 const actionGroups = resolvePolicyActionGroups({ allowedActions, layout });
 const direction = resolvePolicyDirection(snapshot.policyBanner?.direction);
@@ -169,6 +175,15 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 			lang={snapshot.translations?.language}
 		>
 			<div class={noStyle ? '' : styles.cardShell}>
+				<Branding
+					branding={snapshot.branding}
+					data-testid="consent-banner-branding"
+					hide={hideBranding}
+					hostname={Astro.url.hostname}
+					noStyle={noStyle}
+					securedBy={copy.securedBy}
+					variant="banner-tag"
+				/>
 				<div
 					aria-label={copy.title}
 					aria-modal="false"

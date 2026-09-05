@@ -17,7 +17,13 @@
  * Environment variables:
  *   - `REACT_STORYBOOK_URL` (default http://127.0.0.1:6006)
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
+ *   - `VUE_STORYBOOK_URL` (default http://127.0.0.1:6008)
+ *   - `ASTRO_STORYBOOK_URL` (default http://127.0.0.1:6010)
  *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte`)
+ *
+ * Known drift these checks are not expected to catch lives in
+ * `src/parity-allowlist.ts`. These three report one result per story
+ * rather than per element, so their entries use `slot: '*'`.
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
@@ -29,9 +35,15 @@ import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
 import { pairStories } from '../src/pair-stories';
 import type { PairedStory } from '../src/pair-stories';
+import {
+	findAllowEntry,
+	unusedAllowlistEntries,
+} from '../src/parity-allowlist';
+import type { ParityAllowEntry } from '../src/parity-allowlist';
 import { loadStorybookIndex } from '../src/storybook-index';
 
 const FRAMEWORK_URLS: Record<string, string> = {
+	astro: process.env.ASTRO_STORYBOOK_URL ?? 'http://127.0.0.1:6010',
 	react: process.env.REACT_STORYBOOK_URL ?? 'http://127.0.0.1:6006',
 	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
@@ -131,6 +143,7 @@ test.describe('cross-framework parity', () => {
 	}) => {
 		const paired = await loadPairedStories();
 		const failures: string[] = [];
+		const usedEntries = new Set<ParityAllowEntry>();
 
 		for (const pair of paired) {
 			const entries = Object.entries(pair.entries);
@@ -163,6 +176,24 @@ test.describe('cross-framework parity', () => {
 				if (!url) {
 					continue;
 				}
+				/**
+				 * Whether this story's result for one check is a known,
+				 * documented difference.
+				 */
+				const allowed = function allowed(
+					check: 'dom' | 'a11y' | 'css'
+				): boolean {
+					const allowEntry = findAllowEntry({
+						check,
+						framework,
+						slot: '*',
+						story: pair.key,
+					});
+					if (allowEntry) {
+						usedEntries.add(allowEntry);
+					}
+					return Boolean(allowEntry);
+				};
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
@@ -172,7 +203,7 @@ test.describe('cross-framework parity', () => {
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const styles = await captureComputedStyleMap(page, '#storybook-root');
 
-				if (dom !== baselineDom) {
+				if (dom !== baselineDom && !allowed('dom')) {
 					failures.push(
 						`[DOM] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
@@ -183,7 +214,7 @@ test.describe('cross-framework parity', () => {
 						);
 					}
 				}
-				if (a11y !== baselineA11y) {
+				if (a11y !== baselineA11y && !allowed('a11y')) {
 					failures.push(
 						`[A11Y] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
@@ -195,7 +226,9 @@ test.describe('cross-framework parity', () => {
 					}
 				}
 
-				const styleDiffs = diffComputedStyleMap(baselineStyles, styles);
+				const styleDiffs = allowed('css')
+					? []
+					: diffComputedStyleMap(baselineStyles, styles);
 				if (styleDiffs.length > 0) {
 					// Summarize to keep the failure output legible; the first few
 					// diffs usually point at the offending class contract.
@@ -211,6 +244,16 @@ test.describe('cross-framework parity', () => {
 					);
 				}
 			}
+		}
+
+		for (const entry of unusedAllowlistEntries(usedEntries, [
+			'dom',
+			'a11y',
+			'css',
+		])) {
+			failures.push(
+				`[ALLOWLIST] stale entry matched nothing — delete it: ${entry.check} ${entry.framework} ${entry.story} ${entry.slot}`
+			);
 		}
 
 		console.log(`[PARITY] DOM+a11y+CSS: ${failures.length} failure(s)`);

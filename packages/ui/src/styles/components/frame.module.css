@@ -63,6 +63,8 @@
 	}
 
 	.title {
+		/* Reset in case a host renders the placeholder title as a heading. */
+		margin: 0;
 		font-size: 1rem;
 		line-height: 1.5rem;
 		letter-spacing: -0.011em;
