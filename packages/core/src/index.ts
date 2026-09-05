@@ -47,6 +47,7 @@ export {
 	resolveWindowDebugMode,
 } from './modules/window-debug';
 export type { RememberedDecisionInputs } from './transports/decision-inputs';
+export { decisionInputsMatchOverrides } from './transports/decision-inputs';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
 export {

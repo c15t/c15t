@@ -2747,3 +2747,111 @@ describe('hosted transport: assertion state across overlapping inits', () => {
 		).toBe(false);
 	});
 });
+
+describe('hosted transport: re-init with different inputs', () => {
+	const savePayload = {
+		consentAction: 'all',
+		consents: { necessary: true },
+		model: 'opt-in',
+		overrides: {},
+		policySnapshotToken: null,
+		subjectId: 'sub_test',
+		uiSource: 'banner',
+		user: null,
+	} as const;
+
+	const createGatedInit = function createGatedInit() {
+		const gates: PromiseWithResolvers<undefined>[] = [];
+		let initCalls = 0;
+		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+			if (url.endsWith('/init')) {
+				const index = initCalls;
+				initCalls += 1;
+				const gate = Promise.withResolvers<undefined>();
+				gates.push(gate);
+				await gate.promise;
+				return new Response(
+					JSON.stringify({
+						...REALISTIC_INIT_OUTPUT,
+						policyDecision: {
+							...REALISTIC_INIT_OUTPUT.policyDecision,
+							fingerprint: `fp-${index}`,
+							policyId: `policy-${index}`,
+						},
+					}),
+					{ status: 200 }
+				);
+			}
+			return new Response(JSON.stringify({ ok: true }), { status: 200 });
+		});
+		return { fetchSpy, gates };
+	};
+
+	const savedAssertion = function savedAssertion(
+		fetchSpy: ReturnType<typeof vi.fn>
+	) {
+		const saveCall = fetchSpy.mock.calls.find(([url]) =>
+			String(url).endsWith('/subjects')
+		);
+		if (!saveCall) {
+			throw new Error('save was not sent');
+		}
+		return JSON.parse((saveCall[1] as RequestInit).body as string);
+	};
+
+	test('a save during a re-init for other inputs waits for the new decision', async () => {
+		const { fetchSpy, gates } = createGatedInit();
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+		const first = transport.init?.({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		await vi.waitFor(() => expect(gates).toHaveLength(1));
+		gates[0]?.resolve(undefined);
+		await first;
+
+		const second = transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		const save = transport.save?.(savePayload);
+		await vi.waitFor(() => expect(gates).toHaveLength(2));
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).endsWith('/subjects'))
+		).toBe(false);
+		gates[1]?.resolve(undefined);
+		await Promise.all([second, save]);
+		expect(savedAssertion(fetchSpy)).toMatchObject({ policyId: 'policy-1' });
+	});
+
+	test('a save waiting on one init also waits for a newer one started meanwhile', async () => {
+		const { fetchSpy, gates } = createGatedInit();
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+		const first = transport.init?.({
+			overrides: { country: 'DE' },
+			user: null,
+		});
+		const save = transport.save?.(savePayload);
+		await vi.waitFor(() => expect(gates).toHaveLength(1));
+		const second = transport.init?.({
+			overrides: { country: 'FR' },
+			user: null,
+		});
+		await vi.waitFor(() => expect(gates).toHaveLength(2));
+		gates[0]?.resolve(undefined);
+		await first;
+		gates[1]?.resolve(undefined);
+		await Promise.all([second, save]);
+		expect(savedAssertion(fetchSpy)).toMatchObject({ policyId: 'policy-1' });
+	});
+});

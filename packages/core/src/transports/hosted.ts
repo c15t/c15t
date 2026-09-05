@@ -36,6 +36,7 @@ import type {
 } from '../types';
 import {
 	buildDecisionAssertion,
+	decisionInputsMatchOverrides,
 	gpcFromHeaders,
 	rememberDecisionInputs,
 } from './decision-inputs';
@@ -343,6 +344,16 @@ export const createHostedTransport = function createHostedTransport(
 	): Promise<InitResponse> {
 		initGeneration += 1;
 		const generation = initGeneration;
+		if (
+			options.assertDecisionInputs &&
+			lastDecisionInputs &&
+			!decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides)
+		) {
+			// The kernel is re-initialising for different inputs; a save made
+			// before that resolves must wait for the new decision rather than
+			// assert the superseded one.
+			lastDecisionInputs = undefined;
+		}
 		// The kernel's current overrides (country, region, language, GPC)
 		// travel as the canonical consent headers so a same-origin init
 		// route resolves the requested inputs rather than the CDN's.
@@ -396,13 +407,17 @@ export const createHostedTransport = function createHostedTransport(
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
-			if (options.assertDecisionInputs && !lastDecisionInputs) {
+			if (options.assertDecisionInputs) {
 				// A server-rendered banner is interactive before the client init
-				// resolves. Without a decision to assert yet, wait for the one in
-				// flight; if none resolves, refuse rather than record a consent
-				// bound to no policy.
-				if (pendingInit) {
-					await pendingInit.catch(() => undefined);
+				// resolves, and the provider re-initialises when its overrides
+				// change. Wait out every init in flight (a newer one may start
+				// while waiting) so the assertion reflects the latest decision;
+				// if none resolves, refuse rather than record an unbound consent.
+				let awaited = pendingInit;
+				while (awaited) {
+					// oxlint-disable-next-line no-await-in-loop -- Each iteration waits for the init that superseded the last.
+					await awaited.catch(() => undefined);
+					awaited = pendingInit;
 				}
 				if (!lastDecisionInputs) {
 					throw new Error(
