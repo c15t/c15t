@@ -1,3 +1,4 @@
+import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
@@ -19,6 +20,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	// The same conformance play function the Svelte story runs, so `Default`
+	// means the same thing in both: the trigger clicked, the dialog open.
+	play: triggerOpensDialog,
 	render: () => (
 		<StorybookConsentProvider
 			storedConsent={{
