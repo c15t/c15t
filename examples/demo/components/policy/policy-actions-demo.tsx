@@ -357,16 +357,16 @@ const PolicyActionsDemoContent = () => {
 							variant="outline"
 							onClick={() => {
 								resetDraft();
-								openBanner();
+								openDialog();
 							}}
 						>
-							Reset + show banner
+							Reset draft + open preferences
 						</Button>
 						<Button
 							variant="outline"
 							onClick={() => openBanner()}
 						>
-							Force banner
+							Show required banner
 						</Button>
 						<Button onClick={() => openDialog()}>Open dialog</Button>
 					</div>
@@ -404,8 +404,8 @@ const PolicyActionsDemoContent = () => {
 						<CardHeader>
 							<CardTitle>Current behavior</CardTitle>
 							<CardDescription>
-								Resolved policy hints are shown below. If you accept or reject,
-								use reset to reopen the flow.
+								Resolved policy hints are shown below. Preferences stay
+								available after accepting or rejecting.
 							</CardDescription>
 						</CardHeader>
 						<CardContent className="flex flex-wrap gap-2">
