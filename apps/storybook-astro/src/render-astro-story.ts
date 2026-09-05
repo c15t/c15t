@@ -18,16 +18,50 @@ import {
 import prerendered from 'virtual:c15t-astro-prerendered';
 
 import { requireStoryVariant } from './story-variants';
+import type { AstroUIAdapter } from './story-variants';
 
 const DIALOG_HOST_ID = 'c15t-dialog-host';
 
-let adaptersRegistered = false;
+const registered = new Set<string>();
 
-const registerAdapters = function registerAdapters(): void {
-	if (adaptersRegistered) {
+/**
+ * Register one dialog adapter and the island it mounts.
+ *
+ * The integration registers exactly the one a site's `ui` option names,
+ * which is what keeps a Svelte-only build from resolving React and Vue.
+ * The Storybook does the same, one story at a time, so each story
+ * exercises the adapter it claims to.
+ */
+const registerAdapters = function registerAdapters(ui: AstroUIAdapter): void {
+	if (registered.has(ui)) {
 		return;
 	}
-	adaptersRegistered = true;
+	registered.add(ui);
+
+	if (ui === 'react') {
+		registerDialogAdapter(
+			'react',
+			async () => (await import('@c15t/astro/ui/react')).reactDialogAdapter
+		);
+		registerDialogSurface(
+			'react',
+			() => import('@c15t/astro/islands/consent-dialog-surface.tsx')
+		);
+		return;
+	}
+
+	if (ui === 'vue') {
+		registerDialogAdapter(
+			'vue',
+			async () => (await import('@c15t/astro/ui/vue')).vueDialogAdapter
+		);
+		registerDialogSurface(
+			'vue',
+			() => import('@c15t/astro/islands/consent-dialog-surface.vue')
+		);
+		return;
+	}
+
 	registerDialogAdapter(
 		'svelte',
 		async () => (await import('@c15t/astro/ui/svelte')).svelteDialogAdapter
@@ -81,7 +115,7 @@ export const renderAstroStory = function renderAstroStory(
 	}
 
 	resetPage();
-	registerAdapters();
+	registerAdapters(variant.ui ?? 'svelte');
 
 	const host = document.createElement('div');
 	host.setAttribute('data-c15t-story-host', variantId);

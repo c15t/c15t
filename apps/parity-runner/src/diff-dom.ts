@@ -23,7 +23,7 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
 		const CSS_MODULE = /^_([^_]+)_[^_]+_\d+$/u;
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
-		const SVELTE_CSS_MODULE = /^c15t-ui-(.+)-[A-Za-z0-9]+$/u;
+		const SVELTE_CSS_MODULE = /^c15t-ui-(.+)-[A-Za-z0-9_-]{4,}$/u;
 		const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
 		// The branding link attributes the referral to the page's host,
 		// which is whatever port a Storybook happens to be served on.

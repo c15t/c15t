@@ -14,15 +14,22 @@
 		"@c15t/astro": "workspace:*",
 		"@c15t/conformance": "workspace:*",
 		"@c15t/core": "workspace:*",
+		"@c15t/react": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"@c15t/ui": "workspace:*",
-		"svelte": "^5.56.4"
+		"@c15t/vue": "workspace:*",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0",
+		"svelte": "^5.56.4",
+		"vue": "^3.5.24"
 	},
 	"devDependencies": {
 		"@storybook/addon-a11y": "10.4.6",
 		"@storybook/html-vite": "10.4.6",
 		"@storybook/test-runner": "^0.24.4",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@vitejs/plugin-react": "^5.0.4",
+		"@vitejs/plugin-vue": "6.0.7",
 		"astro": "^5.16.0",
 		"storybook": "10.4.6",
 		"typescript": "6.0.3",

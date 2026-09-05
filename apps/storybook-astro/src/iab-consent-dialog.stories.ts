@@ -14,12 +14,23 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * What Astro server-renders today: the host element the IAB island would
- * mount into. The island itself does not boot in this harness, so there is
- * no Astro IAB dialog to compare — the story is named for what it is
- * rather than pairing with the other frameworks' `Overview` and asserting
- * a parity that does not exist.
+ * The TCF preference centre, mounted the way a real page mounts it: the
+ * server renders an empty host, the boot script opens the dialog, and the
+ * island arrives on its own chunk.
  */
-export const ServerShell: Story = {
+export const Overview: Story = {
 	render: () => renderAstroStory('iab-consent-dialog--overview'),
+};
+
+/**
+ * The same surface through the React adapter. A site picks one `ui`; these
+ * three stories are how we know all three still mount.
+ */
+export const OverviewReact: Story = {
+	render: () => renderAstroStory('iab-consent-dialog--overview-react'),
+};
+
+/** The same surface through the Vue adapter. */
+export const OverviewVue: Story = {
+	render: () => renderAstroStory('iab-consent-dialog--overview-vue'),
 };
