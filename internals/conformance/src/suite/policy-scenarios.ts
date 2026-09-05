@@ -1,3 +1,5 @@
+import { TCString } from '@iabtechlabtcf/core';
+
 import { POLICY_EVENT_NAMES } from '../contract/events';
 import type {
 	PolicyEvidence,
@@ -416,10 +418,36 @@ export const assertPolicyObservation = function assertPolicyObservation(
 		if (!authority) {
 			throw new Error('Allowed IAB target lacks confirmed authority');
 		}
-		api.expect(authority.tcString.length).toBeGreaterThan(0);
+		const decoded = TCString.decode(authority.tcString);
+		// Every probe-iab operation uses vendor 755 and purpose 1. Decode
+		// the raw TC independently of the adapter's authority maps and gate.
+		api.expect(decoded.vendorConsents.has(755)).toBe(true);
+		api.expect(decoded.purposeConsents.has(1)).toBe(true);
+		api.expect(decoded.vendorsDisclosed.has(755)).toBe(true);
+		api.expect(authority.vendorConsents['755']).toBe(true);
+		api.expect(authority.purposeConsents[1]).toBe(true);
+		api.expect(Number.isSafeInteger(authority.confirmedAt)).toBe(true);
+		api.expect(authority.confirmedAt >= 0).toBe(true);
+		api.expect(decoded.created.getTime()).toBe(decoded.lastUpdated.getTime());
+		api
+			.expect(decoded.lastUpdated.getTime() <= authority.confirmedAt)
+			.toBe(true);
+		api
+			.expect(
+				authority.confirmedAt - decoded.lastUpdated.getTime() < 86_400_000
+			)
+			.toBe(true);
 		api.expect(authority.choiceFingerprint).toBe(policy.choice.fingerprint);
 		api.expect(authority.confirmedAt <= now).toBe(true);
+		api.expect(Number.isSafeInteger(authority.expiresAt)).toBe(true);
 		api.expect(authority.expiresAt).toBeGreaterThan(now);
+		api
+			.expect(
+				authority.expiresAt <=
+					authority.confirmedAt +
+						Math.min(policy.choice.maxAgeMs, 395 * 86_400_000)
+			)
+			.toBe(true);
 	}
 	if (expected.ssr !== undefined) {
 		const { ssr } = after;

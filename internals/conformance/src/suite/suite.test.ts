@@ -1,9 +1,10 @@
-/** These meta-tests corrupt actual kernel observations, not a policy evaluator. */
 import { describe, expect, setSystemTime, test } from 'bun:test';
 
 import { createConsentKernel, safeFallbackPolicyRule } from '@c15t/core';
 import type { ConsentKernel, PolicyResolution } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+/** These meta-tests corrupt actual kernel observations, not a policy evaluator. */
+import { GVL, TCModel, TCString } from '@iabtechlabtcf/core';
 
 import type {
 	PolicyEvidence,
@@ -17,6 +18,7 @@ import type {
 } from '../contract/policy-scenarios';
 import { DriverNotImplementedError } from '../driver';
 import type { TestDriver } from '../driver';
+import { MINIMAL_GVL } from '../fixtures/gvl';
 import { POLICY_RECORDS, POLICY_NOW } from '../fixtures/policy-records';
 import { POLICY_CHOICE, POLICY_SCENARIOS } from '../fixtures/policy-scenarios';
 import { conformanceTest } from './helpers';
@@ -488,4 +490,80 @@ describe('suite execution contract', () => {
 		]);
 		await Promise.all(bodies.map((body) => body()));
 	});
+});
+
+test.each([
+	'valid',
+	'corrupt-tc',
+	'missing-vendor',
+	'missing-purpose',
+	'forged-map',
+	'wrong-clock',
+	'wrong-status',
+])('IAB authority evidence: %s', async (kind) => {
+	const kernel = createConsentKernel({ now: POLICY_NOW });
+	try {
+		const actual = evidence(kernel);
+		const gvl = new GVL({
+			...MINIMAL_GVL,
+			features: {},
+			purposes: {
+				1: { ...MINIMAL_GVL.purposes[1], illustrations: [] },
+				2: { ...MINIMAL_GVL.purposes[2], illustrations: [] },
+			},
+			specialFeatures: {},
+			specialPurposes: {},
+			stacks: {},
+			vendors: {
+				755: {
+					...MINIMAL_GVL.vendors[1],
+					features: [],
+					flexiblePurposes: [],
+					id: 755,
+					legIntPurposes: [],
+					purposes: [1, 2],
+					specialFeatures: [],
+					specialPurposes: [],
+					urls: [],
+				},
+			},
+		});
+		await gvl.readyPromise;
+		const model = new TCModel(gvl);
+		model.cmpId = 28;
+		model.created = new Date(POLICY_NOW);
+		model.lastUpdated = new Date(POLICY_NOW);
+		if (kind !== 'missing-vendor') {
+			model.vendorConsents.set(755);
+		}
+		if (kind !== 'missing-purpose') {
+			model.purposeConsents.set(1);
+		}
+		model.vendorsDisclosed.set(755);
+		const tcString = TCString.encode(model);
+		actual.iabTargetAllowed = kind !== 'wrong-status';
+		actual.snapshot.iab = {
+			authority: {
+				choiceFingerprint: POLICY_CHOICE.choice.fingerprint,
+				confirmedAt:
+					kind === 'wrong-clock' ? POLICY_NOW - 86400000 : POLICY_NOW,
+				expiresAt: POLICY_NOW + 1000,
+				purposeConsents: { 1: true },
+				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
+				tcString: kind === 'corrupt-tc' ? 'not-a-tc-string' : tcString,
+				vendorConsents: kind === 'forged-map' ? {} : { '755': true },
+				vendorLegitimateInterests: {},
+			},
+			enabled: true,
+		};
+		const check = checkObservation(actual, { iabTargetAllowed: true });
+		if (kind === 'valid') {
+			await check;
+		} else {
+			await expect(check).rejects.toThrow();
+		}
+	} finally {
+		kernel.dispose();
+	}
 });

@@ -105,3 +105,8 @@ The package tests verify fixture data, assertion sensitivity and suite wiring.
 They do not establish adapter conformance. Run each supported adapter's browser
 suite after integrating its driver and runtime changes. A successful shared
 meta-test run must never be reported as a passing adapter matrix.
+
+IAB policy probes use registered vendor `755` and purpose `1`. Return the actual
+TC string and confirmed authority maps. The shared suite decodes that TC with
+the canonical IAB codec and checks the target grants, disclosure, and original
+confirmation clock independently of the reported gate result.
