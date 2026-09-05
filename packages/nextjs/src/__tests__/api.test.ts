@@ -1,4 +1,5 @@
-import { describe, expect, test, vi } from 'vitest';
+import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	createManifestFetchInit,
@@ -8,6 +9,10 @@ import {
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 describe('@c15t/nextjs/api', () => {
+	beforeEach(() => {
+		clearManifestCache();
+	});
+
 	test('GET extracts geo, language, and GPC headers for local init', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify(MANIFEST_FIXTURE), {
@@ -122,5 +127,50 @@ describe('@c15t/nextjs/api', () => {
 		expect(
 			createManifestFetchInit({ manifestRevalidateSeconds: 15 }).next
 		).toEqual({ revalidate: 15 });
+	});
+
+	test('manifestGET serves repeat requests from the in-process cache', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: {
+					'cache-control': 'public, s-maxage=300',
+					etag: '"manifest-revision"',
+				},
+				status: 200,
+			})
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+		});
+		const request = new Request('https://app.example.com/api/c15t/manifest');
+
+		const first = await manifestGET(request);
+		const second = await manifestGET(request);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(await second.json()).toEqual(await first.json());
+		expect(second.headers.get('etag')).toBe('"manifest-revision"');
+	});
+
+	test('manifestGET does not cache a private backend response', async () => {
+		const fetchSpy = vi.fn().mockImplementation(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), {
+					headers: { 'cache-control': 'private, no-store' },
+					status: 200,
+				})
+			)
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+		});
+		const request = new Request('https://app.example.com/api/c15t/manifest');
+
+		await manifestGET(request);
+		await manifestGET(request);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
 	});
 });
