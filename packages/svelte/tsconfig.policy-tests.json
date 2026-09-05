@@ -6,6 +6,7 @@
 		"src/__tests__/policy-fixture.ts",
 		"src/__tests__/policy-behavior.test.ts",
 		"src/__tests__/server-render.ts",
+		"src/__tests__/server-forwarding.test.ts",
 		"src/__tests__/server-entry.ts",
 		"src/__tests__/ssr-dom.ts",
 		"src/__tests__/ssr-dom.test.ts",

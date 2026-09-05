@@ -9,6 +9,7 @@ import {
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
 
+import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type {
 	PrefetchInitialConsentOptions,
@@ -31,7 +32,11 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 		language: options.language,
 		region: options.region,
 	});
-	const overrides = consentInputsToOverrides(inputs);
+	const overrides = consentInputsToOverrides({
+		country: inputs.country,
+		language: inputs.language,
+		region: inputs.region,
+	});
 
 	const config: KernelConfig = {
 		initialPrivacySignals: { gpc: options.headers.get('sec-gpc') === '1' },
@@ -42,6 +47,37 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 		config.initialOverrides = overrides;
 	}
 	return Promise.resolve(config);
+};
+
+const createForwardHeaders = (
+	options: PrefetchInitialConsentOptions,
+	overrides: KernelConfig['initialOverrides']
+): Record<string, string> => {
+	const forward: Record<string, string> = {
+		...extractRelevantHeaders(options.headers),
+	};
+	const cookieHeader = options.cookieHeader ?? options.headers.get('cookie');
+	if (cookieHeader) {
+		forward.cookie = cookieHeader;
+	}
+	for (const key of options.forwardHeaders ?? []) {
+		const value = options.headers.get(key);
+		if (value) {
+			forward[key.toLowerCase()] = value;
+		}
+	}
+
+	if (overrides?.country) {
+		forward['x-c15t-country'] = overrides.country;
+	}
+	if (overrides?.region) {
+		forward['x-c15t-region'] = overrides.region;
+	}
+	if (options.language) {
+		forward['accept-language'] = options.language;
+	}
+
+	return forward;
 };
 
 export const prefetchInitialConsent = async function prefetchInitialConsent(
@@ -56,25 +92,25 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		return base;
 	}
 
-	const forward: Record<string, string> = {};
-	const cookieHeader = options.cookieHeader ?? options.headers.get('cookie');
-	if (cookieHeader) {
-		forward.cookie = cookieHeader;
-	}
-	for (const key of options.forwardHeaders ?? []) {
-		const value = options.headers.get(key);
-		if (value) {
-			forward[key.toLowerCase()] = value;
-		}
-	}
-
-	const transport = createHostedTransport({
-		backendURL: absoluteBackend,
-		fetch: options.fetch,
-		headers: forward,
-	});
+	const forward = createForwardHeaders(options, base.initialOverrides);
 
 	try {
+		const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+		if (!fetchImpl) {
+			return base;
+		}
+		const transport = createHostedTransport({
+			backendURL: absoluteBackend,
+			// Server-request forwarding is broader than the hosted client's
+			// header allowlist. Keep the transport's protocol headers authoritative.
+			fetch: (input, init) => {
+				const headers = new Headers(forward);
+				new Headers(init?.headers).forEach((value, key) => {
+					headers.set(key, value);
+				});
+				return fetchImpl(input, { ...init, headers });
+			},
+		});
 		const response = await transport.init?.({
 			overrides: base.initialOverrides ?? {},
 			user: base.initialUser ?? null,
@@ -82,7 +118,20 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		if (!response) {
 			return base;
 		}
-		return mergeInitResponseIntoKernelConfig(base, response);
+		const merged = mergeInitResponseIntoKernelConfig(base, response);
+		if (response.subjectId) {
+			merged.initialRecords = {
+				...merged.initialRecords,
+				subject: {
+					...merged.initialRecords?.subject,
+					subjectId: response.subjectId,
+				},
+			};
+		}
+		delete merged.initialConsents;
+		delete merged.initialHasConsented;
+		delete merged.initialSubjectId;
+		return merged;
 	} catch {
 		return base;
 	}
