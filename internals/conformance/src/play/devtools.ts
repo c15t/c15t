@@ -26,13 +26,22 @@ export const devToolsFlow: PlayFunction = async (context) => {
 	await waitFor(() =>
 		expect(panel.getByRole('switch', { name: /Measurement/u })).toBeChecked()
 	);
+	await waitFor(() =>
+		expect(panel.getByText('Displayed consents accepted.')).toBeVisible()
+	);
 	await userEvent.click(
 		panel.getByRole('tab', { exact: true, name: 'Scripts' })
 	);
 	await waitFor(() =>
 		expect(panel.getByText('analytics-fixture')).toBeInTheDocument()
 	);
-	await waitFor(() => expect(root.textContent).toContain('loaded'));
+	await waitFor(() => {
+		const script = panel.getByText('analytics-fixture').closest('details');
+		expect(script).not.toBeNull();
+		if (script) {
+			expect(within(script).getByText('Loaded', { exact: true })).toBeVisible();
+		}
+	});
 	await userEvent.type(
 		panel.getByRole('textbox', { name: 'Filter scripts' }),
 		'analytics-fixture'
@@ -48,10 +57,23 @@ export const devToolsFlow: PlayFunction = async (context) => {
 			panel.getByRole('switch', { name: /Measurement/u })
 		).not.toBeChecked()
 	);
+	await waitFor(() =>
+		expect(
+			panel.getByText('Optional displayed consents rejected.')
+		).toBeVisible()
+	);
 	await userEvent.click(
 		panel.getByRole('tab', { exact: true, name: 'Scripts' })
 	);
-	await waitFor(() => expect(root.textContent).toContain('retained'));
+	await waitFor(() => {
+		const script = panel.getByText('retained-pixel').closest('details');
+		expect(script).not.toBeNull();
+		if (script) {
+			expect(
+				within(script).getByText('Retained', { exact: true })
+			).toBeVisible();
+		}
+	});
 	await userEvent.click(
 		panel.getByRole('tab', { exact: true, name: 'Events' })
 	);

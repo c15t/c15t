@@ -9,7 +9,7 @@ export const devToolsCategories = [
 ] as const;
 export const getDevToolsCategories = () => devToolsCategories;
 
-export const devToolsPrefetch: KernelConfig = {
+export const devToolsPrefetch = {
 	initialLocation: { countryCode: 'CA', regionCode: 'QC' },
 	initialOverrides: { country: 'CA', language: 'en', region: 'QC' },
 	initialPolicy: {
@@ -18,7 +18,7 @@ export const devToolsPrefetch: KernelConfig = {
 		model: 'opt-in',
 		ui: { mode: 'banner' },
 	},
-};
+} satisfies KernelConfig;
 
 const transport: KernelTransport = {
 	init: () =>
