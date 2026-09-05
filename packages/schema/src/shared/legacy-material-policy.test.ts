@@ -54,4 +54,28 @@ describe('lifetime v2 material receipt compatibility', () => {
 			createConsentManifestPolicyPack(changed).fingerprints.legacyMaterial
 		).not.toBe(originalHashes.europeOptIn);
 	});
+	test.each([
+		{ input: {}, policyFingerprint: 'test' },
+		{
+			input: { consent: { gpc: 'yes' }, model: 'opt-in' },
+			policyFingerprint: 'test',
+		},
+		{
+			input: { model: 'opt-in', ui: { banner: { layout: [123] } } },
+			policyFingerprint: 'test',
+		},
+		{
+			input: { model: 'opt-in', proof: { storeIp: 'yes' } },
+			policyFingerprint: 'test',
+		},
+		{ input: { model: 'opt-in' }, policyFingerprint: 12 },
+	])('rejects malformed frozen metadata %#', (legacyMaterial) => {
+		expect(
+			resolvePolicyRules({
+				countryCode: 'DE',
+				regionCode: null,
+				rules: [{ ...policyRulePresets.europeOptIn(), legacyMaterial }],
+			})
+		).toMatchObject({ reason: 'invalid-configuration', status: 'failed' });
+	});
 });

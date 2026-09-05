@@ -1,3 +1,4 @@
+import { isLegacyMaterialCompatibility } from './legacy-material-policy';
 import type { LegacyMaterialCompatibility } from './legacy-material-policy';
 /**
  * v3 policy rules: the behavior contract a policy pack entry declares.
@@ -725,13 +726,7 @@ const collectMetadataErrors = function collectMetadataErrors(
 	collectObjectFieldErrors(check, 'proof', PROOF_KEYS, 'boolean');
 	collectReviewErrors(check);
 	const legacy = own(check.rule, 'legacyMaterial');
-	if (
-		legacy !== undefined &&
-		(!isPlainPolicyObject(legacy) ||
-			typeof legacy.policyFingerprint !== 'string' ||
-			!legacy.policyFingerprint ||
-			!isPlainPolicyObject(legacy.input))
-	) {
+	if (legacy !== undefined && !isLegacyMaterialCompatibility(legacy)) {
 		check.errors.push(
 			`Policy ${check.label} legacyMaterial must contain a frozen input and policyFingerprint.`
 		);
