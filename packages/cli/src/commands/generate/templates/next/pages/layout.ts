@@ -104,9 +104,10 @@ async function createConsentManagerComponent(
 
 	// Generate component file content
 	const consentManagerContent = generateConsentComponent({
-		devToolsImportSource: 'c15t/next/v3/devtools',
+		devToolsImportSource: 'c15t/next/devtools',
+		docsSlug: 'next',
 		enableDevTools,
-		importSource: 'c15t/next/v3',
+		importSource: 'c15t/next',
 		optionsText,
 		selectedScripts,
 	});

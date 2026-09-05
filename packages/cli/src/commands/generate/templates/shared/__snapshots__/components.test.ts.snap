@@ -8,8 +8,13 @@ import {
 	ConsentDialog,
 	ConsentProvider,
 	ConsentBanner,
-} from 'c15t/react/v3';
-import { DevTools } from 'c15t/react/v3/devtools';
+	offline,
+} from 'c15t/react';
+import { lazy, Suspense } from 'react';
+
+const DevTools = process.env.NODE_ENV !== 'production'
+	? lazy(() => import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
 /**
  * Consent manager provider.
  * @see https://c15t.com/docs/frameworks/react/quickstart
@@ -17,7 +22,7 @@ import { DevTools } from 'c15t/react/v3/devtools';
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
 		<ConsentProvider options={{
-			mode: 'offline',
+			mode: offline(),
 			// Add your scripts here:
 				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 				// scripts: [
@@ -26,7 +31,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 		}}>
 			<ConsentBanner />
 			<ConsentDialog />
-			{process.env.NODE_ENV === 'development' && <DevTools />}
+			<Suspense fallback={null}><DevTools /></Suspense>
 			{children}
 		</ConsentProvider>
 	);
@@ -38,32 +43,43 @@ exports[`consent component template > generates the canonical Next.js v3 SSR bou
 "'use client';
 
 import type { ReactNode } from 'react';
-import type { KernelConfig } from 'c15t/next/v3/server';
 import {
 	ConsentDialog,
-	ConsentBoundary,
+	ConsentProvider,
 	ConsentBanner,
-} from 'c15t/next/v3';
-import { DevTools } from 'c15t/next/v3/devtools';
+	hosted,
+	type KernelConfig,
+} from 'c15t/next';
+import { lazy, Suspense } from 'react';
+
+const DevTools = process.env.NODE_ENV !== 'production'
+	? lazy(() => import('c15t/next/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 /**
  * Client-side consent manager provider.
  * @see https://c15t.com/docs/frameworks/next/quickstart
  */
-export default function ConsentManagerClient({ children, config }: { children: ReactNode; config: KernelConfig }) {
+export default function ConsentManagerClient({
+	children,
+	config,
+}: {
+	children: ReactNode;
+	config: KernelConfig;
+}) {
 	return (
-		<ConsentBoundary
-			backendURL={'/api/c15t'}
-			config={config}
-			scripts={[
-				googleTagManager({ id: 'GTM-XXXXXX' }),
-			]}
-		>
+		<ConsentProvider options={{
+			mode: hosted({ url: '/api/c15t' }),
+				prefetch: config,
+			scripts: [
+					googleTagManager({ id: 'GTM-XXXXXX' }),
+				],
+		}}>
 			<ConsentBanner />
 			<ConsentDialog />
-			{process.env.NODE_ENV === 'development' && <DevTools />}
+			<Suspense fallback={null}><DevTools /></Suspense>
 			{children}
-		</ConsentBoundary>
+		</ConsentProvider>
 	);
 }
 "

@@ -13,18 +13,18 @@ group: frameworks
 
 import dynamic from 'next/dynamic';
 import { type ReactNode } from 'react';
-import { ConsentProvider } from 'c15t/next/v3';
+import { ConsentProvider, hosted } from 'c15t/next';
 
 const DevTools =
   process.env.NODE_ENV === 'development'
-    ? dynamic(() => import('c15t/next/v3/devtools').then(({ DevTools }) => DevTools), {
+    ? dynamic(() => import('c15t/next/devtools').then(({ DevTools }) => DevTools), {
         ssr: false,
       })
     : () => null;
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+    <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
       {children}
       <DevTools />
     </ConsentProvider>
@@ -32,7 +32,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-For an App Router setup with server prefetching, put `DevTools` inside `ConsentBoundary` so it receives the boundary's kernel. Import the adapter from `c15t/next/v3/devtools`, or `@c15t/nextjs/v3/devtools` when you install the Next.js package directly.
+For an App Router setup with server prefetching, put `DevTools` inside `ConsentProvider` and pass the server config through `options.prefetch`. Import the adapter from `c15t/next/devtools`, or `@c15t/nextjs/devtools` when you install the Next.js package directly.
 
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 

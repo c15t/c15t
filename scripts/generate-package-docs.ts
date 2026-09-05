@@ -22,14 +22,22 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/core for root c15t imports, @c15t/react for c15t/react, and @c15t/nextjs for c15t/next.',
 	},
 	{
-		include: ['frameworks/react/**/*.mdx', 'integrations/**/*.mdx'],
+		include: [
+			'frameworks/react/**/*.mdx',
+			'integrations/**/*.mdx',
+			'shared/react/components/dev-tools.mdx',
+		],
 		name: '@c15t/react',
 		outDir: 'packages/react',
 		summary:
 			'React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/react for c15t/react, @c15t/core for root c15t imports, and @c15t/nextjs for c15t/next.',
 	},
 	{
-		include: ['frameworks/next/**/*.mdx', 'integrations/**/*.mdx'],
+		include: [
+			'frameworks/next/**/*.mdx',
+			'integrations/**/*.mdx',
+			'shared/react/components/dev-tools.mdx',
+		],
 		name: '@c15t/nextjs',
 		outDir: 'packages/nextjs',
 		summary:

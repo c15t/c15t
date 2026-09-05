@@ -10,18 +10,18 @@ group: frameworks
 
 ```tsx
 import { lazy, Suspense, type ReactNode } from 'react';
-import { ConsentProvider } from 'c15t/react/v3';
+import { ConsentProvider, hosted } from 'c15t/react';
 
 const DevTools =
   process.env.NODE_ENV === 'development'
     ? lazy(() =>
-        import('c15t/react/v3/devtools').then(({ DevTools }) => ({ default: DevTools })),
+        import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })),
       )
     : () => null;
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider options={{ mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
+    <ConsentProvider options={{ mode: hosted({ url: 'https://your-instance.c15t.dev' }) }}>
       {children}
       <Suspense fallback={null}>
         <DevTools />
@@ -31,7 +31,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-Import the adapter from `c15t/react/v3/devtools` when you use the umbrella package, or `@c15t/react/v3/devtools` when you install the React package directly. `@c15t/dev-tools` exports the imperative engine, not the React component.
+Import the adapter from `c15t/react/devtools` when you use the umbrella package, or `@c15t/react/devtools` when you install the React package directly. `@c15t/dev-tools` exports the imperative engine, not the React component.
 
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 

@@ -11,6 +11,7 @@
  */
 
 import type { ExpandedTheme } from '../../prompts/expanded-theme';
+import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import type { FrameworkConfig } from './framework-config';
 
 interface GenerateExpandedProviderOptions {
@@ -54,7 +55,7 @@ export const generateExpandedProviderTemplate =
 
 		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: config,' : '';
 		const devToolsImport = enableDevTools
-			? "import { DevTools } from '@c15t/dev-tools/react';\n"
+			? generateDevToolsImport(framework.devToolsImportSource)
 			: '';
 		const reactNodeImport = "import type { ReactNode } from 'react';\n";
 		const modeImport = ['custom', 'hosted', 'offline'].find((name) =>
@@ -87,7 +88,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 		>
 			<ConsentBanner />
 			<ConsentDialog />
-			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
+			${enableDevTools ? DEVTOOLS_COMPONENT : ''}
 			{children}
 		</ConsentProvider>
 	);
@@ -187,7 +188,7 @@ export default function () {
 const generateMinimalTheme = function generateMinimalTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.importSource}';
+	return `import type { Theme } from '${framework.importSource}/types';
 
 /**
  * Minimal Theme
@@ -292,7 +293,7 @@ export const theme: Theme = {
 const generateTailwindTheme = function generateTailwindTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.importSource}';
+	return `import type { Theme } from '${framework.importSource}/types';
 
 /**
  * Tailwind Theme
@@ -347,7 +348,7 @@ export const theme: Theme = {
 const generateDarkTheme = function generateDarkTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.importSource}';
+	return `import type { Theme } from '${framework.importSource}/types';
 
 /**
  * Dark Mode Theme

@@ -4,20 +4,20 @@ import { generateClientConfigContent } from './config';
 
 describe('JavaScript client config', () => {
 	it.each(['hosted', 'offline', 'self-hosted', 'custom'])(
-		'keeps the legacy %s runtime without mounting v3 DevTools',
+		'generates a %s kernel without DevTools by default',
 		(mode) => {
 			const content = generateClientConfigContent(
 				mode,
 				'https://consent.example.com'
 			);
 
-			expect(content).toContain('export const store = runtime.consentStore;');
+			expect(content).toContain('export const kernel = createConsentKernel(');
 			expect(content).not.toContain('createDevTools');
 			expect(content).not.toContain('@c15t/dev-tools');
 		}
 	);
 
-	it('matches the legacy hosted config snapshot', () => {
+	it('matches the hosted kernel config snapshot', () => {
 		expect(
 			generateClientConfigContent('hosted', 'https://consent.example.com')
 		).toMatchSnapshot();

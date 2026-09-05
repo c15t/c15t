@@ -17,25 +17,25 @@ export interface FrameworkConfig {
 }
 
 export const NEXTJS_CONFIG: FrameworkConfig = {
-	consentBannerImport: 'c15t/next/v3',
-	consentDialogImport: 'c15t/next/v3',
-	devToolsImportSource: 'c15t/next/v3/devtools',
+	consentBannerImport: 'c15t/next',
+	consentDialogImport: 'c15t/next',
+	devToolsImportSource: 'c15t/next/devtools',
 	docsSlug: 'next',
 	envVarPrefix: 'NEXT_PUBLIC',
 	frameworkName: 'Next.js App Router',
 	hasSSRProps: true,
-	importSource: 'c15t/next/v3',
+	importSource: 'c15t/next',
 	ssrMechanism: 'Next.js headers() API',
 };
 
 export const REACT_CONFIG: FrameworkConfig = {
-	consentBannerImport: 'c15t/react/v3',
-	consentDialogImport: 'c15t/react/v3',
-	devToolsImportSource: 'c15t/react/v3/devtools',
+	consentBannerImport: 'c15t/react',
+	consentDialogImport: 'c15t/react',
+	devToolsImportSource: 'c15t/react/devtools',
 	docsSlug: 'react',
 	envVarPrefix: '',
 	frameworkName: 'React',
 	hasSSRProps: false,
-	importSource: 'c15t/react/v3',
+	importSource: 'c15t/react',
 	ssrMechanism: '',
 };

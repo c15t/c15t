@@ -187,11 +187,11 @@ async function createExpandedConsentManagerComponents(
 
 	// Generate all component file contents
 	const serverComponentContent = generateServerComponent({
+		backendURLValue,
 		enableSSR,
 		framework: NEXTJS_CONFIG,
 	});
 	const providerContent = generateExpandedProviderTemplate({
-		backendURLValue,
 		enableDevTools: Boolean(enableDevTools),
 		enableSSR,
 		framework: NEXTJS_CONFIG,
@@ -307,6 +307,7 @@ async function createPrebuiltConsentManagerComponents(
 
 	// Generate component file contents
 	const consentManagerContent = generateServerComponent({
+		backendURLValue,
 		enableSSR,
 		framework: NEXTJS_CONFIG,
 	});
@@ -318,13 +319,8 @@ async function createPrebuiltConsentManagerComponents(
 		importSource: NEXTJS_CONFIG.importSource,
 		includeTheme: Boolean(hasTheme),
 		optionsText,
-		prefetch: enableSSR
-			? {
-					backendURLValue,
-					configImportSource: `${NEXTJS_CONFIG.importSource}/server`,
-				}
-			: undefined,
 		selectedScripts,
+		ssrDataOption: enableSSR,
 		useClientDirective: true,
 	});
 

@@ -27,7 +27,7 @@ group: reference
   ```tsx
   <DevTools
     position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-    defaultOpen={false}       // Start with panel open
+    defaultOpen={false}       // Start with panel closed
     defaultTab="consents"     // Initial panel
     maxEvents={100}            // Maximum captured kernel and script events
     disabled={false}          // Disable without removing from tree
@@ -46,7 +46,8 @@ group: reference
   `createDevTools`. The getter is read again when an action runs. Headless UI
   actions can use `kernel.commands.save('all', { categories: displayed })` or
   `kernel.commands.save('none', { categories: displayed })`. These scoped bulk
-  saves preserve the accept/reject action in the transport payload. Without an
+  saves use a `custom` transport action when they cover only part of the policy.
+  Actions covering the whole policy retain `all` or `necessary`. Without an
   explicit scope or policy categories, bulk saves cover all known categories.
 
   | Panel | What it shows |
@@ -82,20 +83,19 @@ group: reference
   `alwaysLoad` integration can be allowed to load while its consent is denied.
   Diagnostics expose these as `eligible` and `hasConsent`, respectively.
 
-  Keep script-loader debug events enabled to capture lifecycle results.
-  Setting `emitToV2DebugListeners` to `false` without `onDebug` can leave load results
-  unobserved. The page scan lists external scripts and iframes present in the
+  Lifecycle diagnostics work even when legacy debug forwarding is disabled.
+  The page scan lists external scripts and iframes present in the
   DOM; it does not prove that they loaded successfully or were consent-gated.
 
   For custom inspection tools, import `getScriptDiagnostics(kernel)` and
   `subscribeScriptDiagnostics(kernel, listener)` from
-  `@c15t/core/v3/modules/script-loader`. The subscription reports loader
+  `@c15t/core/modules/script-loader`. The subscription reports loader
   registration, updates, disposal, and lifecycle events. Read a fresh snapshot
   after changes and call the returned unsubscribe function during cleanup.
 
   ### IAB editing
 
-  The IAB panel connects to the existing `@c15t/iab/v3` module attached to the
+  The IAB panel connects to the existing `@c15t/iab` module attached to the
   provider's kernel. It does not create a second CMP or replace `__tcfapi`.
   Controls become available after initialization, when the current policy uses
   IAB and the vendor list is loaded.
@@ -117,9 +117,57 @@ group: reference
   live choices; retry to record them.
 
   For custom inspection tools, `getIABControls(kernel)` and
-  `subscribeIABControls(kernel, listener)` are exported from `@c15t/core/v3`.
+  `subscribeIABControls(kernel, listener)` are exported from `@c15t/core`.
   The getter returns undefined before module initialization and after disposal.
   A snapshot without an attached IAB module is read-only in DevTools.
+
+  ## Vue and Svelte
+
+  Vue imports `ConsentDevTools` from `c15t/vue/devtools` or
+  `@c15t/vue/devtools`. Render it in the app where the c15t plugin provides
+  the kernel. In Nuxt, the configured c15t module provides that context.
+
+  ```vue
+  <script setup lang="ts">
+  import { defineAsyncComponent } from 'vue';
+
+  const DevTools = import.meta.env.DEV
+    ? defineAsyncComponent(() => import('@c15t/vue/devtools'))
+    : null;
+  </script>
+
+  <template>
+    <DevTools v-if="DevTools" position="bottom-right" />
+  </template>
+  ```
+
+  In Nuxt, use `import.meta.dev` instead of `import.meta.env.DEV`.
+  Svelte imports the adapter from `@c15t/svelte/devtools` and renders it
+  inside `ConsentManagerProvider`.
+
+  ```svelte
+  <script lang="ts">
+    import { ConsentManagerProvider, offline } from '@c15t/svelte';
+
+    const devTools = import.meta.env.DEV
+      ? import('@c15t/svelte/devtools')
+      : null;
+  </script>
+
+  <ConsentManagerProvider options={{ mode: offline() }}>
+    {#if devTools}
+      {#await devTools then { ConsentDevTools }}
+        <ConsentDevTools position="bottom-right" />
+      {/await}
+    {/if}
+  </ConsentManagerProvider>
+  ```
+
+  Both adapters accept `position`, `defaultOpen`, `defaultTab`, `maxEvents`,
+  and `getConsentCategories`. Changing these presentation options recreates
+  the panel and clears its event history. They do not accept React's `disabled`
+  prop; conditionally render them instead. Unmounting removes the panel and
+  subscriptions without changing consent.
 
   ## TanStack Devtools
 
@@ -131,7 +179,7 @@ group: reference
   import { TanStackDevtools } from '@tanstack/react-devtools';
   import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
   import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
-  import { c15tDevtools } from 'c15t/react/v3/devtools';
+  import { c15tDevtools } from 'c15t/react/devtools';
 
   export function AppDevtools() {
     const router = useRouter();
@@ -154,7 +202,7 @@ group: reference
   }
   ```
 
-  In a Next.js app, import `c15tDevtools` from `c15t/next/v3/devtools` instead. Scoped installs use `@c15t/react/v3/devtools` and `@c15t/nextjs/v3/devtools`.
+  In a Next.js app, import `c15tDevtools` from `c15t/next/devtools` instead. Scoped installs use `@c15t/react/devtools` and `@c15t/nextjs/devtools`.
 </section>
 
 <section id="props">

@@ -13,28 +13,27 @@ describe('expanded component templates', () => {
 			enableDevTools: true,
 			enableSSR: false,
 			framework: REACT_CONFIG,
-			optionsText: "mode: 'offline',",
+			optionsText: 'mode: offline(),',
 		});
 
-		expect(template).toContain("from 'c15t/react/v3';");
-		expect(template).toContain("from 'c15t/react/v3/devtools';");
+		expect(template).toContain("from 'c15t/react';");
+		expect(template).toContain("import('c15t/react/devtools')");
 		expect(template).toContain('<ConsentProvider');
 		expect(template).toMatchSnapshot();
 	});
 
 	it('generates a Next.js v3 SSR boundary with config', () => {
 		const template = generateExpandedProviderTemplate({
-			backendURLValue: "'/api/c15t'",
 			enableDevTools: true,
 			enableSSR: true,
 			framework: NEXTJS_CONFIG,
-			optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
+			optionsText: "mode: hosted({ url: '/api/c15t' }),",
 		});
 
-		expect(template).toContain("from 'c15t/next/v3';");
-		expect(template).toContain("from 'c15t/next/v3/devtools';");
-		expect(template).toContain('<ConsentBoundary');
-		expect(template).toContain('config={config}');
+		expect(template).toContain("from 'c15t/next';");
+		expect(template).toContain("import('c15t/next/devtools')");
+		expect(template).toContain('<ConsentProvider');
+		expect(template).toContain('prefetch: config');
 		expect(template).not.toContain("mode: 'hosted'");
 		expect(template).toMatchSnapshot();
 	});

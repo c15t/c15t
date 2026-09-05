@@ -1,30 +1,25 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`JavaScript client config > matches the legacy hosted config snapshot 1`] = `
-"import { getOrCreateConsentRuntime } from 'c15t';
-const runtime = getOrCreateConsentRuntime(
-	{
-		mode: 'hosted',
-		backendURL: 'https://consent.example.com',
-		consentCategories: ['necessary', 'measurement', 'marketing'],
-	},
-);
+exports[`JavaScript client config > matches the hosted kernel config snapshot 1`] = `
+"import { createConsentKernel, createHostedTransport } from 'c15t';
 
-export const store = runtime.consentStore;
+export const kernel = createConsentKernel({
+	transport: createHostedTransport({ backendURL: 'https://consent.example.com' }),
+});
+
+void kernel.commands.init();
+
 /**
  * Usage Examples
  **/
 
 // View all consents
-// store.getState().consents;
+// kernel.getSnapshot().consents;
 
-// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
-// store.getState().setSelectedConsent('measurement', true);
+// Update consent locally before saving
+// kernel.set.consent({ measurement: true });
 
-// Update a single consent type and automically saves it
-// store.getState().setConsent('marketing', true);
-
-// When a user rejects all consents:
-// store.getState().saveConsents("necessary")
+// Save the current choices
+// await kernel.commands.save('custom');
 "
 `;
