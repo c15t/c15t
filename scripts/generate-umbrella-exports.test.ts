@@ -625,6 +625,25 @@ describe('committed umbrella package', () => {
 		expect(rootEntry.default).toBe(rootEntry.import);
 	});
 
+	it('ships the v3 React and Next.js DevTools adapters', () => {
+		expect(manifest.exports['./react/v3/devtools']).toEqual({
+			default: './shims/react/v3/devtools.js',
+			import: './shims/react/v3/devtools.js',
+			types: './shims/react/v3/devtools.d.ts',
+		});
+		expect(manifest.exports['./next/v3/devtools']).toEqual({
+			default: './shims/next/v3/devtools.js',
+			import: './shims/next/v3/devtools.js',
+			types: './shims/next/v3/devtools.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/react/v3/devtools.js']).toContain(
+			"export * from '@c15t/react/v3/devtools';"
+		);
+		expect(artifacts.shimFiles['shims/next/v3/devtools.js']).toContain(
+			"export * from '@c15t/nextjs/v3/devtools';"
+		);
+	});
+
 	it('has exactly the derived shim files on disk', () => {
 		const committed = listFiles(join(UMBRELLA_DIR, 'shims'), 'shims');
 		expect(committed.sort()).toEqual(Object.keys(artifacts.shimFiles).sort());

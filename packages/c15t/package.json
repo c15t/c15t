@@ -331,7 +331,17 @@
 			"default": "./shims/vue/consent-widget.js"
 		},
 		"./vue/runtime/*": "./shims/vue/runtime/*",
-		"./vue/composables/*": "./shims/vue/composables/*"
+		"./vue/composables/*": "./shims/vue/composables/*",
+		"./react/devtools": {
+			"types": "./shims/react/devtools.d.ts",
+			"import": "./shims/react/devtools.js",
+			"default": "./shims/react/devtools.js"
+		},
+		"./next/devtools": {
+			"types": "./shims/next/devtools.d.ts",
+			"import": "./shims/next/devtools.js",
+			"default": "./shims/next/devtools.js"
+		}
 	},
 	"publishConfig": {
 		"access": "public"

@@ -745,6 +745,7 @@
       "version": "2.2.0-canary-20260731105620",
       "dependencies": {
         "@c15t/core": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
