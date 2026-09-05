@@ -1,5 +1,6 @@
 import type { PolicyUiSurfaceConfig } from '@c15t/schema/types';
 import {
+	DEFAULT_POLICY_ACTION_LAYOUT,
 	resolvePolicyActionGroups,
 	resolvePolicyAllowedActions,
 	resolvePolicyDirection,
@@ -20,20 +21,30 @@ export const useConsentPolicyActions = function useConsentPolicyActions(
 		});
 	});
 
-	const actionGroups = computed(() => {
+	/**
+	 * A surface with no configured layout falls back to the shared default
+	 * — reject and accept together, customize on its own — rather than to
+	 * one group holding everything. That is the layout React and Astro
+	 * already use.
+	 */
+	const layout = computed(() => {
 		const ui = toValue(surfaceUi);
-		return resolvePolicyActionGroups({
-			allowedActions: allowedActions.value,
-			layout: ui?.layout,
-		});
+		return ui?.layout?.length ? ui.layout : DEFAULT_POLICY_ACTION_LAYOUT;
 	});
+
+	const actionGroups = computed(() =>
+		resolvePolicyActionGroups({
+			allowedActions: allowedActions.value,
+			layout: layout.value,
+		})
+	);
 
 	const primaryActions = computed(() => {
 		const ui = toValue(surfaceUi);
 		return resolvePolicyPrimaryActions({
 			orderedActions: resolvePolicyOrderedActions({
 				allowedActions: allowedActions.value,
-				layout: ui?.layout,
+				layout: layout.value,
 			}),
 			primaryActions: ui?.primaryActions,
 		});

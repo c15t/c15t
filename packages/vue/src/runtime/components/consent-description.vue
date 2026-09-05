@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 import { computed } from 'vue';
 
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
@@ -24,6 +25,17 @@ const linkContext = computed(() =>
 	props.context === 'manager' ? 'manager' : props.context
 );
 
+/**
+ * The banner and the dialog each style their description in their own
+ * stylesheet, so the class has to come from the right one — the banner's
+ * tighter letter-spacing does not belong on the dialog.
+ */
+const descriptionClass = computed(() =>
+	props.context === 'banner'
+		? bannerStyles.description
+		: dialogStyles.description
+);
+
 const testId = computed(() =>
 	props.context === 'banner'
 		? 'consent-banner-description'
@@ -34,8 +46,9 @@ const testId = computed(() =>
 <template>
 	<div
 		v-bind="config.components?.description?.[context]"
+		:id="testId"
 		:data-testid="testId"
-		:class="bannerStyles.description"
+		:class="descriptionClass"
 		:data-context="context"
 	>
 		<slot>
