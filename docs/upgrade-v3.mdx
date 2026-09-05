@@ -40,6 +40,10 @@ when their owner unmounts. Framework providers manage that lifecycle for you.
 | `worldNoBanner` or permission model `none` | Explicit opt-out rule with prompt `none`, if appropriate for your deployment |
 | `onConsentSet`, `onConsentChanged` | `onChoiceRecorded`, `onPermissionsChanged` |
 | `initialHasConsented` or raw cookie booleans | Validated `initialRecords` and prepared `initialPolicyResolution` |
+| `initialConsents` and `set.consent()` | `initialDraft` and `set.draft()` for editable values only |
+| Snapshot `consents` and `subjectId` | `effectivePermissions` and `subject?.subjectId` |
+| `policyDecision` and `policyProvisional` | Versioned `resolution` and `policyPending` |
+| Legacy consent storage readers/writer | `readStoredRecords` and `readStoredRecordsFromCookieHeader`; persistence owns writes |
 | Consent-dependent preferences trigger | Persistent preferences and opt-out access |
 | Specialized Maps and YouTube components | `Frame` around an iframe, or consent-aware scripts |
 
@@ -81,6 +85,8 @@ value renews that category's receipt. Omitted categories keep their original tim
 and policy basis. An empty object is a successful no-op. Accept all and reject all
 confirm the active selectable scope. Positive out-of-scope keys and
 `necessary: false` reject the whole command; necessary remains allowed.
+
+Use `initialDraft` or `kernel.set.draft()` to seed editable values without granting permissions. Backend initialization carries records and policy resolution, never draft values.
 
 No-input `save()` confirms the current unmasked selection for the active scope.
 Preference forms pass their displayed draft explicitly. Drafts start from explicit
