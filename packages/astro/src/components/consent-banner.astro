@@ -195,14 +195,12 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 						class={noStyle ? '' : styles.header}
 						data-testid="consent-banner-header"
 					>
-						<div
-							aria-level="2"
+						<h2
 							class={noStyle ? '' : styles.title}
 							data-testid="consent-banner-title"
-							role="heading"
 						>
 							{copy.title}
-						</div>
+						</h2>
 						<div
 							class={noStyle ? '' : styles.description}
 							data-testid="consent-banner-description"

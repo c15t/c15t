@@ -55,9 +55,18 @@ export type OverlayProps = PropsWithChildren<{
 	 * - Maintains functionality without visual opinions
 	 */
 	noStyle?: boolean;
+
+	/**
+	 * Whether the dialog the overlay backs is open.
+	 *
+	 * `ConsentDialog.Root` passes its own open state, so a dialog opened
+	 * through the `open` prop rather than the consent manager still fades
+	 * its backdrop in. Falls back to the manager's active surface.
+	 */
+	open?: boolean;
 }>;
 
-const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
+const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, open, style }) => {
 	const { activeUI } = useConsentManager();
 	const { components } = useUIConfig();
 	const {
@@ -66,7 +75,7 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 		scrollLock: _scrollLock = true,
 	} = useTheme();
 
-	const showDialog = activeUI === 'dialog';
+	const showDialog = open ?? activeUI === 'dialog';
 	const [isVisible, setIsVisible] = useState(false);
 
 	// Handle animation visibility state
