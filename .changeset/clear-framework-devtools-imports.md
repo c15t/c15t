@@ -12,3 +12,5 @@ browser flag for Vite projects, and the NODE_ENV replacement for Next.js,
 Gatsby, and webpack-based React projects.
 Prefer application build commands when Vite and Webpack coexist, so tooling
 dependencies do not select an incompatible development guard.
+Leave DevTools disabled with a setup comment for unknown bundlers until a
+build-time development flag is configured; do not assume Node browser globals.

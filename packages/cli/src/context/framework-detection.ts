@@ -10,7 +10,7 @@ import type { CliLogger } from '~/utils/logger';
  */
 export type AvailablePackages = 'c15t/next' | 'c15t/react' | 'c15t';
 
-export type DevelopmentEnvironment = 'vite' | 'node';
+export type DevelopmentEnvironment = 'vite' | 'node' | 'manual';
 
 const detectDevelopmentEnvironment = (
 	deps: Record<string, unknown>,
@@ -30,13 +30,18 @@ const detectDevelopmentEnvironment = (
 		if (/(?:^|[\s;&|])vite(?:\s|$)/u.test(script)) {
 			return 'vite';
 		}
+		if (/(?:^|[\s;&|])(?:rollup|esbuild)(?:\s|$)/u.test(script)) {
+			return 'manual';
+		}
 	}
-	return !('webpack' in deps) &&
-		('vite' in deps ||
-			'@vitejs/plugin-react' in deps ||
-			'@vitejs/plugin-react-swc' in deps)
+	if ('webpack' in deps) {
+		return 'node';
+	}
+	return 'vite' in deps ||
+		'@vitejs/plugin-react' in deps ||
+		'@vitejs/plugin-react-swc' in deps
 		? 'vite'
-		: 'node';
+		: 'manual';
 };
 
 /**

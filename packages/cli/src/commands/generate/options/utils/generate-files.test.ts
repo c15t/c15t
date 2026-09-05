@@ -42,7 +42,14 @@ describe('detected React development environment', () => {
 			environment: 'node',
 			scripts: { build: 'webpack', dev: 'vite' },
 		},
-		{ dependencies: {}, environment: 'node' },
+		{ dependencies: { rollup: '4' }, environment: 'manual' },
+		{ dependencies: { esbuild: '0.25' }, environment: 'manual' },
+		{
+			dependencies: { rollup: '4', vite: '7' },
+			environment: 'manual',
+			scripts: { build: 'rollup -c', dev: 'vite' },
+		},
+		{ dependencies: {}, environment: 'manual' },
 	])(
 		'generates the $environment guard for $dependencies',
 		async ({ dependencies, environment, scripts }) => {
@@ -87,6 +94,15 @@ describe('detected React development environment', () => {
 					optionsText: 'mode: offline(),',
 				});
 				for (const source of [prebuilt, expanded]) {
+					if (environment === 'manual') {
+						expect(source).toContain('const DevTools = false');
+						expect(source).toContain(
+							"your bundler's build-time development flag"
+						);
+						expect(source).not.toContain('process.env');
+						expect(source).not.toContain('import.meta.env');
+						continue;
+					}
 					expect(source).toContain(
 						environment === 'vite'
 							? 'const DevTools = import.meta.env.DEV'

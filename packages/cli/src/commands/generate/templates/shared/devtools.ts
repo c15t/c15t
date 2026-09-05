@@ -5,10 +5,12 @@ export const generateDevToolsImport = (
 	source: string,
 	environment: DevelopmentEnvironment = 'node'
 ): string => {
-	const developmentGuard =
-		environment === 'vite'
-			? 'import.meta.env.DEV'
-			: "process.env.NODE_ENV !== 'production'";
+	const developmentGuard = {
+		manual:
+			"false /* Replace false with your bundler's build-time development flag. */",
+		node: "process.env.NODE_ENV !== 'production'",
+		vite: 'import.meta.env.DEV',
+	}[environment];
 	return `import { lazy, Suspense } from 'react';
 
 const DevTools = ${developmentGuard}
