@@ -1,17 +1,22 @@
+import { dialogFocusManagement } from '@c15t/conformance/play/consent-dialog';
+import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 } from '../../../packages/react/src/index';
-import { StorybookConsentProvider } from './storybook-consent-fixtures';
+import {
+	editableConsentOptions,
+	StorybookConsentProvider,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentDialogTrigger,
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'COMPONENTS - REACT/Consent Dialog Trigger',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog Trigger',
 } satisfies Meta<typeof ConsentDialogTrigger>;
 
 export default meta;
@@ -19,8 +24,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: triggerOpensDialog,
 	render: () => (
 		<StorybookConsentProvider
+			options={editableConsentOptions}
 			storedConsent={{
 				experience: false,
 				functionality: false,
@@ -38,6 +45,7 @@ export const Default: Story = {
 export const Small: Story = {
 	render: () => (
 		<StorybookConsentProvider
+			options={editableConsentOptions}
 			storedConsent={{
 				experience: false,
 				functionality: false,
@@ -54,4 +62,9 @@ export const Small: Story = {
 			/>
 		</StorybookConsentProvider>
 	),
+};
+
+export const DialogFocusManagement: Story = {
+	...Default,
+	play: dialogFocusManagement,
 };

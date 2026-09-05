@@ -1,8 +1,8 @@
 /**
  * Cross-framework parity spec.
  *
- * For every Storybook story that exists in *both* frameworks (React and
- * Svelte today; Vue/Solid join when their stories ship), load the
+ * For required React, Svelte and Vue core stories, verify every configured
+ * framework is present, then load the
  * iframe in each Storybook and assert:
  *   1. Normalized DOM structure matches across frameworks.
  *   2. Accessibility tree matches across frameworks.
@@ -17,7 +17,9 @@
  * Environment variables:
  *   - `REACT_STORYBOOK_URL` (default http://127.0.0.1:6006)
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
+ *   - `VUE_STORYBOOK_URL` (default http://127.0.0.1:6008)
  *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte`)
+ * Solid is primitives-only and excluded from this core adapter contract.
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
@@ -54,23 +56,52 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 		string,
 		Awaited<ReturnType<typeof loadStorybookIndex>>
 	> = {};
-	for (const framework of ENABLED_FRAMEWORKS) {
+	for (const framework of ENABLED_FRAMEWORKS.filter(
+		(entry) => entry !== 'solid'
+	)) {
 		const url = FRAMEWORK_URLS[framework];
 		if (!url) {
 			continue;
 		}
-		try {
-			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			byFramework[framework] = await loadStorybookIndex(url);
-		} catch (err) {
-			// If a Storybook isn't running, skip that framework's entries.
-			// Downstream pairing will just produce fewer entries.
-			console.warn(`[parity] could not load ${framework} index: ${err}`);
-		}
+		// oxlint-disable-next-line no-await-in-loop -- Load each required local Storybook.
+		byFramework[framework] = await loadStorybookIndex(url);
 	}
-	return pairStories(byFramework).filter(
-		(pair) => Object.keys(pair.entries).length >= 2
+	const paired = pairStories(byFramework);
+	for (const key of [
+		'Core/Consent Banner/Default',
+		'Core/Consent Banner/Banner Contract',
+		'Core/Consent Banner/Banner Accept Via Keyboard',
+		'Core/Consent Banner/Banner Focus Management',
+		'Core/Consent Banner/Banner To Dialog Flow',
+		'Core/Consent Dialog/Default',
+		'Core/Consent Dialog/Dialog Contract',
+		'Core/Consent Dialog/Dialog Escape Closes',
+		'Core/Consent Dialog/Save Flow',
+		'Core/Consent Dialog Trigger/Default',
+		'Core/Consent Dialog Trigger/Dialog Focus Management',
+		'Core/Consent Widget/Default',
+		'Core/Consent Widget/Expanded Categories',
+	]) {
+		expect(
+			Object.keys(paired.find((pair) => pair.key === key)?.entries ?? {}),
+			key
+		).toEqual(ENABLED_FRAMEWORKS.filter((entry) => entry !== 'solid'));
+	}
+	console.log(
+		'[PARITY coverage]',
+		JSON.stringify(
+			Object.fromEntries(
+				Object.entries(byFramework).map(([framework, stories]) => [
+					framework,
+					{
+						indexedStories: stories.length,
+						requiredCoreStories: 13,
+					},
+				])
+			)
+		)
 	);
+	return paired.filter((pair) => Object.keys(pair.entries).length >= 2);
 };
 
 const openStory = async function openStory(
