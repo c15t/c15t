@@ -19,11 +19,14 @@ export default mergeConfig(
 		test: {
 			environment: 'node',
 			// PGlite and SQLite get a fresh in-process database per test, so files
-			// cannot interfere and run in parallel. MySQL is a real server sharing
-			// one schema, so two files migrating it at once produce failures that
-			// depend on scheduling — the tests pass individually and fail
-			// together. Opting into MySQL therefore opts into sequential files.
-			fileParallelism: process.env.C15T_TEST_MYSQL_URL === undefined,
+			// cannot interfere and run in parallel. MySQL and Postgres are real
+			// servers sharing one schema, so two files migrating one at once
+			// produce failures that depend on scheduling — the tests pass
+			// individually and fail together. Opting into either therefore opts
+			// into sequential files.
+			fileParallelism:
+				process.env.C15T_TEST_MYSQL_URL === undefined &&
+				process.env.C15T_TEST_PG_URL === undefined,
 			// Almost every test here stands up a real database — PGlite is
 			// Postgres compiled to WASM, and starting one is not free. Vitest's
 			// 5s default is enough when this package runs alone and is not when

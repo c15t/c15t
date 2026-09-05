@@ -1,4 +1,5 @@
 import type { InitOutput, PolicyConfig, PolicyRule } from '@c15t/schema/types';
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { OfflinePolicyConfig } from '../options/offline-policy';
@@ -143,7 +144,16 @@ const createEndpointTransport = function createEndpointTransport(
 		},
 		async init() {
 			if (!endpointHandlers.init) {
-				return {};
+				// A producer with no init has no policy system. Say so explicitly:
+				// a complete response that stays silent about resolution would be
+				// read as a failed payload, and a missing field must never mean
+				// "keep whatever policy was there".
+				return {
+					policyResolution: writePolicyResolutionWire({
+						policy: null,
+						status: 'unconfigured',
+					}),
+				};
 			}
 			const response = await endpointHandlers.init();
 			if (!response.ok || !response.data) {

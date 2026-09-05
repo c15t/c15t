@@ -201,6 +201,8 @@ The `@c15t/core` hosted transport reads this route through `loadSubjectRecord(su
 
 Links a subject to an external user ID for cross-device consent resolution. Who asserts the link is recorded: `api` when the request carries a valid API key, `browser` otherwise. Only an `api` link lets the subject read identity-level privacy directives. Links recorded before this distinction existed are untrusted.
 
+The c15t transports call this route only for a subject that already exists on the server. A client identified before its first save carries the identity on `POST /subjects` instead, and the subject is created already linked (`browser` authority).
+
 **Request:**
 
 ```json

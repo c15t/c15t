@@ -1749,7 +1749,7 @@ describe('createHostedTransport: request shape', () => {
 		});
 	});
 
-	test('identify waits for the first save to establish a fresh subject', async () => {
+	test('identify without a server subject resolves at once and sends nothing', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-created' }), {
 				status: 200,
@@ -1761,10 +1761,14 @@ describe('createHostedTransport: request shape', () => {
 		});
 		const user = { externalId: 'user-42', identityProvider: 'clerk' };
 
-		const identified = transport.identify?.(user, null);
+		// Kernel-local identity: no pending promise waits for a subject that
+		// may never be created, so a later clear has nothing to cancel.
+		await expect(transport.identify(user, null)).resolves.toBeUndefined();
 		expect(fetchSpy).not.toHaveBeenCalled();
 
-		await transport.save?.({
+		// The next legitimate save carries the identity; the backend links it
+		// when it creates the subject.
+		await transport.save({
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
@@ -1777,13 +1781,16 @@ describe('createHostedTransport: request shape', () => {
 			uiSource: 'banner',
 			user,
 		});
-
-		await expect(identified).resolves.toBeUndefined();
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/c15t/subjects');
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('/api/c15t/subjects');
+		expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({
+			externalSubjectId: 'user-42',
+			identityProvider: 'clerk',
+		});
 	});
 
-	test('identify PATCHes after a save establishes the subject', async () => {
+	test('the subject the kernel passes is the only subject the transport acts on', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-created' }), {
 				status: 200,
@@ -1794,8 +1801,7 @@ describe('createHostedTransport: request shape', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		const identified = transport.identify?.({ externalId: 'user-42' }, null);
-		await transport.save?.({
+		await transport.save({
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
@@ -1808,10 +1814,22 @@ describe('createHostedTransport: request shape', () => {
 			uiSource: 'banner',
 			user: null,
 		});
+		// After the kernel cleared its data it passes no subject. The transport
+		// must not reach the subject that earlier save established.
+		await transport.identify({ externalId: 'user-42' }, null);
+		await transport.recordPrivacyOptOut(
+			{ categories: ['marketing'], recordedAt: 1, source: 'gpc' },
+			null
+		);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-		await expect(identified).resolves.toBeUndefined();
+		// With the kernel's real subject it links exactly that subject.
+		await transport.identify({ externalId: 'user-42' }, 'sub-created');
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
-		expect(fetchSpy.mock.calls[1]?.[0]).toBe('/api/c15t/subjects/sub-created');
+		const [, patchCall] = fetchSpy.mock.calls;
+		const [patchUrl, patchInit] = patchCall ?? [];
+		expect(patchUrl).toBe('/api/c15t/subjects/sub-created');
+		expect((patchInit as RequestInit).method).toBe('PATCH');
 	});
 
 	test('initURL overrides init without changing the save endpoint', async () => {

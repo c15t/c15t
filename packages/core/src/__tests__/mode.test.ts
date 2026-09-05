@@ -114,11 +114,15 @@ describe('custom()', () => {
 		});
 	});
 
-	test('treats missing init as an empty response', async () => {
+	test('reports a missing init as an explicitly unconfigured policy', async () => {
 		const transport = custom({ setConsent: vi.fn() })(context);
 
+		// Every local producer says what it resolved. Silence would read as a
+		// failed payload, never as permission to keep a previous policy.
 		await expect(
 			transport.init?.({ overrides: {}, user: null })
-		).resolves.toEqual({});
+		).resolves.toEqual({
+			policyResolution: { policy: null, status: 'unconfigured', version: 1 },
+		});
 	});
 });

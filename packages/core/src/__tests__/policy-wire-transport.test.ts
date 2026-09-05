@@ -14,7 +14,11 @@
  *   times and bases untouched, and a 2.x-shaped success body is a success.
  * - Offline resolution emits every outcome explicitly.
  */
-import type { InitOutput, PolicyRule } from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	InitOutput,
+	PolicyRule,
+} from '@c15t/schema/types';
 import {
 	POLICY_CONTRACT_HEADER,
 	readPolicyResolutionWire,
@@ -739,6 +743,75 @@ describe('offline transport resolution', () => {
 			createOfflineTransport({ policyPacks: [], policyRules: rules })
 		).toThrow(/either policyRules or policyPacks/u);
 	});
+});
+
+describe('identity without a server subject', () => {
+	const manifest: ConsentManifest = {
+		branding: 'c15t',
+		policyPacks: [],
+		revision: 'r',
+		schemaVersion: 2,
+	};
+	const user = { externalId: 'person', identityProvider: 'idp' };
+	const directive = {
+		categories: ['marketing' as const],
+		recordedAt: 1,
+		source: 'gpc' as const,
+	};
+
+	test.each([
+		{
+			build: (fetch: typeof globalThis.fetch) =>
+				createHostedTransport({
+					backendURL: 'https://api.example.com/c15t',
+					fetch,
+				}),
+			label: 'hosted',
+		},
+		{
+			build: (fetch: typeof globalThis.fetch) =>
+				createManifestTransport({
+					backendURL: 'https://api.example.com/c15t',
+					fetch,
+					manifest,
+				}),
+			label: 'manifest',
+		},
+	])(
+		'$label resolves identify locally and acts only on the subject the kernel passes',
+		async ({ build }) => {
+			const fetchSpy = vi
+				.fn()
+				.mockResolvedValue(
+					respond({ consentId: 'cns_1', subjectId: 'sub_test' })
+				);
+			const transport = build(fetchSpy as unknown as typeof globalThis.fetch);
+
+			await expect(transport.identify(user, null)).resolves.toBeUndefined();
+			await expect(
+				transport.recordPrivacyOptOut(directive, null)
+			).resolves.toBeUndefined();
+			expect(fetchSpy).not.toHaveBeenCalled();
+
+			// The save carries the identity; the transport remembers no subject.
+			await transport.save({ ...PAYLOAD, user });
+			const [saveCall] = fetchSpy.mock.calls;
+			const saveInit = saveCall?.[1] as RequestInit;
+			expect(JSON.parse(saveInit.body as string)).toMatchObject({
+				externalSubjectId: 'person',
+				identityProvider: 'idp',
+			});
+			await transport.identify(user, null);
+			await transport.recordPrivacyOptOut(directive, null);
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+			// Only the subject the kernel passes is acted on.
+			await transport.recordPrivacyOptOut(directive, 'sub_test');
+			expect(fetchSpy.mock.calls[1]?.[0]).toBe(
+				'https://api.example.com/c15t/subjects/sub_test/privacy-directives'
+			);
+		}
+	);
 });
 
 describe('manifest transport', () => {

@@ -22,6 +22,21 @@
  * `recordPrivacyOptOut` records a directive against the subject's own
  * server record through the privacy route, never the consent-saving one.
  *
+ * Identity before a server subject exists is kernel-local. `identify`
+ * without a subject resolves at once and sends nothing: the transport keeps
+ * no pending promise for a subject that may never be created, and never
+ * manufactures a consent to create one. The next legitimate save carries
+ * the identity in its body, the backend links it when it creates the
+ * subject, and the kernel then forwards its standing directives to that
+ * subject's privacy route with their original times. Local identification
+ * is not server persistence and not trusted cross-profile authority; only
+ * an authenticated link is.
+ *
+ * The subject id the kernel passes is the only subject this transport acts
+ * on. It remembers no subject of its own: after the kernel clears its data a
+ * later identify or directive with no subject must not reach the subject an
+ * earlier save established.
+ *
  * Out of scope for this MVP (deferred to follow-ups):
  * - Response caching / revalidation
  * - Translation bundle fetching
@@ -202,29 +217,6 @@ const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 	return allowed;
 };
 
-interface DeferredPromise<Value> {
-	promise: Promise<Value>;
-	reject: (reason?: unknown) => void;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-}
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers: <Value>() => DeferredPromise<Value>;
-};
-
-const createDeferredPromise = function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-};
-
 /**
  * A `SaveResult` from the backend's answer.
  *
@@ -262,14 +254,7 @@ export const createHostedTransport = function createHostedTransport(
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
 	const now = options.now ?? Date.now;
-	let establishedSubjectId: string | null = null;
 	let lastDecisionInputs: RememberedDecisionInputs | undefined;
-	interface PendingIdentity {
-		reject: (error: unknown) => void;
-		resolve: () => void;
-		user: KernelUser;
-	}
-	let pendingIdentities: PendingIdentity[] = [];
 
 	const jsonHeaders = {
 		accept: 'application/json',
@@ -301,48 +286,14 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	};
 
-	const flushPendingIdentities = async function flushPendingIdentities(
-		subjectId: string
-	): Promise<void> {
-		const pending = pendingIdentities;
-		pendingIdentities = [];
-		const latest = pending.at(-1);
-		if (!latest) {
-			return;
-		}
-		try {
-			await patchIdentity(latest.user, subjectId);
-			for (const item of pending) {
-				item.resolve();
-			}
-		} catch (error) {
-			for (const item of pending) {
-				item.reject(error);
-			}
-		}
-	};
-
-	const resolvePendingIdentities = function resolvePendingIdentities(): void {
-		const pending = pendingIdentities;
-		pendingIdentities = [];
-		for (const item of pending) {
-			item.resolve();
-		}
-	};
-
 	return {
 		async identify(user, subjectId): Promise<void> {
-			const resolvedSubjectId = subjectId ?? establishedSubjectId;
-			if (!resolvedSubjectId) {
-				return createDeferredPromise<undefined>((resolve, reject) => {
-					pendingIdentities.push({
-						reject,
-						resolve: () => resolve(undefined),
-						user,
-					});
-				});
+			if (!subjectId) {
+				// No server subject to link. The identity stays in the kernel and
+				// travels with the next save; nothing is owed to the network.
+				return;
 			}
-			await patchIdentity(user, resolvedSubjectId);
+			await patchIdentity(user, subjectId);
 		},
 
 		async init(_ctx: InitContext): Promise<TransportInitResponse> {
@@ -369,14 +320,9 @@ export const createHostedTransport = function createHostedTransport(
 					gpcFromHeaders(initHeaders)
 				);
 			}
-			const result = mapInitOutputToInitResponse(payload, initHeaders, {
+			return mapInitOutputToInitResponse(payload, initHeaders, {
 				producerContract: readProducerPolicyContract(response.headers),
 			});
-			if (result.subjectId) {
-				establishedSubjectId = result.subjectId;
-				await flushPendingIdentities(result.subjectId);
-			}
-			return result;
 		},
 
 		async loadSubjectRecord(
@@ -401,19 +347,17 @@ export const createHostedTransport = function createHostedTransport(
 					'c15t hosted transport: /subjects/:id returned an unreadable record'
 				);
 			}
-			establishedSubjectId = record.subject.id;
 			return mapSubjectRecordToHydrationRecords(record, { now: now() });
 		},
 
 		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
-			const resolvedSubjectId = subjectId ?? establishedSubjectId;
-			if (!resolvedSubjectId) {
+			if (!subjectId) {
 				// No server record exists for this device yet. The kernel keeps the
 				// directive locally; it is never sent through the consent route.
 				return;
 			}
 			const response = await fetchImpl(
-				`${subjectURL(resolvedSubjectId)}/privacy-directives`,
+				`${subjectURL(subjectId)}/privacy-directives`,
 				{
 					body: JSON.stringify({
 						categories: [...directive.categories],
@@ -449,25 +393,7 @@ export const createHostedTransport = function createHostedTransport(
 				);
 			}
 
-			const data = toSaveResult(await response.json());
-			if (data.subjectId) {
-				establishedSubjectId = data.subjectId;
-			}
-			const latestPendingUser = pendingIdentities.at(-1)?.user;
-			const savedUser = payload.user;
-			if (
-				data.subjectId &&
-				savedUser &&
-				latestPendingUser &&
-				savedUser.externalId === latestPendingUser.externalId &&
-				savedUser.identityProvider === latestPendingUser.identityProvider
-			) {
-				// POST /subjects already linked the latest queued identity.
-				resolvePendingIdentities();
-			} else if (data.subjectId) {
-				await flushPendingIdentities(data.subjectId);
-			}
-			return data;
+			return toSaveResult(await response.json());
 		},
 	};
 };

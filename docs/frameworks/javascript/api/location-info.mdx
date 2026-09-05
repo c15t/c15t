@@ -89,4 +89,6 @@ The `identityProvider` field indicates which auth system provided the ID (e.g., 
 
 <Callout type="warn">
   `identifyUser()` sends the user ID to the c15t backend. Only call this after the user has authenticated and consented to being identified.
+
+  Before this device has a server subject, identification is kernel-local: the call resolves at once, nothing is sent, and no consent is created to establish a subject. The next explicit save carries the identity, the backend links it when it creates the subject, and any standing privacy directives are then forwarded to that subject with their original times. Local identification is not server persistence and not a trusted cross-profile identity; only a link asserted by an API-key request is.
 </Callout>

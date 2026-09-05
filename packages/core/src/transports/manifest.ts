@@ -368,7 +368,9 @@ export const createManifestTransport = function createManifestTransport(
 	return {
 		async identify(user, subjectId): Promise<void> {
 			if (!subjectId) {
-				// Nothing to link yet; the save carries the identity instead.
+				// No server subject to link. The identity stays in the kernel and
+				// travels with the next save; nothing is owed to the network. Same
+				// contract as the hosted transport.
 				return;
 			}
 			const response = await fetchImpl(subjectURL(subjectId), {
