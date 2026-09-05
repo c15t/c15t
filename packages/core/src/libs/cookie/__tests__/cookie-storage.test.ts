@@ -48,14 +48,13 @@ describe('Cookie Storage', () => {
 				.mockImplementation(() => {});
 
 			// Mock document to simulate error
-			const originalDocument = global.document;
-			// @ts-expect-error - Testing error case
-			delete global.document;
+			const originalDocument = globalThis.document;
+			Reflect.deleteProperty(globalThis, 'document');
 
 			setCookie('test-cookie', 'value');
 
 			// Restore document
-			global.document = originalDocument;
+			globalThis.document = originalDocument;
 			consoleWarnSpy.mockRestore();
 		});
 	});
@@ -226,18 +225,17 @@ describe('Cookie Storage', () => {
 	describe('SSR compatibility', () => {
 		it('should handle missing document object gracefully', () => {
 			// Save current state
-			const originalDocument = global.document;
-			const originalWindow = global.window;
+			const originalDocument = globalThis.document;
+			const originalWindow = globalThis.window;
 
-			// @ts-expect-error - Testing SSR scenario
-			delete global.document;
+			Reflect.deleteProperty(globalThis, 'document');
 
 			const value = getCookie('test');
 			expect(value).toBeNull();
 
 			// Restore
-			global.document = originalDocument;
-			global.window = originalWindow;
+			globalThis.document = originalDocument;
+			globalThis.window = originalWindow;
 		});
 	});
 });

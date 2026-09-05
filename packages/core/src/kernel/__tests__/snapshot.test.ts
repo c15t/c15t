@@ -19,13 +19,11 @@ describe('buildDraft', () => {
 	test('keeps own boolean optional categories only', () => {
 		expect(
 			buildDraft({
-				// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-				analytics: true as any,
+				analytics: true,
 				marketing: true,
-				// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-				measurement: 'yes' as any,
+				measurement: 'yes',
 				necessary: true,
-			})
+			} as unknown as Parameters<typeof buildDraft>[0])
 		).toEqual({ marketing: true });
 	});
 
