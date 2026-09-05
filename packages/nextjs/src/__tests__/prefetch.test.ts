@@ -230,6 +230,48 @@ describe('prefetchInitialConsent: backend call', () => {
 		});
 	});
 
+	test('forwards client IP and user agent by default', async () => {
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('user-agent', 'Mozilla/5.0 compat-test');
+		headerStore.set('x-forwarded-for', '203.0.113.7, 10.0.0.1');
+
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(createInitOutput()), { status: 200 })
+			);
+
+		await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		const headers = (init as RequestInit).headers as Record<string, string>;
+		expect(headers['user-agent']).toBe('Mozilla/5.0 compat-test');
+		expect(headers['x-forwarded-for']).toBe('203.0.113.7, 10.0.0.1');
+	});
+
+	test('omits default forwarded headers the request lacks', async () => {
+		headerStore.set('host', 'app.example.com');
+
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(createInitOutput()), { status: 200 })
+			);
+
+		await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		const headers = (init as RequestInit).headers as Record<string, string>;
+		expect(headers).not.toHaveProperty('x-forwarded-for');
+		expect(headers).not.toHaveProperty('user-agent');
+	});
+
 	test('forwardHeaders forwards requested request-headers', async () => {
 		headerStore.set('authorization', 'Bearer token-xyz');
 		headerStore.set('x-trace-id', 'trace-1');

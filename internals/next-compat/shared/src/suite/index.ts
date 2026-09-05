@@ -237,6 +237,13 @@ export const defineCompatSuite = function defineCompatSuite({
 							expect(serverSide[0]?.headers['x-c15t-country']).toBe(
 								TEST_COUNTRY
 							);
+							// The client's IP and user agent travel with the server call,
+							// so the backend can geolocate and record them as it would
+							// for a browser-initiated /init.
+							expect(serverSide[0]?.headers['x-forwarded-for']).toBeDefined();
+							expect(serverSide[0]?.headers['user-agent']).toContain(
+								'HeadlessChrome'
+							);
 							expect(initialHTML).toContain(BANNER_MARKER);
 							break;
 						}

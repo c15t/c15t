@@ -232,8 +232,9 @@ export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigO
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * Forward additional request headers onto the backend call. Cookies
-	 * from the incoming request are forwarded automatically. Use this for
+	 * Forward additional request headers onto the backend call. Cookies,
+	 * `x-forwarded-for`, and `user-agent` from the incoming request are
+	 * forwarded automatically (see {@link DEFAULT_FORWARD_HEADERS}). Use this for
 	 * authentication tokens or custom tracing headers.
 	 */
 	forwardHeaders?: string[];
@@ -308,6 +309,19 @@ const pickRequestHeaders = function pickRequestHeaders(
 	return picked;
 };
 
+/**
+ * Request headers forwarded to the backend on every server-side `/init`.
+ *
+ * The backend geolocates from the client IP when no CDN geo header is
+ * present, and records the user agent with the consent decision, so both
+ * have to travel with a server-initiated call the way they do with a
+ * browser-initiated one. `forwardHeaders` adds to this list.
+ */
+export const DEFAULT_FORWARD_HEADERS = [
+	'x-forwarded-for',
+	'user-agent',
+] as const;
+
 const createForwardHeaders = function createForwardHeaders(
 	cookieHeader: string,
 	requestHeaders: Headers,
@@ -317,7 +331,7 @@ const createForwardHeaders = function createForwardHeaders(
 	if (cookieHeader) {
 		forward.cookie = cookieHeader;
 	}
-	for (const key of forwardHeaders ?? []) {
+	for (const key of [...DEFAULT_FORWARD_HEADERS, ...(forwardHeaders ?? [])]) {
 		const value = requestHeaders.get(key);
 		if (value) {
 			forward[key.toLowerCase()] = value;
