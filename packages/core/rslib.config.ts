@@ -27,6 +27,7 @@ export default defineConfig({
 			'generate-subject-id': ['./src/libs/generate-subject-id.ts'],
 			'iframe-blocker': ['./src/modules/iframe-blocker/index.ts'],
 			index: ['./src/index.ts'],
+			'manifest-cache': ['./src/libs/manifest-cache.ts'],
 			'network-blocker': ['./src/modules/network-blocker/index.ts'],
 			persistence: ['./src/modules/persistence/index.ts'],
 			'script-loader': ['./src/modules/script-loader/index.ts'],

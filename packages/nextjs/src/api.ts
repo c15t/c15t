@@ -1,4 +1,5 @@
 import { c15tVersionHeaders } from '@c15t/core';
+import { fetchCachedManifest as fetchManifestThroughCache } from '@c15t/core/libs/manifest-cache';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
@@ -195,32 +196,35 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	options: NextConsentManifestHandlersOptions = {},
 	language?: string | null
 ): Promise<ManifestFetchResult> {
-	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('@c15t/nextjs/api: no fetch available.');
-	}
-
 	const manifestURL = withLanguage(
 		resolveManifestURL(request, options),
 		language ?? null
 	);
-	const init = createManifestFetchInit(options);
-	const response = await fetchImpl(manifestURL, init);
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/nextjs/api: /manifest responded ${response.status} ${response.statusText}`
-		);
-	}
+	// Two layers on purpose. `next.revalidate` reaches the App Router Data
+	// Cache; the in-process cache covers the Pages Router and any other
+	// runtime without one, and adds ETag revalidation on top.
+	const {
+		headers: nextHeaders,
+		method,
+		...init
+	} = createManifestFetchInit(options);
+	void method;
+	const cached = await fetchManifestThroughCache({
+		fetch: options.fetch,
+		headers: nextHeaders as Record<string, string>,
+		init,
+		url: manifestURL,
+	});
 
 	const cacheControl =
-		response.headers.get('cache-control') ?? DEFAULT_MANIFEST_CACHE_CONTROL;
+		cached.headers['cache-control'] ?? DEFAULT_MANIFEST_CACHE_CONTROL;
 	const revalidate = getSMaxAge(cacheControl) ?? getManifestRevalidate(options);
 	return {
 		cacheControl,
-		etag: response.headers.get('etag') ?? undefined,
-		manifest: (await response.json()) as ConsentManifest,
+		etag: cached.headers.etag,
+		manifest: cached.manifest,
 		revalidate,
-		status: response.status,
+		status: 200,
 	};
 };
 
