@@ -1,0 +1,211 @@
+---
+/**
+ * In-page probe for the Astro browser bench.
+ *
+ * Publishes one object on `window.__c15tAstroBench` that the Playwright
+ * runner polls, using the same rAF-settled definition of "banner visible"
+ * as the Nuxt and SvelteKit probes — banner root *and* accept button laid
+ * out, painted and not animating — so the three suites' numbers mean the
+ * same thing.
+ *
+ * The scenario travels through a data attribute rather than `define:vars`
+ * so the script stays a bundled module shared by every page.
+ */
+interface Props {
+	scenario: string;
+}
+
+const { scenario } = Astro.props;
+---
+
+<span
+	data-c15t-bench-probe
+	data-scenario={scenario}
+	hidden
+></span>
+
+<script>
+	import { getConsent, subscribe } from '@c15t/astro/client';
+
+	import type { AstroBenchState } from '../lib/bench-state';
+
+	interface BenchmarkElementTimingEntry extends PerformanceEntry {
+		identifier?: string;
+		renderTime?: number;
+		loadTime?: number;
+	}
+
+	const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
+
+	const readScenario = () =>
+		document
+			.querySelector('[data-c15t-bench-probe]')
+			?.getAttribute('data-scenario') ?? 'unknown';
+
+	const getState = (): AstroBenchState => {
+		const scenario = readScenario();
+		if (
+			!window.__c15tAstroBench ||
+			window.__c15tAstroBench.scenario !== scenario
+		) {
+			window.__c15tAstroBench = {
+				activeUI: 'none',
+				hasConsented: false,
+				location: null,
+				mountCount: 1,
+				onBannerFetchedCount: 0,
+				onConsentSetCount: 0,
+				onErrorCount: 0,
+				overrides: {},
+				renderCount: 0,
+				scenario,
+				startedAtMs: performance.now(),
+			};
+		}
+		return window.__c15tAstroBench;
+	};
+
+	const isElementVisible = (element: Element): boolean => {
+		if (!(element instanceof HTMLElement)) {
+			return false;
+		}
+		const rect = element.getBoundingClientRect();
+		if (rect.width <= 0 || rect.height <= 0) {
+			return false;
+		}
+		const style = window.getComputedStyle(element);
+		return (
+			style.display !== 'none' &&
+			style.visibility !== 'hidden' &&
+			Number(style.opacity) >= 0.99
+		);
+	};
+
+	const hasRunningAnimations = (element: Element): boolean => {
+		if (
+			!(element instanceof HTMLElement) ||
+			typeof element.getAnimations !== 'function'
+		) {
+			return false;
+		}
+		return element
+			.getAnimations()
+			.some((animation) => animation.playState === 'running');
+	};
+
+	const readBannerPaintMs = (): number | null => {
+		const entries = performance
+			.getEntriesByType('element')
+			.filter(
+				(entry): entry is BenchmarkElementTimingEntry =>
+					(entry as BenchmarkElementTimingEntry).identifier ===
+					BANNER_ELEMENT_TIMING_NAME
+			);
+		const entry = entries.at(-1);
+		if (!entry) {
+			return null;
+		}
+		for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
+			if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+				return value;
+			}
+		}
+		return null;
+	};
+
+	const watchBannerVisibility = () => {
+		const state = getState();
+		if (state.bannerVisibleMs !== undefined) {
+			return;
+		}
+
+		const check = () => {
+			const latest = getState();
+			if (latest.bannerVisibleMs !== undefined) {
+				return;
+			}
+
+			const bannerRoot = document.querySelector(
+				'[data-testid="consent-banner-root"]'
+			);
+			if (bannerRoot instanceof HTMLElement) {
+				bannerRoot.setAttribute('elementtiming', BANNER_ELEMENT_TIMING_NAME);
+			}
+			const acceptButton = document.querySelector(
+				'[data-testid="consent-banner-accept-button"]'
+			);
+
+			const ready =
+				!!bannerRoot &&
+				!!acceptButton &&
+				isElementVisible(bannerRoot) &&
+				isElementVisible(acceptButton);
+
+			if (ready && latest.bannerReadyMs === undefined) {
+				latest.bannerReadyMs = performance.now();
+			}
+
+			if (
+				ready &&
+				!hasRunningAnimations(bannerRoot) &&
+				!hasRunningAnimations(acceptButton)
+			) {
+				latest.bannerVisibleMs = performance.now();
+				latest.bannerPaintMs = readBannerPaintMs();
+				return;
+			}
+
+			window.requestAnimationFrame(check);
+		};
+
+		window.requestAnimationFrame(check);
+	};
+
+	/**
+	 * Returning visitors get no banner markup at all, so "ready" is "the
+	 * runtime resolved with stored consent and decided to show nothing".
+	 * Recorded as `0` for the same reason the Nuxt probe does.
+	 */
+	const markRepeatVisitorReady = (state: AstroBenchState) => {
+		if (state.scenario !== 'repeat-visitor') {
+			return;
+		}
+		if (state.hasConsented && state.activeUI === 'none') {
+			state.bannerReadyMs ??= 0;
+			state.bannerVisibleMs ??= 0;
+			state.bannerPaintMs ??= null;
+		}
+	};
+
+	const publish = () => {
+		const snapshot = getConsent();
+		const state = getState();
+		state.renderCount += 1;
+		if (!snapshot) {
+			return;
+		}
+		if (snapshot.hasConsented && !state.hasConsented) {
+			state.onConsentSetCount += 1;
+		}
+		if (snapshot.policy && state.onBannerFetchedMs === undefined) {
+			state.onBannerFetchedCount += 1;
+			state.onBannerFetchedMs = performance.now();
+		}
+		state.activeUI = snapshot.activeUI ?? 'none';
+		state.hasConsented = snapshot.hasConsented;
+		state.location = snapshot.location
+			? {
+					countryCode: snapshot.location.countryCode,
+					regionCode: snapshot.location.regionCode,
+				}
+			: null;
+		state.overrides = { ...snapshot.overrides };
+		markRepeatVisitorReady(state);
+		watchBannerVisibility();
+	};
+
+	subscribe(publish);
+	document.addEventListener('astro:page-load', publish);
+	publish();
+	watchBannerVisibility();
+</script>

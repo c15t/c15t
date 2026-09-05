@@ -16,6 +16,7 @@ export type BenchmarkFramework =
 	| 'svelte'
 	| 'solid'
 	| 'vue'
+	| 'astro'
 	| 'backend';
 
 export interface BenchmarkEnvironment {
