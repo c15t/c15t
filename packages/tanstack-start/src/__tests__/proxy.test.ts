@@ -696,3 +696,30 @@ describe('proxy on: responses that carried an authorization header', () => {
 		expect(response.headers.get('etag')).toBeNull();
 	});
 });
+
+describe('proxy on: forwarding headers stay out of the browser allowlist', () => {
+	test('ignores x-forwarded-* from the client even when listed in forwardHeaders', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch, {
+			forwardHeaders: [
+				'x-forwarded-for',
+				'x-forwarded-host',
+				'x-forwarded-proto',
+			],
+		});
+		await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status', {
+				headers: {
+					'x-forwarded-for': '203.0.113.7',
+					'x-forwarded-host': 'evil.example',
+					'x-forwarded-proto': 'http',
+				},
+			}),
+		});
+		const { headers } = upstreamCall(fetch);
+		expect(headers.get('x-forwarded-for')).toBeNull();
+		expect(headers.get('x-forwarded-host')).toBe('app.example.com');
+		expect(headers.get('x-forwarded-proto')).toBe('https');
+	});
+});

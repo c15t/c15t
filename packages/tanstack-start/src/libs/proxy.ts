@@ -254,6 +254,17 @@ export const isProxyPathAllowed = function isProxyPathAllowed(
 	return allowed.some((pattern) => matchesPattern(pattern, segments));
 };
 
+/**
+ * Headers that describe the hop chain. They are never copied from the
+ * browser through `forwardHeaders`; the trusted branch below builds them.
+ */
+const FORWARDING_HEADERS = new Set([
+	'forwarded',
+	'x-forwarded-for',
+	'x-forwarded-host',
+	'x-forwarded-proto',
+]);
+
 const appendForwardedFor = function appendForwardedFor(
 	incoming: Headers,
 	outgoing: Headers
@@ -294,7 +305,7 @@ export const buildProxyRequestHeaders = function buildProxyRequestHeaders(
 	const headers = new Headers();
 	for (const name of forwardHeaders) {
 		const value = request.headers.get(name);
-		if (value === null) {
+		if (value === null || FORWARDING_HEADERS.has(name.toLowerCase())) {
 			continue;
 		}
 		if (name === 'cookie') {
@@ -313,14 +324,19 @@ export const buildProxyRequestHeaders = function buildProxyRequestHeaders(
 		appendForwardedFor(request.headers, headers);
 	}
 
+	// The incoming host and proto headers are only meaningful behind a proxy
+	// that rewrites them; otherwise the request URL is the truth.
 	const url = new URL(request.url);
-	headers.set(
-		'x-forwarded-host',
-		request.headers.get('x-forwarded-host') ?? url.host
-	);
+	const incomingHost = trustForwardedHeaders
+		? request.headers.get('x-forwarded-host')
+		: null;
+	const incomingProto = trustForwardedHeaders
+		? request.headers.get('x-forwarded-proto')
+		: null;
+	headers.set('x-forwarded-host', incomingHost ?? url.host);
 	headers.set(
 		'x-forwarded-proto',
-		request.headers.get('x-forwarded-proto') ?? url.protocol.replace(/:$/u, '')
+		incomingProto ?? url.protocol.replace(/:$/u, '')
 	);
 
 	for (const [name, value] of Object.entries(c15tVersionHeaders)) {

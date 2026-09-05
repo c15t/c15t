@@ -178,3 +178,37 @@ describe('createStaticManifestModule: importSource', () => {
 		).rejects.toThrow(/importSource/u);
 	});
 });
+
+describe('resolveStrictestDefaultInit: category ties', () => {
+	test('prefers the pack exposing fewer optional categories', () => {
+		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
+		if (!optOut) {
+			throw new Error('fixture has no opt-out pack');
+		}
+		const wide = structuredClone(optOut);
+		wide.policy.id = 'us-ca-opt-out-wide';
+		wide.resolvedPolicy.id = 'us-ca-opt-out-wide';
+		const categories = [
+			'necessary',
+			'measurement',
+			'marketing',
+			'functionality',
+		];
+		if (wide.policy.consent) {
+			wide.policy.consent.categories = categories;
+		}
+		if (wide.resolvedPolicy.consent) {
+			wide.resolvedPolicy.consent.categories = categories;
+		}
+		for (const policyPacks of [
+			[optOut, wide],
+			[wide, optOut],
+		]) {
+			const payload = resolveStrictestDefaultInit(
+				{ ...MANIFEST_FIXTURE, policyPacks },
+				{ language: 'en' }
+			);
+			expect(payload.policy?.id).toBe('us-ca-opt-out');
+		}
+	});
+});

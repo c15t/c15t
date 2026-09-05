@@ -145,6 +145,18 @@ const scoreScope = function scoreScope(pack: ConsentManifestPolicyPack) {
 	return (consent?.scopeMode === 'strict' ? 2 : 0) + (consent?.gpc ? 1 : 0);
 };
 
+/**
+ * Categories a pack exposes beyond `necessary`. Fewer is stricter: an
+ * opt-out pack grants each listed category before the visitor decides.
+ */
+const countOptionalCategories = function countOptionalCategories(
+	pack: ConsentManifestPolicyPack
+) {
+	return (pack.resolvedPolicy.consent?.categories ?? []).filter(
+		(category) => category !== 'necessary'
+	).length;
+};
+
 const comparePolicyStrictness = function comparePolicyStrictness(
 	left: ConsentManifestPolicyPack,
 	right: ConsentManifestPolicyPack
@@ -154,7 +166,11 @@ const comparePolicyStrictness = function comparePolicyStrictness(
 	if (leftScore !== rightScore) {
 		return leftScore - rightScore;
 	}
-	return scoreScope(left) - scoreScope(right);
+	const scopeDelta = scoreScope(left) - scoreScope(right);
+	if (scopeDelta !== 0) {
+		return scopeDelta;
+	}
+	return countOptionalCategories(right) - countOptionalCategories(left);
 };
 
 const pickStrictestPolicyPack = function pickStrictestPolicyPack(
