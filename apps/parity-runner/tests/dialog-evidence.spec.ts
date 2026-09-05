@@ -43,6 +43,7 @@ for (const mutation of [
 	'focus',
 	'visibility',
 	'card geometry',
+	'card focus',
 	'shell geometry',
 	'modal',
 ] as const) {
@@ -76,6 +77,10 @@ for (const mutation of [
 					break;
 				case 'visibility':
 					dialog.style.display = 'none';
+					break;
+				case 'card focus':
+					card.tabIndex = -1;
+					card.focus();
 					break;
 				case 'card geometry':
 					card.style.width = '350px';

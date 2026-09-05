@@ -118,6 +118,18 @@ export const captureComputedStyleMap = function captureComputedStyleMap(
 						: el;
 				out[id] = captureOne(measured);
 			}
+			for (const part of Array.from(
+				root.querySelectorAll(
+					'[data-slot="switch-track"], [data-slot="switch-thumb"]'
+				)
+			)) {
+				const control = part.closest('[role="switch"][data-testid]');
+				if (control) {
+					out[
+						`${control.getAttribute('data-testid')}::${part.getAttribute('data-slot')}`
+					] = captureOne(part);
+				}
+			}
 			return out;
 		},
 		{ props: DEFAULT_PROPS, sel: selector }
