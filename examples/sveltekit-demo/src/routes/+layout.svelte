@@ -25,10 +25,10 @@
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
 	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
 	const scripts = createDemoScripts({
+		clarity: env.PUBLIC_CLARITY_ID,
+		googleTag: env.PUBLIC_GOOGLE_TAG_ID,
 		metaPixel: env.PUBLIC_META_PIXEL_ID,
 		tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
-		googleTag: env.PUBLIC_GOOGLE_TAG_ID,
-		clarity: env.PUBLIC_CLARITY_ID,
 	});
 
 	const activeTheme = $derived.by(() => {
