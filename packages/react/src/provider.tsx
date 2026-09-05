@@ -31,7 +31,7 @@ import type { Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { KernelContext } from './context';
+import { KernelContext, ProviderServicesContext } from './context';
 import { useColorScheme } from './hooks/use-color-scheme';
 import type {
 	UseNetworkBlockerOptions,
@@ -545,8 +545,20 @@ const NetworkBlockerMount = ({
 	return null;
 };
 
-const PersistenceMount = ({ options }: { options?: UsePersistenceOptions }) => {
-	usePersistence(options);
+const PersistenceMount = ({
+	options,
+	clearRef,
+}: {
+	options?: UsePersistenceOptions;
+	clearRef: { current: (() => void) | null };
+}) => {
+	const handle = usePersistence(options);
+	useEffect(() => {
+		clearRef.current = handle.clear;
+		return () => {
+			clearRef.current = null;
+		};
+	}, [handle, clearRef]);
 	return null;
 };
 
@@ -657,6 +669,36 @@ export const ConsentProvider = ({
 }: ConsentProviderProps) => {
 	const [kernel, setKernel] = useState(() => createProviderKernel(options));
 	void setKernel;
+	const clearRef = useRef<(() => void) | null>(null);
+	const services = useMemo(
+		() => ({
+			clearRecords: () => {
+				if (clearRef.current) {
+					clearRef.current();
+				} else {
+					kernel.hydrate({
+						choice: null,
+						noticeDismissal: null,
+						optOutDirectives: [],
+						subject: null,
+					});
+					kernel.events.emit({ type: 'records:cleared' });
+				}
+			},
+			getConsentCategories: () => {
+				const { scope } = kernel.getSnapshot().policyRule;
+				const configured = options.consentCategories;
+				return [
+					'necessary' as const,
+					...scope.filter(
+						(name) => !configured?.length || configured.includes(name)
+					),
+				];
+			},
+			getPresentation: () => options.presentation,
+		}),
+		[kernel, options.consentCategories, options.presentation]
+	);
 	const enabled = getEnabled(options);
 	const persistenceOptions = normalizePersistenceOptions(options);
 	const { scripts, networkBlocker } = options;
@@ -721,7 +763,10 @@ export const ConsentProvider = ({
 			/>
 			<WindowKernelMount kernel={kernel} />
 			{enabled && persistenceOptions ? (
-				<PersistenceMount options={persistenceOptions} />
+				<PersistenceMount
+					options={persistenceOptions}
+					clearRef={clearRef}
+				/>
 			) : null}
 			<InitMount
 				enabled={enabled}
@@ -743,13 +788,15 @@ export const ConsentProvider = ({
 
 	return (
 		<KernelContext.Provider value={kernel}>
-			<V3ThemeProvider
-				themeConfig={themeContextValue}
-				uiConfig={uiConfigValue}
-			>
-				<ThemeStyleMount theme={userTheme} />
-				{providerChildren}
-			</V3ThemeProvider>
+			<ProviderServicesContext.Provider value={services}>
+				<V3ThemeProvider
+					themeConfig={themeContextValue}
+					uiConfig={uiConfigValue}
+				>
+					<ThemeStyleMount theme={userTheme} />
+					{providerChildren}
+				</V3ThemeProvider>
+			</ProviderServicesContext.Provider>
 		</KernelContext.Provider>
 	);
 };

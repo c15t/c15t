@@ -6,6 +6,8 @@
 
 export interface FrameworkConfig {
 	importSource: string;
+	devToolsImportSource: string;
+	themeTypesImportSource: string;
 	consentBannerImport: string;
 	consentDialogImport: string;
 	frameworkName: string;
@@ -18,21 +20,25 @@ export interface FrameworkConfig {
 export const NEXTJS_CONFIG: FrameworkConfig = {
 	consentBannerImport: 'c15t/next',
 	consentDialogImport: 'c15t/next',
-	docsSlug: 'nextjs',
+	devToolsImportSource: 'c15t/next/devtools',
+	docsSlug: 'next',
 	envVarPrefix: 'NEXT_PUBLIC',
 	frameworkName: 'Next.js App Router',
 	hasSSRProps: true,
 	importSource: 'c15t/next',
 	ssrMechanism: 'Next.js headers() API',
+	themeTypesImportSource: 'c15t/react/types',
 };
 
 export const REACT_CONFIG: FrameworkConfig = {
 	consentBannerImport: 'c15t/react',
 	consentDialogImport: 'c15t/react',
+	devToolsImportSource: 'c15t/react/devtools',
 	docsSlug: 'react',
 	envVarPrefix: '',
 	frameworkName: 'React',
 	hasSSRProps: false,
 	importSource: 'c15t/react',
 	ssrMechanism: '',
+	themeTypesImportSource: 'c15t/react/types',
 };

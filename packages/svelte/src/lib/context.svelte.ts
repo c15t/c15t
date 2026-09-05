@@ -57,7 +57,7 @@ export interface ConsentDraftState {
 	readonly isStale: boolean;
 	set: (name: AllConsentNames, value: boolean) => void;
 	reset: () => void;
-	save: () => Promise<void>;
+	save: (categories: readonly AllConsentNames[]) => Promise<void>;
 }
 
 export interface ConsentManagerState extends Pick<
@@ -110,6 +110,7 @@ export interface ConsentManagerState extends Pick<
 }
 
 export interface ConsentContextValue {
+	readonly clearRecords: () => void;
 	readonly kernel: ConsentKernel;
 	readonly snapshot: ConsentSnapshot;
 	readonly state: ConsentManagerState;
@@ -127,6 +128,7 @@ export interface ThemeContextValue {
 }
 
 export interface ConsentControllerOptions {
+	clearRecords?: () => void;
 	getSnapshot: () => ConsentSnapshot;
 	getDraft: () => ConsentDraftState;
 	getIAB: () => SvelteIABState | null;
@@ -174,6 +176,7 @@ const createConsentState = function createConsentState(
 	options: ConsentControllerOptions
 ): ConsentManagerState {
 	const getSnapshotLocal = options.getSnapshot;
+	let actionSequence = 0;
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const controller: ConsentManagerState = {
@@ -185,11 +188,16 @@ const createConsentState = function createConsentState(
 		},
 		get consentCategories(): AllConsentNames[] {
 			const configured = options.getConsentCategories();
+			const { scope } = getSnapshotLocal().policyRule;
 			return [
-				'necessary',
-				...getSnapshotLocal().policyRule.scope.filter(
-					(name) => configured.length === 0 || configured.includes(name)
-				),
+				...new Set<AllConsentNames>([
+					'necessary',
+					...(configured.length === 0
+						? scope
+						: configured.filter((name) =>
+								scope.some((category) => category === name)
+							)),
+				]),
 			];
 		},
 		get draft() {
@@ -288,17 +296,58 @@ const createConsentState = function createConsentState(
 			return getSnapshotLocal().revision;
 		},
 		async saveConsents(type: SaveType) {
-			if (type === 'all') {
-				await kernel.commands.save('all');
-				options.getDraft().reset();
-				return;
+			actionSequence += 1;
+			const sequence = actionSequence;
+			const preserveDialog = kernel.getSnapshot().activeUI === 'dialog';
+			const save = async () => {
+				if (type === 'custom') {
+					await options.getDraft().save(controller.consentCategories);
+					return;
+				}
+				const result = await kernel.commands.save(
+					type === 'all' ? 'all' : 'none',
+					{
+						categories: controller.consentCategories,
+					}
+				);
+				if (!result.ok) {
+					throw new Error('Unable to save preferences.');
+				}
+				if (sequence === actionSequence) {
+					options.getDraft().reset();
+				}
+			};
+			// The local receipt commits synchronously, before the transport settles.
+			// Restore the open dialog now so loading and failure never hide its draft.
+			const pending = save();
+			if (preserveDialog && sequence === actionSequence) {
+				kernel.set.activeUI('dialog');
 			}
-			if (type === 'necessary') {
-				await kernel.commands.save('none');
-				options.getDraft().reset();
-				return;
+			const unsubscribe = kernel.subscribe((next) => {
+				if (
+					preserveDialog &&
+					next.activeUI !== 'dialog' &&
+					sequence === actionSequence
+				) {
+					actionSequence += 1;
+				}
+			});
+			try {
+				await pending;
+				if (sequence !== actionSequence || !preserveDialog) {
+					return;
+				}
+				const current = kernel.getSnapshot();
+				kernel.set.activeUI(
+					current.policyPending ||
+						current.resolution.status === 'failed' ||
+						current.promptRequirement.kind === 'none'
+						? 'none'
+						: 'banner'
+				);
+			} finally {
+				unsubscribe();
 			}
-			await options.getDraft().save();
 		},
 		get selectedConsents() {
 			return options.getDraft().values;
@@ -307,6 +356,7 @@ const createConsentState = function createConsentState(
 			return options.getDraft().values;
 		},
 		setActiveUI(ui: ActiveUI) {
+			actionSequence += 1;
 			(
 				kernel.set as typeof kernel.set & {
 					activeUI: (ui: KernelActiveUI) => void;
@@ -350,6 +400,19 @@ export const setConsentContext = function setConsentContext(
 ): void {
 	const consentState = createConsentState(kernel, options);
 	setContext(CONSENT_CONTEXT_KEY, {
+		clearRecords: () => {
+			if (options.clearRecords) {
+				options.clearRecords();
+			} else {
+				kernel.hydrate({
+					choice: null,
+					noticeDismissal: null,
+					optOutDirectives: [],
+					subject: null,
+				});
+				kernel.events.emit({ type: 'records:cleared' });
+			}
+		},
 		kernel,
 		get manager() {
 			return kernel;

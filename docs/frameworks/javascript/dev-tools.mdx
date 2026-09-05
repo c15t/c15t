@@ -1,0 +1,104 @@
+---
+title: DevTools
+description: Inspect a JavaScript consent kernel with the imperative DevTools API.
+group: frameworks
+---
+
+## Install
+
+```package-install
+c15t @c15t/dev-tools
+```
+
+## Connect your kernel
+
+Pass the same kernel used by your consent UI and script loaders. No React
+provider or framework adapter is needed.
+
+This browser example uses Vite's build-time development flag. For webpack,
+use its configured `process.env.NODE_ENV === 'development'` replacement.
+Other build tools need their own development flag; neither `process` nor
+`import.meta.env` is a standard browser global.
+
+```ts
+import { createConsentKernel, createOfflineTransport } from 'c15t';
+
+const kernel = createConsentKernel({ transport: createOfflineTransport() });
+await kernel.commands.init();
+
+if (import.meta.env.DEV) {
+  const { createDevTools } = await import('@c15t/dev-tools');
+  const tools = createDevTools({
+    kernel,
+    defaultOpen: true,
+    defaultTab: 'scripts',
+    getConsentCategories: () => ['necessary', 'measurement'],
+  });
+
+  // Remove the panel and subscriptions when this app instance is disposed.
+  import.meta.hot?.dispose(() => tools.destroy());
+}
+```
+
+For an existing app, keep its transport and initialization code. Replace the
+example's category list with the categories your consent UI actually displays,
+or omit `getConsentCategories` to use the current policy categories. Accept and
+reject leave hidden category values unchanged.
+
+Call `tools.destroy()` from your app's teardown hook. The Vite example uses HMR
+disposal; other hosts should use their own lifecycle. Destroying DevTools does
+not destroy the kernel or change consent.
+
+<Callout type="warn">
+  Keep the dynamic import behind a build-time development flag. The CLI's plain
+  JavaScript scaffold adds an unconditional `createDevTools` call when you opt in;
+  move it into your development entry point or add your bundler's guard before
+  shipping. Hiding the panel does not remove the engine from production assets.
+</Callout>
+
+## Drafts, notices, and stored records
+
+`tools.actions.setDraft({ measurement: true })` stages a selection in this
+DevTools instance. It does not change explicit choices, effective permissions,
+or script eligibility. Call `await tools.actions.save()` to confirm the displayed
+selections; check the result's `ok` field for transport failures. Replace the
+previous `actions.setConsent` call with `actions.setDraft` when migrating.
+
+If the policy changes while a draft is dirty, review the new policy before
+saving. Use `tools.actions.resetDraft()` or **Discard draft** to start from the
+current recorded choices and defaults. Edits made during an in-flight save are
+retained for the next confirmation. `tools.getState().draftFingerprint` identifies
+the choice policy under which the current draft was staged, or is `null` when
+there is no draft.
+
+`await tools.actions.dismissNotice()` uses the kernel's public notice command.
+It dismisses the current local notice without recording category consent or
+clearing privacy restrictions.
+
+To expose record clearing, pass `clearRecords: persistence.clear`, where
+`persistence` is the existing persistence handle attached to this kernel. The
+optional `tools.actions.clearRecords()` then clears through that handle, using
+its configured storage keys, and discards the panel's draft. DevTools does not
+create a second persistence instance or guess which storage keys to remove.
+
+## Presentation diagnostics
+
+Pass `getPresentation: () => presentation` with the same `ConsentPresentation`
+configuration used by your UI. The Policy panel resolves prompt and preference
+actions from those host options and the active policy. Without this getter it
+labels its output as resolved defaults. Neither view verifies the controls that
+your app actually rendered.
+
+## Inspect scripts and IAB
+
+The Scripts tab reads loaders registered with the supplied kernel. It shows
+blocked, loading, loaded, failed, and retained scripts. The separate page scan
+shows DOM resources, not proof that they loaded successfully or passed a
+consent gate.
+
+The IAB tab uses the IAB module already attached to that kernel. Vendor,
+purpose, legitimate-interest, and special-feature editing becomes available
+under an IAB policy after the module and vendor list initialize. DevTools does
+not initialize a second CMP. Toggles edit IAB values without establishing new confirmed processing authority.
+Save IAB consent records the current authority, generates the TC string and
+runs the configured save transport.

@@ -22,7 +22,7 @@ group: reference
   </Callout>
 
   <Callout type="info">
-    The script loader handles JavaScript tags and callback lifecycles. For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern. For UI components such as maps or video players, combine consent state with a component-level placeholder or a dedicated renderable integration.
+    The script loader handles JavaScript tags and callback lifecycles. For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/components/frame) pattern. For UI components such as maps or video players, combine consent state with a component-level placeholder or a dedicated renderable integration.
   </Callout>
 </section>
 
@@ -122,7 +122,7 @@ group: reference
 
   Some vendors are not just script tags. YouTube embeds, maps, calendars, and checkout widgets often need a visible component, a placeholder, or an iframe.
 
-  - For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
+  - For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/components/frame) pattern instead of loading a script just to hide an iframe.
   - For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
   - Use `Frame` for an iframe embed and a configured Script for an SDK integration.
   - Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.

@@ -151,6 +151,8 @@ describe('createOfflineTransport: kernel integration', () => {
 		expect(result.subjectId).toBe(
 			kernel.getSnapshot().subject?.subjectId ?? null
 		);
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 	});
 });

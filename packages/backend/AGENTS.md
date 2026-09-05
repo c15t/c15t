@@ -9,11 +9,7 @@ These docs ship inside the package so coding agents can read them offline. Open 
 Run the c15t backend, configure storage, and operate consent infrastructure.
 
 - [API Endpoints](./docs/self-host/api/endpoints.md): Full reference for every c15t consent backend endpoint.
-- [Caching](./docs/self-host/guides/caching.md): Add a caching layer to your self-hosted c15t backend for production performance.
 - [Database Setup](./docs/self-host/guides/database-setup.md): Configure a database adapter for your self-hosted c15t backend.
-- [Framework Integration](./docs/self-host/guides/framework-integration.md): Mount the c15t consent backend in any JavaScript framework or runtime.
-- [IAB TCF Support](./docs/self-host/guides/iab-tcf.md): Enable IAB Transparency and Consent Framework (TCF) support in your self-hosted backend.
-- [Observability](./docs/self-host/guides/observability.md): Add logging, metrics, and tracing to your self-hosted c15t backend.
 - [Quickstart](./docs/self-host/quickstart.md): Self-host the c15t consent management backend in your own infrastructure.
 
 ## Other

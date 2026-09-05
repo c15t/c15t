@@ -8,23 +8,40 @@ group: frameworks
 
 ## Usage
 
+This example uses Vite's `import.meta.env.DEV` build-time flag. For another
+bundler, use its development flag instead. For example, webpack projects can
+use a configured `process.env.NODE_ENV === 'development'` replacement;
+`process` is not a browser global.
+
 ```tsx
-import { hosted } from '@c15t/react';
-import { type ReactNode } from 'react';
-import { ConsentProvider } from 'c15t/react';
-import { DevTools } from '@c15t/dev-tools/react';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { ConsentProvider, hosted } from 'c15t/react';
+
+const DevTools =
+  import.meta.env.DEV
+    ? lazy(() =>
+        import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })),
+      )
+    : () => null;
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentProvider
-      options={{ mode: hosted({ url: 'https://your-instance.c15t.dev' }) }}
-    >
+    <ConsentProvider options={{ mode: hosted({ url: 'https://your-instance.c15t.dev' }) }}>
       {children}
-      {process.env.NODE_ENV === 'development' && <DevTools />}
+      <Suspense fallback={null}>
+        <DevTools />
+      </Suspense>
     </ConsentProvider>
   );
 }
 ```
+
+Import the adapter from `c15t/react/devtools` when you use the umbrella package, or `@c15t/react/devtools` when you install the React package directly. `@c15t/dev-tools` exports the imperative engine, not the React component.
+
+If the CLI cannot identify your bundler's development flag, it generates
+`const DevTools = false` with a setup comment. Replace `false` with your
+configured build-time development flag to enable the panel. The fallback keeps
+DevTools disabled instead of assuming browser globals or loading it in production.
 
 <import src="../../../shared/react/components/dev-tools.mdx#customization" />
 

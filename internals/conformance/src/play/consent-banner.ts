@@ -20,6 +20,11 @@ export const bannerContract: PlayFunction = async () => {
 	await body.findByTestId('consent-banner-root');
 	assertDomContract(document.body, 'consentBanner');
 	assertStableElements(document.body, 'consentBanner');
+	const title = body.getByTestId('consent-banner-title');
+	const accept = body.getByTestId('consent-banner-accept-button');
+	expect(getComputedStyle(accept).paddingBlockStart).toBe('8px');
+	expect(getComputedStyle(title).marginBlockStart).toBe('0px');
+	expect(getComputedStyle(title).marginBlockEnd).toBe('0px');
 };
 
 /**

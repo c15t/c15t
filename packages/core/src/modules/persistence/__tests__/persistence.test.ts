@@ -58,7 +58,7 @@ describe('persistence: hydration', () => {
 	test('does nothing when nothing is stored', () => {
 		const kernel = createConsentKernel({ now: NOW });
 		const handle = createPersistence({ kernel });
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		handle.dispose();
 	});
@@ -74,7 +74,9 @@ describe('persistence: hydration', () => {
 		createPersistence({ kernel });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe(
 			pre.getSnapshot().subject?.subjectId ?? null
 		);
@@ -111,7 +113,7 @@ describe('persistence: hydration', () => {
 		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel, skipHydration: true });
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 });
 
@@ -268,7 +270,7 @@ describe('persistence: clear', () => {
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.noticeDismissal).toBeNull();
 		expect(snap.subject).toBeNull();
-		expect(snap.hasConsented).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
 		expect(snap.promptRequirement).toEqual({
 			kind: 'notice',
 			reason: 'missing',
@@ -297,7 +299,7 @@ describe('persistence: clear', () => {
 		flushWrites();
 		expect(localStorage.length).toBe(0);
 		expect(document.cookie).toBe('');
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 });
 

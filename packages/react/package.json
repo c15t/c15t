@@ -209,6 +209,11 @@
 			"types": "./dist-types/utils/index.d.ts",
 			"import": "./dist/utils/index.js",
 			"default": "./dist/utils/index.js"
+		},
+		"./devtools": {
+			"types": "./dist-types/devtools.d.ts",
+			"import": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
 		}
 	},
 	"publishConfig": {
@@ -229,6 +234,7 @@
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",

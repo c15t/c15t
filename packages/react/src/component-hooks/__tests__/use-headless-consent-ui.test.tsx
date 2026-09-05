@@ -126,7 +126,7 @@ describe('useHeadlessConsentUI', () => {
 			expect(result.current.kernel.getSnapshot().activeUI).toBe('dialog');
 			expect(result.current.headless.dialog.isVisible).toBe(true);
 		});
-		expect(result.current.kernel.getSnapshot().hasConsented).toBe(false);
+		expect(result.current.kernel.getSnapshot().explicitChoice).toBeNull();
 	});
 
 	test('accept saves all consents and closes the UI', async () => {

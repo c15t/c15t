@@ -109,6 +109,11 @@
 			"types": "./dist-types/rsc/index.d.ts",
 			"import": "./dist/rsc/index.js",
 			"default": "./dist/rsc/index.js"
+		},
+		"./devtools": {
+			"types": "./dist-types/devtools.d.ts",
+			"import": "./dist/devtools.js",
+			"default": "./dist/devtools.js"
 		}
 	},
 	"publishConfig": {

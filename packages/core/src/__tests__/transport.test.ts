@@ -246,7 +246,9 @@ describe('kernel transport: no transport = no-op commands', () => {
 
 			expect(result.ok).toBe(true);
 			expect(fetchSpy).not.toHaveBeenCalled();
-			expect(kernel.getSnapshot().hasConsented).toBe(true);
+			expect(
+				Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+			).not.toHaveLength(0);
 		} finally {
 			vi.unstubAllGlobals();
 		}
@@ -323,7 +325,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		const snap = kernel.getSnapshot();
 		// Booleans without receipts cannot be an explicit choice.
 		expect(snap.explicitChoice).toBeNull();
-		expect(snap.hasConsented).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
 		expect(snap.effectivePermissions.marketing).toBe(false);
 
 		// Missing receipts cannot preselect a later explicit confirmation.
@@ -814,7 +816,9 @@ describe('kernel transport: save flows consents to backend', () => {
 		const pending = kernel.commands.save('all');
 
 		// The optimistic commit is synchronous — UI can flip and paint…
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 		// …while the network call is deferred a macrotask so it never
 		// contends with the commit/paint task.
@@ -841,7 +845,9 @@ describe('kernel transport: save flows consents to backend', () => {
 		expect(result.ok).toBe(false);
 		expect(errors).toEqual([boom]);
 		// Snapshot mutation still happened (local optimistic commit).
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 	});
 });
 

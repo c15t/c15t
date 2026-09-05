@@ -248,6 +248,12 @@ describe('ConsentWidget.PolicyActions', () => {
 	test('renders stock widget buttons with default translations when renderAction is omitted', async () => {
 		await renderDefaultPolicyActions();
 
+		for (const action of ['accept', 'reject', 'save']) {
+			expect(
+				document.querySelector(`[data-action="${action}"]`)
+			).not.toBeNull();
+		}
+
 		expect(
 			document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'

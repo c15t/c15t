@@ -59,7 +59,9 @@ describe('applyPatch', () => {
 		const next = applyPatch(initial, { explicitChoice: records.choice });
 		expect(next.effectivePermissions.marketing).toBe(true);
 		expect(next.effectivePermissions).toBe(next.effectivePermissions);
-		expect(next.hasConsented).toBe(true);
+		expect(Object.keys(next.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(next.promptRequirement).toEqual({ kind: 'none' });
 		expect(next.activeUI).toBe('none');
 		expect(snapshotChanged(initial, next)).toBe(true);

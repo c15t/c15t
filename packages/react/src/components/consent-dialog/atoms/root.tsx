@@ -281,6 +281,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 							{...themedStyle}
 							className={themedStyle.className}
 							aria-labelledby="consent-dialog-title"
+							aria-describedby="consent-dialog-description"
 							aria-modal={trapFocus ? 'true' : undefined}
 							tabIndex={-1}
 							dir={textDirection}

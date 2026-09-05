@@ -33,7 +33,7 @@ when their owner unmounts. Framework providers manage that lifecycle for you.
 | v2 pattern | v3 replacement |
 | --- | --- |
 | Runtime factory and Zustand store | `createConsentKernel`, `getSnapshot`, `subscribe` and browser modules |
-| `hasConsented` as gating or prompt authority | `effectivePermissions` for processing, `promptRequirement` for interaction |
+| `hasConsented` (removed) | `effectivePermissions` for processing, `promptRequirement` for interaction, `explicitChoice` for receipt presence |
 | One boolean map and confirmation time | `explicitChoice` with latest receipt per confirmed category |
 | `PolicyConfig` and `ResolvedPolicy` | `PolicyRule`, `ResolvedPolicyRule` and explicit `resolution` outcome |
 | `policyPacks`, nested `consent`, policy-owned `ui` | `policyRules`, top-level behavior fields and host `presentation` |
@@ -43,6 +43,7 @@ when their owner unmounts. Framework providers manage that lifecycle for you.
 | `initialConsents` and `set.consent()` | `initialDraft` and `set.draft()` for editable values only |
 | Snapshot `consents` and `subjectId` | `effectivePermissions` and `subject?.subjectId` |
 | `policyDecision` and `policyProvisional` | Versioned `resolution` and `policyPending` |
+| `@c15t/dev-tools/react` | Framework `/devtools` adapters; `@c15t/dev-tools` is the imperative engine |
 | Legacy consent storage readers/writer | `readStoredRecords` and `readStoredRecordsFromCookieHeader`; persistence owns writes |
 | Consent-dependent preferences trigger | Persistent preferences and opt-out access |
 | Specialized Maps and YouTube components | `Frame` around an iframe, or consent-aware scripts |
@@ -323,3 +324,17 @@ Recommendation. Preserve that distinction when reviewing the
 [preset sources and assumptions](/docs/frameworks/react/concepts/policy-packs#policy-rules).
 No new country preset is implied by this release. c15t supplies controls and
 records; it does not establish legal compliance for your deployment.
+
+## Load DevTools through the framework adapter
+
+Use `c15t/react/devtools`, `c15t/next/devtools`, `c15t/vue/devtools` or
+`c15t/svelte/devtools` with the umbrella package. Scoped packages expose the
+same `/devtools` subpath. The adapter reads the existing provider kernel.
+Keep its dynamic import behind your bundler's development flag so the engine
+stays out of ordinary production routes.
+
+For direct kernel inspection, use `createDevTools({ kernel })` from
+`@c15t/dev-tools` and destroy the panel during application cleanup. See the
+[JavaScript guide](/docs/frameworks/javascript/dev-tools) or your framework's
+DevTools page for complete examples. DevTools choices follow the same receipt,
+policy scope, GPC and notice rules as the rest of the application.

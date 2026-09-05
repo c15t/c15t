@@ -32,6 +32,7 @@ const renderFrame = (granted: boolean) => ({
 						value: granted,
 					},
 				},
+				version: 3,
 			},
 			now: snapshot.evaluatedAt,
 		});

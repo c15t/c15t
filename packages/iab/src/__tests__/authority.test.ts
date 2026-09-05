@@ -336,7 +336,9 @@ test('failed transport retains authority and replays the original TC and clock',
 	const kernel = makeKernel({ save: send });
 	const addon = createAddon(kernel);
 	addon.acceptAll();
-	const save = addon.save();
+	const save = expect(addon.save()).rejects.toThrow(
+		'Unable to save IAB preferences.'
+	);
 	await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
 	await save;
 	const authority = kernel.getSnapshot().iab?.authority;

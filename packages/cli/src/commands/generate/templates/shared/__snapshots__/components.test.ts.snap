@@ -1,0 +1,86 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`consent component template > generates a React v3 provider with its framework DevTools adapter 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import {
+	ConsentDialog,
+	ConsentProvider,
+	ConsentBanner,
+	offline,
+} from 'c15t/react';
+import { lazy, Suspense } from 'react';
+
+const DevTools = import.meta.env.DEV
+	? lazy(() => import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
+/**
+ * Consent manager provider.
+ * @see https://c15t.com/docs/frameworks/react/quickstart
+ */
+export function ConsentManager({ children }: { children: ReactNode }) {
+	return (
+		<ConsentProvider options={{
+			mode: offline(),
+			// Add your scripts here:
+				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+		}}>
+			<ConsentBanner />
+			<ConsentDialog />
+			<Suspense fallback={null}><DevTools /></Suspense>
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;
+
+exports[`consent component template > generates the canonical Next.js v3 SSR boundary 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import {
+	ConsentDialog,
+	ConsentProvider,
+	ConsentBanner,
+	hosted,
+	type KernelConfig,
+} from 'c15t/next';
+import { lazy, Suspense } from 'react';
+
+const DevTools = process.env.NODE_ENV !== 'production'
+	? lazy(() => import('c15t/next/devtools').then(({ DevTools }) => ({ default: DevTools })))
+	: () => null;
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+/**
+ * Client-side consent manager provider.
+ * @see https://c15t.com/docs/frameworks/next/quickstart
+ */
+export default function ConsentManagerClient({
+	children,
+	config,
+}: {
+	children: ReactNode;
+	config: KernelConfig;
+}) {
+	return (
+		<ConsentProvider options={{
+			mode: hosted({ url: '/api/c15t' }),
+				prefetch: config,
+			scripts: [
+					googleTagManager({ id: 'GTM-XXXXXX' }),
+				],
+		}}>
+			<ConsentBanner />
+			<ConsentDialog />
+			<Suspense fallback={null}><DevTools /></Suspense>
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;

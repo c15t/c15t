@@ -72,13 +72,13 @@
 		switch (action) {
 			case 'accept-consent':
 				await state.saveConsents('all');
-				break;
+				return;
 			case 'reject-consent':
 				await state.saveConsents('necessary');
-				break;
+				return;
 			case 'custom-consent':
 				await state.saveConsents('custom');
-				break;
+				return;
 			case 'dismiss-notice':
 				await state.dismissNotice();
 				break;

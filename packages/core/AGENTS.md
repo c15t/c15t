@@ -11,9 +11,9 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Consent Categories](./docs/frameworks/javascript/concepts/consent-categories.md): How c15t organizes tracking technologies into five consent categories.
 - [Consent Models](./docs/frameworks/javascript/concepts/consent-models.md): How c15t determines consent behavior based on legal jurisdiction.
 - [Cookie Management](./docs/frameworks/javascript/concepts/cookie-management.md): How c15t manages cookies through script, iframe, and network gating.
-- [Glossary](./docs/frameworks/javascript/concepts/glossary.md): Key terms used throughout the c15t documentation.
 - [Initialization Flow](./docs/frameworks/javascript/concepts/initialization-flow.md): What happens from runtime creation to first state update — the full consent lifecycle.
 - [Policy Packs](./docs/frameworks/javascript/concepts/policy-packs.md): How c15t resolves regional consent policies and what a policy pack controls.
+- [DevTools](./docs/frameworks/javascript/dev-tools.md): Inspect a JavaScript consent kernel with the imperative DevTools API.
 - [IAB TCF 2.3](./docs/frameworks/javascript/iab/overview.md): Use confirmed IAB TCF 2.3 authority for programmatic advertising gates.
 - [Optimization](./docs/frameworks/javascript/optimization.md): Improve c15t startup performance with prefetching and network tuning.
 
@@ -70,7 +70,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Policy Packs](./docs/shared/concepts/policy-packs.md): Reference page for policy packs.
 - [Consent Banner](./docs/shared/react/components/consent-banner.md): Reference page for consent banner.
 - [Consent Dialog](./docs/shared/react/components/consent-dialog.md): Reference page for consent dialog.
-- [Consent Dialog Link](./docs/shared/react/components/consent-dialog-link.md): Reference page for consent dialog link.
 - [Consent Dialog Trigger](./docs/shared/react/components/consent-dialog-trigger.md): Reference page for consent dialog trigger.
 - [Consent Manager Provider](./docs/shared/react/components/consent-manager-provider.md): Reference page for consent manager provider.
 - [Consent Widget](./docs/shared/react/components/consent-widget.md): Reference page for consent widget.
@@ -79,7 +78,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Building Headless Components](./docs/shared/react/guides/building-headless-components.md): Reference page for building headless components.
 - [Callbacks](./docs/shared/react/guides/callbacks.md): Reference page for callbacks.
 - [Headless](./docs/shared/react/guides/headless.md): Reference page for headless.
-- [Iframe Blocking](./docs/shared/react/guides/iframe-blocking.md): Reference page for iframe blocking.
 - [Internationalization](./docs/shared/react/guides/internationalization.md): Reference page for internationalization.
 - [Network Blocker](./docs/shared/react/guides/network-blocker.md): Reference page for network blocker.
 - [Optimization](./docs/shared/react/guides/optimization.md): Reference page for optimization.
@@ -90,16 +88,12 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Location Info](./docs/shared/react/hooks/use-consent-manager/location-info.md): Reference page for location info.
 - [Overview](./docs/shared/react/hooks/use-consent-manager/overview.md): Reference page for overview.
 - [Setting Consent](./docs/shared/react/hooks/use-consent-manager/setting-consent.md): Reference page for setting consent.
-- [Use Draggable](./docs/shared/react/hooks/use-draggable.md): Reference page for use draggable.
 - [Use Focus Trap](./docs/shared/react/hooks/use-focus-trap.md): Reference page for use focus trap.
-- [Use Reduced Motion](./docs/shared/react/hooks/use-reduced-motion.md): Reference page for use reduced motion.
 - [Use SSR Status](./docs/shared/react/hooks/use-ssr-status.md): Reference page for use ssr status.
-- [Use Text Direction](./docs/shared/react/hooks/use-text-direction.md): Reference page for use text direction.
 - [Use Translations](./docs/shared/react/hooks/use-translations.md): Reference page for use translations.
 - [Consent Banner](./docs/shared/react/iab/consent-banner.md): Reference page for consent banner.
 - [Consent Dialog](./docs/shared/react/iab/consent-dialog.md): Reference page for consent dialog.
 - [Overview](./docs/shared/react/iab/overview.md): Reference page for overview.
-- [Use GVL Data](./docs/shared/react/iab/use-gvl-data.md): Reference page for use gvl data.
 - [Classnames](./docs/shared/react/styling/classnames.md): Reference page for classnames.
 - [Color Scheme](./docs/shared/react/styling/color-scheme.md): Reference page for color scheme.
 - [CSS Variables](./docs/shared/react/styling/css-variables.md): Reference page for css variables.
@@ -107,7 +101,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Slots](./docs/shared/react/styling/slots.md): Reference page for component slots.
 - [Stylesheet Entrypoint](./docs/shared/react/styling/stylesheet-entrypoint.md): Reference page for stylesheet entrypoint.
 - [Tailwind](./docs/shared/react/styling/tailwind.md): Reference page for tailwind.
-- [Tokens](./docs/shared/react/styling/tokens.md): Reference page for tokens.
 - [Troubleshooting](./docs/shared/troubleshooting.md): Reference page for troubleshooting.
 
 ## Other

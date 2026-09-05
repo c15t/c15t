@@ -115,7 +115,9 @@ describe('opt-in evaluation on shared records', () => {
 			identityProvider: 'fixture-idp',
 			subjectId: 'subject-1025',
 		});
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 	});
 
 	test('an expired legacy grant is not effective and prompts with reason expired', () => {
@@ -125,7 +127,9 @@ describe('opt-in evaluation on shared records', () => {
 			kind: 'choice',
 			reason: 'expired',
 		});
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(snap.explicitChoice?.categories.marketing?.confirmedAt).toBe(
 			POLICY_EXPIRED
 		);

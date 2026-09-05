@@ -3,6 +3,9 @@
  * Produces the Provider+Banner+Dialog component used by React, Next.js Pages, and App Dir client
  */
 
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
+import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import {
 	generateScriptsCommentPlaceholder,
 	generateScriptsConfig,
@@ -10,8 +13,11 @@ import {
 } from './scripts';
 
 interface GenerateConsentComponentOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	/** Entry point to import from: 'c15t/react' or 'c15t/next' */
 	importSource: string;
+	/** Framework adapter entry point. Defaults to the provider's devtools subpath. */
+	devToolsImportSource?: string;
 	/** Pre-computed inner options text (mode, backendURL, etc.) */
 	optionsText: string;
 	/** Selected scripts to include */
@@ -108,6 +114,8 @@ const buildDocComment = function buildDocComment({
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const generateConsentComponent = function generateConsentComponent({
 	importSource,
+	developmentEnvironment,
+	devToolsImportSource = `${importSource}/devtools`,
 	optionsText,
 	selectedScripts = [],
 	initialDataProp = false,
@@ -128,7 +136,7 @@ export const generateConsentComponent = function generateConsentComponent({
 
 	// Build the full options object
 	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tprefetch: config,' : '';
-	const themeLine = includeTheme ? '\n\t\t\t\ttheme,' : '';
+	const themeLine = includeTheme ? '\n\t\t\t\ttheme,\n\t\t\t\tcomponents,' : '';
 	const overridesLine = '';
 
 	const fullOptionsText = `{
@@ -177,9 +185,11 @@ export const generateConsentComponent = function generateConsentComponent({
 	// Build directive
 	const directive = useClientDirective ? "'use client';\n\n" : '';
 	const devToolsImport = enableDevTools
-		? "import { DevTools } from '@c15t/dev-tools/react';\n"
+		? generateDevToolsImport(devToolsImportSource, developmentEnvironment)
 		: '';
-	const themeImport = includeTheme ? "import { theme } from './theme';\n" : '';
+	const themeImport = includeTheme
+		? "import { components, theme } from './theme';\n"
+		: '';
 
 	// Build export
 	const componentName = defaultExport
@@ -215,7 +225,7 @@ ${exportPrefix} ${componentName}(${propsDestructure}) {
 		<ConsentProvider${providerProps}>
 			<ConsentBanner />
 			<ConsentDialog />
-			${enableDevTools ? "<DevTools disabled={process.env.NODE_ENV === 'production'} />" : ''}
+			${enableDevTools ? DEVTOOLS_COMPONENT : ''}
 			{children}
 		</ConsentProvider>
 	);

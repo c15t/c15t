@@ -258,9 +258,6 @@ export interface ConsentSnapshot {
 	/** Validated policy projection the evaluator consumed. Devtools and gate-time re-evaluation only. */
 	readonly evaluationPolicy: Readonly<EvaluationPolicy>;
 
-	/** Read-only diagnostic for devtools: whether an explicit receipt exists. Never gates UI or saves. */
-	readonly hasConsented: boolean;
-
 	// -- Context -------------------------------------------------------------
 	readonly overrides: Readonly<KernelOverrides>;
 	readonly user: Readonly<KernelUser> | null;
@@ -640,9 +637,21 @@ export interface ConsentKernel {
 	 */
 	readonly commands: {
 		init: () => Promise<InitResult>;
+		/**
+		 * Apply and persist consent. All/none only change the supplied categories,
+		 * falling back to the current policy scope.
+		 * Hidden values are preserved; partial-policy bulk actions are recorded as custom.
+		 * @param input - Explicit values, all/none, or omitted to save current choices.
+		 * @param context - Displayed categories and optional addon confirmation metadata.
+		 * @returns SaveResult with ok indicating transport acceptance. Local changes
+		 * remain applied on failure. Transport exceptions resolve with ok: false
+		 * and queue the payload for retry.
+		 */
 		save: (
 			input?: SaveInput,
 			context?: {
+				/** Narrow all/none or omitted input to these displayed policy categories. */
+				categories?: readonly AllConsentNames[];
 				/** Addon confirmation time captured before asynchronous encoding. Never for hydration or renewal. */
 				actionAt?: number;
 				/** Validated addon authority confirmed by this action.
