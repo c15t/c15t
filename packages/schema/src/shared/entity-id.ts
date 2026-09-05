@@ -30,7 +30,12 @@ export type EntityKind = keyof typeof PREFIXES;
 
 // Base58 without the ambiguous glyphs (0, O, I, l), so an id can be read
 // aloud or transcribed without loss.
-const b58 = baseX('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
+// The fixed alphabet is valid; construction only allocates codec-local state.
+// Policy-only consumers can discard it along with the unused ID functions.
+// oxlint-disable-next-line no-inline-comments -- Bundlers require this annotation at the call.
+const b58 = /* @__PURE__ */ baseX(
+	'123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+);
 
 const EPOCH_TIMESTAMP = 1_700_000_000_000;
 const ID_BYTE_LENGTH = 20;
