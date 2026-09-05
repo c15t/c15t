@@ -11,10 +11,13 @@ const urls: Record<string, string> = {
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
 	vue: process.env.VUE_STORYBOOK_URL ?? 'http://127.0.0.1:6008',
 };
+// Only the frameworks that ship a DevTools panel. `PARITY_FRAMEWORKS` also
+// names Astro, whose Storybook renders the server banner and the dialog
+// islands — there is no DevTools surface there to compare.
 const frameworks = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
 	.split(',')
 	.map((value) => value.trim())
-	.filter(Boolean)
+	.filter((value) => value in urls)
 	.sort((left, right) => Number(right === 'react') - Number(left === 'react'));
 const tabs = [
 	'Consents',
