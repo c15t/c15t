@@ -2,9 +2,11 @@
  * The package's lazy IAB factory.
  *
  * `<ConsentManagerProvider>` is imported by every app, IAB or not, so it
- * cannot import `@c15t/iab` statically — that would put ~15 KB gzipped of
- * TCF code in the layout chunk of apps that never turn IAB on. The runtime
- * calls `createIAB` synchronously, so the deferral happens here:
+ * cannot import `@c15t/iab` statically — that put the CMP API and the
+ * `__tcfapi` bridge in the layout chunk of apps that never turn IAB on
+ * (3.3 KB gzipped on the SvelteKit bench, with the TC-string encoder
+ * behind its own dynamic import inside `@c15t/iab`). The runtime calls
+ * `createIAB` synchronously, so the deferral happens here:
  * {@link lazyCreateIAB} hands back a handle immediately and forwards to
  * the real one once the dynamic import resolves.
  *
