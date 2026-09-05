@@ -175,13 +175,19 @@ const createCompatState = function createCompatState(
 		},
 		get consentCategories() {
 			const configured = options.getConsentCategories();
-			return configured.length > 0
-				? configured
-				: Array.from(
-						getSnapshotLocal().policyCategories.length > 0
-							? getSnapshotLocal().policyCategories
-							: allConsentNames
-					);
+			const { policyCategories } = getSnapshotLocal();
+			const available =
+				policyCategories.length > 0 ? policyCategories : allConsentNames;
+			if (configured.length === 0) {
+				return Array.from(available);
+			}
+			const allowed = new Set(available);
+			return Array.from(
+				new Set<AllConsentNames>([
+					'necessary',
+					...configured.filter((category) => allowed.has(category)),
+				])
+			);
 		},
 		get consentInfo() {
 			return getSnapshotLocal().hasConsented ? { type: 'v3' as const } : null;

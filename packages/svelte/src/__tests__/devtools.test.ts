@@ -12,17 +12,35 @@ const mountedDevTools = (): NodeListOf<HTMLElement> =>
 	document.querySelectorAll('[data-c15t-dev-tools]');
 
 describe('@c15t/svelte/devtools', () => {
+	test('intersects configured categories with the active policy in the inspector', async () => {
+		const result = render(DevToolsFixture, {
+			categories: ['necessary', 'marketing', 'measurement'],
+			policyCategories: ['necessary', 'marketing'],
+		});
+		try {
+			await vi.waitFor(() =>
+				expect(
+					document.querySelector('[data-focus-key="consent:marketing"]')
+				).not.toBeNull()
+			);
+			expect(
+				document.querySelector('[data-focus-key="consent:measurement"]')
+			).toBeNull();
+		} finally {
+			result.unmount();
+		}
+	});
 	test.each(['getter', 'provider'] as const)(
 		'updates displayed categories when the %s scope changes',
 		async (source) => {
 			const first = ['necessary', 'marketing'] as const;
 			const second = ['necessary', 'measurement'] as const;
-			const result = render(
-				DevToolsFixture,
-				source === 'getter'
+			const result = render(DevToolsFixture, {
+				policyCategories: ['necessary', 'marketing', 'measurement'],
+				...(source === 'getter'
 					? { getConsentCategories: () => first }
-					: { categories: [...first] }
-			);
+					: { categories: [...first] }),
+			});
 			await vi.waitFor(() =>
 				expect(
 					document.querySelector('[data-focus-key="consent:marketing"]')
