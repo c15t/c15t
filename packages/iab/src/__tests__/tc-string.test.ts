@@ -12,6 +12,37 @@ import { MINIMAL_TC_STRING } from './fixtures/tc-strings';
 import { createMockGVL, createMockTCFConsentAllGranted } from './test-setup';
 
 describe('@c15t/iab TC string encode/decode', () => {
+	test.each([undefined, false])(
+		'controls TC storage with persistence=%s',
+		async (persistence) => {
+			const save = vi.fn().mockResolvedValue({ ok: true });
+			const kernel = createConsentKernel({ transport: { save } });
+			const iab = createIAB({
+				cmpId: 28,
+				gvl: createMockGVL(),
+				kernel,
+				persistence,
+			});
+			localStorage.setItem('euconsent-v2', 'existing');
+			document.cookie = 'euconsent-v2=existing; path=/';
+			try {
+				iab.acceptAll();
+				await iab.save();
+				const tcString = kernel.getSnapshot().iab?.tcString;
+				expect(tcString).toBeTruthy();
+				expect(save).toHaveBeenCalledWith(
+					expect.objectContaining({ tcString })
+				);
+				const stored = persistence === false ? 'existing' : tcString;
+				expect(localStorage.getItem('euconsent-v2')).toBe(stored);
+				expect(document.cookie).toContain(`euconsent-v2=${stored}`);
+			} finally {
+				iab.dispose();
+				localStorage.removeItem('euconsent-v2');
+				document.cookie = 'euconsent-v2=; Max-Age=0; path=/';
+			}
+		}
+	);
 	test.each(['acceptAll', 'rejectAll'] as const)(
 		'saves %s with custom vendors without adding them to TCF vectors',
 		async (action) => {

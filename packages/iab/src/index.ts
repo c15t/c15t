@@ -58,6 +58,10 @@ export interface CreateIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific. Default: true. */
 	isServiceSpecific?: boolean;
+	/** Store saved TC strings in cookies and localStorage. Default: true.
+	 * Set false for an in-memory playground; the kernel save transport still runs.
+	 */
+	persistence?: boolean;
 	/**
 	 * Pre-loaded GVL. When supplied, skips the network fetch. Accepts
 	 * `null` to explicitly disable IAB mode (non-IAB region).
@@ -430,7 +434,9 @@ export const createIAB = function createIAB(
 		async save() {
 			const consentData = buildTCFConsentData();
 			const tcString = await generateTC();
-			cmpApi?.saveToStorage(tcString);
+			if (options.persistence !== false) {
+				cmpApi?.saveToStorage(tcString);
+			}
 			cmpApi?.updateConsent(tcString, consentData);
 			// Map purposes → c15t consents one more time to make sure
 			// the final save payload reflects what we just generated.

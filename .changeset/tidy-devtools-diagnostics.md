@@ -18,3 +18,6 @@ hidden panel elements. Allow Escape to close floating panels in custom container
 
 Exclude custom vendor IDs from TCF consent, legitimate-interest, and disclosure
 vectors while retaining their choices in kernel state.
+
+Allow IAB playgrounds to disable TC-string cookie and localStorage writes with
+`persistence: false`, without disabling the configured save transport.
