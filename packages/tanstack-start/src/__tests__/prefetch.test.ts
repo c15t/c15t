@@ -147,6 +147,36 @@ describe('prefetchInitialConsent: degradation', () => {
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 
+	test('createConsentConfigHandler with the proxied route prefix falls back silently', async () => {
+		// With `createConsentServerRoute({ proxy: true })` the browser gets
+		// `backendURL="/api/c15t"`. Handing that same value to the server
+		// function must not turn into a self-fetch; it degrades to the
+		// cookie-and-headers config without throwing or logging.
+		const fetchSpy = createManifestFetch();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			const handler = createConsentConfigHandler({
+				backendURL: '/api/c15t',
+				cache: createManifestCache(),
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				request: createRequest({
+					cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
+				}),
+			});
+			const config = await handler();
+
+			expect(fetchSpy).not.toHaveBeenCalled();
+			expect(config.initialHasConsented).toBe(true);
+			expect(config.initialPolicy).toBeUndefined();
+			expect(warn).not.toHaveBeenCalled();
+			expect(error).not.toHaveBeenCalled();
+		} finally {
+			warn.mockRestore();
+			error.mockRestore();
+		}
+	});
+
 	test('returns the baseline config when the manifest fetch fails', async () => {
 		const fetchSpy = vi
 			.fn()

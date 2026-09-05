@@ -19,8 +19,11 @@
  *   the request's geo, language, and GPC signal. `ConsentBoundary` points
  *   `initURL` here by default; a client language switch re-hits it.
  *
- * `POST /subjects` is deliberately not proxied: consent saves go straight
- * to `backendURL`, which mirrors the Next.js and Nuxt adapters.
+ * By default `POST /subjects` is not proxied: consent saves go straight to
+ * `backendURL`, which mirrors the Next.js and Nuxt adapters. Pass
+ * `proxy: true` to forward the remaining consent paths through the same
+ * route so `ConsentBoundary` can use `backendURL="/api/c15t"`; see
+ * {@link ConsentServerRouteOptions.proxy}.
  */
 
 import {
@@ -37,7 +40,11 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 
+import { proxyConsentRequest, resolveProxyOptions } from './libs/proxy';
+import type { ConsentProxyOptions } from './libs/proxy';
 import { resolveRequestURL } from './libs/request-url';
+
+export type { ConsentProxyOptions } from './libs/proxy';
 
 const INIT_CACHE_CONTROL = 'private, no-store';
 
@@ -77,6 +84,41 @@ export interface ConsentServerRouteOptions {
 	 * shared with `prefetchInitialConsent()`.
 	 */
 	cache?: ManifestCache;
+
+	/**
+	 * Forward consent traffic to `backendURL` through this route, so the
+	 * browser only ever talks to the app's own origin and `ConsentBoundary`
+	 * can take `backendURL="/api/c15t"`, the way a Next.js app uses a
+	 * `next.config` rewrite.
+	 *
+	 * When enabled the handlers gain `POST`, `PATCH`, `PUT`, `DELETE`, and
+	 * `OPTIONS`, and `GET` falls through to the proxy for every path other
+	 * than `manifest` and `init`, which stay resolved in-process. Only an
+	 * allowlist of paths is forwarded (`subjects`, `subjects/:id`, `init`,
+	 * `manifest`, `health`, `status`, plus {@link ConsentProxyOptions.paths});
+	 * anything else is a 404, so the route is never an open proxy.
+	 *
+	 * The proxy forwards the browser's identity headers (`user-agent`,
+	 * `accept-language`, `cookie`, `origin`, `referer`, `sec-gpc`, the geo
+	 * headers) and the real client IP in `x-forwarded-for`, and adds
+	 * `x-forwarded-host`, `x-forwarded-proto`, the c15t version header, and
+	 * `x-c15t-proxy: @c15t/tanstack-start`. The hosted backend sits behind
+	 * Vercel Firewall or Cloudflare, and a bare server-to-server fetch (server
+	 * TLS fingerprint, no user agent, one egress IP for every visitor) scores
+	 * as a bot. Forwarding those headers gives the WAF the same signals a
+	 * direct browser request would carry, and `x-c15t-proxy` plus the version
+	 * header give the platform a stable key for a firewall bypass rule.
+	 *
+	 * Operational note: Vercel Attack Challenge Mode and Cloudflare Super Bot
+	 * Fight Mode still block the proxied `POST /subjects` unless the consent
+	 * paths are exempted, because a server cannot solve a browser challenge.
+	 *
+	 * Server-side `prefetchInitialConsent` must still receive the absolute
+	 * backend URL: its self-route guard skips a relative `/api/c15t`.
+	 *
+	 * @defaultValue false
+	 */
+	proxy?: boolean | ConsentProxyOptions;
 }
 
 /**
@@ -97,7 +139,8 @@ export type ConsentRouteHandler = (
 /** Handlers returned by {@link createConsentServerRoute}. */
 export interface ConsentServerRouteHandlers {
 	/**
-	 * Splat handler: serves `manifest` and `init` under one file route.
+	 * Splat handler: serves `manifest` and `init` under one file route. With
+	 * `proxy` enabled, every other allowlisted path is forwarded upstream.
 	 */
 	GET: ConsentRouteHandler;
 	/** Manifest passthrough for a dedicated `/api/c15t/manifest` route. */
@@ -105,6 +148,33 @@ export interface ConsentServerRouteHandlers {
 	/** Init resolver for a dedicated `/api/c15t/init` route. */
 	initGET: ConsentRouteHandler;
 }
+
+/**
+ * Handlers returned by {@link createConsentServerRoute} when `proxy` is
+ * enabled: the in-process handlers plus one proxy handler per write method.
+ */
+export interface ConsentProxyRouteHandlers extends ConsentServerRouteHandlers {
+	POST: ConsentRouteHandler;
+	PATCH: ConsentRouteHandler;
+	PUT: ConsentRouteHandler;
+	DELETE: ConsentRouteHandler;
+	OPTIONS: ConsentRouteHandler;
+	/**
+	 * The bare proxy handler, for apps that mount it under another file
+	 * route. Applies the same path allowlist and header shaping.
+	 */
+	proxyHandler: ConsentRouteHandler;
+}
+
+/**
+ * Picks the handler shape from the options: the proxy handlers when
+ * `proxy` is set to anything truthy, the plain handlers otherwise.
+ */
+export type ConsentServerRouteHandlersFor<
+	Options extends ConsentServerRouteOptions,
+> = Options extends { proxy: true | ConsentProxyOptions }
+	? ConsentProxyRouteHandlers
+	: ConsentServerRouteHandlers;
 
 type EnvRecord = Record<string, string | undefined>;
 
@@ -123,18 +193,10 @@ const getEnv = function getEnv(name: string): string | undefined {
 	return metaEnv?.[name] || undefined;
 };
 
-const resolveSourceURL = function resolveSourceURL(
+const resolveBackendURL = function resolveBackendURL(
 	request: Request,
 	options: ConsentServerRouteOptions
 ): string {
-	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
-	if (manifestURL) {
-		const resolved = resolveRequestURL(manifestURL, request);
-		if (!resolved) {
-			throw new Error('@c15t/tanstack-start/api: invalid manifestURL.');
-		}
-		return resolved;
-	}
 	const backendURL =
 		options.backendURL ??
 		getEnv('C15T_BACKEND_URL') ??
@@ -148,7 +210,24 @@ const resolveSourceURL = function resolveSourceURL(
 	if (!resolved) {
 		throw new Error('@c15t/tanstack-start/api: invalid backendURL.');
 	}
-	return resolveManifestSourceURL({ backendURL: resolved });
+	return resolved;
+};
+
+const resolveSourceURL = function resolveSourceURL(
+	request: Request,
+	options: ConsentServerRouteOptions
+): string {
+	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
+	if (manifestURL) {
+		const resolved = resolveRequestURL(manifestURL, request);
+		if (!resolved) {
+			throw new Error('@c15t/tanstack-start/api: invalid manifestURL.');
+		}
+		return resolved;
+	}
+	return resolveManifestSourceURL({
+		backendURL: resolveBackendURL(request, options),
+	});
 };
 
 const readLanguageQuery = function readLanguageQuery(
@@ -191,6 +270,11 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
 	return (await response.json()) as GlobalVendorList;
 };
 
+/**
+ * The splat below the route prefix. Prefers the router's `_splat` param;
+ * without one (tests, custom mounts) it takes the last path segment, which
+ * is enough for `manifest` and `init`.
+ */
 const readSplat = function readSplat(
 	context: ConsentRouteHandlerContext
 ): string {
@@ -205,28 +289,32 @@ const readSplat = function readSplat(
 /**
  * Creates the same-origin consent route handlers.
  *
- * @param options - Backend location, fetch, GVL, and cache overrides.
+ * @param options - Backend location, fetch, GVL, cache, and proxy options.
  * @returns Handlers for `createFileRoute('/api/c15t/$')({ server: { handlers } })`.
+ * With `proxy` off the set is `GET`, `manifestGET`, and `initGET`; with it
+ * on, `POST`, `PATCH`, `PUT`, `DELETE`, `OPTIONS`, and `proxyHandler` join.
  * @example
  * ```ts
  * export const Route = createFileRoute('/api/c15t/$')({
  *   server: {
  *     handlers: createConsentServerRoute({
  *       backendURL: 'https://consent.example.com',
+ *       proxy: true, // then <ConsentBoundary backendURL="/api/c15t" />
  *     }),
  *   },
  * });
  * ```
  */
-export const createConsentServerRoute = function createConsentServerRoute(
-	options: ConsentServerRouteOptions = {}
-): ConsentServerRouteHandlers {
+export const createConsentServerRoute = function createConsentServerRoute<
+	Options extends ConsentServerRouteOptions = ConsentServerRouteOptions,
+>(options?: Options): ConsentServerRouteHandlersFor<Options> {
+	const resolved: ConsentServerRouteOptions = options ?? {};
 	const manifestGET: ConsentRouteHandler = async ({ request }) => {
 		const cached = await fetchCachedManifest({
-			cache: options.cache,
-			fetch: options.fetch,
+			cache: resolved.cache,
+			fetch: resolved.fetch,
 			query: readLanguageQuery(request),
-			sourceURL: resolveSourceURL(request, options),
+			sourceURL: resolveSourceURL(request, resolved),
 		});
 
 		const headers = new Headers({ 'content-type': 'application/json' });
@@ -249,9 +337,9 @@ export const createConsentServerRoute = function createConsentServerRoute(
 
 	const initGET: ConsentRouteHandler = async ({ request }) => {
 		const cached = await fetchCachedManifest({
-			cache: options.cache,
-			fetch: options.fetch,
-			sourceURL: resolveSourceURL(request, options),
+			cache: resolved.cache,
+			fetch: resolved.fetch,
+			sourceURL: resolveSourceURL(request, resolved),
 		});
 		const payload = resolveManifestInit({
 			headers: request.headers,
@@ -260,8 +348,8 @@ export const createConsentServerRoute = function createConsentServerRoute(
 
 		if (shouldFetchGvl(cached.manifest, payload) && cached.manifest.iab?.gvl) {
 			const language = payload.translations.language.split('-')[0] || 'en';
-			payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
-				fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
+			payload.gvl = await (resolved.fetchGvl ?? defaultFetchGvl)({
+				fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
 				language,
 				reference: cached.manifest.iab.gvl,
 			});
@@ -272,6 +360,22 @@ export const createConsentServerRoute = function createConsentServerRoute(
 		});
 	};
 
+	const proxyOptions = resolveProxyOptions(resolved.proxy);
+
+	const notFound = () =>
+		Promise.resolve(Response.json({ error: 'Not found' }, { status: 404 }));
+
+	const proxyHandler: ConsentRouteHandler = (context) =>
+		proxyOptions
+			? proxyConsentRequest({
+					backendURL: resolveBackendURL(context.request, resolved),
+					fetch: resolved.fetch,
+					options: proxyOptions,
+					path: readSplat(context),
+					request: context.request,
+				})
+			: notFound();
+
 	const GET: ConsentRouteHandler = (context) => {
 		switch (readSplat(context)) {
 			case 'manifest':
@@ -279,13 +383,24 @@ export const createConsentServerRoute = function createConsentServerRoute(
 			case 'init':
 				return initGET(context);
 			default:
-				return Promise.resolve(
-					Response.json({ error: 'Not found' }, { status: 404 })
-				);
+				return proxyHandler(context);
 		}
 	};
 
-	return { GET, initGET, manifestGET };
+	const handlers: ConsentServerRouteHandlers = { GET, initGET, manifestGET };
+	if (!proxyOptions) {
+		return handlers as ConsentServerRouteHandlersFor<Options>;
+	}
+	const proxied: ConsentProxyRouteHandlers = {
+		...handlers,
+		DELETE: proxyHandler,
+		OPTIONS: proxyHandler,
+		PATCH: proxyHandler,
+		POST: proxyHandler,
+		PUT: proxyHandler,
+		proxyHandler,
+	};
+	return proxied as ConsentServerRouteHandlersFor<Options>;
 };
 
 const defaultHandlers = createConsentServerRoute();

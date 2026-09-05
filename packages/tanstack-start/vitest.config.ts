@@ -52,6 +52,7 @@ const alias = {
 		'../translations/src/translations/en.ts'
 	),
 	'@c15t/translations': resolve(__dirname, '../translations/src/index.ts'),
+	'@c15t/schema/geo': resolve(__dirname, '../schema/src/shared/geo-headers.ts'),
 	'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
 	'@c15t/schema': resolve(__dirname, '../schema/src/index.ts'),
 };

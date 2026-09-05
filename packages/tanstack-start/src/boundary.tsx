@@ -41,10 +41,18 @@ export interface ConsentBoundaryProps {
 	config: KernelConfig;
 
 	/**
-	 * Backend base URL (e.g. `/api/c15t` or `https://consent.example.com`).
-	 * When provided, the provider uses hosted mode and auto-runs init.
-	 * Consent saves go to `${backendURL}/subjects`; init goes to
-	 * {@link ConsentBoundaryProps.initRoute}.
+	 * Backend base URL. When provided, the provider uses hosted mode and
+	 * auto-runs init. Consent saves go to `${backendURL}/subjects`; init goes
+	 * to {@link ConsentBoundaryProps.initRoute}.
+	 *
+	 * Without the proxy this is the c15t backend itself, for example
+	 * `https://consent.example.com`. With
+	 * `createConsentServerRoute({ proxy: true })` mounted, pass the route
+	 * prefix instead, `"/api/c15t"`, so saves stay same-origin and reach the
+	 * backend through the proxy. The server-side prefetch
+	 * (`createConsentConfigHandler({ backendURL })`) must still receive the
+	 * absolute backend URL, usually from `C15T_BACKEND_URL`: its self-route
+	 * guard skips a relative `/api/c15t` and returns the cookie-only config.
 	 */
 	backendURL?: string;
 
