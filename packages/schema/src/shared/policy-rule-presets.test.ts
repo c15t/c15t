@@ -11,16 +11,17 @@ const presetNames = Object.keys(
 ) as (keyof typeof policyRulePresets)[];
 
 describe('policyRulePresets', () => {
-	test.each(presetNames)(
-		'%s normalizes with pending review metadata',
-		(name) => {
-			const rule = policyRulePresets[name]();
-			expect(() => normalizePolicyRule(rule)).not.toThrow();
-			expect(rule.review?.status).toBe('pending');
-			expect(rule.review?.assumptions?.length).toBeGreaterThan(0);
-			expect(rule.model).not.toBe('none');
+	test.each(presetNames)('%s normalizes with a dated source review', (name) => {
+		const rule = policyRulePresets[name]();
+		expect(() => normalizePolicyRule(rule)).not.toThrow();
+		expect(rule.review?.status).toBe('reviewed');
+		expect(rule.review?.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
+		if (name !== 'worldOptOutNoPrompt') {
+			expect(rule.review?.sources?.length).toBeGreaterThan(0);
 		}
-	);
+		expect(rule.review?.assumptions?.length).toBeGreaterThan(0);
+		expect(rule.model).not.toBe('none');
+	});
 
 	test('each Europe variant validates with the regional presets as one pack', () => {
 		for (const europe of ['europeOptIn', 'europeIab'] as const) {

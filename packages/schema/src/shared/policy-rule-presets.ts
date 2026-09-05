@@ -15,20 +15,24 @@ const EDPB_SOURCE =
 const QUEBEC_SOURCE =
 	'https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25';
 
+const QUEBEC_CONSENT_SOURCE =
+	'https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf';
+
 const SHARED_ASSUMPTIONS = [
-	'365-day choice validity is a c15t product default, not a legal requirement.',
+	'365-day choice and notice validity are independent c15t product defaults, not legal requirements.',
 	'Equivalent default prominence for accept and reject is a c15t product invariant.',
 	'The controller owns processing facts, legal basis, copy and legal review; this preset is starter configuration.',
 ];
 
-const pendingReview = function pendingReview(
+const sourceReview = function sourceReview(
 	sources: string[],
 	assumptions: string[]
 ): PolicyRuleReview {
 	return {
 		assumptions: [...assumptions, ...SHARED_ASSUMPTIONS],
+		reviewedOn: '2026-09-05',
 		sources,
-		status: 'pending',
+		status: 'reviewed',
 	};
 };
 
@@ -45,7 +49,7 @@ const europeRule = function europeRule(mode: EuropePolicyRuleMode): PolicyRule {
 		model: mode,
 		prompt: 'choice',
 		proof: fullProof,
-		review: pendingReview(
+		review: sourceReview(
 			[ICO_SOURCE, EDPB_SOURCE],
 			isIab
 				? [
@@ -74,9 +78,10 @@ const californiaRule = function californiaRule(
 		privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
 		prompt: isOptOut ? 'none' : 'choice',
 		proof: fullProof,
-		review: pendingReview(
+		review: sourceReview(
 			[CCPA_SOURCE, GPC_SOURCE],
 			[
+				'The referenced GPC specification is the W3C Working Draft of 11 June 2026, not a final Recommendation.',
 				'A user-enabled GPC signal is honored as an opt-out of sale and sharing; it never creates consent.',
 				'Mapping GPC to marketing and measurement is a conservative product default and must be checked against actual processing purposes. Not all measurement is sale or sharing.',
 				'Removing the browser signal is not a withdrawal of a recorded opt-out.',
@@ -100,10 +105,11 @@ const quebecRule = function quebecRule(): PolicyRule {
 		model: 'opt-in',
 		prompt: 'choice',
 		proof: fullProof,
-		review: pendingReview(
-			[QUEBEC_SOURCE],
+		review: sourceReview(
+			[QUEBEC_SOURCE, QUEBEC_CONSENT_SOURCE],
 			[
-				'Opt-in is a conservative CMP configuration pending controller classification.',
+				'Opt-in is a conservative CMP configuration; the controller must classify each processing purpose and assess applicable exceptions.',
+				'The CAI consent guidelines describe validity criteria, including purpose-specific choice and duration; they do not establish a blanket cookie opt-in rule.',
 				'The Law 25 highest-privacy-default provision does not apply to cookie privacy settings; this preset makes no blanket opt-in claim from it.',
 			]
 		),
@@ -118,7 +124,7 @@ const worldOptOutNoPromptRule = function worldOptOutNoPromptRule(): PolicyRule {
 		model: 'opt-out',
 		prompt: 'none',
 		proof: { storeIp: false, storeLanguage: false, storeUserAgent: true },
-		review: pendingReview(
+		review: sourceReview(
 			[],
 			[
 				'Intentional allow-by-default configuration with no first-layer prompt. Disclosure, preferences and the opt-out right stay reachable.',
@@ -154,9 +160,9 @@ export interface PolicyRulePresets {
  *
  * @remarks
  * These are starter configurations. Each carries `review` metadata with the
- * primary sources and mechanical assumptions it encodes; `review.status` is
- * `pending` until a source review is recorded. None of them makes a
- * deployment compliant on its own.
+ * primary sources, review date and assumptions it encodes. A source review
+ * checks those assumptions; it does not approve a deployment or determine its
+ * legal basis. Review the configuration against your own processing purposes.
  *
  * @example
  * ```ts

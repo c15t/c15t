@@ -283,7 +283,21 @@ group: reference
 
   `inspectPolicyRules()` reports errors and warnings for a pack. It rejects an invalid model and prompt pair, unknown categories, a GPC mapping outside the rule's scope, and unknown fields anywhere in a rule.
 
-  The built-in presets are `europeOptIn`, `europeIab`, `californiaOptIn`, `californiaOptOut`, `quebecOptIn` and `worldOptOutNoPrompt`. The last one replaces `worldNoBanner`: allow-by-default with no prompt is now an explicit `opt-out` plus `none` rule you choose, not a model. Each preset carries `review` metadata with sources and assumptions, and each is starter configuration. None of them makes a deployment compliant.
+  The built-in presets are `europeOptIn`, `europeIab`, `californiaOptIn`, `californiaOptOut`, `quebecOptIn` and `worldOptOutNoPrompt`. The last one replaces `worldNoBanner`: allow-by-default with no prompt is now an explicit `opt-out` plus `none` rule you choose, not a model. Each preset carries source-review metadata dated `2026-09-05`. This records a check of its documented assumptions, not approval of your deployment. The 365-day validity defaults and equivalent default accept/reject prominence are product choices. You still need to classify your processing purposes and assess the applicable requirements.
+
+  - Europe groups the EEA and UK conservatively. Check your purposes and exemptions against the [ICO cookie guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guide-to-pecr/cookies-and-similar-technologies/) and [EDPB consent guidelines](https://www.edpb.europa.eu/sites/default/files/files/file1/edpb_guidelines_202005_consent_en.pdf).
+  - California maps GPC to marketing and measurement as a conservative default. Measurement is not always sale or sharing; check the mapping against your processing. The sources are the [California Attorney General CCPA guidance](https://oag.ca.gov/privacy/ccpa) and the [W3C GPC Working Draft of 11 June 2026](https://www.w3.org/TR/2026/WD-gpc-20260611/), which is not a final Recommendation.
+  - Quebec opt-in is a conservative configuration. The [CAI consent guidelines, version 1.0](https://www.cai.gouv.qc.ca/uploads/pdfs/CAI_Criteres_Validite_Consentement.pdf) describe consent validity, including specific purposes and duration. The [Law 25 changes](https://www.cai.gouv.qc.ca/protection-renseignements-personnels/sujets-et-domaines-dinteret/principaux-changements-loi-25) do not establish a blanket cookie opt-in rule from the highest-privacy-default provision.
+  - `worldOptOutNoPrompt` is an explicit controller choice with no regional legal claim and no default GPC mapping. It is never the runtime fallback for failed or unmatched resolution.
+
+  Inspect the assumptions before adapting a preset:
+
+  ```ts
+  const rule = policyRulePresets.californiaOptOut();
+  console.log(rule.review?.reviewedOn);
+  console.log(rule.review?.sources);
+  console.log(rule.review?.assumptions);
+  ```
 </section>
 
 <section id="resolution-outcomes">
