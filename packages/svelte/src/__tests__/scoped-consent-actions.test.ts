@@ -1,7 +1,9 @@
-import type { ConsentKernel } from '@c15t/core';
+import { custom } from '@c15t/core';
+import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import type { ConsentCompatState } from '../lib/context.svelte';
 import { offline } from '../lib/transports/offline';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
@@ -11,6 +13,55 @@ beforeEach(() => {
 });
 
 describe('displayed consent actions', () => {
+	test.each([false, true])(
+		'custom save ignores a hidden draft after policy narrowing, saved choice=%s',
+		async (hiddenChoice) => {
+			let policy: KernelConfig['initialPolicy'] = {
+				consent: { categories: ['necessary', 'marketing', 'measurement'] },
+				model: 'opt-in',
+			};
+			const captured: { kernel?: ConsentKernel; manager?: ConsentCompatState } =
+				{};
+			const result = render(ConformanceFixture, {
+				component: 'consent-banner',
+				onKernel: (kernel) => {
+					captured.kernel = kernel;
+				},
+				onManager: (manager) => {
+					captured.manager = manager;
+				},
+				options: {
+					consentCategories: ['necessary', 'marketing', 'measurement'],
+					mode: custom({ init: () => Promise.resolve({ policy }) }),
+				},
+			});
+			try {
+				const { kernel, manager } = captured;
+				if (!kernel || !manager) {
+					throw new Error('Provider context was not captured');
+				}
+				await kernel.commands.init();
+				kernel.set.consent({ measurement: hiddenChoice });
+				manager.setSelectedConsent('measurement', !hiddenChoice);
+				manager.setSelectedConsent('marketing', true);
+				policy = {
+					...policy,
+					consent: { categories: ['necessary', 'marketing'] },
+				};
+				await kernel.commands.init();
+				expect(manager.consentCategories).toEqual(['necessary', 'marketing']);
+				// Save must preserve the latest live choice, not the stale draft.
+				kernel.set.consent({ measurement: hiddenChoice });
+				expect(kernel.getSnapshot().consents.measurement).toBe(hiddenChoice);
+				await manager.saveConsents('custom');
+				expect(kernel.getSnapshot().consents.marketing).toBe(true);
+				expect(kernel.getSnapshot().consents.measurement).toBe(hiddenChoice);
+				expect(manager.selectedConsents).toEqual({});
+			} finally {
+				result.unmount();
+			}
+		}
+	);
 	test.each(['Accept All', 'Reject All'])(
 		'%s preserves configured categories excluded by the regional policy',
 		async (label) => {

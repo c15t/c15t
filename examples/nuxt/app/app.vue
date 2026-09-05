@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ConsentDevTools } from 'c15t/vue/devtools';
+import { defineAsyncComponent } from 'vue';
 
-const isDevelopment = import.meta.dev;
+const ConsentDevTools = import.meta.dev
+	? defineAsyncComponent(() => import('c15t/vue/devtools'))
+	: null;
 
 /**
  * The only required integration: mount <ConsentRoot /> once.
@@ -23,7 +25,7 @@ const openPreferences = () => {
 <template>
 	<ConsentRoot />
 	<ConsentDevTools
-		v-if="isDevelopment"
+		v-if="ConsentDevTools"
 		position="bottom-right"
 	/>
 

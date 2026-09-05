@@ -56,7 +56,7 @@ export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
 	set: (name: AllConsentNames, value: boolean) => void;
 	reset: () => void;
-	save: () => Promise<void>;
+	save: (categories: readonly AllConsentNames[]) => Promise<void>;
 }
 
 export interface ConsentCompatState extends Omit<
@@ -282,7 +282,7 @@ const createCompatState = function createCompatState(
 				options.getDraft().reset();
 				return;
 			}
-			await options.getDraft().save();
+			await options.getDraft().save(controller.consentCategories);
 		},
 		get selectedConsents() {
 			return options.getDraft().values;
