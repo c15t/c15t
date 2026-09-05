@@ -9,7 +9,13 @@
 
 import type { HeadlessIABBannerState, HeadlessIABStateInput } from './types';
 
-const MAX_BANNER_DISPLAY_ITEMS = 5;
+/**
+ * How many summary items the banner lists before it collapses the rest
+ * into "and {count} more". Exported so an adapter that wants to say how
+ * many it dropped does not re-guess the number.
+ */
+export const IAB_BANNER_MAX_DISPLAY_ITEMS = 5;
+
 const STANDALONE_PURPOSE_ID = 1;
 
 /**
@@ -114,9 +120,9 @@ export const resolveIABBannerSummary = function resolveIABBannerSummary(
 	}
 
 	return {
-		displayItems: items.slice(0, MAX_BANNER_DISPLAY_ITEMS),
+		displayItems: items.slice(0, IAB_BANNER_MAX_DISPLAY_ITEMS),
 		isReady: true,
-		remainingCount: Math.max(0, items.length - MAX_BANNER_DISPLAY_ITEMS),
+		remainingCount: Math.max(0, items.length - IAB_BANNER_MAX_DISPLAY_ITEMS),
 		vendorCount,
 	};
 };

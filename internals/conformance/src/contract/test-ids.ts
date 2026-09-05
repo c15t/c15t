@@ -124,6 +124,13 @@ export const TEST_ID_PATTERNS = [
 	/^consent-widget-switch-[a-z][a-z0-9-]*$/u,
 	/^stack-item-[a-z0-9][a-z0-9-]*$/u,
 	/^purpose-item-[a-z0-9][a-z0-9-]*$/u,
+	// A GVL numbers purposes, special purposes, features and special
+	// features independently, so `1` names four different rows. The
+	// display model in `@c15t/iab/headless` namespaces them; these are the
+	// three namespaces `purpose-item-*` does not already cover.
+	/^special-purpose-item-[a-z0-9][a-z0-9-]*$/u,
+	/^special-feature-item-[a-z0-9][a-z0-9-]*$/u,
+	/^feature-item-[a-z0-9][a-z0-9-]*$/u,
 	/^vendor-[a-z0-9][a-z0-9-]*$/u,
 ] as const;
 

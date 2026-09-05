@@ -3,8 +3,12 @@
  *
  * Mirrors the shape of the GVL served by IAB Europe (and the `mockGVL`
  * fixture used by the React IAB unit tests / storybook IAB stories) but
- * trimmed to the smallest payload that makes the prebuilt IAB surfaces
- * render: one vendor, two purposes, one stack, one special feature.
+ * trimmed to the smallest payload that still exercises every section an
+ * IAB preference centre renders: two purposes (one standalone, one the
+ * stack absorbs), a stack, a special feature, a special purpose and a
+ * feature. The single vendor declares all of them, because a purpose no
+ * vendor claims is filtered out of the display model and would leave the
+ * section it belongs to untested.
  *
  * Typed loosely on purpose — this package stays zero-import on runtime
  * framework/schema code. Drivers cast it to their `GlobalVendorList` type.
@@ -61,14 +65,14 @@ export const MINIMAL_GVL = {
 		1: {
 			cookieMaxAgeSeconds: 0,
 			cookieRefresh: false,
-			features: [],
+			features: [1],
 			flexiblePurposes: [],
 			id: 1,
 			legIntPurposes: [],
 			name: 'Conformance Test Vendor',
 			purposes: [1, 2],
-			specialFeatures: [],
-			specialPurposes: [],
+			specialFeatures: [1],
+			specialPurposes: [1],
 			urls: [],
 			usesCookies: false,
 			usesNonCookieAccess: false,
