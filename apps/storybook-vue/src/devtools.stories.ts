@@ -1,5 +1,6 @@
 import {
 	devToolsPrefetch,
+	devToolsPresentation,
 	devToolsScripts,
 	getDevToolsCategories,
 } from '@c15t/conformance/fixtures/devtools';
@@ -57,6 +58,7 @@ export const Default: Story = {
 							}
 						)
 					),
+				presentation: devToolsPresentation,
 			};
 			const context = createVueConsentKernelContext({
 				config,
