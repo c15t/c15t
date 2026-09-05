@@ -73,7 +73,6 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 				optOutDirectives: snapshot.optOutDirectives,
 				overrides: snapshot.overrides,
 				policy,
-				policyDecision: snapshot.policyDecision,
 				policyPending: snapshot.policyPending,
 				privacySignals: snapshot.privacySignals,
 				promptRequirement: snapshot.promptRequirement,

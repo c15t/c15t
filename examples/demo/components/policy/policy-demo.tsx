@@ -311,7 +311,10 @@ const buildPolicySummary = function buildPolicySummary(
 		id: policy?.id ?? null,
 		language: policyLanguage(snapshot),
 		location: policyLocation(snapshot),
-		matchedBy: snapshot.policyDecision?.matchedBy ?? null,
+		matchedBy:
+			snapshot.resolution.status === 'matched'
+				? snapshot.resolution.matchedBy
+				: null,
 		messageProfile: policy?.i18n?.messageProfile ?? 'default',
 		mode: demoMode,
 		model: snapshot.model,

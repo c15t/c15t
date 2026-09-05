@@ -90,14 +90,40 @@ const buildSurfaceSnapshot = function buildSurfaceSnapshot(
 	};
 };
 
+/** Read the draft inside ConsentWidget.Root, where the switches edit it. */
+const CustomDialogAction = ({
+	action,
+	isPrimary,
+	style,
+}: {
+	action: PresentationAction;
+	isPrimary: boolean;
+	style?: React.CSSProperties;
+}) => {
+	const { performDialogAction } = useHeadlessConsentUI();
+	const { common } = useTranslations();
+	return (
+		<Button
+			type="button"
+			variant={isPrimary ? 'default' : 'outline'}
+			className="justify-center"
+			style={style}
+			onClick={() => performDialogAction(action)}
+		>
+			{actionLabel(action, {
+				accept: common.acceptAll,
+				customize: common.customize,
+				dismiss: 'Dismiss notice',
+				reject: common.rejectAll,
+				save: common.save,
+			})}
+		</Button>
+	);
+};
+
 const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 	const [openItem, setOpenItem] = React.useState('');
-	const {
-		openDialog,
-		performBannerAction,
-		performDialogAction,
-		saveCustomPreferences,
-	} = useHeadlessConsentUI();
+	const { openDialog, performBannerAction } = useHeadlessConsentUI();
 	const { common } = useTranslations();
 
 	return (
@@ -193,7 +219,6 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 			</ConsentBanner.Root>
 
 			<ConsentDialog.Root>
-				<ConsentDialog.Overlay />
 				<ConsentDialog.Card>
 					<ConsentDialog.Header>
 						<ConsentDialog.HeaderTitle />
@@ -255,29 +280,12 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 							{variant === 'custom' && (
 								<ConsentWidget.PolicyActions
 									renderAction={(action, props) => (
-										<Button
+										<CustomDialogAction
 											key={props.key}
-											type="button"
-											variant={props.isPrimary ? 'default' : 'outline'}
-											className="justify-center"
+											action={action}
+											isPrimary={props.isPrimary}
 											style={props.style}
-											onClick={() => {
-												if (action === 'save') {
-													void saveCustomPreferences();
-													return;
-												}
-
-												void performDialogAction(action);
-											}}
-										>
-											{actionLabel(action, {
-												accept: common.acceptAll,
-												customize: common.save,
-												dismiss: 'Dismiss notice',
-												reject: common.rejectAll,
-												save: common.save,
-											})}
-										</Button>
+										/>
 									)}
 								/>
 							)}
