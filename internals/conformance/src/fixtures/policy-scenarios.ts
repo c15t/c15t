@@ -449,6 +449,45 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 	},
 	...gpc,
 	{
+		covers: ['F4', 'F10'],
+		gpc: true,
+		id: 'gpc-broad-scope-retains-unmapped-grants',
+		now: POLICY_NOW,
+		policy: {
+			...POLICY_NOTICE,
+			gpcDenyCategories: POLICY_SCOPE,
+			scope: ['experience', 'functionality', ...POLICY_SCOPE],
+		},
+		steps: [
+			{
+				expect: {
+					choice: POLICY_RECORDS['legacy-broad-grant'].expected.choice,
+					consentCallbacks: 0,
+					consentRequests: 0,
+					events: {
+						'choice-recorded': 0,
+						'notice-dismissed': 0,
+						'privacy-opt-out': 1,
+					},
+					permissions: { experience: true, functionality: true, ...denied },
+					standingOptOut: POLICY_SCOPE,
+					storage: 'privacy-only',
+				},
+				operation: { kind: 'hydrate' },
+			},
+			{
+				expect: {
+					...quiet,
+					choice: POLICY_RECORDS['legacy-broad-grant'].expected.choice,
+					permissions: { experience: true, functionality: true, ...denied },
+					standingOptOut: POLICY_SCOPE,
+				},
+				operation: { active: false, kind: 'set-gpc' },
+			},
+		],
+		storage: { cookie: 'legacy-broad-grant' },
+	},
+	{
 		covers: ['F5', 'F10'],
 		id: 'notice-save-dismiss-expire-clear',
 		now: POLICY_NOW,

@@ -129,6 +129,11 @@ export const POLICY_RECORDS = {
 		raw: '{',
 	},
 	'legacy-anonymous-grant': legacyJson(granted),
+	'legacy-broad-grant': legacyJson({
+		experience: true,
+		functionality: true,
+		...granted,
+	}),
 	'legacy-compact-omitted-false': {
 		encoding: 'legacy-compact',
 		expected: {

@@ -516,7 +516,7 @@ test.each([
 			stacks: {},
 			vendors: {
 				755: {
-					...MINIMAL_GVL.vendors[1],
+					...MINIMAL_GVL.vendors[755],
 					features: [],
 					flexiblePurposes: [],
 					id: 755,
@@ -565,5 +565,67 @@ test.each([
 		}
 	} finally {
 		kernel.dispose();
+	}
+});
+
+test('broad GPC keeps unmapped grants and original receipts without recording a choice', async () => {
+	setSystemTime(POLICY_NOW);
+	const resolved = resolution(true, true);
+	if (resolved.status !== 'matched') {
+		throw new Error('Missing matched fixture');
+	}
+	resolved.policy.scope = [
+		'experience',
+		'functionality',
+		'marketing',
+		'measurement',
+	];
+	const record = POLICY_RECORDS['legacy-broad-grant'];
+	const kernel = createConsentKernel({
+		initialPolicyResolution: resolved,
+		initialPrivacySignals: { gpc: true },
+		now: POLICY_NOW,
+	});
+	const events: { name: string; payload: unknown }[] = [];
+	kernel.events.on('choice:recorded', (event) =>
+		events.push({ name: event.type, payload: event })
+	);
+	try {
+		kernel.hydrate(
+			readStoredRecordsFromCookieHeader(
+				`c15t=${encodeURIComponent(record.raw)}`,
+				undefined,
+				POLICY_NOW
+			)
+		);
+		const original = kernel.getSnapshot().explicitChoice;
+		await kernel.commands.init();
+		const expected = {
+			choice: record.expected.choice,
+			consentCallbacks: 0,
+			events: { 'choice-recorded': 0 },
+			permissions: {
+				experience: true,
+				functionality: true,
+				marketing: false,
+				measurement: false,
+			},
+		} as const;
+		await checkObservation(
+			evidence(kernel, { ...emptyLogs(), events }),
+			expected
+		);
+		kernel.set.privacySignals({ gpc: false });
+		expect(kernel.getSnapshot().explicitChoice).toBe(original);
+		await checkObservation(
+			evidence(kernel, { ...emptyLogs(), events }),
+			expected
+		);
+		const corrupt = evidence(kernel);
+		corrupt.snapshot.effectivePermissions.experience = false;
+		await expect(checkObservation(corrupt, expected)).rejects.toThrow();
+	} finally {
+		kernel.dispose();
+		setSystemTime();
 	}
 });

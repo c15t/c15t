@@ -58,12 +58,12 @@ export const MINIMAL_GVL = {
 	tcfPolicyVersion: 5,
 	vendorListVersion: 142,
 	vendors: {
-		1: {
+		755: {
 			cookieMaxAgeSeconds: 0,
 			cookieRefresh: false,
 			features: [],
 			flexiblePurposes: [],
-			id: 1,
+			id: 755,
 			legIntPurposes: [],
 			name: 'Conformance Test Vendor',
 			purposes: [1, 2],
