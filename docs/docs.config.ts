@@ -70,7 +70,7 @@ const generateDocsConfig = () =>
 					},
 				],
 
-				pages: ['index'],
+				pages: ['index', '/upgrade-v3'],
 				templates: {
 					componentFramework: {
 						children: [
@@ -238,6 +238,16 @@ const generateDocsConfig = () =>
 				title: 'Frameworks',
 			}),
 			{
+				base: 'frameworks/vue',
+				pages: ['policy-presentation'],
+				title: 'Vue and Nuxt',
+			},
+			{
+				base: 'frameworks/svelte',
+				pages: ['quickstart', 'policy-records'],
+				title: 'Svelte and SvelteKit',
+			},
+			{
 				base: 'cli',
 				children: [
 					{
@@ -392,7 +402,7 @@ const generateDocsConfig = () =>
 				{ urlPath: '/changelog' },
 			],
 			bullets: [
-				'Add GDPR-ready cookie banners, consent dialogs, and preference flows.',
+				'Add cookie banners, consent dialogs, and persistent preference controls.',
 				'Use framework-specific guides for JavaScript, React, and Next.js.',
 				'Load scripts, iframes, and analytics only after the required consent.',
 				'Self-host the consent backend when managed hosting is not the right fit.',

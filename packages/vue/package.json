@@ -28,6 +28,8 @@
 		"directory": "packages/vue"
 	},
 	"files": [
+		"docs",
+		"AGENTS.md",
 		"dist",
 		"schema"
 	],
@@ -80,7 +82,8 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "nuxt-module-build build",
+		"build": "nuxt-module-build build && bun run build:docs",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/vue",
 		"check-types": "bun run check-types:nuxt && bun run check-types:vue",
 		"check-types:nuxt": "nuxt typecheck playground",
 		"check-types:vue": "vue-tsc -p tsconfig.vue.json --noEmit",
