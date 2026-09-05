@@ -40,6 +40,10 @@ export const getPolicyBenchManifest = function getPolicyBenchManifest(
 	let manifest = manifests.get(name);
 	if (!manifest) {
 		const resolved = resolvePolicyBenchPack(policyBenchFixtures[name]);
+		if (name === 'optout-california' && resolved.family === 'policy-rules') {
+			const rule = resolved.pack[0] as { prompt: string };
+			rule.prompt = 'notice';
+		}
 		manifest = buildConsentManifestFromConfig(resolved.manifestConfig);
 		manifests.set(name, manifest);
 	}

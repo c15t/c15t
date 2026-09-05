@@ -99,6 +99,7 @@ interface StorageBytes {
 	choiceCookiePresent: number;
 	c15tCookieBytes: number;
 	noticeCookieBytes: number;
+	privacyCookieBytes: number;
 	choiceLocalStorageBytes: number;
 	noticeLocalStorageBytes: number;
 	privacyLocalStorageBytes: number;
@@ -126,6 +127,7 @@ const storageBytesExpression = `(() => {
 	const c15tCookies = cookies.filter((cookie) => cookie.name.startsWith('c15t'));
 	const choiceCookie = cookies.find((cookie) => cookie.name === 'c15t');
 	const noticeCookie = cookies.find((cookie) => cookie.name === 'c15t-notice');
+    const privacyCookie = cookies.find((cookie) => cookie.name === 'c15t-privacy');
 	const readLocal = (key) => {
 		const value = window.localStorage.getItem(key);
 		return value === null ? 0 : utf8(value);
@@ -138,13 +140,14 @@ const storageBytesExpression = `(() => {
 		}
 	}
 	return {
-		c15tCookieBytes: c15tCookies.reduce((sum, cookie) => sum + utf8(cookie.value), 0),
+		c15tCookieBytes: utf8(c15tCookies.map(cookie => cookie.name + '=' + cookie.value).join('; ')),
 		choiceCookieBytes: choiceCookie ? utf8(choiceCookie.value) : 0,
 		choiceCookiePresent: choiceCookie ? 1 : 0,
 		choiceLocalStorageBytes: readLocal('c15t'),
 		cookieNames: c15tCookies.map((cookie) => cookie.name),
 		localStorageKeys,
 		noticeCookieBytes: noticeCookie ? utf8(noticeCookie.value) : 0,
+        privacyCookieBytes: privacyCookie ? utf8(privacyCookie.value) : 0,
 		noticeLocalStorageBytes: readLocal('c15t-notice'),
 		privacyLocalStorageBytes: readLocal('c15t-privacy'),
 	};
@@ -168,7 +171,7 @@ interface PolicyPageSample {
 	hydrationWarningCount: number;
 	consoleErrors: string[];
 	activeUiHistory: string[];
-	onConsentSetCount: number;
+	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	lastAppScriptEndMs: number;
 	longTaskTotalMs: number;
@@ -329,7 +332,7 @@ const takeAction = async function takeAction(
 	}
 	if (action === 'accept' || action === 'reject') {
 		const selector = `[data-testid="consent-banner-${action}-button"]`;
-		const before = state.onConsentSetCount;
+		const before = state.onChoiceRecordedCount;
 		const startedAt = performance.now();
 		await page.click(selector);
 		await page.waitForFunction(
@@ -337,7 +340,7 @@ const takeAction = async function takeAction(
 				const current = window.__c15tPolicyBench;
 				return (
 					!!current &&
-					current.onConsentSetCount > expected &&
+					current.onChoiceRecordedCount > expected &&
 					current.activeUI === 'none'
 				);
 			},
@@ -361,7 +364,24 @@ const takeAction = async function takeAction(
 	}
 	// dismiss: only when the installed source renders a dismiss control.
 	if (!state.promptShown) {
-		return { actionTaken: 'no-prompt', interactionLatencyMs: null };
+		if (state.promptKind === null) {
+			return {
+				actionTaken: 'unsupported-legacy-notice',
+				interactionLatencyMs: null,
+			};
+		}
+		throw new Error('Notice fixture did not render its required prompt');
+	}
+	// Save a partial choice while notice remains due, alongside detected GPC.
+	await page.click('#policy-save-partial');
+	await page.waitForFunction(
+		() => window.__c15tPolicyBench?.hasStoredChoice === true
+	);
+	const afterSave = await page.evaluate(
+		() => window.__c15tPolicyBench?.promptKind
+	);
+	if (afterSave !== 'notice') {
+		throw new Error('Preference save dismissed the notice');
 	}
 	for (const selector of DISMISS_SELECTORS) {
 		// oxlint-disable-next-line no-await-in-loop -- ordered probe
@@ -376,17 +396,20 @@ const takeAction = async function takeAction(
 				undefined,
 				{ timeout: 30_000 }
 			);
-			// A dismissal is local-only; give its localStorage write a settle
-			// window before reading bytes (it has no cookie to wait for).
+			// Wait for all projections before counting the request cookie header.
 			// oxlint-disable-next-line no-await-in-loop -- ordered probe
-			await page.waitForTimeout(100);
+			await page.waitForFunction(
+				() =>
+					document.cookie.includes('c15t-notice=') &&
+					document.cookie.includes('c15t-privacy=')
+			);
 			return {
 				actionTaken: 'dismiss',
 				interactionLatencyMs: performance.now() - startedAt,
 			};
 		}
 	}
-	return { actionTaken: 'no-dismiss-control', interactionLatencyMs: null };
+	throw new Error('Notice fixture did not render a dismissal control');
 };
 
 const collectPolicySample = async function collectPolicySample(
@@ -396,6 +419,14 @@ const collectPolicySample = async function collectPolicySample(
 	options: { action: PolicyScenarioDefinition['action']; hydrate: boolean }
 ): Promise<PolicyPageSample> {
 	const observation = observePage(page);
+	if (definition.action === 'dismiss') {
+		await page.addInitScript(() => {
+			Object.defineProperty(navigator, 'globalPrivacyControl', {
+				configurable: true,
+				value: true,
+			});
+		});
+	}
 	await page.goto(`/policy/${definition.fixture}?scenario=${scenario}`);
 	await waitForPromptReady(page, scenario, definition.fixture);
 	const state = (await page.evaluate(() => {
@@ -450,7 +481,7 @@ const collectPolicySample = async function collectPolicySample(
 		lastAppScriptEndMs: timing.lastAppScriptEndMs,
 		longTaskTotalMs: timing.longTaskTotalMs,
 		mountCount: state.mountCount,
-		onConsentSetCount: state.onConsentSetCount,
+		onChoiceRecordedCount: state.onChoiceRecordedCount,
 		onErrorCount: state.onErrorCount,
 		promptKind: state.promptKind,
 		promptReadyMs: state.promptReadyMs,
@@ -538,9 +569,9 @@ const buildMetrics = function buildMetrics(
 			samples.map((sample) => sample.hydrationWarningCount)
 		),
 		summarizeMetric(
-			'onConsentSetCount',
+			'onChoiceRecordedCount',
 			'count',
-			samples.map((sample) => sample.onConsentSetCount)
+			samples.map((sample) => sample.onChoiceRecordedCount)
 		),
 		summarizeMetric(
 			'onErrorCount',
@@ -583,6 +614,7 @@ const buildMetrics = function buildMetrics(
 			'choiceCookiePresent',
 			'c15tCookieBytes',
 			'noticeCookieBytes',
+			'privacyCookieBytes',
 			'choiceLocalStorageBytes',
 			'noticeLocalStorageBytes',
 			'privacyLocalStorageBytes',
@@ -603,6 +635,15 @@ const buildMetrics = function buildMetrics(
 			(hydration): hydration is PolicyHydrationMeasurement => hydration !== null
 		);
 	if (hydrationSamples.length > 0) {
+		for (const key of ['hydrateCallCount', 'hydrateSuccessCount'] as const) {
+			metrics.push(
+				summarizeMetric(
+					key,
+					'count',
+					hydrationSamples.map((sample) => sample[key])
+				)
+			);
+		}
 		metrics.push(
 			summarizeMetric(
 				'hydrateUs',

@@ -1,8 +1,12 @@
-import { webcrypto } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { hashSha256Hex } from './policy-fingerprint';
+import {
+	createDeterministicFingerprintSync,
+	hashSha256Hex,
+	stableStringify,
+} from './policy-fingerprint';
 import { resolvePolicyRules } from './policy-resolution';
 import { inspectPolicyRules } from './policy-rule';
 import type { PolicyRule } from './policy-rule';
@@ -40,6 +44,22 @@ afterEach(() => {
 		value: originalCrypto,
 		writable: true,
 	});
+});
+
+describe('synchronous policy hashes', () => {
+	it.each([0, 1, 55, 56, 63, 64, 65, 127, 128, 129, 1024])(
+		'matches native SHA-256 across block boundaries for length %s',
+		(length) => {
+			const value = {
+				copy: 'Privacy 🌍 東京'.repeat(length),
+				padding: 'x'.repeat(length),
+			};
+			const expected = createHash('sha256')
+				.update(stableStringify(value))
+				.digest('hex');
+			expect(createDeterministicFingerprintSync(value)).toBe(expected);
+		}
+	);
 });
 
 describe('hashSha256Hex', () => {

@@ -55,38 +55,17 @@ const sha256HexPureJs = function sha256HexPureJs(input: string): string {
 		0x1f83d9ab, 0x5be0cd19,
 	]);
 	const W = new Uint32Array(64);
-	const toUint32 = (value: number) => value % 2 ** 32;
-	const rightShift = (value: number, places: number) =>
-		Math.floor(value / 2 ** places);
+	// SHA-256 operates on fixed-width words; native bitwise operations avoid
+	// allocating and scanning 32 individual bits for every compression step.
+	/* oxlint-disable no-bitwise -- SHA-256 requires unsigned 32-bit word operations. */
+	const toUint32 = (value: number) => value >>> 0;
+	const rightShift = (value: number, places: number) => value >>> places;
 	const rotateRight = (value: number, places: number) =>
-		rightShift(value, places) + (value % 2 ** places) * 2 ** (32 - places);
-	const andWords = (left: number, right: number) => {
-		let result = 0;
-		for (let bit = 0; bit < 32; bit += 1) {
-			const place = 2 ** bit;
-			if (
-				Math.floor(left / place) % 2 === 1 &&
-				Math.floor(right / place) % 2 === 1
-			) {
-				result += place;
-			}
-		}
-		return result;
-	};
-	const xorWords = (...values: number[]) => {
-		let result = 0;
-		for (let bit = 0; bit < 32; bit += 1) {
-			const place = 2 ** bit;
-			const setBits = values.reduce(
-				(count, value) => count + (Math.floor(value / place) % 2),
-				0
-			);
-			if (setBits % 2 === 1) {
-				result += place;
-			}
-		}
-		return result;
-	};
+		(value >>> places) | (value << (32 - places));
+	const andWords = (left: number, right: number) => left & right;
+	const xorWords = (first: number, second: number, third = 0) =>
+		(first ^ second ^ third) >>> 0;
+	/* oxlint-enable no-bitwise */
 	const word = (array: Uint32Array, index: number) => {
 		const value = array[index];
 		if (value === undefined) {

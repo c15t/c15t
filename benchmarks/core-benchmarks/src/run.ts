@@ -35,37 +35,39 @@ import {
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { createConsentKernel } from '@c15t/core';
+import type { ConsentKernel } from '@c15t/core';
 
 const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? '25');
 const WARMUP = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '10');
 const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/core-v3-runtime';
 
-const measureSync = function measureSync(fn: () => void): number[] {
-	measureLoop(WARMUP, fn);
-	return measureLoop(ITERATIONS, fn);
+const measureSync = function measureSync(fn: () => ConsentKernel): number[] {
+	measureLoop(WARMUP, fn, (kernel) => kernel.dispose());
+	return measureLoop(ITERATIONS, fn, (kernel) => kernel.dispose());
 };
 
 const measureAsync = async function measureAsync(
-	fn: () => Promise<void>
+	fn: () => Promise<ConsentKernel>
 ): Promise<number[]> {
-	await measureAsyncLoop(WARMUP, fn);
-	return await measureAsyncLoop(ITERATIONS, fn);
+	await measureAsyncLoop(WARMUP, fn, (kernel) => kernel.dispose());
+	return await measureAsyncLoop(ITERATIONS, fn, (kernel) => kernel.dispose());
 };
 
 await Array.from(Object.values(coreFixtures)).reduce(
 	async (previousIteration, fixture) => {
 		await previousIteration;
 		// Kernel construction — must be pure, allocation only.
-		const createKernelSamples = measureSync(() => {
+		const createKernelSamples = measureSync(() =>
 			createConsentKernel({
 				initialOverrides: { country: 'US', language: 'en' },
-			});
-		});
+			})
+		);
 
 		// Snapshot read — reference return, cheap.
 		const getSnapshotSamples = measureSync(() => {
 			const kernel = createConsentKernel();
 			kernel.getSnapshot();
+			return kernel;
 		});
 
 		// Subscribe + unsubscribe — listener bookkeeping cost.
@@ -75,38 +77,51 @@ await Array.from(Object.values(coreFixtures)).reduce(
 				/* empty */
 			});
 			unsubscribe();
+			return kernel;
 		});
 
-		// Sync mutation — produce new frozen snapshot + notify.
+		// Stage a developer draft. This never grants permissions.
 		const setConsentSamples = measureSync(() => {
 			const kernel = createConsentKernel();
-			kernel.set.consent({ marketing: true });
+			// The legacy metric name is retained for its historical budget.
+			const setter = kernel.set as typeof kernel.set & {
+				consent?: typeof kernel.set.draft;
+			};
+			const stage = setter.draft ?? setter.consent;
+			if (!stage) {
+				throw new Error('Missing draft setter for measured kernel');
+			}
+			stage({ marketing: true });
+			return kernel;
 		});
 
 		// Save all — full commit + listener notify + event emit.
 		const saveAllSamples = await measureAsync(async () => {
 			const kernel = createConsentKernel();
 			await kernel.commands.save('all');
+			return kernel;
 		});
 
-		// Repeat visitor equivalent — save then init.
+		// Historical save-then-init operation; actual repeated storage hydration is measured separately.
 		const repeatVisitorSamples = await measureAsync(async () => {
 			const kernel = createConsentKernel();
 			await kernel.commands.save('all');
 			await kernel.commands.init();
+			return kernel;
 		});
 
-		// Init command — currently returns immediately with ok; baseline for
-		// when boot modules wire in SSR hydration and banner fetch.
+		// Init without transport or persistence, retained solely for historical comparison.
 		const initSamples = await measureAsync(async () => {
 			const kernel = createConsentKernel();
 			await kernel.commands.init();
+			return kernel;
 		});
 
 		// Identify — user mutation path.
 		const identifySamples = await measureAsync(async () => {
 			const kernel = createConsentKernel();
 			await kernel.commands.identify({ externalId: 'bench-user' });
+			return kernel;
 		});
 
 		const result: BenchmarkResult = {
@@ -122,9 +137,11 @@ await Array.from(Object.values(coreFixtures)).reduce(
 			fixture,
 			framework: 'core',
 			metadata: {
+				fixtureSizesApplied: false,
 				gitDirty: safeGitDirty(),
 				iterations: ITERATIONS,
 				warmupIterations: WARMUP,
+				workload: 'historical-empty-kernel',
 			},
 			metrics: [
 				summarizeMetric('createConsentKernel', 'us', createKernelSamples),
@@ -138,7 +155,7 @@ await Array.from(Object.values(coreFixtures)).reduce(
 			],
 			notes: [
 				'Kernel construction is pure and has no side effects.',
-				'Boot modules are not measured here because adapters run them after mount.',
+				'Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.',
 				'v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts.',
 			],
 			package: '@c15t/core-benchmarks',

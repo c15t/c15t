@@ -21,7 +21,7 @@ onMounted(() => {
 			activeUI: 'none',
 			mountCount: 1,
 			onBannerFetchedCount: 0,
-			onConsentSetCount: 0,
+			onChoiceRecordedCount: 0,
 			onErrorCount: 0,
 			renderCount: 1,
 			scenario: 'baseline',

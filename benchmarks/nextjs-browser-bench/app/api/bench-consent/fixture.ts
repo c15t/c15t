@@ -1,5 +1,10 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import {
+	buildBrowserBenchManifest,
+	loadBrowserBenchInit,
+} from '@c15t/benchmarking/policy-fixtures';
+
 export type BenchConsentFixtureEndpoint = 'init' | 'manifest' | 'subjects';
 
 export type BenchConsentFixtureCounts = Record<
@@ -83,95 +88,10 @@ export const benchConsentTranslations = {
 	},
 };
 
-const policy = {
-	consent: {
-		categories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		],
-		model: 'opt-in',
-		scopeMode: 'strict',
-	},
-	id: 'nextjs-browser-bench',
-	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		mode: 'banner',
-	},
-};
-
-const resolvedPolicy = {
-	consent: policy.consent,
-	id: policy.id,
-	model: policy.model,
-	proof: {},
-	ui: policy.ui,
-};
-
-export const benchConsentInitResponse = {
-	branding: 'c15t',
-	jurisdiction: 'NONE',
-	location: {
-		countryCode: null,
-		regionCode: null,
-	},
-	policy: resolvedPolicy,
-	policyDecision: {
-		country: null,
-		fingerprint: 'fingerprint_nextjs_browser_bench',
-		jurisdiction: 'NONE',
-		matchedBy: 'default',
-		policyId: policy.id,
-		region: null,
-	},
-	translations: {
-		language: 'en',
-		translations: benchConsentTranslations,
-	},
-};
-
-export const benchConsentManifestResponse = {
-	branding: 'c15t',
-	policyPacks: [
-		{
-			fingerprint: 'fingerprint_nextjs_browser_bench',
-
-			policy: {
-				...policy,
-				match: { isDefault: true },
-			},
-			resolvedPolicy,
-		},
-	],
-	revision: 'nextjs-browser-bench-manifest',
-	schemaVersion: 1,
-	translations: {
-		i18n: {
-			defaultProfile: 'default',
-			messages: {
-				default: {
-					fallbackLanguage: 'en',
-					translations: {
-						de: benchConsentTranslations,
-						en: benchConsentTranslations,
-					},
-				},
-			},
-		},
-	},
-};
+export const benchConsentManifestResponse = buildBrowserBenchManifest();
+export const benchConsentInitResponse = loadBrowserBenchInit(
+	benchConsentManifestResponse
+);
 
 export const applyBenchConsentLatency =
 	async function applyBenchConsentLatency() {

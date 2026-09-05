@@ -155,7 +155,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		}
 		case 'full-ui': {
 			const before = await page.evaluate(
-				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+				() => window.__c15tReactBench?.onChoiceRecordedCount ?? 0
 			);
 			const startedAt = performance.now();
 			await page.click('[data-testid="consent-banner-accept-button"]');
@@ -164,7 +164,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 					const state = window.__c15tReactBench;
 					return (
 						!!state &&
-						state.onConsentSetCount > expected &&
+						state.onChoiceRecordedCount > expected &&
 						state.activeUI === 'none'
 					);
 				},
@@ -176,7 +176,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		case 'banner-css':
 		case 'css-banner-modules': {
 			const before = await page.evaluate(
-				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+				() => window.__c15tReactBench?.onChoiceRecordedCount ?? 0
 			);
 			const startedAt = performance.now();
 			await page.click('[data-testid="consent-banner-accept-button"]');
@@ -185,7 +185,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 					const state = window.__c15tReactBench;
 					return (
 						!!state &&
-						state.onConsentSetCount > expected &&
+						state.onChoiceRecordedCount > expected &&
 						state.activeUI === 'none'
 					);
 				},
@@ -196,7 +196,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		}
 		case 'headless': {
 			const before = await page.evaluate(
-				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+				() => window.__c15tReactBench?.onChoiceRecordedCount ?? 0
 			);
 			const startedAt = performance.now();
 			await page.click('#headless-accept');
@@ -205,7 +205,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 					const state = window.__c15tReactBench;
 					return (
 						!!state &&
-						state.onConsentSetCount > expected &&
+						state.onChoiceRecordedCount > expected &&
 						state.activeUI === 'none'
 					);
 				},

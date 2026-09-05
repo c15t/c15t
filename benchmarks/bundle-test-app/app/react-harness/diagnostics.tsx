@@ -6,8 +6,8 @@ import {
 	ConsentDialogLink,
 	useConsent,
 	useConsentDraft,
-	useConsents,
-	useHasConsented,
+	useEffectivePermissions,
+	useExplicitChoice,
 	useIframeBlocker,
 	useSaveConsents,
 } from '@c15t/react';
@@ -52,13 +52,13 @@ const btnStyle = function btnStyle(bg: string): CSSProperties {
 const ConsentControls = () => {
 	const draft = useConsentDraft();
 	const saveConsents = useSaveConsents();
-	const hasConsented = useHasConsented();
+	const hasStoredChoice = Boolean(useExplicitChoice());
 
 	return (
 		<section style={sectionStyle}>
 			<h2 style={{ marginTop: 0 }}>Consent controls (preference center)</h2>
 			<p style={{ color: '#555', margin: '0 0 1rem 0' }}>
-				Has consented: <strong>{String(hasConsented)}</strong>
+				Has stored choice: <strong>{String(hasStoredChoice)}</strong>
 				{' · '}Draft is{' '}
 				<strong style={{ color: draft.isDirty ? '#d97706' : '#16a34a' }}>
 					{draft.isDirty ? 'dirty (unsaved)' : 'clean'}
@@ -148,7 +148,7 @@ const preStyle: CSSProperties = {
 	padding: 12,
 };
 const ConsentDebug = () => {
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 	const draft = useConsentDraft();
 
 	return (
@@ -183,7 +183,7 @@ const cellBody: CSSProperties = {
 };
 const LoadedScripts = ({ scripts }: HarnessDiagnosticsProps) => {
 	const [loaded, setLoaded] = useState<string[]>([]);
-	const consents = useConsents();
+	const consents = useEffectivePermissions();
 
 	useEffect(() => {
 		const updateLoaded = () => {
