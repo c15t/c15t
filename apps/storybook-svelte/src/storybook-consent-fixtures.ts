@@ -2,6 +2,12 @@ import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fi
 import { offline } from '../../../packages/svelte/src/lib/transports/offline';
 import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
 import { enTranslations } from '../../../packages/translations/src/index';
+import {
+	storybookPolicy,
+	storybookIABPolicy,
+	storybookPresentation,
+	seedStorybookChoice,
+} from '../../storybook-consent-policy';
 
 type ConsentRecord = Record<string, boolean>;
 
@@ -24,20 +30,7 @@ export const resetStorybookConsentState =
 		clearCookies();
 	};
 
-export const seedStoredConsent = function seedStoredConsent(
-	consents: ConsentRecord
-) {
-	window.localStorage.setItem(
-		'c15t',
-		JSON.stringify({
-			consentInfo: {
-				time: Date.now(),
-				type: 'storybook',
-			},
-			consents,
-		})
-	);
-};
+export const seedStoredConsent = seedStorybookChoice;
 
 export const seedTCString = function seedTCString(tcString: string | null) {
 	if (!tcString) {
@@ -49,11 +42,9 @@ export const seedTCString = function seedTCString(tcString: string | null) {
 };
 
 export const defaultConsentOptions: ConsentManagerOptions = {
-	mode: offline(),
-	translations: {
-		language: 'en',
-		translations: enTranslations,
-	},
+	mode: offline({ policyRules: [storybookPolicy] }),
+	presentation: storybookPresentation,
+	translations: { language: 'en', translations: enTranslations },
 };
 
 export const editableConsentOptions: Partial<ConsentManagerOptions> = {
@@ -76,14 +67,8 @@ export const editableStoredConsent: ConsentRecord = {
 
 export const defaultIABOptions: ConsentManagerOptions = {
 	...defaultConsentOptions,
-	iab: {
-		cmpId: 160,
-		cmpVersion: 1,
-		gvl: mockGVL,
-	},
-	offlinePolicy: {
-		policy: { id: 'storybook_iab', model: 'iab' },
-	},
+	iab: { cmpId: 160, cmpVersion: 1, gvl: mockGVL },
+	mode: offline({ policyRules: [storybookIABPolicy] }),
 };
 
 export type { ConsentRecord };

@@ -3,6 +3,7 @@
  */
 
 import { STORAGE_MODES } from '../../../constants';
+import { DEFAULT_OFFLINE_RULES } from './shared/options';
 
 /**
  * Offline/browser-only mode config
@@ -17,7 +18,7 @@ const generateOfflineConfig = function generateOfflineConfig(
 	return `import { createConsentKernel, createOfflineTransport } from 'c15t';
 ${devToolsImport}
 export const kernel = createConsentKernel({
-	transport: createOfflineTransport(),
+	transport: createOfflineTransport({ policyRules: ${DEFAULT_OFFLINE_RULES} }),
 });
 
 void kernel.commands.init();
@@ -26,14 +27,11 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  * Usage Examples
  **/
 
-// View all consents
-// kernel.getSnapshot().consents;
+// Read the permissions currently applied to processing
+// kernel.getSnapshot().effectivePermissions;
 
-// Update consent locally before saving
-// kernel.set.consent({ measurement: true });
-
-// Save the current choices
-// await kernel.commands.save('custom');
+// Confirm only the category the visitor chose
+// await kernel.commands.save({ measurement: true });
 `;
 };
 
@@ -64,14 +62,11 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  * Usage Examples
  **/
 
-// View all consents
-// kernel.getSnapshot().consents;
+// Read the permissions currently applied to processing
+// kernel.getSnapshot().effectivePermissions;
 
-// Update consent locally before saving
-// kernel.set.consent({ measurement: true });
-
-// Save the current choices
-// await kernel.commands.save('custom');
+// Confirm only the category the visitor chose
+// await kernel.commands.save({ measurement: true });
 `;
 };
 
@@ -94,15 +89,17 @@ const generateCustomConfig = function generateCustomConfig(
 ${devToolsImport}
 const transport: KernelTransport = {
 	async init() {
-			const response = await fetch(${url});
+			const response = await fetch(${url}, { headers: { 'x-c15t-policy-contract': '1' } });
+			if (!response.ok) throw new Error('Consent initialization failed');
 			return response.json();
 	},
 	async save(payload) {
 			const response = await fetch(${url}, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
+				headers: { 'Content-Type': 'application/json', 'x-c15t-policy-contract': '1' },
 				body: JSON.stringify(payload),
 			});
+			if (!response.ok) throw new Error('Consent save failed');
 			return response.json();
 	},
 };
@@ -115,14 +112,11 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  * Usage Examples
  **/
 
-// View all consents
-// kernel.getSnapshot().consents;
+// Read the permissions currently applied to processing
+// kernel.getSnapshot().effectivePermissions;
 
-// Update consent locally before saving
-// kernel.set.consent({ measurement: true });
-
-// Save the current choices
-// await kernel.commands.save('custom');
+// Confirm only the category the visitor chose
+// await kernel.commands.save({ measurement: true });
 `;
 };
 
@@ -153,14 +147,11 @@ ${enableDevTools ? 'createDevTools({ kernel });\n' : ''}
  * Usage Examples
  **/
 
-// View all consents
-// kernel.getSnapshot().consents;
+// Read the permissions currently applied to processing
+// kernel.getSnapshot().effectivePermissions;
 
-// Update consent locally before saving
-// kernel.set.consent({ measurement: true });
-
-// Save the current choices
-// await kernel.commands.save('custom');
+// Confirm only the category the visitor chose
+// await kernel.commands.save({ measurement: true });
 `;
 };
 
