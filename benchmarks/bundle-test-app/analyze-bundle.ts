@@ -13,6 +13,7 @@ import {
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
@@ -352,6 +353,7 @@ const main = async function main() {
 			environment: getEnvironment(),
 			fixture: routeFixture(route),
 			framework: frameworkForRoute(route),
+			metadata: { gitDirty: safeGitDirty() },
 			metrics: [
 				summarizeMetric('gzipSize', 'bytes', [route.totalGzip]),
 				summarizeMetric('jsGzipSize', 'bytes', [route.jsGzip]),
@@ -391,6 +393,7 @@ const main = async function main() {
 				themeComplexity: 'minimal',
 			},
 			framework: 'core',
+			metadata: { gitDirty: safeGitDirty() },
 			metrics: [
 				summarizeMetric('c15t', 'bytes', [coreTarball.size ?? 0]),
 				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size ?? 0]),
