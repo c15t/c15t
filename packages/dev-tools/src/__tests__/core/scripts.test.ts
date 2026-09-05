@@ -18,6 +18,47 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each([false, true])(
+		'records script reuse without legacy forwarding, existing DOM=%s',
+		(existingDOM) => {
+			const kernel = createConsentKernel();
+			const script = {
+				anonymizeId: false,
+				category: 'necessary' as const,
+				id: 'reuse-event',
+				textContent: 'void 0;',
+			};
+			if (existingDOM) {
+				const element = document.createElement('script');
+				element.id = 'c15t-script-reuse-event';
+				document.body.append(element);
+			}
+			const devTools = createDevTools({ kernel });
+			disposers.push(devTools.destroy);
+			const listener = vi.fn();
+			disposers.push(subscribeScriptDiagnostics(kernel, listener));
+			const loader = createScriptLoader({
+				emitToV2DebugListeners: false,
+				kernel,
+				scripts: [script],
+			});
+			disposers.push(loader.dispose);
+			if (!existingDOM) {
+				loader.updateScripts([script]);
+			}
+			expect(listener).toHaveBeenCalledWith(
+				expect.objectContaining({
+					action: 'already_loaded',
+					scriptId: script.id,
+				})
+			);
+			expect(
+				devTools
+					.getState()
+					.events.some((event) => event.type === 'script:already_loaded')
+			).toBe(true);
+		}
+	);
 	it.each(['load', 'error'] as const)(
 		'observes a retained script finishing with %s while consent is revoked',
 		(event) => {

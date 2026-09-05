@@ -76,17 +76,17 @@ export const mountScript = function mountScript(
 				existing
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
-			deps.emit({
-				action: 'already_loaded',
-				elementId: info.elementId,
-				hasConsent: info.hasConsent,
-				message: 'Script already loaded; fired onConsentChange',
-				scope: 'step',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
 		}
+		deps.emit({
+			action: 'already_loaded',
+			elementId,
+			hasConsent,
+			message: 'Script already mounted',
+			scope: 'step',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 		return;
 	}
 
@@ -141,17 +141,17 @@ export const mountScript = function mountScript(
 				element
 			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
-			deps.emit({
-				action: 'already_loaded',
-				elementId: info.elementId,
-				hasConsent: info.hasConsent,
-				message: 'Script element already exists in DOM; reused it',
-				scope: 'step',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
 		}
+		deps.emit({
+			action: 'already_loaded',
+			elementId,
+			hasConsent,
+			message: 'Script element already exists in DOM; reused it',
+			scope: 'step',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
 		return;
 	}
 
