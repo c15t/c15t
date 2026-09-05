@@ -36,7 +36,8 @@
 
 <Provider options={{ ...options, presentation }}>
 	<Capture {onKernel} />
-	<ConsentBanner />
+	<!-- Attribution changes after mount; policy SSR checks compare the prompt. -->
+	<ConsentBanner hideBranding />
 	<ConsentDialog />
 	<ConsentDialogTrigger />
 	<ConsentDialogLink>Privacy settings</ConsentDialogLink>
