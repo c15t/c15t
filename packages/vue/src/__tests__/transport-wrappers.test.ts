@@ -3,10 +3,15 @@ import {
 	normalizePolicyRule,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
+import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { createVueConsentKernelContext } from '../runtime/kernel';
 import type { RuntimeConsentConfig } from '../runtime/kernel';
+
+type FetchRequest = (
+	...args: Parameters<typeof fetch>
+) => ReturnType<typeof fetch>;
 
 const now = 1_800_000_000_000;
 const subjectId = 'backend+literal';
@@ -32,7 +37,7 @@ const prefetch = {
 		status: 'matched',
 	}),
 	subjectId,
-	translations: { language: 'en', translations: {} },
+	translations: { language: 'en', translations },
 };
 const modes: RuntimeConsentConfig['manifest'][] = [
 	undefined,
@@ -64,7 +69,7 @@ test.each(modes)(
 	'%s transport identifies and hydrates server records without writes',
 	async (manifest) => {
 		vi.spyOn(Date, 'now').mockReturnValue(now);
-		const fetchMock = vi.fn<typeof fetch>((url, init) =>
+		const fetchMock = vi.fn<FetchRequest>((url, init) =>
 			Promise.resolve(
 				Response.json(
 					String(url) === subjectURL && init?.method === 'GET'
@@ -86,7 +91,7 @@ test.each(modes)(
 			config: {
 				backendURL: '/api/review',
 				callbacks: { onChoiceRecorded },
-				customFetch: fetchMock,
+				customFetch: Object.assign(fetchMock, { preconnect: vi.fn() }),
 				manifest,
 			},
 			now,
@@ -125,7 +130,7 @@ test.each(modes)(
 	'%s transport records detected GPC through the subject privacy endpoint',
 	async (manifest) => {
 		vi.spyOn(Date, 'now').mockReturnValue(now);
-		const fetchMock = vi.fn<typeof fetch>((url, init) =>
+		const fetchMock = vi.fn<FetchRequest>((url, init) =>
 			Promise.resolve(
 				Response.json(
 					String(url) === subjectURL && init?.method === 'GET'
@@ -139,7 +144,7 @@ test.each(modes)(
 			config: {
 				backendURL: '/api/review',
 				callbacks: { onChoiceRecorded },
-				customFetch: fetchMock,
+				customFetch: Object.assign(fetchMock, { preconnect: vi.fn() }),
 				manifest,
 			},
 			now,
