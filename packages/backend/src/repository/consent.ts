@@ -27,7 +27,10 @@
  */
 
 import { buildConsentId } from '@c15t/schema';
-import type { ConsentSubmissionIdentity } from '@c15t/schema';
+import type {
+	ConsentSubmissionIdentity,
+	SubjectChoiceWire,
+} from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
@@ -37,9 +40,22 @@ import { encoder } from '../db/values';
 
 export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly purposeIds: readonly string[];
+	/**
+	 * v3 receipts this submission confirmed, in wire form. Only the confirmed
+	 * categories, with the client's original confirmation times and bases;
+	 * nothing here is stamped or renewed on the way in.
+	 */
+	readonly choice?: SubjectChoiceWire | null;
 	readonly metadata?: unknown;
 	readonly ipAddress?: string | null;
 	readonly userAgent?: string | null;
+	readonly jurisdiction?: string | null;
+	readonly jurisdictionModel?: string | null;
+	readonly tcString?: string | null;
+	readonly uiSource?: string | null;
+	readonly consentAction?: string | null;
+	readonly validUntil?: Date | null;
+	readonly runtimePolicySource?: string | null;
 }
 
 export interface RecordedConsent {
@@ -126,6 +142,64 @@ const normalisePurposeIds = (value: unknown): string[] | undefined => {
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
 	a.length === b.length && a.every((id, index) => id === b[index]);
 
+/** Receipts in a key-stable form, so two equal receipts serialise equally. */
+const canonicalChoice = (choice: SubjectChoiceWire | null | undefined) => {
+	if (!choice) {
+		return null;
+	}
+	const categories = Object.keys(choice.categories)
+		.sort()
+		.map((category) => {
+			const receipt =
+				choice.categories[category as keyof typeof choice.categories];
+			return receipt
+				? [
+						category,
+						receipt.value,
+						receipt.confirmedAt,
+						receipt.basis.kind,
+						receipt.basis.kind === 'choice-v1'
+							? receipt.basis.fingerprint
+							: (receipt.basis.materialFingerprint ?? null),
+					]
+				: [category];
+		});
+	return JSON.stringify(categories);
+};
+
+const storedChoice = (value: unknown): SubjectChoiceWire | null => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return parsed && typeof parsed === 'object'
+		? (parsed as SubjectChoiceWire)
+		: null;
+};
+
+/**
+ * The receipts stored on an existing row must match the ones resubmitted.
+ *
+ * Same reasoning as the purpose check: the id covers identity and not what
+ * was confirmed, so a resubmission with different receipts looks like a
+ * retry at the key level and has to be refused on content.
+ */
+const assertSameChoice = Effect.fn('consent.assertSameChoice')(
+	function* assertSameChoice(
+		storedRaw: unknown,
+		submitted: SubjectChoiceWire | null | undefined
+	) {
+		const stored = canonicalChoice(storedChoice(storedRaw));
+		const incoming = canonicalChoice(submitted);
+		if (stored === incoming) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				'A consent with this identity was already recorded with different ' +
+				'category receipts. Withdraw or supersede it rather than resubmitting ' +
+				'the same act with a different confirmation.',
+		});
+	}
+);
+
 /**
  * Fails when a stored consent covers different purposes from the one submitted.
  *
@@ -159,6 +233,17 @@ export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
 	}
 );
 
+/** Both content checks against a stored row, for the two paths that find one. */
+const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
+	function* assertSameSubmission(
+		stored: { purposeIds: unknown; choice: unknown } | undefined,
+		submission: ConsentSubmission
+	) {
+		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
+		yield* assertSameChoice(stored?.choice, submission.choice);
+	}
+);
+
 export const record = Effect.fn('consent.record')(function* record(
 	submission: ConsentSubmission
 ): Generator<
@@ -176,11 +261,17 @@ export const record = Effect.fn('consent.record')(function* record(
 	// double-clicking — is the common case in production, and this answers it
 	// in one indexed query. Measured: skipping this short-circuit and going
 	// straight to the legacy lookup made retries about twice as slow.
-	const existing = yield* sql<{ id: string; purposeIds: unknown }>`
-		select ${sql('id')}, ${sql('purposeIds')} from ${sql('consent')}
+	const existing = yield* sql<{
+		id: string;
+		purposeIds: unknown;
+		choice: unknown;
+	}>`
+		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}
+		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
-	if (existing.length > 0) {
+	const [found] = existing;
+	if (found) {
 		// The id covers identity — tenant, subject, domain, policy, givenAt — and
 		// deliberately not the purposes, because it has to stay byte-identical to
 		// the one `@c15t/backend` derives. So a resubmission carrying *different*
@@ -192,7 +283,7 @@ export const record = Effect.fn('consent.record')(function* record(
 		// Reported rather than folded in. Overwriting would rewrite a legal record
 		// in place with no audit entry, and changing the id to cover purposes
 		// would break the parity the derivation exists to preserve.
-		yield* assertSamePurposes(existing[0]?.purposeIds, submission.purposeIds);
+		yield* assertSameSubmission(found, submission);
 		return { created: false, id };
 	}
 
@@ -211,19 +302,30 @@ export const record = Effect.fn('consent.record')(function* record(
 		conflictOn: 'id',
 		into: 'consent',
 		values: {
+			choice:
+				submission.choice === undefined || submission.choice === null
+					? null
+					: JSON.stringify(submission.choice),
+			consentAction: submission.consentAction ?? null,
 			domainId: submission.domainId,
 			givenAt: submission.givenAt,
 			id,
 			ipAddress: submission.ipAddress ?? null,
+			jurisdiction: submission.jurisdiction ?? null,
+			jurisdictionModel: submission.jurisdictionModel ?? null,
 			metadata:
 				submission.metadata === undefined
 					? null
 					: JSON.stringify(submission.metadata),
 			policyId: submission.policyId ?? null,
 			purposeIds: JSON.stringify(submission.purposeIds),
+			runtimePolicySource: submission.runtimePolicySource ?? null,
 			subjectId: submission.subjectId,
+			tcString: submission.tcString ?? null,
 			tenantId: submission.tenantId ?? null,
+			uiSource: submission.uiSource ?? null,
 			userAgent: submission.userAgent ?? null,
+			validUntil: submission.validUntil ?? null,
 		},
 	});
 
@@ -237,10 +339,11 @@ export const record = Effect.fn('consent.record')(function* record(
 	// accepted while the winner's are what is stored. Rare, and precisely the
 	// case a deterministic key makes possible, so it is checked rather than
 	// reasoned about.
-	const winner = yield* sql<{ purposeIds: unknown }>`
-		select ${sql('purposeIds')} from ${sql('consent')} where ${sql('id')} = ${id}
+	const winner = yield* sql<{ purposeIds: unknown; choice: unknown }>`
+		select ${sql('purposeIds')}, ${sql('choice')} from ${sql('consent')}
+		where ${sql('id')} = ${id}
 	`;
-	yield* assertSamePurposes(winner[0]?.purposeIds, submission.purposeIds);
+	yield* assertSameSubmission(winner[0], submission);
 
 	return { created, id };
 });

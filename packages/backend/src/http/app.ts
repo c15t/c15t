@@ -8,6 +8,7 @@
  * readable.
  */
 
+import { POLICY_CONTRACT_HEADER, POLICY_CONTRACT_VERSION } from '@c15t/schema';
 import { isOriginTrusted } from '@c15t/schema/geo';
 import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
@@ -24,6 +25,7 @@ import { register as registerConsent } from './routes/consent';
 import { register as registerInit } from './routes/init';
 import { register as registerLegalDocument } from './routes/legal-document';
 import { register as registerManifest } from './routes/manifest';
+import { register as registerPrivacyDirective } from './routes/privacy-directive';
 import { register as registerStatus } from './routes/status';
 import { register as registerSubject } from './routes/subject';
 
@@ -69,10 +71,18 @@ export const createApp = function createApp(
 			);
 			c.header(
 				'Access-Control-Allow-Headers',
-				'Content-Type, Authorization, x-request-id, x-c15t-version, x-c15t-country, x-c15t-region, sec-gpc, accept-language'
+				`Content-Type, Authorization, x-request-id, x-c15t-version, ${POLICY_CONTRACT_HEADER}, x-c15t-country, x-c15t-region, sec-gpc, accept-language`
 			);
 			c.header('Access-Control-Max-Age', '86400');
 			return c.body(null, 204);
+		}
+
+		// Which policy contract this producer speaks, on every response and
+		// exposed to browsers, so a client can tell a negotiated producer from
+		// one that predates the contract without guessing from a version.
+		c.header(POLICY_CONTRACT_HEADER, String(POLICY_CONTRACT_VERSION));
+		if (allowed && origin) {
+			c.header('Access-Control-Expose-Headers', POLICY_CONTRACT_HEADER);
 		}
 
 		await runNext();
@@ -99,6 +109,7 @@ export const createApp = function createApp(
 	registerLegalDocument(context);
 	registerConsent(context);
 	registerSubject(context);
+	registerPrivacyDirective(context);
 
 	// Registered last so every route above is already on the app and appears
 	// in the generated document.

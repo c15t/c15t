@@ -60,6 +60,11 @@ export interface PolicySnapshotClaims {
 	readonly preselectedCategories?: readonly string[];
 	readonly gpc?: boolean;
 	readonly proofConfig?: unknown;
+	/**
+	 * v3 exact-policy fingerprint (`policyResolution.fingerprints.policy`).
+	 * Additive: `fingerprint` stays the legacy hash the decision row stores.
+	 */
+	readonly policyFingerprint?: string;
 }
 
 const resolveIssuer = function resolveIssuer(
@@ -127,6 +132,7 @@ export const createPolicySnapshotToken =
 			language: claims.language,
 			matchedBy: claims.matchedBy,
 			model: claims.model,
+			policyFingerprint: claims.policyFingerprint,
 			policyI18n: claims.policyI18n,
 			policyId: claims.policyId,
 			preselectedCategories: claims.preselectedCategories,

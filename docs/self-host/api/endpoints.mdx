@@ -6,6 +6,12 @@ group: self-host
 
 All endpoints are relative to your configured `basePath` (e.g. `/api/c15t`).
 
+## Policy contract header
+
+Every response carries `x-c15t-policy-contract: 1`, the policy wire contract this backend produces. Clients send the same header to declare the contract they read. The `@c15t/core` transports send it on every request. A client that declares a contract this backend does not produce receives `policyResolution` as `failed` with reason `unsupported-contract`; a client that sends no header predates the contract and reads the legacy `policy` field, which the manifest fills with the strictest v2 projection of each rule. The header is on the CORS allowlist and exposed to browsers.
+
+`x-c15t-version` stays telemetry only. Nothing is inferred from it.
+
 <Callout type="info">
   The backend auto-generates interactive API docs at `{basePath}/docs` using your OpenAPI spec. Visit this URL in a browser to explore endpoints with a visual UI.
 </Callout>
@@ -28,7 +34,18 @@ Returns the initial consent state for a client. This is the first call made by t
     "translations": { "...": "..." }
   },
   "branding": "c15t",
-  "gvl": null
+  "gvl": null,
+  "policyResolution": {
+    "version": 1,
+    "status": "matched",
+    "policyId": "eu_opt_in",
+    "matchedBy": "country",
+    "policy": { "...": "..." },
+    "fingerprints": { "policy": "…", "choice": "…", "notice": "…" }
+  },
+  "policy": { "...": "..." },
+  "policyDecision": { "...": "..." },
+  "policySnapshotToken": "…"
 }
 ```
 
@@ -39,6 +56,11 @@ Returns the initial consent state for a client. This is the first call made by t
 | `translations` | Server-side translations based on `Accept-Language` |
 | `branding` | Branding configuration |
 | `gvl` | Global Vendor List (if IAB TCF is enabled) |
+| `policyResolution` | The v3 outcome: `unconfigured`, `matched`, `no-match` or `failed` (with a `reason`). `policy` is `null` for every status except `matched`. Always present |
+| `policy`, `policyDecision` | The v2 projection for clients that predate the contract. Removed in the v3 final sweep |
+| `policySnapshotToken` | Signed evidence of the decision, when `policySnapshot.signingKey` is configured. Sent back on `POST /subjects` |
+
+The response is `Cache-Control: no-store` and varies on `x-c15t-policy-contract`.
 
 ## GET /status
 
@@ -61,7 +83,7 @@ Health check endpoint. Returns server version and client info.
 
 ## POST /subjects
 
-Records a consent event. This is an append-only operation — every call creates a new consent record.
+Records a consent event. This is an append-only operation — every call creates a new consent record, and a replay of the same submission returns the record it already created.
 
 **Request:**
 
@@ -75,7 +97,18 @@ Records a consent event. This is an append-only operation — every call creates
     "measurement": true,
     "marketing": false
   },
+  "choice": {
+    "version": 3,
+    "categories": {
+      "marketing": {
+        "value": false,
+        "confirmedAt": 1707648000000,
+        "basis": { "kind": "choice-v1", "fingerprint": "…" }
+      }
+    }
+  },
   "givenAt": 1707648000000,
+  "policySnapshotToken": "…",
   "metadata": {}
 }
 ```
@@ -85,25 +118,41 @@ Records a consent event. This is an append-only operation — every call creates
 | `type` | string | Yes | `cookie_banner`, `privacy_policy`, `dpa`, `terms_and_conditions`, `marketing_communications`, `age_verification`, `other`. Legal-document types (`privacy_policy`, `dpa`, `terms_and_conditions`) also accept suffixed variants, e.g. `terms_and_conditions_b2b`, so multiple policies of one family can be active at once |
 | `subjectId` | string | Yes | Client-generated subject identifier |
 | `domain` | string | Yes | Domain where consent was given |
-| `preferences` | object | No | Consent category preferences (for `cookie_banner` type) |
-| `givenAt` | number | Yes | Epoch timestamp |
-| `policyId` | string | No | Associated policy ID |
+| `preferences` | object | No | The subject's explicit category values (for `cookie_banner` type). Granted categories fill `purposeIds`, as in 2.x |
+| `choice` | object | No | v3 receipts for exactly the categories this act confirmed, each with the client's own `confirmedAt` and policy `basis`. Stored as sent |
+| `givenAt` | number | Yes | Epoch milliseconds when the subject acted |
+| `policySnapshotToken` | string | No | The token `/init` issued. Verified when present |
+| `policyId`, `fingerprint`, `country`, `region`, `language`, `gpc` | mixed | No | Manifest-mode decision assertion. Recomputed through the same resolver `/init` uses |
 | `metadata` | object | No | Arbitrary metadata |
 | `externalSubjectId` | string | No | External user ID for cross-device linking |
 | `identityProvider` | string | No | Identity provider name |
+
+Timestamps are recorded as sent, never adjusted. `givenAt` and every `confirmedAt` must be a safe non-negative epoch millisecond integer no later than the server clock; a later value is a `400`, so a client clock ahead of the server is visible rather than silently rewritten.
+
+A save without `choice` is the 2.x shape. The values in `preferences` are stored as `legacy-v2` receipts timed at `givenAt`, so a refusal such a client submitted survives. A save with `choice` stores the receipts it carries and nothing for categories it did not mention, so a partial save never renews a category the subject did not touch. A receipt that grants a category outside the resolved policy's scope is refused (`CHOICE_OUT_OF_SCOPE`); a refusal outside scope is kept.
+
+**Decision evidence.** With `policySnapshot.signingKey` configured and a matching policy, a submission must carry the token `/init` issued: an invalid token is `409 POLICY_SNAPSHOT_INVALID`, a missing one is `409 POLICY_SNAPSHOT_REQUIRED`. Without a token, asserted manifest-mode inputs are recomputed; a mismatch or a partial set is `422 STALE_POLICY`. The decision is recorded on `runtimePolicyDecision` and linked from the consent.
 
 **Response:**
 
 ```json
 {
-  "subject": { "id": "sub_abc123", "...": "..." },
-  "consent": { "id": "con_xyz789", "type": "cookie_banner", "...": "..." }
+  "ok": true,
+  "subjectId": "sub_abc123",
+  "consentId": "cns_…",
+  "domainId": "dom_…",
+  "domain": "example.com",
+  "type": "cookie_banner",
+  "givenAt": "2024-02-11T10:40:00.000Z",
+  "appliedPreferences": { "necessary": true, "measurement": true, "marketing": false }
 }
 ```
 
+A replay with the same identity but different `preferences` or `choice` is `400 CONFLICT`: the record is not silently rewritten.
+
 ## GET /subjects/:id
 
-Retrieves consent status for a subject.
+Retrieves consent status for a subject. The subject id is the capability; the route is unauthenticated, like the save.
 
 **Query Parameters:**
 
@@ -115,23 +164,42 @@ Retrieves consent status for a subject.
 
 ```json
 {
-  "subject": { "id": "sub_abc123" },
+  "subject": { "id": "sub_abc123", "externalId": "user_12345", "identityProvider": "auth0" },
   "consents": [
     {
-      "id": "con_xyz789",
+      "id": "cns_…",
       "type": "cookie_banner",
       "givenAt": "2026-02-11T12:00:00.000Z",
-      "jurisdiction": "GDPR",
-      "preferences": { "necessary": true, "measurement": true }
+      "preferences": { "necessary": true, "measurement": true },
+      "choice": { "version": 3, "categories": { "...": "..." } }
     }
   ],
-  "isValid": true
+  "isValid": true,
+  "subjectChoice": {
+    "version": 3,
+    "categories": {
+      "marketing": { "value": false, "confirmedAt": 1707648000000, "basis": { "kind": "choice-v1", "fingerprint": "…" } },
+      "measurement": { "value": true, "confirmedAt": 1707561600000, "basis": { "kind": "legacy-v2" } }
+    }
+  },
+  "privacyDirectives": [
+    { "id": "pdr_…", "authority": "subject", "source": "gpc", "categories": ["marketing"], "recordedAt": 1707648000000, "signalHeader": true }
+  ]
 }
 ```
 
+| Field | Description |
+| --- | --- |
+| `consents[].preferences` | Granted codes, as 2.x reported them |
+| `consents[].choice` | The receipts that submission confirmed, exactly as sent. Absent on rows written before receipts existed |
+| `subjectChoice` | The latest receipt per category across the cookie-banner consents, with each receipt's original time and basis. A row written by the 2.x backend contributes a `legacy-v2` grant for each code it holds and nothing for the rest: an absent code is historical omission, not a refusal |
+| `privacyDirectives` | The standing privacy directives that apply to this subject. See below |
+
+The `@c15t/core` hosted transport reads this route through `loadSubjectRecord(subjectId)` and hands the kernel hydration records with these facts intact.
+
 ## PATCH /subjects/:id
 
-Links a subject to an external user ID for cross-device consent resolution.
+Links a subject to an external user ID for cross-device consent resolution. Who asserts the link is recorded: `api` when the request carries a valid API key, `browser` otherwise. Only an `api` link lets the subject read identity-level privacy directives. Links recorded before this distinction existed are untrusted.
 
 **Request:**
 
@@ -153,6 +221,44 @@ Links a subject to an external user ID for cross-device consent resolution.
   }
 }
 ```
+
+## POST /subjects/:id/privacy-directives
+
+Records a standing privacy directive for a subject from a user-agent signal (Global Privacy Control). A directive is a privacy request, not a consent: it writes no consent row, no runtime decision and no `consent_given` audit entry, and a later consent save never removes it. The `@c15t/core` transports call this route through `recordPrivacyOptOut`, never the consent-saving route.
+
+**Request:**
+
+```json
+{ "source": "gpc", "categories": ["marketing", "measurement"], "recordedAt": 1707648000000 }
+```
+
+`categories` are optional categories (`necessary` is refused); `recordedAt` may not be later than the server clock. The directive reaches this subject only. Whether the request itself carried `Sec-GPC: 1` is recorded as `signalHeader`. No client IP or user agent is stored for a directive.
+
+**Response:**
+
+```json
+{ "ok": true, "created": true, "directive": { "id": "pdr_…", "authority": "subject", "source": "gpc", "categories": ["marketing", "measurement"], "recordedAt": 1707648000000, "signalHeader": true } }
+```
+
+## GET /subjects/:id/privacy-directives
+
+The directives that apply to a subject: its own, plus identity-level directives (below) when the subject's link to that identity was asserted through an authenticated request. A link a browser asserted through the public `PATCH /subjects/:id` never exposes another person's identity-level directives and never carries a directive onto another profile.
+
+## POST /privacy-directives (Authenticated)
+
+Records a directive for an external identity, so it applies to every subject holding a trusted link to `(externalId, identityProvider)` in this tenant. This is the only path that reaches beyond one subject.
+
+**Request:**
+
+```json
+{ "externalId": "user_12345", "identityProvider": "auth0", "source": "gpc", "categories": ["marketing"], "recordedAt": 1707648000000 }
+```
+
+The response adds `subjects`, the number of subjects currently linked to that identity.
+
+## GET /privacy-directives (Authenticated)
+
+`?externalId=&identityProvider=` returns the identity-level directives for an identity, for a host that projects a person's standing privacy requests into its own session rather than through a browser-asserted link.
 
 ## GET /consents/check
 

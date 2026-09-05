@@ -26,6 +26,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import type { DrainContext } from 'evlog';
 
 import { up as baseline } from '../db/migrations/1-baseline';
+import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
 import { resolveOptions } from './evlog';
@@ -50,6 +51,7 @@ const withApp = async <A>(
 		// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
 		Effect.gen(function* withApp() {
 			yield* baseline;
+			yield* receipts;
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`
 				insert into ${sql('domain')} ${sql.insert({
@@ -148,10 +150,11 @@ describe("observability: level 'info'", () => {
 		const { events, drain } = collect();
 
 		const body = {
-			domainId: 'dom_1',
-			givenAt: new Date(1_800_000_000_000).toISOString(),
-			purposeIds: ['analytics'],
-			subjectId: 'sub_wide_event',
+			domain: 'example.com',
+			givenAt: 1_700_000_000_000,
+			preferences: { analytics: true, necessary: true },
+			subjectId: 'sub_wideevent',
+			type: 'cookie_banner',
 		};
 		const post = () =>
 			new Request('http://localhost/subjects', {

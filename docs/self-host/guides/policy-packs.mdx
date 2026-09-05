@@ -398,6 +398,25 @@ Legacy `policyPacks` still work. The builder lifts each `PolicyConfig` to a rule
 
 A client that does not understand the contract still receives the v2 fields. A rule the v2 shape cannot express without widening permissions (a `notice` prompt, any GPC mapping, a restricted or strict IAB scope) projects to the strictest v2 shape, an opt-in banner. That projection is a shape, not a guarantee: an old client with a stored grant skips the banner and applies the grant. `describeLegacyProjection()` reports what each rule loses so you can decide whether old clients may receive it at all. New clients declare their supported contract with the `x-c15t-policy-contract: 1` request header.
 
+### Negotiation on the backend
+
+`c15tInstance({ manifest: { policyRules } })` builds the manifest from rules. The backend answers every request with `x-c15t-policy-contract: 1`, allows the header through CORS, and:
+
+- serves `policyResolution` to every client, header or not, so a v3 client behind a proxy that strips headers still gets exact semantics;
+- answers a client that declares a contract other than `1` with `policyResolution: { status: 'failed', reason: 'unsupported-contract', policy: null }`, which the client turns into the safe opt-in choice prompt;
+- keeps the v2 `policy` field as the projection for clients that send no header;
+- logs `policyFailure` once at startup when the configured rules do not validate, because every `/init` then resolves as `failed`.
+
+The manifest's ETag is its revision, which covers the normalized rules and their fingerprints: a change to a rule's GPC mapping, copy revision, scope or validity moves the ETag, a cosmetic change outside the rule does not.
+
+### What an old client actually does
+
+This was measured with the original v3 runtime and its own hosted and manifest transports, not inferred from the projection. Against a backend configured with an opt-out `notice` rule that maps GPC to marketing and measurement, an old client with no stored choice denies both categories and shows the opt-in banner. An old client that already holds stored grants for those categories keeps them and shows no banner, under GPC included. The backend cannot revoke authority an old runtime already granted from its own storage; header negotiation and a stricter response shape do not change that. If your deployment has old cached clients and rules they cannot represent, plan the client upgrade before relying on the rule.
+
+### Receipts on the write path
+
+`POST /subjects` accepts the receipts a v3 client confirms (`choice`) and stores them on the consent row as sent. Migration `3-consent-receipts-and-privacy-directives` adds the `consent.choice` column, the `subject.identityAuthority` column and the `privacyDirective` table; run `@c15t/cli self-host migrate` (or `createMigrator`) before deploying this version. See the [API reference](/docs/self-host/api/endpoints) for the read and privacy-directive routes.
+
 ## Edge Cases
 
 | Configuration | Result |
