@@ -5,15 +5,17 @@ import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
+// Subpath imports on purpose: the package root also re-exports the CSS-layer
+// React runtime, which `tsx` cannot load (it imports `.css`).
+import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
-	BENCHMARK_SCHEMA_VERSION,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking';
-import type { BenchmarkResult } from '@c15t/benchmarking';
+} from '@c15t/benchmarking/utils';
 
 interface ClientAssetSize {
 	fileName: string;
