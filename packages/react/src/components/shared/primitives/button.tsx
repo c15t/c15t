@@ -2,8 +2,8 @@ import type { AllConsentNames } from '@c15t/core';
 import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { MouseEvent } from 'react';
 
-import { useConsentDraft } from '~/draft';
-import { useSaveConsents, useSetActiveUI, useDismissNotice } from '~/hooks';
+import { useConsentSaveAction } from '~/draft';
+import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -140,9 +140,8 @@ export const ConsentButton = createForwardRef<
 		},
 		ref
 	) => {
-		const saveConsents = useSaveConsents();
+		const saveConsents = useConsentSaveAction();
 		const setActiveUI = useSetActiveUI();
-		const { save: saveDraft } = useConsentDraft();
 		const dismissNotice = useDismissNotice();
 		const { noStyle: contextNoStyle, theme } = useTheme();
 		const { components } = useUIConfig();
@@ -210,7 +209,7 @@ export const ConsentButton = createForwardRef<
 							saveConsents('none');
 							break;
 						case 'custom-consent':
-							void saveDraft();
+							void saveConsents();
 							break;
 						case 'dismiss-notice':
 							void dismissNotice();
@@ -235,7 +234,6 @@ export const ConsentButton = createForwardRef<
 				setActiveUI,
 				action,
 				category,
-				saveDraft,
 				dismissNotice,
 				performDefaultAction,
 			]

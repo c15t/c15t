@@ -75,6 +75,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'frameworks/javascript/script-loader.mdx',
 			'frameworks/react/script-loader.mdx',
 			'frameworks/next/script-loader.mdx',
+			'shared/react/guides/script-loader.mdx',
 			'integrations/**/*.mdx',
 		],
 		name: '@c15t/scripts',

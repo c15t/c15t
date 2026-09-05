@@ -39,6 +39,7 @@ import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
 import { useUIConfig } from './ui-config-context';
+import { invalidateConsentUIAction } from './ui-save';
 
 const useKernel = function useKernel(): ConsentKernel {
 	const kernel = useContext(KernelContext);
@@ -231,11 +232,13 @@ export const useSetActiveUI = function useSetActiveUI(): (
 	ui: KernelActiveUI
 ) => void {
 	const kernel = useKernel();
-	return (
-		kernel.set as typeof kernel.set & {
-			activeUI: (ui: KernelActiveUI) => void;
-		}
-	).activeUI;
+	return useCallback(
+		(ui: KernelActiveUI) => {
+			invalidateConsentUIAction(kernel);
+			kernel.set.activeUI(ui);
+		},
+		[kernel]
+	);
 };
 
 /**

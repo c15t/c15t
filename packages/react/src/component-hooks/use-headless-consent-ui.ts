@@ -8,12 +8,11 @@ import type {
 } from '@c15t/core';
 import { useCallback, useEffect, useMemo } from 'react';
 
-import { useConsentDraft } from '../draft';
+import { useConsentSaveAction } from '../draft';
 import {
 	useActiveUI,
 	useDismissNotice,
 	usePolicyRule,
-	useSaveConsents,
 	useSetActiveUI,
 } from '../hooks';
 import { useTheme } from '../hooks/use-theme';
@@ -58,10 +57,9 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 			reject: { ...styles.default, ...styles.reject },
 		};
 	}, [theme]);
-	const saveConsents = useSaveConsents();
+	const saveConsents = useConsentSaveAction();
 	const dismissNotice = useDismissNotice();
 	const setActiveUI = useSetActiveUI();
-	const { save: saveDraft } = useConsentDraft();
 	const banner = useMemo(
 		() => ({
 			...resolveConsentPresentation({
@@ -113,7 +111,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 				case 'reject':
 					return saveConsents('none');
 				case 'save':
-					return saveDraft();
+					return saveConsents();
 				case 'dismiss':
 					return dismissNotice();
 				case 'customize':
@@ -122,7 +120,7 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 					return undefined;
 			}
 		},
-		[saveConsents, saveDraft, dismissNotice, setActiveUI]
+		[saveConsents, dismissNotice, setActiveUI]
 	);
 	return {
 		activeUI,
@@ -134,6 +132,6 @@ export const useHeadlessConsentUI = function useHeadlessConsentUI(
 		performAction,
 		performBannerAction: performAction,
 		performDialogAction: performAction,
-		saveCustomPreferences: saveDraft,
+		saveCustomPreferences: saveConsents,
 	};
 };

@@ -32,6 +32,13 @@ group: reference
   `saveConsents('necessary')` rejects it. Necessary remains allowed. None of these
   operations dismisses a required notice. Use `useDismissNotice` for that action.
 
+  An open preferences dialog stays visible while a save is pending or fails.
+  A successful save closes it or returns to a required notice. Edits made while
+  the request is pending remain in the draft, and older requests cannot close
+  a dialog opened by a later action. This also applies to stock controls and
+  headless UI actions. The low-level `useSaveConsents` hook retains the kernel
+  save behavior for callers that manage their own interface.
+
   Reconfirmation renews only supplied receipts. Material policy changes invalidate
   a dirty draft until reviewed. Read effective restrictions separately from selected
   values. The old direct `setConsent` and `resetConsents` hook methods are removed;

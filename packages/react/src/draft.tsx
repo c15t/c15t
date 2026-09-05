@@ -6,9 +6,11 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	SaveResult,
+	SaveInput,
 } from '@c15t/core';
 import {
 	createContext,
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -17,8 +19,9 @@ import {
 } from 'react';
 import type { ReactNode } from 'react';
 
-import { KernelContext } from './context';
+import { KernelContext, ProviderServicesContext } from './context';
 import { useUIConfig } from './ui-config-context';
+import { saveConsentUI } from './ui-save';
 
 /** A local, unmasked selection, committed only by an explicit save. */
 export interface ConsentDraftHandle {
@@ -64,6 +67,8 @@ const createDraftStore = function createDraftStore(
 	kernel: ConsentKernel,
 	defaults?: Partial<ConsentState>
 ) {
+	let revision = 0;
+	let saveSequence = 0;
 	let source = kernel.getSnapshot();
 	let base = seed(source, defaults);
 	let { fingerprint } = source.evaluationPolicy.choice;
@@ -81,6 +86,7 @@ const createDraftStore = function createDraftStore(
 		}
 	};
 	const reset = () => {
+		revision += 1;
 		source = kernel.getSnapshot();
 		base = seed(source, defaults);
 		({ fingerprint } = source.evaluationPolicy.choice);
@@ -105,6 +111,7 @@ const createDraftStore = function createDraftStore(
 			}
 		}
 		if (changed) {
+			revision += 1;
 			publish({
 				...current,
 				isDirty: current.displayedCategories.some(
@@ -152,7 +159,11 @@ const createDraftStore = function createDraftStore(
 			);
 		},
 		reset,
-		async save(): Promise<SaveResult> {
+		async save(
+			input?: SaveInput,
+			categories?: readonly AllConsentNames[],
+			onSuccess?: () => void
+		): Promise<SaveResult> {
 			// Guard against changes between the render and the click as well.
 			if (
 				fingerprint !==
@@ -163,14 +174,27 @@ const createDraftStore = function createDraftStore(
 				return { ok: false };
 			}
 			const patch: Partial<ConsentState> = {};
+			const selection = new Set(categories ?? current.displayedCategories);
 			for (const category of current.displayedCategories) {
-				if (category !== 'necessary') {
+				if (category !== 'necessary' && selection.has(category)) {
 					patch[category] = current.values[category];
 				}
 			}
-			const result = await kernel.commands.save(patch);
-			if (result.ok) {
+			saveSequence += 1;
+			const sequence = saveSequence;
+			const pending = kernel.commands.save(input ?? patch, { categories });
+			// A clean draft can reseed synchronously from the local receipt.
+			const savedRevision = revision;
+			const result = await pending;
+			if (
+				result.ok &&
+				sequence === saveSequence &&
+				revision === savedRevision &&
+				!current.isStale &&
+				fingerprint === kernel.getSnapshot().evaluationPolicy.choice.fingerprint
+			) {
 				reset();
+				onSuccess?.();
 			}
 			return result;
 		},
@@ -217,8 +241,7 @@ export const ConsentDraftProvider = ({
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
 	);
 };
-/** Read and edit displayed choices without replacing masked effective permissions. */
-export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
+const useDraftStore = function useDraftStore() {
 	const kernel = useKernel();
 	const shared = useContext(DraftContext);
 	const { presentation } = useUIConfig();
@@ -228,6 +251,31 @@ export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
 	void setLocal;
 	const store = shared ?? local;
 	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
+	return store;
+};
+
+const useSaveAction = function useSaveAction(store: DraftStore) {
+	const kernel = useKernel();
+	const services = useContext(ProviderServicesContext);
+	return useCallback(
+		(input?: SaveInput) => {
+			let current = false;
+			return saveConsentUI(
+				kernel,
+				() =>
+					store.save(input, services?.getConsentCategories(), () => {
+						current = true;
+					}),
+				() => current
+			);
+		},
+		[kernel, store, services]
+	);
+};
+
+const useDraftHandle = function useDraftHandle(
+	store: DraftStore
+): ConsentDraftHandle {
 	const snapshot = useSyncExternalStore(
 		store.subscribe,
 		store.getSnapshot,
@@ -245,4 +293,20 @@ export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
 		}),
 		[snapshot, store]
 	);
+};
+
+/** Internal UI save path shared by stock controls and headless actions. */
+export const useConsentSaveAction = function useConsentSaveAction() {
+	return useSaveAction(useDraftStore());
+};
+
+/** Keep the compatibility manager selection and its save on the same draft. */
+export const useConsentManagerDraft = function useConsentManagerDraft() {
+	const store = useDraftStore();
+	return { draft: useDraftHandle(store), save: useSaveAction(store) };
+};
+
+/** Read and edit displayed choices without replacing masked effective permissions. */
+export const useConsentDraft = function useConsentDraft(): ConsentDraftHandle {
+	return useDraftHandle(useDraftStore());
 };

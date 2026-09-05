@@ -14,7 +14,7 @@ import type {
 import { evaluateConsent } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 
-import { useConsentDraft } from '../draft';
+import { useConsentManagerDraft } from '../draft';
 import {
 	useActiveUI,
 	useBranding,
@@ -24,7 +24,6 @@ import {
 	usePolicyCategories,
 	usePreferencesPresentation,
 	usePolicyScopeMode,
-	useSaveConsents,
 	useSetActiveUI,
 	useSnapshot,
 	useSubscribeToConsentChanges,
@@ -105,11 +104,10 @@ export const useConsentManager = function useConsentManager() {
 	const policyCategoriesSnapshot = usePolicyCategories();
 	const policyDialog = usePreferencesPresentation();
 	const policyScopeMode = usePolicyScopeMode();
-	const saveKernelConsents = useSaveConsents();
+	const { draft, save: saveKernelConsents } = useConsentManagerDraft();
 	const setKernelActiveUI = useSetActiveUI();
 	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
 	const translations = useTranslations();
-	const draft = useConsentDraft();
 
 	const translationConfig = useMemo(
 		() => toTranslationConfig(translations),
@@ -150,19 +148,13 @@ export const useConsentManager = function useConsentManager() {
 
 	const saveConsents = useCallback(
 		async (type: SaveType, _options?: { uiSource?: string }) => {
-			if (type === 'all') {
-				await saveKernelConsents('all');
-				draft.reset();
+			if (type === 'custom') {
+				await saveKernelConsents();
 				return;
 			}
-			if (type === 'necessary') {
-				await saveKernelConsents('none');
-				draft.reset();
-				return;
-			}
-			await draft.save();
+			await saveKernelConsents(type === 'all' ? 'all' : 'none');
 		},
-		[draft, saveKernelConsents]
+		[saveKernelConsents]
 	);
 
 	const setSelectedConsent = useCallback(
