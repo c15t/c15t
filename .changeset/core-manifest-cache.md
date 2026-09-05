@@ -9,3 +9,5 @@ Add `@c15t/core/transports/manifest-cache` (also `c15t/transports/manifest-cache
 
 `fetchCachedManifest` also coalesces concurrent misses for the same URL into one upstream request, treats an explicit `s-maxage=0` as revalidate-on-every-use instead of applying the dedupe floor, and accepts `headers` for the upstream request so a private manifest can carry a cookie or an authentication header.
 
+Restrictive directives win: `no-store`, `no-cache`, and `private` are never cached even alongside a positive `s-maxage`. Entries and in-flight requests are partitioned by a digest of the forwarded headers, and credentials are refused over plain `http:` except to loopback hosts. `getMatchingPrefetchedInitialData` and `primePrefetchedInitialData` are exported so framework adapters can hand a head-prefetched init response to the provider.
+

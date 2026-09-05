@@ -42,6 +42,7 @@ import type {
 
 import { proxyConsentRequest, resolveProxyOptions } from './libs/proxy';
 import type { ConsentProxyOptions } from './libs/proxy';
+import { readConsentInputs } from './libs/request-inputs';
 import { resolveRequestURL } from './libs/request-url';
 
 export type { ConsentProxyOptions } from './libs/proxy';
@@ -86,6 +87,18 @@ export interface ConsentServerRouteOptions {
 	cache?: ManifestCache;
 
 	/**
+	 * Resolve a relative `backendURL` or `manifestURL` against the
+	 * request's `x-forwarded-host` and `x-forwarded-proto` instead of
+	 * `request.url`. Off by default: those headers are client-controlled
+	 * unless a trusted proxy strips them, and with the proxy enabled a
+	 * forged one would redirect consent saves. Turn it on only behind such
+	 * a proxy.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
+
+	/**
 	 * Forward consent traffic to `backendURL` through this route, so the
 	 * browser only ever talks to the app's own origin and `ConsentBoundary`
 	 * can take `backendURL="/api/c15t"`, the way a Next.js app uses a
@@ -99,8 +112,9 @@ export interface ConsentServerRouteOptions {
 	 * anything else is a 404, so the route is never an open proxy.
 	 *
 	 * The proxy forwards the browser's identity headers (`user-agent`,
-	 * `accept-language`, `cookie`, `origin`, `referer`, `sec-gpc`, the geo
-	 * headers) and the real client IP in `x-forwarded-for`, and adds
+	 * `accept-language`, `origin`, `referer`, `sec-gpc`, the geo headers),
+	 * cookies only when {@link ConsentProxyOptions.cookieNames} names them,
+	 * and the real client IP in `x-forwarded-for`, and adds
 	 * `x-forwarded-host`, `x-forwarded-proto`, the c15t version header, and
 	 * `x-c15t-proxy: @c15t/tanstack-start`. The hosted backend sits behind
 	 * Vercel Firewall or Cloudflare, and a bare server-to-server fetch (server
@@ -206,7 +220,11 @@ const resolveBackendURL = function resolveBackendURL(
 			'@c15t/tanstack-start/api: configure backendURL, C15T_BACKEND_URL, or C15T_MANIFEST_URL.'
 		);
 	}
-	const resolved = resolveRequestURL(backendURL, request);
+	const resolved = resolveRequestURL(
+		backendURL,
+		request,
+		options.trustForwardedHeaders ?? false
+	);
 	if (!resolved) {
 		throw new Error('@c15t/tanstack-start/api: invalid backendURL.');
 	}
@@ -219,7 +237,11 @@ const resolveSourceURL = function resolveSourceURL(
 ): string {
 	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
 	if (manifestURL) {
-		const resolved = resolveRequestURL(manifestURL, request);
+		const resolved = resolveRequestURL(
+			manifestURL,
+			request,
+			options.trustForwardedHeaders ?? false
+		);
 		if (!resolved) {
 			throw new Error('@c15t/tanstack-start/api: invalid manifestURL.');
 		}
@@ -341,10 +363,15 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			fetch: resolved.fetch,
 			sourceURL: resolveSourceURL(request, resolved),
 		});
-		const payload = resolveManifestInit({
-			headers: request.headers,
-			manifest: cached.manifest,
-		});
+		const remembered = readConsentInputs(request);
+		const payload = resolveManifestInit(
+			remembered
+				? {
+						inputs: { ...remembered, language: remembered.language ?? 'en' },
+						manifest: cached.manifest,
+					}
+				: { headers: request.headers, manifest: cached.manifest }
+		);
 
 		if (shouldFetchGvl(cached.manifest, payload) && cached.manifest.iab?.gvl) {
 			const language = payload.translations.language.split('-')[0] || 'en';

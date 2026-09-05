@@ -162,11 +162,12 @@ describe('createConsentServerRoute: manifest passthrough', () => {
 });
 
 describe('createConsentServerRoute: backend resolution', () => {
-	test('relative backendURL resolves from forwarded headers', async () => {
+	test('relative backendURL resolves from forwarded headers when trusted', async () => {
 		const fetchSpy = createManifestFetch();
 		const { manifestGET } = createRoute({
 			backendURL: '/consent',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			trustForwardedHeaders: true,
 		});
 
 		await manifestGET({
@@ -222,5 +223,65 @@ describe('createConsentServerRoute: GVL', () => {
 		});
 
 		expect(fetchGvl).not.toHaveBeenCalled();
+	});
+});
+
+describe('createConsentServerRoute: GVL and forwarded hosts', () => {
+	test('fetches the GVL for the resolved language when the manifest enables IAB', async () => {
+		const fetchGvl = vi
+			.fn()
+			.mockResolvedValue({ vendors: { '1': { name: 'Vendor' } } });
+		const iabManifest = {
+			...MANIFEST_FIXTURE,
+			iab: {
+				enabled: true,
+				gvl: { url: 'https://gvl.example/vendor-list.json' },
+			},
+			policyPacks: undefined,
+		};
+		const fetch = vi.fn().mockImplementation(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(iabManifest), {
+					headers: { 'content-type': 'application/json' },
+					status: 200,
+				})
+			)
+		);
+		const { initGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			fetchGvl,
+		});
+
+		const response = await initGET({
+			request: request('/api/c15t/init', {
+				'accept-language': 'de-DE,de;q=0.9',
+			}),
+		});
+		const payload = (await response.json()) as { gvl?: unknown };
+
+		expect(fetchGvl).toHaveBeenCalledWith(
+			expect.objectContaining({
+				language: 'de',
+				reference: { url: 'https://gvl.example/vendor-list.json' },
+			})
+		);
+		expect(payload.gvl).toEqual({ vendors: { '1': { name: 'Vendor' } } });
+	});
+
+	test('resolves a relative backendURL against request.url, not a forged x-forwarded-host', async () => {
+		const fetch = createManifestFetch();
+		const { manifestGET } = createRoute({
+			backendURL: '/consent-backend',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+		});
+		await manifestGET({
+			request: request('/api/c15t/manifest', {
+				'x-forwarded-host': 'evil.example',
+			}),
+		});
+		expect(fetch.mock.calls[0]?.[0]).toBe(
+			'https://app.example.com/consent-backend/manifest'
+		);
 	});
 });

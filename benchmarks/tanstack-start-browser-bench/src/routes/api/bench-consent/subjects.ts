@@ -7,11 +7,18 @@ export const Route = createFileRoute('/api/bench-consent/subjects')({
 		handlers: {
 			POST: async ({ request }) => {
 				recordBenchConsentFixtureExecution('subjects');
-				const body = (await request.json()) as { subjectId?: string };
+				const parsed: unknown = await request.json().catch(() => undefined);
+				const subjectId =
+					parsed !== null &&
+					typeof parsed === 'object' &&
+					'subjectId' in parsed &&
+					typeof parsed.subjectId === 'string'
+						? parsed.subjectId
+						: 'benchmark-subject';
 				return Response.json(
 					{
 						ok: true,
-						subjectId: body.subjectId ?? 'benchmark-subject',
+						subjectId,
 					},
 					{
 						headers: {

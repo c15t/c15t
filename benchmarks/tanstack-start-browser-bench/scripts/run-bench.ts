@@ -776,12 +776,14 @@ const run = async function run() {
 				`${logs || 'TanStack Start browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
 			);
 		} else if (
-			server.exitCode === null ||
-			(server.exitCode === undefined &&
-				server.signalCode !== null &&
-				server.signalCode !== undefined &&
-				!expectedServerShutdownSignals.has(server.signalCode))
+			(server.exitCode === null || server.exitCode === undefined) &&
+			!(
+				server.signalCode &&
+				expectedServerShutdownSignals.has(server.signalCode)
+			)
 		) {
+			// Killed by a signal we did not send, or still running after the
+			// bounded wait (both status fields unset).
 			serverFailure = new Error(
 				`${logs || 'TanStack Start browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`
 			);

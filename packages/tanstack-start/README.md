@@ -57,7 +57,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ## Usage
 
-1. Mount the consent server route so the client has same-origin `manifest` and `init` endpoints; add `proxy: true` to also forward consent saves through it and point `ConsentBoundary` at `/api/c15t`
+1. Mount the consent server route so the client has same-origin `manifest` and `init` endpoints (the snippets below use this default; optionally add `proxy: true` and point `ConsentBoundary` at `/api/c15t` to also route consent saves through it)
 2. Resolve the consent config in the root route loader with a server function
 3. Wrap the app in `ConsentBoundary` and add `ConsentBanner` and `ConsentDialog`
 4. For full implementation details, see the [TanStack Start quickstart docs](https://c15t.com/docs/frameworks/tanstack-start/quickstart)

@@ -75,3 +75,15 @@ describe('@c15t/tanstack-start/static', () => {
 		expect(source).toContain('satisfies ConsentManifest');
 	});
 });
+
+describe('createStaticManifestModule: exportName', () => {
+	test('rejects an exportName that is not an identifier', async () => {
+		await expect(
+			createStaticManifestModule({
+				exportName: 'consent-manifest',
+				fetch: vi.fn() as unknown as typeof globalThis.fetch,
+				manifestURL: 'https://consent.example.com/manifest',
+			})
+		).rejects.toThrow(/valid identifier/u);
+	});
+});

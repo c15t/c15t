@@ -41,7 +41,8 @@ export const DEFAULT_PROXY_PATHS: readonly string[] = [
  * Browser headers forwarded upstream. Everything else the browser sent is
  * dropped: `host`, `content-length`, and the hop-by-hop set are wrong for
  * the upstream connection, and unknown headers must not leak through a
- * same-origin route.
+ * same-origin route. `cookie` is listed but only forwarded when
+ * `cookieNames` names the cookies to send.
  */
 export const DEFAULT_FORWARD_HEADERS: readonly string[] = [
 	'accept',
@@ -95,19 +96,33 @@ export interface ConsentProxyOptions {
 	forwardHeaders?: readonly string[];
 
 	/**
-	 * Cookie names to forward. By default the whole `Cookie` header goes
-	 * upstream, which the backend needs for its own consent cookies but also
-	 * carries any session cookie your origin sets. Pass the names c15t needs,
-	 * for example `['c15t']`, to keep the rest on your origin.
+	 * Cookie names to forward upstream. No cookies are forwarded by default:
+	 * the c15t backend does not read cookies, and the consent cookie is
+	 * written and read in the browser, so nothing from your origin's cookie
+	 * jar needs to leave. Set this only for a backend that expects one.
 	 */
 	cookieNames?: readonly string[];
+
+	/**
+	 * Deadline for the upstream response, in milliseconds. Bounds how long a
+	 * stalled backend can hold an app server connection. The signal covers
+	 * the whole exchange, body included, so keep it above the time the
+	 * largest consent payload needs.
+	 *
+	 * @default 10000
+	 */
+	timeoutMs?: number;
 }
+
+/** Deadline applied to upstream requests when none is configured. */
+export const DEFAULT_PROXY_TIMEOUT_MS = 10_000;
 
 /** Resolved proxy configuration shared by the handler factory. */
 export interface ResolvedProxyOptions {
 	paths: readonly string[];
 	forwardHeaders: readonly string[];
 	cookieNames?: readonly string[];
+	timeoutMs: number;
 }
 
 /**
@@ -128,6 +143,7 @@ export const resolveProxyOptions = function resolveProxyOptions(
 			...(options.forwardHeaders ?? []).map((name) => name.toLowerCase()),
 		],
 		paths: [...DEFAULT_PROXY_PATHS, ...(options.paths ?? [])],
+		timeoutMs: options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS,
 	};
 };
 
@@ -156,20 +172,37 @@ const decodeSegment = function decodeSegment(segment: string): string | null {
 	}
 };
 
+const MAX_DECODE_PASSES = 3;
+
 /**
- * `true` when a decoded path segment could change the target once the URL
- * parser normalizes it: empty, dot segments, or an encoded separator.
+ * `true` when a path segment could change the target once something
+ * downstream decodes and normalizes it: empty, dot segments, or an encoded
+ * separator. Decoding repeats until the value is stable (bounded), so a
+ * doubly encoded `%252e%252e` is caught as well as `%2e%2e`. The proxy
+ * itself decodes once; the extra passes are defence in depth against an
+ * upstream that decodes again before normalizing.
  */
 const isUnsafeSegment = function isUnsafeSegment(segment: string): boolean {
-	const decoded = decodeSegment(segment);
-	return (
-		decoded === null ||
-		decoded === '' ||
-		decoded === '.' ||
-		decoded === '..' ||
-		decoded.includes('/') ||
-		decoded.includes('\\')
-	);
+	let current = segment;
+	for (let pass = 0; pass < MAX_DECODE_PASSES; pass += 1) {
+		const decoded = decodeSegment(current);
+		if (
+			decoded === null ||
+			decoded === '' ||
+			decoded === '.' ||
+			decoded === '..' ||
+			decoded.includes('/') ||
+			decoded.includes('\\')
+		) {
+			return true;
+		}
+		if (decoded === current) {
+			return false;
+		}
+		current = decoded;
+	}
+	// Still changing after the bounded passes: refuse rather than guess.
+	return true;
 };
 
 /**
@@ -233,8 +266,10 @@ export const buildProxyRequestHeaders = function buildProxyRequestHeaders(
 		if (value === null) {
 			continue;
 		}
-		if (name === 'cookie' && cookieNames) {
-			const scoped = filterCookieHeader(value, cookieNames);
+		if (name === 'cookie') {
+			const scoped = cookieNames
+				? filterCookieHeader(value, cookieNames)
+				: undefined;
 			if (scoped) {
 				headers.set(name, scoped);
 			}
@@ -363,6 +398,9 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 		method,
 		redirect: 'manual',
 	};
+	if (options.timeoutMs > 0 && typeof AbortSignal.timeout === 'function') {
+		init.signal = AbortSignal.timeout(options.timeoutMs);
+	}
 	if (!BODYLESS_METHODS.has(method) && request.body) {
 		init.body = request.body;
 		init.duplex = 'half';

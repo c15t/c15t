@@ -10,5 +10,9 @@
  * framework-specific script injection.
  */
 
-export { buildPrefetchScript } from './prefetch';
+export {
+	buildPrefetchScript,
+	getMatchingPrefetchedInitialData,
+	primePrefetchedInitialData,
+} from './prefetch';
 export type { PrefetchOptions } from './types';

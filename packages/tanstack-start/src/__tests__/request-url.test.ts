@@ -12,18 +12,23 @@ describe('resolveRequestURL', () => {
 		).toBe('http://localhost:3010/api/self-host');
 	});
 
-	test('lets a forwarded protocol win over the request URL', () => {
+	test('ignores client-controlled forwarded headers by default', () => {
+		// A forged x-forwarded-host must not redirect the server's own fetch
+		// (or a proxied consent save) to another origin.
 		expect(
 			resolveRequestURL(
 				'/api/self-host',
-				new Request('http://app.internal/', {
-					headers: { 'x-forwarded-proto': 'https' },
+				new Request('http://127.0.0.1:3010/', {
+					headers: {
+						'x-forwarded-host': 'evil.example',
+						'x-forwarded-proto': 'https',
+					},
 				})
 			)
-		).toBe('https://app.internal/api/self-host');
+		).toBe('http://127.0.0.1:3010/api/self-host');
 	});
 
-	test('lets a forwarded host win over the request URL', () => {
+	test('honours forwarded host and protocol when explicitly trusted', () => {
 		expect(
 			resolveRequestURL(
 				'/api/self-host',
@@ -32,7 +37,8 @@ describe('resolveRequestURL', () => {
 						'x-forwarded-host': 'app.example.com',
 						'x-forwarded-proto': 'https',
 					},
-				})
+				}),
+				true
 			)
 		).toBe('https://app.example.com/api/self-host');
 	});

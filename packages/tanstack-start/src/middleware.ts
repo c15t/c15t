@@ -2,6 +2,7 @@ import { createMiddleware } from '@tanstack/react-start';
 
 import { extractConsentRequestInputs } from './headers';
 import type { ConsentRequestInputs } from './headers';
+import { rememberConsentInputs } from './libs/request-inputs';
 
 /** Options for {@link consentRequestMiddleware}. */
 export interface ConsentRequestMiddlewareOptions {
@@ -60,9 +61,10 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
 			headers.set('sec-gpc', inputs.gpc ? '1' : '0');
 		}
 	} catch {
-		// Some runtimes hand middleware an immutable Request. The context
-		// below still carries the normalized inputs, so readers that prefer
-		// `context.consent` keep working.
+		// Some runtimes hand middleware an immutable Request. The inputs are
+		// also remembered per request (see `rememberConsentInputs`), which is
+		// what the package's own header readers consult first, so overrides
+		// survive even when the headers cannot be rewritten.
 	}
 };
 
@@ -115,6 +117,7 @@ export const consentRequestMiddleware = function consentRequestMiddleware(
 				region: options.region,
 			}
 		);
+		rememberConsentInputs(request, inputs);
 		if (options.normalizeHeaders !== false) {
 			writeNormalizedHeaders(request.headers, inputs, options.language);
 		}

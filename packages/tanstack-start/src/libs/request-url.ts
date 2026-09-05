@@ -1,18 +1,28 @@
 import { resolveBackendURL } from '@c15t/schema/types';
 
+const FORWARDED_HEADER_NAMES = [
+	'x-forwarded-proto',
+	'x-forwarded-ssl',
+	'x-forwarded-host',
+	'host',
+	'referer',
+] as const;
+
 /**
  * Headers `resolveBackendURL` needs to turn a relative backend URL into an
- * absolute one. Reads the proxy headers Node, Cloudflare Workers, Vercel,
- * and Netlify populate, and falls back to the request URL's host and
- * protocol, which are always present on a fetch `Request`.
+ * absolute one.
  *
- * The protocol fallback matters for local development: without it a
- * relative `backendURL` resolves to `https://localhost:3000/...` against a
- * plain-HTTP dev server and every manifest fetch fails with a TLS error. A
- * real `x-forwarded-proto` header from a TLS-terminating proxy still wins.
+ * By default the authority comes from `request.url` only: the host and
+ * protocol the server itself resolved the request under. `x-forwarded-*`
+ * headers are client-controlled unless a trusted proxy strips them, and a
+ * relative `backendURL` resolved against them would let a visitor point the
+ * server's own manifest fetch, or the proxied consent save, at any origin.
+ * Pass `trustForwardedHeaders: true` only when the app runs behind a proxy
+ * that sets those headers and drops incoming ones.
  */
 export const getRequestResolutionHeaders = function getRequestResolutionHeaders(
-	request: Request
+	request: Request,
+	trustForwardedHeaders = false
 ): Record<string, string> {
 	const headers: Record<string, string> = {};
 	try {
@@ -22,13 +32,10 @@ export const getRequestResolutionHeaders = function getRequestResolutionHeaders(
 	} catch {
 		// Relative request URLs (some test doubles) carry no host.
 	}
-	for (const name of [
-		'x-forwarded-proto',
-		'x-forwarded-ssl',
-		'x-forwarded-host',
-		'host',
-		'referer',
-	]) {
+	if (!trustForwardedHeaders) {
+		return headers;
+	}
+	for (const name of FORWARDED_HEADER_NAMES) {
 		const value = request.headers.get(name);
 		if (value) {
 			headers[name] = value;
@@ -40,13 +47,20 @@ export const getRequestResolutionHeaders = function getRequestResolutionHeaders(
 /**
  * Resolves a relative or absolute backend URL against the incoming request.
  *
+ * @param url - The configured backend or manifest URL.
+ * @param request - The incoming request.
+ * @param trustForwardedHeaders - Honour `x-forwarded-*` from the request.
  * @returns The absolute URL, or `null` when it cannot be resolved.
  */
 export const resolveRequestURL = function resolveRequestURL(
 	url: string,
-	request: Request
+	request: Request,
+	trustForwardedHeaders = false
 ): string | null {
-	return resolveBackendURL(url, getRequestResolutionHeaders(request));
+	return resolveBackendURL(
+		url,
+		getRequestResolutionHeaders(request, trustForwardedHeaders)
+	);
 };
 
 /** `true` when `url` targets the request's own origin under `pathPrefix`. */

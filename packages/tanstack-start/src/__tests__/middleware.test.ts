@@ -105,3 +105,31 @@ describe('consentRequestMiddleware: language override', () => {
 		expect(request.headers.get('accept-language')).toBe('de-DE,de;q=0.9');
 	});
 });
+
+describe('consentRequestMiddleware: immutable request headers', () => {
+	test('overrides still reach readInitialConsentConfig when headers cannot be written', async () => {
+		const { readInitialConsentConfig } = await import('../server');
+		const request = new Request('https://app.example.com/', {
+			headers: { 'accept-language': 'de', 'x-vercel-ip-country': 'DE' },
+		});
+		vi.spyOn(request.headers, 'set').mockImplementation(() => {
+			throw new TypeError('immutable');
+		});
+		const next = vi.fn().mockResolvedValue({ ok: true });
+		await serverHandlerOf(
+			consentRequestMiddleware({ country: 'FR', language: 'fr' })
+		)({
+			context: {},
+			next,
+			pathname: '/',
+			request,
+		});
+
+		expect(request.headers.get('x-c15t-country')).toBeNull();
+		const config = await readInitialConsentConfig({ request });
+		expect(config.initialOverrides).toMatchObject({
+			country: 'FR',
+			language: 'fr',
+		});
+	});
+});

@@ -511,3 +511,106 @@ describe('fetchCachedManifest: concurrency, explicit directives, headers', () =>
 		});
 	});
 });
+
+describe('fetchCachedManifest: restrictive directives and credential scope', () => {
+	const jsonManifest = function jsonManifest(headers: Record<string, string>) {
+		return new Response(JSON.stringify(createManifestFixture()), {
+			headers: { 'content-type': 'application/json', ...headers },
+			status: 200,
+		});
+	};
+	const countingFetch = function countingFetch(cacheControl: string) {
+		return vi.fn(() =>
+			Promise.resolve(jsonManifest({ 'cache-control': cacheControl }))
+		) as unknown as ManifestFetch & ReturnType<typeof vi.fn>;
+	};
+
+	test.each([
+		'private, s-maxage=60',
+		'no-cache, s-maxage=60',
+		'no-store, s-maxage=60',
+	])(
+		'never caches "%s" even though s-maxage is positive',
+		async (cacheControl) => {
+			const fetchMock = countingFetch(cacheControl);
+			const cache = createManifestCache();
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchMock,
+				now: 1000,
+				sourceURL: SOURCE_URL,
+			});
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchMock,
+				now: 1500,
+				sourceURL: SOURCE_URL,
+			});
+			expect(fetchMock).toHaveBeenCalledTimes(2);
+		}
+	);
+
+	test('partitions entries and in-flight requests by forwarded credentials', async () => {
+		const fetchMock = countingFetch('public, s-maxage=60');
+		const cache = createManifestCache();
+		const tenantA = { authorization: 'Bearer a' };
+		const tenantB = { authorization: 'Bearer b' };
+
+		await Promise.all([
+			fetchCachedManifest({
+				cache,
+				fetch: fetchMock,
+				headers: tenantA,
+				now: 1000,
+				sourceURL: SOURCE_URL,
+			}),
+			fetchCachedManifest({
+				cache,
+				fetch: fetchMock,
+				headers: tenantB,
+				now: 1000,
+				sourceURL: SOURCE_URL,
+			}),
+		]);
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			headers: tenantA,
+			now: 2000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+
+		// The plain, credential-less entry is separate from both.
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 2000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+	});
+
+	test('refuses to send credentials over plain http to a non-loopback host', async () => {
+		const fetchMock = countingFetch('public, s-maxage=60');
+		await expect(
+			fetchCachedManifest({
+				cache: createManifestCache(),
+				fetch: fetchMock,
+				headers: { cookie: 'c15t=abc' },
+				sourceURL: 'http://backend.example/manifest',
+			})
+		).rejects.toThrow(/refusing to send credentials over http/u);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		await fetchCachedManifest({
+			cache: createManifestCache(),
+			fetch: fetchMock,
+			headers: { cookie: 'c15t=abc' },
+			sourceURL: 'http://localhost:3010/manifest',
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+});

@@ -278,7 +278,8 @@ describe('proxy on: request forwarding', () => {
 
 		const { headers } = upstreamCall(fetch);
 		expect(headers.get('accept-language')).toBe('de-DE');
-		expect(headers.get('cookie')).toBe('c15t=abc');
+		// Cookies stay home unless `cookieNames` names them.
+		expect(headers.get('cookie')).toBeNull();
 		expect(headers.get('origin')).toBe('https://app.example.com');
 		expect(headers.get('referer')).toBe('https://app.example.com/pricing');
 		expect(headers.get('sec-gpc')).toBe('1');
@@ -510,6 +511,49 @@ describe('proxy on: canonical paths and cookie scoping', () => {
 			request: request('subjects', {
 				body: '{}',
 				headers: { cookie: 'session=secret' },
+				method: 'POST',
+			}),
+		});
+		expect(upstreamCall(fetch).headers.get('cookie')).toBeNull();
+	});
+});
+
+describe('proxy on: double encoding, timeout, default cookies', () => {
+	test('rejects doubly encoded dot segments', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch);
+		const response = await handlers.POST({
+			params: { _splat: 'subjects/%252e%252e' },
+			request: request('subjects/%252e%252e', { body: '{}', method: 'POST' }),
+		});
+		expect(response.status).toBe(404);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(isProxyPathAllowed('subjects/%252e%252e', ['subjects/*'])).toBe(
+			false
+		);
+		expect(isProxyPathAllowed('subjects/%2525252e', ['subjects/*'])).toBe(
+			false
+		);
+	});
+
+	test('bounds the upstream request with a timeout signal', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch, { timeoutMs: 1234 });
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', { body: '{}', method: 'POST' }),
+		});
+		expect(upstreamCall(fetch).init.signal).toBeInstanceOf(AbortSignal);
+	});
+
+	test('forwards no cookies unless cookieNames names them', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch);
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { cookie: 'session=secret; c15t=abc' },
 				method: 'POST',
 			}),
 		});

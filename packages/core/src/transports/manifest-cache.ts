@@ -195,19 +195,23 @@ const hasSharedMaxAge = function hasSharedMaxAge(
 };
 
 /**
- * How long to keep an entry in the in-process cache. An explicit `s-maxage`
- * is used as-is, so `s-maxage=0` means revalidate on every use rather than
- * the dedupe floor; a missing directive falls back to the floor, and an
- * explicit `no-store`/`no-cache`/`private` is not cached at all.
+ * How long to keep an entry in the in-process cache. `no-store`, `no-cache`,
+ * and `private` win over everything else, including a positive `s-maxage`,
+ * so a response the backend marked non-reusable never enters the shared
+ * cache. Otherwise an explicit `s-maxage` is used as-is (`0` means
+ * revalidate on every use) and a missing directive falls back to the floor.
  */
 const resolveCacheTtlSeconds = function resolveCacheTtlSeconds(
 	cacheControl: string | undefined,
 	sMaxAge: number
 ): number {
+	if (forbidsReuse(cacheControl)) {
+		return 0;
+	}
 	if (hasSharedMaxAge(cacheControl)) {
 		return sMaxAge;
 	}
-	return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
+	return MANIFEST_DEDUPE_TTL_SECONDS;
 };
 
 /** Where a server adapter reads the manifest from. */
@@ -270,10 +274,12 @@ export interface FetchCachedManifestOptions {
 	/** Cache to read and write. Defaults to the module-level cache. */
 	cache?: ManifestCache;
 	/**
-	 * Extra headers for the upstream request, for example a cookie or an
-	 * authentication header a private manifest requires. They are not part
-	 * of the cache key: the manifest is tenant-level data, so the first
-	 * successful response is shared with every later caller of the same URL.
+	 * Extra headers for the upstream request, for example an authentication
+	 * header a private manifest requires. Entries are partitioned by a digest
+	 * of these headers, so callers with different credentials never share a
+	 * cached manifest or an in-flight request, and the key holds no secret.
+	 * Credentials (`cookie`, `authorization`) are refused over plain `http:`
+	 * unless the host is a loopback address.
 	 */
 	headers?: Record<string, string>;
 }
@@ -295,15 +301,93 @@ const getInflight = function getInflight(
 	return inflight;
 };
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
+const CREDENTIAL_HEADERS = new Set([
+	'authorization',
+	'cookie',
+	'proxy-authorization',
+]);
+
+const hasCredentialHeaders = function hasCredentialHeaders(
+	headers: Record<string, string> | undefined
+): boolean {
+	if (!headers) {
+		return false;
+	}
+	return Object.keys(headers).some((name) =>
+		CREDENTIAL_HEADERS.has(name.toLowerCase())
+	);
+};
+
+/** Refuses to send credentials in clear text to anything but loopback. */
+const assertCredentialTransport = function assertCredentialTransport(
+	requestURL: string,
+	headers: Record<string, string> | undefined
+): void {
+	if (!hasCredentialHeaders(headers)) {
+		return;
+	}
+	let url: URL;
+	try {
+		url = new URL(requestURL);
+	} catch {
+		return;
+	}
+	if (url.protocol === 'http:' && !LOOPBACK_HOSTS.has(url.hostname)) {
+		throw new Error(
+			`c15t manifest cache: refusing to send credentials over http to ${url.host}. Use https, or a loopback host for local development.`
+		);
+	}
+};
+
+const digest = async function digest(value: string): Promise<string> {
+	const subtle = globalThis.crypto?.subtle;
+	if (subtle) {
+		const bytes = await subtle.digest(
+			'SHA-256',
+			new TextEncoder().encode(value)
+		);
+		return Array.from(new Uint8Array(bytes), (byte) =>
+			byte.toString(16).padStart(2, '0')
+		).join('');
+	}
+	// Polynomial string hash for runtimes without WebCrypto; only a
+	// partition key, never a secret.
+	let hash = 7;
+	for (let index = 0; index < value.length; index += 1) {
+		hash = (hash * 31 + value.charCodeAt(index)) % 4_294_967_296;
+	}
+	return hash.toString(16);
+};
+
+/**
+ * Cache key: the request URL alone, or the URL plus a digest of the
+ * forwarded headers so different credentials never share an entry.
+ */
+const buildCacheKey = async function buildCacheKey(
+	requestURL: string,
+	headers: Record<string, string> | undefined
+): Promise<string> {
+	if (!headers || Object.keys(headers).length === 0) {
+		return requestURL;
+	}
+	const scope = Object.entries(headers)
+		.map(([name, value]) => `${name.toLowerCase()}=${value}`)
+		.sort()
+		.join('\n');
+	return `${requestURL}#${await digest(scope)}`;
+};
+
 const revalidateManifest = async function revalidateManifest(input: {
 	cache: ManifestCache;
+	cacheKey: string;
 	cached: CachedManifestResponse | undefined;
 	fetchImpl: ManifestFetch;
 	headers: Record<string, string> | undefined;
 	now: number;
 	requestURL: string;
 }): Promise<CachedManifestResponse> {
-	const { cache, cached, fetchImpl, now, requestURL } = input;
+	const { cache, cacheKey, cached, fetchImpl, now, requestURL } = input;
 	const headers: Record<string, string> = {
 		accept: 'application/json',
 		...c15tVersionHeaders,
@@ -335,9 +419,9 @@ const revalidateManifest = async function revalidateManifest(input: {
 			sMaxAge,
 		};
 		if (ttl > 0) {
-			cache.set(requestURL, refreshed);
+			cache.set(cacheKey, refreshed);
 		} else {
-			cache.delete(requestURL);
+			cache.delete(cacheKey);
 		}
 		return refreshed;
 	}
@@ -359,7 +443,7 @@ const revalidateManifest = async function revalidateManifest(input: {
 		sMaxAge,
 	};
 	if (ttl > 0) {
-		cache.set(requestURL, entry);
+		cache.set(cacheKey, entry);
 	}
 	return entry;
 };
@@ -378,7 +462,7 @@ const revalidateManifest = async function revalidateManifest(input: {
  * @throws {Error} When no fetch implementation is available or the backend responds
  * with a non-2xx status.
  */
-export const fetchCachedManifest = function fetchCachedManifest(
+export const fetchCachedManifest = async function fetchCachedManifest(
 	options: FetchCachedManifestOptions
 ): Promise<CachedManifestResponse> {
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
@@ -391,14 +475,16 @@ export const fetchCachedManifest = function fetchCachedManifest(
 		query: options.query,
 		sourceURL: options.sourceURL,
 	});
+	assertCredentialTransport(requestURL, options.headers);
+	const cacheKey = await buildCacheKey(requestURL, options.headers);
 	const now = options.now ?? Date.now();
-	const cached = cache.get(requestURL);
+	const cached = cache.get(cacheKey);
 	if (cached && cached.expiresAt > now) {
-		return Promise.resolve(cached);
+		return cached;
 	}
 
 	const inflight = getInflight(cache);
-	const pending = inflight.get(requestURL);
+	const pending = inflight.get(cacheKey);
 	if (pending) {
 		return pending;
 	}
@@ -406,6 +492,7 @@ export const fetchCachedManifest = function fetchCachedManifest(
 		try {
 			return await revalidateManifest({
 				cache,
+				cacheKey,
 				cached,
 				fetchImpl,
 				headers: options.headers,
@@ -413,10 +500,10 @@ export const fetchCachedManifest = function fetchCachedManifest(
 				requestURL,
 			});
 		} finally {
-			inflight.delete(requestURL);
+			inflight.delete(cacheKey);
 		}
 	})();
-	inflight.set(requestURL, request);
+	inflight.set(cacheKey, request);
 	return request;
 };
 

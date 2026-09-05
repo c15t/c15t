@@ -24,6 +24,9 @@ import type {
 import { ConsentProvider } from '@c15t/react/provider';
 import type { ConsentProviderOptions } from '@c15t/react/provider';
 import type { ReactNode } from 'react';
+import { useState } from 'react';
+
+import { readPrefetchedInitialData } from './libs/prefetch-head';
 
 /**
  * Same-origin route that resolves init from the cached manifest. Matches the
@@ -154,19 +157,38 @@ export const ConsentBoundary = ({
 	persistence,
 	options,
 	children,
-}: ConsentBoundaryProps) => (
-	<ConsentProvider
-		options={{
-			...options,
-			__debugPkg: '@c15t/tanstack-start',
-			mode: options?.mode ?? resolveMode(backendURL, initRoute),
-			networkBlocker,
-			persistence,
-			prefetch: config,
-			scriptLoader,
-			scripts,
-		}}
-	>
-		{children}
-	</ConsentProvider>
-);
+}: ConsentBoundaryProps) => {
+	// A `consentPrefetchHead()` script may have started the init request
+	// before hydration; hand its promise to the provider so the first init
+	// consumes that response instead of issuing a second request. Read once,
+	// on the client only, so server and client render the same tree.
+	const [ssrData, setSsrData] = useState(
+		() =>
+			options?.ssrData ??
+			readPrefetchedInitialData({
+				backendURL,
+				initRoute,
+				overrides: options?.overrides,
+			})
+	);
+	// Initial-only: the prefetch is consumed by the first init.
+	void setSsrData;
+
+	return (
+		<ConsentProvider
+			options={{
+				...options,
+				__debugPkg: '@c15t/tanstack-start',
+				mode: options?.mode ?? resolveMode(backendURL, initRoute),
+				networkBlocker,
+				persistence,
+				prefetch: config,
+				scriptLoader,
+				scripts,
+				ssrData,
+			}}
+		>
+			{children}
+		</ConsentProvider>
+	);
+};

@@ -70,6 +70,7 @@ import {
 	extractConsentRequestInputs,
 } from './headers';
 import { filterCookieHeader } from './libs/cookies';
+import { readConsentInputs } from './libs/request-inputs';
 import { isSelfRoute, resolveRequestURL } from './libs/request-url';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -95,6 +96,32 @@ const stripTransport = function stripTransport({
 	...config
 }: KernelConfig): ConsentConfig {
 	return config;
+};
+
+/**
+ * Consent inputs for a request: what `consentRequestMiddleware` remembered
+ * when it ran (so overrides survive immutable headers), otherwise the raw
+ * headers, with explicit `country`/`language` options winning either way.
+ */
+const resolveRequestInputs = function resolveRequestInputs(
+	request: Request,
+	options: Pick<ReadInitialConsentConfigOptions, 'country' | 'language'>
+) {
+	const remembered = readConsentInputs(request);
+	if (!remembered) {
+		return extractConsentRequestInputs(request.headers, {
+			country: options.country,
+			language: options.language,
+		});
+	}
+	const inputs = { ...remembered };
+	if (options.country) {
+		inputs.country = options.country;
+	}
+	if (options.language) {
+		inputs.language = options.language;
+	}
+	return inputs;
 };
 
 const readCurrentRequest = async function readCurrentRequest(
@@ -180,10 +207,7 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 				}
 			: undefined;
 
-	const inputs = extractConsentRequestInputs(request.headers, {
-		country: options.country,
-		language: options.language,
-	});
+	const inputs = resolveRequestInputs(request, options);
 	const overrides = consentInputsToOverrides(inputs) as KernelOverrides;
 
 	const config: ConsentConfig = {};
@@ -254,19 +278,31 @@ export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigO
 
 	/**
 	 * Request headers to forward onto the manifest fetch, for example an
-	 * authentication token a private backend requires. The request's
-	 * cookies are forwarded automatically; scope them with
-	 * {@link PrefetchInitialConsentOptions.cookieNames}.
+	 * authentication token a private backend requires. Keep these
+	 * tenant-level: the manifest cache is partitioned by a digest of the
+	 * forwarded headers, so a per-visitor value defeats the cache.
 	 */
 	forwardHeaders?: string[];
 
 	/**
-	 * Cookie names to forward to the backend. By default the whole `Cookie`
-	 * header goes along, which matches the Next.js adapter but also sends
-	 * any session cookie your origin sets. Pass the names c15t needs, for
-	 * example `['c15t']`, to keep the rest at home.
+	 * Cookie names to forward on the manifest fetch. No cookies are
+	 * forwarded by default: the manifest is tenant-level data and the c15t
+	 * backend does not read cookies, so nothing from your origin's cookie
+	 * jar needs to leave. Set this only for a backend that gates the
+	 * manifest on a cookie.
 	 */
 	cookieNames?: readonly string[];
+
+	/**
+	 * Resolve a relative `backendURL` or `manifestURL` against the
+	 * request's `x-forwarded-host` and `x-forwarded-proto` instead of
+	 * `request.url`. Off by default because those headers are
+	 * client-controlled unless a trusted proxy strips them; turn it on only
+	 * behind such a proxy.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 
 	/**
 	 * Manifest cache to read through. Defaults to the module-level cache
@@ -293,7 +329,7 @@ const collectForwardHeaders = function collectForwardHeaders(
 	const forward: Record<string, string> = {};
 	const cookie = request.headers.get('cookie');
 	const scopedCookie =
-		cookie && cookieNames ? filterCookieHeader(cookie, cookieNames) : cookie;
+		cookie && cookieNames ? filterCookieHeader(cookie, cookieNames) : undefined;
 	if (scopedCookie) {
 		forward.cookie = scopedCookie;
 	}
@@ -311,7 +347,8 @@ const loadManifest = async function loadManifest(
 	request: Request,
 	forward: Record<string, string>
 ): Promise<{ backendURL: string; manifest: ConsentManifest } | null> {
-	const backendURL = resolveRequestURL(options.backendURL, request);
+	const trust = options.trustForwardedHeaders ?? false;
+	const backendURL = resolveRequestURL(options.backendURL, request, trust);
 	if (!backendURL) {
 		return null;
 	}
@@ -319,7 +356,7 @@ const loadManifest = async function loadManifest(
 		return { backendURL, manifest: options.manifest };
 	}
 	const manifestURL = options.manifestURL
-		? resolveRequestURL(options.manifestURL, request)
+		? resolveRequestURL(options.manifestURL, request, trust)
 		: undefined;
 	if (options.manifestURL && !manifestURL) {
 		return null;
@@ -376,10 +413,7 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		if (!loaded) {
 			return base;
 		}
-		const inputs = extractConsentRequestInputs(request.headers, {
-			country: options.country,
-			language: options.language,
-		});
+		const inputs = resolveRequestInputs(request, options);
 		const transport = createManifestTransport({
 			backendURL: loaded.backendURL,
 			baseTranslations,

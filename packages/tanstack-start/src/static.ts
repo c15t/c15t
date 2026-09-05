@@ -225,6 +225,11 @@ export const createStaticManifestModule =
 		options: StaticManifestModuleOptions
 	): Promise<string> {
 		const exportName = options.exportName ?? 'consentManifest';
+		if (!/^[A-Za-z_$][\w$]*$/u.test(exportName)) {
+			throw new Error(
+				`@c15t/tanstack-start/static: exportName must be a valid identifier, received ${JSON.stringify(exportName)}.`
+			);
+		}
 		const manifest = await loadStaticManifest(options);
 		return [
 			"import type { ConsentManifest } from '@c15t/schema/types';",

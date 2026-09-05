@@ -112,12 +112,13 @@ describe('prefetchInitialConsent: manifest resolution', () => {
 		expect(config.initialPolicy?.id).toBe('eu-opt-in');
 	});
 
-	test('resolves a relative backendURL from forwarded headers', async () => {
+	test('resolves a relative backendURL from forwarded headers when trusted', async () => {
 		const fetchSpy = createManifestFetch();
 		await prefetchInitialConsent(
 			{
 				backendURL: '/consent',
 				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				trustForwardedHeaders: true,
 			},
 			createRequest({
 				'x-forwarded-host': 'edge.example.com',
@@ -236,7 +237,7 @@ describe('prefetchInitialConsent: header forwarding', () => {
 		return { headers: new Headers(call[1].headers), url: call[0] };
 	};
 
-	test('forwards cookies and named headers on the manifest fetch', async () => {
+	test('forwards named headers but no cookies on the manifest fetch by default', async () => {
 		const fetchSpy = createManifestFetch();
 		await prefetchInitialConsent(
 			{
@@ -252,7 +253,21 @@ describe('prefetchInitialConsent: header forwarding', () => {
 		const { headers, url } = manifestCall(fetchSpy);
 		expect(url).toBe('https://consent.example.com/manifest');
 		expect(headers.get('authorization')).toBe('Bearer token');
-		expect(headers.get('cookie')).toBe('session=secret; c15t=abc');
+		expect(headers.get('cookie')).toBeNull();
+	});
+
+	test('never resolves a relative backendURL against a forged forwarded host', async () => {
+		const fetchSpy = createManifestFetch();
+		await prefetchInitialConsent(
+			{
+				backendURL: '/consent-backend',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			},
+			createRequest({ 'x-forwarded-host': 'evil.example' })
+		);
+		expect(manifestCall(fetchSpy).url).toBe(
+			'https://app.example.com/consent-backend/manifest'
+		);
 	});
 
 	test('scopes forwarded cookies with cookieNames', async () => {
