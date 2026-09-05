@@ -41,7 +41,7 @@ describe('mergeIab', () => {
 });
 
 describe('buildSetters', () => {
-	test('set.consent stages a draft without changing the snapshot', () => {
+	test('set.draft stages a draft without changing the snapshot', () => {
 		const kernel = createConsentKernel({ now: NOW });
 		const before = kernel.getSnapshot();
 		const listener = vi.fn();

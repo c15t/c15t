@@ -3,9 +3,8 @@
  *
  * Verifies:
  * 1. commands.init applies all new fields (location, translations, branding,
- *    policy, policyDecision, policySnapshotToken) to the snapshot.
- * 2. Policy drives derived state: model, activeUI, policyCategories,
- *    policyScopeMode, policyBanner, policyDialog.
+ *    policyResolution, policySnapshotToken) to the snapshot.
+ * 2. Policy drives derived state: model, activeUI and policyRule.
  * 3. Preselected consents do not become runtime grants before consent.
  * 4. IAB passthrough: gvl/customVendors/cmpId land on snapshot.iab.
  * 5. set.iab mutates snapshot.iab idempotently and re-derives model
@@ -36,7 +35,7 @@ const GDPR_RESOLUTION = {
 };
 
 describe('rich init: applies full response to snapshot', () => {
-	test('fills location / translations / branding / policy / policyDecision / policySnapshotToken', async () => {
+	test('fills location / translations / branding / policyResolution / policySnapshotToken', async () => {
 		const transport: KernelTransport = {
 			init() {
 				return {
@@ -69,7 +68,7 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.policySnapshotToken).toBe('token-xyz');
 	});
 
-	test('derives model, activeUI, policyCategories, policyScopeMode from policy', async () => {
+	test('derives model, activeUI and scope from policyRule', async () => {
 		const transport: KernelTransport = {
 			init() {
 				return {
