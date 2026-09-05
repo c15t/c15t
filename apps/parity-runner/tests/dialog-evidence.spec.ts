@@ -98,3 +98,44 @@ for (const mutation of [
 		expect(await captureDialogEvidence(page)).not.toEqual(before);
 	});
 }
+
+test('dialog evidence retains partially transparent untagged ancestors', async ({
+	page,
+}) => {
+	await page.setContent(
+		fixture(true)
+			.replace(
+				'<div data-testid="consent-dialog-card">',
+				'<div class="container contentVisible"><div data-testid="consent-dialog-card">'
+			)
+			.replace('</dialog>', '</div></dialog>')
+	);
+	await page.addStyleTag({
+		content: '.container{opacity:.3}.contentVisible{opacity:1}',
+	});
+	const before = await captureDialogEvidence(page);
+	await page
+		.locator('.container')
+		.evaluate((node) => node.classList.remove('contentVisible'));
+	expect(await captureDialogEvidence(page)).not.toEqual(before);
+	expect(await captureDialogEvidence(page)).toMatchObject({
+		effectiveOpacity: 0.3,
+		visible: true,
+	});
+});
+
+test('dialog evidence distinguishes focus between untagged controls', async ({
+	page,
+}) => {
+	await page.setContent(
+		fixture(true).replace(
+			'</button>',
+			'</button><button>Auxiliary</button><button>Auxiliary</button>'
+		)
+	);
+	const controls = page.getByRole('button', { exact: true, name: 'Auxiliary' });
+	await controls.nth(0).focus();
+	const before = await captureDialogEvidence(page);
+	await controls.nth(1).focus();
+	expect(await captureDialogEvidence(page)).not.toEqual(before);
+});
