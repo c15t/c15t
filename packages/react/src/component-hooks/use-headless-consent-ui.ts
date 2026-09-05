@@ -1,6 +1,7 @@
 'use client';
 
 import {
+	DEFAULT_POLICY_ACTION_LAYOUT,
 	hasPolicyHints,
 	resolvePolicyActionGroups,
 	resolvePolicyAllowedActions,
@@ -61,13 +62,21 @@ const resolveSurfaceState = function resolveSurfaceState(
 	const allowedActions = resolvePolicyAllowedActions({
 		allowedActions: policy.allowedActions,
 	});
+	// A policy that ships no UI hints still gets the standard grouping —
+	// reject and accept together, customize on its own — rather than one
+	// undifferentiated row. Both surfaces read it from here, so the banner
+	// and the preference centre cannot drift apart.
+	const layout =
+		(policy.layout?.length ?? 0) > 0
+			? policy.layout
+			: DEFAULT_POLICY_ACTION_LAYOUT;
 	const actionGroups = resolvePolicyActionGroups({
 		allowedActions,
-		layout: policy.layout,
+		layout,
 	});
 	const orderedActions = resolvePolicyOrderedActions({
 		allowedActions,
-		layout: policy.layout,
+		layout,
 	});
 	const direction = resolvePolicyDirection(policy.direction);
 
