@@ -10,7 +10,12 @@
  * Storage selection lives in `lib/adapter.ts`, shared with the CLI config so
  * the two cannot drift.
  */
-import { c15tInstance, createMigrator, policyPackPresets } from '@c15t/backend';
+import {
+	c15tInstance,
+	createMigrator,
+	policyMatchers,
+	policyPackPresets,
+} from '@c15t/backend';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { createAdapter } from '../../../../lib/adapter';
@@ -81,6 +86,13 @@ const createInstance = async function createInstance() {
 			// the IAB TCF model; the world fallback guarantees every visitor
 			// resolves a policy decision.
 			policyPacks: [
+				// The UK is GDPR-shaped but outside the IAB pack: a plain opt-in
+				// banner, listed first so it wins over the IAB matcher.
+				{
+					...policyPackPresets.europeOptIn(),
+					id: 'uk_opt_in',
+					match: policyMatchers.countries(['GB']),
+				},
 				policyPackPresets.europeIab(),
 				policyPackPresets.californiaOptOut(),
 				policyPackPresets.worldNoBanner(),

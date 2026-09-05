@@ -91,6 +91,10 @@ const HomePage = () => {
 						CCPA, opt-out, no banner
 					</li>
 					<li>
+						<a href="/?country=GB">?country=GB</a> — UK GDPR, standard opt-in
+						banner
+					</li>
+					<li>
 						<a href="/?country=JP">?country=JP</a> — world fallback, no banner
 					</li>
 				</ul>
