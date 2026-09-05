@@ -771,6 +771,18 @@ export const nuxtBrowserBudgetsForScenario =
 		if (baseScenario === 'baseline') {
 			return [...sharedBrowserBudgets];
 		}
+		if (baseScenario === 'baseline-client') {
+			return [
+				...sharedBrowserBudgets,
+				{
+					comparator: 'count-eq',
+					description:
+						'The provider-free client baseline must not make an init request.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
+		}
 		if (
 			baseScenario === 'ssr' ||
 			baseScenario === 'ssr-manifest' ||
@@ -826,12 +838,7 @@ export const reactBrowserBudgetsForScenario =
 			case 'policy-reject':
 				return [...policyBrowserBudgets, ...cookieProjectionBudgets];
 			case 'policy-notice':
-				return [
-					...policyBrowserBudgets.filter(
-						(budget) => budget.metric !== 'renderCount'
-					),
-					...noticeProjectionBudgets,
-				];
+				return [...policyBrowserBudgets, ...noticeProjectionBudgets];
 			case 'policy-none':
 				return policyBrowserBudgets;
 			case 'policy-repeat':

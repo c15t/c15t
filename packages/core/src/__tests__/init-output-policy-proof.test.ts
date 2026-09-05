@@ -25,7 +25,8 @@ const matched: PolicyResolution = {
 	policyId: rule.id,
 	status: 'matched',
 };
-const payload: InitOutput = {
+// A legacy response intentionally omits policyResolution and carries stale proof.
+const payload = {
 	branding: 'c15t',
 	cmpId: 123,
 	jurisdiction: 'GDPR',
@@ -33,7 +34,7 @@ const payload: InitOutput = {
 	policy: { id: rule.id, model: 'opt-in' },
 	policySnapshotToken: 'stale-token',
 	translations: { language: 'en', translations: {} },
-};
+} as unknown as InitOutput;
 const expectNoProof = (config: ReturnType<typeof initOutputToKernelConfig>) => {
 	expect(config).not.toHaveProperty('initialPolicy');
 	expect(config).not.toHaveProperty('initialPolicyDecision');

@@ -2,6 +2,7 @@
  * Shared InitOutput/InitResponse mapping — the single fold every framework
  * server helper and transport uses (shared-logic audit #4).
  */
+import { enTranslations } from '@c15t/translations';
 import { describe, expect, test } from 'vitest';
 
 import {
@@ -68,7 +69,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			{
 				location: { countryCode: 'DE', regionCode: 'BE' },
 				resolvedOverrides: { country: 'FR' },
-				translations: { language: 'de', translations: {} },
+				translations: { language: 'de', translations: enTranslations },
 			}
 		);
 		// base < derived < resolvedOverrides
@@ -140,11 +141,12 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		const config = initOutputToKernelConfig(
 			{
 				branding: 'c15t',
+				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 				policyResolution: POLICY,
 
-				translations: { language: 'de', translations: {} },
+				translations: { language: 'de', translations: enTranslations },
 			},
 			{ 'sec-gpc': '1' }
 		);

@@ -30,6 +30,10 @@ import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
 import { assertConsentFreeBaseline, baselineServerOutputDir } from './baseline';
+import {
+	assertRepeatVisitor,
+	createRepeatVisitorCookie,
+} from './repeat-visitor';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -119,15 +123,6 @@ const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 const bannerRootTestId = 'consent-banner-root';
 const bannerAcceptButtonTestId = 'consent-banner-accept-button';
 const bannerElementTimingName = 'c15t-consent-banner';
-const repeatVisitorCookieValue = [
-	'c.necessary:1',
-	'c.functionality:1',
-	'c.experience:1',
-	'c.measurement:1',
-	'c.marketing:1',
-	'i.t:1800000000000',
-	'i.sid:sub_2VZxR7YmNpKq3WfLs8TgHd',
-].join(',');
 
 const readCliFlag = function readCliFlag(name: string): string | undefined {
 	const index = process.argv.indexOf(name);
@@ -320,7 +315,7 @@ const seedRepeatVisitorCookie = async function seedRepeatVisitorCookie(
 			path: '/',
 			sameSite: 'Lax',
 			secure: false,
-			value: repeatVisitorCookieValue,
+			value: createRepeatVisitorCookie(),
 		},
 	]);
 };
@@ -403,6 +398,15 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	}
 
 	const state = await page.evaluate(() => window.__c15tNuxtBench);
+	if (scenario === 'repeat-visitor') {
+		assertRepeatVisitor({
+			bannerCount: await page
+				.locator('[data-testid="consent-banner-root"]')
+				.count(),
+			bannerInFirstHtml,
+			hasStoredChoice: state?.hasStoredChoice,
+		});
+	}
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;

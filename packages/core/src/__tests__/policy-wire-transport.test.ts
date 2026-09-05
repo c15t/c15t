@@ -40,12 +40,13 @@ import {
 import type { SubjectSavePayload } from '../transports';
 import { createManifestTransport } from '../transports/manifest';
 
-const BASE_INIT: InitOutput = {
+// Deliberately missing the negotiated field: tests exercise untrusted responses.
+const BASE_INIT = {
 	branding: 'c15t',
 	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	translations: { language: 'de', translations: {} as never },
-};
+} as unknown as InitOutput;
 
 const MATCHED_WIRE = {
 	fingerprints: {
@@ -121,6 +122,7 @@ const PAYLOAD: SubjectSavePayload = {
 	model: 'opt-in',
 	overrides: {},
 	policySnapshotToken: null,
+	subject: { subjectId: 'sub_test' },
 	subjectId: 'sub_test',
 	uiSource: 'banner',
 	user: null,
@@ -189,7 +191,7 @@ describe('resolveInitPolicyWire', () => {
 		expect(
 			readPolicyResolutionWire(
 				resolveInitPolicyWire(
-					{ ...BASE_INIT, policy: LEGACY_POLICY as never },
+					{ ...BASE_INIT, policy: LEGACY_POLICY } as InitOutput,
 					{ producerContract: 1 }
 				)
 			)
@@ -200,7 +202,7 @@ describe('resolveInitPolicyWire', () => {
 			expect(
 				readPolicyResolutionWire(
 					resolveInitPolicyWire(
-						{ ...BASE_INIT, policy: LEGACY_POLICY as never },
+						{ ...BASE_INIT, policy: LEGACY_POLICY } as InitOutput,
 						{ producerContract }
 					)
 				)
@@ -216,14 +218,14 @@ describe('resolveInitPolicyWire', () => {
 		const wire = resolveInitPolicyWire(
 			{
 				...BASE_INIT,
-				policy: LEGACY_POLICY as never,
+				policy: LEGACY_POLICY,
 				policyResolution: {
 					policy: null,
 					reason: 'unsupported-contract',
 					status: 'failed',
 					version: 1,
 				},
-			},
+			} as InitOutput,
 			{ producerContract: 1 }
 		);
 		expect(readPolicyResolutionWire(wire)).toEqual({
