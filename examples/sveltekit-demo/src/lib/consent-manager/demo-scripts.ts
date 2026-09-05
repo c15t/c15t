@@ -4,6 +4,7 @@ import { clarity } from '@c15t/scripts/microsoft-clarity';
 import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
 import type { Script } from 'c15t';
 
+/** Optional test-account IDs that replace the demo's local vendor fixtures. */
 export interface DemoScriptIds {
 	metaPixel?: string;
 	tiktokPixel?: string;
@@ -13,7 +14,11 @@ export interface DemoScriptIds {
 
 const fixture = (name: string): string => `/api/devtools-scripts/${name}`;
 
-/** Real integration helpers use local SDK fixtures until test account IDs are supplied. */
+/**
+ * Use real integration helpers with local SDK fixtures by default.
+ * @param ids - Test-account IDs for opting into live vendor URLs.
+ * @returns Ten scripts covering consent gates and loader lifecycle states.
+ */
 export const createDemoScripts = (ids: DemoScriptIds = {}): Script[] => {
 	const googleTag = gtag({
 		category: 'measurement',
