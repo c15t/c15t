@@ -81,9 +81,23 @@ export const runPolicyProducerConformance =
 						kind: 'fingerprints',
 						mutation: vector.mutation,
 					});
+					if (!baseline.fingerprintInputs || !actual.fingerprintInputs) {
+						throw new Error('Missing public fingerprint input domains');
+					}
+					for (const domain of ['choice', 'notice'] as const) {
+						api.expect(baseline.fingerprintInputs[domain].domain).toBe(domain);
+						api.expect(baseline.fingerprintInputs[domain].version).toBe(1);
+						api.expect(actual.fingerprintInputs[domain].domain).toBe(domain);
+						api.expect(actual.fingerprintInputs[domain].version).toBe(1);
+					}
 					if (!baseline.fingerprints || !actual.fingerprints) {
 						throw new Error('Missing actual producer fingerprints');
 					}
+					api
+						.expect(
+							baseline.fingerprints.choice === baseline.fingerprints.notice
+						)
+						.toBe(false);
 					for (const domain of vector.changed) {
 						api.expect(baseline.fingerprints[domain].length).toBeGreaterThan(0);
 						api.expect(actual.fingerprints[domain].length).toBeGreaterThan(0);

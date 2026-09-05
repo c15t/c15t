@@ -80,7 +80,12 @@ prompt flash cannot disappear from the final comparison.
 `probePolicyContract` receives inputs only. Use the public schema producer,
 normalizer, signal readers and storage codecs. Its baseline scope is marketing and
 measurement in strict mode. Fingerprint mutations come from the fixture data and
-compare policy, choice, notice and presentation domains. Validate malformed GPC
+compare policy, choice, notice and presentation domains. Return actual choice and
+notice fingerprint input builder outputs in `fingerprintInputs`, including their
+domain and version. The producer baseline uses one-day choice and notice validity.
+The accepted `copyRevision` and GPC mapping enter both prompt domains; changing
+choice validity affects only choice and policy hashes, and changing notice
+validity affects only notice and policy hashes. Validate malformed GPC
 mappings before hashing. Decode raw records through actual storage readers;
 returning fixture normalization data is not a decoder implementation.
 

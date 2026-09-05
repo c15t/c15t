@@ -177,6 +177,17 @@ export type CreatePolicySession = (
 	setup: PolicySessionSetup
 ) => Promise<PolicySession>;
 
+/** Accepted authored fields plus presentation/runtime diagnostic inputs. */
+export interface PolicyFingerprintMutation {
+	layout?: 'row' | 'column';
+	actionOrder?: readonly string[];
+	promptReason?: string;
+	scopeOrder?: readonly PolicyCategory[];
+	copyRevision?: string;
+	gpcDenyCategories?: readonly PolicyCategory[];
+	validity?: { choiceDays?: number; noticeDays?: number };
+}
+
 /** Producer/codec inputs contain no expected validity, hashes or decoded choice. */
 export type PolicyContractInput =
 	| {
@@ -186,7 +197,7 @@ export type PolicyContractInput =
 			gpcDenyCategories?: readonly string[];
 	  }
 	| { kind: 'canonicalize'; field: string; values: readonly string[] }
-	| { kind: 'fingerprints'; mutation: Readonly<Record<string, unknown>> }
+	| { kind: 'fingerprints'; mutation: PolicyFingerprintMutation }
 	| { kind: 'detect-gpc'; source: 'navigator' | 'header'; value: unknown }
 	| { kind: 'decode'; record: PolicyStorageSeed; now: number };
 
@@ -197,6 +208,11 @@ export interface PolicyContractEvidence {
 		'policy' | 'choice' | 'notice' | 'presentation',
 		string
 	>;
+	/** Actual outputs of the public choice/notice fingerprint input builders. */
+	fingerprintInputs?: {
+		choice: { domain: string; version: number };
+		notice: { domain: string; version: number };
+	};
 	detected?: boolean;
 	decoded?: {
 		choice: PolicyChoiceFixture;

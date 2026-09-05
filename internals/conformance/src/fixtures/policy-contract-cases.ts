@@ -65,7 +65,7 @@ export const POLICY_CANONICAL_SET_CASES = [
 /**
  * Compare each mutation to the same policy with choice and notice domains.
  * `changed` and `unchanged` name required comparisons. Unlisted domains
- * impose no assertion, so these fixtures do not invent copy/hash coupling.
+ * impose no assertion, so these fixtures follow the accepted fingerprint input domains.
  * Presentation is computed for these diagnostics tests only.
  */
 export const POLICY_FINGERPRINT_CASES = [
@@ -90,30 +90,23 @@ export const POLICY_FINGERPRINT_CASES = [
 		unchanged: ['policy', 'choice', 'notice', 'presentation'],
 	},
 	{
-		changed: ['choice'],
-		mutation: { choiceLegalCopyRevision: '2' },
-		unchanged: ['notice'],
+		changed: ['policy', 'choice', 'notice'],
+		mutation: { copyRevision: '2' },
+		unchanged: ['presentation'],
 	},
 	{
-		changed: ['notice'],
-		mutation: { noticeLegalCopyRevision: '2' },
-		unchanged: ['choice'],
+		changed: ['policy', 'choice'],
+		mutation: { validity: { choiceDays: 2 } },
+		unchanged: ['notice', 'presentation'],
 	},
 	{
-		changed: ['policy'],
-		mutation: {
-			gpcDenyCategories: ['marketing'],
-			materialToChoice: false,
-			materialToNotice: false,
-		},
-		unchanged: ['choice', 'notice'],
+		changed: ['policy', 'notice'],
+		mutation: { validity: { noticeDays: 2 } },
+		unchanged: ['choice', 'presentation'],
 	},
 	{
 		changed: ['policy', 'choice', 'notice'],
-		mutation: {
-			gpcDenyCategories: ['marketing'],
-			materialToChoice: true,
-			materialToNotice: true,
-		},
+		mutation: { gpcDenyCategories: ['marketing'] },
+		unchanged: ['presentation'],
 	},
 ] as const;
