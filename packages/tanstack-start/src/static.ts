@@ -66,6 +66,15 @@ export interface StaticManifestModuleOptions {
 	manifestURL: string;
 	fetch?: typeof globalThis.fetch;
 	exportName?: string;
+	/**
+	 * Module the generated file imports its `ConsentManifest` type from.
+	 * Use the entry the application itself depends on, so the import
+	 * resolves under strict dependency layouts (pnpm): apps that install
+	 * the umbrella package pass `'c15t/tanstack-start/static'`.
+	 *
+	 * @default '@c15t/tanstack-start/static'
+	 */
+	importSource?: string;
 }
 
 export interface StaticGeoResult {
@@ -130,13 +139,22 @@ const normalizeGeo = function normalizeGeo(
 	};
 };
 
+/** Tie-breakers within a model: a strict scope, then honouring GPC. */
+const scoreScope = function scoreScope(pack: ConsentManifestPolicyPack) {
+	const { consent } = pack.resolvedPolicy;
+	return (consent?.scopeMode === 'strict' ? 2 : 0) + (consent?.gpc ? 1 : 0);
+};
+
 const comparePolicyStrictness = function comparePolicyStrictness(
 	left: ConsentManifestPolicyPack,
 	right: ConsentManifestPolicyPack
 ) {
 	const leftScore = POLICY_STRICTNESS[left.resolvedPolicy.model] ?? -1;
 	const rightScore = POLICY_STRICTNESS[right.resolvedPolicy.model] ?? -1;
-	return leftScore - rightScore;
+	if (leftScore !== rightScore) {
+		return leftScore - rightScore;
+	}
+	return scoreScope(left) - scoreScope(right);
 };
 
 const pickStrictestPolicyPack = function pickStrictestPolicyPack(
@@ -288,12 +306,18 @@ export const createStaticManifestModule =
 				`@c15t/tanstack-start/static: exportName must be a valid identifier, received ${JSON.stringify(exportName)}.`
 			);
 		}
+		const importSource = options.importSource ?? '@c15t/tanstack-start/static';
+		if (!/^[A-Za-z0-9@_./+~-]+$/u.test(importSource)) {
+			throw new Error(
+				`@c15t/tanstack-start/static: importSource must be a module specifier, received ${JSON.stringify(importSource)}.`
+			);
+		}
 		const manifest = await loadStaticManifest(options);
 		return [
-			// Import from this package's own entry so the generated file resolves
-			// under strict dependency layouts (pnpm) where the app does not
-			// declare @c15t/schema itself.
-			"import type { ConsentManifest } from '@c15t/tanstack-start/static';",
+			// Import from an entry the app declares itself so the generated file
+			// resolves under strict dependency layouts (pnpm) where the app does
+			// not depend on @c15t/schema directly.
+			`import type { ConsentManifest } from '${importSource}';`,
 			'',
 			`export const ${exportName} = ${JSON.stringify(
 				manifest,

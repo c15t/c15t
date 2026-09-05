@@ -111,3 +111,70 @@ describe('createStaticManifestModule: strict-mode names', () => {
 		).rejects.toThrow(/valid identifier/u);
 	});
 });
+
+describe('resolveStrictestDefaultInit: ties within a model', () => {
+	const loosened = function loosened(
+		pack: (typeof MANIFEST_FIXTURE.policyPacks)[number],
+		id: string
+	) {
+		const copy = structuredClone(pack);
+		copy.policy.id = id;
+		copy.resolvedPolicy.id = id;
+		if (copy.policy.consent) {
+			copy.policy.consent.scopeMode = 'permissive';
+		}
+		if (copy.resolvedPolicy.consent) {
+			copy.resolvedPolicy.consent.scopeMode = 'permissive';
+		}
+		return copy;
+	};
+
+	test('prefers the strict-scope pack regardless of manifest order', () => {
+		const [strict] = MANIFEST_FIXTURE.policyPacks;
+		if (!strict) {
+			throw new Error('fixture has no packs');
+		}
+		const loose = loosened(strict, 'eu-opt-in-loose');
+		for (const policyPacks of [
+			[strict, loose],
+			[loose, strict],
+		]) {
+			const payload = resolveStrictestDefaultInit(
+				{ ...MANIFEST_FIXTURE, policyPacks },
+				{ language: 'en' }
+			);
+			expect(payload.policy?.id).toBe('eu-opt-in');
+			expect(payload.policy?.consent?.scopeMode).toBe('strict');
+		}
+	});
+});
+
+describe('createStaticManifestModule: importSource', () => {
+	const fetchManifest = () =>
+		vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), { status: 200 })
+			) as unknown as typeof globalThis.fetch;
+
+	test('imports the type from the entry the app declares', async () => {
+		const source = await createStaticManifestModule({
+			fetch: fetchManifest(),
+			importSource: 'c15t/tanstack-start/static',
+			manifestURL: 'https://consent.example.com/manifest',
+		});
+		expect(source).toContain(
+			"import type { ConsentManifest } from 'c15t/tanstack-start/static';"
+		);
+	});
+
+	test('rejects an importSource that is not a module specifier', async () => {
+		await expect(
+			createStaticManifestModule({
+				fetch: fetchManifest(),
+				importSource: "x'; import evil from 'y",
+				manifestURL: 'https://consent.example.com/manifest',
+			})
+		).rejects.toThrow(/importSource/u);
+	});
+});
