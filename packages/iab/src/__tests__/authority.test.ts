@@ -322,7 +322,7 @@ test('server-assigned subject preserves locally confirmed authority', async () =
 	addon.acceptAll();
 	const save = addon.save();
 	await vi.waitFor(() =>
-		expect(kernel.getSnapshot().subjectId).toBe('canonical')
+		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe('canonical')
 	);
 	await save;
 	expect(evaluateConsent(target, kernel.getSnapshot(), NOW)).toBe(true);
@@ -368,7 +368,7 @@ test('clearing during a pending transport never restores authority', async () =>
 	finish({ ok: true, subjectId: 'stale' });
 	await save;
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
-	expect(kernel.getSnapshot().subjectId).toBeNull();
+	expect(kernel.getSnapshot().subject?.subjectId ?? null).toBeNull();
 });
 
 test('overlapping confirmations retain the newest authority', async () => {
@@ -496,7 +496,9 @@ test.each(['subject', 'identity', 'new-save'] as const)(
 		const before = kernel.getSnapshot();
 		finish({ ok: true, subjectId: 'stale' });
 		await first;
-		expect(kernel.getSnapshot().subjectId).toBe(before.subjectId);
+		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe(
+			before.subject?.subjectId ?? null
+		);
 		expect(kernel.getSnapshot().iab?.authority).toBe(before.iab?.authority);
 		expect(evaluateConsent(target, kernel.getSnapshot(), NOW)).toBe(false);
 	}

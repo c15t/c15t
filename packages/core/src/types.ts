@@ -600,8 +600,9 @@ export interface ConsentKernel {
 	/**
 	 * Apply validated stored records without creating a choice. Emits
 	 * `permissions:changed` when permissions changed and nothing else. Marks
-	 * the lifecycle as started, which installs the deadline timer and lets a
-	 * detected GPC signal record its standing directive.
+	 * the lifecycle as started and installs the deadline timer. Hydration does
+	 * not write storage or record privacy directives; the mounted adapter
+	 * forwards browser detection through set.privacySignals afterward.
 	 */
 	hydrate: (records: HydrationRecords) => HydrationResult;
 

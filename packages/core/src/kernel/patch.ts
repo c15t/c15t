@@ -43,8 +43,7 @@ import { freezeSnapshot } from './snapshot';
 
 /**
  * Partial update applied to a snapshot. Only input fields are patchable;
- * permissions, prompt, restrictions, deadline, model and the bridge
- * aliases are always derived.
+ * permissions, prompt, restrictions, deadline and model are always derived.
  *
  * Nullable fields: `undefined` (omitted) preserves, `null` clears.
  */

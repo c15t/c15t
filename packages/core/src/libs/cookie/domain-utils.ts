@@ -43,7 +43,7 @@ export const getDefaultCookieOptions = function getDefaultCookieOptions(
  * @example
  * ```typescript
  * // Enable cross-subdomain consent
- * saveConsentToStorage(data, { domain: getRootDomain() });
+ * createPersistence({ kernel, storageConfig: { domain: getRootDomain() } });
  * ```
  *
  * @public
