@@ -49,6 +49,10 @@ const requireKernel = (kernel: ConsentKernel | null): ConsentKernel => {
 const useStableConsentCategories = (
 	getter: DevToolsOptions['getConsentCategories']
 ): DevToolsOptions['getConsentCategories'] => {
+	const latestGetter = useRef(getter);
+	useLayoutEffect(() => {
+		latestGetter.current = getter;
+	}, [getter]);
 	const categoryKey = getter ? JSON.stringify(getter()) : undefined;
 	return useMemo(() => {
 		if (categoryKey === undefined) {
@@ -57,7 +61,7 @@ const useStableConsentCategories = (
 		const categories = JSON.parse(categoryKey) as ReturnType<
 			NonNullable<typeof getter>
 		>;
-		return () => categories;
+		return () => latestGetter.current?.() ?? categories;
 	}, [categoryKey]);
 };
 

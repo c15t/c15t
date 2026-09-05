@@ -1,7 +1,9 @@
+import { createConsentKernel } from '@c15t/core';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { KernelContext } from '../context';
 import {
 	C15TDevTools,
 	C15tTanStackDevtoolsPanel,
@@ -35,6 +37,44 @@ afterEach(() => {
 });
 
 describe('v3 React DevTools adapter', () => {
+	test('keeps category getters live between React renders', async () => {
+		const kernel = createConsentKernel();
+		const view = await render(
+			<KernelContext.Provider value={kernel}>
+				<ConsentDevTools
+					defaultOpen
+					getConsentCategories={() =>
+						kernel.getSnapshot().consents.measurement
+							? ['necessary', 'measurement']
+							: ['necessary', 'marketing']
+					}
+				/>
+			</KernelContext.Provider>
+		);
+		await vi.waitFor(() =>
+			expect(
+				getMountedDevTools()?.querySelector(
+					'[data-focus-key="consent:marketing"]'
+				)
+			).not.toBeNull()
+		);
+		const root = getMountedDevTools();
+		kernel.set.consent({ measurement: true });
+		await vi.waitFor(() => {
+			expect(
+				getMountedDevTools()?.querySelector(
+					'[data-focus-key="consent:measurement"]'
+				)
+			).not.toBeNull();
+			expect(
+				getMountedDevTools()?.querySelector(
+					'[data-focus-key="consent:marketing"]'
+				)
+			).toBeNull();
+		});
+		expect(getMountedDevTools()).toBe(root);
+		view.unmount();
+	});
 	test.each([false, true])(
 		'preserves the active tab and events across inline callback rerenders, embedded=%s',
 		async (embedded) => {
