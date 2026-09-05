@@ -17,6 +17,10 @@ const getBenchManifestURL = function getBenchManifestURL() {
  */
 const baselineBuild = process.env.C15T_BENCH_BASELINE === '1';
 const config = {
+	...(baselineBuild && {
+		buildDir: '.nuxt-baseline',
+		nitro: { output: { dir: '.output-baseline' } },
+	}),
 	compatibilityDate: '2026-07-04',
 	modules: baselineBuild ? [] : ['@c15t/vue'],
 	routeRules: {

@@ -28,6 +28,8 @@ import {
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
+import { assertConsentFreeBaseline } from './baseline';
+
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
 	resolve: (value: Value | PromiseLike<Value>) => void;
@@ -103,7 +105,13 @@ const HOST = '127.0.0.1';
 const PORT = 4313;
 const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const serverEntryPath = join(appDir, '.output', 'server', 'index.mjs');
+const serverEntry = (baseline: boolean) =>
+	join(
+		appDir,
+		baseline ? '.output-baseline' : '.output',
+		'server',
+		'index.mjs'
+	);
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/nuxt';
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
@@ -246,10 +254,15 @@ const waitForServer = async function waitForServer() {
 	throw new Error('Timed out waiting for nuxt browser bench server');
 };
 
-const runCommand = async function runCommand(args: string[], label: string) {
+const runCommand = async function runCommand(
+	args: string[],
+	label: string,
+	baseline: boolean
+) {
 	return await createVoidDeferredPromise((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
+			env: { ...process.env, C15T_BENCH_BASELINE: baseline ? '1' : '0' },
 			stdio: ['ignore', 'pipe', 'pipe'],
 		});
 
@@ -275,12 +288,12 @@ const runCommand = async function runCommand(args: string[], label: string) {
 	});
 };
 
-const ensureBuild = async function ensureBuild() {
-	if (existsSync(serverEntryPath)) {
+const ensureBuild = async function ensureBuild(baseline: boolean) {
+	if (existsSync(serverEntry(baseline))) {
 		return;
 	}
 
-	await runCommand(['run', 'build'], 'nuxt browser benchmark build');
+	await runCommand(['run', 'build'], 'nuxt browser benchmark build', baseline);
 };
 
 const applyPageProfile = async function applyPageProfile(
@@ -378,6 +391,17 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	await page.waitForLoadState('load');
 	await page.waitForTimeout(250);
 
+	if (scenario === 'baseline' || scenario === 'baseline-client') {
+		assertConsentFreeBaseline({
+			bannerCount: await page
+				.locator('[data-testid="consent-banner-root"]')
+				.count(),
+			bannerInFirstHtml,
+			initRequests,
+			manifestRequests,
+		});
+	}
+
 	const state = await page.evaluate(() => window.__c15tNuxtBench);
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
@@ -460,8 +484,14 @@ const isManifestScenario = function isManifestScenario(
 	return scenario.includes('manifest');
 };
 
-const run = async function run() {
-	await ensureBuild();
+const run = async function run(baseline: boolean) {
+	const buildScenarios = scenarios.filter(
+		(scenario) => scenario.name.startsWith('baseline') === baseline
+	);
+	if (buildScenarios.length === 0) {
+		return;
+	}
+	await ensureBuild(baseline);
 
 	const env = {
 		...process.env,
@@ -475,7 +505,7 @@ const run = async function run() {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
 	}
 
-	const server = spawn('node', ['.output/server/index.mjs'], {
+	const server = spawn('node', [serverEntry(baseline)], {
 		cwd: appDir,
 		env,
 		stdio: ['ignore', 'pipe', 'pipe'],
@@ -494,7 +524,7 @@ const run = async function run() {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
 
-		await Array.from(scenarios).reduce<Promise<void>>(
+		await Array.from(buildScenarios).reduce<Promise<void>>(
 			async (previousScenario, scenario) => {
 				await previousScenario;
 				const samples: NuxtBrowserSample[] = [];
@@ -757,7 +787,8 @@ const run = async function run() {
 };
 
 try {
-	await run();
+	await run(true);
+	await run(false);
 } catch (error) {
 	console.error(error);
 	process.exit(1);
