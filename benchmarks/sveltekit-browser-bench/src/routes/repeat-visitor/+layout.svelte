@@ -17,7 +17,7 @@
 		trapFocus: false,
 	}}
 >
-	<BenchShell scenario="ssr-manifest">
+	<BenchShell scenario="repeat-visitor">
 		{@render children()}
 	</BenchShell>
 </ConsentManagerProvider>
