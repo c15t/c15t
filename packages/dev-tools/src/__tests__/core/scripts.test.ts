@@ -18,6 +18,90 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each(['load', 'error'] as const)(
+		'observes a retained script finishing with %s while consent is revoked',
+		(event) => {
+			const kernel = createConsentKernel({
+				initialConsents: { marketing: true },
+			});
+			const callback = vi.fn();
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						category: 'marketing',
+						id: 'late-retained',
+						onError: callback,
+						onLoad: callback,
+						persistAfterConsentRevoked: true,
+						src: 'https://example.test/pixel.js',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			const element = document.getElementById(
+				getScriptDiagnostics(kernel)[0]?.elementId ?? ''
+			);
+			kernel.set.consent({ marketing: false });
+			element?.dispatchEvent(new Event(event));
+			expect(callback).toHaveBeenCalledOnce();
+			expect(callback).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: expect.objectContaining({ marketing: false }),
+					hasConsent: false,
+				})
+			);
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
+			kernel.set.consent({ marketing: true });
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(
+				event === 'load' ? 'loaded' : 'error'
+			);
+			element?.remove();
+		}
+	);
+	it.each(['removed', 'replaced', 'disposed', 'unregistered'] as const)(
+		'ignores late completion when a retained script is %s',
+		(state) => {
+			const kernel = createConsentKernel({
+				initialConsents: { marketing: true },
+			});
+			const onLoad = vi.fn();
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						category: 'marketing',
+						id: 'stale-retained',
+						onLoad,
+						persistAfterConsentRevoked: true,
+						src: 'https://example.test/pixel.js',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			const element = document.getElementById(
+				getScriptDiagnostics(kernel)[0]?.elementId ?? ''
+			);
+			kernel.set.consent({ marketing: false });
+			if (state === 'removed') {
+				element?.remove();
+			}
+			if (state === 'replaced') {
+				element?.replaceWith(element.cloneNode());
+			}
+			if (state === 'disposed') {
+				loader.dispose();
+			}
+			if (state === 'unregistered') {
+				loader.updateScripts([]);
+			}
+			element?.dispatchEvent(new Event('load'));
+			expect(onLoad).not.toHaveBeenCalled();
+			if (element) {
+				document.getElementById(element.id)?.remove();
+			}
+		}
+	);
 	it('cleans up diagnostics and subscriptions when initial mounting fails', () => {
 		const kernel = createConsentKernel();
 		expect(() =>

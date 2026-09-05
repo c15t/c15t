@@ -94,6 +94,7 @@ export const createScriptLoader = function createScriptLoader(
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
 
 	const loadedElements = new Map<string, HTMLScriptElement | null>();
+	const retainedElements = new Map<string, HTMLScriptElement>();
 	const ownedScriptIds = new Set<string>();
 	const elementIds = createElementIdResolver();
 	const eligibilityByScriptId = new Map<string, boolean>();
@@ -102,9 +103,11 @@ export const createScriptLoader = function createScriptLoader(
 	const mountDeps: MountDeps = {
 		elementIds,
 		emit,
+		getSnapshot: kernel.getSnapshot,
 		hasDebugListener,
 		loadedElements,
 		ownedScriptIds,
+		retainedElements,
 	};
 
 	// Track the last-seen consent-relevant references so a kernel tick
@@ -159,6 +162,7 @@ export const createScriptLoader = function createScriptLoader(
 			}
 
 			if (eligible) {
+				retainedElements.delete(script.id);
 				mountScript(mountDeps, script, snapshot, hasConsent, batch);
 			} else {
 				unmountScript(mountDeps, script, snapshot, hasConsent);
@@ -230,6 +234,7 @@ export const createScriptLoader = function createScriptLoader(
 				}
 			}
 			loadedElements.clear();
+			retainedElements.clear();
 			ownedScriptIds.clear();
 			elementIds.clear();
 			eligibilityByScriptId.clear();
@@ -246,6 +251,7 @@ export const createScriptLoader = function createScriptLoader(
 			for (const { script } of normalized) {
 				if (!nextIds.has(script.id)) {
 					unmountScript(mountDeps, script, snapshot, false);
+					retainedElements.delete(script.id);
 					eligibilityByScriptId.delete(script.id);
 					consentByScriptId.delete(script.id);
 					lastEvents.delete(script.id);

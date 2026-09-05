@@ -23,6 +23,10 @@ import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
  * closure capture and remain testable.
  */
 export interface MountDeps {
+	/** Latest kernel state for callbacks completing after consent changes. */
+	getSnapshot: () => ConsentSnapshot;
+	/** Retained elements still observed after consent revocation. */
+	retainedElements: Map<string, HTMLScriptElement>;
 	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
 	loadedElements: Map<string, HTMLScriptElement | null>;
 	/** Script IDs whose DOM element was created by this loader instance. */
@@ -31,8 +35,7 @@ export interface MountDeps {
 	elementIds: ElementIdResolver;
 	/** Debug emitter (merged onDebug + v2 compat). */
 	emit: (event: ScriptLoaderDebugEvent) => void;
-	/** True if any debug consumer is wired. Skip allocating
-	 * lifecycle events when false. */
+	/** Whether consumer or legacy debug listeners need callback metadata. */
 	hasDebugListener: boolean;
 }
 
@@ -195,12 +198,28 @@ export const mountScript = function mountScript(
 	// Listeners only make sense on external scripts; inline scripts have
 	// no network event. Diagnostics still need events without user callbacks.
 	if (script.src) {
+		const isCurrentElement = () =>
+			element.isConnected &&
+			document.getElementById(elementId) === element &&
+			(deps.loadedElements.get(script.id) === element ||
+				deps.retainedElements.get(script.id) === element);
+		const completionInfo = () =>
+			info && deps.retainedElements.get(script.id) === element
+				? buildCallbackInfo(
+						script,
+						deps.getSnapshot(),
+						false,
+						elementId,
+						element
+					)
+				: info;
 		element.addEventListener('load', () => {
-			if (deps.loadedElements.get(script.id) !== element) {
+			if (!isCurrentElement()) {
 				return;
 			}
-			if (info) {
-				invokeCallback(script, 'onLoad', info, deps.emit);
+			const currentInfo = completionInfo();
+			if (currentInfo) {
+				invokeCallback(script, 'onLoad', currentInfo, deps.emit);
 			}
 			deps.emit({
 				action: 'load_completed',
@@ -213,12 +232,13 @@ export const mountScript = function mountScript(
 			});
 		});
 		element.addEventListener('error', () => {
-			if (deps.loadedElements.get(script.id) !== element) {
+			if (!isCurrentElement()) {
 				return;
 			}
-			if (info) {
+			const currentInfo = completionInfo();
+			if (currentInfo) {
 				const errorInfo = {
-					...info,
+					...currentInfo,
 					error: new Error(`Failed to load script: ${script.src}`),
 				};
 				invokeCallback(script, 'onError', errorInfo, deps.emit);
@@ -289,6 +309,9 @@ export const unmountScript = function unmountScript(
 	const elementId = deps.elementIds.resolve(script);
 
 	if (script.persistAfterConsentRevoked) {
+		if (element) {
+			deps.retainedElements.set(script.id, element);
+		}
 		// Element stays in DOM but we drop our reference so a later
 		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);

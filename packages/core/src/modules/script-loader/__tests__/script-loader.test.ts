@@ -27,6 +27,7 @@ import type { Script } from '../index';
 
 interface StubScriptElement {
 	id: string;
+	readonly isConnected: boolean;
 	src?: string;
 	textContent?: string;
 	async?: boolean;
@@ -60,6 +61,9 @@ const createStubElement = function createStubElement(): StubScriptElement {
 		},
 		attributes: new Map(),
 		id: '',
+		get isConnected() {
+			return this.parentNode !== null;
+		},
 		listeners: new Map(),
 		parentNode: null,
 		removeEventListener(event, handler) {

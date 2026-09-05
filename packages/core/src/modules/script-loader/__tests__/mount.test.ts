@@ -19,9 +19,11 @@ const makeDeps = function makeDeps(): {
 		emit: (event) => {
 			emitted.push({ action: event.action, scriptId: event.scriptId });
 		},
+		getSnapshot: createConsentKernel().getSnapshot,
 		hasDebugListener: true,
 		loadedElements: new Map(),
 		ownedScriptIds: new Set(),
+		retainedElements: new Map(),
 	};
 	return { deps, emitted };
 };
