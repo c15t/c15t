@@ -95,3 +95,9 @@ keeps working but nothing calls it.
 bun run build
 DATABASE_URL=postgres://... bun run start
 ```
+
+`vite build` emits `dist/server/server.js` as a bare `{ fetch }` handler with
+no listener, so `bun run start` hosts it with `scripts/serve.mjs`: srvx on
+`node:http` serving `dist/client` as static files in front of the handler,
+which is the Node hosting shape TanStack Start documents for that output.
+`PORT` and `HOST` override the defaults (`3010`, `127.0.0.1`).
