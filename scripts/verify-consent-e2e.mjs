@@ -271,7 +271,21 @@ const verifyGpc = async function verifyGpc(browser, app) {
 	try {
 		await gotoSettled(page, url);
 		const probe = await readProbe(page, app);
-		assertEqual(probe.overrides?.gpc, true, `${app.label}: GPC override`);
+		assertEqual(
+			probe.privacySignals?.gpc?.detected,
+			true,
+			`${app.label}: detected GPC`
+		);
+		assertEqual(
+			probe.privacySignals?.gpc?.active,
+			true,
+			`${app.label}: active GPC`
+		);
+		assertEqual(
+			probe.privacySignals?.gpc?.override,
+			undefined,
+			`${app.label}: GPC remains a detected signal`
+		);
 		console.log(`✓ ${app.label}: GPC header reaches the kernel`);
 	} finally {
 		await context.close();
@@ -331,7 +345,11 @@ const verifyNoZombie = async function verifyNoZombie(browser, app) {
 			`${app.label}: stored-consent DOM banner count`
 		);
 		const probe = await readProbe(page, app);
-		assertEqual(probe.hasConsented, true, `${app.label}: probe hasConsented`);
+		assertEqual(
+			probe.hasStoredChoice,
+			true,
+			`${app.label}: probe hasStoredChoice`
+		);
 		console.log(`✓ ${app.label}: no re-prompt / no zombie`);
 	} finally {
 		await context.close();
@@ -360,13 +378,6 @@ const fetchJsonResponse = async function fetchJsonResponse(
 	return { body: await response.json(), response };
 };
 
-const hasManifestTranslation = function hasManifestTranslation(manifest) {
-	return Boolean(
-		manifest.translations?.i18n?.messages?.default?.translations?.en
-			?.cookieBanner?.title
-	);
-};
-
 const hasInitTranslation = function hasInitTranslation(init) {
 	return Boolean(init.translations?.translations?.cookieBanner?.title);
 };
@@ -377,8 +388,8 @@ const hasInitJurisdiction = function hasInitJurisdiction(init) {
 
 const hasMarketingCategory = function hasMarketingCategory(init) {
 	return (
-		Array.isArray(init.policy?.consent?.categories) &&
-		init.policy.consent.categories.includes('marketing')
+		Array.isArray(init.policyResolution?.policy?.scope) &&
+		init.policyResolution.policy.scope.includes('marketing')
 	);
 };
 
@@ -396,33 +407,37 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		await fetchJsonResponse(app, `${base}/api/c15t/manifest`);
 	assertEqual(
 		manifest.schemaVersion,
-		1,
+		2,
 		`${app.label}: nitro manifest schemaVersion`
 	);
-	assertEqual(
-		manifest.revision,
-		'nuxt-browser-bench-manifest',
-		`${app.label}: nitro manifest revision`
+	assert(
+		typeof manifest.revision === 'string' &&
+			/^[a-f0-9]{64}$/u.test(manifest.revision),
+		`${app.label}: nitro manifest SHA-256 revision`
 	);
 	assert(
-		Array.isArray(manifest.policyPacks) && manifest.policyPacks.length === 1,
+		Array.isArray(manifest.policyPacks) && manifest.policyPacks.length === 2,
 		`${app.label}: nitro manifest policyPacks`
 	);
 	// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 	const pack = manifest.policyPacks[0];
-	assertEqual(
-		pack.fingerprint,
-		'fingerprint_nuxt_browser_bench',
-		`${app.label}: nitro manifest pack fingerprint`
-	);
-	assertEqual(
-		pack.resolvedPolicy?.ui?.mode,
-		'banner',
-		`${app.label}: nitro manifest resolvedPolicy ui mode`
-	);
 	assert(
-		hasManifestTranslation(manifest),
-		`${app.label}: nitro manifest translations payload`
+		['choice', 'notice', 'policy'].every(
+			(key) =>
+				typeof pack.fingerprints?.[key] === 'string' &&
+				/^[a-f0-9]{64}$/u.test(pack.fingerprints[key])
+		),
+		`${app.label}: nitro manifest policy fingerprints`
+	);
+	assertEqual(
+		pack.rule?.model,
+		'opt-in',
+		`${app.label}: nitro manifest policy model`
+	);
+	assertEqual(
+		pack.rule?.prompt,
+		'choice',
+		`${app.label}: nitro manifest choice prompt`
 	);
 	// Nitro's defineCachedEventHandler wrapper replaces the upstream
 	// cache-control passthrough with its own maxAge directive, so only
@@ -451,13 +466,17 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 	);
 
 	// --- /api/c15t/init: manifest-resolved init, geo/GPC/language aware ---
-	const { body: init } = await fetchJsonResponse(app, `${base}/api/c15t/init`, {
-		'accept-language': 'en;q=0.2, de-DE;q=0.9',
-		'cf-ipcountry': 'US',
-		'sec-gpc': '1',
-		'x-c15t-country': 'FR',
-		'x-c15t-region': 'BRE',
-	});
+	const { body: init, response: initResponse } = await fetchJsonResponse(
+		app,
+		`${base}/api/c15t/init`,
+		{
+			'accept-language': 'en;q=0.2, de-DE;q=0.9',
+			'cf-ipcountry': 'US',
+			'sec-gpc': '1',
+			'x-c15t-country': 'FR',
+			'x-c15t-region': 'BRE',
+		}
+	);
 	assertEqual(
 		init.translations?.language,
 		'de',
@@ -467,6 +486,21 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		hasInitTranslation(init),
 		`${app.label}: nitro init translations payload`
 	);
+	assertEqual(
+		initResponse.headers.get('x-c15t-policy-contract'),
+		'1',
+		`${app.label}: nitro policy contract header`
+	);
+	assertEqual(
+		init.policyResolution?.version,
+		1,
+		`${app.label}: nitro policy contract version`
+	);
+	assertEqual(
+		init.policyResolution?.status,
+		'matched',
+		`${app.label}: nitro matched policy`
+	);
 	assertEqual(init.branding, 'c15t', `${app.label}: nitro init branding`);
 	assert(hasInitJurisdiction(init), `${app.label}: nitro init jurisdiction`);
 	assertEqual(
@@ -475,18 +509,18 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		`${app.label}: nitro init location country`
 	);
 	assertEqual(
-		init.policy?.ui?.mode,
-		'banner',
-		`${app.label}: nitro init resolved policy ui mode`
+		init.policyResolution?.policy?.prompt,
+		'choice',
+		`${app.label}: nitro init resolved policy prompt`
 	);
 	assert(
 		hasMarketingCategory(init),
 		`${app.label}: nitro init resolved policy categories`
 	);
 	assertEqual(
-		init.policyDecision?.fingerprint,
-		'fingerprint_nuxt_browser_bench',
-		`${app.label}: nitro init policyDecision fingerprint`
+		init.policyResolution?.fingerprints?.choice,
+		pack.fingerprints.choice,
+		`${app.label}: nitro init choice fingerprint`
 	);
 	assertEqual(
 		init.resolvedOverrides?.country,
@@ -500,8 +534,8 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 	);
 	assertEqual(
 		init.resolvedOverrides?.gpc,
-		true,
-		`${app.label}: nitro init GPC override`
+		undefined,
+		`${app.label}: nitro init preserves detected GPC provenance`
 	);
 	assertEqual(
 		init.resolvedOverrides?.language,
@@ -534,15 +568,30 @@ const verifyApp = async function verifyApp(browser, app) {
 	await ensureBuilt(app);
 	const { server, stderr } = await startServer(app);
 	try {
-		await verifyFreshVisit(browser, app);
-		await verifyOverrideHeaders(browser, app);
-		await verifyGpc(browser, app);
-		await verifyLanguage(browser, app);
-		await verifyNoZombie(browser, app);
-		await (app.extraChecks ?? []).reduce(async (previousCheck, extraCheck) => {
+		const failures = [];
+		const checks = [
+			() => verifyFreshVisit(browser, app),
+			() => verifyOverrideHeaders(browser, app),
+			() => verifyGpc(browser, app),
+			() => verifyLanguage(browser, app),
+			() => verifyNoZombie(browser, app),
+			...(app.extraChecks ?? []).map((check) => () => check(app)),
+		];
+		await checks.reduce(async (previousCheck, check) => {
 			await previousCheck;
-			await extraCheck(app);
+			try {
+				await check();
+			} catch (error) {
+				console.error(error);
+				failures.push(error);
+			}
 		}, Promise.resolve());
+		if (failures.length > 0) {
+			throw new AggregateError(
+				failures,
+				`${app.label}: ${failures.length} failed checks`
+			);
+		}
 	} catch (error) {
 		if (stderr.length > 0) {
 			console.error(stderr.join(''));
@@ -557,10 +606,22 @@ const main = async function main() {
 	const startedAt = Date.now();
 	const browser = await chromium.launch({ headless: true });
 	try {
+		const failures = [];
 		await apps.reduce(async (previousApp, app) => {
 			await previousApp;
-			await verifyApp(browser, app);
+			try {
+				await verifyApp(browser, app);
+			} catch (error) {
+				console.error(error);
+				failures.push(error);
+			}
 		}, Promise.resolve());
+		if (failures.length > 0) {
+			throw new AggregateError(
+				failures,
+				`${failures.length} apps failed consent e2e`
+			);
+		}
 	} finally {
 		await browser.close();
 	}

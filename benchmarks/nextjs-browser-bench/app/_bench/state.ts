@@ -1,5 +1,7 @@
 'use client';
 
+import type { ConsentSnapshot } from '@c15t/nextjs';
+
 export type NextjsBenchScenario =
 	| 'baseline'
 	| 'client'
@@ -21,6 +23,7 @@ export interface NextjsBenchState {
 		language?: string;
 		gpc?: boolean;
 	};
+	privacySignals?: ConsentSnapshot['privacySignals'];
 	location?: {
 		countryCode?: string | null;
 		regionCode?: string | null;

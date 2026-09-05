@@ -54,6 +54,7 @@ export const NextjsBenchmarkProbe = ({
 		if (state) {
 			state.renderCount = renderRef.current;
 			state.overrides = { ...snapshot.overrides };
+			state.privacySignals = snapshot.privacySignals;
 			state.location = snapshot.location
 				? {
 						countryCode: snapshot.location.countryCode,
@@ -120,6 +121,7 @@ export const NextjsBenchmarkProbe = ({
 			current.promptSettledMs = performance.now();
 		}
 		current.overrides = { ...snapshot.overrides };
+		current.privacySignals = snapshot.privacySignals;
 		current.location = snapshot.location
 			? {
 					countryCode: snapshot.location.countryCode,

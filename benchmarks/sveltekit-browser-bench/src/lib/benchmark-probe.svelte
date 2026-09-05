@@ -13,11 +13,12 @@
 			language?: string;
 			gpc?: boolean;
 		};
+		privacySignals: ConsentSnapshot['privacySignals'];
 		location: {
 			countryCode?: string | null;
 			regionCode?: string | null;
 		} | null;
-		hasConsented: boolean;
+		hasStoredChoice: boolean;
 	}
 
 	declare global {
@@ -38,7 +39,7 @@
 	const publish = function publish(snapshot: ConsentSnapshot) {
 		window.__c15tSvelteBench = {
 			activeUI: snapshot.activeUI ?? 'none',
-			hasConsented: snapshot.hasConsented,
+			hasStoredChoice: Boolean(snapshot.explicitChoice),
 			location: snapshot.location
 				? {
 						countryCode: snapshot.location.countryCode,
@@ -46,6 +47,7 @@
 					}
 				: null,
 			overrides: { ...snapshot.overrides },
+			privacySignals: snapshot.privacySignals,
 			scenario,
 		};
 	};
