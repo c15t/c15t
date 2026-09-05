@@ -7,8 +7,13 @@
  * every other site downloads does not carry it.
  */
 
+import { ConsentDraftProvider } from '@c15t/react';
 import { IABConsentDialog } from '@c15t/react/iab';
 
-const IABDialogSurface = () => <IABConsentDialog />;
+const IABDialogSurface = () => (
+	<ConsentDraftProvider>
+		<IABConsentDialog />
+	</ConsentDraftProvider>
+);
 
 export default IABDialogSurface;

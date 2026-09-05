@@ -22,12 +22,18 @@ empty and the integration writes the one adapter and the one island specifier
 into the page script it injects, both behind `import()`, so a Svelte site's
 build never resolves `@c15t/react` or `vue` and a React site's never resolves
 Svelte. Measured on `examples/astro-demo`, the on-demand dialog graph is 74.6
-KB gzipped for `svelte`, 115.7 KB for `react` and 139.7 KB for `vue`, and each
+KB gzipped for `svelte`, 115.9 KB for `react` and 139.7 KB for `vue`, and each
 build contains exactly one framework runtime.
 
 `react`, `react-dom`, `vue`, `@c15t/react` and `@c15t/vue` are optional peer
 dependencies. `requireSvelte` is now `requireUIIntegration`, which checks
 whichever framework `ui` names.
+
+Offline sites now resolve a policy narrowed to the configured
+`consentCategories` on the server as well as in the browser. The React dialog
+reads its toggle list off the resolved policy, so a wide policy showed
+categories the site never configured while the Svelte and Vue surfaces —
+which filter by option — did not.
 
 `@c15t/vue`'s Vite plugin now answers `#c15t/composables` from `resolveId` as
 well as `resolve.alias`. A host that declares its own aliases in array form —
