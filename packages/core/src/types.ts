@@ -521,6 +521,7 @@ export interface KernelTransport {
  * Kernel event surface. Stable event names.
  */
 export type KernelEvent =
+	| { type: 'records:cleared' }
 	| {
 			/** An explicit accept, reject or save recorded a choice. */
 			type: 'choice:recorded';
@@ -690,6 +691,10 @@ export interface ConsentKernel {
 			context?: {
 				/** Addon confirmation time captured before asynchronous encoding. Never for hydration or renewal. */
 				actionAt?: number;
+				/** Validated addon authority confirmed by this action.
+				 * @internal
+				 */
+				iabAuthority?: KernelIABAuthority;
 			}
 		) => Promise<SaveResult>;
 		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */

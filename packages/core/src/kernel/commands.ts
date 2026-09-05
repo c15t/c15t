@@ -28,6 +28,7 @@ import type {
 	InitContext,
 	InitResult,
 	KernelConfig,
+	KernelIABAuthority,
 	KernelTransport,
 	KernelUser,
 	NoticeDismissResult,
@@ -39,6 +40,7 @@ import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import { createPendingSaveQueue } from './pending-saves';
 import type { KernelRuntime } from './runtime';
+import { copyIABAuthority } from './snapshot';
 import type { StagedLegacyPolicy } from './snapshot';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
@@ -200,6 +202,72 @@ const saveSubject = function saveSubject(
 		}
 	}
 	return subject;
+};
+
+const isRecord = function isRecord(
+	value: unknown
+): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object' && !Array.isArray(value);
+};
+
+/** Validate addon metadata before the local action can mutate any state. */
+const validSaveAuthority = function validSaveAuthority(
+	value: unknown,
+	snapshot: ConsentSnapshot,
+	actionAt: number,
+	now: number
+): value is KernelIABAuthority {
+	if (!isRecord(value)) {
+		return false;
+	}
+	const authority = value;
+	return (
+		snapshot.model === 'iab' &&
+		snapshot.resolution.status === 'matched' &&
+		snapshot.iab?.enabled === true &&
+		typeof authority.tcString === 'string' &&
+		authority.tcString.length > 0 &&
+		authority.choiceFingerprint ===
+			snapshot.evaluationPolicy.choice.fingerprint &&
+		authority.confirmedAt === actionAt &&
+		typeof authority.expiresAt === 'number' &&
+		Number.isSafeInteger(authority.expiresAt) &&
+		authority.expiresAt > now &&
+		authority.expiresAt > actionAt &&
+		authority.expiresAt <=
+			actionAt +
+				Math.min(
+					snapshot.evaluationPolicy.choice.maxAgeMs ?? 395 * 86400000,
+					395 * 86400000
+				) &&
+		[
+			authority.vendorConsents,
+			authority.vendorLegitimateInterests,
+			authority.purposeConsents,
+			authority.purposeLegitimateInterests,
+			authority.specialFeatureOptIns,
+		].every(
+			(map) =>
+				map !== null &&
+				typeof map === 'object' &&
+				!Array.isArray(map) &&
+				Object.values(map).every((entry) => typeof entry === 'boolean')
+		)
+	);
+};
+
+const applySaveAuthority = function applySaveAuthority(
+	patch: SnapshotPatch,
+	snapshot: ConsentSnapshot,
+	authority?: KernelIABAuthority
+): void {
+	if (authority && snapshot.iab) {
+		patch.iab = {
+			...snapshot.iab,
+			authority: copyIABAuthority(authority),
+			tcString: authority.tcString,
+		};
+	}
 };
 
 /**
@@ -550,8 +618,20 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const sendSave = async function sendSave(
 		payload: SavePayload,
 		generation: number,
-		confirmed: readonly OptionalConsentCategory[]
+		confirmed: readonly OptionalConsentCategory[],
+		actionSnapshot: ConsentSnapshot
 	): Promise<SaveResult> {
+		const isCurrent = () => {
+			const current = getSnapshot();
+			return (
+				runtime.getGeneration() === generation &&
+				current.explicitChoice === actionSnapshot.explicitChoice &&
+				current.subject === actionSnapshot.subject &&
+				current.user === actionSnapshot.user &&
+				current.evaluationPolicy.choice.fingerprint ===
+					actionSnapshot.evaluationPolicy.choice.fingerprint
+			);
+		};
 		const send = transport?.save;
 		if (!send) {
 			return { confirmed, ok: true, subjectId: payload.subjectId };
@@ -562,12 +642,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			await createDeferredPromise((resolve) => {
 				setTimeout(resolve, 0);
 			});
-			if (runtime.getGeneration() !== generation) {
+			if (!isCurrent()) {
 				// Cleared or replaced while waiting: nothing to send.
 				return { confirmed, ok: false };
 			}
 			const result = await send(payload);
-			if (runtime.getGeneration() !== generation) {
+			if (!isCurrent()) {
 				return { ...result, confirmed };
 			}
 			if (result.ok) {
@@ -575,6 +655,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			} else {
 				await pendingSaves?.enqueue(payload);
 				ensureOnlineListener();
+			}
+			if (!isCurrent()) {
+				return { ...result, confirmed };
 			}
 			if (result.subjectId && result.subjectId !== getSnapshot().subjectId) {
 				commit({
@@ -589,7 +672,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return { ...result, confirmed };
 		} catch (error) {
 			emit({ command: 'save', error, type: 'command:error' });
-			if (runtime.getGeneration() === generation) {
+			if (isCurrent()) {
 				await pendingSaves?.enqueue(payload);
 				ensureOnlineListener();
 			}
@@ -618,8 +701,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		async identify(user: KernelUser): Promise<void> {
 			identifyGeneration += 1;
 			const attempt = identifyGeneration;
-			const { subjectId } = getSnapshot();
-			commit({ user: { ...user } });
+			const { subjectId, iab } = getSnapshot();
+			const patch: SnapshotPatch = { user: { ...user } };
+			if (iab) {
+				patch.iab = { ...iab, authority: null, tcString: null };
+			}
+			commit(patch);
 			emit({ snapshot: getSnapshot(), type: 'user:identified' });
 			if (transport?.identify) {
 				try {
@@ -652,7 +739,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 
 		async save(
 			input?: SaveInput,
-			context?: { actionAt?: number }
+			context?: { actionAt?: number; iabAuthority?: KernelIABAuthority }
 		): Promise<SaveResult> {
 			const currentTime = runtime.now();
 			const actionAt =
@@ -666,6 +753,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					issues: [{ code: 'invalid-timestamp', path: 'actionAt' }],
 					ok: false,
 				};
+			}
+			if (
+				context?.iabAuthority !== undefined &&
+				!validSaveAuthority(
+					context.iabAuthority,
+					getSnapshot(),
+					actionAt,
+					currentTime
+				)
+			) {
+				return { ok: false };
 			}
 			emit({ type: 'command:save:started' });
 
@@ -701,7 +799,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const subjectId = before.subject?.subjectId ?? generateSubjectId();
 			const subject = saveSubject(before, subjectId);
 			runtime.setDraft(null);
-			commit({ explicitChoice: recorded.choice, now: currentTime, subject });
+			const patch: SnapshotPatch = {
+				explicitChoice: recorded.choice,
+				now: currentTime,
+				subject,
+			};
+			applySaveAuthority(patch, before, context?.iabAuthority);
+			commit(patch);
 			const after = getSnapshot();
 			// Records generation at the moment the action landed. A hydration
 			// boundary (storage clear, server record) that replaces the choice
@@ -745,7 +849,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				user: after.user,
 			};
 
-			const result = await sendSave(payload, generation, recorded.confirmed);
+			const result = await sendSave(
+				payload,
+				generation,
+				recorded.confirmed,
+				after
+			);
 			emit({ result, type: 'command:save:completed' });
 			return result;
 		},

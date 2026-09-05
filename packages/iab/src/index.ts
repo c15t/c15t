@@ -254,6 +254,7 @@ const sameConfirmationContext = function sameConfirmationContext(
 			right.evaluationPolicy.choice.fingerprint &&
 		left.iab === right.iab &&
 		left.subject === right.subject &&
+		left.user === right.user &&
 		left.explicitChoice === right.explicitChoice
 	);
 };
@@ -370,6 +371,11 @@ export const createIAB = function createIAB(
 			armAuthorityTimer();
 		}
 	};
+	const unsubscribeClear = kernel.events.on('records:cleared', () => {
+		hydrationCancelled = true;
+		confirmationGeneration += 1;
+		clearAuthorityReceipt();
+	});
 	const initializationSnapshot = kernel.getSnapshot();
 	void (async () => {
 		const gvl = await gvlPromise;
@@ -445,6 +451,9 @@ export const createIAB = function createIAB(
 	};
 
 	const generateTC = async function generateTC(): Promise<string> {
+		const snapshot = kernel.getSnapshot();
+		const recordsGeneration = kernel.getRecordsGeneration();
+		const generation = confirmationGeneration;
 		const iab = readIAB(kernel);
 		if (!iab.gvl) {
 			throw new Error(
@@ -452,15 +461,22 @@ export const createIAB = function createIAB(
 			);
 		}
 		// Lazy-load @iabtechlabtcf/core only when we actually encode.
-		await getTCFCore();
 		const consentData = buildTCFConsentData();
+		await getTCFCore();
 		const tcString = await generateTCString(consentData, iab.gvl, {
 			cmpId,
 			cmpVersion,
 			isServiceSpecific: options.isServiceSpecific ?? true,
 			publisherCountryCode: options.publisherCountryCode ?? 'US',
 		});
-		kernel.set.iab({ tcString });
+		if (
+			!disposed &&
+			generation === confirmationGeneration &&
+			kernel.getRecordsGeneration() === recordsGeneration &&
+			sameConfirmationContext(kernel.getSnapshot(), snapshot)
+		) {
+			kernel.set.iab({ tcString });
+		}
 		return tcString;
 	};
 
@@ -479,6 +495,7 @@ export const createIAB = function createIAB(
 			disposed = true;
 			clearTimeout(authorityTimer);
 			unsubscribe();
+			unsubscribeClear();
 			if (cmpApi) {
 				try {
 					cmpApi.destroy();
@@ -536,24 +553,24 @@ export const createIAB = function createIAB(
 				return;
 			}
 			const consents = iabPurposesToC15tConsents(consentData.purposeConsents);
-			kernel.set.iab({ tcString });
-			const pendingSave = kernel.commands.save(consents, { actionAt });
-			const savingSnapshot = kernel.getSnapshot();
-			const result = await pendingSave;
+			const pendingSave = kernel.commands.save(consents, {
+				actionAt,
+				iabAuthority: authority,
+			});
+			// Save commits locally before its first yield. Transport acknowledgement
+			// cannot revoke that action or assign authority to a later action.
 			if (
-				!result.ok ||
-				disposed ||
-				generation !== confirmationGeneration ||
-				kernel.getRecordsGeneration() !== recordsGeneration ||
-				!sameConfirmationContext(kernel.getSnapshot(), savingSnapshot)
+				kernel.getSnapshot().iab?.authority?.tcString === tcString &&
+				!disposed &&
+				generation === confirmationGeneration &&
+				kernel.getRecordsGeneration() === recordsGeneration
 			) {
-				return;
+				storeAuthority(authority);
+				cmpApi?.saveToStorage(tcString);
+				cmpApi?.updateConsent(tcString, consentData);
+				armAuthorityTimer();
 			}
-			kernel.set.iab({ authority, tcString });
-			storeAuthority(authority);
-			cmpApi?.saveToStorage(tcString);
-			cmpApi?.updateConsent(tcString, consentData);
-			armAuthorityTimer();
+			await pendingSave;
 		},
 		setPurposeConsent(id, value) {
 			const current = readIAB(kernel).purposeConsents;

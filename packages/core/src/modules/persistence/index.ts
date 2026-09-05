@@ -154,6 +154,7 @@ export const createPersistence = function createPersistence(
 				optOutDirectives: [],
 				subject: null,
 			});
+			kernel.events.emit({ type: 'records:cleared' });
 		},
 		dispose() {
 			for (const unsubscribe of unsubscribers) {

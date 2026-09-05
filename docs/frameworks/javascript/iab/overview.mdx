@@ -42,6 +42,16 @@ Gate reads deny expired authority even when browser timers are delayed. The
 addon expiry timer also removes authority so mounted scripts reconcile. Dispose
 the handle when its owner unmounts to cancel the timer and CMP subscription.
 
+`save()` confirms the IAB selection locally before waiting for the backend. The category receipts and
+validated TC authority share the original confirmation time. A failed request
+keeps that local confirmation and queues the same TC string and timestamp for
+replay. A subject ID assigned by the backend preserves the confirmation.
+
+Explicit persistence clearing removes the addon authority receipt and the
+`euconsent-v2` cookie and local storage record, even when the IAB addon is not
+mounted. It also cancels pending addon hydration and encoding. Reading stored
+records during ordinary hydration does not clear or rewrite them.
+
 ## Quick Setup
 
 Enable IAB TCF in the runtime options:

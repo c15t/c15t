@@ -113,16 +113,22 @@ export const buildSetters = function buildSetters(runtime: KernelRuntime) {
 		},
 
 		subjectId(id: string | null): void {
-			const { subject } = getSnapshot();
+			const { subject, iab } = getSnapshot();
+			const iabPatch = iab
+				? { iab: { ...iab, authority: null, tcString: null } }
+				: {};
 			if ((subject?.subjectId ?? null) === id) {
 				return;
 			}
 			if (id === null) {
 				const { subjectId: _dropped, ...rest } = subject ?? {};
-				commit({ subject: Object.keys(rest).length > 0 ? rest : null });
+				commit({
+					subject: Object.keys(rest).length > 0 ? rest : null,
+					...iabPatch,
+				});
 				return;
 			}
-			commit({ subject: { ...subject, subjectId: id } });
+			commit({ subject: { ...subject, subjectId: id }, ...iabPatch });
 		},
 	};
 };

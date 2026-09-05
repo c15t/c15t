@@ -954,4 +954,9 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	clearStoredNoticeDismissal(config, cookie);
 	clearStoredPrivacyOptOuts(config, cookie);
 	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
+	// Addon bytes must be removed even when the addon is not mounted.
+	removeLocalStorageKey('c15t-iab-authority-v1');
+	removeLocalStorageKey('euconsent-v2');
+	deleteCookie('euconsent-v2', cookie, config);
+	deleteCookie('euconsent-v2');
 };
