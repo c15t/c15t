@@ -63,7 +63,16 @@ const hydrateScenario = function hydrateScenario(
 		now: POLICY_NOW,
 		policy,
 		steps: [
-			{ expect: { ...quiet, ...expect }, operation: { kind: 'hydrate' } },
+			{
+				expect: {
+					...quiet,
+					subject: POLICY_RECORDS[record].expected.valid
+						? POLICY_RECORDS[record].expected.subject
+						: null,
+					...expect,
+				},
+				operation: { kind: 'hydrate' },
+			},
 		],
 		storage: { cookie: record, localStorage: record },
 	};
@@ -217,6 +226,21 @@ const wire = (['hosted', 'manifest', 'self-hosted'] as const).flatMap(
 		)
 );
 
+const ssrObservations: Record<
+	'legacy-no-hash' | 'legacy-expired-grant' | 'legacy-anonymous-grant',
+	PolicyObservation
+> = {
+	'legacy-anonymous-grant': {
+		firstLayer: 'notice',
+		prompt: { kind: 'notice', reason: 'missing' },
+	},
+	'legacy-expired-grant': {
+		firstLayer: 'choice',
+		prompt: { kind: 'choice', reason: 'expired' },
+	},
+	'legacy-no-hash': { firstLayer: 'hidden', prompt: { kind: 'none' } },
+};
+
 const ssr = (
 	[
 		['legacy-no-hash', POLICY_CHOICE],
@@ -232,6 +256,8 @@ const ssr = (
 		{
 			expect: {
 				...quiet,
+				choice: POLICY_RECORDS[record].expected.choice,
+				...ssrObservations[record],
 				ssr: { domParity: true, hydrationWarnings: 0, promptParity: true },
 			},
 			operation: { kind: 'ssr-hydrate' },
@@ -245,6 +271,72 @@ const ssr = (
  * permission fallback and resolution status remain independently asserted.
  */
 export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
+	{
+		covers: ['F1', 'F10'],
+		id: 'accept-persist-reload',
+		now: POLICY_NOW,
+		policy: POLICY_CHOICE,
+		steps: [
+			{
+				expect: {
+					...quiet,
+					choice: null,
+					firstLayer: 'choice',
+					permissions: denied,
+					prompt: { kind: 'choice', reason: 'missing' },
+				},
+				operation: { kind: 'hydrate' },
+			},
+			{
+				expect: {
+					choice: policyChoice(
+						{ marketing: true, measurement: true },
+						POLICY_NOW
+					),
+					consentCallbacks: 1,
+					firstLayer: 'hidden',
+					permissions: granted,
+					prompt: { kind: 'none' },
+					storage: 'choice-v3',
+				},
+				operation: { kind: 'accept' },
+			},
+			{
+				expect: {
+					...quiet,
+					choice: policyChoice(
+						{ marketing: true, measurement: true },
+						POLICY_NOW
+					),
+					firstLayer: 'hidden',
+					permissions: granted,
+					prompt: { kind: 'none' },
+				},
+				operation: { kind: 'reload' },
+			},
+		],
+	},
+	...(['opt-in', 'opt-out'] as const).map((model): PolicyScenario => ({
+		covers: ['F4'],
+		gpc: true,
+		id: `gpc-prechoice-${model}`,
+		now: POLICY_NOW,
+		policy: { ...POLICY_CHOICE, gpcDenyCategories: POLICY_SCOPE, model },
+		steps: [
+			{
+				expect: {
+					choice: null,
+					consentCallbacks: 0,
+					consentRequests: 0,
+					events: { 'choice-recorded': 0, 'privacy-opt-out': 1 },
+					permissions: denied,
+					standingOptOut: POLICY_SCOPE,
+					storage: 'privacy-only',
+				},
+				operation: { kind: 'hydrate' },
+			},
+		],
+	})),
 	...legacyHydration,
 	...expiry,
 	hydrateScenario('json-absence-is-undecided', 'legacy-partial-json', {
@@ -466,6 +558,32 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 				expect: { permissions: granted, resolution: 'matched' },
 				operation: { kind: 'hydrate' },
 			},
+			{
+				expect: {
+					...quiet,
+					permissions: denied,
+					priorPolicyStateDiscarded: [
+						'policy',
+						'policyDecision',
+						'snapshotToken',
+						'promptRequirement',
+						'policyIab',
+						'policyDefaults',
+					],
+					prompt: { kind: 'choice', reason: 'missing' },
+					resolution: 'no-match',
+				},
+				operation: { kind: 'apply-policy', policy: null },
+			},
+		],
+	},
+	{
+		covers: ['A', 'F7', 'F11'],
+		id: 'null-clears-matched-iab',
+		now: POLICY_NOW,
+		policy: { ...POLICY_CHOICE, model: 'iab' },
+		steps: [
+			{ expect: { resolution: 'matched' }, operation: { kind: 'hydrate' } },
 			{
 				expect: {
 					...quiet,

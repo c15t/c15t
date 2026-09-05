@@ -9,6 +9,7 @@ import type { TestDriver } from '../driver';
 import { EMPTY_POLICIES, MINIMAL_POLICIES } from '../fixtures/policies';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
+import { runPolicyProducerConformance } from './policy-producers';
 
 const countSwitches = function countSwitches(root: HTMLElement): number {
 	return root.querySelectorAll('[role="switch"]').length;
@@ -18,6 +19,7 @@ export const runPoliciesConformance = function runPoliciesConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
+	runPolicyProducerConformance(driver, api);
 	api.describe(`[${driver.framework}] policies`, () => {
 		conformanceTest(
 			api,

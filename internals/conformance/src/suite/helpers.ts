@@ -7,7 +7,6 @@
  * bun:test for the meta-suite). Both runners expose compatible APIs.
  */
 
-import { DriverNotImplementedError } from '../driver';
 import type { TestDriver } from '../driver';
 
 interface DeferredPromise<Value> {
@@ -58,26 +57,14 @@ export interface SuiteApi {
 }
 
 /**
- * Register a conformance test. Runs the body; if the driver signals
- * "not implemented", the test is marked as todo (visible in output)
- * but does not fail the suite.
+ * Register a conformance test. Missing supported capabilities are failures.
  */
 export const conformanceTest = function conformanceTest(
 	api: SuiteApi,
 	name: string,
 	body: () => void | Promise<void>
 ): void {
-	api.test(name, async () => {
-		try {
-			await body();
-		} catch (err) {
-			if (err instanceof DriverNotImplementedError) {
-				console.warn(`  [todo] ${name}: ${err.message}`);
-				return;
-			}
-			throw err;
-		}
-	});
+	api.test(name, body);
 };
 
 export interface SuiteContext {

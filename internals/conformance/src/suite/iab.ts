@@ -9,19 +9,21 @@
  * Deliberately shallow: no vendor/purpose toggling or deep dialog
  * interaction — portal + focus-trap behavior is flaky under jsdom and is
  * covered by the storybook interaction suites instead. Drivers without IAB
- * component support throw `DriverNotImplementedError` and degrade to todo.
+ * component support throw `DriverNotImplementedError` and fail.
  */
 
 import { TEST_IDS } from '../contract/test-ids';
 import type { TestDriver } from '../driver';
+import { POLICY_SCENARIOS } from '../fixtures/policy-scenarios';
 import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
 import type { SuiteApi } from './helpers';
+import { runPolicyScenarioConformance } from './policy-scenarios';
 
 const accessibleName = function accessibleName(el: HTMLElement): string {
 	return (el.getAttribute('aria-label') ?? el.textContent ?? '').trim();
 };
 
-export const runIabConformance = function runIabConformance(
+export const runIabUiConformance = function runIabUiConformance(
 	driver: TestDriver,
 	api: SuiteApi
 ): void {
@@ -103,4 +105,17 @@ export const runIabConformance = function runIabConformance(
 			}
 		);
 	});
+};
+
+/** Category restrictions and confirmed IAB authority remain independent. */
+export const runIabConformance = function runIabConformance(
+	driver: TestDriver,
+	api: SuiteApi
+): void {
+	runIabUiConformance(driver, api);
+	runPolicyScenarioConformance(
+		driver,
+		api,
+		POLICY_SCENARIOS.filter((scenario) => scenario.covers.includes('F11'))
+	);
 };

@@ -20,7 +20,7 @@
 	},
 	"scripts": {
 		"lint:testids": "bun src/lint/testid-lint.ts",
-		"test": "bun test --preload ./test-setup.ts"
+		"test": "bun test --tsconfig-override \"$PWD/tsconfig.json\" --preload ./test-setup.ts"
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",

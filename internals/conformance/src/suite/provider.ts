@@ -6,14 +6,16 @@
  */
 
 import type { TestDriver } from '../driver';
-import { conformanceTest } from './helpers';
+import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
 import type { SuiteApi } from './helpers';
 
 const REQUIRED_STATE_KEYS = [
-	'consents',
-	'selectedConsents',
-	'activeUI',
-	'consentCategories',
+	'explicitChoice',
+	'effectivePermissions',
+	'promptRequirement',
+	'noticeDismissal',
+	'optOutDirectives',
+	'resolution',
 ] as const;
 
 export const runProviderConformance = function runProviderConformance(
@@ -48,9 +50,20 @@ export const runProviderConformance = function runProviderConformance(
 					const unsubscribe = store.subscribe(() => {
 						notified += 1;
 					});
-					store.getState();
-					unsubscribe();
-					api.expect(notified).toBeGreaterThanOrEqual(0);
+					try {
+						const accept = queryByTestId(
+							mounted.root,
+							'consent-banner-accept-button'
+						);
+						if (!accept) {
+							throw new Error('Missing accept action');
+						}
+						accept.click();
+						await waitForCondition(() => notified > 0);
+						api.expect(notified).toBeGreaterThan(0);
+					} finally {
+						unsubscribe();
+					}
 				} finally {
 					await mounted.unmount();
 				}
