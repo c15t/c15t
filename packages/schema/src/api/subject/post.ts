@@ -11,6 +11,7 @@ import {
 	legalDocumentPolicyTypeSchema,
 	policyTypeSchema,
 } from '../../domain/consent-policy';
+import { subjectChoiceWireSchema } from './choice-wire';
 
 /**
  * Base subject ID validation - must be in sub_xxx format
@@ -191,6 +192,12 @@ const manifestDecisionInputEntries = {
 export const subjectCookieBannerInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	...manifestDecisionInputEntries,
+	/**
+	 * v3 per-category receipts confirmed by this action. When present, the
+	 * backend records coverage and confirmation time per category from here
+	 * rather than from `preferences` plus one `givenAt`.
+	 */
+	choice: v.optional(subjectChoiceWireSchema),
 	preferences: v.pipe(
 		v.record(v.string(), v.boolean()),
 		v.description('Consent preferences keyed by category.'),

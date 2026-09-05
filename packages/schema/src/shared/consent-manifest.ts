@@ -9,8 +9,27 @@ import {
 } from './jurisdiction-runtime';
 import {
 	createDeterministicFingerprintSync,
+	createMaterialPolicyFingerprint,
+	createMaterialPolicyFingerprintSync,
 	createPolicyFingerprint,
 } from './policy-fingerprint';
+import {
+	liftLegacyPolicyConfig,
+	liftLegacyResolvedPolicy,
+	projectPolicyRuleToLegacyConfig,
+} from './policy-legacy-bridge';
+import {
+	matchPolicyRules,
+	writePolicyResolutionWire,
+} from './policy-resolution';
+import type {
+	PolicyResolution,
+	PolicyResolutionWire,
+} from './policy-resolution';
+import { inspectPolicyRules, normalizePolicyRule } from './policy-rule';
+import type { PolicyRule, ResolvedPolicyRule } from './policy-rule';
+import { createPolicyRuleFingerprints } from './policy-rule-fingerprint';
+import type { PolicyFingerprints } from './policy-rule-fingerprint';
 import {
 	createResolvedPolicyFromConfig,
 	validatePolicies,
@@ -31,9 +50,27 @@ export interface ConsentManifestGVLReference {
 }
 
 export interface ConsentManifestPolicyPack {
+	/**
+	 * v2 policy config. Carries the matcher for both contracts.
+	 *
+	 * BRIDGE: the v2 fields stay until the final sweep so clients that predate
+	 * `rule` keep resolving.
+	 */
 	policy: PolicyConfig;
+	/** BRIDGE: v2 wire projection old clients read. */
 	resolvedPolicy: ResolvedPolicy;
+	/** BRIDGE: v2 exact-policy fingerprint (`createPolicyFingerprint`). */
 	fingerprint: string;
+	/** v3 normalized rule. Present on every pack of a `schemaVersion: 2` manifest. */
+	rule?: ResolvedPolicyRule;
+	/** v3 fingerprints precomputed by the producer. */
+	fingerprints?: PolicyFingerprints;
+}
+
+/** Recorded when the configured rules failed validation at build time. */
+export interface ConsentManifestPolicyFailure {
+	reason: 'invalid-configuration';
+	errors: string[];
 }
 
 export interface ConsentManifestTranslationInputs {
@@ -52,13 +89,23 @@ export interface ConsentManifestIAB {
 }
 
 export interface ConsentManifest {
-	schemaVersion: 1;
+	/**
+	 * `1`: packs carry only the v2 fields. `2`: every pack also carries `rule`
+	 * and `fingerprints`, and `policyFailure` may be present.
+	 */
+	schemaVersion: 1 | 2;
 	revision: string;
 	tenantId?: string;
 	appName?: string;
 	branding: ConsentManifestBranding;
 	defaults?: ConsentManifestDefaults;
 	policyPacks?: ConsentManifestPolicyPack[];
+	/**
+	 * Present when the configured rules were invalid. Every request then
+	 * resolves to `failed` with `invalid-configuration` and the client applies
+	 * the safe fallback.
+	 */
+	policyFailure?: ConsentManifestPolicyFailure;
 	translations?: ConsentManifestTranslationInputs;
 	cmpId?: number;
 	iab?: ConsentManifestIAB;
@@ -268,11 +315,119 @@ export const createConsentManifestPolicyPack =
 	function createConsentManifestPolicyPack(input: {
 		policy: PolicyConfig;
 		fingerprint: string;
+		rule?: ResolvedPolicyRule;
+		fingerprints?: PolicyFingerprints;
 	}): ConsentManifestPolicyPack {
 		return {
 			fingerprint: input.fingerprint,
 			policy: input.policy,
 			resolvedPolicy: createResolvedPolicyFromConfig(input.policy),
+			...(input.rule && { rule: input.rule }),
+			...(input.fingerprints && { fingerprints: input.fingerprints }),
+		};
+	};
+
+const liftManifestPack = function liftManifestPack(
+	manifest: ConsentManifest,
+	pack: ConsentManifestPolicyPack
+): { rule: ResolvedPolicyRule; fingerprints: PolicyFingerprints } | undefined {
+	if (manifest.schemaVersion === 2) {
+		// A v2 manifest must carry the complete precomputed contract. Never
+		// fall back to lifting: an incomplete pack is a producer defect.
+		if (!pack.rule || !pack.fingerprints) {
+			return undefined;
+		}
+		return { fingerprints: pack.fingerprints, rule: pack.rule };
+	}
+	// BRIDGE: a schemaVersion 1 manifest from a producer that predates the
+	// contract. Lift the v2 projection once per request.
+	try {
+		const rule = liftLegacyResolvedPolicy(pack.resolvedPolicy);
+		return {
+			fingerprints: {
+				...createPolicyRuleFingerprints(rule),
+				legacyMaterial: createMaterialPolicyFingerprintSync(
+					pack.resolvedPolicy
+				),
+			},
+			rule,
+		};
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * Resolves the v3 policy outcome for one request from a manifest.
+ *
+ * @remarks
+ * Distinguishes unconfigured, matched, no-match and failed. A manifest with
+ * `policyFailure` fails every request, an unknown `schemaVersion` fails with
+ * `unsupported-contract`, and a `schemaVersion: 2` pack missing its `rule` or
+ * `fingerprints` fails with `invalid-configuration` instead of being lifted.
+ * An unknown location with neither a fallback nor a default is `failed` with
+ * `insufficient-inputs`, not a no-match.
+ */
+export const resolvePolicyResolutionFromManifest =
+	function resolvePolicyResolutionFromManifest(
+		manifest: ConsentManifest,
+		location: { countryCode: string | null; regionCode: string | null }
+	): PolicyResolution {
+		if (manifest.schemaVersion !== 1 && manifest.schemaVersion !== 2) {
+			return { policy: null, reason: 'unsupported-contract', status: 'failed' };
+		}
+		if (manifest.policyFailure) {
+			return {
+				policy: null,
+				reason: manifest.policyFailure.reason,
+				status: 'failed',
+			};
+		}
+		const packs = manifest.policyPacks;
+		if (packs === undefined) {
+			return { policy: null, status: 'unconfigured' };
+		}
+		if (packs.length === 0) {
+			return { policy: null, status: 'no-match' };
+		}
+		try {
+			validatePolicies(packs.map((pack) => pack.policy));
+		} catch {
+			return {
+				policy: null,
+				reason: 'invalid-configuration',
+				status: 'failed',
+			};
+		}
+		const outcome = matchPolicyRules({
+			countryCode: location.countryCode,
+			entries: packs.map((pack) => ({
+				id: pack.policy.id,
+				match: pack.policy.match,
+			})),
+			regionCode: location.regionCode,
+		});
+		if (outcome.status === 'insufficient-inputs') {
+			return { policy: null, reason: 'insufficient-inputs', status: 'failed' };
+		}
+		if (outcome.status === 'no-match') {
+			return { policy: null, status: 'no-match' };
+		}
+		const pack = packs[outcome.index];
+		const lifted = pack ? liftManifestPack(manifest, pack) : undefined;
+		if (!lifted) {
+			return {
+				policy: null,
+				reason: 'invalid-configuration',
+				status: 'failed',
+			};
+		}
+		return {
+			fingerprints: lifted.fingerprints,
+			matchedBy: outcome.matchedBy,
+			policy: lifted.rule,
+			policyId: lifted.rule.id,
+			status: 'matched',
 		};
 	};
 
@@ -381,11 +536,15 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 				regionCode: location.regionCode,
 			})
 		: undefined;
+	const policyResolution: PolicyResolutionWire = writePolicyResolutionWire(
+		resolvePolicyResolutionFromManifest(manifest, location)
+	);
 
 	return {
 		branding: manifest.branding,
 		jurisdiction,
 		location,
+		policyResolution,
 		translations: responseTranslations as InitOutput['translations'],
 		...(shouldIncludeIabPayload && {
 			customVendors: manifest.iab?.customVendors,
@@ -418,9 +577,15 @@ export interface ConsentManifestConfig {
 	readonly appName?: string;
 	readonly branding?: ConsentManifest['branding'];
 	readonly disableGeoLocation?: boolean;
+	/**
+	 * v2 policy configs. BRIDGE: lifted to v3 rules at build time; removed in
+	 * the final sweep. Configure either `policyPacks` or `policyRules`.
+	 */
 	readonly policyPacks?: Parameters<
 		typeof createConsentManifestPolicyPack
 	>[0]['policy'][];
+	/** v3 policy rules. */
+	readonly policyRules?: readonly PolicyRule[];
 	readonly customTranslations?: ConsentManifest['translations'] extends
 		| { customTranslations?: infer T }
 		| undefined
@@ -469,19 +634,100 @@ const buildGvlReference = function buildGvlReference(
  *
  * Pure and geo-independent by construction: nothing here reads a request.
  */
+const buildPacksFromRules = async function buildPacksFromRules(
+	rules: readonly PolicyRule[]
+): Promise<ConsentManifestPolicyPack[]> {
+	return await Promise.all(
+		rules.map(async (rule) => {
+			const normalized = normalizePolicyRule(rule);
+			const policy = projectPolicyRuleToLegacyConfig(rule);
+			const resolvedPolicy = createResolvedPolicyFromConfig(policy);
+			const fingerprint = await createPolicyFingerprint(resolvedPolicy);
+			return createConsentManifestPolicyPack({
+				fingerprint,
+				fingerprints: createPolicyRuleFingerprints(normalized),
+				policy,
+				rule: normalized,
+			});
+		})
+	);
+};
+
+const buildPacksFromLegacyConfigs = async function buildPacksFromLegacyConfigs(
+	policies: readonly PolicyConfig[]
+): Promise<ConsentManifestPolicyPack[]> {
+	return await Promise.all(
+		policies.map(async (policy) => {
+			const resolvedPolicy = createResolvedPolicyFromConfig(policy);
+			const fingerprint = await createPolicyFingerprint(resolvedPolicy);
+			const rule = normalizePolicyRule(liftLegacyPolicyConfig(policy));
+			return createConsentManifestPolicyPack({
+				fingerprint,
+				fingerprints: {
+					...createPolicyRuleFingerprints(rule),
+					legacyMaterial: await createMaterialPolicyFingerprint(resolvedPolicy),
+				},
+				policy,
+				rule,
+			});
+		})
+	);
+};
+
+const buildManifestPolicy = async function buildManifestPolicy(
+	config: ConsentManifestConfig
+): Promise<Pick<ConsentManifest, 'policyPacks' | 'policyFailure'>> {
+	if (config.policyRules && config.policyPacks) {
+		throw new TypeError(
+			'Configure either policyRules or policyPacks, not both.'
+		);
+	}
+	const iabOptions =
+		config.iab?.enabled === undefined
+			? undefined
+			: { iabEnabled: config.iab.enabled };
+	if (config.policyRules) {
+		const { errors } = inspectPolicyRules(config.policyRules, iabOptions);
+		if (errors.length > 0) {
+			return {
+				policyFailure: { errors, reason: 'invalid-configuration' },
+				policyPacks: [],
+			};
+		}
+		return { policyPacks: await buildPacksFromRules(config.policyRules) };
+	}
+	if (config.policyPacks) {
+		const lifted = config.policyPacks.map((policy) =>
+			liftLegacyPolicyConfig(policy)
+		);
+		const { errors } = inspectPolicyRules(lifted, iabOptions);
+		if (errors.length > 0) {
+			// Old clients keep the v2 fields exactly as configured; new clients
+			// fail safely on the recorded policyFailure.
+			const policyPacks = await Promise.all(
+				config.policyPacks.map(async (policy) => {
+					const resolvedPolicy = createResolvedPolicyFromConfig(policy);
+					const fingerprint = await createPolicyFingerprint(resolvedPolicy);
+					return createConsentManifestPolicyPack({ fingerprint, policy });
+				})
+			);
+			return {
+				policyFailure: { errors, reason: 'invalid-configuration' },
+				policyPacks,
+			};
+		}
+		return {
+			policyPacks: await buildPacksFromLegacyConfigs(config.policyPacks),
+		};
+	}
+	return {};
+};
+
 export const buildConsentManifestFromConfig =
 	async function buildConsentManifestFromConfig(
 		config: ConsentManifestConfig
 	): Promise<ConsentManifest> {
-		const policyPacks = config.policyPacks
-			? await Promise.all(
-					config.policyPacks.map(async (policy) => {
-						const resolvedPolicy = createResolvedPolicyFromConfig(policy);
-						const fingerprint = await createPolicyFingerprint(resolvedPolicy);
-						return createConsentManifestPolicyPack({ fingerprint, policy });
-					})
-				)
-			: undefined;
+		const { policyFailure, policyPacks } = await buildManifestPolicy(config);
 
 		const manifest: ConsentManifest = {
 			appName: config.appName,
@@ -489,9 +735,10 @@ export const buildConsentManifestFromConfig =
 			cmpId: config.iab?.cmpId,
 			defaults: { disableGeoLocation: config.disableGeoLocation },
 			iab: buildGvlReference(config),
+			policyFailure,
 			policyPacks,
 			revision: '',
-			schemaVersion: 1,
+			schemaVersion: 2,
 			tenantId: config.tenantId,
 			translations: {
 				customTranslations: config.customTranslations,

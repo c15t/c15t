@@ -243,3 +243,14 @@ export const createMaterialPolicyFingerprint =
 			createMaterialPolicyFingerprintInput(policy)
 		);
 	};
+
+/**
+ * Synchronous variant of {@link createMaterialPolicyFingerprint}. Same
+ * input, same bytes; used where resolution must stay synchronous.
+ */
+export const createMaterialPolicyFingerprintSync =
+	function createMaterialPolicyFingerprintSync(policy: ResolvedPolicy): string {
+		return createDeterministicFingerprintSync(
+			createMaterialPolicyFingerprintInput(policy)
+		);
+	};

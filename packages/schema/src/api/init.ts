@@ -10,6 +10,7 @@ import {
 	policyUiModeSchema,
 	policyUiSurfaceConfigSchema,
 } from '~/shared/policy-schema';
+import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
 
 /**
  * Title and description schema for translations
@@ -211,12 +212,23 @@ export const initOutputSchema = v.object({
 	/**
 	 * Runtime policy resolved for the request's geo/jurisdiction context.
 	 * Present only when backend policies are configured and a match is found.
+	 *
+	 * BRIDGE: v2 wire shape kept for clients that predate `policyResolution`.
+	 * Removed in the v3 final sweep.
 	 */
 	policy: v.optional(resolvedPolicySchema),
 	/**
 	 * Explainability details for how the runtime policy was matched.
+	 *
+	 * BRIDGE: v2 wire shape kept for clients that predate `policyResolution`.
 	 */
 	policyDecision: v.optional(policyDecisionSchema),
+	/**
+	 * Versioned v3 policy resolution. `policy` inside it is explicit and
+	 * nullable: `null` means no policy applies and clears policy-derived
+	 * state. Absent only when the producer predates the contract.
+	 */
+	policyResolution: v.optional(policyResolutionWireSchema),
 	/**
 	 * Signed policy snapshot token to ensure write-time consistency.
 	 * Present when backend policy snapshots are configured.

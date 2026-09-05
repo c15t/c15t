@@ -45,6 +45,9 @@ export type {
 	PatchSubjectOutput,
 	PostSubjectInput,
 	PostSubjectOutput,
+	SubjectCategoryReceiptWire,
+	SubjectChoiceBasisWire,
+	SubjectChoiceWire,
 	SubjectItem,
 } from './api/subject';
 // Domain types
@@ -77,6 +80,7 @@ export type {
 	ConsentManifestDefaults,
 	ConsentManifestGVLReference,
 	ConsentManifestIAB,
+	ConsentManifestPolicyFailure,
 	ConsentManifestPolicyPack,
 	ConsentManifestTranslationInputs,
 	ConsentRequestHeaderInputs,
@@ -111,6 +115,7 @@ export {
 	resolveInitFromManifest,
 	resolveNoPolicyFallback,
 	resolvePolicyDecision,
+	resolvePolicyResolutionFromManifest,
 	resolvePolicySync,
 	sliceConsentManifestLanguage,
 	UK_COUNTRY_CODES,
@@ -147,10 +152,110 @@ export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,
 	createMaterialPolicyFingerprint,
+	createMaterialPolicyFingerprintSync,
 	createPolicyFingerprint,
 	hashSha256Hex,
 	stableStringify,
 } from './shared/policy-fingerprint';
+export type {
+	LegacyProjectionFidelity,
+	LegacyProjectionReport,
+} from './shared/policy-legacy-bridge';
+export {
+	describeLegacyProjection,
+	isPolicyRuleLegacyExpressible,
+	liftLegacyPolicyConfig,
+	liftLegacyResolvedPolicy,
+	projectPolicyRuleToLegacy,
+	projectPolicyRuleToLegacyConfig,
+	readLegacyPolicyWire,
+} from './shared/policy-legacy-bridge';
+export type {
+	PolicyMatchEntry,
+	PolicyMatchOutcome,
+	PolicyResolution,
+	PolicyResolutionFailed,
+	PolicyResolutionFailure,
+	PolicyResolutionMatched,
+	PolicyResolutionNoMatch,
+	PolicyResolutionUnconfigured,
+	PolicyResolutionWire,
+	SafeFallbackPolicyInput,
+} from './shared/policy-resolution';
+export {
+	matchPolicyRules,
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+	parsePolicyContractHeader,
+	readPolicyResolutionWire,
+	resolvePolicyRules,
+	SAFE_FALLBACK_POLICY_FINGERPRINTS,
+	SAFE_FALLBACK_POLICY_ID,
+	safeFallbackPolicyInput,
+	safeFallbackPolicyRule,
+	writePolicyResolutionWire,
+} from './shared/policy-resolution';
+export type {
+	PolicyActionConstraints,
+	PolicyChoiceAction,
+	PolicyConsentCategory,
+	PolicyOptionalCategory,
+	PolicyPrompt,
+	PolicyPromptAction,
+	PolicyRight,
+	PolicyRule,
+	PolicyRuleModel,
+	PolicyRuleReview,
+	ResolvedPolicyRule,
+} from './shared/policy-rule';
+export {
+	canonicalizePolicySet,
+	collectResolvedPolicyRuleIssues,
+	DEFAULT_CHOICE_VALIDITY_DAYS,
+	DEFAULT_NOTICE_VALIDITY_DAYS,
+	expectedPolicyActions,
+	inspectPolicyRules,
+	isPlainPolicyObject,
+	isPolicyOptionalCategory,
+	isPolicyPrompt,
+	isPolicyRight,
+	isPolicyRuleModel,
+	isValidPolicyPromptForModel,
+	normalizePolicyRule,
+	POLICY_CONSENT_CATEGORIES,
+	POLICY_MODEL_PROMPTS,
+	POLICY_OPTIONAL_CATEGORIES,
+	POLICY_PROMPT_ACTIONS,
+	POLICY_PROMPTS,
+	POLICY_RIGHTS,
+	POLICY_RULE_MODELS,
+	requiredPolicyRights,
+	validatePolicyRules,
+} from './shared/policy-rule';
+export type {
+	ChoicePromptFingerprintInput,
+	JsonValue,
+	NoticePromptFingerprintInput,
+	PolicyFingerprintInput,
+	PolicyFingerprints,
+	PresentationFingerprintInput,
+} from './shared/policy-rule-fingerprint';
+export {
+	CHOICE_PROMPT_FINGERPRINT_VERSION,
+	choicePromptFingerprintInput,
+	createPolicyRuleFingerprints,
+	createPresentationFingerprint,
+	NOTICE_PROMPT_FINGERPRINT_VERSION,
+	noticePromptFingerprintInput,
+	POLICY_FINGERPRINT_VERSION,
+	policyFingerprintInput,
+	PRESENTATION_FINGERPRINT_VERSION,
+} from './shared/policy-rule-fingerprint';
+export type {
+	EuropePolicyRuleMode,
+	PolicyRulePresets,
+} from './shared/policy-rule-presets';
+export { policyRulePresets } from './shared/policy-rule-presets';
 export type {
 	PolicyI18nMessageProfileLike,
 	PolicyI18nValidationOptions,
