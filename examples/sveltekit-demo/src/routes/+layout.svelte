@@ -24,12 +24,14 @@
 	let { children } = $props();
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
 	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
-	const scripts = createDemoScripts({
-		clarity: env.PUBLIC_CLARITY_ID,
-		googleTag: env.PUBLIC_GOOGLE_TAG_ID,
-		metaPixel: env.PUBLIC_META_PIXEL_ID,
-		tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
-	});
+	const scripts = dev
+		? createDemoScripts({
+				clarity: env.PUBLIC_CLARITY_ID,
+				googleTag: env.PUBLIC_GOOGLE_TAG_ID,
+				metaPixel: env.PUBLIC_META_PIXEL_ID,
+				tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
+			})
+		: [];
 
 	const activeTheme = $derived.by(() => {
 		if (!themePresetStore.mounted) {
