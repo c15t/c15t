@@ -14,7 +14,16 @@ export const useConsentDraft = function useConsentDraft() {
 	const reset = () => {
 		const current = snapshot.value;
 		fingerprint.value = current.evaluationPolicy.choice.fingerprint;
-		displayedCategories.value = ['necessary', ...current.policyRule.scope];
+		const configuredCategories =
+			config.value.consentCategories ?? current.policyRule.scope;
+		displayedCategories.value = [
+			'necessary',
+			...configuredCategories.filter(
+				(category) =>
+					category !== 'necessary' &&
+					current.policyRule.scope.includes(category)
+			),
+		];
 		values.value = Object.fromEntries(
 			displayedCategories.value.map((category) => [
 				category,
