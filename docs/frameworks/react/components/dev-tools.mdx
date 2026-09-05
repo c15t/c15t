@@ -8,12 +8,17 @@ group: frameworks
 
 ## Usage
 
+This example uses Vite's `import.meta.env.DEV` build-time flag. For another
+bundler, use its development flag instead. For example, webpack projects can
+use a configured `process.env.NODE_ENV === 'development'` replacement;
+`process` is not a browser global.
+
 ```tsx
 import { lazy, Suspense, type ReactNode } from 'react';
 import { ConsentProvider, hosted } from 'c15t/react';
 
 const DevTools =
-  process.env.NODE_ENV === 'development'
+  import.meta.env.DEV
     ? lazy(() =>
         import('c15t/react/devtools').then(({ DevTools }) => ({ default: DevTools })),
       )
