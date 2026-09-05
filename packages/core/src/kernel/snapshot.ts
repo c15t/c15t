@@ -17,6 +17,7 @@ import type {
 	OptionalConsentCategory,
 } from '../consent-record/types';
 import { allConsentNames } from '../consent/consent-types';
+import { deepFreeze } from '../libs/freeze-data';
 import {
 	buildEvaluationPolicy,
 	deriveActiveUI,
@@ -64,6 +65,28 @@ export const DEFAULT_IAB: KernelIABState = {
 };
 
 const UNCONFIGURED: PolicyResolution = { policy: null, status: 'unconfigured' };
+
+// The fallback evaluation without records has no expiry or directive deadline.
+// Its permissions and prompt are independent of the clock and GPC because
+// the fallback has no GPC deny mapping. Compute the real evaluator once and
+// freeze its result before sharing it between independently owned snapshots.
+const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
+	resolveEffectivePolicy(UNCONFIGURED)
+);
+const EMPTY_DIRECTIVES: ConsentSnapshot['optOutDirectives'] = Object.freeze([]);
+const EMPTY_OVERRIDES = Object.freeze({});
+const DEFAULT_PRIVACY_SIGNALS: ConsentSnapshot['privacySignals'] =
+	Object.freeze({
+		gpc: Object.freeze({ active: false, detected: false, override: undefined }),
+	});
+const DEFAULT_RECORD_EVALUATION = evaluateConsentRecord({
+	choice: null,
+	noticeDismissal: null,
+	now: 0,
+	optOuts: EMPTY_DIRECTIVES,
+	policy: DEFAULT_EVALUATION_POLICY,
+});
+deepFreeze(DEFAULT_RECORD_EVALUATION);
 
 /**
  * Staged draft values from a `Partial<ConsentState>`. Only own boolean
@@ -143,17 +166,6 @@ export const buildInitialIab = function buildInitialIab(
 	};
 };
 
-/** Freeze plain data recursively. Already-frozen values are left alone. */
-const deepFreeze = function deepFreeze(value: unknown): void {
-	if (typeof value !== 'object' || value === null || Object.isFrozen(value)) {
-		return;
-	}
-	Object.freeze(value);
-	for (const nested of Object.values(value as Record<string, unknown>)) {
-		deepFreeze(nested);
-	}
-};
-
 const freezeChoice = function freezeChoice(
 	choice: ExplicitChoice | null
 ): void {
@@ -184,10 +196,12 @@ export const freezeSnapshot = function freezeSnapshot(
 	Object.freeze(snapshot.effectivePermissions);
 	Object.freeze(snapshot.overrides);
 	Object.freeze(snapshot.promptRequirement);
-	for (const reasons of Object.values(snapshot.restrictions)) {
-		Object.freeze(reasons);
+	if (!Object.isFrozen(snapshot.restrictions)) {
+		for (const reasons of Object.values(snapshot.restrictions)) {
+			Object.freeze(reasons);
+		}
+		Object.freeze(snapshot.restrictions);
 	}
-	Object.freeze(snapshot.restrictions);
 	for (const directive of snapshot.optOutDirectives) {
 		Object.freeze(directive.categories);
 		Object.freeze(directive);
@@ -240,24 +254,31 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const records = validated?.ok === true ? validated.records : null;
 	const explicitChoice = records?.choice ?? null;
 	const noticeDismissal = records?.noticeDismissal ?? null;
-	const optOutDirectives = records?.optOutDirectives ?? [];
+	const optOutDirectives = records?.optOutDirectives ?? EMPTY_DIRECTIVES;
 	const subject = records?.subject ?? null;
 
 	const iab = buildInitialIab(config.initialIab);
 	const override = config.initialOverrides?.gpc;
 	const detected = config.initialPrivacySignals?.gpc === true;
-	const privacySignals = {
-		gpc: { active: override ?? detected, detected, override },
-	};
+	const privacySignals =
+		override === undefined && !detected
+			? DEFAULT_PRIVACY_SIGNALS
+			: { gpc: { active: override ?? detected, detected, override } };
 
-	const evaluation = evaluateConsentRecord({
-		choice: explicitChoice,
-		gpc: privacySignals.gpc.active,
-		noticeDismissal,
-		now,
-		optOuts: optOutDirectives,
-		policy: evaluationPolicy,
-	});
+	const evaluation =
+		evaluationPolicy === DEFAULT_EVALUATION_POLICY &&
+		explicitChoice === null &&
+		noticeDismissal === null &&
+		optOutDirectives.length === 0
+			? DEFAULT_RECORD_EVALUATION
+			: evaluateConsentRecord({
+					choice: explicitChoice,
+					gpc: privacySignals.gpc.active,
+					noticeDismissal,
+					now,
+					optOuts: optOutDirectives,
+					policy: evaluationPolicy,
+				});
 
 	return freezeSnapshot({
 		activeUI: deriveActiveUI({
@@ -279,7 +300,9 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		nextDeadline: evaluation.nextDeadline,
 		noticeDismissal,
 		optOutDirectives,
-		overrides: { ...(config.initialOverrides ?? {}) },
+		overrides: config.initialOverrides
+			? { ...config.initialOverrides }
+			: EMPTY_OVERRIDES,
 		policyPending,
 		policyRule: effective.rule,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,

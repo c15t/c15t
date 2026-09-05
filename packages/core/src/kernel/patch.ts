@@ -80,6 +80,9 @@ const samePermissions = function samePermissions(
 	left: Readonly<ConsentState>,
 	right: Readonly<ConsentState>
 ): boolean {
+	if (left === right) {
+		return true;
+	}
 	for (const key of Object.keys(right) as (keyof ConsentState)[]) {
 		if (left[key] !== right[key]) {
 			return false;
@@ -108,6 +111,9 @@ const sameRestrictions = function sameRestrictions(
 	left: Restrictions,
 	right: Restrictions
 ): boolean {
+	if (left === right) {
+		return true;
+	}
 	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
 		const a = left[category];
 		const b = right[category];
@@ -258,14 +264,32 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		iab = { ...iab, authority: null };
 	}
 
-	const evaluation = evaluateConsentRecord({
-		choice: explicitChoice,
-		gpc: privacySignals.gpc.active,
-		noticeDismissal,
-		now,
-		optOuts: optOutDirectives,
-		policy: evaluationPolicy,
-	});
+	// Frozen evaluator inputs remain valid until their next deadline. Changes
+	// to presentation, identity or metadata do not alter record authority.
+	// A clock moving backwards must re-evaluate previously expired grants.
+	const reuseEvaluation =
+		evaluationPolicy === current.evaluationPolicy &&
+		explicitChoice === current.explicitChoice &&
+		noticeDismissal === current.noticeDismissal &&
+		optOutDirectives === current.optOutDirectives &&
+		privacySignals.gpc.active === current.privacySignals.gpc.active &&
+		now >= current.evaluatedAt &&
+		(current.nextDeadline === null || now < current.nextDeadline);
+	const evaluation = reuseEvaluation
+		? {
+				nextDeadline: current.nextDeadline,
+				permissions: current.effectivePermissions,
+				promptRequirement: current.promptRequirement,
+				restrictions: current.restrictions,
+			}
+		: evaluateConsentRecord({
+				choice: explicitChoice,
+				gpc: privacySignals.gpc.active,
+				noticeDismissal,
+				now,
+				optOuts: optOutDirectives,
+				policy: evaluationPolicy,
+			});
 	const effectivePermissions = samePermissions(
 		current.effectivePermissions,
 		evaluation.permissions
