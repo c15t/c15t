@@ -50,7 +50,9 @@ export {
 export {
 	deleteCookie,
 	getCookie,
+	getRawCookieValue,
 	parseCookieValue,
+	readCookieValueFromHeader,
 	setCookie,
 } from './operations';
 

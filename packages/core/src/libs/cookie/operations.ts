@@ -121,6 +121,64 @@ export const parseCookieValue = function parseCookieValue<ReturnType = unknown>(
 };
 
 /**
+ * Finds one cookie's raw value inside a `Cookie` header or
+ * `document.cookie` string.
+ *
+ * @param cookieHeader - Raw `Cookie` header value, or `document.cookie`.
+ * @param name - Cookie name to find
+ * @returns The raw value exactly as stored, or `undefined` when the cookie
+ * is absent. No decoding or parsing happens here.
+ *
+ * @internal
+ */
+export const readCookieValueFromHeader = function readCookieValueFromHeader(
+	cookieHeader: string | undefined,
+	name: string
+): string | undefined {
+	if (!cookieHeader) {
+		return undefined;
+	}
+
+	const nameEQ = `${name}=`;
+	for (const cookie of cookieHeader.split(';')) {
+		const trimmed = cookie.trim();
+		if (trimmed.startsWith(nameEQ)) {
+			return trimmed.substring(nameEQ.length);
+		}
+	}
+
+	return undefined;
+};
+
+/**
+ * Reads one cookie's raw value from `document.cookie` without parsing it.
+ *
+ * @param name - Cookie name to read
+ * @returns The raw value, or `null` outside the browser, when the cookie
+ * is absent, or when `document.cookie` cannot be read.
+ *
+ * @remarks
+ * Read-only. Callers that need to tell the v2 compact format apart from
+ * a versioned v3 envelope must see the bytes before any parser guesses.
+ *
+ * @internal
+ */
+export const getRawCookieValue = function getRawCookieValue(
+	name: string
+): string | null {
+	if (typeof document === 'undefined') {
+		return null;
+	}
+
+	try {
+		return readCookieValueFromHeader(document.cookie, name) ?? null;
+	} catch (error) {
+		console.warn(`Failed to get cookie "${name}":`, error);
+		return null;
+	}
+};
+
+/**
  * Retrieves a cookie value by name.
  *
  * @typeParam ReturnType - The expected type of the parsed cookie value

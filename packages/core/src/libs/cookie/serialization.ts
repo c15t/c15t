@@ -94,7 +94,10 @@ export const unflattenObject = function unflattenObject(
 	for (const [key, value] of Object.entries(flattened)) {
 		const keys = key.split('.');
 
-		if (keys.length === 0) {
+		if (keys.length === 0 || keys.includes('__proto__')) {
+			// A `__proto__` segment would walk into or assign through the
+			// prototype chain. Cookie bytes are attacker-controllable, so the
+			// entry is dropped rather than interpreted.
 			continue;
 		}
 
@@ -105,7 +108,12 @@ export const unflattenObject = function unflattenObject(
 			if (k === undefined) {
 				continue;
 			}
-			if (!current[k]) {
+			const existing = Object.hasOwn(current, k) ? current[k] : undefined;
+			if (
+				typeof existing !== 'object' ||
+				existing === null ||
+				Array.isArray(existing)
+			) {
 				current[k] = {};
 			}
 			current = current[k] as Record<string, unknown>;

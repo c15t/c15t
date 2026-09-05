@@ -1309,3 +1309,36 @@ describe('Cookie Storage', () => {
 		});
 	});
 });
+
+describe('unflattenObject prototype safety', () => {
+	it('drops __proto__ segments instead of walking the prototype chain', async () => {
+		const { unflattenObject } = await import('../serialization');
+
+		const result = unflattenObject({
+			'__proto__.polluted': '1',
+			'c.__proto__': '1',
+			'c.necessary': '1',
+		});
+
+		expect(result).toEqual({ c: { necessary: true } });
+		expect(
+			(Object.prototype as unknown as Record<string, unknown>).polluted
+		).toBeUndefined();
+		expect(({} as Record<string, unknown>).polluted).toBeUndefined();
+	});
+
+	it('does not descend into an inherited property when building nested keys', async () => {
+		const { unflattenObject } = await import('../serialization');
+
+		const result = unflattenObject({
+			'constructor.name': 'x',
+			'toString.tag': '1',
+		});
+
+		expect(result).toEqual({
+			constructor: { name: 'x' },
+			toString: { tag: true },
+		});
+		expect(Object.prototype.toString).toBeTypeOf('function');
+	});
+});

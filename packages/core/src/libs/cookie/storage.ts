@@ -17,6 +17,7 @@ import {
 	deleteCookie,
 	getCookie,
 	parseCookieValue,
+	readCookieValueFromHeader,
 	setCookie,
 } from './operations';
 import type { CookieOptions, StorageConfig } from './types';
@@ -607,25 +608,6 @@ const decodeCookieValue = function decodeCookieValue(value: string): string {
 	} catch {
 		return value;
 	}
-};
-
-const readCookieValueFromHeader = function readCookieValueFromHeader(
-	cookieHeader: string | undefined,
-	name: string
-): string | undefined {
-	if (!cookieHeader) {
-		return undefined;
-	}
-
-	const nameEQ = `${name}=`;
-	for (const cookie of cookieHeader.split(';')) {
-		const trimmed = cookie.trim();
-		if (trimmed.startsWith(nameEQ)) {
-			return trimmed.substring(nameEQ.length);
-		}
-	}
-
-	return undefined;
 };
 
 /**
