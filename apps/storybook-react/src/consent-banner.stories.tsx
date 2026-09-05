@@ -12,7 +12,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'COMPONENTS - REACT/Consent Banner',
+	title: 'COMPONENTS - REACT/Core/Consent Banner',
 } satisfies Meta<typeof ConsentBanner>;
 
 export default meta;
