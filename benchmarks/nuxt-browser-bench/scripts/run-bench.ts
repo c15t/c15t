@@ -29,7 +29,7 @@ import {
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
 
-import { assertConsentFreeBaseline } from './baseline';
+import { assertConsentFreeBaseline, baselineServerOutputDir } from './baseline';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -108,8 +108,7 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const serverEntry = (baseline: boolean) =>
 	join(
-		appDir,
-		baseline ? '.output-baseline' : '.output',
+		baseline ? baselineServerOutputDir : join(appDir, '.output'),
 		'server',
 		'index.mjs'
 	);
