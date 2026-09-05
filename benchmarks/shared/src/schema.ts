@@ -89,10 +89,16 @@ export interface MetricBudget {
 	description: string;
 	/**
 	 * Compare against a named base arm rather than the same-key base
-	 * result. Missing arm artifacts leave the budget unevaluated; the
-	 * comparison runner reports that explicitly instead of passing it.
+	 * result. Missing arm artifacts leave the budget unevaluated, which the
+	 * comparison runner reports explicitly and treats as a gate failure.
 	 */
 	baseArm?: BenchmarkBaseArm;
+	/**
+	 * Metric name to read from the arm artifact when the arm's runner named
+	 * the equivalent operation differently (for example the v2 runner's
+	 * `createConsentManagerStore` for `createConsentKernel`).
+	 */
+	baseArmMetric?: string;
 }
 
 export type MetricBudgetStatus =
@@ -197,9 +203,19 @@ export interface BenchmarkComparisonSummary {
 		missingHeadMetric: number;
 		missingBaseMetric: number;
 		unevaluatedArm: number;
+		/** Expected budgets the head artifact does not define at all. */
 		missingDefinitions: string[];
+		/**
+		 * Expected budgets the head artifact defines with a different
+		 * comparator, threshold, secondary threshold, or arm mapping. A
+		 * weaker same-name budget is a gate failure, not a match.
+		 */
+		definitionMismatches: string[];
+		/** Head budgets no expectation lists; reported, never counted as coverage. */
+		unexpectedDefinitions: string[];
 	};
-	allowedUnevaluatedArms: BenchmarkBaseArm[];
+	/** Named base arms supplied to the run, with their artifact provenance. */
+	baseArms: Record<string, { results: number; commitShas: string[] }>;
 	failures: string[];
 }
 

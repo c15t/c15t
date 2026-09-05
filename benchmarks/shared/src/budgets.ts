@@ -11,10 +11,11 @@ import type { MetricBudget } from './schema';
  * faster/smaller than the v2 baseline."
  *
  * The core runtime entries carry `baseArm: 'v2'`: the comparison runner
- * evaluates them only against artifacts supplied for that arm. A v3 base
- * (every branch since the v3 promotion) is never treated as the v2 arm,
- * because a -50% improvement threshold against a v3 base would either fail
- * spuriously or, worse, pass against an implicit zero.
+ * evaluates them only against artifacts supplied for that arm through
+ * `BENCHMARK_ARM_BASE_DIRS`, and an enforced run fails when the arm is
+ * missing. A v3 base (every branch since the v3 promotion) is never treated
+ * as the v2 arm, because a -50% improvement threshold against a v3 base
+ * would either fail spuriously or, worse, pass against an implicit zero.
  *
  * These are attached to v3 benchmark output via the v3 runners' `budgetDefinitions`
  * field (see `benchmarks/core-benchmarks/src/run.ts` for the v2 equivalent).
@@ -29,6 +30,9 @@ import type { MetricBudget } from './schema';
 export const coreRuntimeV3Budgets: MetricBudget[] = [
 	{
 		baseArm: 'v2',
+		// The v2 runner named store construction `createConsentManagerStore`
+		// (BASELINE.md, "createConsentKernel (was createConsentManagerStore)").
+		baseArmMetric: 'createConsentManagerStore',
 		comparator: 'percent-lte',
 		description:
 			'v3 kernel construction must not regress vs v2 baseline (target: sub-µs, pure).',
@@ -37,6 +41,7 @@ export const coreRuntimeV3Budgets: MetricBudget[] = [
 	},
 	{
 		baseArm: 'v2',
+		baseArmMetric: 'initConsentManager',
 		comparator: 'percent-lte',
 		description: 'v3 full init must be at least 50% faster than v2 baseline.',
 		metric: 'initConsentManager',
@@ -44,6 +49,7 @@ export const coreRuntimeV3Budgets: MetricBudget[] = [
 	},
 	{
 		baseArm: 'v2',
+		baseArmMetric: 'repeatVisitorInit',
 		comparator: 'percent-lte',
 		description:
 			'v3 repeat-visitor init must be at least 50% faster than v2 baseline.',

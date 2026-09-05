@@ -247,11 +247,16 @@ const summaryLines = function summaryLines(
 		`- Results: ${summary.results.compared}/${summary.results.expected} expected results compared; missing head ${summary.results.missingHead.length}; missing base ${summary.results.missingBase.length}; unexpected ${summary.results.unexpected.length}`
 	);
 	lines.push(
-		`- Budgets: ${summary.budgets.passed} passed, ${summary.budgets.failed} failed, ${summary.budgets.missingHeadMetric} missing head metric, ${summary.budgets.missingBaseMetric} missing base metric, ${summary.budgets.unevaluatedArm} unevaluated (arm) of ${summary.budgets.expected} expected`
+		`- Budgets: ${summary.budgets.passed} passed, ${summary.budgets.failed} failed, ${summary.budgets.missingHeadMetric} missing head metric, ${summary.budgets.missingBaseMetric} missing base metric, ${summary.budgets.unevaluatedArm} unevaluated (arm), ${summary.budgets.missingDefinitions.length} missing definitions, ${summary.budgets.definitionMismatches.length} definition mismatches of ${summary.budgets.expected} expected`
 	);
-	if (summary.allowedUnevaluatedArms.length > 0) {
+	for (const [arm, info] of Object.entries(summary.baseArms)) {
 		lines.push(
-			`- Explicitly allowed unevaluated arms: ${summary.allowedUnevaluatedArms.join(', ')}`
+			`- Base arm ${arm}: ${info.results} results from ${info.commitShas.join(', ')}`
+		);
+	}
+	if (summary.budgets.unexpectedDefinitions.length > 0) {
+		lines.push(
+			`- Head budgets outside the expectation (not counted): ${summary.budgets.unexpectedDefinitions.join(', ')}`
 		);
 	}
 	for (const failure of summary.failures) {

@@ -64,21 +64,21 @@ The gate fails, with `BENCHMARK_ENFORCE=true`, on anything that would otherwise 
 - an expected result key (`shared/src/expected-results.ts`) has no head artifact or no base artifact;
 - a head artifact defines fewer budgets than expected for its key;
 - a relative budget (`delta-bytes-lte`, `percent-lte`, `absolute-and-percent-lte`) has no base metric, or its base median is `0` while the head median is not;
-- a budget that targets a named base arm has no arm artifacts and the arm was not explicitly allowed;
+- a head artifact defines an expected budget with a different comparator, threshold, secondary threshold, or arm mapping (a weaker same-name budget is a mismatch);
+- a budget that targets a named base arm has no arm artifacts. There is no waiver: supply the arm or the gate fails;
 - any evaluated budget fails.
 
-`summary.json` reports expected, compared, missing, evaluated, passed, failed, and unevaluated counts. A final report must quote those counts rather than "no failures".
+`summary.json` reports expected, compared, missing, evaluated, passed, failed, unevaluated, missing-definition, and definition-mismatch counts plus the provenance of each supplied base arm. A final report must quote those counts rather than "no failures".
 
 Environment:
 
 - `BENCHMARK_BASE_DIR`, `BENCHMARK_HEAD_DIR`, `BENCHMARK_COMPARE_DIR`
 - `BENCHMARK_EXPECTED_SUITES=core-runtime,policy-runtime` restricts the expectation to the suites a partial local run produced. Omit it for a full gate.
-- `BENCHMARK_ARM_BASE_DIRS=v2=/path/to/v2-artifacts` supplies artifacts for a named base arm.
-- `BENCHMARK_ALLOW_UNEVALUATED_ARMS=v2` lets arm budgets stay unevaluated. The waiver is recorded in `summary.json` and the markdown report.
+- `BENCHMARK_ARM_BASE_DIRS=v2=/path/to/v2-artifacts` supplies artifacts for a named base arm. A required arm that is missing fails an enforced run; there is no allow-list.
 
 ### Base arms
 
-`coreRuntimeV3Budgets` are v3-over-v2 improvement thresholds (0% / -50% / -50%) documented in `BASELINE.md`. They carry `baseArm: 'v2'` and are only evaluated against artifacts supplied through `BENCHMARK_ARM_BASE_DIRS`. Comparing them against a v3 base as if it were v2 would either fail spuriously or pass against an implicit zero, so without v2 artifacts the runner reports them as unevaluated. Same-key regression ceilings (`coreRuntimeBudgets`, `coreRuntimeCoverageBudgets`) always run against the real base.
+`coreRuntimeV3Budgets` are v3-over-v2 improvement thresholds (0% / -50% / -50%) documented in `BASELINE.md`. They carry `baseArm: 'v2'` and are evaluated only against artifacts supplied through `BENCHMARK_ARM_BASE_DIRS`; the v2 runner named kernel construction `createConsentManagerStore`, which the budget records as `baseArmMetric`. Comparing these budgets against a v3 base as if it were v2 would either fail spuriously or pass against an implicit zero, so without v2 artifacts an enforced run fails with `unevaluated-arm` for each of them. Same-key regression ceilings (`coreRuntimeBudgets`, `coreRuntimeCoverageBudgets`) always run against the real base. Genuine v2 artifacts are produced by running the v2-era `core-benchmarks` runner on a pre-promotion checkout (for example `de8dbdf868`).
 
 ### Budget kinds
 

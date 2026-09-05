@@ -4,8 +4,10 @@
  * `run-compare.ts` reads this list to fail a run that measured less than
  * it should have: a missing head artifact, a missing base artifact, or a
  * head artifact whose budget definitions dropped a metric all count as
- * gate failures. The budget metric lists are derived from the same budget
- * helpers the runners attach, so the two cannot drift apart silently.
+ * gate failures. The budget definitions are the same objects the runners
+ * attach, and the comparison runner checks each head definition against
+ * them canonically (metric, comparator, thresholds, arm mapping), so a
+ * runner that drops or weakens a budget cannot pass the gate.
  */
 import {
 	artifactBudgets,
@@ -28,12 +30,39 @@ export interface ExpectedBenchmarkResult {
 	/** `${package}:${scenario}:${suite}` */
 	key: string;
 	suite: BenchmarkSuite;
-	/** Budget metric names the head artifact must define. */
-	budgets: string[];
+	/** Canonical budget definitions the head artifact must carry. */
+	budgets: MetricBudget[];
 }
 
-const metricNames = function metricNames(budgets: MetricBudget[]): string[] {
-	return budgets.map((budget) => budget.metric);
+/** Identity of a budget within one result: metric plus base arm. */
+export const budgetIdentity = function budgetIdentity(
+	budget: Pick<MetricBudget, 'metric' | 'baseArm'>
+): string {
+	return budget.baseArm ? `${budget.metric}@${budget.baseArm}` : budget.metric;
+};
+
+/**
+ * Canonical comparison of two budget definitions. Descriptions are prose
+ * and ignored; everything that changes what the budget enforces must match.
+ */
+export const describeBudgetDifference = function describeBudgetDifference(
+	expected: MetricBudget,
+	actual: MetricBudget
+): string | null {
+	const fields: (keyof MetricBudget)[] = [
+		'comparator',
+		'threshold',
+		'secondaryThreshold',
+		'baseArm',
+		'baseArmMetric',
+	];
+	const differences = fields
+		.filter((field) => expected[field] !== actual[field])
+		.map(
+			(field) =>
+				`${field} expected ${String(expected[field])} but saw ${String(actual[field])}`
+		);
+	return differences.length > 0 ? differences.join('; ') : null;
 };
 
 const expect = function expect(
@@ -43,7 +72,7 @@ const expect = function expect(
 	budgets: MetricBudget[]
 ): ExpectedBenchmarkResult {
 	return {
-		budgets: metricNames(budgets),
+		budgets,
 		key: `${pkg}:${scenario}:${suite}`,
 		suite,
 	};

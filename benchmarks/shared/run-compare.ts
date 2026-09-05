@@ -7,11 +7,13 @@
  *
  * - an expected result key (see `src/expected-results.ts`) has no head
  *   artifact or no base artifact;
- * - a head result carries fewer budget definitions than expected;
+ * - a head result lacks an expected budget, or defines it with a
+ *   different comparator, threshold, secondary threshold, or arm mapping
+ *   (a weaker same-name budget is a mismatch, not a match);
  * - a relative budget has no base metric to compare against;
  * - a budget that targets a named base arm (for example the v2 arm for
- *   the v3 improvement budgets) has no arm artifacts and the arm was not
- *   explicitly allowed through `BENCHMARK_ALLOW_UNEVALUATED_ARMS`;
+ *   the v3 improvement budgets) has no arm artifacts. There is no waiver:
+ *   supply the arm through `BENCHMARK_ARM_BASE_DIRS` or the gate fails;
  * - any evaluated budget fails.
  *
  * Environment:
@@ -19,8 +21,6 @@
  * - `BENCHMARK_ARM_MAP` — alternate key mapping file (default `arm-map.json`)
  * - `BENCHMARK_ARM_BASE_DIRS` — `arm=dir[,arm=dir]` artifact directories
  *   for named base arms
- * - `BENCHMARK_ALLOW_UNEVALUATED_ARMS` — comma list of arms whose budgets may
- *   stay unevaluated; recorded in the summary so the waiver is visible
  * - `BENCHMARK_EXPECTED_SUITES` — comma list restricting which expected
  *   suites are required (partial local runs); every suite by default
  * - `BENCHMARK_ENFORCE=true` — exit non-zero on any failure above
@@ -28,7 +28,11 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { expectedBenchmarkResults } from './src/expected-results';
+import {
+	budgetIdentity,
+	describeBudgetDifference,
+	expectedBenchmarkResults,
+} from './src/expected-results';
 import type { ExpectedBenchmarkResult } from './src/expected-results';
 import {
 	evaluateBudget,
@@ -44,6 +48,7 @@ import type {
 	BenchmarkComparisonSummary,
 	BenchmarkResult,
 	BenchmarkSuite,
+	MetricBudget,
 	MetricBudgetResult,
 	MetricSampleSet,
 } from './src/schema';
@@ -63,6 +68,8 @@ interface ArmMapFile {
 	_comment?: string;
 	mappings?: Record<string, string | string[]>;
 }
+
+type ArmResults = Map<BenchmarkBaseArm, Map<string, BenchmarkResult>>;
 
 const parseList = function parseList(value: string | undefined): string[] {
 	return (value ?? '')
@@ -105,11 +112,8 @@ const loadResults = function loadResults(
 	return results;
 };
 
-const loadArmBaseDirs = function loadArmBaseDirs(): Map<
-	BenchmarkBaseArm,
-	Map<string, BenchmarkResult>
-> {
-	const arms = new Map<BenchmarkBaseArm, Map<string, BenchmarkResult>>();
+const loadArmBaseDirs = function loadArmBaseDirs(): ArmResults {
+	const arms: ArmResults = new Map();
 	for (const entry of parseList(process.env.BENCHMARK_ARM_BASE_DIRS)) {
 		const separator = entry.indexOf('=');
 		if (separator <= 0) {
@@ -118,7 +122,14 @@ const loadArmBaseDirs = function loadArmBaseDirs(): Map<
 			);
 		}
 		const arm = entry.slice(0, separator) as BenchmarkBaseArm;
-		arms.set(arm, loadResults(entry.slice(separator + 1)));
+		const dir = entry.slice(separator + 1);
+		const results = loadResults(dir);
+		if (results.size === 0) {
+			throw new Error(
+				`BENCHMARK_ARM_BASE_DIRS: no benchmark artifacts found for arm "${arm}" in ${dir}`
+			);
+		}
+		arms.set(arm, results);
 	}
 	return arms;
 };
@@ -155,10 +166,43 @@ const comparisonMetrics = function comparisonMetrics(
 	});
 };
 
+const evaluateArmBudget = function evaluateArmBudget(
+	budget: MetricBudget,
+	headMetric: MetricSampleSet | undefined,
+	armResults: ArmResults,
+	baseKey: string
+): MetricBudgetResult {
+	const arm = budget.baseArm as BenchmarkBaseArm;
+	const armResult = armResults.get(arm)?.get(baseKey);
+	if (!armResult) {
+		return {
+			actual: null,
+			baseArm: arm,
+			comparator: budget.comparator,
+			message: `No ${arm} arm artifact for ${baseKey}; budget not evaluated`,
+			metric: budget.metric,
+			pass: false,
+			secondaryThreshold: budget.secondaryThreshold,
+			status: 'unevaluated-arm',
+			threshold: budget.threshold,
+		};
+	}
+	const armMetricName = budget.baseArmMetric ?? budget.metric;
+	const result = evaluateBudget(
+		budget,
+		headMetric,
+		indexMetrics(armResult).get(armMetricName)
+	);
+	if (armMetricName !== budget.metric) {
+		result.message = `${result.message} [${arm} metric ${armMetricName}]`;
+	}
+	return result;
+};
+
 const evaluateBudgets = function evaluateBudgets(
 	headResult: BenchmarkResult,
 	baseResult: BenchmarkResult | undefined,
-	armResults: Map<BenchmarkBaseArm, Map<string, BenchmarkResult>>,
+	armResults: ArmResults,
 	baseKey: string
 ): MetricBudgetResult[] {
 	const indexedHeadMetrics = indexMetrics(headResult);
@@ -167,30 +211,13 @@ const evaluateBudgets = function evaluateBudgets(
 		: new Map<string, MetricSampleSet>();
 
 	return (headResult.budgetDefinitions ?? []).map((budget) => {
+		const headMetric = indexedHeadMetrics.get(budget.metric);
 		if (budget.baseArm) {
-			const armResult = armResults.get(budget.baseArm)?.get(baseKey);
-			if (!armResult) {
-				return {
-					actual: null,
-					baseArm: budget.baseArm,
-					comparator: budget.comparator,
-					message: `No ${budget.baseArm} arm artifact for ${baseKey}; budget not evaluated`,
-					metric: budget.metric,
-					pass: false,
-					secondaryThreshold: budget.secondaryThreshold,
-					status: 'unevaluated-arm',
-					threshold: budget.threshold,
-				};
-			}
-			return evaluateBudget(
-				budget,
-				indexedHeadMetrics.get(budget.metric),
-				indexMetrics(armResult).get(budget.metric)
-			);
+			return evaluateArmBudget(budget, headMetric, armResults, baseKey);
 		}
 		return evaluateBudget(
 			budget,
-			indexedHeadMetrics.get(budget.metric),
+			headMetric,
 			indexedBaseMetrics.get(budget.metric)
 		);
 	});
@@ -205,20 +232,92 @@ const selectExpected = function selectExpected(): ExpectedBenchmarkResult[] {
 	return expectedBenchmarkResults.filter((entry) => wanted.has(entry.suite));
 };
 
+interface DefinitionCheck {
+	missingDefinitions: string[];
+	definitionMismatches: string[];
+	unexpectedDefinitions: string[];
+	failures: string[];
+}
+
+/**
+ * Check a head artifact's budget definitions against the expectation,
+ * identity by identity. Counting definitions is not enough: a runner
+ * could swap a 15% ceiling for a 50% one and keep the count.
+ */
+const checkDefinitions = function checkDefinitions(
+	entry: ExpectedBenchmarkResult,
+	headResult: BenchmarkResult
+): DefinitionCheck {
+	const check: DefinitionCheck = {
+		definitionMismatches: [],
+		failures: [],
+		missingDefinitions: [],
+		unexpectedDefinitions: [],
+	};
+	const defined = new Map(
+		(headResult.budgetDefinitions ?? []).map((budget) => [
+			budgetIdentity(budget),
+			budget,
+		])
+	);
+	const expectedIdentities = new Set<string>();
+	for (const expected of entry.budgets) {
+		const identity = budgetIdentity(expected);
+		expectedIdentities.add(identity);
+		const label = `${entry.key}#${identity}`;
+		const actual = defined.get(identity);
+		if (!actual) {
+			check.missingDefinitions.push(label);
+			check.failures.push(
+				`head result ${entry.key} has no budget for ${identity}`
+			);
+			continue;
+		}
+		const difference = describeBudgetDifference(expected, actual);
+		if (difference) {
+			check.definitionMismatches.push(`${label}: ${difference}`);
+			check.failures.push(
+				`head result ${entry.key} defines ${identity} differently than expected: ${difference}`
+			);
+		}
+	}
+	for (const identity of defined.keys()) {
+		if (!expectedIdentities.has(identity)) {
+			check.unexpectedDefinitions.push(`${entry.key}#${identity}`);
+		}
+	}
+	return check;
+};
+
+const describeArms = function describeArms(
+	armResults: ArmResults
+): BenchmarkComparisonSummary['baseArms'] {
+	const arms: BenchmarkComparisonSummary['baseArms'] = {};
+	for (const [arm, results] of armResults) {
+		arms[arm] = {
+			commitShas: [
+				...new Set([...results.values()].map((result) => result.commitSha)),
+			],
+			results: results.size,
+		};
+	}
+	return arms;
+};
+
 const buildSummary = function buildSummary(
 	comparison: BenchmarkComparisonResult,
 	headResults: Map<string, BenchmarkResult>,
 	baseResults: Map<string, BenchmarkResult>,
+	armResults: ArmResults,
 	armMap: Map<string, string[]>,
 	expected: ExpectedBenchmarkResult[]
 ): BenchmarkComparisonSummary {
-	const allowedUnevaluatedArms = parseList(
-		process.env.BENCHMARK_ALLOW_UNEVALUATED_ARMS
-	) as BenchmarkBaseArm[];
 	const failures: string[] = [];
 	const missingHead: string[] = [];
 	const missingBase: string[] = [];
 	const missingDefinitions: string[] = [];
+	const definitionMismatches: string[] = [];
+	const unexpectedDefinitions: string[] = [];
 	let expectedBudgets = 0;
 
 	for (const entry of expected) {
@@ -236,16 +335,11 @@ const buildSummary = function buildSummary(
 			}
 		}
 		expectedBudgets += entry.budgets.length * baseKeys.length;
-		const defined = new Set(
-			(headResult.budgetDefinitions ?? []).map((budget) => budget.metric)
-		);
-		for (const metric of entry.budgets) {
-			if (!defined.has(metric)) {
-				const label = `${entry.key}#${metric}`;
-				missingDefinitions.push(label);
-				failures.push(`head result ${entry.key} has no budget for ${metric}`);
-			}
-		}
+		const check = checkDefinitions(entry, headResult);
+		missingDefinitions.push(...check.missingDefinitions);
+		definitionMismatches.push(...check.definitionMismatches);
+		unexpectedDefinitions.push(...check.unexpectedDefinitions);
+		failures.push(...check.failures);
 	}
 
 	const expectedKeys = new Set(expected.map((entry) => entry.key));
@@ -262,7 +356,7 @@ const buildSummary = function buildSummary(
 	for (const result of comparison.results) {
 		for (const budget of result.budgets) {
 			const status = budget.status ?? 'evaluated';
-			const label = `${result.key}#${budget.metric}`;
+			const label = `${result.key}#${budgetIdentity(budget)}`;
 			if (status === 'evaluated') {
 				evaluated += 1;
 				if (budget.pass) {
@@ -280,20 +374,20 @@ const buildSummary = function buildSummary(
 			}
 			if (status === 'missing-base-metric') {
 				missingBaseMetric += 1;
-				failures.push(`missing base metric ${label}`);
+				failures.push(`missing base metric ${label}: ${budget.message}`);
 				continue;
 			}
 			unevaluatedArm += 1;
-			if (budget.baseArm && allowedUnevaluatedArms.includes(budget.baseArm)) {
-				continue;
-			}
-			failures.push(`unevaluated ${budget.baseArm ?? 'arm'} budget ${label}`);
+			failures.push(
+				`unevaluated ${budget.baseArm ?? 'arm'} budget ${label}: supply the arm through BENCHMARK_ARM_BASE_DIRS`
+			);
 		}
 	}
 
 	return {
-		allowedUnevaluatedArms,
+		baseArms: describeArms(armResults),
 		budgets: {
+			definitionMismatches,
 			evaluated,
 			expected: expectedBudgets,
 			failed,
@@ -302,6 +396,7 @@ const buildSummary = function buildSummary(
 			missingHeadMetric,
 			passed,
 			unevaluatedArm,
+			unexpectedDefinitions,
 		},
 		enforce,
 		failures,
@@ -365,6 +460,7 @@ const main = async function main() {
 		comparison,
 		headResults,
 		baseResults,
+		armResults,
 		armMap,
 		expected
 	);
@@ -380,7 +476,11 @@ const main = async function main() {
 	console.log(
 		[
 			`Benchmark comparison: ${summary.results.compared}/${summary.results.expected} expected results compared`,
-			`budgets: ${summary.budgets.passed} passed, ${summary.budgets.failed} failed, ${summary.budgets.missingHeadMetric} missing head metric, ${summary.budgets.missingBaseMetric} missing base metric, ${summary.budgets.unevaluatedArm} unevaluated arm (${summary.budgets.expected} expected)`,
+			`budgets: ${summary.budgets.passed} passed, ${summary.budgets.failed} failed, ${summary.budgets.missingHeadMetric} missing head metric, ${summary.budgets.missingBaseMetric} missing base metric, ${summary.budgets.unevaluatedArm} unevaluated arm, ${summary.budgets.missingDefinitions.length} missing definitions, ${summary.budgets.definitionMismatches.length} definition mismatches (${summary.budgets.expected} expected)`,
+			...Object.entries(summary.baseArms).map(
+				([arm, info]) =>
+					`arm ${arm}: ${info.results} results from ${info.commitShas.join(', ')}`
+			),
 			...summary.failures.map((failure) => `  - ${failure}`),
 		].join('\n')
 	);
