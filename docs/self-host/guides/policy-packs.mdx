@@ -376,6 +376,28 @@ The `europeOptIn()` and `europeIab()` presets include `fallback: true` by defaul
   At most one fallback policy is allowed. Use `inspectPolicies()` to verify — it warns when no fallback is configured and errors when multiple are defined.
 </Callout>
 
+## Policy rules (v3 contract)
+
+v3 adds a rule shape that owns behavior only. Pass `policyRules` instead of `policyPacks` to the manifest builder to opt in. The two cannot be mixed in one configuration.
+
+```ts title="lib/c15t.ts"
+import { policyRulePresets } from '@c15t/schema';
+
+const policyRules = [
+  policyRulePresets.europeOptIn(),
+  policyRulePresets.californiaOptOut(),
+  policyRulePresets.worldOptOutNoPrompt(),
+];
+```
+
+A rule declares `model` (`opt-in`, `opt-out`, `iab`) and `prompt` (`choice`, `notice`, `none`) separately. Only `opt-out` may use `notice` or `none`. `worldOptOutNoPrompt()` replaces `worldNoBanner()`: allow-by-default with no first-layer prompt is an explicit `opt-out` plus `none` rule, never something resolution falls back to.
+
+The manifest built from rules is `schemaVersion: 2`. Every pack carries the normalized `rule` and its precomputed `fingerprints` (`policy`, `choice`, `notice`), and `/init` adds a versioned `policyResolution` field with one of four statuses: `unconfigured`, `matched`, `no-match`, `failed`. `policy` inside it is `null` for everything except `matched`. Invalid rules do not throw at build time; the manifest records `policyFailure` and every request resolves to `failed`, which clients answer with the safe opt-in choice fallback.
+
+Legacy `policyPacks` still work. The builder lifts each `PolicyConfig` to a rule (`model: 'none'` becomes `opt-out` plus `none`, `gpc: true` becomes a marketing and measurement mapping) and also keeps the v2 `policy`, `resolvedPolicy` and `fingerprint` fields for clients that predate the contract, plus `fingerprints.legacyMaterial` so v2 stored records keep matching. Those bridge fields are removed in the v3 final sweep.
+
+A client that does not understand the contract still receives the v2 fields. A rule the v2 shape cannot express without widening permissions (a `notice` prompt, any GPC mapping, a restricted or strict IAB scope) projects to the strictest v2 shape, an opt-in banner. That projection is a shape, not a guarantee: an old client with a stored grant skips the banner and applies the grant. `describeLegacyProjection()` reports what each rule loses so you can decide whether old clients may receive it at all. New clients declare their supported contract with the `x-c15t-policy-contract: 1` request header.
+
 ## Edge Cases
 
 | Configuration | Result |

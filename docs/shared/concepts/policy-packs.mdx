@@ -231,6 +231,104 @@ group: reference
   <Callout type="info">
     The `overrides.gpc` option on the provider and the DevTools GPC toggle still work as a manual override for testing — they force the GPC signal on or off regardless of policy settings.
   </Callout>
+
+  ### GPC in v3 rules
+
+  v3 rules replace the `gpc: true` flag with an explicit category mapping:
+
+  ```ts
+  privacySignals: {
+    gpc: { denyCategories: ['marketing', 'measurement'] },
+  }
+  ```
+
+  Only `Sec-GPC: 1` or `navigator.globalPrivacyControl === true` counts as a detected signal. The mapping must stay inside the rule's scope, cannot name `necessary`, and cannot repeat a category. GPC never creates consent and never dismisses a notice; it masks the mapped categories after policy defaults and stored choices, so it can hide a stored grant, and it may record a separate opt-out directive. Removing the browser signal does not erase that directive. The California presets keep the marketing and measurement mapping as a conservative product default; check it against your actual processing purposes.
+</section>
+
+<section id="policy-rules">
+  ## Policy rules (v3 contract)
+
+  v3 replaces the mixed policy shape with a rule that owns behavior only. A rule says which permission model applies, which first-layer prompt it needs, which categories are in scope, which actions and rights the prompt must offer, how long a choice or a notice dismissal stays valid, and how the Global Privacy Control signal maps to categories. Layout, button order, colors and copy stay with your app.
+
+  ```ts
+  import { policyRulePresets, type PolicyRule } from '@c15t/schema';
+
+  const rules: PolicyRule[] = [
+    policyRulePresets.europeOptIn(),
+    {
+      id: 'california',
+      match: { regions: [{ country: 'US', region: 'CA' }] },
+      model: 'opt-out',
+      prompt: 'none',
+      privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
+      validity: { choiceDays: 365, noticeDays: 365 },
+    },
+    policyRulePresets.worldOptOutNoPrompt(),
+  ];
+  ```
+
+  There are three permission models and three prompts. A notice is a prompt, not a model.
+
+  | Model | Allowed prompts | Default for optional categories |
+  |-------|-----------------|---------------------------------|
+  | `opt-in` | `choice` | denied until an explicit choice |
+  | `opt-out` | `choice`, `notice`, `none` | allowed until an opt-out |
+  | `iab` | `choice` | managed by TCF 2.3 |
+
+  - A `choice` prompt must offer `accept` and `reject`; `customize` is optional. Accept and reject form one equivalence group: they sit at the same depth with the same prominence. Order, labels and variants are yours.
+  - A `notice` prompt offers one `dismiss` action. Dismissing records nothing about categories and changes no permission.
+  - A `none` prompt shows no first layer. It never grants anything on its own.
+  - Every rule carries the `disclosure` and `preferences` rights. Opt-out rules add `opt-out`. These stay reachable whether or not a prompt is visible.
+  - Validity defaults to 365 days for both choices and notice dismissals. Configure them separately; they never affect each other.
+
+  `inspectPolicyRules()` reports errors and warnings for a pack. It rejects an invalid model and prompt pair, unknown categories, a GPC mapping outside the rule's scope, and unknown fields anywhere in a rule.
+
+  The built-in presets are `europeOptIn`, `europeIab`, `californiaOptIn`, `californiaOptOut`, `quebecOptIn` and `worldOptOutNoPrompt`. The last one replaces `worldNoBanner`: allow-by-default with no prompt is now an explicit `opt-out` plus `none` rule you choose, not a model. Each preset carries `review` metadata with sources and assumptions, and each is starter configuration. None of them makes a deployment compliant.
+</section>
+
+<section id="resolution-outcomes">
+  ## Resolution outcomes
+
+  Resolving a pack for a request ends in one of four outcomes. They never collapse into one empty value.
+
+  | Status | Meaning | `policy` |
+  |--------|---------|----------|
+  | `unconfigured` | No policy system was configured | `null` |
+  | `matched` | A rule matched by region, country, fallback or default | the resolved rule plus its fingerprints |
+  | `no-match` | Valid pack, known location, nothing matched | `null` |
+  | `failed` | Invalid configuration, unknown location without a fallback or default, a transport error, or a wire the client cannot represent | `null` |
+
+  `/init` carries this as `policyResolution` with a contract `version`. `policy: null` is explicit and clears policy-derived state. Leaving the field out means the producer predates the contract; a client never reads that as "nothing matched".
+
+  Everything other than `matched` runs the safe fallback: strict opt-in with a choice prompt. The status stays visible so you can see why the fallback is active. Allow-by-default behavior with no prompt only ever comes from an explicit rule.
+
+  ```ts
+  import { resolvePolicyRules } from '@c15t/schema';
+
+  const resolution = resolvePolicyRules({ rules, countryCode: 'DE', regionCode: null });
+  if (resolution.status === 'matched') {
+    resolution.policy.prompt; // 'choice'
+    resolution.fingerprints.choice; // what a stored choice is compared against
+  }
+  ```
+</section>
+
+<section id="fingerprint-domains">
+  ## Fingerprint domains
+
+  v3 keeps three separately versioned hashes, each with one job.
+
+  | Domain | Answers | Hashes |
+  |--------|---------|--------|
+  | `policy` | Did the exact behavior change? | model, prompt, scope and scope mode, preselected categories, actions, rights, both validities, GPC mapping, copy revision, proof settings |
+  | `choice` | Is a stored category choice still current? | model, prompt, scope and scope mode, required actions, choice validity, rights, GPC mapping, copy revision |
+  | `notice` | Is a notice dismissal still current? | model, prompt, scope and scope mode, required actions, notice validity, rights, GPC mapping, copy revision |
+
+  Presentation never enters any of these. Sets are sorted and deduplicated before hashing, so two authors writing the same behavior in a different order get the same hash. Bump `copyRevision` when the wording a visitor agreed to changes materially; that re-prompts through the choice and notice hashes without touching the policy hash's other inputs.
+
+  A separate presentation fingerprint exists for diagnostics only. It hashes layout and copy you pass in, never decides a prompt, and stays out of production payloads.
+
+  Producers (the backend, the manifest builder and offline resolution) compute these once at resolution time. Nothing hashes during render or hydration. Records written by v2 keep their material fingerprint, which the v2 compatibility reader compares in its own domain.
 </section>
 
 <section id="design-guidelines">
