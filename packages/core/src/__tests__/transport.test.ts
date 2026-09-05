@@ -2603,7 +2603,7 @@ describe('hosted transport: decisionInputs seed', () => {
 
 describe('hosted transport: save waits for an in-flight init', () => {
 	test('a save issued while init is pending carries that init decision', async () => {
-		const initGate = Promise.withResolvers<void>();
+		const initGate = Promise.withResolvers<undefined>();
 		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
 			if (url.endsWith('/init')) {
 				await initGate.promise;
@@ -2636,13 +2636,16 @@ describe('hosted transport: save waits for an in-flight init', () => {
 			'/internal/consent/init',
 		]);
 
-		initGate.resolve();
+		initGate.resolve(undefined);
 		await Promise.all([initPromise, savePromise]);
 		const saveCall = fetchSpy.mock.calls.find(([url]) =>
 			String(url).endsWith('/subjects')
 		);
+		if (!saveCall) {
+			throw new Error('save was not sent');
+		}
 		expect(
-			JSON.parse((saveCall?.[1] as RequestInit).body as string)
+			JSON.parse((saveCall[1] as RequestInit).body as string)
 		).toMatchObject({
 			fingerprint: 'policy-fingerprint',
 			policyId: 'de-iab',
