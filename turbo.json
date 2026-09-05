@@ -33,7 +33,10 @@
 				"$TURBO_ROOT$/docs/**",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts",
 				"$TURBO_ROOT$/scripts/prune-dist-types.ts",
-				"$TURBO_ROOT$/scripts/manifest-utils.ts"
+				"$TURBO_ROOT$/scripts/manifest-utils.ts",
+				"$TURBO_ROOT$/packages/shared/rslib-modules.ts",
+				"$TURBO_ROOT$/packages/shared/rslib-utils.ts",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
 			],
 			"outputs": [
 				"dist/**",
@@ -42,6 +45,18 @@
 				"docs/**",
 				"src/version.ts"
 			],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/schema#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/packages/shared/rslib-modules.ts",
+				"$TURBO_ROOT$/packages/shared/rslib-utils.ts",
+				"$TURBO_ROOT$/scripts/normalize-dist-types.mjs"
+			],
+			"outputs": ["dist/**", "dist-types/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
