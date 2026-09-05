@@ -25,6 +25,7 @@ import { resolveBackendURL } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import type { ConsentConfig } from './config';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
@@ -32,8 +33,34 @@ import {
 
 type Awaitable<Value> = Promise<Value> | Value;
 
-interface NextRequestContext {
+/**
+ * Request context the server helpers read from.
+ *
+ * The default implementation calls `next/headers`, which only exists in the
+ * App Router. Pass your own when the request arrives another way, such as
+ * `getServerSideProps` in the Pages Router (see `@c15t/nextjs/pages`, which
+ * builds this adapter for you) or a test harness.
+ *
+ * @example
+ * ```ts
+ * const config = await readInitialConsentConfig({
+ * 	request: {
+ * 		cookies: () => ({ toString: () => req.headers.cookie ?? '' }),
+ * 		headers: () => new Headers({ host: req.headers.host ?? '' }),
+ * 	},
+ * });
+ * ```
+ */
+export interface NextRequestContext {
+	/**
+	 * Returns the request cookies. Only `toString()` is read; it must
+	 * serialize to a `Cookie` header value (`a=1; b=2`).
+	 */
 	cookies: () => Awaitable<{ toString: () => string }>;
+
+	/**
+	 * Returns the request headers as a Web `Headers` instance.
+	 */
 	headers: () => Awaitable<Headers>;
 }
 
@@ -68,9 +95,10 @@ export interface ReadInitialConsentConfigOptions {
 	language?: string;
 
 	/**
-	 * Request context adapter. Intended for tests and advanced framework
-	 * wrappers that provide Next-compatible request helpers.
-	 * @internal
+	 * Request context adapter. Defaults to `next/headers`, so set this
+	 * wherever that module is unavailable: the Pages Router, custom
+	 * servers, or tests. `@c15t/nextjs/pages` derives it from the Node
+	 * request for you.
 	 */
 	request?: NextRequestContext;
 }
@@ -158,25 +186,36 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
  * Type alias re-exported so consumers can stay within `@c15t/nextjs`.
  */
 export type { KernelConfig } from '@c15t/core';
+export type { ConsentConfig } from './config';
+export { defineConsentConfig } from './config';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
 export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigOptions {
 	/**
-	 * Backend base URL. When provided, the helper will also call
-	 * `${backendURL}/init` server-side and fold the response into the
-	 * returned prefetch config (policy, UI, translations, IAB metadata,
-	 * and consents if the backend knows the user). This avoids a
-	 * first-paint flicker before the client-side init lands.
+	 * Backend base URL. The helper calls `${backendURL}/init` server-side and
+	 * folds the response into the returned prefetch config (policy, UI,
+	 * translations, IAB metadata, and consents if the backend knows the
+	 * user). This avoids a first-paint flicker before the client-side init
+	 * lands.
 	 *
 	 * Relative URLs are resolved via the request headers (`x-forwarded-proto`,
 	 * `host`) so the backend call works under any reverse-proxy.
+	 *
+	 * Required unless `config` supplies it; overrides `config.backendURL`.
 	 */
-	backendURL: string;
+	backendURL?: string;
+
+	/**
+	 * A `defineConsentConfig` result. Supplies `backendURL` and `manifestURL`
+	 * defaults; the explicit fields on this options bag win.
+	 */
+	config?: ConsentConfig;
 
 	/**
 	 * Same-origin or absolute `GET /manifest` URL. When set, prefetch resolves
 	 * init locally from the cached manifest and does not call `/init`.
+	 * Overrides `config.manifestURL`.
 	 */
 	manifestURL?: string;
 
@@ -198,7 +237,39 @@ export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigO
 	 * authentication tokens or custom tracing headers.
 	 */
 	forwardHeaders?: string[];
+
+	/**
+	 * Called when the backend or manifest request fails. The helper still
+	 * returns the baseline config so the page renders and the client
+	 * retries on mount. When omitted, the failure is logged with
+	 * `console.warn` outside production so it does not go unnoticed.
+	 */
+	onError?: (error: unknown) => void;
 }
+
+const isProduction = function isProduction(): boolean {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	return nodeEnv === 'production';
+};
+
+const reportPrefetchError = function reportPrefetchError(
+	options: PrefetchInitialConsentOptions,
+	url: string,
+	error: unknown
+): void {
+	if (options.onError) {
+		options.onError(error);
+		return;
+	}
+	if (isProduction()) {
+		return;
+	}
+	const message = error instanceof Error ? error.message : String(error);
+	console.warn(
+		`[c15t] prefetchInitialConsent: request to ${url} failed (${message}); rendering with the baseline config and letting the client retry.`
+	);
+};
 
 const createInitHeadersFromOverrides = function createInitHeadersFromOverrides(
 	overrides: Readonly<KernelOverrides>
@@ -217,6 +288,28 @@ const createInitHeadersFromOverrides = function createInitHeadersFromOverrides(
 		headersLocal['sec-gpc'] = overrides.gpc ? '1' : '0';
 	}
 	return headersLocal;
+};
+
+/**
+ * Headers forwarded onto the backend call: the incoming cookies plus any
+ * explicitly requested request headers.
+ */
+const createForwardHeaders = function createForwardHeaders(
+	cookieHeader: string,
+	requestHeaders: Headers,
+	forwardHeaders: readonly string[] | undefined
+): Record<string, string> {
+	const forward: Record<string, string> = {};
+	if (cookieHeader) {
+		forward.cookie = cookieHeader;
+	}
+	for (const key of forwardHeaders ?? []) {
+		const value = requestHeaders.get(key);
+		if (value) {
+			forward[key.toLowerCase()] = value;
+		}
+	}
+	return forward;
 };
 
 const fetchHostedInit = async function fetchHostedInit(input: {
@@ -245,82 +338,115 @@ const fetchHostedInit = async function fetchHostedInit(input: {
 	return (await response.json()) as InitOutput;
 };
 
+const prefetchFromManifest = async function prefetchFromManifest(input: {
+	absoluteBackend: string;
+	absoluteManifest: string | null | undefined;
+	base: KernelConfig;
+	forward: Record<string, string>;
+	options: PrefetchInitialConsentOptions;
+	requestHeaders: Headers;
+}): Promise<KernelConfig> {
+	const { absoluteBackend, absoluteManifest, base, options } = input;
+	const manifestInputs = extractConsentRequestInputs(input.requestHeaders, {
+		country: options.country,
+		language: options.language,
+	});
+	const transport = createManifestTransport({
+		backendURL: absoluteBackend,
+		baseTranslations,
+		fetch: options.fetch,
+		headers: input.forward,
+		inputs: manifestInputs,
+		manifest: options.manifest,
+		manifestURL: absoluteManifest ?? undefined,
+	});
+
+	try {
+		const response = await transport.init?.({
+			overrides: {
+				...(base.initialOverrides ?? {}),
+				...consentInputsToOverrides(manifestInputs),
+			},
+			user: base.initialUser ?? null,
+		});
+		if (!response) {
+			return base;
+		}
+		return mergeInitResponseIntoKernelConfig(base, response);
+	} catch (error) {
+		reportPrefetchError(
+			options,
+			absoluteManifest ?? `${absoluteBackend}/manifest`,
+			error
+		);
+		return base;
+	}
+};
+
 /**
  * Server-side consent prefetch.
  *
  * 1. Reads cookies + geo headers like `readInitialConsentConfig`.
- * 2. Calls `${backendURL}/init` server-side with the request context.
+ * 2. Calls `${backendURL}/init` server-side with the request context, or
+ *    resolves init from the cached manifest when `manifestURL` is set.
  * 3. Folds the response into a `KernelConfig` so first paint is correct
  *    without waiting for a client roundtrip.
  *
- * If the backend call fails, returns the baseline config (silent
- * degradation — the client boundary will retry on mount).
+ * If the backend call fails, returns the baseline config so the page still
+ * renders and the client boundary retries on mount. The failure reaches
+ * `onError` when provided, and is otherwise logged outside production.
+ *
+ * @throws {Error} When neither `backendURL` nor `config` is given.
+ * @example
+ * ```ts
+ * import { prefetchInitialConsent } from '@c15t/nextjs/server';
+ * import { consentConfig } from '@/consent.config';
+ *
+ * const config = await prefetchInitialConsent({ config: consentConfig });
+ * ```
  */
 export const prefetchInitialConsent = async function prefetchInitialConsent(
 	options: PrefetchInitialConsentOptions
 ): Promise<KernelConfig> {
+	const backendURL = options.backendURL ?? options.config?.backendURL;
+	if (!backendURL) {
+		throw new Error(
+			'@c15t/nextjs: prefetchInitialConsent needs `backendURL` or a `config` from defineConsentConfig().'
+		);
+	}
+	const manifestURL = options.manifestURL ?? options.config?.manifestURL;
+
 	const base = await readInitialConsentConfig(options);
 	const request = options.request ?? defaultNextRequestContext;
 	const requestHeaders = await request.headers();
 	const requestCookies = await request.cookies();
 
-	const absoluteBackend = resolveBackendURL(options.backendURL, requestHeaders);
+	const absoluteBackend = resolveBackendURL(backendURL, requestHeaders);
 	if (!absoluteBackend) {
 		return base;
 	}
-	const absoluteManifest = options.manifestURL
-		? resolveBackendURL(options.manifestURL, requestHeaders)
+	const absoluteManifest = manifestURL
+		? resolveBackendURL(manifestURL, requestHeaders)
 		: undefined;
-	if (options.manifestURL && !absoluteManifest) {
+	if (manifestURL && !absoluteManifest) {
 		return base;
 	}
 
-	// Build forwarding headers: cookies + any explicitly-forwarded keys.
-	const forward: Record<string, string> = {};
-	const cookieHeader = requestCookies.toString();
-	if (cookieHeader) {
-		forward.cookie = cookieHeader;
-	}
-	for (const key of options.forwardHeaders ?? []) {
-		const value = requestHeaders.get(key);
-		if (value) {
-			forward[key.toLowerCase()] = value;
-		}
-	}
+	const forward = createForwardHeaders(
+		requestCookies.toString(),
+		requestHeaders,
+		options.forwardHeaders
+	);
 
 	if (options.manifest || absoluteManifest) {
-		const manifestInputs = extractConsentRequestInputs(
-			requestHeaders as Headers,
-			{
-				country: options.country,
-				language: options.language,
-			}
-		);
-		const transport = createManifestTransport({
-			backendURL: absoluteBackend,
-			baseTranslations,
-			fetch: options.fetch,
-			headers: forward,
-			inputs: manifestInputs,
-			manifest: options.manifest,
-			manifestURL: absoluteManifest ?? undefined,
+		return await prefetchFromManifest({
+			absoluteBackend,
+			absoluteManifest,
+			base,
+			forward,
+			options,
+			requestHeaders,
 		});
-
-		try {
-			const response = await transport.init?.({
-				overrides: {
-					...(base.initialOverrides ?? {}),
-					...consentInputsToOverrides(manifestInputs),
-				},
-				user: base.initialUser ?? null,
-			});
-			if (!response) {
-				return base;
-			}
-			return mergeInitResponseIntoKernelConfig(base, response);
-		} catch {
-			return base;
-		}
 	}
 
 	try {
@@ -333,8 +459,8 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 			},
 		});
 		return mergeInitOutputIntoKernelConfig(base, response);
-	} catch {
-		// Silent degradation. Client-side init will retry.
+	} catch (error) {
+		reportPrefetchError(options, `${absoluteBackend}/init`, error);
 		return base;
 	}
 };

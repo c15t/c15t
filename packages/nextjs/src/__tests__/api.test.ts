@@ -6,6 +6,7 @@ import {
 	createNextConsentRouteHandlers,
 	getSMaxAge,
 } from '../api';
+import { defineConsentConfig } from '../config';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 describe('@c15t/nextjs/api', () => {
@@ -172,5 +173,40 @@ describe('@c15t/nextjs/api', () => {
 		await manifestGET(request);
 
 		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+
+	test('a defineConsentConfig result supplies backendURL and ignores its same-origin routes', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: { 'cache-control': 'public, s-maxage=120' },
+				status: 200,
+			})
+		);
+		const config = defineConsentConfig({
+			backendURL: 'https://consent.example.com/api/c15t',
+			initURL: '/api/consent/init',
+			manifestURL: '/api/consent/manifest',
+		});
+		const { GET, manifestGET } = createNextConsentRouteHandlers({
+			...config,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await manifestGET(
+			new Request('https://app.example.com/api/consent/manifest')
+		);
+		const response = await GET(
+			new Request('https://app.example.com/api/consent/init', {
+				headers: { 'x-vercel-ip-country': 'DE' },
+			})
+		);
+
+		// Both routes read the backend manifest, never the config's own
+		// same-origin `manifestURL`, which these handlers serve.
+		for (const [url] of fetchSpy.mock.calls) {
+			expect(url).toBe('https://consent.example.com/api/c15t/manifest');
+		}
+		const body = await response.json();
+		expect(body.policyDecision).toMatchObject({ policyId: 'eu-opt-in' });
 	});
 });

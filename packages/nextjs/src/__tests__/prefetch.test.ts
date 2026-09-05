@@ -3,8 +3,9 @@
  * the backend's /init, folds the response into KernelConfig, and hands
  * it to the client `ConsentBoundary` for first-paint accurate rendering.
  */
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { defineConsentConfig } from '../config';
 import { prefetchInitialConsent as basePrefetchInitialConsent } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -61,6 +62,11 @@ const prefetchInitialConsent = (
 beforeEach(() => {
 	cookieStore.clear();
 	headerStore.clear();
+});
+
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 describe('prefetchInitialConsent: backend call', () => {
@@ -135,7 +141,7 @@ describe('prefetchInitialConsent: backend call', () => {
 		expect(url).toBe('https://consent.example.com/init');
 	});
 
-	test('failed backend call returns baseline config (silent degradation)', async () => {
+	test('failed backend call returns baseline config', async () => {
 		headerStore.set('cf-ipcountry', 'US');
 		headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
 
@@ -144,6 +150,7 @@ describe('prefetchInitialConsent: backend call', () => {
 		const config = await prefetchInitialConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			onError: () => undefined,
 		});
 
 		// Baseline from cookie + header is preserved.
@@ -297,5 +304,182 @@ describe('prefetchInitialConsent: manifest mode', () => {
 			countryCode: 'US',
 			regionCode: 'CA',
 		});
+	});
+});
+
+describe('prefetchInitialConsent: config', () => {
+	test('config supplies backendURL and manifestURL', async () => {
+		headerStore.set('x-vercel-ip-country', 'DE');
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		const config = await prefetchInitialConsent({
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				initURL: '/api/consent/init',
+				manifestURL: '/api/consent/manifest',
+			}),
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			'https://app.example.com/api/consent/manifest'
+		);
+		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+	});
+
+	test('explicit fields override the config', async () => {
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(createInitOutput()), { status: 200 })
+			);
+
+		await prefetchInitialConsent({
+			backendURL: 'https://other.example.com',
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				manifestURL: '/api/consent/manifest',
+			}),
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: '/custom/manifest',
+		});
+
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			'https://app.example.com/custom/manifest'
+		);
+	});
+
+	test('a config without manifestURL falls back to the backend /init', async () => {
+		headerStore.set('host', 'app.example.com');
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(createInitOutput()), { status: 200 })
+			);
+
+		await prefetchInitialConsent({
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+			}),
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			'https://consent.example.com/init'
+		);
+	});
+
+	test('throws when neither backendURL nor config is given', async () => {
+		await expect(
+			prefetchInitialConsent({ fetch: vi.fn() as unknown as typeof fetch })
+		).rejects.toThrow('`backendURL` or a `config`');
+	});
+});
+
+describe('prefetchInitialConsent: error reporting', () => {
+	test('onError receives the failure and nothing is logged', async () => {
+		headerStore.set('host', 'app.example.com');
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const failure = new Error('network down');
+		const onError = vi.fn();
+
+		const config = await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: vi.fn().mockRejectedValue(failure) as unknown as typeof fetch,
+			onError,
+		});
+
+		expect(config).toEqual({});
+		expect(onError).toHaveBeenCalledTimes(1);
+		expect(onError).toHaveBeenCalledWith(failure);
+		expect(warnSpy).not.toHaveBeenCalled();
+	});
+
+	test('warns with the init URL and the error message when onError is absent', async () => {
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const config = await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: vi
+				.fn()
+				.mockRejectedValue(
+					new Error('network down')
+				) as unknown as typeof fetch,
+		});
+
+		expect(config).toEqual({});
+		expect(warnSpy).toHaveBeenCalledTimes(1);
+		const [message] = warnSpy.mock.calls[0] ?? [];
+		expect(message).toContain('https://app.example.com/api/c15t/init');
+		expect(message).toContain('network down');
+		expect(String(message)).not.toContain('\n');
+	});
+
+	test('warns with the manifest URL in manifest mode', async () => {
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: vi
+				.fn()
+				.mockRejectedValue(
+					new Error('manifest down')
+				) as unknown as typeof fetch,
+			manifestURL: '/api/consent/manifest',
+		});
+
+		expect(warnSpy).toHaveBeenCalledTimes(1);
+		const [message] = warnSpy.mock.calls[0] ?? [];
+		expect(message).toContain('https://app.example.com/api/consent/manifest');
+		expect(message).toContain('manifest down');
+	});
+
+	test('non-2xx init responses are reported too', async () => {
+		headerStore.set('host', 'app.example.com');
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: vi
+				.fn()
+				.mockResolvedValue(
+					new Response('nope', { status: 503, statusText: 'Unavailable' })
+				) as unknown as typeof fetch,
+		});
+
+		expect(warnSpy).toHaveBeenCalledTimes(1);
+		expect(warnSpy.mock.calls[0]?.[0]).toContain('503');
+	});
+
+	test('stays quiet in production', async () => {
+		headerStore.set('host', 'app.example.com');
+		vi.stubGlobal('process', { env: { NODE_ENV: 'production' } });
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const config = await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			fetch: vi
+				.fn()
+				.mockRejectedValue(
+					new Error('network down')
+				) as unknown as typeof fetch,
+		});
+
+		expect(config).toEqual({});
+		expect(warnSpy).not.toHaveBeenCalled();
 	});
 });

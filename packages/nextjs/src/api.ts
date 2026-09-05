@@ -9,6 +9,8 @@ import type {
 import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import type { ConsentConfig } from './config';
+import { isConsentConfig } from './config';
 import { extractConsentRequestInputs } from './headers';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;
@@ -261,10 +263,49 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
 	return (await response.json()) as GlobalVendorList;
 };
 
+/**
+ * Handler options from either the explicit options bag or a
+ * `defineConsentConfig` result.
+ *
+ * A config's `manifestURL` and `initURL` name the same-origin routes these
+ * handlers serve, so only `backendURL` carries over; forwarding
+ * `manifestURL` would make the manifest route fetch itself.
+ */
+const toHandlerOptions = function toHandlerOptions(
+	options: NextConsentManifestHandlersOptions | ConsentConfig
+): NextConsentManifestHandlersOptions {
+	if (!isConsentConfig(options)) {
+		return options;
+	}
+	const { initURL, manifestURL, ...rest } = options as ConsentConfig &
+		NextConsentManifestHandlersOptions;
+	void initURL;
+	void manifestURL;
+	return rest;
+};
+
+/**
+ * Build the App Router route handlers for the consent routes.
+ *
+ * @param options - Handler options, or a `defineConsentConfig` result. From a
+ * config only `backendURL` is used: its `manifestURL` and `initURL` are the
+ * routes these handlers serve.
+ * @returns `GET` for the init route and `manifestGET` for the manifest route.
+ * @example
+ * ```ts
+ * // app/api/consent/manifest/route.ts
+ * import { createNextConsentRouteHandlers } from '@c15t/nextjs/api';
+ * import { consentConfig } from '@/consent.config';
+ *
+ * export const { manifestGET: GET } =
+ *   createNextConsentRouteHandlers(consentConfig);
+ * ```
+ */
 export const createNextConsentRouteHandlers =
 	function createNextConsentRouteHandlers(
-		options: NextConsentManifestHandlersOptions = {}
+		optionsOrConfig: NextConsentManifestHandlersOptions | ConsentConfig = {}
 	) {
+		const options = toHandlerOptions(optionsOrConfig);
 		return {
 			async GET(request: Request): Promise<Response> {
 				const { manifest } = await fetchCachedManifest(request, options);
@@ -312,6 +353,9 @@ export const createNextConsentRouteHandlers =
 			},
 		};
 	};
+
+export type { ConsentConfig } from './config';
+export { defineConsentConfig } from './config';
 
 const defaultHandlers = createNextConsentRouteHandlers();
 

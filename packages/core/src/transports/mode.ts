@@ -102,6 +102,13 @@ export interface HostedModeOptions {
  * import { hosted } from '@c15t/core';
  *
  * const mode = hosted({ url: '/api/c15t' });
+ *
+ * // Resolve init from a same-origin route, save to the backend.
+ * const sameOriginInit = hosted({
+ *   url: 'https://consent.example.com',
+ *   initURL: '/api/consent/init',
+ *   assertDecisionInputs: true,
+ * });
  * ```
  */
 export const hosted = function hosted(
