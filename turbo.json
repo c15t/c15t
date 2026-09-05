@@ -26,25 +26,45 @@
 		},
 		"@c15t/core#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
@@ -65,13 +85,23 @@
 		},
 		"@c15t/svelte#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**"]
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
+			"outputs": ["dist/**", "AGENTS.md", "docs/**"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
-			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**"]
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
+			"outputs": ["dist/**", "AGENTS.md", "docs/**"]
 		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/oxfmt.config.ts"],
@@ -280,6 +310,28 @@
 		},
 		"transit": {
 			"dependsOn": ["^transit"]
+		},
+		"@c15t/scripts#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/cli#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/scripts/generate-package-docs.ts"
+			],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
 		}
 	}
 }
