@@ -82,6 +82,21 @@ afterEach(() => {
 });
 
 describe('IAB DevTools', () => {
+	it('makes derived category controls read-only in IAB mode', () => {
+		const kernel = makeKernel();
+		attachIAB(kernel);
+		const tools = mount(kernel);
+		tools.setActiveTab('consents');
+		expect(
+			[
+				...(tools.element?.querySelectorAll<HTMLInputElement>(
+					'input[type="checkbox"]'
+				) ?? []),
+			].every((input) => input.disabled)
+		).toBe(true);
+		expect(tools.element?.textContent).toContain('Use the IAB tab');
+		expect(tools.element?.textContent).not.toContain('Save changes');
+	});
 	it('only grants legal bases declared by custom vendors', () => {
 		const kernel = makeKernel();
 		const iab = createIAB({

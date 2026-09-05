@@ -242,9 +242,9 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	target.appendChild(element);
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
+	target.appendChild(element);
 
 	if (!script.src && info) {
 		// Inline script: defer onLoad one tick so the browser parses
@@ -293,7 +293,13 @@ export const unmountScript = function unmountScript(
 		deps.loadedElements.delete(script.id);
 		deps.ownedScriptIds.delete(script.id);
 		if (typeof script.onConsentChange === 'function') {
-			const info = buildCallbackInfo(script, snapshot, hasConsent, elementId);
+			const info = buildCallbackInfo(
+				script,
+				snapshot,
+				hasConsent,
+				elementId,
+				element ?? undefined
+			);
 			invokeCallback(script, 'onConsentChange', info, deps.emit);
 		}
 		if (deps.hasDebugListener) {
@@ -352,6 +358,12 @@ export const flushPendingMounts = function flushPendingMounts(
 	if (batch.length === 0) {
 		return;
 	}
+	// Register before insertion: inline execution and DOM adapters can dispatch
+	// load events synchronously while the element is being appended.
+	for (const pending of batch) {
+		deps.loadedElements.set(pending.script.id, pending.element);
+		deps.ownedScriptIds.add(pending.script.id);
+	}
 
 	if (batch.length === 1) {
 		// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
@@ -388,9 +400,6 @@ export const flushPendingMounts = function flushPendingMounts(
 	}
 
 	for (const pending of batch) {
-		deps.loadedElements.set(pending.script.id, pending.element);
-		deps.ownedScriptIds.add(pending.script.id);
-
 		if (!pending.script.src && pending.info) {
 			const { info } = pending;
 			const { script } = pending;

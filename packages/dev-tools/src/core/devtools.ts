@@ -44,10 +44,15 @@ export interface DevToolsOptions {
 
 /** Kernel operations exposed by DevTools. */
 export interface DevToolsActions {
+	/** Update a category locally without saving it. */
 	setConsent: (name: keyof ConsentState, value: boolean) => void;
+	/** Update location, language, and privacy overrides without refreshing. */
 	setOverrides: (overrides: KernelOverrides) => void;
+	/** Select the visible consent interface. */
 	setActiveUI: (activeUI: KernelActiveUI) => void;
+	/** Refresh consent data. Inspect ok to distinguish success from failure. */
 	init: () => Promise<InitResult>;
+	/** Save choices in the displayed scope. Inspect ok; throwing transports reject. */
 	save: (input?: Partial<ConsentState> | 'all' | 'none') => Promise<SaveResult>;
 }
 

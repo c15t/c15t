@@ -23,12 +23,17 @@ export type DevToolsTab =
 
 /** A serializable entry captured from the kernel event bus. */
 export interface DevToolsEvent {
+	/** Instance-local event identifier. */
 	readonly id: string;
+	/** Kernel event name or script lifecycle action. */
 	readonly type:
 		| KernelEvent['type']
 		| `script:${ScriptLoaderDebugEvent['action']}`;
+	/** Human-readable summary. */
 	readonly message: string;
+	/** Capture time in milliseconds since the Unix epoch. */
 	readonly timestamp: number;
+	/** Optional JSON-safe diagnostic details. */
 	readonly data?: Readonly<Record<string, unknown>>;
 }
 
@@ -42,11 +47,17 @@ export interface DevToolsState {
 	readonly scripts: readonly ScriptDiagnostic[];
 }
 
+/**
+ * Receives synchronous state changes until unsubscribed or destroyed.
+ * @param state - State after the change.
+ * @param previousState - State before the change.
+ */
 export type DevToolsStateListener = (
 	state: DevToolsState,
 	previousState: DevToolsState
 ) => void;
 
+/** Owns one panel's state and subscriptions. Destroy releases all listeners. */
 export interface StateManager {
 	getState: () => DevToolsState;
 	subscribe: (listener: DevToolsStateListener) => () => void;
@@ -59,6 +70,11 @@ export interface StateManager {
 	destroy: () => void;
 }
 
+/**
+ * Create an isolated DevTools state store.
+ * @param options - Initial snapshot, presentation, and event retention limit.
+ * @returns A manager whose destroy method releases its subscriptions.
+ */
 // oxlint-disable-next-line func-style -- Preserve the public factory declaration.
 export function createStateManager(options: {
 	snapshot: ConsentSnapshot;

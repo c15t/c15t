@@ -425,7 +425,7 @@ describe('script-loader: persistAfterConsentRevoked', () => {
 
 		kernel.set.consent({ marketing: false });
 		expect(onConsentChange).toHaveBeenCalledExactlyOnceWith(
-			expect.objectContaining({ hasConsent: false })
+			expect.objectContaining({ element, hasConsent: false })
 		);
 		expect(head.children).toHaveLength(1);
 		expect(head.children[0]).toBe(element);

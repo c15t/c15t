@@ -24,6 +24,27 @@ afterEach(() => {
 });
 
 describe('createDevTools', () => {
+	it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+		'bounds captured events for maxEvents=%s',
+		(maxEvents) => {
+			const kernel = createConsentKernel();
+			const tools = createDevTools({ kernel, maxEvents });
+			instances.push(tools);
+			for (let index = 0; index < 110; index += 1) {
+				kernel.set.consent({ measurement: index % 2 === 0 });
+			}
+			expect(tools.getState().events).toHaveLength(
+				Number.isFinite(maxEvents) ? 1 : 100
+			);
+			expect(
+				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
+			).toBe(0);
+			tools.open();
+			expect(
+				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
+			).toBeGreaterThan(0);
+		}
+	);
 	it('disables duplicate saves and reports failure and retry success beside the controls', async () => {
 		const pendingSave = Promise.withResolvers<{ ok: boolean }>();
 		const save = vi

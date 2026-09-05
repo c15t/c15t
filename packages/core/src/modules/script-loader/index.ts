@@ -75,7 +75,7 @@ export const createScriptLoader = function createScriptLoader(
 		lastEvents.set(event.scriptId, event);
 		if (event.action === 'load_completed') {
 			statuses.set(event.scriptId, 'loaded');
-		} else if (event.action === 'loaded') {
+		} else if (event.action === 'loaded' && !statuses.has(event.scriptId)) {
 			statuses.set(event.scriptId, 'loading');
 		} else if (event.action === 'error') {
 			statuses.set(event.scriptId, 'error');

@@ -17,6 +17,36 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it('observes synchronous load events during insertion', () => {
+		const append = document.head.appendChild.bind(document.head);
+		const probe = vi
+			.spyOn(document.head, 'appendChild')
+			.mockImplementation((node) => {
+				const result = append(node);
+				node.dispatchEvent(new Event('load'));
+				return result;
+			});
+		try {
+			const kernel = createConsentKernel();
+			const onLoad = vi.fn();
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						category: 'necessary',
+						id: 'sync',
+						onLoad,
+						src: 'https://example.test/sync.js',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			expect(onLoad).toHaveBeenCalledOnce();
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('loaded');
+		} finally {
+			probe.mockRestore();
+		}
+	});
 	it.each(['load', 'error'] as const)(
 		'tracks %s without callbacks or legacy debug forwarding',
 		async (event) => {

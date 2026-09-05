@@ -38,8 +38,11 @@ const TABS: readonly { id: DevToolsTab; label: string }[] = [
 
 let nextViewId = 0;
 
+/** DOM view owned by a DevTools instance. */
 export interface DevToolsView {
+	/** Root node, or null when no DOM is available. */
 	element: HTMLElement | null;
+	/** Remove the view and release subscriptions. Safe to call repeatedly. */
 	destroy: () => void;
 }
 
@@ -83,6 +86,7 @@ function renderConsents(
 		input.setAttribute('role', 'switch');
 		input.checked = enabled;
 		input.disabled = name === 'necessary';
+		input.disabled ||= snapshot.model === 'iab';
 		input.dataset.focusKey = `consent:${name}`;
 		input.addEventListener('change', () => {
 			const patch: Partial<ConsentState> = {};
@@ -106,6 +110,19 @@ function renderConsents(
 		list.append(label);
 	}
 
+	if (snapshot.model === 'iab') {
+		section.append(
+			list,
+			createElement(
+				document,
+				'p',
+				'c15t-dev-tools__muted',
+				'Categories are derived from IAB choices. Use the IAB tab to edit and save vendors and purposes.'
+			)
+		);
+		container.append(section);
+		return;
+	}
 	const actions = createElement(document, 'div', 'c15t-dev-tools__actions');
 	actions.append(
 		createButton(
@@ -622,6 +639,11 @@ function positionClass(position: DevToolsPosition): string {
 	return `c15t-dev-tools--${position}`;
 }
 
+/**
+ * Create a view for a kernel-bound state manager.
+ * @param options - Kernel, scope getter, state manager, and optional container.
+ * @returns A disposable view; element is null without a browser document.
+ */
 // oxlint-disable-next-line func-style -- Preserve the public view factory declaration.
 export function createDevToolsView(options: ViewOptions): DevToolsView {
 	const document = options.container?.ownerDocument ?? globalThis.document;
