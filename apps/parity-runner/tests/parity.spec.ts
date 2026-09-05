@@ -245,13 +245,12 @@ test.describe('cross-framework parity', () => {
 				// Full-page screenshot: banner/dialog portals render to
 				// `document.body`, so `#storybook-root` alone misses them.
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				await expect(page).toHaveScreenshot(
-					`${snapshotKey(pair.key)}-${framework}.png`,
-					{
+				await expect
+					.soft(page)
+					.toHaveScreenshot(`${snapshotKey(pair.key)}-${framework}.png`, {
 						animations: 'disabled',
 						fullPage: true,
-					}
-				);
+					});
 			}
 		}
 	});
