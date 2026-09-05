@@ -201,6 +201,7 @@ const onAction = async function onAction(action: PresentationAction) {
 					>
 						<div
 							v-bind="config.components?.dialog?.header"
+							data-testid="consent-dialog-header"
 							:class="dialogStyles.header"
 						>
 							<div

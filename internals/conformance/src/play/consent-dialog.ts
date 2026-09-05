@@ -21,6 +21,9 @@ export const dialogContract: PlayFunction = async () => {
 	assertStableElements(document.body, 'consentDialog');
 	const root = body.getByTestId('consent-dialog-root');
 	const card = body.getByTestId('consent-dialog-card');
+	const title = body.getByTestId('consent-dialog-title');
+	expect(getComputedStyle(title).marginBlockStart).toBe('0px');
+	expect(getComputedStyle(title).marginBlockEnd).toBe('0px');
 	await waitFor(() => {
 		const focused = document.activeElement;
 		expect(root.contains(focused)).toBe(true);

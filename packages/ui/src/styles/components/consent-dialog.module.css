@@ -394,6 +394,7 @@
 	}
 
 	.title:not(:global(.headless)) {
+		margin: 0;
 		font-weight: var(--consent-dialog-title-font-weight);
 		font-size: var(--consent-dialog-title-font-size);
 		line-height: 1;
