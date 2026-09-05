@@ -27,6 +27,12 @@ defineCompatSuite({
 			path: '/manifest-ssr',
 			rendering: { kind: 'dynamic' },
 		},
+		{
+			initPath: 'manifest-geo',
+			name: 'manifest-geo',
+			path: '/manifest-geo',
+			rendering: { kind: 'static' },
+		},
 	],
 	title: 'Next 15 / Pages Router',
 });

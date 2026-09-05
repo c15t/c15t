@@ -282,6 +282,10 @@
 			"dependsOn": ["build", "^build"],
 			"outputs": []
 		},
+		"@c15t/next-compat-16-static-export#test:compat": {
+			"dependsOn": ["^build"],
+			"outputs": []
+		},
 		"test-storybook": {
 			"dependsOn": ["build", "^build"],
 			"outputs": []

@@ -23,8 +23,19 @@ export type { RenderingMode } from './manifest';
  *
  * - `client`: the browser runtime calls `/init` after hydration
  * - `ssr`: the server called `/init` and streamed the promise into the provider
+ * - `manifest`: the browser resolves init from the same-origin manifest route
+ * - `manifest-ssr`: the server resolved init from the manifest route
+ * - `static-manifest`: the browser resolves init from a manifest module
+ *   generated at build time (`@c15t/nextjs/static`); nothing is fetched
  */
-export type InitPath = 'client' | 'ssr' | 'manifest' | 'manifest-ssr';
+export type InitPath =
+	| 'client'
+	| 'ssr'
+	| 'manifest'
+	| 'manifest-ssr'
+	| 'manifest-geo'
+	| 'ssr-stream'
+	| 'static-manifest';
 
 export interface CompatScenario {
 	name: string;
@@ -143,6 +154,9 @@ export const defineCompatSuite = function defineCompatSuite({
 	describe(title, () => {
 		const baseURL = inject('compatBaseURL');
 		const appDir = inject('compatAppDir');
+		// The stub is mounted inside the app unless the cell runs it on its own
+		// port (static export), in which case the diagnostics live there.
+		const stubURL = inject('compatBackendURL') ?? baseURL;
 		let browser: Browser;
 		let context: BrowserContext;
 		let page: Page;
@@ -158,7 +172,7 @@ export const defineCompatSuite = function defineCompatSuite({
 		});
 
 		beforeEach(async () => {
-			await clearInitRequests(baseURL);
+			await clearInitRequests(stubURL);
 			context = await browser.newContext({
 				extraHTTPHeaders: { 'x-vercel-ip-country': TEST_COUNTRY },
 			});
@@ -191,7 +205,7 @@ export const defineCompatSuite = function defineCompatSuite({
 
 				it('shows the banner and reports the expected init path', async () => {
 					const initialHTML = await fetchHTML(baseURL, scenario.path);
-					await clearInitRequests(baseURL);
+					await clearInitRequests(stubURL);
 					await page.goto(`${baseURL}${scenario.path}`, {
 						waitUntil: 'domcontentloaded',
 					});
@@ -207,8 +221,8 @@ export const defineCompatSuite = function defineCompatSuite({
 						.locator('[data-testid="consent-banner-accept-button"]')
 						.waitFor({ state: 'visible', timeout: 30_000 });
 
-					const initRequests = await fetchInitRequests(baseURL);
-					const manifestRequests = await fetchManifestRequests(baseURL);
+					const initRequests = await fetchInitRequests(stubURL);
+					const manifestRequests = await fetchManifestRequests(stubURL);
 					const serverSide = initRequests.filter(
 						(request) => !isBrowserRequest(request)
 					);
@@ -224,6 +238,27 @@ export const defineCompatSuite = function defineCompatSuite({
 								TEST_COUNTRY
 							);
 							expect(initialHTML).toContain(BANNER_MARKER);
+							break;
+						}
+						case 'ssr-stream': {
+							// The layout handed the boundary the pending promise. The
+							// server still called /init with the forwarded country, the
+							// browser did not, and the banner is not in the first HTML:
+							// it appears once the promise resolves.
+							expect(serverSide.length).toBeGreaterThanOrEqual(1);
+							expect(serverSide[0]?.headers['x-c15t-country']).toBe(
+								TEST_COUNTRY
+							);
+							expect(browserSide).toHaveLength(0);
+							expect(initialHTML).not.toContain(BANNER_MARKER);
+							break;
+						}
+						case 'manifest-geo': {
+							// The browser called the same-origin init route, which
+							// resolved from the cached manifest with the request's geo,
+							// so the backend saw no /init and the store knows the country.
+							expect(initRequests).toHaveLength(0);
+							expect(initialHTML).not.toContain(BANNER_MARKER);
 							break;
 						}
 						case 'client': {
@@ -244,7 +279,7 @@ export const defineCompatSuite = function defineCompatSuite({
 							});
 							await waitForInit(page);
 							// The route handler caches the manifest across requests.
-							expect(await fetchManifestRequests(baseURL)).toHaveLength(1);
+							expect(await fetchManifestRequests(stubURL)).toHaveLength(1);
 							break;
 						}
 						case 'manifest-ssr': {
@@ -254,6 +289,15 @@ export const defineCompatSuite = function defineCompatSuite({
 							// cache state, which the `manifest` scenario asserts.
 							expect(initRequests).toHaveLength(0);
 							expect(initialHTML).toContain(BANNER_MARKER);
+							break;
+						}
+						case 'static-manifest': {
+							// The manifest was baked into the bundle at build time, so the
+							// browser resolved init locally: no /init, no /manifest, and
+							// no banner in the exported HTML.
+							expect(initRequests).toHaveLength(0);
+							expect(manifestRequests).toHaveLength(0);
+							expect(initialHTML).not.toContain(BANNER_MARKER);
 							break;
 						}
 						default: {

@@ -34,6 +34,22 @@ const isPrerenderedPage = function isPrerenderedPage(
 	return manifest[route]?.endsWith('.html') ?? false;
 };
 
+/**
+ * `output: 'export'` writes each prerendered route to `out/<route>.html`
+ * (or `out/<route>/index.html` with `trailingSlash`). A route missing from
+ * `out/` was not exported, which for a static export is the dynamic signal.
+ */
+const isExportedPage = function isExportedPage(
+	appDir: string,
+	route: string
+): boolean {
+	const name = route === '/' ? 'index' : route.replace(/^\//u, '');
+	return (
+		existsSync(join(appDir, 'out', `${name}.html`)) ||
+		existsSync(join(appDir, 'out', name, 'index.html'))
+	);
+};
+
 const hasPostponedState = function hasPostponedState(
 	appDir: string,
 	route: string
@@ -66,13 +82,22 @@ const hasPostponedState = function hasPostponedState(
  * the build records that in the route's `.meta` file as `postponed`. The
  * reader reports them as `partial` so a route that silently stopped being
  * static still fails the suite.
+ *
+ * A static export may leave no `prerender-manifest.json` behind; then the
+ * exported `out/` tree decides, since every route it holds is static.
  */
 export const readRenderingMode = function readRenderingMode(
 	appDir: string,
 	route: string
 ): RenderingMode {
+	const manifestPath = join(appDir, '.next', 'prerender-manifest.json');
+	if (!existsSync(manifestPath)) {
+		return isExportedPage(appDir, route)
+			? { kind: 'static' }
+			: { kind: 'dynamic' };
+	}
 	const manifest = JSON.parse(
-		readFileSync(join(appDir, '.next', 'prerender-manifest.json'), 'utf8')
+		readFileSync(manifestPath, 'utf8')
 	) as PrerenderManifest;
 	const entry = manifest.routes[route];
 	if (!entry) {

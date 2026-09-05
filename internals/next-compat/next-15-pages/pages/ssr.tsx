@@ -1,8 +1,7 @@
 import { COMPAT_BACKEND_URL } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
-import { toWebHeaders } from '@c15t/next-compat-shared/fixture/node-adapter';
 import type { ConsentBoundaryProps } from '@c15t/nextjs';
-import { prefetchInitialConsent } from '@c15t/nextjs/server';
+import { prefetchInitialConsent } from '@c15t/nextjs/pages';
 import type { GetServerSideProps } from 'next';
 
 interface SSRPageProps {
@@ -10,20 +9,15 @@ interface SSRPageProps {
 }
 
 /**
- * Pages Router SSR. `@c15t/nextjs/server` reads `next/headers`, which does
- * not exist here, so the request context is supplied through the helper's
- * `request` adapter from the `getServerSideProps` request.
+ * Pages Router SSR. `@c15t/nextjs/pages` reads the request from the
+ * `getServerSideProps` `req` instead of `next/headers`.
  */
 export const getServerSideProps: GetServerSideProps<SSRPageProps> = async ({
 	req,
 }) => {
-	const headers = toWebHeaders(req.headers);
 	const config = await prefetchInitialConsent({
 		backendURL: COMPAT_BACKEND_URL,
-		request: {
-			cookies: () => ({ toString: () => req.headers.cookie ?? '' }),
-			headers: () => headers,
-		},
+		req,
 	});
 	return { props: { config } };
 };

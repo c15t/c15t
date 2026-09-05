@@ -9,6 +9,19 @@
  * servers alike.
  */
 
+import type { StaticConsentResolverOptions } from '@c15t/nextjs/static';
+
+/**
+ * The manifest type `@c15t/nextjs/static` resolves from, reached through the
+ * package so the fixture needs no direct `@c15t/schema` dependency. Typing
+ * the payload keeps the stub honest: `createStaticManifestModule` emits the
+ * fetched JSON with `satisfies ConsentManifest`, so any field the schema
+ * does not know fails the static export cell's type check.
+ */
+export type CompatManifest = NonNullable<
+	StaticConsentResolverOptions['manifest']
+>;
+
 const COUNTRY_HEADERS = [
 	'x-c15t-country',
 	'cf-ipcountry',
@@ -66,27 +79,51 @@ const translations = {
 	},
 };
 
-const policy = {
+type CompatPolicyPack = NonNullable<CompatManifest['policyPacks']>[number];
+type CompatPolicyConfig = CompatPolicyPack['policy'];
+type CompatResolvedPolicy = CompatPolicyPack['resolvedPolicy'];
+
+const consentCategories = ['necessary', 'measurement', 'marketing'];
+
+const policyUI: CompatResolvedPolicy['ui'] = {
+	banner: {
+		allowedActions: ['reject', 'accept', 'customize'],
+		primaryActions: ['accept'],
+		scrollLock: false,
+	},
+	dialog: {
+		allowedActions: ['reject', 'accept', 'customize'],
+		primaryActions: ['accept'],
+		scrollLock: false,
+	},
+	mode: 'banner',
+};
+
+/**
+ * The policy as the backend stores it. `/manifest` ships it so the client
+ * can match and resolve locally.
+ */
+const policyConfig: CompatPolicyConfig = {
 	consent: {
-		categories: ['necessary', 'measurement', 'marketing'],
+		categories: consentCategories,
 		model: 'opt-in',
 		scopeMode: 'strict',
 	},
 	id: 'next-compat',
+	match: { isDefault: true },
+	ui: policyUI,
+};
+
+/**
+ * The same policy resolved, the shape `/init` returns and the manifest
+ * carries beside the config.
+ */
+const resolvedPolicy: CompatResolvedPolicy = {
+	consent: { categories: consentCategories, scopeMode: 'strict' },
+	id: 'next-compat',
 	model: 'opt-in',
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			primaryActions: ['accept'],
-			scrollLock: false,
-		},
-		mode: 'banner',
-	},
+	proof: {},
+	ui: policyUI,
 };
 
 /**
@@ -103,19 +140,13 @@ export const buildInitResponse = function buildInitResponse(
 			countryCode,
 			regionCode: null,
 		},
-		policy: {
-			consent: policy.consent,
-			id: policy.id,
-			model: policy.model,
-			proof: {},
-			ui: policy.ui,
-		},
+		policy: resolvedPolicy,
 		policyDecision: {
 			country: countryCode,
 			fingerprint: 'fingerprint_next_compat',
 			jurisdiction: countryCode === 'US' ? 'CCPA' : 'GDPR',
 			matchedBy: 'default',
-			policyId: policy.id,
+			policyId: resolvedPolicy.id,
 			region: null,
 		},
 		translations: {
@@ -132,37 +163,32 @@ const NO_STORE = { 'cache-control': 'no-store' } as const;
  * shape `resolveInitFromManifest` expects. Served with the backend's usual
  * `s-maxage` so the same-origin route in `@c15t/nextjs/api` can cache it.
  */
-export const buildManifestResponse = function buildManifestResponse() {
-	return {
-		branding: 'c15t',
-		policyPacks: [
-			{
-				fingerprint: 'fingerprint_next_compat',
-				policy: { ...policy, match: { isDefault: true } },
-				resolvedPolicy: {
-					consent: policy.consent,
-					id: policy.id,
-					model: policy.model,
-					proof: {},
-					ui: policy.ui,
+export const buildManifestResponse =
+	function buildManifestResponse(): CompatManifest {
+		return {
+			branding: 'c15t',
+			policyPacks: [
+				{
+					fingerprint: 'fingerprint_next_compat',
+					policy: policyConfig,
+					resolvedPolicy,
 				},
-			},
-		],
-		revision: 'next-compat-manifest',
-		schemaVersion: 1,
-		translations: {
-			i18n: {
-				defaultProfile: 'default',
-				messages: {
-					default: {
-						fallbackLanguage: 'en',
-						translations: { en: translations },
+			],
+			revision: 'next-compat-manifest',
+			schemaVersion: 1,
+			translations: {
+				i18n: {
+					defaultProfile: 'default',
+					messages: {
+						default: {
+							fallbackLanguage: 'en',
+							translations: { en: translations },
+						},
 					},
 				},
 			},
-		},
+		};
 	};
-};
 
 export const handleManifest = function handleManifest(
 	request: Request

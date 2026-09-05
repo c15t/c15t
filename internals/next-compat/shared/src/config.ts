@@ -1,3 +1,5 @@
+import { defineConsentConfig } from '@c15t/nextjs';
+
 /**
  * Backend URL every fixture app proxies to its in-process stub.
  *
@@ -12,3 +14,19 @@ export const COMPAT_BACKEND_URL = '/api/c15t';
  * Same-origin manifest route each app mounts with `@c15t/nextjs/api`.
  */
 export const COMPAT_MANIFEST_URL = '/api/consent/manifest';
+
+/**
+ * Same-origin init route (the route handlers' `GET`): resolves init from the
+ * cached manifest with the request's geo headers.
+ */
+export const COMPAT_INIT_URL = '/api/consent/init';
+
+/**
+ * The one config object the route files, the server helpers, and the
+ * boundary all read.
+ */
+export const COMPAT_CONSENT_CONFIG = defineConsentConfig({
+	backendURL: COMPAT_BACKEND_URL,
+	initURL: COMPAT_INIT_URL,
+	manifestURL: COMPAT_MANIFEST_URL,
+});

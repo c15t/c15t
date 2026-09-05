@@ -33,6 +33,18 @@ defineCompatSuite({
 			path: '/manifest-ssr',
 			rendering: { kind: 'dynamic' },
 		},
+		{
+			initPath: 'manifest-geo',
+			name: 'manifest-geo',
+			path: '/manifest-geo',
+			rendering: { kind: 'static' },
+		},
+		{
+			initPath: 'ssr-stream',
+			name: 'ssr-stream',
+			path: '/ssr-stream',
+			rendering: { kind: 'dynamic' },
+		},
 	],
 	title: 'Next 16 / App Router / default caching',
 });

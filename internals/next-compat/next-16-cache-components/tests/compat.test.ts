@@ -33,6 +33,18 @@ defineCompatSuite({
 			path: '/manifest-ssr',
 			rendering: { kind: 'partial' },
 		},
+		{
+			initPath: 'manifest-geo',
+			name: 'manifest-geo',
+			path: '/manifest-geo',
+			rendering: { kind: 'static' },
+		},
+		{
+			initPath: 'ssr-stream',
+			name: 'ssr-stream',
+			path: '/ssr-stream',
+			rendering: { kind: 'partial' },
+		},
 	],
 	title: 'Next 16 / App Router / cacheComponents',
 });
