@@ -15,7 +15,7 @@ import {
 	createConsentConfigHandler,
 } from 'c15t/tanstack-start/server';
 
-import { backendURL } from '../consent';
+import { backendURL, consentRoute } from '../consent';
 
 import appCss from '../styles.css?url';
 
@@ -27,6 +27,10 @@ import appCss from '../styles.css?url';
  * resolves init from the backend manifest so the first paint already knows
  * the policy, UI mode, and translations. `ConsentBoundary` reads the result
  * back through loader data, which is what keeps SSR and hydration in sync.
+ *
+ * The server function gets the absolute `backendURL`; `ConsentBoundary` gets
+ * the same-origin `consentRoute`. The prefetch skips a self-referencing
+ * `/api/c15t`, so the two must not be swapped.
  */
 const getConsentConfig = createServerFn({ method: 'GET' }).handler(
 	createConsentConfigHandler({ backendURL })
@@ -44,7 +48,7 @@ const RootComponent = () => {
 			<body>
 				<ConsentBoundary
 					config={config}
-					backendURL={backendURL}
+					backendURL={consentRoute}
 				>
 					<ConsentBanner />
 					<ConsentDialog />

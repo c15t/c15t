@@ -23,13 +23,26 @@ bun run dev        # http://localhost:3010
   first HTML with zero CLS and hydration never disagrees with the server.
   `consentLoaderOptions` keeps the loader from re-running on client-side
   navigation.
-- `src/routes/api/c15t/$.ts` mounts `createConsentServerRoute()`.
+- `src/routes/api/c15t/$.ts` mounts
+  `createConsentServerRoute({ backendURL, proxy: true })`.
   `GET /api/c15t/manifest` passes the cached backend manifest through with its
   `cache-control` and `etag` (and answers `304` to `if-none-match`);
   `GET /api/c15t/init` resolves consent locally from that manifest for the
   request's country, region, language, and GPC signal, with no
   consent-backend round trip on the request path. See
   `internals/rfcs/0001-consent-manifest.md`.
+- `proxy: true` forwards the rest of the consent traffic (`POST
+  /api/c15t/subjects`, `PATCH /api/c15t/subjects/:id`, `GET /api/c15t/status`)
+  to `backendURL`, so `ConsentBoundary` takes `backendURL="/api/c15t"` and
+  the browser only ever talks to this origin, like a Next.js rewrite. The
+  proxy forwards the browser's `user-agent`, `accept-language`, `cookie`,
+  `origin`, `referer`, and geo headers plus the client IP in
+  `x-forwarded-for`, and tags the request with `x-c15t-proxy` and
+  `x-c15t-version`, so a hosted backend behind Vercel Firewall or Cloudflare
+  scores it like a direct visitor. Anything off the allowlist
+  (`GET /api/c15t/anything-else`) is a 404. If the hosted backend runs Vercel
+  Attack Challenge Mode or Cloudflare Super Bot Fight Mode, exempt the consent
+  paths: a server cannot solve a browser challenge.
 - `src/start.ts` registers `consentRequestMiddleware()` so server routes,
   server functions, and the self-hosted backend all read one canonical set of
   `x-c15t-country` / `x-c15t-region` / `sec-gpc` headers, whichever CDN
@@ -42,7 +55,8 @@ Try the region preview from the page itself, or by hand: `?country=DE`
 resolves GDPR/opt-in with a banner, `?country=US&region=CA` resolves
 CCPA/opt-out with no banner at all. `src/middleware/region-override.ts`
 turns the query into geo headers; it also reads the `referer` for
-same-origin follow-up requests (`/api/c15t/init`, `POST /subjects`) so the
+same-origin follow-up requests (`/api/c15t/init`, `POST /api/c15t/subjects`)
+so the
 browser stays on the policy the server rendered. It is a development aid,
 not part of the integration.
 
@@ -71,9 +85,9 @@ Set `C15T_BACKEND_URL` to your c15t instance to skip the self-hosted route:
 C15T_BACKEND_URL=https://your-instance.c15t.dev bun run dev
 ```
 
-`vite.config.ts` lists `C15T_` as an env prefix, so the same value reaches
-the server function (manifest prefetch) and the browser (`POST /subjects`).
-The self-host route keeps working but nothing calls it.
+The server function prefetches the manifest from it and the consent route
+proxies to it; the browser keeps talking to `/api/c15t`. The self-host route
+keeps working but nothing calls it.
 
 ## Production build
 
