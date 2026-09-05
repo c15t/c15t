@@ -84,15 +84,75 @@ export interface ManifestCache {
 	clear: () => void;
 }
 
+/** Options for {@link createManifestCache}. */
+export interface ManifestCacheOptions {
+	/**
+	 * Most entries the cache holds at once. Keys include the query string
+	 * and any credential partition, so a visitor can mint new keys with
+	 * public input such as `?language=`; the cap keeps that bounded.
+	 *
+	 * @default 128
+	 */
+	maxEntries?: number;
+}
+
+const DEFAULT_MAX_ENTRIES = 128;
+
 /**
- * Creates an empty, Map-backed manifest cache.
+ * Creates an empty, bounded manifest cache. Reads refresh an entry's
+ * recency; when a write would exceed `maxEntries`, expired entries go
+ * first, then the least recently used.
  *
+ * @param options - Size bound.
  * @returns A cache instance for {@link fetchCachedManifest}.
  */
-export const createManifestCache =
-	function createManifestCache(): ManifestCache {
-		return new Map<string, CachedManifestResponse>();
+export const createManifestCache = function createManifestCache(
+	options: ManifestCacheOptions = {}
+): ManifestCache {
+	const maxEntries = Math.max(1, options.maxEntries ?? DEFAULT_MAX_ENTRIES);
+	const entries = new Map<string, CachedManifestResponse>();
+
+	const makeRoom = function makeRoom(): void {
+		if (entries.size < maxEntries) {
+			return;
+		}
+		const now = Date.now();
+		for (const [key, entry] of entries) {
+			if (entry.expiresAt <= now) {
+				entries.delete(key);
+			}
+		}
+		while (entries.size >= maxEntries) {
+			const oldest = entries.keys().next();
+			if (oldest.done) {
+				break;
+			}
+			entries.delete(oldest.value);
+		}
 	};
+
+	return {
+		clear: () => entries.clear(),
+		delete: (key) => entries.delete(key),
+		get: (key) => {
+			const entry = entries.get(key);
+			if (entry) {
+				// Re-insert so Map iteration order doubles as recency.
+				entries.delete(key);
+				entries.set(key, entry);
+			}
+			return entry;
+		},
+		set: (key, entry) => {
+			if (entries.has(key)) {
+				entries.delete(key);
+			} else {
+				makeRoom();
+			}
+			entries.set(key, entry);
+		},
+	};
+};
 
 /** Cache used when {@link fetchCachedManifest} is called without one. */
 const defaultManifestCache = createManifestCache();
