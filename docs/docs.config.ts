@@ -130,7 +130,7 @@ const generateDocsConfig = () =>
 								title: 'Concepts',
 							},
 							{
-								pages: ['script-loader'],
+								pages: ['script-loader', 'dev-tools'],
 
 								title: 'Guides',
 							},
