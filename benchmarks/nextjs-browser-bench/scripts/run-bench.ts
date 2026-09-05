@@ -5,10 +5,14 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import type { readBenchNavigationTiming } from '@c15t/benchmarking/browser';
+import type {
+	BenchScriptResourceMetrics,
+	readBenchNavigationTiming,
+} from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
+	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
@@ -314,28 +318,9 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		if (entries.length === 0) {
-			return null;
-		}
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			appScriptCount: ordered.length,
-			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-			jsBytes: ordered.reduce(
-				(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
-				0
-			),
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scriptEntry = (await page.evaluate(
+		benchScriptResourceExpression
+	)) as BenchScriptResourceMetrics | null;
 	const performanceObserverInfo = await page.evaluate(() => {
 		const metrics = (
 			window as typeof window & {
