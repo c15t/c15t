@@ -147,12 +147,19 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			},
 			{ 'sec-gpc': '1' }
 		);
-		expect(config.initialOverrides).toMatchObject({
+		expect(config.initialOverrides).toEqual({
 			country: 'DE',
-			gpc: true,
 			language: 'de',
 		});
+		// The detected header signal is a privacy signal, not an override.
+		expect(config.initialPrivacySignals).toEqual({ gpc: true });
 		expect(config.initialPolicy?.id).toBe('p1');
 		expect(config.initialBranding).toBe('c15t');
+		// A producer that sent no `policyResolution` and declared no contract
+		// is a legacy producer: its policy is lifted on the server, once.
+		expect(config.initialPolicyResolution).toMatchObject({
+			policyId: 'p1',
+			status: 'matched',
+		});
 	});
 });

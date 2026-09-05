@@ -1,4 +1,4 @@
-import type { InitOutput, PolicyConfig } from '@c15t/schema/types';
+import type { InitOutput, PolicyConfig, PolicyRule } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { OfflinePolicyConfig } from '../options/offline-policy';
@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { createHostedTransport } from './hosted';
 import { mapInitOutputToInitResponse } from './init-output';
+import type { TransportInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
 
 /** Runtime values supplied by a provider to a transport factory. */
@@ -18,8 +19,10 @@ export interface ProviderTransportContext {
 	consentCategories?: AllConsentNames[];
 	/** Offline policy configuration supplied to the provider. */
 	offlinePolicy?: OfflinePolicyConfig;
-	/** Policy packs configured on the provider. */
+	/** BRIDGE: legacy policy packs configured on the provider. */
 	policies?: PolicyConfig[];
+	/** v3 policy rules configured on the provider. */
+	policyRules?: PolicyRule[];
 	/** Server-prefetched kernel configuration. */
 	prefetch: KernelConfig;
 	/** Translations resolved from the provider's i18n configuration. */
@@ -148,9 +151,11 @@ const createEndpointTransport = function createEndpointTransport(
 			}
 			const init = response.data as Record<string, unknown>;
 			if (init.location && init.translations && init.branding) {
+				// An endpoint handler declares no contract; a present wire is
+				// passed through and an absent one lifts the legacy field.
 				return mapInitOutputToInitResponse(init as InitOutput, {});
 			}
-			return {
+			const mapped: TransportInitResponse = {
 				branding:
 					init.branding === 'none' ? undefined : (init.branding as never),
 				cmpId: init.cmpId as never,
@@ -166,6 +171,10 @@ const createEndpointTransport = function createEndpointTransport(
 				subjectId: init.subjectId as never,
 				translations: init.translations as never,
 			};
+			if (init.policyResolution !== undefined) {
+				mapped.policyResolution = init.policyResolution as never;
+			}
+			return mapped;
 		},
 		async save(payload) {
 			const response = await endpointHandlers.setConsent({
@@ -178,7 +187,9 @@ const createEndpointTransport = function createEndpointTransport(
 			});
 			return {
 				ok: response.ok,
-				subjectId: response.data?.subjectId,
+				...(response.data?.subjectId !== undefined && {
+					subjectId: response.data.subjectId,
+				}),
 			};
 		},
 	};

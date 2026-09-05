@@ -8,28 +8,33 @@
  * globally; Cloudflare Workers is fine globally; some edge hosts may
  * require a specific binding).
  *
+ * Every request declares the policy contract this client reads, and
+ * `/init` responses are interpreted by what the producer declared back: a
+ * negotiated producer's `policyResolution` is passed through raw for the
+ * kernel's strict reader, and a producer that predates the contract has its
+ * legacy `policy` lifted through the named bridge. A negotiated producer
+ * whose response lacks the field is a failed payload, never a permissive
+ * fallback.
+ *
+ * Beyond `init`, `save` and `identify`, two optional methods carry the v3
+ * record boundary: `loadSubjectRecord` reads the backend's merged receipts
+ * and standing privacy directives for a subject as hydration records, and
+ * `recordPrivacyOptOut` records a directive against the subject's own
+ * server record through the privacy route, never the consent-saving one.
+ *
  * Out of scope for this MVP (deferred to follow-ups):
  * - Response caching / revalidation
- * - Policy-pack evaluation on the client (server returns the effective
- *   policy, full pack logic stays server-side)
  * - Translation bundle fetching
- * - GVL fetching for IAB TCF
  * - Retry / backoff
- *
- * The response shape is narrow on purpose: anything the transport
- * returns is applied directly to the snapshot. Extending this shape in a
- * backwards-compatible way means adding optional fields; the kernel
- * ignores unknown fields.
  */
 import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
+import type { PrivacyOptOut } from '../consent-record/types';
 import type {
 	InitContext,
-	InitResponse,
 	KernelTransport,
 	KernelUser,
-	SavePayload,
 	SaveResult,
 } from '../types';
 import {
@@ -39,8 +44,18 @@ import {
 } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { mapInitOutputToInitResponse } from './init-output';
+import type { TransportInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
-import { c15tVersionHeaders } from './version-header';
+import type { SubjectSavePayload } from './subject-body';
+import {
+	mapSubjectRecordToHydrationRecords,
+	reviveSubjectRecord,
+} from './subject-record';
+import type { TransportHydrationRecords } from './subject-record';
+import {
+	c15tProtocolHeaders,
+	readProducerPolicyContract,
+} from './version-header';
 
 export interface HostedTransportOptions {
 	/**
@@ -100,6 +115,41 @@ export interface HostedTransportOptions {
 	 * the backend URL hostname for absolute URLs in server runtimes.
 	 */
 	domain?: string;
+
+	/**
+	 * Clock used to validate records read from the backend. Defaults to
+	 * `Date.now`. Inject for deterministic tests.
+	 */
+	now?: () => number;
+}
+
+/**
+ * The hosted transport's full surface.
+ *
+ * `loadSubjectRecord` and `recordPrivacyOptOut` are the record boundary a
+ * v3 kernel calls; both names match the kernel's optional transport methods
+ * and the interface collapses into `KernelTransport` once those land.
+ */
+export interface HostedKernelTransport extends KernelTransport {
+	init: (ctx: InitContext) => Promise<TransportInitResponse>;
+	save: (payload: SubjectSavePayload) => Promise<SaveResult>;
+	identify: (user: KernelUser, subjectId: string | null) => Promise<void>;
+	/**
+	 * Reads the backend's merged receipts and standing privacy directives for
+	 * a subject. `null` when the backend has no such subject.
+	 */
+	loadSubjectRecord: (
+		subjectId: string
+	) => Promise<TransportHydrationRecords | null>;
+	/**
+	 * Records a standing privacy directive against the subject's own server
+	 * record. Resolves without a request when there is no server subject yet;
+	 * the directive stays local until one exists.
+	 */
+	recordPrivacyOptOut: (
+		directive: PrivacyOptOut,
+		subjectId: string | null
+	) => Promise<void>;
 }
 
 /** Strip a single trailing slash so `${base}/init` doesn't double up. */
@@ -176,13 +226,30 @@ const createDeferredPromise = function createDeferredPromise<Value>(
 };
 
 /**
+ * A `SaveResult` from the backend's answer.
+ *
+ * The backend's 2.x response shape has no `ok`; success is the HTTP status.
+ * Reading the body as a `SaveResult` made every successful save look failed
+ * and queued it for replay forever.
+ */
+const toSaveResult = function toSaveResult(data: unknown): SaveResult {
+	const subjectId =
+		typeof data === 'object' &&
+		data !== null &&
+		typeof (data as { subjectId?: unknown }).subjectId === 'string'
+			? (data as { subjectId: string }).subjectId
+			: undefined;
+	return subjectId === undefined ? { ok: true } : { ok: true, subjectId };
+};
+
+/**
  * Build a hosted transport. The returned object is plain — no listeners,
  * no caches, and no state beyond the decision inputs remembered when
  * `assertDecisionInputs` is set. Safe to create per request.
  */
 export const createHostedTransport = function createHostedTransport(
 	options: HostedTransportOptions
-): KernelTransport {
+): HostedKernelTransport {
 	const base = trimSlash(options.backendURL);
 	const initURL = options.initURL ?? `${base}/init`;
 	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
@@ -194,6 +261,7 @@ export const createHostedTransport = function createHostedTransport(
 	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
+	const now = options.now ?? Date.now;
 	let establishedSubjectId: string | null = null;
 	let lastDecisionInputs: RememberedDecisionInputs | undefined;
 	interface PendingIdentity {
@@ -203,26 +271,28 @@ export const createHostedTransport = function createHostedTransport(
 	}
 	let pendingIdentities: PendingIdentity[] = [];
 
+	const jsonHeaders = {
+		accept: 'application/json',
+		'content-type': 'application/json',
+		...c15tProtocolHeaders,
+	};
+
+	const subjectURL = (subjectId: string): string =>
+		`${base}/subjects/${encodeURIComponent(subjectId)}`;
+
 	const patchIdentity = async function patchIdentity(
 		user: KernelUser,
 		subjectId: string
 	): Promise<void> {
-		const response = await fetchImpl(
-			`${base}/subjects/${encodeURIComponent(subjectId)}`,
-			{
-				body: JSON.stringify({
-					externalId: user.externalId,
-					identityProvider: user.identityProvider,
-				}),
-				credentials,
-				headers: {
-					accept: 'application/json',
-					'content-type': 'application/json',
-					...c15tVersionHeaders,
-				},
-				method: 'PATCH',
-			}
-		);
+		const response = await fetchImpl(subjectURL(subjectId), {
+			body: JSON.stringify({
+				externalId: user.externalId,
+				identityProvider: user.identityProvider,
+			}),
+			credentials,
+			headers: jsonHeaders,
+			method: 'PATCH',
+		});
 
 		if (!response.ok) {
 			throw new Error(
@@ -275,12 +345,12 @@ export const createHostedTransport = function createHostedTransport(
 			await patchIdentity(user, resolvedSubjectId);
 		},
 
-		async init(_ctx: InitContext): Promise<InitResponse> {
+		async init(_ctx: InitContext): Promise<TransportInitResponse> {
 			const response = await fetchImpl(initURL, {
 				credentials,
 				headers: {
 					accept: 'application/json',
-					...c15tVersionHeaders,
+					...c15tProtocolHeaders,
 					...initHeaders,
 				},
 				method: 'GET',
@@ -299,7 +369,9 @@ export const createHostedTransport = function createHostedTransport(
 					gpcFromHeaders(initHeaders)
 				);
 			}
-			const result = mapInitOutputToInitResponse(payload, initHeaders);
+			const result = mapInitOutputToInitResponse(payload, initHeaders, {
+				producerContract: readProducerPolicyContract(response.headers),
+			});
 			if (result.subjectId) {
 				establishedSubjectId = result.subjectId;
 				await flushPendingIdentities(result.subjectId);
@@ -307,18 +379,67 @@ export const createHostedTransport = function createHostedTransport(
 			return result;
 		},
 
-		async save(payload: SavePayload): Promise<SaveResult> {
+		async loadSubjectRecord(
+			subjectId
+		): Promise<TransportHydrationRecords | null> {
+			const response = await fetchImpl(subjectURL(subjectId), {
+				credentials,
+				headers: { accept: 'application/json', ...c15tProtocolHeaders },
+				method: 'GET',
+			});
+			if (response.status === 404) {
+				return null;
+			}
+			if (!response.ok) {
+				throw new Error(
+					`c15t hosted transport: /subjects/:id responded ${response.status} ${response.statusText}`
+				);
+			}
+			const record = reviveSubjectRecord(await response.json());
+			if (!record) {
+				throw new Error(
+					'c15t hosted transport: /subjects/:id returned an unreadable record'
+				);
+			}
+			establishedSubjectId = record.subject.id;
+			return mapSubjectRecordToHydrationRecords(record, { now: now() });
+		},
+
+		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
+			const resolvedSubjectId = subjectId ?? establishedSubjectId;
+			if (!resolvedSubjectId) {
+				// No server record exists for this device yet. The kernel keeps the
+				// directive locally; it is never sent through the consent route.
+				return;
+			}
+			const response = await fetchImpl(
+				`${subjectURL(resolvedSubjectId)}/privacy-directives`,
+				{
+					body: JSON.stringify({
+						categories: [...directive.categories],
+						recordedAt: directive.recordedAt,
+						source: directive.source,
+					}),
+					credentials,
+					headers: jsonHeaders,
+					method: 'POST',
+				}
+			);
+			if (!response.ok) {
+				throw new Error(
+					`c15t hosted transport: /subjects/:id/privacy-directives responded ${response.status} ${response.statusText}`
+				);
+			}
+		},
+
+		async save(payload): Promise<SaveResult> {
 			const response = await fetchImpl(`${base}/subjects`, {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
 					...buildDecisionAssertion(payload, lastDecisionInputs),
 				}),
 				credentials,
-				headers: {
-					accept: 'application/json',
-					'content-type': 'application/json',
-					...c15tVersionHeaders,
-				},
+				headers: jsonHeaders,
 				method: 'POST',
 			});
 
@@ -328,7 +449,7 @@ export const createHostedTransport = function createHostedTransport(
 				);
 			}
 
-			const data = (await response.json()) as SaveResult;
+			const data = toSaveResult(await response.json());
 			if (data.subjectId) {
 				establishedSubjectId = data.subjectId;
 			}

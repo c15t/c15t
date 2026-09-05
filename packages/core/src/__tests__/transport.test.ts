@@ -2072,8 +2072,9 @@ describe('createHostedTransport: request shape', () => {
 			'accept-language': 'de-DE,de;q=0.9',
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
-			'x-c15t-region': 'BE',
 			// Always attached by the transport itself, not consumer-forwarded.
+			'x-c15t-policy-contract': '1',
+			'x-c15t-region': 'BE',
 			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});
 	});
@@ -2108,12 +2109,14 @@ describe('createHostedTransport: request shape', () => {
 			policySnapshotToken: 'snapshot-token',
 			resolvedOverrides: {
 				country: 'DE',
-				gpc: true,
 				language: 'de',
 				region: 'BE',
 			},
+			// The detected header signal, kept apart from developer overrides.
+			resolvedPrivacySignals: { gpc: true },
 			translations: { language: 'de' },
 		});
+		expect(response?.resolvedOverrides).not.toHaveProperty('gpc');
 		expect('jurisdiction' in (response ?? {})).toBe(false);
 	});
 
@@ -2185,10 +2188,10 @@ describe('createManifestTransport: local init resolution', () => {
 			},
 			resolvedOverrides: {
 				country: 'DE',
-				gpc: true,
 				language: 'de',
 				region: 'BE',
 			},
+			resolvedPrivacySignals: { gpc: true },
 		});
 		expect(fetchGvl).toHaveBeenCalledWith({
 			fetch: expect.any(Function),

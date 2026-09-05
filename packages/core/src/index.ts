@@ -79,11 +79,16 @@ export type {
 	ProviderTransportKind,
 } from './transports/mode';
 export { custom, hosted } from './transports/mode';
-export type { OfflineTransportOptions } from './transports/offline';
+export type {
+	OfflineKernelTransport,
+	OfflineTransportOptions,
+} from './transports/offline';
 export { createOfflineTransport } from './transports/offline';
 export { buildSubjectPostBody } from './transports/subject-body';
 export {
+	C15T_POLICY_CONTRACT_HEADER,
 	C15T_VERSION_HEADER,
+	c15tProtocolHeaders,
 	c15tVersionHeaders,
 } from './transports/version-header';
 export type {

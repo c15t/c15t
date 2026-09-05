@@ -54,6 +54,25 @@ console.log(state.policy?.id);       // → 'policy_ca_opt_out'
 console.log(state.policyDecision?.matchedBy); // → 'region'
 ```
 
+## Offline mode with v3 rules
+
+The offline transport also takes v3 policy rules. Resolution runs once per init inside the transport, emits an explicit `policyResolution` (`unconfigured`, `matched`, `no-match` or `failed`), and never hashes during construction or render:
+
+```ts
+import { createOfflineTransport } from 'c15t';
+import { policyRulePresets } from '@c15t/schema';
+
+const transport = createOfflineTransport({
+  policyRules: [
+    policyRulePresets.europeOptIn(),
+    policyRulePresets.californiaOptOut(),
+    policyRulePresets.worldOptOutNoPrompt(),
+  ],
+});
+```
+
+`policyRules` and `policyPacks` cannot be combined. Legacy `policyPacks` are lifted through the bridge until the v3 final sweep and keep the legacy `policy` field they always produced.
+
 ## Custom Pack
 
 ```ts
