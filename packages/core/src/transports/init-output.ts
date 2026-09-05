@@ -312,16 +312,6 @@ export const mergeInitResponseIntoKernelConfig =
 			// resolution and never lifts or hashes anything itself.
 			const resolution = readPolicyResolutionWire(response.policyResolution);
 			merged.initialPolicyResolution = resolution;
-			if (resolution.status !== 'matched') {
-				// An explicit null policy clears everything the previous policy
-				// derived before the response's own fields are applied. A stale
-				// token or policy-enabled IAB state must not outlive the policy
-				// that issued it.
-				delete merged.initialPolicy;
-				delete merged.initialPolicyDecision;
-				delete merged.initialPolicySnapshotToken;
-				delete merged.initialIab;
-			}
 		}
 		if (response.policy !== undefined) {
 			merged.initialPolicy = response.policy;
@@ -351,6 +341,18 @@ export const mergeInitResponseIntoKernelConfig =
 				nextIab.cmpId = response.cmpId;
 			}
 			merged.initialIab = nextIab;
+		}
+
+		if (
+			merged.initialPolicyResolution &&
+			merged.initialPolicyResolution.status !== 'matched'
+		) {
+			// Clear after folding the response: a failed producer may include
+			// stale legacy metadata alongside its non-matching resolution.
+			delete merged.initialPolicy;
+			delete merged.initialPolicyDecision;
+			delete merged.initialPolicySnapshotToken;
+			delete merged.initialIab;
 		}
 
 		return merged;
