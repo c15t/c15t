@@ -29,6 +29,7 @@ import type {
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,
@@ -55,6 +56,12 @@ export interface VueConsentKernelContext {
 	init: Ref<InitOutput | undefined>;
 	activeUI: Ref<ConsentActiveUI>;
 	storedConsent: Ref<Consent>;
+	/**
+	 * Whether this context created the kernel. `false` when a
+	 * {@link ConsentRuntime} was handed in — its owner runs `start()` and
+	 * `dispose()`, and every side-effecting module belongs to it.
+	 */
+	ownsKernel: boolean;
 	dispose: () => void;
 }
 
@@ -431,28 +438,64 @@ const createVueManifestTransport = function createVueManifestTransport(
 	};
 };
 
+const createContextKernel = function createContextKernel(options: {
+	config: RuntimeConsentConfig;
+	headers: Record<string, string>;
+	prefetch?: InitOutput;
+	initialStoredConsent?: StoredPayload | null;
+}): ConsentKernel {
+	const { config, headers } = options;
+	const transport = isClientManifestModeEnabled(config)
+		? createVueManifestTransport(config, headers, options.prefetch)
+		: createVueHostedTransport(
+				config,
+				headers,
+				isServerManifestModeEnabled(config)
+					? getNuxtInitFetchTarget(config)?.url
+					: undefined
+			);
+	return createConsentKernel({
+		...initOutputToKernelConfig(options.prefetch, headers),
+		...storedPayloadToKernelConfig(options.initialStoredConsent),
+		transport,
+	});
+};
+
+/**
+ * Build the reactive consent context a Vue app provides.
+ *
+ * @param options - Config, request headers, prefetched init and, optionally,
+ * an externally owned runtime to borrow instead of building a kernel.
+ * @returns Refs and computed values for the composables, plus a disposer.
+ * @example
+ * ```ts
+ * // Borrow a runtime an Astro page already created.
+ * const context = createVueConsentKernelContext({ config: {}, runtime });
+ * ```
+ */
 export const createVueConsentKernelContext =
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
 		headers?: Record<string, string | undefined>;
 		prefetch?: InitOutput;
 		initialStoredConsent?: StoredPayload | null;
+		/**
+		 * A runtime whose kernel this context should render. When present no
+		 * transport and no kernel are created, and `dispose()` only drops
+		 * this context's own subscription.
+		 */
+		runtime?: ConsentRuntime;
 	}): VueConsentKernelContext {
 		const headers = pickAllowedInitHeaders(options.headers ?? {});
-		const transport = isClientManifestModeEnabled(options.config)
-			? createVueManifestTransport(options.config, headers, options.prefetch)
-			: createVueHostedTransport(
-					options.config,
-					headers,
-					isServerManifestModeEnabled(options.config)
-						? getNuxtInitFetchTarget(options.config)?.url
-						: undefined
-				);
-		const kernel = createConsentKernel({
-			...initOutputToKernelConfig(options.prefetch, headers),
-			...storedPayloadToKernelConfig(options.initialStoredConsent),
-			transport,
-		});
+		const ownsKernel = options.runtime === undefined;
+		const kernel =
+			options.runtime?.kernel ??
+			createContextKernel({
+				config: options.config,
+				headers,
+				initialStoredConsent: options.initialStoredConsent,
+				prefetch: options.prefetch,
+			});
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
@@ -475,10 +518,15 @@ export const createVueConsentKernelContext =
 			activeUI,
 			dispose() {
 				unsubscribe();
-				kernel.dispose();
+				// Only the owner disposes. A borrowed kernel outlives this
+				// component tree — other islands on the page still read it.
+				if (ownsKernel) {
+					kernel.dispose();
+				}
 			},
 			init,
 			kernel,
+			ownsKernel,
 			snapshot,
 			storedConsent,
 		};
@@ -545,12 +593,31 @@ const refreshClientGeo = async function refreshClientGeo(
 	}
 };
 
+/**
+ * Mount the browser-side modules a Vue consent app needs.
+ *
+ * A context built around an externally owned runtime mounts nothing: that
+ * runtime already installed persistence, the script loader, the blockers,
+ * `window.c15t` and the initial `init()`, and doing any of it twice would
+ * double-write storage and install a second debug global.
+ *
+ * @param context - The context from {@link createVueConsentKernelContext}.
+ * @param config - The runtime consent configuration.
+ * @param options - Set `runInit: false` to skip the initial `init()`.
+ * @returns A disposer that undoes everything this call mounted.
+ */
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
 	options: { runInit?: boolean } = {}
 ): () => void {
 	const disposers: (() => void)[] = [];
+
+	if (!context.ownsKernel) {
+		return () => {
+			context.dispose();
+		};
+	}
 
 	if (typeof document !== 'undefined') {
 		const windowDebug = createWindowDebug({
