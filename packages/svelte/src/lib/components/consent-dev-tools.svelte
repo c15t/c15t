@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createDevTools } from '@c15t/dev-tools';
-	import { onMount, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 
 	import { getConsentContext } from '../context.svelte';
 	import type { ConsentDevToolsProps } from '../devtools-options';
@@ -14,7 +14,7 @@
 	}: ConsentDevToolsProps = $props();
 	const context = getConsentContext();
 
-	onMount(() => {
+	$effect(() => {
 		const devTools = createDevTools({
 			defaultOpen,
 			defaultTab,

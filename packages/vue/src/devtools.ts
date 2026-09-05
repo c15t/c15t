@@ -1,4 +1,4 @@
-import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/consent-record';
 import { createDevTools } from '@c15t/dev-tools';
 import type {
 	DevToolsInstance,
@@ -6,7 +6,7 @@ import type {
 	DevToolsPosition,
 	DevToolsTab,
 } from '@c15t/dev-tools';
-import { defineComponent, inject, onMounted, onUnmounted } from 'vue';
+import { defineComponent, inject, onMounted, onUnmounted, watch } from 'vue';
 import type { PropType } from 'vue';
 
 import { useConsentConfig } from './runtime/composables/config';
@@ -29,6 +29,7 @@ export type DevToolsProps = ConsentDevToolsProps;
  * Mounts the c15t DevTools engine for the nearest Vue consent provider.
  *
  * @returns A renderless Vue component; the engine mounts into `document.body`.
+ * @throws {Error} When rendered outside a consent provider.
  */
 export const ConsentDevTools = defineComponent({
 	name: 'ConsentDevTools',
@@ -46,24 +47,39 @@ export const ConsentDevTools = defineComponent({
 		const config = useConsentConfig();
 		const init = inject(symbolInit, undefined);
 		let devTools: DevToolsInstance | null = null;
+		let stopWatching: (() => void) | undefined;
 
 		onMounted(() => {
-			devTools = createDevTools({
-				defaultOpen: props.defaultOpen,
-				defaultTab: props.defaultTab,
-				getConsentCategories: () =>
-					props.getConsentCategories?.() ??
-					getConsentAvailableCategories(
-						init?.value,
-						config.value.consentCategories
-					),
-				kernel,
-				maxEvents: props.maxEvents,
-				position: props.position,
-			});
+			stopWatching = watch(
+				() => [
+					props.defaultOpen,
+					props.defaultTab,
+					props.maxEvents,
+					props.position,
+					props.getConsentCategories,
+				],
+				() => {
+					devTools?.destroy();
+					devTools = createDevTools({
+						defaultOpen: props.defaultOpen,
+						defaultTab: props.defaultTab,
+						getConsentCategories: () =>
+							props.getConsentCategories?.() ??
+							getConsentAvailableCategories(
+								init?.value,
+								config.value.consentCategories
+							),
+						kernel,
+						maxEvents: props.maxEvents,
+						position: props.position,
+					});
+				},
+				{ immediate: true }
+			);
 		});
 
 		onUnmounted(() => {
+			stopWatching?.();
 			devTools?.destroy();
 			devTools = null;
 		});

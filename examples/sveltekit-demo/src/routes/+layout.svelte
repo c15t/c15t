@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { dev } from '$app/environment';
 	import { page } from '$app/state';
 	import { env } from '$env/dynamic/public';
 	import { createDemoScripts } from '$lib/consent-manager/demo-scripts';
@@ -22,7 +23,7 @@
 
 	let { children } = $props();
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
-	const isIabPlayground = env.PUBLIC_DEVTOOLS_IAB === 'true';
+	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
 	const scripts = createDemoScripts({
 		metaPixel: env.PUBLIC_META_PIXEL_ID,
 		tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
@@ -135,6 +136,8 @@
 		<IABConsentDialog />
 		<ConsentDialogTrigger />
 		<ConsentDialog />
-		<ConsentDevTools position="bottom-right" />
+		{#if dev}
+			<ConsentDevTools position="bottom-right" />
+		{/if}
 	</ConsentManagerProvider>
 {/if}

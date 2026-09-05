@@ -1,6 +1,9 @@
 ---
 '@c15t/vue': minor
+'@c15t/svelte': minor
+'c15t': minor
 ---
 
-Add a Vue DevTools adapter that binds to the nearest consent kernel and cleans
-up with the component lifecycle.
+Add Vue and Svelte DevTools adapters that bind to the nearest consent kernel,
+follow option changes, and clean up with the component lifecycle. Expose the Vue
+adapter through the umbrella package.

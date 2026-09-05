@@ -1,4 +1,4 @@
-import { createConsentKernel } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core';
 import { mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { defineComponent, h, ref } from 'vue';

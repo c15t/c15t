@@ -12,6 +12,20 @@ const mountedDevTools = (): NodeListOf<HTMLElement> =>
 	document.querySelectorAll('[data-c15t-dev-tools]');
 
 describe('@c15t/svelte/devtools', () => {
+	test('updates presentation options without leaving duplicate instances', async () => {
+		const result = render(DevToolsFixture, { position: 'top-left' });
+		await vi.waitFor(() =>
+			expect(document.querySelector('.c15t-dev-tools--top-left')).not.toBeNull()
+		);
+		await result.rerender({ position: 'bottom-left' });
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector('.c15t-dev-tools--bottom-left')
+			).not.toBeNull()
+		);
+		expect(mountedDevTools()).toHaveLength(1);
+		result.unmount();
+	});
 	test('exports compatible component names', () => {
 		expect(ConsentDevToolsDefault).toBe(ConsentDevTools);
 		expect(DevTools).toBe(ConsentDevTools);

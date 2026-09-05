@@ -1,7 +1,8 @@
-import type { ConsentKernel } from '@c15t/core/v3';
+import type { ConsentKernel } from '@c15t/core';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { offline } from '../lib/transports/offline';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
 beforeEach(() => {
@@ -21,7 +22,7 @@ describe('displayed consent actions', () => {
 				},
 				options: {
 					consentCategories: ['necessary', 'marketing', 'measurement'],
-					mode: 'offline',
+					mode: offline(),
 					prefetch: {
 						initialPolicy: { consent: { categories: ['*'] }, model: 'opt-in' },
 					},

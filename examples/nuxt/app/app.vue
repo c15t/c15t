@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ConsentDevTools } from 'c15t/vue/devtools';
 
+const isDevelopment = import.meta.dev;
+
 /**
  * The only required integration: mount <ConsentRoot /> once.
  * Everything below it is demo chrome showing the consent state live.
@@ -20,7 +22,10 @@ const openPreferences = () => {
 
 <template>
 	<ConsentRoot />
-	<ConsentDevTools position="bottom-right" />
+	<ConsentDevTools
+		v-if="isDevelopment"
+		position="bottom-right"
+	/>
 
 	<main class="page">
 		<h1>c15t × Nuxt</h1>
