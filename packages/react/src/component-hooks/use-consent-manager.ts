@@ -12,8 +12,9 @@ import type {
 	TranslationConfig,
 } from '@c15t/core';
 import { evaluateConsent } from '@c15t/core';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useContext, useMemo } from 'react';
 
+import { ProviderServicesContext } from '../context';
 import { useConsentManagerDraft } from '../draft';
 import {
 	useActiveUI,
@@ -96,6 +97,7 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 
 export const useConsentManager = function useConsentManager() {
 	const snapshot = useSnapshot();
+	const services = useContext(ProviderServicesContext);
 	const consents = useConsents();
 	const activeUI = useActiveUI();
 	const branding = useBranding();
@@ -119,11 +121,8 @@ export const useConsentManager = function useConsentManager() {
 		[policyCategoriesSnapshot]
 	);
 	const consentCategories = useMemo<AllConsentNames[]>(
-		() =>
-			policyCategories.length > 0
-				? (policyCategories as AllConsentNames[])
-				: DEFAULT_CONSENT_TYPES.map((type) => type.name),
-		[policyCategories]
+		() => [...(services?.getConsentCategories() ?? policyCategories)],
+		[services, policyCategories]
 	);
 
 	const getDisplayedConsents = useCallback((): ConsentType[] => {
@@ -159,9 +158,11 @@ export const useConsentManager = function useConsentManager() {
 
 	const setSelectedConsent = useCallback(
 		(name: AllConsentNames, value: boolean) => {
-			draft.set(name, value);
+			if (consentCategories.includes(name)) {
+				draft.set(name, value);
+			}
 		},
-		[draft]
+		[draft, consentCategories]
 	);
 
 	const updateConsentCategories = useCallback((_names: AllConsentNames[]) => {

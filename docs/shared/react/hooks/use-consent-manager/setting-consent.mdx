@@ -28,7 +28,8 @@ group: reference
   ```
 
   `setSelectedConsent` edits an unmasked draft. `saveConsents('custom')` confirms
-  its displayed optional categories. `saveConsents('all')` accepts the active scope;
+  its displayed optional categories. The configured `consentCategories` list
+  narrows both the rendered controls and the saved categories to the active policy. `saveConsents('all')` accepts the active scope;
   `saveConsents('necessary')` rejects it. Necessary remains allowed. None of these
   operations dismisses a required notice. Use `useDismissNotice` for that action.
 
