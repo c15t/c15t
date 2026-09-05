@@ -363,7 +363,7 @@ export const realPolicyOperationBudgets: MetricBudget[] = [
 ].map((metric) => ({
 	comparator: 'absolute-lte',
 	description:
-		'Complete policy operation, including setup and behavioral assertions, stays within the existing 150µs hydration-work allowance.',
+		'Local policy operation without a save transport, including setup and behavioral assertions, stays within the existing 150µs hydration-work allowance; deferred transport completion is reported separately.',
 	metric,
 	threshold: 150,
 }));

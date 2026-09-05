@@ -8,16 +8,20 @@ import {
 } from './policy-fixtures';
 
 describe('real policy benchmark operations', () => {
-	it('rejects, saves partial receipts, hydrates, dismisses and retains detected GPC', async () => {
-		const init = resolveBrowserBenchInit(await buildBrowserBenchManifest());
-		const operations = createPolicyOperations(
-			mapInitOutputToInitResponse(init, {})
-		);
-		for (const operation of Object.values(operations)) {
-			// oxlint-disable-next-line no-await-in-loop -- Validate each operation without overlapping lifecycle timers.
-			await expect(operation()).resolves.toBeUndefined();
+	it.each(['local', 'deferred'] as const)(
+		'%s rejects, saves partial receipts, hydrates, dismisses and retains detected GPC',
+		async (transportMode) => {
+			const init = resolveBrowserBenchInit(await buildBrowserBenchManifest());
+			const operations = createPolicyOperations(
+				mapInitOutputToInitResponse(init, {}),
+				transportMode
+			);
+			for (const operation of Object.values(operations)) {
+				// oxlint-disable-next-line no-await-in-loop -- Validate each operation without overlapping lifecycle timers.
+				await expect(operation()).resolves.toBeUndefined();
+			}
 		}
-	});
+	);
 });
 
 it('fails when init silently falls back instead of matching the intended policy', async () => {

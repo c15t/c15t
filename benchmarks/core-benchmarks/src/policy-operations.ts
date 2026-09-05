@@ -9,10 +9,15 @@ const requireCondition = (condition: unknown, message: string): void => {
 };
 
 /** Genuine choice and receipt work, separate from the frozen empty-kernel arm. */
-export const createPolicyOperations = (response: InitResponse) => {
+export const createPolicyOperations = (
+	response: InitResponse,
+	transportMode: 'local' | 'deferred' = 'local'
+) => {
 	const transport: KernelTransport = {
 		init: () => Promise.resolve(response),
-		save: () => Promise.resolve({ ok: true }),
+		...(transportMode === 'deferred' && {
+			save: () => Promise.resolve({ ok: true }),
+		}),
 	};
 	const ready = async () => {
 		const kernel = createConsentKernel({ transport });
