@@ -517,6 +517,7 @@ export const createIAB = function createIAB(
 			const tcString = await generateTCString(consentData, snapshot.iab.gvl, {
 				cmpId,
 				cmpVersion,
+				confirmedAt: actionAt,
 				isServiceSpecific: options.isServiceSpecific ?? true,
 				publisherCountryCode: options.publisherCountryCode ?? 'US',
 			});

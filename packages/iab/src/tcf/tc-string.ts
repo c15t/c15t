@@ -17,6 +17,8 @@ import { getTCFCore } from './lazy-load';
  * @public
  */
 export interface TCStringConfig {
+	/** Original confirmation time, captured before asynchronous codec loading. */
+	confirmedAt?: number;
 	/** CMP ID registered with IAB */
 	cmpId: number;
 
@@ -67,6 +69,18 @@ export const generateTCString = async function generateTCString(
 	gvlData: GlobalVendorList,
 	config: TCStringConfig
 ): Promise<string> {
+	const now = Date.now();
+	const confirmedAt =
+		config.confirmedAt === undefined ? now : config.confirmedAt;
+	if (
+		!Number.isSafeInteger(confirmedAt) ||
+		confirmedAt < 0 ||
+		confirmedAt > now
+	) {
+		throw new TypeError(
+			'TC confirmation time must be a valid past or current timestamp.'
+		);
+	}
 	const { TCModel, TCString, GVL } = await getTCFCore();
 
 	// Create GVL instance
@@ -75,6 +89,11 @@ export const generateTCString = async function generateTCString(
 
 	// Create TC Model
 	const tcModel = new TCModel(gvl);
+	const confirmedDay = new Date(
+		Math.floor(confirmedAt / 86_400_000) * 86_400_000
+	);
+	tcModel.created = confirmedDay;
+	tcModel.lastUpdated = confirmedDay;
 
 	// Set CMP metadata
 	tcModel.cmpId = config.cmpId;

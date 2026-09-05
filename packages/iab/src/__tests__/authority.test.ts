@@ -10,7 +10,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createAuthorityReceipt, validateAuthority } from '../authority';
 import { createIAB } from '../index';
-import { generateTCString } from '../tcf/tc-string';
+import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { completeGVL } from './fixtures/gvl-sample';
 
 const NOW = Date.UTC(2026, 8, 5, 12);
@@ -169,19 +169,29 @@ test.each(['clear', 'dispose', 'draft'])(
 	}
 );
 
-test('async encoding preserves the original confirmation clock', async () => {
-	const kernel = makeKernel();
-	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
-	disposers.push(addon.dispose);
-	addon.acceptAll();
-	const pending = addon.save();
-	vi.setSystemTime(NOW + 5000);
-	await pending;
-	expect(kernel.getSnapshot().iab?.authority?.confirmedAt).toBe(NOW);
-	expect(
-		kernel.getSnapshot().explicitChoice?.categories.marketing?.confirmedAt
-	).toBe(NOW);
-});
+test.each([NOW, NOW + 12 * 60 * 60 * 1000 - 1])(
+	'async encoding preserves confirmation time across midnight: %s',
+	async (actionAt) => {
+		vi.setSystemTime(actionAt);
+		const kernel = makeKernel();
+		const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		const pending = addon.save();
+		vi.setSystemTime(actionAt + 5000);
+		await pending;
+		expect(kernel.getSnapshot().iab?.authority?.confirmedAt).toBe(actionAt);
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing?.confirmedAt
+		).toBe(actionAt);
+		const tcString = kernel.getSnapshot().iab?.authority?.tcString;
+		expect(tcString).toBeTruthy();
+		const decoded = await decodeTCString(tcString ?? '');
+		expect(decoded.lastUpdated.getTime()).toBe(
+			Math.floor(actionAt / DAY) * DAY
+		);
+	}
+);
 
 test('custom vendor ids and rejections survive validation without inherited grants', async () => {
 	const kernel = makeKernel();
