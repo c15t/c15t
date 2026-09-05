@@ -13,14 +13,15 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { nextjsBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	summarizeNullableMetric,
 	writeJson,
@@ -140,7 +141,10 @@ if (scenarioFilter && scenarios.length === 0) {
 
 const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
-	scenario: (typeof allBenchmarkScenarios)[number]['name'] | 'repeat-visitor'
+	scenario:
+		| (typeof allBenchmarkScenarios)[number]['name']
+		| 'repeat-visitor'
+		| 'ssr-repeat'
 ) {
 	if (scenario === 'baseline') {
 		const startedAt = performance.now();
@@ -148,7 +152,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		return performance.now() - startedAt;
 	}
 
-	if (scenario === 'repeat-visitor') {
+	if (scenario === 'repeat-visitor' || scenario === 'ssr-repeat') {
 		const startedAt = performance.now();
 		await page.click('#open-preferences');
 		await page.waitForFunction(
@@ -273,14 +277,51 @@ const nullableMedian = function nullableMedian(
 	return numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null;
 };
 
+/**
+ * Persistence writes are debounced behind the save; wait until the consent
+ * cookie is actually present before a load that depends on it.
+ */
+const waitForConsentCookie = async function waitForConsentCookie(
+	page: PlaywrightTypes.Page
+) {
+	await page.waitForFunction(
+		() =>
+			document.cookie
+				.split(';')
+				.some((entry) => entry.trim().startsWith('c15t=')),
+		undefined,
+		{ timeout: 10_000 }
+	);
+};
+
+const HYDRATION_WARNING_PATTERN =
+	/hydrat|#418|#423|#425|did not match|Text content does not match/iu;
+
+/**
+ * Collect one page load. `waitFor: 'banner'` waits for the banner to be
+ * ready; `'settled'` waits for policy resolution to settle whatever prompt
+ * it produced, which is what a persisted repeat visitor needs.
+ */
 const collectScenarioMetrics = async function collectScenarioMetrics(
 	page: PlaywrightTypes.Page,
 	scenario: string,
-	path: string
+	path: string,
+	waitFor: 'banner' | 'settled' = 'banner'
 ) {
 	let initRequests = 0;
 	let manifestRequests = 0;
-	page.on('request', (request) => {
+	let consoleErrorCount = 0;
+	let consoleWarningCount = 0;
+	let hydrationWarningCount = 0;
+	const consoleErrors: string[] = [];
+	const recordConsoleError = (text: string) => {
+		consoleErrorCount += 1;
+		consoleErrors.push(text);
+		if (HYDRATION_WARNING_PATTERN.test(text)) {
+			hydrationWarningCount += 1;
+		}
+	};
+	const onRequest = (request: PlaywrightTypes.Request) => {
 		const url = new URL(request.url());
 		if (url.pathname.endsWith('/init')) {
 			initRequests += 1;
@@ -288,7 +329,26 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 		if (url.pathname.endsWith('/manifest')) {
 			manifestRequests += 1;
 		}
-	});
+	};
+	const onConsole = (message: PlaywrightTypes.ConsoleMessage) => {
+		// React reports hydration mismatches through console.error, so errors
+		// gate; warnings (including the benchmark's own PerformanceObserver
+		// deprecation notice) are counted separately for the report.
+		if (message.type() === 'error') {
+			recordConsoleError(message.text());
+		} else if (message.type() === 'warning') {
+			consoleWarningCount += 1;
+			if (HYDRATION_WARNING_PATTERN.test(message.text())) {
+				hydrationWarningCount += 1;
+			}
+		}
+	};
+	const onPageError = (error: Error) => {
+		recordConsoleError(error.message);
+	};
+	page.on('request', onRequest);
+	page.on('console', onConsole);
+	page.on('pageerror', onPageError);
 
 	const response = await page.goto(path);
 	const firstHtml = (await response?.text().catch(() => '')) ?? '';
@@ -296,15 +356,16 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 		firstHtml.includes(`data-testid="${bannerRootTestId}"`) ||
 		firstHtml.includes(`data-testid='${bannerRootTestId}'`);
 	await page.waitForFunction(
-		(targetScenario) => {
+		({ targetScenario, mode }) => {
 			const state = window.__c15tNextBench;
-			return (
-				state &&
-				state.scenario === targetScenario &&
-				typeof state.bannerReadyMs === 'number'
-			);
+			if (!state || state.scenario !== targetScenario) {
+				return false;
+			}
+			return mode === 'settled'
+				? typeof state.promptSettledMs === 'number'
+				: typeof state.bannerReadyMs === 'number';
 		},
-		scenario,
+		{ mode: waitFor, targetScenario: scenario },
 		{ timeout: 30_000 }
 	);
 	await page.waitForLoadState('load');
@@ -356,6 +417,11 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 		};
 	});
 
+	page.off('request', onRequest);
+	page.off('console', onConsole);
+	page.off('pageerror', onPageError);
+
+	const history = state?.activeUiHistory ?? [];
 	return {
 		...state,
 		...navEntry,
@@ -364,8 +430,14 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 		bannerInFirstHtml,
 		bannerPaintMs:
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
+		consoleErrorCount,
+		consoleErrors,
+		consoleWarningCount,
+		hydrationWarningCount,
 		initRequestsAfterLoad: initRequests,
 		manifestRequestsAfterLoad: manifestRequests,
+		promptShownCount: history.includes('banner') ? 1 : 0,
+		promptTransitionCount: Math.max(0, history.length - 1),
 	};
 };
 
@@ -375,64 +447,6 @@ type NextjsBrowserSample = Omit<
 > & {
 	scenario?: string;
 	interactionLatencyMs?: number;
-};
-
-const budgetsForScenario = function budgetsForScenario(
-	scenario: string
-): MetricBudget[] {
-	const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-	const shared = browserBudgets.filter((budget) =>
-		[
-			'bannerReadyMs',
-			'lastAppScriptEndMs',
-			'interactionLatencyMs',
-			'longTaskTotalMs',
-		].includes(budget.metric)
-	);
-
-	if (
-		baseScenario === 'ssr' ||
-		baseScenario === 'manifest-ssr' ||
-		baseScenario === 'rsc-ssr'
-	) {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'SSR routes should not trigger browser-observed init requests.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	if (baseScenario === 'repeat-visitor') {
-		return shared;
-	}
-
-	if (baseScenario === 'manifest-client') {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'Client manifest flow should resolve init from /manifest without a browser /init request.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	return [
-		...shared,
-		{
-			comparator: 'count-eq',
-			description: 'Client flow should make one init request on cold load.',
-			metric: 'initRequestsAfterLoad',
-			threshold: 1,
-		},
-	];
 };
 
 interface BenchConsentFixtureCounts {
@@ -564,6 +578,27 @@ const run = async function run() {
 							await repeatContext.close();
 						}
 
+						if (scenario.name === 'ssr' && index >= effectiveWarmupIterations) {
+							// Persisted repeat visitor over SSR: the accept above wrote the
+							// consent cookie in this context, so the server sees it on the
+							// next request and must render no banner; the client must
+							// hydrate to the same prompt state without a flash.
+							await waitForConsentCookie(page);
+							const repeatMetrics = await collectScenarioMetrics(
+								page,
+								scenario.name,
+								scenario.path,
+								'settled'
+							);
+							const repeatInteractionLatencyMs =
+								await measureInteractionLatency(page, 'ssr-repeat');
+							samples.push({
+								...repeatMetrics,
+								interactionLatencyMs: repeatInteractionLatencyMs,
+								scenario: 'ssr-repeat',
+							});
+						}
+
 						await context.close();
 					},
 					Promise.resolve()
@@ -582,7 +617,7 @@ const run = async function run() {
 					const outputScenario = resultScenarioName(groupScenario);
 					const result: BenchmarkResult = {
 						baseSha: safeBaseSha(),
-						budgetDefinitions: budgetsForScenario(groupScenario),
+						budgetDefinitions: nextjsBrowserBudgetsForScenario(groupScenario),
 						budgets: [],
 						commitSha: safeCommitSha(),
 						environment: getEnvironment(browser.version()),
@@ -607,9 +642,13 @@ const run = async function run() {
 								)
 							),
 							coldManifestMode,
+							consoleErrors: groupedSamples.flatMap(
+								(sample) => sample.consoleErrors ?? []
+							),
 							fixtureInitExecutions: fixtureCounts.init,
 							fixtureManifestExecutions: fixtureCounts.manifest,
 							fixtureSubjectExecutions: fixtureCounts.subjects,
+							gitDirty: safeGitDirty(),
 							initLatencyMs,
 							profile: throttleProfile,
 						},
@@ -727,9 +766,44 @@ const run = async function run() {
 								'ms',
 								groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
 							),
+							summarizeMetric(
+								'consoleErrorCount',
+								'count',
+								groupedSamples.map((sample) => sample.consoleErrorCount ?? 0)
+							),
+							summarizeMetric(
+								'consoleWarningCount',
+								'count',
+								groupedSamples.map((sample) => sample.consoleWarningCount ?? 0)
+							),
+							summarizeMetric(
+								'hydrationWarningCount',
+								'count',
+								groupedSamples.map(
+									(sample) => sample.hydrationWarningCount ?? 0
+								)
+							),
+							summarizeMetric(
+								'promptTransitionCount',
+								'count',
+								groupedSamples.map(
+									(sample) => sample.promptTransitionCount ?? 0
+								)
+							),
+							summarizeMetric(
+								'promptShownCount',
+								'count',
+								groupedSamples.map((sample) => sample.promptShownCount ?? 0)
+							),
+							summarizeNullableMetric(
+								'promptSettledMs',
+								'ms',
+								groupedSamples.map((sample) => sample.promptSettledMs ?? null)
+							),
 						],
 						notes: [
-							'Next.js browser bench covers client, manifest, SSR, RSC, and repeat-visitor paths.',
+							'Next.js browser bench covers client, manifest, SSR, RSC, repeat-visitor, and persisted ssr-repeat paths.',
+							'consoleErrorCount counts console errors and page errors captured until the prompt settled; consoleWarningCount counts warnings; hydrationWarningCount is the subset of either matching React hydration messages.',
 						],
 						package: '@c15t/nextjs-browser-bench',
 						runtime: 'playwright',

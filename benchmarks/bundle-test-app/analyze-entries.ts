@@ -4,12 +4,14 @@ import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
+import { importBoundaryBudgets } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
@@ -23,7 +25,44 @@ interface EntryMeasurement {
 		path: string;
 		bytesInOutput: number;
 	}[];
+	/** Bytes in output contributed by modules of each boundary family. */
+	boundaries: Record<BoundaryFamily, { bytes: number; inputs: string[] }>;
 }
+
+type BoundaryFamily = 'iab' | 'devtools' | 'allLocales';
+
+/**
+ * Module families the ordinary route must not bundle. Paths come from the
+ * esbuild metafile and are matched against the workspace package folders
+ * so a published-name alias cannot hide them.
+ */
+const BOUNDARY_MATCHERS: Record<BoundaryFamily, RegExp> = {
+	allLocales:
+		/packages\/translations\/dist\/(?:all\.js|translations\/(?!en\.js)[^/]+\.js)$/u,
+	devtools: /packages\/dev-tools\//u,
+	iab: /packages\/iab\/|@iabtechlabtcf\//u,
+};
+
+const ORDINARY_ENTRY = 'ordinary-react';
+
+const classifyBoundaries = function classifyBoundaries(
+	inputs: Record<string, { bytesInOutput: number }>
+): EntryMeasurement['boundaries'] {
+	const boundaries: EntryMeasurement['boundaries'] = {
+		allLocales: { bytes: 0, inputs: [] },
+		devtools: { bytes: 0, inputs: [] },
+		iab: { bytes: 0, inputs: [] },
+	};
+	for (const [path, input] of Object.entries(inputs)) {
+		for (const family of Object.keys(BOUNDARY_MATCHERS) as BoundaryFamily[]) {
+			if (BOUNDARY_MATCHERS[family].test(path)) {
+				boundaries[family].bytes += input.bytesInOutput;
+				boundaries[family].inputs.push(path);
+			}
+		}
+	}
+	return boundaries;
+};
 
 const appDir = dirname(fileURLToPath(import.meta.url));
 const entriesDir = join(appDir, 'entries');
@@ -51,6 +90,7 @@ const measureEntry = async function measureEntry(
 	}
 
 	const [outputMetadata] = Object.values(buildResult.metafile.outputs);
+	const boundaries = classifyBoundaries(outputMetadata?.inputs ?? {});
 	const topInputs = Object.entries(outputMetadata?.inputs ?? {})
 		.map(([path, input]) => ({
 			bytesInOutput: input.bytesInOutput,
@@ -60,6 +100,7 @@ const measureEntry = async function measureEntry(
 		.slice(0, 10);
 
 	return {
+		boundaries,
 		gzipBytes: gzipSync(outputFile.contents).byteLength,
 		name: basename(entryPath, extname(entryPath)),
 		rawBytes: outputFile.contents.byteLength,
@@ -70,8 +111,11 @@ const measureEntry = async function measureEntry(
 const toBenchmarkResult = function toBenchmarkResult(
 	measurement: EntryMeasurement
 ): BenchmarkResult {
+	const budgetDefinitions: MetricBudget[] =
+		measurement.name === ORDINARY_ENTRY ? importBoundaryBudgets : [];
 	return {
 		baseSha: safeBaseSha(),
+		budgetDefinitions,
 		budgets: [],
 		commitSha: safeCommitSha(),
 		environment: getEnvironment(),
@@ -84,6 +128,10 @@ const toBenchmarkResult = function toBenchmarkResult(
 		},
 		framework: measurement.name === 'provider' ? 'react' : 'core',
 		metadata: {
+			allLocalesInputs: measurement.boundaries.allLocales.inputs,
+			devtoolsInputs: measurement.boundaries.devtools.inputs,
+			gitDirty: safeGitDirty(),
+			iabInputs: measurement.boundaries.iab.inputs,
 			topInputsByBytesInOutput: measurement.topInputs.map(
 				(input) => `${input.path}:${input.bytesInOutput}`
 			),
@@ -91,6 +139,15 @@ const toBenchmarkResult = function toBenchmarkResult(
 		metrics: [
 			summarizeMetric('gzipSize', 'bytes', [measurement.gzipBytes]),
 			summarizeMetric('rawSize', 'bytes', [measurement.rawBytes]),
+			summarizeMetric('iabInputBytes', 'bytes', [
+				measurement.boundaries.iab.bytes,
+			]),
+			summarizeMetric('devtoolsInputBytes', 'bytes', [
+				measurement.boundaries.devtools.bytes,
+			]),
+			summarizeMetric('allLocalesInputBytes', 'bytes', [
+				measurement.boundaries.allLocales.bytes,
+			]),
 		],
 		notes: [
 			'Synthetic esbuild entry with React externals and empty CSS loaders.',

@@ -211,6 +211,8 @@
       "dependencies": {
         "@c15t/benchmarking": "workspace:*",
         "@c15t/core": "workspace:*",
+        "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
       },
       "devDependencies": {
         "typescript": "6.0.3",
@@ -288,6 +290,8 @@
         "@c15t/core": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/react": "workspace:*",
+        "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
         "next": "16.2.10",
         "react": "19.2.7",
         "react-dom": "19.2.7",
@@ -317,12 +321,14 @@
       "name": "@c15t/benchmarking",
       "dependencies": {
         "@c15t/react": "workspace:*",
+        "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",
         "react": "19.2.7",
       },
       "devDependencies": {
         "typescript": "6.0.3",
+        "vitest": "4.1.9",
       },
     },
     "benchmarks/sveltekit-browser-bench": {

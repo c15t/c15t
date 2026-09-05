@@ -13,7 +13,7 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { reactBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
@@ -21,12 +21,15 @@ import {
 	median,
 	safeBaseSha,
 	safeCommitSha,
+	safeGitDirty,
 	summarizeMetric,
 	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 import type * as PlaywrightTypes from 'playwright';
+
+import { policyScenarios, runPolicyScenarios } from './policy-scenarios';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -121,12 +124,20 @@ const allScenarios = [
 const scenarios = scenarioFilter
 	? allScenarios.filter((scenario) => scenario.name === scenarioFilter)
 	: allScenarios;
+const selectedPolicyScenarios = scenarioFilter
+	? policyScenarios.filter((scenario) => scenario.name === scenarioFilter)
+	: policyScenarios;
 
-if (scenarioFilter && scenarios.length === 0) {
+if (
+	scenarioFilter &&
+	scenarios.length === 0 &&
+	selectedPolicyScenarios.length === 0
+) {
 	throw new Error(
-		`Unsupported scenario "${scenarioFilter}". Expected ${allScenarios
-			.map((scenario) => scenario.name)
-			.join(', ')}.`
+		`Unsupported scenario "${scenarioFilter}". Expected ${[
+			...allScenarios.map((scenario) => scenario.name),
+			...policyScenarios.map((scenario) => scenario.name),
+		].join(', ')}.`
 	);
 }
 
@@ -517,14 +528,7 @@ const run = async function run() {
 					const outputScenario = resultScenarioName(groupScenario);
 					const result: BenchmarkResult = {
 						baseSha: safeBaseSha(),
-						budgetDefinitions: browserBudgets.filter((budget) =>
-							[
-								'bannerReadyMs',
-								'lastAppScriptEndMs',
-								'interactionLatencyMs',
-								'longTaskTotalMs',
-							].includes(budget.metric)
-						),
+						budgetDefinitions: reactBrowserBudgetsForScenario(groupScenario),
 						budgets: [],
 						commitSha: safeCommitSha(),
 						environment: getEnvironment(browser.version()),
@@ -548,6 +552,7 @@ const run = async function run() {
 									4
 								)
 							),
+							gitDirty: safeGitDirty(),
 							initLatencyMs,
 							profile: throttleProfile,
 						},
@@ -673,6 +678,17 @@ const run = async function run() {
 			},
 			Promise.resolve()
 		);
+
+		await runPolicyScenarios(browser, selectedPolicyScenarios, {
+			baseUrl: BASE_URL,
+			initLatencyMs,
+			iterations,
+			outputDir,
+			resultFileName,
+			resultScenarioName,
+			throttleProfile,
+			warmupIterations,
+		});
 
 		await browser.close();
 	} finally {

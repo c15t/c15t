@@ -26,6 +26,12 @@ export interface NextjsBenchState {
 		regionCode?: string | null;
 	} | null;
 	hasConsented?: boolean;
+	/** Distinct `activeUI` values in the order the probe observed them. */
+	activeUiHistory: string[];
+	/** First moment policy resolution settled (any prompt state). */
+	promptSettledMs?: number;
+	/** Prompt requirement kind when the installed source exposes one. */
+	promptKind?: string | null;
 	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
@@ -54,6 +60,7 @@ export const getState = function getState(
 	if (!window.__c15tNextBench || window.__c15tNextBench.scenario !== scenario) {
 		window.__c15tNextBench = {
 			activeUI: 'none',
+			activeUiHistory: [],
 			mountCount: 0,
 			onBannerFetchedCount: 0,
 			onConsentSetCount: 0,
@@ -65,6 +72,44 @@ export const getState = function getState(
 	}
 
 	return window.__c15tNextBench;
+};
+
+/**
+ * Whether policy resolution has finished for this snapshot: the
+ * provisional placeholder is gone and a resolved policy, a resolution
+ * status, or a prompt requirement is present. Reads the #1025 fields when
+ * the installed source exposes them and the pre-contract fields otherwise.
+ */
+export const isPolicySettled = function isPolicySettled(
+	snapshot: unknown
+): boolean {
+	const record = snapshot as {
+		policyProvisional?: unknown;
+		policy?: unknown;
+		resolution?: unknown;
+		promptRequirement?: unknown;
+	};
+	if (record?.policyProvisional === true) {
+		return false;
+	}
+	return (
+		(record?.policy !== undefined && record?.policy !== null) ||
+		(record?.resolution !== undefined && record?.resolution !== null) ||
+		(record?.promptRequirement !== undefined &&
+			record?.promptRequirement !== null)
+	);
+};
+
+export const readPromptKind = function readPromptKind(
+	snapshot: unknown
+): string | null {
+	const requirement = (snapshot as { promptRequirement?: unknown })
+		?.promptRequirement;
+	if (!requirement || typeof requirement !== 'object') {
+		return null;
+	}
+	const { kind } = requirement as { kind?: unknown };
+	return typeof kind === 'string' ? kind : null;
 };
 
 export const isElementVisible = function isElementVisible(

@@ -13,9 +13,9 @@ import {
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
-import { browserBudgets } from '@c15t/benchmarking/budgets';
+import { nuxtBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -435,68 +435,6 @@ type NuxtBrowserSample = Omit<
 	interactionLatencyMs?: number;
 };
 
-const budgetsForScenario = function budgetsForScenario(
-	scenario: string
-): MetricBudget[] {
-	const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-	const shared = browserBudgets.filter((budget) =>
-		[
-			'bannerReadyMs',
-			'lastAppScriptEndMs',
-			'interactionLatencyMs',
-			'longTaskTotalMs',
-		].includes(budget.metric)
-	);
-
-	if (
-		baseScenario === 'ssr' ||
-		baseScenario === 'ssr-manifest' ||
-		baseScenario === 'repeat-visitor'
-	) {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'SSR and repeat-visitor routes should not trigger browser-observed init requests.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	if (baseScenario === 'client-manifest') {
-		return [
-			...shared,
-			{
-				comparator: 'count-eq',
-				description:
-					'Nuxt client manifest mode resolves from the browser manifest transport without any init request.',
-				metric: 'initRequestsAfterLoad',
-				threshold: 0,
-			},
-			{
-				comparator: 'count-eq',
-				description:
-					'Nuxt client manifest mode must not call a same-origin init endpoint.',
-				metric: 'sameOriginInitRequestsAfterLoad',
-				threshold: 0,
-			},
-		];
-	}
-
-	return [
-		...shared,
-		{
-			comparator: 'count-eq',
-			description:
-				'Client SPA flow should make exactly one init request on cold load.',
-			metric: 'initRequestsAfterLoad',
-			threshold: 1,
-		},
-	];
-};
-
 interface BenchConsentFixtureCounts {
 	init: number;
 	manifest: number;
@@ -622,7 +560,7 @@ const run = async function run() {
 					const outputScenario = resultScenarioName(groupScenario);
 					const result: BenchmarkResult = {
 						baseSha: safeBaseSha(),
-						budgetDefinitions: budgetsForScenario(groupScenario),
+						budgetDefinitions: nuxtBrowserBudgetsForScenario(groupScenario),
 						budgets: [],
 						commitSha: safeCommitSha(),
 						environment: getEnvironment(browser.version()),

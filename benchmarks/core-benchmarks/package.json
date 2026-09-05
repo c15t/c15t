@@ -3,15 +3,19 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/core-runtime bunx tsx src/run.ts",
-		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/core-runtime bunx tsx src/run.ts",
+		"bench": "bun run bench:core && bun run bench:policy",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/core-runtime bunx tsx src/run.ts && BENCH_OUTPUT_DIR=../../.benchmarks/head/policy-runtime bunx tsx src/policy-runtime.ts",
+		"bench:core": "BENCH_OUTPUT_DIR=../../.benchmarks/current/core-runtime bunx tsx src/run.ts",
 		"bench:full": "bun run bench",
-		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/core-runtime bunx tsx src/run.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/core-runtime bunx tsx src/run.ts && BENCH_OUTPUT_DIR=../../.benchmarks/nightly/policy-runtime bunx tsx src/policy-runtime.ts",
+		"bench:policy": "BENCH_OUTPUT_DIR=../../.benchmarks/current/policy-runtime bunx tsx src/policy-runtime.ts",
 		"build": "echo 'core benchmarks are source-only'"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
-		"@c15t/core": "workspace:*"
+		"@c15t/core": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
 		"typescript": "6.0.3"

@@ -16,6 +16,8 @@
 		"@c15t/core": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/react": "workspace:*",
+		"@c15t/schema": "workspace:*",
+		"@c15t/translations": "workspace:*",
 		"next": "16.2.10",
 		"react": "19.2.7",
 		"react-dom": "19.2.7"

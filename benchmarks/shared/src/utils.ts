@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import {
 	mkdirSync,
 	readdirSync,
@@ -140,13 +141,46 @@ export const listJsonFiles = function listJsonFiles(path: string): string[] {
 	return files;
 };
 
+const readGit = function readGit(args: string[]): string | undefined {
+	try {
+		return execFileSync('git', args, {
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+		}).trim();
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * Commit the measured source came from. CI environment variables win;
+ * otherwise the working tree's `HEAD` is read so local artifacts carry
+ * real provenance instead of `unknown`.
+ */
 export const safeCommitSha = function safeCommitSha(): string {
 	return (
 		process.env.GITHUB_SHA ??
 		process.env.VERCEL_GIT_COMMIT_SHA ??
 		process.env.BENCHMARK_COMMIT_SHA ??
+		readGit(['rev-parse', 'HEAD']) ??
 		'unknown'
 	);
+};
+
+/**
+ * Whether the measured working tree differs from `HEAD`. `null` when git
+ * is unavailable. Runners record this so a result cannot silently claim a
+ * commit it does not match.
+ */
+export const safeGitDirty = function safeGitDirty(): boolean | null {
+	if (process.env.BENCHMARK_GIT_DIRTY !== undefined) {
+		return process.env.BENCHMARK_GIT_DIRTY === 'true';
+	}
+	const status = readGit(['status', '--porcelain', '--untracked-files=no']);
+	if (status === undefined) {
+		return null;
+	}
+	return status.length > 0;
 };
 
 export const safeBaseSha = function safeBaseSha(): string | undefined {

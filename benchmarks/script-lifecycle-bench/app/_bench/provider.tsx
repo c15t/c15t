@@ -216,8 +216,12 @@ export const ScriptLifecycleProvider = ({
 	const kernelRef = useRef<ConsentKernel | null>(null);
 	const loaderRef = useRef<ScriptLoaderHandle | null>(null);
 	const [ready, setReady] = useState(false);
+	// Start from `null` on both server and client. Reading the browser
+	// state in the initializer rendered a different `<pre>` on the client
+	// than the server HTML carried, which React reported as a hydration
+	// mismatch (#418) on every scenario load.
 	const [currentState, setCurrentState] = useState<ScriptBenchState | null>(
-		() => getBenchState(config.name) ?? null
+		null
 	);
 
 	useEffect(() => {

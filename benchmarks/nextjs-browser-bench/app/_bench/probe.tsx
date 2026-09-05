@@ -3,7 +3,13 @@
 import { useActiveUI, useSnapshot } from '@c15t/nextjs';
 import { useEffect, useRef } from 'react';
 
-import { getState, hasRunningAnimations, isElementVisible } from './state';
+import {
+	getState,
+	hasRunningAnimations,
+	isElementVisible,
+	isPolicySettled,
+	readPromptKind,
+} from './state';
 import type { NextjsBenchScenario } from './state';
 
 const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
@@ -104,7 +110,15 @@ export const NextjsBenchmarkProbe = ({
 			return;
 		}
 
-		current.activeUI = activeUI ?? 'none';
+		const ui = activeUI ?? 'none';
+		current.activeUI = ui;
+		if (current.activeUiHistory.at(-1) !== ui) {
+			current.activeUiHistory.push(ui);
+		}
+		current.promptKind = readPromptKind(snapshot);
+		if (current.promptSettledMs === undefined && isPolicySettled(snapshot)) {
+			current.promptSettledMs = performance.now();
+		}
 		current.overrides = { ...snapshot.overrides };
 		current.location = snapshot.location
 			? {

@@ -16,8 +16,16 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Runs Playwright against a Next integration benchmark app covering client, prefetch, SSR, and repeat-visitor paths.
 - `script-lifecycle-bench`
   Runs deterministic local script lifecycle flows for load, unload, reload, callback-only, `alwaysLoad`, and `persistAfterConsentRevoked` behavior.
+- `core-benchmarks` (`policy-runtime` suite)
+  Measures what the installed schema package emits for fixed preset deployments: manifest and init JSON, gzip, and brotli bytes, synchronous policy resolution, init resolution from a manifest, and kernel init with the resolved payload. Fixtures live in `shared/src/policy-fixtures.ts`.
+- `react-browser-bench` (`policy-*` scenarios)
+  Loads `/policy/<fixture>` against an init route that resolves the fixture through the installed schema package, then records prompt readiness, probe render count, request and console-error invariants, the cookie and localStorage bytes the browser holds after an explicit choice or notice dismissal, and, for the persisted repeat visitor, the synchronous persistence hydration cost against the real stored record.
+- `nextjs-browser-bench` (`ssr-repeat` scenario and SSR consistency metrics)
+  Adds a persisted repeat visitor over the SSR route plus `consoleErrorCount`, `hydrationWarningCount`, `promptTransitionCount`, and `promptShownCount` for every scenario, so matching server and client inputs must settle on the same prompt without a flash or a hydration warning.
+- `bundle-test-app` (`bench:entries`, `ordinary-react` entry)
+  Builds a synthetic esbuild entry for the ordinary non-IAB React path and reports `iabInputBytes`, `devtoolsInputBytes`, and `allLocalesInputBytes` from the metafile so the import boundary is measured, not assumed.
 - `shared`
-  Shared schema, fixtures, budgets, comparison logic, and report formatting.
+  Shared schema, fixtures, budgets, expected-result registry, comparison logic, and report formatting.
 
 ## Compatibility Suites
 
@@ -43,8 +51,42 @@ Benchmark tasks write machine-readable JSON to:
 
 - `.benchmarks/compare/comparison.json`
 - `.benchmarks/compare/comparison.md`
+- `.benchmarks/compare/summary.json` with exact coverage counts
 
 `.benchmarks/` is gitignored so local and CI benchmark artifacts do not dirty the worktree.
+
+Every result records `commitSha` (from CI variables or `git rev-parse HEAD`) and `metadata.gitDirty`, so an artifact cannot silently claim a commit its working tree did not match.
+
+## Comparison gate
+
+The gate fails, with `BENCHMARK_ENFORCE=true`, on anything that would otherwise let it pass without measuring:
+
+- an expected result key (`shared/src/expected-results.ts`) has no head artifact or no base artifact;
+- a head artifact defines fewer budgets than expected for its key;
+- a relative budget (`delta-bytes-lte`, `percent-lte`, `absolute-and-percent-lte`) has no base metric, or its base median is `0` while the head median is not;
+- a budget that targets a named base arm has no arm artifacts and the arm was not explicitly allowed;
+- any evaluated budget fails.
+
+`summary.json` reports expected, compared, missing, evaluated, passed, failed, and unevaluated counts. A final report must quote those counts rather than "no failures".
+
+Environment:
+
+- `BENCHMARK_BASE_DIR`, `BENCHMARK_HEAD_DIR`, `BENCHMARK_COMPARE_DIR`
+- `BENCHMARK_EXPECTED_SUITES=core-runtime,policy-runtime` restricts the expectation to the suites a partial local run produced. Omit it for a full gate.
+- `BENCHMARK_ARM_BASE_DIRS=v2=/path/to/v2-artifacts` supplies artifacts for a named base arm.
+- `BENCHMARK_ALLOW_UNEVALUATED_ARMS=v2` lets arm budgets stay unevaluated. The waiver is recorded in `summary.json` and the markdown report.
+
+### Base arms
+
+`coreRuntimeV3Budgets` are v3-over-v2 improvement thresholds (0% / -50% / -50%) documented in `BASELINE.md`. They carry `baseArm: 'v2'` and are only evaluated against artifacts supplied through `BENCHMARK_ARM_BASE_DIRS`. Comparing them against a v3 base as if it were v2 would either fail spuriously or pass against an implicit zero, so without v2 artifacts the runner reports them as unevaluated. Same-key regression ceilings (`coreRuntimeBudgets`, `coreRuntimeCoverageBudgets`) always run against the real base.
+
+### Budget kinds
+
+- Relative ceilings compare head to the same-key base artifact.
+- `absolute-lte` budgets are explicit allowances for behavior that has no pre-change counterpart (for example notice-dismissal storage bytes). Each one states its justification in its description; none is tuned to a head measurement.
+- `count-eq` budgets are invariants (request counts, console errors, prompt shown or not, import boundary bytes).
+
+The `#1025` budgets in `shared/src/budgets.ts` say whether each threshold was measured from the pre-change base capture or declared as an allowance.
 
 ## Important React v2/v3 Benchmarks
 
@@ -123,6 +165,7 @@ Shared fixtures live in `shared/src/fixtures.ts`.
 - `tiny`, `small`, `medium`, `large`, `xlarge` scale translation payload, script volume, and UI complexity.
 - c15t currently exposes five built-in consent categories, so larger fixtures scale primarily via translation/script complexity rather than additional category names.
 - `core-benchmarks` measures script-manager reconciliation speed only. It does not measure remote third-party script latency.
+- Policy fixtures (`shared/src/policy-fixtures.ts`) are built from the schema package's own preset builders and resolve the same semantic deployment on either side of the policy-rule contract: `optin-choice-eu` (Europe opt-in + world default, German visitor), `optout-california` (California opt-out + world default, Californian visitor), and `optout-default-world` (three packs resolving to the world default, Brazilian visitor). The runner asserts the intended preset matched so a fixture cannot degrade into the empty fallback.
 - Browser startup benches expose app-startup script waterfall metrics, not CDN speed for third-party scripts.
 - `script-lifecycle-bench` is the source of truth for actual load/unload/reload consent flow timings.
 
