@@ -93,3 +93,37 @@ test('failed save acknowledgement preserves subject and local denial', async () 
 		false
 	);
 });
+
+test.each([false, true])(
+	'hydrating unchanged privacy records does not notify subscribers, populated = %s',
+	(populated) => {
+		const optOutDirectives = populated
+			? [
+					{
+						categories: ['marketing' as const],
+						recordedAt: Date.now() - 1000,
+						source: 'gpc' as const,
+					},
+				]
+			: [];
+		const kernel = setup({ initialRecords: { optOutDirectives } });
+		const changed = vi.fn();
+		kernel.subscribe(changed);
+		const result = kernel.hydrate({
+			optOutDirectives: structuredClone(optOutDirectives),
+		});
+		expect(result).toEqual({ changed: false, ok: true });
+		expect(changed).not.toHaveBeenCalled();
+		const updated = {
+			categories: ['marketing' as const],
+			recordedAt: Date.now(),
+			source: 'gpc' as const,
+		};
+		expect(kernel.hydrate({ optOutDirectives: [updated] })).toEqual({
+			changed: true,
+			ok: true,
+		});
+		expect(changed).toHaveBeenCalledTimes(1);
+		expect(kernel.getSnapshot().optOutDirectives).toEqual([updated]);
+	}
+);
