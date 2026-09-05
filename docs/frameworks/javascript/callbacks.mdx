@@ -33,3 +33,8 @@ replay a choice event.
 React, Next.js, Vue and Svelte expose `onChoiceRecorded` and
 `onPermissionsChanged` provider callbacks with the corresponding event payload
 minus `type`.
+
+A successful save may replace a provisional subject ID with the server's canonical
+ID. That identity change emits `subject:resolved` with the current snapshot.
+Persistence updates the stored choice envelope without renewing receipt timestamps
+or emitting another choice event. Failed or stale acknowledgements do neither.

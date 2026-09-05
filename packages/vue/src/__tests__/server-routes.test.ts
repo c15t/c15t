@@ -241,12 +241,14 @@ describe('init route', () => {
 							gvl: { vendorListVersion: 1 },
 							location: { countryCode: 'DE', regionCode: null },
 							policy: { id: 'stale', model: 'iab' },
+							policyDecision: { policyId: 'stale' },
 							policyResolution: {
 								policy: null,
 								version: 1,
 								...resolution,
 							},
 							policySnapshotToken: 'stale-token',
+							subjectId: 'backend+literal',
 							translations: { language: 'en', translations: {} },
 						}),
 						{ headers: { 'x-c15t-policy-contract': '1' } }
@@ -266,6 +268,7 @@ describe('init route', () => {
 				expect(body).not.toHaveProperty(key);
 			}
 			expect(body.branding).toBe('c15t');
+			expect(body.subjectId).toBe('backend+literal');
 			expect(body.translations.language).toBe('en');
 		}
 	);

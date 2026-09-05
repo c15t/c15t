@@ -500,6 +500,11 @@ export type KernelEvent =
 	  }
 	| { type: 'overrides:set'; snapshot: ConsentSnapshot }
 	| { type: 'user:identified'; snapshot: ConsentSnapshot }
+	| {
+			/** A successful current save resolved its canonical server subject. */
+			type: 'subject:resolved';
+			snapshot: ConsentSnapshot;
+	  }
 	| { type: 'iab:set'; snapshot: ConsentSnapshot }
 	| { type: 'init:applied'; snapshot: ConsentSnapshot }
 	| {

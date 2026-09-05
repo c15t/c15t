@@ -648,6 +648,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					commit({
 						subject: { ...getSnapshot().subject, subjectId: result.subjectId },
 					});
+					emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 				}
 				// The accepted save established or confirmed the subject: standing
 				// directives recorded while anonymous can be forwarded now.

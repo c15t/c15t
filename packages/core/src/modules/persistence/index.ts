@@ -21,7 +21,9 @@
  *   causes never schedule a write, so startup does not renew a receipt or
  *   recreate a missing cookie or localStorage mirror. A `hydrate()` call
  *   flushes any queued write first.
- * - Writes happen only for `choice:recorded` (the v3 envelope),
+ * - Choice envelope writes follow `choice:recorded` and `subject:resolved`.
+ *   A canonical subject acknowledgement preserves every receipt timestamp.
+ *   Separate writes follow
  *   `notice:dismissed` (the notice record and its cookie projection) and
  *   `privacy:opt-out` (the privacy record and its cookie projection).
  *   Permission changes, policy changes and elapsed time never write.
@@ -79,6 +81,9 @@ export const createPersistence = function createPersistence(
 
 	const unsubscribers = [
 		kernel.events.on('choice:recorded', () => {
+			choiceWrites.schedule();
+		}),
+		kernel.events.on('subject:resolved', () => {
 			choiceWrites.schedule();
 		}),
 		kernel.events.on('notice:dismissed', () => {
