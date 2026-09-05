@@ -131,6 +131,24 @@ const prepare = (input: ScenarioPolicy): PolicyResolution => {
 		status: 'matched',
 	};
 };
+const isVisible = (element: Element | null): boolean => {
+	if (!element || element.getClientRects().length === 0) {
+		return false;
+	}
+	for (let node: Element | null = element; node; node = node.parentElement) {
+		const style = getComputedStyle(node);
+		if (
+			node.hasAttribute('hidden') ||
+			style.display === 'none' ||
+			style.visibility === 'hidden' ||
+			style.visibility === 'collapse' ||
+			style.opacity === '0'
+		) {
+			return false;
+		}
+	}
+	return true;
+};
 const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 	const root = document.querySelector('[data-testid="consent-banner-root"]');
 	const actions: PolicyDomEvidence['actions'][number][] = [];
@@ -154,7 +172,7 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 					'',
 				interactionDepth: 1,
 				prominence: `${style.backgroundColor}|${style.color}|${style.fontWeight}|${control.dataset.variant}|${control.dataset.mode}`,
-				visible: control.getClientRects().length > 0,
+				visible: isVisible(control),
 			});
 		}
 	}
@@ -164,7 +182,7 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 	return {
 		actions,
 		firstLayer: firstLayer(
-			!!root,
+			isVisible(root),
 			kernel.getSnapshot().promptRequirement.kind === 'notice'
 		),
 		preferencesOpen: !!document.querySelector(
@@ -351,7 +369,18 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				persistence.dispose();
 			};
 		}, [current]);
-		return null;
+		const snapshot = current?.getServerSnapshot();
+		return (
+			<script
+				data-testid="policy-server-evidence"
+				type="application/json"
+			>
+				{JSON.stringify({
+					now: snapshot?.evaluatedAt,
+					prompt: snapshot?.promptRequirement,
+				})}
+			</script>
+		);
 	};
 	const countScript = () => {
 		scriptLoads += 1;
@@ -444,10 +473,22 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		if (hydrate) {
 			const app = tree(true);
 			container.innerHTML = renderToString(app);
+			const serializedEvidence = container.querySelector(
+				'[data-testid="policy-server-evidence"]'
+			)?.textContent;
+			if (!serializedEvidence) {
+				throw new Error('Server render did not expose its actual snapshot');
+			}
+			const serverSnapshot = JSON.parse(serializedEvidence) as Pick<
+				PolicySsrEvidence['server'],
+				'now' | 'prompt'
+			>;
 			const serverDom = container.innerHTML;
 			const serverLayer = firstLayer(
-				serverDom.includes('consent-banner-root'),
-				setup.policy.prompt === 'notice'
+				isVisible(
+					container.querySelector('[data-testid="consent-banner-root"]')
+				),
+				serverSnapshot.prompt.kind === 'notice'
 			);
 			const firstLayerHistory: PolicyDomEvidence['firstLayer'][] = [
 				serverLayer,
@@ -457,12 +498,11 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					firstLayerHistory.push(getDom(kernel).firstLayer);
 				}
 			});
-			observer.observe(container, { childList: true, subtree: true });
-			const initial = readStoredRecordsFromCookieHeader(
-				document.cookie,
-				config,
-				setup.clock.now()
-			);
+			observer.observe(document.body, {
+				attributes: true,
+				childList: true,
+				subtree: true,
+			});
 			const errors: string[] = [];
 			root = hydrateRoot(container, app, {
 				onRecoverableError: (error) => errors.push(String(error)),
@@ -482,8 +522,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				server: {
 					dom: serverDom,
 					firstLayer: serverLayer,
-					now: initial.now ?? setup.clock.now(),
-					prompt: kernel.getServerSnapshot().promptRequirement,
+					now: serverSnapshot.now,
+					prompt: serverSnapshot.prompt,
 				},
 			};
 		} else {
