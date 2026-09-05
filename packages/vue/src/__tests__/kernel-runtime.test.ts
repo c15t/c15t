@@ -343,7 +343,7 @@ describe('@c15t/vue kernel runtime', () => {
 
 		try {
 			const snapshot = context.kernel.getSnapshot();
-			expect(snapshot.hasConsented).toBe(true);
+			expect(snapshot.explicitChoice).not.toBeNull();
 			expect(snapshot.activeUI).toBe('banner');
 			expect(snapshot.effectivePermissions).toMatchObject({
 				marketing: false,
@@ -362,7 +362,7 @@ describe('@c15t/vue kernel runtime', () => {
 
 		try {
 			const snapshot = context.kernel.getSnapshot();
-			expect(snapshot.hasConsented).toBe(false);
+			expect(snapshot.explicitChoice).toBeNull();
 			expect(snapshot.activeUI).toBe('banner');
 			expect(html).toContain('data-testid="consent-banner-root"');
 			expect(html).toContain('Cookie choices');

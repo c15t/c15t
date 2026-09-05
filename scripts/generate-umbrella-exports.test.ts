@@ -625,6 +625,39 @@ describe('committed umbrella package', () => {
 		expect(rootEntry.default).toBe(rootEntry.import);
 	});
 
+	it('ships the v3 React and Next.js DevTools adapters', () => {
+		expect(manifest.exports['./react/devtools']).toEqual({
+			default: './shims/react/devtools.js',
+			import: './shims/react/devtools.js',
+			types: './shims/react/devtools.d.ts',
+		});
+		expect(manifest.exports['./next/devtools']).toEqual({
+			default: './shims/next/devtools.js',
+			import: './shims/next/devtools.js',
+			types: './shims/next/devtools.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/react/devtools.js']).toContain(
+			"export * from '@c15t/react/devtools';"
+		);
+		expect(artifacts.shimFiles['shims/next/devtools.js']).toContain(
+			"export * from '@c15t/nextjs/devtools';"
+		);
+	});
+
+	it('ships the Vue DevTools adapter', () => {
+		expect(manifest.exports['./vue/devtools']).toEqual({
+			default: './shims/vue/devtools.js',
+			import: './shims/vue/devtools.js',
+			types: './shims/vue/devtools.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/vue/devtools.js']).toContain(
+			"export * from '@c15t/vue/devtools';"
+		);
+		expect(artifacts.shimFiles['shims/vue/devtools.js']).toContain(
+			"export { default } from '@c15t/vue/devtools';"
+		);
+	});
+
 	it('has exactly the derived shim files on disk', () => {
 		const committed = listFiles(join(UMBRELLA_DIR, 'shims'), 'shims');
 		expect(committed.sort()).toEqual(Object.keys(artifacts.shimFiles).sort());

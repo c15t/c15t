@@ -14,7 +14,6 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@c15t/dev-tools": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/scripts": "workspace:*",

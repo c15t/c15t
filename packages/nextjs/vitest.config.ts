@@ -23,6 +23,7 @@ export default mergeConfig(
 			// oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
 			alias: {
 				'~': resolve(__dirname, './src'),
+				'@c15t/react/devtools': resolve(__dirname, '../react/src/devtools.tsx'),
 				'@c15t/core/modules/script-loader': resolve(
 					__dirname,
 					'../core/src/modules/script-loader/index.ts'

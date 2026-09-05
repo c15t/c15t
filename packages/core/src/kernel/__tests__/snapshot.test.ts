@@ -60,7 +60,8 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.effectivePermissions).toEqual(DEFAULT_CONSENTS);
 		expect(snap.effectivePermissions).toBe(snap.effectivePermissions);
 		expect(snap.explicitChoice).toBeNull();
-		expect(snap.hasConsented).toBe(false);
+		expect(snap).not.toHaveProperty('hasConsented');
+		expect(snap.explicitChoice).toBeNull();
 		expect(snap.promptRequirement).toEqual({
 			kind: 'choice',
 			reason: 'missing',
@@ -77,7 +78,7 @@ describe('buildInitialSnapshot', () => {
 			now: NOW,
 		});
 		expect(snap.effectivePermissions.marketing).toBe(false);
-		expect(snap.hasConsented).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
 		expect(snap.activeUI).toBe('banner');
 	});
 
@@ -94,7 +95,9 @@ describe('buildInitialSnapshot', () => {
 			),
 			now: NOW,
 		});
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(snap.effectivePermissions.marketing).toBe(true);
 		expect(snap.promptRequirement).toEqual({ kind: 'none' });
 		expect(snap.activeUI).toBe('none');

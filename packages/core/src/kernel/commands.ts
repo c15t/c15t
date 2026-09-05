@@ -17,6 +17,7 @@ import type {
 	ConsentSubject,
 	OptionalConsentCategory,
 } from '../consent-record/types';
+import type { AllConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
@@ -166,19 +167,32 @@ const failedResolutionPatch = function failedResolutionPatch(
 export const resolveSaveSelection = function resolveSaveSelection(
 	snapshot: ConsentSnapshot,
 	draft: PresentedSelection | null,
-	input: SaveInput | undefined
+	input: SaveInput | undefined,
+	categories?: readonly AllConsentNames[]
 ): { values: unknown; consentAction: SavePayload['consentAction'] } {
 	const rule = snapshot.policyRule;
-	if (input === 'all') {
-		return { consentAction: 'all', values: scopeSelection(rule, true) };
-	}
-	if (input === 'none') {
-		return { consentAction: 'necessary', values: scopeSelection(rule, false) };
+	const displayed =
+		categories === undefined
+			? rule.scope
+			: rule.scope.filter((category) => categories.includes(category));
+	const narrow = (values: PresentedSelection) =>
+		categories === undefined
+			? values
+			: Object.fromEntries(
+					displayed.map((category) => [category, values[category]])
+				);
+	if (input === 'all' || input === 'none') {
+		const bulkAction = input === 'all' ? 'all' : 'necessary';
+		return {
+			consentAction:
+				displayed.length === rule.scope.length ? bulkAction : 'custom',
+			values: narrow(scopeSelection(rule, input === 'all')),
+		};
 	}
 	if (input === undefined) {
 		return {
 			consentAction: 'custom',
-			values: presentedSelection(rule, draft, snapshot.explicitChoice),
+			values: narrow(presentedSelection(rule, draft, snapshot.explicitChoice)),
 		};
 	}
 	return { consentAction: 'custom', values: input };
@@ -732,7 +746,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 
 		async save(
 			input?: SaveInput,
-			context?: { actionAt?: number; iabAuthority?: KernelIABAuthority }
+			context?: {
+				actionAt?: number;
+				iabAuthority?: KernelIABAuthority;
+				categories?: readonly AllConsentNames[];
+			}
 		): Promise<SaveResult> {
 			const currentTime = runtime.now();
 			const actionAt =
@@ -766,7 +784,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const { values, consentAction } = resolveSaveSelection(
 				before,
 				runtime.getDraft(),
-				input
+				input,
+				context?.categories
 			);
 			const recorded = recordCategoryPatch(before.explicitChoice, values, {
 				actionAt,

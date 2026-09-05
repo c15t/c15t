@@ -180,13 +180,6 @@ export const derivePrivacySignals = function derivePrivacySignals(
 	};
 };
 
-/** Whether a choice holds at least one receipt. */
-export const hasChoicePresence = function hasChoicePresence(
-	choice: ExplicitChoice | null
-): boolean {
-	return choice !== null && Object.keys(choice.categories).length > 0;
-};
-
 /**
  * Re-derive the surface only when the prompt or the visibility inputs
  * changed. An adapter that opened the dialog keeps it open across an
@@ -332,7 +325,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		evaluatedAt: now,
 		evaluationPolicy,
 		explicitChoice,
-		hasConsented: hasChoicePresence(explicitChoice),
 		iab,
 		location: pick(patch.location, current.location),
 		model: deriveModel(policyRule, iab?.enabled ?? false),

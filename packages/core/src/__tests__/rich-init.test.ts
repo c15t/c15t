@@ -95,7 +95,7 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.policyRule.actions.required).toEqual(['accept', 'reject']);
 	});
 
-	test('does not grant policy.preselectedCategories when hasConsented is false', async () => {
+	test('does not grant preselected categories without a receipt', async () => {
 		const transport: KernelTransport = {
 			init() {
 				return { policyResolution: GDPR_RESOLUTION };
@@ -114,13 +114,13 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.effectivePermissions.marketing).toBe(false);
 	});
 
-	test('does NOT overwrite consents when hasConsented=true', async () => {
+	test('does not import bare consent booleans as choice receipts', async () => {
 		const transport: KernelTransport = {
 			init() {
 				// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 				return {
 					policyResolution: GDPR_RESOLUTION,
-					// Server says hasConsented=true — user has prior choice
+					// Bare server booleans do not establish a prior choice.
 					consents: { marketing: true },
 				};
 			},
@@ -132,7 +132,7 @@ describe('rich init: applies full response to snapshot', () => {
 
 		// Booleans without receipts are a draft, not a choice: nothing is
 		// granted until an explicit save confirms them.
-		expect(snap.hasConsented).toBe(false);
+		expect(snap.explicitChoice).toBeNull();
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.effectivePermissions.functionality).toBe(false);

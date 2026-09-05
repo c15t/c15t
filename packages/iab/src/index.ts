@@ -20,6 +20,7 @@
  * (`createCMPApi`), stub installer (`initializeIABStub`).
  */
 
+import { registerIABControls } from '@c15t/core';
 import type {
 	CMPApi,
 	ConsentKernel,
@@ -64,6 +65,10 @@ export interface CreateIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific. Default: true. */
 	isServiceSpecific?: boolean;
+	/** Store saved TC strings in cookies and localStorage. Default: true.
+	 * Set false for an in-memory playground; the kernel save transport still runs.
+	 */
+	persistence?: boolean;
 	/**
 	 * Pre-loaded GVL. When supplied, skips the network fetch. Accepts
 	 * `null` to explicitly disable IAB mode (non-IAB region).
@@ -212,19 +217,24 @@ const applyBlanket = function applyBlanket(
 	gvl: GlobalVendorList,
 	value: boolean
 ): void {
-	const vendorIds = [
-		...Object.keys(gvl.vendors ?? {}),
-		...(kernel.getSnapshot().iab?.customVendors ?? []).map((vendor) =>
-			String(vendor.id)
-		),
+	const vendors = [
+		...Object.values(gvl.vendors ?? {}),
+		...readIAB(kernel).customVendors,
 	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
-
 	const vendorConsents: Record<string, boolean> = Object.fromEntries(
-		vendorIds.map((id) => [id, value])
+		vendors.map((vendor) => [
+			String(vendor.id),
+			value && vendor.purposes.length > 0,
+		])
 	);
-	const vendorLegitimateInterests = { ...vendorConsents };
+	const vendorLegitimateInterests: Record<string, boolean> = Object.fromEntries(
+		vendors.map((vendor) => [
+			String(vendor.id),
+			value && (vendor.legIntPurposes?.length ?? 0) > 0,
+		])
+	);
 	const purposeConsents: Record<number, boolean> = {};
 	const purposeLegitimateInterests: Record<number, boolean> = {};
 	for (const id of purposeIds) {
@@ -332,6 +342,9 @@ export const createIAB = function createIAB(
 	let restoredFingerprint: string | null = null;
 	let hydrationCancelled = false;
 	const restoreAuthority = async function restoreAuthority(): Promise<void> {
+		if (options.persistence === false) {
+			return;
+		}
 		const hydrationSnapshot = kernel.getSnapshot();
 		const recordsGeneration = kernel.getRecordsGeneration();
 		if (
@@ -430,22 +443,37 @@ export const createIAB = function createIAB(
 
 	const buildTCFConsentData = function buildTCFConsentData() {
 		const iab = readIAB(kernel);
+		const customIds = new Set(
+			iab.customVendors.map((vendor) => String(vendor.id))
+		);
+		const registeredChoices = (choices: Record<string, boolean>) =>
+			Object.fromEntries(
+				Object.entries(choices).filter(
+					([id]) =>
+						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
+				)
+			);
+		// Custom choices stay in kernel state, never in registered TCF vectors.
+		const vendorConsents = registeredChoices(iab.vendorConsents);
+		const vendorLegitimateInterests = registeredChoices(
+			iab.vendorLegitimateInterests
+		);
 		// `vendorsDisclosed` should reflect every vendor the CMP made
 		// available to the user, per TCF 2.3. For MVP we mirror the set
 		// of vendors whose consent has been considered.
 		const disclosed: Record<string, boolean> = {};
-		for (const id of Object.keys(iab.vendorConsents)) {
+		for (const id of Object.keys(vendorConsents)) {
 			disclosed[id] = true;
 		}
-		for (const id of Object.keys(iab.vendorLegitimateInterests)) {
+		for (const id of Object.keys(vendorLegitimateInterests)) {
 			disclosed[id] = true;
 		}
 		return {
 			purposeConsents: { ...iab.purposeConsents },
 			purposeLegitimateInterests: { ...iab.purposeLegitimateInterests },
 			specialFeatureOptIns: { ...iab.specialFeatureOptIns },
-			vendorConsents: { ...iab.vendorConsents },
-			vendorLegitimateInterests: { ...iab.vendorLegitimateInterests },
+			vendorConsents: { ...vendorConsents },
+			vendorLegitimateInterests: { ...vendorLegitimateInterests },
 			vendorsDisclosed: disclosed,
 		};
 	};
@@ -480,7 +508,10 @@ export const createIAB = function createIAB(
 		return tcString;
 	};
 
-	return {
+	// Registration needs the completed handle; dispose runs after registration.
+	// oxlint-disable-next-line prefer-const -- Assigned after the handle closes over this teardown.
+	let unregisterControls: (() => void) | undefined;
+	const handle: IABHandle = {
 		acceptAll() {
 			const { gvl } = readIAB(kernel);
 			if (!gvl) {
@@ -494,6 +525,7 @@ export const createIAB = function createIAB(
 		dispose() {
 			disposed = true;
 			clearTimeout(authorityTimer);
+			unregisterControls?.();
 			unsubscribe();
 			unsubscribeClear();
 			if (cmpApi) {
@@ -565,12 +597,17 @@ export const createIAB = function createIAB(
 				generation === confirmationGeneration &&
 				kernel.getRecordsGeneration() === recordsGeneration
 			) {
-				storeAuthority(authority);
-				cmpApi?.saveToStorage(tcString);
+				if (options.persistence !== false) {
+					storeAuthority(authority);
+					cmpApi?.saveToStorage(tcString);
+				}
 				cmpApi?.updateConsent(tcString, consentData);
 				armAuthorityTimer();
 			}
-			await pendingSave;
+			const result = await pendingSave;
+			if (!result.ok) {
+				throw new Error('Unable to save IAB preferences.');
+			}
 		},
 		setPurposeConsent(id, value) {
 			const current = readIAB(kernel).purposeConsents;
@@ -619,6 +656,8 @@ export const createIAB = function createIAB(
 			});
 		},
 	};
+	unregisterControls = registerIABControls(kernel, handle);
+	return handle;
 };
 
 export type { CMPApi, GlobalVendorList, NonIABVendor } from '@c15t/core';

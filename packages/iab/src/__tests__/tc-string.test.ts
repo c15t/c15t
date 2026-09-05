@@ -3,7 +3,8 @@
  */
 
 import { createConsentKernel } from '@c15t/core';
-import { describe, expect, test } from 'vitest';
+import { resolvePolicyRules } from '@c15t/schema/types';
+import { describe, expect, test, vi } from 'vitest';
 
 import { createIAB } from '../index';
 import type { TCFConsentData } from '../tcf/iab-tcf-types';
@@ -12,6 +13,125 @@ import { MINIMAL_TC_STRING } from './fixtures/tc-strings';
 import { createMockGVL, createMockTCFConsentAllGranted } from './test-setup';
 
 describe('@c15t/iab TC string encode/decode', () => {
+	test.each([undefined, false])(
+		'controls TC storage with persistence=%s',
+		async (persistence) => {
+			const save = vi.fn().mockResolvedValue({ ok: true });
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolvePolicyRules({
+					rules: [
+						{
+							id: 'iab-save',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				}),
+				transport: { save },
+			});
+			const iab = createIAB({
+				cmpId: 28,
+				gvl: createMockGVL(),
+				kernel,
+				persistence,
+			});
+			localStorage.setItem('euconsent-v2', 'existing');
+			localStorage.setItem('c15t-iab-authority-v1', 'existing');
+			document.cookie = 'euconsent-v2=existing; path=/';
+			try {
+				iab.acceptAll();
+				await iab.save();
+				const tcString = kernel.getSnapshot().iab?.tcString;
+				expect(tcString).toBeTruthy();
+				expect(save).toHaveBeenCalledWith(
+					expect.objectContaining({ tcString })
+				);
+				const stored = persistence === false ? 'existing' : tcString;
+				expect(localStorage.getItem('euconsent-v2')).toBe(stored);
+				if (persistence === false) {
+					expect(localStorage.getItem('c15t-iab-authority-v1')).toBe(
+						'existing'
+					);
+				} else {
+					expect(
+						JSON.parse(localStorage.getItem('c15t-iab-authority-v1') ?? 'null')
+							.tcString
+					).toBe(tcString);
+				}
+				expect(document.cookie).toContain(`euconsent-v2=${stored}`);
+			} finally {
+				iab.dispose();
+				localStorage.removeItem('euconsent-v2');
+				localStorage.removeItem('c15t-iab-authority-v1');
+				kernel.dispose();
+				document.cookie = 'euconsent-v2=; Max-Age=0; path=/';
+			}
+		}
+	);
+	test.each(['acceptAll', 'rejectAll'] as const)(
+		'saves %s with custom vendors without adding them to TCF vectors',
+		async (action) => {
+			const save = vi.fn().mockResolvedValue({ ok: true });
+			const kernel = createConsentKernel({
+				initialPolicyResolution: resolvePolicyRules({
+					rules: [
+						{
+							id: 'iab-save',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				}),
+				transport: { save },
+			});
+			const iab = createIAB({
+				cmpId: 28,
+				customVendors: ['internal-analytics', '999', 2].map((id) => ({
+					id,
+					legIntPurposes: [2],
+					name: String(id),
+					privacyPolicyUrl: 'https://example.test/privacy',
+					purposes: [1],
+				})),
+				gvl: createMockGVL(),
+				kernel,
+			});
+			try {
+				iab[action]();
+				await iab.save();
+				expect(save).toHaveBeenCalledOnce();
+				const tcString = kernel.getSnapshot().iab?.tcString ?? '';
+				expect(save).toHaveBeenCalledWith(
+					expect.objectContaining({ tcString })
+				);
+				const decoded = await decodeTCString(tcString);
+				for (const vector of [
+					decoded.vendorConsents,
+					decoded.vendorLegitimateInterests,
+					decoded.vendorsDisclosed,
+				]) {
+					expect(vector[999]).toBeUndefined();
+					expect(vector[2]).toBeUndefined();
+				}
+				expect(decoded.vendorsDisclosed[1]).toBe(true);
+				expect(decoded.vendorConsents[1]).toBe(
+					action === 'acceptAll' ? true : undefined
+				);
+				for (const id of ['internal-analytics', '999', '2']) {
+					expect(kernel.getSnapshot().iab?.vendorConsents[id]).toBe(
+						action === 'acceptAll'
+					);
+					expect(kernel.getSnapshot().iab?.vendorLegitimateInterests[id]).toBe(
+						action === 'acceptAll'
+					);
+				}
+			} finally {
+				iab.dispose();
+			}
+		}
+	);
 	test('decodes the fixture TC string', async () => {
 		const decoded = await decodeTCString(MINIMAL_TC_STRING);
 

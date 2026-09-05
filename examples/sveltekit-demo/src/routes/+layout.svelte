@@ -1,45 +1,40 @@
 <script lang="ts">
+	import { dev } from '$app/environment';
 	import { page } from '$app/state';
+	import { env } from '$env/dynamic/public';
+	import { createDemoScripts } from '$lib/consent-manager/demo-scripts';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
-	import { createDevTools } from '@c15t/dev-tools';
-	import type { DevToolsInstance } from '@c15t/dev-tools';
 	import {
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogTrigger,
 		ConsentManagerProvider,
 		hosted,
+		offline,
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
-	import { onMount } from 'svelte';
 
 	import '../app.css';
 	import '@c15t/svelte/styles.css';
 	import '@c15t/svelte/iab/styles.css';
 
 	let { children } = $props();
-	let devtools: DevToolsInstance | null = null;
+	const devTools = dev ? import('@c15t/svelte/devtools') : null;
 	const isStandaloneConsentRoute = $derived(
 		page.url.pathname.startsWith('/bench') ||
 			page.url.pathname.startsWith('/ssr')
 	);
-
-	onMount(() => {
-		if (
-			page.url.pathname.startsWith('/bench') ||
-			page.url.pathname.startsWith('/ssr')
-		) {
-			return;
-		}
-
-		devtools = createDevTools({ position: 'bottom-right' });
-		return () => {
-			devtools?.destroy();
-			devtools = null;
-		};
-	});
+	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
+	const scripts = dev
+		? createDemoScripts({
+				clarity: env.PUBLIC_CLARITY_ID,
+				googleTag: env.PUBLIC_GOOGLE_TAG_ID,
+				metaPixel: env.PUBLIC_META_PIXEL_ID,
+				tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
+			})
+		: [];
 
 	const activeTheme = $derived.by(() => {
 		if (!themePresetStore.mounted) {
@@ -70,10 +65,26 @@
 {:else}
 	<ConsentManagerProvider
 		options={{
-			mode: hosted({ url: '/api/self-host' }),
+			mode: isIabPlayground
+				? offline({
+						policyRules: [
+							{
+								id: 'devtools-iab-playground',
+								match: { isDefault: true },
+								model: 'iab',
+								prompt: 'choice',
+								categories: ['marketing', 'measurement'],
+							},
+						],
+					})
+				: hosted({ url: '/api/self-host' }),
+			persistence: isIabPlayground ? false : undefined,
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			iab: {
 				enabled: true,
+				persistence: isIabPlayground ? false : undefined,
+				// Match the example backend. This is a demo ID, not a production CMP configuration.
+				cmpId: 10,
 				customVendors: [
 					{
 						id: 'internal-analytics',
@@ -88,20 +99,7 @@
 					},
 				],
 			},
-			scripts: [
-				{
-					id: 'example-analytics-iab',
-					src: 'https://www.example.com/analytics.js',
-					category: 'measurement',
-					vendorId: 1,
-				},
-				{
-					id: 'example-analytics-custom',
-					src: 'https://www.example.com/custom-analytics.js',
-					category: 'measurement',
-					vendorId: 'internal-analytics',
-				},
-			],
+			scripts,
 			storageConfig: {
 				crossSubdomain: true,
 			},
@@ -132,11 +130,22 @@
 			},
 		}}
 	>
+		{#if isIabPlayground}
+			<p role="status">
+				IAB playground: saves stay in memory and reset on reload. The vendor
+				list loads from consent.io. This is not a production CMP configuration.
+			</p>
+		{/if}
 		{@render children()}
 		<ConsentBanner />
 		<IABConsentBanner />
 		<IABConsentDialog />
 		<ConsentDialogTrigger />
 		<ConsentDialog />
+		{#if devTools}
+			{#await devTools then { ConsentDevTools }}
+				<ConsentDevTools position="bottom-right" />
+			{/await}
+		{/if}
 	</ConsentManagerProvider>
 {/if}

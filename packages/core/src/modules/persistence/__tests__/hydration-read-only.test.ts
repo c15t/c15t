@@ -70,7 +70,9 @@ describe('persistence: hydration is read-only', () => {
 		flushWrites();
 
 		const snap = kernel.getSnapshot();
-		expect(snap.hasConsented).toBe(true);
+		expect(Object.keys(snap.explicitChoice?.categories ?? {})).not.toHaveLength(
+			0
+		);
 		expect(snap.effectivePermissions.marketing).toBe(true);
 		expect(snap.subject?.subjectId ?? null).toBe(SUBJECT_ID);
 		expect(snap.explicitChoice?.categories.marketing).toEqual({
@@ -96,7 +98,9 @@ describe('persistence: hydration is read-only', () => {
 		flushWrites();
 		handle.dispose();
 
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 		expect(document.cookie).toBe(cookieBefore);
 	});
@@ -110,7 +114,9 @@ describe('persistence: hydration is read-only', () => {
 		flushWrites();
 		handle.dispose();
 
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(kernel.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(readLocalStorage()?.consentInfo.time).toBe(ORIGINAL_TIME);
 		expect(document.cookie).toBe('');
 	});
@@ -293,7 +299,9 @@ describe('persistence: explicit choices still write', () => {
 		});
 		flushWrites();
 		reloadedHandle.dispose();
-		expect(reloaded.getSnapshot().hasConsented).toBe(true);
+		expect(
+			Object.keys(reloaded.getSnapshot().explicitChoice?.categories ?? {})
+		).not.toHaveLength(0);
 		expect(reloaded.getSnapshot().effectivePermissions.marketing).toBe(false);
 	});
 
@@ -314,7 +322,7 @@ describe('persistence: explicit choices still write', () => {
 		expect(localStorage.getItem('custom-key')).toBeNull();
 		expect(readLocalStorage()).toEqual(defaultPayload);
 		expect(document.cookie).toBe(defaultCookie);
-		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		handle.dispose();
 
@@ -324,7 +332,7 @@ describe('persistence: explicit choices still write', () => {
 			storageConfig,
 		});
 		expect(reloadedHandle.hydrate()).toBe(false);
-		expect(reloaded.getSnapshot().hasConsented).toBe(false);
+		expect(reloaded.getSnapshot().explicitChoice).toBeNull();
 		flushWrites();
 		reloadedHandle.dispose();
 		expect(readLocalStorage()).toEqual(defaultPayload);

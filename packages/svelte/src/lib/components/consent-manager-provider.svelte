@@ -245,6 +245,8 @@
 	);
 
 	let draftFingerprint = $state<string | null>(null);
+	let draftRevision = 0;
+	let draftSaveSequence = 0;
 	const draft: ConsentDraftState = {
 		get isStale() {
 			return (
@@ -253,10 +255,14 @@
 			);
 		},
 		reset() {
+			draftRevision += 1;
 			draftValues = {};
 			draftFingerprint = null;
 		},
-		async save() {
+		async save(categories) {
+			const revision = draftRevision;
+			draftSaveSequence += 1;
+			const sequence = draftSaveSequence;
 			const current = kernel.getSnapshot();
 			if (
 				draftFingerprint !== null &&
@@ -275,19 +281,24 @@
 								configuredCategories.length === 0 ||
 								configuredCategories.includes(name)
 						)
+						.filter(
+							(name) => categories === undefined || categories.includes(name)
+						)
 						.map((name) => [name, values[name]])
 				)
 			);
 			if (!result.ok) {
 				throw new Error('Unable to save preferences.');
 			}
-			draftValues = {};
-			draftFingerprint = null;
+			if (revision === draftRevision && sequence === draftSaveSequence) {
+				draft.reset();
+			}
 		},
 		set(name, value) {
 			if (name === 'necessary') {
 				return;
 			}
+			draftRevision += 1;
 			draftFingerprint ??=
 				kernel.getSnapshot().evaluationPolicy.choice.fingerprint;
 			draftValues = { ...draftValues, [name]: value };
@@ -345,7 +356,21 @@
 		};
 	};
 
+	let clearPersistedRecords: (() => void) | null = null;
 	setConsentContext(kernel, {
+		clearRecords: () => {
+			if (clearPersistedRecords) {
+				clearPersistedRecords();
+			} else {
+				kernel.hydrate({
+					choice: null,
+					noticeDismissal: null,
+					optOutDirectives: [],
+					subject: null,
+				});
+				kernel.events.emit({ type: 'records:cleared' });
+			}
+		},
 		getConsentCategories: () => configuredCategories,
 		getDraft: () => draft,
 		getIAB: getIABState,
@@ -445,7 +470,11 @@
 					Boolean(options.prefetch?.initialRecords),
 				storageConfig: persistenceOptions.storageConfig,
 			});
-			disposers.push(() => persistence.dispose());
+			clearPersistedRecords = persistence.clear;
+			disposers.push(() => {
+				clearPersistedRecords = null;
+				persistence.dispose();
+			});
 		}
 		if (enabled && prepared) {
 			kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });

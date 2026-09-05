@@ -52,6 +52,8 @@ export type VueConsentDisplayData = Pick<
 >;
 
 export interface VueConsentKernelContext {
+	/** Clears records through the mounted persistence instance when available. */
+	clearRecords: () => void;
 	kernel: ConsentKernel;
 	snapshot: Ref<ConsentSnapshot>;
 	init: Ref<VueConsentDisplayData | undefined>;
@@ -505,6 +507,15 @@ export const createVueConsentKernelContext =
 
 		return {
 			activeUI,
+			clearRecords: () => {
+				kernel.hydrate({
+					choice: null,
+					noticeDismissal: null,
+					optOutDirectives: [],
+					subject: null,
+				});
+				kernel.events.emit({ type: 'records:cleared' });
+			},
 			dispose() {
 				unsubscribe();
 				unsubscribeChoice();
@@ -606,7 +617,12 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 			storageConfig: config.storageConfig,
 		});
 		hydrateVuePersistence(context, persistence);
-		disposers.push(() => persistence.dispose());
+		const clearMemory = context.clearRecords;
+		context.clearRecords = persistence.clear;
+		disposers.push(() => {
+			context.clearRecords = clearMemory;
+			persistence.dispose();
+		});
 	}
 
 	const detectedGpc = context.snapshot.value.privacySignals.gpc;

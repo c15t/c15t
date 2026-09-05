@@ -52,12 +52,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Vercel Analytics](./integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
 
-## Reference
-
-Concepts, legal templates, open-source policies, and contributor documentation.
-
-- [Script Loader](./shared/react/guides/script-loader.md): Reference page for script loader.
-
 ## Other
 
 - [Script loader](./frameworks/javascript/script-loader.md): Attach scripts to current effective permissions.

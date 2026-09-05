@@ -35,6 +35,7 @@ export interface ScriptLoaderDebugEvent {
 	action:
 		| 'skipped'
 		| 'loaded'
+		| 'load_completed'
 		| 'unloaded'
 		| 'already_loaded'
 		| 'error'

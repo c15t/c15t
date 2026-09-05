@@ -9,7 +9,7 @@ These flags are registered globally by the CLI parser (`packages/cli/src/context
 |--|--|
 |`--help`, `-h`|Show help for the current command and exit.|
 |`--version`, `-v`|Print the installed CLI version and exit.|
-|`--no-telemetry`|Disable anonymous telemetry for this run. See [Telemetry](./telemetry).|
+|`--no-telemetry`|Disable anonymous telemetry for this run. See the telemetry flags below.|
 |`--telemetry-debug`|Print telemetry events to stderr instead of sending them.|
 |`--logger <level>`|Set log level (`fatal`, `error`, `warn`, `info`, `debug`).|
 |`--config <path>`|Load configuration from an explicit file.|

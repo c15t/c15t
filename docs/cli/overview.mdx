@@ -34,4 +34,4 @@ See [Quickstart](./quickstart) to scaffold a new project, or jump to a specific 
 
 ## Telemetry
 
-The CLI collects anonymous usage data to help prioritize features. Telemetry is fully optional. See [Telemetry](./telemetry) for what's collected and how to disable it.
+The CLI collects anonymous usage data to help prioritize features. Telemetry is fully optional. See the telemetry flags below for what's collected and how to disable it.
