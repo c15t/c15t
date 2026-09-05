@@ -1,48 +1,28 @@
-:root {
-	--accordion-padding: var(--c15t-space-sm);
-	--accordion-stack-gap: 0.75rem;
-	--accordion-radius: var(--c15t-radius-md);
-	--accordion-duration: var(--c15t-duration-normal);
-	--accordion-ease: var(--c15t-easing);
-	--accordion-icon-size: 1.25rem;
-	--accordion-gap: var(--c15t-space-xs);
-
-	--accordion-background-color: var(--c15t-surface);
-	--accordion-background-color-dark: var(--c15t-surface);
-	--accordion-background-hover: var(--c15t-surface-hover);
-	--accordion-background-hover-dark: var(--c15t-surface-hover);
-	--accordion-border-color: var(--c15t-border);
-	--accordion-border-color-dark: var(--c15t-border);
-	--accordion-text-color: var(--c15t-text);
-	--accordion-text-color-dark: var(--c15t-text);
-	--accordion-arrow-color: hsl(0, 0%, 63.92%);
-	--accordion-arrow-color-dark: hsl(0, 0%, 80%);
-	--accordion-content-color: hsl(0, 0%, 36.08%);
-	--accordion-content-color-dark: hsl(0, 0%, 60%);
-	--accordion-focus-ring: hsl(227.93, 100%, 63.92%);
-	--accordion-focus-ring-dark: hsl(228.07, 69.8%, 48.04%);
-	--accordion-title-size: var(--c15t-font-size-sm);
-}
+/* Resolve defaults at use sites so imports cannot override one another.
+   Host custom properties and scoped theme tokens remain inherited. */
 
 @layer components {
 	.list:not(:global(.headless)) {
 		display: grid;
-		gap: var(--accordion-stack-gap);
+		gap: var(--accordion-stack-gap, 0.75rem);
 	}
 
 	.item:not(:global(.headless)) {
 		display: grid;
 		padding: 0;
-		border: 1px solid var(--accordion-border-color);
-		border-radius: var(--accordion-radius);
+		border: 1px solid var(--accordion-border-color, var(--c15t-border));
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
 		box-shadow: none;
-		background-color: var(--accordion-background-color);
+		background-color: var(--accordion-background-color, var(--c15t-surface));
 		overflow: visible;
 	}
 
 	:global(.c15t-dark) .item:not(:global(.headless)) {
-		border-color: var(--accordion-border-color-dark);
-		background-color: var(--accordion-background-color-dark);
+		border-color: var(--accordion-border-color-dark, var(--c15t-border));
+		background-color: var(
+			--accordion-background-color-dark,
+			var(--c15t-surface)
+		);
 	}
 
 	.triggerRow:not(:global(.headless)) {
@@ -50,36 +30,40 @@
 		grid-column: 1 / -1;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: center;
-		gap: var(--accordion-gap);
+		gap: var(--accordion-gap, var(--c15t-space-xs));
 		box-sizing: border-box;
 		width: 100%;
 		margin: 0;
-		padding: var(--accordion-padding);
+		padding: var(--accordion-padding, var(--c15t-space-sm));
 		border: 0;
-		border-radius: var(--accordion-radius);
-		color: var(--accordion-text-color);
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
+		color: var(--accordion-text-color, var(--c15t-text));
 		background-color: transparent;
-		transition: background-color var(--accordion-duration) var(--accordion-ease);
+		transition: background-color
+			var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
 	}
 
-	.triggerRow:not(:global(.headless)):hover,
-	.item[data-state='open'] .triggerRow:not(:global(.headless)) {
-		background-color: var(--accordion-background-hover);
+	.triggerRow:not(:global(.headless)):hover {
+		background-color: var(
+			--accordion-background-hover,
+			var(--c15t-surface-hover)
+		);
 	}
 
 	:global(.c15t-dark) .triggerRow:not(:global(.headless)) {
-		color: var(--accordion-text-color-dark);
+		color: var(--accordion-text-color-dark, var(--c15t-text));
 	}
 
-	:global(.c15t-dark) .triggerRow:not(:global(.headless)):hover,
-	:global(.c15t-dark)
-		.item[data-state='open']
-		.triggerRow:not(:global(.headless)) {
-		background-color: var(--accordion-background-hover-dark);
+	:global(.c15t-dark) .triggerRow:not(:global(.headless)):hover {
+		background-color: var(
+			--accordion-background-hover-dark,
+			var(--c15t-surface-hover)
+		);
 	}
 
 	.item:not(:global(.headless)):has(.trigger:focus-visible) {
-		outline: 2px solid var(--accordion-focus-ring);
+		outline: 2px solid var(--accordion-focus-ring, hsl(227.93, 100%, 63.92%));
 		/* Fully inset: the first/last items sit flush against the dialog's
 		   scroll container edge, so any part of the ring outside the item's
 		   border box gets clipped by overflow. -2px keeps the 2px ring
@@ -89,7 +73,7 @@
 
 	:global(.c15t-dark)
 		.item:not(:global(.headless)):has(.trigger:focus-visible) {
-		outline-color: var(--accordion-focus-ring-dark);
+		outline-color: var(--accordion-focus-ring-dark, hsl(228.07, 69.8%, 48.04%));
 	}
 
 	.trigger:not(:global(.headless)):focus-visible {
@@ -104,12 +88,12 @@
 		appearance: none;
 		display: flex;
 		align-items: center;
-		gap: var(--accordion-gap);
+		gap: var(--accordion-gap, var(--c15t-space-xs));
 		align-self: stretch;
 		flex: 1 1 auto;
 		min-width: 0;
-		min-height: calc(var(--accordion-icon-size) + 0.25rem);
-		font-size: var(--accordion-title-size);
+		min-height: calc(var(--accordion-icon-size, 1.25rem) + 0.25rem);
+		font-size: var(--accordion-title-size, var(--c15t-font-size-sm));
 		line-height: var(--c15t-line-height-tight);
 		letter-spacing: inherit;
 		font-weight: var(--c15t-font-weight-regular);
@@ -117,7 +101,7 @@
 		width: 100%;
 		padding: 0;
 		border: 0;
-		border-radius: var(--accordion-radius);
+		border-radius: var(--accordion-radius, var(--c15t-radius-md));
 		color: inherit;
 		background: none;
 		text-align: left;
@@ -129,10 +113,11 @@
 		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
-		color: var(--accordion-arrow-color);
-		width: var(--accordion-icon-size);
-		height: var(--accordion-icon-size);
-		transition: transform var(--accordion-duration) var(--accordion-ease);
+		color: var(--accordion-arrow-color, hsl(0, 0%, 63.92%));
+		width: var(--accordion-icon-size, 1.25rem);
+		height: var(--accordion-icon-size, 1.25rem);
+		transition: transform var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
 	}
 
 	.arrow:not(:global(.headless)) svg {
@@ -142,11 +127,7 @@
 	}
 
 	:global(.c15t-dark) .arrow:not(:global(.headless)) {
-		color: var(--accordion-arrow-color-dark);
-	}
-
-	.item[data-state='open'] .arrow:not(:global(.headless)) {
-		transform: rotate(45deg);
+		color: var(--accordion-arrow-color-dark, hsl(0, 0%, 80%));
 	}
 
 	.header:not(:global(.headless)) {
@@ -177,12 +158,13 @@
 		grid-template-rows: 0fr;
 		overflow: hidden;
 		padding: 0;
-		color: var(--accordion-content-color);
+		color: var(--accordion-content-color, hsl(0, 0%, 36.08%));
 		font-size: 0.875rem;
 		line-height: 1.5;
 		letter-spacing: inherit;
-		transition: grid-template-rows var(--accordion-duration)
-			var(--accordion-ease);
+		transition: grid-template-rows
+			var(--accordion-duration, var(--c15t-duration-normal))
+			var(--accordion-ease, var(--c15t-easing));
 	}
 
 	.content:not(:global(.headless))[data-state='open'] {
@@ -197,20 +179,23 @@
 		min-height: 0;
 		overflow: hidden;
 		padding-top: 0;
-		padding-inline-end: var(--accordion-padding);
+		padding-inline-end: var(--accordion-padding, var(--c15t-space-sm));
 		padding-inline-start: calc(
-			var(--accordion-icon-size) + var(--accordion-gap)
+			var(--accordion-icon-size, 1.25rem) +
+				var(--accordion-gap, var(--c15t-space-xs))
 		);
 	}
 
 	.contentInner:not(:global(.headless)) {
 		padding-top: 0;
 		opacity: 1;
-		transition: opacity calc(var(--accordion-duration) * 0.35) ease-out;
+		transition: opacity
+			calc(var(--accordion-duration, var(--c15t-duration-normal)) * 0.35)
+			ease-out;
 	}
 
 	.content[data-state='open'] .contentViewport:not(:global(.headless)) {
-		padding-bottom: var(--accordion-padding);
+		padding-bottom: var(--accordion-padding, var(--c15t-space-sm));
 	}
 
 	.content[data-state='closed'] .contentViewport:not(:global(.headless)) {
@@ -222,7 +207,7 @@
 	}
 
 	:global(.c15t-dark) .content:not(:global(.headless)) {
-		color: var(--accordion-content-color-dark);
+		color: var(--accordion-content-color-dark, hsl(0, 0%, 60%));
 	}
 
 	:global([data-disable-animation]) .content:not(:global(.headless)),

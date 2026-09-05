@@ -1,8 +1,8 @@
 /**
  * Cross-framework parity spec.
  *
- * For every Storybook story that exists in *both* frameworks (React and
- * Svelte today; Vue/Solid join when their stories ship), load the
+ * For required React, Svelte and Vue core stories, verify every configured
+ * framework is present, then load the
  * iframe in each Storybook and assert:
  *   1. Normalized DOM structure matches across frameworks.
  *   2. Accessibility tree matches across frameworks.
@@ -17,7 +17,9 @@
  * Environment variables:
  *   - `REACT_STORYBOOK_URL` (default http://127.0.0.1:6006)
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
- *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte`)
+ *   - `VUE_STORYBOOK_URL` (default http://127.0.0.1:6008)
+ *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte,vue`)
+ * Solid is primitives-only and excluded from this core adapter contract.
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
@@ -38,10 +40,29 @@ const FRAMEWORK_URLS: Record<string, string> = {
 	vue: process.env.VUE_STORYBOOK_URL ?? 'http://127.0.0.1:6008',
 };
 
-const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
+const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte,vue')
 	.split(',')
 	.map((f) => f.trim())
 	.filter(Boolean);
+
+const REQUIRED_CORE_STORIES = [
+	'Core/Consent Banner/Default',
+	'Core/Consent Banner/Banner Contract',
+	'Core/Consent Banner/Banner Accept Via Keyboard',
+	'Core/Consent Banner/Banner Focus Management',
+	'Core/Consent Banner/Banner To Dialog Flow',
+	'Core/Consent Dialog/Default',
+	'Core/Consent Dialog/Dialog Contract',
+	'Core/Consent Dialog/Dialog Escape Closes',
+	'Core/Consent Dialog/Save Flow',
+	'Core/Consent Dialog Trigger/Default',
+	'Core/Consent Dialog Trigger/Dialog Focus Management',
+	'Core/Consent Widget/Default',
+	'Core/Consent Widget/Expanded Categories',
+	'Core/Consent Dialog Link/Default',
+	'Core/Frame/Placeholder',
+	'Core/Frame/Granted Content',
+] as const;
 
 /**
  * Load and pair stories once per worker. Playwright runs each spec file
@@ -54,23 +75,38 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 		string,
 		Awaited<ReturnType<typeof loadStorybookIndex>>
 	> = {};
-	for (const framework of ENABLED_FRAMEWORKS) {
+	for (const framework of ENABLED_FRAMEWORKS.filter(
+		(entry) => entry !== 'solid'
+	)) {
 		const url = FRAMEWORK_URLS[framework];
 		if (!url) {
-			continue;
+			throw new Error(`Unknown configured parity framework: ${framework}`);
 		}
-		try {
-			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			byFramework[framework] = await loadStorybookIndex(url);
-		} catch (err) {
-			// If a Storybook isn't running, skip that framework's entries.
-			// Downstream pairing will just produce fewer entries.
-			console.warn(`[parity] could not load ${framework} index: ${err}`);
-		}
+		// oxlint-disable-next-line no-await-in-loop -- Load each required local Storybook.
+		byFramework[framework] = await loadStorybookIndex(url);
 	}
-	return pairStories(byFramework).filter(
-		(pair) => Object.keys(pair.entries).length >= 2
+	const paired = pairStories(byFramework);
+	for (const key of REQUIRED_CORE_STORIES) {
+		expect(
+			Object.keys(paired.find((pair) => pair.key === key)?.entries ?? {}),
+			key
+		).toEqual(ENABLED_FRAMEWORKS.filter((entry) => entry !== 'solid'));
+	}
+	console.log(
+		'[PARITY coverage]',
+		JSON.stringify(
+			Object.fromEntries(
+				Object.entries(byFramework).map(([framework, stories]) => [
+					framework,
+					{
+						indexedStories: stories.length,
+						requiredCoreStories: REQUIRED_CORE_STORIES.length,
+					},
+				])
+			)
+		)
 	);
+	return paired.filter((pair) => Object.keys(pair.entries).length >= 2);
 };
 
 const openStory = async function openStory(
@@ -86,6 +122,22 @@ const openStory = async function openStory(
 	// would time out on them. Attachment is enough; the body content
 	// we actually care about settles with `networkidle`.
 	await page.locator('#storybook-root').waitFor({ state: 'attached' });
+	await page.waitForFunction((id) => {
+		const preview = (
+			window as typeof window & {
+				__STORYBOOK_PREVIEW__?: {
+					storyRenders: { id: string; phase: string }[];
+				};
+			}
+		).__STORYBOOK_PREVIEW__;
+		return preview?.storyRenders.some(
+			(render) => render.id === id && render.phase === 'finished'
+		);
+	}, storyId);
+	await expect(
+		page.locator('body'),
+		`${storyId}: story render or play failed`
+	).not.toHaveClass(/sb-show-errordisplay/u);
 };
 
 /**
@@ -119,6 +171,28 @@ const findFirstDiff = function findFirstDiff(
 };
 
 test.describe('cross-framework parity', () => {
+	test('captures portal content and detects changes after relocation', async ({
+		page,
+	}) => {
+		await page.setContent(
+			'<div id="storybook-root"><section data-testid="consent-dialog-root"><button data-testid="consent-widget-footer-save-button">Save</button></section></div>'
+		);
+		const inline = await captureDomSnapshot(page, 'body');
+		await page.evaluate(() => {
+			const dialog = document.querySelector(
+				'[data-testid="consent-dialog-root"]'
+			);
+			if (dialog) {
+				document.body.append(dialog);
+			}
+		});
+		expect(await captureDomSnapshot(page, 'body')).toBe(inline);
+		const styles = await captureComputedStyleMap(page, 'body');
+		expect(styles['consent-dialog-root']).toBeDefined();
+		expect(styles['consent-widget-footer-save-button']).toBeDefined();
+		await page.locator('button').evaluate((button) => button.remove());
+		expect(await captureDomSnapshot(page, 'body')).not.toBe(inline);
+	});
 	// Load stories lazily so config errors surface as test failures, not
 	// worker-init crashes.
 	test('paired stories load from every enabled Storybook', async () => {
@@ -149,14 +223,19 @@ test.describe('cross-framework parity', () => {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await openStory(page, baselineUrl, baselineEntry.id);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineDom = await captureDomSnapshot(page, '#storybook-root');
+			const baselineDom = await captureDomSnapshot(page, 'body');
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineA11y = await captureA11yTree(page);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineStyles = await captureComputedStyleMap(
-				page,
-				'#storybook-root'
-			);
+			const baselineStyles = await captureComputedStyleMap(page, 'body');
+
+			const captures: Record<string, unknown> = {
+				[baselineFramework]: {
+					a11y: baselineA11y,
+					dom: baselineDom,
+					styles: baselineStyles,
+				},
+			};
 
 			for (const [framework, entry] of rest) {
 				const url = FRAMEWORK_URLS[framework];
@@ -166,11 +245,12 @@ test.describe('cross-framework parity', () => {
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const dom = await captureDomSnapshot(page, '#storybook-root');
+				const dom = await captureDomSnapshot(page, 'body');
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const a11y = await captureA11yTree(page);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const styles = await captureComputedStyleMap(page, '#storybook-root');
+				const styles = await captureComputedStyleMap(page, 'body');
+				captures[framework] = { a11y, dom, styles };
 
 				if (dom !== baselineDom) {
 					failures.push(
@@ -211,6 +291,11 @@ test.describe('cross-framework parity', () => {
 					);
 				}
 			}
+			// oxlint-disable-next-line no-await-in-loop -- Attach evidence for this completed story comparison.
+			await test.info().attach(snapshotKey(pair.key), {
+				body: JSON.stringify(captures, null, 2),
+				contentType: 'application/json',
+			});
 		}
 
 		console.log(`[PARITY] DOM+a11y+CSS: ${failures.length} failure(s)`);

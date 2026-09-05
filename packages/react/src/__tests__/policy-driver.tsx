@@ -587,7 +587,9 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					}
 					break;
 				case 'save-current':
-					await click('consent-dialog-trigger');
+					if (kernel.getSnapshot().activeUI !== 'dialog') {
+						await click('consent-dialog-trigger');
+					}
 					await click('consent-widget-footer-save-button');
 					break;
 				case 'dismiss-notice':

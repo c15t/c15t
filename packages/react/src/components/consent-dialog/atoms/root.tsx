@@ -274,7 +274,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 				{isOpen && (
 					<>
 						{/* Backdrop (customisable) */}
-						{overlay === false ? null : (overlay ?? <Overlay />)}
+						{overlay === false ? null : (overlay ?? <Overlay open={isOpen} />)}
 
 						<dialog
 							ref={dialogRef}

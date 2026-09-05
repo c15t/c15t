@@ -36,6 +36,10 @@ import { mergeSlotProps } from '~/utils/merge-slot-props';
  * `<ConsentDialog.Root>`.
  */
 export type OverlayProps = PropsWithChildren<{
+	/** Resolved controlled or kernel dialog visibility.
+	 * @internal
+	 */
+	open?: boolean;
 	/**
 	 * Custom styles to override default overlay styling.
 	 *
@@ -57,7 +61,7 @@ export type OverlayProps = PropsWithChildren<{
 	noStyle?: boolean;
 }>;
 
-const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
+const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style, open }) => {
 	const { activeUI } = useConsentManager();
 	const { components } = useUIConfig();
 	const {
@@ -66,7 +70,7 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 		scrollLock: _scrollLock = true,
 	} = useTheme();
 
-	const showDialog = activeUI === 'dialog';
+	const showDialog = open ?? activeUI === 'dialog';
 	const [isVisible, setIsVisible] = useState(false);
 
 	// Handle animation visibility state

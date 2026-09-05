@@ -82,14 +82,14 @@ describe('useConsentDialogTrigger', () => {
 		});
 	});
 
-	test('keeps trigger reachable while another consent UI is open', async () => {
+	test('hides trigger while its dialog is open', async () => {
 		const { result } = await renderHook(
 			() => useConsentDialogTrigger({ showWhen: 'always' }),
 			{ wrapper: createWrapper({ activeUI: 'dialog', hasConsented: false }) }
 		);
 
 		await vi.waitFor(() => {
-			expect(result.current.isVisible).toBe(true);
+			expect(result.current.isVisible).toBe(false);
 		});
 	});
 
@@ -106,6 +106,11 @@ describe('useConsentDialogTrigger', () => {
 		expect(onClick).toHaveBeenCalledOnce();
 		await vi.waitFor(() => {
 			expect(result.current.kernel.getSnapshot().activeUI).toBe('dialog');
+			expect(result.current.trigger.isVisible).toBe(false);
+		});
+		result.current.kernel.set.activeUI('none');
+		await vi.waitFor(() => {
+			expect(result.current.trigger.isVisible).toBe(true);
 		});
 	});
 });

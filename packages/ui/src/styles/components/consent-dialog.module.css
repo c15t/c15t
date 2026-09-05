@@ -299,6 +299,17 @@
 		flex-direction: column;
 	}
 
+	/* Keep programmatic container focus while drawing its ring on the card. */
+	.container:not(:global(.headless)):focus-visible {
+		outline: none;
+	}
+
+	.container:not(:global(.headless)):focus-visible
+		> .card:not(:global(.headless)) {
+		outline: 2px solid var(--c15t-primary);
+		outline-offset: 2px;
+	}
+
 	.headerWrapper:not(:global(.headless)) {
 		position: relative;
 	}
