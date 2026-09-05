@@ -50,14 +50,6 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 		check: 'geometry',
 		framework: 'svelte',
 		reason:
-			'The React frame placeholder renders neither `frame-placeholder` nor `frame-open-dialog`; Svelte renders both. A real gap in the React frame, out of scope for the visual parity gate.',
-		slot: 'frame-*',
-		story: 'Core/Frame/Placeholder',
-	},
-	{
-		check: 'geometry',
-		framework: 'svelte',
-		reason:
 			'The IAB banner has never been through a cross-framework pass — card, header, footer and every button differ. Out of scope here; the gate now records it instead of ignoring it.',
 		slot: 'iab-consent-banner-*',
 		story: 'IAB/IAB Consent Banner/Default',
@@ -84,28 +76,6 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 		reason: 'Accordion trigger structure. See the geometry entry.',
 		slot: '*',
 		story: 'Core/Consent Widget/Default',
-	},
-	{
-		check: 'css',
-		framework: 'svelte',
-		reason:
-			'The React frame placeholder renders neither `frame-placeholder` nor `frame-open-dialog`. See the geometry entry.',
-		slot: '*',
-		story: 'Core/Frame/Placeholder',
-	},
-	{
-		check: 'dom',
-		framework: 'svelte',
-		reason: 'React frame placeholder gap. See the geometry entry.',
-		slot: '*',
-		story: 'Core/Frame/Placeholder',
-	},
-	{
-		check: 'a11y',
-		framework: 'svelte',
-		reason: 'React frame placeholder gap. See the geometry entry.',
-		slot: '*',
-		story: 'Core/Frame/Placeholder',
 	},
 	{
 		check: 'dom',
