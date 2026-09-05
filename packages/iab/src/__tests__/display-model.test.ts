@@ -57,13 +57,13 @@ describe('IAB dialog display model', () => {
 
 	test('lists each purpose once — either standalone or inside one stack', () => {
 		const model = resolveIABDialogDisplayModel({ gvl: completeGVL });
-		const purposeIds = model.consentRows.flatMap((row) =>
-			row.kind === 'stack'
-				? row.purposes.map((purpose) => purpose.id)
-				: row.kind === 'purpose'
-					? [row.id]
-					: []
-		);
+		const purposeIdsOf = (row: (typeof model.consentRows)[number]) => {
+			if (row.kind === 'stack') {
+				return row.purposes.map((purpose) => purpose.id);
+			}
+			return row.kind === 'purpose' ? [row.id] : [];
+		};
+		const purposeIds = model.consentRows.flatMap(purposeIdsOf);
 
 		expect(new Set(purposeIds).size).toBe(purposeIds.length);
 		expect(purposeIds).toHaveLength(model.data.purposes.length);

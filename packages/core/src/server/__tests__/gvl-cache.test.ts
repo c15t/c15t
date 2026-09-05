@@ -30,9 +30,9 @@ describe('fetchCachedGvl', () => {
 	test('fetches the list and returns it', async () => {
 		let calls = 0;
 		const gvl = await fetchCachedGvl({
-			async fetch() {
+			fetch() {
 				calls += 1;
-				return jsonResponse({ vendorListVersion: 142 });
+				return Promise.resolve(jsonResponse({ vendorListVersion: 142 }));
 			},
 			language: 'en',
 			url: GVL_URL,
@@ -44,9 +44,9 @@ describe('fetchCachedGvl', () => {
 
 	test('reuses the entry inside the dedupe window', async () => {
 		let calls = 0;
-		const fetchImpl = async () => {
+		const fetchImpl = () => {
 			calls += 1;
-			return jsonResponse({ vendorListVersion: 142 });
+			return Promise.resolve(jsonResponse({ vendorListVersion: 142 }));
 		};
 
 		await fetchCachedGvl({ fetch: fetchImpl, language: 'en', url: GVL_URL });
@@ -74,13 +74,13 @@ describe('fetchCachedGvl', () => {
 
 	test('keys by language, so two locales do not share one list', async () => {
 		const seen: string[] = [];
-		const fetchImpl = async (_url: unknown, init?: RequestInit) => {
+		const fetchImpl = (_url: unknown, init?: RequestInit) => {
 			seen.push(
 				(init?.headers as Record<string, string> | undefined)?.[
 					'accept-language'
 				] ?? ''
 			);
-			return jsonResponse({ vendorListVersion: 142 });
+			return Promise.resolve(jsonResponse({ vendorListVersion: 142 }));
 		};
 
 		await fetchCachedGvl({ fetch: fetchImpl, language: 'en', url: GVL_URL });
@@ -91,11 +91,13 @@ describe('fetchCachedGvl', () => {
 
 	test('honours the backend s-maxage over the dedupe floor', async () => {
 		let calls = 0;
-		const fetchImpl = async () => {
+		const fetchImpl = () => {
 			calls += 1;
-			return jsonResponse(
-				{ vendorListVersion: 142 },
-				{ 'cache-control': 's-maxage=3600' }
+			return Promise.resolve(
+				jsonResponse(
+					{ vendorListVersion: 142 },
+					{ 'cache-control': 's-maxage=3600' }
+				)
 			);
 		};
 
@@ -118,11 +120,13 @@ describe('fetchCachedGvl', () => {
 
 	test('re-fetches when the backend forbids reuse', async () => {
 		let calls = 0;
-		const fetchImpl = async () => {
+		const fetchImpl = () => {
 			calls += 1;
-			return jsonResponse(
-				{ vendorListVersion: 142 },
-				{ 'cache-control': 'no-store' }
+			return Promise.resolve(
+				jsonResponse(
+					{ vendorListVersion: 142 },
+					{ 'cache-control': 'no-store' }
+				)
 			);
 		};
 
@@ -134,9 +138,9 @@ describe('fetchCachedGvl', () => {
 
 	test('caches a 204 as "IAB is off", rather than repeating the roundtrip', async () => {
 		let calls = 0;
-		const fetchImpl = async () => {
+		const fetchImpl = () => {
 			calls += 1;
-			return new Response(null, { status: 204 });
+			return Promise.resolve(new Response(null, { status: 204 }));
 		};
 
 		const first = await fetchCachedGvl({
@@ -157,9 +161,11 @@ describe('fetchCachedGvl', () => {
 
 	test('throws on a non-2xx, and caches nothing', async () => {
 		let calls = 0;
-		const fetchImpl = async () => {
+		const fetchImpl = () => {
 			calls += 1;
-			return new Response('nope', { status: 500, statusText: 'Server Error' });
+			return Promise.resolve(
+				new Response('nope', { status: 500, statusText: 'Server Error' })
+			);
 		};
 
 		await expect(

@@ -23,6 +23,16 @@ const ui = process.env.C15T_UI ?? 'svelte';
 // surfaces can be exercised without a second demo app.
 const iab = process.env.C15T_IAB === '1';
 
+// Built up rather than spread conditionally: the IAB options and the mode
+// travel together — a TCF policy pack with no vendor list resolves a
+// banner the server cannot render.
+const iabOptions = iab
+	? {
+			iab: { cmpId: 160, gvl: demoGvl },
+			mode: offline({ policyPacks: [demoIabPolicy] }),
+		}
+	: { mode: offline() };
+
 // Only the selected framework's Astro integration is listed. Loading all
 // three would let a stray chunk from the others reach the page and make the
 // bundle comparison meaningless.
@@ -50,14 +60,12 @@ export default defineConfig({
 				cookiePolicy: { label: 'Cookie Policy', url: '/cookies' },
 				privacyPolicy: { label: 'Privacy Policy', url: '/privacy' },
 			},
-			// The server needs a vendor list to render the IAB banner at all.
-			// Hosted and manifest mode get one from `/init`; an offline site
-			// pins one, or points `iab.gvlURL` at where the real list lives.
-			...(iab ? { iab: { cmpId: 160, gvl: demoGvl } } : {}),
 			// `offline()` resolves policies locally, so the demo runs with no
 			// backend. Swap in `hosted({ url })` or `manifest({ backendURL })`
-			// to talk to a real one.
-			mode: iab ? offline({ policyPacks: [demoIabPolicy] }) : offline(),
+			// to talk to a real one. With `C15T_IAB=1` it also carries the
+			// vendor list the server needs to render the IAB banner at all;
+			// hosted and manifest mode get theirs from `/init`.
+			...iabOptions,
 			scripts: [
 				{
 					category: 'measurement',
