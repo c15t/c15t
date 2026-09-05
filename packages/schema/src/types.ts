@@ -21,8 +21,6 @@ export type {
 export type {
 	InitOutput,
 	LocationResponse,
-	PolicyDecision,
-	ResolvedPolicy,
 	TranslationsResponse,
 } from './api/init';
 export type {
@@ -98,19 +96,16 @@ export type {
 } from './shared';
 export {
 	buildConsentManifestFromConfig,
-	buildDefaultOptInPolicy,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	checkJurisdiction,
 	consentInputsToOverrides,
 	createConsentManifestPolicyPack,
-	createResolvedPolicyFromConfig,
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
 	extractConsentRequestInputs,
 	getTranslations,
 	getTranslationsData,
-	inspectPolicies,
 	listProfiles,
 	POLICY_MATCH_DATASET_VERSION,
 	parseGlobalPrivacyControl,
@@ -118,14 +113,10 @@ export {
 	REGION_HEADERS,
 	resolveBackendURL,
 	resolveInitFromManifest,
-	resolveNoPolicyFallback,
-	resolvePolicyDecision,
 	resolvePolicyResolutionFromManifest,
-	resolvePolicySync,
 	sliceConsentManifestLanguage,
 	UK_COUNTRY_CODES,
 	validateMessages,
-	validatePolicies,
 } from './shared';
 export {
 	buildConsentId,
@@ -152,29 +143,14 @@ export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
-export { type PolicyDefaults, policyDefaults } from './shared/policy-defaults';
 export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,
 	createMaterialPolicyFingerprint,
 	createMaterialPolicyFingerprintSync,
-	createPolicyFingerprint,
 	hashSha256Hex,
 	stableStringify,
 } from './shared/policy-fingerprint';
-export type {
-	LegacyProjectionFidelity,
-	LegacyProjectionReport,
-} from './shared/policy-legacy-bridge';
-export {
-	describeLegacyProjection,
-	isPolicyRuleLegacyExpressible,
-	liftLegacyPolicyConfig,
-	liftLegacyResolvedPolicy,
-	projectPolicyRuleToLegacy,
-	projectPolicyRuleToLegacyConfig,
-	readLegacyPolicyWire,
-} from './shared/policy-legacy-bridge';
 export type {
 	PolicyMatchEntry,
 	PolicyMatchOutcome,
@@ -268,27 +244,17 @@ export type {
 } from './shared/policy-i18n-validation';
 export { validatePolicyI18nConfig } from './shared/policy-i18n-validation';
 export type {
-	EuropePolicyMode,
-	PolicyPackPresets,
-} from './shared/policy-pack-defaults';
-export { policyPackPresets } from './shared/policy-pack-defaults';
-export type {
-	FingerprintHashStrategy,
-	PolicyConfig,
 	PolicyMatch,
 	PolicyMatchedBy,
 	PolicyModel,
-	PolicyPack,
 	PolicyScopeMode,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
 	PolicyValidationResult,
-	ResolvedPolicyDecision,
-	ResolvedPolicyMatch,
 } from './shared/policy-runtime';
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };
+
+export type {
+	LegacyMaterialCompatibility,
+	LegacyMaterialPolicyInput,
+	LegacyMaterialSurfaceInput,
+} from './shared/legacy-material-policy';

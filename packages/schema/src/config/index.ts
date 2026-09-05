@@ -30,7 +30,7 @@ export type ConsentLegalLinks = Partial<
 	Record<ConsentLegalLinkKey, ConsentLegalLink>
 >;
 
-export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
+export type PolicyModel = 'opt-in' | 'opt-out' | 'iab';
 
 export type ConsentDialogTriggerPosition =
 	| 'top-left'

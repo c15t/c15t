@@ -1,3 +1,4 @@
+import { legacyPresetMaterial } from './legacy-preset-material';
 import type { PolicyRule, PolicyRuleReview } from './policy-rule';
 import { policyMatchers } from './policy-runtime';
 
@@ -177,10 +178,28 @@ export interface PolicyRulePresets {
  * ```
  */
 export const policyRulePresets: PolicyRulePresets = {
-	californiaOptIn: () => californiaRule('opt-in'),
-	californiaOptOut: () => californiaRule('opt-out'),
-	europeIab: () => europeRule('iab'),
-	europeOptIn: () => europeRule('opt-in'),
-	quebecOptIn: () => quebecRule(),
-	worldOptOutNoPrompt: () => worldOptOutNoPromptRule(),
+	californiaOptIn: () => ({
+		...californiaRule('opt-in'),
+		legacyMaterial: structuredClone(legacyPresetMaterial.californiaOptIn),
+	}),
+	californiaOptOut: () => ({
+		...californiaRule('opt-out'),
+		legacyMaterial: structuredClone(legacyPresetMaterial.californiaOptOut),
+	}),
+	europeIab: () => ({
+		...europeRule('iab'),
+		legacyMaterial: structuredClone(legacyPresetMaterial.europeIab),
+	}),
+	europeOptIn: () => ({
+		...europeRule('opt-in'),
+		legacyMaterial: structuredClone(legacyPresetMaterial.europeOptIn),
+	}),
+	quebecOptIn: () => ({
+		...quebecRule(),
+		legacyMaterial: structuredClone(legacyPresetMaterial.quebecOptIn),
+	}),
+	worldOptOutNoPrompt: () => ({
+		...worldOptOutNoPromptRule(),
+		legacyMaterial: structuredClone(legacyPresetMaterial.worldOptOutNoPrompt),
+	}),
 };

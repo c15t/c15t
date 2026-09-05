@@ -1,4 +1,4 @@
-import type { PolicyConfig } from './policy-runtime';
+import type { PolicyRule } from './policy-rule';
 
 const DEFAULT_PROFILE = 'default';
 const SUPPORTED_BASE_LANGUAGES = new Set([
@@ -50,7 +50,7 @@ export interface PolicyI18nValidationOptions {
 		defaultProfile?: string;
 		messages?: Record<string, PolicyI18nMessageProfileLike>;
 	};
-	policies?: PolicyConfig[];
+	policies?: PolicyRule[];
 }
 
 export interface PolicyI18nValidationResult {

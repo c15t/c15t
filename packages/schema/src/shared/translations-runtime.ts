@@ -4,7 +4,7 @@ import type { BaseTranslations } from '@c15t/translations/all';
 import { translations as enTranslations } from '@c15t/translations/en';
 
 import { validatePolicyI18nConfig } from './policy-i18n-validation';
-import type { PolicyConfig } from './policy-runtime';
+import type { PolicyRule } from './policy-rule';
 
 type SupportedBaseLanguage = Extract<keyof BaseTranslations, string>;
 
@@ -37,7 +37,7 @@ export interface LoggerLike {
 interface TranslationResolutionOptions {
 	baseTranslations?: BaseTranslations;
 	i18n?: I18nOptions;
-	policyI18n?: PolicyConfig['i18n'];
+	policyI18n?: PolicyRule['i18n'];
 	logger?: LoggerLike;
 }
 
@@ -217,7 +217,7 @@ export const listProfiles = function listProfiles(options: {
 export const validateMessages = function validateMessages(options: {
 	customTranslations?: Record<string, Partial<Translations>>;
 	i18n?: I18nOptions;
-	policies?: PolicyConfig[];
+	policies?: PolicyRule[];
 }): {
 	profiles: string[];
 	errors: string[];
@@ -341,7 +341,7 @@ export const getTranslations = function getTranslations(
 		baseTranslations?: BaseTranslations;
 		customTranslations?: Record<string, Partial<Translations>>;
 		i18n?: I18nOptions;
-		policyI18n?: PolicyConfig['i18n'];
+		policyI18n?: PolicyRule['i18n'];
 		logger?: LoggerLike;
 	}
 ) {

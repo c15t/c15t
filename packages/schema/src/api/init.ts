@@ -4,12 +4,6 @@ import { brandingSchema } from '~/shared/branding';
 import { globalVendorListSchema } from '~/shared/gvl';
 import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
-import {
-	policyModelSchema,
-	policyScopeModeSchema,
-	policyUiModeSchema,
-	policyUiSurfaceConfigSchema,
-} from '~/shared/policy-schema';
 import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
 
 /**
@@ -124,68 +118,6 @@ export const locationSchema = v.object({
 });
 
 /**
- * Matching strategy used to resolve the policy for the request.
- */
-export const policyMatchedBySchema = v.picklist([
-	'region',
-	'country',
-	'default',
-	'fallback',
-]);
-
-/**
- * Resolved runtime policy returned by /init.
- */
-export const resolvedPolicySchema = v.object({
-	consent: v.optional(
-		v.object({
-			categories: v.optional(v.array(v.string())),
-			expiryDays: v.optional(v.number()),
-			gpc: v.optional(v.boolean()),
-
-			preselectedCategories: v.optional(v.array(v.string())),
-			scopeMode: v.optional(policyScopeModeSchema),
-		})
-	),
-	i18n: v.optional(
-		v.object({
-			language: v.optional(v.string()),
-			messageProfile: v.optional(v.string()),
-		})
-	),
-	id: v.string(),
-	model: policyModelSchema,
-	proof: v.optional(
-		v.object({
-			storeIp: v.optional(v.boolean()),
-			storeLanguage: v.optional(v.boolean()),
-
-			storeUserAgent: v.optional(v.boolean()),
-		})
-	),
-	ui: v.optional(
-		v.object({
-			banner: v.optional(policyUiSurfaceConfigSchema),
-			dialog: v.optional(policyUiSurfaceConfigSchema),
-
-			mode: v.optional(policyUiModeSchema),
-		})
-	),
-});
-
-/**
- * Explainability details for the resolved policy decision.
- */
-export const policyDecisionSchema = v.object({
-	country: v.nullable(v.string()),
-	fingerprint: v.string(),
-	jurisdiction: jurisdictionCodeSchema,
-	matchedBy: policyMatchedBySchema,
-	policyId: v.string(),
-	region: v.nullable(v.string()),
-});
-
-/**
  * Output schema for init endpoint
  */
 export const initOutputSchema = v.object({
@@ -209,26 +141,8 @@ export const initOutputSchema = v.object({
 	gvl: v.optional(v.nullable(globalVendorListSchema)),
 	jurisdiction: jurisdictionCodeSchema,
 	location: locationSchema,
-	/**
-	 * Runtime policy resolved for the request's geo/jurisdiction context.
-	 * Present only when backend policies are configured and a match is found.
-	 *
-	 * BRIDGE: v2 wire shape kept for clients that predate `policyResolution`.
-	 * Removed in the v3 final sweep.
-	 */
-	policy: v.optional(resolvedPolicySchema),
-	/**
-	 * Explainability details for how the runtime policy was matched.
-	 *
-	 * BRIDGE: v2 wire shape kept for clients that predate `policyResolution`.
-	 */
-	policyDecision: v.optional(policyDecisionSchema),
-	/**
-	 * Versioned v3 policy resolution. `policy` inside it is explicit and
-	 * nullable: `null` means no policy applies and clears policy-derived
-	 * state. Absent only when the producer predates the contract.
-	 */
-	policyResolution: v.optional(policyResolutionWireSchema),
+	/** Explicit, versioned policy outcome for every complete response. */
+	policyResolution: policyResolutionWireSchema,
 	/**
 	 * Signed policy snapshot token to ensure write-time consistency.
 	 * Present when backend policy snapshots are configured.
@@ -243,17 +157,3 @@ export const initOutputSchema = v.object({
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;
 export type TranslationsResponse = v.InferOutput<typeof translationsSchema>;
 export type LocationResponse = v.InferOutput<typeof locationSchema>;
-/**
- * Runtime policy payload returned by `/init`.
- *
- * This is the fully resolved policy after backend geo/jurisdiction matching.
- * Frontend clients can persist this object and reuse it as an outage fallback.
- */
-export type ResolvedPolicy = v.InferOutput<typeof resolvedPolicySchema>;
-/**
- * Explainability metadata describing how the runtime policy was matched.
- *
- * Includes the match strategy (`matchedBy`), normalized location context,
- * and a deterministic policy fingerprint for snapshot consistency checks.
- */
-export type PolicyDecision = v.InferOutput<typeof policyDecisionSchema>;

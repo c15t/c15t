@@ -1,5 +1,3 @@
-import type { PolicyUiSurfaceConfig } from './policy-runtime';
-
 export const dedupeDefinedValues = function dedupeDefinedValues<T>(
 	values?: readonly T[] | null
 ): T[] | undefined {
@@ -34,20 +32,4 @@ export const compactDefined = function compactDefined<
 	}
 
 	return Object.fromEntries(entries) as T;
-};
-
-export const hasRealPolicyUiHints = function hasRealPolicyUiHints(
-	surface?: PolicyUiSurfaceConfig | null
-): boolean {
-	if (!surface) {
-		return false;
-	}
-
-	return Object.values(surface).some((value) => {
-		if (Array.isArray(value)) {
-			return value.length > 0;
-		}
-
-		return value !== undefined;
-	});
 };

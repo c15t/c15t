@@ -1,7 +1,4 @@
-import type { ResolvedPolicy } from '~/api/init';
-
-/** @deprecated Strategy selection removed — uses crypto.subtle (async) or pure-JS (sync) */
-export type FingerprintHashStrategy = 'auto' | 'node' | 'webcrypto' | 'pure-js';
+import type { LegacyMaterialPolicyInput } from './legacy-material-policy';
 
 export const stableStringify = function stableStringify(
 	value: unknown
@@ -185,14 +182,10 @@ export const createDeterministicFingerprint =
 		return hashSha256Hex(stableStringify(value));
 	};
 
-export const createPolicyFingerprint = function createPolicyFingerprint(
-	policy: ResolvedPolicy
-): Promise<string> {
-	return createDeterministicFingerprint(policy);
-};
-
 const createMaterialPolicyFingerprintInput =
-	function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
+	function createMaterialPolicyFingerprintInput(
+		policy: LegacyMaterialPolicyInput
+	) {
 		return {
 			consent: policy.consent
 				? {
@@ -237,7 +230,7 @@ const createMaterialPolicyFingerprintInput =
 
 export const createMaterialPolicyFingerprint =
 	function createMaterialPolicyFingerprint(
-		policy: ResolvedPolicy
+		policy: LegacyMaterialPolicyInput
 	): Promise<string> {
 		return createDeterministicFingerprint(
 			createMaterialPolicyFingerprintInput(policy)
@@ -249,7 +242,9 @@ export const createMaterialPolicyFingerprint =
  * input, same bytes; used where resolution must stay synchronous.
  */
 export const createMaterialPolicyFingerprintSync =
-	function createMaterialPolicyFingerprintSync(policy: ResolvedPolicy): string {
+	function createMaterialPolicyFingerprintSync(
+		policy: LegacyMaterialPolicyInput
+	): string {
 		return createDeterministicFingerprintSync(
 			createMaterialPolicyFingerprintInput(policy)
 		);

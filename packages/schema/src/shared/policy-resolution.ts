@@ -12,8 +12,7 @@
  * `policy` is explicit on every outcome. `null` means "there is no policy"
  * and tells the kernel to clear policy-derived state. A missing wire is
  * never a substitute for any of these: `readPolicyResolutionWire` fails on
- * it, and the transitional lift of a v2 wire lives in
- * `policy-legacy-bridge.ts` under its own name.
+ * it. Old init and manifest wires are unsupported.
  *
  * Every non-matched outcome uses the safe opt-in choice fallback for runtime
  * behavior while the status stays observable. The fallback's fingerprints are
@@ -290,7 +289,7 @@ export const resolvePolicyRules = function resolvePolicyRules(params: {
 		}
 		const policy = normalizePolicyRule(rule);
 		return {
-			fingerprints: createPolicyRuleFingerprints(policy),
+			fingerprints: createPolicyRuleFingerprints(policy, rule.legacyMaterial),
 			matchedBy: outcome.matchedBy,
 			policy,
 			policyId: policy.id,
@@ -798,9 +797,6 @@ const readWire = function readWire(input: unknown): PolicyResolution {
  * `unsupported-contract`. Only own fields of plain objects are read. The
  * matched rule must satisfy the same semantic invariants as an authored rule
  * ({@link collectResolvedPolicyRuleIssues}). Never throws; needs no valibot.
- *
- * For a producer that predates the contract, use `readLegacyPolicyWire`
- * from the legacy bridge instead. Omission is never `unconfigured` here.
  *
  * @param input - The raw `policyResolution` field from `/init`.
  * @returns A {@link PolicyResolution}.

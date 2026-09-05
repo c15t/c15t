@@ -1,7 +1,5 @@
 import { describe, expect, test } from 'vitest';
 
-import { liftLegacyPolicyConfig } from './policy-legacy-bridge';
-import { policyPackPresets } from './policy-pack-defaults';
 import { inspectPolicyRules, normalizePolicyRule } from './policy-rule';
 import { createPolicyRuleFingerprints } from './policy-rule-fingerprint';
 import { policyRulePresets } from './policy-rule-presets';
@@ -93,23 +91,24 @@ describe('policyRulePresets', () => {
 		);
 	});
 
-	test.each([
-		['europeOptIn', 'europeOptIn'],
-		['europeIab', 'europeIab'],
-		['californiaOptIn', 'californiaOptIn'],
-		['californiaOptOut', 'californiaOptOut'],
-		['quebecOptIn', 'quebecOptIn'],
-		['worldOptOutNoPrompt', 'worldNoBanner'],
-	] as const)(
-		'%s keeps the behavior of the lifted v2 %s preset',
-		(ruleName, legacyName) => {
-			const lifted = normalizePolicyRule(
-				liftLegacyPolicyConfig(policyPackPresets[legacyName]())
+	test.each(presetNames)(
+		'%s retains frozen receipt compatibility without exposing legacy runtime fields',
+		(name) => {
+			const rule = policyRulePresets[name]();
+			const normalized = normalizePolicyRule(rule);
+			const current = createPolicyRuleFingerprints(
+				normalized,
+				rule.legacyMaterial
 			);
-			const rule = normalizePolicyRule(policyRulePresets[ruleName]());
-			expect(createPolicyRuleFingerprints(rule)).toEqual(
-				createPolicyRuleFingerprints(lifted)
-			);
+			expect(current.legacyMaterial).toMatch(/^[0-9a-f]{64}$/u);
+			expect(normalized).not.toHaveProperty('legacyMaterial');
+			expect(normalized).not.toHaveProperty('ui');
+			expect(
+				createPolicyRuleFingerprints(
+					{ ...normalized, copyRevision: 'changed' },
+					rule.legacyMaterial
+				).legacyMaterial
+			).not.toBe(current.legacyMaterial);
 		}
 	);
 });

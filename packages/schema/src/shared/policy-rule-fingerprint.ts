@@ -1,3 +1,4 @@
+import type { LegacyMaterialCompatibility } from './legacy-material-policy';
 /**
  * Versioned fingerprint domains for v3 policy rules.
  *
@@ -16,8 +17,10 @@
  * producer side (backend, manifest builder, offline transport). Nothing in a
  * render or hydration path should call it.
  */
-
-import { createDeterministicFingerprintSync } from './policy-fingerprint';
+import {
+	createMaterialPolicyFingerprintSync,
+	createDeterministicFingerprintSync,
+} from './policy-fingerprint';
 import { canonicalizePolicySet as sorted } from './policy-rule';
 import type {
 	PolicyOptionalCategory,
@@ -50,12 +53,7 @@ export interface PolicyFingerprints {
 	choice: string;
 	/** Notice prompt currency. Domain `notice`, version 1. */
 	notice: string;
-	/**
-	 * Legacy material fingerprint of the same policy, when the rule was lifted
-	 * from a v2 `PolicyConfig`. Only ever compared with v2 stored records.
-	 *
-	 * BRIDGE: goes away with the v2 configuration shape in the final sweep.
-	 */
+	/** Frozen v2 receipt comparator, retained for the lifetime of v3. */
 	legacyMaterial?: string;
 }
 
@@ -249,8 +247,12 @@ export const noticePromptFingerprintInput =
  */
 export const createPolicyRuleFingerprints =
 	function createPolicyRuleFingerprints(
-		rule: ResolvedPolicyRule
+		rule: ResolvedPolicyRule,
+		legacy?: LegacyMaterialCompatibility
 	): PolicyFingerprints {
+		const policy = createDeterministicFingerprintSync(
+			policyFingerprintInput(rule)
+		);
 		return {
 			choice: createDeterministicFingerprintSync(
 				choicePromptFingerprintInput(rule)
@@ -258,7 +260,13 @@ export const createPolicyRuleFingerprints =
 			notice: createDeterministicFingerprintSync(
 				noticePromptFingerprintInput(rule)
 			),
-			policy: createDeterministicFingerprintSync(policyFingerprintInput(rule)),
+			policy,
+			...(legacy && {
+				legacyMaterial:
+					policy === legacy.policyFingerprint
+						? createMaterialPolicyFingerprintSync(legacy.input)
+						: `policy-changed:${policy}`,
+			}),
 		};
 	};
 

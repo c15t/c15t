@@ -1,11 +1,10 @@
 import { describe, expect, test } from 'vitest';
 
+import { legacyPresetMaterial } from './legacy-preset-material';
 import {
 	createMaterialPolicyFingerprint,
 	createMaterialPolicyFingerprintSync,
-	createPolicyFingerprint,
 } from './policy-fingerprint';
-import { policyPackPresets } from './policy-pack-defaults';
 import {
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 	safeFallbackPolicyRule,
@@ -22,7 +21,6 @@ import {
 	POLICY_FINGERPRINT_VERSION,
 	policyFingerprintInput,
 } from './policy-rule-fingerprint';
-import { createResolvedPolicyFromConfig } from './policy-runtime';
 
 const choiceRule: PolicyRule = {
 	id: 'review',
@@ -222,9 +220,7 @@ describe('safe fallback constants', () => {
 });
 
 describe('legacy fingerprint bytes', () => {
-	const resolved = createResolvedPolicyFromConfig(
-		policyPackPresets.europeOptIn()
-	);
+	const resolved = legacyPresetMaterial.europeOptIn.input;
 
 	test('createMaterialPolicyFingerprint keeps its v2 bytes', async () => {
 		await expect(createMaterialPolicyFingerprint(resolved)).resolves.toBe(
@@ -235,16 +231,10 @@ describe('legacy fingerprint bytes', () => {
 		);
 	});
 
-	test('createPolicyFingerprint keeps its v2 bytes', async () => {
-		await expect(createPolicyFingerprint(resolved)).resolves.toBe(
-			'32c66359f0cfc8f5e4a77f061e112f6e720c5d744b6904df88a67a9775401cb9'
-		);
-	});
-
 	test('the v3 domains never collide with the v2 material hash', () => {
 		const lifted = normalizePolicyRule({
 			...choiceRule,
-			id: resolved.id,
+			id: 'europe_opt_in',
 			proof: resolved.proof,
 			validity: { choiceDays: 365 },
 		});

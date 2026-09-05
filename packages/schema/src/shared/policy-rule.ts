@@ -1,3 +1,4 @@
+import type { LegacyMaterialCompatibility } from './legacy-material-policy';
 /**
  * v3 policy rules: the behavior contract a policy pack entry declares.
  *
@@ -20,7 +21,6 @@
  * No valibot here so `@c15t/schema/types` consumers can validate without the
  * runtime. The valibot mirror lives in `policy-wire-schema.ts`.
  */
-
 import type {
 	PolicyMatch,
 	PolicyScopeMode,
@@ -139,6 +139,8 @@ export interface PolicyRuleReview {
  * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
 export interface PolicyRule {
+	/** Frozen v2 receipt metadata. Never part of resolved behavior or presentation. */
+	legacyMaterial?: LegacyMaterialCompatibility;
 	id: string;
 	match: PolicyMatch;
 	model: PolicyRuleModel;
@@ -255,6 +257,7 @@ const CHOICE_ACTION_SET: ReadonlySet<string> = new Set([
 const RIGHT_SET: ReadonlySet<string> = new Set(POLICY_RIGHTS);
 
 const RULE_KEYS = [
+	'legacyMaterial',
 	'id',
 	'match',
 	'model',
@@ -721,6 +724,18 @@ const collectMetadataErrors = function collectMetadataErrors(
 	collectObjectFieldErrors(check, 'i18n', I18N_KEYS, 'string');
 	collectObjectFieldErrors(check, 'proof', PROOF_KEYS, 'boolean');
 	collectReviewErrors(check);
+	const legacy = own(check.rule, 'legacyMaterial');
+	if (
+		legacy !== undefined &&
+		(!isPlainPolicyObject(legacy) ||
+			typeof legacy.policyFingerprint !== 'string' ||
+			!legacy.policyFingerprint ||
+			!isPlainPolicyObject(legacy.input))
+	) {
+		check.errors.push(
+			`Policy ${check.label} legacyMaterial must contain a frozen input and policyFingerprint.`
+		);
+	}
 };
 
 const collectRegionMatcherErrors = function collectRegionMatcherErrors(
