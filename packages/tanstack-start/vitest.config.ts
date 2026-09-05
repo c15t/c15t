@@ -81,6 +81,14 @@ export default mergeConfig(
 				'@rsdoctor/core',
 				'@rspack/resolver',
 				'@rspack/resolver-binding-wasm32-wasi',
+				// Server-only entries reached when coverage transforms server.ts
+				// through the browser project. Pre-bundling them fails on Start's
+				// `#tanstack-*-entry` package imports and, like the tooling above,
+				// re-optimises mid-run.
+				'@tanstack/react-start',
+				'@tanstack/react-start/server',
+				'@tanstack/react-start-server',
+				'@tanstack/start-server-core',
 			],
 		},
 		plugins: [react()],
