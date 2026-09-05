@@ -133,6 +133,46 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 	}
 });
 
+test('a draft preserves configured category order and confirms only the displayed policy scope', async () => {
+	const context = createVueConsentKernelContext({
+		config: {},
+		kernelConfig: {
+			initialPolicyResolution: resolution({
+				categories: ['functionality', 'marketing', 'measurement'],
+			}),
+		},
+	});
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {
+		consentCategories: ['necessary', 'measurement', 'experience', 'marketing'],
+	});
+	app.mount(document.createElement('div'));
+	try {
+		expect(draft.displayedCategories.value).toEqual([
+			'necessary',
+			'measurement',
+			'marketing',
+		]);
+		await draft.save();
+		expect(context.snapshot.value.explicitChoice?.categories).toEqual({
+			marketing: expect.objectContaining({ value: false }),
+			measurement: expect.objectContaining({ value: false }),
+		});
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});
+
 test('material policy changes block an already displayed draft until review', async () => {
 	let current = resolution();
 	const context = createVueConsentKernelContext({

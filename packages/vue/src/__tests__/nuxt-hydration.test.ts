@@ -2,10 +2,11 @@ import { C15T_POLICY_CONTRACT_HEADER } from '@c15t/core';
 import { readStoredRecords } from '@c15t/core/modules/persistence';
 import {
 	normalizePolicyRule,
+	createConsentManifestPolicyPack,
 	createPolicyRuleFingerprints,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
-import type { InitOutput } from '@c15t/schema/types';
+import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
 import { createSSRApp, defineComponent, h, nextTick, shallowRef } from 'vue';
@@ -15,10 +16,12 @@ import { renderToString } from 'vue/server-renderer';
 import ConsentBanner from '../runtime/components/consent-banner.vue';
 import { useConsentKernelContext } from '../runtime/composables/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
+import { resolveManifestInit } from '../runtime/server/manifest-mode';
 
 const nuxt = vi.hoisted(() => ({
 	cached: undefined as InitOutput | undefined,
 	headers: {} as Record<string, string | undefined>,
+	manifest: false,
 	requests: 0,
 	response: undefined as InitOutput | undefined,
 	state: new Map<string, ShallowRef<unknown>>(),
@@ -34,6 +37,7 @@ vi.mock('#imports', async () => {
 				disableAnimation: true,
 				hideBranding: true,
 				iframeBlocker: false,
+				manifest: nuxt.manifest,
 			},
 		}),
 		useFetch: (
@@ -74,17 +78,19 @@ afterEach(() => {
 	document.body.replaceChildren();
 });
 
-test('Nuxt hydrates the actual server prompt, request GPC and clock before browser reconciliation', async () => {
+test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
+	nuxt.manifest = manifest;
 	const now = 1_800_000_000_000;
 	const date = vi.spyOn(Date, 'now').mockReturnValue(now);
-	const policy = normalizePolicyRule({
+	const rule: PolicyRule = {
 		categories: ['marketing'],
 		id: 'nuxt-ssr',
 		match: { fallback: true },
 		model: 'opt-out',
 		privacySignals: { gpc: { denyCategories: ['marketing'] } },
 		prompt: 'notice',
-	});
+	};
+	const policy = normalizePolicyRule(rule);
 	nuxt.response = {
 		branding: 'none',
 		jurisdiction: 'GDPR',
@@ -109,6 +115,28 @@ test('Nuxt hydrates the actual server prompt, request GPC and clock before brows
 	};
 	nuxt.requests = 0;
 	nuxt.headers = { 'accept-language': 'en', cookie: '', 'sec-gpc': '1' };
+	if (manifest) {
+		nuxt.response = resolveManifestInit({
+			headers: nuxt.headers,
+			manifest: {
+				branding: 'none',
+				policyPacks: [createConsentManifestPolicyPack(rule)],
+				revision: 'nuxt-ssr',
+				schemaVersion: 2,
+				translations: {
+					i18n: {
+						defaultProfile: 'default',
+						messages: {
+							default: {
+								fallbackLanguage: 'en',
+								translations: { en: nuxt.response.translations.translations },
+							},
+						},
+					},
+				},
+			},
+		});
+	}
 	const { default: plugin } = await vi.importActual<{
 		default: (app: {
 			vueApp: App;
@@ -146,6 +174,11 @@ test('Nuxt hydrates the actual server prompt, request GPC and clock before brows
 	const html = await renderToString(serverApp);
 	const serverContext = context;
 	const expected = serverContext.snapshot.value;
+	expect(expected.privacySignals.gpc).toMatchObject({
+		active: true,
+		detected: true,
+		override: undefined,
+	});
 	const payload = JSON.stringify(
 		[...nuxt.state].map(([key, value]) => [key, value.value])
 	);
@@ -177,7 +210,11 @@ test('Nuxt hydrates the actual server prompt, request GPC and clock before brows
 	clientApp.mount(container);
 	await nextTick();
 	try {
-		expect(context.snapshot.value.privacySignals.gpc.detected).toBe(true);
+		expect(context.snapshot.value.privacySignals.gpc).toMatchObject({
+			active: true,
+			detected: true,
+			override: undefined,
+		});
 		expect(context.snapshot.value.evaluatedAt).toBe(now);
 		expect(context.snapshot.value.promptRequirement).toEqual(
 			expected.promptRequirement
@@ -206,6 +243,17 @@ test('Nuxt hydrates the actual server prompt, request GPC and clock before brows
 		);
 		expect(context.snapshot.value.explicitChoice).toBeNull();
 		expect(nuxt.requests).toBe(1);
+		expect(context.snapshot.value.privacySignals.gpc).toMatchObject({
+			active: true,
+			detected: true,
+			override: undefined,
+		});
+		context.kernel.set.overrides({ gpc: false });
+		expect(context.snapshot.value.privacySignals.gpc).toMatchObject({
+			active: false,
+			detected: true,
+			override: false,
+		});
 	} finally {
 		clientApp.unmount();
 	}

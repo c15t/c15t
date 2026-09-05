@@ -31,7 +31,6 @@ export const GET: RequestHandler = async ({ request }) => {
 			// wants the fields dropped instead (same as the Nuxt handler).
 			resolvedOverrides: consentInputsToOverrides({
 				country: inputs.country ?? undefined,
-				gpc: inputs.gpc,
 				language: inputs.language ?? undefined,
 				region: inputs.region ?? undefined,
 			}),

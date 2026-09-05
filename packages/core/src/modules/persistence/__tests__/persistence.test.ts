@@ -318,3 +318,64 @@ describe('persistence: dispose', () => {
 		expect(read.getSnapshot().effectivePermissions.marketing).toBe(true);
 	});
 });
+
+test.each([false, true])(
+	'save acknowledgement persists canonical subject only on success = %s',
+	async (ok) => {
+		const response = Promise.withResolvers<{
+			ok: boolean;
+			subjectId: string;
+		}>();
+		const kernel = createConsentKernel({
+			initialPolicyResolution: matchedResolution(optOutRule()),
+			transport: { save: () => response.promise },
+		});
+		const persistence = createPersistence({ kernel, skipHydration: true });
+		const choices = vi.fn();
+		kernel.events.on('choice:recorded', choices);
+		const pending = kernel.commands.save({ marketing: false });
+		const original = kernel.getSnapshot().explicitChoice;
+		const provisionalSubject = kernel.getSnapshot().subject?.subjectId;
+		await vi.advanceTimersByTimeAsync(0);
+		vi.setSystemTime(NOW + 1000);
+		response.resolve({ ok, subjectId: 'canonical' });
+		await pending;
+		flushWrites();
+		const restored = createConsentKernel({
+			initialPolicyResolution: matchedResolution(optOutRule()),
+		});
+		const reader = createPersistence({ kernel: restored });
+		expect(restored.getSnapshot().explicitChoice).toEqual(original);
+		expect(restored.getSnapshot().subject?.subjectId).toBe(
+			ok ? 'canonical' : provisionalSubject
+		);
+		expect(choices).toHaveBeenCalledTimes(1);
+		reader.dispose();
+		restored.dispose();
+		persistence.dispose();
+		kernel.dispose();
+	}
+);
+
+test('clear cancels a queued canonical subject write', async () => {
+	const kernel = createConsentKernel({
+		initialPolicyResolution: matchedResolution(optOutRule()),
+		transport: {
+			save: () => Promise.resolve({ ok: true, subjectId: 'canonical' }),
+		},
+	});
+	const persistence = createPersistence({ kernel, skipHydration: true });
+	kernel.events.on('subject:resolved', () => persistence.clear());
+	const pending = kernel.commands.save({ marketing: false });
+	await vi.advanceTimersByTimeAsync(0);
+	await pending;
+	flushWrites();
+	const restored = createConsentKernel();
+	const reader = createPersistence({ kernel: restored });
+	expect(restored.getSnapshot().explicitChoice).toBeNull();
+	expect(restored.getSnapshot().subject).toBeNull();
+	reader.dispose();
+	restored.dispose();
+	persistence.dispose();
+	kernel.dispose();
+});

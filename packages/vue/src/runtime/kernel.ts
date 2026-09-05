@@ -241,7 +241,7 @@ const createVueHostedTransport = function createVueHostedTransport(
 	let activeTransport = baseTransport;
 
 	return {
-		identify: baseTransport.identify,
+		...baseTransport,
 		async init(ctx) {
 			const initHeaders = { ...headers };
 			if (ctx.overrides.language) {
@@ -271,7 +271,6 @@ const createVueHostedTransport = function createVueHostedTransport(
 			activeTransport = contextualTransport;
 			return response;
 		},
-		recordPrivacyOptOut: baseTransport.recordPrivacyOptOut,
 		save(payload) {
 			return activeTransport.save?.(payload) ?? Promise.resolve({ ok: true });
 		},
@@ -354,6 +353,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 		typeof window === 'undefined' ? undefined : loadClientResources();
 
 	return {
+		...hostedTransport,
 		async init(ctx) {
 			if (typeof window === 'undefined') {
 				return {};

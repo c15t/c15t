@@ -33,7 +33,10 @@
 	},
 	"files": [
 		"dist",
-		"dist-types"
+		"dist-types",
+		"AGENTS.md",
+		"SKILL.md",
+		"docs"
 	],
 	"type": "module",
 	"sideEffects": false,
@@ -75,7 +78,7 @@
 		"access": "public"
 	},
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/backend",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",

@@ -198,13 +198,24 @@ export const createInitRoute = function createInitRoute(
 				const mapped = mapInitOutputToInitResponse(payload, forward, {
 					producerContract,
 				});
+				// Rebuild the canonical output. Unknown upstream fields must
+				// not keep stale policy evidence alongside the new outcome.
+				const output = {
+					branding: payload.branding,
+					cmpId: mapped.cmpId,
+					customVendors: mapped.customVendors,
+					gvl: mapped.gvl,
+					jurisdiction: payload.jurisdiction,
+					location: payload.location,
+					policyResolution: writePolicyResolutionWire(
+						readPolicyResolutionWire(mapped.policyResolution)
+					),
+					policySnapshotToken: mapped.policySnapshotToken,
+					subjectId: mapped.subjectId,
+					translations: payload.translations,
+				};
 				return negotiateInit(
-					{
-						...payload,
-						policyResolution: writePolicyResolutionWire(
-							readPolicyResolutionWire(mapped.policyResolution)
-						),
-					},
+					output,
 					getRequestHeader(event, POLICY_CONTRACT_HEADER)
 				);
 			}

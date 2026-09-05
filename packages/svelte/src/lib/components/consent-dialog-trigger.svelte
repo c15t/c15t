@@ -59,7 +59,9 @@
 	});
 
 	const branding = $derived(consent.state.branding);
-	const visible = $derived(showWhen !== 'never');
+	const visible = $derived(
+		showWhen !== 'never' && consent.snapshot.activeUI !== 'dialog'
+	);
 
 	// Position class mapping
 	const cornerClassMap: Record<CornerPosition, string> = {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ConsentSnapshot } from '@c15t/vue';
 import { nextTick, onBeforeUpdate, onMounted, watch } from 'vue';
 
 import {
@@ -30,6 +31,7 @@ interface NuxtBenchState {
 		language?: string;
 		gpc?: boolean;
 	};
+	privacySignals?: ConsentSnapshot['privacySignals'];
 	location?: {
 		countryCode?: string | null;
 		regionCode?: string | null;
@@ -101,6 +103,7 @@ const updateSnapshotProbe = function updateSnapshotProbe(
 	state: NuxtBenchState
 ) {
 	state.overrides = { ...snapshot.value.overrides };
+	state.privacySignals = snapshot.value.privacySignals;
 	state.location = snapshot.value.location
 		? {
 				countryCode: snapshot.value.location.countryCode,

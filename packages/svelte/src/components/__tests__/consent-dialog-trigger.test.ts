@@ -157,6 +157,9 @@ describe('ConsentDialogTrigger', () => {
 
 		// Dialog should open
 		await waitFor(() => {
+			expect(
+				document.querySelector('button[aria-label="Open privacy settings"]')
+			).not.toBeInTheDocument();
 			const dialog = document.querySelector(
 				'[data-testid="consent-dialog-root"]'
 			);
