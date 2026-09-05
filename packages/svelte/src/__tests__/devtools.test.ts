@@ -12,6 +12,24 @@ const mountedDevTools = (): NodeListOf<HTMLElement> =>
 	document.querySelectorAll('[data-c15t-dev-tools]');
 
 describe('@c15t/svelte/devtools', () => {
+	test('keeps configured optional categories under a necessary-only policy', async () => {
+		const result = render(DevToolsFixture, {
+			categories: ['necessary', 'marketing'],
+			policyCategories: ['necessary'],
+		});
+		try {
+			await vi.waitFor(() =>
+				expect(
+					document.querySelector('[data-focus-key="consent:marketing"]')
+				).not.toBeNull()
+			);
+			expect(
+				document.querySelector('[data-focus-key="consent:measurement"]')
+			).toBeNull();
+		} finally {
+			result.unmount();
+		}
+	});
 	test('intersects configured categories with the active policy in the inspector', async () => {
 		const result = render(DevToolsFixture, {
 			categories: ['necessary', 'marketing', 'measurement'],

@@ -176,8 +176,11 @@ const createCompatState = function createCompatState(
 		get consentCategories() {
 			const configured = options.getConsentCategories();
 			const { policyCategories } = getSnapshotLocal();
-			const available =
-				policyCategories.length > 0 ? policyCategories : allConsentNames;
+			const available = policyCategories.some(
+				(category) => category !== 'necessary'
+			)
+				? policyCategories
+				: allConsentNames;
 			if (configured.length === 0) {
 				return Array.from(available);
 			}

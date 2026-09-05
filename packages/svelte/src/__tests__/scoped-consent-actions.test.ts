@@ -60,9 +60,13 @@ describe('displayed consent actions', () => {
 			}
 		}
 	);
-	test.each(['Accept All', 'Reject All'])(
-		'%s preserves categories hidden by provider configuration',
-		async (label) => {
+	test.each(
+		(['*', 'necessary'] as const).flatMap((policy) =>
+			['Accept All', 'Reject All'].map((label) => ({ label, policy }))
+		)
+	)(
+		'$label preserves hidden categories under a $policy policy',
+		async ({ label, policy }) => {
 			const captured: { kernel?: ConsentKernel } = {};
 			const result = render(ConformanceFixture, {
 				component: 'consent-banner',
@@ -73,7 +77,10 @@ describe('displayed consent actions', () => {
 					consentCategories: ['necessary', 'marketing', 'measurement'],
 					mode: offline(),
 					prefetch: {
-						initialPolicy: { consent: { categories: ['*'] }, model: 'opt-in' },
+						initialPolicy: {
+							consent: { categories: [policy] },
+							model: 'opt-in',
+						},
 					},
 				},
 			});
@@ -84,6 +91,7 @@ describe('displayed consent actions', () => {
 			if (!kernel) {
 				throw new Error('Provider did not expose its kernel');
 			}
+			await kernel.commands.init();
 			kernel.set.consent({
 				experience: true,
 				functionality: false,
