@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url';
 
 import type { Plugin, ViteDevServer } from 'vite';
 
-import type { AstroStoryVariant } from '../src/story-variants';
+import type { AstroStoryVariant } from '../src/story-variants.ts';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(storybookDir, '../../..');
