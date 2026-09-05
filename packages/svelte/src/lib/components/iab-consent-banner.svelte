@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Model } from '@c15t/core';
+	import buttonStyles from '@c15t/ui/styles/components/button';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-banner';
-	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { getTextDirection } from '@c15t/ui/utils';
 
 	import { focusTrap } from '../actions/focus-trap';
@@ -44,8 +44,10 @@
 		localDisableAnimation ?? theme.disableAnimation ?? false
 	);
 	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
+	// The IAB banner is modal — `aria-modal` on the card, focus trapped —
+	// so it locks the page and paints a backdrop unless a host opts out.
 	const shouldScrollLock = $derived(
-		localScrollLock ?? theme.scrollLock ?? false
+		localScrollLock ?? theme.scrollLock ?? true
 	);
 
 	// IAB state
@@ -117,15 +119,20 @@
 		return button === primaryButton;
 	};
 
-	const actionButtonClass = function actionButtonClass(
+	/**
+	 * The shared button stylesheet keys its variants off `data-*`, the way
+	 * every other consent button in the repo does. Emitting the same
+	 * attributes keeps the IAB banner's controls identical to React's.
+	 */
+	const actionButtonAttrs = function actionButtonAttrs(
 		button: 'reject' | 'accept' | 'customize'
-	): string {
+	) {
 		const primary = isPrimary(button);
-		return buttonVariants({
-			mode: primary && button !== 'reject' ? 'filled' : 'stroke',
-			size: 'small',
-			variant: primary ? 'primary' : 'neutral',
-		}).root();
+		return {
+			'data-mode': primary && button !== 'reject' ? 'filled' : 'stroke',
+			'data-size': 'small',
+			'data-variant': primary ? 'primary' : 'neutral',
+		} as const;
 	};
 
 	// Styling
@@ -164,7 +171,10 @@
 {#if visibility.isMounted && visibility.shouldRender && displayItems.isReady}
 	<div use:portal>
 		{#if shouldScrollLock}
-			<Overlay visible={visibility.isVisible} />
+			<Overlay
+				variant="iab-banner"
+				visible={visibility.isVisible}
+			/>
 		{/if}
 		<div
 			bind:this={visibility.bannerEl}
@@ -230,7 +240,7 @@
 						class={noStyle ? '' : `${styles.footer} ${actionStyles.actionRoot}`}
 						data-testid="iab-consent-banner-footer"
 						data-direction="row"
-						data-split
+						data-split="true"
 					>
 						<div
 							class={noStyle ? '' : actionStyles.actionGroup}
@@ -238,7 +248,8 @@
 						>
 							<button
 								type="button"
-								class={noStyle ? '' : actionButtonClass('reject')}
+								class={noStyle ? '' : buttonStyles.button}
+								{...actionButtonAttrs('reject')}
 								onclick={handleRejectAll}
 								data-action="reject"
 								data-testid="iab-consent-banner-reject-button"
@@ -247,7 +258,8 @@
 							</button>
 							<button
 								type="button"
-								class={noStyle ? '' : actionButtonClass('accept')}
+								class={noStyle ? '' : buttonStyles.button}
+								{...actionButtonAttrs('accept')}
 								onclick={handleAcceptAll}
 								data-action="accept"
 								data-testid="iab-consent-banner-accept-button"
@@ -257,7 +269,8 @@
 						</div>
 						<button
 							type="button"
-							class={noStyle ? '' : actionButtonClass('customize')}
+							class={noStyle ? '' : buttonStyles.button}
+							{...actionButtonAttrs('customize')}
 							onclick={handleCustomize}
 							data-action="customize"
 							data-testid="iab-consent-banner-customize-button"

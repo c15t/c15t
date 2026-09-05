@@ -25,5 +25,9 @@ export const captureA11yTree = async function captureA11yTree(
 		// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 		snapshots.push(await root.ariaSnapshot());
 	}
-	return snapshots.join('\n---\n');
+	// The branding link attributes the referral to the page's host, which
+	// is whatever port a Storybook happens to be served on.
+	return snapshots
+		.join('\n---\n')
+		.replace(/(?<prefix>[?&]ref=)[^&\s]*/gu, '$<prefix>__HOST__');
 };

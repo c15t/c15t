@@ -297,6 +297,7 @@
 						</h2>
 						<div
 							class={noStyle ? '' : descriptionStyle.className || ''}
+							data-context="banner"
 							data-testid="consent-banner-description"
 						>
 							{resolvedDescription}

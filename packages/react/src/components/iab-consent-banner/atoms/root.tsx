@@ -150,8 +150,12 @@ const IABConsentBannerRootChildren = createForwardRef<
 					ref={ref}
 					{...contentStyle}
 					className={finalClassName}
+					data-position={
+						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
+					}
 					data-testid="iab-consent-banner-root"
 					dir={textDirection}
+					tabIndex={-1}
 				>
 					{children}
 				</div>

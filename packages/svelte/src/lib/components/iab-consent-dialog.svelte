@@ -210,7 +210,7 @@
 	<Portal>
 		<Dialog.Backdrop
 			class={noStyle ? '' : styles.overlay || ''}
-			data-testid="consent-dialog-overlay"
+			data-testid="iab-consent-dialog-overlay"
 		/>
 		<Dialog.Positioner
 			class={noStyle

@@ -199,6 +199,7 @@
 						</h2>
 						<div
 							class={noStyle ? '' : descriptionStyle.className || ''}
+							data-context="dialog"
 							data-testid="consent-dialog-description"
 							id="consent-dialog-description"
 						>

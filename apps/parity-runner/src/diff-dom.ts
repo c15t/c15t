@@ -25,6 +25,9 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
 		const SVELTE_CSS_MODULE = /^c15t-ui-(.+)-[A-Za-z0-9]+$/u;
 		const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/u;
+		// The branding link attributes the referral to the page's host,
+		// which is whatever port a Storybook happens to be served on.
+		const REFERRAL_HOST = /(?<prefix>[?&]ref=)[^&]*/u;
 		const AUTO_ID_SUFFIX =
 			/-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/u;
 		const STRIP = new Set([
@@ -94,6 +97,9 @@ export const captureDomSnapshot = function captureDomSnapshot(
 					return '__AUTO__';
 				}
 				return value.replace(AUTO_ID_SUFFIX, '-__AUTO__');
+			}
+			if (name === 'href') {
+				return value.replace(REFERRAL_HOST, '$<prefix>__HOST__');
 			}
 			if (name === 'class') {
 				return stripClasses(value);
