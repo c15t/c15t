@@ -125,27 +125,31 @@ export const normalizeKernelUser = function normalizeKernelUser(
  *
  * The selected locale's bundled translations are the base; the caller's
  * `messages` for that locale are merged over them, so a partial override
- * keeps every default it did not mention.
+ * keeps every default it did not mention. A locale on its own selects the
+ * bundled translations for that locale — `i18n` is documented as locale
+ * *and* message overrides, and a caller who names a locale means it.
  *
  * @param i18n - Locale and message overrides, if any.
- * @returns Kernel translations, or `undefined` when no messages were given.
+ * @returns Kernel translations, or `undefined` when `i18n` says nothing.
  */
 export const resolveRuntimeTranslations = function resolveRuntimeTranslations(
 	i18n: Partial<I18nConfig> | undefined
 ): KernelTranslations | undefined {
-	if (!i18n?.messages) {
+	if (!(i18n?.messages || i18n?.locale)) {
 		return undefined;
 	}
 	const language =
 		i18n.locale ?? defaultTranslationConfig.defaultLanguage ?? 'en';
 	const fallbackTranslations = defaultTranslationConfig.translations
 		.en as TranslationsResponse;
+	const base = (defaultTranslationConfig.translations[
+		language as keyof typeof defaultTranslationConfig.translations
+	] ?? fallbackTranslations) as TranslationsResponse;
+	if (!i18n.messages) {
+		return { language, translations: base };
+	}
 	const selected =
 		i18n.messages[language] ?? i18n.messages.en ?? fallbackTranslations;
-	const base =
-		defaultTranslationConfig.translations[
-			language as keyof typeof defaultTranslationConfig.translations
-		] ?? fallbackTranslations;
 	return {
 		language,
 		translations: deepMergeTranslations(
@@ -356,7 +360,16 @@ export const createConsentRuntime = function createConsentRuntime(
 	}
 
 	const runInit = async function runInit(): Promise<void> {
+		if (disposed) {
+			return;
+		}
 		await kernel.commands.init();
+		// `dispose()` can land while `init()` is in flight. Writing to a
+		// disposed kernel would notify subscribers the owner has already
+		// let go of.
+		if (disposed) {
+			return;
+		}
 		if (kernel.getSnapshot().hasConsented) {
 			kernel.set.activeUI('none');
 		}
@@ -447,7 +460,7 @@ export const createConsentRuntime = function createConsentRuntime(
 			};
 		},
 		async reinit() {
-			if (!enabled) {
+			if (!enabled || disposed) {
 				return;
 			}
 			await runInit();

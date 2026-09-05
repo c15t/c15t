@@ -36,9 +36,23 @@ const createIABHandle = function createIABHandle(): ConsentRuntimeIABHandle {
 	};
 };
 
+/**
+ * Expires every cookie the document currently carries. Assigning an empty
+ * string to `document.cookie` sets a cookie rather than clearing any, so a
+ * consent cookie one test wrote would hydrate the next one's runtime.
+ */
+const clearCookies = function clearCookies(): void {
+	for (const pair of document.cookie.split(';')) {
+		const name = pair.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+		}
+	}
+};
+
 beforeEach(() => {
 	localStorage.clear();
-	document.cookie = '';
+	clearCookies();
 });
 
 afterEach(() => {
@@ -305,5 +319,35 @@ describe('createConsentRuntime', () => {
 		expect(translations?.translations.cookieBanner.title).toBe('Kekse');
 		expect(translations?.translations.common.save).toBeTruthy();
 		runtime.dispose();
+	});
+
+	test('a locale on its own still selects that language', () => {
+		const runtime = createConsentRuntime({
+			i18n: { locale: 'de' },
+			mode: custom(createTransport()),
+		});
+
+		// `@c15t/core` bundles English only, so the copy stays English until
+		// the backend or a `messages` override supplies German. The language
+		// is what travels to `/init`, and it has to be the one asked for.
+		const { translations } = runtime.kernel.getSnapshot();
+		expect(translations?.language).toBe('de');
+		expect(translations?.translations.common.save).toBeTruthy();
+		runtime.dispose();
+	});
+
+	test('reinit after dispose does not touch the kernel', async () => {
+		const transport = createTransport();
+		const runtime = createConsentRuntime({ mode: custom(transport) });
+
+		runtime.start();
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalled());
+		const callsBeforeDispose = (transport.init as ReturnType<typeof vi.fn>).mock
+			.calls.length;
+
+		runtime.dispose();
+		await runtime.reinit();
+
+		expect(transport.init).toHaveBeenCalledTimes(callsBeforeDispose);
 	});
 });
