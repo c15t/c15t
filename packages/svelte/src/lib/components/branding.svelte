@@ -61,13 +61,9 @@
 
 	const resolvedBranding = $derived(resolveBranding(branding));
 	const showBranding = $derived(!hideBranding && resolvedBranding !== 'none');
-	const brandingHref = $derived.by(() => {
-		const refParam =
-			typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`;
-		return resolvedBranding === 'inth'
-			? `https://inth.com${refParam}`
-			: `https://c15t.com${refParam}`;
-	});
+	const brandingHref = $derived(
+		resolvedBranding === 'inth' ? 'https://inth.com' : 'https://c15t.com'
+	);
 
 	const baseClassName = $derived(
 		[

@@ -1,6 +1,7 @@
 import type {
 	AllConsentNames,
-	Callbacks,
+	ConsentPresentation,
+	KernelEvent,
 	I18nConfig,
 	IABConfig,
 	KernelConfig,
@@ -8,8 +9,6 @@ import type {
 	KernelUser,
 	LegalLinks,
 	NetworkBlockerConfig,
-	OfflinePolicyConfig,
-	PolicyConfig,
 	ProviderTransportFactory,
 	StorageConfig,
 	User,
@@ -71,26 +70,23 @@ export interface ConsentManagerOptions extends Pick<
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
-	prefetch?: KernelConfig;
-	callbacks?: Callbacks;
-	reloadOnConsentRevoked?: boolean;
+	prefetch?: Omit<
+		KernelConfig,
+		| 'transport'
+		| 'initialConsents'
+		| 'initialHasConsented'
+		| 'initialSubjectId'
+		| 'initialPolicy'
+	>;
+	callbacks?: ConsentProviderCallbacks;
+	presentation?: ConsentPresentation;
+
 	scripts?: Script[];
 	scriptLoader?: UseScriptLoaderOptions;
 	networkBlocker?: UseNetworkBlockerOptions | false;
 	iframeBlocker?: Omit<IframeBlockerOptions, 'kernel'> | false;
 	iab?: ProviderIABOptions;
 	persistence?: boolean | UsePersistenceOptions;
-	policies?: PolicyConfig[];
-	/**
-	 * Offline policy preview configuration.
-	 *
-	 * @remarks
-	 * Mirrors the React provider's `offlinePolicy` option: with `offline()`
-	 * it lets you inject a synthetic resolved policy (`policy`,
-	 * `policyDecision`, `policySnapshotToken`) or backend-compatible
-	 * `policyPacks` without a live `/init` endpoint.
-	 */
-	offlinePolicy?: OfflinePolicyConfig;
 	i18n?: Partial<I18nConfig>;
 	consentCategories?: AllConsentNames[];
 	legalLinks?: LegalLinks;
@@ -98,3 +94,14 @@ export interface ConsentManagerOptions extends Pick<
 }
 
 export type SvelteUIOptions = UIOptions;
+
+/** Callbacks for actual kernel events; registration never replays a choice. */
+export interface ConsentProviderCallbacks {
+	onChoiceRecorded?: (
+		event: Omit<Extract<KernelEvent, { type: 'choice:recorded' }>, 'type'>
+	) => void;
+	onPermissionsChanged?: (
+		event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
+	) => void;
+	onError?: (event: { error: string }) => void;
+}

@@ -25,6 +25,7 @@
 			| 'accept-consent'
 			| 'reject-consent'
 			| 'custom-consent'
+			| 'dismiss-notice'
 			| 'open-consent-dialog'
 			| 'set-consent';
 		variant?: 'primary' | 'neutral';
@@ -60,43 +61,40 @@
 		)
 	);
 
-	const handleClick = function handleClick(
+	const handleClick = async function handleClick(
 		e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
 	) {
+		onclick?.(e);
+		if (e.defaultPrevented) {
+			return;
+		}
 		const { state } = consent;
-
-		// Handle UI state changes first
+		switch (action) {
+			case 'accept-consent':
+				await state.saveConsents('all');
+				break;
+			case 'reject-consent':
+				await state.saveConsents('necessary');
+				break;
+			case 'custom-consent':
+				await state.saveConsents('custom');
+				break;
+			case 'dismiss-notice':
+				await state.dismissNotice();
+				break;
+			case 'open-consent-dialog':
+				state.setActiveUI('dialog');
+				return;
+			case 'set-consent':
+				if (category) {
+					state.setSelectedConsent(category, true);
+				}
+				return;
+			default:
+				return;
+		}
 		if (closeConsentBanner || closeConsentDialog) {
 			state.setActiveUI('none');
-		}
-
-		if (action === 'open-consent-dialog') {
-			state.setActiveUI('dialog');
-		}
-
-		// Call forwarded click handler
-		onclick?.(e);
-
-		if (action !== 'open-consent-dialog') {
-			// oxlint-disable-next-line default-case -- Preserve established branch order and control flow.
-			switch (action) {
-				case 'accept-consent':
-					state.saveConsents('all');
-					break;
-				case 'reject-consent':
-					state.saveConsents('necessary');
-					break;
-				case 'custom-consent':
-					state.saveConsents('custom');
-					break;
-				case 'set-consent':
-					if (!category) {
-						console.error('[c15t] Category is required for set-consent action');
-						return;
-					}
-					state.setConsent(category, true);
-					break;
-			}
 		}
 	};
 </script>

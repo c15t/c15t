@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ConsentKernel } from '@c15t/core';
+	import { untrack } from 'svelte';
 
 	import { getConsentKernel } from '../../lib/context.svelte';
 
@@ -9,5 +10,6 @@
 		onKernel?: (kernel: ConsentKernel) => void;
 	} = $props();
 
-	onKernel?.(getConsentKernel());
+	const kernel = getConsentKernel();
+	untrack(() => onKernel?.(kernel));
 </script>

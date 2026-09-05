@@ -1,17 +1,11 @@
 <script lang="ts">
 	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
-	import { defaultTranslationConfig } from '@c15t/core';
-	import styles from '@c15t/ui/styles/components/consent-banner';
 	import {
-		getTextDirection,
-		resolvePolicyActionGroups,
-		resolvePolicyAllowedActions,
-		resolvePolicyDirection,
-		resolvePolicyOrderedActions,
-		resolvePolicyPrimaryActions,
-		resolveTranslations,
-		shouldFillPolicyActions,
-	} from '@c15t/ui/utils';
+		defaultTranslationConfig,
+		resolveConsentPresentation,
+	} from '@c15t/core';
+	import styles from '@c15t/ui/styles/components/consent-banner';
+	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { focusTrap } from '../actions/focus-trap';
 	// Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
@@ -24,7 +18,7 @@
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, resolveConsentActionStyle } from '../utils';
 	import Branding from './branding.svelte';
 	import ConsentButton from './consent-button.svelte';
 	import InlineLegalLinks from './inline-legal-links.svelte';
@@ -34,19 +28,14 @@
 	/**
 	 * Button identifiers for the consent banner layout.
 	 */
-	type ConsentBannerButton = 'reject' | 'accept' | 'customize';
+	type ConsentBannerButton = 'reject' | 'accept' | 'customize' | 'dismiss';
 	type ConsentBannerLayout = (ConsentBannerButton | ConsentBannerButton[])[];
-
-	const DEFAULT_LAYOUT: ConsentBannerLayout = [
-		['reject', 'accept'],
-		'customize',
-	];
 
 	let {
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
 		scrollLock: localScrollLock,
-		trapFocus: localTrapFocus = true,
+		trapFocus: localTrapFocus,
 		title,
 		description,
 		rejectButtonText,
@@ -54,9 +43,9 @@
 		acceptButtonText,
 		hideBranding = false,
 		legalLinks,
-		layout = DEFAULT_LAYOUT,
-		primaryButton = 'customize',
-		models = ['opt-in'] as Model[],
+		layout,
+		primaryButton,
+		models = ['opt-in', 'opt-out', 'iab'] as Model[],
 		class: className,
 	}: {
 		noStyle?: boolean;
@@ -83,10 +72,6 @@
 	const disableAnimation = $derived(
 		localDisableAnimation ?? theme.disableAnimation ?? false
 	);
-	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
-	const shouldScrollLock = $derived(
-		localScrollLock ?? theme.scrollLock ?? false
-	);
 
 	// Translations
 	const translations = $derived(
@@ -101,7 +86,9 @@
 
 	// Visibility logic
 	const shouldShowBanner = $derived(
-		consent.state.activeUI === 'banner' && models.includes(consent.state.model)
+		consent.state.activeUI === 'banner' &&
+			consent.snapshot.promptRequirement.kind !== 'none' &&
+			models.includes(consent.state.model)
 	);
 
 	const visibility = useBannerVisibility(
@@ -183,60 +170,51 @@
 			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
 	);
 
-	// Button helpers
-	const allowedActions = $derived(
-		resolvePolicyAllowedActions({
-			allowedActions: consent.state.policyBanner.allowedActions,
-		})
-	);
-
-	const resolvedLayout = $derived(
-		layout ??
-			((consent.state.policyBanner.layout?.length ?? 0) > 0
-				? consent.state.policyBanner.layout
-				: DEFAULT_LAYOUT)
-	);
-
-	const orderedActions = $derived(
-		resolvePolicyOrderedActions({
-			allowedActions,
-			layout: resolvedLayout,
-		})
-	);
-
-	const actionGroups = $derived(
-		resolvePolicyActionGroups({
-			allowedActions,
-			layout: resolvedLayout,
-		})
-	);
-
-	const direction = $derived(
-		resolvePolicyDirection(consent.state.policyBanner.direction)
-	);
-
-	const effectivePrimaryActions = $derived.by(() => {
-		if ((consent.state.policyBanner.primaryActions?.length ?? 0) > 0) {
-			return consent.state.policyBanner.primaryActions ?? [];
+	const localPrimaryActions = $derived.by(() => {
+		if (primaryButton === undefined) {
+			return undefined;
 		}
-
 		return Array.isArray(primaryButton) ? primaryButton : [primaryButton];
 	});
-
-	const primaryActions = $derived(
-		resolvePolicyPrimaryActions({
-			orderedActions,
-			primaryActions: effectivePrimaryActions,
+	// Button helpers
+	const themedActions = $derived({
+		accept: resolveConsentActionStyle(theme.theme, 'accept'),
+		customize: resolveConsentActionStyle(theme.theme, 'customize'),
+		dismiss: resolveConsentActionStyle(theme.theme, 'dismiss'),
+		reject: resolveConsentActionStyle(theme.theme, 'reject'),
+		save: resolveConsentActionStyle(theme.theme, 'save'),
+	});
+	const presentation = $derived(
+		resolveConsentPresentation({
+			actionAppearance: themedActions,
+			override: {
+				layout,
+				primaryActions: localPrimaryActions,
+				scrollLock: localScrollLock ?? theme.scrollLock,
+				trapFocus: localTrapFocus ?? theme.trapFocus,
+			},
+			policy: consent.snapshot.policyRule,
+			presentation: consent.state.presentation,
+			surface: 'prompt',
 		})
 	);
+	const actionGroups = $derived(presentation.actionGroups);
+	const primaryActions = $derived(presentation.primaryActions);
+	const direction = $derived(presentation.direction);
+	const shouldFillActions = $derived(presentation.shouldFillActions);
+	const shouldTrapFocus = $derived(presentation.trapFocus);
+	const shouldScrollLock = $derived(presentation.scrollLock);
 
-	const shouldFillActions = $derived(
-		shouldFillPolicyActions({
-			actionGroups,
-			direction,
-			uiProfile: consent.state.policyBanner.uiProfile,
-		})
-	);
+	$effect(() => {
+		if (
+			typeof process === 'undefined' ||
+			process.env?.NODE_ENV !== 'production'
+		) {
+			for (const diagnostic of presentation.diagnostics) {
+				console.warn(diagnostic.message);
+			}
+		}
+	});
 
 	// Resolved texts
 	const resolvedTitle = $derived(title ?? translations.cookieBanner.title);
@@ -326,7 +304,9 @@
 							{#if action === 'reject'}
 								<ConsentButton
 									action="reject-consent"
-									variant={isPrimary ? 'primary' : 'neutral'}
+									variant={themedActions.reject.variant ??
+										(isPrimary ? 'primary' : 'neutral')}
+									mode={themedActions.reject.mode ?? 'stroke'}
 									closeConsentBanner
 									data-action="reject"
 									data-testid="consent-banner-reject-button"
@@ -336,17 +316,28 @@
 							{:else if action === 'accept'}
 								<ConsentButton
 									action="accept-consent"
-									variant={isPrimary ? 'primary' : 'neutral'}
+									variant={themedActions.accept.variant ??
+										(isPrimary ? 'primary' : 'neutral')}
+									mode={themedActions.accept.mode ?? 'stroke'}
 									closeConsentBanner
 									data-action="accept"
 									data-testid="consent-banner-accept-button"
 								>
 									{resolvedAcceptText}
 								</ConsentButton>
+							{:else if action === 'dismiss'}
+								<ConsentButton
+									action="dismiss-notice"
+									data-action="dismiss"
+									data-testid="consent-banner-dismiss-button"
+									>Dismiss</ConsentButton
+								>
 							{:else if action === 'customize'}
 								<ConsentButton
 									action="open-consent-dialog"
-									variant={isPrimary ? 'primary' : 'neutral'}
+									variant={themedActions.customize.variant ??
+										(isPrimary ? 'primary' : 'neutral')}
+									mode={themedActions.customize.mode ?? 'stroke'}
 									data-action="customize"
 									data-testid="consent-banner-customize-button"
 								>

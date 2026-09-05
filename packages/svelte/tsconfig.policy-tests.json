@@ -1,0 +1,17 @@
+{
+	"extends": "./tsconfig.json",
+	"include": [
+		"src/lib",
+		"src/__tests__/policy-driver.ts",
+		"src/__tests__/policy-fixture.ts",
+		"src/__tests__/policy-behavior.test.ts",
+		"src/__tests__/server-render.ts",
+		"src/__tests__/server-entry.ts",
+		"src/__tests__/ssr-dom.ts",
+		"src/__tests__/ssr-dom.test.ts",
+		"src/__tests__/conformance.test.ts",
+		"src/__tests__/fixtures/policy-*.svelte",
+		"src/__tests__/fixtures/conformance-*.svelte"
+	],
+	"exclude": ["node_modules", "dist"]
+}

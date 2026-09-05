@@ -56,3 +56,15 @@ export const resolveComponentStyles = function resolveComponentStyles(
 		noStyle
 	) as ClassNameStyle;
 };
+
+/** Resolve only host appearance; policy action constraints remain in core. */
+export const resolveConsentActionStyle = (
+	theme: Theme | undefined,
+	action: 'accept' | 'reject' | 'customize' | 'dismiss' | 'save'
+) => {
+	const specific =
+		action === 'dismiss' || action === 'save'
+			? undefined
+			: theme?.consentActions?.[action];
+	return { ...theme?.consentActions?.default, ...specific };
+};

@@ -74,41 +74,6 @@ describe('ConsentDialogTrigger', () => {
 		expect(trigger).not.toBeInTheDocument();
 	});
 
-	test('showWhen="after-consent" only shows after consent given', async () => {
-		render(FullFlowFixture, {
-			options: defaultOptions,
-			showWhen: 'after-consent',
-		});
-
-		// Banner is showing, trigger should not be visible
-		await waitFor(() => {
-			const banner = document.querySelector(
-				'[data-testid="consent-banner-root"]'
-			);
-			expect(banner).toBeInTheDocument();
-		});
-
-		// No trigger yet (no consent given)
-		let trigger = document.querySelector(
-			'button[aria-label="Open privacy settings"]'
-		);
-		expect(trigger).not.toBeInTheDocument();
-
-		// Accept consent
-		const acceptButton = getDefined(
-			document.querySelector('[data-testid="consent-banner-accept-button"]')
-		);
-		await fireEvent.click(acceptButton);
-
-		// Now trigger should appear
-		await waitFor(() => {
-			trigger = document.querySelector(
-				'button[aria-label="Open privacy settings"]'
-			);
-			expect(trigger).toBeInTheDocument();
-		});
-	});
-
 	test('showWhen="always" shows trigger when activeUI is none', async () => {
 		render(FullFlowFixture, {
 			options: defaultOptions,
@@ -136,7 +101,7 @@ describe('ConsentDialogTrigger', () => {
 		});
 	});
 
-	test('trigger is hidden while banner is showing', async () => {
+	test('trigger remains available while banner is showing', async () => {
 		render(FullFlowFixture, {
 			options: defaultOptions,
 			showWhen: 'always',
@@ -154,10 +119,10 @@ describe('ConsentDialogTrigger', () => {
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);
-		expect(trigger).not.toBeInTheDocument();
+		expect(trigger).toBeInTheDocument();
 	});
 
-	test('opens dialog via keyboard Enter key', async () => {
+	test('opens dialog through native button activation', async () => {
 		render(FullFlowFixture, {
 			options: defaultOptions,
 			showWhen: 'always',
@@ -188,7 +153,7 @@ describe('ConsentDialogTrigger', () => {
 		const trigger = getDefined(
 			document.querySelector('button[aria-label="Open privacy settings"]')
 		);
-		await fireEvent.keyDown(trigger, { key: 'Enter' });
+		await fireEvent.click(trigger, { detail: 0 });
 
 		// Dialog should open
 		await waitFor(() => {

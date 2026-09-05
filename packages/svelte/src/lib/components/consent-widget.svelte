@@ -1,23 +1,17 @@
 <script lang="ts">
 	import type { AllConsentNames } from '@c15t/core';
-	import { defaultTranslationConfig } from '@c15t/core';
+	import {
+		defaultTranslationConfig,
+		resolveConsentPresentation,
+	} from '@c15t/core';
 	import accordionStyles from '@c15t/ui/styles/components/accordion';
 	import managerStyles from '@c15t/ui/styles/components/consent-manager';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
-	import {
-		getTextDirection,
-		resolvePolicyActionGroups,
-		resolvePolicyAllowedActions,
-		resolvePolicyDirection,
-		resolvePolicyOrderedActions,
-		resolvePolicyPrimaryActions,
-		resolveTranslations,
-		shouldFillPolicyActions,
-	} from '@c15t/ui/utils';
+	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { PreferenceItem, Switch } from '../primitives';
-	import { resolveComponentStyles } from '../utils';
+	import { resolveComponentStyles, resolveConsentActionStyle } from '../utils';
 	import Branding from './branding.svelte';
 	import ConsentButton from './consent-button.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
@@ -35,6 +29,7 @@
 	} = $props();
 
 	const consent = getConsentContext();
+	const widgetId = $props.id();
 	const theme = getThemeContext();
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
@@ -108,44 +103,25 @@
 		)
 	);
 
-	const allowedActions = $derived(
-		resolvePolicyAllowedActions({
-			allowedActions: consent.state.policyDialog.allowedActions,
+	const themedActions = $derived({
+		accept: resolveConsentActionStyle(theme.theme, 'accept'),
+		customize: resolveConsentActionStyle(theme.theme, 'customize'),
+		dismiss: resolveConsentActionStyle(theme.theme, 'dismiss'),
+		reject: resolveConsentActionStyle(theme.theme, 'reject'),
+		save: resolveConsentActionStyle(theme.theme, 'save'),
+	});
+	const presentation = $derived(
+		resolveConsentPresentation({
+			actionAppearance: themedActions,
+			policy: consent.snapshot.policyRule,
+			presentation: consent.state.presentation,
+			surface: 'preferences',
 		})
 	);
-
-	const orderedActions = $derived(
-		resolvePolicyOrderedActions({
-			allowedActions,
-			layout: consent.state.policyDialog.layout,
-		})
-	);
-
-	const actionGroups = $derived(
-		resolvePolicyActionGroups({
-			allowedActions,
-			layout: consent.state.policyDialog.layout,
-		})
-	);
-
-	const direction = $derived(
-		resolvePolicyDirection(consent.state.policyDialog.direction)
-	);
-
-	const primaryActions = $derived(
-		resolvePolicyPrimaryActions({
-			orderedActions,
-			primaryActions: consent.state.policyDialog.primaryActions,
-		})
-	);
-
-	const shouldFillActions = $derived(
-		shouldFillPolicyActions({
-			actionGroups,
-			direction,
-			uiProfile: consent.state.policyDialog.uiProfile,
-		})
-	);
+	const actionGroups = $derived(presentation.actionGroups);
+	const primaryActions = $derived(presentation.primaryActions);
+	const direction = $derived(presentation.direction);
+	const shouldFillActions = $derived(presentation.shouldFillActions);
 </script>
 
 <div
@@ -153,6 +129,14 @@
 	dir={textDirection}
 	data-testid="consent-widget-root"
 >
+	{#if consent.state.draft.isStale}
+		<div role="alert">
+			The policy changed. Review your preferences before saving. <button
+				type="button"
+				onclick={() => consent.state.draft.reset()}>Review preferences</button
+			>
+		</div>
+	{/if}
 	<div
 		class={noStyle ? '' : accordionStyles.list || ''}
 		data-testid="consent-widget-accordion"
@@ -161,9 +145,14 @@
 			{@const isOpen = openItems[consentType.name] ?? false}
 			{@const isChecked =
 				consent.state.selectedConsents?.[consentType.name] ??
-				consent.state.consents[consentType.name] ??
+				consent.snapshot.explicitChoice?.categories[
+					consentType.name as Exclude<AllConsentNames, 'necessary'>
+				]?.value ??
 				false}
-			{@const isDisabled = consentType.disabled ?? false}
+			{@const isDisabled =
+				consentType.name === 'necessary' || (consentType.disabled ?? false)}
+			{@const restricted =
+				isChecked && !consent.snapshot.effectivePermissions[consentType.name]}
 			<PreferenceItem.Root
 				class={noStyle ? '' : accordionStyles.item || ''}
 				open={isOpen}
@@ -215,6 +204,9 @@
 							aria-label={translations.consentTypes[consentType.name]?.title ??
 								formatConsentName(consentType.name)}
 							checked={isChecked}
+							aria-describedby={restricted
+								? `${widgetId}-${consentType.name}-restriction`
+								: undefined}
 							onclick={() => toggleConsent(consentType.name, !isChecked)}
 							disabled={isDisabled}
 							class={noStyle ? '' : sw.root()}
@@ -231,6 +223,14 @@
 					</PreferenceItem.Control>
 				</div>
 
+				{#if restricted}
+					<p
+						id={`${widgetId}-${consentType.name}-restriction`}
+						data-testid={`consent-widget-restriction-${consentType.name}`}
+					>
+						Your saved choice is restricted by the current privacy settings.
+					</p>
+				{/if}
 				<PreferenceItem.Content
 					class={noStyle ? '' : accordionStyles.content || ''}
 					data-testid={`consent-widget-accordion-content-${consentType.name}`}
@@ -258,7 +258,9 @@
 			{#if action === 'reject'}
 				<ConsentButton
 					action="reject-consent"
-					variant={isPrimary ? 'primary' : 'neutral'}
+					variant={themedActions.reject.variant ??
+						(isPrimary ? 'primary' : 'neutral')}
+					mode={themedActions.reject.mode ?? 'stroke'}
 					closeConsentBanner
 					closeConsentDialog
 					data-action="reject"
@@ -269,7 +271,9 @@
 			{:else if action === 'accept'}
 				<ConsentButton
 					action="accept-consent"
-					variant={isPrimary ? 'primary' : 'neutral'}
+					variant={themedActions.accept.variant ??
+						(isPrimary ? 'primary' : 'neutral')}
+					mode={themedActions.accept.mode ?? 'stroke'}
 					closeConsentBanner
 					closeConsentDialog
 					data-action="accept"
@@ -277,12 +281,15 @@
 				>
 					{translations.common.acceptAll}
 				</ConsentButton>
-			{:else if action === 'customize'}
+			{:else if action === 'save'}
 				<ConsentButton
 					action="custom-consent"
-					variant={isPrimary ? 'primary' : 'neutral'}
+					disabled={consent.state.draft.isStale}
+					variant={themedActions.save.variant ??
+						(isPrimary ? 'primary' : 'neutral')}
+					mode={themedActions.save.mode ?? 'stroke'}
 					closeConsentDialog
-					data-action="customize"
+					data-action="save"
 					data-testid="consent-widget-footer-save-button"
 				>
 					{translations.common.save}

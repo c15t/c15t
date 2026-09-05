@@ -33,7 +33,9 @@
 	const theme = getThemeContext();
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const hasConsent = $derived(consent.state.consents[category] ?? false);
+	const hasConsent = $derived(
+		consent.state.effectivePermissions[category] ?? false
+	);
 
 	const translations = $derived(
 		resolveTranslations(

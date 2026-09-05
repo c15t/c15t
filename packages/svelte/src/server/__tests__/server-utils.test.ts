@@ -269,14 +269,16 @@ describe('v3 server helpers', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('readInitialConsentConfig returns empty config when no request context is present', async () => {
+	test('readInitialConsentConfig returns empty records with a shared clock when no request context is present', async () => {
 		const headers = new Headers({
 			'content-type': 'application/json',
 		});
 		const result = await readInitialConsentConfig({
 			headers,
 		});
-		expect(result).toEqual({});
+		expect(result.initialRecords?.choice).toBeNull();
+		expect(result.initialRecords?.now).toBe(result.now);
+		expect(result.initialPrivacySignals?.gpc).toBe(false);
 	});
 
 	test('readInitialConsentConfig reads geo, language, and consent cookie', async () => {
@@ -297,7 +299,12 @@ describe('v3 server helpers', () => {
 			language: 'de',
 			region: 'BE',
 		});
-		expect(result.initialConsents?.marketing).toBe(true);
+		expect(result.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		expect(
+			result.initialRecords?.choice?.categories.marketing?.confirmedAt
+		).toBe(1234567890);
 	});
 
 	test('prefetchInitialConsent returns base config when URL normalization fails', async () => {

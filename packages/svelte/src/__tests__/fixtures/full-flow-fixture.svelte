@@ -7,10 +7,10 @@
 
 	let {
 		options,
-		showWhen = 'always' as 'always' | 'after-consent' | 'never',
+		showWhen = 'always' as 'always' | 'never',
 	}: {
 		options: ConsentManagerOptions;
-		showWhen?: 'always' | 'after-consent' | 'never';
+		showWhen?: 'always' | 'never';
 	} = $props();
 </script>
 

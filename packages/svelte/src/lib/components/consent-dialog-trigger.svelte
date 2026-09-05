@@ -14,7 +14,7 @@
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
-	type TriggerVisibility = 'always' | 'after-consent' | 'never';
+	type TriggerVisibility = 'always' | 'never';
 
 	let {
 		defaultPosition = 'bottom-right' as CornerPosition,
@@ -40,7 +40,6 @@
 
 	const consent = getConsentContext();
 
-	let isMounted = $state(false);
 	let corner: CornerPosition = $state(untrack(() => defaultPosition));
 
 	// Drag state
@@ -51,7 +50,6 @@
 	let capturedElement: HTMLElement | null = null;
 
 	onMount(() => {
-		isMounted = true;
 		if (persistPosition) {
 			const persisted = getPersistedPosition();
 			if (persisted) {
@@ -61,23 +59,7 @@
 	});
 
 	const branding = $derived(consent.state.branding);
-	const hasConsented = $derived(
-		consent.state.consentInfo !== null &&
-			consent.state.consentInfo !== undefined
-	);
-	const activeUI = $derived(consent.state.activeUI);
-
-	const shouldShow = $derived.by(() => {
-		if (showWhen === 'never') {
-			return false;
-		}
-		if (showWhen === 'after-consent') {
-			return hasConsented;
-		}
-		return true;
-	});
-
-	const visible = $derived(shouldShow && activeUI === 'none');
+	const visible = $derived(showWhen !== 'never');
 
 	// Position class mapping
 	const cornerClassMap: Record<CornerPosition, string> = {
@@ -99,7 +81,7 @@
 	const dragStyle = $derived(
 		dragState.isDragging
 			? `transform: translate(${dragState.currentX - dragState.startX}px, ${dragState.currentY - dragState.startY}px); transition: none;`
-			: ''
+			: 'transform: none;'
 	);
 
 	const updateCorner = function updateCorner(newCorner: CornerPosition) {
@@ -197,13 +179,8 @@
 		if (hasDragged) {
 			return;
 		}
-		consent.state.setActiveUI('dialog');
 		onclick?.(e);
-	};
-
-	const handleKeyDown = function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter' || e.key === ' ') {
-			e.preventDefault();
+		if (!e.defaultPrevented) {
 			consent.state.setActiveUI('dialog');
 		}
 	};
@@ -224,16 +201,16 @@
 	);
 </script>
 
-{#if isMounted && visible}
+{#if visible}
 	<div use:portal>
 		<button
 			type="button"
 			class={buttonClasses}
 			style={dragStyle}
 			data-c15t-trigger="true"
+			data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
 			aria-label={ariaLabel}
 			onclick={handleClick}
-			onkeydown={handleKeyDown}
 			onpointerdown={handlePointerDown}
 			onpointermove={handlePointerMove}
 			onpointerup={handlePointerUp}

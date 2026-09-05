@@ -3,7 +3,7 @@ import {
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
 import type { KernelConfig } from '@c15t/core';
-import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
+import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
@@ -18,23 +18,14 @@ import type {
 export const readInitialConsentConfig = function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions
 ): Promise<KernelConfig> {
-	// The persistence module writes the `c15t` cookie in the v2-compatible
-	// compact format — read it with the same shared parser the client uses.
-	// `cookieName` only matters if the consumer customized
-	// `storageConfig.storageKey` client-side.
+	const now = options.now ?? Date.now();
 	const cookieHeader =
 		options.cookieHeader ?? options.headers.get('cookie') ?? undefined;
-	const persisted = readStoredConsentFromCookie(
+	const initialRecords = readStoredRecordsFromCookieHeader(
 		cookieHeader,
-		options.cookieName ? { storageKey: options.cookieName } : undefined
+		options.cookieName ? { storageKey: options.cookieName } : undefined,
+		now
 	);
-	const initialConsents = persisted?.consents;
-	const hasConsented = Boolean(persisted?.consents && persisted.consentInfo);
-	const subjectId =
-		typeof persisted?.consentInfo?.subjectId === 'string'
-			? persisted.consentInfo.subjectId
-			: undefined;
-
 	const inputs = extractConsentRequestInputs(options.headers, {
 		country: options.country,
 		language: options.language,
@@ -42,18 +33,11 @@ export const readInitialConsentConfig = function readInitialConsentConfig(
 	});
 	const overrides = consentInputsToOverrides(inputs);
 
-	const config: KernelConfig = {};
-	if (initialConsents) {
-		config.initialConsents = initialConsents;
-	}
-	if (hasConsented) {
-		// Without this the server still renders the banner for returning
-		// visitors (activeUI derives from hasConsented).
-		config.initialHasConsented = true;
-		if (subjectId) {
-			config.initialSubjectId = subjectId;
-		}
-	}
+	const config: KernelConfig = {
+		initialPrivacySignals: { gpc: options.headers.get('sec-gpc') === '1' },
+		initialRecords,
+		now,
+	};
 	if (Object.keys(overrides).length > 0) {
 		config.initialOverrides = overrides;
 	}

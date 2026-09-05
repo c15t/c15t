@@ -2,7 +2,6 @@
 	import { createConsentKernel, defaultTranslationConfig } from '@c15t/core';
 	import type {
 		AllConsentNames,
-		Callbacks,
 		ConsentKernel,
 		ConsentSnapshot,
 		ConsentState,
@@ -25,8 +24,8 @@
 		createWindowDebug,
 		resolveWindowDebugMode,
 	} from '@c15t/core/modules/window-debug';
-	import { createIAB } from '@c15t/iab';
 	import type { IABHandle } from '@c15t/iab';
+	import { resolvePolicyRules } from '@c15t/schema/types';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
@@ -36,6 +35,7 @@
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import type {
 		ConsentManagerOptions,
+		ConsentProviderCallbacks,
 		ProviderIABOptions,
 		UsePersistenceOptions,
 	} from '../types';
@@ -176,7 +176,7 @@
 
 	const getProviderCallbacks = function getProviderCallbacks(
 		providerOptions: ProviderOptionsInput
-	): Callbacks | undefined {
+	): ConsentProviderCallbacks | undefined {
 		return providerOptions.callbacks;
 	};
 
@@ -186,16 +186,18 @@
 		return providerOptions.iab;
 	};
 
-	const buildNoBannerPolicy =
-		function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {
-			return {
-				id: 'no_banner',
-				model: 'none',
-				ui: {
-					mode: 'none',
-				},
-			};
-		};
+	const DISABLED_RESOLUTION = resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				id: 'disabled',
+				match: { fallback: true },
+				model: 'opt-out',
+				prompt: 'none',
+			},
+		],
+	});
 
 	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 	const createProviderKernel = function createProviderKernel(
@@ -203,14 +205,12 @@
 	): ConsentKernel {
 		const enabled = getEnabled(providerOptions);
 		const prefetch = providerOptions.prefetch ?? {};
-		const { offlinePolicy } = providerOptions;
+
 		const i18nTranslations =
 			resolveI18nTranslations(providerOptions.i18n) ?? DEFAULT_TRANSLATIONS;
 
 		const transportContext: ProviderTransportContext = {
 			consentCategories: providerOptions.consentCategories,
-			offlinePolicy,
-			policies: providerOptions.policies,
 			prefetch,
 			translations: i18nTranslations,
 		};
@@ -218,22 +218,16 @@
 
 		return createConsentKernel({
 			...prefetch,
-			initialConsents: enabled
-				? (prefetch.initialConsents ?? undefined)
-				: ALL_CONSENTS_ON,
 			initialOverrides: {
 				...(prefetch.initialOverrides ?? {}),
 				...(providerOptions.overrides ?? {}),
 			},
-			initialPolicy:
-				enabled === false
-					? (prefetch.initialPolicy ?? buildNoBannerPolicy())
-					: (prefetch.initialPolicy ?? offlinePolicy?.policy),
-			initialPolicyDecision:
-				prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-			initialPolicySnapshotToken:
-				prefetch.initialPolicySnapshotToken ??
-				offlinePolicy?.policySnapshotToken,
+			initialPolicyProvisional:
+				prefetch.initialPolicyProvisional ??
+				(enabled && !prefetch.initialPolicyResolution),
+			initialPolicyResolution: enabled
+				? prefetch.initialPolicyResolution
+				: DISABLED_RESOLUTION,
 			initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 			initialUser: normalizeUser(providerOptions.user) ?? prefetch.initialUser,
 			transport: baseTransport,
@@ -241,29 +235,6 @@
 	};
 
 	const kernel = untrack(() => createProviderKernel(options));
-
-	let earlyPersistence: ReturnType<typeof createPersistence> | null = null;
-	const initialEnabled = untrack(() => getEnabled(options));
-	const initialPersistenceOptions = untrack(() =>
-		normalizePersistenceOptions()
-	);
-
-	if (
-		typeof document !== 'undefined' &&
-		typeof localStorage !== 'undefined' &&
-		initialEnabled
-	) {
-		const persistenceOptions = initialPersistenceOptions;
-		if (persistenceOptions && persistenceOptions.skipHydration !== true) {
-			earlyPersistence = createPersistence({
-				kernel,
-				storageConfig: persistenceOptions.storageConfig,
-			});
-			if (kernel.getSnapshot().hasConsented) {
-				kernel.set.activeUI('none');
-			}
-		}
-	}
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
 	let draftValues = $state<Partial<ConsentState>>({});
@@ -273,19 +244,68 @@
 		untrack(() => options.consentCategories ?? [])
 	);
 
+	let draftFingerprint = $state<string | null>(null);
 	const draft: ConsentDraftState = {
+		get isStale() {
+			return (
+				draftFingerprint !== null &&
+				draftFingerprint !== snapshot.evaluationPolicy.choice.fingerprint
+			);
+		},
 		reset() {
 			draftValues = {};
+			draftFingerprint = null;
 		},
 		async save() {
-			await kernel.commands.save(draftValues);
+			const current = kernel.getSnapshot();
+			if (
+				draftFingerprint !== null &&
+				draftFingerprint !== current.evaluationPolicy.choice.fingerprint
+			) {
+				throw new Error(
+					'The policy changed. Review your preferences before saving.'
+				);
+			}
+			const { values } = draft;
+			const result = await kernel.commands.save(
+				Object.fromEntries(
+					current.policyRule.scope
+						.filter(
+							(name) =>
+								configuredCategories.length === 0 ||
+								configuredCategories.includes(name)
+						)
+						.map((name) => [name, values[name]])
+				)
+			);
+			if (!result.ok) {
+				throw new Error('Unable to save preferences.');
+			}
 			draftValues = {};
+			draftFingerprint = null;
 		},
 		set(name, value) {
+			if (name === 'necessary') {
+				return;
+			}
+			draftFingerprint ??=
+				kernel.getSnapshot().evaluationPolicy.choice.fingerprint;
 			draftValues = { ...draftValues, [name]: value };
 		},
 		get values() {
-			return draftValues;
+			return {
+				necessary: true,
+				...Object.fromEntries(
+					snapshot.policyRule.scope.map((name) => [
+						name,
+						draftValues[name] ??
+							snapshot.explicitChoice?.categories[name]?.value ??
+							options.presentation?.preferences?.defaults?.[name] ??
+							(snapshot.policyRule.model === 'opt-out' ||
+								snapshot.policyRule.preselectedCategories.includes(name)),
+					])
+				),
+			};
 		},
 	};
 
@@ -330,6 +350,7 @@
 		getDraft: () => draft,
 		getIAB: getIABState,
 		getLegalLinks: () => options.legalLinks,
+		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
 	});
 
@@ -351,110 +372,19 @@
 		}
 	};
 
-	const categoriesWithValue = function categoriesWithValue(
-		next: ConsentSnapshot,
-		value: boolean
-	) {
-		return Object.entries(next.consents)
-			.filter(([, enabled]) => enabled === value)
-			.map(([category]) => category as AllConsentNames);
-	};
-
-	const snapshotConsentsChanged = function snapshotConsentsChanged(
-		previous: ConsentSnapshot,
-		next: ConsentSnapshot
-	): boolean {
-		return Object.keys(next.consents).some(
-			(key) =>
-				next.consents[key as AllConsentNames] !==
-				previous.consents[key as AllConsentNames]
-		);
-	};
-
-	const hasRevokedConsent = function hasRevokedConsent(
-		previous: ConsentSnapshot,
-		next: ConsentSnapshot
-	) {
-		if (!previous.hasConsented) {
-			return false;
-		}
-		return Object.keys(previous.consents).some((key) => {
-			const category = key as AllConsentNames;
-			return (
-				category !== 'necessary' &&
-				previous.consents[category] &&
-				!next.consents[category]
-			);
-		});
-	};
-
-	const wireCallbacks = function wireCallbacks(
-		callbacks: Callbacks | undefined
-	) {
-		let saveStartedSnapshot: ConsentSnapshot | null = null;
-		const reloadOnConsentRevoked = options.reloadOnConsentRevoked !== false;
+	const wireCallbacks = (callbacks: ConsentProviderCallbacks | undefined) => {
 		const subscriptions = [
-			kernel.events.on('init:applied', ({ snapshot: next }) => {
-				const decision = next.policyDecision as {
-					jurisdiction?: unknown;
-				} | null;
-				callbacks?.onBannerFetched?.({
-					jurisdiction:
-						typeof decision?.jurisdiction === 'string'
-							? (decision.jurisdiction as never)
-							: ('NONE' as never),
-					location: {
-						countryCode: next.location?.countryCode ?? null,
-						regionCode: next.location?.regionCode ?? null,
-					},
-					translations: next.translations ?? { ...DEFAULT_TRANSLATIONS },
-				});
-			}),
-			kernel.events.on('command:save:started', () => {
-				saveStartedSnapshot = kernel.getSnapshot();
-			}),
-			kernel.events.on('command:save:completed', ({ result }) => {
-				if (!result.ok) {
-					return;
-				}
-				const previous = saveStartedSnapshot;
-				const next = kernel.getSnapshot();
-				callbacks?.onConsentSet?.({
-					preferences: next.consents as never,
-				});
-				if (previous && snapshotConsentsChanged(previous, next)) {
-					callbacks?.onConsentChanged?.({
-						allowedCategories: categoriesWithValue(next, true),
-						deniedCategories: categoriesWithValue(next, false),
-						preferences: next.consents as never,
-						previousAllowedCategories: categoriesWithValue(previous, true),
-						previousDeniedCategories: categoriesWithValue(previous, false),
-						previousPreferences: previous.consents as never,
-					});
-					if (reloadOnConsentRevoked && hasRevokedConsent(previous, next)) {
-						callbacks?.onBeforeConsentRevocationReload?.({
-							preferences: next.consents as never,
-						});
-						if (typeof window !== 'undefined') {
-							window.location.reload();
-						}
-					}
-				}
-			}),
-			kernel.events.on(
-				'command:error',
-				(event: Extract<KernelEvent, { type: 'command:error' }>) => {
-					callbacks?.onError?.({
-						error: stringifyError(event.error),
-					});
-				}
+			kernel.events.on('choice:recorded', ({ type: _type, ...event }) =>
+				callbacks?.onChoiceRecorded?.(event)
+			),
+			kernel.events.on('permissions:changed', ({ type: _type, ...event }) =>
+				callbacks?.onPermissionsChanged?.(event)
+			),
+			kernel.events.on('command:error', (event) =>
+				callbacks?.onError?.({ error: stringifyError(event.error) })
 			),
 		];
-		return () => {
-			for (const dispose of subscriptions) {
-				dispose();
-			}
-		};
+		return () => subscriptions.forEach((dispose) => dispose());
 	};
 
 	const disposeCallbacks = untrack(() =>
@@ -485,6 +415,15 @@
 		};
 	};
 
+	const activatePreparedPrivacy = () => {
+		const { gpc } = kernel.getSnapshot().privacySignals;
+		if (gpc.detected && gpc.active) {
+			kernel.set.privacySignals({ gpc: true });
+		}
+	};
+	const isPrepared = (providerOptions: ProviderOptionsInput) =>
+		providerOptions.prefetch?.initialPolicyResolution !== undefined &&
+		providerOptions.prefetch?.initialPolicyProvisional !== true;
 	onMount(() => {
 		const disposers: (() => void)[] = [];
 		disposers.push(() => kernel.dispose());
@@ -497,39 +436,25 @@
 		});
 		disposers.push(() => windowDebug.dispose());
 
+		const prepared = isPrepared(options);
 		if (enabled && persistenceOptions) {
-			const persistence =
-				earlyPersistence ??
-				createPersistence({
-					kernel,
-					skipHydration: true,
-					storageConfig: persistenceOptions.storageConfig,
-				});
-			if (!earlyPersistence && persistenceOptions.skipHydration !== true) {
-				persistence.hydrate();
-				if (kernel.getSnapshot().hasConsented) {
-					kernel.set.activeUI('none');
-				}
-				snapshot = kernel.getSnapshot();
-			}
-			disposers.push(() => {
-				persistence.dispose();
-				if (earlyPersistence === persistence) {
-					earlyPersistence = null;
-				}
+			const persistence = createPersistence({
+				kernel,
+				skipHydration:
+					persistenceOptions.skipHydration ??
+					Boolean(options.prefetch?.initialRecords),
+				storageConfig: persistenceOptions.storageConfig,
 			});
+			disposers.push(() => persistence.dispose());
+		}
+		if (enabled && prepared) {
+			kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });
+			activatePreparedPrivacy();
+		} else if (enabled) {
+			void kernel.commands.init();
 		}
 
-		if (enabled) {
-			void (async () => {
-				await kernel.commands.init();
-				if (kernel.getSnapshot().hasConsented) {
-					kernel.set.activeUI('none');
-				}
-			})();
-		}
-
-		if (enabled && options.scripts && options.scripts.length > 0) {
+		if (enabled && options.scripts?.length) {
 			const loader = createScriptLoader({
 				kernel,
 				onDebug: options.scriptLoader?.onDebug,
@@ -559,7 +484,11 @@
 
 		if (enabled && getProviderIab(options)) {
 			let iabMounted = false;
-			const mountIabIfReady = () => {
+			let cancelled = false;
+			disposers.push(() => {
+				cancelled = true;
+			});
+			const mountIabIfReady = async () => {
 				if (iabMounted) {
 					return;
 				}
@@ -568,6 +497,10 @@
 					return;
 				}
 				iabMounted = true;
+				const { createIAB } = await import('@c15t/iab');
+				if (cancelled) {
+					return;
+				}
 				const handle = createIAB({ ...iabOptions, kernel });
 				iabHandle = handle;
 				disposers.push(() => {
@@ -615,9 +548,6 @@
 		if (getEnabled(options)) {
 			void (async () => {
 				await kernel.commands.init();
-				if (kernel.getSnapshot().hasConsented) {
-					kernel.set.activeUI('none');
-				}
 			})();
 		}
 	});
@@ -626,9 +556,8 @@
 		if (getEnabled(options)) {
 			return;
 		}
-		kernel.set.consent(ALL_CONSENTS_ON);
+
 		kernel.set.activeUI('none');
-		kernel.set.hasConsented(true);
 	});
 
 	let prefersReducedMotion = $state(false);

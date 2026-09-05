@@ -1,4 +1,4 @@
-import { onMount, tick } from 'svelte';
+import { tick, untrack } from 'svelte';
 
 const DEFAULT_DURATION_MS = 200;
 
@@ -37,14 +37,10 @@ export const useBannerVisibility = function useBannerVisibility(
 	getShouldShow: () => boolean,
 	getDisableAnimation: () => boolean
 ) {
-	let isVisible = $state(false);
-	let isMounted = $state(false);
-	let shouldRender = $state(false);
+	let isVisible = $state(untrack(getShouldShow));
+	const isMounted = true;
+	let shouldRender = $state(untrack(getShouldShow));
 	let bannerEl: HTMLElement | undefined = $state();
-
-	onMount(() => {
-		isMounted = true;
-	});
 
 	$effect(() => {
 		const shouldShow = getShouldShow();

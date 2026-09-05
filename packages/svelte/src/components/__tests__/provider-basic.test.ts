@@ -238,19 +238,17 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('should resolve policies in offline mode', async () => {
 		const { getByTestId } = render(ContextConsumerFixture, {
 			options: {
-				mode: offline(),
-				overrides: {
-					country: 'US',
-					region: 'CA',
-				},
-				policies: [
-					{
-						consent: { model: 'opt-out' },
-						id: 'policy_region_us_ca',
-						match: { regions: [{ country: 'US', region: 'CA' }] },
-						ui: { mode: 'banner' },
-					},
-				],
+				mode: offline({
+					policyRules: [
+						{
+							id: 'policy_region_us_ca',
+							match: { regions: [{ country: 'US', region: 'CA' }] },
+							model: 'opt-out',
+							prompt: 'choice',
+						},
+					],
+				}),
+				overrides: { country: 'US', region: 'CA' },
 			},
 		});
 

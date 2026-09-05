@@ -15,7 +15,6 @@
  */
 
 import {
-	DriverNotImplementedError,
 	IAB_FIXTURE_CMP_ID,
 	IAB_FIXTURE_CMP_VERSION,
 	MINIMAL_GVL,
@@ -33,15 +32,23 @@ import type {
 	ConsentKernel,
 	KernelActiveUI,
 	KernelConfig,
-	ResolvedPolicy,
+	InitResponse,
 } from '@c15t/core';
+import { custom } from '@c15t/core';
 import type { GlobalVendorList } from '@c15t/schema/types';
+import {
+	normalizePolicyRule,
+	createPolicyRuleFingerprints,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
 
 import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
+import { createPolicySession, probePolicyContract } from './policy-driver';
+import { renderSsr } from './server-render';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -99,99 +106,45 @@ const consentCategoriesFor = function consentCategoriesFor(
 		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
 };
 
-const activeUIForComponent = function activeUIForComponent(
-	component: MountableComponent
-): KernelActiveUI {
-	switch (component) {
-		case 'consent-dialog':
-		case 'consent-widget':
-		case 'iab-consent-dialog':
-			return 'dialog';
-		case 'consent-banner':
-		case 'iab-consent-banner':
-			return 'banner';
-		default:
-			throw new DriverNotImplementedError('svelte', `mount(${component})`);
-	}
-};
-
-const buildPolicy = function buildPolicy(
-	opts: MountOptions,
-	options: Partial<ProviderOptions>
-): ResolvedPolicy {
-	const state = opts.initialState as
-		| { activeUI?: 'none' | 'banner' | 'dialog' }
-		| undefined;
-	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
-	const consent: ResolvedPolicy['consent'] = {
-		categories: consentCategoriesFor(options),
-		scopeMode: 'permissive',
-	};
-	if (opts.policy?.respectGpc !== undefined) {
-		consent.gpc = opts.policy.respectGpc;
-	}
-
-	return {
-		consent,
-		id: 'svelte_conformance_policy',
-		model: isIabComponent(opts.component)
-			? 'iab'
-			: (opts.policy?.model ?? 'opt-in'),
-		ui: {
-			banner: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				scrollLock: false,
-			},
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				scrollLock: false,
-			},
-			mode,
-		},
-	};
-};
-
 const buildProviderOptions = function buildProviderOptions(
 	opts: MountOptions
 ): ProviderOptions {
-	if (opts.initMode) {
-		// Pending: implement request-lifecycle once the Svelte provider exposes an
-		// equivalent initialPolicyProvisional path for deferred transport init.
-		throw new DriverNotImplementedError(
-			'svelte',
-			`request lifecycle initMode (${opts.initMode})`
-		);
-	}
 	const provided = (opts.providerOptions ?? {}) as Partial<ProviderOptions>;
-	const state = opts.initialState as
-		| {
-				consents?: Record<string, boolean>;
-				hasConsented?: boolean;
-		  }
-		| undefined;
+	const rule = normalizePolicyRule({
+		categories: consentCategoriesFor(provided).filter(
+			(name) => name !== 'necessary'
+		),
+		id: 'svelte_conformance_policy',
+		match: { fallback: true },
+		model: isIabComponent(opts.component)
+			? 'iab'
+			: (opts.policy?.model ?? 'opt-in'),
+		privacySignals: {
+			gpc: {
+				denyCategories: opts.policy?.respectGpc
+					? ['marketing', 'measurement']
+					: [],
+			},
+		},
+		prompt: 'choice',
+	});
+	const resolution = {
+		fingerprints: createPolicyRuleFingerprints(rule),
+		matchedBy: 'fallback' as const,
+		policy: rule,
+		policyId: rule.id,
+		status: 'matched' as const,
+	};
 	const prefetch: KernelConfig = {
 		...(provided.prefetch ?? {}),
 		initialBranding: 'c15t',
-		initialConsents: {
-			...(provided.prefetch?.initialConsents ?? {}),
-			...(state?.consents ?? {}),
-		},
-		initialHasConsented:
-			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
-		initialLocation: {
-			countryCode: 'DE',
-			regionCode: null,
-		},
-		initialPolicy: buildPolicy(opts, provided),
-		initialPolicyDecision: {
-			country: 'DE',
-			fingerprint: 'svelte_conformance_fingerprint',
-			jurisdiction: 'GDPR',
-			matchedBy: 'default',
-			policyId: 'svelte_conformance_policy',
-			region: null,
-		},
-		initialPolicySnapshotToken: 'svelte_conformance_token',
+		initialPolicyProvisional:
+			opts.initMode === 'pending' || opts.initMode === 'failing',
+		initialPolicyResolution:
+			opts.initMode === 'pending' || opts.initMode === 'failing'
+				? undefined
+				: resolution,
+		initialPrivacySignals: { gpc: opts.gpc },
 	};
 
 	const options = {
@@ -203,12 +156,6 @@ const buildProviderOptions = function buildProviderOptions(
 		prefetch,
 		trapFocus: provided.trapFocus ?? false,
 	} as ProviderOptions;
-	// GPC flows through the public `overrides` option — the same input an
-	// embedding app uses — which the provider merges into the kernel's
-	// `initialOverrides` (consent-manager-provider.svelte).
-	if (opts.gpc !== undefined) {
-		options.overrides = { gpc: opts.gpc };
-	}
 	// Real IAB wiring: the provider normalizes this into `createIAB`,
 	// which seeds the kernel's IAB slice (enabled + GVL + CMP id).
 	if (isIabComponent(opts.component)) {
@@ -249,6 +196,7 @@ const projectStoreState = function projectStoreState(
 let lastKernel: ConsentKernel | null = null;
 
 const driver: TestDriver = {
+	createPolicySession,
 	framework: 'svelte',
 	getStore() {
 		if (!lastKernel) {
@@ -264,6 +212,27 @@ const driver: TestDriver = {
 	},
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const options = buildProviderOptions(opts);
+		let resolveInit: (() => void) | undefined;
+		if (opts.initMode === 'pending') {
+			const resolution = buildProviderOptions({
+				...opts,
+				initMode: 'authoritative',
+			}).prefetch?.initialPolicyResolution;
+			const promise = createDeferredPromise<InitResponse>((resolve) => {
+				resolveInit = () =>
+					resolve({
+						policyResolution: writePolicyResolutionWire(
+							resolution ?? { policy: null, status: 'unconfigured' }
+						),
+					});
+			});
+			options.mode = custom({ init: () => promise });
+		} else if (opts.initMode === 'failing') {
+			options.mode = custom({
+				init: () => Promise.reject(new Error('Init failed')),
+			});
+		}
+
 		let mountedKernel: ConsentKernel | null = null;
 
 		const container = document.createElement('div');
@@ -288,6 +257,14 @@ const driver: TestDriver = {
 		}
 
 		return {
+			resolveInit: resolveInit
+				? async () => {
+						resolveInit?.();
+						await createDeferredPromise((resolve) => {
+							setTimeout(resolve, 0);
+						});
+					}
+				: undefined,
 			root: container,
 			unmount: async () => {
 				await unmount(app);
@@ -299,28 +276,13 @@ const driver: TestDriver = {
 			},
 		};
 	},
-	serverRender(_opts: MountOptions): Promise<string> {
-		if (_opts.initMode) {
-			// Pending: see buildProviderOptions; SSR also needs an SSR-compiled
-			// fixture before this lifecycle contract can run for Svelte.
-			return Promise.reject(
-				new DriverNotImplementedError(
-					'svelte',
-					`request lifecycle initMode (${_opts.initMode})`
-				)
-			);
-		}
-		// Svelte 5 dual-compiles components (client vs server output). This
-		// vitest project resolves the browser condition, so `svelte/server`'s
-		// `render()` receives client-compiled components and throws
-		// `effect_orphan` (onMount hits the client runtime). Real SSR
-		// conformance needs a second vitest project with
-		// `resolve.conditions: ['svelte', 'node']` and an SSR-compiled
-		// fixture — tracked as follow-up. SvelteKit SSR in real apps is
-		// unaffected; this is a test-harness compilation constraint.
-		return Promise.reject(
-			new DriverNotImplementedError('svelte', 'serverRender')
-		);
+	probePolicyContract,
+	serverRender(opts: MountOptions): Promise<string> {
+		const options = buildProviderOptions(opts);
+		return renderSsr(
+			{ component: opts.component, options: { ...options, mode: undefined } },
+			'conformance-fixture.svelte'
+		).then((result) => result.html);
 	},
 };
 

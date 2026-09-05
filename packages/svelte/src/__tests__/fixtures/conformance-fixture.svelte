@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ConsentKernel } from '@c15t/core';
+	import { untrack } from 'svelte';
 
 	import ConsentBanner from '../../lib/components/consent-banner.svelte';
 	import ConsentDialog from '../../lib/components/consent-dialog.svelte';
@@ -40,6 +41,6 @@
 	{:else if component === 'iab-consent-banner'}
 		<IabConsentBanner />
 	{:else if component === 'iab-consent-dialog'}
-		<IabConsentDialog />
+		<IabConsentDialog open />
 	{/if}
 </ConsentManagerProvider>
