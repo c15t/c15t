@@ -244,3 +244,66 @@ describe('resolveStrictestDefaultInit: unrestricted category lists', () => {
 		}
 	});
 });
+
+describe('resolveStrictestDefaultInit: effective pre-consent grants', () => {
+	const clonePack = function clonePack(
+		pack: (typeof MANIFEST_FIXTURE.policyPacks)[number],
+		id: string,
+		patch: (consent: Record<string, unknown>) => void
+	) {
+		const copy = structuredClone(pack);
+		copy.policy.id = id;
+		copy.resolvedPolicy.id = id;
+		if (copy.policy.consent) {
+			patch(copy.policy.consent as never);
+		}
+		if (copy.resolvedPolicy.consent) {
+			patch(copy.resolvedPolicy.consent as never);
+		}
+		return copy;
+	};
+
+	const pickFor = function pickFor(
+		policyPacks: (typeof MANIFEST_FIXTURE.policyPacks)[number][],
+		gpc?: boolean
+	) {
+		return resolveStrictestDefaultInit(
+			{ ...MANIFEST_FIXTURE, policyPacks },
+			{ gpc, language: 'en' }
+		).policy?.id;
+	};
+
+	test('an opt-in pack that preselects a category ranks below one that does not', () => {
+		const [optIn] = MANIFEST_FIXTURE.policyPacks;
+		if (!optIn) {
+			throw new Error('fixture has no packs');
+		}
+		const preselecting = clonePack(optIn, 'eu-opt-in-preselect', (consent) => {
+			consent.preselectedCategories = ['marketing'];
+		});
+		expect(pickFor([optIn, preselecting])).toBe('eu-opt-in');
+		expect(pickFor([preselecting, optIn])).toBe('eu-opt-in');
+	});
+
+	test('a GPC-honouring but unrestricted opt-out pack only wins when GPC is present', () => {
+		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
+		if (!optOut) {
+			throw new Error('fixture has no opt-out pack');
+		}
+		const necessaryOnly = clonePack(optOut, 'us-necessary-only', (consent) => {
+			consent.categories = ['necessary'];
+			consent.gpc = false;
+		});
+		const gpcUnrestricted = clonePack(optOut, 'us-gpc-open', (consent) => {
+			consent.categories = ['*'];
+			consent.gpc = true;
+		});
+		expect(pickFor([gpcUnrestricted, necessaryOnly], false)).toBe(
+			'us-necessary-only'
+		);
+		expect(pickFor([necessaryOnly, gpcUnrestricted], false)).toBe(
+			'us-necessary-only'
+		);
+		expect(pickFor([necessaryOnly, gpcUnrestricted], true)).toBe('us-gpc-open');
+	});
+});

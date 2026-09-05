@@ -758,3 +758,24 @@ describe('proxy on: custom forwarded headers partition the response', () => {
 		expect(response.headers.get('cache-control')).toBe('public, max-age=60');
 	});
 });
+
+describe('proxy on: cleartext remote targets', () => {
+	test('drop caller-configured identity headers, not only the known credentials', async () => {
+		const fetch = createUpstream();
+		const handlers = createConsentServerRoute({
+			backendURL: 'http://backend.example/c15t',
+			cache: createManifestCache(),
+			fetch,
+			proxy: { forwardHeaders: ['x-api-key', 'accept-language'] },
+		});
+		await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status', {
+				headers: { 'accept-language': 'de', 'x-api-key': 'tenant-a' },
+			}),
+		});
+		const { headers } = upstreamCall(fetch);
+		expect(headers.get('x-api-key')).toBeNull();
+		expect(headers.get('accept-language')).toBe('de');
+	});
+});

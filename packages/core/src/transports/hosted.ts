@@ -28,6 +28,7 @@ import { buildRequestContextHeaders } from '../libs/request-context';
 import type { SSRInitialData } from '../options/ssr';
 import type {
 	InitContext,
+	KernelOverrides,
 	InitResponse,
 	KernelTransport,
 	KernelUser,
@@ -338,22 +339,39 @@ export const createHostedTransport = function createHostedTransport(
 	// Overlapping inits: the kernel keeps only the latest response, so only
 	// the latest attempt may update the assertion state.
 	let initGeneration = 0;
+	/** Overrides the previous init ran with; `undefined` before the first. */
+	let lastInitOverrides: KernelOverrides | undefined;
+
+	const sameOverrides = function sameOverrides(
+		left: KernelOverrides,
+		right: KernelOverrides
+	): boolean {
+		return (
+			left.country === right.country &&
+			left.region === right.region &&
+			left.language === right.language &&
+			left.gpc === right.gpc
+		);
+	};
 
 	const runInit = async function runInit(
 		ctx: InitContext
 	): Promise<InitResponse> {
 		initGeneration += 1;
 		const generation = initGeneration;
-		if (
-			options.assertDecisionInputs &&
-			lastDecisionInputs &&
-			!decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides)
-		) {
-			// The kernel is re-initialising for different inputs; a save made
-			// before that resolves must wait for the new decision rather than
-			// assert the superseded one.
-			lastDecisionInputs = undefined;
+		if (options.assertDecisionInputs && lastDecisionInputs) {
+			// A seed is kept while the first init runs for matching inputs;
+			// after that, any change to the overrides (including removing
+			// one) re-resolves, and a save made meanwhile must wait for the
+			// new decision rather than assert the superseded one.
+			const stale = lastInitOverrides
+				? !sameOverrides(lastInitOverrides, ctx.overrides)
+				: !decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides);
+			if (stale) {
+				lastDecisionInputs = undefined;
+			}
 		}
+		lastInitOverrides = { ...ctx.overrides };
 		// The kernel's current overrides (country, region, language, GPC)
 		// travel as the canonical consent headers so a same-origin init
 		// route resolves the requested inputs rather than the CDN's.

@@ -139,47 +139,73 @@ const normalizeGeo = function normalizeGeo(
 	};
 };
 
-/** Tie-breakers within a model: a strict scope, then honouring GPC. */
+/** Tie-breakers after the grant count: a strict scope, then honouring GPC. */
 const scoreScope = function scoreScope(pack: ConsentManifestPolicyPack) {
 	const { consent } = pack.resolvedPolicy;
 	return (consent?.scopeMode === 'strict' ? 2 : 0) + (consent?.gpc ? 1 : 0);
 };
 
-/**
- * Categories a pack exposes beyond `necessary`. Fewer is stricter: an
- * opt-out pack grants each listed category before the visitor decides.
- */
-const countOptionalCategories = function countOptionalCategories(
-	pack: ConsentManifestPolicyPack
-) {
-	const categories = pack.resolvedPolicy.consent?.categories;
+const isUnrestricted = function isUnrestricted(
+	categories: readonly string[] | undefined
+): categories is undefined {
 	// The runtime reads an absent, empty, or `*` list as every category.
-	if (!categories || categories.length === 0 || categories.includes('*')) {
-		return Number.POSITIVE_INFINITY;
+	return !categories || categories.length === 0 || categories.includes('*');
+};
+
+/**
+ * How many optional categories a pack grants before the visitor interacts,
+ * for the supplied GPC input. This is what "strictest" has to rank: an
+ * opt-in pack grants only what it preselects, while an opt-out, notice, or
+ * none pack grants its whole allowlist unless it honours a GPC signal that
+ * is present.
+ */
+const countPreConsentGrants = function countPreConsentGrants(
+	pack: ConsentManifestPolicyPack,
+	gpc: boolean | undefined
+): number {
+	const { consent, model } = pack.resolvedPolicy;
+	const categories = consent?.categories;
+	const optional = (list: readonly string[]) =>
+		list.filter((category) => category !== 'necessary');
+	if (model === 'opt-in' || model === 'iab') {
+		const preselected = optional(consent?.preselectedCategories ?? []);
+		return isUnrestricted(categories)
+			? preselected.length
+			: preselected.filter((category) => categories.includes(category)).length;
 	}
-	return categories.filter((category) => category !== 'necessary').length;
+	if (consent?.gpc && gpc === true) {
+		return 0;
+	}
+	return isUnrestricted(categories)
+		? Number.POSITIVE_INFINITY
+		: optional(categories).length;
 };
 
 const comparePolicyStrictness = function comparePolicyStrictness(
 	left: ConsentManifestPolicyPack,
-	right: ConsentManifestPolicyPack
+	right: ConsentManifestPolicyPack,
+	gpc: boolean | undefined
 ) {
 	const leftScore = POLICY_STRICTNESS[left.resolvedPolicy.model] ?? -1;
 	const rightScore = POLICY_STRICTNESS[right.resolvedPolicy.model] ?? -1;
 	if (leftScore !== rightScore) {
 		return leftScore - rightScore;
 	}
-	const scopeDelta = scoreScope(left) - scoreScope(right);
-	if (scopeDelta !== 0) {
-		return scopeDelta;
+	const grantDelta =
+		countPreConsentGrants(right, gpc) - countPreConsentGrants(left, gpc);
+	if (grantDelta !== 0) {
+		return grantDelta;
 	}
-	return countOptionalCategories(right) - countOptionalCategories(left);
+	return scoreScope(left) - scoreScope(right);
 };
 
 const pickStrictestPolicyPack = function pickStrictestPolicyPack(
-	manifest: ConsentManifest
+	manifest: ConsentManifest,
+	gpc: boolean | undefined
 ): ConsentManifestPolicyPack | undefined {
-	const sorted = manifest.policyPacks?.slice().sort(comparePolicyStrictness);
+	const sorted = manifest.policyPacks
+		?.slice()
+		.sort((left, right) => comparePolicyStrictness(left, right, gpc));
 	return sorted?.[sorted.length - 1];
 };
 
@@ -187,7 +213,7 @@ export const resolveStrictestDefaultInit = function resolveStrictestDefaultInit(
 	manifest: ConsentManifest,
 	inputs: Omit<ResolveInitFromManifestInputs, 'country' | 'region'> = {}
 ): InitOutput {
-	const strictestPack = pickStrictestPolicyPack(manifest);
+	const strictestPack = pickStrictestPolicyPack(manifest, inputs.gpc);
 	if (!strictestPack) {
 		return resolveInitFromManifest(
 			manifest,

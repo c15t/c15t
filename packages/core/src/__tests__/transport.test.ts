@@ -2855,3 +2855,47 @@ describe('hosted transport: re-init with different inputs', () => {
 		expect(savedAssertion(fetchSpy)).toMatchObject({ policyId: 'policy-1' });
 	});
 });
+
+describe('hosted transport: removing an override', () => {
+	test('drops the remembered decision so a failed re-init refuses the save', async () => {
+		let initCalls = 0;
+		const fetchSpy = vi.fn().mockImplementation((url: string) => {
+			if (url.endsWith('/init')) {
+				initCalls += 1;
+				return Promise.resolve(
+					initCalls === 1
+						? new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+								status: 200,
+							})
+						: new Response('nope', { status: 503 })
+				);
+			}
+			return Promise.resolve(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+		await transport.init?.({ overrides: { country: 'DE' }, user: null });
+		const reinit = transport.init?.({ overrides: {}, user: null });
+		const save = transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		await expect(reinit).rejects.toThrow();
+		await expect(save).rejects.toThrow(/policy decision/u);
+		expect(
+			fetchSpy.mock.calls.some(([url]) => String(url).endsWith('/subjects'))
+		).toBe(false);
+	});
+});

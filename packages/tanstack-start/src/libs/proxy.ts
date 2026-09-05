@@ -477,8 +477,13 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	const init: RequestInit & { duplex?: 'half'; headers: Headers } = {
 		headers: buildProxyRequestHeaders(
 			request,
+			// Nothing identity-bearing crosses a cleartext link: only the public
+			// browser allowlist survives, so a custom API key or tenant header
+			// configured in forwardHeaders is dropped too.
 			cleartextRemote
-				? options.forwardHeaders.filter((name) => !CREDENTIAL_HEADERS.has(name))
+				? options.forwardHeaders.filter((name) =>
+						PUBLIC_FORWARD_HEADERS.has(name.toLowerCase())
+					)
 				: options.forwardHeaders,
 			cookieNames,
 			options.trustForwardedHeaders
