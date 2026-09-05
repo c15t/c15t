@@ -40,7 +40,7 @@ import { baseTranslations } from '@c15t/translations/all';
 
 import { filterCookieHeader } from './libs/cookies';
 import { buildInlineOfflinePolicy } from './mode';
-import type { C15tLocals, C15tResolvedOptions } from './types';
+import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
 export interface ResolveConsentContextOptions {
@@ -508,6 +508,40 @@ export const buildConfigScript = function buildConfigScript(
 	// `<` is escaped so a translation string can never close the script tag.
 	const json = JSON.stringify(config ?? {}).replace(/</gu, '\\u003c');
 	return `window.__c15tAstroConfig=${json};`;
+};
+
+/**
+ * Build the first-paint colour-scheme script.
+ *
+ * Dark mode is the `c15t-dark` class on `<html>`, and the client boot sets
+ * it — but that runs after the stylesheet has already painted the
+ * server-rendered banner in the light palette. This runs in `<head>`,
+ * before the browser has anything to paint, so a system-dark visitor never
+ * sees the flash. It is deliberately framework-free and unbundled: a
+ * module script would be deferred and lose the race.
+ *
+ * `'light'` emits nothing. Light is the absence of the class, so there is
+ * nothing to do before paint.
+ *
+ * @param colorScheme - The resolved colour scheme.
+ * @returns Script source, or an empty string when none is needed.
+ * @example
+ * ```astro
+ * <script is:inline set:html={buildColorSchemeScript('system')} />
+ * ```
+ */
+export const buildColorSchemeScript = function buildColorSchemeScript(
+	colorScheme: C15tColorScheme
+): string {
+	if (colorScheme === 'light') {
+		return '';
+	}
+	if (colorScheme === 'dark') {
+		return "document.documentElement.classList.add('c15t-dark');";
+	}
+	// Wrapped because `matchMedia` is absent in some embedded webviews, and
+	// a throw here would abort the rest of the document's parsing.
+	return "try{document.documentElement.classList.toggle('c15t-dark',matchMedia('(prefers-color-scheme:dark)').matches)}catch(e){}";
 };
 
 export { buildPrefetchScript } from '@c15t/core';

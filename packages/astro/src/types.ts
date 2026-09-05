@@ -72,6 +72,16 @@ export interface C15tManifestDescriptor {
  */
 export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
 
+/**
+ * How the consent surfaces pick light or dark.
+ *
+ * Dark mode is the `c15t-dark` class on `<html>`, not a
+ * `prefers-color-scheme` block, so something has to set it. `'system'`
+ * follows `prefers-color-scheme` and keeps following it; `'light'` and
+ * `'dark'` pin it.
+ */
+export type C15tColorScheme = 'light' | 'dark' | 'system';
+
 /** Route paths the integration can inject. */
 export interface C15tEndpointOptions {
 	/**
@@ -118,6 +128,18 @@ export interface C15tAstroOptions {
 
 	/** Theme tokens applied to the banner and dialog surfaces. */
 	theme?: Theme;
+
+	/**
+	 * Light or dark for the banner and dialogs.
+	 *
+	 * `'system'` follows `prefers-color-scheme` and keeps following it as
+	 * the visitor changes it. `<ConsentScript />` writes the class from a
+	 * tiny inline script in `<head>`, so the server-rendered banner is
+	 * already dark on its first paint rather than flashing light.
+	 *
+	 * @default 'system'
+	 */
+	colorScheme?: C15tColorScheme;
 
 	/** Legal links rendered inline in the banner and dialog. */
 	legalLinks?: LegalLinks;
@@ -227,6 +249,7 @@ export interface C15tResolvedOptions extends Omit<
 	'endpoints' | 'middleware' | 'requireUIIntegration'
 > {
 	ui: C15tUIAdapterName;
+	colorScheme: C15tColorScheme;
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
 		enabled: boolean;
 	};

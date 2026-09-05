@@ -25,6 +25,7 @@ const virtualOptionsPlugin = {
 			return;
 		}
 		return `export default ${JSON.stringify({
+			colorScheme: 'system',
 			endpoints: {
 				enabled: false,
 				initPath: '/api/c15t/init',
