@@ -19,6 +19,7 @@ import type {
 	OptionalConsentCategory,
 	PromptRequirement,
 } from './consent-record/types';
+import { deepFreeze } from './libs/freeze-data';
 import type { KernelActiveUI, KernelModel } from './types';
 
 /** Rule plus fingerprints the evaluator runs on. */
@@ -27,31 +28,9 @@ export interface EffectivePolicy {
 	fingerprints: PolicyFingerprints;
 }
 
-/**
- * The rule a resolution puts in force: the matched rule, or the safe
- * opt-in choice fallback for `unconfigured`, `no-match` and `failed`.
- * The status stays observable on the snapshot; the fallback is never
- * reported as a matched policy.
- */
-export const resolveEffectivePolicy = function resolveEffectivePolicy(
-	resolution: PolicyResolution
-): EffectivePolicy {
-	if (resolution.status === 'matched') {
-		return { fingerprints: resolution.fingerprints, rule: resolution.policy };
-	}
-	const fallback = safeFallbackPolicyInput();
-	return { fingerprints: fallback.fingerprints, rule: fallback.policy };
-};
-
-/**
- * Validated evaluator projection of an effective policy. Validity is
- * rounded to whole milliseconds: a day count multiplied out by the schema
- * can carry floating-point noise, and an expiry a fraction of a millisecond
- * past a timer tick would otherwise never be reached.
- */
-export const buildEvaluationPolicy = function buildEvaluationPolicy(
+const projectEvaluationPolicy = (
 	effective: EffectivePolicy
-): EvaluationPolicy {
+): EvaluationPolicy => {
 	const { rule, fingerprints } = effective;
 	return createEvaluationPolicy({
 		choice: {
@@ -69,6 +48,49 @@ export const buildEvaluationPolicy = function buildEvaluationPolicy(
 		scope: rule.scope,
 		scopeMode: rule.scopeMode,
 	});
+};
+
+// These are owned immutable defaults, never caller-owned policy objects.
+// Every non-matched resolution uses the same rule and validated projection.
+const fallback = safeFallbackPolicyInput();
+const FALLBACK_EFFECTIVE_POLICY: EffectivePolicy = {
+	fingerprints: fallback.fingerprints,
+	rule: fallback.policy,
+};
+deepFreeze(FALLBACK_EFFECTIVE_POLICY);
+const FALLBACK_EVALUATION_POLICY = projectEvaluationPolicy(
+	FALLBACK_EFFECTIVE_POLICY
+);
+deepFreeze(FALLBACK_EVALUATION_POLICY);
+
+/**
+ * The rule a resolution puts in force: the matched rule, or the safe
+ * opt-in choice fallback for `unconfigured`, `no-match` and `failed`.
+ * The status stays observable on the snapshot; the fallback is never
+ * reported as a matched policy.
+ */
+export const resolveEffectivePolicy = function resolveEffectivePolicy(
+	resolution: PolicyResolution
+): EffectivePolicy {
+	if (resolution.status === 'matched') {
+		return { fingerprints: resolution.fingerprints, rule: resolution.policy };
+	}
+	return FALLBACK_EFFECTIVE_POLICY;
+};
+
+/**
+ * Validated evaluator projection of an effective policy. Validity is
+ * rounded to whole milliseconds: a day count multiplied out by the schema
+ * can carry floating-point noise, and an expiry a fraction of a millisecond
+ * past a timer tick would otherwise never be reached.
+ */
+export const buildEvaluationPolicy = function buildEvaluationPolicy(
+	effective: EffectivePolicy
+): EvaluationPolicy {
+	if (effective === FALLBACK_EFFECTIVE_POLICY) {
+		return FALLBACK_EVALUATION_POLICY;
+	}
+	return projectEvaluationPolicy(effective);
 };
 
 /**

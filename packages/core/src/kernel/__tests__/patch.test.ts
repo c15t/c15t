@@ -90,3 +90,36 @@ describe('applyPatch', () => {
 		expect(later.activeUI).toBe('dialog');
 	});
 });
+
+test('metadata patches preserve expiry boundaries and re-evaluate a backwards clock', () => {
+	const initial = buildInitialSnapshot({
+		initialRecords: choiceRecords({
+			experience: true,
+			functionality: true,
+			marketing: true,
+			measurement: true,
+		}),
+		now: NOW,
+	});
+	const deadline = initial.nextDeadline;
+	expect(deadline).not.toBeNull();
+	if (deadline === null) {
+		throw new Error('Expected grant expiry');
+	}
+	const before = applyPatch(initial, {
+		branding: 'consent',
+		now: deadline - 1,
+	});
+	expect(before.effectivePermissions.marketing).toBe(true);
+	expect(before.promptRequirement.kind).toBe('none');
+	const expired = applyPatch(before, { branding: null, now: deadline });
+	expect(expired.effectivePermissions.marketing).toBe(false);
+	expect(expired.promptRequirement).toEqual({
+		kind: 'choice',
+		reason: 'expired',
+	});
+	const rewound = applyPatch(expired, { now: deadline - 1 });
+	expect(rewound.effectivePermissions.marketing).toBe(true);
+	expect(rewound.promptRequirement.kind).toBe('none');
+	expect(rewound.nextDeadline).toBe(deadline);
+});
