@@ -172,9 +172,15 @@ const getMatchingPrefetchEntry = function getMatchingPrefetchEntry(options: {
 	const entries = Object.values(browserWindow[WINDOW_PROMISES_KEY] ?? {});
 	const matches = entries.filter((entry) => {
 		const { requestContext } = entry;
-		return requestContext
-			? matchesStoredRequestContext(requestContext, matcher)
-			: false;
+		// An omitted browser override is a request input, not a wildcard for
+		// a prefetched response resolved with an explicit override.
+		return (
+			!!requestContext &&
+			matchesStoredRequestContext(requestContext, matcher) &&
+			requestContext.country === (matcher.country ?? null) &&
+			requestContext.region === (matcher.region ?? null) &&
+			requestContext.language === (matcher.language ?? null)
+		);
 	});
 
 	return matches.length === 1 ? matches[0] : undefined;

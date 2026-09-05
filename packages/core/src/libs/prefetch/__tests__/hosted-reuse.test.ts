@@ -36,6 +36,19 @@ afterEach(() => {
 const context = { overrides: {}, user: null };
 
 describe('hosted browser prefetch consumption', () => {
+	it.each([{ country: 'DE' }, { region: 'CA' }, { language: 'fr' }])(
+		'does not treat omitted runtime inputs as matching %j',
+		async (overrides) => {
+			const fetch = vi
+				.fn()
+				.mockImplementation(() => Promise.resolve(response()));
+			vi.stubGlobal('fetch', fetch);
+			await primePrefetchedInitialData({ backendURL: '/api/c15t', overrides });
+			await createHostedTransport({ backendURL: '/api/c15t' }).init(context);
+			expect(fetch).toHaveBeenCalledTimes(2);
+		}
+	);
+
 	it('consumes the generated script response once and preserves protocol negotiation', async () => {
 		const fetch = vi.fn().mockImplementation(() => Promise.resolve(response()));
 		vi.stubGlobal('fetch', fetch);
