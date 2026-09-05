@@ -5,8 +5,8 @@ import type { StorybookConfig } from '@storybook/html-vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { mergeConfig } from 'vite';
 
-import { astroStoryVariants } from '../src/story-variants';
-import { astroPrerender } from './astro-prerender';
+import { astroStoryVariants } from '../src/story-variants.ts';
+import { astroPrerender } from './astro-prerender.ts';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
 const workspace = (...segments: string[]) =>
