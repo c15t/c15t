@@ -106,16 +106,8 @@ export interface SubmissionContext {
 export interface ResolvedDecision {
 	readonly input: DecisionInput;
 	readonly source: 'snapshot_token' | 'write_time_fallback';
-	/** The v3 rule the decision refers to, when the manifest carries it. */
-	readonly rule: ResolvedPolicyRule | undefined;
-	/** Legacy category allowlist and mode, from the token or the pack. */
-	readonly categories: readonly string[] | undefined;
-	readonly scopeMode: string | undefined;
-	readonly expiryDays: number | undefined;
-	readonly proof:
-		| { storeIp?: boolean; storeUserAgent?: boolean; storeLanguage?: boolean }
-		| undefined;
-	readonly model: string | undefined;
+	/** Canonical rule authenticated by the snapshot or asserted resolution. */
+	readonly rule: ResolvedPolicyRule;
 	readonly jurisdiction: string;
 	readonly language: string | undefined;
 }
@@ -186,7 +178,7 @@ const packById = (
 	manifest: ConsentManifest,
 	policyId: string
 ): ConsentManifestPolicyPack | undefined =>
-	manifest.policyPacks?.find((pack) => pack.policy.id === policyId);
+	manifest.policyPacks?.find((pack) => pack.rule.id === policyId);
 
 /** 2.x's dedupe key for a runtime decision, byte for byte. */
 const buildDedupeKey = (input: {
@@ -214,12 +206,6 @@ const asString = (value: unknown): string | undefined =>
 const asNullableString = (value: unknown): string | null =>
 	typeof value === 'string' ? value : null;
 
-const asStringArray = (value: unknown): string[] | undefined =>
-	Array.isArray(value) &&
-	value.every((entry): entry is string => typeof entry === 'string')
-		? value
-		: undefined;
-
 /** A decision rebuilt from verified token claims. */
 const decisionFromClaims = (
 	claims: Record<string, unknown>,
@@ -234,20 +220,22 @@ const decisionFromClaims = (
 	if (!policyId || !fingerprint || !matchedBy || !jurisdiction || !model) {
 		return undefined;
 	}
+	const pack = packById(manifest, policyId);
+	if (
+		!pack ||
+		pack.fingerprints.policy !== fingerprint ||
+		pack.rule.model !== model ||
+		manifest.policyFailure
+	) {
+		return undefined;
+	}
+	const { rule } = pack;
 	const countryCode = asNullableString(claims.country);
 	const regionCode = asNullableString(claims.region);
 	const language = asString(claims.language);
-	const proof =
-		typeof claims.proofConfig === 'object' && claims.proofConfig !== null
-			? (claims.proofConfig as ResolvedDecision['proof'])
-			: undefined;
 	return {
-		categories: asStringArray(claims.categories),
-		expiryDays:
-			typeof claims.expiryDays === 'number' ? claims.expiryDays : undefined,
 		input: {
-			bannerUi: claims.bannerUi,
-			categories: claims.categories,
+			categories: rule.scope,
 			countryCode,
 			dedupeKey: buildDedupeKey({
 				countryCode,
@@ -258,53 +246,23 @@ const decisionFromClaims = (
 				regionCode,
 				tenantId: context.tenantId,
 			}),
-			dialogUi: claims.dialogUi,
 			fingerprint,
 			jurisdiction,
 			language,
 			matchedBy,
 			model,
-			policyI18n: claims.policyI18n,
+			policyI18n: rule.i18n,
 			policyId,
-			preselectedCategories: claims.preselectedCategories,
-			proofConfig: claims.proofConfig,
+			preselectedCategories: rule.preselectedCategories,
+			proofConfig: rule.proof,
 			regionCode,
-			uiMode: asString(claims.uiMode),
 		},
 		jurisdiction,
 		language,
-		model,
-		proof,
-		rule: packById(manifest, policyId)?.rule,
-		scopeMode: asString(claims.scopeMode),
+		rule,
 		source: 'snapshot_token',
 	};
 };
-
-/** The legacy fields of a pack, flattened once so the builder stays simple. */
-const legacyPackFields = (
-	legacy: ConsentManifestPolicyPack['resolvedPolicy'] | undefined
-): {
-	bannerUi: unknown;
-	categories: readonly string[] | undefined;
-	dialogUi: unknown;
-	expiryDays: number | undefined;
-	policyI18n: unknown;
-	preselectedCategories: readonly string[] | undefined;
-	proof: ResolvedDecision['proof'];
-	scopeMode: string | undefined;
-	uiMode: string | undefined;
-} => ({
-	bannerUi: legacy?.ui?.banner,
-	categories: legacy?.consent?.categories,
-	dialogUi: legacy?.ui?.dialog,
-	expiryDays: legacy?.consent?.expiryDays,
-	policyI18n: legacy?.i18n,
-	preselectedCategories: legacy?.consent?.preselectedCategories,
-	proof: legacy?.proof,
-	scopeMode: legacy?.consent?.scopeMode,
-	uiMode: legacy?.ui?.mode,
-});
 
 /**
  * Recomputes the decision from asserted manifest-mode inputs.
@@ -327,11 +285,11 @@ const decisionFromAssertedInputs = (
 		},
 		{ baseTranslations }
 	);
-	const decision = resolved.policyDecision;
+	const decision = resolved.policyResolution;
 	if (
-		!decision ||
+		decision.status !== 'matched' ||
 		decision.policyId !== input.policyId ||
-		decision.fingerprint !== input.fingerprint
+		decision.fingerprints.policy !== input.fingerprint
 	) {
 		return new StalePolicyError({
 			message:
@@ -339,44 +297,35 @@ const decisionFromAssertedInputs = (
 			reason: 'decision-mismatch',
 		});
 	}
-	const pack = packById(manifest, decision.policyId);
 	const language = input.language ? parseLanguage(input.language) : undefined;
-	const legacy = legacyPackFields(pack?.resolvedPolicy);
+	const rule = decision.policy;
 	return {
-		categories: legacy.categories,
-		expiryDays: legacy.expiryDays,
 		input: {
-			bannerUi: legacy.bannerUi,
-			categories: legacy.categories,
-			countryCode: decision.country,
+			categories: rule.scope,
+			countryCode: resolved.location.countryCode,
 			dedupeKey: buildDedupeKey({
-				countryCode: decision.country,
-				fingerprint: decision.fingerprint,
-				jurisdiction: decision.jurisdiction,
+				countryCode: resolved.location.countryCode,
+				fingerprint: decision.fingerprints.policy,
+				jurisdiction: resolved.jurisdiction,
 				language,
 				matchedBy: decision.matchedBy,
-				regionCode: decision.region,
+				regionCode: resolved.location.regionCode,
 				tenantId: context.tenantId,
 			}),
-			dialogUi: legacy.dialogUi,
-			fingerprint: decision.fingerprint,
-			jurisdiction: decision.jurisdiction,
+			fingerprint: decision.fingerprints.policy,
+			jurisdiction: resolved.jurisdiction,
 			language,
 			matchedBy: decision.matchedBy,
-			model: resolved.policy?.model ?? 'none',
-			policyI18n: legacy.policyI18n,
+			model: rule.model,
+			policyI18n: rule.i18n,
 			policyId: decision.policyId,
-			preselectedCategories: legacy.preselectedCategories,
-			proofConfig: legacy.proof,
-			regionCode: decision.region,
-			uiMode: legacy.uiMode,
+			preselectedCategories: rule.preselectedCategories,
+			proofConfig: rule.proof,
+			regionCode: resolved.location.regionCode,
 		},
-		jurisdiction: decision.jurisdiction,
+		jurisdiction: resolved.jurisdiction,
 		language,
-		model: resolved.policy?.model,
-		proof: legacy.proof,
-		rule: pack?.rule,
-		scopeMode: legacy.scopeMode,
+		rule,
 		source: 'write_time_fallback',
 	};
 };
@@ -462,21 +411,11 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 /** Category allowlist of the effective policy, or none when unrestricted. */
 const allowedCategories = (
 	decision: ResolvedDecision | undefined
-): ReadonlySet<string> | undefined => {
-	if (decision?.rule) {
-		return new Set<string>(['necessary', ...decision.rule.scope]);
-	}
-	const categories = decision?.categories;
-	if (!categories || categories.length === 0 || categories.includes('*')) {
-		return undefined;
-	}
-	return new Set<string>(['necessary', ...categories]);
-};
+): ReadonlySet<string> | undefined =>
+	decision ? new Set(['necessary', ...decision.rule.scope]) : undefined;
 
 const isStrict = (decision: ResolvedDecision | undefined): boolean =>
-	decision?.rule
-		? decision.rule.scopeMode === 'strict'
-		: decision?.scopeMode === 'strict';
+	decision?.rule.scopeMode === 'strict';
 
 /** Refuses receipts that grant what the policy does not offer. */
 const checkChoice = (
@@ -593,27 +532,18 @@ const effectiveModel = (
 	decision: ResolvedDecision | undefined,
 	claimed: string | undefined
 ): string | undefined => {
-	if (decision?.model) {
-		return decision.model;
+	if (decision?.rule.model) {
+		return decision.rule.model;
 	}
 	return claimed === 'opt-in' || claimed === 'opt-out' || claimed === 'iab'
 		? claimed
 		: undefined;
 };
 
-/** Choice validity in milliseconds: the v3 rule's, else the legacy days. */
+/** Semantic validity of positive receipts under the canonical rule. */
 const choiceValidityMs = (
 	decision: ResolvedDecision | undefined
-): number | undefined => {
-	if (decision?.rule) {
-		return decision.rule.validity.choiceMs;
-	}
-	const days = decision?.expiryDays;
-	if (typeof days === 'number' && Number.isFinite(days)) {
-		return Math.max(0, days) * 86_400_000;
-	}
-	return undefined;
-};
+): number | undefined => decision?.rule.validity.choiceMs;
 
 /**
  * What the policy's proof configuration lets the record keep.
@@ -630,7 +560,7 @@ const proofFields = (
 	userAgent: string | null;
 	metadata: Record<string, unknown> | undefined;
 } => {
-	const proof = decision?.rule?.proof ?? decision?.proof;
+	const proof = decision?.rule.proof;
 	const language =
 		decision?.language ?? parseLanguage(context.headers.get('accept-language'));
 	const metadata: Record<string, unknown> = { ...(inputMetadata ?? {}) };

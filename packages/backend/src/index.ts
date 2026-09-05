@@ -51,13 +51,13 @@
 
 // Shared with the client packages, so a policy pack authored against these
 // resolves identically in the browser and on the server.
-export type { PolicyMatch, PolicyPackPresets } from '@c15t/schema';
+export type { PolicyMatch, PolicyRulePresets } from '@c15t/schema';
 export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
-	inspectPolicies,
+	inspectPolicyRules,
 	policyMatchers,
-	policyPackPresets,
+	policyRulePresets,
 	UK_COUNTRY_CODES,
 } from '@c15t/schema';
 export type { DatabaseClassification } from './db/classify';

@@ -1,29 +1,7 @@
 /**
- * Policy snapshot tokens.
- *
- * A snapshot is signed evidence of the policy decision behind a consent: which
- * policy matched, under which jurisdiction, with which UI. A client presents it
- * back when submitting consent so the server can verify the decision it is
- * recording is one it actually made.
- *
- * ## Why this is reimplemented rather than shared
- *
- * Every other piece of logic both backends need has moved into `@c15t/schema`.
- * This one cannot: signing needs `jose`, and `@c15t/schema` is imported by
- * `packages/core` and `packages/react`, so putting a JWT library there would
- * land it in browser bundles. Issue #944 states the principle directly —
- * *"share dependency-light contracts or logic internally rather than merging
- * backend code into the frontend artifact"* — and keeps `@c15t/backend`
- * separate precisely because it has a different dependency tree and security
- * surface.
- *
- * The cost of duplicating is real: two signing implementations can diverge, and
- * a divergence means tokens one backend issues the other rejects. That is why
- * `policy-snapshot.test.ts` decodes tokens from both implementations and
- * compares their claims rather than merely checking this one is self-consistent.
- *
- * Every constant below is part of the wire format and must match
- * `@c15t/backend`'s `handlers/policy/snapshot.ts` exactly.
+ * Signed policy decisions. The token binds a policy ID and canonical fingerprint
+ * to the request context and tenant. Saves validate that fingerprint against the
+ * current manifest before using its rule.
  */
 
 import { jwtVerify, SignJWT } from 'jose';
@@ -50,21 +28,6 @@ export interface PolicySnapshotClaims {
 	readonly model: string;
 	readonly tenantId?: string;
 	readonly language?: string;
-	readonly policyI18n?: unknown;
-	readonly expiryDays?: number;
-	readonly scopeMode?: string;
-	readonly uiMode?: string;
-	readonly bannerUi?: unknown;
-	readonly dialogUi?: unknown;
-	readonly categories?: readonly string[];
-	readonly preselectedCategories?: readonly string[];
-	readonly gpc?: boolean;
-	readonly proofConfig?: unknown;
-	/**
-	 * v3 exact-policy fingerprint (`policyResolution.fingerprints.policy`).
-	 * Additive: `fingerprint` stays the legacy hash the decision row stores.
-	 */
-	readonly policyFingerprint?: string;
 }
 
 const resolveIssuer = function resolveIssuer(
@@ -113,35 +76,21 @@ export const createPolicySnapshotToken =
 		const iat = Math.floor(Date.now() / 1000);
 		const exp = iat + (options.ttlSeconds ?? DEFAULT_TTL_SECONDS);
 
-		// Claim order matches @c15t/backend's payload construction. It does not
-		// affect verification, but keeping it identical makes the two payloads
-		// diffable when the parity test fails.
 		const payload = {
 			aud: resolveAudience(options, claims.tenantId),
-			bannerUi: claims.bannerUi,
-			categories: claims.categories,
 			country: claims.country,
-			dialogUi: claims.dialogUi,
 			exp,
-			expiryDays: claims.expiryDays,
 			fingerprint: claims.fingerprint,
-			gpc: claims.gpc,
 			iat,
 			iss: resolveIssuer(options),
 			jurisdiction: claims.jurisdiction,
 			language: claims.language,
 			matchedBy: claims.matchedBy,
 			model: claims.model,
-			policyFingerprint: claims.policyFingerprint,
-			policyI18n: claims.policyI18n,
 			policyId: claims.policyId,
-			preselectedCategories: claims.preselectedCategories,
-			proofConfig: claims.proofConfig,
 			region: claims.region,
-			scopeMode: claims.scopeMode,
 			sub: claims.policyId,
 			tenantId: claims.tenantId,
-			uiMode: claims.uiMode,
 		};
 
 		const token = await new SignJWT(payload)

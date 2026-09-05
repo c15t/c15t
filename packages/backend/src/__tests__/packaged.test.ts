@@ -101,7 +101,7 @@ suite('the published artifact', () => {
 			'classify',
 			'defineConfig',
 			'toLayer',
-			'policyPackPresets',
+			'policyRulePresets',
 			'policyBuilder',
 			'composePacks',
 			'version',

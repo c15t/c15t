@@ -99,32 +99,14 @@ describe('policy contract negotiation on /init', () => {
 		assert.isString(resolution.fingerprints.choice);
 	});
 
-	it('still serves the legacy projection to a client without the header', async () => {
-		// An old client reads `policy` and ignores `policyResolution`. The
-		// GPC + notice rule is not expressible in v2, so the projection is the
-		// conservative opt-in banner rather than a permissive shape. What the
-		// old runtime does with that projection is covered by the executable
-		// probe against the original kernel, not asserted here.
+	it('returns the canonical wire without legacy projection when the header is absent', async () => {
 		const init = await harness.json('GET', '/init', undefined, {
 			'x-c15t-country': 'US',
 			'x-c15t-region': 'CA',
 		});
-		const policy = init.body.policy as {
-			id: string;
-			model: string;
-			ui?: { mode?: string };
-		};
-		assert.strictEqual(policy.id, 'ca_opt_out');
-		assert.strictEqual(policy.model, 'opt-in');
-		assert.strictEqual(policy.ui?.mode, 'banner');
-		// And the v3 wire is present regardless, so a new client behind a
-		// header-stripping proxy still gets exact semantics.
-		const resolution = init.body.policyResolution as {
-			status: string;
-			policy: { prompt: string; privacySignals: unknown };
-		};
-		assert.strictEqual(resolution.status, 'matched');
-		assert.strictEqual(resolution.policy.prompt, 'notice');
+		assert.isUndefined(init.body.policy);
+		assert.isUndefined(init.body.policyDecision);
+		assert.deepInclude(init.body.policyResolution, { status: 'matched' });
 	});
 
 	it('fails closed for a client declaring a contract it does not speak', async () => {
@@ -138,8 +120,9 @@ describe('policy contract negotiation on /init', () => {
 			status: 'failed',
 			version: 1,
 		});
-		// The legacy field is untouched: an old client is not a v2 client.
-		assert.strictEqual((init.body.policy as { id: string }).id, 'eu_opt_in');
+		assert.isUndefined(init.body.policy);
+		assert.isUndefined(init.body.policySnapshotToken);
+		assert.isUndefined(init.body.gvl);
 
 		const garbage = await harness.json('GET', '/init', undefined, {
 			[POLICY_CONTRACT_HEADER]: 'latest',
@@ -160,8 +143,8 @@ describe('policy contract negotiation on /init', () => {
 			status: 'no-match',
 			version: 1,
 		});
-		// The legacy field carries the v2 no-match sentinel for old clients.
-		assert.strictEqual((init.body.policy as { id: string }).id, 'no_banner');
+		assert.isUndefined(init.body.policy);
+		assert.isUndefined(init.body.policySnapshotToken);
 	});
 
 	it('answers an unknown location without a fallback as a failure, not a no-match', async () => {

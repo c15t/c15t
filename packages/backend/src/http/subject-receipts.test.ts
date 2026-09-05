@@ -441,6 +441,33 @@ for (const engine of ENGINES) {
 			);
 		});
 
+		it('refuses a token when the same policy ID now has different canonical behavior', async () => {
+			const init = await initFor('DE');
+			const app = harness.appWith({
+				manifest: {
+					policyRules: RULES.map((rule) => ({
+						...rule,
+						validity: { choiceDays: 30 },
+					})),
+				},
+			});
+			const saved = await harness.json(
+				'POST',
+				'/subjects',
+				{
+					...base,
+					choice: { categories: { marketing: receipt(true) }, version: 3 },
+					givenAt: T0,
+					policySnapshotToken: init.body.policySnapshotToken,
+					preferences: { marketing: true, necessary: true },
+				},
+				{},
+				app
+			);
+			assert.strictEqual(saved.status, 409);
+			assert.strictEqual(await harness.count('consent'), 0);
+		});
+
 		it('refuses a receipt that grants a category outside the resolved scope', async () => {
 			const init = await initFor('DE');
 			const token = init.body.policySnapshotToken as string;
@@ -500,15 +527,15 @@ for (const engine of ENGINES) {
 
 		it('recomputes asserted manifest-mode inputs and refuses a stale decision', async () => {
 			const init = await initFor('DE');
-			const decision = init.body.policyDecision as {
+			const decision = init.body.policyResolution as {
 				policyId: string;
-				fingerprint: string;
+				fingerprints: { policy: string };
 			};
 
 			const fresh = await harness.json('POST', '/subjects', {
 				...base,
 				country: 'DE',
-				fingerprint: decision.fingerprint,
+				fingerprint: decision.fingerprints.policy,
 				givenAt: T0,
 				language: 'en',
 				policyId: decision.policyId,

@@ -70,7 +70,7 @@ const withApp = async <A>(
 	}
 };
 
-const seed = { appName: 'Example', policyPacks: [] } as const;
+const seed = { appName: 'Example', policyRules: [] } as const;
 
 describe('observability: the default', () => {
 	it('stays quiet on a successful request', async () => {

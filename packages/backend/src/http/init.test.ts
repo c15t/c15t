@@ -163,6 +163,13 @@ describe('init policy snapshot token', () => {
 });
 
 describe('init GVL inclusion', () => {
+	const iabConfig: ConsentManifestConfig = {
+		...config,
+		iab: { enabled: true },
+		policyRules: [
+			{ id: 'iab', match: { isDefault: true }, model: 'iab', prompt: 'choice' },
+		],
+	};
 	const GVL = {
 		features: {},
 		gvlSpecificationVersion: 3,
@@ -179,41 +186,92 @@ describe('init GVL inclusion', () => {
 		new Response(JSON.stringify(GVL))) as unknown as typeof globalThis.fetch;
 
 	it('omits the vendor list when IAB is disabled', async () => {
-		const result = await buildInitResponse(config, new Headers(), undefined, {
-			enabled: false,
-			fetch: serve,
-		});
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: false,
+				fetch: serve,
+			}
+		);
 		// A non-IAB deployment must not pay for a document it will never read.
 		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
 	});
 
 	it('omits the vendor list when IAB is enabled but never fetched', async () => {
-		const result = await buildInitResponse(config, new Headers(), undefined, {
-			enabled: false,
-		});
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: false,
+			}
+		);
 		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
 	});
 
 	it('includes the vendor list when IAB is active', async () => {
-		const result = await buildInitResponse(config, new Headers(), undefined, {
-			enabled: true,
-			fetch: serve,
-		});
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: true,
+				fetch: serve,
+			}
+		);
 		assert.isDefined((result.body as { gvl?: unknown }).gvl);
 	});
 
 	it('still resolves when the vendor list cannot be fetched', async () => {
-		const result = await buildInitResponse(config, new Headers(), undefined, {
-			enabled: true,
-			fetch: (() => {
-				throw new Error('gvl upstream down');
-			}) as unknown as typeof globalThis.fetch,
-		});
+		const result = await buildInitResponse(
+			iabConfig,
+			new Headers(),
+			undefined,
+			{
+				enabled: true,
+				fetch: (() => {
+					throw new Error('gvl upstream down');
+				}) as unknown as typeof globalThis.fetch,
+			}
+		);
 
 		// The visitor still gets a consent decision. Failing /init because a
 		// third party is unreachable would leave them with no banner at all.
 		assert.isDefined(result.body);
 		assert.isNull((result.body as { gvl?: unknown }).gvl ?? null);
+	});
+
+	it('clears all IAB authority and does not fetch GVL for an unsupported contract', async () => {
+		let requests = 0;
+		const result = await buildInitResponse(
+			{ ...iabConfig, iab: { cmpId: 123, customVendors: [], enabled: true } },
+			new Headers({ 'x-c15t-policy-contract': '99' }),
+			{ signingKey: 'test-signing-key-at-least-32-chars-long' },
+			{
+				enabled: true,
+				fetch: (() => {
+					requests += 1;
+					return new Response(JSON.stringify(GVL));
+				}) as typeof globalThis.fetch,
+			}
+		);
+		assert.strictEqual(requests, 0);
+		assert.deepStrictEqual(result.body.policyResolution, {
+			policy: null,
+			reason: 'unsupported-contract',
+			status: 'failed',
+			version: 1,
+		});
+		for (const field of [
+			'cmpId',
+			'customVendors',
+			'gvl',
+			'policySnapshotToken',
+		]) {
+			assert.isFalse(field in result.body);
+		}
 	});
 
 	it('passes the request language through to the fetch', async () => {
@@ -224,7 +282,7 @@ describe('init GVL inclusion', () => {
 		}) as unknown as typeof globalThis.fetch;
 
 		await buildInitResponse(
-			config,
+			iabConfig,
 			new Headers({ 'accept-language': 'fr-CA' }),
 			undefined,
 			{ enabled: true, fetch: capture }
@@ -248,14 +306,15 @@ describe('init with a matching policy', () => {
 
 	const withPolicy: ConsentManifestConfig = {
 		appName: 'Example',
-		policyPacks: [
+		policyRules: [
 			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 			{
 				id: 'pol_default',
 				// isDefault so it matches regardless of geo, which keeps the case
 				// about the token rather than about jurisdiction matching.
 				match: { isDefault: true },
-				consent: { model: 'opt-in' },
+				model: 'opt-in',
+				prompt: 'choice',
 			},
 		],
 		tenantId: 'tenant_1',
@@ -264,7 +323,7 @@ describe('init with a matching policy', () => {
 	it('resolves a policy decision', async () => {
 		const { body } = await buildInitResponse(withPolicy, new Headers());
 		assert.isDefined(
-			(body as { policyDecision?: unknown }).policyDecision,
+			body.policyResolution,
 			'expected a default policy to match'
 		);
 	});
@@ -298,15 +357,18 @@ describe('init with a matching policy', () => {
 		);
 		const typed = body as {
 			policySnapshotToken?: string;
-			policyDecision?: { policyId: string; fingerprint: string };
+			policyResolution: { policyId: string; fingerprints: { policy: string } };
 		};
 		const claims = decodeJwt(typed.policySnapshotToken ?? '');
 
 		// A token attesting to a different decision than the one returned would
 		// be worse than none — the server would verify evidence for a decision
 		// the visitor never saw.
-		assert.strictEqual(claims.policyId, typed.policyDecision?.policyId);
-		assert.strictEqual(claims.fingerprint, typed.policyDecision?.fingerprint);
+		assert.strictEqual(claims.policyId, typed.policyResolution.policyId);
+		assert.strictEqual(
+			claims.fingerprint,
+			typed.policyResolution.fingerprints.policy
+		);
 		assert.strictEqual(claims.tenantId, 'tenant_1');
 	});
 
