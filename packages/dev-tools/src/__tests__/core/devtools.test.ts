@@ -30,16 +30,26 @@ describe('createDevTools', () => {
 			const kernel = createConsentKernel();
 			const tools = createDevTools({ kernel, maxEvents });
 			instances.push(tools);
+			const launcher = tools.element?.querySelector<HTMLButtonElement>(
+				'button[aria-label="Open c15t DevTools"]'
+			);
+			launcher?.focus();
 			for (let index = 0; index < 110; index += 1) {
 				kernel.set.consent({ measurement: index % 2 === 0 });
 			}
 			expect(tools.getState().events).toHaveLength(
 				Number.isFinite(maxEvents) ? 1 : 100
 			);
+			expect(document.activeElement).toBe(launcher);
 			expect(
 				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
 			).toBe(0);
 			tools.open();
+			expect(
+				tools.element?.querySelector<HTMLInputElement>(
+					'[data-focus-key="consent:measurement"]'
+				)?.checked
+			).toBe(false);
 			expect(
 				tools.element?.querySelector('[role="tabpanel"]')?.childElementCount
 			).toBeGreaterThan(0);

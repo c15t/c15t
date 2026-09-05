@@ -762,9 +762,8 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		}
 	}
 
-	// oxlint-disable-next-line func-style -- Hoisted render helpers share view state.
-	function render(): void {
-		const state = options.stateManager.getState();
+	// oxlint-disable-next-line func-style -- Shared by initial render and subscriptions.
+	function renderPanel(state: DevToolsState): void {
 		const sameTab = renderedState?.activeTab === state.activeTab;
 		const scrollTop = sameTab
 			? (root.querySelector('.c15t-dev-tools__content')?.scrollTop ?? 0)
@@ -906,6 +905,16 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 		} else if (focusKey) {
 			restoreFocusAfterRender(focusKey);
 		}
+	}
+
+	// oxlint-disable-next-line func-style -- Hoisted render helpers share view state.
+	function render(): void {
+		const state = options.stateManager.getState();
+		if (!state.isOpen && renderedState && !renderedState.isOpen) {
+			renderedState = state;
+			return;
+		}
+		renderPanel(state);
 	}
 
 	const unsubscribe = options.stateManager.subscribe(render);
