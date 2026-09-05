@@ -614,3 +614,46 @@ describe('fetchCachedManifest: restrictive directives and credential scope', () 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('clearManifestCache during an in-flight fill', () => {
+	test('drops the pending fill and never stores its result', async () => {
+		const gate = (
+			Promise as PromiseConstructor & {
+				withResolvers: <Value>() => {
+					promise: Promise<Value>;
+					resolve: (value: Value) => void;
+				};
+			}
+		).withResolvers<undefined>();
+		const fetchMock = vi.fn(async () => {
+			await gate.promise;
+			return new Response(JSON.stringify(createManifestFixture()), {
+				headers: { 'cache-control': 'public, s-maxage=60' },
+				status: 200,
+			});
+		}) as unknown as ManifestFetch;
+		const cache = createManifestCache();
+
+		const stale = fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		clearManifestCache(cache);
+		// A caller arriving after the clear starts a fresh fill.
+		const fresh = fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+		gate.resolve(undefined);
+		await Promise.all([stale, fresh]);
+		// Only the post-clear fill is stored.
+		expect(cache.get(SOURCE_URL)).toBe(await fresh);
+	});
+});

@@ -2,6 +2,7 @@ import type { InitOutput, PolicyConfig } from '@c15t/schema/types';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { OfflinePolicyConfig } from '../options/offline-policy';
+import type { SSRInitialData } from '../options/ssr';
 import type {
 	KernelConfig,
 	KernelTranslations,
@@ -76,6 +77,12 @@ export interface HostedModeOptions {
 	 * @defaultValue false
 	 */
 	assertDecisionInputs?: boolean;
+	/**
+	 * An init response an inline prefetch script already requested. The
+	 * first `init()` consumes it instead of calling `initURL`, keeping the
+	 * decision-input assertion intact.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
 }
 
 /**
@@ -102,6 +109,7 @@ export const hosted = function hosted(
 				fetch: options.fetch,
 				headers: options.headers,
 				initURL: options.initURL,
+				initialData: options.initialData,
 			}),
 		{ kind: 'hosted' as const }
 	);

@@ -2378,3 +2378,72 @@ describe('x-c15t-version header (issue #916)', () => {
 		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 	});
 });
+
+describe('hosted transport: initialData', () => {
+	test('consumes a prefetched init once and keeps the decision assertion', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			headers: { 'sec-gpc': '1' },
+			initURL: '/internal/consent/init',
+			initialData: Promise.resolve({ init: REALISTIC_INIT_OUTPUT }),
+		});
+
+		const first = await transport.init?.({ overrides: {}, user: null });
+		expect(first?.policy?.id).toBe(REALISTIC_INIT_OUTPUT.policy.id);
+		expect(fetchSpy).not.toHaveBeenCalled();
+
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'iab',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		const [saveURL, saveInit] = fetchSpy.mock.calls[0] ?? [];
+		expect(saveURL).toBe('https://api.example.com/c15t/subjects');
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			country: 'DE',
+			fingerprint: 'policy-fingerprint',
+			gpc: true,
+			policyId: 'de-iab',
+		});
+
+		// The second init goes to the network: the prefetch is single-use.
+		await transport.init?.({ overrides: {}, user: null });
+		expect(fetchSpy.mock.calls[1]?.[0]).toBe('/internal/consent/init');
+	});
+
+	test('falls back to the fetch when the prefetch resolved empty or rejected', async () => {
+		for (const initialData of [
+			Promise.resolve(undefined),
+			Promise.reject(new Error('offline')),
+		]) {
+			const fetchSpy = vi
+				.fn()
+				.mockResolvedValue(
+					new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+				);
+			const transport = createHostedTransport({
+				backendURL: 'https://api.example.com/c15t',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				initialData,
+			});
+			// oxlint-disable-next-line no-await-in-loop -- sequential cases keep the failing input readable.
+			await transport.init?.({ overrides: {}, user: null });
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		}
+	});
+});

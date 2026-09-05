@@ -75,8 +75,37 @@ export const createManifestCache =
 /** Cache used when {@link fetchCachedManifest} is called without one. */
 const defaultManifestCache = createManifestCache();
 
+/** In-flight upstream requests, so concurrent misses share one fetch. */
+const inflightByCache = new WeakMap<
+	ManifestCache,
+	Map<string, Promise<CachedManifestResponse>>
+>();
+
+const getInflight = function getInflight(
+	cache: ManifestCache
+): Map<string, Promise<CachedManifestResponse>> {
+	let inflight = inflightByCache.get(cache);
+	if (!inflight) {
+		inflight = new Map();
+		inflightByCache.set(cache, inflight);
+	}
+	return inflight;
+};
+
 /**
- * Empties a manifest cache.
+ * Generation counters so a fill that started before `clearManifestCache`
+ * cannot write the discarded value back once it completes.
+ */
+const generationByCache = new WeakMap<ManifestCache, number>();
+
+const getGeneration = function getGeneration(cache: ManifestCache): number {
+	return generationByCache.get(cache) ?? 0;
+};
+
+/**
+ * Empties a manifest cache, including fills still in flight: pending
+ * callers keep their promise, but its result is not stored and later
+ * callers start a fresh fetch.
  *
  * @param cache - The cache to clear. Defaults to the module-level cache.
  */
@@ -84,6 +113,8 @@ export const clearManifestCache = function clearManifestCache(
 	cache: ManifestCache = defaultManifestCache
 ): void {
 	cache.clear();
+	inflightByCache.get(cache)?.clear();
+	generationByCache.set(cache, getGeneration(cache) + 1);
 };
 
 /**
@@ -284,23 +315,6 @@ export interface FetchCachedManifestOptions {
 	headers?: Record<string, string>;
 }
 
-/** In-flight upstream requests, so concurrent misses share one fetch. */
-const inflightByCache = new WeakMap<
-	ManifestCache,
-	Map<string, Promise<CachedManifestResponse>>
->();
-
-const getInflight = function getInflight(
-	cache: ManifestCache
-): Map<string, Promise<CachedManifestResponse>> {
-	let inflight = inflightByCache.get(cache);
-	if (!inflight) {
-		inflight = new Map();
-		inflightByCache.set(cache, inflight);
-	}
-	return inflight;
-};
-
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 const CREDENTIAL_HEADERS = new Set([
 	'authorization',
@@ -383,11 +397,20 @@ const revalidateManifest = async function revalidateManifest(input: {
 	cacheKey: string;
 	cached: CachedManifestResponse | undefined;
 	fetchImpl: ManifestFetch;
+	generation: number;
 	headers: Record<string, string> | undefined;
 	now: number;
 	requestURL: string;
 }): Promise<CachedManifestResponse> {
-	const { cache, cacheKey, cached, fetchImpl, now, requestURL } = input;
+	const { cache, cacheKey, cached, fetchImpl, generation, now, requestURL } =
+		input;
+	// A clear during the fetch bumps the generation; then the result is
+	// returned to the waiting callers but never stored.
+	const store = function store(entry: CachedManifestResponse): void {
+		if (getGeneration(cache) === generation) {
+			cache.set(cacheKey, entry);
+		}
+	};
 	const headers: Record<string, string> = {
 		accept: 'application/json',
 		...c15tVersionHeaders,
@@ -419,7 +442,7 @@ const revalidateManifest = async function revalidateManifest(input: {
 			sMaxAge,
 		};
 		if (ttl > 0) {
-			cache.set(cacheKey, refreshed);
+			store(refreshed);
 		} else {
 			cache.delete(cacheKey);
 		}
@@ -443,7 +466,7 @@ const revalidateManifest = async function revalidateManifest(input: {
 		sMaxAge,
 	};
 	if (ttl > 0) {
-		cache.set(cacheKey, entry);
+		store(entry);
 	}
 	return entry;
 };
@@ -476,6 +499,9 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 		sourceURL: options.sourceURL,
 	});
 	assertCredentialTransport(requestURL, options.headers);
+	// Read before the first await so a clear that lands while the key is
+	// being digested still invalidates this fill.
+	const generation = getGeneration(cache);
 	const cacheKey = await buildCacheKey(requestURL, options.headers);
 	const now = options.now ?? Date.now();
 	const cached = cache.get(cacheKey);
@@ -495,12 +521,16 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 				cacheKey,
 				cached,
 				fetchImpl,
+				generation,
 				headers: options.headers,
 				now,
 				requestURL,
 			});
 		} finally {
-			inflight.delete(cacheKey);
+			// After a clear the map holds newer fills; leave those alone.
+			if (getGeneration(cache) === generation) {
+				inflight.delete(cacheKey);
+			}
 		}
 	})();
 	inflight.set(cacheKey, request);

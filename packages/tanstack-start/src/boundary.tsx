@@ -111,17 +111,19 @@ export interface ConsentBoundaryProps {
 
 const resolveMode = function resolveMode(
 	backendURL: string | undefined,
-	initRoute: string | false | undefined
+	initRoute: string | false | undefined,
+	initialData: ReturnType<typeof readPrefetchedInitialData>
 ): ProviderTransportFactory {
 	if (!backendURL) {
 		return offline();
 	}
 	if (initRoute === false) {
-		return hosted({ url: backendURL });
+		return hosted({ initialData, url: backendURL });
 	}
 	return hosted({
 		assertDecisionInputs: true,
 		initURL: initRoute ?? DEFAULT_INIT_ROUTE,
+		initialData,
 		url: backendURL,
 	});
 };
@@ -159,33 +161,37 @@ export const ConsentBoundary = ({
 	children,
 }: ConsentBoundaryProps) => {
 	// A `consentPrefetchHead()` script may have started the init request
-	// before hydration; hand its promise to the provider so the first init
-	// consumes that response instead of issuing a second request. Read once,
-	// on the client only, so server and client render the same tree.
-	const [ssrData, setSsrData] = useState(
+	// before hydration. The hosted transport consumes that promise on its
+	// first init, so the decision-input assertion still runs and the first
+	// save stays bound to the resolved policy. Read once, on the client only,
+	// so server and client render the same tree.
+	const [mode, setMode] = useState(
 		() =>
-			options?.ssrData ??
-			readPrefetchedInitialData({
+			options?.mode ??
+			resolveMode(
 				backendURL,
 				initRoute,
-				overrides: options?.overrides,
-			})
+				readPrefetchedInitialData({
+					backendURL,
+					initRoute,
+					overrides: options?.overrides,
+				})
+			)
 	);
-	// Initial-only: the prefetch is consumed by the first init.
-	void setSsrData;
+	// Initial-only, like the provider's own `mode`.
+	void setMode;
 
 	return (
 		<ConsentProvider
 			options={{
 				...options,
 				__debugPkg: '@c15t/tanstack-start',
-				mode: options?.mode ?? resolveMode(backendURL, initRoute),
+				mode,
 				networkBlocker,
 				persistence,
 				prefetch: config,
 				scriptLoader,
 				scripts,
-				ssrData,
 			}}
 		>
 			{children}

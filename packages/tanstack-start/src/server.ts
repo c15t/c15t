@@ -250,8 +250,9 @@ export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigO
 	 * through the in-process manifest cache and resolves init locally, so the
 	 * first paint already carries policy, UI, translations, and IAB metadata.
 	 *
-	 * Relative URLs are resolved with the request's `x-forwarded-*` and
-	 * `host` headers. Do not point this at the app's own `/api/c15t` route:
+	 * Relative URLs are resolved against the request's own origin
+	 * (`request.url`); set `trustForwardedHeaders` to use `x-forwarded-*`
+	 * behind a trusted proxy. Do not point this at the app's own `/api/c15t` route:
 	 * a server fetching itself during SSR deadlocks the dev server, so the
 	 * helper skips that case and returns the baseline config instead.
 	 */

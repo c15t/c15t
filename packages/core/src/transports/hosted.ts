@@ -24,6 +24,7 @@
 import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
+import type { SSRInitialData } from '../options/ssr';
 import type {
 	InitContext,
 	InitResponse,
@@ -77,6 +78,15 @@ export interface HostedTransportOptions {
 	 * Inject for tests, or to wire Cloudflare Worker bindings.
 	 */
 	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * An init response that was already requested, for example by an inline
+	 * prefetch script that ran before hydration. The first `init()` consumes
+	 * it instead of calling `initURL`, and still records the decision inputs
+	 * when `assertDecisionInputs` is set, so the first save stays bound to
+	 * that decision. A rejected or empty promise falls back to the fetch.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
 
 	/**
 	 * Request headers that may be passed through to `GET /init`.
@@ -252,6 +262,44 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	};
 
+	let { initialData } = options;
+
+	/** Takes the prefetched init once; `undefined` when absent or failed. */
+	const consumeInitialData = async function consumeInitialData(): Promise<
+		InitOutput | undefined
+	> {
+		if (!initialData) {
+			return undefined;
+		}
+		const pending = initialData;
+		initialData = undefined;
+		const data = await pending.catch(() => undefined);
+		if (!data?.init) {
+			return undefined;
+		}
+		return { ...data.init, gvl: data.gvl ?? data.init.gvl } as InitOutput;
+	};
+
+	const fetchInit = async function fetchInit(): Promise<InitOutput> {
+		const response = await fetchImpl(initURL, {
+			credentials,
+			headers: {
+				accept: 'application/json',
+				...c15tVersionHeaders,
+				...initHeaders,
+			},
+			method: 'GET',
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
+			);
+		}
+
+		return (await response.json()) as InitOutput;
+	};
+
 	const resolvePendingIdentities = function resolvePendingIdentities(): void {
 		const pending = pendingIdentities;
 		pendingIdentities = [];
@@ -276,23 +324,8 @@ export const createHostedTransport = function createHostedTransport(
 		},
 
 		async init(_ctx: InitContext): Promise<InitResponse> {
-			const response = await fetchImpl(initURL, {
-				credentials,
-				headers: {
-					accept: 'application/json',
-					...c15tVersionHeaders,
-					...initHeaders,
-				},
-				method: 'GET',
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
-				);
-			}
-
-			const payload = (await response.json()) as InitOutput;
+			const prefetched = await consumeInitialData();
+			const payload = prefetched ?? (await fetchInit());
 			if (options.assertDecisionInputs) {
 				lastDecisionInputs = rememberDecisionInputs(
 					payload,
