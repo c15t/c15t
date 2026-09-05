@@ -31,6 +31,7 @@ export default defineConfig({
 			persistence: ['./src/modules/persistence/index.ts'],
 			'script-loader': ['./src/modules/script-loader/index.ts'],
 			'transport-manifest': ['./src/transports/manifest.ts'],
+			'transport-manifest-cache': ['./src/transports/manifest-cache.ts'],
 			transports: ['./src/transports/index.ts'],
 			'window-debug': ['./src/modules/window-debug/index.ts'],
 		},

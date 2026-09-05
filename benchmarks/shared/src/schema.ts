@@ -13,6 +13,7 @@ export type BenchmarkFramework =
 	| 'core'
 	| 'react'
 	| 'nextjs'
+	| 'tanstack-start'
 	| 'svelte'
 	| 'solid'
 	| 'vue'

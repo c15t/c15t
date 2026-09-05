@@ -24,6 +24,8 @@
 import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
+import { buildRequestContextHeaders } from '../libs/request-context';
+import type { SSRInitialData } from '../options/ssr';
 import type {
 	InitContext,
 	InitResponse,
@@ -34,6 +36,7 @@ import type {
 } from '../types';
 import {
 	buildDecisionAssertion,
+	decisionInputsMatchOverrides,
 	gpcFromHeaders,
 	rememberDecisionInputs,
 } from './decision-inputs';
@@ -77,6 +80,23 @@ export interface HostedTransportOptions {
 	 * Inject for tests, or to wire Cloudflare Worker bindings.
 	 */
 	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * An init response that was already requested, for example by an inline
+	 * prefetch script that ran before hydration. The first `init()` consumes
+	 * it instead of calling `initURL`, and still records the decision inputs
+	 * when `assertDecisionInputs` is set, so the first save stays bound to
+	 * that decision. A rejected or empty promise falls back to the fetch.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
+
+	/**
+	 * Decision inputs a server-side prefetch already resolved. Seeds the
+	 * assertion `POST /subjects` carries when `assertDecisionInputs` is set,
+	 * so a save made before the first client `init()` resolves is still
+	 * bound to the policy the server rendered. `init()` replaces the seed.
+	 */
+	decisionInputs?: RememberedDecisionInputs;
 
 	/**
 	 * Request headers that may be passed through to `GET /init`.
@@ -195,7 +215,8 @@ export const createHostedTransport = function createHostedTransport(
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
 	let establishedSubjectId: string | null = null;
-	let lastDecisionInputs: RememberedDecisionInputs | undefined;
+	let lastDecisionInputs: RememberedDecisionInputs | undefined =
+		options.assertDecisionInputs ? options.decisionInputs : undefined;
 	interface PendingIdentity {
 		reject: (error: unknown) => void;
 		resolve: () => void;
@@ -252,6 +273,60 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	};
 
+	let { initialData } = options;
+
+	const resolvedGpc = function resolvedGpc(
+		payload: InitOutput
+	): boolean | undefined {
+		const value = (payload as { resolvedOverrides?: { gpc?: unknown } })
+			.resolvedOverrides?.gpc;
+		return typeof value === 'boolean' ? value : undefined;
+	};
+
+	/** Takes the prefetched init once; `undefined` when absent or failed. */
+	const consumeInitialData = async function consumeInitialData(): Promise<
+		InitOutput | undefined
+	> {
+		if (!initialData) {
+			return undefined;
+		}
+		const pending = initialData;
+		initialData = undefined;
+		const data = await pending.catch(() => undefined);
+		if (!data?.init) {
+			return undefined;
+		}
+		return { ...data.init, gvl: data.gvl ?? data.init.gvl } as InitOutput;
+	};
+
+	const overrideHeaders = function overrideHeaders(
+		ctx: InitContext
+	): Record<string, string> {
+		return buildRequestContextHeaders(ctx.overrides);
+	};
+
+	const fetchInit = async function fetchInit(
+		headers: Record<string, string>
+	): Promise<InitOutput> {
+		const response = await fetchImpl(initURL, {
+			credentials,
+			headers: {
+				accept: 'application/json',
+				...c15tVersionHeaders,
+				...headers,
+			},
+			method: 'GET',
+		});
+
+		if (!response.ok) {
+			throw new Error(
+				`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
+			);
+		}
+
+		return (await response.json()) as InitOutput;
+	};
+
 	const resolvePendingIdentities = function resolvePendingIdentities(): void {
 		const pending = pendingIdentities;
 		pendingIdentities = [];
@@ -259,6 +334,50 @@ export const createHostedTransport = function createHostedTransport(
 			item.resolve();
 		}
 	};
+
+	// Overlapping inits: the kernel keeps only the latest response, so only
+	// the latest attempt may update the assertion state.
+	let initGeneration = 0;
+
+	const runInit = async function runInit(
+		ctx: InitContext
+	): Promise<InitResponse> {
+		initGeneration += 1;
+		const generation = initGeneration;
+		if (
+			options.assertDecisionInputs &&
+			lastDecisionInputs &&
+			!decisionInputsMatchOverrides(lastDecisionInputs, ctx.overrides)
+		) {
+			// The kernel is re-initialising for different inputs; a save made
+			// before that resolves must wait for the new decision rather than
+			// assert the superseded one.
+			lastDecisionInputs = undefined;
+		}
+		// The kernel's current overrides (country, region, language, GPC)
+		// travel as the canonical consent headers so a same-origin init
+		// route resolves the requested inputs rather than the CDN's.
+		const headers = { ...initHeaders, ...overrideHeaders(ctx) };
+		const prefetched = await consumeInitialData();
+		const payload = prefetched ?? (await fetchInit(headers));
+		if (options.assertDecisionInputs && generation === initGeneration) {
+			// Explicit headers first; otherwise the GPC value the resolver
+			// saw (the browser sends Sec-GPC itself on a same-origin init),
+			// so the assertion carries the input that produced the decision.
+			lastDecisionInputs = rememberDecisionInputs(
+				payload,
+				gpcFromHeaders(headers) ?? resolvedGpc(payload)
+			);
+		}
+		const result = mapInitOutputToInitResponse(payload, headers);
+		if (result.subjectId) {
+			establishedSubjectId = result.subjectId;
+			await flushPendingIdentities(result.subjectId);
+		}
+		return result;
+	};
+
+	let pendingInit: Promise<InitResponse> | undefined;
 
 	return {
 		async identify(user, subjectId): Promise<void> {
@@ -275,39 +394,37 @@ export const createHostedTransport = function createHostedTransport(
 			await patchIdentity(user, resolvedSubjectId);
 		},
 
-		async init(_ctx: InitContext): Promise<InitResponse> {
-			const response = await fetchImpl(initURL, {
-				credentials,
-				headers: {
-					accept: 'application/json',
-					...c15tVersionHeaders,
-					...initHeaders,
-				},
-				method: 'GET',
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`c15t hosted transport: /init responded ${response.status} ${response.statusText}`
-				);
+		async init(ctx: InitContext): Promise<InitResponse> {
+			const run = runInit(ctx);
+			pendingInit = run;
+			try {
+				return await run;
+			} finally {
+				if (pendingInit === run) {
+					pendingInit = undefined;
+				}
 			}
-
-			const payload = (await response.json()) as InitOutput;
-			if (options.assertDecisionInputs) {
-				lastDecisionInputs = rememberDecisionInputs(
-					payload,
-					gpcFromHeaders(initHeaders)
-				);
-			}
-			const result = mapInitOutputToInitResponse(payload, initHeaders);
-			if (result.subjectId) {
-				establishedSubjectId = result.subjectId;
-				await flushPendingIdentities(result.subjectId);
-			}
-			return result;
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
+			if (options.assertDecisionInputs) {
+				// A server-rendered banner is interactive before the client init
+				// resolves, and the provider re-initialises when its overrides
+				// change. Wait out every init in flight (a newer one may start
+				// while waiting) so the assertion reflects the latest decision;
+				// if none resolves, refuse rather than record an unbound consent.
+				let awaited = pendingInit;
+				while (awaited) {
+					// oxlint-disable-next-line no-await-in-loop -- Each iteration waits for the init that superseded the last.
+					await awaited.catch(() => undefined);
+					awaited = pendingInit;
+				}
+				if (!lastDecisionInputs) {
+					throw new Error(
+						'c15t hosted transport: cannot save before init resolved a policy decision (assertDecisionInputs is set).'
+					);
+				}
+			}
 			const response = await fetchImpl(`${base}/subjects`, {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),

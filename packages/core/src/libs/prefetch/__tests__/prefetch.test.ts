@@ -139,6 +139,41 @@ describe('prefetch utilities', () => {
 		).toBeUndefined();
 	});
 
+	it('carries a GPC override in the script and matches it at runtime', () => {
+		Object.defineProperty(window.navigator, 'globalPrivacyControl', {
+			configurable: true,
+			value: false,
+		});
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ jurisdiction: 'GDPR' }), {
+				headers: { 'content-type': 'application/json' },
+				status: 200,
+			})
+		);
+		vi.stubGlobal('fetch', fetchSpy);
+
+		expect(
+			buildPrefetchScript({ backendURL: '/api/c15t', overrides: { gpc: true } })
+		).toContain('"x-c15t-gpc":"1"');
+
+		const primed = primePrefetchedInitialData({
+			backendURL: '/api/c15t',
+			overrides: { gpc: true },
+		});
+		const call = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(new Headers(call[1].headers).get('x-c15t-gpc')).toBe('1');
+		expect(
+			getMatchingPrefetchedInitialData({
+				backendURL: '/api/c15t',
+				overrides: { gpc: true },
+			})
+		).toBe(primed);
+		// The browser signal alone (false) must not pick up the override entry.
+		expect(
+			getMatchingPrefetchedInitialData({ backendURL: '/api/c15t' })
+		).toBeUndefined();
+	});
+
 	it('does not reuse prefetched data when ambient GPC changes', async () => {
 		Object.defineProperty(window.navigator, 'globalPrivacyControl', {
 			configurable: true,

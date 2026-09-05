@@ -69,7 +69,7 @@ export const createApp = function createApp(
 			);
 			c.header(
 				'Access-Control-Allow-Headers',
-				'Content-Type, Authorization, x-request-id, x-c15t-version, x-c15t-country, x-c15t-region, sec-gpc, accept-language'
+				'Content-Type, Authorization, x-request-id, x-c15t-version, x-c15t-country, x-c15t-region, x-c15t-gpc, sec-gpc, accept-language'
 			);
 			c.header('Access-Control-Max-Age', '86400');
 			return c.body(null, 204);

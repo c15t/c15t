@@ -10,7 +10,7 @@
 
 import type { InitOutput } from '@c15t/schema/types';
 
-import type { SavePayload } from '../types';
+import type { KernelOverrides, SavePayload } from '../types';
 
 export interface RememberedDecisionInputs {
 	policyId?: string;
@@ -20,6 +20,46 @@ export interface RememberedDecisionInputs {
 	language: string;
 	gpc?: boolean;
 }
+
+const primaryLanguage = function primaryLanguage(value: string): string {
+	return value.toLowerCase().split('-')[0] ?? value.toLowerCase();
+};
+
+/**
+ * Whether kernel overrides still describe the inputs a remembered decision
+ * was made for. Any defined override that differs (country, region, GPC,
+ * or the language's primary subtag) means the decision is stale for the
+ * request that is about to run.
+ *
+ * @param inputs - The remembered decision inputs.
+ * @param overrides - Overrides the next init or save will use.
+ * @returns `true` when the decision still applies.
+ */
+export const decisionInputsMatchOverrides =
+	function decisionInputsMatchOverrides(
+		inputs: RememberedDecisionInputs,
+		overrides: KernelOverrides | undefined
+	): boolean {
+		if (!overrides) {
+			return true;
+		}
+		if (
+			overrides.country !== undefined &&
+			overrides.country !== inputs.country
+		) {
+			return false;
+		}
+		if (overrides.region !== undefined && overrides.region !== inputs.region) {
+			return false;
+		}
+		if (overrides.gpc !== undefined && overrides.gpc !== inputs.gpc) {
+			return false;
+		}
+		return (
+			overrides.language === undefined ||
+			primaryLanguage(overrides.language) === primaryLanguage(inputs.language)
+		);
+	};
 
 /** Fields added to `POST /subjects` to bind the save to a policy decision. */
 export type DecisionAssertion = Pick<
@@ -66,11 +106,14 @@ export const buildDecisionAssertion = function buildDecisionAssertion(
 	};
 };
 
-/** Parse the `sec-gpc` request header into the resolver's boolean input. */
+/**
+ * Parse the GPC request headers into the resolver's boolean input. The
+ * application override `x-c15t-gpc` wins over the browser's `sec-gpc`.
+ */
 export const gpcFromHeaders = function gpcFromHeaders(
 	headers: Record<string, string> | undefined
 ): boolean | undefined {
-	const value = headers?.['sec-gpc'];
+	const value = headers?.['x-c15t-gpc'] ?? headers?.['sec-gpc'];
 	if (value === '1') {
 		return true;
 	}

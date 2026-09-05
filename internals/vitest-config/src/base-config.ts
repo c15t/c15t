@@ -17,6 +17,13 @@ export const baseConfig = defineConfig({
 				'!**/dist-types/**',
 				'!**/storybook-static/**',
 				'!**/coverage/**',
+				// Build and test tooling is never exercised by a test run. Listing
+				// it as uncovered makes Vitest transform it through Vite at report
+				// time; in browser mode that walk reaches rslib's rspack resolver,
+				// triggers a dependency re-optimisation, and reloads the page
+				// mid-run, which vitest-browser-react does not survive.
+				'!**/*.config.{ts,js,mjs,cjs}',
+				'!**/scripts/**',
 			],
 
 			provider: 'istanbul',

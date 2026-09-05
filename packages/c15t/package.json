@@ -82,6 +82,11 @@
 			"import": "./shims/transports/manifest.js",
 			"default": "./shims/transports/manifest.js"
 		},
+		"./transports/manifest-cache": {
+			"types": "./shims/transports/manifest-cache.d.ts",
+			"import": "./shims/transports/manifest-cache.js",
+			"default": "./shims/transports/manifest-cache.js"
+		},
 		"./libs/generate-subject-id": {
 			"types": "./shims/libs/generate-subject-id.d.ts",
 			"import": "./shims/libs/generate-subject-id.js",
@@ -305,6 +310,45 @@
 			"import": "./shims/next/rsc.js",
 			"default": "./shims/next/rsc.js"
 		},
+		"./tanstack-start/styles.css": "./dist/tanstack-start/styles.css",
+		"./tanstack-start/styles.tw3.css": "./dist/tanstack-start/styles.tw3.css",
+		"./tanstack-start/iab/styles.css": "./dist/tanstack-start/iab/styles.css",
+		"./tanstack-start/iab/styles.tw3.css": "./dist/tanstack-start/iab/styles.tw3.css",
+		"./tanstack-start/headless": {
+			"types": "./shims/tanstack-start/headless.d.ts",
+			"import": "./shims/tanstack-start/headless.js",
+			"default": "./shims/tanstack-start/headless.js"
+		},
+		"./tanstack-start/components/consent-dialog-link": {
+			"types": "./shims/tanstack-start/components/consent-dialog-link.d.ts",
+			"import": "./shims/tanstack-start/components/consent-dialog-link.js",
+			"default": "./shims/tanstack-start/components/consent-dialog-link.js"
+		},
+		"./tanstack-start": {
+			"types": "./shims/tanstack-start.d.ts",
+			"import": "./shims/tanstack-start.js",
+			"default": "./shims/tanstack-start.js"
+		},
+		"./tanstack-start/server": {
+			"types": "./shims/tanstack-start/server.d.ts",
+			"import": "./shims/tanstack-start/server.js",
+			"default": "./shims/tanstack-start/server.js"
+		},
+		"./tanstack-start/api": {
+			"types": "./shims/tanstack-start/api.d.ts",
+			"import": "./shims/tanstack-start/api.js",
+			"default": "./shims/tanstack-start/api.js"
+		},
+		"./tanstack-start/middleware": {
+			"types": "./shims/tanstack-start/middleware.d.ts",
+			"import": "./shims/tanstack-start/middleware.js",
+			"default": "./shims/tanstack-start/middleware.js"
+		},
+		"./tanstack-start/static": {
+			"types": "./shims/tanstack-start/static.d.ts",
+			"import": "./shims/tanstack-start/static.js",
+			"default": "./shims/tanstack-start/static.js"
+		},
 		"./vue": {
 			"types": "./shims/vue.d.ts",
 			"import": "./shims/vue.js",
@@ -348,6 +392,7 @@
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
+		"@c15t/tanstack-start": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/vue": "workspace:*"
 	},

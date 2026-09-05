@@ -37,9 +37,12 @@ const mapResolvedOverrides = function mapResolvedOverrides(
 	if (payload.location.regionCode) {
 		overrides.region = payload.location.regionCode;
 	}
-	if (headers['sec-gpc'] === '1') {
+	// The application override wins over the browser signal, matching
+	// `gpcFromHeaders`.
+	const gpcHeader = headers['x-c15t-gpc'] ?? headers['sec-gpc'];
+	if (gpcHeader === '1') {
 		overrides.gpc = true;
-	} else if (headers['sec-gpc'] === '0') {
+	} else if (gpcHeader === '0') {
 		overrides.gpc = false;
 	}
 

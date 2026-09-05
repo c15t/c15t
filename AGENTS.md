@@ -11,6 +11,7 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 | `packages/core` | `c15t` — headless consent engine (storage, script gating, callbacks) |
 | `packages/react` | `@c15t/react` — banner/dialog/preference-center components + headless hooks |
 | `packages/nextjs` | `@c15t/nextjs` — Next.js integration (App + Pages Router, SSR) |
+| `packages/tanstack-start` | `@c15t/tanstack-start` — TanStack Start integration (server routes, server functions, request middleware, SSR) |
 | `packages/ui` | `@c15t/ui` — framework-agnostic primitives, CSS, theme system |
 | `packages/vue`, `packages/svelte`, `packages/solid` | Thin framework re-exports of `@c15t/ui` |
 | `packages/scripts` | `@c15t/scripts` — consent-aware loaders for GTM, GA4, pixels, widgets |
@@ -56,7 +57,7 @@ bun run dev                                          # examples/demo + watch-bui
 bun run --cwd examples/demo dev:localhost            # plain `next dev` (no portless/https)
 ```
 
-Browser tests (react, nextjs) need Chromium: `bunx playwright@1.58.2 install`.
+Browser tests (react, nextjs, tanstack-start) need Chromium: `bunx playwright@1.58.2 install`.
 
 `check-types` and `test` depend on `build` in `turbo.json` — if types look stale or imports of workspace packages fail, build first.
 
@@ -112,7 +113,7 @@ When adding or changing user-facing package behavior:
 
 - **`canary`** is the default branch and PR target; merges auto-publish `--tag canary` snapshots.
 - **`main`** is stable; **`2.0.0`** publishes RC pre-releases. `sync-canary.yml` syncs main → canary.
-- User-facing package changes need a changeset (`bun run changeset`). `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked** — they version together.
+- User-facing package changes need a changeset (`bun run changeset`). `c15t`, `@c15t/react`, `@c15t/nextjs`, `@c15t/tanstack-start`, `@c15t/backend`, `@c15t/cli`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/translations`, and `@c15t/dev-tools` are **linked** — they version together.
 - See the `releasing` skill for the full flow.
 
 ## CI on pull requests

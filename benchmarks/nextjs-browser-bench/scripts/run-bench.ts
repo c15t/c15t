@@ -1,14 +1,19 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
+import { once } from 'node:events';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import type { readBenchNavigationTiming } from '@c15t/benchmarking/browser';
+import type {
+	BenchScriptResourceMetrics,
+	readBenchNavigationTiming,
+} from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
+	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
@@ -182,6 +187,21 @@ const measureInteractionLatency = async function measureInteractionLatency(
 	return performance.now() - startedAt;
 };
 
+const waitForExit = async function waitForExit(
+	child: ReturnType<typeof spawn>,
+	timeoutMs: number
+): Promise<boolean> {
+	if (child.exitCode !== null || child.signalCode !== null) {
+		return true;
+	}
+	try {
+		await once(child, 'exit', { signal: AbortSignal.timeout(timeoutMs) });
+		return true;
+	} catch {
+		return false;
+	}
+};
+
 const waitForServer = async function waitForServer() {
 	for (let attempt = 0; attempt < 120; attempt += 1) {
 		try {
@@ -314,28 +334,9 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		if (entries.length === 0) {
-			return null;
-		}
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			appScriptCount: ordered.length,
-			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-			jsBytes: ordered.reduce(
-				(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
-				0
-			),
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scriptEntry = (await page.evaluate(
+		benchScriptResourceExpression
+	)) as BenchScriptResourceMetrics | null;
 	const performanceObserverInfo = await page.evaluate(() => {
 		const metrics = (
 			window as typeof window & {
@@ -748,9 +749,11 @@ const run = async function run() {
 		await browser.close();
 	} finally {
 		server.kill('SIGTERM');
-		await sleep(500);
-		if (!server.killed) {
+		// `killed` only confirms signal delivery; wait for the process to
+		// actually exit before judging its status, escalating if it lingers.
+		if (!(await waitForExit(server, 500))) {
 			server.kill('SIGKILL');
+			await waitForExit(server, 2000);
 		}
 		if (
 			server.exitCode !== null &&
@@ -761,12 +764,14 @@ const run = async function run() {
 				`${logs || 'Next.js browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
 			);
 		} else if (
-			server.exitCode === null ||
-			(server.exitCode === undefined &&
-				server.signalCode !== null &&
-				server.signalCode !== undefined &&
-				!expectedServerShutdownSignals.has(server.signalCode))
+			(server.exitCode === null || server.exitCode === undefined) &&
+			!(
+				server.signalCode &&
+				expectedServerShutdownSignals.has(server.signalCode)
+			)
 		) {
+			// Killed by a signal we did not send, or still running after the
+			// bounded wait (both status fields unset).
 			serverFailure = new Error(
 				`${logs || 'Next.js browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`
 			);

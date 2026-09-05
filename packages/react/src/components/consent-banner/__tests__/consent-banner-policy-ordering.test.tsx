@@ -60,7 +60,10 @@ const createMockState = function createMockState(
 	} as unknown as ConsentManagerState;
 };
 
-const renderBanner = function renderBanner(
+// `render` is async in vitest-browser-react; an un-awaited call can finish
+// its bookkeeping after the file tears down and surface as an unhandled
+// rejection that fails the whole run.
+const renderBanner = async function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
 	stateOverrides: Partial<ConsentManagerState> = {},
 	componentOverrides: ComponentProps<
@@ -69,7 +72,7 @@ const renderBanner = function renderBanner(
 ) {
 	const state = createMockState(stateOverrides);
 
-	render(
+	await render(
 		<ConsentProvider
 			options={{
 				components: {
@@ -121,7 +124,7 @@ const waitForBanner = async function waitForBanner() {
 
 describe('ConsentBanner policy ordering', () => {
 	test('prefers local layout over policy layout', async () => {
-		renderBanner({
+		await renderBanner({
 			layout: ['customize', ['reject', 'accept']],
 		});
 
@@ -141,7 +144,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('uses policy primary actions before the primaryButton prop', async () => {
-		renderBanner({
+		await renderBanner({
 			primaryButton: 'reject',
 		});
 
@@ -159,7 +162,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('filters out actions disallowed by policy even when local layout includes them', async () => {
-		renderBanner(
+		await renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
 			},
@@ -187,7 +190,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('keeps the default layout when policy has hints but no policy layout', async () => {
-		renderBanner(
+		await renderBanner(
 			{},
 			{
 				policyBanner: {
@@ -220,7 +223,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('shows branding by default and hides it when hideBranding is true', async () => {
-		renderBanner({});
+		await renderBanner({});
 
 		await waitForBanner();
 
@@ -230,7 +233,7 @@ describe('ConsentBanner policy ordering', () => {
 
 		document.body.innerHTML = '';
 
-		renderBanner({ hideBranding: true });
+		await renderBanner({ hideBranding: true });
 
 		await waitForBanner();
 
@@ -240,7 +243,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('applies the banner tag component slot to the stock banner tag', async () => {
-		renderBanner(
+		await renderBanner(
 			{},
 			{},
 			{ tag: { banner: { className: 'consent-banner-tag-marker' } } }

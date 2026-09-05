@@ -13,6 +13,7 @@
 			"@c15t/nextjs",
 			"@c15t/node-sdk",
 			"@c15t/react",
+			"@c15t/tanstack-start",
 			"@c15t/translations"
 		]
 	],

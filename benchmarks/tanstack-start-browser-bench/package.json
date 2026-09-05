@@ -1,0 +1,34 @@
+{
+	"name": "@c15t/tanstack-start-browser-bench",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/browser-runtime/tanstack-start bunx tsx scripts/run-bench.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/browser-runtime/tanstack-start bunx tsx scripts/run-bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/tanstack-start bunx tsx scripts/run-bench.ts",
+		"build": "vite build",
+		"build:root": "C15T_BENCH_ROOT_PROVIDER=1 vite build --outDir dist-root",
+		"dev": "vite dev --port 4314",
+		"start": "node scripts/serve.mjs"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/core": "workspace:*",
+		"@c15t/iab": "workspace:*",
+		"@c15t/tanstack-start": "workspace:*",
+		"@tanstack/react-router": "1.170.32",
+		"@tanstack/react-start": "1.168.49",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
+	},
+	"devDependencies": {
+		"@types/node": "22.19.11",
+		"@types/react": "19.2.17",
+		"@types/react-dom": "19.2.3",
+		"@vitejs/plugin-react": "6.0.3",
+		"playwright": "1.61.1",
+		"srvx": "0.12.4",
+		"typescript": "7.0.2",
+		"vite": "8.1.3"
+	}
+}
