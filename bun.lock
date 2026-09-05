@@ -147,6 +147,7 @@
       "name": "@c15t/storybook-vue",
       "dependencies": {
         "@c15t/conformance": "workspace:*",
+        "@c15t/core": "workspace:*",
         "@c15t/ui": "workspace:*",
         "@c15t/vue": "workspace:*",
         "vue": "^3.5.39",
@@ -465,6 +466,7 @@
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
+        "@c15t/scripts": "workspace:*",
         "@c15t/svelte": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@libsql/kysely-libsql": "^0.4.1",
@@ -815,6 +817,7 @@
       "version": "2.0.0-rc.4",
       "dependencies": {
         "@c15t/core": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/ui": "workspace:*",
@@ -873,6 +876,7 @@
       "version": "2.0.0-rc.4",
       "dependencies": {
         "@c15t/core": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",

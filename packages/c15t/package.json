@@ -330,6 +330,11 @@
 			"import": "./shims/vue/vue-plugin.js",
 			"default": "./shims/vue/vue-plugin.js"
 		},
+		"./vue/devtools": {
+			"types": "./shims/vue/devtools.d.ts",
+			"import": "./shims/vue/devtools.js",
+			"default": "./shims/vue/devtools.js"
+		},
 		"./vue/consent-root": {
 			"types": "./shims/vue/consent-root.d.ts",
 			"import": "./shims/vue/consent-root.js",

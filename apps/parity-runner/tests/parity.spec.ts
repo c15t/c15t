@@ -69,7 +69,11 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 		}
 	}
 	return pairStories(byFramework).filter(
-		(pair) => Object.keys(pair.entries).length >= 2
+		// DevTools owns a dedicated portal-aware comparison in devtools.spec.ts,
+		// including same-run pixel checks that also execute on Linux CI.
+		(pair) =>
+			Object.keys(pair.entries).length >= 2 &&
+			!pair.key.startsWith('Core/DevTools/')
 	);
 };
 

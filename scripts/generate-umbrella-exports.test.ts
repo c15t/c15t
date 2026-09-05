@@ -644,6 +644,20 @@ describe('committed umbrella package', () => {
 		);
 	});
 
+	it('ships the Vue DevTools adapter', () => {
+		expect(manifest.exports['./vue/devtools']).toEqual({
+			default: './shims/vue/devtools.js',
+			import: './shims/vue/devtools.js',
+			types: './shims/vue/devtools.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/vue/devtools.js']).toContain(
+			"export * from '@c15t/vue/devtools';"
+		);
+		expect(artifacts.shimFiles['shims/vue/devtools.js']).toContain(
+			"export { default } from '@c15t/vue/devtools';"
+		);
+	});
+
 	it('has exactly the derived shim files on disk', () => {
 		const committed = listFiles(join(UMBRELLA_DIR, 'shims'), 'shims');
 		expect(committed.sort()).toEqual(Object.keys(artifacts.shimFiles).sort());
