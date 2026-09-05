@@ -13,7 +13,7 @@ const DevTools = process.env.NODE_ENV !== 'production'
 	: () => null;
 import ConsentBanner from './consent-banner';
 import ConsentDialog from './consent-dialog';
-import { theme } from './theme';
+import { components, theme } from './theme';
 
 interface Props {
 	children: ReactNode;
@@ -31,6 +31,7 @@ export default function ConsentManagerClient({ children, config }: Props) {
 				mode: hosted({ url: '/api/c15t' }),
 				prefetch: config,
 				theme,
+				components,
 				// Add your scripts here:
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
@@ -60,7 +61,7 @@ const DevTools = process.env.NODE_ENV !== 'production'
 	: () => null;
 import ConsentBanner from './consent-banner';
 import ConsentDialog from './consent-dialog';
-import { theme } from './theme';
+import { components, theme } from './theme';
 
 interface Props {
 	children: ReactNode;
@@ -76,6 +77,7 @@ export default function ConsentManagerClient({ children }: Props) {
 			options={{
 				mode: offline(),
 				theme,
+				components,
 				// Add your scripts here:
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),

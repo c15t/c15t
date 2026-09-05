@@ -1,3 +1,9 @@
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -9,13 +15,71 @@ import {
 import { NEXTJS_CONFIG, REACT_CONFIG } from './framework-config';
 
 describe('expanded component templates', () => {
+	it('type-checks all theme presets against the public React theme and component types', () => {
+		const directory = mkdtempSync(join(tmpdir(), 'c15t-generated-themes-'));
+		const require = createRequire(import.meta.url);
+		const compiler = join(
+			dirname(require.resolve('typescript/package.json')),
+			'bin/tsc'
+		);
+		try {
+			for (const [name, framework] of Object.entries({
+				next: NEXTJS_CONFIG,
+				react: REACT_CONFIG,
+			})) {
+				for (const preset of ['minimal', 'tailwind', 'dark'] as const) {
+					writeFileSync(
+						join(directory, `${name}-${preset}.ts`),
+						generateExpandedThemeTemplate(preset, framework)
+					);
+				}
+			}
+			writeFileSync(
+				join(directory, 'tsconfig.json'),
+				JSON.stringify({
+					compilerOptions: {
+						module: 'ESNext',
+						moduleResolution: 'Bundler',
+						noEmit: true,
+						paths: {
+							'c15t/react/types': [
+								resolve(
+									import.meta.dirname,
+									'../../../../../../react/src/types/index.ts'
+								),
+							],
+						},
+						skipLibCheck: true,
+						strict: true,
+						target: 'ESNext',
+						types: [],
+					},
+					include: ['*.ts'],
+				})
+			);
+			const result = spawnSync(
+				process.execPath,
+				[
+					compiler,
+					'--project',
+					join(directory, 'tsconfig.json'),
+					'--pretty',
+					'false',
+				],
+				{ encoding: 'utf8' }
+			);
+			expect(result.status, result.stdout + result.stderr).toBe(0);
+		} finally {
+			rmSync(directory, { force: true, recursive: true });
+		}
+	});
 	it.each(['minimal', 'tailwind', 'dark'] as const)(
 		'imports the exported React Theme type for the %s preset in both frameworks',
 		(preset) => {
 			for (const framework of [REACT_CONFIG, NEXTJS_CONFIG]) {
 				const template = generateExpandedThemeTemplate(preset, framework);
 				expect(template).toContain(
-					"import type { Theme } from 'c15t/react/types';"
+					"import type { ReactComponentSlots, Theme } from 'c15t/react/types';"
 				);
 				expect(template).not.toContain('c15t/next/types');
 			}

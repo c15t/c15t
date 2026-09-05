@@ -68,7 +68,7 @@ ${reactNodeImport}import { ConsentProvider${modeImport ? `, ${modeImport}` : ''}
 ${typeImports}
 ${devToolsImport}import ConsentBanner from './consent-banner';
 import ConsentDialog from './consent-dialog';
-import { theme } from './theme';
+import { components, theme } from './theme';
 ${propsInterface}
 /**
  * Client-side consent manager provider with compound components.
@@ -80,6 +80,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 			options={{
 				${optionsText}${ssrDataOption}
 				theme,
+				components,
 				// Add your scripts here:
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
@@ -188,7 +189,7 @@ export default function () {
 const generateMinimalTheme = function generateMinimalTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.themeTypesImportSource}';
+	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Minimal Theme
@@ -196,7 +197,7 @@ const generateMinimalTheme = function generateMinimalTheme(
  * A clean, light theme with subtle grays and refined typography.
  * Uses standard CSS (no Tailwind dependency).
  *
- * Customize the colors, typography, and slots below to match your design.
+ * Customize the colors, typography, and components below to match your design.
  *
  * @see https://c15t.com/docs/customization/theming
  */
@@ -255,27 +256,34 @@ export const theme: Theme = {
 		md: '0 2px 8px rgba(0, 0, 0, 0.06)',
 		lg: '0 4px 16px rgba(0, 0, 0, 0.08)',
 	},
-	slots: {
-		consentBannerCard: {
+};
+
+export const components: ReactComponentSlots = {
+	banner: {
+		card: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-sm)',
 			},
 		},
-		consentDialogCard: {
+	},
+	dialog: {
+		card: {
 			style: {
 				border: '1px solid var(--c15t-border)',
 				boxShadow: 'var(--c15t-shadow-lg)',
 			},
 		},
-		buttonPrimary: {
+	},
+	button: {
+		primary: {
 			style: {
 				borderRadius: 'var(--c15t-radius-sm)',
 				boxShadow: 'none',
 				fontWeight: 500,
 			},
 		},
-		buttonSecondary: {
+		secondary: {
 			style: {
 				borderRadius: 'var(--c15t-radius-sm)',
 				backgroundColor: 'transparent',
@@ -293,7 +301,7 @@ export const theme: Theme = {
 const generateTailwindTheme = function generateTailwindTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.themeTypesImportSource}';
+	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Tailwind Theme
@@ -301,7 +309,7 @@ const generateTailwindTheme = function generateTailwindTheme(
  * Uses standard Tailwind colors (Slate/Blue) with backdrop blur effects.
  * This theme works well with Tailwind CSS projects.
  *
- * Customize the colors, typography, and slots below to match your design.
+ * Customize the colors, typography, and components below to match your design.
  *
  * @see https://c15t.com/docs/customization/theming
  */
@@ -329,18 +337,33 @@ export const theme: Theme = {
 		lg: '0.5rem',
 		full: '9999px',
 	},
-	slots: {
-		consentBannerCard:
-			'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md',
-		consentDialogCard:
-			'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
-		buttonPrimary:
-			'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
-		buttonSecondary:
-			'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
-		consentBannerTitle: 'text-slate-900 font-semibold',
-		consentBannerDescription: 'text-slate-500',
+};
+
+export const components: ReactComponentSlots = {
+	banner: {
+		card: {
+			className:
+				'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md',
+		},
+		title: { className: 'text-slate-900 font-semibold' },
 	},
+	dialog: {
+		card: {
+			className:
+				'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
+		},
+	},
+	button: {
+		primary: {
+			className:
+				'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
+		},
+		secondary: {
+			className:
+				'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
+		},
+	},
+	description: { banner: { className: 'text-slate-500' } },
 };
 `;
 };
@@ -348,7 +371,7 @@ export const theme: Theme = {
 const generateDarkTheme = function generateDarkTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.themeTypesImportSource}';
+	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Dark Mode Theme
@@ -357,7 +380,7 @@ const generateDarkTheme = function generateDarkTheme(
  * Stays dark regardless of system preference.
  * Uses standard CSS (no Tailwind dependency).
  *
- * Customize the colors, typography, and slots below to match your design.
+ * Customize the colors, typography, and components below to match your design.
  *
  * @see https://c15t.com/docs/customization/theming
  */
@@ -402,22 +425,29 @@ export const theme: Theme = {
 		md: '0 4px 8px rgba(0, 0, 0, 0.5)',
 		lg: '0 8px 16px rgba(0, 0, 0, 0.5)',
 	},
-	slots: {
-		consentBannerCard: {
+};
+
+export const components: ReactComponentSlots = {
+	banner: {
+		card: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
 				boxShadow: 'none',
 			},
 		},
-		consentDialogCard: {
+	},
+	dialog: {
+		card: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
 				boxShadow: '0 0 0 1px #333333, 0 8px 40px rgba(0,0,0,0.5)',
 			},
 		},
-		buttonPrimary: {
+	},
+	button: {
+		primary: {
 			style: {
 				backgroundColor: '#ffffff',
 				color: '#000000',
@@ -426,7 +456,7 @@ export const theme: Theme = {
 				fontWeight: 500,
 			},
 		},
-		buttonSecondary: {
+		secondary: {
 			style: {
 				backgroundColor: '#000000',
 				border: '1px solid #333333',
