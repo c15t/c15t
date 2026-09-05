@@ -75,7 +75,9 @@ describe('persistence: hydration', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
-		expect(kernel.getSnapshot().subjectId).toBe(pre.getSnapshot().subjectId);
+		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe(
+			pre.getSnapshot().subject?.subjectId ?? null
+		);
 		expect(kernel.getSnapshot().explicitChoice).toEqual(
 			pre.getSnapshot().explicitChoice
 		);
@@ -117,7 +119,7 @@ describe('persistence: write path', () => {
 	test('a staged draft never writes', () => {
 		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel });
-		kernel.set.consent({ marketing: true });
+		kernel.set.draft({ marketing: true });
 		flushWrites();
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 		expect(document.cookie).toBe('');

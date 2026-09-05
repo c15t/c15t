@@ -150,7 +150,6 @@ const failedResolutionPatch = function failedResolutionPatch(
 ): SnapshotPatch {
 	const patch: SnapshotPatch = {
 		now,
-		policyDecision: null,
 		policySnapshotToken: null,
 		resolution: { policy: null, reason: 'transport', status: 'failed' },
 	};
@@ -420,7 +419,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const current = getSnapshot();
 			const recordsAreCurrent =
 				recordsGeneration === runtime.getGeneration() &&
-				snapshot.subjectId === current.subjectId &&
+				(snapshot.subject?.subjectId ?? null) ===
+					(current.subject?.subjectId ?? null) &&
 				snapshot.user === current.user;
 			// Policy can still resolve after clear or identification changes,
 			// but the old request no longer owns this subject's stored records.
@@ -428,7 +428,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				? response
 				: {
 						...response,
-						consents: undefined,
 						records: undefined,
 						subjectId: undefined,
 					};
@@ -438,9 +437,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					'[c15t] Ignored invalid server records on init.',
 					applied.recordIssues
 				);
-			}
-			if (applied.draft) {
-				runtime.setDraft({ ...runtime.getDraft(), ...applied.draft });
 			}
 			const changed = commit(applied.patch);
 			if (changed || snapshot.policyPending) {
@@ -568,7 +564,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const stale =
 				identifyAttempt !== identifyGeneration ||
 				runtime.getGeneration() !== generation ||
-				getSnapshot().subjectId !== subjectId;
+				(getSnapshot().subject?.subjectId ?? null) !== subjectId;
 			if (records && !stale) {
 				// Newest receipt per category wins: a local refusal made while
 				// the server read was in flight is never overwritten.
@@ -645,9 +641,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 			if (
 				result.subjectId &&
-				result.subjectId !== getSnapshot().subjectId &&
+				result.subjectId !== getSnapshot().subject?.subjectId &&
 				getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
-				getSnapshot().subjectId === actionSnapshot.subjectId
+				(getSnapshot().subject?.subjectId ?? null) ===
+					(actionSnapshot.subject?.subjectId ?? null)
 			) {
 				commit({
 					subject: { ...getSnapshot().subject, subjectId: result.subjectId },
@@ -691,7 +688,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		async identify(user: KernelUser): Promise<void> {
 			identifyGeneration += 1;
 			const attempt = identifyGeneration;
-			const { subjectId, iab } = getSnapshot();
+			const { subject, iab } = getSnapshot();
+			const subjectId = subject?.subjectId ?? null;
 			const patch: SnapshotPatch = { user: { ...user } };
 			if (iab) {
 				patch.iab = { ...iab, authority: null, tcString: null };
@@ -711,7 +709,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				// without one they stay pending until a save establishes it.
 				runtime.flushPrivacy();
 			}
-			await loadSubjectRecord(getSnapshot().subjectId, attempt);
+			await loadSubjectRecord(
+				getSnapshot().subject?.subjectId ?? null,
+				attempt
+			);
 		},
 
 		init(): Promise<InitResult> {
@@ -780,7 +781,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				const result: SaveResult = {
 					confirmed: [],
 					ok: true,
-					subjectId: before.subjectId ?? undefined,
+					subjectId: before.subject?.subjectId,
 				};
 				emit({ result, type: 'command:save:completed' });
 				return result;

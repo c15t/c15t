@@ -214,11 +214,11 @@ const shouldFetchGvl = function shouldFetchGvl(
 	const model =
 		payload.policyResolution?.status === 'matched'
 			? payload.policyResolution.policy.model
-			: payload.policy?.model;
+			: undefined;
 	return (
 		manifest.iab?.enabled === true &&
 		manifest.iab.gvl !== undefined &&
-		(manifest.policyPacks === undefined || model === 'iab')
+		model === 'iab'
 	);
 };
 

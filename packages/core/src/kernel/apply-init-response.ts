@@ -8,7 +8,6 @@ import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
 import type { RecordIssue } from '../consent-record/validation';
-import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
 	InitResponse,
@@ -18,7 +17,7 @@ import type {
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
 import { mergeServerPatch } from './server-records';
-import { buildDraft, DEFAULT_IAB } from './snapshot';
+import { DEFAULT_IAB } from './snapshot';
 
 /**
  * Merge incoming init translations over the snapshot's current ones.
@@ -57,8 +56,6 @@ export const readInitResolution = function readInitResolution(
 
 export interface AppliedInitResponse {
 	patch: SnapshotPatch;
-	/** Draft seed from the BRIDGE `consents` field, if any. */
-	draft: PresentedSelection | null;
 	/** Issues found in `response.records`; the records were not applied. */
 	recordIssues: RecordIssue[] | null;
 }
@@ -96,10 +93,8 @@ export const applyInitResponse = function applyInitResponse(
 	const resolution = readInitResolution(response);
 	patch.resolution = resolution;
 	if (resolution.status === 'matched') {
-		patch.policyDecision = response.policyDecision ?? null;
 		patch.policySnapshotToken = response.policySnapshotToken ?? null;
 	} else {
-		patch.policyDecision = null;
 		patch.policySnapshotToken = null;
 	}
 
@@ -163,7 +158,6 @@ export const applyInitResponse = function applyInitResponse(
 	}
 
 	return {
-		draft: buildDraft(response.consents),
 		patch,
 		recordIssues,
 	};

@@ -1,23 +1,8 @@
 /**
- * The one fold from a backend `InitOutput` onto the kernel's `InitResponse`
- * and, for server prefetch, onto `KernelConfig`.
- *
- * Two boundaries live here and are kept apart on purpose:
- *
- * - **Policy resolution.** A negotiated producer sends `policyResolution`;
- *   the raw wire is passed through untouched for the kernel's strict reader.
- *   A producer that predates the contract sends only the legacy `policy`
- *   field, which is lifted here through the explicitly named legacy bridge.
- *   The two cases are told apart by what the producer declared, never by
- *   whether a field happened to be present: a negotiated producer whose
- *   response lacks `policyResolution` is an `invalid-payload` failure, so a
- *   stripped or truncated response can never leave a permissive policy in
- *   place. The lift hashes once, inside the transport's init call or the
- *   server prefetch, and never in kernel construction or render.
- * - **Privacy signals.** `Sec-GPC: 1` is a detected user-agent signal and is
- *   reported as `resolvedPrivacySignals.gpc`, separate from `overrides.gpc`,
- *   which stays the developer/test override. Only the exact value `1`
- *   counts; `0` reports an explicit absence and anything else is silence.
+ * Shared fold from a producer init payload to kernel initialization.
+ * Versioned policy outcomes are validated before kernel construction.
+ * Older producers without a policy contract fail safely. Detected GPC
+ * remains separate from a developer override.
  */
 import type {
 	InitOutput,
@@ -31,40 +16,19 @@ import {
 } from '@c15t/schema/types';
 
 import type {
-	ConsentState,
 	InitResponse,
 	KernelBranding,
 	KernelConfig,
 	KernelIABState,
 	KernelOverrides,
 } from '../types';
-import type { TransportHydrationRecords } from './subject-record';
 
 type RichInitOutput = InitOutput &
-	Partial<Pick<InitResponse, 'consents' | 'resolvedOverrides' | 'subjectId'>>;
+	Partial<Pick<InitResponse, 'resolvedOverrides' | 'subjectId'>>;
 
-/**
- * Detected privacy signals reported by a transport.
- *
- * Mirrors the kernel's `InitResponse.resolvedPrivacySignals`; the local
- * declaration collapses into it once the kernel types land.
- */
-export interface TransportPrivacySignals {
-	/** `true` for `Sec-GPC: 1`, `false` for an explicit `0`. */
-	gpc?: boolean;
-}
-
-/**
- * `InitResponse` plus the v3 fields the kernel reads.
- *
- * `policyResolution` is the raw wire; `records` are server-mapped receipts
- * for the hydration boundary. Structurally identical to the kernel's own
- * `InitResponse` extension so the two collapse when it lands.
- */
-export type TransportInitResponse = InitResponse & {
+/** Init payload after transport protocol negotiation and record mapping. */
+export type TransportInitResponse = Omit<InitResponse, 'policyResolution'> & {
 	policyResolution?: PolicyResolutionWire;
-	resolvedPrivacySignals?: TransportPrivacySignals;
-	records?: TransportHydrationRecords;
 };
 
 /** Options for {@link mapInitOutputToInitResponse}. */
@@ -72,8 +36,8 @@ export interface MapInitOutputOptions {
 	/**
 	 * The policy contract the producer declared on its response.
 	 *
-	 * `undefined` for a producer that predates the contract, whose legacy
-	 * `policy` field is lifted. A declared value this client speaks marks a
+	 * `undefined` permits a versioned wire body, but fails when it is absent.
+	 * A declared value this client speaks marks a
 	 * negotiated producer, whose response must carry `policyResolution` or is
 	 * a failed payload. A declared value this client does not speak, or one it
 	 * cannot parse (`null`), fails as `unsupported-contract` before the body
@@ -120,7 +84,7 @@ const mapResolvedOverrides = function mapResolvedOverrides(
 /** The `Sec-GPC` request header as a detected signal. Exact values only. */
 export const mapPrivacySignals = function mapPrivacySignals(
 	headers: Record<string, string>
-): TransportPrivacySignals | undefined {
+): NonNullable<InitResponse['resolvedPrivacySignals']> | undefined {
 	const value = headers['sec-gpc'];
 	if (value === '1') {
 		return { gpc: true };
@@ -136,9 +100,7 @@ export const mapPrivacySignals = function mapPrivacySignals(
  *
  * A producer declaring a contract this client does not speak fails closed
  * whatever its body says. A negotiated producer's wire passes through as-is.
- * The legacy field is lifted only for a producer that declared nothing; a
- * negotiated producer that omitted the field failed to produce a complete
- * response.
+ * A missing wire body fails protocol negotiation.
  */
 export const resolveInitPolicyWire = function resolveInitPolicyWire(
 	payload: Pick<InitOutput, 'policyResolution'>,
@@ -185,9 +147,6 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (branding !== undefined) {
 		mapped.branding = branding;
 	}
-	if (payload.policyDecision !== undefined) {
-		mapped.policyDecision = payload.policyDecision;
-	}
 	if (payload.policySnapshotToken !== undefined) {
 		mapped.policySnapshotToken = payload.policySnapshotToken;
 	}
@@ -205,16 +164,9 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 };
 
 /**
- * `KernelConfig` plus the v3 seeds a prefetch can supply.
- *
- * Mirrors the kernel's `KernelConfig` additions; the local declaration
- * collapses into it once the kernel types land.
+ * Configuration after folding validated prefetch records and policy.
  */
-export type TransportKernelConfig = KernelConfig & {
-	initialPolicyResolution?: PolicyResolution;
-	initialPrivacySignals?: TransportPrivacySignals;
-	initialRecords?: TransportHydrationRecords;
-};
+export type TransportKernelConfig = KernelConfig;
 
 export const mergeInitResponseIntoKernelConfig =
 	// oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
@@ -254,17 +206,14 @@ export const mergeInitResponseIntoKernelConfig =
 			};
 		}
 
-		if (response.consents) {
-			merged.initialConsents = {
-				...(base.initialConsents ?? {}),
-				...(response.consents as Partial<ConsentState>),
-			};
-		}
-		if (response.subjectId) {
-			merged.initialSubjectId = response.subjectId;
-		}
-		if (response.records !== undefined) {
-			merged.initialRecords = response.records;
+		if (response.records !== undefined || response.subjectId !== undefined) {
+			merged.initialRecords = { ...base.initialRecords, ...response.records };
+			if (response.subjectId && response.records?.subject === undefined) {
+				merged.initialRecords.subject = {
+					...merged.initialRecords.subject,
+					subjectId: response.subjectId,
+				};
+			}
 		}
 		if (response.location !== undefined) {
 			merged.initialLocation = response.location;
@@ -283,9 +232,6 @@ export const mergeInitResponseIntoKernelConfig =
 			// resolution and never lifts or hashes anything itself.
 			const resolution = readPolicyResolutionWire(response.policyResolution);
 			merged.initialPolicyResolution = resolution;
-		}
-		if (response.policyDecision !== undefined) {
-			merged.initialPolicyDecision = response.policyDecision;
 		}
 		if (response.policySnapshotToken !== undefined) {
 			merged.initialPolicySnapshotToken = response.policySnapshotToken;
@@ -317,7 +263,7 @@ export const mergeInitResponseIntoKernelConfig =
 		) {
 			// Clear after folding the response: a failed producer may include
 			// stale legacy metadata alongside its non-matching resolution.
-			delete merged.initialPolicyDecision;
+
 			delete merged.initialPolicySnapshotToken;
 			delete merged.initialIab;
 		}

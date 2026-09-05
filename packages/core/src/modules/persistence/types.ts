@@ -2,8 +2,6 @@
  * Shared types for the persistence module.
  */
 
-import type { ConsentState as V2ConsentState } from '../../consent/compliance';
-import type { ConsentInfo } from '../../consent/consent-types';
 import type { StorageConfig } from '../../libs/cookie';
 import type { ConsentKernel } from '../../types';
 
@@ -38,13 +36,4 @@ export interface PersistenceHandle {
 	 * kernel's in-memory records.
 	 */
 	clear: () => void;
-}
-
-/**
- * BRIDGE: shape of the legacy v2 payload `readStoredConsentFromCookie`
- * returns. Prefer `readStoredRecordsFromCookieHeader`.
- */
-export interface StoredPayload {
-	consents?: Partial<V2ConsentState>;
-	consentInfo?: ConsentInfo | null;
 }

@@ -164,11 +164,9 @@ const createEndpointTransport = function createEndpointTransport(
 				branding:
 					init.branding === 'none' ? undefined : (init.branding as never),
 				cmpId: init.cmpId as never,
-				consents: init.consents as never,
 				customVendors: init.customVendors as never,
 				gvl: init.gvl as never,
 				location: init.location as never,
-				policyDecision: init.policyDecision as never,
 				policySnapshotToken: init.policySnapshotToken as never,
 				resolvedOverrides: init.resolvedOverrides as never,
 				subjectId: init.subjectId as never,

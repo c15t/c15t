@@ -116,7 +116,7 @@ export interface NetworkBlockerConfig {
 	 * This allows the blocker to use a slightly stale consent snapshot so that
 	 * script teardown callbacks can finish before stricter blocking is applied.
 	 */
-	initialConsents?: ConsentState;
+	initialDraft?: ConsentState;
 
 	/**
 	 * Whether to automatically log blocked requests to the console.

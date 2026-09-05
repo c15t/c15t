@@ -33,7 +33,7 @@ describe('buildReconcilePass', () => {
 	test('forwards consents directly when no policy scope is in play', () => {
 		const snap = snapshotForKernel({});
 		const pass = buildReconcilePass(snap);
-		expect(pass.consents).toBe(snap.consents);
+		expect(pass.consents).toBe(snap.effectivePermissions);
 	});
 });
 

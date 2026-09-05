@@ -6,6 +6,7 @@
  * fetch so we know the request shape and error handling are correct.
  */
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel, createHostedTransport } from '../index';
@@ -117,14 +118,6 @@ const REALISTIC_INIT_OUTPUT = {
 	},
 	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: 'BE' },
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'policy-fingerprint',
-		jurisdiction: 'GDPR',
-		matchedBy: 'region',
-		policyId: 'de-iab',
-		region: 'BE',
-	},
 	policyResolution: {
 		...matchedResolution(
 			iabRule({ id: 'de-iab', scopeMode: 'strict' }),
@@ -194,39 +187,20 @@ const MANIFEST_FIXTURE = {
 		gvl: { url: 'https://gvl.example.com', version: 42 },
 	},
 	policyPacks: [
-		{
-			fingerprint: 'policy-fingerprint',
-
-			policy: {
-				consent: {
-					expiryDays: 180,
-					gpc: true,
-
-					model: 'iab',
-					scopeMode: 'strict',
-				},
-
-				i18n: { language: 'de', messageProfile: 'formal' },
-				id: 'de-iab',
-				match: { regions: [{ country: 'DE', region: 'BE' }] },
-			},
-			resolvedPolicy: {
-				consent: {
-					categories: ['*'],
-					expiryDays: 180,
-					gpc: true,
-
-					scopeMode: 'strict',
-				},
-				i18n: { language: 'de', messageProfile: 'formal' },
-				id: 'de-iab',
-				model: 'iab',
-				proof: {},
-			},
-		},
+		createConsentManifestPolicyPack({
+			categories: ['*'],
+			i18n: { language: 'de', messageProfile: 'formal' },
+			id: 'de-iab',
+			match: { regions: [{ country: 'DE', region: 'BE' }] },
+			model: 'iab',
+			privacySignals: { gpc: { denyCategories: ['marketing', 'measurement'] } },
+			prompt: 'choice',
+			scopeMode: 'strict',
+			validity: { choiceDays: 180 },
+		}),
 	],
 	revision: 'manifest-revision',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'formal',
@@ -333,7 +307,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		});
 	});
 
-	test('server-side consents seed only the draft, never a choice', async () => {
+	test('legacy server booleans cannot seed a draft or a choice', async () => {
 		const transport: KernelTransport = {
 			init() {
 				return {
@@ -350,13 +324,13 @@ describe('kernel transport: init applies response to snapshot', () => {
 		// Booleans without receipts cannot be an explicit choice.
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.hasConsented).toBe(false);
-		expect(snap.consents.marketing).toBe(false);
+		expect(snap.effectivePermissions.marketing).toBe(false);
 
-		// A no-input save confirms the presented (draft) values.
+		// Missing receipts cannot preselect a later explicit confirmation.
 		await kernel.commands.save();
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
-		expect(kernel.getSnapshot().consents.measurement).toBe(true);
-		expect(kernel.getSnapshot().consents.experience).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.experience).toBe(false);
 	});
 
 	test('init passes current overrides + user as InitContext', async () => {
@@ -822,9 +796,9 @@ describe('kernel transport: save flows consents to backend', () => {
 		const kernel = createConsentKernel({ transport: { save: saveSpy } });
 
 		await kernel.commands.save('all');
-		const first = kernel.getSnapshot().subjectId;
+		const first = kernel.getSnapshot().subject?.subjectId ?? null;
 		await kernel.commands.save({ marketing: false });
-		const second = kernel.getSnapshot().subjectId;
+		const second = kernel.getSnapshot().subject?.subjectId ?? null;
 
 		expect(first).toMatch(/^sub_/u);
 		expect(second).toBe(first);
@@ -903,7 +877,9 @@ describe('kernel transport: failed save replay', () => {
 			window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]'
 		);
 		expect(stored).toHaveLength(1);
-		expect(stored[0].payload.subjectId).toBe(kernel.getSnapshot().subjectId);
+		expect(stored[0].payload.subjectId).toBe(
+			kernel.getSnapshot().subject?.subjectId ?? null
+		);
 
 		const initResult = await kernel.commands.init();
 		expect(initResult.ok).toBe(true);
@@ -918,7 +894,10 @@ describe('kernel transport: failed save replay', () => {
 		resolveReplay({ ok: true });
 		await vi.waitFor(() => {
 			expect(replayed).toEqual([
-				{ ok: true, subjectId: kernel.getSnapshot().subjectId },
+				{
+					ok: true,
+					subjectId: kernel.getSnapshot().subject?.subjectId ?? null,
+				},
 			]);
 		});
 		expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
@@ -951,7 +930,7 @@ describe('kernel transport: failed save replay', () => {
 			.mockRejectedValueOnce(new Error('save offline'))
 			.mockResolvedValue({ ok: true });
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub_fixed',
+			initialRecords: { subject: { subjectId: 'sub_fixed' } },
 			transport: { init: vi.fn().mockResolvedValue({}), save: saveSpy },
 		});
 		const replayed: boolean[] = [];
@@ -1020,7 +999,7 @@ describe('kernel transport: failed save replay', () => {
 		};
 		vi.stubGlobal('navigator', { locks });
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub_fixed',
+			initialRecords: { subject: { subjectId: 'sub_fixed' } },
 			transport: {
 				save: vi.fn().mockRejectedValue(new Error('save offline')),
 			},
@@ -1287,11 +1266,11 @@ describe('kernel transport: failed save replay', () => {
 	test('replays every queued subject and records each result separately', async () => {
 		const failingSave = vi.fn().mockRejectedValue(new Error('save offline'));
 		const tabA = createConsentKernel({
-			initialSubjectId: 'sub_a',
+			initialRecords: { subject: { subjectId: 'sub_a' } },
 			transport: { save: failingSave },
 		});
 		const tabB = createConsentKernel({
-			initialSubjectId: 'sub_b',
+			initialRecords: { subject: { subjectId: 'sub_b' } },
 			transport: { save: failingSave },
 		});
 		await tabA.commands.save('all');
@@ -1441,7 +1420,7 @@ describe('kernel transport: failed save replay', () => {
 
 		expect(saveSpy).toHaveBeenCalledTimes(2);
 		expect(replayed).toEqual([
-			{ ok: false, subjectId: kernel.getSnapshot().subjectId },
+			{ ok: false, subjectId: kernel.getSnapshot().subject?.subjectId ?? null },
 		]);
 		expect(
 			JSON.parse(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '[]')
@@ -1451,7 +1430,7 @@ describe('kernel transport: failed save replay', () => {
 
 	test('queued saves dedupe by subjectId and keep the newest payload', async () => {
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub_fixed',
+			initialRecords: { subject: { subjectId: 'sub_fixed' } },
 			transport: {
 				save: vi.fn().mockRejectedValue(new Error('save offline')),
 			},
@@ -1602,7 +1581,7 @@ describe('kernel transport: identify forwards to transport', () => {
 		const transport: KernelTransport = { identify: identifySpy };
 
 		const kernel = createConsentKernel({
-			initialSubjectId: 'sub-42',
+			initialRecords: { subject: { subjectId: 'sub-42' } },
 			transport,
 		});
 		await kernel.commands.identify({ externalId: 'user-42' });
@@ -1966,7 +1945,7 @@ describe('createHostedTransport: request shape', () => {
 		const [, saveInit] = fetchSpy.mock.calls[1] ?? [];
 		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
 			country: 'DE',
-			fingerprint: 'policy-fingerprint',
+			fingerprint: REALISTIC_INIT_OUTPUT.policyResolution.fingerprints.policy,
 			gpc: true,
 			language: 'de',
 			policyId: 'de-iab',
@@ -2073,11 +2052,6 @@ describe('createHostedTransport: request shape', () => {
 			customVendors: [{ id: 'internal-analytics' }],
 			gvl: { vendorListVersion: 42 },
 			location: { countryCode: 'DE', regionCode: 'BE' },
-			policyDecision: {
-				jurisdiction: 'GDPR',
-				matchedBy: 'region',
-				policyId: 'de-iab',
-			},
 			policyResolution: {
 				policy: { id: 'de-iab', model: 'iab' },
 				status: 'matched',
@@ -2156,11 +2130,6 @@ describe('createManifestTransport: local init resolution', () => {
 			cmpId: 28,
 			customVendors: [{ id: 'internal-analytics' }],
 			gvl: { vendorListVersion: 42 },
-			policyDecision: {
-				fingerprint: 'policy-fingerprint',
-				matchedBy: 'region',
-				policyId: 'de-iab',
-			},
 			policyResolution: {
 				policy: { id: 'de-iab', model: 'iab' },
 				status: 'matched',
@@ -2245,7 +2214,7 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(body).toMatchObject({
 			country: 'DE',
 			externalSubjectId: 'user-2',
-			fingerprint: 'policy-fingerprint',
+			fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/u),
 			gpc: true,
 			language: 'de',
 			metadata: {
@@ -2531,7 +2500,7 @@ describe('independent partial save transport', () => {
 			await kernel.commands.save({ measurement: false });
 			finish({ ok: true, subjectId: 'older' });
 			await first;
-			expect(kernel.getSnapshot().subjectId).toBe('latest');
+			expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe('latest');
 		} finally {
 			kernel.dispose();
 		}
@@ -2545,7 +2514,7 @@ describe('independent partial save transport', () => {
 			})
 		);
 		const kernel = createConsentKernel({
-			initialSubjectId: 'original',
+			initialRecords: { subject: { subjectId: 'original' } },
 			transport: { save: send },
 		});
 		try {

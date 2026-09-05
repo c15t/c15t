@@ -38,20 +38,10 @@ import {
 	isOptionalConsentCategory,
 	validateExplicitChoice,
 } from '../consent-record/validation';
+import type { HydrationRecords } from '../types';
 
-/**
- * Records the kernel hydrates from a server read.
- *
- * Mirrors the kernel's `HydrationRecords`; the local declaration collapses
- * into it once the kernel types land.
- */
-export interface TransportHydrationRecords {
-	choice?: ExplicitChoice | null;
-	subject?: ConsentSubject | null;
-	optOutDirectives?: readonly PrivacyOptOut[];
-	/** Evaluation time the records were read at, epoch milliseconds. */
-	now?: number;
-}
+/** Validated records returned by a subject transport. */
+export type TransportHydrationRecords = HydrationRecords;
 
 /** The subject read as the wire carries it, dates already revived. */
 export type SubjectRecordWire = GetSubjectOutput & {

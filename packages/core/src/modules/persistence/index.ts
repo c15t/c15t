@@ -28,18 +28,12 @@
  * - `clear()` cancels queued writes before it removes storage, so a
  *   pending flush cannot recreate what was just cleared.
  */
-import { getConsentFromCookieHeader } from '../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { hydrateFromStorage } from './hydrate';
 import type { StoredIabMetadata } from './record-codec';
 import { clearStoredConsentRecords } from './record-storage';
 import { createWriteScheduler } from './schedule';
-import type {
-	PersistenceHandle,
-	PersistenceOptions,
-	StorageConfig,
-	StoredPayload,
-} from './types';
+import type { PersistenceHandle, PersistenceOptions } from './types';
 import {
 	writeChoiceToStorage,
 	writeNoticeToStorage,
@@ -50,7 +44,6 @@ export type {
 	PersistenceHandle,
 	PersistenceOptions,
 	StorageConfig,
-	StoredPayload,
 } from './types';
 export {
 	readStoredRecords,
@@ -61,21 +54,6 @@ export type { StoredIabMetadata, StoredConsentEnvelope } from './record-codec';
 export { resolveStorageKeys } from './record-storage';
 
 export const CONSENT_STORAGE_KEY = STORAGE_KEY_V2;
-
-/**
- * BRIDGE: legacy v2 cookie reader that fills absent categories with
- * `false` and drops the choice time. Prefer
- * {@link readStoredRecordsFromCookieHeader}, which returns validated
- * receipts for `KernelConfig.initialRecords`.
- *
- * @deprecated Use `readStoredRecordsFromCookieHeader`.
- */
-export const readStoredConsentFromCookie = function readStoredConsentFromCookie(
-	cookieHeader: string | undefined,
-	storageConfig?: StorageConfig
-): StoredPayload | null {
-	return getConsentFromCookieHeader<StoredPayload>(cookieHeader, storageConfig);
-};
 
 export const createPersistence = function createPersistence(
 	options: PersistenceOptions

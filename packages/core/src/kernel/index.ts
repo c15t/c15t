@@ -51,7 +51,7 @@ export const createConsentKernel = function createConsentKernel(
 
 	const runtime = createRuntime({
 		emit: eventBus.emit,
-		initialDraft: buildDraft(config.initialConsents),
+		initialDraft: buildDraft(config.initialDraft),
 		initialSnapshot,
 		transport,
 	});

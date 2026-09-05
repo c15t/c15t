@@ -13,7 +13,6 @@ import type { PolicyResolution } from '@c15t/schema/types';
 import { evaluateConsentRecord } from '../consent-record/evaluate';
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
-	ConsentSubject,
 	ExplicitChoice,
 	OptionalConsentCategory,
 } from '../consent-record/types';
@@ -92,7 +91,7 @@ export const buildDraft = function buildDraft(
 };
 
 /**
- * BRIDGE: merge user-supplied booleans over the default state. Only used
+ * Merge user-supplied booleans over the default state. Only used
  * to seed drafts; permissions are never built from it.
  */
 export const buildInitialConsents = function buildInitialConsents(
@@ -205,7 +204,7 @@ export const freezeSnapshot = function freezeSnapshot(
 		snapshot.subject,
 		snapshot.user,
 		snapshot.translations,
-		snapshot.policyDecision,
+
 		snapshot.iab,
 		snapshot.location,
 	]) {
@@ -214,18 +213,6 @@ export const freezeSnapshot = function freezeSnapshot(
 		}
 	}
 	return Object.freeze(snapshot) as ConsentSnapshot;
-};
-
-const initialSubject = function initialSubject(
-	config: KernelConfig,
-	fromRecords: ConsentSubject | null | undefined
-): ConsentSubject | null {
-	if (fromRecords !== undefined) {
-		return fromRecords;
-	}
-	return config.initialSubjectId
-		? { subjectId: config.initialSubjectId }
-		: null;
 };
 
 /**
@@ -254,7 +241,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const explicitChoice = records?.choice ?? null;
 	const noticeDismissal = records?.noticeDismissal ?? null;
 	const optOutDirectives = records?.optOutDirectives ?? [];
-	const subject = initialSubject(config, records?.subject);
+	const subject = records?.subject ?? null;
 
 	const iab = buildInitialIab(config.initialIab);
 	const override = config.initialOverrides?.gpc;
@@ -279,7 +266,6 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 			resolution,
 		}),
 		branding: config.initialBranding ?? null,
-		consents: evaluation.permissions,
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,
@@ -294,9 +280,6 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		noticeDismissal,
 		optOutDirectives,
 		overrides: { ...(config.initialOverrides ?? {}) },
-		policyDecision: config.initialPolicyDecision
-			? { ...config.initialPolicyDecision }
-			: null,
 		policyPending,
 		policyRule: effective.rule,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
@@ -306,7 +289,6 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		restrictions: evaluation.restrictions,
 		revision: 0,
 		subject,
-		subjectId: subject?.subjectId ?? null,
 		translations: config.initialTranslations
 			? { ...config.initialTranslations }
 			: null,

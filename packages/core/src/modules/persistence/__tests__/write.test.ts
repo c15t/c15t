@@ -40,7 +40,7 @@ describe('buildStoredEnvelope', () => {
 		expect(envelope?.subject).toEqual({
 			externalId: '0',
 			identityProvider: '1',
-			subjectId: kernel.getSnapshot().subjectId,
+			subjectId: kernel.getSnapshot().subject?.subjectId ?? null,
 		});
 		expect(envelope?.iab).toEqual({ customVendorConsents: { acme: false } });
 		expect(envelope?.categories.marketing?.confirmedAt).toBe(NOW);
@@ -63,6 +63,8 @@ describe('writeChoiceToStorage', () => {
 		expect(document.cookie).toContain(`${STORAGE_KEY_V2}=v=3&`);
 		const { selected } = readStoredConsentRecord(undefined, NOW);
 		expect(selected?.choice).toEqual(kernel.getSnapshot().explicitChoice);
-		expect(selected?.subject?.subjectId).toBe(kernel.getSnapshot().subjectId);
+		expect(selected?.subject?.subjectId).toBe(
+			kernel.getSnapshot().subject?.subjectId ?? null
+		);
 	});
 });

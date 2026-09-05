@@ -46,7 +46,7 @@ describe('buildSetters', () => {
 		const before = kernel.getSnapshot();
 		const listener = vi.fn();
 		kernel.subscribe(listener);
-		kernel.set.consent({ marketing: true });
+		kernel.set.draft({ marketing: true });
 		expect(kernel.getSnapshot()).toBe(before);
 		expect(listener).not.toHaveBeenCalled();
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
@@ -72,7 +72,7 @@ describe('buildSetters', () => {
 		const kernel = createConsentKernel({ now: NOW });
 		kernel.set.subjectId('sub_1');
 		expect(kernel.getSnapshot().subject).toEqual({ subjectId: 'sub_1' });
-		expect(kernel.getSnapshot().subjectId).toBe('sub_1');
+		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe('sub_1');
 		const before = kernel.getSnapshot();
 		kernel.set.subjectId('sub_1');
 		expect(kernel.getSnapshot()).toBe(before);

@@ -2,8 +2,7 @@
  * Synchronous setters exposed at `kernel.set.*`.
  *
  * Each setter computes a `SnapshotPatch` and hands it to the runtime,
- * which re-derives dependent fields and skips no-ops. `set.consent` is a
- * BRIDGE: it stages draft values for a no-input `save()` and never grants
+ * which re-derives dependent fields and skips no-ops. `set.draft` stages draft values for a no-input `save()` and never grants
  * anything.
  */
 
@@ -66,7 +65,7 @@ export const buildSetters = function buildSetters(runtime: KernelRuntime) {
 			commit({ activeUI: ui });
 		},
 
-		consent(input: Partial<ConsentState>): void {
+		draft(input: Partial<ConsentState>): void {
 			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
 		},
 

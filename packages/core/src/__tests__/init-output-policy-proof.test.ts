@@ -31,20 +31,12 @@ const payload: InitOutput = {
 	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	policy: { id: rule.id, model: 'opt-in' },
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'stale-proof',
-		jurisdiction: 'GDPR',
-		matchedBy: 'fallback',
-		policyId: rule.id,
-		region: null,
-	},
 	policySnapshotToken: 'stale-token',
 	translations: { language: 'en', translations: {} },
 };
 const expectNoProof = (config: ReturnType<typeof initOutputToKernelConfig>) => {
 	expect(config).not.toHaveProperty('initialPolicy');
-	expect(config.initialPolicyDecision).toBeUndefined();
+	expect(config).not.toHaveProperty('initialPolicyDecision');
 	expect(config.initialPolicySnapshotToken).toBeUndefined();
 	expect(config.initialIab).toBeUndefined();
 };
@@ -73,7 +65,6 @@ describe('prefetch policy metadata', () => {
 		});
 		const next = mergeInitResponseIntoKernelConfig(base, {
 			cmpId: 999,
-			policyDecision: payload.policyDecision,
 			policyResolution: writePolicyResolutionWire(resolution),
 			policySnapshotToken: 'another-stale-token',
 		});
@@ -88,6 +79,6 @@ describe('prefetch policy metadata', () => {
 			policyResolution: writePolicyResolutionWire(matched),
 		});
 		expect(config.initialPolicySnapshotToken).toBe('stale-token');
-		expect(config.initialPolicyDecision).toEqual(payload.policyDecision);
+		expect(config.initialPolicyResolution).toEqual(matched);
 	});
 });

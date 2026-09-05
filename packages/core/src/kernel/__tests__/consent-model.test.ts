@@ -525,7 +525,7 @@ describe('privacy signals', () => {
 				privacySignals: { gpc: { denyCategories: ['marketing'] } },
 				prompt: 'none',
 			}),
-			initialSubjectId: 'sub_1',
+			initialRecords: { subject: { subjectId: 'sub_1' } },
 			initialUser: { externalId: 'user-1' },
 			now: POLICY_NOW,
 			transport: { recordPrivacyOptOut },
@@ -564,7 +564,7 @@ describe('policy resolution outcomes', () => {
 		expect(snap.resolution).toEqual({ policy: null, status: 'no-match' });
 		expect(snap.policyRule.id).toBe('c15t_safe_fallback');
 		expect(snap.policySnapshotToken).toBeNull();
-		expect(snap.policyDecision).toBeNull();
+		expect(snap).not.toHaveProperty('policyDecision');
 		expect(snap.iab?.enabled).toBe(false);
 		expect(snap.model).toBe('opt-in');
 		expect(snap.effectivePermissions.marketing).toBe(false);

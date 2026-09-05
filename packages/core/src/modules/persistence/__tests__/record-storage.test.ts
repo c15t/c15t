@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makePolicy } from '../../../consent-record/__tests__/fixtures';
 import { evaluateConsentRecord } from '../../../consent-record/evaluate';
 import type { ChoiceBasis } from '../../../consent-record/types';
-import { saveConsentToStorage, setCookie } from '../../../libs/cookie';
+import { setCookie } from '../../../libs/cookie';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import { encodeStoredConsentEnvelopeCompact } from '../record-codec';
 import type { StoredConsentEnvelope } from '../record-codec';
@@ -327,8 +327,8 @@ describe('raw candidate reading', () => {
 		);
 	});
 
-	it('round-trips typed identity written by the actual v2 writer', () => {
-		saveConsentToStorage({
+	it('reads numeric-looking identity encoded by the v2 cookie serializer', () => {
+		const legacyData = {
 			consentInfo: {
 				externalId: '12345',
 				identityProvider: '1',
@@ -338,7 +338,9 @@ describe('raw candidate reading', () => {
 			},
 			consents: { marketing: true, measurement: false, necessary: true },
 			iabCustomVendorConsents: { '42': true, vendor: false },
-		});
+		};
+		setCookie(STORAGE_KEY_V2, legacyData);
+		window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(legacyData));
 		expect(document.cookie).toContain('i.eid:12345');
 		expect(document.cookie).toContain('i.idp:1');
 

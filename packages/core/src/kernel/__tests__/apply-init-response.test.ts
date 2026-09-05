@@ -132,18 +132,17 @@ describe('applyInitResponse', () => {
 		expect(patch.iab?.enabled).toBe(false);
 	});
 
-	test('consents seed the draft and records hydrate', () => {
+	test('records hydrate without accepting draft input', () => {
 		const snap = buildInitialSnapshot({ now: NOW });
 		const applied = applyInitResponse(
 			snap,
 			{
-				consents: { marketing: true },
 				records: choiceRecords({ measurement: true }),
 				subjectId: 'sub_server',
 			},
 			NOW
 		);
-		expect(applied.draft).toEqual({ marketing: true });
+		expect(applied).not.toHaveProperty('draft');
 		expect(applied.patch.explicitChoice?.categories.measurement?.value).toBe(
 			true
 		);

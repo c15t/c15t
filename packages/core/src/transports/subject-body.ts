@@ -31,24 +31,7 @@ export interface BuildSubjectPostBodyOptions {
 	domain: string;
 }
 
-/**
- * The receipt fields a v3 kernel adds to `SavePayload`.
- *
- * Mirrors the kernel's `SavePayload` additions (`choice` and
- * `confirmed: { categories, actionAt }`); the local declaration collapses
- * into them once the kernel types land.
- */
-export interface SaveReceiptFields {
-	/** Complete receipt after this action. */
-	choice?: Readonly<ExplicitChoice>;
-	/** Exactly the categories this action confirmed, with its action time. */
-	confirmed?: {
-		categories: Readonly<Partial<Record<OptionalConsentCategory, boolean>>>;
-		actionAt: number;
-	};
-}
-
-export type SubjectSavePayload = SavePayload & SaveReceiptFields;
+export type SubjectSavePayload = SavePayload;
 
 export interface SubjectPostBody {
 	subjectId: string;
@@ -78,7 +61,7 @@ export interface SubjectPostBody {
  * Returns `undefined` when the payload has no receipt or confirmed nothing.
  */
 export const buildConfirmedChoiceWire = function buildConfirmedChoiceWire(
-	payload: SaveReceiptFields
+	payload: Pick<SavePayload, 'choice' | 'confirmed'>
 ): SubjectChoiceWire | undefined {
 	const { choice, confirmed } = payload;
 	if (!choice || !confirmed) {
@@ -134,18 +117,15 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		domain: opts.domain,
 		externalSubjectId: payload.user?.externalId,
 		// The action time captured once by the kernel; a queued replay reuses
-		// it so the backend derives the same consent id. Stamped here only for
-		// kernels that predate the capture.
-		givenAt: payload.givenAt ?? payload.confirmed?.actionAt ?? Date.now(),
+		// it so the backend derives the same consent id.
+		givenAt: payload.confirmed.actionAt,
 		identityProvider: payload.user?.identityProvider,
 		jurisdictionModel: payload.model ?? undefined,
 		metadata: payload.user?.properties
 			? { userProperties: payload.user.properties }
 			: undefined,
 		policySnapshotToken: payload.policySnapshotToken ?? undefined,
-		preferences: payload.choice
-			? explicitPreferences(payload.choice)
-			: { ...payload.consents },
+		preferences: explicitPreferences(payload.choice),
 		subjectId: payload.subjectId,
 		tcString: payload.tcString ?? undefined,
 		type: 'cookie_banner',

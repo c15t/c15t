@@ -12,17 +12,6 @@
  *   onMounted / onMount. Never at kernel construction.
  */
 
-export {
-	flattenPolicyActionGroups,
-	hasPolicyHints,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	resolvePolicyUiProfile,
-	shouldFillPolicyActions,
-} from './libs/policy-actions';
 export type {
 	CategoryDecision,
 	ChoiceBasis,
@@ -118,15 +107,8 @@ export type {
 	LocationResponse,
 	NonIABVendor,
 	NoticeDismissResult,
-	PolicyDecision,
 	PolicyResolution,
 	PolicyScopeMode,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
 	ResolvedPolicyRule,
 	SaveInput,
 	SavePayload,
@@ -157,10 +139,8 @@ export type { CookieOptions, StorageConfig } from './libs/cookie';
 export {
 	deleteConsentFromStorage,
 	deleteCookie,
-	getConsentFromStorage,
 	getCookie,
 	getRootDomain,
-	saveConsentToStorage,
 	setCookie,
 } from './libs/cookie';
 
@@ -247,7 +227,6 @@ export { defaultTranslationConfig } from './translations';
 // -- Schema re-exports ---------------------------------------------------------
 export type {
 	Branding,
-	EuropePolicyMode,
 	InitOutput,
 	JurisdictionCode,
 	PolicyPrompt,
@@ -258,6 +237,8 @@ export type {
 export {
 	policyRulePresets,
 	readPolicyResolutionWire,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
 	safeFallbackPolicyRule,
 } from '@c15t/schema/types';
 export { resolveConsentPresentation } from './libs/policy-actions';

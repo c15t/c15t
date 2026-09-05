@@ -15,15 +15,8 @@ import type {
 	GlobalVendorList,
 	LocationResponse,
 	NonIABVendor,
-	PolicyDecision,
 	PolicyResolution,
 	PolicyScopeMode,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
 	ResolvedPolicyRule,
 	TranslationsResponse,
 } from '@c15t/schema/types';
@@ -48,15 +41,8 @@ export type {
 	GlobalVendorList,
 	LocationResponse,
 	NonIABVendor,
-	PolicyDecision,
 	PolicyResolution,
 	PolicyScopeMode,
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiMode,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
 	ResolvedPolicyRule,
 	TranslationsResponse,
 };
@@ -273,13 +259,8 @@ export interface ConsentSnapshot {
 	/** Validated policy projection the evaluator consumed. Devtools and gate-time re-evaluation only. */
 	readonly evaluationPolicy: Readonly<EvaluationPolicy>;
 
-	// -- BRIDGE aliases ------------------------------------------------------
-	/** BRIDGE: same object as {@link effectivePermissions}. Never a draft or a choice. */
-	readonly consents: Readonly<ConsentState>;
-	/** BRIDGE: whether at least one explicit receipt exists. Never gates UI or saves. */
+	/** Read-only diagnostic for devtools: whether an explicit receipt exists. Never gates UI or saves. */
 	readonly hasConsented: boolean;
-	/** BRIDGE: `subject?.subjectId ?? null`. */
-	readonly subjectId: string | null;
 
 	// -- Context -------------------------------------------------------------
 	readonly overrides: Readonly<KernelOverrides>;
@@ -295,7 +276,7 @@ export interface ConsentSnapshot {
 	/** Branding identifier. */
 	readonly branding: KernelBranding | null;
 	/** Explainability metadata for how the policy was matched. */
-	readonly policyDecision: Readonly<PolicyDecision> | null;
+
 	/** Signed token for write-time consistency — sent back on save. */
 	readonly policySnapshotToken: string | null;
 
@@ -334,16 +315,14 @@ export interface KernelConfig {
 	/** Detected privacy signals (for example `Sec-GPC: 1` on the request). */
 	initialPrivacySignals?: { gpc?: boolean };
 	/**
-	 * BRIDGE: seeds only the staged draft a no-input `save()` confirms. It
+	 * Seeds only the staged draft a no-input `save()` confirms. It
 	 * never creates a choice or changes permissions.
 	 */
-	initialConsents?: Partial<ConsentState>;
+	initialDraft?: Partial<ConsentState>;
 	/** Initial geographic / language / GPC context. */
 	initialOverrides?: KernelOverrides;
 	/** Initial identified user, if known at construction. */
 	initialUser?: KernelUser;
-	/** BRIDGE: initial subject ID; prefer `initialRecords.subject`. */
-	initialSubjectId?: string;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
 	/** Initial location (e.g. from prefetch). */
@@ -372,7 +351,7 @@ export interface KernelConfig {
 		  }
 		| false;
 	/** Initial policy decision. */
-	initialPolicyDecision?: PolicyDecision;
+
 	/** Initial policy snapshot token. */
 	initialPolicySnapshotToken?: string;
 	/** Initial IAB slice. */
@@ -410,8 +389,6 @@ export interface InitResponse {
 	policyResolution?: unknown;
 	/** Server-mapped receipts, applied through the hydration boundary. */
 	records?: HydrationRecords;
-	/** BRIDGE: seeds only the staged draft. Never a choice. */
-	consents?: Partial<ConsentState>;
 	/** Server-side subject ID, if the user already has one. */
 	subjectId?: string;
 
@@ -422,7 +399,7 @@ export interface InitResponse {
 	/** Branding preference. */
 	branding?: KernelBranding;
 	/** Explainability metadata for policy resolution. */
-	policyDecision?: PolicyDecision;
+
 	/** Signed token for write-time consistency. Sent back on save. */
 	policySnapshotToken?: string;
 
@@ -452,7 +429,7 @@ export interface SavePayload {
 	choice: Readonly<ExplicitChoice>;
 	/** Exactly the categories this action confirmed. */
 	confirmed: ConfirmedCoverage;
-	/** BRIDGE: effective permissions after the action. */
+	/** Effective permissions after the action. */
 	consents: Readonly<ConsentState>;
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
@@ -640,8 +617,8 @@ export interface ConsentKernel {
 	 * Sync mutations. Notify subscribers synchronously.
 	 */
 	readonly set: {
-		/** BRIDGE: stages draft values a no-input `save()` confirms. Never a grant. */
-		consent: (input: Partial<ConsentState>) => void;
+		/** Stages draft values a no-input `save()` confirms. Never a grant. */
+		draft: (input: Partial<ConsentState>) => void;
 		overrides: (input: KernelOverrides) => void;
 		language: (code: string) => void;
 		subjectId: (id: string | null) => void;

@@ -23,7 +23,7 @@ describe('applyPatch', () => {
 
 	test('undefined fields preserve current values, null clears them', () => {
 		const initial = buildInitialSnapshot({
-			initialSubjectId: 'sub_1',
+			initialRecords: { subject: { subjectId: 'sub_1' } },
 			initialUser: { externalId: 'u1' },
 			now: NOW,
 		});
@@ -33,14 +33,14 @@ describe('applyPatch', () => {
 		const cleared = applyPatch(initial, { subject: null, user: null });
 		expect(cleared.user).toBeNull();
 		expect(cleared.subject).toBeNull();
-		expect(cleared.subjectId).toBeNull();
+		expect(cleared.subject?.subjectId ?? null).toBeNull();
 	});
 
 	test('derived fields keep their reference when their value is unchanged', () => {
 		const initial = buildInitialSnapshot({ now: NOW });
 		const next = buildNextSnapshot(initial, { now: NOW + 1000 });
 		expect(next.effectivePermissions).toBe(initial.effectivePermissions);
-		expect(next.consents).toBe(initial.effectivePermissions);
+		expect(next.effectivePermissions).toBe(initial.effectivePermissions);
 		expect(next.promptRequirement).toBe(initial.promptRequirement);
 		expect(next.restrictions).toBe(initial.restrictions);
 		expect(next.privacySignals).toBe(initial.privacySignals);
@@ -58,7 +58,7 @@ describe('applyPatch', () => {
 		});
 		const next = applyPatch(initial, { explicitChoice: records.choice });
 		expect(next.effectivePermissions.marketing).toBe(true);
-		expect(next.consents).toBe(next.effectivePermissions);
+		expect(next.effectivePermissions).toBe(next.effectivePermissions);
 		expect(next.hasConsented).toBe(true);
 		expect(next.promptRequirement).toEqual({ kind: 'none' });
 		expect(next.activeUI).toBe('none');

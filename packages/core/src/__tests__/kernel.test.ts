@@ -120,7 +120,7 @@ describe('kernel: subscribe', () => {
 		);
 
 		// Draft staging does not touch the snapshot.
-		kernel.set.consent({ marketing: true });
+		kernel.set.draft({ marketing: true });
 		expect(listener).toHaveBeenCalledTimes(1);
 
 		await kernel.commands.save({ marketing: false });
@@ -185,8 +185,8 @@ describe('kernel: commands', () => {
 
 		const snap = kernel.getSnapshot();
 		expect(snap.hasConsented).toBe(true);
-		expect(snap.subjectId).toMatch(/^sub_/u);
-		expect(snap.subject?.subjectId).toBe(snap.subjectId);
+		expect(snap.subject?.subjectId ?? null).toMatch(/^sub_/u);
+		expect(snap.subject?.subjectId).toBe(snap.subject?.subjectId ?? null);
 		expect(listener).toHaveBeenCalledTimes(1);
 	});
 

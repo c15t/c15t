@@ -58,7 +58,7 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.policyRule.id).toBe('c15t_safe_fallback');
 		expect(snap.model).toBe('opt-in');
 		expect(snap.effectivePermissions).toEqual(DEFAULT_CONSENTS);
-		expect(snap.consents).toBe(snap.effectivePermissions);
+		expect(snap.effectivePermissions).toBe(snap.effectivePermissions);
 		expect(snap.explicitChoice).toBeNull();
 		expect(snap.hasConsented).toBe(false);
 		expect(snap.promptRequirement).toEqual({
@@ -71,9 +71,9 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.policyRule.model).toBe('opt-in');
 	});
 
-	test('initialConsents seed nothing but the draft', () => {
+	test('initialDraft seed nothing but the draft', () => {
 		const snap = buildInitialSnapshot({
-			initialConsents: { marketing: true },
+			initialDraft: { marketing: true },
 			now: NOW,
 		});
 		expect(snap.effectivePermissions.marketing).toBe(false);
@@ -99,7 +99,7 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.promptRequirement).toEqual({ kind: 'none' });
 		expect(snap.activeUI).toBe('none');
 		expect(snap.subject).toEqual({ subjectId: 'legacy-id-42' });
-		expect(snap.subjectId).toBe('legacy-id-42');
+		expect(snap.subject?.subjectId ?? null).toBe('legacy-id-42');
 	});
 
 	test('invalid initialRecords are ignored, not salvaged', () => {

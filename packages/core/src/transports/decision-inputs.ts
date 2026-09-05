@@ -33,10 +33,16 @@ export const rememberDecisionInputs = function rememberDecisionInputs(
 ): RememberedDecisionInputs {
 	return {
 		country: payload.location.countryCode,
-		fingerprint: payload.policyDecision?.fingerprint,
+		fingerprint:
+			payload.policyResolution?.status === 'matched'
+				? payload.policyResolution.fingerprints.policy
+				: undefined,
 		gpc,
 		language: payload.translations.language,
-		policyId: payload.policyDecision?.policyId,
+		policyId:
+			payload.policyResolution?.status === 'matched'
+				? payload.policyResolution.policyId
+				: undefined,
 		region: payload.location.regionCode,
 	};
 };

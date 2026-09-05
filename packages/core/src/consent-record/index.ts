@@ -55,5 +55,3 @@ export {
 	validateNoticeDismissal,
 } from './validation';
 export type { RecordIssue, ValidationResult } from './validation';
-
-// -- BRIDGE (removed with the Vue adapter migration) ---------------------------

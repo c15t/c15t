@@ -166,7 +166,9 @@ describe('hydrateFromStorage', () => {
 		const stored = hydrateFromStorage(kernel, undefined, NOW);
 		expect(stored?.found).toBe(true);
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
-		expect(kernel.getSnapshot().subjectId).toBe('legacy-cookie');
+		expect(kernel.getSnapshot().subject?.subjectId ?? null).toBe(
+			'legacy-cookie'
+		);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
 		expect(choiceRecorded).not.toHaveBeenCalled();
 		expect(permissions).toHaveBeenCalledTimes(1);

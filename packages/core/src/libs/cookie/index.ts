@@ -1,43 +1,4 @@
-/**
- * @packageDocumentation
- * Cookie storage utilities for consent data persistence.
- *
- * @remarks
- * This module handles dual storage of consent in both localStorage and cookies
- * to ensure persistence across different scenarios.
- *
- * The implementation is split into several focused modules:
- * - `types`: Type definitions and interfaces
- * - `domain-utils`: Domain and configuration helpers
- * - `key-mapping`: Cookie key compression for size optimization
- * - `serialization`: Flattening/unflattening of nested objects
- * - `operations`: Low-level cookie CRUD operations
- * - `storage`: High-level storage functions for consent data
- *
- * @example
- * ```typescript
- * import {
- *   saveConsentToStorage,
- *   getConsentFromStorage,
- *   deleteConsentFromStorage,
- *   getRootDomain
- * } from '@/libs/cookie';
- *
- * // Save consent
- * saveConsentToStorage({
- *   consents: { necessary: true, analytics: false },
- *   consentInfo: { time: Date.now(), type: 'custom' }
- * });
- *
- * // Retrieve consent
- * const consent = getConsentFromStorage();
- *
- * // Delete consent
- * deleteConsentFromStorage();
- * ```
- */
-
-// Re-export domain utilities
+/** Cookie operations and storage configuration. Consent records are read through the persistence module. */
 export { getDefaultCookieOptions, getRootDomain } from './domain-utils';
 // Re-export key mapping (internal use)
 export {
@@ -66,12 +27,6 @@ export {
 	unflattenObject,
 } from './serialization';
 // Re-export high-level storage functions
-export {
-	deleteConsentFromStorage,
-	getConsentFromCookieHeader,
-	getConsentFromStorage,
-	readStoredConsent,
-	saveConsentToStorage,
-} from './storage';
+export { deleteConsentFromStorage } from './storage';
 // Re-export types
 export type { CookieOptions, StorageConfig } from './types';

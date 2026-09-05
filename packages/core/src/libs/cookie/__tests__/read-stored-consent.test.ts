@@ -1,11 +1,12 @@
 /**
- * `readStoredConsent` is the hydration read path. It must never write:
+ * `readStoredRecords` is the hydration read path. It must never write:
  * no legacy-key migration, no cookie/localStorage mirroring, and no
  * deletion of v1.x records. See c15t/c15t#1025.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { readStoredConsent, setCookie } from '..';
+import { setCookie } from '..';
+import { readStoredRecords } from '../../../modules/persistence/hydrate';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../storage-keys';
 
 const SUBJECT_ID = 'sub_2VZxR7YmNpKq3WfLs8TgHd';
@@ -28,7 +29,7 @@ const stored = function stored(): StoredConsentRecord {
 	};
 };
 
-describe('readStoredConsent', () => {
+describe('readStoredRecords', () => {
 	beforeEach(() => {
 		document.cookie = '';
 		window.localStorage.clear();
@@ -41,18 +42,21 @@ describe('readStoredConsent', () => {
 	});
 
 	it('returns null when nothing is stored', () => {
-		expect(readStoredConsent()).toBeNull();
+		expect(readStoredRecords(undefined, ORIGINAL_TIME + 1).found).toBe(false);
 	});
 
 	it('reads localStorage without creating a cookie', () => {
 		window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(stored()));
 
-		const result = readStoredConsent<StoredConsentRecord>();
+		const result = readStoredRecords(undefined, ORIGINAL_TIME + 1);
 
-		expect(result?.consentInfo).toEqual(stored().consentInfo);
-		expect(result?.consents.marketing).toBe(true);
-		// Normalized: every known category is an explicit boolean.
-		expect(result?.consents.measurement).toBe(false);
+		expect(result.records.subject).toEqual({ subjectId: SUBJECT_ID });
+		expect(result.records.choice?.categories.marketing?.confirmedAt).toBe(
+			ORIGINAL_TIME
+		);
+		expect(result.records.choice?.categories.marketing?.value).toBe(true);
+		// Partial JSON preserves absent category coverage.
+		expect(result.records.choice?.categories.measurement).toBeUndefined();
 		expect(document.cookie).toBe('');
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(
 			JSON.stringify(stored())
@@ -63,9 +67,11 @@ describe('readStoredConsent', () => {
 		setCookie(STORAGE_KEY_V2, stored());
 		const cookieBefore = document.cookie;
 
-		const result = readStoredConsent<StoredConsentRecord>();
+		const result = readStoredRecords(undefined, ORIGINAL_TIME + 1);
 
-		expect(result?.consentInfo.time).toBe(ORIGINAL_TIME);
+		expect(result.records.choice?.categories.marketing?.confirmedAt).toBe(
+			ORIGINAL_TIME
+		);
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 		expect(document.cookie).toBe(cookieBefore);
 	});
@@ -73,9 +79,11 @@ describe('readStoredConsent', () => {
 	it('reads the legacy localStorage key without migrating it', () => {
 		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored()));
 
-		const result = readStoredConsent<StoredConsentRecord>();
+		const result = readStoredRecords(undefined, ORIGINAL_TIME + 1);
 
-		expect(result?.consentInfo.time).toBe(ORIGINAL_TIME);
+		expect(result.records.choice?.categories.marketing?.confirmedAt).toBe(
+			ORIGINAL_TIME
+		);
 		expect(window.localStorage.getItem(STORAGE_KEY)).toBe(
 			JSON.stringify(stored())
 		);
@@ -86,10 +94,10 @@ describe('readStoredConsent', () => {
 	it('honours a custom storage key', () => {
 		window.localStorage.setItem('custom-key', JSON.stringify(stored()));
 
-		expect(readStoredConsent()).toBeNull();
+		expect(readStoredRecords(undefined, ORIGINAL_TIME + 1).found).toBe(false);
 		expect(
-			readStoredConsent<StoredConsentRecord>({ storageKey: 'custom-key' })
-				?.consentInfo.time
+			readStoredRecords({ storageKey: 'custom-key' }, ORIGINAL_TIME + 1)
+				?.records.choice?.categories.marketing?.confirmedAt
 		).toBe(ORIGINAL_TIME);
 	});
 
@@ -100,17 +108,21 @@ describe('readStoredConsent', () => {
 		});
 		window.localStorage.setItem(STORAGE_KEY_V2, legacy);
 
-		expect(readStoredConsent()).toBeNull();
+		expect(readStoredRecords(undefined, ORIGINAL_TIME + 1).found).toBe(false);
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(legacy);
 	});
 
-	it('drops nullish subject identifiers from the result', () => {
+	it('rejects malformed subject identifiers without salvaging grants', () => {
 		const payload = stored();
 		payload.consentInfo.externalId = null;
 		window.localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(payload));
 
-		const result = readStoredConsent<StoredConsentRecord>();
+		const result = readStoredRecords(undefined, ORIGINAL_TIME + 1);
 
-		expect(result?.consentInfo).not.toHaveProperty('externalId');
+		expect(result.found).toBe(false);
+		expect(result.records.choice).toBeNull();
+		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(
+			JSON.stringify(payload)
+		);
 	});
 });

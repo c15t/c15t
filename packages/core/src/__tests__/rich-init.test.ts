@@ -12,7 +12,6 @@
  *    when enabled flips.
  * 6. SavePayload carries policySnapshotToken and tcString.
  */
-import type { PolicyDecision } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../index';
@@ -36,11 +35,6 @@ const GDPR_RESOLUTION = {
 	version: 1,
 };
 
-const GDPR_DECISION: PolicyDecision = {
-	fingerprint: 'abc123',
-	matchedBy: 'region',
-} as unknown as PolicyDecision;
-
 describe('rich init: applies full response to snapshot', () => {
 	test('fills location / translations / branding / policy / policyDecision / policySnapshotToken', async () => {
 		const transport: KernelTransport = {
@@ -48,7 +42,6 @@ describe('rich init: applies full response to snapshot', () => {
 				return {
 					branding: 'c15t',
 					location: { countryCode: 'DE', regionCode: 'BE' },
-					policyDecision: GDPR_DECISION,
 					policyResolution: GDPR_RESOLUTION,
 					policySnapshotToken: 'token-xyz',
 					translations: {
@@ -72,7 +65,7 @@ describe('rich init: applies full response to snapshot', () => {
 			id: 'gdpr-strict',
 			model: 'opt-in',
 		});
-		expect(snap.policyDecision?.matchedBy).toBe('region');
+		expect(snap.resolution).toMatchObject({ matchedBy: 'default' });
 		expect(snap.policySnapshotToken).toBe('token-xyz');
 	});
 
@@ -111,15 +104,15 @@ describe('rich init: applies full response to snapshot', () => {
 		};
 		const kernel = createConsentKernel({ transport });
 
-		expect(kernel.getSnapshot().consents.functionality).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.functionality).toBe(false);
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
 		// preselectedCategories can seed UI drafts, but opt-in silence is denied
 		// in the kernel's runtime gating snapshot.
-		expect(snap.consents.necessary).toBe(true);
-		expect(snap.consents.functionality).toBe(false);
-		expect(snap.consents.marketing).toBe(false);
+		expect(snap.effectivePermissions.necessary).toBe(true);
+		expect(snap.effectivePermissions.functionality).toBe(false);
+		expect(snap.effectivePermissions.marketing).toBe(false);
 	});
 
 	test('does NOT overwrite consents when hasConsented=true', async () => {
@@ -142,8 +135,8 @@ describe('rich init: applies full response to snapshot', () => {
 		// granted until an explicit save confirms them.
 		expect(snap.hasConsented).toBe(false);
 		expect(snap.explicitChoice).toBeNull();
-		expect(snap.consents.marketing).toBe(false);
-		expect(snap.consents.functionality).toBe(false);
+		expect(snap.effectivePermissions.marketing).toBe(false);
+		expect(snap.effectivePermissions.functionality).toBe(false);
 	});
 
 	test('legacy no_banner sentinel is a successful no-match with the safe fallback', async () => {

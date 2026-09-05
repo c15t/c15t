@@ -193,7 +193,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		});
 
 		expect(kernel.getSnapshot().hasConsented).toBe(false);
-		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(head.children).toHaveLength(0);
 	});
 
@@ -215,7 +215,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 		// the scope unrestricted; strict scope denies them (see the strict
 		// test above). Neither creates a choice.
 		expect(kernel.getSnapshot().hasConsented).toBe(false);
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(head.children).toHaveLength(1);
 	});
 

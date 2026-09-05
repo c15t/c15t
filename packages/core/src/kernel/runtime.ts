@@ -245,7 +245,8 @@ export const createRuntime = function createRuntime(
 	 * forwarded later; they keep their original `recordedAt`.
 	 */
 	const flushPrivacy = function flushPrivacy(): void {
-		const { subjectId, user } = snapshot;
+		const { subject, user } = snapshot;
+		const subjectId = subject?.subjectId;
 		if (!transport?.recordPrivacyOptOut || !subjectId || !user) {
 			return;
 		}

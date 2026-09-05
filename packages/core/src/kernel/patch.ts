@@ -9,11 +9,7 @@
  * Pure: takes the current snapshot + a patch, returns the next snapshot.
  * Does not notify subscribers.
  */
-import type {
-	LocationResponse,
-	PolicyDecision,
-	PolicyResolution,
-} from '@c15t/schema/types';
+import type { LocationResponse, PolicyResolution } from '@c15t/schema/types';
 
 import { evaluateConsentRecord } from '../consent-record/evaluate';
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
@@ -65,7 +61,7 @@ export interface SnapshotPatch {
 	location?: LocationResponse | null;
 	translations?: KernelTranslations | null;
 	branding?: KernelBranding | null;
-	policyDecision?: PolicyDecision | null;
+
 	policySnapshotToken?: string | null;
 	activeUI?: KernelActiveUI;
 	policyPending?: boolean;
@@ -284,7 +280,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	return {
 		activeUI,
 		branding: pick(patch.branding, current.branding),
-		consents: effectivePermissions,
 		effectivePermissions,
 		evaluatedAt: now,
 		evaluationPolicy,
@@ -297,7 +292,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		noticeDismissal,
 		optOutDirectives,
 		overrides,
-		policyDecision: pick(patch.policyDecision, current.policyDecision),
 		policyPending,
 		policyRule,
 		policySnapshotToken: pick(
@@ -310,7 +304,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		restrictions,
 		revision: current.revision + 1,
 		subject,
-		subjectId: subject?.subjectId ?? null,
 		translations: pick(patch.translations, current.translations),
 		user: pick(patch.user, current.user),
 	};

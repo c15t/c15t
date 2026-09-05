@@ -21,7 +21,6 @@ export type {
 	MapInitOutputOptions,
 	TransportInitResponse,
 	TransportKernelConfig,
-	TransportPrivacySignals,
 } from './init-output';
 export {
 	initOutputToKernelConfig,
@@ -44,11 +43,7 @@ export type {
 	OfflineTransportOptions,
 } from './offline';
 export { createOfflineTransport } from './offline';
-export type {
-	SaveReceiptFields,
-	SubjectPostBody,
-	SubjectSavePayload,
-} from './subject-body';
+export type { SubjectPostBody, SubjectSavePayload } from './subject-body';
 export { buildConfirmedChoiceWire, buildSubjectPostBody } from './subject-body';
 export type {
 	MapSubjectRecordOptions,

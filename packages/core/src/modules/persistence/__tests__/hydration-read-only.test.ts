@@ -72,7 +72,7 @@ describe('persistence: hydration is read-only', () => {
 		const snap = kernel.getSnapshot();
 		expect(snap.hasConsented).toBe(true);
 		expect(snap.effectivePermissions.marketing).toBe(true);
-		expect(snap.subjectId).toBe(SUBJECT_ID);
+		expect(snap.subject?.subjectId ?? null).toBe(SUBJECT_ID);
 		expect(snap.explicitChoice?.categories.marketing).toEqual({
 			basis: { kind: 'legacy-v2', materialFingerprint: 'fp-old' },
 			confirmedAt: ORIGINAL_TIME,

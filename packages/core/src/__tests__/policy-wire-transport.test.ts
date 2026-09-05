@@ -360,7 +360,7 @@ describe('save body receipts', () => {
 		});
 	});
 
-	test('sends no receipt when nothing was confirmed or the kernel predates receipts', () => {
+	test('omits an empty confirmation and rejects payloads without receipts', () => {
 		expect(
 			buildConfirmedChoiceWire({
 				choice: CHOICE,
@@ -372,9 +372,10 @@ describe('save body receipts', () => {
 			confirmed: _confirmed,
 			...legacyPayload
 		} = PAYLOAD;
-		expect(
+		expect(() =>
+			// @ts-expect-error Deliberately exercise a removed kernel payload at the boundary.
 			buildSubjectPostBody(legacyPayload, { domain: 'example.com' })
-		).not.toHaveProperty('choice');
+		).toThrow();
 	});
 
 	test('reuses the identical body on replay', () => {

@@ -148,7 +148,9 @@ describe('createOfflineTransport: kernel integration', () => {
 		});
 		const result = await kernel.commands.save('all');
 		expect(result.ok).toBe(true);
-		expect(result.subjectId).toBe(kernel.getSnapshot().subjectId);
+		expect(result.subjectId).toBe(
+			kernel.getSnapshot().subject?.subjectId ?? null
+		);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
 	});
 });

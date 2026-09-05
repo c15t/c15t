@@ -58,7 +58,7 @@ describe('mapInitOutputToInitResponse: consent inference', () => {
 
 describe('mergeInitResponseIntoKernelConfig', () => {
 	test('undefined response returns base untouched', () => {
-		const base = { initialSubjectId: 'sub_1' };
+		const base = { initialRecords: { subject: { subjectId: 'sub_1' } } };
 		expect(mergeInitResponseIntoKernelConfig(base, undefined)).toBe(base);
 	});
 
@@ -80,19 +80,14 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		});
 	});
 
-	test('draft merge cannot create a consent marker', () => {
-		const inferred = mergeInitResponseIntoKernelConfig(
-			{},
-			{ consents: { marketing: true } }
+	test('init preserves the local draft without accepting server draft input', () => {
+		const response = { consents: { marketing: true }, resolvedOverrides: {} };
+		const merged = mergeInitResponseIntoKernelConfig(
+			{ initialDraft: { measurement: false } },
+			response
 		);
-		expect(inferred.initialConsents).toEqual({ marketing: true });
-		expect(inferred).not.toHaveProperty('initialHasConsented');
-
-		const explicit = mergeInitResponseIntoKernelConfig(
-			{},
-			{ consents: { marketing: true } }
-		);
-		expect(explicit).not.toHaveProperty('initialHasConsented');
+		expect(merged.initialDraft).toEqual({ measurement: false });
+		expect(merged).not.toHaveProperty('initialHasConsented');
 	});
 
 	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
@@ -113,19 +108,18 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			{},
 			{
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
-				policyDecision: { policyId: 'p1' } as any,
 				policyResolution: POLICY,
 				policySnapshotToken: 'tok',
 
 				subjectId: 'sub_9',
 			}
 		);
-		expect(merged.initialSubjectId).toBe('sub_9');
+		expect(merged.initialRecords?.subject?.subjectId).toBe('sub_9');
 		expect(merged.initialPolicyResolution).toMatchObject({
 			policyId: 'p1',
 			status: 'matched',
 		});
-		expect(merged.initialPolicyDecision).toBeDefined();
+		expect(merged).not.toHaveProperty('initialPolicyDecision');
 		expect(merged.initialPolicySnapshotToken).toBe('tok');
 	});
 

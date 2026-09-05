@@ -15,6 +15,17 @@ const context: ProviderTransportContext = {
 };
 
 const payload: SavePayload = {
+	choice: {
+		categories: {
+			marketing: {
+				basis: { fingerprint: 'test-choice', kind: 'choice-v1' },
+				confirmedAt: 1_700_000_000_000,
+				value: false,
+			},
+		},
+		version: 3,
+	},
+	confirmed: { actionAt: 1_700_000_000_000, categories: { marketing: false } },
 	consentAction: 'all',
 	consents: { necessary: true },
 	givenAt: 1_700_000_000_000,
@@ -76,7 +87,7 @@ describe('custom()', () => {
 			body: expect.objectContaining({
 				consentAction: 'all',
 				givenAt: 1_700_000_000_000,
-				preferences: { necessary: true },
+				preferences: { marketing: false, necessary: true },
 				subjectId: 'sub_test',
 				type: 'cookie_banner',
 			}),
