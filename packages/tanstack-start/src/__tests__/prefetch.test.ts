@@ -300,3 +300,31 @@ describe('prefetchInitialConsent: cookie cannot bypass cookieNames', () => {
 		expect(new Headers(call[1].headers).get('cookie')).toBeNull();
 	});
 });
+
+describe('prefetchInitialConsent: forwarding headers', () => {
+	test('never copies client x-forwarded-* onto the manifest fetch', async () => {
+		const fetchSpy = createManifestFetch();
+		await prefetchInitialConsent(
+			{
+				backendURL: 'https://consent.example.com',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				forwardHeaders: [
+					'x-forwarded-host',
+					'x-forwarded-for',
+					'x-forwarded-proto',
+				],
+			},
+			createRequest({
+				'x-forwarded-for': '203.0.113.7',
+				'x-forwarded-host': 'evil.example',
+				'x-forwarded-proto': 'http',
+			})
+		);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const call = fetchSpy.mock.calls[0] as [string, RequestInit];
+		const headers = new Headers(call[1].headers);
+		expect(headers.get('x-forwarded-host')).toBeNull();
+		expect(headers.get('x-forwarded-for')).toBeNull();
+		expect(headers.get('x-forwarded-proto')).toBeNull();
+	});
+});

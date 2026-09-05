@@ -70,6 +70,7 @@ import {
 	extractConsentRequestInputs,
 } from './headers';
 import { filterCookieHeader } from './libs/cookies';
+import { FORWARDING_HEADERS } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
 import { isSelfRoute, resolveRequestURL } from './libs/request-url';
 
@@ -336,8 +337,9 @@ const collectForwardHeaders = function collectForwardHeaders(
 	}
 	for (const name of names ?? []) {
 		const lower = name.toLowerCase();
-		if (lower === 'cookie') {
-			// Cookies travel only through `cookieNames`, never as a whole.
+		if (lower === 'cookie' || FORWARDING_HEADERS.has(lower)) {
+			// Cookies travel only through `cookieNames`, never as a whole, and
+			// hop-chain headers are never copied from the visitor.
 			continue;
 		}
 		const value = request.headers.get(name);

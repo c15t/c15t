@@ -40,3 +40,34 @@ describe('decisionInputsFromConfig', () => {
 		});
 	});
 });
+
+describe('decisionInputsFromConfig: client overrides', () => {
+	const config = {
+		initialLocation: { countryCode: 'DE', regionCode: null },
+		initialOverrides: { gpc: false },
+		initialPolicyDecision: {
+			country: 'DE',
+			fingerprint: 'fp-1',
+			jurisdiction: 'GDPR',
+			matchedBy: 'country',
+			policyId: 'eu-opt-in',
+			region: null,
+		},
+		initialTranslations: { language: 'de', translations: NO_TRANSLATIONS },
+	} as const;
+
+	test('keeps the seed when overrides agree with the prefetched inputs', () => {
+		expect(
+			decisionInputsFromConfig(config, { country: 'DE', language: 'de-AT' })
+		).toMatchObject({ policyId: 'eu-opt-in' });
+	});
+
+	test.each([
+		{ label: 'country', overrides: { country: 'US' } },
+		{ label: 'region', overrides: { region: 'BY' } },
+		{ label: 'language', overrides: { language: 'fr' } },
+		{ label: 'gpc', overrides: { gpc: true } },
+	])('drops the seed when the $label override differs', ({ overrides }) => {
+		expect(decisionInputsFromConfig(config, overrides)).toBeUndefined();
+	});
+});

@@ -79,10 +79,12 @@ locally and only fails once deployed. Delete `.pgdata/` to reset the demo.
 
 ## Pointing at a hosted backend
 
-Set `C15T_BACKEND_URL` to your c15t instance to skip the self-hosted route:
+Set `VITE_C15T_BACKEND_URL` to your c15t instance to skip the self-hosted
+route. The URL is public by design; keep any other `C15T_*` value out of the
+`VITE_` prefix so it never reaches a bundle.
 
 ```bash
-C15T_BACKEND_URL=https://your-instance.c15t.dev bun run dev
+VITE_C15T_BACKEND_URL=https://your-instance.c15t.dev bun run dev
 ```
 
 The server function prefetches the manifest from it and the consent route

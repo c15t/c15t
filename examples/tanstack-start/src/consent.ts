@@ -2,8 +2,8 @@
  * Where consent saves and the manifest come from.
  *
  * This demo self-hosts `@c15t/backend` at `/api/self-host`
- * (`src/routes/api/self-host/$.ts`). Set `C15T_BACKEND_URL` to point the
- * app at a hosted c15t instance instead.
+ * (`src/routes/api/self-host/$.ts`). Set `VITE_C15T_BACKEND_URL` to point
+ * the app at a hosted c15t instance instead.
  *
  * Two values, two audiences:
  *
@@ -17,12 +17,13 @@
  *   client IP attached, so the backend and its firewall see a normal visitor
  *   rather than one server-side egress IP.
  *
- * `backendURL` is read from `import.meta.env` rather than `process.env`:
- * `vite.config.ts` lists `C15T_` as an env prefix, so Vite inlines the value
- * into the server bundle where the server function and the route read it.
+ * `backendURL` is read from `import.meta.env` under the public `VITE_`
+ * prefix: the URL is not a secret, and keeping the prefix at Vite's default
+ * means no other `C15T_*` variable (API keys, snapshot keys) can leak into a
+ * bundle through this module.
  */
 export const backendURL: string =
-	import.meta.env.C15T_BACKEND_URL || '/api/self-host';
+	import.meta.env.VITE_C15T_BACKEND_URL || '/api/self-host';
 
 /** Same-origin consent route the browser uses; see `routes/api/c15t/$.ts`. */
 export const consentRoute = '/api/c15t';

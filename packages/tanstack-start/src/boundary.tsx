@@ -1,6 +1,6 @@
 'use client';
 
-import type { KernelConfig } from '@c15t/core';
+import type { KernelConfig, KernelOverrides } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 /**
  * Client boundary for the TanStack Start adapter.
@@ -114,7 +114,8 @@ const resolveMode = function resolveMode(
 	backendURL: string | undefined,
 	initRoute: string | false | undefined,
 	initialData: ReturnType<typeof readPrefetchedInitialData>,
-	config: KernelConfig | undefined
+	config: KernelConfig | undefined,
+	overrides: KernelOverrides | undefined
 ): ProviderTransportFactory {
 	if (!backendURL) {
 		return offline();
@@ -126,7 +127,7 @@ const resolveMode = function resolveMode(
 		assertDecisionInputs: true,
 		// The server-rendered banner is interactive before the client init
 		// resolves; the prefetched decision binds any save made in between.
-		decisionInputs: decisionInputsFromConfig(config),
+		decisionInputs: decisionInputsFromConfig(config, overrides),
 		initURL: initRoute ?? DEFAULT_INIT_ROUTE,
 		initialData,
 		url: backendURL,
@@ -181,7 +182,8 @@ export const ConsentBoundary = ({
 					initRoute,
 					overrides: options?.overrides,
 				}),
-				config
+				config,
+				options?.overrides
 			)
 	);
 	// Initial-only, like the provider's own `mode`.
