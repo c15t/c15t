@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { env } from '$env/dynamic/public';
+	import { createDemoScripts } from '$lib/consent-manager/demo-scripts';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
 	import {
 		ConsentBanner,
@@ -7,6 +9,7 @@
 		ConsentDialogTrigger,
 		ConsentManagerProvider,
 		hosted,
+		offline,
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
@@ -19,6 +22,13 @@
 
 	let { children } = $props();
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
+	const isIabPlayground = env.PUBLIC_DEVTOOLS_IAB === 'true';
+	const scripts = createDemoScripts({
+		metaPixel: env.PUBLIC_META_PIXEL_ID,
+		tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
+		googleTag: env.PUBLIC_GOOGLE_TAG_ID,
+		clarity: env.PUBLIC_CLARITY_ID,
+	});
 
 	const activeTheme = $derived.by(() => {
 		if (!themePresetStore.mounted) {
@@ -49,10 +59,25 @@
 {:else}
 	<ConsentManagerProvider
 		options={{
-			mode: hosted({ url: '/api/self-host' }),
+			mode: isIabPlayground ? offline() : hosted({ url: '/api/self-host' }),
+			persistence: isIabPlayground ? false : undefined,
+			offlinePolicy: isIabPlayground
+				? {
+						policy: {
+							id: 'devtools-iab-playground',
+							model: 'iab',
+							ui: { mode: 'banner' },
+							consent: {
+								categories: ['necessary', 'marketing', 'measurement'],
+							},
+						},
+					}
+				: undefined,
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			iab: {
 				enabled: true,
+				// Match the example backend. This is a demo ID, not a production CMP configuration.
+				cmpId: 10,
 				customVendors: [
 					{
 						id: 'internal-analytics',
@@ -67,20 +92,7 @@
 					},
 				],
 			},
-			scripts: [
-				{
-					id: 'example-analytics-iab',
-					src: 'https://www.example.com/analytics.js',
-					category: 'measurement',
-					vendorId: 1,
-				},
-				{
-					id: 'example-analytics-custom',
-					src: 'https://www.example.com/custom-analytics.js',
-					category: 'measurement',
-					vendorId: 'internal-analytics',
-				},
-			],
+			scripts,
 			storageConfig: {
 				crossSubdomain: true,
 			},
@@ -111,6 +123,12 @@
 			},
 		}}
 	>
+		{#if isIabPlayground}
+			<p role="status">
+				IAB playground: saves stay in memory and reset on reload. The vendor
+				list loads from consent.io. This is not a production CMP configuration.
+			</p>
+		{/if}
 		{@render children()}
 		<ConsentBanner />
 		<IABConsentBanner />

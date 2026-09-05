@@ -260,12 +260,16 @@ const createCompatState = function createCompatState(
 		},
 		async saveConsents(type: SaveType) {
 			if (type === 'all') {
-				await kernel.commands.save('all');
+				await kernel.commands.save('all', {
+					categories: controller.consentCategories,
+				});
 				options.getDraft().reset();
 				return;
 			}
 			if (type === 'necessary') {
-				await kernel.commands.save('none');
+				await kernel.commands.save('none', {
+					categories: controller.consentCategories,
+				});
 				options.getDraft().reset();
 				return;
 			}

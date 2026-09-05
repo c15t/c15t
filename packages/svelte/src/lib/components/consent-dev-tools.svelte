@@ -1,19 +1,28 @@
 <script lang="ts">
 	import { createDevTools } from '@c15t/dev-tools';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 
-	import { getConsentKernel } from '../context.svelte';
+	import { getConsentContext } from '../context.svelte';
 	import type { ConsentDevToolsProps } from '../devtools-options';
 
-	let { defaultOpen, defaultTab, maxEvents, position }: ConsentDevToolsProps =
-		$props();
-	const kernel = getConsentKernel();
+	let {
+		defaultOpen,
+		defaultTab,
+		getConsentCategories,
+		maxEvents,
+		position,
+	}: ConsentDevToolsProps = $props();
+	const context = getConsentContext();
 
 	onMount(() => {
 		const devTools = createDevTools({
 			defaultOpen,
 			defaultTab,
-			kernel,
+			getConsentCategories: () =>
+				untrack(
+					() => getConsentCategories?.() ?? context.state.consentCategories
+				),
+			kernel: context.kernel,
 			maxEvents,
 			position,
 		});

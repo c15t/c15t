@@ -1,3 +1,4 @@
+import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
 import { createDevTools } from '@c15t/dev-tools';
 import type {
 	DevToolsInstance,
@@ -5,10 +6,12 @@ import type {
 	DevToolsPosition,
 	DevToolsTab,
 } from '@c15t/dev-tools';
-import { defineComponent, onMounted, onUnmounted } from 'vue';
+import { defineComponent, inject, onMounted, onUnmounted } from 'vue';
 import type { PropType } from 'vue';
 
+import { useConsentConfig } from './runtime/composables/config';
 import { useConsentKernel } from './runtime/composables/kernel';
+import { symbolInit } from './runtime/utils/symbols';
 
 /** Props for the kernel-bound Vue DevTools adapter. */
 export type ConsentDevToolsProps = Omit<
@@ -32,17 +35,28 @@ export const ConsentDevTools = defineComponent({
 	props: {
 		defaultOpen: Boolean,
 		defaultTab: String as PropType<DevToolsTab>,
+		getConsentCategories: Function as PropType<
+			DevToolsOptions['getConsentCategories']
+		>,
 		maxEvents: Number,
 		position: String as PropType<DevToolsPosition>,
 	},
 	setup(props) {
 		const kernel = useConsentKernel();
+		const config = useConsentConfig();
+		const init = inject(symbolInit, undefined);
 		let devTools: DevToolsInstance | null = null;
 
 		onMounted(() => {
 			devTools = createDevTools({
 				defaultOpen: props.defaultOpen,
 				defaultTab: props.defaultTab,
+				getConsentCategories: () =>
+					props.getConsentCategories?.() ??
+					getConsentAvailableCategories(
+						init?.value,
+						config.value.consentCategories
+					),
 				kernel,
 				maxEvents: props.maxEvents,
 				position: props.position,

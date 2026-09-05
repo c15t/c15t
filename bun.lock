@@ -465,6 +465,7 @@
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
+        "@c15t/scripts": "workspace:*",
         "@c15t/svelte": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@libsql/kysely-libsql": "^0.4.1",
