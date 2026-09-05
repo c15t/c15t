@@ -26,13 +26,18 @@ group: reference
 
   ```tsx
   <DevTools
-    position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-    defaultOpen={false}       // Start with panel closed
-    defaultTab="consents"     // Initial panel
-    maxEvents={100}            // Maximum captured kernel and script events
-    disabled={false}          // Disable without removing from tree
+    position="bottom-right"
+    defaultOpen={false}
+    defaultTab="consents"
+    maxEvents={100}
+    disabled={false}
   />
   ```
+
+  `position` accepts any corner: `top-left`, `top-right`, `bottom-left`, or
+  `bottom-right`. Set `defaultOpen` to open the initial panel and `defaultTab`
+  to choose that panel. `maxEvents` limits captured kernel and script events.
+  Set `disabled` to prevent mounting without removing the component.
 
   ## Panels
 

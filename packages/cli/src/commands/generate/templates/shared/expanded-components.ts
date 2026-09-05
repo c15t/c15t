@@ -188,7 +188,7 @@ export default function () {
 const generateMinimalTheme = function generateMinimalTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.importSource}/types';
+	return `import type { Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Minimal Theme
@@ -293,7 +293,7 @@ export const theme: Theme = {
 const generateTailwindTheme = function generateTailwindTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.importSource}/types';
+	return `import type { Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Tailwind Theme
@@ -348,7 +348,7 @@ export const theme: Theme = {
 const generateDarkTheme = function generateDarkTheme(
 	framework: FrameworkConfig
 ): string {
-	return `import type { Theme } from '${framework.importSource}/types';
+	return `import type { Theme } from '${framework.themeTypesImportSource}';
 
 /**
  * Dark Mode Theme

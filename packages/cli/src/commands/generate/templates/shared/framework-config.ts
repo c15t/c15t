@@ -7,6 +7,7 @@
 export interface FrameworkConfig {
 	importSource: string;
 	devToolsImportSource: string;
+	themeTypesImportSource: string;
 	consentBannerImport: string;
 	consentDialogImport: string;
 	frameworkName: string;
@@ -26,6 +27,7 @@ export const NEXTJS_CONFIG: FrameworkConfig = {
 	hasSSRProps: true,
 	importSource: 'c15t/next',
 	ssrMechanism: 'Next.js headers() API',
+	themeTypesImportSource: 'c15t/react/types',
 };
 
 export const REACT_CONFIG: FrameworkConfig = {
@@ -38,4 +40,5 @@ export const REACT_CONFIG: FrameworkConfig = {
 	hasSSRProps: false,
 	importSource: 'c15t/react',
 	ssrMechanism: '',
+	themeTypesImportSource: 'c15t/react/types',
 };

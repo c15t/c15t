@@ -4,10 +4,23 @@ import {
 	generateExpandedConsentBannerTemplate,
 	generateExpandedConsentDialogTemplate,
 	generateExpandedProviderTemplate,
+	generateExpandedThemeTemplate,
 } from './expanded-components';
 import { NEXTJS_CONFIG, REACT_CONFIG } from './framework-config';
 
 describe('expanded component templates', () => {
+	it.each(['minimal', 'tailwind', 'dark'] as const)(
+		'imports the exported React Theme type for the %s preset in both frameworks',
+		(preset) => {
+			for (const framework of [REACT_CONFIG, NEXTJS_CONFIG]) {
+				const template = generateExpandedThemeTemplate(preset, framework);
+				expect(template).toContain(
+					"import type { Theme } from 'c15t/react/types';"
+				);
+				expect(template).not.toContain('c15t/next/types');
+			}
+		}
+	);
 	it('generates a React v3 provider with its DevTools adapter', () => {
 		const template = generateExpandedProviderTemplate({
 			enableDevTools: true,
