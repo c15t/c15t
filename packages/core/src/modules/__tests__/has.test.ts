@@ -18,6 +18,7 @@ const iabSlice = function iabSlice(
 	patch: Partial<KernelIABState> = {}
 ): KernelIABState {
 	return {
+		authority: null,
 		cmpId: null,
 		customVendors: [],
 		enabled: true,
@@ -156,20 +157,20 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		expect(evaluateConsent({ category: 'functionality' }, snap)).toBe(false);
 	});
 
-	test('IAB path: model==="iab" + vendorId → IAB evaluation', () => {
+	test('IAB draft maps cannot authorize a target', () => {
 		const snap = snapshotFor({
 			iab: { vendorConsents: { '755': true } },
 			model: 'iab',
 		});
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 755 }, snap)
-		).toBe(true);
+		).toBe(false);
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 500 }, snap)
 		).toBe(false);
 	});
 
-	test('model!=="iab" + IAB fields → category path still wins', () => {
+	test('IAB targets require IAB authority even outside IAB mode', () => {
 		const snap = snapshotFor({
 			consents: { marketing: true },
 			iab: { vendorConsents: { '755': true } },
@@ -178,7 +179,7 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		// Not in iab mode → vendorId is ignored, marketing check wins.
 		expect(
 			evaluateConsent({ category: 'marketing', vendorId: 999 }, snap)
-		).toBe(true);
+		).toBe(false);
 	});
 
 	test('model==="iab" but iab slice is null → denies access', () => {

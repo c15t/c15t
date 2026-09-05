@@ -20,13 +20,12 @@ export const hasGlobalPrivacyControlSignal =
 
 		try {
 			const navigatorWithGPC = window.navigator as Navigator & {
-				globalPrivacyControl?: boolean | string;
+				globalPrivacyControl?: unknown;
 			};
 
 			const value = navigatorWithGPC.globalPrivacyControl;
 
-			// Some implementations expose GPC as boolean, others as string "1"
-			return value === true || value === '1';
+			return value === true;
 		} catch {
 			// If anything goes wrong while reading the signal, fail closed
 			return false;

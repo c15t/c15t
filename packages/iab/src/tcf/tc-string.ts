@@ -137,7 +137,7 @@ export const generateTCString = async function generateTCString(
 	for (const [vendorId, value] of Object.entries(
 		consentData.vendorsDisclosed
 	)) {
-		if (value) {
+		if (value && /^\d+$/u.test(vendorId) && Number(vendorId) > 0) {
 			tcModel.vendorsDisclosed.set(Number(vendorId));
 		}
 	}
@@ -245,13 +245,19 @@ export const decodeTCString = async function decodeTCString(
 			11
 		),
 		specialFeatureOptIns: vectorToRecord(tcModel.specialFeatureOptins, 2),
-		vendorConsents: vectorToRecord(tcModel.vendorConsents, 1000),
+		vendorConsents: vectorToRecord(
+			tcModel.vendorConsents,
+			tcModel.vendorConsents.maxId
+		),
 		vendorLegitimateInterests: vectorToRecord(
 			tcModel.vendorLegitimateInterests,
-			1000
+			tcModel.vendorLegitimateInterests.maxId
 		),
 		vendorListVersion: tcModel.vendorListVersion as number,
-		vendorsDisclosed: vectorToRecord(tcModel.vendorsDisclosed, 1000),
+		vendorsDisclosed: vectorToRecord(
+			tcModel.vendorsDisclosed,
+			tcModel.vendorsDisclosed.maxId
+		),
 	};
 };
 

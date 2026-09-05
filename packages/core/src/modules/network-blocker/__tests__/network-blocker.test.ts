@@ -344,8 +344,8 @@ describe('network-blocker: IAB evaluation when model="iab"', () => {
 		// NOTE: The current v2 NetworkBlockerRule shape doesn't carry IAB
 		// fields, so this test documents that hosting IAB-aware rules is a
 		// future extension, not a hard parity break. For now, marketing=true
-		// means the request passes — confirmed below.
+		// does not replace the required confirmed vendor authority.
 		const res = await window.fetch('https://example.com/x');
-		expect(res.status).toBe(200);
+		expect(res.status).toBe(451);
 	});
 });

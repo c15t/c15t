@@ -101,13 +101,13 @@ export const createIframeBlocker = function createIframeBlocker(
 			return;
 		}
 		if (
-			snapshot.consents === lastConsents &&
+			snapshot.effectivePermissions === lastConsents &&
 			snapshot.policyCategories === lastPolicyCategories &&
 			snapshot.policyScopeMode === lastScopeMode
 		) {
 			return;
 		}
-		lastConsents = snapshot.consents;
+		lastConsents = snapshot.effectivePermissions;
 		lastPolicyCategories = snapshot.policyCategories;
 		lastScopeMode = snapshot.policyScopeMode;
 		processAll();

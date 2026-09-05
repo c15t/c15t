@@ -411,11 +411,11 @@ export const createCMPApi = function createCMPApi(
 
 		updateConsent: (newTcString: string, consentData?: TCFConsentData) => {
 			tcString = newTcString;
-			currentConsentData = consentData ?? currentConsentData;
+			currentConsentData = newTcString ? (consentData ?? null) : null;
 			// Invalidate cache
 			cachedTCData = null;
 			cmpStatus = 'loaded';
-			notifyEventListeners('useractioncomplete');
+			notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
 		},
 	};
 };

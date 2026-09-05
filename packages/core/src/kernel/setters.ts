@@ -15,7 +15,7 @@ import type {
 	KernelOverrides,
 } from '../types';
 import type { KernelRuntime } from './runtime';
-import { buildDraft, DEFAULT_IAB } from './snapshot';
+import { buildDraft, copyIABAuthority, DEFAULT_IAB } from './snapshot';
 
 /**
  * Merge an IAB patch onto the current IAB slice, returning the next
@@ -27,6 +27,9 @@ export const mergeIab = function mergeIab(
 ): { next: KernelIABState; changed: boolean } {
 	const baseline = current ?? DEFAULT_IAB;
 	const next: KernelIABState = { ...baseline, ...input };
+	if (input.authority !== undefined && input.authority !== baseline.authority) {
+		next.authority = copyIABAuthority(input.authority);
+	}
 	let changed = false;
 	for (const key of Object.keys(next) as (keyof KernelIABState)[]) {
 		if (next[key] !== baseline[key]) {

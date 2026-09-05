@@ -31,6 +31,7 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	KernelConfig,
+	KernelIABAuthority,
 	KernelIABState,
 } from '../types';
 import { validateHydrationRecords } from './records';
@@ -52,6 +53,7 @@ export const DEFAULT_CONSENTS: ConsentState = {
  * state and when folding partial IAB patches onto a previously-null slice.
  */
 export const DEFAULT_IAB: KernelIABState = {
+	authority: null,
 	cmpId: null,
 	customVendors: [],
 	enabled: false,
@@ -115,6 +117,22 @@ export const buildInitialConsents = function buildInitialConsents(
  * Merge a user-supplied initial IAB slice over the IAB defaults. Returns
  * `null` when no IAB seed was provided.
  */
+export const copyIABAuthority = function copyIABAuthority(
+	authority: KernelIABAuthority | null
+): KernelIABAuthority | null {
+	if (!authority) {
+		return null;
+	}
+	return {
+		...authority,
+		purposeConsents: { ...authority.purposeConsents },
+		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
+		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
+		vendorConsents: { ...authority.vendorConsents },
+		vendorLegitimateInterests: { ...authority.vendorLegitimateInterests },
+	};
+};
+
 export const buildInitialIab = function buildInitialIab(
 	initial: Partial<KernelIABState> | undefined
 ): KernelIABState | null {
@@ -124,6 +142,7 @@ export const buildInitialIab = function buildInitialIab(
 	return {
 		...DEFAULT_IAB,
 		...initial,
+		authority: copyIABAuthority(initial.authority ?? null),
 	};
 };
 
@@ -164,6 +183,7 @@ const freezeChoice = function freezeChoice(
 export const freezeSnapshot = function freezeSnapshot(
 	snapshot: ConsentSnapshot
 ): ConsentSnapshot {
+	deepFreeze(snapshot.iab?.authority);
 	Object.freeze(snapshot.effectivePermissions);
 	Object.freeze(snapshot.overrides);
 	Object.freeze(snapshot.promptRequirement);

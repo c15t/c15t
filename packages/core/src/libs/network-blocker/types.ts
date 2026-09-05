@@ -8,6 +8,10 @@ import type { HasCondition } from '../has';
  * @public
  */
 export interface NetworkBlockerRule {
+	vendorId?: number | string;
+	iabPurposes?: number[];
+	iabLegIntPurposes?: number[];
+	iabSpecialFeatures?: number[];
 	/**
 	 * Optional identifier for the rule.
 	 * Useful for debugging and logging.

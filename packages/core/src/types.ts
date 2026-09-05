@@ -174,7 +174,25 @@ export interface KernelTranslations {
  * authority (validity, expiry) is owned by the IAB module; the kernel never
  * derives category authority from it.
  */
+export interface KernelIABAuthority {
+	/** Validated TC string from an explicit IAB confirmation or stored receipt. */
+	tcString: string;
+	/** Original confirmation clock, never renewed by hydration. */
+	confirmedAt: number;
+	/** Absolute validity deadline in epoch milliseconds. */
+	expiresAt: number;
+	/** Existing choice-v1 fingerprint of the policy at confirmation. */
+	choiceFingerprint: string;
+	vendorConsents: Record<string, boolean>;
+	vendorLegitimateInterests: Record<string, boolean>;
+	purposeConsents: Record<number, boolean>;
+	purposeLegitimateInterests: Record<number, boolean>;
+	specialFeatureOptIns: Record<number, boolean>;
+}
+
 export interface KernelIABState {
+	/** Confirmed authority installed by the IAB addon after TC validation. */
+	authority: KernelIABAuthority | null;
 	/** Whether IAB mode is active. False even when fields are populated
 	 * if the consumer has explicitly disabled IAB. */
 	enabled: boolean;
@@ -611,6 +629,10 @@ export interface ConsentKernel {
 	dispose: () => void;
 	/** Returns the current snapshot. Cheap, non-allocating. */
 	getSnapshot: () => ConsentSnapshot;
+	/** Invalidation token for addon work spanning an asynchronous boundary.
+	 * @internal
+	 */
+	getRecordsGeneration: () => number;
 
 	/**
 	 * Returns the immutable revision-0 snapshot — the state a server render
@@ -663,7 +685,13 @@ export interface ConsentKernel {
 	 */
 	readonly commands: {
 		init: () => Promise<InitResult>;
-		save: (input?: SaveInput) => Promise<SaveResult>;
+		save: (
+			input?: SaveInput,
+			context?: {
+				/** Addon confirmation time captured before asynchronous encoding. Never for hydration or renewal. */
+				actionAt?: number;
+			}
+		) => Promise<SaveResult>;
 		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */
 		dismissNotice: () => Promise<NoticeDismissResult>;
 		identify: (user: KernelUser) => Promise<void>;

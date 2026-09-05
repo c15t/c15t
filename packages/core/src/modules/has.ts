@@ -1,20 +1,9 @@
 /**
- * IAB-aware `has()` for v3 modules.
- *
- * Re-exports the v2 pure condition evaluator (`has`, `HasCondition`,
- * `HasOptions`, `extractConsentNamesFromCondition`) since those are
- * already pure and store-free. Adds:
- *
- * - `hasIABConsent(conditions, iab)` — checks vendor / purpose / LI /
- *   special-feature consent against the IAB slice.
- * - `evaluateConsent(target, snapshot)` — the single entry point the
- *   three blocker modules use: picks IAB vs category evaluation based on
- *   what the target declares + whether the kernel is in `model === 'iab'`.
- *
- * Pure. No DOM. No network. Safe in Node, RSC, edge, tests.
+ * Pure category and IAB gate evaluation. Optional IAB code validates TC
+ * receipts before installing authority; ordinary gates never load a codec.
  */
 
-import type { ConsentState } from '../consent/compliance';
+import { evaluateConsentRecord } from '../consent-record/evaluate';
 import type { AllConsentNames } from '../consent/consent-types';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition, HasOptions } from '../libs/has';
@@ -51,8 +40,8 @@ export interface IABTarget {
 
 /**
  * Evaluates IAB consent for a target that has IAB metadata. Semantics
- * match v2's `hasIABConsent` at `packages/core/src/libs/script-loader/core.ts:57-97`:
- * - If `vendorId` is set, require `vendorConsents[vendorId] === true`.
+ * require the declared legal bases:
+ * - Require vendor consent for consent purposes and vendor LI for LI purposes.
  * - If `iabPurposes` set, require ALL of them in `purposeConsents`.
  * - If `iabLegIntPurposes` set, require ALL in `purposeLegitimateInterests`.
  * - If `iabSpecialFeatures` set, require ALL in `specialFeatureOptIns`.
@@ -65,34 +54,40 @@ export const hasIABConsent = function hasIABConsent(
 ): boolean {
 	if (target.vendorId !== undefined) {
 		const key = String(target.vendorId);
-		if (!iab.vendorConsents[key]) {
-			return false;
-		}
-	}
-	if (target.iabPurposes && target.iabPurposes.length > 0) {
-		if (!target.iabPurposes.every((id) => iab.purposeConsents[id] === true)) {
-			return false;
-		}
-	}
-	if (target.iabLegIntPurposes && target.iabLegIntPurposes.length > 0) {
+		const needsLI = (target.iabLegIntPurposes?.length ?? 0) > 0;
+		const needsConsent = !needsLI || (target.iabPurposes?.length ?? 0) > 0;
 		if (
-			!target.iabLegIntPurposes.every(
-				(id) => iab.purposeLegitimateInterests[id] === true
-			)
+			needsLI &&
+			(!Object.hasOwn(iab.vendorLegitimateInterests, key) ||
+				iab.vendorLegitimateInterests[key] !== true)
+		) {
+			return false;
+		}
+		if (
+			needsConsent &&
+			(!Object.hasOwn(iab.vendorConsents, key) ||
+				iab.vendorConsents[key] !== true)
 		) {
 			return false;
 		}
 	}
-	if (target.iabSpecialFeatures && target.iabSpecialFeatures.length > 0) {
-		if (
-			!target.iabSpecialFeatures.every(
-				(id) => iab.specialFeatureOptIns[id] === true
-			)
-		) {
-			return false;
-		}
-	}
-	return true;
+	return (
+		(target.iabPurposes ?? []).every(
+			(id) =>
+				Object.hasOwn(iab.purposeConsents, id) &&
+				iab.purposeConsents[id] === true
+		) &&
+		(target.iabLegIntPurposes ?? []).every(
+			(id) =>
+				Object.hasOwn(iab.purposeLegitimateInterests, id) &&
+				iab.purposeLegitimateInterests[id] === true
+		) &&
+		(target.iabSpecialFeatures ?? []).every(
+			(id) =>
+				Object.hasOwn(iab.specialFeatureOptIns, id) &&
+				iab.specialFeatureOptIns[id] === true
+		)
+	);
 };
 
 /**
@@ -106,34 +101,101 @@ export interface ConsentGate<
 }
 
 /**
- * Single entry point for scripts, network rules, iframe categories.
- *
- * Behavior:
- * - If the kernel is in `model === 'iab'` AND the target declares ANY
- *   IAB metadata, evaluate via `hasIABConsent`. (Pure v2 parity.)
- * - Otherwise, evaluate `category` via the pure `has()` condition tree
- *   against the kernel's already policy-effective consent snapshot.
- *
- * Returns `true` iff the target is allowed to load / fire / render.
+ * Reads permissions at the gate's clock without changing the kernel.
+ * Reuses evaluated fields until the next semantic deadline.
+ * @param snapshot - Immutable kernel snapshot.
+ * @param now - Current epoch milliseconds.
+ * @returns Effective category permissions and independent restrictions.
+ */
+export const getEffectiveGateState = function getEffectiveGateState(
+	snapshot: ConsentSnapshot,
+	now = Date.now()
+): Pick<ConsentSnapshot, 'effectivePermissions' | 'restrictions'> {
+	if (snapshot.nextDeadline === null || now < snapshot.nextDeadline) {
+		return snapshot;
+	}
+	const evaluation = evaluateConsentRecord({
+		choice: snapshot.explicitChoice,
+		gpc: snapshot.privacySignals.gpc.active,
+		noticeDismissal: snapshot.noticeDismissal,
+		now,
+		optOuts: snapshot.optOutDirectives,
+		policy: snapshot.evaluationPolicy,
+	});
+	return {
+		effectivePermissions: evaluation.permissions,
+		restrictions: evaluation.restrictions,
+	};
+};
+
+const hasCurrentIABAuthority = function hasCurrentIABAuthority(
+	snapshot: ConsentSnapshot,
+	now: number
+): boolean {
+	const { iab } = snapshot;
+	const authority = iab?.authority;
+	if (
+		!iab?.enabled ||
+		!authority ||
+		snapshot.resolution.status !== 'matched' ||
+		authority.choiceFingerprint !==
+			snapshot.evaluationPolicy.choice.fingerprint ||
+		!authority.tcString ||
+		!Number.isSafeInteger(authority.confirmedAt) ||
+		!Number.isSafeInteger(authority.expiresAt) ||
+		authority.confirmedAt < 0 ||
+		authority.confirmedAt > now ||
+		authority.expiresAt <= now ||
+		authority.expiresAt <= authority.confirmedAt
+	) {
+		return false;
+	}
+	return true;
+};
+
+/**
+ * Evaluates a target using current effective permissions or confirmed TC authority.
+ * IAB targets also apply every referenced category restriction, including in OR trees.
+ * @param target - Category condition and optional IAB metadata.
+ * @param snapshot - Immutable kernel snapshot.
+ * @param now - Gate clock in epoch milliseconds.
+ * @returns Whether the target may run at this time.
  */
 export const evaluateConsent = function evaluateConsent<
 	CategoryType extends AllConsentNames,
->(target: ConsentGate<CategoryType>, snapshot: ConsentSnapshot): boolean {
+>(
+	target: ConsentGate<CategoryType>,
+	snapshot: ConsentSnapshot,
+	now = Date.now()
+): boolean {
+	const effective = getEffectiveGateState(snapshot, now);
 	const hasIABFields =
 		target.vendorId !== undefined ||
-		(target.iabPurposes && target.iabPurposes.length > 0) ||
-		(target.iabLegIntPurposes && target.iabLegIntPurposes.length > 0) ||
-		(target.iabSpecialFeatures && target.iabSpecialFeatures.length > 0);
+		target.iabPurposes?.length ||
+		target.iabLegIntPurposes?.length ||
+		target.iabSpecialFeatures?.length;
 
-	if (snapshot.model === 'iab' && hasIABFields) {
-		const { iab } = snapshot;
-		if (!iab) {
+	if (hasIABFields) {
+		if (snapshot.model !== 'iab') {
 			return false;
 		}
-		return hasIABConsent(target, iab);
+		const { iab } = snapshot;
+		const authority = iab?.authority;
+		if (!authority || !hasCurrentIABAuthority(snapshot, now)) {
+			return false;
+		}
+		for (const category of extractConsentNamesFromCondition(target.category)) {
+			if (
+				category !== 'necessary' &&
+				effective.restrictions[category]?.length
+			) {
+				return false;
+			}
+		}
+		return hasIABConsent(target, authority);
 	}
 
-	return has(target.category, snapshot.consents as ConsentState);
+	return has(target.category, effective.effectivePermissions);
 };
 
 /**
@@ -144,8 +206,12 @@ export const snapshotHasIABConsent = function snapshotHasIABConsent(
 	target: IABTarget,
 	iab: KernelIABState | null
 ): boolean {
-	if (!iab) {
+	if (
+		!iab?.enabled ||
+		!iab.authority ||
+		Date.now() >= iab.authority.expiresAt
+	) {
 		return false;
 	}
-	return hasIABConsent(target, iab);
+	return hasIABConsent(target, iab.authority);
 };

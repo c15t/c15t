@@ -53,3 +53,22 @@ const allLoaded = state.getLoadedScriptIds();
 ```
 
 <import src="../../shared/react/guides/script-loader.mdx#api-reference" />
+
+## Effective permissions and expiry
+
+Kernel script loaders use `effectivePermissions`. Saved grants can expire or be
+restricted by the active policy, a detected GPC signal or a standing opt-out
+directive. Removing the browser signal does not remove a recorded directive.
+Browser detection accepts only `navigator.globalPrivacyControl === true`;
+developer overrides remain separate from detection.
+
+Script, iframe and network gates check expiry at use time. Kernel lifecycle
+refresh also removes scripts and iframe sources when a grant expires. A fresh
+confirmation restores eligible iframe sources. Necessary permissions remain
+granted, including Google Consent Mode's default `security_storage` mapping.
+
+Consent-aware script callbacks receive effective permissions when individual
+categories change, even when the script's overall consent condition stays true.
+This lets Google Consent Mode update analytics and advertising independently.
+Category-only `or` conditions retain their usual semantics. IAB targets also
+require confirmed TC authority and apply every referenced category restriction.

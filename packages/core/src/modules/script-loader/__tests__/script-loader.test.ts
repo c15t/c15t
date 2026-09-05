@@ -453,7 +453,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 		expect(onLoad).toHaveBeenCalledTimes(1);
 	});
 
-	test('onConsentChange skips unrelated consent flips for an already-loaded script', () => {
+	test('onConsentChange receives individual permission changes for a loaded script', () => {
 		const onConsentChange = vi.fn();
 		const kernel = createConsentKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: false }),
@@ -472,7 +472,8 @@ describe('script-loader: callbacks fire in sequence', () => {
 		onConsentChange.mockClear();
 
 		void kernel.commands.save({ measurement: true });
-		expect(onConsentChange).not.toHaveBeenCalled();
+		expect(onConsentChange).toHaveBeenCalledTimes(1);
+		expect(onConsentChange.mock.calls[0]?.[0].consents.measurement).toBe(true);
 	});
 
 	test('onConsentChange fires when a loaded script loses consent', () => {
@@ -626,9 +627,23 @@ describe('script-loader: IAB evaluation when model="iab"', () => {
 		expect(head.children).toHaveLength(0);
 
 		kernel.set.iab({ vendorConsents: { '755': true } });
+		expect(head.children).toHaveLength(0);
+		kernel.set.iab({
+			authority: {
+				choiceFingerprint: IAB_RESOLUTION.fingerprints.choice,
+				confirmedAt: Date.now(),
+				expiresAt: Date.now() + 1000,
+				purposeConsents: {},
+				purposeLegitimateInterests: {},
+				specialFeatureOptIns: {},
+				tcString: 'confirmed-test-tc',
+				vendorConsents: { '755': true },
+				vendorLegitimateInterests: {},
+			},
+		});
 		expect(head.children).toHaveLength(1);
 
-		kernel.set.iab({ vendorConsents: { '755': false } });
+		kernel.set.iab({ authority: null });
 		expect(head.children).toHaveLength(0);
 	});
 });

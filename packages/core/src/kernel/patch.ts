@@ -248,7 +248,16 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		? current.privacySignals
 		: privacyCandidate;
 	const now = pick(patch.now, current.evaluatedAt);
-	const iab = pick(patch.iab, current.iab);
+	let iab = pick(patch.iab, current.iab);
+	if (
+		iab?.authority &&
+		(!iab.enabled ||
+			resolution.status !== 'matched' ||
+			policyRule.model !== 'iab' ||
+			iab.authority.choiceFingerprint !== evaluationPolicy.choice.fingerprint)
+	) {
+		iab = { ...iab, authority: null };
+	}
 
 	const evaluation = evaluateConsentRecord({
 		choice: explicitChoice,

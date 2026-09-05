@@ -106,6 +106,7 @@ export type {
 	KernelBranding,
 	KernelConfig,
 	KernelEvent,
+	KernelIABAuthority,
 	KernelIABState,
 	KernelModel,
 	KernelOverrides,
@@ -264,3 +265,5 @@ export {
 	readPolicyResolutionWire,
 	safeFallbackPolicyRule,
 } from '@c15t/schema/types';
+
+export { evaluateConsent, getEffectiveGateState } from './modules/has';

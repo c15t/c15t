@@ -31,6 +31,7 @@
  *   loaders (or already in the DOM) are left alone.
  */
 import type { ConsentSnapshot } from '../../types';
+import { getEffectiveGateState } from '../has';
 import { createDebugEmitter } from './debug';
 import {
 	buildReconcilePass,
@@ -88,20 +89,31 @@ export const createScriptLoader = function createScriptLoader(
 	let lastPolicyCategories: unknown = null;
 	let lastScopeMode: unknown = null;
 	let lastIab: unknown = null;
+	let lastRestrictions: unknown = null;
+	let lastModel: unknown = null;
+	let lastEvaluationPolicy: unknown = null;
 
 	const reconcile = function reconcile(force = false): void {
 		const snapshot: ConsentSnapshot = kernel.getSnapshot();
+		const effective = getEffectiveGateState(snapshot);
+		const permissionsChanged = effective.effectivePermissions !== lastConsents;
 
 		if (
 			!force &&
-			snapshot.consents === lastConsents &&
+			!permissionsChanged &&
 			snapshot.policyCategories === lastPolicyCategories &&
 			snapshot.policyScopeMode === lastScopeMode &&
-			snapshot.iab === lastIab
+			snapshot.iab === lastIab &&
+			effective.restrictions === lastRestrictions &&
+			snapshot.model === lastModel &&
+			snapshot.evaluationPolicy === lastEvaluationPolicy
 		) {
 			return;
 		}
-		lastConsents = snapshot.consents;
+		lastConsents = effective.effectivePermissions;
+		lastRestrictions = effective.restrictions;
+		lastModel = snapshot.model;
+		lastEvaluationPolicy = snapshot.evaluationPolicy;
 		lastPolicyCategories = snapshot.policyCategories;
 		lastScopeMode = snapshot.policyScopeMode;
 		lastIab = snapshot.iab;
@@ -121,7 +133,8 @@ export const createScriptLoader = function createScriptLoader(
 			if (
 				!force &&
 				previousEligibility === eligible &&
-				previousConsent === hasConsent
+				previousConsent === hasConsent &&
+				!(permissionsChanged && typeof script.onConsentChange === 'function')
 			) {
 				continue;
 			}

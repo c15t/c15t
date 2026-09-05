@@ -330,8 +330,11 @@ export const createRuntime = function createRuntime(
 				: choice;
 		}
 		const before = snapshot;
-		const changed = commit(patch);
 		const reset = !mergeNewest && (choice === null || rest.subject === null);
+		if (reset && snapshot.iab) {
+			patch.iab = { ...snapshot.iab, authority: null, tcString: null };
+		}
+		const changed = commit(patch);
 		if (reset) {
 			forwardedDirectives.clear();
 			pendingDirectives.clear();

@@ -53,7 +53,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 		expect(result).toBe(true);
 	});
 
-	it('returns true when navigator.globalPrivacyControl is string "1"', () => {
+	it('returns false when navigator.globalPrivacyControl is string "1"', () => {
 		const mockNavigator = {
 			globalPrivacyControl: '1',
 		} as Navigator & { globalPrivacyControl?: boolean | string };
@@ -65,7 +65,7 @@ describe('hasGlobalPrivacyControlSignal', () => {
 
 		const result = hasGlobalPrivacyControlSignal();
 
-		expect(result).toBe(true);
+		expect(result).toBe(false);
 	});
 
 	it('returns false for other values or when the flag is missing', () => {

@@ -74,6 +74,7 @@ export const createConsentKernel = function createConsentKernel(
 			emit: eventBus.emit,
 			on: eventBus.on,
 		},
+		getRecordsGeneration: runtime.getGeneration,
 		getServerSnapshot: () => serverSnapshot,
 		getSnapshot: runtime.getSnapshot,
 		hydrate: runtime.hydrate,

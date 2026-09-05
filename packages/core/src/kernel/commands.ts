@@ -650,12 +650,27 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return runInitAttempt(1);
 		},
 
-		async save(input?: SaveInput): Promise<SaveResult> {
+		async save(
+			input?: SaveInput,
+			context?: { actionAt?: number }
+		): Promise<SaveResult> {
+			const currentTime = runtime.now();
+			const actionAt =
+				context?.actionAt === undefined ? currentTime : context.actionAt;
+			if (
+				!Number.isSafeInteger(actionAt) ||
+				actionAt < 0 ||
+				actionAt > currentTime
+			) {
+				return {
+					issues: [{ code: 'invalid-timestamp', path: 'actionAt' }],
+					ok: false,
+				};
+			}
 			emit({ type: 'command:save:started' });
 
 			const before = getSnapshot();
 			// Captured once, before validation, yield, network or persistence.
-			const actionAt = runtime.now();
 			const uiSource = before.activeUI;
 			const { values, consentAction } = resolveSaveSelection(
 				before,
@@ -664,7 +679,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			);
 			const recorded = recordCategoryPatch(before.explicitChoice, values, {
 				actionAt,
-				now: actionAt,
+				now: currentTime,
 				policy: before.evaluationPolicy,
 			});
 			if (recorded.ok === false) {
@@ -686,7 +701,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const subjectId = before.subject?.subjectId ?? generateSubjectId();
 			const subject = saveSubject(before, subjectId);
 			runtime.setDraft(null);
-			commit({ explicitChoice: recorded.choice, now: actionAt, subject });
+			commit({ explicitChoice: recorded.choice, now: currentTime, subject });
 			const after = getSnapshot();
 			// Records generation at the moment the action landed. A hydration
 			// boundary (storage clear, server record) that replaces the choice
