@@ -292,13 +292,7 @@ export const createHostedTransport = function createHostedTransport(
 	const overrideHeaders = function overrideHeaders(
 		ctx: InitContext
 	): Record<string, string> {
-		const headers = buildRequestContextHeaders(ctx.overrides);
-		if (ctx.overrides.gpc !== undefined) {
-			// `Sec-*` request headers are forbidden to scripts, so the override
-			// travels on the adapter header the shared extractor reads first.
-			headers['x-c15t-gpc'] = ctx.overrides.gpc ? '1' : '0';
-		}
-		return headers;
+		return buildRequestContextHeaders(ctx.overrides);
 	};
 
 	const fetchInit = async function fetchInit(

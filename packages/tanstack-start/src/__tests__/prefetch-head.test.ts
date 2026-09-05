@@ -64,4 +64,31 @@ describe('readPrefetchedInitialData', () => {
 		});
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 	});
+
+	test('matches a head prefetch that carried the boundary GPC override', () => {
+		vi.stubGlobal('window', {
+			location: { hostname: 'app.example.com', origin: ORIGIN },
+			navigator: { globalPrivacyControl: false },
+		});
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+
+		const primed = primePrefetchedInitialData({
+			backendURL: '/api/c15t',
+			overrides: { gpc: true },
+		});
+		expect(
+			readPrefetchedInitialData({
+				backendURL: '/api/c15t',
+				initRoute: undefined,
+				overrides: { gpc: true },
+			})
+		).toBe(primed);
+		expect(
+			readPrefetchedInitialData({
+				backendURL: '/api/c15t',
+				initRoute: undefined,
+				overrides: undefined,
+			})
+		).toBeUndefined();
+	});
 });
