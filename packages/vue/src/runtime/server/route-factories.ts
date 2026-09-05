@@ -112,20 +112,28 @@ const negotiateInit = function negotiateInit(
 	output: InitOutput,
 	clientContract: string | undefined
 ): InitOutput {
+	const negotiated = { ...output };
 	if (
-		clientContract === undefined ||
-		parsePolicyContractHeader(clientContract) === POLICY_CONTRACT_VERSION
+		clientContract !== undefined &&
+		parsePolicyContractHeader(clientContract) !== POLICY_CONTRACT_VERSION
 	) {
-		return output;
-	}
-	return {
-		...output,
-		policyResolution: writePolicyResolutionWire({
+		negotiated.policyResolution = writePolicyResolutionWire({
 			policy: null,
 			reason: 'unsupported-contract',
 			status: 'failed',
-		}),
-	};
+		});
+	}
+	if (
+		readPolicyResolutionWire(negotiated.policyResolution).status !== 'matched'
+	) {
+		delete negotiated.policy;
+		delete negotiated.policyDecision;
+		delete negotiated.policySnapshotToken;
+		delete negotiated.gvl;
+		delete negotiated.cmpId;
+		delete negotiated.customVendors;
+	}
+	return negotiated;
 };
 
 export const createInitRoute = function createInitRoute(

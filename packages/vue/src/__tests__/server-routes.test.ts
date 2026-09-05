@@ -228,6 +228,54 @@ describe('fetchCachedManifest upstream dedupe', () => {
 });
 
 describe('init route', () => {
+	test.each([
+		{ reason: 'transport', status: 'failed' },
+		{ status: 'no-match' },
+		{ status: 'unconfigured' },
+	])(
+		'clears stale proof after $status fallback resolution',
+		async (resolution) => {
+			mocks.serverFetch
+				.mockResolvedValueOnce(new Response('missing', { status: 404 }))
+				.mockResolvedValueOnce(
+					new Response(
+						JSON.stringify({
+							branding: 'c15t',
+							cmpId: 7,
+							customVendors: [{ id: 'stale' }],
+							gvl: { vendorListVersion: 1 },
+							location: { countryCode: 'DE', regionCode: null },
+							policy: { id: 'stale', model: 'iab' },
+							policyDecision: { policyId: 'stale' },
+							policyResolution: {
+								policy: null,
+								version: 1,
+								...resolution,
+							},
+							policySnapshotToken: 'stale-token',
+							translations: { language: 'en', translations: {} },
+						}),
+						{ headers: { 'x-c15t-policy-contract': '1' } }
+					)
+				);
+			const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
+			const body = await response.json();
+			expect(body.policyResolution.status).toBe(resolution.status);
+			for (const key of [
+				'policy',
+				'policyDecision',
+				'policySnapshotToken',
+				'gvl',
+				'cmpId',
+				'customVendors',
+			]) {
+				expect(body).not.toHaveProperty(key);
+			}
+			expect(body.branding).toBe('c15t');
+			expect(body.translations.language).toBe('en');
+		}
+	);
+
 	test.each(['99', 'invalid', ''])(
 		'rejects unsupported client declaration %s',
 		async (contract) => {
