@@ -72,7 +72,6 @@ const HOST = '127.0.0.1';
 const PORT = 4314;
 const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const serverEntryPath = join(appDir, 'dist', 'server', 'server.js');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/tanstack-start';
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
@@ -118,6 +117,18 @@ const coldManifestMode =
 	readCliFlag('--cold-manifest') === '1' ||
 	process.env.C15T_BENCH_COLD_MANIFEST === '1' ||
 	process.env.C15T_BENCH_COLD_MANIFEST === 'true';
+/**
+ * `--root-provider` builds and serves the variant whose root route mounts
+ * the consent provider (`C15T_BENCH_ROOT_PROVIDER=1`, output `dist-root/`)
+ * and measures only the `/manifest-ssr` route, recorded as scenario
+ * `manifest-ssr-root`. Everything else about the run matches the normal
+ * `manifest-ssr` arm.
+ */
+const rootProviderMode =
+	process.argv.includes('--root-provider') ||
+	process.env.C15T_BENCH_ROOT_PROVIDER === '1';
+const distDirName = rootProviderMode ? 'dist-root' : 'dist';
+const serverEntryPath = join(appDir, distDirName, 'server', 'server.js');
 
 const allScenarios = [
 	{ name: 'baseline', path: '/baseline' },
@@ -128,10 +139,20 @@ const allScenarios = [
 	{ name: 'manifest-ssr-proxy', path: '/manifest-ssr-proxy' },
 ] as const;
 
-const allBenchmarkScenarios = allScenarios;
+const rootProviderScenarios = [
+	{ name: 'manifest-ssr-root', path: '/manifest-ssr' },
+] as const;
+
+const allBenchmarkScenarios = rootProviderMode
+	? rootProviderScenarios
+	: allScenarios;
 
 const scenarios = scenarioFilter
-	? allBenchmarkScenarios.filter((scenario) => scenario.name === scenarioFilter)
+	? allBenchmarkScenarios.filter(
+			(scenario) =>
+				scenario.name === scenarioFilter ||
+				(rootProviderMode && scenarioFilter === 'manifest-ssr')
+		)
 	: allBenchmarkScenarios;
 
 if (scenarioFilter && scenarios.length === 0) {
@@ -238,7 +259,10 @@ const ensureBuild = async function ensureBuild() {
 		return;
 	}
 
-	await runCommand(['run', 'build'], 'tanstack-start browser benchmark build');
+	await runCommand(
+		['run', rootProviderMode ? 'build:root' : 'build'],
+		'tanstack-start browser benchmark build'
+	);
 };
 
 const applyPageProfile = async function applyPageProfile(
@@ -378,7 +402,8 @@ const budgetsForScenario = function budgetsForScenario(
 	if (
 		baseScenario === 'ssr' ||
 		baseScenario === 'manifest-ssr' ||
-		baseScenario === 'manifest-ssr-proxy'
+		baseScenario === 'manifest-ssr-proxy' ||
+		baseScenario === 'manifest-ssr-root'
 	) {
 		return [
 			...shared,
@@ -458,6 +483,7 @@ const run = async function run() {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
 	}
 
+	env.DIST_DIR = distDirName;
 	env.HOST = HOST;
 	env.PORT = `${PORT}`;
 
@@ -712,9 +738,14 @@ const run = async function run() {
 								groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
 							),
 						],
-						notes: [
-							'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
-						],
+						notes: rootProviderMode
+							? [
+									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
+									'Root-mounted provider variant: `ConsentBoundary` and the manifest prefetch loader live in `__root.tsx`, and `/manifest-ssr` renders only the page shell.',
+								]
+							: [
+									'TanStack Start browser bench covers client, manifest, SSR, proxied-save, and repeat-visitor paths.',
+								],
 						package: '@c15t/tanstack-start-browser-bench',
 						runtime: 'playwright',
 						scenario: outputScenario,
