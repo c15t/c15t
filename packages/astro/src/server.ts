@@ -22,7 +22,7 @@ import type {
 	TranslationsResponse,
 } from '@c15t/core';
 import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
-import { createManifestTransport } from '@c15t/core/transports/manifest';
+import type { ManifestFetch } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
@@ -34,6 +34,7 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import { loadConsentManifest, resolveManifestInit } from './api/manifest-init';
 import { buildInlineOfflinePolicy } from './mode';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
@@ -41,6 +42,12 @@ import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 export interface ResolveConsentContextOptions {
 	/** The incoming request headers. */
 	headers: Headers;
+	/**
+	 * The absolute request URL. Used to resolve a relative `backendURL` or
+	 * `manifestURL` against this request's own origin and protocol; without
+	 * it the shared resolver assumes `https`.
+	 */
+	url?: string;
 	/** The integration options, already normalized. */
 	options: C15tResolvedOptions;
 	/** Override fetch, mainly for tests. */
@@ -185,34 +192,33 @@ const prefetchLocal = async function prefetchLocal(input: {
 	inputs: ConsentRequestHeaderInputs;
 	translations: KernelTranslations;
 	headers: Headers;
+	url?: string;
 	fetch?: typeof globalThis.fetch;
 }): Promise<KernelConfig> {
 	const { options } = input;
 	if (options.mode.type === 'manifest') {
-		const absoluteBackend = options.mode.backendURL
-			? (resolveBackendURL(options.mode.backendURL, input.headers) ?? undefined)
-			: undefined;
-		const absoluteManifest = options.mode.manifestURL
-			? (resolveBackendURL(options.mode.manifestURL, input.headers) ??
-				undefined)
-			: undefined;
-		const transport = createManifestTransport({
-			backendURL: absoluteBackend,
-			baseTranslations,
-			fetch: input.fetch,
-			headers: forwardHeaders(input.headers, input.base.initialOverrides ?? {}),
-			inputs: input.inputs,
-			manifest: options.mode.manifest,
-			manifestURL: absoluteManifest,
-		});
+		// Deliberately not `createManifestTransport`: its manifest memo lives
+		// on the transport instance, and a render builds a fresh one, so every
+		// page view paid a manifest fetch. The route handlers already go
+		// through the process-wide cache in `@c15t/core/server`; so does this,
+		// which is what makes the second render cost nothing.
+		const source = { headers: input.headers, url: input.url };
 		try {
-			const response = await transport.init?.({
-				overrides: input.base.initialOverrides ?? {},
-				user: input.base.initialUser ?? null,
+			const manifest = await loadConsentManifest({
+				fetch: input.fetch as ManifestFetch | undefined,
+				options,
+				source,
 			});
-			return response
-				? mergeInitResponseIntoKernelConfig(input.base, response)
-				: input.base;
+			const payload = await resolveManifestInit({
+				fetch: input.fetch as ManifestFetch | undefined,
+				inputs: input.inputs,
+				manifest,
+			});
+			return mergeInitOutputIntoKernelConfig(
+				input.base,
+				payload,
+				forwardHeaders(input.headers, input.base.initialOverrides ?? {})
+			);
 		} catch {
 			return input.base;
 		}
@@ -306,6 +312,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 						inputs,
 						options,
 						translations,
+						url: input.url,
 					});
 	}
 

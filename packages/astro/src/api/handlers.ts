@@ -20,21 +20,15 @@ import {
 	MANIFEST_PASSTHROUGH_HEADERS,
 } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
-import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
-import {
-	consentInputsToOverrides,
-	extractConsentRequestInputs,
-	resolveBackendURL,
-	resolveInitFromManifest,
-} from '@c15t/schema/types';
-import { baseTranslations } from '@c15t/translations/all';
+import { extractConsentRequestInputs } from '@c15t/schema/types';
 
 import type { C15tResolvedOptions } from '../types';
+import {
+	loadConsentManifest,
+	resolveManifestInit,
+	resolveManifestSourceFrom,
+} from './manifest-init';
+import type { FetchGvl } from './manifest-init';
 
 const INIT_CACHE_CONTROL = 'private, no-store';
 const MANIFEST_ROUTE_SUFFIX = '/manifest';
@@ -49,50 +43,8 @@ export interface ConsentRouteHandlerOptions {
 	 * Fetches the Global Vendor List when the resolved policy is IAB.
 	 * Defaults to a plain `GET` of the manifest's GVL reference.
 	 */
-	fetchGvl?: (input: {
-		reference: ConsentManifestGVLReference;
-		language: string;
-		fetch: ManifestFetch;
-	}) => Promise<GlobalVendorList | null>;
+	fetchGvl?: FetchGvl;
 }
-
-const getEnv = function getEnv(name: string): string | undefined {
-	if (typeof process === 'undefined') {
-		return undefined;
-	}
-	return (process.env as Record<string, string | undefined> | undefined)?.[
-		name
-	];
-};
-
-const trimSlash = function trimSlash(value: string): string {
-	return value.endsWith('/') ? value.slice(0, -1) : value;
-};
-
-/**
- * Resolves a possibly-relative backend URL against the request.
- *
- * Seeds the protocol from the request URL rather than letting the shared
- * resolver fall back to `https`, so a relative `backendURL` still resolves
- * on a plain `http://localhost` dev server.
- */
-const resolveAgainstRequest = function resolveAgainstRequest(
-	url: string,
-	request: Request
-): string | null {
-	const requestURL = new URL(request.url);
-	const headers: Record<string, string> = {
-		host: requestURL.host,
-		'x-forwarded-proto': requestURL.protocol.replace(':', ''),
-	};
-	for (const name of ['x-forwarded-host', 'x-forwarded-proto', 'referer']) {
-		const value = request.headers.get(name);
-		if (value) {
-			headers[name] = value;
-		}
-	}
-	return resolveBackendURL(url, headers);
-};
 
 /**
  * Work out where `GET /manifest` lives for this request.
@@ -108,64 +60,10 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 	request: Request,
 	options: C15tResolvedOptions
 ): string {
-	const { mode } = options;
-	const manifestURL =
-		(mode.type === 'manifest' ? mode.manifestURL : undefined) ??
-		getEnv('C15T_MANIFEST_URL');
-	if (manifestURL) {
-		const resolved = resolveAgainstRequest(manifestURL, request);
-		if (!resolved) {
-			throw new Error('@c15t/astro: invalid manifest URL.');
-		}
-		return resolved;
-	}
-
-	const backendURL =
-		(mode.type === 'manifest' ? mode.backendURL : undefined) ??
-		(mode.type === 'hosted' ? mode.url : undefined) ??
-		getEnv('C15T_BACKEND_URL') ??
-		getEnv('PUBLIC_C15T_BACKEND_URL');
-	if (!backendURL) {
-		throw new Error(
-			'@c15t/astro: manifest mode requires `backendURL` or `manifestURL` (or the C15T_BACKEND_URL environment variable).'
-		);
-	}
-	const resolved = resolveAgainstRequest(backendURL, request);
-	if (!resolved) {
-		throw new Error('@c15t/astro: invalid backend URL.');
-	}
-	return `${trimSlash(resolved)}${MANIFEST_ROUTE_SUFFIX}`;
-};
-
-const shouldFetchGvl = function shouldFetchGvl(
-	manifest: ConsentManifest,
-	payload: InitOutput
-): boolean {
-	return (
-		manifest.iab?.enabled === true &&
-		manifest.iab.gvl !== undefined &&
-		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
+	return resolveManifestSourceFrom(
+		{ headers: request.headers, url: request.url },
+		options
 	);
-};
-
-const defaultFetchGvl = async function defaultFetchGvl(input: {
-	reference: ConsentManifestGVLReference;
-	language: string;
-	fetch: ManifestFetch;
-}): Promise<GlobalVendorList | null> {
-	const response = await input.fetch(input.reference.url, {
-		headers: { 'accept-language': input.language },
-		method: 'GET',
-	});
-	if (response.status === 204) {
-		return null;
-	}
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/astro: GVL responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as GlobalVendorList;
 };
 
 /**
@@ -186,47 +84,19 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
 export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	handlerOptions: ConsentRouteHandlerOptions
 ) {
-	const fetchImpl =
-		handlerOptions.fetch ??
-		(globalThis.fetch?.bind(globalThis) as ManifestFetch | undefined);
-
 	/** `GET /api/c15t/init` — a resolved `InitOutput`, never cached. */
 	const init = async function init(request: Request): Promise<Response> {
-		const manifestURL = resolveManifestSourceURL(
-			request,
-			handlerOptions.options
-		);
-		const { manifest } = await fetchCachedManifest({
-			config: { manifestURL },
+		const manifest = await loadConsentManifest({
 			fetch: handlerOptions.fetch,
+			options: handlerOptions.options,
+			source: { headers: request.headers, url: request.url },
 		});
-
-		const inputs = extractConsentRequestInputs(request.headers);
-		const payload = resolveInitFromManifest(
+		const payload = await resolveManifestInit({
+			fetch: handlerOptions.fetch,
+			fetchGvl: handlerOptions.fetchGvl,
+			inputs: extractConsentRequestInputs(request.headers),
 			manifest,
-			{
-				country: inputs.country,
-				gpc: inputs.gpc,
-				language: inputs.language ?? 'en',
-				region: inputs.region,
-			},
-			{ baseTranslations }
-		) as InitOutput & { resolvedOverrides?: Record<string, unknown> };
-
-		if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
-			const language = payload.translations.language.split('-')[0] || 'en';
-			payload.gvl = await (handlerOptions.fetchGvl ?? defaultFetchGvl)({
-				fetch: fetchImpl,
-				language,
-				reference: manifest.iab.gvl,
-			});
-		}
-
-		// The resolver's inputs are the only place GPC survives on the SSR
-		// path — the browser never sends `Sec-GPC` to this route when the
-		// page was server-rendered. Echo them back so the kernel folds the
-		// same overrides it would have derived client-side.
-		payload.resolvedOverrides = consentInputsToOverrides(inputs);
+		});
 
 		return Response.json(payload, {
 			headers: { 'cache-control': INIT_CACHE_CONTROL },
