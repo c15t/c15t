@@ -37,6 +37,7 @@ import {
 	resolveWindowDebugMode,
 } from '@c15t/core/modules/window-debug';
 import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
+import type { ConsentRuntime } from '@c15t/core/runtime';
 import type { InitOutput } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { Translations } from '@c15t/translations';
@@ -185,10 +186,44 @@ export interface ConsentProviderOptions extends Pick<
 	__debugPkg?: string;
 }
 
-export interface ConsentProviderProps {
+/**
+ * Options accepted when an external runtime supplies the kernel.
+ *
+ * `mode` belongs to whoever created the runtime, so it is optional here.
+ * Everything the component tree still owns — theme, slots, legal links —
+ * is unchanged.
+ */
+export type ExternalRuntimeProviderOptions = Omit<
+	ConsentProviderOptions,
+	'mode'
+> & {
+	mode?: ConsentProviderOptions['mode'];
+};
+
+/** The provider builds and owns its own kernel. */
+export interface OwnedRuntimeProviderProps {
 	options: ConsentProviderOptions;
 	children: ReactNode;
+	runtime?: undefined;
 }
+
+/**
+ * The provider renders an externally owned runtime.
+ *
+ * Astro islands and a SvelteKit root layout cannot share React context, so
+ * the kernel has to be owned outside the tree. The provider borrows it and
+ * leaves `start()`, `dispose()` and every side-effecting module to the
+ * owner; it still owns rendering — theme, slots and the IAB bridge.
+ */
+export interface ExternalRuntimeProviderProps {
+	options?: ExternalRuntimeProviderOptions;
+	children: ReactNode;
+	runtime: ConsentRuntime;
+}
+
+export type ConsentProviderProps =
+	| OwnedRuntimeProviderProps
+	| ExternalRuntimeProviderProps;
 
 const ALL_CONSENTS_ON = {
 	experience: true,
@@ -206,6 +241,13 @@ const DEFAULT_TRANSLATIONS: KernelTranslations = {
 const LazyIABProvider = lazy(async () => {
 	const module = await import('./iab-context');
 	return { default: module.IABProvider };
+});
+
+// A separate chunk from `LazyIABProvider`: the external bridge republishes
+// a CMP the runtime already mounted, so it must not drag `@c15t/iab` in.
+const LazyExternalIABProvider = lazy(async () => {
+	const module = await import('./external-iab-context');
+	return { default: module.ExternalIABProvider };
 });
 
 const normalizeUser = function normalizeUser(
@@ -634,7 +676,8 @@ const hasRevokedConsent = function hasRevokedConsent(
 const useProviderCallbacks = function useProviderCallbacks(
 	kernel: ConsentKernel,
 	callbacks: Callbacks | undefined,
-	reloadOnConsentRevoked: boolean
+	reloadOnConsentRevoked: boolean,
+	active: boolean
 ) {
 	const callbacksRef = useRef(callbacks);
 	const saveStartedSnapshotRef = useRef<ConsentSnapshot | null>(null);
@@ -645,6 +688,11 @@ const useProviderCallbacks = function useProviderCallbacks(
 	}, [callbacks]);
 
 	useEffect(() => {
+		// An externally owned runtime already wired these through
+		// `wireRuntimeCallbacks`; subscribing again would double-fire them.
+		if (!active) {
+			return;
+		}
 		const notifyConsentSaved = (
 			previous: ConsentSnapshot | null,
 			next: ConsentSnapshot
@@ -731,7 +779,7 @@ const useProviderCallbacks = function useProviderCallbacks(
 				unsubscribe();
 			}
 		};
-	}, [kernel, reloadOnConsentRevoked]);
+	}, [active, kernel, reloadOnConsentRevoked]);
 };
 
 const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
@@ -750,7 +798,8 @@ const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
 const useProviderOptionSync = function useProviderOptionSync(
 	kernel: ConsentKernel,
 	options: ConsentProviderOptions,
-	enabled: boolean
+	enabled: boolean,
+	owns: boolean
 ) {
 	const previousEnabledRef = useRef(enabled);
 	const previousUserRef = useRef<string | null>(null);
@@ -758,6 +807,9 @@ const useProviderOptionSync = function useProviderOptionSync(
 	const initialOnlyRef = useRef<string | null>(null);
 
 	useEffect(() => {
+		if (!owns) {
+			return;
+		}
 		const nextUser = normalizeUser(options.user);
 		const serialized = JSON.stringify(nextUser ?? null);
 		if (previousUserRef.current === null) {
@@ -776,9 +828,12 @@ const useProviderOptionSync = function useProviderOptionSync(
 				})();
 			}
 		}
-	}, [kernel, options.user]);
+	}, [kernel, options.user, owns]);
 
 	useEffect(() => {
+		if (!owns) {
+			return;
+		}
 		const serialized = JSON.stringify(options.overrides ?? {});
 		if (previousOverridesRef.current === null) {
 			previousOverridesRef.current = serialized;
@@ -791,10 +846,10 @@ const useProviderOptionSync = function useProviderOptionSync(
 				void kernel.commands.init();
 			}
 		}
-	}, [enabled, kernel, options.overrides]);
+	}, [enabled, kernel, options.overrides, owns]);
 
 	useEffect(() => {
-		if (previousEnabledRef.current === enabled) {
+		if (!owns || previousEnabledRef.current === enabled) {
 			return;
 		}
 		previousEnabledRef.current = enabled;
@@ -804,7 +859,7 @@ const useProviderOptionSync = function useProviderOptionSync(
 		kernel.set.consent(ALL_CONSENTS_ON);
 		kernel.set.activeUI('none');
 		kernel.set.hasConsented(true);
-	}, [enabled, kernel]);
+	}, [enabled, kernel, owns]);
 
 	useEffect(() => {
 		const nodeEnv = (
@@ -1046,12 +1101,14 @@ const IABGate = ({
 	initialModel,
 	kernel,
 	options,
+	runtime,
 	children,
 }: {
 	enabled: boolean;
 	initialModel?: string | null;
 	kernel: ConsentKernel;
 	options: NormalizedIABOptions | null;
+	runtime?: ConsentRuntime;
 	children: ReactNode;
 }) => {
 	const snapshot = useSyncExternalStore(
@@ -1064,6 +1121,23 @@ const IABGate = ({
 		model === 'iab' ||
 		model === null ||
 		(model === undefined && initialModel === 'iab');
+
+	// An external runtime already owns the CMP. Republish its handle rather
+	// than mounting a second one — two `__tcfapi` stubs on a page is a spec
+	// violation, not just wasted bytes.
+	if (runtime) {
+		if (!(enabled && shouldLoadIAB)) {
+			return children;
+		}
+		return (
+			<Suspense fallback={children}>
+				<LazyExternalIABProvider runtime={runtime}>
+					{children}
+				</LazyExternalIABProvider>
+			</Suspense>
+		);
+	}
+
 	const cmpId = options?.cmpId ?? snapshot.iab?.cmpId;
 
 	if (!enabled || !options || !shouldLoadIAB || typeof cmpId !== 'number') {
@@ -1117,6 +1191,8 @@ const normalizeIabOptions = function normalizeIabOptions(
 	};
 };
 
+const EMPTY_OPTIONS = {} as ConsentProviderOptions;
+
 /**
  * v3 ConsentProvider.
  *
@@ -1124,12 +1200,36 @@ const normalizeIabOptions = function normalizeIabOptions(
  * curated v2-like options surface to v3 modules. It does not mirror the
  * snapshot into React state; selector hooks still subscribe directly to
  * the kernel through `useSyncExternalStore`.
+ *
+ * Pass `runtime` to render a runtime someone else created. The provider
+ * then borrows its kernel and mounts none of the side-effecting modules —
+ * no second `init()`, no second persistence handle, no second `window.c15t`
+ * — and does not dispose it on unmount.
+ *
+ * @example
+ * ```tsx
+ * import { createConsentRuntime } from '@c15t/core/runtime';
+ *
+ * const runtime = createConsentRuntime({ mode: hosted({ url: '/api/c15t' }) });
+ * runtime.start();
+ *
+ * <ConsentProvider runtime={runtime} options={{ theme }}>
+ *   <ConsentDialog />
+ * </ConsentProvider>
+ * ```
  */
-export const ConsentProvider = ({
-	options,
-	children,
-}: ConsentProviderProps) => {
+export const ConsentProvider = (props: ConsentProviderProps) => {
+	const { children } = props;
+	const options = (props.options ?? EMPTY_OPTIONS) as ConsentProviderOptions;
+	// Initial-only, like `mode`: swapping the runtime under a mounted tree
+	// would leave every hook subscribed to the old kernel.
+	const [externalRuntime] = useState(() => props.runtime);
+	const ownsRuntime = externalRuntime === undefined;
+
 	const [providerKernelState, setProviderKernelState] = useState(() => {
+		if (props.runtime) {
+			return { eagerInit: false, kernel: props.runtime.kernel };
+		}
 		const created = createProviderKernel(options);
 		// Kick the init roundtrip off during first client render so its
 		// network latency overlaps hydration instead of following it — with
@@ -1151,11 +1251,25 @@ export const ConsentProvider = ({
 	const iabOptions = normalizeIabOptions(options.iab);
 	const { scripts, networkBlocker } = options;
 	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
-	const windowDebugMode = resolveWindowDebugMode(options.mode);
+	// `mode` is optional when a runtime is handed in — its owner picked the
+	// transport, and this provider mounts no `window.c15t` either way.
+	const windowDebugMode = ownsRuntime
+		? resolveWindowDebugMode(options.mode)
+		: 'hosted';
 
-	useProviderCallbacks(kernel, options.callbacks, reloadOnConsentRevoked);
-	useProviderOptionSync(kernel, options, enabled);
-	useEffect(() => () => kernel.dispose(), [kernel]);
+	useProviderCallbacks(
+		kernel,
+		options.callbacks,
+		reloadOnConsentRevoked,
+		ownsRuntime
+	);
+	useProviderOptionSync(kernel, options, enabled, ownsRuntime);
+	useEffect(() => {
+		if (!ownsRuntime) {
+			return;
+		}
+		return () => kernel.dispose();
+	}, [kernel, ownsRuntime]);
 
 	const userTheme = options.theme;
 
@@ -1188,29 +1302,35 @@ export const ConsentProvider = ({
 
 	useColorScheme(options.colorScheme);
 
+	// Everything below `WindowKernelMount` is a side-effecting module the
+	// runtime already mounts. A borrowed runtime renders none of it.
 	const providerChildren = (
 		<>
-			<InitMount
-				enabled={enabled}
-				kernel={kernel}
-				eagerInit={eagerInit}
-			/>
-			<WindowDebugMount
-				pkg={windowDebugPkg}
-				mode={windowDebugMode}
-			/>
 			<WindowKernelMount kernel={kernel} />
-			{enabled && persistenceOptions ? (
-				<PersistenceMount options={persistenceOptions} />
-			) : null}
-			{enabled && scripts && scripts.length > 0 ? (
-				<ScriptsMount
-					options={options.scriptLoader}
-					scripts={scripts}
-				/>
-			) : null}
-			{enabled && networkBlocker ? (
-				<NetworkBlockerMount options={networkBlocker} />
+			{ownsRuntime ? (
+				<>
+					<InitMount
+						enabled={enabled}
+						kernel={kernel}
+						eagerInit={eagerInit}
+					/>
+					<WindowDebugMount
+						pkg={windowDebugPkg}
+						mode={windowDebugMode}
+					/>
+					{enabled && persistenceOptions ? (
+						<PersistenceMount options={persistenceOptions} />
+					) : null}
+					{enabled && scripts && scripts.length > 0 ? (
+						<ScriptsMount
+							options={options.scriptLoader}
+							scripts={scripts}
+						/>
+					) : null}
+					{enabled && networkBlocker ? (
+						<NetworkBlockerMount options={networkBlocker} />
+					) : null}
+				</>
 			) : null}
 			{children}
 		</>
@@ -1231,6 +1351,7 @@ export const ConsentProvider = ({
 					}
 					kernel={kernel}
 					options={iabOptions}
+					runtime={externalRuntime}
 				>
 					{providerChildren}
 				</IABGate>

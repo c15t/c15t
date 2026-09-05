@@ -59,6 +59,10 @@ export default mergeConfig(
 					'@c15t/core/modules/window-debug',
 					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
 				],
+				[
+					'@c15t/core/runtime',
+					resolve(__dirname, '../core/src/runtime/index.ts'),
+				],
 				['@c15t/core', resolve(__dirname, '../core/src/index.ts')],
 				['@c15t/schema/types', resolve(__dirname, '../schema/src/types.ts')],
 				[
