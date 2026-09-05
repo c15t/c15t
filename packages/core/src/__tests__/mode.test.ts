@@ -92,12 +92,12 @@ describe('hosted()', () => {
 			'https://backend.example/subjects',
 		]);
 		const body = JSON.parse(String(fetchSpy.mock.calls[1]?.[1]?.body));
-			expect(body).toMatchObject({
-				country: 'DE',
-				fingerprint: 'fingerprint-eu',
-				language: 'de',
-				policyId: 'eu-opt-in',
-				region: 'BE',
+		expect(body).toMatchObject({
+			country: 'DE',
+			fingerprint: 'fingerprint-eu',
+			language: 'de',
+			policyId: 'eu-opt-in',
+			region: 'BE',
 		});
 	});
 });
