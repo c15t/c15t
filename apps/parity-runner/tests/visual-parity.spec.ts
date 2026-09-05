@@ -168,7 +168,7 @@ test.describe('cross-framework visual parity', () => {
 			}
 		}
 
-		for (const entry of unusedAllowlistEntries(usedEntries)) {
+		for (const entry of unusedAllowlistEntries(usedEntries, ['geometry'])) {
 			failures.push(
 				`[ALLOWLIST] stale entry matched nothing — delete it: ${entry.check} ${entry.framework} ${entry.story} ${entry.slot}`
 			);
@@ -188,6 +188,7 @@ test.describe('cross-framework visual parity', () => {
 
 		const paired = await loadPairedStories();
 		const failures: string[] = [];
+		const usedEntries = new Set<ParityAllowEntry>();
 
 		for (const pair of paired) {
 			const baselineEntry = pair.entries[BASELINE];
@@ -224,9 +225,14 @@ test.describe('cross-framework visual parity', () => {
 				await openStory(page, url, entry.id);
 
 				for (const [slot, baselineShot] of baselineShots) {
-					if (
-						findAllowEntry({ check: 'pixel', framework, slot, story: pair.key })
-					) {
+					const allowed = findAllowEntry({
+						check: 'pixel',
+						framework,
+						slot,
+						story: pair.key,
+					});
+					if (allowed) {
+						usedEntries.add(allowed);
 						continue;
 					}
 					const locator = page.locator(`[data-testid="${slot}"]`).first();
@@ -269,6 +275,12 @@ test.describe('cross-framework visual parity', () => {
 					}
 				}
 			}
+		}
+
+		for (const entry of unusedAllowlistEntries(usedEntries, ['pixel'])) {
+			failures.push(
+				`[ALLOWLIST] stale entry matched nothing — delete it: ${entry.check} ${entry.framework} ${entry.story} ${entry.slot}`
+			);
 		}
 
 		console.log(`[PARITY] pixel: ${failures.length} failure(s)`);
