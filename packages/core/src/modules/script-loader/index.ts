@@ -84,7 +84,7 @@ export const createScriptLoader = function createScriptLoader(
 			!statuses.has(event.scriptId)
 		) {
 			statuses.set(event.scriptId, 'present');
-		} else if (event.action === 'unloaded') {
+		} else if (event.action === 'unloaded' && event.data?.retained !== true) {
 			statuses.delete(event.scriptId);
 		}
 		emitDebug(event);

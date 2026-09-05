@@ -17,6 +17,38 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it.each(['load', 'error'] as const)(
+		"preserves a retained script's observed %s result after consent is granted again",
+		(event) => {
+			const kernel = createConsentKernel({
+				initialConsents: { marketing: true },
+			});
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{
+						category: 'marketing',
+						id: 'retained-result',
+						persistAfterConsentRevoked: true,
+						src: 'https://example.test/pixel.js',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			const element = document.getElementById(
+				getScriptDiagnostics(kernel)[0]?.elementId ?? ''
+			);
+			element?.dispatchEvent(new Event(event));
+			const status = event === 'load' ? 'loaded' : 'error';
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(status);
+			kernel.set.consent({ marketing: false });
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe('retained');
+			kernel.set.consent({ marketing: true });
+			expect(getScriptDiagnostics(kernel)[0]?.status).toBe(status);
+			expect(element?.isConnected).toBe(true);
+			element?.remove();
+		}
+	);
 	it('does not insert a later target after synchronous consent revocation', () => {
 		const kernel = createConsentKernel();
 		const append = document.head.appendChild.bind(document.head);

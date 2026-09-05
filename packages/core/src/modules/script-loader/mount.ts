@@ -306,6 +306,7 @@ export const unmountScript = function unmountScript(
 		if (deps.hasDebugListener) {
 			deps.emit({
 				action: 'unloaded',
+				data: { retained: true },
 				elementId,
 				message: 'Script persisted after consent revoked',
 				scope: 'lifecycle',
