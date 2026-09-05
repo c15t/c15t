@@ -1,5 +1,8 @@
 import { buildPrefetchScript } from '@c15t/core';
-import Script from 'next/script';
+// `next/script.js`, not `next/script`: Next ships no `exports` map, so the
+// bare specifier only resolves through a bundler. The Pages Router loads this
+// package with Node at runtime, where the extension is required.
+import Script from 'next/script.js';
 
 import type { C15tPrefetchProps } from '~/types';
 

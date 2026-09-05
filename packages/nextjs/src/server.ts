@@ -39,11 +39,11 @@ interface NextRequestContext {
 
 const defaultNextRequestContext: NextRequestContext = {
 	async cookies() {
-		const nextHeaders = await import('next/headers');
+		const nextHeaders = await import('next/headers.js');
 		return nextHeaders.cookies();
 	},
 	async headers() {
-		const nextHeaders = await import('next/headers');
+		const nextHeaders = await import('next/headers.js');
 		return (await nextHeaders.headers()) as Headers;
 	},
 };

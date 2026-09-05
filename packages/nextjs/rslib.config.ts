@@ -10,8 +10,11 @@ import {
 const externals = [
 	'next',
 	'next/headers',
+	'next/headers.js',
 	'next/server',
+	'next/server.js',
 	'next/script',
+	'next/script.js',
 	'react',
 	'react-dom',
 ];
