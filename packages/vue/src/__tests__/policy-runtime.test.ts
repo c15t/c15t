@@ -1,0 +1,193 @@
+import {
+	normalizePolicyRule,
+	createPolicyRuleFingerprints,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import type { PolicyResolution, PolicyRule } from '@c15t/schema/types';
+import { afterEach, expect, test, vi } from 'vitest';
+import { createApp, defineComponent, h } from 'vue';
+
+import { consentConfigKey } from '../runtime/composables/config';
+import { useConsentDraft } from '../runtime/composables/draft';
+import {
+	createVueConsentKernelContext,
+	startVueConsentRuntime,
+} from '../runtime/kernel';
+import { symbolKernelContext } from '../runtime/utils/symbols';
+
+const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
+	const policy = normalizePolicyRule({
+		categories: ['measurement', 'marketing'],
+		id: 'vue-test',
+		match: { fallback: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		...patch,
+	});
+	return {
+		fingerprints: createPolicyRuleFingerprints(policy),
+		matchedBy: 'fallback',
+		policy,
+		policyId: policy.id,
+		status: 'matched',
+	};
+};
+afterEach(() => vi.restoreAllMocks());
+
+test('a draft reads the raw grant under GPC and confirms only displayed categories', async () => {
+	const now = 1_800_000_000_000;
+	vi.spyOn(Date, 'now').mockReturnValue(now);
+	const context = createVueConsentKernelContext({
+		config: {},
+		kernelConfig: {
+			initialPolicyResolution: resolution({
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			}),
+			now,
+		},
+	});
+	await context.kernel.commands.save('all');
+	const receipt = context.storedConsent.value;
+	context.kernel.set.privacySignals({ gpc: true });
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	const container = document.createElement('div');
+	app.mount(container);
+	try {
+		expect(context.snapshot.value.effectivePermissions.marketing).toBe(false);
+		expect(draft.values.value.marketing).toBe(true);
+		expect(context.storedConsent.value).toBe(receipt);
+		const confirmed: unknown[] = [];
+		context.kernel.events.on('choice:recorded', (event) =>
+			confirmed.push(event.confirmed)
+		);
+		await draft.save();
+		expect(confirmed).toEqual([['marketing', 'measurement']]);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});
+
+test('material policy changes block an already displayed draft until review', async () => {
+	let current = resolution();
+	const context = createVueConsentKernelContext({
+		config: {},
+		kernelConfig: {
+			initialPolicyResolution: current,
+			transport: {
+				init: () =>
+					Promise.resolve({
+						policyResolution: writePolicyResolutionWire(current),
+					}),
+			},
+		},
+	});
+	let draft!: ReturnType<typeof useConsentDraft>;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				draft = useConsentDraft();
+				return () => h('div');
+			},
+		})
+	);
+	app.provide(symbolKernelContext, context);
+	app.provide(consentConfigKey, {});
+	app.mount(document.createElement('div'));
+	try {
+		draft.values.value.marketing = true;
+		current = resolution({ categories: ['measurement'] });
+		await context.kernel.commands.init();
+		expect(await draft.save()).toEqual({ ok: false });
+		expect(context.snapshot.value.explicitChoice).toBeNull();
+		draft.reset();
+		expect(await draft.save()).toMatchObject({ ok: true });
+		expect(
+			Object.keys(context.snapshot.value.explicitChoice?.categories ?? {})
+		).toEqual(['measurement']);
+	} finally {
+		app.unmount();
+		context.dispose();
+	}
+});
+
+test('notice dismissal and registration do not replay choice callbacks', async () => {
+	const choice = vi.fn();
+	const permissions = vi.fn();
+	const context = createVueConsentKernelContext({
+		config: {
+			callbacks: {
+				onChoiceRecorded: choice,
+				onPermissionsChanged: permissions,
+			},
+		},
+		kernelConfig: {
+			initialPolicyResolution: resolution({
+				model: 'opt-out',
+				prompt: 'notice',
+			}),
+		},
+	});
+	try {
+		expect(choice).not.toHaveBeenCalled();
+		expect(permissions).not.toHaveBeenCalled();
+		await context.kernel.commands.dismissNotice();
+		expect(choice).not.toHaveBeenCalled();
+		expect(permissions).not.toHaveBeenCalled();
+		expect(context.snapshot.value.explicitChoice).toBeNull();
+		await context.kernel.commands.save({ measurement: false });
+		expect(choice).toHaveBeenCalledOnce();
+		expect(permissions).toHaveBeenCalledOnce();
+		expect(choice.mock.calls[0]?.[0]).not.toHaveProperty('type');
+	} finally {
+		context.dispose();
+	}
+});
+
+test.each([true, false, 'true', 1, undefined])(
+	'browser GPC accepts only the exact boolean signal %s',
+	(signal) => {
+		const previous = Object.getOwnPropertyDescriptor(
+			navigator,
+			'globalPrivacyControl'
+		);
+		Object.defineProperty(navigator, 'globalPrivacyControl', {
+			configurable: true,
+			value: signal,
+		});
+		const config = { iframeBlocker: false as const };
+		const context = createVueConsentKernelContext({
+			config,
+			kernelConfig: {
+				initialPolicyResolution: resolution({
+					model: 'opt-out',
+					privacySignals: { gpc: { denyCategories: ['marketing'] } },
+					prompt: 'notice',
+				}),
+			},
+		});
+		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		try {
+			expect(context.snapshot.value.privacySignals.gpc.detected).toBe(
+				signal === true
+			);
+		} finally {
+			dispose();
+			if (previous) {
+				Object.defineProperty(navigator, 'globalPrivacyControl', previous);
+			} else {
+				Reflect.deleteProperty(navigator, 'globalPrivacyControl');
+			}
+		}
+	}
+);

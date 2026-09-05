@@ -1,4 +1,10 @@
+import type {
+	ConsentPresentation,
+	KernelEvent,
+	HydrationRecords,
+} from '@c15t/core';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
+import type { InitOutput } from '@c15t/schema/types';
 import type { HTMLAttributes } from 'vue';
 
 export interface ConsentManifestNuxtConfig {
@@ -38,4 +44,20 @@ export interface ConsentManifestNuxtConfig {
 }
 
 export interface ConsentConfig
-	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {}
+	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {
+	/** Resolved server init data, reused for the first client render. */
+	prefetch?: InitOutput;
+	/** Raw server records with their request evaluation clock. */
+	initialRecords?: HydrationRecords;
+	/** Application-owned prompt and preference presentation. */
+	presentation?: ConsentPresentation;
+	/** Receives kernel events only when the corresponding change occurs. */
+	callbacks?: {
+		onChoiceRecorded?: (
+			event: Omit<Extract<KernelEvent, { type: 'choice:recorded' }>, 'type'>
+		) => void;
+		onPermissionsChanged?: (
+			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
+		) => void;
+	};
+}

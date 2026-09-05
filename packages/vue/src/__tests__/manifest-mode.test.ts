@@ -300,7 +300,6 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 				regionCode: null,
 			},
 			overrides: {
-				gpc: true,
 				language: 'de',
 			},
 			policy: {
@@ -339,7 +338,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		const first = await context.kernel.commands.init();
 		expect(first.ok).toBe(false);
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(context.snapshot.value.policy).toBeNull();
+		expect(context.snapshot.value.resolution.status).toBe('failed');
 
 		manifestStatus = 200;
 		const second = await context.kernel.commands.init();
@@ -439,7 +438,10 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			mode: 'manifest',
 			pkg: '@c15t/vue',
 		});
-		expect(seenPolicyIds[0]).toBe('eu-opt-in');
+		expect(seenPolicyIds.indexOf('eu-opt-in')).toBeLessThan(
+			seenPolicyIds.indexOf('ca-opt-out')
+		);
+		expect(seenPolicyIds).toContain('eu-opt-in');
 		expect(seenPolicyIds.at(-1)).toBe('ca-opt-out');
 		expect(context.snapshot.value.policyDecision).toMatchObject({
 			country: 'US',

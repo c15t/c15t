@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type {
-	GlobalVendorList,
-	NonIABVendor,
-	PolicyUiAction,
-} from '@c15t/schema/types';
+import type { PresentationAction } from '@c15t/core';
+import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
@@ -18,6 +15,8 @@ import {
 } from '#c15t/composables';
 import type { ConsentIabSelection } from '#c15t/composables';
 
+import { useConsentSnapshot } from '../composables/kernel';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
@@ -34,14 +33,15 @@ import IabStackItem from './iab-stack-item.vue';
 import IabVendorList from './iab-vendor-list.vue';
 
 const STANDALONE_PURPOSE_ID = 1;
-const IAB_DIALOG_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
+const IAB_DIALOG_LAYOUT: (PresentationAction | PresentationAction[])[] = [
 	['reject', 'accept'],
-	'customize',
+	'save',
 ];
 
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
+const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
@@ -52,12 +52,12 @@ const draftIab = ref<ConsentIabSelection>(createDefaultIabSelection());
 
 const isOpen = computed(() => {
 	const models = config.value.iabDialogModels;
-	const model = initValue.value?.policy?.model;
+	const { model } = snapshot.value.policyRule;
 	const matchesModel =
 		!models?.length || (model !== undefined && models.includes(model));
 	return (
 		activeUI.value === 'manager' &&
-		initValue.value?.policy?.model === 'iab' &&
+		snapshot.value.policyRule.model === 'iab' &&
 		Boolean(gvl.value) &&
 		matchesModel
 	);
@@ -100,8 +100,8 @@ const iabT = computed(
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
-	customize: iabT.value?.common?.saveSettings ?? 'Save settings',
 	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
+	save: iabT.value?.common?.saveSettings ?? 'Save settings',
 }));
 
 const mapVendor = function mapVendor(
@@ -409,8 +409,8 @@ const onDialogKeydown = function onDialogKeydown(event: KeyboardEvent) {
 	}
 };
 
-const onAction = function onAction(action: PolicyUiAction) {
-	if (action === 'customize') {
+const onAction = function onAction(action: PresentationAction) {
+	if (action === 'save') {
 		save(
 			{
 				...structuredClone(draftIab.value),
@@ -434,9 +434,10 @@ const handleVendorClick = function handleVendorClick(vendorId: IabVendorId) {
 	handleTabChange('vendors');
 };
 
-const scrollLock = computed(
-	() => initValue.value?.policy?.ui?.dialog?.scrollLock ?? true
-);
+const { presentation } = useConsentPolicyActions('preferences', {
+	layout: IAB_DIALOG_LAYOUT,
+});
+const scrollLock = computed(() => presentation.value.scrollLock);
 
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
@@ -864,8 +865,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 							:class="dialogStyles.footer"
 						>
 							<ConsentActions
-								:layout="IAB_DIALOG_LAYOUT"
-								:primary-actions="['customize']"
+								:action-groups="presentation.actionGroups"
+								:direction="presentation.direction"
+								:primary-actions="presentation.primaryActions"
 								:labels="labels"
 								secondary-mode="stroke"
 								:disabled="isLoading"

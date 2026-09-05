@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/consent-record';
+import type { PresentationAction } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
-import type { PolicyUiAction } from '@c15t/schema/types';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 import managerStyles from '@c15t/ui/styles/components/consent-manager';
@@ -13,8 +12,9 @@ import {
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
-	useHasConsent,
+	useConsentSnapshot,
 } from '../composables';
+import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import {
@@ -34,17 +34,26 @@ import ConsentSwitch from './consent-switch.vue';
 import ConsentTag from './consent-tag.vue';
 
 const init = useConsentInit();
-const granted = useHasConsent();
+
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const save = useConsentSave();
-const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
-const surface = computed(() => init.value?.policy?.ui?.dialog);
-const { actionGroups, direction, primaryActions, shouldFillActions } =
-	useConsentPolicyActions(surface);
-const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
-	{} as Record<CONSENT_CATEGORY, boolean>
-);
+const snapshot = useConsentSnapshot();
+
+const {
+	presentation: surface,
+	actionGroups,
+	direction,
+	primaryActions,
+	shouldFillActions,
+} = useConsentPolicyActions('preferences');
+const {
+	values: draft,
+	displayedCategories: draftCategories,
+	isStale,
+	reset: resetDraft,
+	save: saveDraft,
+} = useConsentDraft();
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 const isOverlayVisible = computed(() => activeUI.value === 'manager');
@@ -84,11 +93,7 @@ watch(
 );
 
 useConsentScrollLock(
-	computed(
-		() =>
-			activeUI.value === 'manager' &&
-			Boolean(init.value?.policy?.ui?.dialog?.scrollLock)
-	)
+	computed(() => activeUI.value === 'manager' && surface.value.scrollLock)
 );
 
 const consentTitle = function consentTitle(category: CONSENT_CATEGORY) {
@@ -105,25 +110,11 @@ const consentTitle = function consentTitle(category: CONSENT_CATEGORY) {
 		.replace(/\b\w/gu, (character) => character.toUpperCase());
 };
 
-const reset = function reset() {
-	const categories = getConsentAvailableCategories(
-		init.value,
-		config.value.consentCategories
-	);
-
-	const grantedSet = new Set(granted.value);
-	const next = {} as Record<CONSENT_CATEGORY, boolean>;
-	for (const category of categories) {
-		next[category] = category === 'necessary' || grantedSet.has(category);
-	}
-	draft.value = next;
-};
-
 watch(
 	activeUI,
 	(ui) => {
 		if (ui === 'manager') {
-			reset();
+			resetDraft();
 		}
 	},
 	{ immediate: true }
@@ -133,43 +124,46 @@ const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
-		customize: common?.save ?? 'Save',
 		reject: common?.rejectAll ?? 'Reject all',
+		save: common?.save ?? 'Save',
 	} as const;
 });
 
 const actionTestIds = {
 	accept: 'consent-widget-footer-accept-all-button',
-	customize: 'consent-widget-footer-save-button',
 	reject: 'consent-widget-reject-button',
+	save: 'consent-widget-footer-save-button',
 } as const;
 
-const savePreferences = function savePreferences() {
-	const selected = Object.entries(draft.value)
-		.filter(([, enabled]) => enabled)
-		.map(([category]) => category as CONSENT_CATEGORY);
-	save(selected);
-};
-
-const onAction = function onAction(action: PolicyUiAction) {
-	if (action === 'customize') {
-		savePreferences();
-		activeUI.value = null;
-		return;
+const onAction = async function onAction(action: PresentationAction) {
+	let result;
+	if (action === 'save') {
+		result = await saveDraft();
+	} else if (action === 'accept') {
+		result = await save('all');
+	} else if (action === 'reject') {
+		result = await save('none');
 	}
-	if (action === 'accept') {
-		save('all');
-		activeUI.value = null;
-		return;
-	}
-	if (action === 'reject') {
-		save('none');
-		activeUI.value = null;
+	if (result?.ok) {
+		activeUI.value =
+			snapshot.value.promptRequirement.kind === 'none' ? null : 'banner';
 	}
 };
 </script>
 
 <template>
+	<div
+		v-if="isStale"
+		role="status"
+	>
+		Privacy choices have changed.
+		<button
+			type="button"
+			@click="resetDraft"
+		>
+			Review updated choices
+		</button>
+	</div>
 	<DialogRoot
 		:open="activeUI === 'manager'"
 		:modal="config.trapFocus"
@@ -349,9 +343,8 @@ const onAction = function onAction(action: PolicyUiAction) {
 									:class="managerStyles.footer"
 								>
 									<ConsentActions
-										:action-groups="
-											actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
-										"
+										:disabled="isStale"
+										:action-groups="actionGroups"
 										:direction="direction"
 										:ui-profile="surface?.uiProfile"
 										:primary-actions="primaryActions"

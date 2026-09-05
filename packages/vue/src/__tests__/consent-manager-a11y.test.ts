@@ -293,12 +293,12 @@ describe('ConsentManager accordion accessibility', () => {
 		}
 	});
 
-	test('dialog policy actions make only customize primary', async () => {
+	test('preferences keep accept and reject equivalent and expose save', async () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const reject = document.querySelector('[data-action="reject"]');
 			const accept = document.querySelector('[data-action="accept"]');
-			const customize = document.querySelector('[data-action="customize"]');
+			const customize = document.querySelector('[data-action="save"]');
 
 			expect(reject?.getAttribute('data-variant')).toBe('neutral');
 			expect(reject?.getAttribute('data-mode')).toBe('stroke');

@@ -8,3 +8,6 @@ export * from './init';
 export * from './kernel';
 export * from './language';
 export * from './region';
+
+export * from './draft';
+export * from './use-consent-policy-actions';

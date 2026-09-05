@@ -1,62 +1,48 @@
-import type { PolicyUiSurfaceConfig } from '@c15t/schema/types';
-import {
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
-import { computed, toValue } from 'vue';
+import { resolveConsentPresentation } from '@c15t/core';
+import type { PreferencesPresentation, PromptPresentation } from '@c15t/core';
+import { computed, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
+import { useConsentConfig } from './config';
+import { useConsentSnapshot } from './kernel';
+
+/** Resolve the shared policy constraints and application presentation. */
 export const useConsentPolicyActions = function useConsentPolicyActions(
-	surfaceUi: MaybeRefOrGetter<PolicyUiSurfaceConfig | undefined>
+	surface: 'prompt' | 'preferences',
+	override?: MaybeRefOrGetter<
+		PromptPresentation | PreferencesPresentation | undefined
+	>
 ) {
-	const allowedActions = computed(() => {
-		const ui = toValue(surfaceUi);
-		return resolvePolicyAllowedActions({
-			allowedActions: ui?.allowedActions,
-		});
-	});
-
-	const actionGroups = computed(() => {
-		const ui = toValue(surfaceUi);
-		return resolvePolicyActionGroups({
-			allowedActions: allowedActions.value,
-			layout: ui?.layout,
-		});
-	});
-
-	const primaryActions = computed(() => {
-		const ui = toValue(surfaceUi);
-		return resolvePolicyPrimaryActions({
-			orderedActions: resolvePolicyOrderedActions({
-				allowedActions: allowedActions.value,
-				layout: ui?.layout,
-			}),
-			primaryActions: ui?.primaryActions,
-		});
-	});
-
-	const direction = computed(() => {
-		const ui = toValue(surfaceUi);
-		return resolvePolicyDirection(ui?.direction);
-	});
-
-	const shouldFillActions = computed(() => {
-		const ui = toValue(surfaceUi);
-		return shouldFillPolicyActions({
-			actionGroups: actionGroups.value,
-			direction: direction.value,
-			uiProfile: ui?.uiProfile,
-		});
-	});
-
+	const snapshot = useConsentSnapshot();
+	const config = useConsentConfig();
+	const presentation = computed(() =>
+		resolveConsentPresentation({
+			override: toValue(override),
+			policy: snapshot.value.policyRule,
+			presentation: {
+				...config.value.presentation,
+				prompt: {
+					trapFocus: config.value.trapFocus,
+					...config.value.presentation?.prompt,
+				},
+			},
+			surface,
+		})
+	);
+	watch(
+		presentation,
+		(value) => {
+			for (const diagnostic of value.diagnostics) {
+				console.warn(`[c15t] ${diagnostic.code}: ${diagnostic.message}`);
+			}
+		},
+		{ immediate: true }
+	);
 	return {
-		actionGroups,
-		direction,
-		primaryActions,
-		shouldFillActions,
+		actionGroups: computed(() => presentation.value.actionGroups),
+		direction: computed(() => presentation.value.direction),
+		presentation,
+		primaryActions: computed(() => presentation.value.primaryActions),
+		shouldFillActions: computed(() => presentation.value.shouldFillActions),
 	};
 };

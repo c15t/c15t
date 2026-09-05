@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type {
-	GlobalVendorList,
-	NonIABVendor,
-	PolicyUiAction,
-} from '@c15t/schema/types';
+import type { PresentationAction } from '@c15t/core';
+import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 
@@ -15,6 +12,8 @@ import {
 	useConsentInit,
 } from '#c15t/composables';
 
+import { useConsentSnapshot } from '../composables/kernel';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
@@ -22,17 +21,18 @@ import ConsentTag from './consent-tag.vue';
 
 const MAX_DISPLAY_ITEMS = 5;
 const STANDALONE_PURPOSE_ID = 1;
-const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
+const IAB_BANNER_LAYOUT: (PresentationAction | PresentationAction[])[] = [
 	['reject', 'accept'],
 	'customize',
 ];
 
 /** Canonical contract test-ids (parity with the React/Svelte IAB banners). */
-const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {
-	accept: 'iab-consent-banner-accept-button',
-	customize: 'iab-consent-banner-customize-button',
-	reject: 'iab-consent-banner-reject-button',
-};
+const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PresentationAction, string>> =
+	{
+		accept: 'iab-consent-banner-accept-button',
+		customize: 'iab-consent-banner-customize-button',
+		reject: 'iab-consent-banner-reject-button',
+	};
 
 const props = withDefaults(
 	defineProps<{
@@ -46,6 +46,7 @@ const props = withDefaults(
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
+const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
@@ -55,12 +56,12 @@ const customVendors = computed(() => initValue.value?.customVendors ?? []);
 
 const isOpen = computed(() => {
 	const models = config.value.iabBannerModels;
-	const model = initValue.value?.policy?.model;
+	const { model } = snapshot.value.policyRule;
 	const matchesModel =
 		!models?.length || (model !== undefined && models.includes(model));
 	return (
 		activeUI.value === 'banner' &&
-		initValue.value?.policy?.model === 'iab' &&
+		snapshot.value.policyRule.model === 'iab' &&
 		Boolean(gvl.value) &&
 		matchesModel
 	);
@@ -233,7 +234,7 @@ const descriptionParts = computed(() => {
 	return { after: after ?? '', before: before ?? text };
 });
 
-const onAction = function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PresentationAction) {
 	if (action === 'customize') {
 		iabSelection.value.preferenceCenterTab = 'purposes';
 		activeUI.value = 'manager';
@@ -253,9 +254,11 @@ const openVendors = function openVendors() {
 	activeUI.value = 'manager';
 };
 
-const scrollLock = computed(
-	() => initValue.value?.policy?.ui?.banner?.scrollLock ?? true
-);
+const { presentation } = useConsentPolicyActions('prompt', () => ({
+	layout: IAB_BANNER_LAYOUT,
+	primaryActions: [props.primaryButton],
+}));
+const scrollLock = computed(() => presentation.value.scrollLock);
 
 useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 
@@ -383,8 +386,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 							:class="bannerStyles.footer"
 						>
 							<ConsentActions
-								:layout="IAB_BANNER_LAYOUT"
-								:primary-actions="[primaryButton]"
+								:action-groups="presentation.actionGroups"
+								:direction="presentation.direction"
+								:primary-actions="presentation.primaryActions"
 								:labels="labels"
 								:test-ids="IAB_BANNER_ACTION_TEST_IDS"
 								secondary-mode="stroke"

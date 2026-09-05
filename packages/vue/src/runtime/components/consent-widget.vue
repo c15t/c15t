@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { getConsentAvailableCategories } from '@c15t/core/consent-record';
-import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 /**
  * Inline consent-management widget for settings and privacy pages.
  *
@@ -12,7 +10,8 @@ import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
  * Svelte `ConsentWidget` implementations so the cross-framework parity
  * runner sees identical DOM.
  */
-import type { PolicyUiAction } from '@c15t/schema/types';
+import type { PresentationAction } from '@c15t/core';
+import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
 import buttonStyles from '@c15t/ui/styles/components/button';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -29,8 +28,8 @@ import {
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
-	useHasConsent,
 } from '../composables';
+import { useConsentDraft } from '../composables/draft';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import ConsentTag from './consent-tag.vue';
 
@@ -52,7 +51,7 @@ const props = withDefaults(
 
 const init = useConsentInit();
 const config = useConsentConfig();
-const granted = useHasConsent();
+
 const activeUI = useConsentActiveUI();
 const save = useConsentSave();
 
@@ -66,13 +65,13 @@ const sw = switchVariants({ size: 'small' });
  */
 const uid = useId();
 
-const surface = computed(() => init.value?.policy?.ui?.dialog);
-const { actionGroups, direction, primaryActions, shouldFillActions } =
-	useConsentPolicyActions(surface);
-
-const categories = computed(() =>
-	getConsentAvailableCategories(init.value, config.value.consentCategories)
-);
+const {
+	presentation: surface,
+	actionGroups,
+	direction,
+	primaryActions,
+	shouldFillActions,
+} = useConsentPolicyActions('preferences');
 
 const textDirection = computed(() =>
 	getTextDirection(props.language ?? init.value?.translations?.language)
@@ -108,24 +107,14 @@ const consentDescription = function consentDescription(
 };
 
 /** Draft selection, saved only when the user hits the save action. */
-const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
-	{} as Record<CONSENT_CATEGORY, boolean>
-);
-
-const resetDraft = function resetDraft() {
-	const grantedSet = new Set(granted.value);
-	const next = {} as Record<CONSENT_CATEGORY, boolean>;
-	for (const category of categories.value) {
-		next[category] = category === 'necessary' || grantedSet.has(category);
-	}
-	draft.value = next;
-};
-
-watch(
-	() => [categories.value.join(','), granted.value.join(',')] as const,
-	() => resetDraft(),
-	{ immediate: true }
-);
+const {
+	values: draft,
+	displayedCategories: draftCategories,
+	isStale,
+	reset: resetDraft,
+	save: saveDraft,
+} = useConsentDraft();
+const categories = draftCategories;
 
 /** Single-open accordion state (opening one category closes the rest). */
 const openItems = ref<Record<string, boolean>>({});
@@ -166,15 +155,15 @@ const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
-		customize: common?.save ?? 'Save',
 		reject: common?.rejectAll ?? 'Reject all',
-	} as Record<PolicyUiAction, string>;
+		save: common?.save ?? 'Save',
+	} as Partial<Record<PresentationAction, string>>;
 });
 
-const ACTION_TEST_IDS: Record<PolicyUiAction, string> = {
+const ACTION_TEST_IDS: Partial<Record<PresentationAction, string>> = {
 	accept: 'consent-widget-footer-accept-all-button',
-	customize: 'consent-widget-footer-save-button',
 	reject: 'consent-widget-reject-button',
+	save: 'consent-widget-footer-save-button',
 };
 
 const actionClass = function actionClass(): string | undefined {
@@ -185,7 +174,7 @@ const actionClass = function actionClass(): string | undefined {
 };
 
 const actionVariant = function actionVariant(
-	action: PolicyUiAction
+	action: PresentationAction
 ): 'primary' | 'neutral' {
 	return primaryActions.value.includes(action) ? 'primary' : 'neutral';
 };
@@ -202,24 +191,30 @@ const footerSubGroupClass = computed(() =>
 	props.noStyle ? undefined : actionStyles.actionGroup
 );
 
-const onAction = function onAction(action: PolicyUiAction) {
+const onAction = async function onAction(action: PresentationAction) {
 	if (action === 'accept') {
 		save('all');
 	} else if (action === 'reject') {
 		save('none');
-	} else if (action === 'customize') {
-		const selected = Object.entries(draft.value)
-			.filter(([, enabled]) => enabled)
-			.map(([category]) => category as CONSENT_CATEGORY);
-		save(selected);
-	} else {
-		return;
+	} else if (action === 'save') {
+		await saveDraft();
 	}
-	activeUI.value = null;
 };
 </script>
 
 <template>
+	<div
+		v-if="isStale"
+		role="status"
+	>
+		Privacy choices have changed.
+		<button
+			type="button"
+			@click="resetDraft"
+		>
+			Review updated choices
+		</button>
+	</div>
 	<div
 		:class="noStyle ? undefined : managerStyles.manager"
 		:dir="textDirection"
@@ -360,6 +355,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 					:key="action"
 					type="button"
 					:class="actionClass()"
+					:disabled="isStale"
 					:data-action="action"
 					:data-mode="noStyle ? undefined : 'stroke'"
 					:data-size="noStyle ? undefined : 'small'"

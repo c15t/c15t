@@ -3,6 +3,7 @@ const route = useRoute();
 
 const config = useConsentConfig();
 const init = useConsentInit();
+const policy = usePolicyRule();
 const activeUI = useConsentActiveUI();
 const country = computed(() =>
 	typeof route.query.country === 'string' ? route.query.country : undefined
@@ -58,7 +59,7 @@ const openBanner = function openBanner() {
 				>/ {{ init.location.regionCode }}</span
 			>
 		</p>
-		<p>policy: {{ init.policy?.id }} (ui: {{ init.policy?.ui?.mode }})</p>
+		<p>policy: {{ policy.id }}; prompt: {{ policy.prompt }}</p>
 		<button @click="openBanner">Open banner (dev)</button>
 	</div>
 	<p v-else>Loading init…</p>

@@ -1,4 +1,5 @@
-import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
+import { C15T_POLICY_CONTRACT_HEADER, c15tProtocolHeaders } from '@c15t/core';
+import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
 import { computed } from 'vue';
@@ -9,6 +10,7 @@ import {
 	useFetch,
 	useRequestHeaders,
 	useRuntimeConfig,
+	useState as useNuxtState,
 } from '#imports';
 
 import { consentConfigKey } from './composables/config';
@@ -41,27 +43,45 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				runtimeConfig.public.c15t
 			) as Partial<RuntimeConsentConfig>
 	);
-	const headers = pickAllowedInitHeaders(
-		useRequestHeaders([...INIT_HEADER_NAMES])
+	const requestHeaders = useNuxtState('c15t:request-headers', () =>
+		pickAllowedInitHeaders(useRequestHeaders([...INIT_HEADER_NAMES]))
 	);
+	const headers = requestHeaders.value;
 	const cookieHeader =
 		typeof document === 'undefined'
 			? useRequestHeaders(['cookie']).cookie
 			: document.cookie;
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const manifestMode = resolveManifestMode(config.value);
-	const initialStoredConsent = readStoredConsentFromCookie(
-		cookieHeader,
-		config.value.storageConfig
+	const initialRecords = useNuxtState('c15t:records', () =>
+		readStoredRecordsFromCookieHeader(
+			cookieHeader,
+			config.value.storageConfig,
+			Date.now()
+		)
 	);
 
+	const producerContract = useNuxtState<number | null | undefined>(
+		'c15t:producer-contract',
+		() => undefined
+	);
 	let prefetch: InitOutput | undefined;
 	if (initFetchTarget) {
 		const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
 			baseURL: initFetchTarget.baseURL,
 			cache: manifestMode === 'server' ? undefined : 'no-store',
-			headers,
+			headers: { ...c15tProtocolHeaders, ...headers },
 			key: 'c15t:init',
+			onResponse({ response }) {
+				const value = response.headers.get(C15T_POLICY_CONTRACT_HEADER);
+				if (value === null) {
+					producerContract.value = undefined;
+				} else if (/^\d+$/u.test(value.trim())) {
+					producerContract.value = Number.parseInt(value.trim(), 10);
+				} else {
+					producerContract.value = null;
+				}
+			},
 		});
 		prefetch = data.value ?? undefined;
 	}
@@ -71,8 +91,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const context = createVueConsentKernelContext({
 		config: config.value as ConsentConfig,
 		headers,
-		initialStoredConsent,
+		initialRecords: initialRecords.value,
 		prefetch,
+		producerContract: producerContract.value,
 	});
 
 	nuxtApp.vueApp.provide(symbolKernelContext, context);
@@ -81,20 +102,15 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	nuxtApp.vueApp.provide(symbolInit, context.init);
 	nuxtApp.vueApp.provide(symbolActiveUI, context.activeUI);
 	nuxtApp.vueApp.provide(symbolConsent, context.storedConsent);
-	const disposeRuntime = startVueConsentRuntime(
-		context,
-		config.value as ConsentConfig,
-		{
-			runInit:
-				!prefetch &&
-				!(manifestMode === 'client' && typeof window === 'undefined'),
-		}
-	);
-	// A Nuxt app normally lives until page unload, but hosts that unmount the
-	// Vue app explicitly (tests, microfrontends) should tear the runtime down
-	// with it — mirrors the plain Vue plugin in src/index.ts. `onUnmount` is
-	// Vue 3.5+; Nuxt 3 apps on older Vue runtimes skip cleanup registration.
-	if (typeof nuxtApp.vueApp.onUnmount === 'function') {
-		nuxtApp.vueApp.onUnmount(disposeRuntime);
+	let disposeRuntime = () => context.dispose();
+	if (typeof window !== 'undefined') {
+		nuxtApp.hook('app:mounted', () => {
+			disposeRuntime = startVueConsentRuntime(
+				context,
+				config.value as ConsentConfig,
+				{ runInit: !prefetch }
+			);
+		});
 	}
+	nuxtApp.vueApp.onUnmount(() => disposeRuntime());
 });

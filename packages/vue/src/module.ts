@@ -127,6 +127,18 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			filePath: resolver.resolve('./runtime/components/consent-widget.vue'),
 		});
 
+		for (const [name, file] of [
+			['ConsentPreferencesLink', 'consent-preferences-link'],
+			['ConsentDialogTrigger', 'consent-dialog-trigger'],
+			['ConsentFrame', 'consent-frame'],
+		] as const) {
+			addComponent({
+				filePath: resolver.resolve(`./runtime/components/${file}.vue`),
+				global: true,
+				name,
+			});
+		}
+
 		// Auto-import every public composable from the index entry. A single
 		// resolvable `from` avoids unimport's per-file registry quirks (three
 		// names registered from per-file paths were silently dropped — see
@@ -144,6 +156,19 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 				'useStoredConsent',
 				'useConsentKernel',
 				'useConsentSnapshot',
+				'useExplicitChoice',
+				'useEffectivePermissions',
+				'usePromptRequirement',
+				'useNoticeDismissal',
+				'usePrivacySignals',
+				'useOptOutDirectives',
+				'usePolicyRule',
+				'usePolicyResolution',
+				'useConsentRestrictions',
+				'useDismissNotice',
+				'useConsentDraft',
+				'useConsentPolicyActions',
+
 				'useConsentIabSelection',
 				'useConsentIabSave',
 				'useConsentLanguage',

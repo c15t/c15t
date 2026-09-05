@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import type { PresentationAction } from '@c15t/core';
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
-import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 import { computed, ref, Teleport, Transition } from 'vue';
 
@@ -9,48 +9,65 @@ import {
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
+	useConsentKernel,
+	useConsentSnapshot,
 } from '../composables';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
 
+const mounted = useMounted();
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
 const save = useConsentSave();
-const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
+const kernel = useConsentKernel();
+const snapshot = useConsentSnapshot();
+
 const transitionStyles = bannerStyles as Record<string, string>;
 
-const surface = computed(() => init.value?.policy?.ui?.banner);
-const { actionGroups, direction, primaryActions, shouldFillActions } =
-	useConsentPolicyActions(surface);
+const {
+	presentation: surface,
+	actionGroups,
+	direction,
+	primaryActions,
+	shouldFillActions,
+} = useConsentPolicyActions('prompt');
 
 const isOpen = computed(() => {
-	const model = init.value?.policy?.model;
+	const { model } = snapshot.value.policyRule;
 	const models = config.value.bannerModels ?? config.value.models;
 	const matchesModel =
 		!models?.length || (model !== undefined && models.includes(model));
-	return activeUI.value === 'banner' && matchesModel;
+	return (
+		activeUI.value === 'banner' &&
+		matchesModel &&
+		!snapshot.value.policyProvisional &&
+		snapshot.value.promptRequirement.kind !== 'none'
+	);
 });
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 
-const scrollLock = computed(
-	() => init.value?.policy?.ui?.banner?.scrollLock ?? true
-);
+const scrollLock = computed(() => surface.value.scrollLock);
 useConsentScrollLock(computed(() => isOpen.value && scrollLock.value));
 
 const shouldTrapFocus = computed(() =>
-	Boolean(isOpen.value && config.value.trapFocus)
+	Boolean(isOpen.value && surface.value.trapFocus)
 );
 const card = ref<HTMLElement | null>(null);
 useFocusTrap(card, () => shouldTrapFocus.value);
 
 const bannerTitle = computed(
-	() => init.value?.translations?.translations?.cookieBanner?.title
+	() =>
+		init.value?.translations?.translations?.cookieBanner?.title ??
+		(snapshot.value.promptRequirement.kind === 'notice'
+			? 'Privacy notice'
+			: 'Cookie choices')
 );
 
 const bannerPosition = computed(
@@ -62,6 +79,7 @@ const labels = computed(() => {
 	return {
 		accept: common?.acceptAll ?? 'Accept all',
 		customize: common?.customize ?? 'Customize',
+		dismiss: 'Dismiss',
 		reject: common?.rejectAll ?? 'Reject all',
 	} as const;
 });
@@ -69,30 +87,36 @@ const labels = computed(() => {
 const actionTestIds = {
 	accept: 'consent-banner-accept-button',
 	customize: 'consent-banner-customize-button',
+	dismiss: 'consent-banner-dismiss-button',
 	reject: 'consent-banner-reject-button',
 } as const;
 
-const onAction = function onAction(action: PolicyUiAction) {
+const onAction = function onAction(action: PresentationAction) {
+	if (action === 'dismiss') {
+		void kernel.commands.dismissNotice();
+		return;
+	}
 	if (action === 'customize') {
 		activeUI.value = 'manager';
 		return;
 	}
 	if (action === 'accept') {
 		save('all');
-		activeUI.value = null;
 		return;
 	}
 	if (action === 'reject') {
 		save('none');
-		activeUI.value = null;
 	}
 };
 </script>
 
 <template>
-	<Teleport to="body">
+	<Teleport
+		to="body"
+		:disabled="!mounted"
+	>
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="transitionStyles.overlayHidden"
 			:enter-active-class="transitionStyles.overlayVisible"
 			:enter-to-class="transitionStyles.overlayVisible"
@@ -108,7 +132,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 			/>
 		</Transition>
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="transitionStyles.bannerHidden"
 			:enter-active-class="transitionStyles.bannerVisible"
 			:enter-to-class="transitionStyles.bannerVisible"
@@ -136,7 +160,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 						v-bind="config.components?.banner?.card"
 						data-testid="consent-banner-card"
 						:class="bannerStyles.card"
-						:role="shouldTrapFocus ? 'dialog' : undefined"
+						:role="shouldTrapFocus ? 'dialog' : 'region'"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="bannerTitle"
 						tabindex="-1"
@@ -152,7 +176,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 								role="heading"
 								aria-level="2"
 							>
-								{{ init?.translations?.translations?.cookieBanner?.title }}
+								{{ bannerTitle }}
 							</div>
 							<ConsentDescription context="banner" />
 						</div>
@@ -162,9 +186,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 							:class="bannerStyles.footer"
 						>
 							<ConsentActions
-								:action-groups="
-									actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
-								"
+								:action-groups="actionGroups"
 								:direction="direction"
 								:ui-profile="surface?.uiProfile"
 								:primary-actions="primaryActions"

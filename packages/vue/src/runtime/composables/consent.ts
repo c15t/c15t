@@ -1,9 +1,6 @@
-import { getConsentAvailableCategories } from '@c15t/core/consent-record';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import { computed } from 'vue';
 
-import { useConsentConfig } from './config';
-import { useConsentInit } from './init';
 import { useConsentKernel, useConsentKernelContext } from './kernel';
 
 const useStoredConsent = function useStoredConsent() {
@@ -12,19 +9,14 @@ const useStoredConsent = function useStoredConsent() {
 
 const useConsent = function useConsent() {
 	const context = useConsentKernelContext();
-	return computed({
-		get: () => context.snapshot.value.consents,
-		set: (value) => {
-			context.kernel.set.consent(value);
-		},
-	});
+	return computed(() => context.snapshot.value.effectivePermissions);
 };
 
 const useHasConsent = function useHasConsent() {
 	const context = useConsentKernelContext();
 	return computed(() => {
 		const snapshot = context.snapshot.value;
-		return Object.entries(snapshot.consents)
+		return Object.entries(snapshot.effectivePermissions)
 			.filter(([, enabled]) => enabled)
 			.map(([category]) => category as CONSENT_CATEGORY);
 	});
@@ -33,27 +25,24 @@ const useHasConsent = function useHasConsent() {
 export type ConsentSaveInput = CONSENT_CATEGORY[] | 'all' | 'none';
 
 const useConsentSave = function useConsentSave() {
-	const config = useConsentConfig();
-	const init = useConsentInit();
 	const kernel = useConsentKernel();
 
 	return (categories: ConsentSaveInput) => {
 		if (categories === 'all' || categories === 'none') {
-			void kernel.commands.save(categories);
-			return;
+			return kernel.commands.save(categories);
 		}
 
-		const available = getConsentAvailableCategories(
-			init.value,
-			config.value.consentCategories
-		);
+		const available = [
+			'necessary' as const,
+			...kernel.getSnapshot().policyRule.scope,
+		];
 		const selected = new Set(categories);
 
 		const next = {} as Record<CONSENT_CATEGORY, boolean>;
 		for (const category of available) {
 			next[category] = category === 'necessary' || selected.has(category);
 		}
-		void kernel.commands.save(next);
+		return kernel.commands.save(next);
 	};
 };
 

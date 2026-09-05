@@ -1,4 +1,8 @@
 import {
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+} from '@c15t/schema/types';
+import {
 	defineEventHandler,
 	getRequestHeader,
 	getRequestHeaders,
@@ -107,6 +111,11 @@ export const createInitRoute = function createInitRoute(
 			const runtimeConfig = dependencies.useRuntimeConfig(event);
 			const config = readConsentConfig(runtimeConfig);
 			setResponseHeader(event, 'cache-control', 'private, no-store');
+			setResponseHeader(
+				event,
+				POLICY_CONTRACT_HEADER,
+				String(POLICY_CONTRACT_VERSION)
+			);
 			const headers = getRequestHeaders(event);
 
 			try {
