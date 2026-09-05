@@ -278,6 +278,10 @@
 			],
 			"env": ["C15T_TEST_PG_URL", "C15T_TEST_MYSQL_URL"]
 		},
+		"test:compat": {
+			"dependsOn": ["build", "^build"],
+			"outputs": []
+		},
 		"test-storybook": {
 			"dependsOn": ["build", "^build"],
 			"outputs": []
