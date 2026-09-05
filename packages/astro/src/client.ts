@@ -41,6 +41,18 @@ import { loadDialogAdapter } from './ui/adapter';
 import type { ConsentDialogHandle, ConsentDialogKind } from './ui/adapter';
 
 const GLOBAL_KEY = '__c15tAstro';
+
+/**
+ * Removes the page-swap listeners `boot()` installed, if any.
+ *
+ * A module-level slot rather than client state: there is one client per page
+ * (`GLOBAL_KEY`), and `dispose()` is defined before `boot()` registers them.
+ */
+const NO_PAGE_SWAP_LISTENERS = (): void => {
+	// Nothing booted, so nothing to remove.
+};
+
+let detachPageSwapListeners: () => void = NO_PAGE_SWAP_LISTENERS;
 const CONFIG_KEY = '__c15tAstroConfig';
 const DIALOG_HOST_ID = 'c15t-dialog-host';
 
@@ -214,6 +226,7 @@ const createClient = function createClient(
 			dialog?.close();
 		},
 		dispose() {
+			detachPageSwapListeners();
 			void dialog?.destroy();
 			dialog = null;
 			runtime.dispose();
@@ -370,8 +383,18 @@ export const boot = function boot(
 	// The ClientRouter replaces the document without re-evaluating modules,
 	// so the runtime survives but its DOM does not. Re-attach to the new
 	// markup instead of rebuilding consent state.
-	document.addEventListener('astro:after-swap', () => attach(client));
-	document.addEventListener('astro:page-load', () => attach(client));
+	const onPageSwap = function onPageSwap(): void {
+		attach(client);
+	};
+	document.addEventListener('astro:after-swap', onPageSwap);
+	document.addEventListener('astro:page-load', onPageSwap);
+	// Without this, a dispose-then-boot leaves the old handlers on the
+	// document, and the next swap reattaches a client that is already gone.
+	detachPageSwapListeners = (): void => {
+		document.removeEventListener('astro:after-swap', onPageSwap);
+		document.removeEventListener('astro:page-load', onPageSwap);
+		detachPageSwapListeners = NO_PAGE_SWAP_LISTENERS;
+	};
 
 	attach(client);
 	return client;

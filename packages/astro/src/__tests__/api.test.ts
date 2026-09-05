@@ -92,6 +92,18 @@ describe('resolveManifestSourceURL', () => {
 		).toBe('https://site.example.com/api/consent/manifest');
 	});
 
+	it('ignores a forwarded host the caller supplied', () => {
+		expect(
+			resolveManifestSourceURL(
+				makeRequest('https://site.example.com/api/c15t/init', {
+					'x-forwarded-host': 'attacker.example.net',
+					'x-forwarded-proto': 'https',
+				}),
+				options({ mode: hostedMode({ url: '/api/consent' }) })
+			)
+		).toBe('https://site.example.com/api/consent/manifest');
+	});
+
 	it('says what is missing when nothing is configured', () => {
 		expect(() =>
 			resolveManifestSourceURL(makeRequest(), options({ mode: manifestMode() }))
@@ -198,6 +210,54 @@ describe('route handlers', () => {
 
 		const response = await handlers.init(makeRequest());
 		expect(response.headers.get('cache-control')).toBe('private, no-store');
+	});
+
+	it('answers init without a vendor list when the GVL fetch fails', async () => {
+		const iabManifest = await buildConsentManifestFromConfig({
+			branding: 'c15t',
+			iab: {
+				cmpId: 10,
+				enabled: true,
+				gvl: { url: 'https://vendor-list.example.com/gvl.json' },
+			},
+			policyPacks: [policyPackPresets.europeIab()],
+		});
+		const handlers = createConsentRouteHandlers({
+			fetch: () => Promise.resolve(jsonResponse(iabManifest)),
+			fetchGvl: () => Promise.reject(new Error('gvl is down')),
+			options: options(),
+		});
+
+		const response = await handlers.init(
+			makeRequest('https://site.example.com/api/c15t/init', {
+				'x-c15t-country': 'DE',
+			})
+		);
+
+		// `gvl` is nullable by contract; the route is not.
+		expect(response.status).toBe(200);
+		expect(((await response.json()) as { gvl: unknown }).gvl).toBeNull();
+	});
+
+	it('applies the configured locale to init, not just Accept-Language', async () => {
+		const handlers = createConsentRouteHandlers({
+			fetch: () => Promise.resolve(jsonResponse(MANIFEST)),
+			options: options({
+				i18n: { locale: 'de' },
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			}),
+		});
+
+		const payload = (await (
+			await handlers.init(
+				makeRequest('https://site.example.com/api/c15t/init', {
+					'accept-language': 'fr',
+					'x-c15t-country': 'DE',
+				})
+			)
+		).json()) as { translations: { language: string } };
+
+		expect(payload.translations.language).toBe('de');
 	});
 
 	it('passes the backend cache headers through on /manifest', async () => {

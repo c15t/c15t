@@ -617,6 +617,10 @@ const createControlledContext = function createControlledContext(
 		}),
 		dispose() {
 			unsubscribe();
+			// This context owns the kernel, so it owns tearing it down —
+			// commands run under a controlled mount can leave retry timers
+			// and failed-save cleanup behind.
+			kernel.dispose();
 		},
 		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
 		kernel,

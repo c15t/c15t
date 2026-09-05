@@ -217,9 +217,14 @@ const prefetchLocal = async function prefetchLocal(input: {
 		}
 	}
 
+	// `createOfflineTransport` reads the length, not the presence: an empty
+	// array means "no pack applies", and passing it as configured would leave
+	// the wide opt-in policy in place while the transport narrows.
+	const policyPacks =
+		options.mode.type === 'offline' ? options.mode.policyPacks : undefined;
 	const transport = createOfflineTransport({
 		policyPacks:
-			options.mode.type === 'offline' ? options.mode.policyPacks : undefined,
+			policyPacks && policyPacks.length > 0 ? policyPacks : undefined,
 		translations: input.translations,
 	});
 	try {

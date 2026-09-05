@@ -56,6 +56,12 @@ export interface ConsentRouteHandlerOptions {
 	}) => Promise<GlobalVendorList | null>;
 }
 
+/**
+ * How long to wait for the Global Vendor List before giving up on it. The
+ * list is a nice-to-have on this route; the response is not.
+ */
+const GVL_FETCH_TIMEOUT_MS = 5000;
+
 const getEnv = function getEnv(name: string): string | undefined {
 	if (typeof process === 'undefined') {
 		return undefined;
@@ -72,26 +78,21 @@ const trimSlash = function trimSlash(value: string): string {
 /**
  * Resolves a possibly-relative backend URL against the request.
  *
- * Seeds the protocol from the request URL rather than letting the shared
- * resolver fall back to `https`, so a relative `backendURL` still resolves
- * on a plain `http://localhost` dev server.
+ * `Request.url` is the only source. The adapter builds it from whatever
+ * proxy configuration the deployment declared, so seeding from it both fixes
+ * a relative `backendURL` on a plain `http://localhost` dev server and keeps
+ * a forged `x-forwarded-host` from steering this server-side fetch at a host
+ * of the caller's choosing.
  */
 const resolveAgainstRequest = function resolveAgainstRequest(
 	url: string,
 	request: Request
 ): string | null {
 	const requestURL = new URL(request.url);
-	const headers: Record<string, string> = {
+	return resolveBackendURL(url, {
 		host: requestURL.host,
 		'x-forwarded-proto': requestURL.protocol.replace(':', ''),
-	};
-	for (const name of ['x-forwarded-host', 'x-forwarded-proto', 'referer']) {
-		const value = request.headers.get(name);
-		if (value) {
-			headers[name] = value;
-		}
-	}
-	return resolveBackendURL(url, headers);
+	});
 };
 
 /**
@@ -156,6 +157,7 @@ const defaultFetchGvl = async function defaultFetchGvl(input: {
 	const response = await input.fetch(input.reference.url, {
 		headers: { 'accept-language': input.language },
 		method: 'GET',
+		signal: AbortSignal.timeout(GVL_FETCH_TIMEOUT_MS),
 	});
 	if (response.status === 204) {
 		return null;
@@ -201,7 +203,11 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 			fetch: handlerOptions.fetch,
 		});
 
-		const inputs = extractConsentRequestInputs(request.headers);
+		// The same override the SSR path applies, so both resolve one
+		// language — and one set of GVL translations.
+		const inputs = extractConsentRequestInputs(request.headers, {
+			language: handlerOptions.options.i18n?.locale,
+		});
 		const payload = resolveInitFromManifest(
 			manifest,
 			{
@@ -215,11 +221,18 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 
 		if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
 			const language = payload.translations.language.split('-')[0] || 'en';
-			payload.gvl = await (handlerOptions.fetchGvl ?? defaultFetchGvl)({
-				fetch: fetchImpl,
-				language,
-				reference: manifest.iab.gvl,
-			});
+			try {
+				payload.gvl = await (handlerOptions.fetchGvl ?? defaultFetchGvl)({
+					fetch: fetchImpl,
+					language,
+					reference: manifest.iab.gvl,
+				});
+			} catch {
+				// `gvl` is nullable by contract, and the SSR path's fallback
+				// does not cover this route. A vendor list the client can
+				// treat as unavailable beats a 500 on `/init`.
+				payload.gvl = null;
+			}
 		}
 
 		// The resolver's inputs are the only place GPC survives on the SSR
