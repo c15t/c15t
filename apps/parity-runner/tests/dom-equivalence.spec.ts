@@ -187,3 +187,22 @@ test('hidden SVG metadata follows its ancestor while paint changes remain visibl
 	await page.addStyleTag({ content: 'svg path { fill: red; }' });
 	expect(await captureDomSnapshot(page, 'body')).not.toBe(inherited);
 });
+
+test('explicit subtree capture includes untagged roots and descendants', async ({
+	page,
+}) => {
+	await page.setContent(
+		'<aside data-tools><button aria-controls="choices">Open</button><div id="choices">Choices</div></aside>'
+	);
+	const before = await captureDomSnapshot(page, '[data-tools]', {
+		includeRoot: true,
+	});
+	expect(before).toContain('<aside');
+	expect(before).toContain('aria-controls="choices"');
+	await page
+		.getByRole('button')
+		.evaluate((button) => button.setAttribute('aria-controls', 'missing'));
+	expect(
+		await captureDomSnapshot(page, '[data-tools]', { includeRoot: true })
+	).not.toEqual(before);
+});

@@ -57,3 +57,5 @@ and deliberately excluded from visual comparisons.
 ```sh
 STORYBOOK_URL=http://127.0.0.1:6006 bun run --cwd apps/storybook-react test-storybook --includeTags devtools
 ```
+
+DevTools uses explicit subtree DOM capture, including its untagged root and every descendant. The capture has a regression that changes an untagged control relationship, preventing an empty-string comparison from passing.
