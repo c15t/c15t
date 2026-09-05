@@ -95,6 +95,10 @@ group: reference
 
   ### IAB editing
 
+  Under an IAB policy, the Consents tab is read-only. Edit and save vendors
+  and purposes in the IAB tab so the derived categories and TC string stay
+  consistent.
+
   The IAB panel connects to the existing `@c15t/iab` module attached to the
   provider's kernel. It does not create a second CMP or replace `__tcfapi`.
   Controls become available after initialization, when the current policy uses
@@ -170,6 +174,11 @@ group: reference
   subscriptions without changing consent.
 
   ## TanStack Devtools
+
+  Each embedded panel owns its event history and subscriptions. Unmounting it
+  destroys the instance; remounting starts a new history. If you need to capture
+  events while switching plugins, keep the c15t panel mounted. This differs from
+  the old globally shared DevTools store.
 
   The React v3 DevTools adapter exports a panel component and plugin factory that match TanStack Devtools' plugin API:
 
