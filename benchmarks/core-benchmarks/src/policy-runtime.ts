@@ -91,10 +91,17 @@ const createInitTransport = function createInitTransport(
 
 const measurePolicyOperations = async (response: InitResponse) => {
 	const { createPolicyOperations } = await import('./policy-operations');
+	const local = createPolicyOperations(response);
+	const deferred = createPolicyOperations(response, 'deferred');
+	const operations = {
+		...local,
+		transportedPolicyAcceptCompletionUs: deferred.realPolicyAcceptUs,
+		transportedPolicyPartialCompletionUs: deferred.realPolicyPartialUs,
+		transportedPolicyRejectCompletionUs: deferred.realPolicyRejectUs,
+		transportedPolicyRepeatCompletionUs: deferred.realPolicyRepeatHydrationUs,
+	};
 	const metrics = [];
-	for (const [name, operation] of Object.entries(
-		createPolicyOperations(response)
-	)) {
+	for (const [name, operation] of Object.entries(operations)) {
 		// oxlint-disable-next-line no-await-in-loop -- Timed operations must never overlap.
 		const samples = await warmedAsync(operation);
 		metrics.push(summarizeMetric(name, 'us', samples));
@@ -235,6 +242,8 @@ const runFixture = async function runFixture(
 			initKeys: Object.keys(init).sort(),
 			initPolicyId,
 			iterations: ITERATIONS,
+			localPolicyWorkload:
+				'real producer init, local choice commit, no save transport; setup and assertions included',
 			manifestSchemaVersion:
 				typeof manifest.schemaVersion === 'number'
 					? manifest.schemaVersion
@@ -245,6 +254,8 @@ const runFixture = async function runFixture(
 			promptRequirementReason: promptRequirement?.reason ?? null,
 			syncPolicyId,
 			syncResolver: syncResolution.resolver,
+			transportedPolicyWorkload:
+				'same choice work with save transport; includes deliberate timer yield before transport completion',
 			warmupIterations: WARMUP,
 		},
 		metrics: [
