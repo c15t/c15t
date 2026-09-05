@@ -2507,10 +2507,12 @@ describe('hosted transport: init context', () => {
 			initURL: '/api/c15t/init',
 		});
 
-		await transport.init?.({
+		const result = await transport.init?.({
 			overrides: { country: 'FR', gpc: true, language: 'fr', region: 'IDF' },
 			user: null,
 		});
+		// A backend that echoes nothing back still yields the requested GPC.
+		expect(result?.resolvedOverrides?.gpc).toBe(true);
 
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
 		expect((init as RequestInit).headers).toMatchObject({

@@ -7,6 +7,9 @@ import type {
 import { resolveInitFromManifest } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+/** The manifest shape generated static modules are typed against. */
+export type { ConsentManifest } from '@c15t/schema/types';
+
 /** Names that parse but cannot be bound with `export const`. */
 const RESERVED_EXPORT_NAMES = new Set([
 	'arguments',
@@ -287,7 +290,10 @@ export const createStaticManifestModule =
 		}
 		const manifest = await loadStaticManifest(options);
 		return [
-			"import type { ConsentManifest } from '@c15t/schema/types';",
+			// Import from this package's own entry so the generated file resolves
+			// under strict dependency layouts (pnpm) where the app does not
+			// declare @c15t/schema itself.
+			"import type { ConsentManifest } from '@c15t/tanstack-start/static';",
 			'',
 			`export const ${exportName} = ${JSON.stringify(
 				manifest,

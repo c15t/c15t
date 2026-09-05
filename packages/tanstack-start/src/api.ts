@@ -41,6 +41,7 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 
+import { filterCookieHeader } from './libs/cookies';
 import { proxyConsentRequest, resolveProxyOptions } from './libs/proxy';
 import type { ConsentProxyOptions } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
@@ -334,10 +335,55 @@ export const createConsentServerRoute = function createConsentServerRoute<
 	Options extends ConsentServerRouteOptions = ConsentServerRouteOptions,
 >(options?: Options): ConsentServerRouteHandlersFor<Options> {
 	const resolved: ConsentServerRouteOptions = options ?? {};
+	const proxyOptions = resolveProxyOptions(
+		resolved.proxy,
+		resolved.trustForwardedHeaders ?? false
+	);
+
+	/**
+	 * Credentials for the manifest fetch behind the intercepted `manifest`
+	 * and `init` routes: the cookies `proxy.cookieNames` names and the extra
+	 * `proxy.forwardHeaders`, so a backend that gates `/manifest` on them
+	 * still serves it. The manifest cache partitions by these headers, so keep
+	 * them tenant-level rather than per visitor.
+	 */
+	const manifestRequestHeaders = function manifestRequestHeaders(
+		request: Request
+	): Record<string, string> | undefined {
+		if (!proxyOptions) {
+			return undefined;
+		}
+		const headers: Record<string, string> = {};
+		const cookie = request.headers.get('cookie');
+		const scoped =
+			cookie && proxyOptions.cookieNames
+				? filterCookieHeader(cookie, proxyOptions.cookieNames)
+				: undefined;
+		if (scoped) {
+			headers.cookie = scoped;
+		}
+		const extras =
+			typeof resolved.proxy === 'object'
+				? (resolved.proxy.forwardHeaders ?? [])
+				: [];
+		for (const name of extras) {
+			const lower = name.toLowerCase();
+			if (lower === 'cookie') {
+				continue;
+			}
+			const value = request.headers.get(lower);
+			if (value) {
+				headers[lower] = value;
+			}
+		}
+		return Object.keys(headers).length > 0 ? headers : undefined;
+	};
+
 	const manifestGET: ConsentRouteHandler = async ({ request }) => {
 		const cached = await fetchCachedManifest({
 			cache: resolved.cache,
 			fetch: resolved.fetch,
+			headers: manifestRequestHeaders(request),
 			query: readLanguageQuery(request),
 			sourceURL: resolveSourceURL(request, resolved),
 		});
@@ -366,6 +412,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 		const cached = await fetchCachedManifest({
 			cache: resolved.cache,
 			fetch: resolved.fetch,
+			headers: manifestRequestHeaders(request),
 			sourceURL: resolveSourceURL(request, resolved),
 		});
 		const remembered = readConsentInputs(request);
@@ -391,11 +438,6 @@ export const createConsentServerRoute = function createConsentServerRoute<
 			headers: { 'cache-control': INIT_CACHE_CONTROL },
 		});
 	};
-
-	const proxyOptions = resolveProxyOptions(
-		resolved.proxy,
-		resolved.trustForwardedHeaders ?? false
-	);
 
 	const notFound = () =>
 		Promise.resolve(Response.json({ error: 'Not found' }, { status: 404 }));

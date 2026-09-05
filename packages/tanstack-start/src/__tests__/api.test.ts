@@ -285,3 +285,40 @@ describe('createConsentServerRoute: GVL and forwarded hosts', () => {
 		);
 	});
 });
+
+describe('createConsentServerRoute: proxy credentials on the manifest fetch', () => {
+	test('forwards named cookies and extra headers when the manifest is gated', async () => {
+		const fetch = createManifestFetch();
+		const { manifestGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			proxy: { cookieNames: ['c15t'], forwardHeaders: ['authorization'] },
+		});
+		await manifestGET({
+			request: request('/api/c15t/manifest', {
+				authorization: 'Bearer tenant',
+				cookie: 'session=secret; c15t=abc',
+			}),
+		});
+		const headers = new Headers(
+			(fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.headers
+		);
+		expect(headers.get('cookie')).toBe('c15t=abc');
+		expect(headers.get('authorization')).toBe('Bearer tenant');
+	});
+
+	test('sends no credentials without the proxy', async () => {
+		const fetch = createManifestFetch();
+		const { manifestGET } = createRoute({
+			backendURL: 'https://consent.example.com',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+		});
+		await manifestGET({
+			request: request('/api/c15t/manifest', { cookie: 'c15t=abc' }),
+		});
+		const headers = new Headers(
+			(fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.headers
+		);
+		expect(headers.get('cookie')).toBeNull();
+	});
+});

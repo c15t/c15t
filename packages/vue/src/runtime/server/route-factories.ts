@@ -123,6 +123,7 @@ export const createInitRoute = function createInitRoute(
 				for (const key of [
 					'accept-language',
 					'sec-gpc',
+					'x-c15t-gpc',
 					'x-c15t-country',
 					'x-c15t-region',
 					'cf-ipcountry',
@@ -154,6 +155,7 @@ export const createInitRoute = function createInitRoute(
 			varies: [
 				'accept-language',
 				'sec-gpc',
+				'x-c15t-gpc',
 				'x-c15t-country',
 				'x-c15t-region',
 				'cf-ipcountry',

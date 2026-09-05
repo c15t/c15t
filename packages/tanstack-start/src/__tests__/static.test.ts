@@ -69,7 +69,7 @@ describe('@c15t/tanstack-start/static', () => {
 		});
 
 		expect(source).toContain(
-			"import type { ConsentManifest } from '@c15t/schema/types';"
+			"import type { ConsentManifest } from '@c15t/tanstack-start/static';"
 		);
 		expect(source).toContain('export const testManifest = {');
 		expect(source).toContain('satisfies ConsentManifest');
