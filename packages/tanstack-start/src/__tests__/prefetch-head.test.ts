@@ -92,3 +92,21 @@ describe('readPrefetchedInitialData', () => {
 		).toBeUndefined();
 	});
 });
+
+describe('readPrefetchedInitialData: route shape', () => {
+	test('never matches a head prefetch for an initRoute that does not end in /init', () => {
+		vi.stubGlobal('window', {
+			location: { hostname: 'app.example.com', origin: ORIGIN },
+		});
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+		primePrefetchedInitialData({ backendURL: '/consent/bootstrap' });
+
+		expect(
+			readPrefetchedInitialData({
+				backendURL: 'https://consent.example.com',
+				initRoute: '/consent/bootstrap',
+				overrides: undefined,
+			})
+		).toBeUndefined();
+	});
+});

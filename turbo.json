@@ -64,7 +64,7 @@
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": ["dist/**"],
-			"env": ["VERCEL", "C15T_BACKEND_URL"]
+			"env": ["VERCEL", "VITE_C15T_BACKEND_URL"]
 		},
 		"@c15t/benchmarking#build": {
 			"dependsOn": ["^build"],

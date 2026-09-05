@@ -190,6 +190,38 @@ const CREDENTIAL_HEADERS = new Set([
 	'proxy-authorization',
 ]);
 
+/** Headers the proxy itself sets on every upstream request. */
+const PROXY_SET_HEADERS = new Set([
+	'x-c15t-proxy',
+	'x-forwarded-for',
+	'x-forwarded-host',
+	'x-forwarded-proto',
+	...Object.keys(c15tVersionHeaders),
+]);
+
+/** Browser headers the default allowlist forwards that carry no identity. */
+const PUBLIC_FORWARD_HEADERS = new Set(
+	DEFAULT_FORWARD_HEADERS.filter((name) => !CREDENTIAL_HEADERS.has(name))
+);
+
+/**
+ * Whether the upstream request carries anything a response could vary by
+ * per visitor: a known credential, or any caller-configured header outside
+ * the public default allowlist (an API key, a tenant selector, ...).
+ */
+const carriesIdentity = function carriesIdentity(headers: Headers): boolean {
+	for (const name of headers.keys()) {
+		const lower = name.toLowerCase();
+		if (CREDENTIAL_HEADERS.has(lower)) {
+			return true;
+		}
+		if (!(PUBLIC_FORWARD_HEADERS.has(lower) || PROXY_SET_HEADERS.has(lower))) {
+			return true;
+		}
+	}
+	return false;
+};
+
 /** `true` for an `http:` target that is not a loopback host. */
 const isCleartextRemote = function isCleartextRemote(url: string): boolean {
 	try {
@@ -464,10 +496,7 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 
 	const upstream = await (fetchImpl ?? globalThis.fetch)(target, init);
 	const responseHeaders = buildProxyResponseHeaders(upstream.headers);
-	const carriedCredentials = [...CREDENTIAL_HEADERS].some((name) =>
-		init.headers.has(name)
-	);
-	if (carriedCredentials) {
+	if (carriesIdentity(init.headers)) {
 		// The response may vary by the forwarded identity; never let a shared
 		// cache reuse it for the next visitor.
 		responseHeaders.set('cache-control', 'private, no-store');

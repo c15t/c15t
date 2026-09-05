@@ -723,3 +723,38 @@ describe('proxy on: forwarding headers stay out of the browser allowlist', () =>
 		expect(headers.get('x-forwarded-proto')).toBe('https');
 	});
 });
+
+describe('proxy on: custom forwarded headers partition the response', () => {
+	test('a caller-configured header such as x-api-key marks the response no-store', async () => {
+		const fetch = createUpstream(
+			() =>
+				new Response('{}', {
+					headers: { 'cache-control': 'public, max-age=60', etag: '"x"' },
+				})
+		);
+		const handlers = createRoute(fetch, { forwardHeaders: ['x-api-key'] });
+		const response = await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status', { headers: { 'x-api-key': 'tenant-a' } }),
+		});
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('etag')).toBeNull();
+	});
+
+	test('default browser headers alone keep the upstream cache policy', async () => {
+		const fetch = createUpstream(
+			() =>
+				new Response('{}', {
+					headers: { 'cache-control': 'public, max-age=60' },
+				})
+		);
+		const handlers = createRoute(fetch);
+		const response = await handlers.GET({
+			params: { _splat: 'status' },
+			request: request('status', {
+				headers: { 'accept-language': 'de', 'user-agent': 'x' },
+			}),
+		});
+		expect(response.headers.get('cache-control')).toBe('public, max-age=60');
+	});
+});

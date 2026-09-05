@@ -46,11 +46,17 @@ const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
 const prefetchBaseFor = function prefetchBaseFor(
 	backendURL: string,
 	initRoute: string | false | undefined
-): string {
+): string | undefined {
 	if (initRoute === false) {
 		return backendURL;
 	}
-	return (initRoute ?? DEFAULT_INIT_ROUTE).replace(/\/init\/?$/u, '');
+	const route = initRoute ?? DEFAULT_INIT_ROUTE;
+	// The prefetch script always requests `${base}/init`, so only a route of
+	// that shape can share a key with it; any other name gets no match and
+	// the provider issues its own init.
+	return /\/init\/?$/u.test(route)
+		? route.replace(/\/init\/?$/u, '')
+		: undefined;
 };
 
 /**
@@ -71,8 +77,12 @@ export const readPrefetchedInitialData =
 		if (!input.backendURL || typeof window === 'undefined') {
 			return undefined;
 		}
+		const backendURL = prefetchBaseFor(input.backendURL, input.initRoute);
+		if (!backendURL) {
+			return undefined;
+		}
 		return getMatchingPrefetchedInitialData({
-			backendURL: prefetchBaseFor(input.backendURL, input.initRoute),
+			backendURL,
 			overrides: input.overrides,
 		});
 	};

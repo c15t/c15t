@@ -2600,3 +2600,52 @@ describe('hosted transport: decisionInputs seed', () => {
 		).not.toHaveProperty('policyId');
 	});
 });
+
+describe('hosted transport: save waits for an in-flight init', () => {
+	test('a save issued while init is pending carries that init decision', async () => {
+		const initGate = Promise.withResolvers<void>();
+		const fetchSpy = vi.fn().mockImplementation(async (url: string) => {
+			if (url.endsWith('/init')) {
+				await initGate.promise;
+				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+					status: 200,
+				});
+			}
+			return new Response(JSON.stringify({ ok: true }), { status: 200 });
+		});
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/internal/consent/init',
+		});
+
+		const initPromise = transport.init?.({ overrides: {}, user: null });
+		const savePromise = transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'opt-in',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+		await Promise.resolve();
+		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+			'/internal/consent/init',
+		]);
+
+		initGate.resolve();
+		await Promise.all([initPromise, savePromise]);
+		const saveCall = fetchSpy.mock.calls.find(([url]) =>
+			String(url).endsWith('/subjects')
+		);
+		expect(
+			JSON.parse((saveCall?.[1] as RequestInit).body as string)
+		).toMatchObject({
+			fingerprint: 'policy-fingerprint',
+			policyId: 'de-iab',
+		});
+	});
+});

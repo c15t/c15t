@@ -334,6 +334,34 @@ export const createHostedTransport = function createHostedTransport(
 		}
 	};
 
+	const runInit = async function runInit(
+		ctx: InitContext
+	): Promise<InitResponse> {
+		// The kernel's current overrides (country, region, language, GPC)
+		// travel as the canonical consent headers so a same-origin init
+		// route resolves the requested inputs rather than the CDN's.
+		const headers = { ...initHeaders, ...overrideHeaders(ctx) };
+		const prefetched = await consumeInitialData();
+		const payload = prefetched ?? (await fetchInit(headers));
+		if (options.assertDecisionInputs) {
+			// Explicit headers first; otherwise the GPC value the resolver
+			// saw (the browser sends Sec-GPC itself on a same-origin init),
+			// so the assertion carries the input that produced the decision.
+			lastDecisionInputs = rememberDecisionInputs(
+				payload,
+				gpcFromHeaders(headers) ?? resolvedGpc(payload)
+			);
+		}
+		const result = mapInitOutputToInitResponse(payload, headers);
+		if (result.subjectId) {
+			establishedSubjectId = result.subjectId;
+			await flushPendingIdentities(result.subjectId);
+		}
+		return result;
+	};
+
+	let pendingInit: Promise<InitResponse> | undefined;
+
 	return {
 		async identify(user, subjectId): Promise<void> {
 			const resolvedSubjectId = subjectId ?? establishedSubjectId;
@@ -350,30 +378,24 @@ export const createHostedTransport = function createHostedTransport(
 		},
 
 		async init(ctx: InitContext): Promise<InitResponse> {
-			// The kernel's current overrides (country, region, language, GPC)
-			// travel as the canonical consent headers so a same-origin init
-			// route resolves the requested inputs rather than the CDN's.
-			const headers = { ...initHeaders, ...overrideHeaders(ctx) };
-			const prefetched = await consumeInitialData();
-			const payload = prefetched ?? (await fetchInit(headers));
-			if (options.assertDecisionInputs) {
-				// Explicit headers first; otherwise the GPC value the resolver
-				// saw (the browser sends Sec-GPC itself on a same-origin init),
-				// so the assertion carries the input that produced the decision.
-				lastDecisionInputs = rememberDecisionInputs(
-					payload,
-					gpcFromHeaders(headers) ?? resolvedGpc(payload)
-				);
+			const run = runInit(ctx);
+			pendingInit = run;
+			try {
+				return await run;
+			} finally {
+				if (pendingInit === run) {
+					pendingInit = undefined;
+				}
 			}
-			const result = mapInitOutputToInitResponse(payload, headers);
-			if (result.subjectId) {
-				establishedSubjectId = result.subjectId;
-				await flushPendingIdentities(result.subjectId);
-			}
-			return result;
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
+			if (options.assertDecisionInputs && !lastDecisionInputs && pendingInit) {
+				// A server-rendered banner is interactive before the client init
+				// resolves. Without a decision to assert yet, wait for the one in
+				// flight rather than record a consent bound to no policy.
+				await pendingInit.catch(() => undefined);
+			}
 			const response = await fetchImpl(`${base}/subjects`, {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
