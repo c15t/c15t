@@ -270,6 +270,40 @@ afterEach(() => {
 });
 
 describe('@c15t/vue kernel runtime', () => {
+	test('preserves the prefetched subject through empty cookie hydration and mount', async () => {
+		const { fetchMock } = createFetchMock();
+		const prefetch = { ...initFixture, subjectId: 'backend+literal' };
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			customFetch: fetchMock as unknown as typeof fetch,
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			initialRecords: readStoredRecordsFromCookieHeader(
+				undefined,
+				undefined,
+				Date.now()
+			),
+			prefetch,
+		});
+		expect(context.kernel.getSnapshot().subject?.subjectId).toBe(
+			'backend+literal'
+		);
+		expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		try {
+			await flushPromises();
+			expect(context.kernel.getSnapshot().subject?.subjectId).toBe(
+				'backend+literal'
+			);
+			expect(context.kernel.getSnapshot().explicitChoice).toBeNull();
+			expect(config.customFetch).not.toHaveBeenCalled();
+		} finally {
+			dispose();
+		}
+	});
+
 	test('disposes the kernel with its Vue context', () => {
 		const context = createVueConsentKernelContext({
 			config: {

@@ -418,9 +418,25 @@ export const createVueConsentKernelContext =
 			headers,
 			{ producerContract: options.producerContract }
 		);
+		const initialRecords = {
+			...(options.initialRecords ?? options.config.initialRecords),
+			...initialConfig.initialRecords,
+		};
+		if (
+			initialConfig.initialSubjectId &&
+			initialConfig.initialRecords?.subject === undefined
+		) {
+			initialRecords.subject = {
+				...initialRecords.subject,
+				subjectId: initialConfig.initialSubjectId,
+			};
+		}
+		const preparedRecords =
+			options.kernelConfig?.initialRecords ??
+			(Object.keys(initialRecords).length ? initialRecords : undefined);
 		const kernel = createConsentKernel({
 			...initialConfig,
-			initialRecords: options.initialRecords ?? options.config.initialRecords,
+			initialRecords: preparedRecords,
 			now:
 				options.now ??
 				options.initialRecords?.now ??
@@ -469,10 +485,7 @@ export const createVueConsentKernelContext =
 				kernel.dispose();
 			},
 			init,
-			initialRecords:
-				options.initialRecords ??
-				options.config.initialRecords ??
-				options.kernelConfig?.initialRecords,
+			initialRecords: preparedRecords,
 			kernel,
 			snapshot,
 			storedConsent,
