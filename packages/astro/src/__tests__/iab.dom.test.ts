@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import type { ConsentRuntimeIABFactoryOptions } from '@c15t/core/runtime';
 import { describe, expect, it } from 'vitest';
 
@@ -28,5 +31,28 @@ describe('the page IAB factory', () => {
 		await whenIABReady();
 		expect(handle.setPurposeConsent).toBeTypeOf('function');
 		handle.dispose();
+	});
+});
+
+/**
+ * The TCF preference centre is the larger half of the dialog island, and
+ * only an IAB site opens it, so it has to stay behind a dynamic import.
+ * The package's own test run has no Svelte compiler, so this asserts the
+ * seam at the source level.
+ */
+describe('the dialog island', () => {
+	it('reaches the IAB surface only through a dynamic import', () => {
+		const source = readFileSync(
+			join(
+				process.cwd(),
+				'src/components/islands/consent-dialog-surface.svelte'
+			),
+			'utf8'
+		);
+
+		expect(source).toContain("import('./iab-dialog-surface.svelte')");
+		expect(source).not.toMatch(
+			/^\s*import\s+[^;]*'\.\/iab-dialog-surface\.svelte'/mu
+		);
 	});
 });

@@ -87,9 +87,14 @@ describe('lazy IAB loading', () => {
 	test('loads the CMP once `iab` is configured', async () => {
 		mountProvider({ iab: { cmpId: 42, enabled: true } });
 
-		await vi.waitFor(() => {
-			expect((window as WindowWithTCF).__tcfapi).toBeTypeOf('function');
-		});
+		// The CMP arrives through a dynamic import, so the first run pays
+		// for transforming `@c15t/iab` as well as loading it.
+		await vi.waitFor(
+			() => {
+				expect((window as WindowWithTCF).__tcfapi).toBeTypeOf('function');
+			},
+			{ timeout: 10_000 }
+		);
 	});
 
 	test('`isIABConfigured` matches what the runtime would mount', () => {
