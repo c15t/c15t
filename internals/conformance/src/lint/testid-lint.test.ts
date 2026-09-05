@@ -43,6 +43,19 @@ test('rejects unknown literal test-ids', async () => {
 	}
 });
 
+test('accepts policy dismissal and category restriction controls', async () => {
+	const nameToken = `\${consentType.name}`;
+	const dir = makeTempProject({
+		'src/banner.tsx': '<button data-testid="consent-banner-dismiss-button" />',
+		'src/widget.svelte': `<p data-testid={\`consent-widget-restriction-${nameToken}\`}></p>`,
+	});
+	try {
+		expect(await runTestIdLint([dir])).toEqual([]);
+	} finally {
+		rmSync(dir, { recursive: true });
+	}
+});
+
 test('accepts template literals matching a pattern', async () => {
 	const nameToken = `\${name}`;
 	const dir = makeTempProject({
