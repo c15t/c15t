@@ -30,6 +30,12 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		const REFERRAL_HOST = /(?<prefix>[?&]ref=)[^&]*/u;
 		const AUTO_ID_SUFFIX =
 			/-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/u;
+		// The same generated token, but in the middle of a composed id —
+		// `c15t-tabs-{id}-content-purposes`. React's `useId`, Svelte's
+		// `$props.id()` and Vue's `useId()` will never agree on the token,
+		// and the surrounding structure is the part worth comparing.
+		const AUTO_ID_SEGMENT =
+			/-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)-/gu;
 		const STRIP = new Set([
 			'data-reactroot',
 			'data-reactid',
@@ -96,7 +102,9 @@ export const captureDomSnapshot = function captureDomSnapshot(
 				if (AUTO_ID.test(value)) {
 					return '__AUTO__';
 				}
-				return value.replace(AUTO_ID_SUFFIX, '-__AUTO__');
+				return value
+					.replace(AUTO_ID_SEGMENT, '-__AUTO__-')
+					.replace(AUTO_ID_SUFFIX, '-__AUTO__');
 			}
 			if (name === 'href') {
 				return value.replace(REFERRAL_HOST, '$<prefix>__HOST__');
@@ -112,11 +120,25 @@ export const captureDomSnapshot = function captureDomSnapshot(
 			return value;
 		};
 
+		const VALUE_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
+
 		const canonicalize = function canonicalize(element: Element): string {
 			const tag = element.tagName.toLowerCase();
 			const attrs: string[] = [];
+			// React mirrors a controlled input's value into an attribute on
+			// first render; Svelte and Vue only ever set the property. Read
+			// the property on both sides so the comparison is of what the
+			// control actually holds.
+			if (VALUE_TAGS.has(element.tagName)) {
+				attrs.push(
+					`value="${(element as Element & { value?: string }).value ?? ''}"`
+				);
+			}
 			for (const attribute of Array.from(element.attributes)) {
 				if (STRIP.has(attribute.name)) {
+					continue;
+				}
+				if (attribute.name === 'value' && VALUE_TAGS.has(element.tagName)) {
 					continue;
 				}
 				const value = normAttr(element, attribute.name, attribute.value);
@@ -128,21 +150,32 @@ export const captureDomSnapshot = function captureDomSnapshot(
 			attrs.sort();
 			const open = `<${tag}${attrs.length ? ` ${attrs.join(' ')}` : ''}>`;
 			const children: string[] = [];
+			// Adjacent text nodes are joined before normalising: JSX splits
+			// `{label} ({count})` into four children where a Svelte or Vue
+			// template compiles one, and "Examples(1)" against
+			// "Examples (1)" is a rendering artefact, not drift.
+			let pendingText = '';
+			const flushText = function flushText() {
+				const text = pendingText.replace(/\s+/gu, ' ').trim();
+				if (text) {
+					children.push(text);
+				}
+				pendingText = '';
+			};
 			for (const node of Array.from(element.childNodes)) {
 				if (node.nodeType === 1) {
 					if (isProviderArtifact(node as Element)) {
 						continue;
 					}
+					flushText();
 					children.push(canonicalize(node as Element));
 					continue;
 				}
 				if (node.nodeType === 3) {
-					const text = (node.textContent || '').replace(/\s+/gu, ' ').trim();
-					if (text) {
-						children.push(text);
-					}
+					pendingText += node.textContent || '';
 				}
 			}
+			flushText();
 			return `${open}${children.join('')}</${tag}>`;
 		};
 

@@ -77,6 +77,7 @@ const IABConsentDialogOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			<div
 				ref={ref}
 				{...theme}
+				aria-hidden="true"
 				className={finalClassName}
 				data-testid="iab-consent-dialog-overlay"
 			/>

@@ -2,6 +2,7 @@
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+import { getTextDirection } from '@c15t/ui/utils';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 
 import {
@@ -45,6 +46,9 @@ const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
 const initValue = computed(() => toValue(init));
+const textDirection = computed(() =>
+	getTextDirection(initValue.value?.translations?.language)
+);
 const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 
@@ -151,6 +155,16 @@ const openVendors = function openVendors() {
 	activeUI.value = 'manager';
 };
 
+// The footer *is* the action root, the way it is in React: one element
+// carrying both class sets, not a wrapper around another one.
+const footerAttrs = computed(() => ({
+	...((config.value.components?.['iab-banner']?.footer as object | undefined) ??
+		{}),
+	...((config.value.components?.['iab-banner']?.actions as
+		| object
+		| undefined) ?? {}),
+}));
+
 const scrollLock = computed(
 	() => initValue.value?.policy?.ui?.banner?.scrollLock ?? true
 );
@@ -160,14 +174,17 @@ useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
 );
-const card = ref<HTMLElement | null>(null);
-useFocusTrap(card, () => shouldTrapFocus.value);
+// The trap goes on the root, not the card: `setupFocusTrap` stamps
+// `tabindex="-1"` on whatever it is given, and the root is the element
+// that declares one in every other adapter.
+const bannerRoot = ref<HTMLElement | null>(null);
+useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 </script>
 
 <template>
 	<Teleport to="body">
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="bannerStyles.overlayHidden"
 			:enter-active-class="bannerStyles.overlayVisible"
 			:enter-to-class="bannerStyles.overlayVisible"
@@ -178,12 +195,13 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner && scrollLock"
 				v-bind="config.components?.['iab-banner']?.overlay"
+				aria-hidden="true"
 				data-testid="iab-consent-banner-overlay"
-				:class="bannerStyles.overlay"
+				:class="[bannerStyles.overlay, bannerStyles.overlayVisible]"
 			/>
 		</Transition>
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="bannerStyles.bannerHidden"
 			:enter-active-class="bannerStyles.bannerVisible"
 			:enter-to-class="bannerStyles.bannerVisible"
@@ -194,8 +212,14 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner"
 				v-bind="config.components?.['iab-banner']?.root"
+				ref="bannerRoot"
 				data-testid="iab-consent-banner-root"
-				:class="bannerStyles.root"
+				:data-position="
+					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
+				"
+				:dir="textDirection"
+				tabindex="-1"
+				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
 			>
 				<div
 					v-bind="config.components?.['iab-banner']?.cardShell"
@@ -206,14 +230,12 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						context="iab-banner"
 					/>
 					<div
-						ref="card"
 						v-bind="config.components?.['iab-banner']?.card"
 						data-testid="iab-consent-banner-card"
 						:class="bannerStyles.card"
 						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"
-						tabindex="-1"
 					>
 						<div
 							v-bind="config.components?.['iab-banner']?.header"
@@ -275,28 +297,22 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								{{ iabT?.banner?.scopeServiceSpecific }}
 							</p>
 						</div>
-						<div
-							v-bind="config.components?.['iab-banner']?.footer"
-							data-testid="iab-consent-banner-footer"
-							:class="bannerStyles.footer"
-						>
-							<ConsentActions
-								:layout="IAB_BANNER_LAYOUT"
-								:primary-actions="[primaryButton]"
-								:labels="labels"
-								:test-ids="IAB_BANNER_ACTION_TEST_IDS"
-								secondary-mode="stroke"
-								:root-attrs="
-									config.components?.['iab-banner']?.actions as
-										object | undefined
-								"
-								:group-attrs="
-									config.components?.['iab-banner']?.actionGroup as
-										object | undefined
-								"
-								@action="onAction"
-							/>
-						</div>
+						<ConsentActions
+							:layout="IAB_BANNER_LAYOUT"
+							:primary-actions="[primaryButton]"
+							:labels="labels"
+							:test-ids="IAB_BANNER_ACTION_TEST_IDS"
+							primary-mode="filled"
+							secondary-mode="stroke"
+							root-test-id="iab-consent-banner-footer"
+							:root-class="bannerStyles.footer"
+							:root-attrs="footerAttrs"
+							:group-attrs="
+								config.components?.['iab-banner']?.actionGroup as
+									object | undefined
+							"
+							@action="onAction"
+						/>
 					</div>
 				</div>
 			</div>

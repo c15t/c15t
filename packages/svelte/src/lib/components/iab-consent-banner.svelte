@@ -211,6 +211,7 @@
 							<button
 								type="button"
 								class={noStyle ? '' : styles.partnersLink}
+								data-testid="iab-consent-banner-partners-link"
 								onclick={handleViewVendors}
 							>
 								{partnersLinkText}
@@ -267,16 +268,21 @@
 								{iabT.common.acceptAll}
 							</button>
 						</div>
-						<button
-							type="button"
-							class={noStyle ? '' : buttonStyles.button}
-							{...actionButtonAttrs('customize')}
-							onclick={handleCustomize}
-							data-action="customize"
-							data-testid="iab-consent-banner-customize-button"
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
 						>
-							{iabT.common.customize}
-						</button>
+							<button
+								type="button"
+								class={noStyle ? '' : buttonStyles.button}
+								{...actionButtonAttrs('customize')}
+								onclick={handleCustomize}
+								data-action="customize"
+								data-testid="iab-consent-banner-customize-button"
+							>
+								{iabT.common.customize}
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>

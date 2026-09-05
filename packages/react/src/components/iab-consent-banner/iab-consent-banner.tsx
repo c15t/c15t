@@ -264,6 +264,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								<button
 									{...partnersLinkProps}
 									type="button"
+									data-testid="iab-consent-banner-partners-link"
 									onClick={handleViewVendors}
 									onMouseEnter={() => {
 										// Prefetch vendor list on hover
@@ -320,16 +321,18 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 									{iabT.common.acceptAll}
 								</Button.Root>
 							</div>
-							<Button.Root
-								variant={isPrimary('customize') ? 'primary' : 'neutral'}
-								mode={isPrimary('customize') ? 'filled' : 'stroke'}
-								size="small"
-								onClick={handleCustomize}
-								data-action="customize"
-								data-testid="iab-consent-banner-customize-button"
-							>
-								{iabT.common.customize}
-							</Button.Root>
+							<div {...actionGroupProps}>
+								<Button.Root
+									variant={isPrimary('customize') ? 'primary' : 'neutral'}
+									mode={isPrimary('customize') ? 'filled' : 'stroke'}
+									size="small"
+									onClick={handleCustomize}
+									data-action="customize"
+									data-testid="iab-consent-banner-customize-button"
+								>
+									{iabT.common.customize}
+								</Button.Root>
+							</div>
 						</Box>
 					</div>
 				</Box>

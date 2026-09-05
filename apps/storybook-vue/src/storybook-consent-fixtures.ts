@@ -2,6 +2,7 @@ import type { InitOutput } from '@c15t/schema/types';
 import type { App } from 'vue';
 import { onUnmounted, provide } from 'vue';
 
+import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
 import { enTranslations } from '../../../packages/translations/src';
 import { consentConfigKey } from '../../../packages/vue/src/runtime/composables/config';
 import type { ConsentConfig } from '../../../packages/vue/src/runtime/config';
@@ -73,6 +74,31 @@ export const storybookInit: InitOutput = {
 		translations: enTranslations,
 	},
 };
+
+/**
+ * The IAB variant of {@link storybookInit}.
+ *
+ * Same policy shape with `model: 'iab'` and the vendor list the React and
+ * Svelte IAB stories mount, so the three surfaces have identical data to
+ * render and the parity gate compares content, not fixtures.
+ */
+export const storybookIABInit: InitOutput = {
+	...storybookInit,
+	cmpId: 160,
+	gvl: mockGVL,
+	policy: {
+		// No `ui` overrides: TCF fixes the IAB banner and dialog controls,
+		// and the React and Svelte IAB fixtures leave the scroll lock on, so
+		// their surfaces paint a backdrop.
+		consent: storybookInit.policy?.consent,
+		id: 'storybook_vue_iab_policy',
+		model: 'iab',
+	},
+	policyDecision: {
+		...storybookInit.policyDecision,
+		policyId: 'storybook_vue_iab_policy',
+	},
+} as InitOutput;
 
 const storybookFetch = function storybookFetch(): typeof fetch {
 	return ((input: RequestInfo | URL, request?: RequestInit) => {
@@ -155,6 +181,30 @@ export const useStorybookConsent = function useStorybookConsent(
 	const context = createVueConsentKernelContext({
 		config,
 		prefetch: storybookInit,
+	});
+	context.activeUI.value = activeUI;
+	provideStorybookConsentContext(null, context, config);
+	onUnmounted(() => context.dispose());
+	return context;
+};
+
+/**
+ * Provide an IAB kernel context to a story.
+ *
+ * @param activeUI - Which surface to open: `'banner'` or `'manager'`.
+ * @param configOverrides - Config fields to override for this story.
+ * @returns The kernel context, disposed when the story unmounts.
+ */
+export const useStorybookIABConsent = function useStorybookIABConsent(
+	activeUI: StoryActiveUI,
+	configOverrides?: Partial<ConsentConfig>
+) {
+	const config = configOverrides
+		? ({ ...storybookConsentConfig, ...configOverrides } as ConsentConfig)
+		: storybookConsentConfig;
+	const context = createVueConsentKernelContext({
+		config,
+		prefetch: storybookIABInit,
 	});
 	context.activeUI.value = activeUI;
 	provideStorybookConsentContext(null, context, config);

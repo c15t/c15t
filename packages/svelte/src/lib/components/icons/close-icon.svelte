@@ -1,8 +1,8 @@
 <script lang="ts">
 	let {
 		class: className,
-		width = '16',
-		height = '16',
+		width,
+		height,
 		'aria-hidden': ariaHidden,
 		...rest
 	}: {

@@ -560,6 +560,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							<button
 								{...closeButtonProps}
 								type="button"
+								data-testid="iab-consent-dialog-close"
 								onClick={handleClose}
 								aria-label={common.close}
 							>
@@ -887,16 +888,18 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 									{iabTranslations.common.acceptAll}
 								</Button.Root>
 							</div>
-							<Button.Root
-								variant="primary"
-								mode="filled"
-								size="small"
-								onClick={handleSave}
-								disabled={isLoading}
-								data-action="customize"
-							>
-								{iabTranslations.common.saveSettings}
-							</Button.Root>
+							<div {...actionGroupProps}>
+								<Button.Root
+									variant="primary"
+									mode="filled"
+									size="small"
+									onClick={handleSave}
+									disabled={isLoading}
+									data-action="customize"
+								>
+									{iabTranslations.common.saveSettings}
+								</Button.Root>
+							</div>
 						</div>
 
 						<Branding

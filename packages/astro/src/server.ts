@@ -390,7 +390,10 @@ const prefetchOffline = async function prefetchOffline(
 	const transport = createOfflineTransport({
 		// Same reason as the client factory in `mode.ts`: a pack whose model
 		// is `iab` needs a configured CMP to be eligible.
-		iabEnabled: Boolean(options.iab) && options.iab?.enabled !== false,
+		iabEnabled:
+			options.iab !== false &&
+			options.iab !== undefined &&
+			options.iab.enabled !== false,
 		policyPacks:
 			policyPacks && policyPacks.length > 0 ? policyPacks : undefined,
 		translations: input.translations,
@@ -450,7 +453,7 @@ const withResolvedGvl = async function withResolvedGvl(input: {
 	language: string;
 	fetch?: typeof globalThis.fetch;
 }): Promise<KernelConfig> {
-	const { iab } = input.options;
+	const iab = input.options.iab === false ? undefined : input.options.iab;
 	if (!iab || iab.enabled === false) {
 		return input.config;
 	}

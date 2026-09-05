@@ -1,6 +1,6 @@
 <script lang="ts">
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
+	import switchStyles from '@c15t/ui/styles/components/switch';
 
 	import type { IABTranslations } from '../iab-translations';
 	import type { ProcessedPurpose, VendorId } from '../iab-types';
@@ -10,8 +10,11 @@
 	import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
 	import LockIcon from './icons/lock-icon.svelte';
 
-	const sw = switchVariants();
-	const swSmall = switchVariants({ size: 'small' });
+	// The shared switch stylesheet, keyed off `data-size`, which is what
+	// the React and Vue switches use. The primitives sheet renders the same
+	// control through appended `root-small`/`track-small` classes; two
+	// sheets for one control is drift the IAB rows cannot afford.
+	const sw = switchStyles;
 
 	let {
 		purpose,
@@ -125,8 +128,11 @@
 >
 	<div class={noStyle ? '' : styles.purposeHeader || ''}>
 		<PreferenceItem.Trigger class={noStyle ? '' : styles.purposeTrigger || ''}>
-			<PreferenceItem.Leading class={noStyle ? '' : styles.purposeArrow || ''}>
-				<ChevronRightIcon />
+			<PreferenceItem.Leading>
+				<ChevronRightIcon
+					class={noStyle ? '' : styles.purposeArrow || ''}
+					expanded={isExpanded}
+				/>
 			</PreferenceItem.Leading>
 			<PreferenceItem.Header class={noStyle ? '' : styles.purposeInfo || ''}>
 				<PreferenceItem.Title class={noStyle ? '' : styles.purposeName || ''}>
@@ -162,12 +168,11 @@
 				bind:checked={purposeChecked}
 				onclick={() => handlePurposeToggle(purposeChecked)}
 				disabled={isLocked}
-				class={noStyle ? '' : sw.root()}
+				class={noStyle ? '' : sw.root}
+				data-size="medium"
 			>
-				<Switch.Control class={noStyle ? '' : sw.track({ disabled: isLocked })}>
-					<Switch.Thumb
-						class={noStyle ? '' : sw.thumb({ disabled: isLocked })}
-					/>
+				<Switch.Control class={noStyle ? '' : sw.track}>
+					<Switch.Thumb class={noStyle ? '' : sw.thumb} />
 				</Switch.Control>
 			</Switch.Root>
 		</PreferenceItem.Control>
@@ -232,49 +237,51 @@
 
 		<!-- Illustrations / Examples -->
 		{#if purpose.illustrations && purpose.illustrations.length > 0}
-			<PreferenceItem.Root
-				bind:open={showExamples}
-				noStyle
-			>
-				<PreferenceItem.Trigger
-					class={noStyle ? '' : styles.examplesToggle || ''}
+			<div>
+				<PreferenceItem.Root
+					bind:open={showExamples}
+					noStyle
 				>
-					<PreferenceItem.Leading>
+					<PreferenceItem.Trigger
+						class={noStyle ? '' : styles.examplesToggle || ''}
+					>
 						<ChevronRightIcon
-							width="12"
-							height="12"
+							style="height:0.75rem;width:0.75rem"
+							expanded={showExamples}
 						/>
-					</PreferenceItem.Leading>
-					{iabT.preferenceCenter.purposeItem.examples}
-					({purpose.illustrations.length})
-				</PreferenceItem.Trigger>
-				<PreferenceItem.Content>
-					<ul class={noStyle ? '' : styles.examplesList || ''}>
-						{#each purpose.illustrations as illustration (illustration)}
-							<li>{illustration}</li>
-						{/each}
-					</ul>
-				</PreferenceItem.Content>
-			</PreferenceItem.Root>
+						{iabT.preferenceCenter.purposeItem.examples}
+						({purpose.illustrations.length})
+					</PreferenceItem.Trigger>
+					<PreferenceItem.Content>
+						<ul class={noStyle ? '' : styles.examplesList || ''}>
+							{#each purpose.illustrations as illustration (illustration)}
+								<li>{illustration}</li>
+							{/each}
+						</ul>
+					</PreferenceItem.Content>
+				</PreferenceItem.Root>
+			</div>
 		{/if}
 
 		<!-- Vendor list within purpose -->
-		<PreferenceItem.Root
-			bind:open={showVendors}
-			noStyle
-		>
-			<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorsToggle || ''}>
-				<PreferenceItem.Leading>
+		<div>
+			<PreferenceItem.Root
+				bind:open={showVendors}
+				noStyle
+			>
+				<PreferenceItem.Trigger
+					class={noStyle ? '' : styles.vendorsToggle || ''}
+				>
 					<ChevronRightIcon
-						width="12"
-						height="12"
+						style="height:0.75rem;width:0.75rem"
+						expanded={showVendors}
 					/>
-				</PreferenceItem.Leading>
-				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose}
-				({purpose.vendors.length})
-			</PreferenceItem.Trigger>
-			<PreferenceItem.Content>
-				<div class={noStyle ? '' : styles.vendorSection || ''}>
+					{iabT.preferenceCenter.purposeItem.partnersUsingPurpose}
+					({purpose.vendors.length})
+				</PreferenceItem.Trigger>
+				<PreferenceItem.Content
+					innerClassName={noStyle ? '' : styles.vendorSection || ''}
+				>
 					<!-- IAB Consent Vendors -->
 					{#if iabConsentVendors.length > 0}
 						<h5 class={noStyle ? '' : styles.vendorSectionTitle || ''}>
@@ -306,12 +313,14 @@
 									</div>
 								</div>
 								<Switch.Root
+									aria-label={vendor.name}
 									checked={isConsented}
 									onclick={() => onVendorToggle(vendor.id, !isConsented)}
-									class={noStyle ? '' : swSmall.root()}
+									class={noStyle ? '' : sw.root}
+									data-size="small"
 								>
-									<Switch.Control class={noStyle ? '' : swSmall.track()}>
-										<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
+									<Switch.Control class={noStyle ? '' : sw.track}>
+										<Switch.Thumb class={noStyle ? '' : sw.thumb} />
 									</Switch.Control>
 								</Switch.Root>
 							</div>
@@ -385,12 +394,14 @@
 									</button>
 								{:else}
 									<Switch.Root
+										aria-label={vendor.name}
 										checked={isConsented}
 										onclick={() => onVendorToggle(vendor.id, !isConsented)}
-										class={noStyle ? '' : swSmall.root()}
+										class={noStyle ? '' : sw.root}
+										data-size="small"
 									>
-										<Switch.Control class={noStyle ? '' : swSmall.track()}>
-											<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
+										<Switch.Control class={noStyle ? '' : sw.track}>
+											<Switch.Thumb class={noStyle ? '' : sw.thumb} />
 										</Switch.Control>
 									</Switch.Root>
 								{/if}
@@ -425,12 +436,14 @@
 										</button>
 									</div>
 									<Switch.Root
+										aria-label={vendor.name}
 										checked={isConsented}
 										onclick={() => onVendorToggle(vendor.id, !isConsented)}
-										class={noStyle ? '' : swSmall.root()}
+										class={noStyle ? '' : sw.root}
+										data-size="small"
 									>
-										<Switch.Control class={noStyle ? '' : swSmall.track()}>
-											<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
+										<Switch.Control class={noStyle ? '' : sw.track}>
+											<Switch.Thumb class={noStyle ? '' : sw.thumb} />
 										</Switch.Control>
 									</Switch.Root>
 								</div>
@@ -476,12 +489,14 @@
 										</button>
 									{:else}
 										<Switch.Root
+											aria-label={vendor.name}
 											checked={isConsented}
 											onclick={() => onVendorToggle(vendor.id, !isConsented)}
-											class={noStyle ? '' : swSmall.root()}
+											class={noStyle ? '' : sw.root}
+											data-size="small"
 										>
-											<Switch.Control class={noStyle ? '' : swSmall.track()}>
-												<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
+											<Switch.Control class={noStyle ? '' : sw.track}>
+												<Switch.Thumb class={noStyle ? '' : sw.thumb} />
 											</Switch.Control>
 										</Switch.Root>
 									{/if}
@@ -489,8 +504,8 @@
 							{/each}
 						</div>
 					{/if}
-				</div>
-			</PreferenceItem.Content>
-		</PreferenceItem.Root>
+				</PreferenceItem.Content>
+			</PreferenceItem.Root>
+		</div>
 	</PreferenceItem.Content>
 </PreferenceItem.Root>

@@ -164,24 +164,33 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	},
 
 	// ---------------------------------------------------------------------
-	// IAB. The banner is fully converged; the preference centre still differs
-	// in how many purposes it lists.
+	// IAB. The banner is fully converged — no allowance on any check. The
+	// preference centre is converged everywhere the eye can reach; what is
+	// left is the vendor list's collapsed internals.
 	// ---------------------------------------------------------------------
 	{
-		check: 'geometry',
+		check: 'dom',
 		framework: 'svelte',
 		reason:
-			"Svelte's IAB preference centre renders each purpose twice more than React's — the same `purpose-item-*` testid appears four times against React's two — which also shifts every row down 19px. A content difference in the preference centre, not a styling one; it needs the two adapters to agree on which purposes belong under a stack.",
+			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
 	},
 	{
 		check: 'dom',
-		framework: 'svelte',
+		framework: 'vue',
 		reason:
-			"Follows the geometry entry: Svelte lists more purposes, and its Ark dialog and tabs carry `data-slot`/`data-state` bookkeeping React's hand-rolled equivalents do not.",
+			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
+	},
+	{
+		check: 'dom',
+		framework: 'vue',
+		reason:
+			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
+		slot: '*',
+		story: 'IAB/IAB Consent Banner/Customize Flow',
 	},
 ];
 

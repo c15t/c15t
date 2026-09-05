@@ -162,7 +162,10 @@ watch(
 					/>
 				</svg>
 				<input
-					v-model="searchTerm"
+					:value="searchTerm"
+					@input="
+						(event) => (searchTerm = (event.target as HTMLInputElement).value)
+					"
 					type="search"
 					:class="dialogStyles.searchInput"
 					:placeholder="iabT?.preferenceCenter?.vendorList?.search"
@@ -236,6 +239,7 @@ watch(
 						</div>
 						<div :class="dialogStyles.vendorConsentControl">
 							<ConsentSwitch
+								:test-id="null"
 								:model-value="getVendorConsent(vendor.id)"
 								:class="dialogStyles.vendorConsentSwitch"
 								@update:model-value="
@@ -283,6 +287,7 @@ watch(
 						</div>
 						<div :class="dialogStyles.vendorConsentControl">
 							<ConsentSwitch
+								:test-id="null"
 								:model-value="getVendorConsent(vendor.id)"
 								:class="dialogStyles.vendorConsentSwitch"
 								@update:model-value="

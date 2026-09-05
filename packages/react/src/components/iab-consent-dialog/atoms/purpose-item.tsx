@@ -128,13 +128,15 @@ const VendorRow: FC<VendorRowProps> = ({
 						: iab.preferenceCenter.purposeItem.objected}
 				</button>
 			) : (
-				<div style={{ transform: 'scale(0.75)' }}>
-					<Switch.Root
-						aria-label={vendor.name}
-						checked={isConsented}
-						onCheckedChange={onToggle}
-					/>
-				</div>
+				// `size="small"` rather than a `scale(0.75)` wrapper: the shared
+				// switch sheet has the variant, and a transform left the control
+				// with a hit area three quarters the size it looks.
+				<Switch.Root
+					aria-label={vendor.name}
+					checked={isConsented}
+					onCheckedChange={onToggle}
+					size="small"
+				/>
 			)}
 		</div>
 	);
@@ -483,7 +485,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLi}`}
 									>
 										<svg
-											style={{ height: '0.75rem', width: '0.75rem' }}
+											className={styles.legitimateInterestIcon}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"
@@ -524,7 +526,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								<div className={styles.customVendorPurposeSection}>
 									<h5 className={styles.vendorSectionTitleCustom}>
 										<svg
-											style={{ height: '0.75rem', width: '0.75rem' }}
+											className={styles.legitimateInterestIcon}
 											viewBox="0 0 24 24"
 											fill="none"
 											stroke="currentColor"

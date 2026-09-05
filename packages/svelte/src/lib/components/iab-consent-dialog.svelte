@@ -1,16 +1,20 @@
 <script lang="ts">
 	import { defaultTranslationConfig } from '@c15t/core';
 	import type { Model } from '@c15t/core';
+	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
+	import { focusTrap } from '../actions/focus-trap';
+	import { portal } from '../actions/portal';
+	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
-	import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
+	import { Tabs } from '../primitives';
 	import Branding from './branding.svelte';
 	import IABPurposeItem from './iab-purpose-item.svelte';
 	import IABStackItem from './iab-stack-item.svelte';
@@ -19,6 +23,7 @@
 	import CloseIcon from './icons/close-icon.svelte';
 	import InfoIcon from './icons/info-icon.svelte';
 	import LockIcon from './icons/lock-icon.svelte';
+	import Overlay from './overlay.svelte';
 
 	let {
 		open: openProp,
@@ -66,8 +71,6 @@
 			(openProp ?? consent.state.activeUI === 'dialog') &&
 			iabState?.config.enabled === true
 	);
-	let dialogOpen = $state(false);
-	let lastResolvedOpen = $state(false);
 
 	// Tab state
 	let activeTab = $state<string | null>('purposes');
@@ -91,19 +94,18 @@
 		}
 	});
 
-	$effect(() => {
-		if (isOpen !== lastResolvedOpen) {
-			dialogOpen = isOpen;
-			lastResolvedOpen = isOpen;
-		}
-	});
+	const handleClose = function handleClose() {
+		consent.state.setActiveUI('none');
+	};
 
-	$effect(() => {
-		if (lastResolvedOpen && !dialogOpen) {
-			consent.state.setActiveUI('none');
-			lastResolvedOpen = false;
+	const handleDialogKeydown = function handleDialogKeydown(
+		event: KeyboardEvent
+	) {
+		if (isDialogDismissKey(event.key)) {
+			event.preventDefault();
+			handleClose();
 		}
-	});
+	};
 
 	$effect(() => {
 		if (activeTab === 'purposes' || activeTab === 'vendors') {
@@ -198,53 +200,64 @@
 	}).root();
 </script>
 
-<Dialog.Root
-	bind:open={dialogOpen}
-	closeOnInteractOutside={false}
-	closeOnEscape={true}
-	trapFocus={true}
-	preventScroll={true}
-	lazyMount
-	unmountOnExit
->
-	<Portal>
-		<Dialog.Backdrop
-			class={noStyle ? '' : styles.overlay || ''}
-			data-testid="iab-consent-dialog-overlay"
+<!--
+	Plain elements, not the Ark dialog: React's IAB preference centre is
+	hand-rolled, and a primitive library's `data-slot`/`data-state`
+	bookkeeping is exactly the kind of difference the cross-framework gate
+	is there to catch. The behaviour the primitive provided — portal, focus
+	trap, scroll lock, Escape to close — comes from the same actions the
+	IAB banner uses.
+-->
+{#if isOpen}
+	<div use:portal>
+		<Overlay
+			variant="iab-dialog"
+			visible={isOpen}
 		/>
-		<Dialog.Positioner
+		<div
 			class={noStyle
 				? ''
-				: `${styles.root || ''} ${isOpen ? styles.dialogVisible || '' : styles.dialogHidden || ''}`}
+				: `${styles.root || ''} ${styles.dialogVisible || ''}`}
 			data-testid="iab-consent-dialog-root"
+			dir={textDirection}
 		>
-			<Dialog.Content
+			<!-- A `div`, not a `dialog`: the user agent's dialog padding is
+			     1em, which the card sets for itself. -->
+			<div
 				class={noStyle
 					? className || ''
-					: `${styles.card || ''} ${className || ''} ${isOpen ? styles.contentVisible || '' : styles.contentHidden || ''}`}
-				dir={textDirection}
+					: `${styles.card || ''} ${className || ''} ${styles.contentVisible || ''}`}
 				data-testid="iab-consent-dialog-card"
+				role="dialog"
+				aria-modal="true"
+				aria-label={iabT.preferenceCenter.title}
+				tabindex="-1"
+				use:focusTrap={true}
+				use:scrollLock={true}
+				onkeydown={handleDialogKeydown}
 			>
 				<!-- Header -->
 				<div class={noStyle ? '' : styles.header || ''}>
 					<div class={noStyle ? '' : styles.headerContent || ''}>
-						<Dialog.Title class={noStyle ? '' : styles.title || ''}>
+						<h2 class={noStyle ? '' : styles.title || ''}>
 							{iabT.preferenceCenter.title}
-						</Dialog.Title>
-						<Dialog.Description class={noStyle ? '' : styles.description || ''}>
+						</h2>
+						<p class={noStyle ? '' : styles.description || ''}>
 							{iabT.preferenceCenter.description}
-						</Dialog.Description>
+						</p>
 					</div>
-					<Dialog.CloseTrigger
+					<button
+						type="button"
 						class={noStyle ? '' : styles.closeButton || ''}
 						aria-label={coreTranslations.common.close}
+						data-testid="iab-consent-dialog-close"
+						onclick={handleClose}
 					>
 						<CloseIcon
-							width="16"
-							height="16"
+							style="height:1rem;width:1rem"
 							aria-hidden={true}
 						/>
-					</Dialog.CloseTrigger>
+					</button>
 				</div>
 
 				<Tabs.Root
@@ -348,21 +361,23 @@
 
 								<!-- Essential Functions: Special Purposes + Features (locked) -->
 								{#if display.essentialRows.length > 0}
-									<Collapsible.Root
-										bind:open={specialPurposesExpanded}
+									<div
 										class={noStyle ? '' : styles.specialPurposesSection || ''}
 									>
 										<div
 											class={noStyle ? '' : styles.specialPurposesHeader || ''}
 										>
-											<Collapsible.Trigger
+											<button
+												type="button"
 												class={noStyle ? '' : styles.purposeTrigger || ''}
+												onclick={() =>
+													(specialPurposesExpanded = !specialPurposesExpanded)}
 											>
-												<Collapsible.Indicator
+												<ChevronRightIcon
 													class={noStyle ? '' : styles.purposeArrow || ''}
-												>
-													<ChevronRightIcon aria-hidden={true} />
-												</Collapsible.Indicator>
+													aria-hidden={true}
+													expanded={specialPurposesExpanded}
+												/>
 												<div class={noStyle ? '' : styles.purposeInfo || ''}>
 													<h3
 														class={noStyle
@@ -382,39 +397,35 @@
 															: iabT.preferenceCenter.vendorList.partnerPlural}
 													</p>
 												</div>
-											</Collapsible.Trigger>
-											<InfoIcon
-												class={noStyle ? '' : styles.infoIcon || ''}
-												aria-label={iabT.preferenceCenter.specialPurposes
-													.tooltip}
-											/>
+											</button>
+											<div style="position:relative">
+												<InfoIcon
+													class={noStyle ? '' : styles.infoIcon || ''}
+													aria-label={iabT.preferenceCenter.specialPurposes
+														.tooltip}
+												/>
+											</div>
 										</div>
 
-										<Collapsible.Content>
-											<!-- Rendered only while open, the way the React and
-											     Vue surfaces do: a closed section that still
-											     mounts its rows put every row's test-id in the
-											     DOM twice. -->
-											{#if specialPurposesExpanded}
-												<div>
-													{#each display.essentialRows as row (row.testId)}
-														<IABPurposeItem
-															purpose={row}
-															testId={row.testId}
-															isEnabled={true}
-															onToggle={() => {}}
-															vendorConsents={iabState.vendorConsents}
-															onVendorToggle={handleVendorToggle}
-															onVendorClick={handleVendorClick}
-															isLocked={true}
-															{noStyle}
-															{iabT}
-														/>
-													{/each}
-												</div>
-											{/if}
-										</Collapsible.Content>
-									</Collapsible.Root>
+										{#if specialPurposesExpanded}
+											<div style="padding:0.75rem">
+												{#each display.essentialRows as row (row.testId)}
+													<IABPurposeItem
+														purpose={row}
+														testId={row.testId}
+														isEnabled={true}
+														onToggle={() => {}}
+														vendorConsents={iabState.vendorConsents}
+														onVendorToggle={handleVendorToggle}
+														onVendorClick={handleVendorClick}
+														isLocked={true}
+														{noStyle}
+														{iabT}
+													/>
+												{/each}
+											</div>
+										{/if}
+									</div>
 								{/if}
 
 								<!-- Consent storage notice -->
@@ -479,15 +490,20 @@
 							{iabT.common.acceptAll}
 						</button>
 					</div>
-					<button
-						type="button"
-						class={noStyle ? '' : primaryButtonClass}
-						onclick={handleSave}
-						disabled={isLoading}
-						data-action="customize"
+					<div
+						class={noStyle ? '' : actionStyles.actionGroup}
+						data-direction="row"
 					>
-						{iabT.common.saveSettings}
-					</button>
+						<button
+							type="button"
+							class={noStyle ? '' : primaryButtonClass}
+							onclick={handleSave}
+							disabled={isLoading}
+							data-action="customize"
+						>
+							{iabT.common.saveSettings}
+						</button>
+					</div>
 				</div>
 				<Branding
 					{hideBranding}
@@ -496,7 +512,7 @@
 					themeKey="iabConsentDialogTag"
 					data-testid="iab-consent-dialog-branding"
 				/>
-			</Dialog.Content>
-		</Dialog.Positioner>
-	</Portal>
-</Dialog.Root>
+			</div>
+		</div>
+	</div>
+{/if}

@@ -272,21 +272,26 @@ const rootClass = [noStyle ? '' : styles.root, noStyle ? '' : styles.bannerVisib
 								</button>
 							))}
 						</div>
-						<button
-							class={noStyle ? '' : buttonStyles.button}
-							data-action="customize"
-							data-c15t-action="customize"
-							data-c15t-dialog="iab"
-							data-mode={noStyle ? undefined : buttonAttrs('customize').mode}
-							data-size={noStyle ? undefined : 'small'}
-							data-testid="iab-consent-banner-customize-button"
-							data-variant={
-								noStyle ? undefined : buttonAttrs('customize').variant
-							}
-							type="button"
+						<div
+							class={noStyle ? '' : actionStyles.actionGroup}
+							data-direction="row"
 						>
-							{labels.customize}
-						</button>
+							<button
+								class={noStyle ? '' : buttonStyles.button}
+								data-action="customize"
+								data-c15t-action="customize"
+								data-c15t-dialog="iab"
+								data-mode={noStyle ? undefined : buttonAttrs('customize').mode}
+								data-size={noStyle ? undefined : 'small'}
+								data-testid="iab-consent-banner-customize-button"
+								data-variant={
+									noStyle ? undefined : buttonAttrs('customize').variant
+								}
+								type="button"
+							>
+								{labels.customize}
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>

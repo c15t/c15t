@@ -61,7 +61,7 @@
 
 		const triggerValues = Array.from(
 			document.querySelectorAll<HTMLButtonElement>(
-				`[data-c15t-tabs-base="${baseId}"] [data-slot="tabs-trigger"]`
+				`[data-slot="tabs-trigger"][id^="${baseId}-trigger-"]`
 			)
 		).map((button) => button.id.replace(`${baseId}-trigger-`, ''));
 

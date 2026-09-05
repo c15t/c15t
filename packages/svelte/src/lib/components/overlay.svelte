@@ -2,6 +2,7 @@
 	import bannerStyles from '@c15t/ui/styles/components/consent-banner';
 	import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 	import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+	import iabDialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
 	import { getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
@@ -10,7 +11,7 @@
 		variant = 'banner',
 		visible = true,
 	}: {
-		variant?: 'banner' | 'dialog' | 'iab-banner';
+		variant?: 'banner' | 'dialog' | 'iab-banner' | 'iab-dialog';
 		visible?: boolean;
 	} = $props();
 
@@ -20,12 +21,18 @@
 		if (variant === 'dialog') {
 			return dialogStyles;
 		}
+		if (variant === 'iab-dialog') {
+			return iabDialogStyles;
+		}
 		return variant === 'iab-banner' ? iabBannerStyles : bannerStyles;
 	});
 
 	const themeKey = $derived.by(() => {
 		if (variant === 'dialog') {
 			return 'consentDialogOverlay' as const;
+		}
+		if (variant === 'iab-dialog') {
+			return 'iabConsentDialogOverlay' as const;
 		}
 		return variant === 'iab-banner'
 			? ('iabConsentBannerOverlay' as const)
@@ -35,6 +42,9 @@
 	const testId = $derived.by(() => {
 		if (variant === 'dialog') {
 			return 'consent-dialog-overlay';
+		}
+		if (variant === 'iab-dialog') {
+			return 'iab-consent-dialog-overlay';
 		}
 		return variant === 'iab-banner'
 			? 'iab-consent-banner-overlay'

@@ -7,6 +7,7 @@ import type {
 import type { PolicyUiAction } from '@c15t/schema/types';
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+import { getTextDirection } from '@c15t/ui/utils';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
 
 import {
@@ -20,6 +21,7 @@ import {
 import type { ConsentIabSelection } from '#c15t/composables';
 
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentDialogTrigger from './consent-dialog-trigger.vue';
@@ -34,6 +36,14 @@ const IAB_DIALOG_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 	'customize',
 ];
 
+/**
+ * The React and Svelte IAB dialog footers carry `data-action` and no
+ * test-id, so an empty map keeps Vue's buttons on the same contract —
+ * `ConsentActions` only falls back to its own ids when a surface names
+ * none at all.
+ */
+const IAB_DIALOG_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {};
+
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
@@ -41,6 +51,20 @@ const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
 const initValue = computed(() => toValue(init));
+const textDirection = computed(() =>
+	getTextDirection(initValue.value?.translations?.language)
+);
+
+// "Close" is core copy, not IAB copy — reading it off `iab.common` left the
+// button with no accessible name.
+const coreCommon = computed(
+	() =>
+		(
+			initValue.value?.translations?.translations as
+				| { common?: { close?: string } }
+				| undefined
+		)?.common
+);
 const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 const draftIab = ref<ConsentIabSelection>(createDefaultIabSelection());
@@ -131,6 +155,15 @@ const isStackRow = function isStackRow(
 
 const isLoading = computed(() => !gvl.value);
 
+// The footer *is* the action root, the way it is in React.
+const footerAttrs = computed(() => ({
+	...((config.value.components?.['iab-dialog']?.footer as object | undefined) ??
+		{}),
+	...((config.value.components?.['iab-dialog']?.actions as
+		| object
+		| undefined) ?? {}),
+}));
+
 const totalVendors = computed(() => display.value.vendorTabCount);
 
 const purposeTabCount = computed(() => display.value.purposeTabCount);
@@ -165,6 +198,16 @@ const setVendorConsent = function setVendorConsent(
 ) {
 	draftIab.value.vendorConsents = {
 		...draftIab.value.vendorConsents,
+		[String(vendorId)]: value,
+	};
+};
+
+const setVendorLegitimateInterest = function setVendorLegitimateInterest(
+	vendorId: IabVendorId,
+	value: boolean
+) {
+	draftIab.value.vendorLegitimateInterests = {
+		...draftIab.value.vendorLegitimateInterests,
 		[String(vendorId)]: value,
 	};
 };
@@ -206,11 +249,13 @@ watch(
 	}
 );
 
-const handleTabChange = function handleTabChange(tab: 'purposes' | 'vendors') {
-	activeTab.value = tab;
+// The tabs primitive owns `activeTab`; this mirrors it back into the
+// draft and the shared selection so a reopened dialog lands where the
+// visitor left it.
+watch(activeTab, (tab) => {
 	draftIab.value.preferenceCenterTab = tab;
 	iabSelection.value.preferenceCenterTab = tab;
-};
+});
 
 const closeDialog = function closeDialog() {
 	activeUI.value = null;
@@ -245,7 +290,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 
 const handleVendorClick = function handleVendorClick(vendorId: IabVendorId) {
 	selectedVendorId.value = vendorId;
-	handleTabChange('vendors');
+	activeTab.value = 'vendors';
 };
 
 const scrollLock = computed(
@@ -265,7 +310,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 	<ConsentDialogTrigger v-if="config.iabDialogShowTrigger" />
 	<Teleport to="body">
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="dialogStyles.overlayHidden"
 			:enter-active-class="dialogStyles.overlayVisible"
 			:enter-to-class="dialogStyles.overlayVisible"
@@ -276,12 +321,13 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 			<div
 				v-if="showDialog && scrollLock"
 				v-bind="config.components?.['iab-dialog']?.overlay"
+				aria-hidden="true"
 				data-testid="iab-consent-dialog-overlay"
-				:class="dialogStyles.overlay"
+				:class="[dialogStyles.overlay, dialogStyles.overlayVisible]"
 			/>
 		</Transition>
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="dialogStyles.dialogHidden"
 			:enter-active-class="dialogStyles.dialogVisible"
 			:enter-to-class="dialogStyles.dialogVisible"
@@ -293,10 +339,11 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 				v-if="showDialog"
 				v-bind="config.components?.['iab-dialog']?.root"
 				data-testid="iab-consent-dialog-root"
-				:class="dialogStyles.root"
+				:dir="textDirection"
+				:class="[dialogStyles.root, dialogStyles.dialogVisible]"
 			>
 				<Transition
-					:disabled="disableAnimation"
+					:css="!disableAnimation"
 					:enter-from-class="dialogStyles.contentHidden"
 					:enter-active-class="dialogStyles.contentVisible"
 					:enter-to-class="dialogStyles.contentVisible"
@@ -309,7 +356,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						ref="card"
 						v-bind="config.components?.['iab-dialog']?.card"
 						data-testid="iab-consent-dialog-card"
-						:class="dialogStyles.card"
+						:class="[dialogStyles.card, dialogStyles.contentVisible]"
 						:role="shouldTrapFocus ? 'dialog' : undefined"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.preferenceCenter?.title"
@@ -341,7 +388,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								v-bind="config.components?.['iab-dialog']?.closeButton"
 								type="button"
 								:class="dialogStyles.closeButton"
-								:aria-label="iabT?.common?.close"
+								:aria-label="coreCommon?.close"
 								data-testid="iab-consent-dialog-close"
 								@click="closeDialog"
 							>
@@ -369,7 +416,8 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 							</button>
 						</div>
 
-						<div
+						<TabsRoot
+							v-model:value="activeTab"
 							v-bind="config.components?.['iab-dialog']?.body"
 							:class="dialogStyles.body"
 						>
@@ -377,46 +425,37 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								v-bind="config.components?.['iab-dialog']?.tabs"
 								:class="dialogStyles.tabsContainer"
 							>
-								<div
+								<TabsList
 									v-bind="config.components?.['iab-dialog']?.tabsList"
 									:class="dialogStyles.tabsList"
-									role="tablist"
 								>
-									<button
+									<TabsTrigger
 										v-bind="config.components?.['iab-dialog']?.tabTrigger"
-										type="button"
 										:class="dialogStyles.tabButton"
-										role="tab"
-										:aria-selected="activeTab === 'purposes'"
-										:data-state="
-											activeTab === 'purposes' ? 'active' : 'inactive'
-										"
-										@click="handleTabChange('purposes')"
+										value="purposes"
 									>
 										{{ iabT?.preferenceCenter?.tabs?.purposes }}
-										<span v-if="!isLoading"> ({{ purposeTabCount }})</span>
-									</button>
-									<button
+										<template v-if="!isLoading">
+											{{ ` (${purposeTabCount})` }}
+										</template>
+									</TabsTrigger>
+									<TabsTrigger
 										v-bind="config.components?.['iab-dialog']?.tabTrigger"
-										type="button"
 										:class="dialogStyles.tabButton"
-										role="tab"
-										:aria-selected="activeTab === 'vendors'"
-										:data-state="
-											activeTab === 'vendors' ? 'active' : 'inactive'
-										"
-										@click="handleTabChange('vendors')"
+										value="vendors"
 									>
 										{{ iabT?.preferenceCenter?.tabs?.vendors }}
-										<span v-if="!isLoading"> ({{ totalVendors }})</span>
-									</button>
+										<template v-if="!isLoading">
+											{{ ` (${totalVendors})` }}
+										</template>
+									</TabsTrigger>
 									<div
 										v-bind="config.components?.['iab-dialog']?.tabIndicator"
 										aria-hidden="true"
 										:class="dialogStyles.tabIndicator"
 										:data-active-tab="activeTab"
 									/>
-								</div>
+								</TabsList>
 							</div>
 
 							<div
@@ -434,11 +473,11 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 									</p>
 								</div>
 								<template v-else>
-									<div
-										v-show="activeTab === 'purposes'"
+									<TabsContent
 										v-bind="config.components?.['iab-dialog']?.tabPanel"
 										:class="dialogStyles.tabPanel"
-										role="tabpanel"
+										force-mount
+										value="purposes"
 									>
 										<template
 											v-for="row in display.consentRows"
@@ -463,6 +502,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													(vendorId, value) => setVendorConsent(vendorId, value)
 												"
 												@vendor-click="handleVendorClick"
+												@vendor-legitimate-interest-toggle="
+													(vendorId, value) =>
+														setVendorLegitimateInterest(vendorId, value)
+												"
 												@purpose-legitimate-interest-toggle="
 													(purposeId, value) =>
 														setPurposeLegitimateInterest(purposeId, value)
@@ -486,6 +529,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													(vendorId, value) => setVendorConsent(vendorId, value)
 												"
 												@vendor-click="handleVendorClick"
+												@vendor-legitimate-interest-toggle="
+													(vendorId, value) =>
+														setVendorLegitimateInterest(vendorId, value)
+												"
 											/>
 											<IabPurposeItem
 												v-else
@@ -504,6 +551,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													(vendorId, value) => setVendorConsent(vendorId, value)
 												"
 												@vendor-click="handleVendorClick"
+												@vendor-legitimate-interest-toggle="
+													(vendorId, value) =>
+														setVendorLegitimateInterest(vendorId, value)
+												"
 												@purpose-legitimate-interest-toggle="
 													(value) => setPurposeLegitimateInterest(row.id, value)
 												"
@@ -520,7 +571,6 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 												<button
 													type="button"
 													:class="dialogStyles.purposeTrigger"
-													:aria-expanded="specialPurposesExpanded"
 													@click="
 														specialPurposesExpanded = !specialPurposesExpanded
 													"
@@ -578,32 +628,36 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 														</p>
 													</div>
 												</button>
-												<svg
-													aria-hidden="true"
-													:class="dialogStyles.infoIcon"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"
-												>
-													<circle
-														cx="12"
-														cy="12"
-														r="10"
-													/>
-													<line
-														x1="12"
-														y1="16"
-														x2="12"
-														y2="12"
-													/>
-													<line
-														x1="12"
-														y1="8"
-														x2="12.01"
-														y2="8"
-													/>
-												</svg>
+												<div style="position: relative">
+													<svg
+														:aria-label="
+															iabT?.preferenceCenter?.specialPurposes?.tooltip
+														"
+														:class="dialogStyles.infoIcon"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="currentColor"
+														stroke-width="2"
+													>
+														<circle
+															cx="12"
+															cy="12"
+															r="10"
+														/>
+														<line
+															x1="12"
+															y1="16"
+															x2="12"
+															y2="12"
+														/>
+														<line
+															x1="12"
+															y1="8"
+															x2="12.01"
+															y2="8"
+														/>
+													</svg>
+												</div>
 											</div>
 
 											<div
@@ -623,6 +677,10 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 															setVendorConsent(vendorId, value)
 													"
 													@vendor-click="handleVendorClick"
+													@vendor-legitimate-interest-toggle="
+														(vendorId, value) =>
+															setVendorLegitimateInterest(vendorId, value)
+													"
 												/>
 											</div>
 										</div>
@@ -635,13 +693,13 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 												{{ iabT?.preferenceCenter?.footer?.consentStorage }}
 											</p>
 										</div>
-									</div>
+									</TabsContent>
 
-									<div
-										v-show="activeTab === 'vendors'"
+									<TabsContent
 										v-bind="config.components?.['iab-dialog']?.tabPanel"
 										:class="dialogStyles.tabPanel"
-										role="tabpanel"
+										force-mount
+										value="vendors"
 									>
 										<IabVendorList
 											:vendor-data="gvl"
@@ -657,32 +715,28 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											"
 											@clear-selection="selectedVendorId = null"
 										/>
-									</div>
+									</TabsContent>
 								</template>
 							</div>
-						</div>
+						</TabsRoot>
 
-						<div
-							v-bind="config.components?.['iab-dialog']?.footer"
-							:class="dialogStyles.footer"
-						>
-							<ConsentActions
-								:layout="IAB_DIALOG_LAYOUT"
-								:primary-actions="['customize']"
-								:labels="labels"
-								secondary-mode="stroke"
-								:disabled="isLoading"
-								:root-attrs="
-									config.components?.['iab-dialog']?.actions as
-										object | undefined
-								"
-								:group-attrs="
-									config.components?.['iab-dialog']?.actionGroup as
-										object | undefined
-								"
-								@action="onAction"
-							/>
-						</div>
+						<ConsentActions
+							:layout="IAB_DIALOG_LAYOUT"
+							:primary-actions="['customize']"
+							:labels="labels"
+							:test-ids="IAB_DIALOG_ACTION_TEST_IDS"
+							primary-mode="filled"
+							secondary-mode="stroke"
+							:disabled="isLoading"
+							:root-test-id="null"
+							:root-class="dialogStyles.footer"
+							:root-attrs="footerAttrs"
+							:group-attrs="
+								config.components?.['iab-dialog']?.actionGroup as
+									object | undefined
+							"
+							@action="onAction"
+						/>
 
 						<ConsentTag
 							v-if="!config.iabDialogHideBranding"
