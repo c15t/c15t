@@ -1,23 +1,23 @@
 <script lang="ts">
 	import BenchShell from '$lib/bench-shell.svelte';
+	import { createBrowserManifestTransport } from '$lib/client-manifest-transport';
 	import { benchConsentCategories } from '$lib/fixture';
 
 	import '@c15t/svelte/styles.css';
-	import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+	import { ConsentManagerProvider, custom } from '@c15t/svelte';
 
-	let { children, data } = $props();
+	let { children } = $props();
 </script>
 
 <ConsentManagerProvider
 	options={{
-		mode: hosted({ url: '/api/c15t' }),
+		mode: custom(createBrowserManifestTransport()),
 		consentCategories: [...benchConsentCategories],
-		prefetch: data.consentPrefetch,
 		disableAnimation: true,
 		trapFocus: false,
 	}}
 >
-	<BenchShell scenario="ssr-manifest">
+	<BenchShell scenario="client-manifest">
 		{@render children()}
 	</BenchShell>
 </ConsentManagerProvider>

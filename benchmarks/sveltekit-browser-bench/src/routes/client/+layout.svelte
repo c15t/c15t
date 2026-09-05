@@ -5,19 +5,18 @@
 	import '@c15t/svelte/styles.css';
 	import { ConsentManagerProvider, hosted } from '@c15t/svelte';
 
-	let { children, data } = $props();
+	let { children } = $props();
 </script>
 
 <ConsentManagerProvider
 	options={{
-		mode: hosted({ url: '/api/c15t' }),
+		mode: hosted({ url: '/api/bench-consent' }),
 		consentCategories: [...benchConsentCategories],
-		prefetch: data.consentPrefetch,
 		disableAnimation: true,
 		trapFocus: false,
 	}}
 >
-	<BenchShell scenario="ssr-manifest">
+	<BenchShell scenario="client">
 		{@render children()}
 	</BenchShell>
 </ConsentManagerProvider>

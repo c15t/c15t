@@ -2,4 +2,4 @@
 	import BenchmarkPage from '$lib/benchmark-page.svelte';
 </script>
 
-<BenchmarkPage scenario="ssr-manifest" />
+<BenchmarkPage scenario="client-manifest" />

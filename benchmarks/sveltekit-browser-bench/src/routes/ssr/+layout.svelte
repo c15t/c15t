@@ -10,14 +10,14 @@
 
 <ConsentManagerProvider
 	options={{
-		mode: hosted({ url: '/api/c15t' }),
+		mode: hosted({ url: '/api/bench-consent' }),
 		consentCategories: [...benchConsentCategories],
 		prefetch: data.consentPrefetch,
 		disableAnimation: true,
 		trapFocus: false,
 	}}
 >
-	<BenchShell scenario="ssr-manifest">
+	<BenchShell scenario="ssr">
 		{@render children()}
 	</BenchShell>
 </ConsentManagerProvider>
