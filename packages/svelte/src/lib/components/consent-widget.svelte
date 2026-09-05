@@ -232,6 +232,10 @@
 					</p>
 				{/if}
 				<PreferenceItem.Content
+					viewportClassName={noStyle
+						? undefined
+						: accordionStyles.contentViewport}
+					innerClassName={noStyle ? undefined : accordionStyles.contentInner}
 					class={noStyle ? '' : accordionStyles.content || ''}
 					data-testid={`consent-widget-accordion-content-${consentType.name}`}
 				>

@@ -62,8 +62,7 @@
 		transition: background-color var(--accordion-duration) var(--accordion-ease);
 	}
 
-	.triggerRow:not(:global(.headless)):hover,
-	.item[data-state='open'] .triggerRow:not(:global(.headless)) {
+	.triggerRow:not(:global(.headless)):hover {
 		background-color: var(--accordion-background-hover);
 	}
 
@@ -71,10 +70,7 @@
 		color: var(--accordion-text-color-dark);
 	}
 
-	:global(.c15t-dark) .triggerRow:not(:global(.headless)):hover,
-	:global(.c15t-dark)
-		.item[data-state='open']
-		.triggerRow:not(:global(.headless)) {
+	:global(.c15t-dark) .triggerRow:not(:global(.headless)):hover {
 		background-color: var(--accordion-background-hover-dark);
 	}
 
@@ -143,10 +139,6 @@
 
 	:global(.c15t-dark) .arrow:not(:global(.headless)) {
 		color: var(--accordion-arrow-color-dark);
-	}
-
-	.item[data-state='open'] .arrow:not(:global(.headless)) {
-		transform: rotate(45deg);
 	}
 
 	.header:not(:global(.headless)) {

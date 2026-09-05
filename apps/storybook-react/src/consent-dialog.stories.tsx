@@ -4,6 +4,7 @@ import {
 	saveFlow,
 } from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, waitFor, within } from 'storybook/test';
 
 import {
 	ConsentBanner,
@@ -27,6 +28,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+	play: async () => {
+		const overlay = await within(document.body).findByTestId(
+			'consent-dialog-overlay'
+		);
+		await waitFor(() => expect(getComputedStyle(overlay).opacity).toBe('1'));
+	},
 	render: () => (
 		<StorybookConsentProvider
 			options={editableConsentOptions}

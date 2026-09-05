@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react';
 
-import { useSetActiveUI } from '../hooks';
+import { useActiveUI, useSetActiveUI } from '../hooks';
 
 export type ConsentDialogTriggerVisibility = 'always' | 'never';
 export interface UseConsentDialogTriggerOptions {
@@ -20,9 +20,13 @@ export const useConsentDialogTrigger = function useConsentDialogTrigger(
 ): UseConsentDialogTriggerResult {
 	const { showWhen = 'always', onClick } = options;
 	const setActiveUI = useSetActiveUI();
+	const activeUI = useActiveUI();
 	const openDialog = useCallback(() => {
 		onClick?.();
 		setActiveUI('dialog');
 	}, [onClick, setActiveUI]);
-	return { isVisible: showWhen !== 'never', openDialog };
+	return {
+		isVisible: showWhen !== 'never' && activeUI !== 'dialog',
+		openDialog,
+	};
 };
