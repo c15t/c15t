@@ -332,22 +332,35 @@ export const createIAB = function createIAB(
 
 	const buildTCFConsentData = function buildTCFConsentData() {
 		const iab = readIAB(kernel);
+		const customIds = new Set(iab.customVendors.map((vendor) => vendor.id));
+		const registeredChoices = (choices: Record<string, boolean>) =>
+			Object.fromEntries(
+				Object.entries(choices).filter(
+					([id]) =>
+						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
+				)
+			);
+		// Custom choices stay in kernel state, never in registered TCF vectors.
+		const vendorConsents = registeredChoices(iab.vendorConsents);
+		const vendorLegitimateInterests = registeredChoices(
+			iab.vendorLegitimateInterests
+		);
 		// `vendorsDisclosed` should reflect every vendor the CMP made
 		// available to the user, per TCF 2.3. For MVP we mirror the set
 		// of vendors whose consent has been considered.
 		const disclosed: Record<string, boolean> = {};
-		for (const id of Object.keys(iab.vendorConsents)) {
+		for (const id of Object.keys(vendorConsents)) {
 			disclosed[id] = true;
 		}
-		for (const id of Object.keys(iab.vendorLegitimateInterests)) {
+		for (const id of Object.keys(vendorLegitimateInterests)) {
 			disclosed[id] = true;
 		}
 		return {
 			purposeConsents: iab.purposeConsents,
 			purposeLegitimateInterests: iab.purposeLegitimateInterests,
 			specialFeatureOptIns: iab.specialFeatureOptIns,
-			vendorConsents: iab.vendorConsents,
-			vendorLegitimateInterests: iab.vendorLegitimateInterests,
+			vendorConsents,
+			vendorLegitimateInterests,
 			vendorsDisclosed: disclosed,
 		};
 	};

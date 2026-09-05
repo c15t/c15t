@@ -3,7 +3,7 @@
  */
 
 import { createConsentKernel } from '@c15t/core';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { createIAB } from '../index';
 import type { TCFConsentData } from '../tcf/iab-tcf-types';
@@ -12,6 +12,56 @@ import { MINIMAL_TC_STRING } from './fixtures/tc-strings';
 import { createMockGVL, createMockTCFConsentAllGranted } from './test-setup';
 
 describe('@c15t/iab TC string encode/decode', () => {
+	test.each(['acceptAll', 'rejectAll'] as const)(
+		'saves %s with custom vendors without adding them to TCF vectors',
+		async (action) => {
+			const save = vi.fn().mockResolvedValue({ ok: true });
+			const kernel = createConsentKernel({ transport: { save } });
+			const iab = createIAB({
+				cmpId: 28,
+				customVendors: ['internal-analytics', '999'].map((id) => ({
+					id,
+					legIntPurposes: [2],
+					name: id,
+					privacyPolicyUrl: 'https://example.test/privacy',
+					purposes: [1],
+				})),
+				gvl: createMockGVL(),
+				kernel,
+			});
+			try {
+				iab[action]();
+				await iab.save();
+				expect(save).toHaveBeenCalledOnce();
+				const tcString = kernel.getSnapshot().iab?.tcString ?? '';
+				expect(save).toHaveBeenCalledWith(
+					expect.objectContaining({ tcString })
+				);
+				const decoded = await decodeTCString(tcString);
+				for (const vector of [
+					decoded.vendorConsents,
+					decoded.vendorLegitimateInterests,
+					decoded.vendorsDisclosed,
+				]) {
+					expect(vector[999]).toBeUndefined();
+				}
+				expect(decoded.vendorsDisclosed[1]).toBe(true);
+				expect(decoded.vendorConsents[1]).toBe(
+					action === 'acceptAll' ? true : undefined
+				);
+				for (const id of ['internal-analytics', '999']) {
+					expect(kernel.getSnapshot().iab?.vendorConsents[id]).toBe(
+						action === 'acceptAll'
+					);
+					expect(kernel.getSnapshot().iab?.vendorLegitimateInterests[id]).toBe(
+						action === 'acceptAll'
+					);
+				}
+			} finally {
+				iab.dispose();
+			}
+		}
+	);
 	test('decodes the fixture TC string', async () => {
 		const decoded = await decodeTCString(MINIMAL_TC_STRING);
 

@@ -15,3 +15,6 @@ retained script element in consent-revocation callbacks.
 
 Keep the closed launcher focused during background events without rebuilding
 hidden panel elements. Allow Escape to close floating panels in custom containers.
+
+Exclude custom vendor IDs from TCF consent, legitimate-interest, and disclosure
+vectors while retaining their choices in kernel state.
