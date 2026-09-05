@@ -70,11 +70,18 @@ const createInstance = async function createInstance() {
 		manifest: {
 			appName: 'c15t-tanstack-start-demo',
 			branding: 'c15t',
+			// Enabled so the manifest carries a GVL reference; the init route
+			// resolves the vendor list for IAB visitors and skips it for others.
+			// The CMP id travels in the manifest too, so the client needs no
+			// IAB configuration of its own. Register your own id with the IAB
+			// before going live; 10 is a placeholder for the demo.
+			iab: { cmpId: 10, enabled: true },
 			// Real policy packs so the manifest carries fingerprints + matching
-			// rules and POST /subjects exercises recompute-on-write. The world
-			// fallback guarantees every visitor resolves a policy decision.
+			// rules and POST /subjects exercises recompute-on-write. Europe runs
+			// the IAB TCF model; the world fallback guarantees every visitor
+			// resolves a policy decision.
 			policyPacks: [
-				policyPackPresets.europeOptIn(),
+				policyPackPresets.europeIab(),
 				policyPackPresets.californiaOptOut(),
 				policyPackPresets.worldNoBanner(),
 			],

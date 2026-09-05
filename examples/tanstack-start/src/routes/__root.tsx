@@ -5,6 +5,7 @@ import {
 	Scripts,
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
+import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import {
 	ConsentBanner,
 	ConsentBoundary,
@@ -18,6 +19,7 @@ import {
 import { backendURL, consentRoute } from '../consent';
 
 import appCss from '../styles.css?url';
+import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
 
 /**
  * Declared here, not in the package: the Start compiler splits server code
@@ -49,9 +51,14 @@ const RootComponent = () => {
 				<ConsentBoundary
 					config={config}
 					backendURL={consentRoute}
+					// Presence opts the provider into IAB TCF; the CMP id and GVL
+					// come from the manifest through init, so nothing else is set.
+					options={{ iab: {} }}
 				>
 					<ConsentBanner />
 					<ConsentDialog />
+					<IABConsentBanner />
+					<IABConsentDialog />
 					<Outlet />
 				</ConsentBoundary>
 				<Scripts />
@@ -64,7 +71,10 @@ export const Route = createRootRoute({
 	...consentLoaderOptions,
 	component: RootComponent,
 	head: () => ({
-		links: [{ href: appCss, rel: 'stylesheet' }],
+		links: [
+			{ href: appCss, rel: 'stylesheet' },
+			{ href: iabCss, rel: 'stylesheet' },
+		],
 		meta: [
 			{ charSet: 'utf-8' },
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },

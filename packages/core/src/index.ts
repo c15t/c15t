@@ -48,6 +48,12 @@ export {
 } from './modules/window-debug';
 export type { RememberedDecisionInputs } from './transports/decision-inputs';
 export { decisionInputsMatchOverrides } from './transports/decision-inputs';
+export type {
+	CachedGvl,
+	FetchCachedGvlOptions,
+	GvlCache,
+} from './transports/gvl-cache';
+export { clearGvlCache, fetchCachedGvl } from './transports/gvl-cache';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
 export {

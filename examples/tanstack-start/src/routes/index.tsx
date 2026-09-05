@@ -84,7 +84,7 @@ const HomePage = () => {
 						<a href="/">Auto-detect</a> — your real location
 					</li>
 					<li>
-						<a href="/?country=DE">?country=DE</a> — GDPR, opt-in, banner
+						<a href="/?country=DE">?country=DE</a> — GDPR, IAB TCF banner
 					</li>
 					<li>
 						<a href="/?country=US&region=CA">?country=US&amp;region=CA</a> —

@@ -26,6 +26,7 @@
  * {@link ConsentServerRouteOptions.proxy}.
  */
 
+import { c15tVersionHeaders, fetchCachedGvl } from '@c15t/core';
 import {
 	fetchCachedManifest,
 	getManifestAge,
@@ -291,26 +292,18 @@ const shouldFetchGvl = function shouldFetchGvl(
 	);
 };
 
-const defaultFetchGvl = async function defaultFetchGvl(input: {
+const defaultFetchGvl = function defaultFetchGvl(input: {
 	reference: ConsentManifestGVLReference;
 	language: string;
 	fetch: typeof globalThis.fetch;
 }): Promise<GlobalVendorList | null> {
-	const response = await input.fetch(input.reference.url, {
-		headers: {
-			'accept-language': input.language,
-		},
-		method: 'GET',
+	return fetchCachedGvl({
+		fetch: input.fetch,
+		headers: c15tVersionHeaders,
+		label: '@c15t/tanstack-start/api',
+		language: input.language,
+		url: input.reference.url,
 	});
-	if (response.status === 204) {
-		return null;
-	}
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/tanstack-start/api: GVL responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as GlobalVendorList;
 };
 
 /**
