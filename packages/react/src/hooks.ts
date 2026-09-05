@@ -2,9 +2,8 @@
  * v3 React hooks.
  *
  * Every selector hook uses `useSyncExternalStore` to subscribe to the
- * kernel. The server snapshot equals the client snapshot (kernel state
- * is deterministic from config), so SSR hydration is free — no
- * tearing, no flash.
+ * kernel. Hydration reads the immutable server snapshot. After hydration,
+ * consumers read live state, including browser-only privacy signals.
  *
  * The selectors follow the "useSyncExternalStore with selector" pattern:
  * subscribe to all kernel changes, but narrow the returned value to the
