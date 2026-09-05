@@ -191,10 +191,6 @@ export type {
 } from './options';
 export type { ActiveUI, Model } from './types';
 
-// -- Prefetch ------------------------------------------------------------------
-export type { PrefetchOptions } from './libs/prefetch';
-export { buildPrefetchScript } from './libs/prefetch';
-
 // -- Translations --------------------------------------------------------------
 export type {
 	CommonTranslations,
