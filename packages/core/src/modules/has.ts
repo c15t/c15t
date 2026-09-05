@@ -184,7 +184,9 @@ export const evaluateConsent = function evaluateConsent<
 		if (!authority || !hasCurrentIABAuthority(snapshot, now)) {
 			return false;
 		}
-		for (const category of extractConsentNamesFromCondition(target.category)) {
+		for (const category of extractConsentNamesFromCondition<AllConsentNames>(
+			target.category
+		)) {
 			if (
 				category !== 'necessary' &&
 				effective.restrictions[category]?.length

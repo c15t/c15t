@@ -330,10 +330,6 @@ describe('network-blocker: IAB evaluation when model="iab"', () => {
 			logBlockedRequests: false,
 			rules: [
 				{
-					// @ts-expect-error: v2 NetworkBlockerRule doesn't currently
-					// expose vendorId directly; evaluateConsent handles it
-					// when passed through ConsentGate. We rely on structural
-					// typing of the shared has() helper for IAB rules.
 					category: 'marketing',
 					domain: 'example.com',
 					vendorId: 755,

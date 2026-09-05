@@ -107,7 +107,7 @@ beforeEach(() => {
 			takeRecords() {
 				return [];
 			}
-		} as typeof MutationObserver
+		}
 	);
 });
 

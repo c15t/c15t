@@ -38,7 +38,7 @@ describe('rich init: applies full response to snapshot', () => {
 	test('fills location / translations / branding / policyResolution / policySnapshotToken', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					branding: 'c15t',
 					location: { countryCode: 'DE', regionCode: 'BE' },
 					policyResolution: GDPR_RESOLUTION,
@@ -49,7 +49,7 @@ describe('rich init: applies full response to snapshot', () => {
 							common: { acceptAll: 'Alle akzeptieren' },
 						} as never,
 					},
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -71,9 +71,9 @@ describe('rich init: applies full response to snapshot', () => {
 	test('derives model, activeUI and scope from policyRule', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					policyResolution: GDPR_RESOLUTION,
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -98,7 +98,7 @@ describe('rich init: applies full response to snapshot', () => {
 	test('does not grant preselected categories without a receipt', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { policyResolution: GDPR_RESOLUTION };
+				return Promise.resolve({ policyResolution: GDPR_RESOLUTION });
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -118,11 +118,11 @@ describe('rich init: applies full response to snapshot', () => {
 		const transport: KernelTransport = {
 			init() {
 				// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-				return {
+				return Promise.resolve({
 					policyResolution: GDPR_RESOLUTION,
 					// Bare server booleans do not establish a prior choice.
 					consents: { marketing: true },
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -141,9 +141,9 @@ describe('rich init: applies full response to snapshot', () => {
 	test('legacy no_banner sentinel is a successful no-match with the safe fallback', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					policyResolution: { policy: null, status: 'no-match', version: 1 },
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -163,7 +163,7 @@ describe('rich init: IAB passthrough', () => {
 	test('gvl / customVendors / cmpId land on snapshot.iab', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					cmpId: 28,
 					customVendors: [{ id: 'cv-1', name: 'Custom Vendor 1' } as never],
 					gvl: {
@@ -178,7 +178,7 @@ describe('rich init: IAB passthrough', () => {
 						vendorListVersion: 42,
 						vendors: {},
 					} as never,
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -195,7 +195,7 @@ describe('rich init: IAB passthrough', () => {
 	test('gvl=null on 200 response → iab.enabled remains false', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return { gvl: null };
+				return Promise.resolve({ gvl: null });
 			},
 		};
 		const kernel = createConsentKernel({
@@ -211,7 +211,7 @@ describe('rich init: IAB passthrough', () => {
 	test('no IAB fields in response → snapshot.iab unchanged', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {};
+				return Promise.resolve({});
 			},
 		};
 		const kernel = createConsentKernel({

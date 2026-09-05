@@ -73,7 +73,7 @@ test('clear cancels late identify before a replacement subject is read', async (
 	disposers.push(persistence.dispose);
 	persistence.clear();
 	kernel.set.subjectId('new');
-	identified.resolve();
+	identified.resolve(undefined);
 	await pending;
 	expect(loadSubjectRecord).not.toHaveBeenCalled();
 	expect(kernel.getSnapshot().subject?.subjectId).toBe('new');

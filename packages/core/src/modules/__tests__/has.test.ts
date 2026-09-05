@@ -75,13 +75,13 @@ describe('hasIABConsent — v2 parity', () => {
 		expect(
 			hasIABConsent(
 				{ vendorId: 755 },
-				iabSlice({ vendorConsents: { '755': true } }).valueOf()
+				iabSlice({ vendorConsents: { '755': true } })
 			)
 		).toBe(true);
 		expect(
 			hasIABConsent(
 				{ vendorId: 755 },
-				iabSlice({ vendorConsents: { '755': false } }).valueOf()
+				iabSlice({ vendorConsents: { '755': false } })
 			)
 		).toBe(false);
 	});
@@ -129,7 +129,7 @@ describe('evaluateConsent — dispatch between IAB and category paths', () => {
 		options: {
 			model?: ConsentSnapshot['model'];
 			iab?: Partial<KernelIABState>;
-			consents?: Partial<ConsentSnapshot['consents']>;
+			consents?: Partial<ConsentSnapshot['effectivePermissions']>;
 		} = {}
 	): ConsentSnapshot {
 		const kernel = createConsentKernel({

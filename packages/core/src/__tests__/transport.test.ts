@@ -182,7 +182,14 @@ const MANIFEST_FIXTURE = {
 	branding: 'c15t',
 	cmpId: 28,
 	iab: {
-		customVendors: [{ id: 'internal-analytics' }],
+		customVendors: [
+			{
+				id: 'internal-analytics',
+				name: 'Internal analytics',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [1],
+			},
+		],
 		enabled: true,
 		gvl: { url: 'https://gvl.example.com', version: 42 },
 	},
@@ -259,10 +266,10 @@ describe('kernel transport: init applies response to snapshot', () => {
 	test('legacy jurisdiction + showConsentBanner init fields are ignored', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					jurisdiction: 'GDPR',
 					showConsentBanner: true,
-				} as InitResponse;
+				} as InitResponse);
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -290,9 +297,9 @@ describe('kernel transport: init applies response to snapshot', () => {
 	test('resolvedOverrides merge into snapshot.overrides', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					resolvedOverrides: { country: 'DE', region: 'BE' },
-				};
+				});
 			},
 		};
 		const kernel = createConsentKernel({
@@ -312,10 +319,10 @@ describe('kernel transport: init applies response to snapshot', () => {
 	test('legacy server booleans cannot seed a draft or a choice', async () => {
 		const transport: KernelTransport = {
 			init() {
-				return {
+				return Promise.resolve({
 					consents: { marketing: true, measurement: true },
 					hasConsented: true,
-				};
+				} as unknown as InitResponse);
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -358,7 +365,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		const events: string[] = [];
 		const transport: KernelTransport = {
 			init() {
-				return {};
+				return Promise.resolve({});
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -1705,7 +1712,13 @@ describe('createHostedTransport: request shape', () => {
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
@@ -1738,7 +1751,13 @@ describe('createHostedTransport: request shape', () => {
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
@@ -1896,7 +1915,13 @@ describe('createHostedTransport: request shape', () => {
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'opt-in',
 			overrides: {},
 			policySnapshotToken: null,
@@ -1934,7 +1959,13 @@ describe('createHostedTransport: request shape', () => {
 			choice: { categories: {}, version: 3 },
 			confirmed: { actionAt: 0, categories: {} },
 			consentAction: 'all',
-			consents: { necessary: true },
+			consents: {
+				experience: false,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				necessary: true,
+			},
 			model: 'iab',
 			overrides: {},
 			policySnapshotToken: null,
@@ -1985,7 +2016,13 @@ describe('createHostedTransport: request shape', () => {
 				choice: { categories: {}, version: 3 },
 				confirmed: { actionAt: 0, categories: {} },
 				consentAction: 'all',
-				consents: { necessary: true },
+				consents: {
+					experience: false,
+					functionality: false,
+					marketing: false,
+					measurement: false,
+					necessary: true,
+				},
 				model: 'iab',
 				overrides: {},
 				policySnapshotToken: null,
@@ -2352,20 +2389,22 @@ describe('createManifestTransport: local init resolution', () => {
 
 describe('x-c15t-version header (issue #916)', () => {
 	test('hosted init and save carry the client version', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
-			const s = String(url);
-			if (s.endsWith('/init')) {
-				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+		const fetchSpy = vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (url: RequestInfo | URL, _init?: RequestInit) => {
+				const s = String(url);
+				if (s.endsWith('/init')) {
+					return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+						headers: { 'content-type': 'application/json' },
+						status: 200,
+					});
+				}
+				return new Response(JSON.stringify({ ok: true }), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
 				});
 			}
-			return new Response(JSON.stringify({ ok: true }), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
-		});
+		);
 		const kernel = createConsentKernel({
 			transport: createHostedTransport({
 				backendURL: 'https://backend.example',
@@ -2387,20 +2426,22 @@ describe('x-c15t-version header (issue #916)', () => {
 	});
 
 	test('manifest fetch and save both carry the client version', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
-			const s = String(url);
-			if (s.endsWith('/manifest')) {
-				return new Response(JSON.stringify(MANIFEST_FIXTURE), {
+		const fetchSpy = vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (url: RequestInfo | URL, _init?: RequestInit) => {
+				const s = String(url);
+				if (s.endsWith('/manifest')) {
+					return new Response(JSON.stringify(MANIFEST_FIXTURE), {
+						headers: { 'content-type': 'application/json' },
+						status: 200,
+					});
+				}
+				return new Response(JSON.stringify({ ok: true }), {
 					headers: { 'content-type': 'application/json' },
 					status: 200,
 				});
 			}
-			return new Response(JSON.stringify({ ok: true }), {
-				headers: { 'content-type': 'application/json' },
-				status: 200,
-			});
-		});
+		);
 		const kernel = createConsentKernel({
 			transport: createManifestTransport({
 				backendURL: 'https://backend.example',
