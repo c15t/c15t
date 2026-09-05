@@ -67,35 +67,6 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	},
 
 	// ---------------------------------------------------------------------
-	// Accordion trigger structure. React wraps the trigger's content in
-	// `consent-widget-accordion-trigger-inner-*` and lets the trigger fill
-	// the row; Svelte, Vue and Astro put the padding on the trigger itself
-	// and have no inner element. Same visual result, different boxes.
-	// ---------------------------------------------------------------------
-	{
-		check: 'geometry',
-		framework: '*',
-		reason:
-			'React puts the accordion row padding on an inner wrapper the other adapters do not render, so the trigger box is the full row in React and the inset content elsewhere. Pre-existing structural drift in the shared accordion primitive; converging it is its own change.',
-		slot: 'consent-widget-accordion-trigger-*',
-		story: '*',
-	},
-
-	// ---------------------------------------------------------------------
-	// Dialog root. React's `consent-dialog-root` is the viewport-filling
-	// positioning container; the other adapters put that testid on the
-	// inset panel wrapper.
-	// ---------------------------------------------------------------------
-	{
-		check: 'geometry',
-		framework: '*',
-		reason:
-			'`consent-dialog-root` names the viewport-filling positioning container in React and the inset panel wrapper everywhere else, so its box is 1280x800 against 1232x510. The card inside it does match. Deciding which element owns the testid is its own change.',
-		slot: 'consent-dialog-root',
-		story: '*',
-	},
-
-	// ---------------------------------------------------------------------
 	// Surfaces this branch did not touch.
 	// ---------------------------------------------------------------------
 	{
@@ -122,28 +93,6 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	// which surfaced drift that had been invisible rather than absent.
 	// Each entry below is a real difference nobody has fixed yet.
 	// ---------------------------------------------------------------------
-	{
-		check: 'css',
-		framework: '*',
-		reason:
-			'The banner portals to `document.body` in Svelte, Vue and Astro but renders inside `#storybook-root` in React, and the computed-style capture is scoped to that root — so every banner slot reads as missing on one side. The capture scope is the bug, not the components; fixing it is its own change.',
-		slot: '*',
-		story: 'Core/Consent Banner/Default',
-	},
-	{
-		check: 'dom',
-		framework: '*',
-		reason: 'Same portal-vs-root capture scope as the CSS entry above.',
-		slot: '*',
-		story: 'Core/Consent Banner/Default',
-	},
-	{
-		check: 'a11y',
-		framework: '*',
-		reason: 'Same portal-vs-root capture scope as the CSS entry above.',
-		slot: '*',
-		story: 'Core/Consent Banner/Default',
-	},
 	{
 		check: 'css',
 		framework: '*',
