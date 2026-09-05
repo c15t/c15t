@@ -42,7 +42,7 @@ Policies specify the permission model, required prompt, category scope, validity
 
 ## Choice, notice, and preferences
 
-A choice prompt includes both accept and reject at the same interaction depth and with equal default prominence. Customize does not replace reject. The shared `resolveConsentPresentation` function restores omitted required actions, removes forbidden actions, and returns diagnostics. Deliberately assigning different prominence to equivalent actions produces a development diagnostic. These are c15t product constraints, not a legal verdict about a deployment.
+A choice prompt includes both accept and reject at the same interaction depth and with equal default prominence. Customize does not replace reject. The shared `resolveConsentPresentation` function restores omitted required actions, removes forbidden actions, and returns diagnostics. Deliberately assigning different prominence to equivalent actions produces a development diagnostic.
 
 An opt-out notice renders one dedicated dismiss control. It does not trap focus or lock scrolling. Dismissal records only the local notice dismissal; it never records consent or changes effective permissions.
 

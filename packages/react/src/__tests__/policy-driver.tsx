@@ -72,6 +72,10 @@ const firstLayer = (
 	}
 	return notice ? 'notice' : 'choice';
 };
+const POLICY_GVL = {
+	...MINIMAL_GVL,
+	vendors: { 755: { ...MINIMAL_GVL.vendors[1], id: 755 } },
+};
 const config = { storageKey: 'c15t-policy-conformance' };
 const keys = resolveStorageKeys(config);
 const legacyKey = keys.legacyConsent;
@@ -179,7 +183,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		cmpId: setup.policy.model === 'iab' ? 123 : undefined,
 		gvl:
 			setup.policy.model === 'iab'
-				? (MINIMAL_GVL as unknown as GlobalVendorList)
+				? (POLICY_GVL as unknown as GlobalVendorList)
 				: null,
 		policyDecision: {
 			country: 'DE',
@@ -400,7 +404,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 								? {
 										cmpId: 123,
 										enabled: true,
-										gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+										gvl: POLICY_GVL as unknown as GlobalVendorList,
 									}
 								: undefined,
 						initialPolicyResolution: resolution,
@@ -635,7 +639,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 									? {
 											cmpId: 123,
 											enabled: true,
-											gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+											gvl: POLICY_GVL as unknown as GlobalVendorList,
 										}
 									: undefined,
 							initialPolicyResolution: resolution,
@@ -643,7 +647,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 						});
 						const seedAddon = createIAB({
 							cmpId: 123,
-							gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+							gvl: POLICY_GVL as unknown as GlobalVendorList,
 							kernel: seedKernel,
 						});
 						try {
@@ -655,7 +659,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 						}
 						addon = createIAB({
 							cmpId: 123,
-							gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+							gvl: POLICY_GVL as unknown as GlobalVendorList,
 							kernel,
 						});
 						await settle();

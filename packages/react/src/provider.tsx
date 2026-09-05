@@ -408,11 +408,14 @@ const ProviderCallbacksMount = ({
 const InitMount = ({
 	enabled,
 	kernel,
+	prepared,
 }: {
 	enabled: boolean;
 	kernel: ConsentKernel;
+	prepared: boolean;
 }) => {
 	const initialized = useRef(false);
+	const hydrated = useRef(false);
 	useEffect(() => {
 		if (!enabled) {
 			initialized.current = false;
@@ -422,8 +425,17 @@ const InitMount = ({
 			return;
 		}
 		initialized.current = true;
-		kernel.commands.init();
-	}, [enabled, kernel]);
+		if (prepared) {
+			kernel.hydrate({
+				now: hydrated.current
+					? Date.now()
+					: kernel.getServerSnapshot().evaluatedAt,
+			});
+			hydrated.current = true;
+		} else {
+			kernel.commands.init();
+		}
+	}, [enabled, kernel, prepared]);
 	return null;
 };
 
@@ -714,7 +726,8 @@ export const ConsentProvider = ({
 				<PersistenceMount options={persistenceOptions} />
 			) : null}
 			<InitMount
-				enabled={enabled && !options.prefetch?.initialPolicyResolution}
+				enabled={enabled}
+				prepared={!!options.prefetch?.initialPolicyResolution}
 				kernel={kernel}
 			/>
 			{enabled && scripts && scripts.length > 0 ? (

@@ -328,3 +328,56 @@ it('diagnoses theme overrides that give equivalent actions unequal prominence', 
 		)
 	).toBe(true);
 });
+
+it('starts real expiry timers for prepared records without replaying choice or writing storage', async () => {
+	const clock = Date.now();
+	const policy = resolution({ categories: ['marketing'] });
+	if (policy.status !== 'matched') {
+		throw new Error('Expected matched policy');
+	}
+	const onChoiceRecorded = vi.fn();
+	const onPermissionsChanged = vi.fn();
+	const writes = vi.spyOn(Storage.prototype, 'setItem');
+	const screen = await render(
+		<ConsentProvider
+			options={{
+				mode: custom({}),
+				persistence: false,
+				callbacks: { onChoiceRecorded, onPermissionsChanged },
+				prefetch: {
+					now: clock,
+					initialPolicyResolution: policy,
+					initialRecords: {
+						choice: {
+							version: 3,
+							categories: {
+								marketing: {
+									value: true,
+									confirmedAt: clock - 1,
+									expiresAt: clock + 150,
+									basis: {
+										kind: 'choice-v1',
+										fingerprint: policy.fingerprints.choice,
+									},
+								},
+							},
+						},
+					},
+				},
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	expect(
+		document.querySelector('[data-testid="consent-banner-root"]')
+	).toBeNull();
+	await expect
+		.element(screen.getByTestId('consent-banner-accept-button'))
+		.toBeVisible();
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+	expect(onChoiceRecorded).not.toHaveBeenCalled();
+	expect(onPermissionsChanged).toHaveBeenCalledTimes(1);
+	expect(writes).not.toHaveBeenCalled();
+});
