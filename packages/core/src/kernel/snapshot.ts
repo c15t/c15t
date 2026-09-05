@@ -64,14 +64,18 @@ export const DEFAULT_IAB: KernelIABState = {
 	vendorLegitimateInterests: {},
 };
 
-const UNCONFIGURED: PolicyResolution = { policy: null, status: 'unconfigured' };
+const UNCONFIGURED: PolicyResolution = Object.freeze({
+	policy: null,
+	status: 'unconfigured',
+});
 
 // The fallback evaluation without records has no expiry or directive deadline.
 // Its permissions and prompt are independent of the clock and GPC because
 // the fallback has no GPC deny mapping. Compute the real evaluator once and
 // freeze its result before sharing it between independently owned snapshots.
+const DEFAULT_EFFECTIVE_POLICY = resolveEffectivePolicy(UNCONFIGURED);
 const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
-	resolveEffectivePolicy(UNCONFIGURED)
+	DEFAULT_EFFECTIVE_POLICY
 );
 const EMPTY_DIRECTIVES: ConsentSnapshot['optOutDirectives'] = Object.freeze([]);
 const EMPTY_OVERRIDES = Object.freeze({});
@@ -193,25 +197,48 @@ export const freezeSnapshot = function freezeSnapshot(
 	snapshot: ConsentSnapshot
 ): ConsentSnapshot {
 	deepFreeze(snapshot.iab?.authority);
-	Object.freeze(snapshot.effectivePermissions);
-	Object.freeze(snapshot.overrides);
-	Object.freeze(snapshot.promptRequirement);
-	if (!Object.isFrozen(snapshot.restrictions)) {
+	// Only skip branches whose identity proves they are our frozen defaults.
+	// Caller-owned objects still take the full freezing path.
+	if (snapshot.effectivePermissions !== DEFAULT_RECORD_EVALUATION.permissions) {
+		Object.freeze(snapshot.effectivePermissions);
+	}
+	if (snapshot.overrides !== EMPTY_OVERRIDES) {
+		Object.freeze(snapshot.overrides);
+	}
+	if (
+		snapshot.promptRequirement !== DEFAULT_RECORD_EVALUATION.promptRequirement
+	) {
+		Object.freeze(snapshot.promptRequirement);
+	}
+	if (
+		snapshot.restrictions !== DEFAULT_RECORD_EVALUATION.restrictions &&
+		!Object.isFrozen(snapshot.restrictions)
+	) {
 		for (const reasons of Object.values(snapshot.restrictions)) {
 			Object.freeze(reasons);
 		}
 		Object.freeze(snapshot.restrictions);
 	}
-	for (const directive of snapshot.optOutDirectives) {
-		Object.freeze(directive.categories);
-		Object.freeze(directive);
+	if (snapshot.optOutDirectives !== EMPTY_DIRECTIVES) {
+		for (const directive of snapshot.optOutDirectives) {
+			Object.freeze(directive.categories);
+			Object.freeze(directive);
+		}
+		Object.freeze(snapshot.optOutDirectives);
 	}
-	Object.freeze(snapshot.optOutDirectives);
-	Object.freeze(snapshot.privacySignals.gpc);
-	Object.freeze(snapshot.privacySignals);
-	deepFreeze(snapshot.resolution);
-	deepFreeze(snapshot.policyRule);
-	deepFreeze(snapshot.evaluationPolicy);
+	if (snapshot.privacySignals !== DEFAULT_PRIVACY_SIGNALS) {
+		Object.freeze(snapshot.privacySignals.gpc);
+		Object.freeze(snapshot.privacySignals);
+	}
+	if (snapshot.resolution !== UNCONFIGURED) {
+		deepFreeze(snapshot.resolution);
+	}
+	if (snapshot.policyRule !== DEFAULT_EFFECTIVE_POLICY.rule) {
+		deepFreeze(snapshot.policyRule);
+	}
+	if (snapshot.evaluationPolicy !== DEFAULT_EVALUATION_POLICY) {
+		deepFreeze(snapshot.evaluationPolicy);
+	}
 	freezeChoice(snapshot.explicitChoice as ExplicitChoice | null);
 	for (const nested of [
 		snapshot.noticeDismissal,
