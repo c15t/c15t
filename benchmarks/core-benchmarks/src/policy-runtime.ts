@@ -89,6 +89,26 @@ const createInitTransport = function createInitTransport(
 	} as unknown as KernelTransport;
 };
 
+const measurePolicyOperations = async (response: InitResponse) => {
+	const { createPolicyOperations } = await import('./policy-operations');
+	const local = createPolicyOperations(response);
+	const deferred = createPolicyOperations(response, 'deferred');
+	const operations = {
+		...local,
+		transportedPolicyAcceptCompletionUs: deferred.realPolicyAcceptUs,
+		transportedPolicyPartialCompletionUs: deferred.realPolicyPartialUs,
+		transportedPolicyRejectCompletionUs: deferred.realPolicyRejectUs,
+		transportedPolicyRepeatCompletionUs: deferred.realPolicyRepeatHydrationUs,
+	};
+	const metrics = [];
+	for (const [name, operation] of Object.entries(operations)) {
+		// oxlint-disable-next-line no-await-in-loop -- Timed operations must never overlap.
+		const samples = await warmedAsync(operation);
+		metrics.push(summarizeMetric(name, 'us', samples));
+	}
+	return metrics;
+};
+
 const runFixture = async function runFixture(
 	fixture: PolicyBenchFixture
 ): Promise<void> {
@@ -192,17 +212,10 @@ const runFixture = async function runFixture(
 		| { kind?: string; reason?: string }
 		| undefined;
 
-	const operationMetrics = [];
-	if (resolved.family === 'policy-rules') {
-		const { createPolicyOperations } = await import('./policy-operations');
-		for (const [name, operation] of Object.entries(
-			createPolicyOperations(initResponse)
-		)) {
-			// oxlint-disable-next-line no-await-in-loop -- Timed operations must never overlap.
-			const samples = await warmedAsync(operation);
-			operationMetrics.push(summarizeMetric(name, 'us', samples));
-		}
-	}
+	const operationMetrics =
+		resolved.family === 'policy-rules'
+			? await measurePolicyOperations(initResponse)
+			: [];
 
 	const result: BenchmarkResult = {
 		baseSha: safeBaseSha(),
@@ -229,6 +242,8 @@ const runFixture = async function runFixture(
 			initKeys: Object.keys(init).sort(),
 			initPolicyId,
 			iterations: ITERATIONS,
+			localPolicyWorkload:
+				'real producer init, local choice commit, no save transport; setup and assertions included',
 			manifestSchemaVersion:
 				typeof manifest.schemaVersion === 'number'
 					? manifest.schemaVersion
@@ -239,6 +254,8 @@ const runFixture = async function runFixture(
 			promptRequirementReason: promptRequirement?.reason ?? null,
 			syncPolicyId,
 			syncResolver: syncResolution.resolver,
+			transportedPolicyWorkload:
+				'same choice work with save transport; includes deliberate timer yield before transport completion',
 			warmupIterations: WARMUP,
 		},
 		metrics: [

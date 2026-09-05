@@ -1,6 +1,6 @@
 # Internal consent records
 
-These helpers track #1025 and are not exported from `@c15t/core/consent-record` or the package root. The kernel, persistence, transports and framework adapters still use `hasConsented` and flat `consents`. Runtime integration remains separate work.
+These helpers implement the record model used by the kernel, persistence, transports and framework adapters. The record API is exported from `@c15t/core/consent-record`. The kernel exposes explicit choices, effective permissions, prompt requirements, notice dismissals and privacy directives as separate facts.
 
 ## Files
 
@@ -19,7 +19,7 @@ Opt-in and IAB default to denied within scope; opt-out defaults to allowed. Outs
 
 A `choice-v1` basis must match the policy's choice fingerprint. A `legacy-v2` basis compares only with the policy's legacy material fingerprint. If either legacy fingerprint is absent, the decision is grandfathered.
 
-Positive decisions expire at `confirmedAt + choice.maxAgeMs` and remain valid while `now < expiresAt`. An explicit `maxAgeMs: null` retains unbounded compatibility behavior and does not meet the eventual requirement to bound grant lifetimes.
+Positive decisions expire at `confirmedAt + choice.maxAgeMs` and remain valid while `now < expiresAt`. An explicit `maxAgeMs: null` retains unbounded compatibility behavior in the record evaluator. Resolved policy rules supply finite validity durations.
 
 A choice prompt uses the active optional scope. Empty scope requires no prompt. Otherwise, no decisions yields `missing`; any incompatible in-scope basis yields `policy-changed`; missing required coverage yields `missing`; any expired positive decision yields `expired`. Complete matching coverage requires no prompt. Matching denials satisfy coverage regardless of age.
 
@@ -27,6 +27,8 @@ A notice prompt depends only on its dismissal. Missing dismissal yields `missing
 
 `nextDeadline` is the earliest expiry that changes a permission or the aggregate prompt. An unmasked opt-in or IAB grant still needs an expiry deadline when choice coverage is missing. A masked grant or opt-out grant needs one only when expiry changes satisfied choice coverage to `expired`. Existing `missing`, `policy-changed` and `expired` prompts keep their reason as other grants expire. A notice deadline uses the dismissal's independent lifetime.
 
-## Remaining integration
+## Runtime integration
 
-Kernel wiring and events, storage codecs and raw reads, all/none/no-input save expansion, fingerprint producers, the resolved-policy bridge, resolution status, IAB target gates, GPC directive recording, informed exceptions and failed-init prompt visibility remain outside these helpers.
+The kernel records choices through accept, reject and save, then evaluates these records against the current resolved policy. Persistence reads raw v2 and v3 records without creating a choice or writing during hydration. Producers compute policy and prompt fingerprints before the kernel applies a resolution.
+
+Notice dismissal and GPC directives have separate commands, records and events. Clearing c15t data invalidates pending record work. Transport acknowledgements may associate a successful current save with its canonical subject; failures preserve the local choice and existing subject.

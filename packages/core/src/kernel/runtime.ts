@@ -263,6 +263,10 @@ export const createRuntime = function createRuntime(
 		if (!started) {
 			return;
 		}
+		// Existing directives remain requests after the live signal disappears.
+		// Forward them when init establishes an identified subject, preserving
+		// their original timestamp and without emitting another privacy event.
+		flushPrivacy();
 		const current = snapshot;
 		const { gpc } = current.privacySignals;
 		// Only a detected user-agent signal records a directive. A developer

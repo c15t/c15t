@@ -638,17 +638,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (!currentPayload()) {
 				return { ...result, confirmed };
 			}
-			if (
-				result.subjectId &&
-				result.subjectId !== getSnapshot().subject?.subjectId &&
-				getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
-				getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
-			) {
-				commit({
-					subject: { ...getSnapshot().subject, subjectId: result.subjectId },
-				});
-			}
 			if (result.ok) {
+				if (
+					result.subjectId &&
+					result.subjectId !== getSnapshot().subject?.subjectId &&
+					getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
+					getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
+				) {
+					commit({
+						subject: { ...getSnapshot().subject, subjectId: result.subjectId },
+					});
+				}
 				// The accepted save established or confirmed the subject: standing
 				// directives recorded while anonymous can be forwarded now.
 				runtime.flushPrivacy();
@@ -686,6 +686,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		async identify(user: KernelUser): Promise<void> {
 			identifyGeneration += 1;
 			const attempt = identifyGeneration;
+			const generation = runtime.getGeneration();
 			const { subject, iab } = getSnapshot();
 			const subjectId = subject?.subjectId ?? null;
 			const patch: SnapshotPatch = { user: { ...user } };
@@ -702,15 +703,17 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					throw error;
 				}
 			}
-			if (attempt === identifyGeneration) {
-				// An existing subject forwards standing directives right away;
-				// without one they stay pending until a save establishes it.
-				runtime.flushPrivacy();
+			if (
+				attempt !== identifyGeneration ||
+				runtime.getGeneration() !== generation ||
+				(getSnapshot().subject?.subjectId ?? null) !== subjectId
+			) {
+				return;
 			}
-			await loadSubjectRecord(
-				getSnapshot().subject?.subjectId ?? null,
-				attempt
-			);
+			// An existing subject forwards standing directives right away;
+			// without one they stay pending until a save establishes it.
+			runtime.flushPrivacy();
+			await loadSubjectRecord(subjectId, attempt);
 		},
 
 		init(): Promise<InitResult> {
