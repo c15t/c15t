@@ -7,8 +7,16 @@
  * the publish surface to per-component class-map modules plus plain CSS:
  *
  *   dist/styles/components/<name>.js
+ *   dist/styles/components/<name>.node.js
  *   dist/styles/components/<name>.css
  *   dist/styles/components/<name>.d.ts
+ *
+ * `<name>.js` starts with a side-effect `import "./<name>.css"` so bundlers
+ * pull the component CSS in with the class map. `<name>.node.js` is the same
+ * class map without that import: it is served through the `node` export
+ * condition to runtimes that load the package with plain Node (for example
+ * the Next.js Pages Router externalising node_modules), which cannot import
+ * CSS and already load the aggregated stylesheet for SSR.
  *
  * Relative `@import`s (the shared `animations/*.css` files) are inlined into
  * each component's CSS so every artifact is self-contained.
@@ -78,6 +86,27 @@ const normalizeStyleModule = function normalizeStyleModule(
 		.replace(new RegExp(`\\./${name}\\.module\\.css`, 'gu'), `./${name}.css`);
 };
 
+/**
+ * Drop the `import "./<name>.css"` side effect from a normalized class map.
+ * Throws when the import is missing so a change to the rslib output shape
+ * cannot silently produce a `.node.js` that still differs from `.js`.
+ */
+const stripCssImport = function stripCssImport(
+	source: string,
+	name: string
+): string {
+	const cssImport = new RegExp(
+		`import\\s*["']\\./${name}\\.css["']\\s*;?`,
+		'u'
+	);
+	if (!cssImport.test(source)) {
+		throw new Error(
+			`generate-style-artifacts: ${name}.js does not import ./${name}.css; cannot derive ${name}.node.js`
+		);
+	}
+	return source.replace(cssImport, '');
+};
+
 const normalizeDeclaration = function normalizeDeclaration(
 	source: string
 ): string {
@@ -108,9 +137,11 @@ for (const name of moduleNames) {
 		join(DIST_COMPONENTS_DIR, `${name}.module.js`),
 		join(DIST_COMPONENTS_DIR, `${name}.js`),
 	]);
+	const classMap = normalizeStyleModule(js.content, name);
+	writeFileSync(join(DIST_COMPONENTS_DIR, `${name}.js`), classMap);
 	writeFileSync(
-		join(DIST_COMPONENTS_DIR, `${name}.js`),
-		normalizeStyleModule(js.content, name)
+		join(DIST_COMPONENTS_DIR, `${name}.node.js`),
+		stripCssImport(classMap, name)
 	);
 
 	const declaration = readExisting([
