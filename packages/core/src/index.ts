@@ -65,6 +65,7 @@ export { createHostedTransport } from './transports/hosted';
 export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,
+	kernelConfigToInitResponse,
 	mapInitOutputToInitResponse,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,

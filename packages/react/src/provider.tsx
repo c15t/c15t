@@ -7,6 +7,7 @@ import type {
 	ConsentSnapshot,
 	I18nConfig,
 	IABConfig,
+	InitContext,
 	InitResponse,
 	KernelConfig,
 	KernelEvent,
@@ -25,7 +26,11 @@ import type {
 	TranslationsResponse,
 	User,
 } from '@c15t/core';
-import { createConsentKernel, mapInitOutputToInitResponse } from '@c15t/core';
+import {
+	createConsentKernel,
+	kernelConfigToInitResponse,
+	mapInitOutputToInitResponse,
+} from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 import {
 	createWindowDebug,
@@ -110,7 +115,37 @@ export interface ConsentProviderOptions extends Pick<
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
-	prefetch?: KernelConfig;
+	/**
+	 * Server-resolved kernel configuration, usually from a framework server
+	 * helper such as `prefetchInitialConsent()` or `readInitialConsentConfig()`.
+	 *
+	 * Pass the resolved `KernelConfig` and the provider builds its kernel
+	 * from it synchronously: a config carrying a policy renders the banner
+	 * on first paint.
+	 *
+	 * Pass the pending `Promise<KernelConfig>` instead and the provider
+	 * mounts at once with a provisional policy, so `children` render (and
+	 * the static shell can prerender) while the consent data streams in.
+	 * Consent surfaces stay hidden until the promise resolves; its first
+	 * `init()` then applies the resolved config in place of the transport's
+	 * network init. A config that resolves without a policy (persisted
+	 * consents, geo, language only) is applied to the kernel and the
+	 * transport init runs as usual; a rejected promise is logged outside
+	 * production and falls through to the transport init. Initial-only:
+	 * remount the provider to change it.
+	 *
+	 * @example
+	 * ```tsx
+	 * // app/layout.tsx — stays synchronous, so the shell prerenders.
+	 * const config = prefetchInitialConsent({ backendURL });
+	 * return (
+	 *   <ConsentProvider options={{ mode: hosted({ url }), prefetch: config }}>
+	 *     {children}
+	 *   </ConsentProvider>
+	 * );
+	 * ```
+	 */
+	prefetch?: KernelConfig | Promise<KernelConfig>;
 	callbacks?: Callbacks;
 	reloadOnConsentRevoked?: boolean;
 	scripts?: Script[];
@@ -268,6 +303,47 @@ const mapSSRInitialData = function mapSSRInitialData(
 	);
 };
 
+/**
+ * What a first-init source resolved to: an init response to apply instead
+ * of calling the transport, or the context the transport should be called
+ * with when the source had no policy to offer.
+ */
+interface FirstInitResolution {
+	response?: InitResponse | null;
+	context?: InitContext;
+}
+
+type FirstInitSource = (ctx: InitContext) => Promise<FirstInitResolution>;
+
+/**
+ * Wrap a transport so its first `init()` is answered by `source` — a
+ * server-supplied payload that arrives asynchronously (a pending
+ * `prefetch` promise, or the deprecated `ssrData`). When the source yields
+ * no response the real transport init runs with the context the source
+ * returned. Later inits (overrides changes, `enabled` flips, retries) go
+ * straight to the transport.
+ */
+const withFirstInitSource = function withFirstInitSource(
+	transport: KernelTransport,
+	source: FirstInitSource
+): KernelTransport {
+	let used = false;
+	return {
+		...transport,
+		async init(ctx) {
+			if (used) {
+				return transport.init?.(ctx) ?? {};
+			}
+			used = true;
+			const resolution = await source(ctx);
+			if (resolution.response) {
+				return resolution.response;
+			}
+			return transport.init?.(resolution.context ?? ctx) ?? {};
+		},
+	};
+};
+
 const withSSRData = function withSSRData(
 	transport: KernelTransport,
 	ssrData: ConsentProviderOptions['ssrData']
@@ -275,20 +351,146 @@ const withSSRData = function withSSRData(
 	if (!ssrData) {
 		return transport;
 	}
-	let used = false;
-	return {
-		...transport,
-		async init(ctx) {
-			if (!used) {
-				used = true;
-				const mapped = mapSSRInitialData(await ssrData);
-				if (mapped) {
-					return mapped as never;
-				}
-			}
-			return transport.init?.(ctx) ?? {};
-		},
+	return withFirstInitSource(transport, async () => ({
+		response: mapSSRInitialData(await ssrData),
+	}));
+};
+
+const isPromiseLike = function isPromiseLike<Value>(
+	value: Value | PromiseLike<Value> | undefined
+): value is PromiseLike<Value> {
+	return typeof (value as PromiseLike<Value> | undefined)?.then === 'function';
+};
+
+/**
+ * The part of `prefetch` available at kernel construction: the config
+ * itself when it was passed resolved, an empty config while a promise is
+ * still pending.
+ */
+const resolveSyncPrefetch = function resolveSyncPrefetch(
+	options: ConsentProviderOptions
+): KernelConfig {
+	const { prefetch } = options;
+	if (!prefetch || isPromiseLike(prefetch)) {
+		return {};
+	}
+	return prefetch;
+};
+
+const hasKeys = function hasKeys(
+	value: KernelOverrides | undefined
+): value is KernelOverrides {
+	return value !== undefined && Object.keys(value).length > 0;
+};
+
+const warnPrefetchRejected = function warnPrefetchRejected(error: unknown) {
+	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
+		.process?.env?.NODE_ENV;
+	if (nodeEnv === 'production') {
+		return;
+	}
+	console.warn(
+		'c15t ConsentProvider: the `prefetch` promise rejected; falling back to the transport init.',
+		error
+	);
+};
+
+/**
+ * Apply the baseline fields of a policy-less prefetch (persisted consents,
+ * subject, geo/language) to a live kernel. Done through the setters rather
+ * than the init path so a returning visitor's stored choice holds even if
+ * the transport init that follows fails.
+ */
+const applyBaselinePrefetch = function applyBaselinePrefetch(
+	kernel: ConsentKernel,
+	config: KernelConfig,
+	providerOverrides: KernelOverrides | undefined
+) {
+	const overrides = {
+		...(config.initialOverrides ?? {}),
+		...(providerOverrides ?? {}),
 	};
+	if (hasKeys(overrides)) {
+		kernel.set.overrides(overrides);
+	}
+	if (config.initialConsents) {
+		kernel.set.consent(config.initialConsents);
+	}
+	if (config.initialHasConsented !== undefined) {
+		kernel.set.hasConsented(config.initialHasConsented);
+	}
+	if (config.initialSubjectId) {
+		kernel.set.subjectId(config.initialSubjectId);
+	}
+};
+
+/**
+ * First-init source for a pending `prefetch` promise. A resolved config
+ * with a policy becomes the init response outright (no network init); a
+ * policy-less config is applied as a baseline and the transport init runs
+ * with its overrides. Provider `overrides` win over the server's, matching
+ * the synchronous prefetch merge.
+ */
+const createPrefetchSource = function createPrefetchSource(
+	prefetch: Promise<KernelConfig>,
+	providerOverrides: KernelOverrides | undefined,
+	getKernel: () => ConsentKernel | null
+): FirstInitSource {
+	return async (ctx) => {
+		let config: KernelConfig;
+		try {
+			config = (await prefetch) ?? {};
+		} catch (error) {
+			warnPrefetchRejected(error);
+			return {};
+		}
+
+		const response = kernelConfigToInitResponse(config);
+		if (response) {
+			const resolvedOverrides = {
+				...(response.resolvedOverrides ?? {}),
+				...(providerOverrides ?? {}),
+			};
+			if (hasKeys(resolvedOverrides)) {
+				response.resolvedOverrides = resolvedOverrides;
+			}
+			return { response };
+		}
+
+		const kernel = getKernel();
+		if (kernel) {
+			applyBaselinePrefetch(kernel, config, providerOverrides);
+		}
+		return {
+			context: {
+				overrides: {
+					...ctx.overrides,
+					...(config.initialOverrides ?? {}),
+					...(providerOverrides ?? {}),
+				},
+				user: ctx.user,
+			},
+		};
+	};
+};
+
+const withPrefetchPromise = function withPrefetchPromise(
+	transport: KernelTransport,
+	options: ConsentProviderOptions,
+	getKernel: () => ConsentKernel | null
+): KernelTransport {
+	const { prefetch } = options;
+	if (!isPromiseLike(prefetch)) {
+		return transport;
+	}
+	return withFirstInitSource(
+		transport,
+		createPrefetchSource(
+			Promise.resolve(prefetch),
+			options.overrides,
+			getKernel
+		)
+	);
 };
 
 const getProviderMode = function getProviderMode(
@@ -318,7 +520,7 @@ const createProviderKernel = function createProviderKernel(
 	options: ConsentProviderOptions
 ): ConsentKernel {
 	const enabled = getEnabled(options);
-	const prefetch = options.prefetch ?? {};
+	const prefetch = resolveSyncPrefetch(options);
 	const { offlinePolicy } = options;
 	const i18nTranslations =
 		resolveI18nTranslations(resolveProviderI18n(options)) ??
@@ -333,10 +535,18 @@ const createProviderKernel = function createProviderKernel(
 	};
 	const baseTransport = getProviderMode(options)(transportContext);
 
-	const transport = withSSRData(baseTransport, options.ssrData);
+	// The prefetch source needs the kernel it is about to feed (baseline
+	// setters on a policy-less config), but the transport must exist before
+	// the kernel does. Late-bind it: init only runs once the kernel exists.
+	const kernelRef: { current: ConsentKernel | null } = { current: null };
+	const transport = withPrefetchPromise(
+		withSSRData(baseTransport, options.ssrData),
+		options,
+		() => kernelRef.current
+	);
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-	return createConsentKernel({
+	const kernel = createConsentKernel({
 		...prefetch,
 		transport,
 		initialConsents: enabled
@@ -367,6 +577,8 @@ const createProviderKernel = function createProviderKernel(
 		initialPolicySnapshotToken:
 			prefetch.initialPolicySnapshotToken ?? offlinePolicy?.policySnapshotToken,
 	});
+	kernelRef.current = kernel;
+	return kernel;
 };
 
 const snapshotConsentsChanged = function snapshotConsentsChanged(
@@ -1014,7 +1226,7 @@ export const ConsentProvider = ({
 				<IABGate
 					enabled={enabled}
 					initialModel={
-						options.prefetch?.initialPolicy?.model ??
+						resolveSyncPrefetch(options).initialPolicy?.model ??
 						options.offlinePolicy?.policy?.model
 					}
 					kernel={kernel}
