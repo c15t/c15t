@@ -76,6 +76,52 @@ const pick = function pick<Value>(
 	return patched === undefined ? current : patched;
 };
 
+/**
+ * Whether a patch can retain the current snapshot without constructing a
+ * candidate. Only identical inputs qualify, and time must remain within
+ * the interval already covered by the current evaluation.
+ */
+// oxlint-disable-next-line complexity -- Every patch input must match before bypassing candidate derivation.
+export const isUnchangedPatch = function isUnchangedPatch(
+	current: ConsentSnapshot,
+	patch: SnapshotPatch
+): boolean {
+	const now = pick(patch.now, current.evaluatedAt);
+	// Initial IAB authority can need normalization even with identical inputs.
+	// Keep that work on the full snapshot derivation path.
+	if (
+		current.iab?.authority ||
+		now < current.evaluatedAt ||
+		!Number.isFinite(now) ||
+		(current.nextDeadline !== null && now >= current.nextDeadline)
+	) {
+		return false;
+	}
+	return (
+		pick(patch.privacyDetected, current.privacySignals.gpc.detected) ===
+			current.privacySignals.gpc.detected &&
+		pick(patch.explicitChoice, current.explicitChoice) ===
+			current.explicitChoice &&
+		pick(patch.noticeDismissal, current.noticeDismissal) ===
+			current.noticeDismissal &&
+		pick(patch.optOutDirectives, current.optOutDirectives) ===
+			current.optOutDirectives &&
+		pick(patch.resolution, current.resolution) === current.resolution &&
+		pick(patch.subject, current.subject) === current.subject &&
+		pick(patch.overrides, current.overrides) === current.overrides &&
+		pick(patch.user, current.user) === current.user &&
+		pick(patch.location, current.location) === current.location &&
+		pick(patch.translations, current.translations) === current.translations &&
+		pick(patch.branding, current.branding) === current.branding &&
+		pick(patch.policySnapshotToken, current.policySnapshotToken) ===
+			current.policySnapshotToken &&
+		pick(patch.activeUI, current.activeUI) === current.activeUI &&
+		pick(patch.policyPending, current.policyPending) ===
+			current.policyPending &&
+		pick(patch.iab, current.iab) === current.iab
+	);
+};
+
 const samePermissions = function samePermissions(
 	left: Readonly<ConsentState>,
 	right: Readonly<ConsentState>

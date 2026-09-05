@@ -21,7 +21,7 @@ import type {
 	KernelTransport,
 	Listener,
 } from '../types';
-import { buildNextSnapshot, snapshotChanged } from './patch';
+import { buildNextSnapshot, isUnchangedPatch, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
 import { mergeServerPatch } from './server-records';
@@ -142,6 +142,9 @@ export const createRuntime = function createRuntime(
 
 	const commit = function commit(patch: SnapshotPatch): boolean {
 		const current = snapshot;
+		if (isUnchangedPatch(current, patch)) {
+			return false;
+		}
 		const next = buildNextSnapshot(current, patch);
 		if (!snapshotChanged(current, next)) {
 			return false;
