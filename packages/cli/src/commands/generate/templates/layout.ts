@@ -11,7 +11,10 @@ import path from 'node:path';
 import { Project, SyntaxKind } from 'ts-morph';
 import type { ReturnStatement, SourceFile } from 'ts-morph';
 
-import type { AvailablePackages } from '~/context/framework-detection';
+import type {
+	AvailablePackages,
+	DevelopmentEnvironment,
+} from '~/context/framework-detection';
 
 import type { StorageMode } from '../../../constants';
 import type { ExpandedTheme, UIStyle } from '../prompts';
@@ -28,6 +31,7 @@ import { generateOptionsText } from './shared/options';
 import { generateSimpleWrapperComponent } from './shared/server-components';
 
 interface UpdateReactLayoutOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	projectRoot: string;
 	mode: string;
 	backendURL?: string;
@@ -146,7 +150,8 @@ async function createConsentManagerComponent(
 	useEnvFile?: boolean,
 	selectedScripts?: string[],
 	enableDevTools?: boolean,
-	expandedTheme?: ExpandedTheme
+	expandedTheme?: ExpandedTheme,
+	developmentEnvironment?: DevelopmentEnvironment
 ): Promise<ComponentFilePaths> {
 	const hasTheme = expandedTheme && expandedTheme !== 'none';
 
@@ -169,6 +174,7 @@ async function createConsentManagerComponent(
 	const providerContent = generateConsentComponent({
 		defaultExport: true,
 		devToolsImportSource: REACT_CONFIG.devToolsImportSource,
+		developmentEnvironment,
 		docsSlug: 'react',
 		enableDevTools,
 		importSource: REACT_CONFIG.importSource,
@@ -218,6 +224,7 @@ async function createConsentManagerComponent(
  * @throws {Error} When layout file cannot be parsed or updated
  */
 async function updateGenericReactLayout({
+	developmentEnvironment,
 	projectRoot,
 	mode,
 	backendURL,
@@ -292,7 +299,8 @@ async function updateGenericReactLayout({
 			useEnvFile,
 			selectedScripts,
 			enableDevTools,
-			expandedTheme
+			expandedTheme,
+			developmentEnvironment
 		);
 
 		// Add import for ConsentManager with correct relative path

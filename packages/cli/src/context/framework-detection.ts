@@ -10,10 +10,13 @@ import type { CliLogger } from '~/utils/logger';
  */
 export type AvailablePackages = 'c15t/next' | 'c15t/react' | 'c15t';
 
+export type DevelopmentEnvironment = 'vite' | 'node';
+
 /**
  * Framework detection result
  */
 export interface FrameworkDetectionResult {
+	developmentEnvironment?: DevelopmentEnvironment;
 	framework: string | null;
 	frameworkVersion: string | null;
 	pkg: AvailablePackages;
@@ -85,6 +88,13 @@ export const detectFramework = async function detectFramework(
 				`package: ${pkg}`
 		);
 		return {
+			developmentEnvironment:
+				!('next' in deps || 'gatsby' in deps || 'react-scripts' in deps) &&
+				('vite' in deps ||
+					'@vitejs/plugin-react' in deps ||
+					'@vitejs/plugin-react-swc' in deps)
+					? 'vite'
+					: 'node',
 			framework,
 			frameworkVersion,
 			hasReact,

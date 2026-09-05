@@ -87,6 +87,7 @@ describe('expanded component templates', () => {
 	);
 	it('generates a React v3 provider with its DevTools adapter', () => {
 		const template = generateExpandedProviderTemplate({
+			developmentEnvironment: 'vite',
 			enableDevTools: true,
 			enableSSR: false,
 			framework: REACT_CONFIG,

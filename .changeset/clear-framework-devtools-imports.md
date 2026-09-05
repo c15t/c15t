@@ -7,5 +7,6 @@ development-only lazy imports. Preserve server-prefetched config in the
 provider and avoid installing the standalone engine for framework adapters.
 Generate theme presets with separate theme tokens and component overrides
 that match the v3 provider's public types.
-Use Vite's browser environment flag for React DevTools imports and the Next.js
-environment flag for Next.js imports.
+Select the DevTools development guard from the detected build tool: Vite's
+browser flag for Vite projects, and the NODE_ENV replacement for Next.js,
+Gatsby, and webpack-based React projects.

@@ -10,11 +10,14 @@
  * Next.js App Router, TanStack Start, and other RSC frameworks.
  */
 
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
 import type { ExpandedTheme } from '../../prompts/expanded-theme';
 import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import type { FrameworkConfig } from './framework-config';
 
 interface GenerateExpandedProviderOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	enableSSR: boolean;
 	enableDevTools: boolean;
 	optionsText: string;
@@ -29,6 +32,7 @@ interface GenerateExpandedProviderOptions {
  */
 export const generateExpandedProviderTemplate =
 	function generateExpandedProviderTemplate({
+		developmentEnvironment,
 		enableSSR,
 		enableDevTools,
 		optionsText,
@@ -55,7 +59,10 @@ export const generateExpandedProviderTemplate =
 
 		const ssrDataOption = enableSSR ? '\n\t\t\t\tprefetch: config,' : '';
 		const devToolsImport = enableDevTools
-			? generateDevToolsImport(framework.devToolsImportSource)
+			? generateDevToolsImport(
+					framework.devToolsImportSource,
+					developmentEnvironment
+				)
 			: '';
 		const reactNodeImport = "import type { ReactNode } from 'react';\n";
 		const modeImport = ['custom', 'hosted', 'offline'].find((name) =>

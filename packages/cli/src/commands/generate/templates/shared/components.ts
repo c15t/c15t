@@ -3,6 +3,8 @@
  * Produces the Provider+Banner+Dialog component used by React, Next.js Pages, and App Dir client
  */
 
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
 import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import {
 	generateScriptsCommentPlaceholder,
@@ -11,6 +13,7 @@ import {
 } from './scripts';
 
 interface GenerateConsentComponentOptions {
+	developmentEnvironment?: DevelopmentEnvironment;
 	/** Entry point to import from: 'c15t/react' or 'c15t/next' */
 	importSource: string;
 	/** Framework adapter entry point. Defaults to the provider's devtools subpath. */
@@ -111,6 +114,7 @@ const buildDocComment = function buildDocComment({
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const generateConsentComponent = function generateConsentComponent({
 	importSource,
+	developmentEnvironment,
 	devToolsImportSource = `${importSource}/devtools`,
 	optionsText,
 	selectedScripts = [],
@@ -181,7 +185,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	// Build directive
 	const directive = useClientDirective ? "'use client';\n\n" : '';
 	const devToolsImport = enableDevTools
-		? generateDevToolsImport(devToolsImportSource)
+		? generateDevToolsImport(devToolsImportSource, developmentEnvironment)
 		: '';
 	const themeImport = includeTheme
 		? "import { components, theme } from './theme';\n"

@@ -1,10 +1,14 @@
-/** Generate a development-only lazy import for a framework DevTools adapter. */
-export const generateDevToolsImport = (source: string): string => {
-	const isNext =
-		source === 'c15t/next/devtools' || source === '@c15t/nextjs/devtools';
-	const developmentGuard = isNext
-		? "process.env.NODE_ENV !== 'production'"
-		: 'import.meta.env.DEV';
+import type { DevelopmentEnvironment } from '~/context/framework-detection';
+
+/** Generate a development-only lazy import using the project's build-time flag. */
+export const generateDevToolsImport = (
+	source: string,
+	environment: DevelopmentEnvironment = 'node'
+): string => {
+	const developmentGuard =
+		environment === 'vite'
+			? 'import.meta.env.DEV'
+			: "process.env.NODE_ENV !== 'production'";
 	return `import { lazy, Suspense } from 'react';
 
 const DevTools = ${developmentGuard}

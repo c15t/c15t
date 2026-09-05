@@ -22,6 +22,7 @@ describe('consent component template', () => {
 	it('generates a React v3 provider with its framework DevTools adapter', () => {
 		const template = generateConsentComponent({
 			devToolsImportSource: 'c15t/react/devtools',
+			developmentEnvironment: 'vite',
 			docsSlug: 'react',
 			enableDevTools: true,
 			importSource: 'c15t/react',
