@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makePolicy } from '../../../consent-record/__tests__/fixtures';
 import { evaluateConsentRecord } from '../../../consent-record/evaluate';
 import type { ChoiceBasis } from '../../../consent-record/types';
-import { setCookie } from '../../../libs/cookie';
+import { saveConsentToStorage, setCookie } from '../../../libs/cookie';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import { encodeStoredConsentEnvelopeCompact } from '../record-codec';
 import type { StoredConsentEnvelope } from '../record-codec';
@@ -252,19 +252,164 @@ describe('raw candidate reading', () => {
 		);
 	});
 
-	it('reserves any versioned prefix before legacy parsing', () => {
-		document.cookie = `${STORAGE_KEY_V2}=v=99,c.marketing:1,i.t:${NOW - DAY},i.sid:${SUBJECT_ID}`;
+	it('reserves any version field before legacy parsing, after whitespace and outer decoding', () => {
+		const smuggled = `v=99,c.marketing:1,i.t:${NOW - DAY},i.sid:${SUBJECT_ID}`;
+		const forms = [
+			smuggled,
+			` \t${smuggled}`,
+			encodeURIComponent(smuggled),
+			encodeURIComponent(`\n${smuggled}`),
+			smuggled.replace('v=99', 'v=-1'),
+			smuggled.replace('v=99', 'v='),
+			smuggled.replace('v=99', 'v=abc'),
+			`v=99&c.marketing:1,i.t:${NOW - DAY}`,
+		];
+
+		for (const form of forms) {
+			document.cookie = `${STORAGE_KEY_V2}=${form}`;
+			const { candidates, selected } = readStoredConsentRecord(undefined, NOW);
+			expect(selected, form).toBeNull();
+			expect(candidates[0]?.status, form).toBe('invalid');
+			expect(
+				candidates[0]?.status === 'invalid' && candidates[0].format,
+				form
+			).toBe('v3');
+			expect(
+				candidates[0]?.status === 'invalid' && candidates[0].issues[0]?.code,
+				form
+			).toBe('unsupported-version');
+		}
+	});
+
+	it('keeps percent sequences inside raw legacy identity bytes, raw or outer-encoded', () => {
+		const compact = `c.marketing:1,c.necessary:1,i.t:${NOW - DAY},i.sid:user%2F123`;
+		const json = JSON.stringify({
+			consentInfo: { subjectId: 'user%2F123', time: NOW - DAY },
+			consents: { marketing: true, necessary: true },
+		});
+
+		for (const raw of [compact, json]) {
+			for (const stored of [raw, encodeURIComponent(raw)]) {
+				document.cookie = `${STORAGE_KEY_V2}=${stored}`;
+				const { selected } = readStoredConsentRecord(undefined, NOW);
+				expect(selected?.subject?.subjectId, stored).toBe('user%2F123');
+				expect(selected?.choice.categories.marketing?.value, stored).toBe(true);
+				expect(selected?.encoding, stored).toBe(
+					raw === compact ? 'compact' : 'json'
+				);
+			}
+		}
+	});
+
+	it('keeps numeric-looking legacy identifiers as strings', () => {
+		document.cookie = `${STORAGE_KEY_V2}=c.marketing:1,c.necessary:1,i.t:${NOW - DAY},i.sid:subject-1,i.eid:12345,i.idp:1,i.mpf:0`;
+
+		const { selected } = readStoredConsentRecord(undefined, NOW);
+
+		expect(selected?.subject).toEqual({
+			externalId: '12345',
+			identityProvider: '1',
+			subjectId: 'subject-1',
+		});
+		expect(selected?.choice.categories.marketing).toEqual({
+			basis: { kind: 'legacy-v2', materialFingerprint: '0' },
+			confirmedAt: NOW - DAY,
+			value: true,
+		});
+		// A non-boolean flag or non-integer time still rejects the record.
+		document.cookie = `${STORAGE_KEY_V2}=c.marketing:yes,i.t:${NOW - DAY}`;
+		expect(readStoredConsentRecord(undefined, NOW).candidates[0]?.status).toBe(
+			'invalid'
+		);
+		document.cookie = `${STORAGE_KEY_V2}=c.marketing:1,i.t:${NOW - DAY}.5`;
+		expect(readStoredConsentRecord(undefined, NOW).candidates[0]?.status).toBe(
+			'invalid'
+		);
+	});
+
+	it('round-trips typed identity written by the actual v2 writer', () => {
+		saveConsentToStorage({
+			consentInfo: {
+				externalId: '12345',
+				identityProvider: '1',
+				materialPolicyFingerprint: '0',
+				subjectId: SUBJECT_ID,
+				time: NOW - DAY,
+			},
+			consents: { marketing: true, measurement: false, necessary: true },
+			iabCustomVendorConsents: { '42': true, vendor: false },
+		});
+		expect(document.cookie).toContain('i.eid:12345');
+		expect(document.cookie).toContain('i.idp:1');
 
 		const { candidates, selected } = readStoredConsentRecord(undefined, NOW);
 
-		expect(selected).toBeNull();
-		expect(candidates[0]?.status).toBe('invalid');
-		expect(candidates[0]?.status === 'invalid' && candidates[0].format).toBe(
-			'v3'
+		expect(selected?.source).toBe('cookie');
+		expect(selected?.encoding).toBe('compact');
+		expect(selected?.subject).toEqual({
+			externalId: '12345',
+			identityProvider: '1',
+			subjectId: SUBJECT_ID,
+		});
+		expect(selected?.choice.categories.marketing).toEqual({
+			basis: { kind: 'legacy-v2', materialFingerprint: '0' },
+			confirmedAt: NOW - DAY,
+			value: true,
+		});
+		// The v2 writer omits false, so the compact record restores it for
+		// the legacy universe and drops the false vendor flag entirely.
+		expect(selected?.choice.categories.measurement?.value).toBe(false);
+		expect(selected?.iab).toEqual({ customVendorConsents: { '42': true } });
+
+		// The JSON mirror the v2 writer also wrote agrees on identity.
+		const [, local] = candidates;
+		expect(local?.status).toBe('valid');
+		expect(local?.status === 'valid' && local.record.subject).toEqual(
+			selected?.subject
 		);
-		expect(
-			candidates[0]?.status === 'invalid' && candidates[0].issues[0]?.code
-		).toBe('unsupported-version');
+	});
+
+	it('unwraps one outer encoding layer around a v3 cookie without touching component escapes', () => {
+		const envelope: StoredConsentEnvelope = {
+			categories: {
+				marketing: {
+					basis: { fingerprint: 'fp&=|.%2F;:', kind: 'choice-v1' },
+					confirmedAt: NOW - DAY,
+					value: true,
+				},
+			},
+			iab: { customVendorConsents: { 'v.1|x&y%': false } },
+			subject: { externalId: 'user%2F123', subjectId: SUBJECT_ID },
+			version: 3,
+		};
+		const compact = encodeStoredConsentEnvelopeCompact(envelope);
+		const expected = readStoredConsentRecordFromCookieHeader(
+			`${STORAGE_KEY_V2}=${compact}`,
+			undefined,
+			NOW
+		).selected;
+		expect(expected?.choice.categories).toEqual(envelope.categories);
+
+		const outer = encodeURIComponent(compact);
+		const fromHeader = readStoredConsentRecordFromCookieHeader(
+			`${STORAGE_KEY_V2}=${outer}`,
+			undefined,
+			NOW
+		).selected;
+		document.cookie = `${STORAGE_KEY_V2}=${outer}`;
+		const fromBrowser = readStoredConsentRecord(undefined, NOW).selected;
+
+		for (const selected of [fromHeader, fromBrowser]) {
+			expect(selected?.format).toBe('v3');
+			expect(selected?.choice.categories).toEqual(envelope.categories);
+			expect(selected?.subject).toEqual(envelope.subject);
+			expect(selected?.iab).toEqual(envelope.iab);
+		}
+		// A second layer is not unwrapped: the bytes are simply not a record.
+		document.cookie = `${STORAGE_KEY_V2}=${encodeURIComponent(outer)}`;
+		expect(readStoredConsentRecord(undefined, NOW).candidates[0]?.status).toBe(
+			'unparseable'
+		);
 	});
 
 	it('accepts a JSON cookie with leading whitespace so its denial stays authoritative', () => {
@@ -366,6 +511,7 @@ describe('v3 writes', () => {
 		const first = writeStoredConsentEnvelope(envelope, { now: NOW });
 		expect(first.ok && first.written).toEqual({
 			cookie: true,
+			cookieDetail: { attempted: true, verified: true },
 			localStorage: true,
 		});
 		const afterFirst = readStoredConsentRecord(undefined, NOW).selected;
@@ -386,6 +532,83 @@ describe('v3 writes', () => {
 		const localBefore = window.localStorage.getItem(STORAGE_KEY_V2);
 		writeStoredConsentEnvelope(envelope, { now: NOW + DAY });
 		expect(window.localStorage.getItem(STORAGE_KEY_V2)).toBe(localBefore);
+	});
+
+	it('reports a thrown cookie write honestly while the old cookie stays authoritative', () => {
+		// An older, still valid cookie is in place and the browser now
+		// refuses cookie writes. localStorage must take the new envelope and
+		// the report must not claim the cookie changed.
+		const oldCookie = `${STORAGE_KEY_V2}=c.marketing:1,c.necessary:1,i.t:${NOW - 30 * DAY},i.sid:${SUBJECT_ID}`;
+		const descriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => oldCookie,
+			set: () => {
+				throw new Error('cookie write rejected');
+			},
+		});
+		try {
+			const result = writeStoredConsentEnvelope(
+				{
+					categories: {
+						marketing: {
+							basis: currentBasis,
+							confirmedAt: NOW - DAY,
+							value: false,
+						},
+					},
+					version: 3,
+				},
+				{ now: NOW }
+			);
+			expect(result.ok && result.written.cookie).toBe(false);
+			expect(result.ok && result.written.localStorage).toBe(true);
+			expect(result.ok && result.written.cookieDetail.attempted).toBe(false);
+			expect(
+				result.ok && result.written.cookieDetail.error instanceof Error
+			).toBe(true);
+			expect(window.localStorage.getItem(STORAGE_KEY_V2)).toContain(
+				'"version":3'
+			);
+
+			// Read precedence is unchanged: the untouched old cookie still wins.
+			const { selected } = readStoredConsentRecord(undefined, NOW);
+			expect(selected?.source).toBe('cookie');
+			expect(selected?.format).toBe('legacy-v2');
+			expect(selected?.choice.categories.marketing?.value).toBe(true);
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(document, 'cookie', descriptor);
+			}
+			document.cookie = '';
+		}
+	});
+
+	it('reports a silently dropped cookie as attempted but not verified', () => {
+		const descriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => '',
+			set: () => {
+				// Browser accepted the assignment and kept nothing.
+			},
+		});
+		try {
+			const result = writeStoredConsentEnvelope(
+				{ categories: {}, subject: { subjectId: SUBJECT_ID }, version: 3 },
+				{ now: NOW }
+			);
+			expect(result.ok && result.written.cookie).toBe(false);
+			expect(result.ok && result.written.cookieDetail).toEqual({
+				attempted: true,
+				verified: false,
+			});
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(document, 'cookie', descriptor);
+			}
+			document.cookie = '';
+		}
 	});
 
 	it('rejects a malformed envelope and writes nothing', () => {

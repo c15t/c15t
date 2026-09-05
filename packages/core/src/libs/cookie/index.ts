@@ -54,7 +54,9 @@ export {
 	parseCookieValue,
 	readCookieValueFromHeader,
 	setCookie,
+	writeCookie,
 } from './operations';
+export type { CookieWriteReport } from './operations';
 
 // Re-export serialization (internal use)
 export {

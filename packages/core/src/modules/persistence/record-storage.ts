@@ -23,6 +23,8 @@
  *   see original coverage.
  * - A versioned envelope is never decoded with the legacy reader, and a
  *   v1.x `id`-only record is rejected as unsupported, not read as v2.
+ * - Cookie bytes are recognized by form before any decoding. Percent
+ *   sequences inside a raw v2 value are identity bytes, not encoding.
  *
  * @internal
  */
@@ -37,12 +39,17 @@ import type {
 import { isPlainRecord, ownValue } from '../../consent-record/validation';
 import {
 	deleteConsentFromStorage,
+	expandFlatKeys,
 	getRawCookieValue,
-	parseCookieValue,
 	readCookieValueFromHeader,
-	setCookie,
+	stringToFlat,
+	writeCookie,
 } from '../../libs/cookie';
-import type { CookieOptions, StorageConfig } from '../../libs/cookie';
+import type {
+	CookieOptions,
+	CookieWriteReport,
+	StorageConfig,
+} from '../../libs/cookie';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import {
 	decodeNoticeDismissal,
@@ -52,7 +59,6 @@ import {
 	encodePrivacyOptOuts,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
-	hasVersionedCompactPrefix,
 	validateIabMetadata,
 	validateStoredConsentEnvelope,
 } from './record-codec';
@@ -118,7 +124,11 @@ export type RawStoredCandidate =
 			format: 'compact-v3' | 'parsed';
 			/** Parsed value exactly as stored. Absent keys are still absent. */
 			value: unknown;
-			/** Raw text for the compact v3 form. */
+			/**
+			 * Text handed to the decoder: the stored bytes with surrounding
+			 * whitespace removed and, only when the bytes matched no known form,
+			 * one outer URI-encoding layer unwrapped.
+			 */
 			rawText: string;
 	  };
 
@@ -158,14 +168,6 @@ export interface StoredConsentSelection {
 	candidates: StoredConsentCandidate[];
 }
 
-const decodeCookieText = function decodeCookieText(value: string): string {
-	try {
-		return decodeURIComponent(value);
-	} catch {
-		return value;
-	}
-};
-
 const parseJsonText = function parseJsonText(text: string): unknown {
 	try {
 		return JSON.parse(text) as unknown;
@@ -174,15 +176,141 @@ const parseJsonText = function parseJsonText(text: string): unknown {
 	}
 };
 
-const JSON_OBJECT_START = /^\s*\{/u;
+const tryDecodeOuterLayer = function tryDecodeOuterLayer(
+	value: string
+): string | null {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return null;
+	}
+};
+
+const LEGACY_BOOLEAN_MAPS: ReadonlySet<string> = new Set([
+	'consents',
+	'iabCustomVendorConsents',
+	'iabCustomVendorLegitimateInterests',
+]);
+
+const DIGITS_ONLY = /^\d+$/u;
 
 /**
- * Turns a raw cookie value into a candidate. Any versioned compact prefix
- * (`v=<n>`) is reserved before the legacy parser sees the bytes, so an
- * unknown version is rejected by the codec instead of being read as v2
- * data. A JSON object (JSON whitespace allowed) is accepted as `json`
- * encoding. Anything else goes through the v2 compact parser and must
- * produce an object to count as parsed.
+ * Types one v2 compact leaf by its path instead of by what the text looks
+ * like. The generic v2 parser turns `i.eid:12345` into a number and
+ * `i.idp:1` into `true`, which then fails identity validation and throws
+ * away the whole record. Here only `consentInfo.time` is numeric and only
+ * category and vendor flags are booleans; every other leaf stays a string.
+ * Unrecognized flag text and non-digit time text are kept verbatim so the
+ * legacy normalizer reports them as invalid.
+ */
+const typeLegacyCompactLeaf = function typeLegacyCompactLeaf(
+	path: readonly string[],
+	value: string
+): unknown {
+	const [head, ...rest] = path;
+	if (head === 'consentInfo' && rest.length === 1 && rest[0] === 'time') {
+		return DIGITS_ONLY.test(value) ? Number(value) : value;
+	}
+	if (
+		head !== undefined &&
+		LEGACY_BOOLEAN_MAPS.has(head) &&
+		rest.length === 1
+	) {
+		if (value === '1') {
+			return true;
+		}
+		if (value === '0') {
+			return false;
+		}
+	}
+	return value;
+};
+
+/**
+ * Decodes v2 compact `key:value,key:value` text into the `{ consents,
+ * consentInfo, ... }` object the legacy normalizer expects. Nested objects
+ * are only created for own keys and any `__proto__` segment drops the
+ * entry, so cookie bytes cannot reach the prototype chain.
+ */
+const decodeLegacyCompact = function decodeLegacyCompact(
+	text: string
+): Record<string, unknown> | null {
+	const expanded = expandFlatKeys(stringToFlat(text));
+	const result: Record<string, unknown> = {};
+	let leaves = 0;
+	for (const [flatKey, value] of Object.entries(expanded)) {
+		const path = flatKey.split('.');
+		if (path.length === 0 || path.includes('__proto__')) {
+			continue;
+		}
+		let current = result;
+		for (const segment of path.slice(0, -1)) {
+			const existing = Object.hasOwn(current, segment)
+				? current[segment]
+				: undefined;
+			if (!isPlainRecord(existing)) {
+				current[segment] = {};
+			}
+			current = current[segment] as Record<string, unknown>;
+		}
+		const leaf = path.at(-1);
+		if (leaf === undefined) {
+			continue;
+		}
+		current[leaf] = typeLegacyCompactLeaf(path, value);
+		leaves += 1;
+	}
+	return leaves > 0 ? result : null;
+};
+
+type RecognizedCookieForm =
+	| { kind: 'versioned'; text: string }
+	| { kind: 'json'; text: string }
+	| { kind: 'legacy-compact'; text: string };
+
+const VERSION_FIELD_START = /^v=/u;
+
+/**
+ * Recognizes the stored bytes without decoding them. Surrounding
+ * whitespace is ignored for recognition only.
+ *
+ * - `v=` at the start is a reserved version field, whatever follows it.
+ * - `{` at the start is JSON.
+ * - A `:` anywhere is the v2 compact `key:value` marker. The v2 writer
+ *   never percent-encodes, so a `%2F` inside a compact or JSON value is
+ *   part of the stored identity and must not be decoded away.
+ */
+const recognizeCookieForm = function recognizeCookieForm(
+	value: string
+): RecognizedCookieForm | null {
+	const text = value.trim();
+	if (text.length === 0) {
+		return null;
+	}
+	if (VERSION_FIELD_START.test(text)) {
+		return { kind: 'versioned', text };
+	}
+	if (text.startsWith('{')) {
+		return { kind: 'json', text };
+	}
+	if (text.includes(':')) {
+		return { kind: 'legacy-compact', text };
+	}
+	return null;
+};
+
+/**
+ * Turns a raw cookie value into a candidate.
+ *
+ * Recognition is format-aware and happens before any decoding. Only when
+ * the bytes match no known form and contain a `%` is one outer layer of
+ * URI encoding removed and recognition retried; that single unwrap keeps
+ * the component escapes inside a valid v3 cookie intact. Any reserved
+ * version field, including a malformed or unknown one, goes to the
+ * versioned decoder and never falls through to the legacy parser. JSON
+ * objects (JSON whitespace allowed) are `json` encoding; v2 `key:value`
+ * text is `compact` and is decoded by path-typed leaves so numeric-looking
+ * identifiers stay strings.
  */
 export const parseRawCookieCandidate = function parseRawCookieCandidate(
 	rawValue: string | null | undefined,
@@ -192,20 +320,29 @@ export const parseRawCookieCandidate = function parseRawCookieCandidate(
 	if (rawValue === null || rawValue === undefined || rawValue === '') {
 		return { key, source, status: 'absent' };
 	}
-	if (hasVersionedCompactPrefix(rawValue)) {
+	let form = recognizeCookieForm(rawValue);
+	if (!form && rawValue.includes('%')) {
+		const unwrapped = tryDecodeOuterLayer(rawValue);
+		if (unwrapped !== null) {
+			form = recognizeCookieForm(unwrapped);
+		}
+	}
+	if (!form) {
+		return { key, source, status: 'unparseable' };
+	}
+	if (form.kind === 'versioned') {
 		return {
 			encoding: 'compact',
 			format: 'compact-v3',
 			key,
-			rawText: rawValue,
+			rawText: form.text,
 			source,
 			status: 'parsed',
 			value: undefined,
 		};
 	}
-	const text = decodeCookieText(rawValue);
-	if (JSON_OBJECT_START.test(text)) {
-		const value = parseJsonText(text);
+	if (form.kind === 'json') {
+		const value = parseJsonText(form.text);
 		if (!isPlainRecord(value)) {
 			return { key, source, status: 'unparseable' };
 		}
@@ -213,21 +350,21 @@ export const parseRawCookieCandidate = function parseRawCookieCandidate(
 			encoding: 'json',
 			format: 'parsed',
 			key,
-			rawText: rawValue,
+			rawText: form.text,
 			source,
 			status: 'parsed',
 			value,
 		};
 	}
-	const value = parseCookieValue<unknown>(text);
-	if (!isPlainRecord(value)) {
+	const value = decodeLegacyCompact(form.text);
+	if (value === null) {
 		return { key, source, status: 'unparseable' };
 	}
 	return {
 		encoding: 'compact',
 		format: 'parsed',
 		key,
-		rawText: rawValue,
+		rawText: form.text,
 		source,
 		status: 'parsed',
 		value,
@@ -477,8 +614,15 @@ export interface WriteStoredConsentOptions {
 }
 
 export interface WriteReport {
+	/** localStorage accepted the JSON envelope. */
 	localStorage: boolean;
+	/**
+	 * The cookie assignment ran and the value read back matches. `false`
+	 * covers both a thrown assignment and a silent browser drop; see
+	 * `cookieDetail` to tell them apart.
+	 */
 	cookie: boolean;
+	cookieDetail: CookieWriteReport;
 }
 
 export type WriteStoredConsentResult =
@@ -516,16 +660,16 @@ const removeLocalStorageKey = function removeLocalStorageKey(
 	}
 };
 
-const hasDocument = function hasDocument(): boolean {
-	return typeof document !== 'undefined';
-};
-
 /**
  * Writes one v3 envelope to localStorage (JSON) and the cookie (compact)
  * under the configured key. The envelope is validated first and nothing
  * is written when it is malformed. Category times are written exactly as
  * given; this function never stamps the clock. The legacy localStorage
- * key is left untouched.
+ * key is left untouched. `written.cookie` is true only when the cookie
+ * assignment ran and the value read back equals what was written;
+ * `written.cookieDetail` separates a thrown assignment (`attempted:
+ * false`, with the error) from a silent browser drop (`attempted: true,
+ * verified: false`).
  */
 export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 	envelope: StoredConsentEnvelope,
@@ -536,28 +680,29 @@ export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
 		return validated;
 	}
 	const keys = resolveStorageKeys(options.config);
-	const written: WriteReport = { cookie: false, localStorage: false };
-
-	written.localStorage = writeLocalStorageText(
+	const localStorageWritten = writeLocalStorageText(
 		keys.consent,
 		encodeStoredConsentEnvelopeJson(validated.record)
 	);
-
-	if (hasDocument()) {
-		try {
-			setCookie(
-				keys.consent,
-				encodeStoredConsentEnvelopeCompact(validated.record),
-				options.cookie,
-				options.config
-			);
-			written.cookie = true;
-		} catch (error) {
-			console.warn('Failed to save consent to cookie:', error);
-		}
+	const cookieDetail = writeCookie(
+		keys.consent,
+		encodeStoredConsentEnvelopeCompact(validated.record),
+		options.cookie,
+		options.config
+	);
+	if (!cookieDetail.attempted && cookieDetail.error !== undefined) {
+		console.warn('Failed to save consent to cookie:', cookieDetail.error);
 	}
 
-	return { envelope: validated.record, ok: true, written };
+	return {
+		envelope: validated.record,
+		ok: true,
+		written: {
+			cookie: cookieDetail.attempted && cookieDetail.verified,
+			cookieDetail,
+			localStorage: localStorageWritten,
+		},
+	};
 };
 
 // ---------------------------------------------------------------------------

@@ -1342,3 +1342,48 @@ describe('unflattenObject prototype safety', () => {
 		expect(Object.prototype.toString).toBeTypeOf('function');
 	});
 });
+
+describe('writeCookie reporting', () => {
+	afterEach(() => {
+		document.cookie = '';
+	});
+
+	it('reports a verified write and keeps setCookie silent on success', async () => {
+		const { writeCookie } = await import('../operations');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		expect(writeCookie('c15t', { consents: { necessary: true } })).toEqual({
+			attempted: true,
+			verified: true,
+		});
+		setCookie('c15t', { consents: { necessary: true } });
+
+		expect(warn).not.toHaveBeenCalled();
+	});
+
+	it('reports a thrown assignment and setCookie warns instead of throwing', async () => {
+		const { writeCookie } = await import('../operations');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const descriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
+		Object.defineProperty(document, 'cookie', {
+			configurable: true,
+			get: () => '',
+			set: () => {
+				throw new Error('rejected');
+			},
+		});
+		try {
+			const report = writeCookie('c15t', 'value');
+			expect(report.attempted).toBe(false);
+			expect(report.verified).toBe(false);
+			expect(report.error).toBeInstanceOf(Error);
+
+			expect(() => setCookie('c15t', 'value')).not.toThrow();
+			expect(warn).toHaveBeenCalledTimes(1);
+		} finally {
+			if (descriptor) {
+				Object.defineProperty(document, 'cookie', descriptor);
+			}
+		}
+	});
+});
