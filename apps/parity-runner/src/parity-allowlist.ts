@@ -271,17 +271,33 @@ export const findAllowEntry = function findAllowEntry(
  * test and only ever consults its own entries — a geometry run knows
  * nothing about whether the pixel entries were needed.
  *
+ * Scoped to the enabled frameworks for the same reason. `PARITY_FRAMEWORKS`
+ * defaults to `react,svelte`, so a full-matrix allowlist carries Vue and
+ * Astro entries a default run never gets the chance to use. Reporting those
+ * as stale would fail every default run and teach the reader to ignore the
+ * one signal this check exists to give. A `'*'` entry is in scope whenever
+ * any framework is.
+ *
  * @param used - The entries that did match.
  * @param checks - The checks whose entries this run is responsible for.
+ * @param frameworks - The frameworks this run enabled.
  * @param allowlist - The full allowlist.
  * @returns Entries that can be deleted.
  */
 export const unusedAllowlistEntries = function unusedAllowlistEntries(
 	used: ReadonlySet<ParityAllowEntry>,
 	checks: readonly ParityCheck[],
+	frameworks: readonly string[],
 	allowlist: readonly ParityAllowEntry[] = PARITY_ALLOWLIST
 ): ParityAllowEntry[] {
+	const inScope = function inScope(entry: ParityAllowEntry): boolean {
+		return entry.framework === '*'
+			? frameworks.length > 0
+			: frameworks.includes(entry.framework);
+	};
+
 	return allowlist.filter(
-		(entry) => checks.includes(entry.check) && !used.has(entry)
+		(entry) =>
+			checks.includes(entry.check) && inScope(entry) && !used.has(entry)
 	);
 };

@@ -93,12 +93,29 @@ test('unused entries are scoped to the checks that ran', () => {
 	const geometry = entry();
 	const pixel = entry({ check: 'pixel' });
 	const list = [geometry, pixel];
-	expect(unusedAllowlistEntries(new Set(), ['geometry'], list)).toEqual([
-		geometry,
-	]);
 	expect(
-		unusedAllowlistEntries(new Set([geometry]), ['geometry'], list)
+		unusedAllowlistEntries(new Set(), ['geometry'], ['vue'], list)
+	).toEqual([geometry]);
+	expect(
+		unusedAllowlistEntries(new Set([geometry]), ['geometry'], ['vue'], list)
 	).toEqual([]);
+});
+
+test('a Vue allowance is not stale in a run that never compared Vue', () => {
+	const vue = entry({ framework: 'vue' });
+	const svelte = entry({ framework: 'svelte' });
+	const list = [vue, svelte];
+	expect(
+		unusedAllowlistEntries(new Set(), ['geometry'], ['svelte'], list)
+	).toEqual([svelte]);
+});
+
+test('a wildcard allowance is stale only when some framework ran', () => {
+	const list = [entry({ framework: '*' })];
+	expect(
+		unusedAllowlistEntries(new Set(), ['geometry'], ['svelte'], list)
+	).toEqual(list);
+	expect(unusedAllowlistEntries(new Set(), ['geometry'], [], list)).toEqual([]);
 });
 
 test('every shipped entry carries a reason', () => {

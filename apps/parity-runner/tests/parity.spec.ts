@@ -75,9 +75,14 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			byFramework[framework] = await loadStorybookIndex(url);
 		} catch (err) {
-			// If a Storybook isn't running, skip that framework's entries.
-			// Downstream pairing will just produce fewer entries.
-			console.warn(`[parity] could not load ${framework} index: ${err}`);
+			// Dropping the framework here would leave the run comparing the
+			// ones that did load and reporting a pass, which is the one
+			// outcome a gate must never produce for a framework it was told
+			// to check.
+			throw new Error(
+				`[parity] ${framework} Storybook index did not load from ${url}`,
+				{ cause: err }
+			);
 		}
 	}
 	return pairStories(byFramework).filter(
@@ -250,11 +255,11 @@ test.describe('cross-framework parity', () => {
 			}
 		}
 
-		for (const entry of unusedAllowlistEntries(usedEntries, [
-			'dom',
-			'a11y',
-			'css',
-		])) {
+		for (const entry of unusedAllowlistEntries(
+			usedEntries,
+			['dom', 'a11y', 'css'],
+			ENABLED_FRAMEWORKS
+		)) {
 			failures.push(
 				`[ALLOWLIST] stale entry matched nothing — delete it: ${entry.check} ${entry.framework} ${entry.story} ${entry.slot}`
 			);
