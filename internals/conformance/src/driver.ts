@@ -1,3 +1,8 @@
+import type {
+	CreatePolicySession,
+	ProbePolicyContract,
+} from './contract/policy-driver';
+
 /**
  * Framework-agnostic test driver.
  *
@@ -30,8 +35,8 @@ export type MountableComponent =
 
 /**
  * Shapes the resolved-policy fixture a driver builds for a mount. Drivers
- * that hardcode an opt-in policy fixture extend it with these fields; stub
- * drivers throw `DriverNotImplementedError` so suites degrade to todo.
+ * that hardcode an opt-in policy fixture extend it with these fields; missing
+ * supported capabilities throw `DriverNotImplementedError` and fail tests.
  */
 export interface MountPolicyOptions {
 	/**
@@ -113,6 +118,10 @@ export interface DriverStore {
 
 export interface TestDriver {
 	readonly framework: SupportedFramework;
+	/** Required at runtime for supported adapters; Solid is primitives-only. */
+	createPolicySession?: CreatePolicySession;
+	/** Required producer and codec coverage; no framework runtime imports here. */
+	probePolicyContract?: ProbePolicyContract;
 
 	/**
 	 * Mount a component into a fresh DOM container. The driver owns the
@@ -125,20 +134,20 @@ export interface TestDriver {
 
 	/**
 	 * Server-render the component to HTML. Used by the SSR conformance suite.
-	 * If the framework binding has no SSR support yet, throw — the suite
-	 * will skip gracefully.
+	 * Missing SSR support fails for supported consent adapters.
 	 */
 	serverRender: (opts: MountOptions) => Promise<string>;
 }
 
+export type * from './contract/policy-driver';
+
 /**
- * Default sentinel thrown by stub drivers so the suites can detect
- * "not-implemented-yet" and emit `test.todo` instead of real failures.
+ * Missing capability error. Supported adapters must fail when this is thrown.
  */
 export class DriverNotImplementedError extends Error {
 	constructor(framework: SupportedFramework, capability: string) {
 		super(
-			`[${framework}] driver does not yet implement: ${capability}. This is expected for stub frameworks; add an implementation when the binding comes online.`
+			`[${framework}] driver does not yet implement: ${capability}. Supported consent adapters must implement this capability.`
 		);
 		this.name = 'DriverNotImplementedError';
 	}

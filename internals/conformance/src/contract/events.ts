@@ -1,65 +1,15 @@
-/**
- * Canonical event/callback contract for @c15t prebuilt UI.
- *
- * Every framework binding (react, svelte, vue, solid) must emit the same
- * events with the same payload shape at the same lifecycle point. The
- * `runEventContractConformance(driver)` suite asserts against this contract.
- */
+/** Semantic fixture events mapped to the public kernel event contract. */
+export const POLICY_EVENT_NAMES = {
+	'choice-recorded': 'choice:recorded',
+	'notice-dismissed': 'notice:dismissed',
+	'permissions-changed': 'permissions:changed',
+	'privacy-opt-out': 'privacy:opt-out',
+} as const;
 
-import type { ConsentState } from '@c15t/core';
-
-/** All public event names. Keep in sync with provider prop types across frameworks. */
+/** Callbacks must be observed through public provider configuration. */
 export const EVENT_NAMES = [
-	'onConsentChanged',
-	'onConsentSet',
-	'onBannerFetched',
-	'onConsentBannerFetched',
-	'onBeforeConsentRevocationReload',
-	'onCookieAccess',
+	'onChoiceRecorded',
+	'onPermissionsChanged',
 	'onError',
 ] as const;
-
 export type EventName = (typeof EVENT_NAMES)[number];
-
-/**
- * Expected payload shape for each event. Each framework's provider is asserted
- * to invoke the callback with a payload matching the shape here. Drivers
- * produce a typed payload via ducktype against this map.
- */
-export interface EventPayloads {
-	onConsentChanged: {
-		consent: ConsentState;
-		categories: readonly string[];
-	};
-	onConsentSet: {
-		consent: ConsentState;
-	};
-	onBannerFetched: {
-		source: 'network' | 'cache' | 'ssr';
-	};
-	onConsentBannerFetched: {
-		source: 'network' | 'cache' | 'ssr';
-	};
-	onBeforeConsentRevocationReload: Record<string, never>;
-	onCookieAccess: {
-		name: string;
-		operation: 'read' | 'write' | 'delete';
-	};
-	onError: {
-		code: string;
-		message: string;
-	};
-}
-
-/**
- * Lifecycle ordering contract: each pair asserts that `before` fires before
- * `after` in any framework. Matched against the recorded event log in
- * `runEventContractConformance`.
- */
-export const EVENT_ORDERING: readonly {
-	before: EventName;
-	after: EventName;
-}[] = [
-	{ after: 'onConsentChanged', before: 'onBannerFetched' },
-	{ after: 'onConsentSet', before: 'onConsentChanged' },
-];

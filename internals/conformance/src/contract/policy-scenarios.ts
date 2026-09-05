@@ -82,6 +82,7 @@ export interface PolicyObservation {
 	prompt?: ScenarioPrompt;
 	permissions?: Partial<Record<PolicyCategory | 'necessary', boolean>>;
 	choice?: PolicyChoiceFixture | null;
+	subject?: PolicySubjectFixture | null;
 	resolution?: 'unconfigured' | 'matched' | 'no-match' | 'failed';
 	/**
 	 * Prior matched-policy values must not survive this transition. This is
@@ -130,6 +131,8 @@ export interface PolicyObservation {
 /** Operations must use real lifecycle/command paths, never snapshot setters. */
 export type PolicyOperation =
 	| { kind: 'hydrate' }
+	/** Dispose the provider and mount a fresh instance against the existing bytes. */
+	| { kind: 'reload' }
 	| { kind: 'save'; values: Partial<Record<PolicyCategory, boolean>> }
 	| { kind: 'accept' | 'reject' | 'save-current' | 'dismiss-notice' | 'clear' }
 	| { kind: 'set-gpc'; active: boolean }
