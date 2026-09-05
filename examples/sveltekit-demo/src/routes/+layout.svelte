@@ -19,7 +19,7 @@
 	import '@c15t/svelte/styles.css';
 	import '@c15t/svelte/iab/styles.css';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	let devtools: DevToolsInstance | null = null;
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
 
@@ -62,9 +62,15 @@
 {#if isBenchRoute}
 	{@render children()}
 {:else}
+	<!--
+		`prefetch` and `mode` are top-level props: the server already resolved the
+		policy in +layout.server.ts, so the banner renders in the first HTML.
+		`/api/c15t` is this app's own consent endpoint (manifest mode).
+	-->
 	<ConsentManagerProvider
+		prefetch={data.prefetch}
+		mode={hosted({ url: '/api/c15t' })}
 		options={{
-			mode: hosted({ url: '/api/self-host' }),
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			iab: {
 				enabled: true,
