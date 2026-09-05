@@ -31,6 +31,12 @@ export {
 	interpretStoredConsent,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
+export type { KernelIABControls } from './modules/iab-controls';
+export {
+	getIABControls,
+	registerIABControls,
+	subscribeIABControls,
+} from './modules/iab-controls';
 export {
 	generateSubjectId,
 	isValidSubjectId,

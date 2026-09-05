@@ -20,6 +20,7 @@
  * (`createCMPApi`), stub installer (`initializeIABStub`).
  */
 
+import { registerIABControls } from '@c15t/core';
 import type {
 	CMPApi,
 	ConsentKernel,
@@ -57,6 +58,10 @@ export interface CreateIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific. Default: true. */
 	isServiceSpecific?: boolean;
+	/** Store saved TC strings in cookies and localStorage. Default: true.
+	 * Set false for an in-memory playground; the kernel save transport still runs.
+	 */
+	persistence?: boolean;
 	/**
 	 * Pre-loaded GVL. When supplied, skips the network fetch. Accepts
 	 * `null` to explicitly disable IAB mode (non-IAB region).
@@ -205,15 +210,19 @@ const applyBlanket = function applyBlanket(
 	gvl: GlobalVendorList,
 	value: boolean
 ): void {
-	const vendorIds = Object.keys(gvl.vendors ?? {});
+	const vendors = [
+		...Object.values(gvl.vendors ?? {}),
+		...readIAB(kernel).customVendors,
+	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
 
 	const vendorConsents: Record<string, boolean> = {};
 	const vendorLegitimateInterests: Record<string, boolean> = {};
-	for (const id of vendorIds) {
-		vendorConsents[id] = value;
-		vendorLegitimateInterests[id] = value;
+	for (const vendor of vendors) {
+		vendorConsents[vendor.id] = value && vendor.purposes.length > 0;
+		vendorLegitimateInterests[vendor.id] =
+			value && (vendor.legIntPurposes?.length ?? 0) > 0;
 	}
 	const purposeConsents: Record<number, boolean> = {};
 	const purposeLegitimateInterests: Record<number, boolean> = {};
@@ -327,22 +336,37 @@ export const createIAB = function createIAB(
 
 	const buildTCFConsentData = function buildTCFConsentData() {
 		const iab = readIAB(kernel);
+		const customIds = new Set(
+			iab.customVendors.map((vendor) => String(vendor.id))
+		);
+		const registeredChoices = (choices: Record<string, boolean>) =>
+			Object.fromEntries(
+				Object.entries(choices).filter(
+					([id]) =>
+						Object.hasOwn(iab.gvl?.vendors ?? {}, id) && !customIds.has(id)
+				)
+			);
+		// Custom choices stay in kernel state, never in registered TCF vectors.
+		const vendorConsents = registeredChoices(iab.vendorConsents);
+		const vendorLegitimateInterests = registeredChoices(
+			iab.vendorLegitimateInterests
+		);
 		// `vendorsDisclosed` should reflect every vendor the CMP made
 		// available to the user, per TCF 2.3. For MVP we mirror the set
 		// of vendors whose consent has been considered.
 		const disclosed: Record<string, boolean> = {};
-		for (const id of Object.keys(iab.vendorConsents)) {
+		for (const id of Object.keys(vendorConsents)) {
 			disclosed[id] = true;
 		}
-		for (const id of Object.keys(iab.vendorLegitimateInterests)) {
+		for (const id of Object.keys(vendorLegitimateInterests)) {
 			disclosed[id] = true;
 		}
 		return {
 			purposeConsents: iab.purposeConsents,
 			purposeLegitimateInterests: iab.purposeLegitimateInterests,
 			specialFeatureOptIns: iab.specialFeatureOptIns,
-			vendorConsents: iab.vendorConsents,
-			vendorLegitimateInterests: iab.vendorLegitimateInterests,
+			vendorConsents,
+			vendorLegitimateInterests,
 			vendorsDisclosed: disclosed,
 		};
 	};
@@ -367,7 +391,7 @@ export const createIAB = function createIAB(
 		return tcString;
 	};
 
-	return {
+	const handle: IABHandle = {
 		acceptAll() {
 			const { gvl } = readIAB(kernel);
 			if (!gvl) {
@@ -380,6 +404,8 @@ export const createIAB = function createIAB(
 		},
 		dispose() {
 			disposed = true;
+			// oxlint-disable-next-line no-use-before-define -- Cleanup runs after this handle has been registered.
+			unregisterControls();
 			unsubscribe();
 			if (cmpApi) {
 				try {
@@ -408,13 +434,18 @@ export const createIAB = function createIAB(
 		async save() {
 			const consentData = buildTCFConsentData();
 			const tcString = await generateTC();
-			cmpApi?.saveToStorage(tcString);
+			if (options.persistence !== false) {
+				cmpApi?.saveToStorage(tcString);
+			}
 			cmpApi?.updateConsent(tcString, consentData);
 			// Map purposes → c15t consents one more time to make sure
 			// the final save payload reflects what we just generated.
 			const purposes = readIAB(kernel).purposeConsents;
 			const consents = iabPurposesToC15tConsents(purposes);
-			await kernel.commands.save(consents);
+			const result = await kernel.commands.save(consents);
+			if (!result.ok) {
+				throw new Error('IAB consent could not be saved. Retry the save.');
+			}
 		},
 		setPurposeConsent(id, value) {
 			const current = readIAB(kernel).purposeConsents;
@@ -466,6 +497,8 @@ export const createIAB = function createIAB(
 			});
 		},
 	};
+	const unregisterControls = registerIABControls(kernel, handle);
+	return handle;
 };
 
 export type { CMPApi, GlobalVendorList, NonIABVendor } from '@c15t/core';

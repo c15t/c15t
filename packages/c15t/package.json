@@ -266,6 +266,11 @@
 			"import": "./shims/react/utils.js",
 			"default": "./shims/react/utils.js"
 		},
+		"./react/devtools": {
+			"types": "./shims/react/devtools.d.ts",
+			"import": "./shims/react/devtools.js",
+			"default": "./shims/react/devtools.js"
+		},
 		"./next/styles.css": "./dist/next/styles.css",
 		"./next/styles.tw3.css": "./dist/next/styles.tw3.css",
 		"./next/iab/styles.css": "./dist/next/iab/styles.css",
@@ -309,6 +314,11 @@
 			"types": "./shims/next/rsc.d.ts",
 			"import": "./shims/next/rsc.js",
 			"default": "./shims/next/rsc.js"
+		},
+		"./next/devtools": {
+			"types": "./shims/next/devtools.d.ts",
+			"import": "./shims/next/devtools.js",
+			"default": "./shims/next/devtools.js"
 		},
 		"./tanstack-start/styles.css": "./dist/tanstack-start/styles.css",
 		"./tanstack-start/styles.tw3.css": "./dist/tanstack-start/styles.tw3.css",
@@ -363,6 +373,11 @@
 			"types": "./shims/vue/vue-plugin.d.ts",
 			"import": "./shims/vue/vue-plugin.js",
 			"default": "./shims/vue/vue-plugin.js"
+		},
+		"./vue/devtools": {
+			"types": "./shims/vue/devtools.d.ts",
+			"import": "./shims/vue/devtools.js",
+			"default": "./shims/vue/devtools.js"
 		},
 		"./vue/consent-root": {
 			"types": "./shims/vue/consent-root.d.ts",

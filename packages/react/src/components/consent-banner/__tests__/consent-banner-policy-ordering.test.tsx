@@ -60,10 +60,7 @@ const createMockState = function createMockState(
 	} as unknown as ConsentManagerState;
 };
 
-// `render` is async in vitest-browser-react; an un-awaited call can finish
-// its bookkeeping after the file tears down and surface as an unhandled
-// rejection that fails the whole run.
-const renderBanner = async function renderBanner(
+const renderBanner = function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
 	stateOverrides: Partial<ConsentManagerState> = {},
 	componentOverrides: ComponentProps<
@@ -72,7 +69,7 @@ const renderBanner = async function renderBanner(
 ) {
 	const state = createMockState(stateOverrides);
 
-	await render(
+	return render(
 		<ConsentProvider
 			options={{
 				components: {
@@ -223,7 +220,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('shows branding by default and hides it when hideBranding is true', async () => {
-		await renderBanner({});
+		const view = await renderBanner({});
 
 		await waitForBanner();
 
@@ -231,7 +228,7 @@ describe('ConsentBanner policy ordering', () => {
 			document.querySelector('[data-testid="consent-banner-branding"]')
 		).toBeInTheDocument();
 
-		document.body.innerHTML = '';
+		await view.unmount();
 
 		await renderBanner({ hideBranding: true });
 

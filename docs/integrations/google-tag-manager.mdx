@@ -1,160 +1,18 @@
 ---
 title: Google Tag Manager
-description: Deploy and manage marketing tags centrally with automatic consent state synchronization.
+description: Load GTM with Google Consent Mode v2 defaults.
 icon: google-tag-manager
 group: integrations
 ---
 
-Google Tag Manager (GTM) is Google's tag management system that lets you deploy and manage marketing tags, analytics scripts, and conversion pixels without modifying your codebase. Instead of hardcoding multiple scripts, you configure them through GTM's web interface.
-
-c15t automatically injects the GTM script into your page and syncs consent state with GTM using Consent Mode v2. GTM manages its own internal consent state and only fires tags when appropriate consent is granted, which means it can safely load before consent is collected.
-
-This prevents GTM-managed scripts from loading without proper consent while giving you centralized control over your marketing stack.
-
 <Callout type="info">
-  Use GTM if your team manages many tags centrally in the GTM UI. Use `gtag.js` if you only need GA4/Google Ads directly in code. Don't run both for the same destination unless intentional, or you may duplicate events.
+  This page is a placeholder for the v3 docs rewrite.
 </Callout>
 
-## Integrate with c15t
+## Usage
 
-Use your GTM container ID, which begins with `GTM-`.
+TODO.
 
-<Tabs items={['React', 'Next.js', 'JavaScript']}>
-  <Tab value="React">
-    ```tsx
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from 'c15t/react';
-    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+## Consent Mode
 
-    const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: 'https://your-instance.c15t.dev',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js">
-    ```tsx
-    'use client';
-
-    import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from 'c15t/next';
-    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-
-    const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
-
-    export function ConsentProvider({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'hosted',
-            backendURL: '/api/c15t',
-            scripts,
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="JavaScript">
-    ```ts
-    import { getOrCreateConsentRuntime } from 'c15t';
-    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-
-    getOrCreateConsentRuntime({
-      mode: 'hosted',
-      backendURL: 'https://your-instance.c15t.dev',
-      scripts: [googleTagManager({ id: 'GTM-XXXXXXX' })],
-    });
-    ```
-  </Tab>
-</Tabs>
-
-## How c15t loads it
-
-- **Category:** `necessary` (Tag Managers)
-- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start with Consent Mode v2 defaults set to denied
-- **On consent change:** c15t pushes a Consent Mode v2 `update` to the data layer; GTM-managed tags re-evaluate against the new state
-
-## Configure the integration
-
-<Steps>
-  <Step>
-    ### Creating a Tag Manager Container
-
-    <Callout type="note">
-      This step is optional if you already have a Tag Manager container. Ensure your container has consent overview enabled.
-    </Callout>
-
-    After signing into Google Tag Manager, you can create a new container.
-    [Continue to Google Tag Manager](https://tagmanager.google.com/)
-
-    1. In Tag Manager, click Admin > Container Settings.
-    2. Under Additional Settings, select "Enable consent overview".
-
-    ![Enable consent overview](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/container-settings.png)
-  </Step>
-
-  <Step>
-    ### Custom Update Trigger
-
-    We now need to create a custom trigger in GTM to trigger the update event, this is the trigger that is fired when the consent state is updated, e.g. user gives consent to a specific purpose.
-
-    In GTM, you can create a new trigger by clicking on the "Triggers" tab and then clicking on "New".
-
-    For the event name, you can use the default "consent-update", this is customizable later so you can change it if you want.
-
-    ![Create trigger](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/custom-event.png)
-  </Step>
-
-  <Step>
-    ### Update tags
-
-    Now for your existing tags, you can add the "consent-update" trigger to the tag, this will fire the update event when the consent state is updated & it has the appropriate consent state.
-
-    ![Update tags](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/update-tags.png)
-  </Step>
-</Steps>
-
-## Tracking events in your app
-
-GTM is `alwaysLoad: true`, so the GTM container and `window.dataLayer` are present from page start regardless of consent. Calls like `dataLayer.push({ event: 'signup' })` are **safe at any time** — Consent Mode v2 defaults are set to denied before the user makes a choice, and GTM-managed tags only fire when the matching consent has been granted.
-
-```ts
-window.dataLayer = window.dataLayer || [];
-window.dataLayer.push({ event: 'signup' });
-```
-
-You do not need to wrap `dataLayer.push(...)` in a `useConsentManager().has(...)` check — the consent gate happens inside GTM, not inside c15t.
-
-## Verify setup
-
-1. Open GTM Preview mode and confirm your container (`GTM-...`) loads on page load.
-2. Before giving consent, confirm non-essential tags do not fire in GTM Preview.
-3. Accept consent in the c15t banner/dialog and confirm a `consent-update` event appears in the GTM event timeline.
-4. Confirm measurement/marketing tags fire only after the matching consent is granted.
-5. Revoke consent and confirm a new `consent-update` event appears and affected tags stop firing.
-
-## Types
-
-### GoogleTagManagerOptions
-
-<AutoTypeTable path="./packages/scripts/src/vendors/tag-managers/google-tag-manager.ts" name="GoogleTagManagerOptions" />
-
-### Script
-
-<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+TODO.

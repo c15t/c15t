@@ -467,8 +467,20 @@ export interface ConsentKernel {
 	 */
 	readonly commands: {
 		init: () => Promise<InitResult>;
+		/**
+		 * Apply and persist consent. All/none only change the supplied categories,
+		 * falling back to policy categories, or all known categories without a policy.
+		 * Hidden values are preserved; partial-policy bulk actions are recorded as custom.
+		 * @param input - Explicit values, all/none, or omitted to save current choices.
+		 * @param options - Categories displayed by the caller's UI.
+		 * @returns SaveResult with ok indicating transport acceptance. Local changes
+		 * remain applied on failure. Transport exceptions resolve with ok: false
+		 * and queue the payload for retry.
+		 */
 		save: (
-			input?: Partial<ConsentState> | 'all' | 'none'
+			input?: Partial<ConsentState> | 'all' | 'none',
+			/** Categories displayed by the caller's UI. Defaults to the policy scope. */
+			options?: { categories?: readonly AllConsentNames[] }
 		) => Promise<SaveResult>;
 		identify: (user: KernelUser) => Promise<void>;
 	};

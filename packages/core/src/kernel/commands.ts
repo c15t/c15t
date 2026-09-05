@@ -159,8 +159,10 @@ export interface ResolvedSave {
  * input. Called by the save command before any transport I/O.
  *
  * Branches:
- * - `'all'` — every category becomes `true`, action is `all`.
- * - `'none'` — only `necessary` stays `true`, action is `necessary`.
+ * - `'all'` sets displayed categories to `true`; `'none'` sets displayed
+ *   optional categories to `false`. Full-policy actions are recorded as
+ *   `all` or `necessary`, respectively; a partial-policy scope is `custom`.
+ * Categories outside the displayed scope retain their current values.
  * - object — applied as a partial consent merge; if no category
  *   changed, only metadata (subjectId / hasConsented / activeUI)
  *   is updated. Action is `custom`.
@@ -170,15 +172,26 @@ export interface ResolvedSave {
 export const resolveSavePatch = function resolveSavePatch(
 	current: ConsentSnapshot,
 	subjectId: string,
-	input: Partial<ConsentState> | 'all' | 'none' | undefined
+	input: Partial<ConsentState> | 'all' | 'none' | undefined,
+	options?: { categories?: readonly (keyof ConsentState)[] }
 ): ResolvedSave {
+	const policyCategories =
+		current.policyCategories.length > 0
+			? current.policyCategories
+			: allConsentNames;
+	const categories = options?.categories ?? policyCategories;
+	// A partial UI action must not claim to accept or reject the whole policy.
+	const coversPolicy = policyCategories.every(
+		(name) => name === 'necessary' || categories.includes(name)
+	);
 	if (input === 'all') {
 		const all: ConsentState = { ...current.consents };
-		for (const name of allConsentNames) {
+		for (const name of categories) {
 			all[name] = true;
 		}
+		all.necessary = true;
 		return {
-			consentAction: 'all',
+			consentAction: coversPolicy ? 'all' : 'custom',
 			patch: {
 				activeUI: 'none',
 				consents: all,
@@ -190,11 +203,12 @@ export const resolveSavePatch = function resolveSavePatch(
 
 	if (input === 'none') {
 		const none: ConsentState = { ...current.consents };
-		for (const name of allConsentNames) {
+		for (const name of categories) {
 			none[name] = name === 'necessary';
 		}
+		none.necessary = true;
 		return {
-			consentAction: 'necessary',
+			consentAction: coversPolicy ? 'necessary' : 'custom',
 			patch: {
 				activeUI: 'none',
 				consents: none,
@@ -517,7 +531,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		},
 
 		async save(
-			input?: Partial<ConsentState> | 'all' | 'none'
+			input?: Partial<ConsentState> | 'all' | 'none',
+			options?: { categories?: readonly (keyof ConsentState)[] }
 		): Promise<SaveResult> {
 			emit({ type: 'command:save:started' });
 
@@ -528,7 +543,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const { patch, consentAction } = resolveSavePatch(
 				beforeSnapshot,
 				subjectId,
-				input
+				input,
+				options
 			);
 			if (Object.keys(patch).length > 0) {
 				advance(patch);

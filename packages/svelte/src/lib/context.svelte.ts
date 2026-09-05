@@ -56,7 +56,7 @@ export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
 	set: (name: AllConsentNames, value: boolean) => void;
 	reset: () => void;
-	save: () => Promise<void>;
+	save: (categories: readonly AllConsentNames[]) => Promise<void>;
 }
 
 export interface ConsentCompatState extends Omit<
@@ -175,13 +175,22 @@ const createCompatState = function createCompatState(
 		},
 		get consentCategories() {
 			const configured = options.getConsentCategories();
-			return configured.length > 0
-				? configured
-				: Array.from(
-						getSnapshotLocal().policyCategories.length > 0
-							? getSnapshotLocal().policyCategories
-							: allConsentNames
-					);
+			const { policyCategories } = getSnapshotLocal();
+			const available = policyCategories.some(
+				(category) => category !== 'necessary'
+			)
+				? policyCategories
+				: allConsentNames;
+			if (configured.length === 0) {
+				return Array.from(available);
+			}
+			const allowed = new Set(available);
+			return Array.from(
+				new Set<AllConsentNames>([
+					'necessary',
+					...configured.filter((category) => allowed.has(category)),
+				])
+			);
 		},
 		get consentInfo() {
 			return getSnapshotLocal().hasConsented ? { type: 'v3' as const } : null;
@@ -260,16 +269,20 @@ const createCompatState = function createCompatState(
 		},
 		async saveConsents(type: SaveType) {
 			if (type === 'all') {
-				await kernel.commands.save('all');
+				await kernel.commands.save('all', {
+					categories: controller.consentCategories,
+				});
 				options.getDraft().reset();
 				return;
 			}
 			if (type === 'necessary') {
-				await kernel.commands.save('none');
+				await kernel.commands.save('none', {
+					categories: controller.consentCategories,
+				});
 				options.getDraft().reset();
 				return;
 			}
-			await options.getDraft().save();
+			await options.getDraft().save(controller.consentCategories);
 		},
 		get selectedConsents() {
 			return options.getDraft().values;
