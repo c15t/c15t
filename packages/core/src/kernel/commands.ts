@@ -40,6 +40,7 @@ import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import { createPendingSaveQueue } from './pending-saves';
 import type { KernelRuntime } from './runtime';
+import { selectSavePayload } from './save-selection';
 import { copyIABAuthority } from './snapshot';
 import type { StagedLegacyPolicy } from './snapshot';
 
@@ -622,18 +623,21 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		confirmed: readonly OptionalConsentCategory[],
 		actionSnapshot: ConsentSnapshot
 	): Promise<SaveResult> {
-		const isCurrent = () => {
+		const currentPayload = (): SavePayload | null => {
 			const current = getSnapshot();
-			return (
-				runtime.getGeneration() === generation &&
-				confirmed.every(
-					(category) =>
-						current.explicitChoice?.categories[category] ===
-						actionSnapshot.explicitChoice?.categories[category]
-				) &&
-				current.user === actionSnapshot.user &&
-				current.evaluationPolicy.choice.fingerprint ===
+			if (
+				runtime.getGeneration() !== generation ||
+				current.user !== actionSnapshot.user ||
+				current.evaluationPolicy.choice.fingerprint !==
 					actionSnapshot.evaluationPolicy.choice.fingerprint
+			) {
+				return null;
+			}
+			return selectSavePayload(
+				payload,
+				(category) =>
+					current.explicitChoice?.categories[category] ===
+					actionSnapshot.explicitChoice?.categories[category]
 			);
 		};
 		const send = transport?.save;
@@ -646,21 +650,22 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			await createDeferredPromise((resolve) => {
 				setTimeout(resolve, 0);
 			});
-			if (!isCurrent()) {
-				// Cleared or replaced while waiting: nothing to send.
+			const sending = currentPayload();
+			if (!sending) {
 				return { confirmed, ok: false };
 			}
-			const result = await send(payload);
-			if (!isCurrent()) {
+			const result = await send(sending);
+			const remaining = currentPayload();
+			if (!remaining) {
 				return { ...result, confirmed };
 			}
 			if (result.ok) {
-				await pendingSaves?.discard(payload);
+				await pendingSaves?.discard(remaining);
 			} else {
-				await pendingSaves?.enqueue(payload);
+				await pendingSaves?.enqueue(remaining);
 				ensureOnlineListener();
 			}
-			if (!isCurrent()) {
+			if (!currentPayload()) {
 				return { ...result, confirmed };
 			}
 			if (
@@ -681,8 +686,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			return { ...result, confirmed };
 		} catch (error) {
 			emit({ command: 'save', error, type: 'command:error' });
-			if (isCurrent()) {
-				await pendingSaves?.enqueue(payload);
+			const remaining = currentPayload();
+			if (remaining) {
+				await pendingSaves?.enqueue(remaining);
 				ensureOnlineListener();
 			}
 			return { confirmed, ok: false };

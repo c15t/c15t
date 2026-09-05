@@ -14,6 +14,7 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import { validateExplicitChoice } from '../consent-record/validation';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
+import { selectSavePayload } from './save-selection';
 
 const MAX_PENDING_SAVE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_REPLAY_ATTEMPTS = 10;
@@ -228,25 +229,21 @@ const writePendingSaves = function writePendingSaves(
 	}
 };
 
-const confirmedKeys = function confirmedKeys(payload: SavePayload): string[] {
-	return Object.keys(payload.confirmed.categories);
-};
-
-/**
- * Whether `older` still carries a receipt `newer` did not supersede. A
- * later action for the same subject replaces only the categories it
- * confirmed; a disjoint earlier action keeps its own receipts and its
- * own action time.
- */
-const isSuperseded = function isSuperseded(
+/** Remove only the older categories covered by this newer action. */
+const subtractSuperseded = function subtractSuperseded(
 	older: SavePayload,
 	newer: SavePayload
-): boolean {
-	if (older.subjectId !== newer.subjectId) {
-		return false;
+): SavePayload | null {
+	if (
+		older.subjectId !== newer.subjectId ||
+		older.confirmed.actionAt > newer.confirmed.actionAt
+	) {
+		return older;
 	}
-	const covered = new Set(confirmedKeys(newer));
-	return confirmedKeys(older).every((key) => covered.has(key));
+	return selectSavePayload(
+		older,
+		(category) => !Object.hasOwn(newer.confirmed.categories, category)
+	);
 };
 
 const normalizePendingSaves = function normalizePendingSaves(
@@ -269,14 +266,20 @@ const normalizePendingSaves = function normalizePendingSaves(
 		}
 		entries.push(entry);
 	}
-	entries.sort((left, right) => left.queuedAt - right.queuedAt);
-	// Keep every action whose receipts a later queued action did not replace.
-	return entries.filter(
-		(entry, index) =>
-			!entries
-				.slice(index + 1)
-				.some((later) => isSuperseded(entry.payload, later.payload))
+	entries.sort(
+		(left, right) =>
+			left.payload.confirmed.actionAt - right.payload.confirmed.actionAt ||
+			left.queuedAt - right.queuedAt
 	);
+	return entries.flatMap((entry, index) => {
+		let payload: SavePayload | null = entry.payload;
+		for (const later of entries.slice(index + 1)) {
+			if (payload) {
+				payload = subtractSuperseded(payload, later.payload);
+			}
+		}
+		return payload ? [{ ...entry, payload }] : [];
+	});
 };
 
 const readPendingSaves = function readPendingSaves(
@@ -352,11 +355,9 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 		}
 
 		await withQueueLock(() => {
-			const pending = readPendingSaves(storage).filter(
-				(candidate) => !isSuperseded(candidate.payload, payload)
-			);
+			const pending = readPendingSaves(storage);
 			pending.push({ attempts: 0, payload, queuedAt: Date.now() });
-			writePendingSaves(storage, pending);
+			writePendingSaves(storage, normalizePendingSaves(pending, Date.now()));
 		});
 	};
 
@@ -373,10 +374,11 @@ export const createPendingSaveQueue = function createPendingSaveQueue(
 
 		await withQueueLock(() => {
 			const pending = readPendingSaves(storage);
-			const remaining = pending.filter(
-				(candidate) => !isSuperseded(candidate.payload, payload)
-			);
-			if (remaining.length !== pending.length) {
+			const remaining = pending.flatMap((candidate) => {
+				const selected = subtractSuperseded(candidate.payload, payload);
+				return selected ? [{ ...candidate, payload: selected }] : [];
+			});
+			if (JSON.stringify(remaining) !== JSON.stringify(pending)) {
 				writePendingSaves(storage, remaining);
 			}
 		});

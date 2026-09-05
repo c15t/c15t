@@ -474,7 +474,7 @@ export interface ConfirmedCoverage {
 export interface SavePayload {
 	subjectId: string;
 	subject: Readonly<ConsentSubject>;
-	/** Complete receipt after this action. */
+	/** Receipt snapshot for this action; superseded categories are omitted when delivery is narrowed. */
 	choice: Readonly<ExplicitChoice>;
 	/** Exactly the categories this action confirmed. */
 	confirmed: ConfirmedCoverage;

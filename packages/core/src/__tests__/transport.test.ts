@@ -2608,3 +2608,74 @@ describe('independent partial save transport', () => {
 		}
 	});
 });
+
+describe('partially superseded confirmations', () => {
+	test.each([
+		'deferred',
+		'in-flight',
+		'queued-success',
+		'queued-failure',
+	] as const)(
+		'preserves measurement without replaying superseded marketing: %s',
+		async (phase) => {
+			let finish: (result: SaveResult) => void = () => {};
+			const send = vi.fn().mockResolvedValue({ ok: true });
+			if (phase === 'in-flight') {
+				send.mockImplementationOnce(() =>
+					createDeferredPromise<SaveResult>((resolve) => {
+						finish = resolve;
+					})
+				);
+			}
+			if (phase.startsWith('queued')) {
+				send.mockResolvedValueOnce({ ok: false });
+			}
+			if (phase === 'queued-failure') {
+				send.mockResolvedValueOnce({ ok: false });
+			}
+			const kernel = createConsentKernel({ transport: { save: send } });
+			try {
+				const first = kernel.commands.save({
+					marketing: true,
+					measurement: true,
+				});
+				const original =
+					kernel.getSnapshot().explicitChoice?.categories.measurement;
+				if (phase === 'in-flight') {
+					await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
+				}
+				if (phase.startsWith('queued')) {
+					await first;
+				}
+				await kernel.commands.save({ marketing: false });
+				if (phase === 'in-flight') {
+					finish({ ok: false });
+				}
+				await first;
+				if (phase !== 'deferred') {
+					await kernel.commands.init();
+					await vi.waitFor(() =>
+						expect(send.mock.calls.length).toBeGreaterThanOrEqual(3)
+					);
+				}
+				const surviving =
+					phase === 'deferred'
+						? send.mock.calls[0]?.[0]
+						: send.mock.calls[2]?.[0];
+				expect(surviving.confirmed.categories).toEqual({ measurement: true });
+				expect(surviving.choice.categories).toEqual({ measurement: original });
+				expect(surviving.givenAt).toBe(original?.confirmedAt);
+				expect(surviving.confirmed.actionAt).toBe(original?.confirmedAt);
+				expect(surviving.consents.marketing).toBe(false);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.marketing?.value
+				).toBe(false);
+				expect(
+					kernel.getSnapshot().explicitChoice?.categories.measurement
+				).toBe(original);
+			} finally {
+				kernel.dispose();
+			}
+		}
+	);
+});
