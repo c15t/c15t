@@ -837,3 +837,28 @@ describe('credential-scoped keys without WebCrypto', () => {
 		}
 	});
 });
+
+describe('fetchCachedManifest: custom identity headers over cleartext', () => {
+	test('refuses a caller-supplied header such as x-api-key over remote http', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+		await expect(
+			fetchCachedManifest({
+				cache: createManifestCache(),
+				fetch: fetchMock,
+				headers: { 'x-api-key': 'tenant-a' },
+				sourceURL: 'http://backend.example/manifest',
+			})
+		).rejects.toThrow(/refusing to send credentials over http .*x-api-key/u);
+		expect(fetchMock).not.toHaveBeenCalled();
+
+		await fetchCachedManifest({
+			cache: createManifestCache(),
+			fetch: fetchMock,
+			headers: { 'accept-language': 'de', 'x-api-key': 'tenant-a' },
+			sourceURL: 'https://backend.example/manifest',
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+});

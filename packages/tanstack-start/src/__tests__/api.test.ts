@@ -399,3 +399,26 @@ describe('createConsentServerRoute: forwarding headers on the manifest fetch', (
 		expect(headers.get('x-forwarded-proto')).toBeNull();
 	});
 });
+
+describe('createConsentServerRoute: cleartext manifest source', () => {
+	test('drops caller-configured identity headers before the manifest fetch', async () => {
+		const fetch = createManifestFetch();
+		const { manifestGET } = createRoute({
+			backendURL: 'http://backend.example',
+			fetch: fetch as unknown as typeof globalThis.fetch,
+			proxy: { forwardHeaders: ['x-api-key', 'accept-language'] },
+		});
+		const response = await manifestGET({
+			request: request('/api/c15t/manifest', {
+				'accept-language': 'de',
+				'x-api-key': 'tenant-a',
+			}),
+		});
+		expect(response.status).toBe(200);
+		const headers = new Headers(
+			(fetch.mock.calls[0] as [string, RequestInit])[1].headers
+		);
+		expect(headers.get('x-api-key')).toBeNull();
+		expect(headers.get('accept-language')).toBe('de');
+	});
+});

@@ -176,9 +176,13 @@ const countPreConsentGrants = function countPreConsentGrants(
 	if (consent?.gpc && gpc === true) {
 		return 0;
 	}
-	return isUnrestricted(categories)
-		? Number.POSITIVE_INFINITY
-		: optional(categories).length;
+	// The runtime grants every optional category to a permissive pack with
+	// no consent recorded, whatever its list says; only a strict scope
+	// limits the grants to the allowlist.
+	const strict = (consent?.scopeMode ?? 'permissive') === 'strict';
+	return strict && !isUnrestricted(categories)
+		? optional(categories).length
+		: Number.POSITIVE_INFINITY;
 };
 
 const comparePolicyStrictness = function comparePolicyStrictness(

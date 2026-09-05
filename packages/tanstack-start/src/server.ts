@@ -70,7 +70,7 @@ import {
 	extractConsentRequestInputs,
 } from './headers';
 import { filterCookieHeader } from './libs/cookies';
-import { FORWARDING_HEADERS } from './libs/proxy';
+import { FORWARDING_HEADERS, stripIdentityForCleartext } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
 import { isSelfRoute, resolveRequestURL } from './libs/request-url';
 
@@ -383,7 +383,7 @@ const loadManifest = async function loadManifest(
 	const cached = await fetchCachedManifest({
 		cache: options.cache,
 		fetch: options.fetch,
-		headers: forward,
+		headers: stripIdentityForCleartext(forward, sourceURL),
 		sourceURL,
 	});
 	return { backendURL, manifest: cached.manifest };

@@ -46,6 +46,7 @@ import {
 	FORWARDING_HEADERS,
 	proxyConsentRequest,
 	resolveProxyOptions,
+	stripIdentityForCleartext,
 } from './libs/proxy';
 import type { ConsentProxyOptions } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
@@ -398,13 +399,17 @@ export const createConsentServerRoute = function createConsentServerRoute<
 	};
 
 	const manifestGET: ConsentRouteHandler = async ({ request }) => {
-		const credentials = manifestRequestHeaders(request);
+		const sourceURL = resolveSourceURL(request, resolved);
+		const credentials = stripIdentityForCleartext(
+			manifestRequestHeaders(request),
+			sourceURL
+		);
 		const cached = await fetchCachedManifest({
 			cache: resolved.cache,
 			fetch: resolved.fetch,
 			headers: credentials,
 			query: readLanguageQuery(request),
-			sourceURL: resolveSourceURL(request, resolved),
+			sourceURL,
 		});
 
 		const headers = new Headers({ 'content-type': 'application/json' });
@@ -437,11 +442,15 @@ export const createConsentServerRoute = function createConsentServerRoute<
 	};
 
 	const initGET: ConsentRouteHandler = async ({ request }) => {
+		const initSourceURL = resolveSourceURL(request, resolved);
 		const cached = await fetchCachedManifest({
 			cache: resolved.cache,
 			fetch: resolved.fetch,
-			headers: manifestRequestHeaders(request),
-			sourceURL: resolveSourceURL(request, resolved),
+			headers: stripIdentityForCleartext(
+				manifestRequestHeaders(request),
+				initSourceURL
+			),
+			sourceURL: initSourceURL,
 		});
 		const remembered = readConsentInputs(request);
 		const payload = resolveManifestInit(

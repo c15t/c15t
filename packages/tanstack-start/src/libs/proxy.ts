@@ -200,7 +200,7 @@ const PROXY_SET_HEADERS = new Set([
 ]);
 
 /** Browser headers the default allowlist forwards that carry no identity. */
-const PUBLIC_FORWARD_HEADERS = new Set(
+export const PUBLIC_FORWARD_HEADERS: ReadonlySet<string> = new Set(
 	DEFAULT_FORWARD_HEADERS.filter((name) => !CREDENTIAL_HEADERS.has(name))
 );
 
@@ -223,13 +223,39 @@ const carriesIdentity = function carriesIdentity(headers: Headers): boolean {
 };
 
 /** `true` for an `http:` target that is not a loopback host. */
-const isCleartextRemote = function isCleartextRemote(url: string): boolean {
+export const isCleartextRemote = function isCleartextRemote(
+	url: string
+): boolean {
 	try {
 		const parsed = new URL(url);
 		return parsed.protocol === 'http:' && !LOOPBACK_HOSTS.has(parsed.hostname);
 	} catch {
 		return false;
 	}
+};
+
+/**
+ * Strips every identity-bearing header when the target is a cleartext,
+ * non-loopback URL, so the manifest and prefetch fetches follow the same
+ * rule as the proxy: only the public browser allowlist crosses `http:`.
+ *
+ * @param headers - Headers a route collected from the visitor.
+ * @param targetURL - Where they are about to be sent.
+ * @returns The headers to send, or `undefined` when none remain.
+ */
+export const stripIdentityForCleartext = function stripIdentityForCleartext(
+	headers: Record<string, string> | undefined,
+	targetURL: string
+): Record<string, string> | undefined {
+	if (!headers || !isCleartextRemote(targetURL)) {
+		return headers;
+	}
+	const kept = Object.fromEntries(
+		Object.entries(headers).filter(([name]) =>
+			PUBLIC_FORWARD_HEADERS.has(name.toLowerCase())
+		)
+	);
+	return Object.keys(kept).length > 0 ? kept : undefined;
 };
 
 const MAX_DECODE_PASSES = 3;

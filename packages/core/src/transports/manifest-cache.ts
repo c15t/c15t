@@ -18,6 +18,7 @@ import type {
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
 import {
+	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
@@ -412,15 +413,35 @@ const CREDENTIAL_HEADERS = new Set([
 	'proxy-authorization',
 ]);
 
-const hasCredentialHeaders = function hasCredentialHeaders(
+/**
+ * Request headers that carry no visitor identity: the browser negotiation
+ * headers, the consent resolver inputs, and this client's version headers.
+ * Anything else a host forwards (an API key, a tenant selector) is treated
+ * as a credential for transport purposes.
+ */
+const PUBLIC_MANIFEST_HEADERS = new Set([
+	'accept',
+	'accept-language',
+	'content-type',
+	'if-none-match',
+	'origin',
+	'referer',
+	'sec-gpc',
+	'user-agent',
+	...CONSENT_REQUEST_HEADER_NAMES,
+	...Object.keys(c15tVersionHeaders),
+]);
+
+const findIdentityHeader = function findIdentityHeader(
 	headers: Record<string, string> | undefined
-): boolean {
+): string | undefined {
 	if (!headers) {
-		return false;
+		return undefined;
 	}
-	return Object.keys(headers).some((name) =>
-		CREDENTIAL_HEADERS.has(name.toLowerCase())
-	);
+	return Object.keys(headers).find((name) => {
+		const lower = name.toLowerCase();
+		return CREDENTIAL_HEADERS.has(lower) || !PUBLIC_MANIFEST_HEADERS.has(lower);
+	});
 };
 
 /** Refuses to send credentials in clear text to anything but loopback. */
@@ -428,7 +449,8 @@ const assertCredentialTransport = function assertCredentialTransport(
 	requestURL: string,
 	headers: Record<string, string> | undefined
 ): void {
-	if (!hasCredentialHeaders(headers)) {
+	const identityHeader = findIdentityHeader(headers);
+	if (!identityHeader) {
 		return;
 	}
 	let url: URL;
@@ -439,7 +461,7 @@ const assertCredentialTransport = function assertCredentialTransport(
 	}
 	if (url.protocol === 'http:' && !LOOPBACK_HOSTS.has(url.hostname)) {
 		throw new Error(
-			`c15t manifest cache: refusing to send credentials over http to ${url.host}. Use https, or a loopback host for local development.`
+			`c15t manifest cache: refusing to send credentials over http to ${url.host} (${identityHeader}). Use https, or a loopback host for local development.`
 		);
 	}
 };

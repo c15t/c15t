@@ -328,3 +328,22 @@ describe('prefetchInitialConsent: forwarding headers', () => {
 		expect(headers.get('x-forwarded-proto')).toBeNull();
 	});
 });
+
+describe('prefetchInitialConsent: cleartext backend', () => {
+	test('drops caller-configured identity headers before the manifest fetch', async () => {
+		const fetchSpy = createManifestFetch();
+		await prefetchInitialConsent(
+			{
+				backendURL: 'http://backend.example',
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+				forwardHeaders: ['x-api-key', 'accept-language'],
+			},
+			createRequest({ 'accept-language': 'de', 'x-api-key': 'tenant-a' })
+		);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const call = fetchSpy.mock.calls[0] as [string, RequestInit];
+		const headers = new Headers(call[1].headers);
+		expect(headers.get('x-api-key')).toBeNull();
+		expect(headers.get('accept-language')).toBe('de');
+	});
+});

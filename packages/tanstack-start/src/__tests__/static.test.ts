@@ -179,75 +179,10 @@ describe('createStaticManifestModule: importSource', () => {
 	});
 });
 
-describe('resolveStrictestDefaultInit: category ties', () => {
-	test('prefers the pack exposing fewer optional categories', () => {
-		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
-		if (!optOut) {
-			throw new Error('fixture has no opt-out pack');
-		}
-		const wide = structuredClone(optOut);
-		wide.policy.id = 'us-ca-opt-out-wide';
-		wide.resolvedPolicy.id = 'us-ca-opt-out-wide';
-		const categories = [
-			'necessary',
-			'measurement',
-			'marketing',
-			'functionality',
-		];
-		if (wide.policy.consent) {
-			wide.policy.consent.categories = categories;
-		}
-		if (wide.resolvedPolicy.consent) {
-			wide.resolvedPolicy.consent.categories = categories;
-		}
-		for (const policyPacks of [
-			[optOut, wide],
-			[wide, optOut],
-		]) {
-			const payload = resolveStrictestDefaultInit(
-				{ ...MANIFEST_FIXTURE, policyPacks },
-				{ language: 'en' }
-			);
-			expect(payload.policy?.id).toBe('us-ca-opt-out');
-		}
-	});
-});
-
-describe('resolveStrictestDefaultInit: unrestricted category lists', () => {
-	test('ranks a wildcard or empty list below any explicit allowlist', () => {
-		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
-		if (!optOut) {
-			throw new Error('fixture has no opt-out pack');
-		}
-		for (const categories of [['*'], []]) {
-			const open = structuredClone(optOut);
-			open.policy.id = 'us-ca-opt-out-open';
-			open.resolvedPolicy.id = 'us-ca-opt-out-open';
-			if (open.policy.consent) {
-				open.policy.consent.categories = categories;
-			}
-			if (open.resolvedPolicy.consent) {
-				open.resolvedPolicy.consent.categories = categories;
-			}
-			for (const policyPacks of [
-				[optOut, open],
-				[open, optOut],
-			]) {
-				const payload = resolveStrictestDefaultInit(
-					{ ...MANIFEST_FIXTURE, policyPacks },
-					{ language: 'en' }
-				);
-				expect(payload.policy?.id, JSON.stringify(categories)).toBe(
-					'us-ca-opt-out'
-				);
-			}
-		}
-	});
-});
-
 describe('resolveStrictestDefaultInit: effective pre-consent grants', () => {
+	type Pack = (typeof MANIFEST_FIXTURE.policyPacks)[number];
 	const clonePack = function clonePack(
-		pack: (typeof MANIFEST_FIXTURE.policyPacks)[number],
+		pack: Pack,
 		id: string,
 		patch: (consent: Record<string, unknown>) => void
 	) {
@@ -262,16 +197,76 @@ describe('resolveStrictestDefaultInit: effective pre-consent grants', () => {
 		}
 		return copy;
 	};
-
-	const pickFor = function pickFor(
-		policyPacks: (typeof MANIFEST_FIXTURE.policyPacks)[number][],
-		gpc?: boolean
-	) {
+	const optOutFixture = function optOutFixture() {
+		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
+		if (!optOut) {
+			throw new Error('fixture has no opt-out pack');
+		}
+		return optOut;
+	};
+	const pickFor = function pickFor(policyPacks: Pack[], gpc?: boolean) {
 		return resolveStrictestDefaultInit(
 			{ ...MANIFEST_FIXTURE, policyPacks },
 			{ gpc, language: 'en' }
 		).policy?.id;
 	};
+	const bothOrders = function bothOrders(
+		left: Pack,
+		right: Pack,
+		expected: string,
+		gpc?: boolean
+	) {
+		expect(pickFor([left, right], gpc)).toBe(expected);
+		expect(pickFor([right, left], gpc)).toBe(expected);
+	};
+
+	test('among strict opt-out packs, fewer optional categories wins', () => {
+		const optOut = optOutFixture();
+		const narrow = clonePack(optOut, 'us-narrow', (consent) => {
+			consent.scopeMode = 'strict';
+		});
+		const wide = clonePack(optOut, 'us-wide', (consent) => {
+			consent.scopeMode = 'strict';
+			consent.categories = [
+				'necessary',
+				'measurement',
+				'marketing',
+				'functionality',
+			];
+		});
+		bothOrders(narrow, wide, 'us-narrow');
+	});
+
+	test('a wildcard or empty list ranks below any explicit allowlist', () => {
+		const optOut = optOutFixture();
+		const narrow = clonePack(optOut, 'us-narrow', (consent) => {
+			consent.scopeMode = 'strict';
+		});
+		for (const categories of [['*'], []]) {
+			const open = clonePack(optOut, 'us-open', (consent) => {
+				consent.scopeMode = 'strict';
+				consent.categories = categories;
+			});
+			bothOrders(narrow, open, 'us-narrow');
+		}
+	});
+
+	test('a permissive pack grants everything, whatever its list says', () => {
+		const optOut = optOutFixture();
+		const permissiveNecessary = clonePack(
+			optOut,
+			'us-permissive',
+			(consent) => {
+				consent.scopeMode = 'permissive';
+				consent.categories = ['necessary'];
+			}
+		);
+		const strictOne = clonePack(optOut, 'us-strict-one', (consent) => {
+			consent.scopeMode = 'strict';
+			consent.categories = ['necessary', 'marketing'];
+		});
+		bothOrders(permissiveNecessary, strictOne, 'us-strict-one');
+	});
 
 	test('an opt-in pack that preselects a category ranks below one that does not', () => {
 		const [optIn] = MANIFEST_FIXTURE.policyPacks;
@@ -281,29 +276,22 @@ describe('resolveStrictestDefaultInit: effective pre-consent grants', () => {
 		const preselecting = clonePack(optIn, 'eu-opt-in-preselect', (consent) => {
 			consent.preselectedCategories = ['marketing'];
 		});
-		expect(pickFor([optIn, preselecting])).toBe('eu-opt-in');
-		expect(pickFor([preselecting, optIn])).toBe('eu-opt-in');
+		bothOrders(optIn, preselecting, 'eu-opt-in');
 	});
 
-	test('a GPC-honouring but unrestricted opt-out pack only wins when GPC is present', () => {
-		const [, optOut] = MANIFEST_FIXTURE.policyPacks;
-		if (!optOut) {
-			throw new Error('fixture has no opt-out pack');
-		}
-		const necessaryOnly = clonePack(optOut, 'us-necessary-only', (consent) => {
-			consent.categories = ['necessary'];
+	test('a GPC-honouring open pack only beats a limited one when GPC is present', () => {
+		const optOut = optOutFixture();
+		const strictOne = clonePack(optOut, 'us-strict-one', (consent) => {
+			consent.scopeMode = 'strict';
+			consent.categories = ['necessary', 'marketing'];
 			consent.gpc = false;
 		});
-		const gpcUnrestricted = clonePack(optOut, 'us-gpc-open', (consent) => {
+		const gpcOpen = clonePack(optOut, 'us-gpc-open', (consent) => {
+			consent.scopeMode = 'permissive';
 			consent.categories = ['*'];
 			consent.gpc = true;
 		});
-		expect(pickFor([gpcUnrestricted, necessaryOnly], false)).toBe(
-			'us-necessary-only'
-		);
-		expect(pickFor([necessaryOnly, gpcUnrestricted], false)).toBe(
-			'us-necessary-only'
-		);
-		expect(pickFor([necessaryOnly, gpcUnrestricted], true)).toBe('us-gpc-open');
+		bothOrders(strictOne, gpcOpen, 'us-strict-one', false);
+		bothOrders(strictOne, gpcOpen, 'us-gpc-open', true);
 	});
 });
