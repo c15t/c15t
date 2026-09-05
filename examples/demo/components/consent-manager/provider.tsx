@@ -7,7 +7,11 @@ import {
 	ConsentProvider,
 	hosted,
 } from 'c15t/react';
-import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
+import {
+	IABConsentBanner,
+	IABConsentDialog,
+	IABProvider,
+} from 'c15t/react/iab';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -18,17 +22,17 @@ import { useThemePreset } from './theme-switcher';
 const SEARCH_CHANGE_EVENT = 'c15t:search-change';
 const DEFAULT_BACKEND_URL = 'https://test-consent-io.inth.app/';
 
-const internalAnalyticsVendor = Object.fromEntries([
-	['id', 'internal-analytics'],
-	['name', 'Example Analytics'],
-	['privacyPolicyUrl', 'https://www.google.com'],
-	['purposes', [1, 8]],
-	['dataCategories', [1, 2, 6, 8]],
-	['usesCookies', true],
-	['cookieMaxAgeSeconds', 31_536_000],
-	['usesNonCookieAccess', true],
-	['specialFeatures', [1, 2]],
-]);
+const internalAnalyticsVendor = {
+	cookieMaxAgeSeconds: 31_536_000,
+	dataCategories: [1, 2, 6, 8],
+	id: 'internal-analytics',
+	name: 'Example Analytics',
+	privacyPolicyUrl: 'https://www.google.com',
+	purposes: [1, 8],
+	specialFeatures: [1, 2],
+	usesCookies: true,
+	usesNonCookieAccess: true,
+};
 
 /**
  * Props for the ConsentManager component
@@ -207,9 +211,6 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 					'marketing',
 					'measurement',
 				],
-				iab: {
-					customVendors: [internalAnalyticsVendor],
-				},
 				legalLinks: {
 					privacyPolicy: {
 						href: '/legal/privacy-policy',
@@ -234,8 +235,13 @@ export const ConsentManager = ({ children }: ConsentManagerProps) => {
 			{!isPolicyDemo && !isPolicyActionsDemo ? (
 				<>
 					<ConsentBanner />
-					<IABConsentBanner />
-					<IABConsentDialog />
+					<IABProvider
+						cmpId={10}
+						customVendors={[internalAnalyticsVendor]}
+					>
+						<IABConsentBanner />
+						<IABConsentDialog />
+					</IABProvider>
 					<ConsentDialogTrigger />
 					<ConsentDialog />
 				</>

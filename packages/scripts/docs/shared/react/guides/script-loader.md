@@ -115,7 +115,7 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
-* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `Frame` for an iframe embed and a configured Script for an SDK integration.
 * Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
@@ -153,13 +153,23 @@ The `category` field accepts a `HasCondition`. It can be a single consent catego
 
 ```tsx
 // Simple: requires measurement consent
-{ category: 'measurement' }
+{
+  category: 'measurement';
+}
 
 // AND: requires both measurement and marketing
-{ category: { and: ['measurement', 'marketing'] } }
+{
+  category: {
+    and: ['measurement', 'marketing'];
+  }
+}
 
 // OR: requires either measurement or marketing
-{ category: { or: ['measurement', 'marketing'] } }
+{
+  category: {
+    or: ['measurement', 'marketing'];
+  }
+}
 ```
 
 Consent categories use the same names as the rest of c15t (`necessary`, `functionality`, `experience`, `measurement`, `marketing`).
@@ -276,14 +286,14 @@ function SignupButton() {
 }
 ```
 
-From non-React code, read the consent store directly:
+From non-React code, evaluate the current kernel snapshot:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { evaluateConsent } from '@c15t/core';
 
-const { consentStore } = getOrCreateConsentRuntime();
+// Reuse the kernel created during initialization.
 
-if (consentStore.getState().has('measurement')) {
+if (evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())) {
   window.fathom?.trackEvent('signup');
 }
 ```

@@ -20,7 +20,7 @@ pnpm dlx @c15t/cli setup
    * **Self-hosted** — uses `@c15t/backend`, requires a database.
 3. **Installs packages** with your detected package manager (`pnpm`, `npm`, `yarn`, or `bun`).
 4. **Adds the stylesheet import** to your app's CSS entrypoint.
-5. **Creates a provider component** at `components/consent-manager/provider.tsx` (or equivalent) with `ConsentManagerProvider`, `ConsentBanner`, and `ConsentDialog`.
+5. **Creates a provider component** at `components/consent-manager/provider.tsx` (or equivalent) with `ConsentProvider`, `ConsentBanner`, and `ConsentDialog`.
 6. **Writes environment variables** for the backend URL.
 
 ## Result

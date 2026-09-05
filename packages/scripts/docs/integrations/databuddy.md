@@ -13,8 +13,9 @@ The Databuddy script automatically respects consent preferences by toggling trac
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { databuddy } from '@c15t/scripts/databuddy';
 
 const scripts = [
@@ -35,17 +36,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -55,8 +55,10 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { databuddy } from '@c15t/scripts/databuddy';
 
 const scripts = [
@@ -77,17 +79,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -95,12 +96,19 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { databuddy } from '@c15t/scripts/databuddy';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [
     databuddy({
       clientId: 'your-client-id',
@@ -119,6 +127,8 @@ getOrCreateConsentRuntime({
     }),
   ],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## How c15t loads it
@@ -141,27 +151,26 @@ databuddy({
     clientId: 'your-client-id',
     apiUrl: 'https://basket.databuddy.cc',
     // Tracking options
-    trackScreenViews: true,        // Automatically track page views
-    trackOutgoingLinks: true,      // Track clicks on external links
-    trackAttributes: false,        // Track data-track attributes on elements
-    trackErrors: false,            // Track JavaScript errors
-    trackPerformance: true,        // Track performance metrics
-    trackWebVitals: false,         // Track Core Web Vitals
-
+    trackScreenViews: true, // Automatically track page views
+    trackOutgoingLinks: true, // Track clicks on external links
+    trackAttributes: false, // Track data-track attributes on elements
+    trackErrors: false, // Track JavaScript errors
+    trackPerformance: true, // Track performance metrics
+    trackWebVitals: false, // Track Core Web Vitals
 
     // Network options
-    enableBatching: false,         // Batch events before sending
-    batchSize: 10,                 // Events per batch
-    batchTimeout: 2000,            // Batch timeout in ms
-    samplingRate: 1.0,             // Sample rate (0.0-1.0)
+    enableBatching: false, // Batch events before sending
+    batchSize: 10, // Events per batch
+    batchTimeout: 2000, // Batch timeout in ms
+    samplingRate: 1.0, // Sample rate (0.0-1.0)
     disabled: false,
   },
   configWhenDenied: {
     clientId: 'your-client-id',
     apiUrl: 'https://basket.databuddy.cc',
     disabled: true,
-  }
-})
+  },
+});
 ```
 
 ## Tracking events in your app

@@ -2,6 +2,10 @@ import type { InitOutput } from '@c15t/schema/types';
 import type { App } from 'vue';
 import { onUnmounted, provide } from 'vue';
 
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '../../../packages/schema/src/types';
 import { enTranslations } from '../../../packages/translations/src';
 import { consentConfigKey } from '../../../packages/vue/src/runtime/composables/config';
 import type { ConsentConfig } from '../../../packages/vue/src/runtime/config';
@@ -15,6 +19,10 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../../../packages/vue/src/runtime/utils/symbols';
+import {
+	storybookPolicy,
+	storybookPresentation,
+} from '../../storybook-consent-policy';
 
 type StoryActiveUI = 'banner' | 'manager' | null;
 
@@ -25,49 +33,13 @@ export const storybookInit: InitOutput = {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	policy: {
-		consent: {
-			categories: [
-				'necessary',
-				'functionality',
-				'measurement',
-				'experience',
-				'marketing',
-			],
-			scopeMode: 'permissive',
-		},
-		id: 'storybook_vue_policy',
-		model: 'opt-in',
-		ui: {
-			banner: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				primaryActions: ['customize'],
-				scrollLock: false,
-			},
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-				direction: 'row',
-				// Mirrors the react/svelte offline compact profile so the
-				// widget/dialog footers group actions identically across
-				// frameworks ([reject, accept] + [customize]).
-				layout: [['reject', 'accept'], 'customize'],
-				primaryActions: ['customize'],
-				scrollLock: false,
-
-				uiProfile: 'compact',
-			},
-			mode: 'banner',
-		},
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'storybook_vue_fingerprint',
-		jurisdiction: 'GDPR',
-		matchedBy: 'default',
-		policyId: 'storybook_vue_policy',
-		region: null,
-	},
-	policySnapshotToken: 'storybook_vue_token',
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: 'DE',
+			regionCode: null,
+			rules: [storybookPolicy],
+		})
+	),
 	translations: {
 		language: 'en',
 		translations: enTranslations,
@@ -79,7 +51,10 @@ const storybookFetch = function storybookFetch(): typeof fetch {
 		const url = String(input);
 		if (url.endsWith('/init')) {
 			return new Response(JSON.stringify(storybookInit), {
-				headers: { 'content-type': 'application/json' },
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-policy-contract': '1',
+				},
 				status: 200,
 			});
 		}
@@ -90,7 +65,10 @@ const storybookFetch = function storybookFetch(): typeof fetch {
 			return new Response(
 				JSON.stringify({ ok: true, subjectId: body.subjectId }),
 				{
-					headers: { 'content-type': 'application/json' },
+					headers: {
+						'content-type': 'application/json',
+						'x-c15t-policy-contract': '1',
+					},
 					status: 200,
 				}
 			);
@@ -111,6 +89,7 @@ export const storybookConsentConfig: ConsentConfig = {
 	customFetch: storybookFetch(),
 	domain: 'consent.example',
 	hideBranding: false,
+	presentation: storybookPresentation,
 
 	// Animations left ON to match the React/Svelte storybooks (their fixtures
 	// don't disable them) so the Vue stories showcase the real dialog +
@@ -155,6 +134,7 @@ export const useStorybookConsent = function useStorybookConsent(
 	const context = createVueConsentKernelContext({
 		config,
 		prefetch: storybookInit,
+		producerContract: 1,
 	});
 	context.activeUI.value = activeUI;
 	provideStorybookConsentContext(null, context, config);

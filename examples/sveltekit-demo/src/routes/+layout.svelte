@@ -21,10 +21,16 @@
 
 	let { children } = $props();
 	let devtools: DevToolsInstance | null = null;
-	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
+	const isStandaloneConsentRoute = $derived(
+		page.url.pathname.startsWith('/bench') ||
+			page.url.pathname.startsWith('/ssr')
+	);
 
 	onMount(() => {
-		if (page.url.pathname.startsWith('/bench')) {
+		if (
+			page.url.pathname.startsWith('/bench') ||
+			page.url.pathname.startsWith('/ssr')
+		) {
 			return;
 		}
 
@@ -59,7 +65,7 @@
 	});
 </script>
 
-{#if isBenchRoute}
+{#if isStandaloneConsentRoute}
 	{@render children()}
 {:else}
 	<ConsentManagerProvider

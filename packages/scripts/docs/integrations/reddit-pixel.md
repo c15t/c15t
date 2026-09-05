@@ -12,23 +12,23 @@ Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It se
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { redditPixel } from '@c15t/scripts/reddit-pixel';
 
 const scripts = [redditPixel({ pixelId: 't2_abcdef' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -38,23 +38,24 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { redditPixel } from '@c15t/scripts/reddit-pixel';
 
 const scripts = [redditPixel({ pixelId: 't2_abcdef' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -62,14 +63,23 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { redditPixel } from '@c15t/scripts/reddit-pixel';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [redditPixel({ pixelId: 't2_abcdef' })],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## How c15t loads it
@@ -87,7 +97,7 @@ If you prefer to control page-view tracking yourself, disable the default `PageV
 redditPixel({
   pixelId: 't2_abcdef',
   trackPageVisit: false,
-})
+});
 ```
 
 ## Tracking events in your app
@@ -121,11 +131,11 @@ function CheckoutExample() {
 From plain JavaScript:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { evaluateConsent } from '@c15t/core';
 
-const { consentStore } = getOrCreateConsentRuntime();
+// Reuse the kernel created during initialization.
 
-if (consentStore.getState().has('marketing')) {
+if (evaluateConsent({ category: 'marketing' }, kernel.getSnapshot())) {
   window.rdt?.('track', 'Purchase', {
     currency: 'USD',
     value: 99,
@@ -151,7 +161,7 @@ during initialization:
 redditPixel({
   pixelId: 't2_abcdef',
   disableFirstPartyCookies: true,
-})
+});
 ```
 
 You can also pass Reddit's initialization options directly:
@@ -163,7 +173,7 @@ redditPixel({
     optOut: true,
     disableFirstPartyCookies: true,
   },
-})
+});
 ```
 
 Reddit supports a Limited Data Use flag through data processing fields. Use the
@@ -177,7 +187,7 @@ redditPixel({
     dpcc: 'US',
     dprc: 'CA',
   },
-})
+});
 ```
 
 Reddit can also receive attribution matching signals such as `email`,
@@ -195,7 +205,7 @@ redditPixel({
       phone_number: false,
     },
   },
-})
+});
 ```
 
 See Reddit's docs for [Limited Data Use](https://business.reddithelp.com/s/article/Limited-Data-Use),

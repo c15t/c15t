@@ -48,6 +48,7 @@
 
 		return () => {
 			unsubscribe();
+			kernel?.dispose();
 			kernel = null;
 		};
 	});
@@ -71,5 +72,8 @@
 </main>
 
 {#if snapshot?.activeUI === 'banner'}
-	<BenchmarkBanner onAccept={() => void kernel?.commands.save('all')} />
+	<BenchmarkBanner
+		onAccept={() => void kernel?.commands.save('all')}
+		onReject={() => void kernel?.commands.save('none')}
+	/>
 {/if}

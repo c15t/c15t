@@ -22,23 +22,23 @@ sessions.
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { crisp } from '@c15t/scripts/crisp';
 
 const scripts = [crisp({ websiteId: 'crisp-123' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -48,23 +48,24 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { crisp } from '@c15t/scripts/crisp';
 
 const scripts = [crisp({ websiteId: 'crisp-123' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -72,14 +73,23 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { crisp } from '@c15t/scripts/crisp';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [crisp({ websiteId: 'crisp-123' })],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## How c15t loads it
@@ -105,7 +115,7 @@ crisp({
   tokenId: 'secure-user-token',
   sessionMerge: true,
   safeMode: true,
-})
+});
 ```
 
 `locale` and `sessionMerge` are written to `CRISP_RUNTIME_CONFIG`.

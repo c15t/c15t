@@ -8,17 +8,15 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
-- [Building Headless Components](./docs/frameworks/react/building-headless-components.md): Build policy-aware custom consent components in React using the headless hooks and policy-pack tooling.
 - [Callbacks](./docs/frameworks/react/callbacks.md): Observe explicit choices separately from effective permission changes.
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): A pre-built consent banner that appears when user consent is needed. Supports policy-aware layout, theming, and advanced composition when markup must change.
 - [ConsentDialog](./docs/frameworks/react/components/consent-dialog.md): A modal dialog where users can toggle individual consent categories.
 - [ConsentDialogLink](./docs/frameworks/react/components/consent-dialog-link.md): An inline trigger for opening the consent dialog from footers, legal pages, and account settings.
 - [ConsentDialogTrigger](./docs/frameworks/react/components/consent-dialog-trigger.md): A floating, draggable button that lets users re-open the consent dialog at any time.
-- [ConsentManagerProvider](./docs/frameworks/react/components/consent-manager-provider.md): The root provider component that initializes the consent system and makes consent state available to all child components.
+- [ConsentProvider](./docs/frameworks/react/components/consent-manager-provider.md): The root provider component that initializes the consent system and makes consent state available to all child components.
 - [ConsentWidget](./docs/frameworks/react/components/consent-widget.md): An inline consent management widget for embedding in settings or privacy pages. Shows category toggles with accordion layout.
 - [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Frame](./docs/frameworks/react/components/frame.md): A consent-gated content wrapper - children only mount when the required consent category is granted.
-- [Client Modes](./docs/frameworks/react/concepts/client-modes.md): Choose how c15t connects to its backend - full hosted integration, offline-only, or bring your own backend.
 - [Consent Categories](./docs/frameworks/react/concepts/consent-categories.md): How c15t organizes tracking technologies into five consent categories.
 - [Consent Models](./docs/frameworks/react/concepts/consent-models.md): How c15t determines consent behavior based on legal jurisdiction.
 - [Cookie Management](./docs/frameworks/react/concepts/cookie-management.md): How c15t manages cookies through script, iframe, and network gating
@@ -27,14 +25,11 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Policy Packs](./docs/frameworks/react/concepts/policy-packs.md): How c15t resolves regional consent policies and what a policy pack controls.
 - [Headless Mode](./docs/frameworks/react/headless.md): Build fully custom consent UI using only hooks - no pre-built components required.
 - [useColorScheme](./docs/frameworks/react/hooks/use-color-scheme.md): Manage light/dark mode preferences for consent components.
-- [Checking Consent](./docs/frameworks/react/hooks/use-consent-manager/checking-consent.md): Use has() for flexible consent checks with AND, OR, and NOT logic. Check if any consent exists with hasConsented().
+- [Checking Consent](./docs/frameworks/react/hooks/use-consent-manager/checking-consent.md): Use has() for flexible consent checks with AND, OR, and NOT logic. Read explicit choices separately from effective permissions.
 - [Location Info](./docs/frameworks/react/hooks/use-consent-manager/location-info.md): Access detected jurisdiction, country, and region. Override geolocation for testing.
-- [useConsentManager](./docs/frameworks/react/hooks/use-consent-manager/overview.md): The primary hook for accessing consent state and actions. Returns the full consent store including all state properties and action methods.
-- [Setting Consent](./docs/frameworks/react/hooks/use-consent-manager/setting-consent.md): Save, update, and reset consent preferences with setConsent(), setSelectedConsent(), and saveConsents().
-- [useDraggable](./docs/frameworks/react/hooks/use-draggable.md): Make an element draggable between viewport corners with snapping, persistence, and animation support.
+- [Setting Consent](./docs/frameworks/react/hooks/use-consent-manager/setting-consent.md): Edit displayed preference drafts and explicitly confirm their categories.
 - [useFocusTrap](./docs/frameworks/react/hooks/use-focus-trap.md): Trap keyboard focus within a container for accessible modal dialogs.
 - [useReducedMotion](./docs/frameworks/react/hooks/use-reduced-motion.md): Detect the user's prefers-reduced-motion OS setting and reactively disable animations.
-- [useSSRStatus](./docs/frameworks/react/hooks/use-ssr-status.md): Check whether server-side rendered consent data was used during initialization.
 - [useTextDirection](./docs/frameworks/react/hooks/use-text-direction.md): Manage RTL/LTR text direction based on the active language for consent UI.
 - [useTranslations](./docs/frameworks/react/hooks/use-translations.md): Access the current language's translations for building custom consent UI.
 - [IABConsentBanner](./docs/frameworks/react/iab/consent-banner.md): An IAB TCF 2.3 compliant consent banner that displays partner count, purpose summaries, and legitimate interest notices.
@@ -48,7 +43,6 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Policy rules and presentation](./docs/frameworks/react/policy-packs.md): Configure policy behavior separately from React layout and preference controls.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Add consent management to your React app in under 5 minutes.
 - [Script Loader](./docs/frameworks/react/script-loader.md): Gate third-party scripts behind consent in React — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
-- [Server-Side Utilities](./docs/frameworks/react/server-side.md): Fetch consent data on the server for SSR hydration — eliminate the loading flash and improve performance.
 - [Class Names](./docs/frameworks/react/styling/classnames.md): Style consent components using className props and per-slot className targeting via the theme.
 - [Color Scheme](./docs/frameworks/react/styling/color-scheme.md): Support light mode, dark mode, and system preference detection in consent components.
 - [CSS Variables](./docs/frameworks/react/styling/css-variables.md): Reference for all --c15t-* CSS custom properties generated by the theme system.
@@ -56,7 +50,6 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Component Slots](./docs/frameworks/react/styling/slots.md): Target individual component parts with styles using the slot system - className strings or inline style objects.
 - [Tailwind CSS](./docs/frameworks/react/styling/tailwind.md): Use Tailwind CSS utility classes to style consent components via component slots.
 - [Design Tokens](./docs/frameworks/react/styling/tokens.md): The six base token categories that control colors, typography, spacing, radius, shadows, and motion, plus optional dark-mode overrides.
-- [Troubleshooting](./docs/frameworks/react/troubleshooting.md): Solutions for common issues with c15t/react — provider errors, missing banners, consent persistence, and more.
 
 ## Integrations
 
@@ -71,7 +64,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Crisp](./docs/integrations/crisp.md): Load Crisp live chat with website ID, runtime, cookie, and session options.
 - [Databuddy](./docs/integrations/databuddy.md): Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
-- [Google Maps](./docs/integrations/google-maps.md): Render Google Maps only after consent with one shared Maps JavaScript API loader and independently managed map instances.
 - [GA4 + Google Ads (gtag.js)](./docs/integrations/google-tag.md): Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Deploy and manage marketing tags centrally with automatic consent state synchronization.
 - [Heap](./docs/integrations/heap.md): Load Heap with c15t and gate autocapture product analytics behind measurement consent.
@@ -99,7 +91,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Umami Analytics](./docs/integrations/umami-analytics.md): Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 - [Vercel Analytics](./docs/integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./docs/integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
-- [YouTube](./docs/integrations/youtube.md): Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
 
 ## Reference
 
@@ -109,7 +100,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Consent Categories](./docs/shared/concepts/consent-categories.md): Reference page for consent categories.
 - [Consent Models](./docs/shared/concepts/consent-models.md): Reference page for consent models.
 - [Cookie Management](./docs/shared/concepts/cookie-management.md): Reference page for cookie management.
-- [Glossary](./docs/shared/concepts/glossary.md): Reference page for glossary.
 - [Initialization Flow](./docs/shared/concepts/initialization-flow.md): Reference page for initialization flow.
 - [Policy Packs](./docs/shared/concepts/policy-packs.md): Reference page for policy packs.
 - [Consent Banner](./docs/shared/react/components/consent-banner.md): Reference page for consent banner.
@@ -153,3 +143,17 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Tailwind](./docs/shared/react/styling/tailwind.md): Reference page for tailwind.
 - [Tokens](./docs/shared/react/styling/tokens.md): Reference page for tokens.
 - [Troubleshooting](./docs/shared/troubleshooting.md): Reference page for troubleshooting.
+
+## Other
+
+- [Building custom consent UI](./docs/frameworks/react/building-headless-components.md): Preserve policy actions and persistent rights in a custom layout.
+- [Transport modes](./docs/frameworks/react/concepts/client-modes.md): Select a hosted backend or local rules with a transport factory.
+- [useConsentManager](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Read current choices, permissions and editable preferences.
+- [Draggable controls](./docs/frameworks/react/hooks/use-draggable.md): Use the built-in dialog trigger for a draggable privacy control.
+- [Server state migration](./docs/frameworks/react/hooks/use-ssr-status.md): Use prepared policy and record data for server rendering.
+- [Server-side records and policy](./docs/frameworks/react/server-side.md): Prepare canonical records and policy resolution before hydrating React.
+- [Troubleshooting](./docs/frameworks/react/troubleshooting.md): Inspect policy, records and permissions when UI or processing differs from expectations.
+- [Google Maps](./docs/integrations/google-maps.md): Gate a Google Maps iframe with the Frame component.
+- [YouTube](./docs/integrations/youtube.md): Gate a YouTube iframe with the Frame component.
+- [Glossary](./docs/shared/concepts/glossary.md): Terms used by the canonical policy and record contract.
+- [Upgrade to v3](./docs/upgrade-v3.md): Migrate choices, processing gates, policy rules, presentation and transports to the v3 contract.

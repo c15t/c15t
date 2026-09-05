@@ -62,77 +62,12 @@ describe('custom()', () => {
 		expect(mode(context)).toBe(transport);
 	});
 
-	test('maps endpoint handlers without trusting legacy consent markers', async () => {
-		const setConsent = vi.fn().mockResolvedValue({
-			data: { subjectId: 'sub_backend' },
-			ok: true,
-		});
-		const mode = custom({
-			init: vi.fn().mockResolvedValue({
-				data: { hasConsented: true, subjectId: 'sub_init' },
-				ok: true,
-			}),
-			setConsent,
-		});
-		const transport = mode(context);
-
-		const initResponse = await transport.init?.({ overrides: {}, user: null });
-		expect(initResponse).toMatchObject({
-			subjectId: 'sub_init',
-		});
-
-		const saveResult = await transport.save?.(payload);
-		expect(saveResult).toEqual({ ok: true, subjectId: 'sub_backend' });
-		expect(setConsent).toHaveBeenCalledWith({
-			body: expect.objectContaining({
-				consentAction: 'all',
-				givenAt: 1_700_000_000_000,
-				preferences: { marketing: false, necessary: true },
-				subjectId: 'sub_test',
-				type: 'cookie_banner',
-			}),
-		});
-	});
-
-	test('surfaces an endpoint init failure as a thrown error', async () => {
-		const boom = new Error('init unavailable');
-		const transport = custom({
-			init: vi.fn().mockResolvedValue({ data: null, error: boom, ok: false }),
-			setConsent: vi.fn(),
-		})(context);
-
-		await expect(transport.init?.({ overrides: {}, user: null })).rejects.toBe(
-			boom
-		);
-	});
-
-	test('maps identifyUser onto the kernel transport', async () => {
-		const identifyUser = vi.fn().mockResolvedValue({ ok: true });
-		const transport = custom({
-			identifyUser,
-			setConsent: vi.fn(),
-		})(context);
-		const user = {
-			externalId: 'user_123',
-			identityProvider: 'clerk',
-		};
-
-		await transport.identify?.(user, 'sub_123');
-
-		expect(identifyUser).toHaveBeenCalledWith({
-			body: { ...user, subjectId: 'sub_123' },
-		});
-	});
-
-	test('reports a missing init as an explicitly unconfigured policy', async () => {
-		const transport = custom({ setConsent: vi.fn() })(context);
-
-		// Every local producer says what it resolved. Silence would read as a
-		// failed payload, never as permission to keep a previous policy.
-		await expect(
-			transport.init?.({ overrides: {}, user: null })
-		).resolves.toEqual({
-			policyResolution: { policy: null, status: 'unconfigured', version: 1 },
-		});
+	test('rejects removed endpoint-handler configuration', () => {
+		expect(() =>
+			custom({
+				// @ts-expect-error Old endpoint handlers are no longer supported.
+				setConsent: vi.fn(),
+			})
+		).toThrow('custom() requires a KernelTransport');
 	});
 });

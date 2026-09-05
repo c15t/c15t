@@ -1,6 +1,6 @@
 ---
-'@c15t/core': minor
-'@c15t/iab': minor
+'@c15t/core': major
+'@c15t/iab': major
 '@c15t/scripts': patch
 ---
 

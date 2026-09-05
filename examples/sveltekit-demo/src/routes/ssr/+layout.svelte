@@ -9,13 +9,21 @@
 		offline,
 	} from '@c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
+	import { policyRulePresets, resolvePolicyRules } from 'c15t';
 
 	let { children } = $props();
+	const rules = [policyRulePresets.europeOptIn()];
+	const resolution = resolvePolicyRules({
+		countryCode: 'GB',
+		regionCode: null,
+		rules,
+	});
 </script>
 
 <ConsentManagerProvider
 	options={{
-		mode: offline(),
+		mode: offline({ policyRules: rules }),
+		prefetch: { initialPolicyResolution: resolution },
 		consentCategories: ['necessary', 'marketing', 'measurement'],
 		iab: {
 			enabled: false,

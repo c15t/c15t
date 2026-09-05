@@ -12,8 +12,9 @@ icon: clearbit
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { clearbit } from '@c15t/scripts/clearbit';
 
 const scripts = [
@@ -22,17 +23,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -42,8 +42,10 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { clearbit } from '@c15t/scripts/clearbit';
 
 const scripts = [
@@ -52,17 +54,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -70,18 +71,27 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { clearbit } from '@c15t/scripts/clearbit';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [
     clearbit({
       publishableKey: 'YOUR_PUBLISHABLE_KEY',
     }),
   ],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## How c15t loads it
@@ -97,7 +107,7 @@ The helper maps Clearbit's official snippet:
 ```ts
 clearbit({
   publishableKey: 'YOUR_PUBLISHABLE_KEY',
-})
+});
 ```
 
 To proxy or self-host the loader, pass a custom URL:
@@ -106,7 +116,7 @@ To proxy or self-host the loader, pass a custom URL:
 clearbit({
   publishableKey: 'YOUR_PUBLISHABLE_KEY',
   scriptUrl: 'https://analytics.example.com/clearbit-tags.js',
-})
+});
 ```
 
 ## Types

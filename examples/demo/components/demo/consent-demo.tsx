@@ -7,7 +7,11 @@ import {
 	hosted,
 	offline,
 } from 'c15t/react';
-import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
+import {
+	IABConsentBanner,
+	IABConsentDialog,
+	IABProvider,
+} from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
@@ -21,7 +25,7 @@ import {
 	demoI18nMessages,
 	demoScenarios,
 	getScenarioById,
-	getScenarioPolicyPacks,
+	getScenarioPolicyRules,
 } from '../../lib/scenarios';
 import { cn } from '../../lib/utils';
 import {
@@ -286,8 +290,13 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 	const sharedOptions = {
 		consentCategories: [...CONSENT_CATEGORIES],
-		iab: iabConfig,
+		i18n: {
+			messages:
+				demoI18nMessages[scenario.policy.i18n?.messageProfile ?? 'default']
+					.translations,
+		},
 		overrides,
+		presentation: scenario.presentation,
 		scripts: createDemoScripts('demo-analytics'),
 		theme: demoTheme,
 	};
@@ -305,14 +314,8 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 				}
 			: {
 					mode: offline({
-						policyPacks: getScenarioPolicyPacks(params.scenarioId),
+						policyRules: getScenarioPolicyRules(params.scenarioId),
 					}),
-					offlinePolicy: {
-						i18n: {
-							defaultProfile: 'default',
-							messages: demoI18nMessages,
-						},
-					},
 					...sharedOptions,
 				};
 
@@ -481,11 +484,13 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 					<ConsentBanner />
 					<ConsentDialog />
-					<IABConsentBanner
-						trapFocus={false}
-						scrollLock={false}
-					/>
-					<IABConsentDialog />
+					<IABProvider {...iabConfig}>
+						<IABConsentBanner
+							trapFocus={false}
+							scrollLock={false}
+						/>
+						<IABConsentDialog />
+					</IABProvider>
 				</ConsentProvider>
 			</div>
 		</main>

@@ -8,7 +8,6 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
-- [Script Loader](./frameworks/javascript/script-loader.md): Gate third-party scripts behind consent — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Script Loader](./frameworks/next/script-loader.md): Gate third-party scripts behind consent in Next.js — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Script Loader](./frameworks/react/script-loader.md): Gate third-party scripts behind consent in React — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 
@@ -25,7 +24,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Crisp](./integrations/crisp.md): Load Crisp live chat with website ID, runtime, cookie, and session options.
 - [Databuddy](./integrations/databuddy.md): Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
-- [Google Maps](./integrations/google-maps.md): Render Google Maps only after consent with one shared Maps JavaScript API loader and independently managed map instances.
 - [GA4 + Google Ads (gtag.js)](./integrations/google-tag.md): Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 - [Google Tag Manager](./integrations/google-tag-manager.md): Deploy and manage marketing tags centrally with automatic consent state synchronization.
 - [Heap](./integrations/heap.md): Load Heap with c15t and gate autocapture product analytics behind measurement consent.
@@ -53,10 +51,15 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Umami Analytics](./integrations/umami-analytics.md): Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
-- [YouTube](./integrations/youtube.md): Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
 
 ## Reference
 
 Concepts, legal templates, open-source policies, and contributor documentation.
 
 - [Script Loader](./shared/react/guides/script-loader.md): Reference page for script loader.
+
+## Other
+
+- [Script loader](./frameworks/javascript/script-loader.md): Attach scripts to current effective permissions.
+- [Google Maps](./integrations/google-maps.md): Gate a Google Maps iframe with the Frame component.
+- [YouTube](./integrations/youtube.md): Gate a YouTube iframe with the Frame component.

@@ -113,13 +113,13 @@ export interface CookieOptions {
 	 * @example
 	 * ```typescript
 	 * // Current domain only (default, most secure)
-	 * saveConsentToStorage(data);
+	 * createPersistence({ kernel });
 	 *
 	 * // Easy way: Cross-subdomain
-	 * saveConsentToStorage(data, { crossSubdomain: true });
+	 * createPersistence({ kernel, storageConfig: { crossSubdomain: true } });
 	 *
 	 * // Advanced: Explicit domain
-	 * saveConsentToStorage(data, { domain: '.example.com' });
+	 * createPersistence({ kernel, storageConfig: { domain: '.example.com' } });
 	 * ```
 	 */
 	domain?: string;

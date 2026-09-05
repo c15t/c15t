@@ -22,19 +22,19 @@ Use it for analytics, pixels, tag managers, product analytics, and other vendor 
 
 ## Basic Usage
 
-Pass an array of scripts to `ConsentManagerProvider`. Built-in helpers from `@c15t/scripts` return plain `Script` objects, so they sit beside app-specific scripts:
+Pass an array of scripts to `ConsentProvider`. Built-in helpers from `@c15t/scripts` return plain `Script` objects, so they sit beside app-specific scripts:
 
 ```tsx
+import { hosted } from '@c15t/nextjs';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts: [
           metaPixel({ pixelId: '123456' }),
           {
@@ -46,7 +46,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -60,27 +60,25 @@ Define your script list once and keep it next to the consent provider:
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { gtag } from '@c15t/scripts/google-tag';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-const scripts = [
-  gtag({ id: 'G-XXXXXXX' }),
-  metaPixel({ pixelId: '123456' }),
-];
+const scripts = [gtag({ id: 'G-XXXXXXX' }), metaPixel({ pixelId: '123456' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -184,7 +182,7 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
-* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `Frame` for an iframe embed and a configured Script for an SDK integration.
 * Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
@@ -222,13 +220,23 @@ The `category` field accepts a `HasCondition`. It can be a single consent catego
 
 ```tsx
 // Simple: requires measurement consent
-{ category: 'measurement' }
+{
+  category: 'measurement';
+}
 
 // AND: requires both measurement and marketing
-{ category: { and: ['measurement', 'marketing'] } }
+{
+  category: {
+    and: ['measurement', 'marketing'];
+  }
+}
 
 // OR: requires either measurement or marketing
-{ category: { or: ['measurement', 'marketing'] } }
+{
+  category: {
+    or: ['measurement', 'marketing'];
+  }
+}
 ```
 
 Consent categories use the same names as the rest of c15t (`necessary`, `functionality`, `experience`, `measurement`, `marketing`).
@@ -345,14 +353,14 @@ function SignupButton() {
 }
 ```
 
-From non-React code, read the consent store directly:
+From non-React code, evaluate the current kernel snapshot:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { evaluateConsent } from '@c15t/core';
 
-const { consentStore } = getOrCreateConsentRuntime();
+// Reuse the kernel created during initialization.
 
-if (consentStore.getState().has('measurement')) {
+if (evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())) {
   window.fathom?.trackEvent('signup');
 }
 ```
@@ -370,126 +378,19 @@ When a script does not behave as expected:
 5. Check whether the browser or an ad blocker blocked the request.
 6. Use c15t devtools to inspect script lifecycle events when available.
 
-## Dynamic Script Management
+## Dynamic scripts
 
-The shared guide above lists what the script-manager methods do. In Next.js they are exposed through `useConsentManager()`:
+Keep the provider scripts configuration stable. For an independently mounted
+integration, use the exported `useScriptLoader` module hook inside the provider
+and dispose its owner on unmount. The core loader handle supports
+`updateScripts(nextScripts)` and `getLoadedScriptIds()`.
 
-```tsx
-import { useConsentManager } from 'c15t/next';
+## Maps and media
 
-function ScriptManager() {
-  const {
-    setScripts,
-    removeScript,
-    isScriptLoaded,
-    getLoadedScriptIds,
-  } = useConsentManager();
-
-  // ...
-}
-```
-
-Register dynamic scripts from a client effect or event handler — never directly in the render body — so React can run the call once per dependency change and tear it down on unmount:
-
-```tsx
-'use client';
-
-import { useEffect } from 'react';
-import { useConsentManager } from 'c15t/next';
-
-export function WorkspaceAnalytics({ workspaceId }: { workspaceId: string }) {
-  const { setScripts, removeScript } = useConsentManager();
-
-  useEffect(() => {
-    const scriptId = `workspace-analytics-${workspaceId}`;
-
-    setScripts([
-      {
-        id: scriptId,
-        src: `https://cdn.example.com/workspaces/${workspaceId}.js`,
-        category: 'measurement',
-      },
-    ]);
-
-    return () => {
-      removeScript(scriptId);
-    };
-  }, [workspaceId, setScripts, removeScript]);
-
-  return null;
-}
-```
-
-## Renderable Integrations
-
-Some integrations need a visible component, not just a script tag. Google Maps, YouTube, checkout widgets, and calendars all need consent gating plus component lifecycle.
-
-Use the [Google Maps](/docs/integrations/google-maps) and
-[YouTube](/docs/integrations/youtube) renderable integrations through
-`c15t/next` in client components:
-
-```tsx
-'use client';
-
-import { GoogleMap, YouTubeEmbed } from 'c15t/next';
-
-export function ConsentAwareMedia() {
-  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  return (
-    <>
-      {googleMapsApiKey && (
-        <GoogleMap
-          apiKey={googleMapsApiKey}
-          authReferrerPolicy="origin"
-          center={{ lat: 40.7128, lng: -74.006 }}
-          className="overflow-hidden rounded-xl"
-          consentCategory="measurement"
-          zoom={12}
-        />
-      )}
-
-      <YouTubeEmbed
-        consentCategory="marketing"
-        title="Product demo"
-        videoId="dQw4w9WgXcQ"
-      />
-    </>
-  );
-}
-```
-
-The implementation splits the problem into three layers:
-
-1. Use the script loader as the source of truth for shared SDK loading.
-2. Use `useConsentScript()` for SDK readiness when a vendor uses a callback-style loader.
-3. Create the widget instance only on the client and clean it up on unmount.
-
-Google Maps is SDK-backed and uses one shared c15t-managed script plus per-component map instances. The script is never requested before consent. Once loaded, its manager registration is retained to respect Google's one-loader-per-page constraint, while each map instance is destroyed on unmount or when consent becomes unavailable. The component adopts an existing Google Maps global, has a visible `320px` default height, uses the official API types, and reports loader, authentication, and constructor failures through `onError` and `errorFallback`.
-
-All maps with the same `scriptId` must use the same loader configuration. `mapId` changes recreate the instance; `center`, `zoom`, and updateable `options` update it in place. You can pass Google's direct-loader options through `libraries`, `language`, `region`, `version`, `authReferrerPolicy`, `mapIds`, `channel`, and `solutionChannel`.
-
-YouTube is iframe-only and uses the existing `Frame` boundary rather than the
-YouTube iframe API. It defaults to a responsive, borderless 16:9 frame with a
-localized loading state, stable placeholder dimensions, native lazy loading,
-and the privacy-enhanced host. Its `className` and forwarded ref target the
-iframe; `wrapperClassName` and `frameProps` target the `Frame`. Boolean `params`
-become `1` or `0`.
-
-For a custom client-side SDK, `useConsentScript()` exposes `blocked`, `loading`,
-`ready`, and `error` states plus `readyValue`, `error`, and `ready`. Change its
-`retryKey` after a failed attempt to retry the same script id. Registrations
-with one id must use compatible script and readiness options; conflicts surface
-as `ConsentScriptConflictError`.
-
-For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern or `YouTubeEmbed`. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
-
-## App Router Notes
-
-* The provider and any component that calls `useConsentManager()` must be client components.
-* Keep vendor ids out of static examples when they differ per environment — read them from `process.env.NEXT_PUBLIC_*` or runtime config.
-* If a script must be available before a page becomes interactive, prefer a built-in helper that models denied-consent defaults rather than adding a separate `next/script` tag.
-* If you use CSP nonces, set `nonce` on the provider options so c15t applies it to every injected script element and the theme stylesheet. See [Content Security Policy](/docs/frameworks/next/components/consent-manager-provider#content-security-policy) for reading the nonce in the App Router.
+Use `Frame` with a service-provided iframe URL for Maps and YouTube embeds.
+The specialized v2 components are removed. See [Google Maps](/docs/integrations/google-maps)
+and [YouTube](/docs/integrations/youtube) for working examples. For an SDK widget,
+register the SDK as a Script and manage each widget instance separately.
 
 ## API Reference
 

@@ -44,10 +44,7 @@ import type { HydrationRecords } from '../types';
 export type TransportHydrationRecords = HydrationRecords;
 
 /** The subject read as the wire carries it, dates already revived. */
-export type SubjectRecordWire = GetSubjectOutput & {
-	subjectChoice?: SubjectChoiceWire;
-	privacyDirectives?: readonly PrivacyDirectiveWire[];
-};
+export type SubjectRecordWire = GetSubjectOutput;
 
 export interface MapSubjectRecordOptions {
 	/** Current time in epoch milliseconds. Future receipts are invalid. */

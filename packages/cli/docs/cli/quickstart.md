@@ -23,7 +23,7 @@ The CLI then:
 
 * Installs the single `c15t` package; generated code imports `c15t/react`, `c15t/next`, or `c15t` depending on your framework.
 * Adds the prebuilt stylesheet import to your app's CSS entrypoint.
-* Creates a `ConsentManagerProvider` wrapper component with `ConsentBanner` and `ConsentDialog`.
+* Creates a `ConsentProvider` wrapper component with `ConsentBanner` and `ConsentDialog`.
 * Writes any required environment variables.
 
 When it finishes, run your dev server — the banner appears on first visit.

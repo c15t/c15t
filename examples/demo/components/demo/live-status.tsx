@@ -3,7 +3,7 @@
 import {
 	useInit,
 	useSetActiveUI,
-	useSetConsent,
+	useConsentDraft,
 	useSetLanguage,
 	useSetOverrides,
 	useSnapshot,
@@ -24,7 +24,6 @@ const LANGUAGE_OPTIONS = [
 
 const MODEL_LABELS: Record<string, string> = {
 	iab: 'IAB TCF 2.3',
-	none: 'No banner',
 	'opt-in': 'Opt-in',
 	'opt-out': 'Opt-out',
 };
@@ -43,7 +42,7 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const snapshot = useSnapshot();
 	const init = useInit();
 	const setActiveUI = useSetActiveUI();
-	const setConsent = useSetConsent();
+	const draft = useConsentDraft();
 	const setLanguage = useSetLanguage();
 	const setOverrides = useSetOverrides();
 
@@ -52,8 +51,8 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 		return () => cancelAnimationFrame(frame);
 	}, []);
 
-	const policy = mounted ? snapshot.policy : null;
-	const categories = mounted ? snapshot.policyCategories : [];
+	const policy = mounted ? snapshot.policyRule : null;
+	const categories = mounted ? snapshot.policyRule.scope : [];
 	const requestedLanguage = snapshot.overrides.language;
 	const resolvedLanguage = snapshot.translations?.language ?? 'en';
 	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
@@ -66,12 +65,18 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 	const rawState = mounted
 		? {
 				activeUI: snapshot.activeUI,
-				consents: snapshot.consents,
+				effectivePermissions: snapshot.effectivePermissions,
+				explicitChoice: snapshot.explicitChoice,
 				iabEnabled: snapshot.iab?.enabled ?? false,
 				mode,
+				noticeDismissal: snapshot.noticeDismissal,
+				optOutDirectives: snapshot.optOutDirectives,
 				overrides: snapshot.overrides,
-				policy,
-				policyDecision: snapshot.policyDecision,
+				policyPending: snapshot.policyPending,
+				policyRule: policy,
+				privacySignals: snapshot.privacySignals,
+				promptRequirement: snapshot.promptRequirement,
+				resolution: snapshot.resolution,
 			}
 		: null;
 
@@ -121,17 +126,19 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 					value={snapshot.iab?.enabled ? 'enabled' : 'off'}
 				/>
 				<StatusRow
-					label="Consent"
-					value={snapshot.hasConsented ? 'saved' : 'not saved yet'}
+					label="Explicit choice"
+					value={snapshot.explicitChoice === null ? 'not saved yet' : 'saved'}
 				/>
 			</div>
 
 			{categories.length > 0 && (
 				<div className="space-y-2">
-					<p className="label-pixel text-muted-foreground">Categories</p>
+					<p className="label-pixel text-muted-foreground">
+						Effective permissions
+					</p>
 					<div className="flex flex-wrap gap-1.5">
 						{categories.map((category) => {
-							const granted = snapshot.consents[category];
+							const granted = snapshot.effectivePermissions[category];
 							return (
 								<Badge
 									key={category}
@@ -200,18 +207,12 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 				<Button
 					className="rounded-full"
 					onClick={() => {
-						setConsent({
-							experience: false,
-							functionality: false,
-							marketing: false,
-							measurement: false,
-						});
-						void init();
+						draft.reset();
 					}}
 					size="sm"
 					variant="ghost"
 				>
-					Reset consent
+					Reset draft
 				</Button>
 			</div>
 
