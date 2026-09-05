@@ -26,6 +26,7 @@ import { diffComputedStyleMap } from '@c15t/conformance';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
+import { captureDialogEvidence } from '../src/dialog-evidence';
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
@@ -228,10 +229,13 @@ test.describe('cross-framework parity', () => {
 			const baselineA11y = await captureA11yTree(page);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			const baselineStyles = await captureComputedStyleMap(page, 'body');
+			// oxlint-disable-next-line no-await-in-loop -- Capture the current story before navigation.
+			const baselineDialog = await captureDialogEvidence(page);
 
 			const captures: Record<string, unknown> = {
 				[baselineFramework]: {
 					a11y: baselineA11y,
+					dialog: baselineDialog,
 					dom: baselineDom,
 					styles: baselineStyles,
 				},
@@ -250,7 +254,14 @@ test.describe('cross-framework parity', () => {
 				const a11y = await captureA11yTree(page);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				const styles = await captureComputedStyleMap(page, 'body');
-				captures[framework] = { a11y, dom, styles };
+				// oxlint-disable-next-line no-await-in-loop -- Capture the current story before navigation.
+				const dialog = await captureDialogEvidence(page);
+				captures[framework] = { a11y, dialog, dom, styles };
+				if (JSON.stringify(dialog) !== JSON.stringify(baselineDialog)) {
+					failures.push(
+						`[DIALOG] ${pair.key}: ${baselineFramework} ≠ ${framework} (${JSON.stringify(baselineDialog)} ≠ ${JSON.stringify(dialog)})`
+					);
+				}
 
 				if (dom !== baselineDom) {
 					failures.push(

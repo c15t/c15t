@@ -101,10 +101,28 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		};
 
 		const canonicalize = function canonicalize(element: Element): string {
-			const tag = element.tagName.toLowerCase();
-			const attrs: string[] = [];
+			const originalTag = element.tagName.toLowerCase();
+			const heading =
+				/^h[1-6]$/u.test(originalTag) && !element.hasAttribute('role');
+			const tag = heading ? 'div' : originalTag;
+			const attrs: string[] = heading
+				? [`role="heading"`, `aria-level="${originalTag.slice(1)}"`]
+				: [];
+			// SVG intrinsic size and CSS size are equivalent only when their rendered
+			// bounds agree. Keep path/viewBox/stroke and every other attribute intact.
+			if (tag === 'svg') {
+				const bounds = element.getBoundingClientRect();
+				attrs.push(
+					`data-parity-width="${bounds.width}"`,
+					`data-parity-height="${bounds.height}"`
+				);
+			}
 			for (const attribute of Array.from(element.attributes)) {
-				if (STRIP.has(attribute.name)) {
+				if (
+					STRIP.has(attribute.name) ||
+					(tag === 'svg' &&
+						['xmlns', 'width', 'height'].includes(attribute.name))
+				) {
 					continue;
 				}
 				const value = normAttr(element, attribute.name, attribute.value);
