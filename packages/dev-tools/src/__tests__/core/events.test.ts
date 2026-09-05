@@ -1,13 +1,40 @@
 import type { KernelEvent } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	KERNEL_EVENT_TYPES,
 	kernelEventToDevToolsEvent,
 } from '../../core/events';
+import { createDevTools } from '../../index';
 
 describe('kernel event mapping', () => {
+	it('does not disrupt failed saves when an Error message getter throws', async () => {
+		const error = new Error('transport failure');
+		Object.defineProperty(error, 'message', {
+			enumerable: true,
+			get() {
+				throw new Error('unreadable message');
+			},
+		});
+		const kernel = createConsentKernel({
+			transport: { save: vi.fn().mockRejectedValue(error) },
+		});
+		const devTools = createDevTools({ kernel });
+		try {
+			await expect(kernel.commands.save('all')).resolves.toMatchObject({
+				ok: false,
+			});
+			const event = devTools
+				.getState()
+				.events.find((entry) => entry.type === 'command:error');
+			expect(event).toBeDefined();
+			expect(() => JSON.stringify(event)).not.toThrow();
+			expect(event?.data?.error).toContain('Unserializable');
+		} finally {
+			devTools.destroy();
+		}
+	});
 	it('captures circular and bigint transport results without breaking the log', () => {
 		const data: Record<string, unknown> = { count: 1n };
 		data.self = data;

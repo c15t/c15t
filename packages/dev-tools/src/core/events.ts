@@ -46,10 +46,18 @@ function resultData(
 // oxlint-disable-next-line func-style -- Named conversion helpers aid stack traces.
 function errorData(command: string, error: unknown): Record<string, unknown> {
 	let message = serializeDiagnostic(error);
-	if (error instanceof Error) {
-		({ message } = error);
-	} else if (typeof error === 'string') {
-		message = error;
+	try {
+		if (error instanceof Error) {
+			const errorMessage: unknown = error.message;
+			message =
+				typeof errorMessage === 'string'
+					? errorMessage
+					: serializeDiagnostic(errorMessage);
+		} else if (typeof error === 'string') {
+			message = error;
+		}
+	} catch {
+		// Keep the safe serialized fallback when an error getter throws.
 	}
 	return {
 		command,
