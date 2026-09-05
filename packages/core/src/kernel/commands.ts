@@ -159,8 +159,9 @@ export interface ResolvedSave {
  * input. Called by the save command before any transport I/O.
  *
  * Branches:
- * - `'all'` — displayed categories become `true`, action is `all`.
- * - `'none'` — displayed optional categories become `false`, action is `necessary`.
+ * - `'all'` sets displayed categories to `true`; `'none'` sets displayed
+ *   optional categories to `false`. Full-policy actions are recorded as
+ *   `all` or `necessary`, respectively; a partial-policy scope is `custom`.
  * Categories outside the displayed scope retain their current values.
  * - object — applied as a partial consent merge; if no category
  *   changed, only metadata (subjectId / hasConsented / activeUI)

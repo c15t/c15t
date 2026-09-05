@@ -52,7 +52,7 @@ export interface DevToolsActions {
 	setActiveUI: (activeUI: KernelActiveUI) => void;
 	/** Refresh consent data. Inspect ok to distinguish success from failure. */
 	init: () => Promise<InitResult>;
-	/** Save choices in the displayed scope. Inspect ok; throwing transports reject. */
+	/** Save displayed choices. Transport failures resolve with ok: false. */
 	save: (input?: Partial<ConsentState> | 'all' | 'none') => Promise<SaveResult>;
 }
 

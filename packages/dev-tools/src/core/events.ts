@@ -3,7 +3,7 @@ import type { ConsentSnapshot, KernelEvent, SaveResult } from '@c15t/core';
 import { serializeDiagnostic } from './serialization';
 import type { DevToolsEvent } from './state-manager';
 
-export const KERNEL_EVENT_TYPES = [
+const EVENT_TYPES = [
 	'consent:set',
 	'overrides:set',
 	'user:identified',
@@ -17,6 +17,14 @@ export const KERNEL_EVENT_TYPES = [
 	'command:save:completed',
 	'command:error',
 ] as const satisfies readonly KernelEvent['type'][];
+
+/** A new kernel event must also be added to the capture list. */
+export const KERNEL_EVENT_TYPES: Exclude<
+	KernelEvent['type'],
+	(typeof EVENT_TYPES)[number]
+> extends never
+	? typeof EVENT_TYPES
+	: never = EVENT_TYPES;
 
 // oxlint-disable-next-line func-style -- Named conversion helpers aid stack traces.
 function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {

@@ -474,7 +474,8 @@ export interface ConsentKernel {
 		 * @param input - Explicit values, all/none, or omitted to save current choices.
 		 * @param options - Categories displayed by the caller's UI.
 		 * @returns SaveResult with ok indicating transport acceptance. Local changes
-		 * remain applied on failure; a throwing transport rejects the promise.
+		 * remain applied on failure. Transport exceptions resolve with ok: false
+		 * and queue the payload for retry.
 		 */
 		save: (
 			input?: Partial<ConsentState> | 'all' | 'none',
