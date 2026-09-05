@@ -104,6 +104,9 @@ describe('ConsentManagerProvider option identity', () => {
 
 		await flush();
 		expect(init).toHaveBeenCalledTimes(1);
+		expect(init.mock.calls[0]?.[0]).toMatchObject({
+			overrides: { country: 'DE' },
+		});
 
 		await rerender({
 			mode: custom(transport),
@@ -112,5 +115,8 @@ describe('ConsentManagerProvider option identity', () => {
 		await flush();
 
 		expect(init).toHaveBeenCalledTimes(2);
+		expect(init.mock.calls[1]?.[0]).toMatchObject({
+			overrides: { country: 'FR' },
+		});
 	});
 });

@@ -65,25 +65,21 @@ const getEnv = function getEnv(name: string): string | undefined {
 /**
  * Resolves a possibly-relative backend URL against the request.
  *
- * Seeds the protocol from `event.url` rather than letting the shared resolver
- * fall back to `https`, so a relative `backendURL` still resolves on a plain
- * `http://localhost` dev server.
+ * Only `event.url` decides the origin. SvelteKit derives it from the
+ * adapter's trusted configuration (`ORIGIN`, or `PROTOCOL_HEADER`/
+ * `HOST_HEADER` where a proxy is declared), so seeding from it both fixes a
+ * relative URL on a plain `http://localhost` dev server and keeps a forged
+ * `x-forwarded-host` from steering this server-side fetch at a host of the
+ * caller's choosing.
  */
 const resolveAgainstRequest = function resolveAgainstRequest(
 	url: string,
 	event: RequestEvent
 ): string | null {
-	const headers: Record<string, string> = {
+	return resolveBackendURL(url, {
 		host: event.url.host,
 		'x-forwarded-proto': event.url.protocol.replace(':', ''),
-	};
-	for (const name of ['x-forwarded-host', 'referer']) {
-		const value = event.request.headers.get(name);
-		if (value) {
-			headers[name] = value;
-		}
-	}
-	return resolveBackendURL(url, headers);
+	});
 };
 
 /**

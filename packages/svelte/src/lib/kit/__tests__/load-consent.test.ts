@@ -60,6 +60,18 @@ describe('loadConsent', () => {
 		expect(config.initialOverrides?.country).toBe('DE');
 	});
 
+	test('per-call inputs beat the ones the handle resolved', async () => {
+		const event = await withHandle(
+			createEvent({
+				headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'CA' },
+			})
+		);
+
+		const config = await loadConsent(event, { country: 'DE' });
+
+		expect(config.initialOverrides?.country).toBe('DE');
+	});
+
 	test('falls back to reading the request itself when the handle is absent', async () => {
 		const event = createEvent({
 			headers: { 'cf-ipcountry': 'FR', cookie: CONSENTED_COOKIE },

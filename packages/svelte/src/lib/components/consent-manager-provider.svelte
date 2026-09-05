@@ -210,13 +210,20 @@
 	const consentCategoriesOption = $derived(options.consentCategories);
 	const enabledOption = $derived(options.enabled ?? true);
 
+	// Every field `identify()` sends, in a fixed order. Keying on a subset
+	// would swallow an update: same `externalId`, new `properties`, no call.
 	const userKey = function userKey(
 		user: KernelUser | undefined
 	): string | null {
 		if (!user) {
 			return null;
 		}
-		return JSON.stringify([user.externalId, user.identityProvider]);
+		return JSON.stringify([
+			user.externalId,
+			user.externalIdType,
+			user.identityProvider,
+			user.properties,
+		]);
 	};
 
 	$effect(() => {

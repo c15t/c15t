@@ -56,13 +56,22 @@ const readLocals = function readLocals(
  * Resolves the base config and request inputs: whatever {@link c15tHandle}
  * already computed for this request, or a fresh cookie + header read when the
  * handle is not installed.
+ *
+ * Per-call inputs beat the handle's. A route that passes `country` is naming
+ * the country for that page, and silently keeping the handle's would render
+ * one jurisdiction and forward another.
  */
 const resolveBase = async function resolveBase(
 	event: RequestEvent,
 	options: LoadConsentOptions
 ): Promise<{ config: KernelConfig; inputs: ConsentRequestHeaderInputs }> {
+	const overridesPerCall =
+		options.cookieName !== undefined ||
+		options.country !== undefined ||
+		options.language !== undefined ||
+		options.region !== undefined;
 	const locals = readLocals(event);
-	if (locals) {
+	if (locals && !overridesPerCall) {
 		return locals;
 	}
 	const inputs = extractConsentRequestInputs(event.request.headers, {

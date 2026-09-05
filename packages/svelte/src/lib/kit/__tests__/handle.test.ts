@@ -65,6 +65,18 @@ describe('c15tHandle', () => {
 		expect(locals.inputs.region).toBe('CA');
 	});
 
+	test('rewrites accept-language to the language it resolved', async () => {
+		const event = createEvent({
+			headers: { 'accept-language': 'fr-FR,fr;q=0.9' },
+		});
+		const { locals } = await runHandle(event, { language: 'de' });
+
+		expect(locals.inputs.language).toBe('de');
+		// A downstream route re-reads `accept-language`, so it has to carry
+		// the resolved language rather than the browser's original list.
+		expect(event.request.headers.get('accept-language')).toBe('de');
+	});
+
 	test('parses the consent cookie into the kernel config', async () => {
 		const event = createEvent({ headers: { cookie: CONSENTED_COOKIE } });
 		const { locals } = await runHandle(event);
