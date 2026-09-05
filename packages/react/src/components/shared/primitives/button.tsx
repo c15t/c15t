@@ -260,6 +260,7 @@ export const ConsentButton = createForwardRef<
 				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
 				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
 				data-size={isStyled ? size : undefined}
+				data-action={consentAction}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				{...domProps}
