@@ -1,4 +1,4 @@
-import { defineCompatSuite } from '@c15t/next-compat-shared/suite';
+import { defineCompatSuite } from '../../shared/src/suite';
 
 defineCompatSuite({
 	scenarios: [

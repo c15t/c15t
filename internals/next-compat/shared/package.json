@@ -9,10 +9,7 @@
 		"./consent-shell": "./src/consent-shell.tsx",
 		"./probe": "./src/probe.tsx",
 		"./fixture": "./src/fixture/index.ts",
-		"./fixture/node-adapter": "./src/fixture/node-adapter.ts",
-		"./suite": "./src/suite/index.ts",
-		"./global-setup": "./src/suite/global-setup.ts",
-		"./vitest": "./src/suite/vitest-config.ts"
+		"./fixture/node-adapter": "./src/fixture/node-adapter.ts"
 	},
 	"scripts": {
 		"check-types": "tsc --noEmit",
