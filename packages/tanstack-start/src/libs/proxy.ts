@@ -183,6 +183,13 @@ const decodeSegment = function decodeSegment(segment: string): string | null {
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
 
+/** Headers that carry credentials and must never cross a cleartext link. */
+const CREDENTIAL_HEADERS = new Set([
+	'authorization',
+	'cookie',
+	'proxy-authorization',
+]);
+
 /** `true` for an `http:` target that is not a loopback host. */
 const isCleartextRemote = function isCleartextRemote(url: string): boolean {
 	try {
@@ -407,11 +414,10 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	const { search } = new URL(request.url);
 	const base = backendURL.replace(/\/+$/u, '');
 	const target = `${base}/${normalized}${search}`;
-	// Named cookies never travel in clear text to a remote backend; a
-	// loopback host is allowed for local development.
-	const cookieNames = isCleartextRemote(target)
-		? undefined
-		: options.cookieNames;
+	// Credentials never travel in clear text to a remote backend; a loopback
+	// host is allowed for local development.
+	const cleartextRemote = isCleartextRemote(target);
+	const cookieNames = cleartextRemote ? undefined : options.cookieNames;
 	// Belt and braces: the segment check above rejects anything the URL
 	// parser would fold, so the parsed target must still sit exactly at the
 	// allowlisted path under the backend base.
@@ -423,7 +429,9 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 	const init: RequestInit & { duplex?: 'half' } = {
 		headers: buildProxyRequestHeaders(
 			request,
-			options.forwardHeaders,
+			cleartextRemote
+				? options.forwardHeaders.filter((name) => !CREDENTIAL_HEADERS.has(name))
+				: options.forwardHeaders,
 			cookieNames,
 			options.trustForwardedHeaders
 		),

@@ -72,3 +72,22 @@ describe('isSelfRoute', () => {
 		).toBe(false);
 	});
 });
+
+describe('isSelfRoute: segment boundary', () => {
+	test('does not treat a similarly named sibling path as the consent route', () => {
+		const request = new Request('http://localhost:3010/');
+		expect(
+			isSelfRoute(
+				'http://localhost:3010/api/c15t-backend/manifest',
+				request,
+				'/api/c15t'
+			)
+		).toBe(false);
+		expect(
+			isSelfRoute('http://localhost:3010/api/c15t', request, '/api/c15t')
+		).toBe(true);
+		expect(
+			isSelfRoute('http://localhost:3010/api/c15t/init', request, '/api/c15t/')
+		).toBe(true);
+	});
+});

@@ -748,3 +748,52 @@ describe('clearManifestCache during cache-key construction', () => {
 		expect(later).toBe(await early);
 	});
 });
+
+describe('credential-scoped keys without WebCrypto', () => {
+	test('never embed the credential value in the key', async () => {
+		const subtle = globalThis.crypto?.subtle;
+		Object.defineProperty(globalThis.crypto, 'subtle', {
+			configurable: true,
+			value: undefined,
+		});
+		try {
+			const fetchMock = vi.fn(() =>
+				Promise.resolve(
+					new Response(JSON.stringify(createManifestFixture()), {
+						headers: { 'cache-control': 'public, s-maxage=60' },
+						status: 200,
+					})
+				)
+			) as unknown as ManifestFetch;
+			const seen: string[] = [];
+			const store = createManifestCache();
+			const cache = {
+				clear: () => store.clear(),
+				delete: (key: string) => store.delete(key),
+				get: (key: string) => {
+					seen.push(key);
+					return store.get(key);
+				},
+				set: (key: string, entry: Parameters<typeof store.set>[1]) =>
+					store.set(key, entry),
+			};
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchMock,
+				headers: { authorization: 'Bearer top-secret' },
+				now: 1000,
+				sourceURL: SOURCE_URL,
+			});
+			expect(seen.length).toBeGreaterThan(0);
+			for (const key of seen) {
+				expect(key).not.toContain('top-secret');
+				expect(key.startsWith(`${SOURCE_URL}#`)).toBe(true);
+			}
+		} finally {
+			Object.defineProperty(globalThis.crypto, 'subtle', {
+				configurable: true,
+				value: subtle,
+			});
+		}
+	});
+});

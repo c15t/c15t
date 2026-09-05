@@ -384,6 +384,20 @@ const assertCredentialTransport = function assertCredentialTransport(
 	}
 };
 
+const HASH_LANES = [31, 131, 16_777_619] as const;
+const LANE_MODULUS = 4_294_967_296;
+
+/** One 32-bit lane of a multiplicative string hash, no bitwise ops. */
+const hashLane = function hashLane(value: string, multiplier: number): string {
+	let hash = 2_166_136_261 % LANE_MODULUS;
+	for (let index = 0; index < value.length; index += 1) {
+		hash =
+			(((hash * multiplier) % LANE_MODULUS) + value.charCodeAt(index)) %
+			LANE_MODULUS;
+	}
+	return hash.toString(16).padStart(8, '0');
+};
+
 const digest = async function digest(value: string): Promise<string> {
 	const subtle = globalThis.crypto?.subtle;
 	if (subtle) {
@@ -395,10 +409,11 @@ const digest = async function digest(value: string): Promise<string> {
 			byte.toString(16).padStart(2, '0')
 		).join('');
 	}
-	// Without WebCrypto, keep the canonical scope itself: the key only ever
-	// lives in this process's memory, and a lossy hash could merge two
-	// credential scopes.
-	return value;
+	// Without WebCrypto (only very old runtimes): three independent 32-bit
+	// lanes (96 bits) of a multiplicative string hash. Not cryptographic, but
+	// free of the credential value, which is what a caller-supplied cache that
+	// logs or persists keys must never see.
+	return HASH_LANES.map((multiplier) => hashLane(value, multiplier)).join('');
 };
 
 /**

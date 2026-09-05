@@ -72,8 +72,10 @@ export const isSelfRoute = function isSelfRoute(
 	try {
 		const target = new URL(url);
 		const origin = new URL(request.url);
+		const prefix = pathPrefix.replace(/\/+$/u, '');
 		return (
-			target.origin === origin.origin && target.pathname.startsWith(pathPrefix)
+			target.origin === origin.origin &&
+			(target.pathname === prefix || target.pathname.startsWith(`${prefix}/`))
 		);
 	} catch {
 		return false;

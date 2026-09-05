@@ -626,3 +626,26 @@ describe('proxy on: cleartext backends', () => {
 		expect(upstreamCall(fetch).headers.get('cookie')).toBe('c15t=abc');
 	});
 });
+
+describe('proxy on: cleartext backends and credential headers', () => {
+	test('strips authorization headers for a remote http backend', async () => {
+		const fetch = createUpstream();
+		const handlers = createConsentServerRoute({
+			backendURL: 'http://consent.internal.example',
+			cache: createManifestCache(),
+			fetch,
+			proxy: { forwardHeaders: ['authorization'] },
+		});
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { authorization: 'Bearer secret', 'user-agent': 'UA' },
+				method: 'POST',
+			}),
+		});
+		const { headers } = upstreamCall(fetch);
+		expect(headers.get('authorization')).toBeNull();
+		expect(headers.get('user-agent')).toBe('UA');
+	});
+});

@@ -5,6 +5,12 @@ import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
+/** `vitest run` is run mode; a bare `vitest` or `--watch` is watch mode. */
+const isVitestWatchMode = function isVitestWatchMode(): boolean {
+	const args = process.argv.slice(2);
+	return args.includes('--watch') || !args.includes('run');
+};
+
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
@@ -103,8 +109,9 @@ export default mergeConfig(
 			// while these browser tests run against core source through the
 			// aliases above. With a file watcher active that rewrite reloads a
 			// test mid-run, which vitest-browser-react does not survive, so the
-			// watcher is off unless vitest itself runs in watch mode.
-			watch: process.env.VITEST_MODE === 'WATCH' ? undefined : null,
+			// watcher is off for `vitest run` and left on for watch mode (the
+			// `test:watch` scripts, or an explicit `--watch`).
+			watch: isVitestWatchMode() ? undefined : null,
 		},
 		test: {
 			browser: {
