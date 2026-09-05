@@ -179,6 +179,20 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"@c15t/tanstack-start-browser-bench#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/logger#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/tanstack-start#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
 		"@c15t/nuxt-browser-bench#dev": {
 			"cache": false,
 			"persistent": true,
