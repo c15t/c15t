@@ -25,10 +25,7 @@
  * caches, keeping requests isolated under Fluid Compute.
  */
 
-export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
 // oxlint-disable-next-line oxc/no-barrel-file -- Preserve declaration order, interface shape, and public compatibility.
 export * from '@c15t/react';
 export type { ConsentBoundaryProps } from './boundary';
 export { ConsentBoundary } from './boundary';
-export { C15tPrefetch } from './libs/browser-initial-data';
-export type { C15tPrefetchProps } from './types';
