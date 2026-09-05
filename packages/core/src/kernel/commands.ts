@@ -297,8 +297,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 		};
 
-	const finishLifecycle = function finishLifecycle(now: number): void {
-		runtime.reconcilePrivacy(now);
+	const finishLifecycle = function finishLifecycle(
+		now: number,
+		activatePrivacy = true
+	): void {
+		if (activatePrivacy) {
+			runtime.reconcilePrivacy(now);
+		}
 		runtime.armDeadlineTimer();
 	};
 
@@ -346,6 +351,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		}
 
 		const generation = initGeneration;
+		const recordsGeneration = runtime.getGeneration();
 		const completeSuperseded = function completeSuperseded(
 			error: unknown
 		): InitResult {
@@ -367,7 +373,22 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				);
 			}
 			const now = runtime.now();
-			const applied = applyInitResponse(getSnapshot(), response, now);
+			const current = getSnapshot();
+			const recordsAreCurrent =
+				recordsGeneration === runtime.getGeneration() &&
+				snapshot.subjectId === current.subjectId &&
+				snapshot.user === current.user;
+			// Policy can still resolve after clear or identification changes,
+			// but the old request no longer owns this subject's stored records.
+			const acceptedResponse = recordsAreCurrent
+				? response
+				: {
+						...response,
+						consents: undefined,
+						records: undefined,
+						subjectId: undefined,
+					};
+			const applied = applyInitResponse(current, acceptedResponse, now);
 			if (applied.recordIssues && !isProduction()) {
 				console.warn(
 					'[c15t] Ignored invalid server records on init.',
@@ -381,7 +402,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (changed || snapshot.policyProvisional) {
 				emit({ snapshot: getSnapshot(), type: 'init:applied' });
 			}
-			finishLifecycle(now);
+			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
 			clearRetryTimer();
 			pendingRetryAttempt = null;
 			removeVisibilityListener();
@@ -396,7 +417,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ command: 'init', error, type: 'command:error' });
 			const now = runtime.now();
 			commit(failedResolutionPatch(getSnapshot(), now));
-			finishLifecycle(now);
+			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
 			const nextRetryMs =
 				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
 					? getRetryDelay(retryPolicy, attempt)

@@ -103,6 +103,8 @@ group: reference
 
   A detected Global Privacy Control signal (`navigator.globalPrivacyControl === true` or `Sec-GPC: 1`) masks the categories the active policy maps to it and, once the lifecycle has started, records a standing opt-out directive in local storage. Removing the signal does not remove the directive, and an ordinary save cannot override it. GPC never creates a choice, never dismisses a notice, and never runs consent callbacks. The `overrides.gpc` option is a developer override: it masks permissions the same way but records no directive.
 
+  Clearing c15t data also invalidates records from pending initialization and subject reads. A late response can update policy resolution but cannot restore the cleared choice, identity, or privacy directive. Privacy forwarding retries failures with the original recorded time and acknowledges each subject separately.
+
   Kernel events follow the same split: `choice:recorded` fires only for an explicit save, `permissions:changed` fires when the effective permissions differ by value, `notice:dismissed` and `privacy:opt-out` fire for their own records.
 </section>
 

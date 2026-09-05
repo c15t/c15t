@@ -37,6 +37,7 @@ import type {
 } from '../types';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
+import { mergeServerPatch } from './server-records';
 import { buildDraft, DEFAULT_IAB } from './snapshot';
 
 /**
@@ -178,15 +179,7 @@ export const applyInitResponse = function applyInitResponse(
 					validated.records.choice
 				);
 			}
-			if (validated.records.noticeDismissal !== undefined) {
-				patch.noticeDismissal = validated.records.noticeDismissal;
-			}
-			if (validated.records.optOutDirectives !== undefined) {
-				patch.optOutDirectives = validated.records.optOutDirectives;
-			}
-			if (validated.records.subject !== undefined) {
-				patch.subject = validated.records.subject;
-			}
+			Object.assign(patch, mergeServerPatch(current, validated.records, now));
 		} else {
 			recordIssues = validated.issues;
 		}

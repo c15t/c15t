@@ -24,7 +24,7 @@ import type {
 import { buildNextSnapshot, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
-import type { ValidatedRecords } from './records';
+import { mergeServerPatch } from './server-records';
 import { freezeSnapshot } from './snapshot';
 
 /** Longest delay `setTimeout` honors without overflowing to zero. */
@@ -100,48 +100,6 @@ const hasDocumentListeners = function hasDocumentListeners(): boolean {
 	);
 };
 
-/**
- * Server records never remove local standing state: directives union with
- * the local list, a notice dismissal keeps the newest, and subject fields
- * fill in without dropping local identifiers.
- */
-const mergeServerPatch = function mergeServerPatch(
-	current: ConsentSnapshot,
-	records: Omit<ValidatedRecords, 'choice'>,
-	now: number
-): SnapshotPatch {
-	const patch: SnapshotPatch = { now };
-	if (records.optOutDirectives !== undefined) {
-		const merged = [...current.optOutDirectives];
-		for (const directive of records.optOutDirectives) {
-			const duplicate = merged.some(
-				(existing) =>
-					existing.source === directive.source &&
-					existing.recordedAt === directive.recordedAt &&
-					existing.categories.join(',') === directive.categories.join(',')
-			);
-			if (!duplicate) {
-				merged.push(directive);
-			}
-		}
-		patch.optOutDirectives = merged;
-	}
-	if (records.noticeDismissal !== undefined) {
-		const local = current.noticeDismissal;
-		const incoming = records.noticeDismissal;
-		patch.noticeDismissal =
-			incoming && (!local || incoming.dismissedAt > local.dismissedAt)
-				? incoming
-				: local;
-	}
-	if (records.subject !== undefined) {
-		patch.subject = records.subject
-			? { ...current.subject, ...records.subject }
-			: current.subject;
-	}
-	return patch;
-};
-
 /** Draft values bound to the choice fingerprint they were presented under. */
 interface BoundDraft {
 	fingerprint: string;
@@ -163,6 +121,7 @@ export const createRuntime = function createRuntime(
 	let disposed = false;
 	let generation = 0;
 	const forwardedDirectives = new Set<string>();
+	const pendingDirectives = new Map<string, object>();
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
 	const listeners = new Set<Listener<ConsentSnapshot>>();
@@ -258,12 +217,23 @@ export const createRuntime = function createRuntime(
 
 	const persistDirective = async function persistDirective(
 		directive: PrivacyOptOut,
-		subjectId: string
+		subjectId: string,
+		key: string
 	): Promise<void> {
+		const attempt = {};
+		const recordsGeneration = generation;
+		pendingDirectives.set(key, attempt);
 		try {
 			await transport?.recordPrivacyOptOut?.(directive, subjectId);
+			if (generation === recordsGeneration) {
+				forwardedDirectives.add(key);
+			}
 		} catch (error) {
 			emit({ command: 'recordPrivacyOptOut', error, type: 'command:error' });
+		} finally {
+			if (pendingDirectives.get(key) === attempt) {
+				pendingDirectives.delete(key);
+			}
 		}
 	};
 
@@ -278,12 +248,11 @@ export const createRuntime = function createRuntime(
 			return;
 		}
 		for (const directive of snapshot.optOutDirectives) {
-			const key = directiveKey(directive);
-			if (forwardedDirectives.has(key)) {
+			const key = JSON.stringify([subjectId, directiveKey(directive)]);
+			if (forwardedDirectives.has(key) || pendingDirectives.has(key)) {
 				continue;
 			}
-			forwardedDirectives.add(key);
-			void persistDirective(directive, subjectId);
+			void persistDirective(directive, subjectId, key);
 		}
 	};
 
@@ -362,7 +331,13 @@ export const createRuntime = function createRuntime(
 		}
 		const before = snapshot;
 		const changed = commit(patch);
+		const reset = !mergeNewest && (choice === null || rest.subject === null);
+		if (reset) {
+			forwardedDirectives.clear();
+			pendingDirectives.clear();
+		}
 		if (
+			reset ||
 			snapshot.explicitChoice !== before.explicitChoice ||
 			snapshot.subject !== before.subject
 		) {
