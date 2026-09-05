@@ -10,6 +10,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 
 - [ConsentBanner](./docs/frameworks/react/components/consent-banner.md): Pre-built consent banner shown when consent is required.
 - [ConsentManagerProvider](./docs/frameworks/react/components/consent-manager-provider.md): Root provider that initializes the consent manager for your React app.
+- [DevTools](./docs/frameworks/react/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Consent Categories](./docs/frameworks/react/concepts/consent-categories.md): How c15t groups cookies and scripts into consent categories.
 - [Headless](./docs/frameworks/react/headless.md): Build your own consent UI on top of the c15t hooks.
 - [useConsentManager](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Read and update consent state from any component.
@@ -30,3 +31,9 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Intercom](./docs/integrations/intercom.md): Load the Intercom messenger behind consent.
 - [Meta Pixel](./docs/integrations/meta-pixel.md): Load the Meta Pixel behind consent.
 - [Integrations](./docs/integrations/overview.md): Load analytics, pixels, tag managers, and widgets behind consent.
+
+## Reference
+
+Concepts, legal templates, open-source policies, and contributor documentation.
+
+- [Dev Tools](./docs/shared/react/components/dev-tools.md): Reference page for dev tools.

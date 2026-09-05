@@ -69,7 +69,7 @@ const renderBanner = function renderBanner(
 ) {
 	const state = createMockState(stateOverrides);
 
-	render(
+	return render(
 		<ConsentProvider
 			options={{
 				components: {
@@ -121,7 +121,7 @@ const waitForBanner = async function waitForBanner() {
 
 describe('ConsentBanner policy ordering', () => {
 	test('prefers local layout over policy layout', async () => {
-		renderBanner({
+		await renderBanner({
 			layout: ['customize', ['reject', 'accept']],
 		});
 
@@ -141,7 +141,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('uses policy primary actions before the primaryButton prop', async () => {
-		renderBanner({
+		await renderBanner({
 			primaryButton: 'reject',
 		});
 
@@ -159,7 +159,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('filters out actions disallowed by policy even when local layout includes them', async () => {
-		renderBanner(
+		await renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
 			},
@@ -187,7 +187,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('keeps the default layout when policy has hints but no policy layout', async () => {
-		renderBanner(
+		await renderBanner(
 			{},
 			{
 				policyBanner: {
@@ -220,7 +220,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('shows branding by default and hides it when hideBranding is true', async () => {
-		renderBanner({});
+		const view = await renderBanner({});
 
 		await waitForBanner();
 
@@ -228,9 +228,9 @@ describe('ConsentBanner policy ordering', () => {
 			document.querySelector('[data-testid="consent-banner-branding"]')
 		).toBeInTheDocument();
 
-		document.body.innerHTML = '';
+		await view.unmount();
 
-		renderBanner({ hideBranding: true });
+		await renderBanner({ hideBranding: true });
 
 		await waitForBanner();
 
@@ -240,7 +240,7 @@ describe('ConsentBanner policy ordering', () => {
 	});
 
 	test('applies the banner tag component slot to the stock banner tag', async () => {
-		renderBanner(
+		await renderBanner(
 			{},
 			{},
 			{ tag: { banner: { className: 'consent-banner-tag-marker' } } }

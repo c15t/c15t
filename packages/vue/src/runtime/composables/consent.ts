@@ -38,15 +38,15 @@ const useConsentSave = function useConsentSave() {
 	const kernel = useConsentKernel();
 
 	return (categories: ConsentSaveInput) => {
-		if (categories === 'all' || categories === 'none') {
-			void kernel.commands.save(categories);
-			return;
-		}
-
 		const available = getConsentAvailableCategories(
 			init.value,
 			config.value.consentCategories
 		);
+		if (categories === 'all' || categories === 'none') {
+			void kernel.commands.save(categories, { categories: available });
+			return;
+		}
+
 		const selected = new Set(categories);
 
 		const next = {} as Record<CONSENT_CATEGORY, boolean>;

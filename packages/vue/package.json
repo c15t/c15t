@@ -44,6 +44,9 @@
 			],
 			"vue-plugin": [
 				"./dist/index.d.mts"
+			],
+			"devtools": [
+				"./dist/devtools.d.mts"
 			]
 		}
 	},
@@ -62,6 +65,11 @@
 			"types": "./dist/index.d.mts",
 			"import": "./dist/index.mjs",
 			"default": "./dist/index.mjs"
+		},
+		"./devtools": {
+			"types": "./dist/devtools.d.mts",
+			"import": "./dist/devtools.mjs",
+			"default": "./dist/devtools.mjs"
 		},
 		"./consent-root": {
 			"types": "./dist/runtime/components/consent-root.d.vue.ts",
@@ -92,6 +100,7 @@
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",

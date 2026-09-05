@@ -204,7 +204,7 @@ export const addDependencies = function addDependencies({
 	}
 
 	// Add dev tools package if selected
-	if (context.enableDevTools) {
+	if (context.enableDevTools && context.framework?.pkg === 'c15t') {
 		deps.push('@c15t/dev-tools');
 	}
 

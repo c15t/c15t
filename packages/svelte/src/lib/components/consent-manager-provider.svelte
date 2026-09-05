@@ -277,8 +277,13 @@
 		reset() {
 			draftValues = {};
 		},
-		async save() {
-			await kernel.commands.save(draftValues);
+		async save(categories) {
+			const allowed = new Set<string>(categories);
+			await kernel.commands.save(
+				Object.fromEntries(
+					Object.entries(draftValues).filter(([name]) => allowed.has(name))
+				)
+			);
 			draftValues = {};
 		},
 		set(name, value) {
