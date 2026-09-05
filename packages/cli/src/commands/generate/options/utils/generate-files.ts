@@ -376,7 +376,8 @@ export const generateFiles = async function generateFiles({
 		result.configContent = generateClientConfigContent(
 			mode,
 			backendURL,
-			useEnvFile
+			useEnvFile,
+			enableDevTools
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
 		spinner.stop(

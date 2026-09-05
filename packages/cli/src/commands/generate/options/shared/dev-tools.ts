@@ -34,7 +34,7 @@ export async function getDevToolsOption({
 			{
 				hint: isReactProject
 					? 'Adds <DevTools /> to generated consent components'
-					: 'Adds the framework DevTools adapter',
+					: 'Adds createDevTools({ kernel }) to the client configuration',
 				label: 'Yes (Recommended)',
 				value: true,
 			},

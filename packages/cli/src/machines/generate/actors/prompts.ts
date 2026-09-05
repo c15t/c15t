@@ -617,6 +617,8 @@ export const backendOptionsActor = fromPromise<
 export interface FrontendOptionsInput {
 	cliContext: CliContext;
 	hasBackend: boolean;
+	/** Optional prompt boundary for non-interactive callers. */
+	selectDevTools?: typeof getDevToolsOption;
 }
 
 export interface FrontendOptionsOutput {
@@ -630,7 +632,7 @@ export const frontendOptionsActor = fromPromise<
 	FrontendOptionsOutput,
 	FrontendOptionsInput
 >(async ({ input }) => {
-	const { cliContext, hasBackend } = input;
+	const { cliContext, hasBackend, selectDevTools = getDevToolsOption } = input;
 	const { pkg } = cliContext.framework;
 
 	let enableSSR: boolean | undefined;
@@ -792,8 +794,8 @@ export const frontendOptionsActor = fromPromise<
 		expandedTheme = reactThemeResult as ExpandedTheme;
 	}
 
-	if (pkg === 'c15t/react' || pkg === 'c15t/next') {
-		enableDevTools = await getDevToolsOption({
+	if (pkg === 'c15t' || pkg === 'c15t/react' || pkg === 'c15t/next') {
+		enableDevTools = await selectDevTools({
 			context: cliContext,
 			onCancel: () => {
 				throw new PromptCancelledError('dev_tools_option');
