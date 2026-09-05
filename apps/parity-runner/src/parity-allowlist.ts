@@ -44,29 +44,6 @@ export interface ParityAllowEntry {
 
 export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	// ---------------------------------------------------------------------
-	// Vue. Out of scope for the visual parity gate: its footer nesting and
-	// control sizing both diverge from React, and v3.md tracks bringing the
-	// Vue surfaces in line as its own piece of work. Narrow these to
-	// specific slots as that lands, rather than deleting them wholesale.
-	// ---------------------------------------------------------------------
-	{
-		check: 'geometry',
-		framework: 'vue',
-		reason:
-			'Vue nests its footer actions one level deeper than React and Svelte and sizes its buttons 4px taller, so nothing on a Vue surface lines up. Tracked in v3.md; excluded from this gate until the Vue surfaces are brought in line.',
-		slot: '*',
-		story: '*',
-	},
-	{
-		check: 'pixel',
-		framework: 'vue',
-		reason:
-			'Follows the geometry allowance above: the Vue cards are 4px taller, so a pixel comparison can only report the size mismatch. See v3.md.',
-		slot: '*',
-		story: '*',
-	},
-
-	// ---------------------------------------------------------------------
 	// Surfaces this branch did not touch.
 	// ---------------------------------------------------------------------
 	{

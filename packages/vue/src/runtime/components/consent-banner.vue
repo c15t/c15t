@@ -2,7 +2,8 @@
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
-import { computed, ref, Teleport, Transition } from 'vue';
+import { DEFAULT_POLICY_ACTION_LAYOUT, getTextDirection } from '@c15t/ui/utils';
+import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -21,7 +22,10 @@ const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
 const save = useConsentSave();
-const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
+/** The shared default layout, flattened into the groups it describes. */
+const DEFAULT_ACTIONS: PolicyUiAction[][] = DEFAULT_POLICY_ACTION_LAYOUT.map(
+	(group) => (Array.isArray(group) ? group : [group])
+);
 const transitionStyles = bannerStyles as Record<string, string>;
 
 const surface = computed(() => init.value?.policy?.ui?.banner);
@@ -72,6 +76,21 @@ const actionTestIds = {
 	reject: 'consent-banner-reject-button',
 } as const;
 
+// The footer and the action root are one element, so both slots merge
+// onto it.
+const textDirection = computed(() =>
+	getTextDirection(
+		init.value?.translations?.defaultLanguage as string | undefined
+	)
+);
+
+const footerAttrs = computed(() =>
+	mergeProps(
+		(config.value.components?.banner?.footer ?? {}) as Record<string, unknown>,
+		(config.value.components?.banner?.actions ?? {}) as Record<string, unknown>
+	)
+);
+
 const onAction = function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		activeUI.value = 'manager';
@@ -92,7 +111,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 <template>
 	<Teleport to="body">
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="transitionStyles.overlayHidden"
 			:enter-active-class="transitionStyles.overlayVisible"
 			:enter-to-class="transitionStyles.overlayVisible"
@@ -108,7 +127,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 			/>
 		</Transition>
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="transitionStyles.bannerHidden"
 			:enter-active-class="transitionStyles.bannerVisible"
 			:enter-to-class="transitionStyles.bannerVisible"
@@ -121,7 +140,8 @@ const onAction = function onAction(action: PolicyUiAction) {
 				v-bind="config.components?.banner?.root"
 				data-testid="consent-banner-root"
 				:data-position="bannerPosition"
-				:class="bannerStyles.root"
+				:dir="textDirection"
+				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
 			>
 				<div
 					v-bind="config.components?.banner?.cardShell"
@@ -143,6 +163,7 @@ const onAction = function onAction(action: PolicyUiAction) {
 					>
 						<div
 							v-bind="config.components?.banner?.header"
+							data-testid="consent-banner-header"
 							:class="bannerStyles.header"
 						>
 							<h2
@@ -154,30 +175,28 @@ const onAction = function onAction(action: PolicyUiAction) {
 							</h2>
 							<ConsentDescription context="banner" />
 						</div>
-						<div
-							v-bind="config.components?.banner?.footer"
-							data-testid="consent-banner-footer"
-							:class="bannerStyles.footer"
-						>
-							<ConsentActions
-								:action-groups="
-									actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
-								"
-								:direction="direction"
-								:ui-profile="surface?.uiProfile"
-								:primary-actions="primaryActions"
-								:fill="shouldFillActions"
-								:labels="labels"
-								:test-ids="actionTestIds"
-								:root-attrs="
-									config.components?.banner?.actions as object | undefined
-								"
-								:group-attrs="
-									config.components?.banner?.actionGroup as object | undefined
-								"
-								@action="onAction"
-							/>
-						</div>
+						<!-- The footer is the action root, as it is in React:
+						     one element carrying both class sets rather than
+						     an extra wrapper around the actions. -->
+						<ConsentActions
+							:action-groups="
+								actionGroups.length ? actionGroups : DEFAULT_ACTIONS
+							"
+							:direction="direction"
+							:ui-profile="surface?.uiProfile"
+							:primary-actions="primaryActions"
+							:fill="shouldFillActions"
+							:labels="labels"
+							:test-ids="actionTestIds"
+							root-test-id="consent-banner-footer"
+							group-test-id="consent-banner-footer-sub-group"
+							:root-class="bannerStyles.footer"
+							:root-attrs="footerAttrs"
+							:group-attrs="
+								config.components?.banner?.actionGroup as object | undefined
+							"
+							@action="onAction"
+						/>
 					</div>
 				</div>
 			</div>

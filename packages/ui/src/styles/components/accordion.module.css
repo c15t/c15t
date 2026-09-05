@@ -109,6 +109,9 @@
 		flex: 1 1 auto;
 		min-width: 0;
 		min-height: calc(var(--accordion-icon-size) + 0.25rem);
+		/* A button does not inherit type styles, so without this the
+		   category titles render in the user agent's button font. */
+		font-family: inherit;
 		font-size: var(--accordion-title-size);
 		line-height: var(--c15t-line-height-tight);
 		letter-spacing: inherit;
