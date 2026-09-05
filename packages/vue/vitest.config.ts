@@ -63,6 +63,12 @@ export default mergeConfig(
 						'../core/src/transports/manifest.ts'
 					),
 				},
+				{
+					'@c15t/core/runtime': resolve(
+						__dirname,
+						'../core/src/runtime/index.ts'
+					),
+				},
 				{ '@c15t/core': resolve(__dirname, '../core/src/index.ts') },
 				{
 					'@c15t/translations/all': resolve(
