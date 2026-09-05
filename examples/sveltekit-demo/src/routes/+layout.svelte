@@ -79,6 +79,7 @@
 			consentCategories: ['necessary', 'marketing', 'measurement'],
 			iab: {
 				enabled: true,
+				persistence: isIabPlayground ? false : undefined,
 				// Match the example backend. This is a demo ID, not a production CMP configuration.
 				cmpId: 10,
 				customVendors: [
