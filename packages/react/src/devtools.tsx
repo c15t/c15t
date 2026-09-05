@@ -55,6 +55,7 @@ export const ConsentDevTools = ({
 	disabled = false,
 	defaultOpen,
 	defaultTab,
+	getConsentCategories,
 	maxEvents,
 	position,
 }: ConsentDevToolsProps): null => {
@@ -69,12 +70,20 @@ export const ConsentDevTools = ({
 		const devTools = createDevTools({
 			defaultOpen,
 			defaultTab,
+			getConsentCategories,
 			kernel,
 			maxEvents,
 			position,
 		});
 		return () => devTools.destroy();
-	}, [defaultOpen, defaultTab, kernel, maxEvents, position]);
+	}, [
+		defaultOpen,
+		defaultTab,
+		getConsentCategories,
+		kernel,
+		maxEvents,
+		position,
+	]);
 
 	return null;
 };
