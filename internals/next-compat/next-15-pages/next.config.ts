@@ -7,9 +7,10 @@ const projectDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = resolve(projectDir, '../../..');
 
 const config: NextConfig = {
-	// v3 components import their CSS from JavaScript. The Pages Router loads
-	// installed packages with Node at runtime, which cannot import `.css`, so
-	// the c15t packages have to be bundled rather than externalised.
+	// The Pages Router loads installed packages with Node at runtime, and the
+	// @c15t/ui component class maps import their CSS (by design: a js + css +
+	// d.ts triple per component). Node cannot import CSS, so the c15t packages
+	// have to be bundled rather than externalised here.
 	transpilePackages: [
 		'@c15t/next-compat-shared',
 		'@c15t/nextjs',

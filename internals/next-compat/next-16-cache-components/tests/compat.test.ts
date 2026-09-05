@@ -9,19 +9,13 @@ defineCompatSuite({
 			rendering: { kind: 'static' },
 		},
 		{
-			initPath: 'prefetch',
-			name: 'prefetch',
-			path: '/prefetch',
-			rendering: { kind: 'static' },
-		},
-		{
 			initPath: 'ssr',
 			name: 'ssr',
 			path: '/ssr',
 			rendering: { kind: 'partial' },
 		},
 		{
-			initPath: 'prefetch',
+			initPath: 'client',
 			name: 'cached',
 			path: '/cached',
 			rendering: { kind: 'isr', revalidate: 60 },

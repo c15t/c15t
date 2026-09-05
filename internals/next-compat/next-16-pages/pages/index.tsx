@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-const scenarios = ['client', 'prefetch', 'ssr'];
+const scenarios = ['client', 'ssr'];
 
 const IndexPage = () => (
 	<ul>
