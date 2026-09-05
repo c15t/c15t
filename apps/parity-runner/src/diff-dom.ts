@@ -4,6 +4,11 @@
  * We run the normalizer inside the page so we don't need a Node-side DOM
  * (jsdom/happy-dom) just to parse captured HTML. The normalizer source
  * is passed directly to Playwright so it still runs in the browser context.
+ *
+ * `selector` may match more than one element — a story showing a dialog
+ * behind an overlay has two surfaces, and a story with a trigger and the
+ * dialog it opens has two more. Each match is canonicalized and the
+ * results are joined in document order.
  */
 
 import type { Page } from '@playwright/test';
@@ -12,7 +17,7 @@ export const captureDomSnapshot = function captureDomSnapshot(
 	page: Page,
 	selector: string
 ): Promise<string> {
-	return page.locator(selector).evaluate((target) => {
+	return page.evaluate((scope: string) => {
 		const SVELTE = /\bsvelte-[a-z0-9]+\b/gu;
 		const S_SCOPED = /\bs-[a-z0-9]{6,}\b/gu;
 		// oxlint-disable-next-line prefer-named-capture-group -- This code supports pre-ES2018 declaration targets.
@@ -25,6 +30,7 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		const STRIP = new Set([
 			'data-reactroot',
 			'data-reactid',
+			'data-parity-surface',
 			'data-svelte-h',
 			'data-v-app',
 		]);
@@ -134,6 +140,8 @@ export const captureDomSnapshot = function captureDomSnapshot(
 			return `${open}${children.join('')}</${tag}>`;
 		};
 
-		return canonicalize(target);
-	});
+		return Array.from(document.querySelectorAll(scope))
+			.map((target) => canonicalize(target))
+			.join('');
+	}, selector);
 };

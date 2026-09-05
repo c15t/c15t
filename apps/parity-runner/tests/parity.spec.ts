@@ -41,6 +41,7 @@ import {
 } from '../src/parity-allowlist';
 import type { ParityAllowEntry } from '../src/parity-allowlist';
 import { loadStorybookIndex } from '../src/storybook-index';
+import { markSurfaceRoots, SURFACE_SCOPE_SELECTOR } from '../src/surface-scope';
 
 const FRAMEWORK_URLS: Record<string, string> = {
 	astro: process.env.ASTRO_STORYBOOK_URL ?? 'http://127.0.0.1:6010',
@@ -128,6 +129,25 @@ const openStory = async function openStory(
 	// would time out on them. Attachment is enough; the body content
 	// we actually care about settles with `networkidle`.
 	await page.locator('#storybook-root').waitFor({ state: 'attached' });
+	await page.evaluate(() => document.fonts.ready);
+	// The overlay and card fade in. Capturing mid-animation reads the
+	// in-flight `opacity` as drift, so let the entrance settle first —
+	// the same wait the geometry spec uses.
+	await page.waitForTimeout(250);
+};
+
+/**
+ * Scope the descriptive captures to the surfaces the story rendered,
+ * wherever they ended up in the document.
+ *
+ * @param page - The page showing a story.
+ * @returns The selector every capture on this page should use.
+ */
+const scopeToSurfaces = async function scopeToSurfaces(
+	page: Page
+): Promise<string> {
+	await markSurfaceRoots(page);
+	return SURFACE_SCOPE_SELECTOR;
 };
 
 /**
@@ -192,14 +212,13 @@ test.describe('cross-framework parity', () => {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await openStory(page, baselineUrl, baselineEntry.id);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineDom = await captureDomSnapshot(page, '#storybook-root');
+			const baselineScope = await scopeToSurfaces(page);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineA11y = await captureA11yTree(page);
+			const baselineDom = await captureDomSnapshot(page, baselineScope);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineStyles = await captureComputedStyleMap(
-				page,
-				'#storybook-root'
-			);
+			const baselineA11y = await captureA11yTree(page, baselineScope);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+			const baselineStyles = await captureComputedStyleMap(page, baselineScope);
 
 			for (const [framework, entry] of rest) {
 				const url = FRAMEWORK_URLS[framework];
@@ -232,11 +251,13 @@ test.describe('cross-framework parity', () => {
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const dom = await captureDomSnapshot(page, '#storybook-root');
+				const scope = await scopeToSurfaces(page);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const a11y = await captureA11yTree(page);
+				const dom = await captureDomSnapshot(page, scope);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const styles = await captureComputedStyleMap(page, '#storybook-root');
+				const a11y = await captureA11yTree(page, scope);
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+				const styles = await captureComputedStyleMap(page, scope);
 
 				if (dom !== baselineDom && !allowed('dom')) {
 					failures.push(
