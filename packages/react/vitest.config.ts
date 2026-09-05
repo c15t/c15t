@@ -15,7 +15,14 @@ export default mergeConfig(
 	baseConfig,
 	defineConfig({
 		optimizeDeps: {
+			// Build tooling reached through rslib.config.ts / shared rslib-utils
+			// is not a browser dependency. Left to discovery, Vite pre-bundles
+			// it on first sight mid-run and reloads the page ("optimized
+			// dependencies changed"), which vitest-browser-react does not
+			// survive; a cold CI cache hits this on every run.
 			exclude: [
+				'@rsbuild/plugin-react',
+				'@rslib/core',
 				'@rsdoctor/rspack-plugin',
 				'@rsdoctor/core',
 				'@rspack/resolver',

@@ -66,6 +66,20 @@ const isVitestWatchMode = function isVitestWatchMode(): boolean {
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
+		optimizeDeps: {
+			// Build tooling reached through rslib.config.ts / shared rslib-utils
+			// is not a browser dependency. Left to discovery, Vite pre-bundles
+			// it on first sight mid-run and reloads the page, which
+			// vitest-browser-react does not survive on a cold CI cache.
+			exclude: [
+				'@rsbuild/plugin-react',
+				'@rslib/core',
+				'@rsdoctor/rspack-plugin',
+				'@rsdoctor/core',
+				'@rspack/resolver',
+				'@rspack/resolver-binding-wasm32-wasi',
+			],
+		},
 		plugins: [react()],
 		resolve: { alias },
 		server: {
