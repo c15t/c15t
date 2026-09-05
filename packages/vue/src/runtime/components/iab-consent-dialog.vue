@@ -63,7 +63,18 @@ const disableAnimation = computed(() =>
 
 const showDialog = computed(() => isOpen.value && Boolean(gvl.value));
 
-const activeTab = ref<'purposes' | 'vendors'>('purposes');
+const props = withDefaults(
+	defineProps<{
+		/**
+		 * Which tab the preference centre opens on. Lets a "N partners"
+		 * link land on the vendor list instead of purposes.
+		 */
+		initialTab?: 'purposes' | 'vendors';
+	}>(),
+	{ initialTab: 'purposes' }
+);
+
+const activeTab = ref<'purposes' | 'vendors'>(props.initialTab);
 const selectedVendorId = ref<IabVendorId | null>(null);
 const specialPurposesExpanded = ref(false);
 

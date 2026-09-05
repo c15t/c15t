@@ -18,7 +18,7 @@ import type {
 	Script,
 	StorageConfig,
 } from '@c15t/core';
-import type { ConsentManifest } from '@c15t/schema/types';
+import type { ConsentManifest, GlobalVendorList } from '@c15t/schema/types';
 import type { Theme } from '@c15t/ui/theme';
 
 /** Transport selection, in a form that survives serialization. */
@@ -219,14 +219,25 @@ export interface C15tAstroOptions {
 /**
  * IAB TCF options accepted by the integration.
  *
- * The serializable subset of the runtime's `RuntimeIABOptions`: a live GVL
- * or a custom fetcher cannot survive the trip into the injected boot
- * script, so those belong in
- * {@link C15tAstroOptions.clientEntrypoint} instead.
+ * The serializable subset of the runtime's `RuntimeIABOptions`: a custom
+ * fetcher cannot survive the trip into the injected boot script, so that
+ * belongs in {@link C15tAstroOptions.clientEntrypoint} instead. A vendor
+ * list itself is plain JSON and does travel — see {@link C15tIABOptions.gvl}.
  */
 export interface C15tIABOptions {
 	/** Set `false` to keep IAB configured but inert. */
 	enabled?: boolean;
+	/**
+	 * A vendor list to use as-is, instead of fetching one.
+	 *
+	 * The server needs a GVL to render `<IABConsentBanner />` at all — the
+	 * banner names the purposes and counts the vendors — so hosted and
+	 * manifest mode get theirs from `/init`. Offline mode has no backend to
+	 * ask, which is what this is for: a pinned list, or a fixture in a
+	 * demo. It is inlined into the page's boot payload, so keep it trimmed
+	 * to the vendors the site actually works with.
+	 */
+	gvl?: GlobalVendorList;
 	/** IAB-registered CMP ID. A hosted backend can supply it through `/init`. */
 	cmpId?: number;
 	/** CMP version reported through `__tcfapi`. */
@@ -237,7 +248,13 @@ export interface C15tIABOptions {
 	publisherCountryCode?: string;
 	/** Whether the CMP is service-specific rather than global. */
 	isServiceSpecific?: boolean;
-	/** Override the GVL endpoint. */
+	/**
+	 * Fetch the vendor list from this URL on the server.
+	 *
+	 * Goes through the shared in-process cache in `@c15t/core/server`, so
+	 * concurrent renders collapse onto one download. Ignored when
+	 * {@link C15tIABOptions.gvl} is set.
+	 */
 	gvlURL?: string;
 }
 

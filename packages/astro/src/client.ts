@@ -64,6 +64,15 @@ export const ACTION_ATTRIBUTE = 'data-c15t-action';
 /** Attribute selecting which dialog a `customize` action opens. */
 export const DIALOG_ATTRIBUTE = 'data-c15t-dialog';
 
+/**
+ * Attribute selecting which tab the IAB preference centre opens on.
+ *
+ * The IAB banner's "N partners" link is a `customize` action that should
+ * land on the vendors tab rather than purposes, the way the React, Svelte
+ * and Vue banners do.
+ */
+export const DIALOG_TAB_ATTRIBUTE = 'data-c15t-tab';
+
 /** Actions the banner can trigger. */
 export type ConsentAction = 'accept' | 'reject' | 'customize' | 'close';
 
@@ -86,8 +95,13 @@ export interface AstroConsentClient {
 	 * Open a dialog, mounting its island on first use.
 	 *
 	 * @param kind - `'preferences'` (default) or `'iab'`.
+	 * @param tab - Which IAB preference-centre tab to land on. Ignored by
+	 * the preferences dialog, which has no tabs.
 	 */
-	openDialog: (kind?: ConsentDialogKind) => Promise<void>;
+	openDialog: (
+		kind?: ConsentDialogKind,
+		tab?: 'purposes' | 'vendors'
+	) => Promise<void>;
 	/** Close the open dialog. */
 	closeDialog: () => void;
 	/** Accept every configured category. */
@@ -205,6 +219,7 @@ export const syncBannerVisibility = function syncBannerVisibility(
 interface ResolvedAction {
 	action: ConsentAction;
 	dialog: ConsentDialogKind;
+	tab?: 'purposes' | 'vendors';
 }
 
 const resolveAction = function resolveAction(
@@ -224,7 +239,12 @@ const resolveAction = function resolveAction(
 		return null;
 	}
 	const dialog = element?.getAttribute(DIALOG_ATTRIBUTE);
-	return { action, dialog: dialog === 'iab' ? 'iab' : 'preferences' };
+	const tab = element?.getAttribute(DIALOG_TAB_ATTRIBUTE);
+	return {
+		action,
+		dialog: dialog === 'iab' ? 'iab' : 'preferences',
+		tab: tab === 'vendors' || tab === 'purposes' ? tab : undefined,
+	};
 };
 
 const createClient = function createClient(
@@ -261,6 +281,7 @@ const createClient = function createClient(
 
 	let dialog: ConsentDialogHandle | null = null;
 	let dialogKind: ConsentDialogKind | null = null;
+	let dialogTab: 'purposes' | 'vendors' | undefined;
 	let opening: Promise<void> | null = null;
 	// `openDialog()` awaits an adapter import, IAB readiness and the mount
 	// itself. `dispose()` can land in any of those gaps, and only destroys
@@ -303,9 +324,19 @@ const createClient = function createClient(
 		async identify(user: KernelUser) {
 			await runtime.identify(user);
 		},
-		async openDialog(kind: ConsentDialogKind = 'preferences') {
+		async openDialog(
+			kind: ConsentDialogKind = 'preferences',
+			tab?: 'purposes' | 'vendors'
+		) {
 			if (disposed) {
 				return;
+			}
+			// The tab lives in the island's own component state, so asking
+			// for a different one on an already-mounted surface means
+			// remounting it.
+			if (dialog && tab && tab !== dialogTab) {
+				await dialog.destroy();
+				dialog = null;
 			}
 			if (opening) {
 				await opening;
@@ -335,6 +366,7 @@ const createClient = function createClient(
 						kind,
 						options,
 						runtime,
+						tab,
 						target: ensureDialogHost(),
 					});
 					if (disposed) {
@@ -345,6 +377,7 @@ const createClient = function createClient(
 					}
 					dialog = handle;
 					dialogKind = kind;
+					dialogTab = tab;
 				})();
 				try {
 					await opening;
@@ -424,7 +457,7 @@ export const attachBannerActions = function attachBannerActions(): void {
 			return;
 		}
 		if (resolved.action === 'customize') {
-			void client.openDialog(resolved.dialog);
+			void client.openDialog(resolved.dialog, resolved.tab);
 			return;
 		}
 		client.closeDialog();
@@ -522,11 +555,13 @@ export const subscribe = function subscribe(
  * Open a consent dialog.
  *
  * @param kind - `'preferences'` (default) or `'iab'`.
+ * @param tab - Which IAB preference-centre tab to open on.
  */
 export const openDialog = async function openDialog(
-	kind: ConsentDialogKind = 'preferences'
+	kind: ConsentDialogKind = 'preferences',
+	tab?: 'purposes' | 'vendors'
 ): Promise<void> {
-	await getConsentClient()?.openDialog(kind);
+	await getConsentClient()?.openDialog(kind, tab);
 };
 
 /**

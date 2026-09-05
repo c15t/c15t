@@ -102,6 +102,13 @@ export interface IABConsentDialogProps {
 	showTrigger?: boolean | ConsentDialogTriggerProps;
 
 	/**
+	 * Which tab the preference centre opens on. Lets a "N partners" link
+	 * land on the vendor list instead of purposes.
+	 * @default 'purposes'
+	 */
+	initialTab?: 'purposes' | 'vendors';
+
+	/**
 	 * Which consent models this dialog responds to.
 	 * @default ['iab']
 	 */
@@ -135,6 +142,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	hideBranding,
+	initialTab,
 	showTrigger = false,
 	models = DEFAULT_MODELS,
 	uiSource: _uiSource,
@@ -159,7 +167,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const previousHeightRef = useRef<number | null>(null);
 
 	const [activeTab, setActiveTab] = useState<'purposes' | 'vendors'>(
-		iabState?.preferenceCenterTab ?? 'purposes'
+		initialTab ?? iabState?.preferenceCenterTab ?? 'purposes'
 	);
 	const [selectedVendorId, setSelectedVendorId] = useState<VendorId | null>(
 		null

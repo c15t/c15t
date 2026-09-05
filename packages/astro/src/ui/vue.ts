@@ -36,7 +36,10 @@ export const vueDialogAdapter: ConsentDialogAdapter = {
 			context.runtime,
 			context.options
 		);
-		const app = createApp(surface.default as never, { kind: context.kind });
+		const app = createApp(surface.default as never, {
+			kind: context.kind,
+			tab: context.tab,
+		});
 		app.use(c15tVue, { ...options, runtime } as never);
 		app.mount(context.target);
 

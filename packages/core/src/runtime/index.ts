@@ -248,6 +248,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
+		iabEnabled: options.iab !== false && Boolean(options.iab),
 		offlinePolicy,
 		policies: options.policies,
 		prefetch,

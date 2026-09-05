@@ -14,9 +14,14 @@
 import ConsentManager from '@c15t/vue/runtime/components/consent-manager.vue';
 import { defineAsyncComponent } from 'vue';
 
-withDefaults(defineProps<{ kind?: 'preferences' | 'iab' }>(), {
-	kind: 'preferences',
-});
+withDefaults(
+	defineProps<{
+		kind?: 'preferences' | 'iab';
+		/** Which IAB preference-centre tab to open on. */
+		tab?: 'purposes' | 'vendors';
+	}>(),
+	{ kind: 'preferences', tab: undefined }
+);
 
 // The TCF surface is the larger half of this island and only an IAB site
 // ever opens it, so it arrives on its own chunk.
@@ -26,6 +31,9 @@ const IABDialogSurface = defineAsyncComponent(
 </script>
 
 <template>
-	<IABDialogSurface v-if="kind === 'iab'" />
+	<IABDialogSurface
+		v-if="kind === 'iab'"
+		:tab="tab"
+	/>
 	<ConsentManager v-else />
 </template>

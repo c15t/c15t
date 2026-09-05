@@ -10,9 +10,15 @@
 import { ConsentDraftProvider } from '@c15t/react';
 import { IABConsentDialog } from '@c15t/react/iab';
 
-const IABDialogSurface = () => (
+/** Props the dialog island passes down. */
+export interface IABDialogSurfaceProps {
+	/** Which preference-centre tab to open on. */
+	tab?: 'purposes' | 'vendors';
+}
+
+const IABDialogSurface = ({ tab }: IABDialogSurfaceProps) => (
 	<ConsentDraftProvider>
-		<IABConsentDialog />
+		<IABConsentDialog initialTab={tab} />
 	</ConsentDraftProvider>
 );
 

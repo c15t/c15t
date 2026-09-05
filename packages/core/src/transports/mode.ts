@@ -22,6 +22,14 @@ export interface ProviderTransportContext {
 	offlinePolicy?: OfflinePolicyConfig;
 	/** Policy packs configured on the provider. */
 	policies?: PolicyConfig[];
+	/**
+	 * Whether the provider configured IAB TCF.
+	 *
+	 * Local policy resolution needs it: a pack whose model is `iab` is only
+	 * eligible when a CMP is actually mounted, so without this an offline
+	 * IAB site resolved to the no-banner fallback.
+	 */
+	iabEnabled?: boolean;
 	/** Server-prefetched kernel configuration. */
 	prefetch: KernelConfig;
 	/** Translations resolved from the provider's i18n configuration. */

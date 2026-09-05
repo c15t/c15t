@@ -32,6 +32,11 @@ export interface ConsentDialogContext {
 	target: HTMLElement;
 	/** Which dialog to show. */
 	kind: ConsentDialogKind;
+	/**
+	 * Which IAB preference-centre tab to open on. Ignored by the
+	 * preferences dialog, which has no tabs.
+	 */
+	tab?: 'purposes' | 'vendors';
 }
 
 /**

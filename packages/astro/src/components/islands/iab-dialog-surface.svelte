@@ -8,6 +8,8 @@
 -->
 <script lang="ts">
 	import { IABConsentDialog } from '@c15t/svelte';
+
+	let { tab }: { tab?: 'purposes' | 'vendors' } = $props();
 </script>
 
-<IABConsentDialog />
+<IABConsentDialog initialTab={tab} />

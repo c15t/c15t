@@ -24,12 +24,18 @@
 		open: openProp,
 		noStyle: localNoStyle,
 		hideBranding,
+		initialTab,
 		models = ['iab'] as Model[],
 		class: className,
 	}: {
 		open?: boolean;
 		noStyle?: boolean;
 		hideBranding?: boolean;
+		/**
+		 * Which tab the preference centre opens on. Lets a "N partners"
+		 * link land on the vendor list instead of purposes.
+		 */
+		initialTab?: 'purposes' | 'vendors';
 		models?: Model[];
 		class?: string;
 	} = $props();
@@ -72,6 +78,16 @@
 	$effect(() => {
 		if (isOpen && iabState?.preferenceCenterTab) {
 			activeTab = iabState.preferenceCenterTab;
+		}
+	});
+
+	// A caller-supplied tab outranks the provider's remembered one, which
+	// is what makes a "N partners" deep link land on the vendor list. It
+	// goes through the provider rather than straight into `activeTab` so
+	// the effect above stays the single writer.
+	$effect(() => {
+		if (initialTab) {
+			iabState?.setPreferenceCenterTab(initialTab);
 		}
 	});
 
