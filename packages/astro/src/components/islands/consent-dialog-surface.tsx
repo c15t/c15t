@@ -9,10 +9,19 @@
  * of its own: Astro islands cannot see each other's context, so the kernel
  * has to be owned outside the component tree. `<ConsentProvider runtime>`
  * borrows it and leaves `start()`/`dispose()` to the owner.
+ *
+ * `<ConsentDraftProvider>` is what makes Save work. `useConsentDraft()`
+ * falls back to a draft per hook call when no provider is in scope, so the
+ * category toggles and the Save button would each stage into their own
+ * copy: the switch would flip, and the save would commit nothing.
  */
 
 import type { ConsentRuntime } from '@c15t/core/runtime';
-import { ConsentDialog, ConsentProvider } from '@c15t/react';
+import {
+	ConsentDialog,
+	ConsentDraftProvider,
+	ConsentProvider,
+} from '@c15t/react';
 import { lazy, Suspense } from 'react';
 
 // The TCF surface is the larger half of this island and only an IAB site
@@ -43,7 +52,9 @@ const ConsentDialogSurface = ({
 				<IABDialogSurface />
 			</Suspense>
 		) : (
-			<ConsentDialog />
+			<ConsentDraftProvider>
+				<ConsentDialog />
+			</ConsentDraftProvider>
 		)}
 	</ConsentProvider>
 );

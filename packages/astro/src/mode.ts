@@ -87,7 +87,19 @@ export const manifestMode = function manifestMode(
 	return { ...options, type: 'manifest' };
 };
 
-const buildInlinePolicy = function buildInlinePolicy(
+/**
+ * The opt-in banner policy an offline site gets when it declared no packs.
+ *
+ * Narrowed to the configured categories: the policy is what every surface
+ * reads to decide which toggles exist, and what a save is recorded against.
+ * The server prefetch builds the same policy, so a page and its islands
+ * cannot disagree about which categories a visitor was offered.
+ *
+ * @param categories - The configured consent categories.
+ * @returns The inline policy, or `undefined` when none applies.
+ * @internal
+ */
+export const buildInlineOfflinePolicy = function buildInlineOfflinePolicy(
 	categories: ProviderTransportContext['consentCategories']
 ): KernelConfig['initialPolicy'] {
 	const fallback = policyDefaults.offlineOptInBanner();
@@ -123,7 +135,7 @@ const createOfflineFactory = function createOfflineFactory(
 		const policy =
 			configuredPolicy ??
 			(policyPacks === undefined
-				? buildInlinePolicy(context.consentCategories)
+				? buildInlineOfflinePolicy(context.consentCategories)
 				: undefined);
 		if (!policy) {
 			return baseTransport;

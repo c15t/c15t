@@ -34,6 +34,7 @@ import type {
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+import { buildInlineOfflinePolicy } from './mode';
 import type { C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
@@ -217,9 +218,10 @@ const prefetchLocal = async function prefetchLocal(input: {
 		}
 	}
 
+	const policyPacks =
+		options.mode.type === 'offline' ? options.mode.policyPacks : undefined;
 	const transport = createOfflineTransport({
-		policyPacks:
-			options.mode.type === 'offline' ? options.mode.policyPacks : undefined,
+		policyPacks,
 		translations: input.translations,
 	});
 	try {
@@ -227,9 +229,22 @@ const prefetchLocal = async function prefetchLocal(input: {
 			overrides: input.base.initialOverrides ?? {},
 			user: input.base.initialUser ?? null,
 		});
-		return response
-			? mergeInitResponseIntoKernelConfig(input.base, response)
-			: input.base;
+		if (!response) {
+			return input.base;
+		}
+		// Without policy packs the offline transport resolves a policy that
+		// allows every category. Narrow it to what the site configured: the
+		// React dialog reads its toggle list off the policy, so leaving it
+		// wide showed categories the site never asked for while the Svelte
+		// and Vue surfaces — which filter by option — did not.
+		const policy = policyPacks
+			? response.policy
+			: (buildInlineOfflinePolicy(options.consentCategories) ??
+				response.policy);
+		return mergeInitResponseIntoKernelConfig(input.base, {
+			...response,
+			policy,
+		});
 	} catch {
 		return input.base;
 	}
