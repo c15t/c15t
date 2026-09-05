@@ -3,7 +3,7 @@ import {
 	ConsentDevTools as ReactConsentDevTools,
 	DevTools as ReactDevTools,
 	c15tDevtools as reactC15tDevtools,
-} from '@c15t/react/v3/devtools';
+} from '@c15t/react/devtools';
 import { describe, expect, test } from 'vitest';
 
 import {

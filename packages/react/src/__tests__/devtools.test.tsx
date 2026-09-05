@@ -11,11 +11,13 @@ import {
 	DevTools,
 } from '../devtools';
 import { ConsentProvider } from '../provider';
+import { offline } from '../transports/offline';
 
 const Provider = ({ children }: { children: ReactNode }) => (
 	<ConsentProvider
 		options={{
 			enabled: false,
+			mode: offline(),
 			persistence: false,
 		}}
 	>
@@ -83,6 +85,19 @@ describe('v3 React DevTools adapter', () => {
 });
 
 describe('v3 TanStack Devtools adapter', () => {
+	test('limits embedded consent controls to the displayed scope', async () => {
+		const view = await render(
+			<Provider>
+				<C15tTanStackDevtoolsPanel
+					getConsentCategories={() => ['necessary', 'measurement']}
+				/>
+			</Provider>
+		);
+		await vi.waitFor(() => expect(getMountedDevTools()).not.toBeNull());
+		expect(getMountedDevTools()?.textContent).toContain('Measurement');
+		expect(getMountedDevTools()?.textContent).not.toContain('Marketing');
+		view.unmount();
+	});
 	test('creates the compatible plugin configuration and embedded panel', async () => {
 		const plugin = c15tDevtools({
 			'data-testid': 'c15t-tanstack-panel',

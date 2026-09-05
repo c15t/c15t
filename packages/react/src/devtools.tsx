@@ -1,6 +1,6 @@
 'use client';
 
-import type { ConsentKernel } from '@c15t/core/v3';
+import type { ConsentKernel } from '@c15t/core';
 import { createDevTools } from '@c15t/dev-tools';
 import type {
 	DevToolsInstance,
@@ -39,7 +39,7 @@ export type DevToolsProps = ConsentDevToolsProps;
 const requireKernel = (kernel: ConsentKernel | null): ConsentKernel => {
 	if (!kernel) {
 		throw new Error(
-			'c15t: DevTools must be rendered inside <ConsentProvider> from @c15t/react/v3.'
+			'c15t: DevTools must be rendered inside <ConsentProvider> from @c15t/react.'
 		);
 	}
 	return kernel;
@@ -98,7 +98,7 @@ export const C15TDevTools = ConsentDevTools;
 export interface C15tTanStackDevtoolsPanelProps
 	extends
 		HTMLAttributes<HTMLDivElement>,
-		Pick<DevToolsOptions, 'defaultTab' | 'maxEvents'> {
+		Pick<DevToolsOptions, 'defaultTab' | 'maxEvents' | 'getConsentCategories'> {
 	/** Prevents the embedded DevTools engine from mounting. @default false */
 	disabled?: boolean;
 }
@@ -145,7 +145,14 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 >(
 	// oxlint-disable-next-line prefer-arrow-callback -- A named function gives the forwarded component a display name.
 	function C15tTanStackDevtoolsPanel(
-		{ disabled = false, defaultTab, maxEvents, style, ...containerProps },
+		{
+			disabled = false,
+			defaultTab,
+			getConsentCategories,
+			maxEvents,
+			style,
+			...containerProps
+		},
 		forwardedRef
 	) {
 		const contextKernel = useContext(KernelContext);
@@ -169,13 +176,14 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 				container,
 				defaultOpen: true,
 				defaultTab,
+				getConsentCategories,
 				kernel,
 				maxEvents,
 			});
 			devTools.element?.classList.add('c15t-dev-tools--embedded');
 
 			return () => devTools.destroy();
-		}, [defaultTab, kernel, maxEvents]);
+		}, [defaultTab, getConsentCategories, kernel, maxEvents]);
 
 		return (
 			<div

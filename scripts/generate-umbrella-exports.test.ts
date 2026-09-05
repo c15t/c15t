@@ -626,21 +626,21 @@ describe('committed umbrella package', () => {
 	});
 
 	it('ships the v3 React and Next.js DevTools adapters', () => {
-		expect(manifest.exports['./react/v3/devtools']).toEqual({
-			default: './shims/react/v3/devtools.js',
-			import: './shims/react/v3/devtools.js',
-			types: './shims/react/v3/devtools.d.ts',
+		expect(manifest.exports['./react/devtools']).toEqual({
+			default: './shims/react/devtools.js',
+			import: './shims/react/devtools.js',
+			types: './shims/react/devtools.d.ts',
 		});
-		expect(manifest.exports['./next/v3/devtools']).toEqual({
-			default: './shims/next/v3/devtools.js',
-			import: './shims/next/v3/devtools.js',
-			types: './shims/next/v3/devtools.d.ts',
+		expect(manifest.exports['./next/devtools']).toEqual({
+			default: './shims/next/devtools.js',
+			import: './shims/next/devtools.js',
+			types: './shims/next/devtools.d.ts',
 		});
-		expect(artifacts.shimFiles['shims/react/v3/devtools.js']).toContain(
-			"export * from '@c15t/react/v3/devtools';"
+		expect(artifacts.shimFiles['shims/react/devtools.js']).toContain(
+			"export * from '@c15t/react/devtools';"
 		);
-		expect(artifacts.shimFiles['shims/next/v3/devtools.js']).toContain(
-			"export * from '@c15t/nextjs/v3/devtools';"
+		expect(artifacts.shimFiles['shims/next/devtools.js']).toContain(
+			"export * from '@c15t/nextjs/devtools';"
 		);
 	});
 

@@ -261,6 +261,11 @@
 			"import": "./shims/react/utils.js",
 			"default": "./shims/react/utils.js"
 		},
+		"./react/devtools": {
+			"types": "./shims/react/devtools.d.ts",
+			"import": "./shims/react/devtools.js",
+			"default": "./shims/react/devtools.js"
+		},
 		"./next/styles.css": "./dist/next/styles.css",
 		"./next/styles.tw3.css": "./dist/next/styles.tw3.css",
 		"./next/iab/styles.css": "./dist/next/iab/styles.css",
@@ -305,6 +310,11 @@
 			"import": "./shims/next/rsc.js",
 			"default": "./shims/next/rsc.js"
 		},
+		"./next/devtools": {
+			"types": "./shims/next/devtools.d.ts",
+			"import": "./shims/next/devtools.js",
+			"default": "./shims/next/devtools.js"
+		},
 		"./vue": {
 			"types": "./shims/vue.d.ts",
 			"import": "./shims/vue.js",
@@ -331,17 +341,7 @@
 			"default": "./shims/vue/consent-widget.js"
 		},
 		"./vue/runtime/*": "./shims/vue/runtime/*",
-		"./vue/composables/*": "./shims/vue/composables/*",
-		"./react/devtools": {
-			"types": "./shims/react/devtools.d.ts",
-			"import": "./shims/react/devtools.js",
-			"default": "./shims/react/devtools.js"
-		},
-		"./next/devtools": {
-			"types": "./shims/next/devtools.d.ts",
-			"import": "./shims/next/devtools.js",
-			"default": "./shims/next/devtools.js"
-		}
+		"./vue/composables/*": "./shims/vue/composables/*"
 	},
 	"publishConfig": {
 		"access": "public"
