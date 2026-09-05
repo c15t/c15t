@@ -23,16 +23,36 @@ describe('detected React development environment', () => {
 		{ dependencies: { gatsby: '5', vite: '7' }, environment: 'node' },
 		{ dependencies: { 'react-scripts': '5' }, environment: 'node' },
 		{ dependencies: { webpack: '5' }, environment: 'node' },
+		{
+			dependencies: { '@vitejs/plugin-react': '5', vite: '7', webpack: '5' },
+			environment: 'node',
+		},
+		{
+			dependencies: { '@vitejs/plugin-react': '5', vite: '7', webpack: '5' },
+			environment: 'node',
+			scripts: { build: 'webpack --mode production', test: 'vite build' },
+		},
+		{
+			dependencies: { vite: '7', webpack: '5' },
+			environment: 'vite',
+			scripts: { build: 'tsc -b && vite build' },
+		},
+		{
+			dependencies: { vite: '7', webpack: '5' },
+			environment: 'node',
+			scripts: { build: 'webpack', dev: 'vite' },
+		},
 		{ dependencies: {}, environment: 'node' },
 	])(
 		'generates the $environment guard for $dependencies',
-		async ({ dependencies, environment }) => {
+		async ({ dependencies, environment, scripts }) => {
 			const directory = await mkdtemp(join(tmpdir(), 'c15t-react-guard-'));
 			try {
 				await writeFile(
 					join(directory, 'package.json'),
 					JSON.stringify({
 						dependencies: { react: '19', ...dependencies },
+						scripts,
 					})
 				);
 				await writeFile(
