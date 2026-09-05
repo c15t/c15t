@@ -2,11 +2,12 @@
  * `@c15t/iab` must not reach an app that did not ask for IAB.
  *
  * The provider sits in every SvelteKit app's layout chunk, so a static
- * import of the TCF implementation would cost ~15 KB gzipped on sites that
- * never show a TCF surface. Two things keep it out, and both are asserted
- * here: no module an app loads for the banner imports `@c15t/iab` for a
- * value, and the runtime only gets a `createIAB` — the thing that triggers
- * the dynamic import — when `iab` is configured.
+ * import of the TCF implementation costs sites that never show a TCF
+ * surface 3.3 KB gzipped there (measured on the SvelteKit bench). Two
+ * things keep it out, and both are asserted here: no module an app loads
+ * for the banner imports `@c15t/iab` for a value, and the runtime only
+ * gets a `createIAB` — the thing that triggers the dynamic import — when
+ * `iab` is configured.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
