@@ -10,7 +10,10 @@
 		"isolatedModules": true,
 		"skipLibCheck": true,
 		"noEmit": true,
-		"types": ["vite/client", "node"]
+		"types": ["vite/client", "node"],
+		"paths": {
+			"#bench-root-shell": ["./src/bench/root-shell.tsx"]
+		}
 	},
 	"include": ["src", "scripts", "vite.config.ts"]
 }

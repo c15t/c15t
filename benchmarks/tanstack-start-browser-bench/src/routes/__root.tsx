@@ -1,28 +1,11 @@
-import {
-	createRootRoute,
-	HeadContent,
-	Outlet,
-	Scripts,
-} from '@tanstack/react-router';
+import { createRootRoute } from '@tanstack/react-router';
 
-/**
- * Bare document shell. Each scenario route mounts its own consent provider,
- * the way each Next arm has its own `layout.tsx`, so the root stays free of
- * consent code and the `baseline` arm measures the page floor.
- */
-const RootComponent = () => (
-	<html lang="en">
-		<head>
-			<HeadContent />
-		</head>
-		<body>
-			<Outlet />
-			<Scripts />
-		</body>
-	</html>
-);
+// Resolved by `vite.config.ts`: `src/bench/root-shell.tsx` by default, or
+// `src/bench/root-shell-provider.tsx` when `C15T_BENCH_ROOT_PROVIDER=1`.
+import { RootComponent, rootConsentRouteOptions } from '#bench-root-shell';
 
 export const Route = createRootRoute({
+	...rootConsentRouteOptions,
 	component: RootComponent,
 	head: () => ({
 		meta: [

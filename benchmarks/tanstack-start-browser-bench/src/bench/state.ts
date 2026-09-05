@@ -4,6 +4,7 @@ export type TanstackBenchScenario =
 	| 'manifest-client'
 	| 'manifest-ssr'
 	| 'manifest-ssr-proxy'
+	| 'manifest-ssr-root'
 	| 'repeat-visitor'
 	| 'ssr';
 

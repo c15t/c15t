@@ -7,6 +7,9 @@
  * the Node host TanStack Start documents for that output: srvx's node:http
  * adapter serving `dist/client` as static files in front of the handler,
  * the same split a Next `next start` server does internally.
+ *
+ * `DIST_DIR` selects the build to serve (default `dist`); the bench runner
+ * points it at `dist-root` for the root-mounted provider variant.
  */
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -15,8 +18,9 @@ import { serve } from 'srvx';
 import { staticMiddleware } from 'srvx/static';
 
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const distDir = resolve(appDir, process.env.DIST_DIR ?? 'dist');
 const { default: server } = await import(
-	pathToFileURL(resolve(appDir, 'dist/server/server.js')).href
+	pathToFileURL(resolve(distDir, 'server/server.js')).href
 );
 
 const hostname = process.env.HOST ?? '127.0.0.1';
@@ -29,7 +33,7 @@ const instance = serve({
 	// connections open for up to five seconds first.
 	gracefulShutdown: false,
 	hostname,
-	middleware: [staticMiddleware({ dir: resolve(appDir, 'dist/client') })],
+	middleware: [staticMiddleware({ dir: resolve(distDir, 'client') })],
 	port,
 });
 await instance.ready();
