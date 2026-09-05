@@ -72,8 +72,8 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 				noticeDismissal: snapshot.noticeDismissal,
 				optOutDirectives: snapshot.optOutDirectives,
 				overrides: snapshot.overrides,
-				policy,
 				policyPending: snapshot.policyPending,
+				policyRule: policy,
 				privacySignals: snapshot.privacySignals,
 				promptRequirement: snapshot.promptRequirement,
 				resolution: snapshot.resolution,
@@ -126,14 +126,16 @@ export const LiveStatus = ({ mode }: { mode: 'offline' | 'hosted' }) => {
 					value={snapshot.iab?.enabled ? 'enabled' : 'off'}
 				/>
 				<StatusRow
-					label="Consent"
+					label="Explicit choice"
 					value={snapshot.explicitChoice === null ? 'not saved yet' : 'saved'}
 				/>
 			</div>
 
 			{categories.length > 0 && (
 				<div className="space-y-2">
-					<p className="label-pixel text-muted-foreground">Categories</p>
+					<p className="label-pixel text-muted-foreground">
+						Effective permissions
+					</p>
 					<div className="flex flex-wrap gap-1.5">
 						{categories.map((category) => {
 							const granted = snapshot.effectivePermissions[category];
