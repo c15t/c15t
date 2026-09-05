@@ -1,172 +1,121 @@
 ---
-title: Server-Side Data Fetching
-description: Pre-fetch consent data in Server Components with fetchInitialData for dynamic Next.js routes.
+title: Server-side consent
+description: Prepare a policy, consent records, and one request clock before rendering a Next.js consent boundary.
 group: frameworks
 ---
 
-The `c15t/next` package provides `fetchInitialData`, a server-side function that fetches consent data before rendering. Use it when the route is already dynamic, or when you want the fastest first banner and are okay opting the route into dynamic rendering. If you need to keep a route fully static, use `C15tPrefetch` instead.
-
-Because `fetchInitialData()` resolves request headers from `next/headers`, using it opts the route into dynamic rendering.
-
-<Callout type="info">
-  SSR hydration is part of the [initialization flow](/docs/frameworks/next/concepts/initialization-flow#how-it-works). When SSR data is available, the client skips the API fetch entirely.
-</Callout>
-
-```ts
-import { fetchInitialData } from 'c15t/next';
-```
-
-## fetchInitialData
-
-The primary function for fetching consent data on the server. It calls the c15t backend's `/init` endpoint with the user's request headers (resolved automatically from `next/headers`) and returns the initial consent data.
-
-```ts title="app/layout.tsx"
-import { fetchInitialData } from 'c15t/next';
-
-// In a Server Component — do NOT await
-const ssrData = fetchInitialData({
-  backendURL: 'https://your-instance.c15t.dev',
-  debug: process.env.NODE_ENV === 'development',
-});
-```
-
-<Callout type="warn">
-  **Do not `await`** `fetchInitialData()` in Server Components. Pass the Promise directly to your client component so Next.js can stream the page while the consent data loads in parallel.
-</Callout>
-
-<Callout type="info">
-  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-instance.c15t.dev`. For browser-side calls from the provider, `C15tPrefetch`, and other client runtime work, prefer a same-origin `/api/c15t` rewrite. See [Optimization](/docs/frameworks/next/optimization) for the full decision guide.
-</Callout>
-
-<Callout type="info">
-  Need fully static routes? Use `C15tPrefetch` in your layout. Matching prefetched data is consumed automatically by the runtime instead of using `fetchInitialData()`. See [Optimization](/docs/frameworks/next/optimization).
-</Callout>
-
-### How Streaming Works
-
-The diagram below shows how the prefetch avoids blocking the page render. The server fires the `/init` request and immediately starts streaming HTML — the resolved consent data is sent as a later chunk once the backend responds.
-
-```mermaid
-sequenceDiagram
-    participant SC as Server Component
-    participant NR as Next.js Runtime
-    participant BR as Browser
-    participant BE as c15t Backend
-
-    SC->>BE: fetchInitialData() → GET /init
-    Note right of SC: Returns a Promise<br/>(not awaited)
-    SC->>NR: Render page tree<br/>(Promise passed as prop)
-    NR->>BR: Stream initial HTML
-    BR->>BR: Hydrate — no consent data yet
-
-    BE-->>NR: /init response resolves
-    NR->>BR: Stream resolved data chunk
-    BR->>BR: Provider receives SSR data,<br/>skips client-side /init fetch
-```
-
-### Options
-
-<AutoTypeTable path="./packages/nextjs/src/types.ts" name="FetchInitialDataOptions" />
-
-### Return Value
-
-Returns `Promise<SSRInitialData | undefined>`. The data includes the init response (jurisdiction, translations, consent model) and GVL data when IAB is configured.
-
-### Passing SSR Data to the Provider
-
-Pass the unresolved Promise to the provider's `ssrData` option via a client component:
-
-```tsx title="components/consent-manager/index.tsx"
-'use client';
-
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
-import type { InitialDataPromise } from 'c15t/next';
-
-export default function ConsentManager({
-  children,
-  ssrData,
-}: {
-  children: ReactNode;
-  ssrData?: InitialDataPromise;
-}) {
-  return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
-        ssrData,
-      }}
-    >
-      <ConsentBanner />
-      <ConsentDialog />
-      {children}
-    </ConsentManagerProvider>
-  );
-}
-```
-
 ```tsx title="app/layout.tsx"
-import { fetchInitialData } from 'c15t/next';
-import ConsentManager from '@/components/consent-manager';
+import type { ReactNode } from 'react';
+import {
+  ConsentBoundary,
+  ConsentDialog,
+  ConsentDialogTrigger,
+} from '@c15t/nextjs';
+import { RscConsentBanner } from '@c15t/nextjs/rsc';
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const ssrData = fetchInitialData({
-    backendURL: 'https://your-instance.c15t.dev',
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const config = await prefetchInitialConsent({
+    backendURL: 'https://consent.example.com',
   });
 
   return (
     <html lang="en">
       <body>
-        <ConsentManager ssrData={ssrData}>
+        <ConsentBoundary config={config} backendURL="/api/c15t">
+          <RscConsentBanner config={config} />
+          <ConsentDialog />
+          <ConsentDialogTrigger />
           {children}
-        </ConsentManager>
+        </ConsentBoundary>
       </body>
     </html>
   );
 }
 ```
 
-## How Headers Are Resolved
+Await the helper before rendering the consent boundary. Reading `next/headers` makes this route dynamic. Each request gets its own plain configuration. The server and browser evaluate the same prepared policy and records at the same clock.
 
-Unlike `c15t/react/server` where you must pass headers manually, `fetchInitialData` uses `next/headers` to automatically resolve the incoming request headers. This means geo-location headers from Vercel, Cloudflare, or AWS CloudFront are forwarded to the c15t backend without any extra configuration.
+## Prefetch a policy
 
-| Header | Source | Contains |
-|--------|--------|----------|
-| `cf-ipcountry` | Cloudflare | Country code |
-| `x-vercel-ip-country` | Vercel | Country code |
-| `x-amz-cf-ipcountry` | AWS CloudFront | Country code |
-| `x-vercel-ip-country-region` | Vercel | Region code |
-| `accept-language` | Browser | Language preference |
-| `x-forwarded-host` | Proxy | Original host |
-| `x-forwarded-for` | Proxy | Client IP |
+`prefetchInitialConsent` reads the request cookies, country, region, language, and `Sec-GPC`, then resolves the policy through the shared transport. Hosted mode makes one server `/init` request. A successfully prepared result makes zero browser `/init` requests during hydration, including repeat visits.
 
-## Advanced: Using c15t/react/server Directly
+Use `manifestURL` to resolve the policy from a cached manifest, or supply an inline `manifest` to avoid a manifest fetch. Both paths use the same policy wire reader as the client. A versioned failure, no match, or unconfigured outcome clears policy-derived tokens and IAB state. Backend boolean maps never become consent receipts.
 
-For advanced use cases (custom server frameworks, edge functions, or non-standard header resolution), the underlying utilities from `c15t/react/server` are available:
+A network failure returns the request records without a prepared resolution. The client then attempts initialization. Optional categories remain denied while policy resolution is pending or failed.
 
 ```ts
-import {
-  fetchSSRData,
-  extractRelevantHeaders,
-  normalizeBackendURL,
-  validateBackendURL,
-} from 'c15t/react/server';
+const config = await prefetchInitialConsent({
+  backendURL: 'https://consent.example.com',
+  manifestURL: 'https://consent.example.com/manifest',
+  cookieName: 'site-consent',
+});
 ```
 
-See the [React Server-Side Utilities](/docs/frameworks/react/server-side) docs for full API details.
+When you customize `cookieName`, set the same `storageConfig.storageKey` in the boundary's `options`.
 
-## Debugging SSR
+## Read records without fetching
 
-Use the [useSSRStatus](/docs/frameworks/next/hooks/use-ssr-status) hook on the client to verify SSR data was consumed:
+`readInitialConsentConfig()` reads cookies and request context without resolving a policy or making a network request. Pass its result to `ConsentBoundary` with a `backendURL` to initialize in the browser. To render a resolved prompt on the server, use `prefetchInitialConsent`.
 
-```tsx
-import { useSSRStatus } from 'c15t/next';
+Both helpers return `InitialConsentConfig`. Its `initialRecords` contain the raw explicit choice, subject, notice dismissal, and standing privacy directives. Its `now` is one request clock, also carried in the records. Receipt timestamps, policy fingerprints, literal legacy subject identifiers, and stored cookie metadata are preserved. Hydration reads storage without renewing receipts or recreating missing storage copies.
 
-function DebugSSR() {
-  const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();
+Do not seed `initialConsents` or `initialHasConsented`. Those booleans cannot establish when or under which policy a visitor made a choice. Valid legacy v2 cookies remain readable through the shared storage reader.
 
-  if (ssrDataUsed) return <span>SSR hydration successful</span>;
-  return <span>SSR skipped: {ssrSkippedReason ?? 'unknown'}</span>;
+## Prompts and persistent preferences
+
+The prompt requirement can be `choice`, `notice`, or `none`. Expired receipts and material policy changes can require a new choice. A notice exposes dismissal without recording category consent. Dismissal does not save preferences, lock page scrolling, or trap focus.
+
+`RscConsentBanner` renders its copy on the server and uses the shared React root and action renderer for visibility, accessibility, and policy-required controls. Its gate stays mounted so receipt expiry can reopen a prompt after hydration. Keep `ConsentDialogTrigger` or `ConsentDialogLink` outside the banner for persistent access to the policy's privacy rights.
+
+Notice dismissals and standing privacy directives have compact cookie projections that the server can read. An older dismissal stored only in localStorage may appear again in server HTML. The server cannot suppress a notice using data it did not receive.
+
+`Sec-GPC: 1` is a detected privacy signal. It is separate from a developer override and can establish a standing opt-out directive. Restrictions can deny tracking while preserving the visitor's original explicit receipt.
+
+## Pages Router and request adapters
+
+Provide standard headers and a cookie string from `getServerSideProps`. The request adapter accepts synchronous values or promises, so it also supports wrappers around different Next.js header APIs.
+
+```ts
+import { prefetchInitialConsent } from '@c15t/nextjs/server';
+
+export async function getServerSideProps({ req }) {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (typeof value === 'string') headers.set(name, value);
+    else if (Array.isArray(value)) headers.set(name, value.join(', '));
+  }
+  const config = await prefetchInitialConsent({
+    backendURL: 'https://consent.example.com',
+    request: {
+      headers: () => headers,
+      cookies: () => ({ toString: () => req.headers.cookie ?? '' }),
+    },
+  });
+  return { props: { config: JSON.parse(JSON.stringify(config)) } };
 }
 ```
+
+Render `ConsentBoundary` with that `config` in your page or `_app`. Use the React `ConsentBanner` re-export in Pages Router; `RscConsentBanner` is intended for App Router Server Components.
+
+## Early browser prefetch for static routes
+
+```tsx
+import { C15tPrefetch, ConsentBoundary, ConsentBanner } from '@c15t/nextjs';
+
+export default function Layout({ children }) {
+  return (
+    <>
+      <C15tPrefetch backendURL="/api/c15t" />
+      <ConsentBoundary config={{}} backendURL="/api/c15t">
+        <ConsentBanner />
+        {children}
+      </ConsentBoundary>
+    </>
+  );
+}
+```
+
+The early script and hosted initialization share one matching browser request. Initialization consumes it once; later explicit refreshes make a new request. A failed early request falls back to normal initialization. A different backend, request context, credentials mode, or custom init route cannot reuse incompatible data.
+
+For static manifest resolution, unknown geography uses the configured fallback or an explicit failed or no-match outcome. The resolver never changes a regional policy's matcher to make it a fallback. If a geo fetch fails, the initial outcome remains in place.

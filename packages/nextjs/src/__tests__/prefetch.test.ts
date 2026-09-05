@@ -1,3 +1,4 @@
+import { buildConsentManifestFromConfig } from '@c15t/schema/types';
 /**
  * Tests for prefetchInitialConsent, the server-side helper that calls
  * the backend's /init, folds the response into KernelConfig, and hands
@@ -105,7 +106,10 @@ describe('prefetchInitialConsent: backend call', () => {
 		expect(headers.cookie).toContain('sess=abc');
 
 		// Response was merged into config.
-		expect(config.initialPolicy).toEqual(POLICY);
+		expect(config.initialPolicyResolution).toMatchObject({
+			policyId: 'gdpr',
+			status: 'matched',
+		});
 		expect(config.initialPolicySnapshotToken).toBe('snap-1');
 		expect(config.initialLocation).toEqual({
 			countryCode: 'DE',
@@ -148,14 +152,16 @@ describe('prefetchInitialConsent: backend call', () => {
 
 		// Baseline from cookie + header is preserved.
 		expect(config.initialOverrides?.country).toBe('US');
-		expect(config.initialConsents?.marketing).toBe(true);
-		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		expect(Object.hasOwn(config, 'initialHasConsented')).toBe(false);
 		// Init response missing; fields stay undefined.
-		expect(config.initialPolicy).toBeUndefined();
+		expect(Object.hasOwn(config, 'initialPolicy')).toBe(false);
 		expect(config.initialPolicySnapshotToken).toBeUndefined();
 	});
 
-	test('server-returned consents merge with cookie consents', async () => {
+	test('boolean-only server consents do not become receipts', async () => {
 		headerStore.set('host', 'app.example.com');
 		headerStore.set('x-forwarded-proto', 'https');
 		headerStore.set(
@@ -185,14 +191,12 @@ describe('prefetchInitialConsent: backend call', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		// /init consent preferences overlay cookie state, and a consent-bearing
-		// init response marks the user as consented for first paint.
-		expect(config.initialConsents).toMatchObject({
-			functionality: true,
-			marketing: false,
-			measurement: false,
+		// Boolean-only backend projections cannot overwrite persisted receipts.
+		expect(config.initialRecords?.choice?.categories).toMatchObject({
+			marketing: { confirmedAt: 1, value: true },
+			measurement: { confirmedAt: 1, value: false },
 		});
-		expect(config.initialHasConsented).toBe(true);
+		expect(Object.hasOwn(config, 'initialConsents')).toBe(false);
 	});
 
 	test('resolvedOverrides from server merge into overrides', async () => {
@@ -271,7 +275,11 @@ describe('prefetchInitialConsent: manifest mode', () => {
 		const [url] = fetchSpy.mock.calls[0] ?? [];
 		expect(url).toBe('https://app.example.com/api/c15t/manifest');
 		expect(String(url)).not.toContain('/init');
-		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(
+			config.initialPolicyResolution?.status === 'matched'
+				? config.initialPolicyResolution.policyId
+				: undefined
+		).toBe('eu-opt-in');
 		expect(config.initialPolicyDecision).toMatchObject({
 			country: 'DE',
 			policyId: 'eu-opt-in',
@@ -292,10 +300,92 @@ describe('prefetchInitialConsent: manifest mode', () => {
 		});
 
 		expect(fetchSpy).not.toHaveBeenCalled();
-		expect(config.initialPolicy?.id).toBe('us-ca-opt-out');
+		expect(
+			config.initialPolicyResolution?.status === 'matched'
+				? config.initialPolicyResolution.policyId
+				: undefined
+		).toBe('us-ca-opt-out');
 		expect(config.initialLocation).toEqual({
 			countryCode: 'US',
 			regionCode: 'CA',
 		});
 	});
+});
+
+describe('prefetch policy negotiation', () => {
+	for (const contract of ['1', '99']) {
+		test(`does not lift a legacy policy from a producer declaring ${contract}`, async () => {
+			const config = await prefetchInitialConsent({
+				backendURL: 'https://consent.example.com',
+				fetch: vi.fn().mockResolvedValue(
+					new Response(
+						JSON.stringify(
+							createInitOutput({
+								gvl: { vendors: {} },
+								policy: POLICY,
+								policySnapshotToken: 'stale',
+							})
+						),
+						{ headers: { 'x-c15t-policy-contract': contract } }
+					)
+				),
+			});
+			expect(config.initialPolicyResolution).toMatchObject({
+				reason: contract === '1' ? 'invalid-payload' : 'unsupported-contract',
+				status: 'failed',
+			});
+			expect(config.initialPolicySnapshotToken).toBeUndefined();
+			expect(config.initialIab).toBeUndefined();
+		});
+	}
+});
+
+test('versioned inline manifest prepares notice policy and GPC without an init fetch', async () => {
+	const manifest = await buildConsentManifestFromConfig({
+		policyRules: [
+			{
+				categories: ['marketing'],
+				id: 'notice-v3',
+				match: { fallback: true },
+				model: 'opt-out',
+				privacySignals: { gpc: { denyCategories: ['marketing'] } },
+				prompt: 'notice',
+			},
+		],
+	});
+	headerStore.set('sec-gpc', '1');
+	const fetch = vi.fn();
+	const config = await prefetchInitialConsent({
+		backendURL: 'https://consent.example.com',
+		fetch,
+		manifest,
+	});
+	expect(config.initialPolicyResolution).toMatchObject({
+		policy: { model: 'opt-out', prompt: 'notice' },
+		policyId: 'notice-v3',
+		status: 'matched',
+	});
+	expect(config.initialPrivacySignals?.gpc).toBe(true);
+	expect(config.initialOverrides?.gpc).toBeUndefined();
+	expect(fetch).not.toHaveBeenCalled();
+});
+
+test('keeps a backend subject identifier without manufacturing consent', async () => {
+	const config = await prefetchInitialConsent({
+		backendURL: 'https://consent.example.com',
+		fetch: vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify(
+					createInitOutput({
+						policy: POLICY,
+						subjectId: 'legacy:subject+literal',
+					})
+				)
+			)
+		),
+	});
+	expect(config.initialRecords?.subject).toEqual({
+		subjectId: 'legacy:subject+literal',
+	});
+	expect(config.initialRecords?.choice).toBeNull();
 });

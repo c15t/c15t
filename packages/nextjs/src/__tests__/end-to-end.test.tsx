@@ -15,6 +15,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentBoundary } from '../boundary';
+import { policyFixture } from './policy-fixture';
 
 interface DeferredPromise<Value> {
 	promise: Promise<Value>;
@@ -112,7 +113,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 		const Probe = () => {
 			const snap = useSnapshot();
 			return (
-				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
+				<div data-testid="probe">{`${(snap.resolution.status === 'matched' ? snap.resolution.policyId : undefined) ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
 		};
 
@@ -199,7 +200,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 });
 
 describe('ConsentBoundary: prefetched config reaches first paint', () => {
-	test('prefetched policy-derived UI is visible before init finishes', async () => {
+	test('prepared policy renders without a duplicate browser init', async () => {
 		// Fetch that resolves on demand — simulates a slow roundtrip.
 		let resolveInit: (value: unknown) => void = () => undefined;
 		const fetchSpy = vi.fn(() =>
@@ -220,13 +221,11 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 		const Probe = () => {
 			const snap = useSnapshot();
 			return (
-				<div data-testid="probe">{`${snap.policy?.id ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
+				<div data-testid="probe">{`${(snap.resolution.status === 'matched' ? snap.resolution.policyId : undefined) ?? 'none'}|${snap.model ?? 'none'}|${snap.activeUI ?? 'null'}`}</div>
 			);
 		};
 
-		const config: KernelConfig = {
-			initialPolicy: POLICY as never,
-		};
+		const config: KernelConfig = policyFixture({}, { id: 'gdpr' });
 
 		try {
 			const { getByTestId } = await render(
@@ -246,6 +245,7 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 				.toHaveTextContent('gdpr|opt-in|banner');
 
 			// Now resolve the slow init. Snapshot should not regress.
+			expect(fetchSpy).not.toHaveBeenCalled();
 			resolveInit({ policy: POLICY });
 			await createDeferredPromise((r) => setTimeout(r, 10));
 			await expect

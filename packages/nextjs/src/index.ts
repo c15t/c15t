@@ -31,4 +31,4 @@ export * from '@c15t/react';
 export type { ConsentBoundaryProps } from './boundary';
 export { ConsentBoundary } from './boundary';
 export { C15tPrefetch } from './libs/browser-initial-data';
-export type { C15tPrefetchProps } from './types';
+export type { C15tPrefetchProps, InitialConsentConfig } from './types';

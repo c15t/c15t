@@ -8,13 +8,16 @@ import {
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 describe('@c15t/nextjs/static', () => {
-	test('strictest default uses opt-in while geo is unresolved', () => {
+	test('unknown geography uses the configured fallback without rewriting matchers', () => {
 		const payload = resolveStrictestDefaultInit(MANIFEST_FIXTURE, {
 			language: 'en',
 		});
 
-		expect(payload.policy?.id).toBe('eu-opt-in');
-		expect(payload.policy?.model).toBe('opt-in');
+		expect(payload.policyResolution).toMatchObject({
+			policyId: 'notice-default',
+			status: 'matched',
+		});
+		expect(payload.policyResolution?.policy?.model).toBe('opt-out');
 		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
 	});
 
@@ -49,10 +52,37 @@ describe('@c15t/nextjs/static', () => {
 			manifest: MANIFEST_FIXTURE,
 		});
 
-		expect(resolution.initial.policy?.id).toBe('eu-opt-in');
+		expect(resolution.initial.policyResolution).toMatchObject({
+			policyId: 'notice-default',
+			status: 'matched',
+		});
 		const resolved = await resolution.resolved;
 		expect(resolved.policy?.id).toBe('us-ca-opt-out');
 		expect(resolved.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
+	});
+
+	test('unresolved geo cannot select a regional rule after geo fetch failure', async () => {
+		const manifest = {
+			...MANIFEST_FIXTURE,
+			policyPacks: MANIFEST_FIXTURE.policyPacks.filter(
+				(pack) => pack.policy.id !== 'notice-default'
+			),
+		};
+		const resolver = createStaticConsentResolver({
+			fetch: vi.fn().mockRejectedValue(new Error('offline')),
+			geoURL: 'https://example.com/geo',
+			manifest,
+		});
+		expect(resolver.initial.policyResolution).toMatchObject({
+			policy: null,
+			reason: 'insufficient-inputs',
+			status: 'failed',
+		});
+		expect((await resolver.resolved).policyResolution).toMatchObject({
+			policy: null,
+			reason: 'insufficient-inputs',
+			status: 'failed',
+		});
 	});
 
 	test('build-time module helper fetches and emits a typed manifest module', async () => {

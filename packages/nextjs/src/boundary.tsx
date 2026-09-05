@@ -1,6 +1,5 @@
 'use client';
 
-import type { KernelConfig } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 /**
  * Client boundary for the Next.js adapter.
@@ -20,13 +19,15 @@ import { ConsentProvider } from '@c15t/react/provider';
 import type { ConsentProviderOptions } from '@c15t/react/provider';
 import type { ReactNode } from 'react';
 
+import type { InitialConsentConfig } from './types';
+
 export interface ConsentBoundaryProps {
 	/**
 	 * Kernel configuration produced server-side by
 	 * `readInitialConsentConfig()` or `prefetchInitialConsent()` from
 	 * `@c15t/nextjs/server`. Serializable JSON.
 	 */
-	config: KernelConfig;
+	config: InitialConsentConfig;
 
 	/**
 	 * Backend base URL (e.g. `/api/c15t` or `https://consent.example.com`).

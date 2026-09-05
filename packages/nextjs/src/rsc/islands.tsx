@@ -1,85 +1,85 @@
 'use client';
 
-/**
- * Client islands for the RSC consent banner (`@c15t/nextjs/rsc`).
- *
- * These are the ONLY parts of the banner that ship to and hydrate in the
- * browser — the banner shell (markup, copy, layout) is a Server Component
- * and never enters the client bundle.
- */
-
-import { useActiveUI, useSaveConsents, useSetActiveUI } from '@c15t/react';
+import { ConsentBanner } from '@c15t/react';
+import { useHeadlessConsentUI } from '@c15t/react/headless';
 import type { ReactNode } from 'react';
 
-/**
- * Visibility gate. The server decides the initial state (the shell is only
- * rendered when the banner should show), so first paint is correct before
- * hydration; after hydration this keeps the DOM in sync with the kernel
- * (e.g. removes the banner after consent is saved).
- */
-export const RscBannerGate = ({ children }: { children: ReactNode }) => {
-	const activeUI = useActiveUI();
-	if (activeUI !== 'banner') {
-		return null;
-	}
-	return children;
-};
+/** Shared prompt visibility and accessibility, including notice and expiry. */
+export const RscBannerGate = ({
+	children,
+	title,
+	className,
+}: {
+	children: ReactNode;
+	title: string;
+	className?: string;
+}) => (
+	<ConsentBanner.Root
+		aria-label={title}
+		className={className}
+		disableAnimation
+		trapFocus={false}
+	>
+		{children}
+	</ConsentBanner.Root>
+);
 
 export interface RscBannerActionsProps {
 	acceptLabel: string;
 	rejectLabel: string;
 	customizeLabel: string;
+	dismissLabel?: string;
 	classNames?: {
 		footer?: string;
 		acceptButton?: string;
 		rejectButton?: string;
 		customizeButton?: string;
+		dismissButton?: string;
 	};
 }
 
-/** The interactive button row — the banner's one true client island. */
+/** Use the React action renderer so required controls keep equal prominence. */
 export const RscBannerActions = ({
 	acceptLabel,
 	rejectLabel,
 	customizeLabel,
+	dismissLabel = 'Dismiss',
 	classNames,
 }: RscBannerActionsProps) => {
-	const save = useSaveConsents();
-	const setActiveUI = useSetActiveUI();
-
+	const { performBannerAction } = useHeadlessConsentUI();
+	const labels = {
+		accept: acceptLabel,
+		customize: customizeLabel,
+		dismiss: dismissLabel,
+		reject: rejectLabel,
+		save: 'Save',
+	};
+	const classes = {
+		accept: classNames?.acceptButton,
+		customize: classNames?.customizeButton,
+		dismiss: classNames?.dismissButton,
+		reject: classNames?.rejectButton,
+		save: undefined,
+	};
 	return (
-		<div
-			className={classNames?.footer}
-			data-testid="consent-banner-footer"
-		>
-			<button
-				className={classNames?.rejectButton}
-				data-testid="consent-banner-reject-button"
-				onClick={async () => {
-					await save('none');
-				}}
-				type="button"
-			>
-				{rejectLabel}
-			</button>
-			<button
-				className={classNames?.customizeButton}
-				data-testid="consent-banner-customize-button"
-				onClick={() => setActiveUI('dialog')}
-				type="button"
-			>
-				{customizeLabel}
-			</button>
-			<button
-				className={classNames?.acceptButton}
-				data-testid="consent-banner-accept-button"
-				onClick={async () => {
-					await save('all');
-				}}
-				type="button"
-			>
-				{acceptLabel}
-			</button>
+		<div className={classNames?.footer}>
+			<ConsentBanner.PolicyActions
+				renderAction={(action, { key, isPrimary, style }) => (
+					<button
+						key={key}
+						type="button"
+						className={classes[action]}
+						style={style}
+						data-primary={isPrimary || undefined}
+						data-testid={`consent-banner-${action}-button`}
+						onClick={() => {
+							void performBannerAction(action);
+						}}
+					>
+						{labels[action]}
+					</button>
+				)}
+			/>
 		</div>
 	);
 };

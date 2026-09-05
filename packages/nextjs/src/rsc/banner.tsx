@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 /**
  * RSC-first consent banner (`@c15t/nextjs/rsc`).
  *
@@ -10,19 +12,16 @@
  * Usage (App Router):
  * ```tsx
  * const config = await prefetchInitialConsent({ backendURL, manifestURL });
- * <ConsentBoundary options={{ prefetch: config }}>
+ * <ConsentBoundary config={config}>
  *   <RscConsentBanner config={config} />
  *   {children}
  * </ConsentBoundary>
  * ```
  *
- * The server renders the shell only when the prefetched decision says the
- * banner should show (returning users get zero banner bytes, client or
- * server). Same data-testids and DOM shape as the client `ConsentBanner`.
+ * The shared React root evaluates visibility from the prepared policy and
+ * records. Keeping the gate mounted lets expiry reopen the prompt later.
  */
-import type { KernelConfig } from '@c15t/core';
-import type { ReactNode } from 'react';
-
+import type { InitialConsentConfig } from '../types';
 import { RscBannerActions, RscBannerGate } from './islands';
 
 interface BannerCopy {
@@ -31,6 +30,7 @@ interface BannerCopy {
 	acceptLabel: string;
 	rejectLabel: string;
 	customizeLabel: string;
+	dismissLabel: string;
 }
 
 const FALLBACK_COPY: BannerCopy = {
@@ -38,11 +38,12 @@ const FALLBACK_COPY: BannerCopy = {
 	customizeLabel: 'Customize',
 	description:
 		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
+	dismissLabel: 'Dismiss',
 	rejectLabel: 'Reject All',
 	title: 'We value your privacy',
 };
 
-const readCopy = function readCopy(config: KernelConfig): BannerCopy {
+const readCopy = function readCopy(config: InitialConsentConfig): BannerCopy {
 	const bundle = (
 		config.initialTranslations as
 			| {
@@ -52,6 +53,7 @@ const readCopy = function readCopy(config: KernelConfig): BannerCopy {
 							acceptAll?: string;
 							rejectAll?: string;
 							customize?: string;
+							dismiss?: string;
 						};
 					};
 			  }
@@ -62,20 +64,15 @@ const readCopy = function readCopy(config: KernelConfig): BannerCopy {
 		acceptLabel: bundle?.common?.acceptAll ?? FALLBACK_COPY.acceptLabel,
 		customizeLabel: bundle?.common?.customize ?? FALLBACK_COPY.customizeLabel,
 		description: bundle?.cookieBanner?.description ?? FALLBACK_COPY.description,
+		dismissLabel: bundle?.common?.dismiss ?? FALLBACK_COPY.dismissLabel,
 		rejectLabel: bundle?.common?.rejectAll ?? FALLBACK_COPY.rejectLabel,
 		title: bundle?.cookieBanner?.title ?? FALLBACK_COPY.title,
 	};
 };
 
-const shouldRenderBanner = function shouldRenderBanner(
-	config: KernelConfig
-): boolean {
-	return config.initialHasConsented !== true;
-};
-
 export interface RscConsentBannerProps {
 	/** The prefetched kernel config (from `prefetchInitialConsent`). */
-	config: KernelConfig;
+	config: InitialConsentConfig;
 	/**
 	 * Optional class names for shell slots (e.g. from
 	 * `@c15t/ui/styles` CSS Modules). The shell is headless by default.
@@ -89,6 +86,7 @@ export interface RscConsentBannerProps {
 		acceptButton?: string;
 		rejectButton?: string;
 		customizeButton?: string;
+		dismissButton?: string;
 	};
 	/** Extra server-rendered content inside the card (links, branding). */
 	children?: ReactNode;
@@ -99,55 +97,44 @@ export const RscConsentBanner = ({
 	classNames,
 	children,
 }: RscConsentBannerProps) => {
-	if (!shouldRenderBanner(config)) {
-		return null;
-	}
 	const copy = readCopy(config);
 
 	return (
-		<RscBannerGate>
-			<dialog
-				aria-label={copy.title}
-				aria-modal="false"
-				className={classNames?.root}
-				data-testid="consent-banner-root"
-				open
-				style={
-					classNames?.root
-						? undefined
-						: { bottom: 0, left: 0, position: 'fixed', zIndex: 999 }
-				}
+		<RscBannerGate
+			title={copy.title}
+			className={classNames?.root}
+		>
+			<div
+				className={classNames?.card}
+				data-testid="consent-banner-card"
 			>
-				<div
-					className={classNames?.card}
-					data-testid="consent-banner-card"
+				<h2
+					className={classNames?.title}
+					data-testid="consent-banner-title"
 				>
-					<h2
-						className={classNames?.title}
-						data-testid="consent-banner-title"
-					>
-						{copy.title}
-					</h2>
-					<p
-						className={classNames?.description}
-						data-testid="consent-banner-description"
-					>
-						{copy.description}
-					</p>
-					{children}
-					<RscBannerActions
-						acceptLabel={copy.acceptLabel}
-						classNames={{
-							acceptButton: classNames?.acceptButton,
-							customizeButton: classNames?.customizeButton,
-							footer: classNames?.footer,
-							rejectButton: classNames?.rejectButton,
-						}}
-						customizeLabel={copy.customizeLabel}
-						rejectLabel={copy.rejectLabel}
-					/>
-				</div>
-			</dialog>
+					{copy.title}
+				</h2>
+				<p
+					className={classNames?.description}
+					data-testid="consent-banner-description"
+				>
+					{copy.description}
+				</p>
+				{children}
+				<RscBannerActions
+					acceptLabel={copy.acceptLabel}
+					classNames={{
+						acceptButton: classNames?.acceptButton,
+						customizeButton: classNames?.customizeButton,
+						dismissButton: classNames?.dismissButton,
+						footer: classNames?.footer,
+						rejectButton: classNames?.rejectButton,
+					}}
+					customizeLabel={copy.customizeLabel}
+					rejectLabel={copy.rejectLabel}
+					dismissLabel={copy.dismissLabel}
+				/>
+			</div>
 		</RscBannerGate>
 	);
 };

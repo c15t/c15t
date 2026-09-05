@@ -15,20 +15,17 @@
  */
 
 import {
-	mergeInitOutputIntoKernelConfig,
+	createHostedTransport,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
 import type { KernelConfig, KernelOverrides } from '@c15t/core';
-import { readStoredConsentFromCookie } from '@c15t/core/modules/persistence';
+import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import { resolveBackendURL } from '@c15t/schema/types';
-import type { InitOutput } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
-import {
-	consentInputsToOverrides,
-	extractConsentRequestInputs,
-} from './headers';
+import { extractConsentRequestInputs } from './headers';
+import type { InitialConsentConfig } from './types';
 
 type Awaitable<Value> = Promise<Value> | Value;
 
@@ -49,6 +46,9 @@ const defaultNextRequestContext: NextRequestContext = {
 };
 
 export interface ReadInitialConsentConfigOptions {
+	/** One request clock reused for record validation and client hydration. */
+	now?: number;
+
 	/**
 	 * Cookie name holding persisted consent. Defaults to `c15t`, the
 	 * persistence module's storage key. Set this only if you customized
@@ -94,31 +94,18 @@ export interface ReadInitialConsentConfigOptions {
  */
 export const readInitialConsentConfig = async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions = {}
-): Promise<KernelConfig> {
+): Promise<InitialConsentConfig> {
 	const request = options.request ?? defaultNextRequestContext;
 	const headerStore = await request.headers();
 
-	// The persistence module writes the `c15t` cookie in a compact format.
-	// Read it with the same shared parser the client uses,
-	// so the server sees exactly what the client persisted (returning
-	// visitors must not get the banner re-rendered into the first HTML).
-	// `cookieName` only matters if the consumer customized
-	// `storageConfig.storageKey` client-side.
-	const cookieHeader = (headerStore as Headers).get?.('cookie') ?? undefined;
-	const persisted = readStoredConsentFromCookie(
+	const now = options.now ?? Date.now();
+	const cookieHeader =
+		headerStore.get('cookie') ?? (await request.cookies()).toString();
+	const initialRecords = readStoredRecordsFromCookieHeader(
 		cookieHeader,
-		options.cookieName ? { storageKey: options.cookieName } : undefined
+		options.cookieName ? { storageKey: options.cookieName } : undefined,
+		now
 	);
-	const storedConsent =
-		persisted?.consents && persisted.consentInfo
-			? {
-					consents: persisted.consents,
-					subjectId:
-						typeof persisted.consentInfo.subjectId === 'string'
-							? persisted.consentInfo.subjectId
-							: undefined,
-				}
-			: undefined;
 
 	const inputs = extractConsentRequestInputs(headerStore as Headers, {
 		country: options.country,
@@ -135,18 +122,11 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 	if (inputs.language) {
 		overrides.language = inputs.language;
 	}
-	if (inputs.gpc !== undefined) {
-		overrides.gpc = inputs.gpc;
-	}
-
-	const config: KernelConfig = {};
-	if (storedConsent) {
-		config.initialConsents = storedConsent.consents;
-		config.initialHasConsented = true;
-		if (storedConsent.subjectId) {
-			config.initialSubjectId = storedConsent.subjectId;
-		}
-	}
+	const config: KernelConfig = {
+		initialPrivacySignals: { gpc: inputs.gpc },
+		initialRecords,
+		now,
+	};
 	if (Object.keys(overrides).length > 0) {
 		config.initialOverrides = overrides;
 	}
@@ -157,7 +137,7 @@ export const readInitialConsentConfig = async function readInitialConsentConfig(
 /**
  * Type alias re-exported so consumers can stay within `@c15t/nextjs`.
  */
-export type { KernelConfig } from '@c15t/core';
+export type { InitialConsentConfig } from './types';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
@@ -219,30 +199,61 @@ const createInitHeadersFromOverrides = function createInitHeadersFromOverrides(
 	return headersLocal;
 };
 
-const fetchHostedInit = async function fetchHostedInit(input: {
-	backendURL: string;
-	fetch?: typeof globalThis.fetch;
-	headers: Record<string, string>;
-}): Promise<InitOutput> {
-	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('prefetchInitialConsent: no fetch available.');
+/** Remove legacy projections after shared wire preparation. */
+const prepareConfig = (
+	base: KernelConfig,
+	response: Parameters<typeof mergeInitResponseIntoKernelConfig>[1]
+): KernelConfig => {
+	const config = mergeInitResponseIntoKernelConfig(base, response);
+	config.initialRecords = {
+		...base.initialRecords,
+		...response?.records,
+		now: base.now,
+	};
+	if (response?.subjectId && response.records?.subject === undefined) {
+		config.initialRecords.subject = {
+			...config.initialRecords.subject,
+			subjectId: response.subjectId,
+		};
 	}
-	const response = await fetchImpl(`${input.backendURL}/init`, {
-		cache: 'no-store',
-		credentials: 'include',
-		headers: {
-			accept: 'application/json',
-			...input.headers,
-		},
-		method: 'GET',
+	delete config.initialConsents;
+	delete config.initialHasConsented;
+	delete config.initialSubjectId;
+	delete config.initialPolicy;
+	if (config.initialPolicyResolution?.status !== 'matched') {
+		delete config.initialPolicyDecision;
+		delete config.initialPolicySnapshotToken;
+		delete config.initialIab;
+	}
+	return config;
+};
+
+const initContextFor = (base: KernelConfig) => ({
+	overrides: base.initialOverrides ?? {},
+	user: base.initialUser ?? null,
+});
+
+const hostedPrefetchTransport = (
+	options: PrefetchInitialConsentOptions,
+	base: KernelConfig,
+	backendURL: string,
+	forward: Record<string, string>
+) => {
+	const fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
+	const headers = createInitHeadersFromOverrides(base.initialOverrides ?? {});
+	if (base.initialPrivacySignals?.gpc !== undefined) {
+		headers['sec-gpc'] = base.initialPrivacySignals.gpc ? '1' : '0';
+	}
+	return createHostedTransport({
+		backendURL,
+		fetch: (url, init) =>
+			fetchImpl(url, {
+				...init,
+				cache: 'no-store',
+				headers: { ...forward, ...init?.headers },
+			}),
+		headers,
 	});
-	if (!response.ok) {
-		throw new Error(
-			`prefetchInitialConsent: /init responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as InitOutput;
 };
 
 /**
@@ -258,7 +269,7 @@ const fetchHostedInit = async function fetchHostedInit(input: {
  */
 export const prefetchInitialConsent = async function prefetchInitialConsent(
 	options: PrefetchInitialConsentOptions
-): Promise<KernelConfig> {
+): Promise<InitialConsentConfig> {
 	const base = await readInitialConsentConfig(options);
 	const request = options.request ?? defaultNextRequestContext;
 	const requestHeaders = await request.headers();
@@ -277,7 +288,8 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 
 	// Build forwarding headers: cookies + any explicitly-forwarded keys.
 	const forward: Record<string, string> = {};
-	const cookieHeader = requestCookies.toString();
+	const cookieHeader =
+		requestHeaders.get('cookie') ?? requestCookies.toString();
 	if (cookieHeader) {
 		forward.cookie = cookieHeader;
 	}
@@ -307,32 +319,25 @@ export const prefetchInitialConsent = async function prefetchInitialConsent(
 		});
 
 		try {
-			const response = await transport.init?.({
-				overrides: {
-					...(base.initialOverrides ?? {}),
-					...consentInputsToOverrides(manifestInputs),
-				},
-				user: base.initialUser ?? null,
-			});
+			const response = await transport.init?.(initContextFor(base));
 			if (!response) {
 				return base;
 			}
-			return mergeInitResponseIntoKernelConfig(base, response);
+			return prepareConfig(base, response);
 		} catch {
 			return base;
 		}
 	}
 
 	try {
-		const response = await fetchHostedInit({
-			backendURL: absoluteBackend,
-			fetch: options.fetch,
-			headers: {
-				...forward,
-				...createInitHeadersFromOverrides(base.initialOverrides ?? {}),
-			},
-		});
-		return mergeInitOutputIntoKernelConfig(base, response);
+		const transport = hostedPrefetchTransport(
+			options,
+			base,
+			absoluteBackend,
+			forward
+		);
+		const response = await transport.init?.(initContextFor(base));
+		return prepareConfig(base, response);
 	} catch {
 		// Silent degradation. Client-side init will retry.
 		return base;

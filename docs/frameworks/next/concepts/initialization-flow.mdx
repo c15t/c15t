@@ -1,61 +1,63 @@
 ---
-title: Initialization Flow
-description: What happens from provider mount to first render — the full consent lifecycle.
+title: Initialization flow
+description: How Next.js prepares policy and records for the first render, then handles choices and permission changes.
 group: frameworks
 ---
 
-<import src="../../../shared/concepts/initialization-flow.mdx#overview" />
+## Server-prepared initialization
 
-<import src="../../../shared/concepts/initialization-flow.mdx#flow-diagram" />
+Await `prefetchInitialConsent()` in a Server Component and pass its result to `ConsentBoundary`. The configuration contains a prepared policy resolution, raw stored records, and the request's evaluation clock. The server and first client render use that same input.
 
-<import src="../../../shared/concepts/initialization-flow.mdx#how-it-works" />
+A successful hosted prefetch makes one server `/init` request and zero browser `/init` requests during hydration. A manifest prefetch resolves policy locally from the manifest. A prepared failed or no-match outcome is still authoritative and cannot retain a previous permissive policy.
 
-<import src="../../../shared/concepts/initialization-flow.mdx#when-init-fails" />
+See [Server-side consent](/docs/frameworks/next/server-side) for App Router, Pages Router, and static-route examples.
 
-<import src="../../../shared/concepts/initialization-flow.mdx#banner-visibility" />
+## Browser initialization
 
-<import src="../../../shared/concepts/initialization-flow.mdx#debugging" />
+A boundary without a prepared policy initializes through its configured transport after mounting. If `C15tPrefetch` already started a matching browser request, hosted initialization consumes that request once. A failed early request falls back to a normal request.
 
-Configure callbacks in the provider to log lifecycle events, and add DevTools for a visual inspector:
+While resolution is pending, optional categories stay denied. Network failure does not turn missing policy into permission. Use the public `usePolicyResolution`, `usePromptRequirement`, and `useEffectivePermissions` hooks to read those separate states.
+
+## Choices, notices, and privacy signals
+
+A `choice` prompt requests category choices. A `notice` prompt offers dismissal, which never records a category choice or sends a consent save. A `none` prompt stays hidden. Keep `ConsentDialogTrigger` or `ConsentDialogLink` outside the prompt so visitors can still open privacy preferences.
+
+Hydration preserves receipt times and fingerprints. Receipt expiry and material policy changes can reopen a prompt without rewriting stored consent. Detected GPC and standing opt-out directives can restrict effective permissions while preserving the original explicit choice.
+
+## Callbacks
+
+Register callbacks on the boundary's `options`. `onChoiceRecorded` reports accepted explicit category choices. `onPermissionsChanged` reports effective permission changes, including changes caused by policy, expiry, or privacy signals. Registering a callback does not replay an earlier event.
 
 ```tsx
-import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
-import { DevTools } from '@c15t/dev-tools/react';
+'use client';
 
-export default function ConsentManager({ children }: { children: ReactNode }) {
+import type { ReactNode } from 'react';
+import { ConsentBoundary, type InitialConsentConfig } from '@c15t/nextjs';
+
+export function Consent({
+  config,
+  children,
+}: {
+  config: InitialConsentConfig;
+  children: ReactNode;
+}) {
   return (
-    <ConsentManagerProvider
+    <ConsentBoundary
+      config={config}
+      backendURL="/api/c15t"
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
         callbacks: {
-          onBannerFetched: ({ jurisdiction, location }) => {
-            console.log('Init complete:', { jurisdiction, location });
+          onChoiceRecorded: ({ confirmed, actionAt }) => {
+            console.log('Categories confirmed', confirmed, actionAt);
           },
-          onConsentSet: ({ preferences }) => {
-            console.log('Broad consent lifecycle event:', preferences);
-          },
-          onConsentChanged: ({ allowedCategories, deniedCategories }) => {
-            console.log('Explicit consent change:', {
-              allowedCategories,
-              deniedCategories,
-            });
-          },
-          onBeforeConsentRevocationReload: ({ preferences }) => {
-            console.log('Reloading due to revocation:', preferences);
-          },
-          onError: ({ error }) => {
-            console.error('Consent error:', error);
+          onPermissionsChanged: ({ snapshot }) => {
+            console.log('Effective permissions', snapshot.effectivePermissions);
           },
         },
       }}
     >
-      <ConsentBanner />
-      <ConsentDialog />
-      {process.env.NODE_ENV !== 'production' && <DevTools />}
       {children}
-    </ConsentManagerProvider>
+    </ConsentBoundary>
   );
 }
 ```

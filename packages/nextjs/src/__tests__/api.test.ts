@@ -115,6 +115,28 @@ describe('@c15t/nextjs/api', () => {
 		);
 	});
 
+	test('declares the response contract and rejects unsupported client contracts', async () => {
+		const fetch = vi
+			.fn()
+			.mockResolvedValue(new Response(JSON.stringify(MANIFEST_FIXTURE)));
+		const { GET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com',
+			fetch,
+		});
+		const response = await GET(
+			new Request('https://example.com/api/c15t/init', {
+				headers: { 'x-c15t-country': 'DE', 'x-c15t-policy-contract': '99' },
+			})
+		);
+		expect(response.headers.get('x-c15t-policy-contract')).toBe('1');
+		expect(await response.json()).toMatchObject({
+			policyResolution: { reason: 'unsupported-contract', status: 'failed' },
+		});
+		expect(fetch.mock.calls[0]?.[1].headers['x-c15t-policy-contract']).toBe(
+			'1'
+		);
+	});
+
 	test('cache helpers expose s-maxage and Next fetch config', () => {
 		expect(getSMaxAge('public, s-maxage=240, stale-while-revalidate=60')).toBe(
 			240
