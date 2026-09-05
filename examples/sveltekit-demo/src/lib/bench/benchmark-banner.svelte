@@ -3,10 +3,12 @@
 		title = 'Benchmark Consent Banner',
 		description = 'Deterministic benchmark fixture.',
 		onAccept,
+		onReject,
 	}: {
 		title?: string;
 		description?: string;
 		onAccept: () => void | Promise<void>;
+		onReject: () => void | Promise<void>;
 	} = $props();
 </script>
 
@@ -28,6 +30,14 @@
 			type="button"
 		>
 			Accept All
+		</button>
+		<button
+			data-testid="consent-banner-reject-button"
+			onclick={() => void onReject()}
+			style="display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 14px; border: 0; border-radius: 10px; background: #0f172a; color: #ffffff; font-size: 14px; font-weight: 600; cursor: pointer;"
+			type="button"
+		>
+			Reject All
 		</button>
 	</div>
 </div>

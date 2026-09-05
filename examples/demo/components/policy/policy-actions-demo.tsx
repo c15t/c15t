@@ -1,20 +1,22 @@
 'use client';
 
-import type { PolicyConfig } from '@c15t/schema/types';
-import { policyPackPresets } from 'c15t';
+import type { PolicyRule } from '@c15t/schema/types';
+import { policyRulePresets } from 'c15t';
+import type { PresentationAction } from 'c15t';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentProvider,
 	ConsentWidget,
 	offline,
-	useSetConsent,
+	useClear,
 	useSnapshot,
 } from 'c15t/react';
 import { useHeadlessConsentUI, useTranslations } from 'c15t/react/headless';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 
+import { getScenarioById } from '../../lib/scenarios';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -67,13 +69,10 @@ const renderJson = function renderJson(snapshot: Snapshot) {
 };
 
 const actionLabel = function actionLabel(
-	action: 'accept' | 'reject' | 'customize',
-	labels: { accept: string; customize: string; reject: string }
+	action: PresentationAction,
+	labels: Record<PresentationAction, string>
 ): string {
-	if (action === 'accept') {
-		return labels.accept;
-	}
-	return action === 'reject' ? labels.reject : labels.customize;
+	return labels[action];
 };
 
 const buildSurfaceSnapshot = function buildSurfaceSnapshot(
@@ -145,6 +144,16 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 												className={className}
 											/>
 										);
+									case 'dismiss':
+										return (
+											<Button
+												key={key}
+												className={className}
+												onClick={() => performBannerAction('dismiss')}
+											>
+												Dismiss notice
+											</Button>
+										);
 									default:
 										return null;
 								}
@@ -172,7 +181,9 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 									{actionLabel(action, {
 										accept: common.acceptAll,
 										customize: common.customize,
+										dismiss: 'Dismiss notice',
 										reject: common.rejectAll,
+										save: common.save,
 									})}
 								</Button>
 							)}
@@ -227,7 +238,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 														className={className}
 													/>
 												);
-											case 'customize':
+											case 'save':
 												return (
 													<ConsentWidget.SaveButton
 														key={key}
@@ -251,7 +262,7 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 											className="justify-center"
 											style={props.style}
 											onClick={() => {
-												if (action === 'customize') {
+												if (action === 'save') {
 													void saveCustomPreferences();
 													return;
 												}
@@ -262,7 +273,9 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 											{actionLabel(action, {
 												accept: common.acceptAll,
 												customize: common.save,
+												dismiss: 'Dismiss notice',
 												reject: common.rejectAll,
+												save: common.save,
 											})}
 										</Button>
 									)}
@@ -279,38 +292,12 @@ const DemoSurface = ({ variant }: { variant: DemoVariant }) => {
 
 const PolicyActionsDemoContent = () => {
 	const [variant, setVariant] = React.useState<DemoVariant>('default');
+	const clear = useClear();
 	const snapshot = useSnapshot();
-	const setConsent = useSetConsent();
 	const { banner, dialog, openBanner, openDialog } = useHeadlessConsentUI();
-	const lastAutoOpenedKey = React.useRef<string | null>(null);
-
-	React.useEffect(() => {
-		if (!snapshot.policy) {
-			return;
-		}
-
-		const resolvedKey = [
-			snapshot.policy.id,
-			snapshot.location?.countryCode ?? 'none',
-			snapshot.location?.regionCode ?? 'none',
-			snapshot.translations?.language ?? 'none',
-		].join(':');
-
-		if (lastAutoOpenedKey.current === resolvedKey) {
-			return;
-		}
-
-		lastAutoOpenedKey.current = resolvedKey;
-		openBanner();
-	}, [snapshot.location, snapshot.policy, snapshot.translations, openBanner]);
 
 	const resetConsents = () => {
-		setConsent({
-			experience: false,
-			functionality: false,
-			marketing: false,
-			measurement: false,
-		});
+		clear();
 	};
 
 	const bannerSnapshot = React.useMemo(
@@ -552,39 +539,14 @@ const PolicyActionsDemoContent = () => {
 	);
 };
 
-const spainSplitStackPolicy = {
-	consent: {
-		categories: ['necessary', 'measurement', 'marketing'],
-		expiryDays: 180,
-		model: 'opt-in' as const,
-	},
-	id: 'es_split_stack',
-	match: { countries: ['ES'] },
-	ui: {
-		banner: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			direction: 'column' as const,
-			layout: ['customize', ['reject', 'accept']],
-			primaryActions: ['accept'],
-			uiProfile: 'balanced' as const,
-		},
-		dialog: {
-			allowedActions: ['reject', 'accept', 'customize'],
-			direction: 'column' as const,
-			layout: ['customize', ['reject', 'accept']],
-			primaryActions: ['accept'],
-			uiProfile: 'balanced' as const,
-		},
-		mode: 'banner' as const,
-	},
-} satisfies PolicyConfig;
+const spainSplitStackPolicy = getScenarioById('custom-es-split-stack').policy;
 
 const offlinePolicies = [
 	spainSplitStackPolicy,
-	policyPackPresets.europeOptIn(),
-	policyPackPresets.californiaOptIn(),
-	policyPackPresets.worldNoBanner(),
-] satisfies PolicyConfig[];
+	policyRulePresets.europeOptIn(),
+	policyRulePresets.californiaOptIn(),
+	policyRulePresets.worldOptOutNoPrompt(),
+] satisfies PolicyRule[];
 
 export const PolicyActionsDemo = () => {
 	const searchParams = useSearchParams();
@@ -604,11 +566,14 @@ export const PolicyActionsDemo = () => {
 						href: '/legal/terms-of-service',
 					},
 				},
-				mode: offline({ policyPacks: offlinePolicies }),
+				mode: offline({ policyRules: offlinePolicies }),
 				overrides: {
 					country,
 					region,
 				},
+				presentation: getScenarioById(
+					country === 'ES' ? 'custom-es-split-stack' : 'custom-de-strict'
+				).presentation,
 			}}
 		>
 			<PolicyActionsDemoContent />

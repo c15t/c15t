@@ -1,6 +1,7 @@
-import { BENCHMARK_POLICY } from '$lib/bench/policy';
+import { BENCHMARK_POLICY_RESOLUTION } from '$lib/bench/policy';
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
+import { writePolicyResolutionWire } from 'c15t';
 
 const response = {
 	branding: 'c15t',
@@ -9,7 +10,7 @@ const response = {
 		countryCode: 'DE',
 		regionCode: 'BE',
 	},
-	policy: BENCHMARK_POLICY,
+	policyResolution: writePolicyResolutionWire(BENCHMARK_POLICY_RESOLUTION),
 	policySnapshotToken: 'svelte-browser-bench',
 	translations: {
 		language: 'en',

@@ -4,15 +4,15 @@
  * Every scenario pairs a location with a policy pack so the demo can show
  * how c15t resolves policies by geography. The same definitions drive:
  *
- * - The client demo in offline mode (`offlinePolicy.policyPacks`)
+ * - The client demo in offline mode (`offline({ policyRules })`)
  * - The self-host backend route (`lib/demo-c15t-instance.ts`)
  * - The c15t CLI config (`c15t-backend.config.ts`)
  */
 
 import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
-import { policyPackPresets } from 'c15t';
-import type { PolicyConfig } from 'c15t';
+import { policyRulePresets } from 'c15t';
+import type { ConsentPresentation, PolicyRule } from 'c15t';
 
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';
@@ -169,10 +169,11 @@ export interface DemoScenario {
 	/** Optional region the scenario simulates (e.g. CA for California). */
 	region?: string;
 	description: string;
-	policy: PolicyConfig;
+	policy: PolicyRule;
+	presentation?: ConsentPresentation;
 }
 
-const worldFallbackPolicy = policyPackPresets.worldNoBanner();
+const worldFallbackPolicy = policyRulePresets.worldOptOutNoPrompt();
 
 export const demoScenarios: DemoScenario[] = [
 	// ── Built-in presets ──────────────────────────────────────────────────
@@ -182,7 +183,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		id: 'preset-europe-opt-in',
 		label: 'Europe Opt-In',
-		policy: policyPackPresets.europeOptIn(),
+		policy: policyRulePresets.europeOptIn(),
 	},
 	{
 		country: 'FR',
@@ -190,7 +191,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		id: 'preset-europe-iab',
 		label: 'Europe IAB',
-		policy: policyPackPresets.europeIab(),
+		policy: policyRulePresets.europeIab(),
 	},
 	{
 		country: 'US',
@@ -198,7 +199,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		id: 'preset-california-opt-in',
 		label: 'California Opt-In',
-		policy: policyPackPresets.californiaOptIn(),
+		policy: policyRulePresets.californiaOptIn(),
 		region: 'CA',
 	},
 	{
@@ -207,7 +208,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		id: 'preset-california-opt-out',
 		label: 'California Opt-Out',
-		policy: policyPackPresets.californiaOptOut(),
+		policy: policyRulePresets.californiaOptOut(),
 		region: 'CA',
 	},
 	{
@@ -216,13 +217,14 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		id: 'preset-quebec-opt-in',
 		label: 'Quebec Opt-In',
-		policy: policyPackPresets.quebecOptIn(),
+		policy: policyRulePresets.quebecOptIn(),
 		region: 'QC',
 	},
 	{
 		country: 'AU',
-		description: 'Shipped preset for the no-banner rest-of-world fallback.',
-		group: 'preset',
+		description:
+			'Explicit global opt-out default with no first-layer prompt and persistent preferences.',
+		group: 'custom',
 		id: 'preset-world-no-banner',
 		label: 'World No Banner',
 		policy: worldFallbackPolicy,
@@ -237,19 +239,18 @@ export const demoScenarios: DemoScenario[] = [
 		id: 'custom-fr-iab',
 		label: 'France IAB',
 		policy: {
-			consent: {
-				categories: ['*'],
-				expiryDays: 180,
-				model: 'iab',
-			},
+			categories: ['*'],
 			i18n: { messageProfile: 'fr' },
 			id: 'fr_iab',
 			match: { countries: ['FR'] },
+			model: 'iab',
+			prompt: 'choice',
 			proof: {
 				storeIp: true,
 				storeLanguage: true,
 				storeUserAgent: true,
 			},
+			validity: { choiceDays: 180 },
 		},
 	},
 	{
@@ -260,36 +261,32 @@ export const demoScenarios: DemoScenario[] = [
 		id: 'custom-de-strict',
 		label: 'Germany Strict',
 		policy: {
-			consent: {
-				categories: ['necessary', 'functionality', 'measurement'],
-				expiryDays: 365,
-				model: 'opt-in',
-				scopeMode: 'strict',
-			},
+			categories: ['necessary', 'functionality', 'measurement'],
 			i18n: { messageProfile: 'eu' },
 			id: 'de_strict',
 			match: { countries: ['DE'] },
+			model: 'opt-in',
+			prompt: 'choice',
 			proof: {
 				storeIp: true,
 				storeLanguage: true,
 				storeUserAgent: true,
 			},
-			ui: {
-				banner: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					direction: 'row',
-					layout: [['reject', 'accept'], 'customize'],
-					primaryActions: ['accept', 'customize'],
-					uiProfile: 'compact',
-				},
-				dialog: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					direction: 'row',
-					layout: [['reject', 'accept'], 'customize'],
-					primaryActions: ['accept', 'customize'],
-					uiProfile: 'compact',
-				},
-				mode: 'banner',
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'row',
+				layout: [['reject', 'accept'], 'save'],
+				primaryActions: ['accept', 'reject', 'save'],
+				uiProfile: 'compact',
+			},
+			prompt: {
+				direction: 'row',
+				layout: [['reject', 'accept'], 'customize'],
+				primaryActions: ['accept', 'reject', 'customize'],
+				uiProfile: 'compact',
 			},
 		},
 	},
@@ -301,118 +298,107 @@ export const demoScenarios: DemoScenario[] = [
 		id: 'custom-es-split-stack',
 		label: 'Spain Split-Stack',
 		policy: {
-			consent: {
-				categories: ['necessary', 'measurement', 'marketing'],
-				expiryDays: 180,
-				model: 'opt-in',
-			},
+			categories: ['necessary', 'measurement', 'marketing'],
 			i18n: { messageProfile: 'default' },
 			id: 'es_split_stack',
 			match: { countries: ['ES'] },
+			model: 'opt-in',
+			prompt: 'choice',
 			proof: {
 				storeIp: false,
 				storeLanguage: true,
 				storeUserAgent: true,
 			},
-			ui: {
-				banner: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					direction: 'column',
-					layout: ['customize', ['reject', 'accept']],
-					primaryActions: ['accept'],
-					uiProfile: 'balanced',
-				},
-				dialog: {
-					allowedActions: ['reject', 'accept', 'customize'],
-					direction: 'column',
-					layout: ['customize', ['reject', 'accept']],
-					primaryActions: ['accept'],
-					uiProfile: 'balanced',
-				},
-				mode: 'banner',
+			validity: { choiceDays: 180 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'column',
+				layout: ['save', ['reject', 'accept']],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
+			},
+			prompt: {
+				direction: 'column',
+				layout: ['customize', ['reject', 'accept']],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
 			},
 		},
 	},
 	{
 		country: 'BR',
 		description:
-			'Softer opt-out experience with accept + customize actions and a permissive scope.',
+			'Opt-out choice prompt with accept, reject, and customize actions and a permissive scope.',
 		group: 'custom',
 		id: 'custom-br-growth',
 		label: 'Brazil Opt-Out',
 		policy: {
-			consent: {
-				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
-				expiryDays: 120,
-				model: 'opt-out',
-				scopeMode: 'permissive',
-			},
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 			i18n: { messageProfile: 'default' },
 			id: 'br_growth',
 			match: { countries: ['BR'] },
+			model: 'opt-out',
+			prompt: 'choice',
 			proof: {
 				storeIp: false,
 				storeLanguage: true,
 				storeUserAgent: false,
 			},
-			ui: {
-				banner: {
-					allowedActions: ['accept', 'customize'],
-					direction: 'row',
-					layout: [['accept'], 'customize'],
-					primaryActions: ['accept'],
-					uiProfile: 'balanced',
-				},
-				dialog: {
-					allowedActions: ['accept', 'customize'],
-					direction: 'row',
-					layout: [['accept'], 'customize'],
-					primaryActions: ['accept'],
-					uiProfile: 'balanced',
-				},
-				mode: 'banner',
+			scopeMode: 'permissive',
+			validity: { choiceDays: 120 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'row',
+				layout: [['accept', 'reject'], 'save'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
+			},
+			prompt: {
+				direction: 'row',
+				layout: [['accept', 'reject'], 'customize'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'balanced',
 			},
 		},
 	},
 	{
 		country: 'US',
 		description:
-			'Two actions only: Accept All as the primary CTA plus a custom "Do not sell/share" opt-out label (the "caSales" message profile).',
+			'Two equally prominent actions: Accept All plus a custom "Do not sell/share" opt-out label (the "caSales" message profile).',
 		group: 'custom',
 		id: 'custom-ca-do-not-sell',
 		label: 'California CTA',
 		policy: {
-			consent: {
-				categories: ['necessary', 'functionality', 'measurement', 'marketing'],
-				expiryDays: 365,
-				gpc: true,
-				model: 'opt-in',
-				scopeMode: 'permissive',
-			},
+			actions: ['accept', 'reject'],
+			categories: ['necessary', 'functionality', 'measurement', 'marketing'],
 			i18n: { messageProfile: 'caSales' },
 			id: 'ca_do_not_sell',
 			match: { regions: [{ country: 'US', region: 'CA' }] },
+			model: 'opt-in',
+			privacySignals: { gpc: { denyCategories: ['marketing'] } },
+			prompt: 'choice',
 			proof: {
 				storeIp: true,
 				storeLanguage: true,
 				storeUserAgent: true,
 			},
-			ui: {
-				banner: {
-					allowedActions: ['accept', 'reject'],
-					direction: 'column',
-					layout: ['accept', 'reject'],
-					primaryActions: ['accept'],
-					uiProfile: 'compact',
-				},
-				dialog: {
-					allowedActions: ['accept', 'reject'],
-					direction: 'column',
-					layout: ['accept', 'reject'],
-					primaryActions: ['accept'],
-					uiProfile: 'compact',
-				},
-				mode: 'banner',
+			scopeMode: 'permissive',
+			validity: { choiceDays: 365 },
+		},
+		presentation: {
+			preferences: {
+				direction: 'column',
+				layout: ['accept', 'reject'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'compact',
+			},
+			prompt: {
+				direction: 'column',
+				layout: ['accept', 'reject'],
+				primaryActions: ['accept', 'reject'],
+				uiProfile: 'compact',
 			},
 		},
 		region: 'CA',
@@ -434,9 +420,9 @@ export const getScenarioById = function getScenarioById(
  * Policy packs for one scenario: the scenario's policy plus the world
  * no-banner fallback (unless the scenario itself is the default fallback).
  */
-export const getScenarioPolicyPacks = function getScenarioPolicyPacks(
+export const getScenarioPolicyRules = function getScenarioPolicyRules(
 	id: string
-): PolicyConfig[] {
+): PolicyRule[] {
 	const scenario = getScenarioById(id);
 
 	if (scenario.policy.match?.isDefault) {
@@ -454,7 +440,7 @@ export const getScenarioPolicyPacks = function getScenarioPolicyPacks(
  * before the broad Europe presets that also match those countries — and
  * likewise `custom-ca-do-not-sell` before the California presets.
  */
-export const demoPolicies: PolicyConfig[] = [...demoScenarios]
+export const demoPolicies: PolicyRule[] = [...demoScenarios]
 	.sort((a, b) => {
 		if (a.group === b.group) {
 			return 0;

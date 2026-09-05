@@ -1,4 +1,5 @@
 import { c15tInstance } from '@c15t/backend';
+import { policyRulePresets } from 'c15t';
 
 import type { RequestHandler } from './$types';
 
@@ -34,6 +35,11 @@ const handler = c15tInstance({
 			cmpId: 10,
 			enabled: true,
 		},
+		policyRules: [
+			policyRulePresets.europeIab(),
+			policyRulePresets.californiaOptOut(),
+			policyRulePresets.worldOptOutNoPrompt(),
+		],
 		tenantId: 'ins_1',
 	},
 	openapi: {
