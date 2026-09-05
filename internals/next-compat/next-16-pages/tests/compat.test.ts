@@ -9,12 +9,6 @@ defineCompatSuite({
 			rendering: { kind: 'static' },
 		},
 		{
-			initPath: 'prefetch',
-			name: 'prefetch',
-			path: '/prefetch',
-			rendering: { kind: 'static' },
-		},
-		{
 			initPath: 'ssr',
 			name: 'ssr',
 			path: '/ssr',

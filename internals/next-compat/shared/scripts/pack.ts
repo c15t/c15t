@@ -226,6 +226,11 @@ const main = function main() {
 	}
 	linkThirdPartyDependencies(cellModules, closure, index);
 	copyShared(cellModules);
+	// webpack's persistent cache treats node_modules as immutable unless the
+	// package version changes, so a re-packed package with the same version
+	// would be served stale from `.next/cache`. Turbopack keeps its own cache
+	// there too. Drop it whenever the packages are reinstalled.
+	rmSync(join(cellDir, '.next', 'cache'), { force: true, recursive: true });
 
 	console.log(
 		`[next-compat] installed ${closure.length} packed packages and ${SHARED_PACKAGE} into ${relative(repoRoot, cellModules)}`

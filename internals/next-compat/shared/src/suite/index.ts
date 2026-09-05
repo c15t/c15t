@@ -22,15 +22,9 @@ export type { RenderingMode } from './manifest';
  * How the init data is expected to reach the store for a scenario.
  *
  * - `client`: the browser runtime calls `/init` after hydration
- * - `prefetch`: `C15tPrefetch` starts `/init` before hydration, the runtime adopts it
  * - `ssr`: the server called `/init` and streamed the promise into the provider
  */
-export type InitPath =
-	| 'client'
-	| 'prefetch'
-	| 'ssr'
-	| 'manifest'
-	| 'manifest-ssr';
+export type InitPath = 'client' | 'ssr' | 'manifest' | 'manifest-ssr';
 
 export interface CompatScenario {
 	name: string;
@@ -50,7 +44,6 @@ export interface CompatSuiteOptions {
 }
 
 const TEST_COUNTRY = 'FR';
-const PREFETCH_SCRIPT_MARKER = '__c15tInitialDataPromises';
 const BANNER_MARKER = 'consent-banner-root';
 
 const fetchHTML = async function fetchHTML(
@@ -78,7 +71,7 @@ const readProbe = function readProbe(
 /**
  * Waits until the kernel holds an authoritative policy. In v3 the banner
  * is withheld while the policy is provisional, so this is the moment the
- * init path (server config, prefetch, or browser fetch) has resolved.
+ * init path (server config, manifest, or browser fetch) has resolved.
  */
 const waitForInit = async function waitForInit(
 	page: Page
@@ -233,26 +226,6 @@ export const defineCompatSuite = function defineCompatSuite({
 							expect(initialHTML).toContain(BANNER_MARKER);
 							break;
 						}
-						case 'prefetch': {
-							// The inline script fired /init before hydration and the
-							// runtime adopted that promise instead of fetching again.
-							expect(serverSide).toHaveLength(0);
-							expect(initialHTML).not.toContain(BANNER_MARKER);
-							const prefetchEntries = await page.evaluate(
-								() =>
-									Object.keys(
-										(
-											window as unknown as Record<
-												string,
-												Record<string, unknown>
-											>
-										).__c15tInitialDataPromises ?? {}
-									).length
-							);
-							expect(prefetchEntries).toBeGreaterThanOrEqual(1);
-							expect(browserSide).toHaveLength(1);
-							break;
-						}
 						case 'client': {
 							expect(serverSide).toHaveLength(0);
 							expect(browserSide).toHaveLength(1);
@@ -292,12 +265,6 @@ export const defineCompatSuite = function defineCompatSuite({
 					expect(consoleErrors).toEqual([]);
 				});
 
-				it('serves the prefetch script only when the scenario asks for it', async () => {
-					const html = await fetchHTML(baseURL, scenario.path);
-					const hasPrefetchScript = html.includes(PREFETCH_SCRIPT_MARKER);
-					expect(hasPrefetchScript).toBe(scenario.initPath === 'prefetch');
-				});
-
 				it('persists consent across a reload', async () => {
 					await page.goto(`${baseURL}${scenario.path}`, {
 						waitUntil: 'domcontentloaded',
@@ -313,6 +280,17 @@ export const defineCompatSuite = function defineCompatSuite({
 					);
 
 					await page.reload({ waitUntil: 'domcontentloaded' });
+					await waitForInit(page);
+					// Persisted consent hydrates from the cookie alongside init; in
+					// manifest mode init resolves locally and can land first, so
+					// give hydration the same grace the click above gets.
+					await page.waitForFunction(
+						() =>
+							window.__c15tCompat?.hasConsented === true &&
+							window.__c15tCompat?.activeUI === 'none',
+						undefined,
+						{ timeout: 10_000 }
+					);
 					const state = await waitForInit(page);
 					expect(state.hasConsented).toBe(true);
 					expect(state.activeUI).toBe('none');
