@@ -115,6 +115,7 @@ export const resolveOptions = function resolveOptions(
 	} = options;
 	return {
 		...rest,
+		colorScheme: options.colorScheme ?? 'system',
 		endpoints: resolveEndpoints(options),
 		ui: options.ui ?? 'svelte',
 	};

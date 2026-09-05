@@ -29,7 +29,11 @@ import {
 	shouldFillPolicyActions,
 } from '@c15t/core';
 import type { LegalLinks, TranslationsResponse } from '@c15t/core';
-import { buildConfigScript, markConfigEmitted } from '@c15t/astro/server';
+import {
+	buildColorSchemeScript,
+	buildConfigScript,
+	markConfigEmitted,
+} from '@c15t/astro/server';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
 import styles from '@c15t/ui/styles/components/consent-banner';
 import buttonStyles from '@c15t/ui/styles/components/button';
@@ -82,6 +86,11 @@ if (!c15t) {
 const { snapshot } = c15t;
 const shouldRender = force || c15t.shouldShowBanner;
 const emitConfig = markConfigEmitted(Astro.locals);
+// A fallback for layouts with no <ConsentScript /> in <head>. It still runs
+// before the banner markup it precedes, so the first paint is right.
+const colorSchemeScript = emitConfig
+	? buildColorSchemeScript(c15t.options.colorScheme)
+	: '';
 
 const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
 const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
@@ -140,6 +149,12 @@ const inlineLegalLinks = (legalLinks ?? []).filter(
 	(key) => c15t.options.legalLinks?.[key]
 );
 ---
+
+{
+	emitConfig && colorSchemeScript && (
+		<script is:inline set:html={colorSchemeScript} />
+	)
+}
 
 {emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
 
