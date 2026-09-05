@@ -94,7 +94,9 @@ group: reference
 
   For custom inspection tools, import `getScriptDiagnostics(kernel)` and
   `subscribeScriptDiagnostics(kernel, listener)` from
-  `@c15t/core/modules/script-loader`. The subscription reports loader
+  `c15t/modules/script-loader`. With a scoped framework package, install
+  `@c15t/core` as a direct dependency and import from
+  `@c15t/core/modules/script-loader` instead. The subscription reports loader
   registration, updates, disposal, and lifecycle events. Read a fresh snapshot
   after changes and call the returned unsubscribe function during cleanup.
 
@@ -126,7 +128,9 @@ group: reference
   live choices; retry to record them.
 
   For custom inspection tools, `getIABControls(kernel)` and
-  `subscribeIABControls(kernel, listener)` are exported from `@c15t/core`.
+  `subscribeIABControls(kernel, listener)` are exported from `c15t`.
+  With a scoped framework package, install `@c15t/core` directly and import
+  these helpers from `@c15t/core` instead.
   The getter returns undefined before module initialization and after disposal.
   A snapshot without an attached IAB module is read-only in DevTools.
 
