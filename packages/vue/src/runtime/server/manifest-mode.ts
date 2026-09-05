@@ -296,10 +296,10 @@ export const resolveManifestInit = function resolveManifestInit(input: {
 	return {
 		...resolveInitFromManifest(input.manifest, inputs, { baseTranslations }),
 		// Resolver inputs use `null` for absent; the overrides record wants
-		// the fields dropped instead.
+		// the fields dropped instead. Sec-GPC remains request detection,
+		// mapped from the preserved headers, never an author override.
 		resolvedOverrides: consentInputsToOverrides({
 			country: inputs.country ?? undefined,
-			gpc: inputs.gpc,
 			language: inputs.language ?? undefined,
 			region: inputs.region ?? undefined,
 		}),
