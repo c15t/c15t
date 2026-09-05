@@ -19,23 +19,23 @@ calls until the widget bundle loads.
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { intercom } from '@c15t/scripts/intercom';
 
 const scripts = [intercom({ appId: 'abc123' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -45,23 +45,24 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { intercom } from '@c15t/scripts/intercom';
 
 const scripts = [intercom({ appId: 'abc123' })];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -69,14 +70,23 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { intercom } from '@c15t/scripts/intercom';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [intercom({ appId: 'abc123' })],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## How c15t loads it
@@ -97,7 +107,7 @@ workspace uses the EU or Australia data host, pass the matching `apiBase`.
 intercom({
   appId: 'abc123',
   apiBase: 'https://api-iam.eu.intercom.io',
-})
+});
 ```
 
 ### Runtime options
@@ -116,7 +126,7 @@ intercom({
       name: 'Example Company Inc.',
     },
   },
-})
+});
 ```
 
 For logged-in users, Intercom recommends securing the Messenger with

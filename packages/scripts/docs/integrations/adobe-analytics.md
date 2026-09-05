@@ -12,8 +12,9 @@ icon: adobe-analytics
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
 
 const scripts = [
@@ -23,17 +24,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -43,8 +43,10 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
 
 const scripts = [
@@ -54,17 +56,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -72,12 +73,19 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [
     adobeAnalytics({
       scriptUrl:
@@ -85,6 +93,8 @@ getOrCreateConsentRuntime({
     }),
   ],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## Find Your Embed URL
@@ -116,7 +126,7 @@ adobeAnalytics({
   scriptUrl:
     'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js',
   seedAdobeDataLayer: true,
-})
+});
 ```
 
 This creates `window.adobeDataLayer = []` only when it is still undefined. Adobe's Client Data Layer extension uses `adobeDataLayer` as the default object name, and the pre-seed is harmless for properties that do not use that extension.
@@ -136,7 +146,7 @@ adobeAnalytics({
   scriptUrl:
     'https://assets.adobedtm.com/YOUR_ORG/YOUR_PROPERTY/launch-production.min.js',
   async: false,
-})
+});
 ```
 
 ## Types

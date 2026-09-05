@@ -12,8 +12,9 @@ icon: pirsch
 **React**
 
 ```tsx
+import { hosted } from '@c15t/react';
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/react';
+import { ConsentProvider } from 'c15t/react';
 import { pirsch } from '@c15t/scripts/pirsch';
 
 const scripts = [
@@ -22,17 +23,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: 'https://your-instance.c15t.dev',
+        mode: hosted({ url: 'https://your-instance.c15t.dev' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -42,8 +42,10 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 ```tsx
 'use client';
 
+import { hosted } from '@c15t/nextjs';
+
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from 'c15t/next';
+import { ConsentProvider } from 'c15t/next';
 import { pirsch } from '@c15t/scripts/pirsch';
 
 const scripts = [
@@ -52,17 +54,16 @@ const scripts = [
   }),
 ];
 
-export function ConsentProvider({ children }: { children: ReactNode }) {
+export function PrivacyProvider({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
+        mode: hosted({ url: '/api/c15t' }),
         scripts,
       }}
     >
       {children}
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }
 ```
@@ -70,18 +71,27 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 **JavaScript**
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { pirsch } from '@c15t/scripts/pirsch';
 
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
+});
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
   scripts: [
     pirsch({
       identificationCode: 'YOUR_IDENTIFICATION_CODE',
     }),
   ],
 });
+await kernel.commands.init();
+// On teardown: loader.dispose(); persistence.dispose(); kernel.dispose();
 ```
 
 ## How c15t loads it
@@ -100,7 +110,7 @@ pirsch({
   hitEndpoint: 'https://analytics.example.com/hit',
   eventEndpoint: 'https://analytics.example.com/event',
   disablePageViews: true,
-})
+});
 ```
 
 Use the extended loader when you need Pirsch's extended script variant:
@@ -109,7 +119,7 @@ Use the extended loader when you need Pirsch's extended script variant:
 pirsch({
   identificationCode: 'YOUR_IDENTIFICATION_CODE',
   extended: true,
-})
+});
 ```
 
 To proxy or self-host the loader, pass a custom URL:
@@ -118,7 +128,7 @@ To proxy or self-host the loader, pass a custom URL:
 pirsch({
   identificationCode: 'YOUR_IDENTIFICATION_CODE',
   scriptUrl: 'https://analytics.example.com/pa.js',
-})
+});
 ```
 
 ## Types

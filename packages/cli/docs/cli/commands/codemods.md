@@ -42,3 +42,9 @@ Each codemod is version-aware — the CLI hides codemods that don't apply to you
 * Codemods are idempotent — running twice produces the same result.
 * The CLI prints a per-file diff summary so you can review changes before committing.
 * Run on a clean git working tree so you can `git diff` and revert if needed.
+
+## v3 policy migration
+
+No automatic codemod migrates the v3 policy, record and presentation contract.
+The older mode rename does not configure v3 transport factories. Follow the
+[v3 upgrade guide](/docs/upgrade-v3) and review the generated application code.

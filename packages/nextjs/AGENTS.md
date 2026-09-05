@@ -8,17 +8,15 @@ These docs ship inside the package so coding agents can read them offline. Open 
 
 Install and configure c15t in JavaScript, React, and Next.js applications.
 
-- [Building Headless Components](./docs/frameworks/next/building-headless-components.md): Build policy-aware custom consent components in Next.js using the headless hooks and policy-pack tooling.
-- [Callbacks](./docs/frameworks/next/callbacks.md): React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
+- [Callbacks](./docs/frameworks/next/callbacks.md): Observe explicit choices separately from effective permission changes.
 - [ConsentBanner](./docs/frameworks/next/components/consent-banner.md): A pre-built consent banner that appears when user consent is needed. Supports policy-aware layout, theming, and advanced composition when markup must change.
 - [ConsentDialog](./docs/frameworks/next/components/consent-dialog.md): A modal dialog where users can toggle individual consent categories.
 - [ConsentDialogLink](./docs/frameworks/next/components/consent-dialog-link.md): An inline trigger for opening the consent dialog from footers, legal pages, and account settings.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): A floating, draggable button that lets users re-open the consent dialog at any time.
-- [ConsentManagerProvider](./docs/frameworks/next/components/consent-manager-provider.md): The root provider component that initializes the consent system and makes consent state available to all child components.
+- [ConsentProvider](./docs/frameworks/next/components/consent-manager-provider.md): The root provider component that initializes the consent system and makes consent state available to all child components.
 - [ConsentWidget](./docs/frameworks/next/components/consent-widget.md): An inline consent management widget for embedding in settings or privacy pages. Shows category toggles with accordion layout.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): A development tool for inspecting consent state, geolocation, loaded scripts, and consent events in real time.
 - [Frame](./docs/frameworks/next/components/frame.md): A consent-gated content wrapper - children only mount when the required consent category is granted.
-- [Client Modes](./docs/frameworks/next/concepts/client-modes.md): Choose how c15t connects to its backend - full hosted integration, offline-only, or bring your own backend.
 - [Consent Categories](./docs/frameworks/next/concepts/consent-categories.md): How c15t organizes tracking technologies into five consent categories.
 - [Consent Models](./docs/frameworks/next/concepts/consent-models.md): How c15t determines consent behavior based on legal jurisdiction.
 - [Cookie Management](./docs/frameworks/next/concepts/cookie-management.md): How c15t manages cookies through script, iframe, and network gating
@@ -27,14 +25,11 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Policy Packs](./docs/frameworks/next/concepts/policy-packs.md): How c15t resolves regional consent policies and what a policy pack controls.
 - [Headless Mode](./docs/frameworks/next/headless.md): Build fully custom consent UI using only hooks - no pre-built components required.
 - [useColorScheme](./docs/frameworks/next/hooks/use-color-scheme.md): Manage light/dark mode preferences for consent components.
-- [Checking Consent](./docs/frameworks/next/hooks/use-consent-manager/checking-consent.md): Use has() for flexible consent checks with AND, OR, and NOT logic. Check if any consent exists with hasConsented().
+- [Checking Consent](./docs/frameworks/next/hooks/use-consent-manager/checking-consent.md): Use has() for flexible consent checks with AND, OR, and NOT logic. Read explicit choices separately from effective permissions.
 - [Location Info](./docs/frameworks/next/hooks/use-consent-manager/location-info.md): Access detected jurisdiction, country, and region. Override geolocation for testing.
-- [useConsentManager](./docs/frameworks/next/hooks/use-consent-manager/overview.md): The primary hook for accessing consent state and actions. Returns the full consent store including all state properties and action methods.
-- [Setting Consent](./docs/frameworks/next/hooks/use-consent-manager/setting-consent.md): Save, update, and reset consent preferences with setConsent(), setSelectedConsent(), and saveConsents().
-- [useDraggable](./docs/frameworks/next/hooks/use-draggable.md): Make an element draggable between viewport corners with snapping, persistence, and animation support.
+- [Setting Consent](./docs/frameworks/next/hooks/use-consent-manager/setting-consent.md): Edit displayed preference drafts and explicitly confirm their categories.
 - [useFocusTrap](./docs/frameworks/next/hooks/use-focus-trap.md): Trap keyboard focus within a container for accessible modal dialogs.
 - [useReducedMotion](./docs/frameworks/next/hooks/use-reduced-motion.md): Detect the user's prefers-reduced-motion OS setting and reactively disable animations.
-- [useSSRStatus](./docs/frameworks/next/hooks/use-ssr-status.md): Check whether server-side rendered consent data was used during initialization.
 - [useTextDirection](./docs/frameworks/next/hooks/use-text-direction.md): Manage RTL/LTR text direction based on the active language for consent UI.
 - [useTranslations](./docs/frameworks/next/hooks/use-translations.md): Access the current language's translations for building custom consent UI.
 - [IABConsentBanner](./docs/frameworks/next/iab/consent-banner.md): An IAB TCF 2.3 compliant consent banner that displays partner count, purpose summaries, and legitimate interest notices.
@@ -44,8 +39,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Iframe Blocking](./docs/frameworks/next/iframe-blocking.md): Block embedded content (YouTube, social widgets, maps) until users grant consent for the appropriate category.
 - [Internationalization](./docs/frameworks/next/internationalization.md): Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
 - [Network Blocker](./docs/frameworks/next/network-blocker.md): Block outgoing network requests to third-party domains until the user grants consent for the appropriate category.
-- [Optimization](./docs/frameworks/next/optimization.md): Improve c15t startup performance in Next.js with same-origin rewrites, static prefetching, and dynamic-route SSR.
-- [Policy Packs](./docs/frameworks/next/policy-packs.md): Configure regional consent policies in Next.js with hosted or offline policy resolution.
+- [Policy rules and presentation](./docs/frameworks/next/policy-packs.md): Configure policy behavior separately from Next.js layout and preference controls.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add consent management to your Next.js app in under 5 minutes.
 - [Script Loader](./docs/frameworks/next/script-loader.md): Gate third-party scripts behind consent in Next.js — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 - [Server-side consent](./docs/frameworks/next/server-side.md): Prepare a policy, consent records, and one request clock before rendering a Next.js consent boundary.
@@ -56,7 +50,6 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Component Slots](./docs/frameworks/next/styling/slots.md): Target individual component parts with styles using the slot system - className strings or inline style objects.
 - [Tailwind CSS](./docs/frameworks/next/styling/tailwind.md): Use Tailwind CSS utility classes to style consent components via the slot system.
 - [Design Tokens](./docs/frameworks/next/styling/tokens.md): The six base token categories that control colors, typography, spacing, radius, shadows, and motion, plus optional dark-mode overrides.
-- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Solutions for common issues with c15t/next — provider errors, missing banners, consent persistence, and more.
 
 ## Integrations
 
@@ -71,7 +64,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Crisp](./docs/integrations/crisp.md): Load Crisp live chat with website ID, runtime, cookie, and session options.
 - [Databuddy](./docs/integrations/databuddy.md): Databuddy is a privacy-focused analytics platform that helps you understand user behavior and track events. It supports cookieless tracking and manages consent automatically through c15t's consent state synchronization.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
-- [Google Maps](./docs/integrations/google-maps.md): Render Google Maps only after consent with one shared Maps JavaScript API loader and independently managed map instances.
 - [GA4 + Google Ads (gtag.js)](./docs/integrations/google-tag.md): Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Deploy and manage marketing tags centrally with automatic consent state synchronization.
 - [Heap](./docs/integrations/heap.md): Load Heap with c15t and gate autocapture product analytics behind measurement consent.
@@ -99,7 +91,6 @@ Connect analytics, advertising, maps, media, and other third-party tools behind 
 - [Umami Analytics](./docs/integrations/umami-analytics.md): Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 - [Vercel Analytics](./docs/integrations/vercel-analytics.md): Bootstrap Vercel Analytics with a declarative queue and script attributes.
 - [X Pixel (Twitter Pixel)](./docs/integrations/x-pixel.md): Track conversions and build audiences for advertising campaigns on X (formerly Twitter).
-- [YouTube](./docs/integrations/youtube.md): Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
 
 ## Reference
 
@@ -109,7 +100,6 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Consent Categories](./docs/shared/concepts/consent-categories.md): Reference page for consent categories.
 - [Consent Models](./docs/shared/concepts/consent-models.md): Reference page for consent models.
 - [Cookie Management](./docs/shared/concepts/cookie-management.md): Reference page for cookie management.
-- [Glossary](./docs/shared/concepts/glossary.md): Reference page for glossary.
 - [Initialization Flow](./docs/shared/concepts/initialization-flow.md): Reference page for initialization flow.
 - [Policy Packs](./docs/shared/concepts/policy-packs.md): Reference page for policy packs.
 - [Consent Banner](./docs/shared/react/components/consent-banner.md): Reference page for consent banner.
@@ -153,3 +143,17 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Tailwind](./docs/shared/react/styling/tailwind.md): Reference page for tailwind.
 - [Tokens](./docs/shared/react/styling/tokens.md): Reference page for tokens.
 - [Troubleshooting](./docs/shared/troubleshooting.md): Reference page for troubleshooting.
+
+## Other
+
+- [Building custom consent UI](./docs/frameworks/next/building-headless-components.md): Preserve policy actions and persistent rights in a custom layout.
+- [Transport modes](./docs/frameworks/next/concepts/client-modes.md): Select a hosted backend or local rules with a transport factory.
+- [useConsentManager](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Read current choices, permissions and editable preferences.
+- [Draggable controls](./docs/frameworks/next/hooks/use-draggable.md): Use the built-in dialog trigger for a draggable privacy control.
+- [Server state migration](./docs/frameworks/next/hooks/use-ssr-status.md): Use prepared policy and record data for server rendering.
+- [Next.js startup performance](./docs/frameworks/next/optimization.md): Prepare policy data once and preserve the provider across navigation.
+- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Inspect policy, records and permissions when UI or processing differs from expectations.
+- [Google Maps](./docs/integrations/google-maps.md): Gate a Google Maps iframe with the Frame component.
+- [YouTube](./docs/integrations/youtube.md): Gate a YouTube iframe with the Frame component.
+- [Glossary](./docs/shared/concepts/glossary.md): Terms used by the canonical policy and record contract.
+- [Upgrade to v3](./docs/upgrade-v3.md): Migrate choices, processing gates, policy rules, presentation and transports to the v3 contract.

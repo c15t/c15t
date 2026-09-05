@@ -1,45 +1,31 @@
 ---
-title: Script Loader
-description: Gate third-party scripts behind consent — load Google Analytics,
-  Meta Pixel, and other tracking scripts only when users grant permission.
-group: frameworks
+title: Script loader
+description: Attach scripts to current effective permissions.
 ---
-The script loader manages third-party JavaScript based on consent state. You declare scripts in your provider's `scripts` option, and c15t decides when each script should load, stay loaded, unload, or receive a consent update.
-
-Use it for analytics, pixels, tag managers, product analytics, and other vendor snippets that should not run until the right consent condition is satisfied. Prebuilt helpers live in [`@c15t/scripts`](/docs/integrations/overview); custom scripts can be declared directly when the vendor is specific to your app.
-
-<PackageCommandTabs mode="install" command="@c15t/scripts" />
-
-> ℹ️ **Info:**
-> Start with the integrations overview before writing your own script. Built-in helpers encode vendor boot order, consent updates, and common defaults so you do not have to.
->
-> 📝 **Note:**
-> If you need a vendor c15t does not ship yet, see the custom integration guide. It explains when a one-off Script is enough and when to build a reusable manifest-backed helper.
->
-> ℹ️ **Info:**
-> The script loader handles JavaScript tags and callback lifecycles. For iframe-only embeds, use the iframe blocking pattern. For UI components such as maps or video players, combine consent state with a component-level placeholder or a dedicated renderable integration.
-
-## Basic Usage
-
-Pass an array of `Script` objects to the runtime options:
+## Create a loader
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
+import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-const { consentStore } = getOrCreateConsentRuntime({
-  mode: 'hosted',
-  backendURL: 'https://your-instance.c15t.dev',
-  scripts: [
-    metaPixel({ pixelId: '123456' }),
-    {
-      id: 'custom-analytics',
-      src: 'https://cdn.example.com/analytics.js',
-      category: 'measurement',
-    },
-  ],
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: 'https://consent.example.com',
+  }),
 });
+const persistence = createPersistence({ kernel });
+const loader = createScriptLoader({
+  kernel,
+  scripts: [metaPixel({ pixelId: '123456' })],
+});
+await kernel.commands.init();
 ```
+
+Call this in the browser. Dispose `loader`, `persistence` and `kernel` during
+teardown. Update configurations with `loader.updateScripts(nextScripts)` and
+inspect loaded IDs with `loader.getLoadedScriptIds()`.
 
 ## Mental Model
 
@@ -138,7 +124,7 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
-* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `Frame` for an iframe embed and a configured Script for an SDK integration.
 * Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
@@ -176,13 +162,23 @@ The `category` field accepts a `HasCondition`. It can be a single consent catego
 
 ```tsx
 // Simple: requires measurement consent
-{ category: 'measurement' }
+{
+  category: 'measurement';
+}
 
 // AND: requires both measurement and marketing
-{ category: { and: ['measurement', 'marketing'] } }
+{
+  category: {
+    and: ['measurement', 'marketing'];
+  }
+}
 
 // OR: requires either measurement or marketing
-{ category: { or: ['measurement', 'marketing'] } }
+{
+  category: {
+    or: ['measurement', 'marketing'];
+  }
+}
 ```
 
 Consent categories use the same names as the rest of c15t (`necessary`, `functionality`, `experience`, `measurement`, `marketing`).
@@ -299,14 +295,14 @@ function SignupButton() {
 }
 ```
 
-From non-React code, read the consent store directly:
+From non-React code, evaluate the current kernel snapshot:
 
 ```ts
-import { getOrCreateConsentRuntime } from 'c15t';
+import { evaluateConsent } from '@c15t/core';
 
-const { consentStore } = getOrCreateConsentRuntime();
+// Reuse the kernel created during initialization.
 
-if (consentStore.getState().has('measurement')) {
+if (evaluateConsent({ category: 'measurement' }, kernel.getSnapshot())) {
   window.fathom?.trackEvent('signup');
 }
 ```
@@ -324,29 +320,19 @@ When a script does not behave as expected:
 5. Check whether the browser or an ad blocker blocked the request.
 6. Use c15t devtools to inspect script lifecycle events when available.
 
-## Dynamic Script Management
+## Permission updates
 
-Add, remove, or check scripts at runtime via the store:
+The loader uses effective permissions and reconciles on expiry, policy changes,
+explicit choices and privacy restrictions. A stored grant can remain recorded
+while GPC denies processing. Removing the live signal does not erase a standing
+directive. Script callbacks receive effective category values, including changes
+that leave an overall OR condition allowed. Google Consent Mode updates from
+those permissions, not from receipt presence.
 
-```ts
-const state = consentStore.getState();
-
-// Add scripts dynamically
-state.setScripts([
-  { id: 'dynamic', src: 'https://cdn.example.com/widget.js', category: 'measurement' },
-]);
-
-// Remove a script
-state.removeScript('dynamic');
-
-// Check if a script is loaded
-const loaded = state.isScriptLoaded('custom-analytics');
-
-// Get all loaded script IDs
-const allLoaded = state.getLoadedScriptIds();
-```
-
-## API Reference
+IAB targets require confirmed TC authority and apply every referenced category
+restriction. Category-only OR conditions retain their usual behavior. Removing a
+script cannot undo requests already sent by it; configure cleanup callbacks for
+SDKs that retain state.
 
 |Property|Type|Description|Default|Required|
 |:--|:--|:--|:--|:--:|
@@ -372,3 +358,9 @@ const allLoaded = state.getLoadedScriptIds();
 |iabPurposes|number\[] \|undefined|IAB TCF purpose IDs this script requires consent for.&#xA;&#xA;When in IAB mode and no vendorId is set, the script will only load&#xA;if ALL specified purposes have consent.|-|Optional|
 |iabLegIntPurposes|number\[] \|undefined|IAB TCF legitimate interest purpose IDs.&#xA;&#xA;These purposes can operate under legitimate interest instead of consent.&#xA;The script loads if all iabPurposes have consent OR all iabLegIntPurposes&#xA;have legitimate interest established.|-|Optional|
 |iabSpecialFeatures|number\[] \|undefined|IAB TCF special feature IDs this script requires.&#xA;&#xA;Special features require explicit opt-in:&#xA;- 1: Use precise geolocation data&#xA;- 2: Actively scan device characteristics for identification|-|Optional|
+
+|Property|Type|Description|Default|Required|
+|:--|:--|:--|:--|:--:|
+|dispose|() => void|Tear down subscription and remove mounted elements.|-|✅ Required|
+|updateScripts|(next: Script\[]) => void|Swap the script configuration. Reconciles DOM immediately.|-|✅ Required|
+|getLoadedScriptIds|() => string\[]|Current set of loaded script IDs.|-|✅ Required|
