@@ -46,6 +46,11 @@ Benchmark tasks write machine-readable JSON to:
 - `.benchmarks/compare/comparison.json`
 - `.benchmarks/compare/comparison.md`
 
+`bun run bench:frameworks` pairs the browser-runtime results of every framework directory under `.benchmarks/current/browser-runtime/` by scenario name and emits:
+
+- `.benchmarks/compare/frameworks.json`
+- `.benchmarks/compare/frameworks.md`
+
 `.benchmarks/` is gitignored so local and CI benchmark artifacts do not dirty the worktree.
 
 ## Important React v2/v3 Benchmarks
