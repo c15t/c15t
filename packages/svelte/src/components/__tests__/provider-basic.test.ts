@@ -170,12 +170,17 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 		});
 
-		await vi.waitFor(() => {
-			expect((window as WindowWithC15t).__tcfapi).toBeTypeOf('function');
-			expect(
-				(mountedKernel as ConsentKernel | null)?.getSnapshot().iab?.cmpId
-			).toBe(IAB_FIXTURE_CMP_ID);
-		});
+		// `@c15t/iab` is loaded on demand, so this waits on a dynamic import
+		// rather than a synchronous mount.
+		await vi.waitFor(
+			() => {
+				expect((window as WindowWithC15t).__tcfapi).toBeTypeOf('function');
+				expect(
+					(mountedKernel as ConsentKernel | null)?.getSnapshot().iab?.cmpId
+				).toBe(IAB_FIXTURE_CMP_ID);
+			},
+			{ timeout: 10_000 }
+		);
 
 		result.unmount();
 		expect((window as WindowWithC15t).__tcfapi).toBeUndefined();

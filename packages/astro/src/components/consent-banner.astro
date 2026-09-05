@@ -1,0 +1,245 @@
+---
+/**
+ * Server-rendered consent banner.
+ *
+ * The shell — markup, copy, layout, the policy-driven button order — is
+ * produced on the server with zero framework JavaScript. Only one small
+ * bundled script ships, and it is shared by every banner on the site: a
+ * delegated click handler that turns `data-c15t-action` into runtime calls.
+ *
+ * The server renders the banner only when the decision it already resolved
+ * says to, so a returning visitor gets no banner markup at all — no client
+ * bytes and no flash. The same DOM shape and the same `data-testid`s as the
+ * Svelte and React banners, so cross-framework tests and CSS both hold.
+ *
+ * ```astro
+ * ---
+ * import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+ * ---
+ * <ConsentBanner />
+ * ```
+ */
+import {
+	defaultTranslationConfig,
+	resolvePolicyActionGroups,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
+	resolvePolicyPrimaryActions,
+	shouldFillPolicyActions,
+} from '@c15t/core';
+import type { LegalLinks, TranslationsResponse } from '@c15t/core';
+import { buildConfigScript, markConfigEmitted } from '@c15t/astro/server';
+import actionStyles from '@c15t/ui/styles/components/consent-actions';
+import styles from '@c15t/ui/styles/components/consent-banner';
+import buttonStyles from '@c15t/ui/styles/components/button';
+import { getTextDirection } from '@c15t/ui/utils';
+
+interface Props {
+	/** Override the banner heading. */
+	title?: string;
+	/** Override the banner body copy. */
+	description?: string;
+	/** Override the reject button label. */
+	rejectButtonText?: string;
+	/** Override the accept button label. */
+	acceptButtonText?: string;
+	/** Override the customize button label. */
+	customizeButtonText?: string;
+	/** Ship the DOM without the bundled stylesheet's class names. */
+	noStyle?: boolean;
+	/** Extra class on the banner root. */
+	class?: string;
+	/** Which legal links to render inline. `null` renders none. */
+	legalLinks?: (keyof LegalLinks)[] | null;
+	/**
+	 * Render even when the server decided the banner should stay hidden.
+	 * Useful for visual testing.
+	 */
+	force?: boolean;
+}
+
+const {
+	title,
+	description,
+	rejectButtonText,
+	acceptButtonText,
+	customizeButtonText,
+	noStyle = false,
+	class: className,
+	legalLinks = null,
+	force = false,
+} = Astro.props;
+
+const { c15t } = Astro.locals;
+
+if (!c15t) {
+	throw new Error(
+		'@c15t/astro: `Astro.locals.c15t` is missing. The c15t() integration registers the middleware that populates it — check it is listed in astro.config, and that you have not set `middleware: false`.'
+	);
+}
+
+const { snapshot } = c15t;
+const shouldRender = force || c15t.shouldShowBanner;
+const emitConfig = markConfigEmitted(Astro.locals);
+
+const fallback = defaultTranslationConfig.translations.en as TranslationsResponse;
+const bundle = (snapshot.translations?.translations ?? fallback) as TranslationsResponse;
+const copy = {
+	accept: acceptButtonText ?? bundle.common?.acceptAll ?? fallback.common.acceptAll,
+	customize:
+		customizeButtonText ?? bundle.common?.customize ?? fallback.common.customize,
+	description:
+		description ?? bundle.cookieBanner?.description ?? fallback.cookieBanner.description,
+	reject: rejectButtonText ?? bundle.common?.rejectAll ?? fallback.common.rejectAll,
+	title: title ?? bundle.cookieBanner?.title ?? fallback.cookieBanner.title,
+};
+
+const textDirection = getTextDirection(snapshot.translations?.language);
+
+// Same policy-driven action resolution the Svelte and React banners use, so
+// an opt-out or IAB policy produces the same buttons in the same order.
+const allowedActions = resolvePolicyAllowedActions({
+	allowedActions: snapshot.policyBanner?.allowedActions,
+});
+const layout =
+	(snapshot.policyBanner?.layout?.length ?? 0) > 0
+		? snapshot.policyBanner?.layout
+		: [['reject', 'accept'], 'customize'];
+const orderedActions = resolvePolicyOrderedActions({ allowedActions, layout });
+const actionGroups = resolvePolicyActionGroups({ allowedActions, layout });
+const direction = resolvePolicyDirection(snapshot.policyBanner?.direction);
+const primaryActions = resolvePolicyPrimaryActions({
+	orderedActions,
+	primaryActions:
+		(snapshot.policyBanner?.primaryActions?.length ?? 0) > 0
+			? (snapshot.policyBanner?.primaryActions ?? [])
+			: ['customize'],
+});
+const shouldFill = shouldFillPolicyActions({
+	actionGroups,
+	direction,
+	uiProfile: snapshot.policyBanner?.uiProfile,
+});
+
+const labels: Record<string, string> = {
+	accept: copy.accept,
+	customize: copy.customize,
+	reject: copy.reject,
+};
+
+const rootClass = [
+	noStyle ? '' : styles.root,
+	noStyle ? '' : styles.bannerVisible,
+	className,
+]
+	.filter(Boolean)
+	.join(' ');
+
+const inlineLegalLinks = (legalLinks ?? []).filter(
+	(key) => c15t.options.legalLinks?.[key]
+);
+---
+
+{emitConfig && <script is:inline set:html={buildConfigScript(c15t.config)} />}
+
+{
+	shouldRender && (
+		<div
+			class={rootClass}
+			data-c15t-visible="true"
+			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-testid="consent-banner-root"
+			dir={textDirection}
+			lang={snapshot.translations?.language}
+		>
+			<div class={noStyle ? '' : styles.cardShell}>
+				<div
+					aria-label={copy.title}
+					aria-modal="false"
+					class={noStyle ? '' : styles.card}
+					data-testid="consent-banner-card"
+					role="dialog"
+				>
+					<div
+						class={noStyle ? '' : styles.header}
+						data-testid="consent-banner-header"
+					>
+						<div
+							aria-level="2"
+							class={noStyle ? '' : styles.title}
+							data-testid="consent-banner-title"
+							role="heading"
+						>
+							{copy.title}
+						</div>
+						<div
+							class={noStyle ? '' : styles.description}
+							data-testid="consent-banner-description"
+						>
+							{copy.description}
+							{inlineLegalLinks.map((key) => (
+								<a
+									data-testid={`consent-banner-legal-link-${key}`}
+									href={c15t.options.legalLinks?.[key]?.url}
+									rel="noreferrer"
+									target="_blank"
+								>
+									{c15t.options.legalLinks?.[key]?.label ?? key}
+								</a>
+							))}
+						</div>
+					</div>
+					<div
+						class={[noStyle ? '' : actionStyles.actionRoot, noStyle ? '' : styles.footer]
+							.filter(Boolean)
+							.join(' ')}
+						data-direction={direction}
+						data-fill={shouldFill ? 'true' : undefined}
+						data-split={actionGroups.length > 1 && !shouldFill ? 'true' : undefined}
+						data-testid="consent-banner-footer"
+					>
+						{actionGroups.map((group) => (
+							<div
+								class={noStyle ? '' : actionStyles.actionGroup}
+								data-direction={direction}
+								data-fill={shouldFill ? 'true' : undefined}
+								data-testid="consent-banner-footer-sub-group"
+							>
+								{group.map((action) => (
+									<button
+										class={noStyle ? '' : buttonStyles.button}
+										data-action={action}
+										data-c15t-action={action}
+										data-mode={noStyle ? undefined : 'stroke'}
+										data-size={noStyle ? undefined : 'small'}
+										data-testid={`consent-banner-${action}-button`}
+										data-variant={
+											noStyle
+												? undefined
+												: primaryActions.includes(action)
+													? 'primary'
+													: 'neutral'
+										}
+										type="button"
+									>
+										{labels[action] ?? action}
+									</button>
+								))}
+							</div>
+						))}
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
+
+<script>
+	// The banner's only client-side code: one delegated listener, shared by
+	// every banner and dialog trigger on the site. Astro bundles and dedupes
+	// this module across pages.
+	import { attachBannerActions } from '@c15t/astro/client';
+
+	attachBannerActions();
+</script>

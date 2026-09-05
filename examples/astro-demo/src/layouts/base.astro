@@ -1,0 +1,49 @@
+---
+/**
+ * Site layout.
+ *
+ * `<ClientRouter />` is on so navigation happens client-side — the whole
+ * point of the demo is that the consent runtime survives that and does not
+ * re-initialise per page.
+ */
+import { ClientRouter } from 'astro:transitions';
+import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
+import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
+import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentScript from '@c15t/astro/components/consent-script.astro';
+
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<title>{title} — @c15t/astro demo</title>
+		<ConsentScript />
+		<ClientRouter />
+	</head>
+	<body>
+		<nav>
+			<a href="/">Home</a>
+			<a href="/second">Second page</a>
+			<a href="/geo">Geo overrides</a>
+		</nav>
+
+		<h1>{title}</h1>
+		<slot />
+
+		<footer>
+			<ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
+		</footer>
+
+		<ConsentBanner />
+		<ConsentDialog />
+	</body>
+</html>

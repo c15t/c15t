@@ -1,0 +1,54 @@
+---
+/**
+ * Live consent readout.
+ *
+ * A plain `<script>` island — no framework — reading the page-level runtime
+ * through `@c15t/astro/client`. This is the pattern for wiring your own
+ * markup to consent.
+ */
+---
+
+<section class="panel">
+	<h2>Live consent state</h2>
+	<pre data-testid="consent-state">not booted</pre>
+	<p data-loaded="false" data-testid="script-status">
+		Gated script: <code data-testid="script-status-value">not loaded</code>
+	</p>
+</section>
+
+<script>
+	import { getConsentClient, subscribe } from '@c15t/astro/client';
+
+	const render = () => {
+		const output = document.querySelector('[data-testid="consent-state"]');
+		const client = getConsentClient();
+		if (!output || !client) {
+			return;
+		}
+		const snapshot = client.getConsent();
+		output.textContent = JSON.stringify(
+			{
+				activeUI: snapshot.activeUI,
+				consents: snapshot.consents,
+				country: snapshot.location?.countryCode ?? null,
+				hasConsented: snapshot.hasConsented,
+				model: snapshot.model,
+			},
+			null,
+			2
+		);
+
+		const status = document.querySelector('[data-testid="script-status-value"]');
+		if (status) {
+			const loaded = Boolean(
+				(window as unknown as { __demoAnalyticsLoaded?: boolean })
+					.__demoAnalyticsLoaded
+			);
+			status.textContent = loaded ? 'loaded' : 'not loaded';
+		}
+	};
+
+	subscribe(render);
+	document.addEventListener('astro:page-load', render);
+	render();
+</script>
