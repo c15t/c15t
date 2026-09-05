@@ -1,4 +1,5 @@
 ---
+'c15t': minor
 '@c15t/core': minor
 '@c15t/schema': minor
 '@c15t/svelte': minor
@@ -12,4 +13,4 @@ Add `@c15t/svelte/kit`, a server-side layer for SvelteKit apps.
 
 `ConsentBanner` and `IABConsentBanner` now server-render in their final visible state when a `prefetch` says the banner should show, so the shell is in the first HTML with no entry animation replayed on hydration. Client-triggered shows keep the animated path.
 
-`@c15t/core` gains a `./server` entry with the manifest fetch, in-process dedupe cache and cache-header passthrough that host integrations were each hand-rolling, and `@c15t/schema/types` now exports `headersToRecord`.
+`@c15t/core` gains a `./server` entry with the manifest fetch, in-process dedupe cache and cache-header passthrough that host integrations were each hand-rolling, and `@c15t/schema/types` now exports `headersToRecord`. The `c15t` umbrella mirrors that entry as `c15t/server`.

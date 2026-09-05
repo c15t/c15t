@@ -1,4 +1,5 @@
 ---
+'c15t': minor
 '@c15t/core': minor
 '@c15t/svelte': minor
 ---
@@ -8,3 +9,5 @@ Add `@c15t/core/runtime`: `createConsentRuntime()` builds a consent kernel and w
 `<ConsentManagerProvider>` from `@c15t/svelte` is now a thin wrapper over that runtime and takes an optional `runtime` prop to render one it does not own. Its public API is unchanged.
 
 Fixes a bug where the Svelte provider re-ran `identify()` and fired a second `init()` whenever any prop changed — passing a new inline `options={{ ...base, theme }}` object on a theme switch was enough. The reactive effects now key on the values they use.
+
+The `c15t` umbrella mirrors the new entry as `c15t/runtime`.
