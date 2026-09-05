@@ -14,8 +14,9 @@ framework — reads that one runtime.
 - The banner is a server-rendered `.astro` component with zero framework
   JavaScript, the same DOM and `data-testid`s as the Svelte and React banners,
   and no markup at all for a visitor who has already consented.
-- The preference centre and IAB dialogs are Svelte islands mounted on first
-  open with Svelte 5's `mount()`, behind a swappable adapter seam.
+- The preference centre and IAB dialogs are islands mounted on first open,
+  behind a swappable adapter seam. `ui` picks the framework: `'svelte'`
+  (default, smallest), `'react'` or `'vue'`.
 - Middleware reads the consent cookie plus geo and GPC headers through the
   shared `@c15t/schema` helpers and resolves the decision server-side, so the
   browser boots from an inlined config with no `/init` roundtrip per page.
@@ -27,5 +28,5 @@ framework — reads that one runtime.
 The runtime is `createConsentRuntime` from `@c15t/core/runtime` and the
 injected routes use the shared manifest cache in `@c15t/core/server`, so the
 Astro, SvelteKit, Next.js and Nuxt layers cannot drift on lifecycle or cache
-semantics. The dialog island renders `<ConsentManagerProvider runtime={...}>`
-against the page runtime rather than building a kernel of its own.
+semantics. Whichever framework renders the island, its provider is handed the
+page runtime rather than building a kernel of its own.

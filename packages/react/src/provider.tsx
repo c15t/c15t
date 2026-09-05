@@ -1221,14 +1221,17 @@ const EMPTY_OPTIONS = {} as ConsentProviderOptions;
 export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
 	const options = (props.options ?? EMPTY_OPTIONS) as ConsentProviderOptions;
-	// Initial-only, like `mode`: swapping the runtime under a mounted tree
-	// would leave every hook subscribed to the old kernel.
-	const [externalRuntime] = useState(() => props.runtime);
-	const ownsRuntime = externalRuntime === undefined;
-
-	const [providerKernelState, setProviderKernelState] = useState(() => {
-		if (props.runtime) {
-			return { eagerInit: false, kernel: props.runtime.kernel };
+	// The runtime, like `mode`, is initial-only: swapping it under a mounted
+	// tree would leave every hook subscribed to the old kernel. Capturing it
+	// in the same lazy state as the kernel is what pins it.
+	const [providerKernelState, setProviderKernelState] = useState<{
+		eagerInit: boolean;
+		kernel: ConsentKernel;
+		external?: ConsentRuntime;
+	}>(() => {
+		const external = props.runtime;
+		if (external) {
+			return { eagerInit: false, external, kernel: external.kernel };
 		}
 		const created = createProviderKernel(options);
 		// Kick the init roundtrip off during first client render so its
@@ -1244,7 +1247,8 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 		return { eagerInit: shouldEagerInit, kernel: created };
 	});
 	void setProviderKernelState;
-	const { kernel, eagerInit } = providerKernelState;
+	const { kernel, eagerInit, external: externalRuntime } = providerKernelState;
+	const ownsRuntime = externalRuntime === undefined;
 	const enabled = getEnabled(options);
 	const reloadOnConsentRevoked = options.reloadOnConsentRevoked !== false;
 	const persistenceOptions = normalizePersistenceOptions(options);

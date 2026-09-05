@@ -34,6 +34,21 @@ Then open http://localhost:4321.
   curl -H 'accept-language: de-DE,de;q=0.9' http://localhost:4321/
   ```
 
+## Switching the dialog framework
+
+`ui` picks which framework renders the on-demand dialogs. Real sites hardcode
+one; the demo reads `C15T_UI` so the three builds can be compared:
+
+```bash
+C15T_UI=react bun run --cwd examples/astro-demo build
+C15T_UI=vue   bun run --cwd examples/astro-demo dev
+```
+
+Only the selected framework's Astro integration is registered, so a build
+contains exactly one framework runtime — the Svelte chunk is absent from the
+React and Vue builds and vice versa. `vite.build.manifest` is on so the
+dialog chunk graph can be walked from `dist/client/.vite/manifest.json`.
+
 ## Configuration
 
 `astro.config.mjs` uses `offline()`, so the demo needs no backend. Swap in

@@ -3,10 +3,16 @@
  *
  * The banner is server-rendered `.astro` with no framework at all, but the
  * preference centre and the IAB dialog need real component state. Rather
- * than hard-wiring Svelte through the whole package, dialogs go through
- * this adapter: one implementation ships today (`svelte`), and React, Vue
- * or Solid surfaces can be added without touching the runtime, the banner
- * or the client boot.
+ * than hard-wiring one framework through the whole package, dialogs go
+ * through this adapter: `svelte`, `react` and `vue` each implement it, and
+ * a site downloads exactly the one its `ui` option names.
+ *
+ * Nothing framework-specific is named here, and the registry starts empty
+ * on purpose. A built-in entry pointing at the React adapter would make
+ * every build resolve `@c15t/react` and `react-dom`, which a Svelte-only
+ * site does not install. The integration knows `ui` at config time, so it
+ * registers the one adapter and the one surface into the page boot script;
+ * that is the only place a framework specifier appears.
  */
 
 import type { ConsentRuntime } from '@c15t/core/runtime';
@@ -46,14 +52,10 @@ const surfaces = new Map<C15tUIAdapterName, ConsentDialogSurfaceLoader>();
  * @param name - The adapter the surface belongs to.
  * @param load - Loader returning the surface module.
  * @example
- * ```astro
- * <script>
- *   import { registerDialogSurface } from '@c15t/astro/client';
- *
- *   registerDialogSurface('svelte', () =>
- *     import('@c15t/astro/islands/consent-dialog-surface.svelte')
- *   );
- * </script>
+ * ```ts
+ * registerDialogSurface('svelte', () =>
+ *   import('@c15t/astro/islands/consent-dialog-surface.svelte')
+ * );
  * ```
  */
 export const registerDialogSurface = function registerDialogSurface(
@@ -76,7 +78,7 @@ export const requireDialogSurface = function requireDialogSurface(
 	const load = surfaces.get(name);
 	if (!load) {
 		throw new Error(
-			`@c15t/astro: no ${name} dialog surface registered. Render <ConsentDialog /> (or <IABConsentDialog />) somewhere on the page — it is what registers the island.`
+			`@c15t/astro: no ${name} dialog surface registered. The integration registers it from the injected page script, so this usually means c15t() is missing from astro.config, or the page was rendered with \`middleware: false\` and no boot script.`
 		);
 	}
 	return load;
@@ -112,7 +114,7 @@ export interface ConsentDialogAdapter {
 const registry = new Map<
 	C15tUIAdapterName,
 	() => Promise<ConsentDialogAdapter>
->([['svelte', async () => (await import('./svelte')).svelteDialogAdapter]]);
+>();
 
 /** First `load()` call per adapter, so a loader runs at most once. */
 const pending = new Map<C15tUIAdapterName, Promise<ConsentDialogAdapter>>();
@@ -153,7 +155,7 @@ export const loadDialogAdapter = async function loadDialogAdapter(
 	const load = registry.get(name);
 	if (!load) {
 		throw new Error(
-			`@c15t/astro: no dialog adapter registered for ui: ${JSON.stringify(name)}.`
+			`@c15t/astro: no dialog adapter registered for ui: ${JSON.stringify(name)}. The integration registers the configured adapter from the injected page script; register your own with registerDialogAdapter().`
 		);
 	}
 	// `registerDialogAdapter` promises the loader runs at most once, and

@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/astro",
 	"version": "0.1.0",
-	"description": "Astro consent management: server-rendered cookie banner, Svelte preference-centre islands, geo-aware middleware, and consent-gated script loading.",
+	"description": "Astro consent management: server-rendered cookie banner, on-demand Svelte, React or Vue preference-centre islands, geo-aware middleware, and consent-gated script loading.",
 	"keywords": [
 		"astro",
 		"astro-integration",
@@ -16,10 +16,12 @@
 		"islands",
 		"lgpd",
 		"privacy",
+		"react",
 		"ssr",
 		"svelte",
 		"tcf",
-		"typescript"
+		"typescript",
+		"vue"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/astro/quickstart",
 	"bugs": {
@@ -68,6 +70,21 @@
 			"import": "./dist/api/index.js",
 			"default": "./dist/api/index.js"
 		},
+		"./ui/svelte": {
+			"types": "./dist-types/ui/svelte.d.ts",
+			"import": "./dist/ui/svelte.js",
+			"default": "./dist/ui/svelte.js"
+		},
+		"./ui/react": {
+			"types": "./dist-types/ui/react.d.ts",
+			"import": "./dist/ui/react.js",
+			"default": "./dist/ui/react.js"
+		},
+		"./ui/vue": {
+			"types": "./dist-types/ui/vue.d.ts",
+			"import": "./dist/ui/vue.js",
+			"default": "./dist/ui/vue.js"
+		},
 		"./components/*": "./src/components/*",
 		"./islands/*": {
 			"svelte": "./src/components/islands/*",
@@ -108,19 +125,44 @@
 		"@c15t/ui": "workspace:*"
 	},
 	"devDependencies": {
+		"@c15t/react": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"@c15t/vue": "workspace:*",
 		"astro": "^5.16.0",
 		"jsdom": "^25.0.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
 		"svelte": "^5.0.0",
-		"typescript": "6.0.3"
+		"typescript": "6.0.3",
+		"vue": "^3.5.0"
 	},
 	"peerDependencies": {
+		"@c15t/react": "workspace:^",
+		"@c15t/vue": "workspace:^",
 		"astro": "^5.0.0",
-		"svelte": "^5.0.0"
+		"react": "^18.0.0 || ^19.0.0",
+		"react-dom": "^18.0.0 || ^19.0.0",
+		"svelte": "^5.0.0",
+		"vue": "^3.5.0"
 	},
 	"peerDependenciesMeta": {
+		"@c15t/react": {
+			"optional": true
+		},
+		"@c15t/vue": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		},
 		"svelte": {
+			"optional": true
+		},
+		"vue": {
 			"optional": true
 		}
 	}

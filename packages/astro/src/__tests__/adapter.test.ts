@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	loadDialogAdapter,
@@ -9,16 +9,20 @@ import {
 import type { ConsentDialogAdapter } from '../ui/adapter';
 
 describe('dialog adapter registry', () => {
-	it('ships svelte as the built-in adapter', async () => {
-		const adapter = await loadDialogAdapter('svelte');
-		expect(adapter.name).toBe('svelte');
+	it('starts empty so no build resolves a framework it did not pick', async () => {
+		await expect(loadDialogAdapter('svelte')).rejects.toThrowError(
+			/no dialog adapter registered for ui: "svelte"/u
+		);
 	});
 
-	it('lets another framework replace it', async () => {
-		const custom = { mount: vi.fn(), name: 'svelte' } as ConsentDialogAdapter;
-		registerDialogAdapter('svelte', () => Promise.resolve(custom));
-		expect(await loadDialogAdapter('svelte')).toBe(custom);
-	});
+	it.each(['svelte', 'react', 'vue'] as const)(
+		'accepts the %s adapter the integration registers',
+		async (name) => {
+			const adapter = { mount: vi.fn(), name } as ConsentDialogAdapter;
+			registerDialogAdapter(name, () => Promise.resolve(adapter));
+			expect(await loadDialogAdapter(name)).toBe(adapter);
+		}
+	);
 
 	it('runs a registered loader at most once', async () => {
 		const custom = { mount: vi.fn(), name: 'svelte' } as ConsentDialogAdapter;
@@ -61,23 +65,39 @@ describe('dialog adapter registry', () => {
 	});
 
 	it('names the ui option in the error for an unknown adapter', async () => {
-		await expect(loadDialogAdapter('react' as never)).rejects.toThrowError(
-			/no dialog adapter registered for ui: "react"/u
+		await expect(loadDialogAdapter('solid' as never)).rejects.toThrowError(
+			/no dialog adapter registered for ui: "solid"/u
 		);
 	});
 });
 
 describe('dialog surface registry', () => {
-	it('tells you which component registers the island', () => {
-		// A page with only <ConsentDialogTrigger> and no <ConsentDialog />.
-		expect(() => requireDialogSurface('vue' as never)).toThrowError(
-			/Render <ConsentDialog \/>/u
+	it('points at the integration when nothing registered a surface', () => {
+		expect(() => requireDialogSurface('solid' as never)).toThrowError(
+			/c15t\(\) is missing from astro.config/u
 		);
 	});
 
 	it('returns the registered loader', () => {
 		const load = vi.fn(() => Promise.resolve({ default: {} }));
-		registerDialogSurface('svelte', load);
-		expect(requireDialogSurface('svelte')).toBe(load);
+		registerDialogSurface('react', load);
+		expect(requireDialogSurface('react')).toBe(load);
+	});
+});
+
+describe('the shipped adapters', () => {
+	beforeEach(() => {
+		registerDialogSurface('svelte', () => Promise.resolve({ default: {} }));
+		registerDialogSurface('react', () => Promise.resolve({ default: {} }));
+		registerDialogSurface('vue', () => Promise.resolve({ default: {} }));
+	});
+
+	it.each([
+		['svelte', () => import('../ui/svelte'), 'svelteDialogAdapter'],
+		['react', () => import('../ui/react'), 'reactDialogAdapter'],
+		['vue', () => import('../ui/vue'), 'vueDialogAdapter'],
+	] as const)('names itself %s', async (name, load, exportName) => {
+		const module = (await load()) as Record<string, ConsentDialogAdapter>;
+		expect(module[exportName]?.name).toBe(name);
 	});
 });
