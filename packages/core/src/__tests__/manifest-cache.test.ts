@@ -205,6 +205,46 @@ describe('fetchCachedManifest', () => {
 		expect(served).toBe(refreshed);
 	});
 
+	test('a 304 without Age resets the upstream age of the refreshed entry', async () => {
+		let requests = 0;
+		const fetchMock = createFetchMock(() => {
+			requests += 1;
+			if (requests === 1) {
+				return manifestResponse({
+					age: '119',
+					'cache-control': 'public, s-maxage=120',
+					etag: '"manifest-rev-1"',
+				});
+			}
+			return new Response(null, {
+				headers: { 'cache-control': 'public, s-maxage=120' },
+				status: 304,
+			});
+		});
+
+		const first = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(first).toMatchObject({ expiresAt: 2000, upstreamAge: 119 });
+
+		const refreshed = await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 3000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(refreshed).toMatchObject({ expiresAt: 123_000, upstreamAge: 0 });
+		expect(refreshed.headers.age).toBeUndefined();
+
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 60_000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	test('never caches a no-store response', async () => {
 		const fetchMock = createFetchMock(() =>
 			manifestResponse({ 'cache-control': 'no-store' })

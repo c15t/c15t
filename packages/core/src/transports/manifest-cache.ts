@@ -528,8 +528,11 @@ const revalidateManifest = async function revalidateManifest(input: {
 	});
 
 	if (response.status === 304 && cached) {
+		// A 304 sets a new freshness baseline: only an Age the validation
+		// response itself carries counts, never the one the stale entry had.
+		const { age: _staleAge, ...retainedHeaders } = cached.headers;
 		const responseHeaders = {
-			...cached.headers,
+			...retainedHeaders,
 			...normalizeHeaders(response.headers),
 		};
 		const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
