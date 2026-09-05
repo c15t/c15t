@@ -123,6 +123,13 @@ export interface ResolvedProxyOptions {
 	forwardHeaders: readonly string[];
 	cookieNames?: readonly string[];
 	timeoutMs: number;
+	/**
+	 * Forward the client IP chain. Only true behind a trusted proxy that
+	 * sets `x-forwarded-for` itself; otherwise the first hop is whatever the
+	 * client claimed and forwarding it would let a visitor pick the address
+	 * the backend and its WAF see.
+	 */
+	trustForwardedHeaders: boolean;
 }
 
 /**
@@ -130,7 +137,8 @@ export interface ResolvedProxyOptions {
  * or `undefined` when the proxy is off.
  */
 export const resolveProxyOptions = function resolveProxyOptions(
-	proxy: boolean | ConsentProxyOptions | undefined
+	proxy: boolean | ConsentProxyOptions | undefined,
+	trustForwardedHeaders = false
 ): ResolvedProxyOptions | undefined {
 	if (!proxy) {
 		return undefined;
@@ -144,6 +152,7 @@ export const resolveProxyOptions = function resolveProxyOptions(
 		],
 		paths: [...DEFAULT_PROXY_PATHS, ...(options.paths ?? [])],
 		timeoutMs: options.timeoutMs ?? DEFAULT_PROXY_TIMEOUT_MS,
+		trustForwardedHeaders,
 	};
 };
 
@@ -251,14 +260,17 @@ const appendForwardedFor = function appendForwardedFor(
  * `x-forwarded-proto`), then the c15t identity headers.
  *
  * The client IP comes from the platform's proxy headers (`x-forwarded-for`,
- * `cf-connecting-ip`, `x-real-ip`, ...). A `Request` carries no socket
- * address, so on a bare `vite dev` server with no proxy in front there is
- * nothing to forward and `x-forwarded-for` is omitted.
+ * `cf-connecting-ip`, `x-real-ip`, ...), and is forwarded only when
+ * `trustForwardedHeaders` is set: without a trusted proxy in front those
+ * headers are client-controlled, and a `Request` carries no socket address
+ * to check them against. Set the option on Vercel, Cloudflare, or behind
+ * your own proxy so the backend and its firewall see the real visitor.
  */
 export const buildProxyRequestHeaders = function buildProxyRequestHeaders(
 	request: Request,
 	forwardHeaders: readonly string[],
-	cookieNames?: readonly string[]
+	cookieNames?: readonly string[],
+	trustForwardedHeaders = false
 ): Headers {
 	const headers = new Headers();
 	for (const name of forwardHeaders) {
@@ -278,7 +290,9 @@ export const buildProxyRequestHeaders = function buildProxyRequestHeaders(
 		headers.set(name, value);
 	}
 
-	appendForwardedFor(request.headers, headers);
+	if (trustForwardedHeaders) {
+		appendForwardedFor(request.headers, headers);
+	}
 
 	const url = new URL(request.url);
 	headers.set(
@@ -393,7 +407,8 @@ export const proxyConsentRequest = async function proxyConsentRequest({
 		headers: buildProxyRequestHeaders(
 			request,
 			options.forwardHeaders,
-			options.cookieNames
+			options.cookieNames,
+			options.trustForwardedHeaders
 		),
 		method,
 		redirect: 'manual',

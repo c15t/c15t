@@ -1,4 +1,7 @@
-import { MANIFEST_PASSTHROUGH_HEADERS } from '@c15t/core/transports/manifest-cache';
+import {
+	getManifestAge,
+	MANIFEST_PASSTHROUGH_HEADERS,
+} from '@c15t/core/transports/manifest-cache';
 import {
 	defineEventHandler,
 	getRequestHeader,
@@ -78,6 +81,8 @@ export const createManifestRoute = function createManifestRoute(
 				setResponseHeader(event, header, value);
 			}
 		}
+		// Downstream caches count the remaining lifetime, not a fresh TTL.
+		setResponseHeader(event, 'age', getManifestAge(manifest));
 
 		const { etag } = manifest.headers;
 		if (etag && getRequestHeader(event, 'if-none-match') === etag) {

@@ -48,7 +48,29 @@ export interface CachedManifestResponse {
 	sMaxAge: number;
 	/** Epoch milliseconds after which the entry must be revalidated. */
 	expiresAt: number;
+	/** Epoch milliseconds when the upstream response was received. */
+	fetchedAt: number;
+	/** The upstream `Age` at receipt, in seconds, so TTLs do not restart. */
+	upstreamAge: number;
 }
+
+/**
+ * Current age of a cached manifest in seconds: the upstream `Age` plus the
+ * time it has spent in this cache. Forward it as `Age` so a downstream CDN
+ * counts the remaining lifetime instead of restarting the TTL.
+ *
+ * @param entry - A cached manifest response.
+ * @param now - Current time in epoch milliseconds. Defaults to `Date.now()`.
+ * @returns The age in whole seconds.
+ */
+export const getManifestAge = function getManifestAge(
+	entry: Pick<CachedManifestResponse, 'fetchedAt' | 'upstreamAge'>,
+	now: number = Date.now()
+): number {
+	return (
+		entry.upstreamAge + Math.max(0, Math.floor((now - entry.fetchedAt) / 1000))
+	);
+};
 
 /**
  * Storage behind {@link fetchCachedManifest}, keyed by the full request URL.
@@ -201,6 +223,14 @@ export const getManifestStaleWhileRevalidate =
 			parseCacheDirectiveSeconds(cacheControl, 'stale-while-revalidate') ?? 0
 		);
 	};
+
+/** Reads the upstream `Age` header in seconds, `0` when absent or invalid. */
+const readUpstreamAge = function readUpstreamAge(
+	headers: Record<string, string>
+): number {
+	const parsed = Number.parseInt(headers.age ?? '', 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
 
 /** `true` when the backend explicitly forbids reusing the response. */
 const forbidsReuse = function forbidsReuse(
@@ -435,15 +465,18 @@ const revalidateManifest = async function revalidateManifest(input: {
 			responseHeaders['cache-control'],
 			sMaxAge
 		);
+		const upstreamAge = readUpstreamAge(responseHeaders);
 		const refreshed: CachedManifestResponse = {
 			...cached,
-			expiresAt: now + ttl * 1000,
+			expiresAt: now + Math.max(0, ttl - upstreamAge) * 1000,
+			fetchedAt: now,
 			headers: responseHeaders,
 			sMaxAge,
+			upstreamAge,
 		};
-		if (ttl > 0) {
+		if (ttl > upstreamAge) {
 			store(refreshed);
-		} else {
+		} else if (getGeneration(cache) === generation) {
 			cache.delete(cacheKey);
 		}
 		return refreshed;
@@ -459,13 +492,18 @@ const revalidateManifest = async function revalidateManifest(input: {
 	const responseHeaders = normalizeHeaders(response.headers);
 	const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
 	const ttl = resolveCacheTtlSeconds(responseHeaders['cache-control'], sMaxAge);
+	// A source behind its own CDN reports how long the object has already
+	// lived; the remaining lifetime is what this cache may grant.
+	const upstreamAge = readUpstreamAge(responseHeaders);
 	const entry: CachedManifestResponse = {
-		expiresAt: now + ttl * 1000,
+		expiresAt: now + Math.max(0, ttl - upstreamAge) * 1000,
+		fetchedAt: now,
 		headers: responseHeaders,
 		manifest,
 		sMaxAge,
+		upstreamAge,
 	};
-	if (ttl > 0) {
+	if (ttl > upstreamAge) {
 		store(entry);
 	}
 	return entry;

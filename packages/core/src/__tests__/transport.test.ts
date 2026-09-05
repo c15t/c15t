@@ -2447,3 +2447,49 @@ describe('hosted transport: initialData', () => {
 		}
 	});
 });
+
+describe('hosted transport: GPC in decision assertions', () => {
+	test('uses the GPC value the resolver reported when no explicit header is configured', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						...REALISTIC_INIT_OUTPUT,
+						resolvedOverrides: {
+							...REALISTIC_INIT_OUTPUT.resolvedOverrides,
+							gpc: true,
+						},
+					}),
+					{ status: 200 }
+				)
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			assertDecisionInputs: true,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			initURL: '/api/c15t/init',
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		await transport.save?.({
+			consentAction: 'all',
+			consents: { necessary: true },
+			model: 'iab',
+			overrides: {},
+			policySnapshotToken: null,
+			subjectId: 'sub_test',
+			uiSource: 'banner',
+			user: null,
+		});
+
+		const [, saveInit] = fetchSpy.mock.calls[1] ?? [];
+		expect(JSON.parse((saveInit as RequestInit).body as string)).toMatchObject({
+			gpc: true,
+			policyId: 'de-iab',
+		});
+	});
+});

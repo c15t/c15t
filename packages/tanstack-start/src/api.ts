@@ -28,6 +28,7 @@
 
 import {
 	fetchCachedManifest,
+	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 	resolveManifestInit,
 	resolveManifestSourceURL,
@@ -114,7 +115,9 @@ export interface ConsentServerRouteOptions {
 	 * The proxy forwards the browser's identity headers (`user-agent`,
 	 * `accept-language`, `origin`, `referer`, `sec-gpc`, the geo headers),
 	 * cookies only when {@link ConsentProxyOptions.cookieNames} names them,
-	 * and the real client IP in `x-forwarded-for`, and adds
+	 * the client IP chain in `x-forwarded-for` only under
+	 * `trustForwardedHeaders` (a client-controlled chain would let a visitor
+	 * choose the address the backend sees), and adds
 	 * `x-forwarded-host`, `x-forwarded-proto`, the c15t version header, and
 	 * `x-c15t-proxy: @c15t/tanstack-start`. The hosted backend sits behind
 	 * Vercel Firewall or Cloudflare, and a bare server-to-server fetch (server
@@ -346,6 +349,8 @@ export const createConsentServerRoute = function createConsentServerRoute<
 				headers.set(name, value);
 			}
 		}
+		// Downstream caches count the remaining lifetime, not a fresh TTL.
+		headers.set('age', String(getManifestAge(cached)));
 
 		const { etag } = cached.headers;
 		if (etag && request.headers.get('if-none-match') === etag) {
@@ -387,7 +392,10 @@ export const createConsentServerRoute = function createConsentServerRoute<
 		});
 	};
 
-	const proxyOptions = resolveProxyOptions(resolved.proxy);
+	const proxyOptions = resolveProxyOptions(
+		resolved.proxy,
+		resolved.trustForwardedHeaders ?? false
+	);
 
 	const notFound = () =>
 		Promise.resolve(Response.json({ error: 'Not found' }, { status: 404 }));

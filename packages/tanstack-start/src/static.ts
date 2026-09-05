@@ -7,6 +7,56 @@ import type {
 import { resolveInitFromManifest } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
+/** Names that parse but cannot be bound with `export const`. */
+const RESERVED_EXPORT_NAMES = new Set([
+	'await',
+	'break',
+	'case',
+	'catch',
+	'class',
+	'const',
+	'continue',
+	'debugger',
+	'default',
+	'delete',
+	'do',
+	'else',
+	'enum',
+	'export',
+	'extends',
+	'false',
+	'finally',
+	'for',
+	'function',
+	'if',
+	'implements',
+	'import',
+	'in',
+	'instanceof',
+	'interface',
+	'let',
+	'new',
+	'null',
+	'package',
+	'private',
+	'protected',
+	'public',
+	'return',
+	'static',
+	'super',
+	'switch',
+	'this',
+	'throw',
+	'true',
+	'try',
+	'typeof',
+	'var',
+	'void',
+	'while',
+	'with',
+	'yield',
+]);
+
 export interface StaticManifestModuleOptions {
 	manifestURL: string;
 	fetch?: typeof globalThis.fetch;
@@ -225,7 +275,10 @@ export const createStaticManifestModule =
 		options: StaticManifestModuleOptions
 	): Promise<string> {
 		const exportName = options.exportName ?? 'consentManifest';
-		if (!/^[A-Za-z_$][\w$]*$/u.test(exportName)) {
+		if (
+			!/^[A-Za-z_$][\w$]*$/u.test(exportName) ||
+			RESERVED_EXPORT_NAMES.has(exportName)
+		) {
 			throw new Error(
 				`@c15t/tanstack-start/static: exportName must be a valid identifier, received ${JSON.stringify(exportName)}.`
 			);

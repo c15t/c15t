@@ -14,6 +14,7 @@ import {
 	createManifestCache,
 	createManifestRequestURL,
 	fetchCachedManifest,
+	getManifestAge,
 	getManifestSMaxAge,
 	getManifestStaleWhileRevalidate,
 	getResolverInputsFromHeaders,
@@ -143,7 +144,7 @@ describe('fetchCachedManifest', () => {
 			},
 			method: 'GET',
 		});
-		expect(first).toEqual({
+		expect(first).toMatchObject({
 			expiresAt: 61_000,
 			headers: expect.objectContaining({ etag: '"manifest-rev-1"' }),
 			manifest: expect.objectContaining({ revision: 'manifest-rev-1' }),
@@ -655,5 +656,56 @@ describe('clearManifestCache during an in-flight fill', () => {
 		await Promise.all([stale, fresh]);
 		// Only the post-clear fill is stored.
 		expect(cache.get(SOURCE_URL)).toBe(await fresh);
+	});
+});
+
+describe('fetchCachedManifest: upstream Age', () => {
+	test('grants only the remaining lifetime and reports a running age', async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(createManifestFixture()), {
+					headers: { age: '119', 'cache-control': 'public, s-maxage=120' },
+					status: 200,
+				})
+			)
+		) as unknown as ManifestFetch;
+		const cache = createManifestCache();
+		const entry = await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 10_000,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(entry.expiresAt).toBe(11_000);
+		expect(entry.upstreamAge).toBe(119);
+		expect(getManifestAge(entry, 15_000)).toBe(124);
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 12_000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	test('does not store an entry the upstream already aged out', async () => {
+		const fetchMock = vi.fn(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(createManifestFixture()), {
+					headers: { age: '200', 'cache-control': 'public, s-maxage=120' },
+					status: 200,
+				})
+			)
+		) as unknown as ManifestFetch;
+		const cache = createManifestCache();
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 10_000,
+			sourceURL: SOURCE_URL,
+		});
+		expect(cache.get(SOURCE_URL)).toBeUndefined();
 	});
 });

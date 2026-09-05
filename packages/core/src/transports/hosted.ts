@@ -264,6 +264,14 @@ export const createHostedTransport = function createHostedTransport(
 
 	let { initialData } = options;
 
+	const resolvedGpc = function resolvedGpc(
+		payload: InitOutput
+	): boolean | undefined {
+		const value = (payload as { resolvedOverrides?: { gpc?: unknown } })
+			.resolvedOverrides?.gpc;
+		return typeof value === 'boolean' ? value : undefined;
+	};
+
 	/** Takes the prefetched init once; `undefined` when absent or failed. */
 	const consumeInitialData = async function consumeInitialData(): Promise<
 		InitOutput | undefined
@@ -327,9 +335,12 @@ export const createHostedTransport = function createHostedTransport(
 			const prefetched = await consumeInitialData();
 			const payload = prefetched ?? (await fetchInit());
 			if (options.assertDecisionInputs) {
+				// Explicit headers first; otherwise the GPC value the resolver
+				// saw (the browser sends Sec-GPC itself on a same-origin init),
+				// so the assertion carries the input that produced the decision.
 				lastDecisionInputs = rememberDecisionInputs(
 					payload,
-					gpcFromHeaders(initHeaders)
+					gpcFromHeaders(initHeaders) ?? resolvedGpc(payload)
 				);
 			}
 			const result = mapInitOutputToInitResponse(payload, initHeaders);

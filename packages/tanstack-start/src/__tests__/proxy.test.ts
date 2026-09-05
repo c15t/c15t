@@ -251,7 +251,13 @@ describe('proxy on: request forwarding', () => {
 
 	test('forwards only the header allowlist plus the proxy additions', async () => {
 		const fetch = createUpstream();
-		const { POST } = createRoute(fetch, { forwardHeaders: ['X-Tenant'] });
+		const { POST } = createConsentServerRoute({
+			backendURL: BACKEND,
+			cache: createManifestCache(),
+			fetch,
+			proxy: { forwardHeaders: ['X-Tenant'] },
+			trustForwardedHeaders: true,
+		});
 
 		await POST({
 			params: { _splat: 'subjects' },
@@ -298,9 +304,29 @@ describe('proxy on: request forwarding', () => {
 		expect(headers.get('x-c15t-proxy')).toBe('@c15t/tanstack-start');
 	});
 
+	test('drops the client IP chain unless forwarded headers are trusted', async () => {
+		const fetch = createUpstream();
+		const handlers = createRoute(fetch);
+		await handlers.POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { 'x-forwarded-for': '203.0.113.7' },
+				method: 'POST',
+			}),
+		});
+		expect(upstreamCall(fetch).headers.get('x-forwarded-for')).toBeNull();
+	});
+
 	test('appends the resolved client IP to x-forwarded-for', async () => {
 		const fetch = createUpstream();
-		const { POST } = createRoute(fetch);
+		const { POST } = createConsentServerRoute({
+			backendURL: BACKEND,
+			cache: createManifestCache(),
+			fetch,
+			proxy: true,
+			trustForwardedHeaders: true,
+		});
 
 		await POST({
 			params: { _splat: 'subjects' },
