@@ -17,6 +17,7 @@ import {
 	useLayoutEffect,
 	useMemo,
 	useRef,
+	useSyncExternalStore,
 } from 'react';
 import type { ForwardedRef, HTMLAttributes, ReactElement } from 'react';
 
@@ -46,14 +47,25 @@ const requireKernel = (kernel: ConsentKernel | null): ConsentKernel => {
 	return kernel;
 };
 
+const subscribeToClient = () => () => undefined;
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
 const useStableConsentCategories = (
-	getter: DevToolsOptions['getConsentCategories']
+	getter: DevToolsOptions['getConsentCategories'],
+	disabled: boolean
 ): DevToolsOptions['getConsentCategories'] => {
+	const isClient = useSyncExternalStore(
+		subscribeToClient,
+		getClientSnapshot,
+		getServerSnapshot
+	);
 	const latestGetter = useRef(getter);
 	useLayoutEffect(() => {
 		latestGetter.current = getter;
 	}, [getter]);
-	const categoryKey = getter ? JSON.stringify(getter()) : undefined;
+	const categoryKey =
+		isClient && !disabled && getter ? JSON.stringify(getter()) : undefined;
 	return useMemo(() => {
 		if (categoryKey === undefined) {
 			return undefined;
@@ -81,8 +93,10 @@ export const ConsentDevTools = ({
 }: ConsentDevToolsProps): null => {
 	const contextKernel = useContext(KernelContext);
 	const kernel = disabled ? null : requireKernel(contextKernel);
-	const getDisplayedCategories =
-		useStableConsentCategories(getConsentCategories);
+	const getDisplayedCategories = useStableConsentCategories(
+		getConsentCategories,
+		disabled
+	);
 
 	useEffect(() => {
 		if (!kernel) {
@@ -179,8 +193,10 @@ export const C15tTanStackDevtoolsPanel = forwardRef<
 	) {
 		const contextKernel = useContext(KernelContext);
 		const kernel = disabled ? null : requireKernel(contextKernel);
-		const getDisplayedCategories =
-			useStableConsentCategories(getConsentCategories);
+		const getDisplayedCategories = useStableConsentCategories(
+			getConsentCategories,
+			disabled
+		);
 		const containerRef = useRef<HTMLDivElement | null>(null);
 		const setContainerRef = useCallback(
 			(value: HTMLDivElement | null) => {

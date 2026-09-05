@@ -1,5 +1,6 @@
 import { createConsentKernel } from '@c15t/core';
 import type { ReactNode } from 'react';
+import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -37,6 +38,39 @@ afterEach(() => {
 });
 
 describe('v3 React DevTools adapter', () => {
+	test.each([ConsentDevTools, C15tTanStackDevtoolsPanel])(
+		'does not evaluate category callbacks during server rendering (%s)',
+		(Component) => {
+			const getConsentCategories = vi.fn(() => {
+				throw new Error('Browser-only category callback');
+			});
+			expect(() =>
+				renderToString(
+					<Provider>
+						<Component getConsentCategories={getConsentCategories} />
+					</Provider>
+				)
+			).not.toThrow();
+			expect(getConsentCategories).not.toHaveBeenCalled();
+		}
+	);
+	test.each([ConsentDevTools, C15tTanStackDevtoolsPanel])(
+		'does not evaluate category callbacks while disabled (%s)',
+		async (Component) => {
+			const getConsentCategories = vi.fn(() => {
+				throw new Error('Disabled category callback');
+			});
+			const view = await render(
+				<Component
+					disabled
+					getConsentCategories={getConsentCategories}
+				/>
+			);
+			expect(getConsentCategories).not.toHaveBeenCalled();
+			expect(getMountedDevTools()).toBeNull();
+			await view.unmount();
+		}
+	);
 	test('keeps category getters live between React renders', async () => {
 		const kernel = createConsentKernel();
 		const view = await render(
@@ -73,7 +107,7 @@ describe('v3 React DevTools adapter', () => {
 			).toBeNull();
 		});
 		expect(getMountedDevTools()).toBe(root);
-		view.unmount();
+		await view.unmount();
 	});
 	test.each([false, true])(
 		'preserves the active tab and events across inline callback rerenders, embedded=%s',
@@ -134,7 +168,7 @@ describe('v3 React DevTools adapter', () => {
 					)
 				).toBeNull();
 			});
-			view.unmount();
+			await view.unmount();
 		}
 	);
 	test('exports the compatible component names', () => {
@@ -161,7 +195,7 @@ describe('v3 React DevTools adapter', () => {
 			devTools?.querySelector<HTMLElement>('.c15t-dev-tools__panel')?.hidden
 		).toBe(false);
 
-		view.unmount();
+		await view.unmount();
 	});
 
 	test('rejects an enabled adapter outside the v3 provider', async () => {
@@ -180,7 +214,7 @@ describe('v3 React DevTools adapter', () => {
 			expect(getMountedDevTools()).not.toBeNull();
 		});
 
-		view.unmount();
+		await view.unmount();
 
 		expect(getMountedDevTools()).toBeNull();
 	});
@@ -198,7 +232,7 @@ describe('v3 TanStack Devtools adapter', () => {
 		await vi.waitFor(() => expect(getMountedDevTools()).not.toBeNull());
 		expect(getMountedDevTools()?.textContent).toContain('Measurement');
 		expect(getMountedDevTools()?.textContent).not.toContain('Marketing');
-		view.unmount();
+		await view.unmount();
 	});
 	test('creates the compatible plugin configuration and embedded panel', async () => {
 		const plugin = c15tDevtools({
@@ -228,7 +262,7 @@ describe('v3 TanStack Devtools adapter', () => {
 		expect(devTools?.classList.contains('c15t-dev-tools--embedded')).toBe(true);
 		expect(plugin.render.type).toBe(C15tTanStackDevtoolsPanel);
 
-		view.unmount();
+		await view.unmount();
 		expect(getMountedDevTools()).toBeNull();
 	});
 });
