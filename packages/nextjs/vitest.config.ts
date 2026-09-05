@@ -8,7 +8,6 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 export default mergeConfig(
 	baseConfig,
 	defineConfig({
-		plugins: [react()],
 		optimizeDeps: {
 			include: [
 				'react',
@@ -19,6 +18,7 @@ export default mergeConfig(
 				'vitest-browser-react',
 			],
 		},
+		plugins: [react()],
 		resolve: {
 			// oxlint-disable-next-line sort-keys -- Vite resolves aliases in declaration order, so subpaths must precede package roots.
 			alias: {
