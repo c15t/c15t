@@ -46,10 +46,10 @@ describe('@c15t/nextjs/api', () => {
 		const body = await response.json();
 		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(body.translations.language).toBe('de');
-		expect(body.policyDecision).toMatchObject({
-			country: 'DE',
-			fingerprint: 'eu-fingerprint',
+		expect(body.policyResolution).toMatchObject({
+			fingerprints: MANIFEST_FIXTURE.policyPacks[0].fingerprints,
 			policyId: 'eu-opt-in',
+			status: 'matched',
 		});
 	});
 

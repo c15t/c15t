@@ -395,20 +395,17 @@ const prepareVueRecords = (
 	kernelRecords?: HydrationRecords
 ) => {
 	const merged = { ...rawRecords, ...initialConfig.initialRecords };
-	if (
-		initialConfig.initialSubjectId &&
-		initialConfig.initialRecords?.subject === undefined
-	) {
-		merged.subject = {
-			...merged.subject,
-			subjectId: initialConfig.initialSubjectId,
-		};
-	}
 	const initialRecords =
 		kernelRecords ?? (Object.keys(merged).length ? merged : undefined);
 	return {
 		hydrationRecords:
-			rawRecords || kernelRecords || initialConfig.initialRecords
+			rawRecords ||
+			kernelRecords ||
+			(initialConfig.initialRecords &&
+				(initialConfig.initialRecords.subject === null ||
+					Object.keys(initialConfig.initialRecords).some(
+						(key) => key !== 'subject'
+					)))
 				? initialRecords
 				: undefined,
 		initialRecords,

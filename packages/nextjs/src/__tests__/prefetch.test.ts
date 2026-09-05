@@ -1,4 +1,8 @@
-import { buildConsentManifestFromConfig } from '@c15t/schema/types';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+	buildConsentManifestFromConfig,
+} from '@c15t/schema/types';
 /**
  * Tests for prefetchInitialConsent, the server-side helper that calls
  * the backend's /init, folds the response into KernelConfig, and hands
@@ -11,11 +15,20 @@ import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
-const POLICY = {
-	id: 'gdpr',
-	model: 'opt-in',
-	ui: { mode: 'banner' },
-};
+const POLICY_RESOLUTION = writePolicyResolutionWire(
+	resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				id: 'gdpr',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	})
+);
 
 const createCookieHeader = () =>
 	Array.from(cookieStore.entries())
@@ -80,7 +93,7 @@ describe('prefetchInitialConsent: backend call', () => {
 						customVendors: [],
 						gvl: null,
 						location: { countryCode: 'DE', regionCode: null },
-						policy: POLICY,
+						policyResolution: POLICY_RESOLUTION,
 						policySnapshotToken: 'snap-1',
 						translations: { language: 'de', translations: {} },
 					})
@@ -196,7 +209,7 @@ describe('prefetchInitialConsent: backend call', () => {
 			marketing: { confirmedAt: 1, value: true },
 			measurement: { confirmedAt: 1, value: false },
 		});
-		expect(Object.hasOwn(config, 'initialConsents')).toBe(false);
+		expect(Object.hasOwn(config, 'initialDraft')).toBe(false);
 	});
 
 	test('resolvedOverrides from server merge into overrides', async () => {
@@ -280,9 +293,9 @@ describe('prefetchInitialConsent: manifest mode', () => {
 				? config.initialPolicyResolution.policyId
 				: undefined
 		).toBe('eu-opt-in');
-		expect(config.initialPolicyDecision).toMatchObject({
-			country: 'DE',
+		expect(config.initialPolicyResolution).toMatchObject({
 			policyId: 'eu-opt-in',
+			status: 'matched',
 		});
 		expect(config.initialTranslations?.language).toBe('de');
 	});
@@ -322,7 +335,11 @@ describe('prefetch policy negotiation', () => {
 						JSON.stringify(
 							createInitOutput({
 								gvl: { vendors: {} },
-								policy: POLICY,
+								policy: {
+									id: 'legacy',
+									model: 'opt-in',
+									ui: { mode: 'banner' },
+								},
 								policySnapshotToken: 'stale',
 							})
 						),
@@ -377,7 +394,7 @@ test('keeps a backend subject identifier without manufacturing consent', async (
 			new Response(
 				JSON.stringify(
 					createInitOutput({
-						policy: POLICY,
+						policyResolution: POLICY_RESOLUTION,
 						subjectId: 'legacy:subject+literal',
 					})
 				)

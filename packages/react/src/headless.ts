@@ -8,7 +8,6 @@
 export {
 	defaultTranslationConfig,
 	detectBrowserLanguage,
-	type EuropePolicyMode,
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
 } from '@c15t/core';

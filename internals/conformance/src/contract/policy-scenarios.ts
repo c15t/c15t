@@ -92,7 +92,6 @@ export interface PolicyObservation {
 	 */
 	priorPolicyStateDiscarded?: readonly (
 		| 'policy'
-		| 'policyDecision'
 		| 'snapshotToken'
 		| 'promptRequirement'
 		| 'policyIab'

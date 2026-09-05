@@ -111,7 +111,6 @@ const evidence = function evidence(
 			iab: snapshot.iab,
 			noticeDismissal: snapshot.noticeDismissal,
 			optOutDirectives: snapshot.optOutDirectives,
-			policyDecision: snapshot.policyDecision,
 			policyRule: snapshot.policyRule,
 			policySnapshotToken: snapshot.policySnapshotToken,
 			privacySignals: snapshot.privacySignals,

@@ -11,8 +11,7 @@
  * Every request declares the policy contract this client reads, and
  * `/init` responses are interpreted by what the producer declared back: a
  * negotiated producer's `policyResolution` is passed through raw for the
- * kernel's strict reader, and a producer that predates the contract has its
- * legacy `policy` lifted through the named bridge. A negotiated producer
+ * kernel's strict reader. Producers without a versioned wire fail safely. A negotiated producer
  * whose response lacks the field is a failed payload, never a permissive
  * fallback.
  *

@@ -59,7 +59,7 @@ export type ConsentProviderCallbacks = Pick<
 /** Prepared policy and records; legacy consent projections are not provider inputs. */
 export type ConsentProviderPrefetch = Omit<
 	KernelConfig,
-	'initialConsents' | 'initialSubjectId' | 'transport'
+	'initialDraft' | 'transport'
 >;
 
 export interface ConsentProviderOptions extends Pick<

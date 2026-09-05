@@ -31,22 +31,17 @@ const MANIFEST: ConsentManifest = {
 	branding: 'c15t',
 	policyPacks: [
 		createConsentManifestPolicyPack({
-			fingerprint: 'fingerprint-eu',
-			policy: {
-				consent: {
-					categories: ['necessary'],
-					expiryDays: 365,
-					model: 'opt-in',
-					scopeMode: 'strict',
-				},
-				id: 'eu-opt-in',
-				match: { countries: ['DE'], fallback: true },
-				ui: { mode: 'banner' },
-			},
+			categories: [],
+			id: 'eu-opt-in',
+			match: { countries: ['DE'], fallback: true },
+			model: 'opt-in',
+			prompt: 'choice',
+			scopeMode: 'strict',
+			validity: { choiceDays: 365 },
 		}),
 	],
 	revision: 'rev-1',
-	schemaVersion: 1,
+	schemaVersion: 2,
 	translations: {
 		i18n: {
 			defaultProfile: 'default',
@@ -246,7 +241,6 @@ describe('init route', () => {
 							gvl: { vendorListVersion: 1 },
 							location: { countryCode: 'DE', regionCode: null },
 							policy: { id: 'stale', model: 'iab' },
-							policyDecision: { policyId: 'stale' },
 							policyResolution: {
 								policy: null,
 								version: 1,
@@ -290,7 +284,11 @@ describe('init route', () => {
 	);
 
 	test.each([
-		{ declaration: undefined, reason: undefined, status: 'matched' },
+		{
+			declaration: undefined,
+			reason: 'unsupported-contract',
+			status: 'failed',
+		},
 		{ declaration: '1', reason: 'invalid-payload', status: 'failed' },
 		{ declaration: '99', reason: 'unsupported-contract', status: 'failed' },
 		{
@@ -342,7 +340,7 @@ describe('init route', () => {
 		expect(await response.json()).toMatchObject({
 			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE' },
-			policy: { id: 'eu-opt-in' },
+			policyResolution: { policy: { id: 'eu-opt-in' }, status: 'matched' },
 		});
 		// Resolved from the manifest — no `/init` round trip to the backend.
 		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);

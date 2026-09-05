@@ -2,7 +2,7 @@
  * Tests for useConsentDraft + ConsentDraftProvider.
  *
  * Verifies:
- * - draft values start identical to kernel.consents
+ * - draft values start identical to kernel.effectivePermissions
  * - set() mutates draft only, kernel untouched
  * - isDirty flips correctly
  * - save() commits through kernel.commands.save and reseeds
@@ -54,7 +54,7 @@ const wrapWithProvider = function wrapWithProvider(options = {}) {
 };
 
 describe('useConsentDraft — basic staging', () => {
-	test('initial values match kernel.consents', async () => {
+	test('initial values match kernel.effectivePermissions', async () => {
 		const { Wrapper } = wrap({
 			prefetch: policyFixture({ marketing: true }),
 		});
@@ -159,7 +159,7 @@ describe('useConsentDraft — basic staging', () => {
 
 	test('reset() discards draft changes', async () => {
 		const { Wrapper } = wrap({
-			prefetch: { initialConsents: { marketing: false } },
+			prefetch: { initialDraft: { marketing: false } },
 		});
 
 		const Probe = () => {

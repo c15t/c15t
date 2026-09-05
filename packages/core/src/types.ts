@@ -8,8 +8,8 @@
  * The consent model has one explicit-choice record and one derived
  * effective-permission map. They are different facts: only accept, reject
  * and save create a choice; permissions are derived from that choice, the
- * active policy, expiry, scope and privacy signals. Fields marked BRIDGE
- * keep intermediate adapters compiling and are removed before v3 ships.
+ * active policy, expiry, scope and privacy signals. Draft values never
+ * establish processing permissions.
  */
 import type {
 	GlobalVendorList,
@@ -73,11 +73,10 @@ export type KernelBranding = 'c15t' | 'consent' | 'inth';
  * - `opt-out` — optional categories are allowed until denied
  * - `iab`     — an IAB rule with the IAB module enabled
  *
- * `null` remains in the type for BRIDGE compatibility only; the kernel
- * always resolves a model because every non-matched resolution uses the
+ * The kernel always resolves a model because every non-matched resolution uses the
  * safe opt-in fallback rule.
  */
-export type KernelModel = 'opt-in' | 'opt-out' | 'iab' | null;
+export type KernelModel = 'opt-in' | 'opt-out' | 'iab';
 
 /**
  * Consent model alias used by UI adapters.
@@ -86,7 +85,7 @@ export type Model = KernelModel;
 
 /**
  * Which UI surface the adapter should render, if any. Derived from the
- * prompt requirement and the legacy presentation bridge; adapters may set
+ * prompt requirement; adapters may set
  * it to open or close a surface.
  */
 export type KernelActiveUI = 'none' | 'banner' | 'dialog' | null;

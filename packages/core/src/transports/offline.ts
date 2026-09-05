@@ -5,9 +5,8 @@
  * No network. Same response shape as `createHostedTransport`, so
  * consumers can swap transports without touching the kernel or adapter.
  *
- * Policy comes from `policyRules` (the v3 contract, resolved with
- * `resolvePolicyRules`) or, until the sweep, from legacy `policyPacks`
- * lifted through the named bridge. Either way every init emits an explicit
+ * Policy comes from `policyRules`, resolved with `resolvePolicyRules`.
+ * Every init emits an explicit
  * `policyResolution`: unconfigured, matched, no-match or failed. Resolution
  * runs once per init, inside the transport, so nothing hashes during kernel
  * construction, hydration or render.
@@ -47,8 +46,7 @@ export interface OfflineTransportOptions {
 	/**
 	 * v3 policy rules to resolve at init time. Matched against the request
 	 * context's country/region. Use `@c15t/schema`'s `policyRulePresets`
-	 * for ready-made GDPR / CCPA configs. Configure either this or
-	 * `policyPacks`, not both.
+	 * for reviewed starting points.
 	 */
 	policyRules?: PolicyRule[];
 

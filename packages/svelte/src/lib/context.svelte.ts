@@ -210,16 +210,9 @@ const createConsentState = function createConsentState(
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshotLocal();
-			const categories = Array.from(
-				snapshot.policyRule.scope
-			) as AllConsentNames[];
 			return evaluateHas(
 				condition,
-				snapshot.effectivePermissions as ConsentState,
-				{
-					policyCategories: categories.length > 0 ? categories : null,
-					policyScopeMode: snapshot.policyRule.scopeMode,
-				}
+				snapshot.effectivePermissions as ConsentState
 			);
 		},
 		dismissNotice() {

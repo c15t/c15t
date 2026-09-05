@@ -1,3 +1,4 @@
+import type { KernelConfig } from '@c15t/core';
 /**
  * End-to-end tests for the Next.js adapter.
  *
@@ -8,9 +9,11 @@
  * 4. Prefetched banner visibility reaches the snapshot before the client
  *    roundtrip completes.
  */
-
-import type { KernelConfig } from '@c15t/core';
 import { useConsent, useSnapshot } from '@c15t/react';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -48,16 +51,25 @@ type WindowWithC15t = Window & {
 	};
 };
 
-const POLICY = {
-	id: 'gdpr',
-	model: 'opt-in',
-	ui: { mode: 'banner' },
-} as const;
+const POLICY_RESOLUTION = writePolicyResolutionWire(
+	resolvePolicyRules({
+		countryCode: null,
+		regionCode: null,
+		rules: [
+			{
+				id: 'gdpr',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	})
+);
 
 describe('ConsentBoundary: backendURL triggers auto-init', () => {
 	test('boundary reports Next.js adapter identity on window.c15t', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ policy: POLICY }), {
+			new Response(JSON.stringify({ policyResolution: POLICY_RESOLUTION }), {
 				headers: { 'content-type': 'application/json' },
 				status: 200,
 			})
@@ -98,7 +110,7 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 					branding: 'c15t',
 					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
-					policy: POLICY,
+					policyResolution: POLICY_RESOLUTION,
 					translations: { language: 'en', translations: { common: {} } },
 				}),
 				{
@@ -246,7 +258,7 @@ describe('ConsentBoundary: prefetched config reaches first paint', () => {
 
 			// Now resolve the slow init. Snapshot should not regress.
 			expect(fetchSpy).not.toHaveBeenCalled();
-			resolveInit({ policy: POLICY });
+			resolveInit({ policyResolution: POLICY_RESOLUTION });
 			await createDeferredPromise((r) => setTimeout(r, 10));
 			await expect
 				.element(getByTestId('probe'))

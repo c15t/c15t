@@ -4,6 +4,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { KernelContext } from '~/context';
 import { offline } from '~/transports/offline';
 
@@ -22,15 +23,27 @@ const createWrapper = function createWrapper({
 		return (
 			<ConsentProvider
 				options={{
+					initialUI: activeUI,
 					mode: offline(),
 					persistence: false,
 					prefetch: {
-						initialHasConsented: hasConsented,
-						initialPolicy: {
-							id: 'trigger-test',
-							model: 'opt-in',
-							ui: { mode: activeUI },
-						},
+						...policyFixture(
+							hasConsented
+								? {
+										experience: false,
+										functionality: false,
+										marketing: false,
+										measurement: false,
+									}
+								: undefined,
+							{
+								categories: undefined,
+								id: 'trigger-test',
+								model: 'opt-in',
+								prompt: 'choice',
+								scopeMode: 'strict',
+							}
+						),
 					},
 				}}
 			>

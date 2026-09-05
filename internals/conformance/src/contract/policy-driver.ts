@@ -86,7 +86,6 @@ export interface PolicySnapshotEvidence {
 		status: 'unconfigured' | 'matched' | 'no-match' | 'failed';
 		policy: unknown;
 	};
-	policyDecision: unknown;
 	policySnapshotToken: unknown;
 	policyRule: { model: string; prompt: string };
 	iab: {

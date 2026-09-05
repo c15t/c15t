@@ -77,6 +77,7 @@ export default mergeConfig(
 		},
 		test: {
 			coverage: {
+				exclude: ['.svelte-kit/**'],
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {

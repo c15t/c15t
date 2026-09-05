@@ -13,6 +13,7 @@ import { userEvent } from 'vitest/browser';
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
 import { createVoidDeferredPromise } from '~/__tests__/deferred-promise';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
@@ -59,25 +60,19 @@ const defaultOptions: ConsentProviderOptions = {
 		'measurement',
 	],
 	mode: offline(),
-	offlinePolicy: {
-		policy: {
-			consent: {
-				categories: [
-					'necessary',
-					'functionality',
-					'experience',
-					'marketing',
-					'measurement',
-				],
-				scopeMode: 'permissive',
-			},
-			id: 'consent-flow-test',
-			model: 'opt-in',
-			ui: {
-				mode: 'banner',
-			},
-		},
-	},
+	prefetch: policyFixture(undefined, {
+		categories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		id: 'consent-flow-test',
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	}),
 };
 
 const storedAcceptAllConsent = () => ({

@@ -207,14 +207,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 			setup.policy.model === 'iab'
 				? (POLICY_GVL as unknown as GlobalVendorList)
 				: null,
-		policyDecision: {
-			country: 'DE',
-			fingerprint: 'conformance-policy',
-			jurisdiction: 'GDPR',
-			matchedBy: 'fallback',
-			policyId: 'conformance',
-			region: null,
-		},
 		policyResolution: writePolicyResolutionWire(resolution),
 		policySnapshotToken: 'conformance-token',
 	};

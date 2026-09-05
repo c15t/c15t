@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { PolicyUiActionDirection } from '@c15t/core';
+	import type { SurfacePresentation } from '@c15t/core';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import type { Snippet } from 'svelte';
 
@@ -24,7 +24,7 @@
 		actionGroups?: string[][];
 		primaryActions?: string[];
 		shouldFillActions?: boolean;
-		direction?: PolicyUiActionDirection;
+		direction?: SurfacePresentation['direction'];
 		noStyle?: boolean;
 		footerClassName?: string;
 		footerSubGroupClassName?: string;

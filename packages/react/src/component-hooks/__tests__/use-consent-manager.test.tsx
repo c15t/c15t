@@ -3,6 +3,7 @@ import { renderHook } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
 import type { ComponentFixtureOptions as ConsentProviderOptions } from '~/__tests__/component-fixture-provider';
+import { policyFixture } from '~/__tests__/policy-fixture';
 import { offline } from '~/transports/offline';
 
 import { useConsentManager } from '../use-consent-manager';
@@ -61,22 +62,28 @@ describe('useConsentManager', () => {
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: createWrapper({
 				prefetch: {
-					initialConsents: {
+					...policyFixture(
+						{
+							experience: false,
+							functionality: false,
+							marketing: false,
+							measurement: false,
+							necessary: true,
+						},
+						{
+							categories: ['necessary', 'measurement'],
+							id: 'scope-test',
+							model: 'opt-in',
+							prompt: 'choice',
+							scopeMode: 'permissive',
+						}
+					),
+					initialDraft: {
 						experience: false,
 						functionality: false,
 						marketing: false,
 						measurement: false,
 						necessary: true,
-					},
-					initialHasConsented: true,
-					initialPolicy: {
-						consent: {
-							categories: ['necessary', 'measurement'],
-							scopeMode: 'permissive',
-						},
-						id: 'scope-test',
-						model: 'opt-in',
-						ui: { mode: 'none' },
 					},
 				},
 			}),
@@ -93,22 +100,28 @@ describe('useConsentManager', () => {
 		const { result } = await renderHook(() => useConsentManager(), {
 			wrapper: createWrapper({
 				prefetch: {
-					initialConsents: {
+					...policyFixture(
+						{
+							experience: true,
+							functionality: false,
+							marketing: false,
+							measurement: false,
+							necessary: true,
+						},
+						{
+							categories: ['necessary', 'measurement'],
+							id: 'scope-test',
+							model: 'opt-in',
+							prompt: 'choice',
+							scopeMode: 'strict',
+						}
+					),
+					initialDraft: {
 						experience: true,
 						functionality: false,
 						marketing: false,
 						measurement: false,
 						necessary: true,
-					},
-					initialHasConsented: true,
-					initialPolicy: {
-						consent: {
-							categories: ['necessary', 'measurement'],
-							scopeMode: 'strict',
-						},
-						id: 'scope-test',
-						model: 'opt-in',
-						ui: { mode: 'none' },
 					},
 				},
 			}),

@@ -6,10 +6,10 @@
 import { evaluateConsentRecord } from '../consent-record/evaluate';
 import type { AllConsentNames } from '../consent/consent-types';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
-import type { HasCondition, HasOptions } from '../libs/has';
+import type { HasCondition } from '../libs/has';
 import type { ConsentSnapshot, KernelIABState } from '../types';
 
-export type { HasCondition, HasOptions };
+export type { HasCondition };
 export { extractConsentNamesFromCondition, has };
 
 /**

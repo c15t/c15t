@@ -419,8 +419,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			const current = getSnapshot();
 			const recordsAreCurrent =
 				recordsGeneration === runtime.getGeneration() &&
-				(snapshot.subject?.subjectId ?? null) ===
-					(current.subject?.subjectId ?? null) &&
+				snapshot.subject?.subjectId === current.subject?.subjectId &&
 				snapshot.user === current.user;
 			// Policy can still resolve after clear or identification changes,
 			// but the old request no longer owns this subject's stored records.
@@ -643,8 +642,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				result.subjectId &&
 				result.subjectId !== getSnapshot().subject?.subjectId &&
 				getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
-				(getSnapshot().subject?.subjectId ?? null) ===
-					(actionSnapshot.subject?.subjectId ?? null)
+				getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
 			) {
 				commit({
 					subject: { ...getSnapshot().subject, subjectId: result.subjectId },

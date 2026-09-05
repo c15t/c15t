@@ -603,7 +603,6 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 					permissions: denied,
 					priorPolicyStateDiscarded: [
 						'policy',
-						'policyDecision',
 						'snapshotToken',
 						'promptRequirement',
 						'policyIab',
@@ -629,7 +628,6 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 					permissions: denied,
 					priorPolicyStateDiscarded: [
 						'policy',
-						'policyDecision',
 						'snapshotToken',
 						'promptRequirement',
 						'policyIab',

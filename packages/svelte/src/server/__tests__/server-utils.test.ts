@@ -1,9 +1,12 @@
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 /**
  * Tests for server-side utilities.
  *
  * Covers: extractRelevantHeaders, validateBackendURL, normalizeBackendURL, v3 prefetch helpers
  */
-
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -354,7 +357,20 @@ describe('v3 server helpers', () => {
 			customVendors: [],
 			gvl: { purposes: {}, specialFeatures: {}, stacks: {}, vendors: {} },
 			location: { countryCode: 'DE', regionCode: null },
-			policy: { id: 'gdpr', model: 'opt-in', ui: { mode: 'banner' } },
+			policyResolution: writePolicyResolutionWire(
+				resolvePolicyRules({
+					countryCode: null,
+					regionCode: null,
+					rules: [
+						{
+							id: 'gdpr',
+							match: { fallback: true },
+							model: 'opt-in',
+							prompt: 'choice',
+						},
+					],
+				})
+			),
 			policySnapshotToken: 'token',
 			translations: { language: 'en', translations: {} },
 		};
@@ -377,11 +393,11 @@ describe('v3 server helpers', () => {
 		expect(result.initialLocation).toEqual(initData.location);
 		expect(result.initialTranslations).toEqual(initData.translations);
 		expect(result.initialBranding).toBe('c15t');
-		expect(result.initialPolicy).toEqual(initData.policy);
+		expect(result.initialPolicyResolution?.status).toBe('matched');
 		expect(result.initialPolicySnapshotToken).toBe('token');
 		expect(result.initialIab?.cmpId).toBe(123);
-		expect(result.initialConsents).toBeUndefined();
-		expect(result.initialHasConsented).toBeUndefined();
+		expect(result.initialDraft).toBeUndefined();
+		expect(result).not.toHaveProperty('initialHasConsented');
 	});
 
 	test('prefetchInitialConsent returns base config on non-OK response', async () => {
@@ -397,7 +413,7 @@ describe('v3 server helpers', () => {
 		});
 
 		expect(result.initialOverrides?.country).toBe('DE');
-		expect(result.initialPolicy).toBeUndefined();
+		expect(result.initialPolicyResolution).toBeUndefined();
 	});
 
 	test('prefetchInitialConsent returns base config on fetch error', async () => {
@@ -413,6 +429,6 @@ describe('v3 server helpers', () => {
 		});
 
 		expect(result.initialOverrides?.country).toBe('DE');
-		expect(result.initialPolicy).toBeUndefined();
+		expect(result.initialPolicyResolution).toBeUndefined();
 	});
 });

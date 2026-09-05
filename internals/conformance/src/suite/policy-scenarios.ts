@@ -321,14 +321,14 @@ const assertPolicyTransition = function assertPolicyTransition(
 		if (!previous || previous.snapshot.resolution.status !== 'matched') {
 			throw new Error('Discard assertion requires a prior real matched init');
 		}
-		api.expect(previous.snapshot.policyDecision).toBeDefined();
-		api.expect(previous.snapshot.policyDecision).not.toBeNull();
+		api.expect(previous.snapshot.resolution.policy).toBeDefined();
+		api.expect(previous.snapshot.resolution.policy).not.toBeNull();
 		api.expect(typeof previous.snapshot.policySnapshotToken).toBe('string');
 		if (previous.snapshot.policyRule.model === 'iab') {
 			api.expect(previous.snapshot.iab?.enabled).toBe(true);
 		}
 		api.expect(snapshot.resolution.policy).toBe(null);
-		api.expect(snapshot.policyDecision).toBe(null);
+		api.expect(Object.hasOwn(snapshot, 'policyDecision')).toBe(false);
 		api.expect(snapshot.policySnapshotToken).toBe(null);
 		api.expect(snapshot.iab?.enabled ?? false).toBe(false);
 		api.expect(snapshot.policyRule.model).toBe('opt-in');

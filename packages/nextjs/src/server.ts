@@ -216,10 +216,8 @@ const prepareConfig = (
 			subjectId: response.subjectId,
 		};
 	}
-	delete config.initialConsents;
-	delete config.initialSubjectId;
+	delete config.initialDraft;
 	if (config.initialPolicyResolution?.status !== 'matched') {
-		delete config.initialPolicyDecision;
 		delete config.initialPolicySnapshotToken;
 		delete config.initialIab;
 	}

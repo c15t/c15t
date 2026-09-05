@@ -157,7 +157,7 @@ const createEndpointTransport = function createEndpointTransport(
 			const init = response.data as Record<string, unknown>;
 			if (init.location && init.translations && init.branding) {
 				// An endpoint handler declares no contract; a present wire is
-				// passed through and an absent one lifts the legacy field.
+				// passed through and an absent one fails protocol negotiation.
 				return mapInitOutputToInitResponse(init as InitOutput, {});
 			}
 			const mapped: TransportInitResponse = {

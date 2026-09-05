@@ -57,7 +57,7 @@ describe('@c15t/nextjs/static', () => {
 			status: 'matched',
 		});
 		const resolved = await resolution.resolved;
-		expect(resolved.policy?.id).toBe('us-ca-opt-out');
+		expect(resolved.policyResolution.policy?.id).toBe('us-ca-opt-out');
 		expect(resolved.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
 	});
 
@@ -65,7 +65,7 @@ describe('@c15t/nextjs/static', () => {
 		const manifest = {
 			...MANIFEST_FIXTURE,
 			policyPacks: MANIFEST_FIXTURE.policyPacks.filter(
-				(pack) => pack.policy.id !== 'notice-default'
+				(pack) => pack.rule.id !== 'notice-default'
 			),
 		};
 		const resolver = createStaticConsentResolver({

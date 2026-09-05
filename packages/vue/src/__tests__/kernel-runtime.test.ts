@@ -3,6 +3,10 @@ import {
 	readStoredRecordsFromCookieHeader,
 } from '@c15t/core/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createSSRApp, defineComponent } from 'vue';
@@ -45,32 +49,23 @@ const initFixture: InitOutput = {
 		countryCode: 'DE',
 		regionCode: null,
 	},
-	policy: {
-		consent: {
-			categories: ['necessary', 'measurement', 'marketing'],
-			preselectedCategories: ['necessary', 'measurement', 'marketing'],
-			scopeMode: 'strict',
-		},
-		id: 'policy_gdpr',
-		model: 'opt-in',
-		ui: {
-			banner: {
-				allowedActions: ['reject', 'accept', 'customize'],
-			},
-			dialog: {
-				allowedActions: ['reject', 'accept', 'customize'],
-			},
-			mode: 'banner',
-		},
-	},
-	policyDecision: {
-		country: 'DE',
-		fingerprint: 'fingerprint_gdpr',
-		jurisdiction: 'GDPR',
-		matchedBy: 'country',
-		policyId: 'policy_gdpr',
-		region: null,
-	},
+	policyResolution: writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: null,
+			regionCode: null,
+			rules: [
+				{
+					categories: ['measurement', 'marketing'],
+					id: 'policy_gdpr',
+					match: { fallback: true },
+					model: 'opt-in',
+					preselectedCategories: ['measurement', 'marketing'],
+					prompt: 'choice',
+					scopeMode: 'strict',
+				},
+			],
+		})
+	),
 	policySnapshotToken: 'token_gdpr',
 	translations: {
 		language: 'en',
@@ -350,7 +345,7 @@ describe('@c15t/vue kernel runtime', () => {
 			const snapshot = context.kernel.getSnapshot();
 			expect(snapshot.hasConsented).toBe(true);
 			expect(snapshot.activeUI).toBe('banner');
-			expect(snapshot.consents).toMatchObject({
+			expect(snapshot.effectivePermissions).toMatchObject({
 				marketing: false,
 				measurement: false,
 				necessary: true,
@@ -379,9 +374,12 @@ describe('@c15t/vue kernel runtime', () => {
 	test.each([1, 99, null])(
 		'prefetch fails closed for missing or unsupported negotiated contract %s',
 		(producerContract) => {
+			const { policyResolution: _removedWire, ...unversionedInit } =
+				initFixture;
 			const context = createVueConsentKernelContext({
 				config: {},
-				prefetch: initFixture,
+				// @ts-expect-error Deliberately test a producer omitting the required contract.
+				prefetch: unversionedInit,
 				producerContract,
 			});
 			try {
