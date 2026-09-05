@@ -17,6 +17,47 @@ afterEach(() => {
 });
 
 describe('script inspection', () => {
+	it('does not insert a later target after synchronous consent revocation', () => {
+		const kernel = createConsentKernel();
+		const append = document.head.appendChild.bind(document.head);
+		const headProbe = vi
+			.spyOn(document.head, 'appendChild')
+			.mockImplementation((node) => {
+				const result = append(node);
+				kernel.set.consent({ marketing: false });
+				return result;
+			});
+		const bodyProbe = vi.spyOn(document.body, 'appendChild');
+		const onBodyLoad = vi.fn();
+		try {
+			const loader = createScriptLoader({
+				kernel,
+				scripts: [
+					{ category: 'marketing', id: 'head-revokes', textContent: 'void 0;' },
+					{
+						category: 'marketing',
+						id: 'body-pixel',
+						onLoad: onBodyLoad,
+						target: 'body',
+						textContent: 'void 0;',
+					},
+				],
+			});
+			disposers.push(loader.dispose);
+			kernel.set.consent({ marketing: true });
+			expect(headProbe).toHaveBeenCalledOnce();
+			expect(bodyProbe).not.toHaveBeenCalled();
+			expect(onBodyLoad).not.toHaveBeenCalled();
+			expect(getScriptDiagnostics(kernel).map(({ status }) => status)).toEqual([
+				'blocked',
+				'blocked',
+			]);
+			expect(document.querySelectorAll('script')).toHaveLength(0);
+		} finally {
+			headProbe.mockRestore();
+			bodyProbe.mockRestore();
+		}
+	});
 	it.each([false, true])(
 		'distinguishes mounted and reused inline scripts without debug forwarding, reused=%s',
 		(reused) => {

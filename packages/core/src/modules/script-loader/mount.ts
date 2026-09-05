@@ -245,6 +245,9 @@ export const mountScript = function mountScript(
 	deps.loadedElements.set(script.id, element);
 	deps.ownedScriptIds.add(script.id);
 	target.appendChild(element);
+	if (deps.loadedElements.get(script.id) !== element) {
+		return;
+	}
 
 	if (!script.src && info) {
 		// Inline script: defer onLoad one tick so the browser parses
@@ -371,16 +374,27 @@ export const flushPendingMounts = function flushPendingMounts(
 		}
 		only.target.appendChild(only.element);
 	} else {
-		const byTarget = new Map<HTMLElement, HTMLScriptElement[]>();
+		const byTarget = new Map<HTMLElement, PendingMount[]>();
 		for (const pending of batch) {
 			const list = byTarget.get(pending.target);
 			if (list) {
-				list.push(pending.element);
+				list.push(pending);
 			} else {
-				byTarget.set(pending.target, [pending.element]);
+				byTarget.set(pending.target, [pending]);
 			}
 		}
-		for (const [target, elements] of byTarget) {
+		for (const [target, entries] of byTarget) {
+			// A previous target can execute inline code that revokes consent or
+			// replaces this loader's scripts. Never insert invalidated entries.
+			const elements = entries
+				.filter(
+					({ script, element }) =>
+						deps.loadedElements.get(script.id) === element
+				)
+				.map(({ element }) => element);
+			if (elements.length === 0) {
+				continue;
+			}
 			if (elements.length === 1) {
 				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
 				const first = elements[0];
@@ -398,6 +412,9 @@ export const flushPendingMounts = function flushPendingMounts(
 	}
 
 	for (const pending of batch) {
+		if (deps.loadedElements.get(pending.script.id) !== pending.element) {
+			continue;
+		}
 		if (!pending.script.src && pending.info) {
 			const { info } = pending;
 			const { script } = pending;
