@@ -1,0 +1,80 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`expanded component templates > generates a Next.js v3 SSR boundary with config 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import type { KernelConfig } from 'c15t/next/v3/server';
+import { ConsentBoundary } from 'c15t/next/v3';
+import { DevTools } from 'c15t/next/v3/devtools';
+import ConsentBanner from './consent-banner';
+import ConsentDialog from './consent-dialog';
+import { theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+	config: KernelConfig;
+}
+
+/**
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/next/quickstart
+ */
+export default function ConsentManagerClient({ children, config }: Props) {
+	return (
+		<ConsentBoundary
+			backendURL={'/api/c15t'}
+			config={config}
+			options={{ theme }}
+		>
+			<ConsentBanner />
+			<ConsentDialog />
+			{process.env.NODE_ENV === 'development' && <DevTools />}
+			{children}
+		</ConsentBoundary>
+	);
+}
+"
+`;
+
+exports[`expanded component templates > generates a React v3 provider with its DevTools adapter 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import { ConsentProvider } from 'c15t/react/v3';
+import { DevTools } from 'c15t/react/v3/devtools';
+import ConsentBanner from './consent-banner';
+import ConsentDialog from './consent-dialog';
+import { theme } from './theme';
+
+interface Props {
+	children: ReactNode;
+}
+
+/**
+ * Client-side consent manager provider with compound components.
+ * @see https://c15t.com/docs/frameworks/react/quickstart
+ */
+export default function ConsentManagerClient({ children }: Props) {
+	return (
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				theme,
+				// Add your scripts here:
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+				// Shows banner during development. Remove for production.
+				overrides: { country: 'DE' },
+			}}
+		>
+			<ConsentBanner />
+			<ConsentDialog />
+			{process.env.NODE_ENV === 'development' && <DevTools />}
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;

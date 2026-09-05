@@ -1,0 +1,22 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`server component template > awaits the canonical Next.js v3 request config 1`] = `
+"import { readInitialConsentConfig } from 'c15t/next/v3/server';
+import type { ReactNode } from 'react';
+import ConsentManagerProvider from './provider';
+
+/**
+ * Server-side consent management wrapper with SSR data prefetching.
+ * @see https://c15t.com/docs/frameworks/next/quickstart
+ */
+export async function ConsentManager({ children }: { children: ReactNode }) {
+	const config = await readInitialConsentConfig();
+
+	return (
+		<ConsentManagerProvider config={config}>
+			{children}
+		</ConsentManagerProvider>
+	);
+}
+"
+`;

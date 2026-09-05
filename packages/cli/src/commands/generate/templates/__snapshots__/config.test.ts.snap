@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`JavaScript client config > matches the legacy hosted config snapshot 1`] = `
+"import { getOrCreateConsentRuntime } from 'c15t';
+const runtime = getOrCreateConsentRuntime(
+	{
+		mode: 'hosted',
+		backendURL: 'https://consent.example.com',
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+	},
+);
+
+export const store = runtime.consentStore;
+/**
+ * Usage Examples
+ **/
+
+// View all consents
+// store.getState().consents;
+
+// Update a single consent type: (does not save automically, allowing you to batch updates together before saving)
+// store.getState().setSelectedConsent('measurement', true);
+
+// Update a single consent type and automically saves it
+// store.getState().setConsent('marketing', true);
+
+// When a user rejects all consents:
+// store.getState().saveConsents("necessary")
+"
+`;

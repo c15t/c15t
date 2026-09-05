@@ -1,0 +1,89 @@
+---
+title: "Dev Tools"
+description: "Reference page for dev tools."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `DevTools` is a floating panel for the c15t v3 kernel. Use it during development to inspect consent values, location, the resolved policy, IAB state, kernel events, and consent actions. The framework adapter reads the kernel from the nearest v3 provider. It never discovers a store through a window global.
+
+  <Callout type="warn">
+    Load DevTools only in development. A conditional JSX expression stops it from mounting in production, but a static import can still add DevTools to the production bundle. Use a development-only dynamic import as shown below. The component renders nothing into the React tree and mounts its panel in `document.body`.
+  </Callout>
+
+  ## Installation
+
+  The framework adapter is part of `c15t`. Install the engine as a development dependency:
+
+  ```bash
+  bun add -D @c15t/dev-tools
+  ```
+</section>
+
+<section id="customization">
+  ## Configuration
+
+  ```tsx
+  <DevTools
+    position="bottom-right"  // 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+    defaultOpen={false}       // Start with panel open
+    defaultTab="consents"     // Initial panel
+    maxEvents={100}            // Maximum captured kernel events
+    disabled={false}          // Disable without removing from tree
+  />
+  ```
+
+  ## Panels
+
+  | Panel | What it shows |
+  |-------|---------------|
+  | **Consents** | Current consent state for all categories |
+  | **Location** | Detected jurisdiction, country, region, and consent model |
+  | **Policy** | Resolved policy and UI configuration |
+  | **IAB** | IAB TCF state (when enabled) - TC string, vendor consents, purposes |
+  | **Events** | Timeline of consent events and state changes |
+  | **Actions** | Buttons to trigger consent actions (accept all, reject all, reset) |
+
+  ## TanStack Devtools
+
+  The React v3 DevTools adapter exports a panel component and plugin factory that match TanStack Devtools' plugin API:
+
+  ```tsx
+  import * as React from 'react';
+  import { useRouter } from '@tanstack/react-router';
+  import { TanStackDevtools } from '@tanstack/react-devtools';
+  import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
+  import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+  import { c15tDevtools } from 'c15t/react/v3/devtools';
+
+  export function AppDevtools() {
+    const router = useRouter();
+
+    return (
+      <TanStackDevtools
+        plugins={[
+          {
+            name: 'TanStack Query',
+            render: <ReactQueryDevtoolsPanel />,
+          },
+          {
+            name: 'TanStack Router',
+            render: <TanStackRouterDevtoolsPanel router={router} />,
+          },
+          c15tDevtools(),
+        ]}
+      />
+    );
+  }
+  ```
+
+  In a Next.js app, import `c15tDevtools` from `c15t/next/v3/devtools` instead. Scoped installs use `@c15t/react/v3/devtools` and `@c15t/nextjs/v3/devtools`.
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/v3/devtools.tsx" name="ConsentDevToolsProps" />
+</section>

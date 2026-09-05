@@ -1,0 +1,70 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`consent component template > generates a React v3 provider with its framework DevTools adapter 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import {
+	ConsentDialog,
+	ConsentProvider,
+	ConsentBanner,
+} from 'c15t/react/v3';
+import { DevTools } from 'c15t/react/v3/devtools';
+/**
+ * Consent manager provider.
+ * @see https://c15t.com/docs/frameworks/react/quickstart
+ */
+export function ConsentManager({ children }: { children: ReactNode }) {
+	return (
+		<ConsentProvider options={{
+			mode: 'offline',
+			// Add your scripts here:
+				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+				// scripts: [
+				//   googleTagManager({ id: 'GTM-XXXXXX' }),
+				// ],
+		}}>
+			<ConsentBanner />
+			<ConsentDialog />
+			{process.env.NODE_ENV === 'development' && <DevTools />}
+			{children}
+		</ConsentProvider>
+	);
+}
+"
+`;
+
+exports[`consent component template > generates the canonical Next.js v3 SSR boundary 1`] = `
+"'use client';
+
+import type { ReactNode } from 'react';
+import type { KernelConfig } from 'c15t/next/v3/server';
+import {
+	ConsentDialog,
+	ConsentBoundary,
+	ConsentBanner,
+} from 'c15t/next/v3';
+import { DevTools } from 'c15t/next/v3/devtools';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+/**
+ * Client-side consent manager provider.
+ * @see https://c15t.com/docs/frameworks/next/quickstart
+ */
+export default function ConsentManagerClient({ children, config }: { children: ReactNode; config: KernelConfig }) {
+	return (
+		<ConsentBoundary
+			backendURL={'/api/c15t'}
+			config={config}
+			scripts={[
+				googleTagManager({ id: 'GTM-XXXXXX' }),
+			]}
+		>
+			<ConsentBanner />
+			<ConsentDialog />
+			{process.env.NODE_ENV === 'development' && <DevTools />}
+			{children}
+		</ConsentBoundary>
+	);
+}
+"
+`;
