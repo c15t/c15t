@@ -112,28 +112,29 @@ describe('v3 React DevTools adapter', () => {
 	test.each([false, true])(
 		'preserves the active tab and events across inline callback rerenders, embedded=%s',
 		async (embedded) => {
-			const tree = (measurement: boolean) => (
-				<Provider>
-					{embedded ? (
-						<C15tTanStackDevtoolsPanel
-							getConsentCategories={() =>
-								measurement
-									? ['necessary', 'measurement']
-									: ['necessary', 'marketing']
-							}
-						/>
-					) : (
-						<ConsentDevTools
-							defaultOpen
-							getConsentCategories={() =>
-								measurement
-									? ['necessary', 'measurement']
-									: ['necessary', 'marketing']
-							}
-						/>
-					)}
-				</Provider>
-			);
+			const tree = (measurement: boolean, reordered = false) => {
+				const measurementScope = reordered
+					? (['measurement', 'necessary', 'measurement'] as const)
+					: (['necessary', 'measurement'] as const);
+				return (
+					<Provider>
+						{embedded ? (
+							<C15tTanStackDevtoolsPanel
+								getConsentCategories={() =>
+									measurement ? measurementScope : ['necessary', 'marketing']
+								}
+							/>
+						) : (
+							<ConsentDevTools
+								defaultOpen
+								getConsentCategories={() =>
+									measurement ? measurementScope : ['necessary', 'marketing']
+								}
+							/>
+						)}
+					</Provider>
+				);
+			};
 			const view = await render(tree(true));
 			await vi.waitFor(() => expect(getMountedDevTools()).not.toBeNull());
 			const root = getMountedDevTools();
@@ -146,6 +147,7 @@ describe('v3 React DevTools adapter', () => {
 			const events = root?.querySelector('[role="tabpanel"]')?.textContent;
 			expect(events).toContain('consent:set');
 			await view.rerender(tree(true));
+			await view.rerender(tree(true, true));
 			expect(getMountedDevTools()).toBe(root);
 			expect(
 				root

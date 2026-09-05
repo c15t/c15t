@@ -17,11 +17,11 @@ import {
 	useLayoutEffect,
 	useMemo,
 	useRef,
-	useSyncExternalStore,
 } from 'react';
 import type { ForwardedRef, HTMLAttributes, ReactElement } from 'react';
 
 import { KernelContext } from './context';
+import { useIsHydrated } from './hooks/use-is-hydrated';
 
 /** Props for the kernel-bound React DevTools adapter. */
 export interface ConsentDevToolsProps extends Omit<
@@ -47,25 +47,19 @@ const requireKernel = (kernel: ConsentKernel | null): ConsentKernel => {
 	return kernel;
 };
 
-const subscribeToClient = () => () => undefined;
-const getClientSnapshot = () => true;
-const getServerSnapshot = () => false;
-
 const useStableConsentCategories = (
 	getter: DevToolsOptions['getConsentCategories'],
 	disabled: boolean
 ): DevToolsOptions['getConsentCategories'] => {
-	const isClient = useSyncExternalStore(
-		subscribeToClient,
-		getClientSnapshot,
-		getServerSnapshot
-	);
+	const isClient = useIsHydrated();
 	const latestGetter = useRef(getter);
 	useLayoutEffect(() => {
 		latestGetter.current = getter;
 	}, [getter]);
 	const categoryKey =
-		isClient && !disabled && getter ? JSON.stringify(getter()) : undefined;
+		isClient && !disabled && getter
+			? JSON.stringify([...new Set(getter())].sort())
+			: undefined;
 	return useMemo(() => {
 		if (categoryKey === undefined) {
 			return undefined;
