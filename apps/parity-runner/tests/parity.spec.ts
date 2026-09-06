@@ -17,7 +17,13 @@
  * Environment variables:
  *   - `REACT_STORYBOOK_URL` (default http://127.0.0.1:6006)
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
+ *   - `VUE_STORYBOOK_URL` (default http://127.0.0.1:6008)
+ *   - `ASTRO_STORYBOOK_URL` (default http://127.0.0.1:6010)
  *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte`)
+ *
+ * Known drift these checks are not expected to catch lives in
+ * `src/parity-allowlist.ts`. These three report one result per story
+ * rather than per element, so their entries use `slot: '*'`.
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
@@ -27,11 +33,18 @@ import type { Page } from '@playwright/test';
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
-import { pairStories } from '../src/pair-stories';
-import type { PairedStory } from '../src/pair-stories';
+import { selectComparablePairs } from '../src/pair-stories';
+import type { ComparablePair } from '../src/pair-stories';
+import {
+	findAllowEntry,
+	unusedAllowlistEntries,
+} from '../src/parity-allowlist';
+import type { ParityAllowEntry } from '../src/parity-allowlist';
 import { loadStorybookIndex } from '../src/storybook-index';
+import { markSurfaceRoots, SURFACE_SCOPE_SELECTOR } from '../src/surface-scope';
 
 const FRAMEWORK_URLS: Record<string, string> = {
+	astro: process.env.ASTRO_STORYBOOK_URL ?? 'http://127.0.0.1:6010',
 	react: process.env.REACT_STORYBOOK_URL ?? 'http://127.0.0.1:6006',
 	solid: process.env.SOLID_STORYBOOK_URL ?? 'http://127.0.0.1:6009',
 	svelte: process.env.SVELTE_STORYBOOK_URL ?? 'http://127.0.0.1:6007',
@@ -48,7 +61,7 @@ const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
  * in its own context, so this executes once per run unless sharded.
  */
 const loadPairedStories = async function loadPairedStories(): Promise<
-	PairedStory[]
+	ComparablePair[]
 > {
 	const byFramework: Record<
 		string,
@@ -63,18 +76,44 @@ const loadPairedStories = async function loadPairedStories(): Promise<
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			byFramework[framework] = await loadStorybookIndex(url);
 		} catch (err) {
-			// If a Storybook isn't running, skip that framework's entries.
-			// Downstream pairing will just produce fewer entries.
-			console.warn(`[parity] could not load ${framework} index: ${err}`);
+			// Dropping the framework here would leave the run comparing the
+			// ones that did load and reporting a pass, which is the one
+			// outcome a gate must never produce for a framework it was told
+			// to check.
+			throw new Error(
+				`[parity] ${framework} Storybook index did not load from ${url}`,
+				{ cause: err }
+			);
 		}
 	}
-	return pairStories(byFramework).filter(
+	return selectComparablePairs(byFramework, {
 		// DevTools owns a dedicated portal-aware comparison in devtools.spec.ts,
 		// including same-run pixel checks that also execute on Linux CI.
-		(pair) =>
-			Object.keys(pair.entries).length >= 2 &&
-			!pair.key.startsWith('Core/DevTools/')
-	);
+		excludeKeyPrefixes: ['Core/DevTools/'],
+		frameworks: ENABLED_FRAMEWORKS,
+	});
+};
+
+/**
+ * Logs which frameworks each pair is missing.
+ *
+ * The Storybook apps do not carry the same catalogue, so a partial pair is
+ * normal — but an unnoticed one is how drift escapes a comparison. Naming
+ * the gaps once per run puts them in the report instead.
+ */
+const reportPairCoverage = function reportPairCoverage(
+	label: string,
+	paired: readonly { key: string; missing: string[] }[]
+): void {
+	const gaps = paired.filter((pair) => pair.missing.length > 0);
+	if (gaps.length === 0) {
+		return;
+	}
+	const detail = gaps
+		.map((pair) => `${pair.key} (missing ${pair.missing.join(', ')})`)
+		.join('; ');
+	console.log(`[PARITY] ${label}: ${gaps.length} pair(s) missing a framework`);
+	console.log(`[PARITY] ${label}: ${detail}`);
 };
 
 const openStory = async function openStory(
@@ -90,6 +129,25 @@ const openStory = async function openStory(
 	// would time out on them. Attachment is enough; the body content
 	// we actually care about settles with `networkidle`.
 	await page.locator('#storybook-root').waitFor({ state: 'attached' });
+	await page.evaluate(() => document.fonts.ready);
+	// The overlay and card fade in. Capturing mid-animation reads the
+	// in-flight `opacity` as drift, so let the entrance settle first —
+	// the same wait the geometry spec uses.
+	await page.waitForTimeout(250);
+};
+
+/**
+ * Scope the descriptive captures to the surfaces the story rendered,
+ * wherever they ended up in the document.
+ *
+ * @param page - The page showing a story.
+ * @returns The selector every capture on this page should use.
+ */
+const scopeToSurfaces = async function scopeToSurfaces(
+	page: Page
+): Promise<string> {
+	await markSurfaceRoots(page);
+	return SURFACE_SCOPE_SELECTOR;
 };
 
 /**
@@ -135,6 +193,7 @@ test.describe('cross-framework parity', () => {
 	}) => {
 		const paired = await loadPairedStories();
 		const failures: string[] = [];
+		const usedEntries = new Set<ParityAllowEntry>();
 
 		for (const pair of paired) {
 			const entries = Object.entries(pair.entries);
@@ -153,30 +212,54 @@ test.describe('cross-framework parity', () => {
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 			await openStory(page, baselineUrl, baselineEntry.id);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineDom = await captureDomSnapshot(page, '#storybook-root');
+			const baselineScope = await scopeToSurfaces(page);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineA11y = await captureA11yTree(page);
+			const baselineDom = await captureDomSnapshot(page, baselineScope);
 			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-			const baselineStyles = await captureComputedStyleMap(
-				page,
-				'#storybook-root'
-			);
+			const baselineA11y = await captureA11yTree(page, baselineScope);
+			// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+			const baselineStyles = await captureComputedStyleMap(page, baselineScope);
 
 			for (const [framework, entry] of rest) {
 				const url = FRAMEWORK_URLS[framework];
 				if (!url) {
 					continue;
 				}
+				/**
+				 * Whether this story's result for one check is a known,
+				 * documented difference.
+				 *
+				 * Call this only once a check has actually failed. Marking
+				 * an entry used before that keeps a stale allowance alive
+				 * forever, which is the one thing the stale-entry gate
+				 * exists to catch.
+				 */
+				const allowed = function allowed(
+					check: 'dom' | 'a11y' | 'css'
+				): boolean {
+					const allowEntry = findAllowEntry({
+						check,
+						framework,
+						slot: '*',
+						story: pair.key,
+					});
+					if (allowEntry) {
+						usedEntries.add(allowEntry);
+					}
+					return Boolean(allowEntry);
+				};
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
 				await openStory(page, url, entry.id);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const dom = await captureDomSnapshot(page, '#storybook-root');
+				const scope = await scopeToSurfaces(page);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const a11y = await captureA11yTree(page);
+				const dom = await captureDomSnapshot(page, scope);
 				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
-				const styles = await captureComputedStyleMap(page, '#storybook-root');
+				const a11y = await captureA11yTree(page, scope);
+				// oxlint-disable-next-line no-await-in-loop -- Preserve sequential execution and callback compatibility.
+				const styles = await captureComputedStyleMap(page, scope);
 
-				if (dom !== baselineDom) {
+				if (dom !== baselineDom && !allowed('dom')) {
 					failures.push(
 						`[DOM] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
@@ -187,7 +270,7 @@ test.describe('cross-framework parity', () => {
 						);
 					}
 				}
-				if (a11y !== baselineA11y) {
+				if (a11y !== baselineA11y && !allowed('a11y')) {
 					failures.push(
 						`[A11Y] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
@@ -200,7 +283,7 @@ test.describe('cross-framework parity', () => {
 				}
 
 				const styleDiffs = diffComputedStyleMap(baselineStyles, styles);
-				if (styleDiffs.length > 0) {
+				if (styleDiffs.length > 0 && !allowed('css')) {
 					// Summarize to keep the failure output legible; the first few
 					// diffs usually point at the offending class contract.
 					const sample = styleDiffs
@@ -217,6 +300,17 @@ test.describe('cross-framework parity', () => {
 			}
 		}
 
+		for (const entry of unusedAllowlistEntries(
+			usedEntries,
+			['dom', 'a11y', 'css'],
+			ENABLED_FRAMEWORKS
+		)) {
+			failures.push(
+				`[ALLOWLIST] stale entry matched nothing — delete it: ${entry.check} ${entry.framework} ${entry.story} ${entry.slot}`
+			);
+		}
+
+		reportPairCoverage('DOM+a11y+CSS', paired);
 		console.log(`[PARITY] DOM+a11y+CSS: ${failures.length} failure(s)`);
 		expect(failures, failures.join('\n')).toHaveLength(0);
 	});

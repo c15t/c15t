@@ -1,0 +1,337 @@
+/**
+ * Public option and locals types for `@c15t/astro`.
+ *
+ * Everything the integration accepts must survive `JSON.stringify`: the
+ * options are serialized once at build time into a virtual module that the
+ * middleware, the `.astro` components and the injected client boot script
+ * all import. Callbacks and other live values belong in the module named
+ * by {@link C15tAstroOptions.clientEntrypoint}.
+ */
+
+import type {
+	AllConsentNames,
+	ConsentSnapshot,
+	KernelConfig,
+	LegalLinks,
+	PolicyConfig,
+	PolicyDecision,
+	Script,
+	StorageConfig,
+} from '@c15t/core';
+import type { ConsentManifest, GlobalVendorList } from '@c15t/schema/types';
+import type { Theme } from '@c15t/ui/theme';
+
+/** Transport selection, in a form that survives serialization. */
+export type C15tModeDescriptor =
+	| C15tHostedDescriptor
+	| C15tOfflineDescriptor
+	| C15tManifestDescriptor;
+
+/** Talk to a c15t backend over HTTP. */
+export interface C15tHostedDescriptor {
+	type: 'hosted';
+	/** Backend base URL. Absolute, or same-origin like `/api/c15t`. */
+	url: string;
+	/** Domain recorded when consent is saved. */
+	domain?: string;
+	/** Extra headers forwarded to the backend. */
+	headers?: Record<string, string>;
+}
+
+/** Resolve policies locally with no backend at all. */
+export interface C15tOfflineDescriptor {
+	type: 'offline';
+	/** Policy packs resolved locally. */
+	policyPacks?: PolicyConfig[];
+}
+
+/**
+ * Resolve `/init` from a cached consent manifest.
+ *
+ * The server resolves the manifest per request; the browser talks to the
+ * injected `/api/c15t/init` route, which is manifest-backed and cached.
+ */
+export interface C15tManifestDescriptor {
+	type: 'manifest';
+	/** `GET /manifest` URL. Defaults to `${backendURL}/manifest`. */
+	manifestURL?: string;
+	/** Backend base URL used for `POST /subjects`. */
+	backendURL?: string;
+	/** Inline manifest. Takes precedence over `manifestURL`. */
+	manifest?: ConsentManifest;
+}
+
+/**
+ * Which framework renders the on-demand dialog islands.
+ *
+ * Svelte is the default because it is the smallest: its runtime costs
+ * roughly 14 KB gzipped against React's ~45 KB. A site already shipping
+ * React or Vue should say so and reuse what it has instead of downloading
+ * a second framework for one dialog. The choice is never inferred — a
+ * silent change to what a page downloads is worse than an explicit one.
+ */
+export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
+
+/**
+ * How the consent surfaces pick light or dark.
+ *
+ * Dark mode is the `c15t-dark` class on `<html>`, not a
+ * `prefers-color-scheme` block, so something has to set it. `'system'`
+ * follows `prefers-color-scheme` and keeps following it; `'light'` and
+ * `'dark'` pin it.
+ */
+export type C15tColorScheme = 'light' | 'dark' | 'system';
+
+/** Route paths the integration can inject. */
+export interface C15tEndpointOptions {
+	/**
+	 * Inject `GET /api/c15t/init` and `GET /api/c15t/manifest`.
+	 *
+	 * Required for `mode: manifest()` unless you write the routes yourself.
+	 *
+	 * @default true when `mode.type === 'manifest'`, otherwise false
+	 */
+	enabled?: boolean;
+	/** @default '/api/c15t/init' */
+	initPath?: string;
+	/** @default '/api/c15t/manifest' */
+	manifestPath?: string;
+}
+
+/** How the integration registers its `pre`-order middleware. */
+export interface C15tMiddlewareOptions {
+	/**
+	 * Register `@c15t/astro/middleware` at all.
+	 *
+	 * @default true
+	 */
+	enabled?: boolean;
+	/**
+	 * Extra path prefixes the middleware leaves alone.
+	 *
+	 * The integration's own init and manifest routes are always skipped, so
+	 * this is only for routes of your own that must not resolve consent —
+	 * health checks, webhooks, anything that would otherwise pay for a
+	 * decision it never renders. A path matches when it is the pathname
+	 * exactly or a parent segment of it, so `'/api'` covers `/api/health`.
+	 *
+	 * `Astro.locals.c15t` is left unset on a skipped route.
+	 *
+	 * @example ['/api/webhooks', '/healthz']
+	 */
+	skip?: string[];
+}
+
+/** Options accepted by the `c15t()` Astro integration. */
+export interface C15tAstroOptions {
+	/**
+	 * Transport selection. Build it with `hosted()`, `offline()` or
+	 * `manifest()` so the descriptor stays well-formed.
+	 */
+	mode: C15tModeDescriptor;
+
+	/** Categories offered in the banner and preference centre. */
+	consentCategories?: AllConsentNames[];
+
+	/** Consent-gated scripts handed to the core script loader. */
+	scripts?: Script[];
+
+	/**
+	 * IAB TCF configuration. `false` disables it.
+	 *
+	 * Only the serializable fields are accepted here; a live GVL fetcher
+	 * belongs in {@link C15tAstroOptions.clientEntrypoint}.
+	 */
+	iab?: C15tIABOptions | false;
+
+	/** Cookie/localStorage configuration for persisted consent. */
+	storageConfig?: StorageConfig;
+
+	/** Locale and message overrides. */
+	i18n?: C15tI18nOptions;
+
+	/** Theme tokens applied to the banner and dialog surfaces. */
+	theme?: Theme;
+
+	/**
+	 * Light or dark for the banner and dialogs.
+	 *
+	 * `'system'` follows `prefers-color-scheme` and keeps following it as
+	 * the visitor changes it. `<ConsentScript />` writes the class from a
+	 * tiny inline script in `<head>`, so the server-rendered banner is
+	 * already dark on its first paint rather than flashing light.
+	 *
+	 * @default 'system'
+	 */
+	colorScheme?: C15tColorScheme;
+
+	/** Legal links rendered inline in the banner and dialog. */
+	legalLinks?: LegalLinks;
+
+	/**
+	 * Framework used to render the on-demand dialog islands.
+	 *
+	 * `'svelte'` ships the least JavaScript and is the default. Pick
+	 * `'react'` or `'vue'` when the site already loads that runtime, so the
+	 * dialog reuses it instead of adding a second framework. Whichever you
+	 * pick, install the matching Astro integration — `@astrojs/svelte`,
+	 * `@astrojs/react` or `@astrojs/vue` — and list it before `c15t()`.
+	 *
+	 * @default 'svelte'
+	 */
+	ui?: C15tUIAdapterName;
+
+	/** Injected API routes. */
+	endpoints?: C15tEndpointOptions | boolean;
+
+	/**
+	 * Module specifier whose default export is a
+	 * {@link C15tClientOptionsExtension}. Use it for anything that cannot be
+	 * serialized — callbacks, a custom GVL fetcher, scripts with lifecycle
+	 * hooks.
+	 *
+	 * @example './src/c15t.client.ts'
+	 */
+	clientEntrypoint?: string;
+
+	/**
+	 * Register the `pre`-order middleware that populates `Astro.locals.c15t`.
+	 *
+	 * `false` is the same as `{ enabled: false }`. The middleware already
+	 * skips the integration's own init and manifest routes, so a site that
+	 * serves its own manifest does not have to hand-roll one to break the
+	 * cycle; use `skip` to add routes of your own.
+	 *
+	 * @default true
+	 */
+	middleware?: boolean | C15tMiddlewareOptions;
+
+	/**
+	 * Fail the build when the Astro integration for {@link C15tAstroOptions.ui}
+	 * is missing. Set to `false` for banner-only sites, which render no
+	 * island at all.
+	 *
+	 * @default true
+	 */
+	requireUIIntegration?: boolean;
+}
+
+/**
+ * IAB TCF options accepted by the integration.
+ *
+ * The serializable subset of the runtime's `RuntimeIABOptions`: a custom
+ * fetcher cannot survive the trip into the injected boot script, so that
+ * belongs in {@link C15tAstroOptions.clientEntrypoint} instead. A vendor
+ * list itself is plain JSON and does travel — see {@link C15tIABOptions.gvl}.
+ */
+export interface C15tIABOptions {
+	/** Set `false` to keep IAB configured but inert. */
+	enabled?: boolean;
+	/**
+	 * A vendor list to use as-is, instead of fetching one.
+	 *
+	 * The server needs a GVL to render `<IABConsentBanner />` at all — the
+	 * banner names the purposes and counts the vendors — so hosted and
+	 * manifest mode get theirs from `/init`. Offline mode has no backend to
+	 * ask, which is what this is for: a pinned list, or a fixture in a
+	 * demo. It is inlined into the page's boot payload, so keep it trimmed
+	 * to the vendors the site actually works with.
+	 */
+	gvl?: GlobalVendorList;
+	/** IAB-registered CMP ID. A hosted backend can supply it through `/init`. */
+	cmpId?: number;
+	/** CMP version reported through `__tcfapi`. */
+	cmpVersion?: number;
+	/** Restricts the vendor list to these vendor IDs. */
+	vendors?: number[];
+	/** Publisher country code used in the TC string. */
+	publisherCountryCode?: string;
+	/** Whether the CMP is service-specific rather than global. */
+	isServiceSpecific?: boolean;
+	/**
+	 * Fetch the vendor list from this URL on the server.
+	 *
+	 * Goes through the shared in-process cache in `@c15t/core/server`, so
+	 * concurrent renders collapse onto one download. Ignored when
+	 * {@link C15tIABOptions.gvl} is set.
+	 */
+	gvlURL?: string;
+}
+
+/** Locale configuration accepted by the integration. */
+export interface C15tI18nOptions {
+	/** Force a locale instead of negotiating `Accept-Language`. */
+	locale?: string;
+	/** Per-language message overrides, deep-merged over the defaults. */
+	messages?: Record<string, unknown>;
+	/**
+	 * Negotiate the locale from the request's `Accept-Language` header.
+	 *
+	 * @default true
+	 */
+	detectLanguage?: boolean;
+}
+
+/**
+ * Non-serializable additions merged over the integration options in the
+ * browser. Default-export this from
+ * {@link C15tAstroOptions.clientEntrypoint}.
+ */
+export interface C15tClientOptionsExtension {
+	scripts?: Script[];
+	callbacks?: Record<string, unknown>;
+	/** Merged over the serialized theme. */
+	theme?: Theme;
+}
+
+/**
+ * The serialized options shape shared by the middleware, the components and
+ * the client boot script.
+ *
+ * @internal
+ */
+export interface C15tResolvedOptions extends Omit<
+	C15tAstroOptions,
+	'endpoints' | 'middleware' | 'requireUIIntegration'
+> {
+	ui: C15tUIAdapterName;
+	colorScheme: C15tColorScheme;
+	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
+		enabled: boolean;
+	};
+	middleware: Required<C15tMiddlewareOptions>;
+}
+
+/** Consent context the middleware attaches to every request. */
+export interface C15tLocals {
+	/**
+	 * Server-resolved kernel configuration. Inline it into the page with
+	 * `<ConsentBanner />` or `buildConfigScript()` so the browser boots with
+	 * no `/init` roundtrip.
+	 */
+	config: KernelConfig;
+
+	/**
+	 * The kernel snapshot derived from {@link C15tLocals.config}. Components
+	 * read translations, policy UI hints and consent state from here so the
+	 * server and the browser agree on first paint.
+	 */
+	snapshot: ConsentSnapshot;
+
+	/** Whether the server decided this request should see the banner. */
+	shouldShowBanner: boolean;
+
+	/** Resolved policy decision, when the transport produced one. */
+	decision: PolicyDecision | null;
+
+	/** Normalized request inputs (geo, language, GPC). */
+	inputs: {
+		country?: string;
+		region?: string;
+		language?: string;
+		gpc?: boolean;
+	};
+
+	/** The integration options, as the browser will receive them. */
+	options: C15tResolvedOptions;
+}

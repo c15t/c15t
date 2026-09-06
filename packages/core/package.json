@@ -108,10 +108,20 @@
 			"import": "./dist/persistence.js",
 			"default": "./dist/persistence.js"
 		},
+		"./server": {
+			"types": "./dist-types/server/index.d.ts",
+			"import": "./dist/server.js",
+			"default": "./dist/server.js"
+		},
 		"./modules/window-debug": {
 			"types": "./dist-types/modules/window-debug/index.d.ts",
 			"import": "./dist/window-debug.js",
 			"default": "./dist/window-debug.js"
+		},
+		"./runtime": {
+			"types": "./dist-types/runtime/index.d.ts",
+			"import": "./dist/runtime.js",
+			"default": "./dist/runtime.js"
 		}
 	},
 	"publishConfig": {

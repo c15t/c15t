@@ -1,14 +1,17 @@
 <script lang="ts">
 	let {
 		class: className,
-		width = '16',
-		height = '16',
+		width,
+		height,
+		expanded = false,
 		'aria-hidden': ariaHidden,
 		...rest
 	}: {
 		class?: string;
 		width?: string;
 		height?: string;
+		/** Point the chevron down instead of right. */
+		expanded?: boolean;
 		'aria-hidden'?: boolean;
 		[key: string]: unknown;
 	} = $props();
@@ -25,5 +28,9 @@
 	aria-hidden={ariaHidden}
 	{...rest}
 >
-	<path d="M9 5l7 7-7 7" />
+	{#if expanded}
+		<path d="M19 9l-7 7-7-7" />
+	{:else}
+		<path d="M9 5l7 7-7 7" />
+	{/if}
 </svg>

@@ -383,6 +383,9 @@
 	}
 
 	.title:not(:global(.headless)) {
+		/* Same heading-element reset as the banner: React's `<h2>` must not
+		   bring the user agent's margins with it. */
+		margin: 0;
 		font-weight: var(--consent-dialog-title-font-weight);
 		font-size: var(--consent-dialog-title-font-size);
 		line-height: 1;

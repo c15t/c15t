@@ -327,7 +327,7 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	});
 
 	describe('Accessibility', () => {
-		test('should render as a native dialog', async () => {
+		test('should expose the dialog role', async () => {
 			render(
 				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentDialog open />
@@ -339,8 +339,8 @@ describe('IAB Consent Dialog Unit Tests', () => {
 					const dialog = document.querySelector(
 						'[data-testid="iab-consent-dialog-card"]'
 					);
-					expect(dialog?.tagName).toBe('DIALOG');
-					expect(dialog).toHaveAttribute('open');
+					expect(dialog?.getAttribute('role')).toBe('dialog');
+					expect(dialog).toHaveAttribute('aria-modal', 'true');
 				},
 				{ timeout: 3000 }
 			);

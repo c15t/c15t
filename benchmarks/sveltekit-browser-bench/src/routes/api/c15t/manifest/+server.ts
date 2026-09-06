@@ -1,19 +1,13 @@
-import { benchConsentManifestResponse } from '$lib/fixture';
-import { json } from '@sveltejs/kit';
+/**
+ * `GET /api/c15t/manifest` — the shipped `@c15t/svelte/kit` manifest proxy,
+ * forwarding the fixture's cache headers verbatim.
+ */
+import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
 
 import type { RequestHandler } from './$types';
 
-const MANIFEST_ETAG = '"sveltekit-browser-bench-manifest"';
+const handlers = createSvelteKitConsentRouteHandlers({
+	manifestURL: '/api/bench-consent/manifest',
+});
 
-export const GET: RequestHandler = ({ request }) => {
-	const headers = {
-		'cache-control': 'public, s-maxage=300, stale-while-revalidate=86400',
-		etag: MANIFEST_ETAG,
-	};
-
-	if (request.headers.get('if-none-match') === MANIFEST_ETAG) {
-		return new Response(null, { headers, status: 304 });
-	}
-
-	return json(benchConsentManifestResponse, { headers });
-};
+export const GET: RequestHandler = handlers.manifest;

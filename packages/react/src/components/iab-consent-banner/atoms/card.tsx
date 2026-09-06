@@ -2,14 +2,14 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner';
 import { forwardRef as createForwardRef } from 'react';
-import type { DialogHTMLAttributes, ReactNode, RefObject } from 'react';
+import type { HTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
-interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogElement> {
+interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
 	'data-testid'?: string;
 }
@@ -23,7 +23,7 @@ interface IABConsentBannerCardProps extends DialogHTMLAttributes<HTMLDialogEleme
  * @public
  */
 const IABConsentBannerCard = createForwardRef<
-	HTMLDialogElement,
+	HTMLDivElement,
 	IABConsentBannerCardProps
 >(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { noStyle, trapFocus } = useTheme();
@@ -40,15 +40,16 @@ const IABConsentBannerCard = createForwardRef<
 	});
 
 	return (
-		<dialog
+		// A `div`, not a `dialog`: the user agent's dialog padding is 1em,
+		// which the card sets for itself.
+		<div
 			ref={ref}
 			{...themedStyle}
-			tabIndex={-1}
-			open
 			aria-modal={trapFocus ? 'true' : undefined}
+			role={trapFocus ? 'dialog' : undefined}
 		>
 			{children}
-		</dialog>
+		</div>
 	);
 });
 

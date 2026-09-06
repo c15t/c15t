@@ -110,6 +110,10 @@ export { StackItem } from './atoms/stack-item';
 export { IABConsentDialogTabButton, IABConsentDialogTabs } from './atoms/tabs';
 export { VendorList } from './atoms/vendor-list';
 // Export hooks
+export {
+	type IABDisplayModel,
+	useIABDisplayModel,
+} from './hooks/use-display-model';
 export { type GVLData, useGVLData } from './hooks/use-gvl-data';
 // Export types
 export type {

@@ -158,7 +158,7 @@ describe('ConsentBanner policy ordering', () => {
 		expect(rejectButton?.className).toContain('button-secondary-marker');
 	});
 
-	test('filters out actions disallowed by policy even when local layout includes them', async () => {
+	test('drops policy-disallowed actions from a local layout', async () => {
 		await renderBanner(
 			{
 				layout: ['reject', 'customize', 'accept'],
@@ -186,7 +186,7 @@ describe('ConsentBanner policy ordering', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('keeps the default layout when policy has hints but no policy layout', async () => {
+	test('groups the default layout when policy has hints but no policy layout', async () => {
 		await renderBanner(
 			{},
 			{
@@ -211,12 +211,48 @@ describe('ConsentBanner policy ordering', () => {
 			)
 		);
 
+		// Two sub-groups, not one plus a loose button: the shared default
+		// layout is what Svelte, Vue and Astro render, and `space-between`
+		// only works when both sides are groups.
 		expect(footerGroups).toEqual([
 			['consent-banner-reject-button', 'consent-banner-accept-button'],
+			['consent-banner-customize-button'],
 		]);
-		expect(
-			document.querySelector('[data-testid="consent-banner-customize-button"]')
-		).toBeInTheDocument();
+	});
+
+	test('keeps the subgroup shape of a scalar policy layout', async () => {
+		// `banner.actionGroups` normalizes a scalar entry into a
+		// single-element array; the banner's own filter does the same, so
+		// the rendered subgroups have to match the policy's shape either
+		// way, with `customize` on its own rather than folded in.
+		await renderBanner(
+			{},
+			{
+				policyBanner: {
+					allowedActions: ['reject', 'accept', 'customize'],
+					direction: 'row',
+					layout: ['customize', ['reject', 'accept']],
+					primaryActions: ['accept'],
+				},
+			}
+		);
+
+		await waitForBanner();
+
+		const footerGroups = Array.from(
+			document.querySelectorAll(
+				'[data-testid="consent-banner-footer-sub-group"]'
+			)
+		).map((group) =>
+			Array.from(group.querySelectorAll<HTMLButtonElement>('button')).map(
+				(button) => button.dataset.testid
+			)
+		);
+
+		expect(footerGroups).toEqual([
+			['consent-banner-customize-button'],
+			['consent-banner-reject-button', 'consent-banner-accept-button'],
+		]);
 	});
 
 	test('shows branding by default and hides it when hideBranding is true', async () => {

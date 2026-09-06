@@ -1,0 +1,10 @@
+/**
+ * @c15t/astro — prebuilt component styles.
+ *
+ * Import this once from a layout or app-level stylesheet when you use the
+ * styled banner and dialog components.
+ *
+ * Usage (src/styles/global.css):
+ *   @import "@c15t/astro/styles.css";
+ */
+@import '@c15t/ui/styles.css';

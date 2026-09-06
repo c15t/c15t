@@ -15,6 +15,7 @@ const FrameRoot = createForwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.placeholder}
+			data-testid="frame-placeholder"
 			{...props}
 		>
 			{children}
@@ -52,16 +53,22 @@ const FrameButton = createForwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { frame } = useTranslations();
+	const { frame, consentTypes } = useTranslations();
 
-	const defaultText = frame?.actionButton?.replace('{category}', category);
+	const categoryTitle =
+		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;
+	const defaultText = frame?.actionButton?.replace('{category}', categoryTitle);
 
 	return (
 		<ConsentButton
+			mode="stroke"
+			size="small"
+			variant="primary"
 			{...props}
 			ref={ref}
-			action="set-consent"
+			action="open-consent-dialog"
 			category={category}
+			data-testid="frame-open-dialog"
 		>
 			{children ?? defaultText}
 		</ConsentButton>

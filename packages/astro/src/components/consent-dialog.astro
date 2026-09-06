@@ -1,0 +1,65 @@
+---
+/**
+ * The preference-centre dialog.
+ *
+ * Renders nothing but an empty host element. The surface itself is an
+ * island in whichever framework the `ui` option names, mounted the first
+ * time something opens it — not `client:load` — so a visitor who accepts
+ * or rejects from the banner never downloads a framework at all.
+ *
+ * ```astro
+ * ---
+ * import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
+ * ---
+ * <ConsentDialog />
+ * ```
+ */
+interface Props {
+	/**
+	 * Warm the island's chunk once the browser is idle, so the first open
+	 * is instant. Costs a background download on every page.
+	 *
+	 * @default false
+	 */
+	preload?: boolean;
+}
+
+const { preload = false } = Astro.props;
+---
+
+<div
+	data-c15t-dialog-host="preferences"
+	data-preload={preload ? 'true' : undefined}
+>
+</div>
+
+<script>
+	import {
+		getConsentClient,
+		openDialog,
+		preloadDialog,
+	} from '@c15t/astro/client';
+
+	// The island's specifier is not written here: only the integration knows
+	// which framework `ui` selected, and naming all of them would make every
+	// build resolve every framework. It registers the one surface from the
+	// page script it injects.
+	const host = document.querySelector('[data-c15t-dialog-host="preferences"]');
+
+	if (host?.getAttribute('data-preload') === 'true') {
+		const schedule = () => {
+			void preloadDialog();
+		};
+		if ('requestIdleCallback' in window) {
+			window.requestIdleCallback(schedule);
+		} else {
+			window.setTimeout(schedule, 2000);
+		}
+	}
+
+	// A page can ask for the dialog before the runtime has booted (a link
+	// with `#c15t-preferences`, say); replaying it here keeps that working.
+	if (window.location.hash === '#c15t-preferences' && getConsentClient()) {
+		void openDialog('preferences');
+	}
+</script>

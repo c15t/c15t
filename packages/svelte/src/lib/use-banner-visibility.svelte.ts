@@ -1,4 +1,4 @@
-import { onMount, tick } from 'svelte';
+import { onMount, tick, untrack } from 'svelte';
 
 const DEFAULT_DURATION_MS = 200;
 
@@ -32,14 +32,25 @@ const readDurationMs = function readDurationMs(target: Element | null): number {
  *   declared by the `--consent-banner-animation-duration` CSS variable.
  * - When animation is disabled (provider option or `prefers-reduced-motion`):
  *   toggles synchronously, skipping the show reflow and the hide timer.
+ * - Server render: when the very first evaluation already says "show" — which
+ *   only happens once a `prefetch` has seeded a resolved policy, since
+ *   without one the kernel's model is `null` and `activeUI` is `'none'` — the
+ *   banner starts mounted and *visible*. That puts the shell in the first
+ *   HTML and skips the entry animation on hydration, which would otherwise
+ *   replay an animation the user has already seen painted. Client-triggered
+ *   shows still take the animated path.
  */
 export const useBannerVisibility = function useBannerVisibility(
 	getShouldShow: () => boolean,
 	getDisableAnimation: () => boolean
 ) {
-	let isVisible = $state(false);
-	let isMounted = $state(false);
-	let shouldRender = $state(false);
+	// Read outside a reactive scope: this is the one-shot server/initial
+	// decision, not an ongoing dependency. The $effect below owns the rest.
+	const serverVisible = untrack(getShouldShow);
+
+	let isVisible = $state(serverVisible);
+	let isMounted = $state(serverVisible);
+	let shouldRender = $state(serverVisible);
 	let bannerEl: HTMLElement | undefined = $state();
 
 	onMount(() => {

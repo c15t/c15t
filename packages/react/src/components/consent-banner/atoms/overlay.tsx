@@ -119,6 +119,7 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			<div
 				ref={ref}
 				{...theme}
+				aria-hidden="true"
 				className={finalClassName}
 				data-testid="consent-banner-overlay"
 			/>

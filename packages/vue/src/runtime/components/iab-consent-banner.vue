@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import type {
-	GlobalVendorList,
-	NonIABVendor,
-	PolicyUiAction,
-} from '@c15t/schema/types';
+import { resolveIABBannerSummary } from '@c15t/iab/headless';
+import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+import { getTextDirection } from '@c15t/ui/utils';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 
 import {
@@ -13,6 +11,7 @@ import {
 	useConsentIabSave,
 	useConsentIabSelection,
 	useConsentInit,
+	useIabTranslations,
 } from '#c15t/composables';
 
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
@@ -20,8 +19,6 @@ import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentTag from './consent-tag.vue';
 
-const MAX_DISPLAY_ITEMS = 5;
-const STANDALONE_PURPOSE_ID = 1;
 const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 	['reject', 'accept'],
 	'customize',
@@ -50,6 +47,9 @@ const iabSelection = useConsentIabSelection();
 const save = useConsentIabSave();
 
 const initValue = computed(() => toValue(init));
+const textDirection = computed(() =>
+	getTextDirection(initValue.value?.translations?.language)
+);
 const gvl = computed(() => initValue.value?.gvl ?? null);
 const customVendors = computed(() => initValue.value?.customVendors ?? []);
 
@@ -69,28 +69,7 @@ const disableAnimation = computed(() =>
 	Boolean(toValue(config).disableAnimation)
 );
 
-const iabT = computed(() => {
-	const translations = toValue(init)?.translations?.translations as
-		| { iab?: Record<string, unknown> }
-		| undefined;
-	return translations?.iab as
-		| {
-				banner?: {
-					title?: string;
-					description?: string;
-					partnersLink?: string;
-					andMore?: string;
-					legitimateInterestNotice?: string;
-					scopeServiceSpecific?: string;
-				};
-				common?: {
-					acceptAll?: string;
-					rejectAll?: string;
-					customize?: string;
-				};
-		  }
-		| undefined;
-});
+const iabT = useIabTranslations();
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
@@ -98,111 +77,14 @@ const labels = computed(() => ({
 	reject: iabT.value?.common?.rejectAll ?? 'Reject all',
 }));
 
-const resolveBannerSummary = function resolveBannerSummary(
-	gvlData: GlobalVendorList,
-	vendors: NonIABVendor[]
-) {
-	const vendorCount = Object.keys(gvlData.vendors).length + vendors.length;
-
-	const purposesWithVendors = Object.entries(gvlData.purposes)
-		.filter(([id]) =>
-			Object.values(gvlData.vendors).some(
-				(vendor) =>
-					vendor.purposes?.includes(Number(id)) ||
-					vendor.legIntPurposes?.includes(Number(id))
-			)
-		)
-		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
-
-	const standalonePurpose = purposesWithVendors.find(
-		(purpose) => purpose.id === STANDALONE_PURPOSE_ID
-	);
-	const otherPurposes = purposesWithVendors.filter(
-		(purpose) => purpose.id !== STANDALONE_PURPOSE_ID
-	);
-	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
-
-	const stackScores: {
-		name: string;
-		coveredPurposeIds: number[];
-		score: number;
-	}[] = [];
-
-	for (const stack of Object.values(gvlData.stacks || {})) {
-		const coveredPurposeIds = stack.purposes.filter((purposeId) =>
-			otherPurposeIds.has(purposeId)
-		);
-		if (coveredPurposeIds.length >= 2) {
-			stackScores.push({
-				coveredPurposeIds,
-				name: stack.name,
-				score: coveredPurposeIds.length,
-			});
-		}
-	}
-
-	stackScores.sort((left, right) => right.score - left.score);
-
-	const selectedStacks: string[] = [];
-	const assignedPurposeIds = new Set<number>();
-	for (const { name, coveredPurposeIds } of stackScores) {
-		const unassigned = coveredPurposeIds.filter(
-			(purposeId) => !assignedPurposeIds.has(purposeId)
-		);
-		if (unassigned.length >= 2) {
-			selectedStacks.push(name);
-			for (const purposeId of unassigned) {
-				assignedPurposeIds.add(purposeId);
-			}
-		}
-	}
-
-	const uncoveredPurposes = otherPurposes.filter(
-		(purpose) => !assignedPurposeIds.has(purpose.id)
-	);
-
-	const specialFeatures = Object.entries(gvlData.specialFeatures || {})
-		.filter(([id]) =>
-			Object.values(gvlData.vendors).some((vendor) =>
-				vendor.specialFeatures?.includes(Number(id))
-			)
-		)
-		.map(([, feature]) => feature.name);
-
-	const items: string[] = [];
-	if (standalonePurpose) {
-		items.push(standalonePurpose.name);
-	}
-	for (const stackName of selectedStacks) {
-		items.push(stackName);
-	}
-	for (const purpose of uncoveredPurposes) {
-		items.push(purpose.name);
-	}
-	for (const featureName of specialFeatures) {
-		items.push(featureName);
-	}
-
-	return {
-		displayItems: items.slice(0, MAX_DISPLAY_ITEMS),
-		isReady: true,
-		remainingCount: Math.max(0, items.length - MAX_DISPLAY_ITEMS),
-		vendorCount,
-	};
-};
-
-const bannerSummary = computed(() => {
-	if (!gvl.value) {
-		return {
-			displayItems: [] as string[],
-			isReady: false,
-			remainingCount: 0,
-			vendorCount: 0,
-		};
-	}
-
-	return resolveBannerSummary(gvl.value, customVendors.value);
-});
+// The summary — which purposes, stacks and special features the banner
+// names, and how many it leaves out — comes from the shared model in
+// `@c15t/iab/headless`, so the four banners list the same things.
+const bannerSummary = computed(() =>
+	resolveIABBannerSummary(
+		gvl.value ? { customVendors: customVendors.value, gvl: gvl.value } : null
+	)
+);
 
 const showBanner = computed(
 	() => isOpen.value && Boolean(gvl.value) && bannerSummary.value.isReady
@@ -253,6 +135,16 @@ const openVendors = function openVendors() {
 	activeUI.value = 'manager';
 };
 
+// The footer *is* the action root, the way it is in React: one element
+// carrying both class sets, not a wrapper around another one.
+const footerAttrs = computed(() => ({
+	...((config.value.components?.['iab-banner']?.footer as object | undefined) ??
+		{}),
+	...((config.value.components?.['iab-banner']?.actions as
+		| object
+		| undefined) ?? {}),
+}));
+
 const scrollLock = computed(
 	() => initValue.value?.policy?.ui?.banner?.scrollLock ?? true
 );
@@ -262,14 +154,17 @@ useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
 );
-const card = ref<HTMLElement | null>(null);
-useFocusTrap(card, () => shouldTrapFocus.value);
+// The trap goes on the root, not the card: `setupFocusTrap` stamps
+// `tabindex="-1"` on whatever it is given, and the root is the element
+// that declares one in every other adapter.
+const bannerRoot = ref<HTMLElement | null>(null);
+useFocusTrap(bannerRoot, () => shouldTrapFocus.value);
 </script>
 
 <template>
 	<Teleport to="body">
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="bannerStyles.overlayHidden"
 			:enter-active-class="bannerStyles.overlayVisible"
 			:enter-to-class="bannerStyles.overlayVisible"
@@ -280,12 +175,13 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner && scrollLock"
 				v-bind="config.components?.['iab-banner']?.overlay"
+				aria-hidden="true"
 				data-testid="iab-consent-banner-overlay"
-				:class="bannerStyles.overlay"
+				:class="[bannerStyles.overlay, bannerStyles.overlayVisible]"
 			/>
 		</Transition>
 		<Transition
-			:disabled="disableAnimation"
+			:css="!disableAnimation"
 			:enter-from-class="bannerStyles.bannerHidden"
 			:enter-active-class="bannerStyles.bannerVisible"
 			:enter-to-class="bannerStyles.bannerVisible"
@@ -296,8 +192,14 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 			<div
 				v-if="showBanner"
 				v-bind="config.components?.['iab-banner']?.root"
+				ref="bannerRoot"
 				data-testid="iab-consent-banner-root"
-				:class="bannerStyles.root"
+				:data-position="
+					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
+				"
+				:dir="textDirection"
+				tabindex="-1"
+				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
 			>
 				<div
 					v-bind="config.components?.['iab-banner']?.cardShell"
@@ -308,14 +210,12 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 						context="iab-banner"
 					/>
 					<div
-						ref="card"
 						v-bind="config.components?.['iab-banner']?.card"
 						data-testid="iab-consent-banner-card"
 						:class="bannerStyles.card"
 						role="dialog"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"
-						tabindex="-1"
 					>
 						<div
 							v-bind="config.components?.['iab-banner']?.header"
@@ -377,28 +277,22 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								{{ iabT?.banner?.scopeServiceSpecific }}
 							</p>
 						</div>
-						<div
-							v-bind="config.components?.['iab-banner']?.footer"
-							data-testid="iab-consent-banner-footer"
-							:class="bannerStyles.footer"
-						>
-							<ConsentActions
-								:layout="IAB_BANNER_LAYOUT"
-								:primary-actions="[primaryButton]"
-								:labels="labels"
-								:test-ids="IAB_BANNER_ACTION_TEST_IDS"
-								secondary-mode="stroke"
-								:root-attrs="
-									config.components?.['iab-banner']?.actions as
-										object | undefined
-								"
-								:group-attrs="
-									config.components?.['iab-banner']?.actionGroup as
-										object | undefined
-								"
-								@action="onAction"
-							/>
-						</div>
+						<ConsentActions
+							:layout="IAB_BANNER_LAYOUT"
+							:primary-actions="[primaryButton]"
+							:labels="labels"
+							:test-ids="IAB_BANNER_ACTION_TEST_IDS"
+							primary-mode="filled"
+							secondary-mode="stroke"
+							root-test-id="iab-consent-banner-footer"
+							:root-class="bannerStyles.footer"
+							:root-attrs="footerAttrs"
+							:group-attrs="
+								config.components?.['iab-banner']?.actionGroup as
+									object | undefined
+							"
+							@action="onAction"
+						/>
 					</div>
 				</div>
 			</div>

@@ -1,0 +1,51 @@
+---
+/**
+ * The IAB TCF surfaces.
+ *
+ * Run the demo with `C15T_IAB=1` and the server resolves a TCF policy, so
+ * the layout renders `<IABConsentBanner />` and `<IABConsentDialog />`
+ * instead of the core pair. Without the flag this page says so rather
+ * than rendering a banner that is not there.
+ */
+import ConsentState from '../components/consent-state.astro';
+import BaseLayout from '../layouts/base.astro';
+
+const { c15t } = Astro.locals;
+const isIAB = c15t.snapshot.model === 'iab';
+---
+
+<BaseLayout title="IAB TCF">
+	{
+		isIAB ? (
+			<p>
+				The banner is server-rendered with no framework JavaScript: the
+				purposes it names, the "+N more" count and the partner count all come
+				from the shared model in <code>@c15t/iab/headless</code>, the same one
+				the React, Svelte and Vue banners read. "Customize" and the partners
+				link both open the TCF preference centre, which arrives as an island
+				on its own chunk — the partners link lands on the vendors tab.
+			</p>
+		) : (
+			<p data-testid="iab-disabled-notice">
+				IAB is off. Restart the demo with <code>C15T_IAB=1</code> to resolve a
+				TCF policy and render the IAB surfaces.
+			</p>
+		)
+	}
+
+	<section class="panel">
+		<h2>What the server decided</h2>
+		<pre>{JSON.stringify(
+			{
+				model: c15t.snapshot.model,
+				policy: c15t.snapshot.policy?.id ?? null,
+				shouldShowBanner: c15t.shouldShowBanner,
+				vendorCount: Object.keys(c15t.snapshot.iab?.gvl?.vendors ?? {}).length,
+			},
+			null,
+			2
+		)}</pre>
+	</section>
+
+	<ConsentState />
+</BaseLayout>

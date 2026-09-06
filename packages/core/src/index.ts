@@ -13,6 +13,7 @@
  */
 
 export {
+	DEFAULT_POLICY_ACTION_LAYOUT,
 	flattenPolicyActionGroups,
 	hasPolicyHints,
 	resolvePolicyActionGroups,
