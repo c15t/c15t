@@ -80,17 +80,16 @@ export const processGVLData = function processGVLData(
  * Compute display items for the IAB consent banner.
  *
  * @param gvl - The Global Vendor List.
- * @param maxItems - Ignored; the shared model owns the cap so the four
- * banners list the same number of items. Kept so existing call sites
- * compile.
+ * @param maxItems - How many items to list before collapsing the rest.
+ * Defaults to the cap the shared model applies, so the four banners list
+ * the same number of items unless a caller asks otherwise.
  * @returns The item names to list, and how many were left out.
  */
 export const getIABBannerDisplayItems = function getIABBannerDisplayItems(
 	gvl: GlobalVendorList,
 	maxItems?: number
 ): { displayed: string[]; remainingCount: number } {
-	void maxItems;
-	const summary = resolveIABBannerSummary({ gvl });
+	const summary = resolveIABBannerSummary({ gvl }, { maxItems });
 	return {
 		displayed: summary.displayItems,
 		remainingCount: summary.remainingCount,

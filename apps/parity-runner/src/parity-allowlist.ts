@@ -42,6 +42,12 @@ export interface ParityAllowEntry {
 	reason: string;
 }
 
+/**
+ * The one IAB allowance left, shared by every entry that carries it.
+ */
+const IAB_VENDOR_LIST_REASON =
+	"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.";
+
 export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	// ---------------------------------------------------------------------
 	// Dialog primitives. Every adapter now agrees on the boxes, the roles and
@@ -172,39 +178,36 @@ export const PARITY_ALLOWLIST: readonly ParityAllowEntry[] = [
 	},
 
 	// ---------------------------------------------------------------------
-	// IAB. The banner is fully converged — no allowance on any check. The
+	// IAB. The banner is converged on every check bar the one DOM entry
+	// above, for the boot attributes only Astro's server render carries. The
 	// preference centre is converged everywhere the eye can reach; what is
 	// left is the vendor list's collapsed internals.
 	// ---------------------------------------------------------------------
 	{
 		check: 'dom',
 		framework: 'svelte',
-		reason:
-			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
+		reason: IAB_VENDOR_LIST_REASON,
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
 	},
 	{
 		check: 'dom',
 		framework: 'astro',
-		reason:
-			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
+		reason: IAB_VENDOR_LIST_REASON,
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
 	},
 	{
 		check: 'dom',
 		framework: 'vue',
-		reason:
-			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
+		reason: IAB_VENDOR_LIST_REASON,
 		slot: '*',
 		story: 'IAB/IAB Consent Dialog/Overview',
 	},
 	{
 		check: 'dom',
 		framework: 'vue',
-		reason:
-			"The IAB preference centre's vendor list. Every other IAB check is clean — geometry, pixel and a11y pass with no allowance on either surface, and the banner passes all five — so what is left is the markup inside the collapsed vendor rows, which the DOM snapshot compares byte for byte even while it is closed. Two known differences remain. React sizes several icons with inline `style` where Svelte and Vue use the `legitimateInterestIcon` class, and React's vendor purpose headings carry the `role` and `focusable` attributes its icons elsewhere do not; converging them is a `packages/react` icon pass, not an adapter fix. And Vue's `iab-vendor-list.vue` is a much thinner component than React's — flat rows with no expandable detail, no legitimate-interest or custom-vendor sections — so roughly 600 lines of it have no counterpart to compare. Porting it is its own change.",
+		reason: IAB_VENDOR_LIST_REASON,
 		slot: '*',
 		story: 'IAB/IAB Consent Banner/Customize Flow',
 	},

@@ -102,7 +102,8 @@
 		</PreferenceItem.Trigger>
 		<PreferenceItem.Control class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
-				<span class="sr-only">Partially enabled</span>
+				<span class={noStyle ? '' : styles.srOnly || ''}>Partially enabled</span
+				>
 				<div class={noStyle ? '' : styles.partialIndicator || ''}></div>
 			{/if}
 			<Switch.Root

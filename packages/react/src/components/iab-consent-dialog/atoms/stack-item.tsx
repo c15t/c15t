@@ -140,7 +140,7 @@ export const StackItem: FC<StackItemProps> = ({
 				>
 					{someEnabled && (
 						<>
-							<span className="sr-only">Partially enabled</span>
+							<span className={styles.srOnly}>Partially enabled</span>
 							<div className={styles.partialIndicator} />
 						</>
 					)}

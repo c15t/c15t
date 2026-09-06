@@ -13,7 +13,11 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import switchStyles from '@c15t/ui/styles/components/switch';
 import { computed, ref, toValue } from 'vue';
 
-import { useConsentConfig, useConsentInit } from '#c15t/composables';
+import {
+	useConsentConfig,
+	useConsentInit,
+	useIabTranslations,
+} from '#c15t/composables';
 
 import {
 	PreferenceItemAuxiliary,
@@ -81,36 +85,7 @@ const isExpanded = ref(false);
 const showExamples = ref(false);
 const showVendors = ref(false);
 
-const iabT = computed(
-	() =>
-		(
-			toValue(init)?.translations?.translations as {
-				iab?: Record<string, unknown>;
-			}
-		)?.iab as
-			| {
-					common?: { customPartner?: string };
-					preferenceCenter?: {
-						purposeItem?: {
-							partners?: string;
-							vendorsUseLegitimateInterest?: string;
-							examples?: string;
-							partnersUsingPurpose?: string;
-							withYourPermission?: string;
-							legitimateInterest?: string;
-							objectButton?: string;
-							objected?: string;
-							rightToObject?: string;
-						};
-						vendorList?: {
-							usesCookies?: string;
-							nonCookieAccess?: string;
-							customVendorsHeading?: string;
-						};
-					};
-			  }
-			| undefined
-);
+const iabT = useIabTranslations();
 
 const legIntVendors = computed(() =>
 	props.purpose.vendors.filter((vendor) => vendor.usesLegitimateInterest)

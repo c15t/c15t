@@ -53,6 +53,7 @@ import type {
 	TranslationsResponse,
 } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
+import { isIABConfigured } from './iab-options';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeIABFactoryOptions,
@@ -76,6 +77,7 @@ export type {
 export type { WireRuntimeCallbacksOptions } from './callbacks';
 export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
 export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
+export { isIABConfigured } from './iab-options';
 export { createLazyIABFactory } from './lazy-iab';
 
 /**
@@ -248,7 +250,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	const transportContext: ProviderTransportContext = {
 		consentCategories: options.consentCategories,
-		iabEnabled: options.iab !== false && Boolean(options.iab),
+		iabEnabled: isIABConfigured(options.iab),
 		offlinePolicy,
 		policies: options.policies,
 		prefetch,

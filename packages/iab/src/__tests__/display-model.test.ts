@@ -2,7 +2,12 @@ import { MINIMAL_GVL } from '@c15t/conformance/fixtures/gvl';
 import type { GlobalVendorList } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
-import { iabDisplayTestId, resolveIABDialogDisplayModel } from '../headless';
+import {
+	IAB_BANNER_MAX_DISPLAY_ITEMS,
+	iabDisplayTestId,
+	resolveIABBannerSummary,
+	resolveIABDialogDisplayModel,
+} from '../headless';
 import type { HeadlessIABDisplayStackRow } from '../headless';
 import { completeGVL } from './fixtures/gvl-sample';
 
@@ -129,5 +134,23 @@ describe('IAB dialog display model', () => {
 			'special-purpose-item-1'
 		);
 		expect(iabDisplayTestId('feature', 1)).toBe('feature-item-1');
+	});
+});
+
+describe('IAB banner summary item cap', () => {
+	test('honours a caller-supplied maxItems', () => {
+		const summary = resolveIABBannerSummary(
+			{ gvl: completeGVL as GlobalVendorList },
+			{ maxItems: 1 }
+		);
+		expect(summary.displayItems).toHaveLength(1);
+		expect(summary.remainingCount).toBeGreaterThan(0);
+		const capped = resolveIABBannerSummary({
+			gvl: completeGVL as GlobalVendorList,
+		});
+		expect(capped.displayItems.length).toBeLessThanOrEqual(
+			IAB_BANNER_MAX_DISPLAY_ITEMS
+		);
+		expect(summary.displayItems[0]).toBe(capped.displayItems[0]);
 	});
 });

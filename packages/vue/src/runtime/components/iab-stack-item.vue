@@ -10,7 +10,11 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 import switchStyles from '@c15t/ui/styles/components/switch';
 import { computed, ref, toValue } from 'vue';
 
-import { useConsentConfig, useConsentInit } from '#c15t/composables';
+import {
+	useConsentConfig,
+	useConsentInit,
+	useIabTranslations,
+} from '#c15t/composables';
 
 import {
 	PreferenceItemContent,
@@ -55,23 +59,7 @@ const isExpanded = ref(false);
 const config = useConsentConfig();
 const init = useConsentInit();
 
-const iabT = computed(
-	() =>
-		(
-			toValue(init)?.translations?.translations as {
-				iab?: Record<string, unknown>;
-			}
-		)?.iab as
-			| {
-					preferenceCenter?: {
-						vendorList?: {
-							partnerSingular?: string;
-							partnerPlural?: string;
-						};
-					};
-			  }
-			| undefined
-);
+const iabT = useIabTranslations();
 
 const allEnabled = computed(() =>
 	props.stack.purposes.every((purpose) => props.consents[purpose.id] ?? false)
@@ -147,7 +135,7 @@ const stackChecked = computed({
 			</PreferenceItemTrigger>
 			<PreferenceItemControl :class="dialogStyles.stackControls">
 				<template v-if="someEnabled">
-					<span class="sr-only">Partially enabled</span>
+					<span :class="dialogStyles.srOnly">Partially enabled</span>
 					<div :class="dialogStyles.partialIndicator" />
 				</template>
 				<SwitchRoot

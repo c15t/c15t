@@ -35,6 +35,13 @@ const EXPECTED_CONSENT_ROWS = [
 	'special-feature-item-1',
 ];
 
+/** The test-id namespaces a row in the consent list can carry. */
+const CONSENT_ROW_PREFIXES = [
+	'purpose-item-',
+	'stack-item-',
+	'special-feature-item-',
+];
+
 /** Every `data-testid` on or under an element, in document order. */
 const testIdsWithin = function testIdsWithin(
 	root: ParentNode,
@@ -142,12 +149,12 @@ export const runIabConformance = function runIabConformance(
 					await waitForCondition(
 						() => testIdsWithin(document.body, 'purpose-item-').length > 0
 					);
-					const rows = testIdsWithin(document.body, 'purpose-item-').concat(
-						testIdsWithin(document.body, 'special-feature-item-')
+					// Document order, across every kind the consent list can hold,
+					// so the assertion covers the order and not just membership.
+					const rows = testIdsWithin(document.body, '').filter((id) =>
+						CONSENT_ROW_PREFIXES.some((prefix) => id.startsWith(prefix))
 					);
-					for (const expected of EXPECTED_CONSENT_ROWS) {
-						api.expect(rows).toContain(expected);
-					}
+					api.expect(rows).toEqual(EXPECTED_CONSENT_ROWS);
 				} finally {
 					await mounted.unmount();
 				}

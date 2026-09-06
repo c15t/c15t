@@ -61,6 +61,7 @@ declare const styles: {
   readonly "specialPurposesHeader": string;
   readonly "specialPurposesSection": string;
   readonly "specialPurposesTitle": string;
+  readonly "srOnly": string;
   readonly "stackContent": string;
   readonly "stackControls": string;
   readonly "stackDescription": string;

@@ -11,6 +11,7 @@ export {
 	IAB_BANNER_MAX_DISPLAY_ITEMS,
 	resolveIABBannerSummary,
 } from './headless/banner-summary';
+export type { ResolveIABBannerSummaryOptions } from './headless/banner-summary';
 export {
 	type HeadlessIABDialogDisplayModel,
 	type HeadlessIABDisplayConsentRow,

@@ -25,6 +25,7 @@ import {
 	CONSENT_STORAGE_KEY,
 	readStoredConsentFromCookie,
 } from '@c15t/core/modules/persistence';
+import { isIABConfigured } from '@c15t/core/runtime';
 import { fetchCachedGvl } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import {
@@ -390,10 +391,7 @@ const prefetchOffline = async function prefetchOffline(
 	const transport = createOfflineTransport({
 		// Same reason as the client factory in `mode.ts`: a pack whose model
 		// is `iab` needs a configured CMP to be eligible.
-		iabEnabled:
-			options.iab !== false &&
-			options.iab !== undefined &&
-			options.iab.enabled !== false,
+		iabEnabled: isIABConfigured(options.iab),
 		policyPacks:
 			policyPacks && policyPacks.length > 0 ? policyPacks : undefined,
 		translations: input.translations,
@@ -453,8 +451,8 @@ const withResolvedGvl = async function withResolvedGvl(input: {
 	language: string;
 	fetch?: typeof globalThis.fetch;
 }): Promise<KernelConfig> {
-	const iab = input.options.iab === false ? undefined : input.options.iab;
-	if (!iab || iab.enabled === false) {
+	const { iab } = input.options;
+	if (!(isIABConfigured(iab) && iab)) {
 		return input.config;
 	}
 	if (input.config.initialIab?.gvl) {

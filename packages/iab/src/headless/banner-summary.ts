@@ -18,15 +18,31 @@ export const IAB_BANNER_MAX_DISPLAY_ITEMS = 5;
 
 const STANDALONE_PURPOSE_ID = 1;
 
+/** Options for {@link resolveIABBannerSummary}. */
+export interface ResolveIABBannerSummaryOptions {
+	/**
+	 * How many items to list before collapsing the rest into the
+	 * "and {count} more" line. Defaults to {@link IAB_BANNER_MAX_DISPLAY_ITEMS}.
+	 */
+	maxItems?: number;
+}
+
 /**
  * Resolves the IAB banner summary from the current IAB state.
  *
  * Pure function — no framework reactivity. Each framework package
  * wraps this in its own reactive primitive (useMemo, $derived, computed, etc.).
+ *
+ * @param iab - IAB state carrying the GVL and any custom vendors.
+ * @param options - The item cap, when a caller wants its own.
+ * @returns The names the banner lists, how many it left out, and the
+ * vendor count.
  */
 export const resolveIABBannerSummary = function resolveIABBannerSummary(
-	iab: HeadlessIABStateInput | null
+	iab: HeadlessIABStateInput | null,
+	options: ResolveIABBannerSummaryOptions = {}
 ): HeadlessIABBannerState {
+	const maxItems = options.maxItems ?? IAB_BANNER_MAX_DISPLAY_ITEMS;
 	if (!iab?.gvl) {
 		return {
 			displayItems: [],
@@ -120,9 +136,9 @@ export const resolveIABBannerSummary = function resolveIABBannerSummary(
 	}
 
 	return {
-		displayItems: items.slice(0, IAB_BANNER_MAX_DISPLAY_ITEMS),
+		displayItems: items.slice(0, maxItems),
 		isReady: true,
-		remainingCount: Math.max(0, items.length - IAB_BANNER_MAX_DISPLAY_ITEMS),
+		remainingCount: Math.max(0, items.length - maxItems),
 		vendorCount,
 	};
 };

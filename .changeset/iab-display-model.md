@@ -24,3 +24,5 @@ purpose and feature twice as a result; it no longer does.
 `resolveIABBannerSummary` also exports the item cap it applies as
 `IAB_BANNER_MAX_DISPLAY_ITEMS`, so a caller that wants to say how many
 items were left out does not have to guess the number.
+
+`resolveIABBannerSummary` takes an optional `maxItems`, so a caller with its own cap — `@c15t/svelte`'s `getIABBannerDisplayItems` — is honoured instead of silently ignored.

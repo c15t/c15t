@@ -11,6 +11,7 @@ import {
 	useConsentIabSave,
 	useConsentIabSelection,
 	useConsentInit,
+	useIabTranslations,
 } from '#c15t/composables';
 
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
@@ -68,28 +69,7 @@ const disableAnimation = computed(() =>
 	Boolean(toValue(config).disableAnimation)
 );
 
-const iabT = computed(() => {
-	const translations = toValue(init)?.translations?.translations as
-		| { iab?: Record<string, unknown> }
-		| undefined;
-	return translations?.iab as
-		| {
-				banner?: {
-					title?: string;
-					description?: string;
-					partnersLink?: string;
-					andMore?: string;
-					legitimateInterestNotice?: string;
-					scopeServiceSpecific?: string;
-				};
-				common?: {
-					acceptAll?: string;
-					rejectAll?: string;
-					customize?: string;
-				};
-		  }
-		| undefined;
-});
+const iabT = useIabTranslations();
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',

@@ -331,20 +331,21 @@ const createClient = function createClient(
 			if (disposed) {
 				return;
 			}
-			// The tab lives in the island's own component state, so asking
-			// for a different one on an already-mounted surface means
-			// remounting it.
-			if (dialog && tab && tab !== dialogTab) {
-				await dialog.destroy();
-				dialog = null;
-			}
 			if (opening) {
 				await opening;
 			}
 			if (disposed) {
 				return;
 			}
-			if (dialog && dialogKind !== kind) {
+			// The tab lives in the island's own component state, so asking
+			// for a different one on an already-mounted surface means
+			// remounting it. Checked after any pending mount has settled, so
+			// a "N partners" click that lands while "Customize" is still
+			// loading the island is honoured rather than dropped.
+			if (
+				dialog &&
+				(dialogKind !== kind || (tab !== undefined && tab !== dialogTab))
+			) {
 				await dialog.destroy();
 				dialog = null;
 			}

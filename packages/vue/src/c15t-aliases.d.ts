@@ -21,6 +21,7 @@ declare module '#c15t/composables' {
 		useConsentSave,
 		type ConsentSaveInput,
 	} from './runtime/composables/consent';
+	export { useIabTranslations } from './runtime/composables/iab-translations';
 	export { useConsentInit } from './runtime/composables/init';
 	export { useConsentLanguage } from './runtime/composables/language';
 	export { useRequestRegion } from './runtime/composables/region';

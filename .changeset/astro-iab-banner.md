@@ -22,3 +22,5 @@ policy resolution has to know a CMP is configured, and no adapter told it.
 `ProviderTransportContext` now carries `iabEnabled` and the React, Svelte
 and Astro offline factories forward it, so an offline IAB site resolves
 its own policy instead of falling through to the no-banner one.
+
+`isIABConfigured` from `c15t/runtime` is the one answer to "is a CMP configured": `false`, an absent option and `enabled: false` all mean no. The runtime kernel and the Astro server render both read it, so a server and the browser it hands off to resolve the same policy.

@@ -444,6 +444,19 @@
 		height: 0.75rem;
 	}
 
+	/* Text for assistive technology only, kept out of the visual layout. */
+	.srOnly {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
 	.purposeContent {
 		padding: 0 0.75rem 0.75rem;
 		border-top: 1px solid var(--iab-cd-border-color);

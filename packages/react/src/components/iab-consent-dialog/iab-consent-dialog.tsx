@@ -302,14 +302,24 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		return () => clearTimeout(timer);
 	}, [isOpen, config.disableAnimation]);
 
+	// A caller-supplied `initialTab` outranks the provider's remembered tab
+	// on the first open — that is what makes a "N partners" deep link land
+	// on the vendor list when nothing has told the provider about it, as
+	// on an Astro island. After that the provider's tab is the one writer.
+	const initialTabPendingRef = useRef(Boolean(initialTab));
 	useEffect(() => {
 		const preferenceCenterTab = iabState?.preferenceCenterTab;
-		if (isOpen && preferenceCenterTab) {
-			const frame = requestAnimationFrame(() => {
-				setActiveTab(preferenceCenterTab);
-			});
-			return () => cancelAnimationFrame(frame);
+		if (!(isOpen && preferenceCenterTab)) {
+			return;
 		}
+		if (initialTabPendingRef.current) {
+			initialTabPendingRef.current = false;
+			return;
+		}
+		const frame = requestAnimationFrame(() => {
+			setActiveTab(preferenceCenterTab);
+		});
+		return () => cancelAnimationFrame(frame);
 	}, [isOpen, iabState?.preferenceCenterTab]);
 
 	// Smooth height animation when switching tabs
@@ -716,6 +726,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 													<div className={styles.specialPurposesHeader}>
 														<button
 															type="button"
+															aria-expanded={specialPurposesExpanded}
 															onClick={() =>
 																setSpecialPurposesExpanded(
 																	!specialPurposesExpanded

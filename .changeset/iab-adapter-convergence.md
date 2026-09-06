@@ -29,3 +29,5 @@ carry the test-ids the contract already declared.
 
 `<IABConsentDialog>` takes an `initialTab` in all three, so a caller can
 open the preference centre on the vendor list.
+
+Vue reads its IAB copy through `useIabTranslations`, which fills the English defaults in underneath the active bundle the way React and Svelte already did, so a language file without `partnerSingular` still names its partners. The "Essential functions" trigger carries `aria-expanded` in all three, and the partial-selection text is hidden by the shared stylesheet rather than a class no adapter shipped.

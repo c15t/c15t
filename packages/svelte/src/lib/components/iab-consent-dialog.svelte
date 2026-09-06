@@ -366,6 +366,7 @@
 										>
 											<button
 												type="button"
+												aria-expanded={specialPurposesExpanded}
 												class={noStyle ? '' : styles.purposeTrigger || ''}
 												onclick={() =>
 													(specialPurposesExpanded = !specialPurposesExpanded)}

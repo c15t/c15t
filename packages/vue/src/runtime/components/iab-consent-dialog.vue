@@ -17,6 +17,7 @@ import {
 	useConsentIabSave,
 	useConsentIabSelection,
 	useConsentInit,
+	useIabTranslations,
 } from '#c15t/composables';
 import type { ConsentIabSelection } from '#c15t/composables';
 
@@ -95,42 +96,14 @@ const props = withDefaults(
 		 */
 		initialTab?: 'purposes' | 'vendors';
 	}>(),
-	{ initialTab: 'purposes' }
+	{ initialTab: undefined }
 );
 
-const activeTab = ref<'purposes' | 'vendors'>(props.initialTab);
+const activeTab = ref<'purposes' | 'vendors'>(props.initialTab ?? 'purposes');
 const selectedVendorId = ref<IabVendorId | null>(null);
 const specialPurposesExpanded = ref(false);
 
-const iabT = computed(
-	() =>
-		(
-			toValue(init)?.translations?.translations as {
-				iab?: Record<string, unknown>;
-			}
-		)?.iab as
-			| {
-					common?: {
-						acceptAll?: string;
-						rejectAll?: string;
-						saveSettings?: string;
-						close?: string;
-						loading?: string;
-					};
-					preferenceCenter?: {
-						title?: string;
-						description?: string;
-						tabs?: { purposes?: string; vendors?: string };
-						specialPurposes?: { title?: string; tooltip?: string };
-						vendorList?: {
-							partnerSingular?: string;
-							partnerPlural?: string;
-						};
-						footer?: { consentStorage?: string };
-					};
-			  }
-			| undefined
-);
+const iabT = useIabTranslations();
 
 const labels = computed(() => ({
 	accept: iabT.value?.common?.acceptAll ?? 'Accept all',
@@ -572,6 +545,7 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											<div :class="dialogStyles.specialPurposesHeader">
 												<button
 													type="button"
+													:aria-expanded="specialPurposesExpanded"
 													:class="dialogStyles.purposeTrigger"
 													@click="
 														specialPurposesExpanded = !specialPurposesExpanded
