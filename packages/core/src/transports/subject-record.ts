@@ -28,6 +28,7 @@ import type {
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
+	CategoryDecision,
 	ConsentSubject,
 	ExplicitChoice,
 	OptionalConsentCategory,
@@ -61,10 +62,11 @@ type ItemReceipts =
 
 const itemReceipts = (item: ConsentItem): ItemReceipts => {
 	const { choice } = item;
-	if (choice === undefined || choice === null) {
+	if (choice === undefined) {
 		return { kind: 'absent' };
 	}
 	if (
+		choice === null ||
 		typeof choice !== 'object' ||
 		choice.version !== 3 ||
 		typeof choice.categories !== 'object' ||
@@ -113,15 +115,28 @@ const legacyReceipts = (
 const mergeItems = (
 	items: readonly ConsentItem[]
 ): SubjectChoiceWire | null | undefined => {
-	const categories: SubjectChoiceWire['categories'] = {};
-	let any = false;
+	const categories = new Map<OptionalConsentCategory, CategoryDecision>();
 	const ordered = [...items].sort(
 		(left, right) => toTime(left.givenAt) - toTime(right.givenAt)
 	);
 	for (const item of ordered) {
+		if (item.type !== COOKIE_BANNER) {
+			continue;
+		}
 		const stored = itemReceipts(item);
 		if (stored.kind === 'unreadable') {
 			return null;
+		}
+		if (stored.kind === 'absent') {
+			// A legacy snapshot supersedes older grants, even when it stores
+			// no granted codes. Omission cannot prove a refusal, but it also
+			// cannot preserve permission from an earlier snapshot.
+			for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+				const current = categories.get(category);
+				if (current?.value && current.confirmedAt <= toTime(item.givenAt)) {
+					categories.delete(category);
+				}
+			}
 		}
 		const receipts =
 			stored.kind === 'receipts' ? stored.categories : legacyReceipts(item);
@@ -133,14 +148,15 @@ const mergeItems = (
 			if (!receipt) {
 				continue;
 			}
-			const current = categories[category];
+			const current = categories.get(category);
 			if (current === undefined || receipt.confirmedAt >= current.confirmedAt) {
-				categories[category] = receipt;
-				any = true;
+				categories.set(category, receipt);
 			}
 		}
 	}
-	return any ? { categories, version: 3 } : undefined;
+	return categories.size > 0
+		? { categories: Object.fromEntries(categories), version: 3 }
+		: undefined;
 };
 
 /** Identifiers as stored: literal strings, never decoded or coerced. */

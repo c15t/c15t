@@ -351,9 +351,9 @@ for (const engine of ENGINES) {
 			);
 
 			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
-			assert.isUndefined(read.body.subjectChoice);
+			assert.isNull(read.body.subjectChoice);
 			const consents = read.body.consents as { choice?: unknown }[];
-			assert.isUndefined(consents[0]?.choice);
+			assert.isNull(consents[0]?.choice);
 		});
 
 		it('lets a v3 receipt supersede a legacy receipt for its own category only', async () => {

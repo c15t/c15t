@@ -20,9 +20,9 @@
  * exact-policy hash, not the material one, so nothing comparable exists and
  * the receipt is grandfathered.
  *
- * A row whose stored receipts cannot be read is skipped entirely. Nothing is
- * salvaged from it, not even its granted codes, because the receipts were the
- * more specific evidence and they are unreadable.
+ * Legacy snapshots and unreadable rows supersede older grants. Explicit
+ * denials survive unless a later receipt or legacy grant replaces them.
+ * No grants are salvaged from an unreadable row's purpose codes.
  *
  * Pure. No queries, no clock.
  */
@@ -90,19 +90,35 @@ const legacyReceipts = (
 /**
  * Folds consent rows into the latest receipt per category.
  *
- * A receipt wins by its own `confirmedAt`, not by row order: a partial save
+ * A v3 receipt wins by its own `confirmedAt`, not by row order: a partial save
  * that confirmed only `marketing` must not renew the `measurement` receipt an
  * earlier act made. Ties keep the later row.
  */
 export const mergeSubjectChoice = function mergeSubjectChoice(
 	rows: readonly ChoiceSourceRow[]
-): SubjectChoiceWire | undefined {
-	const categories: SubjectChoiceWire['categories'] = {};
-	let any = false;
+): SubjectChoiceWire | null {
+	const categories = new Map<
+		PolicyOptionalCategory,
+		SubjectCategoryReceiptWire
+	>();
 	const ordered = [...rows].sort(
 		(left, right) => left.givenAt.getTime() - right.givenAt.getTime()
 	);
 	for (const row of ordered) {
+		if (row.type !== COOKIE_BANNER_TYPE) {
+			continue;
+		}
+		if (row.choice.kind !== 'receipts') {
+			// Legacy rows are snapshots, not partial receipt patches. A later
+			// snapshot or unreadable record cannot renew an earlier grant whose
+			// category it no longer proves. Keep explicit denials intact.
+			for (const category of POLICY_OPTIONAL_CATEGORIES) {
+				const current = categories.get(category);
+				if (current?.value && current.confirmedAt <= row.givenAt.getTime()) {
+					categories.delete(category);
+				}
+			}
+		}
 		if (row.choice.kind === 'unreadable') {
 			continue;
 		}
@@ -114,14 +130,15 @@ export const mergeSubjectChoice = function mergeSubjectChoice(
 			if (!isOptionalCategory(key) || receipt === undefined) {
 				continue;
 			}
-			const current = categories[key];
+			const current = categories.get(key);
 			if (current === undefined || receipt.confirmedAt >= current.confirmedAt) {
-				categories[key] = receipt;
-				any = true;
+				categories.set(key, receipt);
 			}
 		}
 	}
-	return any ? { categories, version: 3 } : undefined;
+	return categories.size > 0
+		? { categories: Object.fromEntries(categories), version: 3 }
+		: null;
 };
 
 /** What a row's `choice` column holds. See {@link StoredChoice}. */

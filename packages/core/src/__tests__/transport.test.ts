@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createConsentKernel, createHostedTransport } from '../index';
 import type { InitResponse, KernelTransport, SaveResult } from '../index';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
+import { buildDecisionAssertion } from '../transports/decision-inputs';
 import { createManifestTransport } from '../transports/manifest';
 import {
 	choiceRecords,
@@ -996,6 +997,54 @@ describe('kernel transport: failed save replay', () => {
 			givenAt: 1_700_000_000_000,
 		});
 		kernel.dispose();
+	});
+
+	test('queued no-match saves retain the action inputs after init changes location', async () => {
+		const saveSpy = vi
+			.fn<NonNullable<KernelTransport['save']>>()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({
+			initialLocation: { countryCode: 'US', regionCode: null },
+			initialOverrides: { region: 'CA' },
+			initialPolicyResolution: { policy: null, status: 'no-match' },
+			transport: {
+				init: () =>
+					Promise.resolve({
+						location: { countryCode: 'DE', regionCode: 'BE' },
+					}),
+				save: saveSpy,
+			},
+		});
+		try {
+			expect((await kernel.commands.save('none')).ok).toBe(false);
+			await kernel.commands.init();
+			await vi.waitFor(() => expect(saveSpy).toHaveBeenCalledTimes(2));
+			const replay = saveSpy.mock.calls[1]?.[0];
+			expect(replay).toBeDefined();
+			if (!replay) {
+				throw new Error('Expected queued save replay');
+			}
+			expect(
+				buildDecisionAssertion(replay, {
+					country: 'DE',
+					fingerprint: 'new-policy',
+					language: 'de',
+					policyId: 'new-policy',
+					region: 'BE',
+				})
+			).toEqual({
+				country: 'US',
+				fingerprint: undefined,
+				gpc: false,
+				language: 'en',
+				policyId: null,
+				region: null,
+			});
+			expect(window.localStorage.getItem(PENDING_SAVES_STORAGE_KEY)).toBeNull();
+		} finally {
+			kernel.dispose();
+		}
 	});
 
 	test('queue updates wait for the cross-tab Web Lock', async () => {
@@ -2329,7 +2378,7 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(body).not.toHaveProperty('gpc');
 	});
 
-	test('does not send asserted decision inputs when the manifest resolved no policy pack', async () => {
+	test('explicitly asserts no-match when the configured manifest contains no policy packs', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
 				status: 200,
@@ -2376,13 +2425,14 @@ describe('createManifestTransport: local init resolution', () => {
 		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
 		const body = JSON.parse((subjectsInit as RequestInit).body as string);
 		expect(body).toMatchObject({ subjectId: 'sub_test' });
-		// Partial inputs (country/language without policyId/fingerprint) are
-		// rejected by the backend as incomplete — none may be sent.
-		expect(body).not.toHaveProperty('policyId');
+		// Null distinguishes a successful no-match from missing decision inputs.
+		expect(body).toMatchObject({
+			country: null,
+			language: 'de',
+			policyId: null,
+			region: null,
+		});
 		expect(body).not.toHaveProperty('fingerprint');
-		expect(body).not.toHaveProperty('country');
-		expect(body).not.toHaveProperty('region');
-		expect(body).not.toHaveProperty('language');
 		expect(body).not.toHaveProperty('gpc');
 	});
 });

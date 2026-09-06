@@ -213,6 +213,29 @@ const saveSubject = function saveSubject(
 	return subject;
 };
 
+/** Capture no-match evidence before init or navigation can change its inputs. */
+const saveDecisionInputs = (
+	snapshot: ConsentSnapshot
+): Pick<SavePayload, 'decisionInputs'> => {
+	if (snapshot.resolution.status !== 'no-match') {
+		return {};
+	}
+	return {
+		decisionInputs: {
+			country: snapshot.location
+				? snapshot.location.countryCode
+				: (snapshot.overrides.country ?? null),
+			gpc: snapshot.privacySignals.gpc.active,
+			language:
+				snapshot.translations?.language ?? snapshot.overrides.language ?? 'en',
+			policyId: null,
+			region: snapshot.location
+				? snapshot.location.regionCode
+				: (snapshot.overrides.region ?? null),
+		},
+	};
+};
+
 const isRecord = function isRecord(
 	value: unknown
 ): value is Record<string, unknown> {
@@ -850,6 +873,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				confirmed: { actionAt, categories: confirmedCategories },
 				consentAction,
 				consents: after.effectivePermissions,
+				...saveDecisionInputs(after),
 				givenAt: actionAt,
 				model: after.model,
 				overrides: after.overrides,

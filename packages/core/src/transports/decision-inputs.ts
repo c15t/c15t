@@ -13,7 +13,7 @@ import type { InitOutput } from '@c15t/schema/types';
 import type { SavePayload } from '../types';
 
 export interface RememberedDecisionInputs {
-	policyId?: string;
+	policyId?: string | null;
 	fingerprint?: string;
 	country: string | null;
 	region: string | null;
@@ -31,6 +31,12 @@ export const rememberDecisionInputs = function rememberDecisionInputs(
 	payload: InitOutput,
 	gpc: boolean | undefined
 ): RememberedDecisionInputs {
+	let policyId: string | null | undefined;
+	if (payload.policyResolution?.status === 'matched') {
+		({ policyId } = payload.policyResolution);
+	} else if (payload.policyResolution?.status === 'no-match') {
+		policyId = null;
+	}
 	return {
 		country: payload.location.countryCode,
 		fingerprint:
@@ -39,10 +45,7 @@ export const rememberDecisionInputs = function rememberDecisionInputs(
 				: undefined,
 		gpc,
 		language: payload.translations.language,
-		policyId:
-			payload.policyResolution?.status === 'matched'
-				? payload.policyResolution.policyId
-				: undefined,
+		policyId,
 		region: payload.location.regionCode,
 	};
 };
@@ -51,7 +54,7 @@ export const rememberDecisionInputs = function rememberDecisionInputs(
  * Decision fields to send with a save, or `undefined` when none apply.
  *
  * Only asserted when the payload carries no signed snapshot token and init
- * actually resolved a policy pack. Partial inputs (country/language without
+ * resolved a policy pack or explicitly found no match. Partial inputs (country/language without
  * policyId/fingerprint, e.g. a manifest with no packs configured) are
  * rejected by the backend as incomplete (`422 STALE_POLICY`).
  */
@@ -59,16 +62,24 @@ export const buildDecisionAssertion = function buildDecisionAssertion(
 	payload: SavePayload,
 	inputs: RememberedDecisionInputs | undefined
 ): DecisionAssertion | undefined {
-	if (payload.policySnapshotToken || !inputs?.policyId || !inputs.fingerprint) {
+	const decision: RememberedDecisionInputs | undefined =
+		payload.decisionInputs ?? inputs;
+	if (
+		payload.policySnapshotToken ||
+		!decision ||
+		decision.policyId === undefined ||
+		(decision.policyId !== null &&
+			(!decision.policyId || !decision.fingerprint))
+	) {
 		return undefined;
 	}
 	return {
-		country: inputs.country,
-		fingerprint: inputs.fingerprint,
-		gpc: inputs.gpc,
-		language: inputs.language,
-		policyId: inputs.policyId,
-		region: inputs.region,
+		country: decision.country,
+		fingerprint: decision.fingerprint,
+		gpc: decision.gpc,
+		language: decision.language,
+		policyId: decision.policyId,
+		region: decision.region,
 	};
 };
 

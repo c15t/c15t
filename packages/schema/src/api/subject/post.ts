@@ -164,14 +164,16 @@ const manifestDecisionInputEntries = {
 			v.examples(['en'])
 		)
 	),
-	/** Runtime policy ID asserted by manifest-mode clients for recompute-on-write validation */
+	/** Policy ID to recompute on write; null explicitly asserts no matching policy. */
 	policyId: v.optional(
-		v.pipe(
-			v.string(),
-			v.description(
-				'Runtime policy ID asserted by manifest-mode clients for recompute-on-write validation.'
-			),
-			v.examples(['eu_opt_in'])
+		v.nullable(
+			v.pipe(
+				v.string(),
+				v.description(
+					'Runtime policy ID to recompute on write. Null asserts a successful no-match resolution.'
+				),
+				v.examples(['eu_opt_in'])
+			)
 		)
 	),
 	/** Region input used by the manifest resolver */

@@ -104,6 +104,15 @@ const isConfirmedCoverage = function isConfirmedCoverage(
 	);
 };
 
+const isDecisionInputs = (value: unknown): boolean =>
+	value === undefined ||
+	(isRecord(value) &&
+		value.policyId === null &&
+		(value.country === null || typeof value.country === 'string') &&
+		(value.region === null || typeof value.region === 'string') &&
+		typeof value.language === 'string' &&
+		typeof value.gpc === 'boolean');
+
 // Validate every persisted payload field before replaying it.
 // oxlint-disable-next-line complexity
 const isSavePayload = function isSavePayload(
@@ -114,6 +123,7 @@ const isSavePayload = function isSavePayload(
 	}
 	if (
 		!isSubject(value.subject) ||
+		!isDecisionInputs(value.decisionInputs) ||
 		!isConfirmedCoverage(value.confirmed) ||
 		!validateExplicitChoice(value.choice, Date.now()).ok
 	) {

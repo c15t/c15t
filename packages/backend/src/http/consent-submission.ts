@@ -26,7 +26,7 @@
  *
  * ## Receipts and preferences
  *
- * `preferences` is the complete effective map an old backend reads, and it is
+ * `preferences` is the complete explicit map an old backend reads, and it is
  * still what fills `purposeIds` (2.x parity: granted codes only). `choice`
  * carries only the categories this act confirmed, each with its own
  * confirmation time and policy basis, and is stored as sent. The two must
@@ -274,7 +274,7 @@ const decisionFromAssertedInputs = (
 	input: CookieBannerInput,
 	manifest: ConsentManifest,
 	context: SubmissionContext
-): ResolvedDecision | StalePolicyError => {
+): ResolvedDecision | StalePolicyError | undefined => {
 	const resolved = resolveInitFromManifest(
 		manifest,
 		{
@@ -286,6 +286,15 @@ const decisionFromAssertedInputs = (
 		{ baseTranslations }
 	);
 	const decision = resolved.policyResolution;
+	if (
+		input.policyId === null &&
+		input.fingerprint === undefined &&
+		decision.status === 'no-match'
+	) {
+		// A successful no-match has no policy token or runtime decision row.
+		// Recompute the asserted inputs before accepting its fallback choice.
+		return undefined;
+	}
 	if (
 		decision.status !== 'matched' ||
 		decision.policyId !== input.policyId ||
@@ -380,7 +389,10 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 		}
 
 		if (hasAssertedInputs(input)) {
-			if (input.policyId === undefined || input.fingerprint === undefined) {
+			if (
+				input.policyId === undefined ||
+				(input.policyId !== null && input.fingerprint === undefined)
+			) {
 				return yield* new StalePolicyError({
 					message:
 						'Asserted decision inputs are incomplete: policyId and fingerprint are required to recompute the decision',
@@ -479,14 +491,20 @@ const deriveConsentAction = (
  */
 const filterPreferences = (
 	preferences: Record<string, boolean>,
-	decision: ResolvedDecision | undefined
+	decision: ResolvedDecision | undefined,
+	choice: SubjectChoiceWire | undefined
 ): { applied: Record<string, boolean> } | BadRequestError => {
 	const allowed = allowedCategories(decision);
 	if (!isStrict(decision) || !allowed) {
 		return { applied: { ...preferences } };
 	}
 	const disallowed = Object.entries(preferences)
-		.filter(([category, granted]) => granted && !allowed.has(category))
+		.filter(
+			([category, granted]) =>
+				granted &&
+				!allowed.has(category) &&
+				(!choice || Object.hasOwn(choice.categories, category))
+		)
 		.map(([category]) => category);
 	if (disallowed.length > 0) {
 		return new BadRequestError({
@@ -494,7 +512,16 @@ const filterPreferences = (
 			message: `Preferences grant categories not allowed by policy: ${disallowed.join(', ')}`,
 		});
 	}
-	return { applied: { ...preferences } };
+	// A v3 body also carries historical values that this action did not
+	// confirm. Do not file their out-of-scope grants as current permissions
+	// or reject the new in-scope choice because of them.
+	return {
+		applied: Object.fromEntries(
+			Object.entries(preferences).filter(
+				([category, granted]) => !granted || allowed.has(category)
+			)
+		),
+	};
 };
 
 /**
@@ -611,7 +638,11 @@ const resolveCategories = (
 	let appliedPreferences: Record<string, boolean> | undefined;
 	let grantedCodes: string[] = [];
 	if (preferences) {
-		const filtered = filterPreferences(preferences, decision);
+		const filtered = filterPreferences(
+			preferences,
+			decision,
+			cookieBanner?.choice
+		);
 		if (filtered instanceof BadRequestError) {
 			return filtered;
 		}

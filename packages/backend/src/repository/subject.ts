@@ -79,7 +79,7 @@ export interface ConsentRow {
 	 */
 	readonly preferences: Record<string, boolean> | undefined;
 	/** v3 receipts this submission confirmed, exactly as the client sent them. */
-	readonly choice: SubjectChoiceWire | undefined;
+	readonly choice: SubjectChoiceWire | null | undefined;
 	/** What the row's receipt column holds, including an unreadable value. */
 	readonly storedChoice: StoredChoice;
 	readonly givenAt: Date;
@@ -95,7 +95,7 @@ export interface SubjectWithConsents {
 	readonly createdAt: Date;
 	readonly consents: readonly ConsentRow[];
 	/** Latest receipt per category across the cookie-banner consents. */
-	readonly choice: SubjectChoiceWire | undefined;
+	readonly choice: SubjectChoiceWire | null;
 }
 
 interface JoinedRow {
@@ -213,7 +213,7 @@ const groupSubjects = (
 
 	for (const row of rows) {
 		const subject: SubjectWithConsents = bySubject.get(row.subject_id) ?? {
-			choice: undefined,
+			choice: null,
 			consents: [],
 			createdAt: toDate(row.subject_createdAt),
 			externalId: row.subject_externalId,
@@ -224,9 +224,14 @@ const groupSubjects = (
 
 		if (row.consent_id !== null && row.consent_givenAt !== null) {
 			const storedChoice = decodeStoredChoice(row.consent_choice);
+			let choice: ConsentRow['choice'];
+			if (storedChoice.kind === 'receipts') {
+				({ choice } = storedChoice);
+			} else if (storedChoice.kind === 'unreadable') {
+				choice = null;
+			}
 			(subject.consents as ConsentRow[]).push({
-				choice:
-					storedChoice.kind === 'receipts' ? storedChoice.choice : undefined,
+				choice,
 				givenAt: toDate(row.consent_givenAt),
 				id: row.consent_id,
 				isLatestPolicy:

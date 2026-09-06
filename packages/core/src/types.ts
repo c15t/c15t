@@ -433,6 +433,18 @@ export interface SavePayload {
 	uiSource: KernelActiveUI;
 	consentAction: 'all' | 'necessary' | 'custom';
 	policySnapshotToken: string | null;
+	/**
+	 * Successful no-match inputs captured with the action. The backend
+	 * recomputes them before accepting a fallback choice; retries keep the
+	 * original inputs even after a later initialization changes policy.
+	 */
+	decisionInputs?: {
+		policyId: null;
+		country: string | null;
+		region: string | null;
+		language: string;
+		gpc: boolean;
+	};
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */

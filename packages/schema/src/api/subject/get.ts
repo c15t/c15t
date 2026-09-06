@@ -70,9 +70,9 @@ export const getSubjectParamsSchema = v.object({
 export const consentItemSchema = v.object({
 	/**
 	 * v3 receipts this submission confirmed, exactly as the client sent them.
-	 * Absent on rows written before receipts existed.
+	 * Absent on rows written before receipts existed; null when unreadable.
 	 */
-	choice: v.optional(subjectChoiceWireSchema),
+	choice: v.optional(v.nullable(subjectChoiceWireSchema)),
 	givenAt: v.date(),
 	id: v.string(),
 	isLatestPolicy: v.boolean(),
@@ -108,9 +108,10 @@ export const getSubjectOutputSchema = v.object({
 	 * Latest receipt per category across every cookie-banner consent, with
 	 * each receipt's original confirmation time and basis. Rows written
 	 * before receipts existed contribute legacy-v2 receipts timed at their
-	 * `givenAt`. Absent from backends that predate receipts.
+	 * `givenAt`. Null means there is no usable choice. Only backends that
+	 * predate receipts omit this field and require client-side reconstruction.
 	 */
-	subjectChoice: v.optional(subjectChoiceWireSchema),
+	subjectChoice: v.optional(v.nullable(subjectChoiceWireSchema)),
 });
 
 /**
